@@ -42,7 +42,7 @@ pub async fn run_recommendation_scan(
     for p in owned_periods {
         let client = client.clone();
         let vars: Vec<(String, serde_json::Value)> = template_vars.to_vec();
-        futs.push(tokio::spawn(async move { (p, recommend_stocks(client, p, &vars).await) }));
+        futs.push(tokio::spawn(async move { (p, recommend_stocks(client, p, &vars, None).await) }));
     }
 
     let mut all_picks: Vec<RecoPick> = Vec::new();

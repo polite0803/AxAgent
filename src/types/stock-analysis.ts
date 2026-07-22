@@ -73,6 +73,8 @@ export interface StockQuote {
   pe: number | null;
   pb: number | null;
   totalMv: number | null;
+  /** 流通市值（元）；后端 circulating_mv，serde rename_all camelCase */
+  circulatingMv: number | null;
   limitUp: number | null;
   limitDown: number | null;
   isSt: boolean;
@@ -88,6 +90,8 @@ export interface KLine {
   volume: number;
   amount: number;
   turnoverRate: number | null;
+  /** 累计复权因子 (R3-A)；None 表示未应用复权。后端 adj_factor */
+  adjFactor: number | null;
 }
 
 /** R3-B 财报披露事件 — 后端 `get_earnings_calendar` 返回结构 */
@@ -292,7 +296,7 @@ export interface BacktestResult {
   holdingDays: number;
   returnPct: number;
   wasCorrect: boolean;
-  maxDrawdown: number;
+  maxDrawdownPct: number;
 }
 
 export interface BacktestStats {

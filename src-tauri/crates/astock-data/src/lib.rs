@@ -153,6 +153,7 @@ struct VendorRouting {
     cls_flash: Vec<String>,
     north_bound_flow: Vec<String>,
     block_trades: Vec<String>,
+    policy_news: Vec<String>,
     institutional_visits: Vec<String>,
     index_quotes: Vec<String>,
     peers: Vec<String>,
@@ -192,10 +193,10 @@ impl VendorRouting {
                 "neodata".into(), // 末位兜底（美股/港股）
             ],
             klines: vec![
+                "eastmoney".into(),
                 "tencent".into(),
                 "xueqiu".into(),
                 "mootdx".into(),
-                "eastmoney".into(),
                 "browser_eastmoney".into(),
             ],
             financials: vec![
@@ -248,7 +249,12 @@ impl VendorRouting {
             dividend: vec!["eastmoney".into(), "baidu_stock".into()],
             research_reports: vec!["eastmoney".into(), "baidu_stock".into()],
             consensus_eps: vec!["ths".into(), "akshare".into(), "iwencai".into()],
-            concept_blocks: vec!["ths".into(), "baidu_stock".into(), "iwencai".into()],
+            concept_blocks: vec![
+                "eastmoney".into(),
+                "ths".into(),
+                "baidu_stock".into(),
+                "iwencai".into(),
+            ],
             announcements: vec!["cninfo".into(), "eastmoney".into()],
             market_dragon_tiger: vec!["ths".into(), "eastmoney".into(), "baidu_stock".into()],
             hot_stocks: vec![
@@ -268,9 +274,11 @@ impl VendorRouting {
             cls_flash: vec!["eastmoney".into(), "akshare".into(), "neodata".into()],
             north_bound_flow: vec!["eastmoney".into(), "ths".into(), "baidu_stock".into()],
             block_trades: vec!["eastmoney".into(), "baidu_stock".into()],
+            // 政策新闻:优先 eastmoney(基于行业关键词搜索),akshare 作为备选
+            policy_news: vec!["eastmoney".into(), "akshare".into()],
             institutional_visits: vec!["eastmoney".into()],
             index_quotes: vec!["eastmoney".into(), "tencent".into(), "neodata".into()],
-            peers: vec!["eastmoney".into(), "neodata".into()], // neodata 末位兜底
+            peers: vec!["eastmoney".into(), "iwencai".into(), "neodata".into()], // neodata 末位兜底
             option_pcr: vec!["eastmoney".into()],
             // P2-4 修复: 在 replay 模式下, 把 3 个核心方法切到对历史日期支持最好的 vendor。
             // 依据 as_of_capability.rs:
@@ -869,6 +877,7 @@ impl AStockClient {
 
     /// 按当前 AsOfContext 截断 NorthBoundFlow：保留 date <= as_of_date 的项。
     /// **Phase 1 混合 as-of**：仅结构化数据走 as-of。
+    /// 同时截断 recent_history 中 date > as_of_date 的项(用于趋势观察的多日数据)。
     fn truncate_north_bound_flow_by_asof(item: Option<NorthBoundFlow>) -> Option<NorthBoundFlow> {
         if !crate::as_of::is_asof_active_for(crate::as_of::AsOfDataKind::Structured) {
             return item;
@@ -877,14 +886,15 @@ impl AStockClient {
             Some(c) => c,
             None => return item,
         };
-        let item = item?;
-        if !item.date.is_empty()
-            && item.date.as_str() <= ctx.as_of_date.format("%Y-%m-%d").to_string().as_str()
-        {
-            Some(item)
-        } else {
-            None
+        let mut item = item?;
+        let cutoff = ctx.as_of_date.format("%Y-%m-%d").to_string();
+        // 主字段 date > cutoff → 整体丢弃
+        if !item.date.is_empty() && item.date.as_str() > cutoff.as_str() {
+            return None;
         }
+        // 截断 recent_history 中 date > cutoff 的项(保持"从新到旧"顺序)
+        item.recent_history.retain(|d| d.date.as_str() <= cutoff.as_str());
+        Some(item)
     }
 
     /// As-Of 模式下：用截断后的 K 线最后一条合成实时行情。
@@ -1586,11 +1596,48 @@ impl AStockClient {
         let vendor_names: Vec<String> =
             self.routing.social_sentiment.iter().map(|n| n.to_string()).collect();
         let sc = stock_code.to_string();
-        self.try_vendors_retry(stock_code, "social_sentiment", &vendor_names, 1, |_name, vendor| {
-            let sc = sc.clone();
-            Box::pin(async move { vendor.get_social_sentiment(&sc).await })
-        })
-        .await
+        let mut sentiments = self
+            .try_vendors_retry(stock_code, "social_sentiment", &vendor_names, 1, |_name, vendor| {
+                let sc = sc.clone();
+                Box::pin(async move { vendor.get_social_sentiment(&sc).await })
+            })
+            .await?;
+
+        // 修复 M-HOT-1: vendor(guba)无法直接提供 hot_rank（跨股票热度排名），
+        // 调用 get_hot_stocks 查找当前股票在热度榜中的位置，填充 hot_rank 字段。
+        // 失败时不影响主流程（hot_rank 保持 None）。
+        let needs_hot_rank = sentiments.iter().any(|s| s.hot_rank.is_none());
+        if needs_hot_rank {
+            if let Ok(hot_stocks) = self.get_hot_stocks().await {
+                let normalized_code = stock_code
+                    .trim_start_matches("sh")
+                    .trim_start_matches("sz")
+                    .trim_start_matches("bj");
+                for (idx, hs) in hot_stocks.iter().enumerate() {
+                    let hs_code = hs
+                        .stock_code
+                        .trim_start_matches("sh")
+                        .trim_start_matches("sz")
+                        .trim_start_matches("bj");
+                    if hs_code == normalized_code {
+                        let rank = (idx + 1) as u32;
+                        for s in sentiments.iter_mut() {
+                            if s.hot_rank.is_none() {
+                                s.hot_rank = Some(rank);
+                            }
+                        }
+                        break;
+                    }
+                }
+                if sentiments.iter().all(|s| s.hot_rank.is_none()) {
+                    tracing::debug!(
+                        "[astock] get_social_sentiment: 股票 {stock_code} 未在热度榜中，hot_rank 保持 None"
+                    );
+                }
+            }
+        }
+
+        Ok(sentiments)
     }
 
     pub async fn get_financials(
@@ -1710,6 +1757,126 @@ impl AStockClient {
                     vendor: "all".into(),
                     message: format!("所有新闻数据源失败，无法获取 {} 的新闻", stock_code),
                 })
+            },
+        }
+    }
+
+    /// 获取政策相关新闻(基于股票所属行业做关键词搜索)
+    ///
+    /// 实现路径:vendor.get_policy_news → search_news("{行业} 政策/规划/通知/补贴")
+    /// as-of 模式:走 news_archive 本地语料库(与 search_news 相同)
+    pub async fn get_policy_news(
+        &self,
+        stock_code: &str,
+        limit: u32,
+    ) -> Result<Vec<NewsItem>, DataError> {
+        // as-of 模式:政策新闻本质是搜索语义,与 search_news 一致走 news_archive
+        if let Some(ctx) = crate::as_of::current_as_of() {
+            if let Some(sink) = &self.news_archive_sink {
+                let as_of_ts_ms = ctx
+                    .as_of_date
+                    .and_hms_opt(23, 59, 59)
+                    .and_then(|dt| dt.and_local_timezone(chrono::Local).single())
+                    .map(|dt| dt.timestamp_millis())
+                    .unwrap_or_else(|| {
+                        ctx.as_of_date
+                            .and_hms_opt(23, 59, 59)
+                            .and_then(|dt| dt.and_utc().timestamp_millis().into())
+                            .unwrap_or(0)
+                    });
+                // 用 "政策" 关键词查 news_archive
+                let archived = sink.search_asof("政策", Some(stock_code), as_of_ts_ms, limit).await;
+                if !archived.is_empty() {
+                    tracing::info!(
+                        "[news_archive] get_policy_news 命中 {} 条 (stock={}, as_of={})",
+                        archived.len(),
+                        stock_code,
+                        ctx.as_of_date
+                    );
+                    return Ok(archived);
+                }
+                crate::as_of::record_degradation(
+                    "astock-data",
+                    "get_policy_news",
+                    "as-of 模式 news_archive 无政策新闻数据",
+                );
+                return Ok(vec![]);
+            }
+            crate::as_of::record_degradation(
+                "astock-data",
+                "get_policy_news",
+                "as-of 模式新闻搜索不可用(未配置 news_archive sink)",
+            );
+            return Ok(vec![]);
+        }
+
+        // live 模式:走 vendor + 缓存
+        {
+            let cache_key = Self::cache_key_for("policy_news", &format!("{stock_code}:{limit}"));
+            if let Some(cached) = self.cache_get(&cache_key).await {
+                if let Ok(data) = serde_json::from_str::<Vec<NewsItem>>(&cached) {
+                    return Ok(data);
+                }
+            }
+        }
+
+        let vendor_names: Vec<String> = self
+            .routing
+            .vendors_for("policy_news", &self.routing.policy_news)
+            .iter()
+            .map(|n| n.to_string())
+            .collect();
+        let sc = stock_code.to_string();
+        let limit_owned = limit;
+        match self
+            .try_vendors_retry(stock_code, "policy_news", &vendor_names, 2, |name, vendor| {
+                let sc = sc.clone();
+                Box::pin(async move {
+                    let result = vendor.get_policy_news(&sc, limit_owned).await?;
+                    if result.is_empty() {
+                        return Err(DataError::VendorError {
+                            vendor: name.to_string(),
+                            message: "政策新闻返回空".into(),
+                        });
+                    }
+                    let truncated = Self::truncate_news_by_asof(result);
+                    if truncated.is_empty() {
+                        return Err(DataError::VendorError {
+                            vendor: name.to_string(),
+                            message: "政策新闻全部晚于截止日".into(),
+                        });
+                    }
+                    Ok(truncated)
+                })
+            })
+            .await
+        {
+            Ok(result) => {
+                let cache_key =
+                    Self::cache_key_for("policy_news", &format!("{stock_code}:{limit}"));
+                self.cache_set_serialized(cache_key, &result, 300).await;
+                // 自动 upsert 到 news_archive
+                if let Some(sink) = &self.news_archive_sink {
+                    let filtered: Vec<NewsItem> = result
+                        .iter()
+                        .filter(|n| parse_news_publish_time_ms(&n.publish_time).is_some())
+                        .cloned()
+                        .collect();
+                    if !filtered.is_empty() {
+                        sink.upsert("policy_news", Some(stock_code), None, &filtered).await;
+                    }
+                }
+                Ok(result)
+            },
+            Err(e) => {
+                // 政策新闻是过滤类工具(从全部新闻中筛选政策相关内容),
+                // 空结果可能是正常的(该股票近期无政策相关新闻),不返回 Err。
+                // 与 get_news 不同:get_news 空结果意味着数据源故障,
+                // get_policy_news 空结果可能是"确实没有政策新闻"。
+                tracing::info!(
+                    "[get_policy_news] {stock_code} 无政策相关新闻(vendor 失败或过滤后为空): {e}"
+                );
+                Ok(vec![])
             },
         }
     }
@@ -2146,7 +2313,14 @@ impl AStockClient {
                 self.cache_set_serialized(cache_key, &result, 300).await;
                 Ok(Some(result))
             },
-            Err(_) => Ok(None),
+            Err(e) => {
+                tracing::warn!(
+                    "[astock] get_margin_data 所有 vendor 失败(stock_code={}): {}",
+                    stock_code,
+                    e
+                );
+                Ok(None)
+            },
         }
     }
 
@@ -2321,7 +2495,14 @@ impl AStockClient {
                 self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                tracing::warn!(
+                    "[astock] get_shareholder_trades 所有 vendor 失败(stock_code={}): {}",
+                    stock_code,
+                    e
+                );
+                Ok(vec![])
+            },
         }
     }
 
@@ -2594,7 +2775,13 @@ impl AStockClient {
             .await
         {
             Ok(result) => Ok(Some(result)),
-            Err(_) => Ok(None),
+            Err(e) => {
+                tracing::warn!(
+                    "[get_concept_blocks] 所有 vendor 失败(stock_code={}): {e}",
+                    stock_code
+                );
+                Ok(None)
+            },
         }
     }
 
@@ -2997,7 +3184,10 @@ impl AStockClient {
                 }
                 Ok(result)
             },
-            Err(_) => Ok(None),
+            Err(e) => {
+                tracing::warn!("[get_north_bound_flow] 所有 vendor 失败: {e}");
+                Ok(None)
+            },
         }
     }
 
@@ -3034,7 +3224,14 @@ impl AStockClient {
                 self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                tracing::warn!(
+                    "[astock] get_block_trades 所有 vendor 失败(stock_code={}): {}",
+                    stock_code,
+                    e
+                );
+                Ok(vec![])
+            },
         }
     }
 
@@ -3080,7 +3277,13 @@ impl AStockClient {
                 self.cache_set_serialized(cache_key, &result, 3600).await;
                 Ok(result)
             },
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                tracing::warn!(
+                    "[get_institutional_visits] 所有 vendor 失败(stock_code={}): {e}",
+                    stock_code
+                );
+                Ok(vec![])
+            },
         }
     }
 
@@ -3229,7 +3432,10 @@ impl AStockClient {
             .await
         {
             Ok(result) => Ok(result),
-            Err(_) => Ok(vec![]),
+            Err(e) => {
+                tracing::warn!("[get_peers] 所有 vendor 失败(stock_code={}): {e}", stock_code);
+                Ok(vec![])
+            },
         }
     }
 
@@ -3292,7 +3498,13 @@ impl AStockClient {
             .await
         {
             Ok(result) => Ok(Some(result)),
-            Err(_) => Ok(None),
+            Err(e) => {
+                tracing::debug!(
+                    "[get_option_pcr] 所有 vendor 失败(stock_code={}): {e}",
+                    stock_code
+                );
+                Ok(None)
+            },
         }
     }
 

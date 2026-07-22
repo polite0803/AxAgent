@@ -84,6 +84,18 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
             }
         }),
         json!({
+            "name": "get_stock_policy_news",
+            "description": "获取政策相关新闻（基于股票所属行业做关键词搜索：政策/规划/通知/补贴）",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" },
+                    "limit": { "type": "integer", "description": "新闻数量", "default": 30 }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
             "name": "get_stock_money_flow",
             "description": "获取A股资金流向（主力/超大单/大单/中单/小单净流入）",
             "inputSchema": {
@@ -432,6 +444,12 @@ pub async fn execute_mcp_tool(
             let news = client.get_news(code, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&news).map_err(|e| e.to_string())
         },
+        "get_stock_policy_news" => {
+            let code = arguments["stock_code"].as_str().unwrap_or("");
+            let limit = arguments["limit"].as_u64().unwrap_or(30).min(100) as u32;
+            let news = client.get_policy_news(code, limit).await.map_err(|e| e.to_string())?;
+            serde_json::to_string(&news).map_err(|e| e.to_string())
+        },
         "get_stock_money_flow" => {
             let code = arguments["stock_code"].as_str().unwrap_or("");
             let flow = client.get_money_flow(code).await.map_err(|e| e.to_string())?;
@@ -573,20 +591,125 @@ pub async fn execute_mcp_tool(
             if code.is_empty() {
                 return Err("compute_valuation 缺少 stock_code 参数".to_string());
             }
-            // 估值需要行情（PE/PB）和财务数据
+            // 估值需要行情（PE/PB/总市值）和财务数据
             let quote = client.get_quote(code).await.map_err(|e| e.to_string())?;
             let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
-            // 取最近一期财务快照用于估值带计算
-            let fin_snap = financials.first();
+            let current_price = quote.price;
             let pe = quote.pe;
             let pb = quote.pb;
+            let total_mv = quote.total_mv;
+            let total_shares = if current_price > 0.0 {
+                total_mv.map(|mv| mv / current_price / 1_0000_0000.0)
+            } else {
+                None
+            };
+
+            // ── Piotroski F-Score (0-9) ──
+            let f_score = compute_f_score(&financials);
+            let f_score_level = match f_score {
+                7..=9 => "优秀(7-9)",
+                5..=6 => "良好(5-6)",
+                3..=4 => "一般(3-4)",
+                _ => "弱(0-2)",
+            };
+
+            // ── 护城河量化评分 (0-100) ──
+            let (moat_score, moat_level) = compute_moat_score(&financials, pe, pb);
+
+            // ── DCF 两阶段估值 ──
+            let (dcf_low, dcf_mid, dcf_high) =
+                compute_dcf(&financials, total_shares, current_price);
+
+            // ── 安全边际 ──
+            let (mos_pct, mos_level) = if dcf_mid > 0.0 && current_price > 0.0 {
+                let mos = ((dcf_mid - current_price) / dcf_mid) * 100.0;
+                let level = if mos > 30.0 {
+                    "充足"
+                } else if mos > 15.0 {
+                    "适中"
+                } else if mos > 0.0 {
+                    "不足"
+                } else {
+                    "无（高估风险）"
+                };
+                (mos, level)
+            } else {
+                (0.0, "无法计算")
+            };
+
+            // ── 格雷厄姆内在价值 ──
+            let graham_value = compute_graham_value(&financials, current_price);
+
+            // ── 所有者收益率 ──
+            let oe_yield =
+                if let (Some(mv), Some(oe)) = (total_mv, compute_owner_earnings(&financials)) {
+                    if mv > 0.0 {
+                        (oe / mv) * 100.0
+                    } else {
+                        0.0
+                    }
+                } else {
+                    0.0
+                };
+
+            // ── 综合估值判断 ──
+            let value_signal = {
+                let mut score = 0u32;
+                if mos_pct > 20.0 {
+                    score += 30;
+                } else if mos_pct > 10.0 {
+                    score += 20;
+                } else if mos_pct > 0.0 {
+                    score += 10;
+                }
+                score += f_score.min(9) * 5;
+                score += moat_score.min(100) / 5;
+                if oe_yield > 5.0 {
+                    score += 20;
+                } else if oe_yield > 3.0 {
+                    score += 10;
+                }
+                match score {
+                    60.. => "低估",
+                    45.. => "合理偏低",
+                    30.. => "合理",
+                    15.. => "偏高",
+                    _ => "高估",
+                }
+            };
+
             let result = json!({
                 "stock_code": code,
+                "current_price": current_price,
                 "pe": pe,
                 "pb": pb,
-                "quote": &quote,
-                "financials": fin_snap,
-                "valuation_note": "基于 PE/PB 与财务快照的简化估值判断，详细 DCF/F-Score 请见 replay_tool_chain",
+                "total_mv": total_mv,
+                "dcf_valuation": {
+                    "low": round2(dcf_low),
+                    "mid": round2(dcf_mid),
+                    "high": round2(dcf_high),
+                },
+                "graham_intrinsic_value": round2(graham_value),
+                "margin_of_safety": {
+                    "pct": round1(mos_pct),
+                    "level": mos_level,
+                },
+                "piotroski_f_score": {
+                    "score": f_score,
+                    "max": 9,
+                    "level": f_score_level,
+                },
+                "moat": {
+                    "score": moat_score,
+                    "max": 100,
+                    "level": moat_level,
+                },
+                "owner_earnings_yield_pct": round1(oe_yield),
+                "value_signal": value_signal,
+                "summary": format!(
+                    "内在价值(DCF中性)≈{:.2}元 | 格雷厄姆值≈{:.2}元 | 安全边际{:.0}%({}) | F-Score={}/9({}) | 护城河{}/100({}) | OE收益率{:.1}% | 综合判断:{}",
+                    dcf_mid, graham_value, mos_pct, mos_level, f_score, f_score_level, moat_score, moat_level, oe_yield, value_signal
+                ),
             });
             serde_json::to_string(&result).map_err(|e| e.to_string())
         },
@@ -672,13 +795,12 @@ pub async fn execute_mcp_tool(
             let financials =
                 client.get_financials(primary_code).await.map_err(|e| e.to_string())?;
             let fin = financials.first();
-            let roe_ttm_pct = fin.and_then(|f| f.roe).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+            let roe_ttm_pct = fin.and_then(|f| f.roe).map(|v| (v * 10.0).round() / 10.0);
             let gross_margin_pct =
-                fin.and_then(|f| f.gross_margin).map(|v| (v * 100.0 * 10.0).round() / 10.0);
-            let debt_ratio_pct =
-                fin.and_then(|f| f.debt_ratio).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+                fin.and_then(|f| f.gross_margin).map(|v| (v * 10.0).round() / 10.0);
+            let debt_ratio_pct = fin.and_then(|f| f.debt_ratio).map(|v| (v * 10.0).round() / 10.0);
             let revenue_growth_yoy_pct =
-                fin.and_then(|f| f.revenue_yoy).map(|v| (v * 100.0 * 10.0).round() / 10.0);
+                fin.and_then(|f| f.revenue_yoy).map(|v| (v * 10.0).round() / 10.0);
 
             // 拉取行情拿 PE/PB
             let quote = client.get_quote(primary_code).await.map_err(|e| e.to_string())?;
@@ -701,5 +823,297 @@ pub async fn execute_mcp_tool(
             serde_json::to_string(&result).map_err(|e| e.to_string())
         },
         _ => Err(format!("Unknown MCP tool: {tool_name}")),
+    }
+}
+
+// ── 估值计算辅助函数 ──────────────────────────────────────────────────────
+
+use axagent_harness::market_data::FinancialReport;
+
+fn round2(v: f64) -> f64 {
+    (v * 100.0).round() / 100.0
+}
+fn round1(v: f64) -> f64 {
+    (v * 10.0).round() / 10.0
+}
+
+/// Piotroski F-Score (0-9)
+///  profitability(4): 正ROE, 正经营现金流, ROE同比增长, 现金流>净利润
+///  leverage(3): 长期负债不增, 流动比率提升, 无新股增发
+///  efficiency(2): 毛利率提升, 资产周转率提升
+fn compute_f_score(financials: &[FinancialReport]) -> u32 {
+    if financials.is_empty() {
+        return 0;
+    }
+    let curr = &financials[0];
+    let prev = financials.get(1);
+    let mut score = 0u32;
+
+    // P1: 正 ROE（roe 是百分比值，>0 即正 ROE）
+    if curr.roe.unwrap_or(0.0) > 0.0 {
+        score += 1;
+    }
+    // P2: 正经营现金流
+    if curr.operating_cash_flow.unwrap_or(0.0) > 0.0 {
+        score += 1;
+    }
+    // P3: ROE 同比增长
+    if let (Some(curr_roe), Some(prev_roe)) = (curr.roe, prev.and_then(|p| p.roe)) {
+        if curr_roe > prev_roe {
+            score += 1;
+        }
+    } else if curr.roe.unwrap_or(0.0) > 0.0 && prev.is_none() {
+        score += 1; // 仅一期且为正 ROE 也算通过
+    }
+    // P4: 经营现金流 > 净利润（应计质量）
+    let np = curr.net_profit.unwrap_or(0.0);
+    let ocf = curr.operating_cash_flow;
+    if let (Some(ocf_val), np_val) = (ocf, np) {
+        if ocf_val > np_val {
+            score += 1;
+        }
+    }
+
+    // L1: 长期负债/资产负债率不增
+    if let (Some(curr_dr), Some(prev_dr)) = (curr.debt_ratio, prev.and_then(|p| p.debt_ratio)) {
+        if curr_dr <= prev_dr {
+            score += 1;
+        }
+    } else {
+        score += 1; // 无法对比时给通过
+    }
+    // L2: 流动比率提升
+    if let (Some(curr_cr), Some(prev_cr)) = (curr.current_ratio, prev.and_then(|p| p.current_ratio))
+    {
+        if curr_cr >= prev_cr {
+            score += 1;
+        }
+    } else if curr.current_ratio.unwrap_or(1.5) >= 1.0 {
+        score += 1;
+    }
+    // L3: 无新股增发 — 无直接数据，跳过（用负债率指标替代为已覆盖）
+    // A股财报数据不包含增发信息，此项默认给通过
+    score += 1;
+
+    // E1: 毛利率提升
+    if let (Some(curr_gm), Some(prev_gm)) = (curr.gross_margin, prev.and_then(|p| p.gross_margin)) {
+        if curr_gm > prev_gm {
+            score += 1;
+        }
+    } else if curr.gross_margin.unwrap_or(0.0) > 20.0 {
+        score += 1;
+    }
+    // E2: 资产周转率提升 — 用 revenue / total_assets 近似；无 total_assets 时用营收同比增长代替
+    if let (Some(curr_rev), Some(prev_rev)) = (curr.revenue, prev.and_then(|p| p.revenue)) {
+        if let (Some(curr_ta), Some(prev_ta)) =
+            (curr.total_assets, prev.and_then(|p| p.total_assets))
+        {
+            if curr_ta > 0.0 && prev_ta > 0.0 {
+                let curr_tat = curr_rev / curr_ta;
+                let prev_tat = prev_rev / prev_ta;
+                if curr_tat > prev_tat {
+                    score += 1;
+                }
+            }
+        } else if curr_rev > prev_rev {
+            score += 1; // 营收增长近似替代周转率提升
+        }
+    } else {
+        score += 1; // 无法对比时给通过
+    }
+
+    score.min(9)
+}
+
+/// 护城河量化评分 (0-100)
+fn compute_moat_score(
+    financials: &[FinancialReport],
+    pe: Option<f64>,
+    _pb: Option<f64>,
+) -> (u32, &'static str) {
+    if financials.is_empty() {
+        return (0, "无");
+    }
+    let f = &financials[0];
+    let mut score = 0u32;
+
+    // 1. ROE 持续性 (30分)
+    let roe_values: Vec<f64> = financials.iter().take(5).filter_map(|r| r.roe).collect();
+    let roe_count = roe_values.len() as f64;
+    let avg_roe = if roe_count > 0.0 {
+        roe_values.iter().sum::<f64>() / roe_count
+    } else {
+        0.0
+    };
+    if avg_roe > 20.0 {
+        score += 30;
+    } else if avg_roe > 15.0 {
+        score += 20;
+    } else if avg_roe > 10.0 {
+        score += 10;
+    }
+
+    // 2. 毛利率稳定性 (20分)
+    let gm_values: Vec<f64> = financials.iter().take(5).filter_map(|r| r.gross_margin).collect();
+    let gm_count = gm_values.len() as f64;
+    let avg_gm = if gm_count > 0.0 {
+        gm_values.iter().sum::<f64>() / gm_count
+    } else {
+        0.0
+    };
+    if avg_gm > 60.0 {
+        score += 20;
+    } else if avg_gm > 40.0 {
+        score += 15;
+    } else if avg_gm > 20.0 {
+        score += 8;
+    }
+
+    // 3. 低负债 (20分)
+    let debt = f.debt_ratio.unwrap_or(100.0);
+    if debt < 20.0 {
+        score += 20;
+    } else if debt < 40.0 {
+        score += 15;
+    } else if debt < 60.0 {
+        score += 8;
+    }
+
+    // 4. 盈利稳定性 (15分)
+    let all_profitable = financials.iter().take(5).all(|r| r.net_profit.unwrap_or(-1.0) > 0.0);
+    if all_profitable {
+        score += 15;
+    }
+
+    // 5. 估值合理性 (15分)
+    if let Some(pe_val) = pe {
+        if pe_val < 15.0 && pe_val > 0.0 {
+            score += 15;
+        } else if pe_val < 25.0 {
+            score += 10;
+        } else if pe_val < 50.0 {
+            score += 5;
+        }
+    }
+
+    let level = if score >= 70 {
+        "宽阔"
+    } else if score >= 40 {
+        "狭窄"
+    } else {
+        "无"
+    };
+    (score, level)
+}
+
+/// DCF 两阶段估值（保守/中性/乐观三档）
+fn compute_dcf(
+    financials: &[FinancialReport],
+    total_shares: Option<f64>,
+    _current_price: f64,
+) -> (f64, f64, f64) {
+    if financials.is_empty() {
+        return (0.0, 0.0, 0.0);
+    }
+    let latest = &financials[0];
+    // vendor 返回的财务数据单位均为"元"，无需缩放
+    // 优先用 free_cash_flow；其次 operating_cash_flow - capex；最后用 net_profit * 0.90 估算
+    let fcf = latest
+        .free_cash_flow
+        .or_else(|| {
+            latest
+                .operating_cash_flow
+                .and_then(|ocf| latest.capital_expenditure.map(|capex| ocf - capex))
+        })
+        .unwrap_or_else(|| latest.net_profit.unwrap_or(0.0) * 0.90);
+
+    let shares = match total_shares {
+        Some(s) if s > 0.0 => s,
+        _ => return (0.0, 0.0, 0.0),
+    };
+
+    if fcf <= 0.0 {
+        return (0.0, 0.0, 0.0);
+    }
+    let fcf_per_share = fcf / shares; // 元/股
+
+    // 用营收同比增速作为 growth_rate 参考；默认 8%
+    let growth = latest.revenue_yoy.map(|y| (y / 100.0).clamp(0.02, 0.30)).unwrap_or(0.08);
+    let perpetual = 0.03;
+    let discount = 0.10;
+
+    let dcf_two_stage = |fcf_ps: f64, g: f64, p: f64, d: f64| -> f64 {
+        let mut pv = 0.0;
+        let mut current_fcf = fcf_ps;
+        for year in 1..=5 {
+            current_fcf *= 1.0 + g;
+            pv += current_fcf / (1.0 + d).powi(year);
+        }
+        let terminal_fcf = current_fcf * (1.0 + p);
+        let terminal_spread = (d - p).max(0.001);
+        let terminal_value = terminal_fcf / terminal_spread;
+        let terminal_pv = terminal_value / (1.0 + d).powi(5);
+        pv + terminal_pv
+    };
+
+    let low = dcf_two_stage(
+        fcf_per_share,
+        (growth * 0.6_f64).max(0.01),
+        (perpetual * 0.7_f64).max(0.01),
+        discount,
+    );
+    let mid = dcf_two_stage(fcf_per_share, growth.max(0.01), perpetual, discount);
+    let high = dcf_two_stage(
+        fcf_per_share,
+        (growth * 1.5_f64).clamp(0.02, 0.30),
+        (perpetual * 1.3_f64).min(0.05),
+        discount,
+    );
+
+    (low, mid, high)
+}
+
+/// 格雷厄姆内在价值公式：V = EPS × (8.5 + 2g) × 4.4 / Y
+/// g 为未来7-10年预期增长率，Y 为AAA企业债收益率（取4.4%为基准）
+fn compute_graham_value(financials: &[FinancialReport], current_price: f64) -> f64 {
+    if financials.is_empty() || current_price <= 0.0 {
+        return 0.0;
+    }
+    let latest = &financials[0];
+    let eps = latest.eps.unwrap_or(0.0);
+    if eps <= 0.0 {
+        return 0.0;
+    }
+    // 用利润同比作为增长参考；vendor 返回的 profit_yoy 是百分比值（如 15.0 表示 15%）
+    // 格雷厄姆公式中 g 直接用百分比值（8.5 + 2*g），封顶 30%
+    let g = latest.profit_yoy.map(|y| y.clamp(0.0, 30.0)).unwrap_or(5.0);
+    let bond_yield = 4.4;
+    let value = eps * (8.5 + 2.0 * g) * 4.4 / bond_yield;
+    value.max(0.0)
+}
+
+/// 巴菲特所有者收益（亿元）
+fn compute_owner_earnings(financials: &[FinancialReport]) -> Option<f64> {
+    if financials.is_empty() {
+        return None;
+    }
+    let f = &financials[0];
+    // vendor 返回的财务数据单位均为"元"，无需缩放
+    if let (Some(ocf), Some(capex)) = (f.operating_cash_flow, f.capital_expenditure) {
+        Some((ocf - capex).max(0.0))
+    } else if let Some(fcf) = f.free_cash_flow {
+        Some(fcf.max(0.0))
+    } else {
+        let net = f.net_profit.unwrap_or(0.0);
+        let debt_ratio = f.debt_ratio.unwrap_or(50.0);
+        // debt_ratio 是百分比值，>60% 为高负债
+        let factor = if debt_ratio > 60.0 {
+            0.85
+        } else if debt_ratio > 40.0 {
+            0.90
+        } else {
+            0.95
+        };
+        Some((net * factor).max(0.0))
     }
 }

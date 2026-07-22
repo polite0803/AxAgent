@@ -353,6 +353,20 @@ pub struct NorthBoundFlow {
     pub sz_flow: f64,
     pub total_flow: f64,
     pub timestamp: Option<String>,
+    /// 最近若干个交易日的资金流明细(从最新到最旧),用于趋势观察
+    /// 仅当 vendor 返回多日数据时填充,默认空数组
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub recent_history: Vec<NorthBoundFlowDaily>,
+}
+
+/// 北向资金单日明细(用于 recent_history)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NorthBoundFlowDaily {
+    pub date: String,
+    pub sh_flow: f64,
+    pub sz_flow: f64,
+    pub total_flow: f64,
 }
 
 /// 大盘指数行情

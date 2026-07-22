@@ -13,6 +13,14 @@ fn val_to_f64(v: &Value) -> Option<f64> {
     v.as_str().and_then(|s| s.parse().ok()).or_else(|| v.as_f64())
 }
 
+/// 去除 sh/sz/bj 前缀,同花顺 URL 只接受纯数字代码
+///
+/// 修复(2026-07-22): 原代码直接用 stock_code 构造 URL,如传入 "sh600887",
+/// URL 变为 `https://basic.10jqka.com.cn/sh600887/concept.shtml` 会 404。
+fn pure_code(stock_code: &str) -> &str {
+    stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj")
+}
+
 #[async_trait]
 impl StockVendor for ThsVendor {
     async fn get_quote(&self, _: &str) -> Result<StockQuote, DataError> {
@@ -37,17 +45,18 @@ impl StockVendor for ThsVendor {
     }
 
     async fn get_news(&self, stock_code: &str, limit: u32) -> Result<Vec<NewsItem>, DataError> {
-        // 同花顺个股新闻：https://basic.10jqka.com.cn/{stock_code}/news.html
+        // 同花顺个股新闻：https://basic.10jqka.com.cn/{code}/news.html
+        let code = pure_code(stock_code);
         let url = format!(
             "https://basic.10jqka.com.cn/api/stockph.php?code={}&type=news&page=1&limit={}",
-            stock_code,
+            code,
             limit.min(50)
         );
         let resp = self
             .http
             .get(&url)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-            .header("Referer", format!("https://basic.10jqka.com.cn/{}/", stock_code))
+            .header("Referer", format!("https://basic.10jqka.com.cn/{}/", code))
             .send()
             .await?;
         crate::check_response_429(&resp, "ths")?;
@@ -141,7 +150,8 @@ impl StockVendor for ThsVendor {
     }
 
     async fn get_consensus_eps(&self, stock_code: &str) -> Result<Option<ConsensusEPS>, DataError> {
-        let url = format!("https://basic.10jqka.com.cn/{}/worth/", stock_code);
+        let code = pure_code(stock_code);
+        let url = format!("https://basic.10jqka.com.cn/{}/worth/", code);
         let resp = self
             .http
             .get(&url)
@@ -195,7 +205,8 @@ impl StockVendor for ThsVendor {
         &self,
         stock_code: &str,
     ) -> Result<Option<ConceptBlocks>, DataError> {
-        let url = format!("https://basic.10jqka.com.cn/{}/concept.shtml", stock_code);
+        let code = pure_code(stock_code);
+        let url = format!("https://basic.10jqka.com.cn/{}/concept.shtml", code);
         let resp = self
             .http
             .get(&url)
@@ -317,7 +328,10 @@ impl StockVendor for ThsVendor {
         let json: Value = resp.json().await?;
         let data = &json["data"];
         if data.is_null() {
-            return Ok(vec![]);
+            return Err(DataError::VendorError {
+                vendor: "ths".into(),
+                message: "get_industry_ranking 数据为空".into(),
+            });
         }
 
         let empty_vec2 = vec![];
@@ -378,7 +392,10 @@ impl StockVendor for ThsVendor {
         let json: Value = resp.json().await?;
         let data = &json["data"];
         if data.is_null() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "ths".into(),
+                message: "get_north_bound_flow 数据为空".into(),
+            });
         }
 
         let sh_flow =
@@ -397,6 +414,7 @@ impl StockVendor for ThsVendor {
             sz_flow,
             total_flow: sh_flow + sz_flow,
             timestamp: data.get("time").and_then(|v| v.as_str().map(|s| s.to_string())),
+            recent_history: vec![],
         }))
     }
 

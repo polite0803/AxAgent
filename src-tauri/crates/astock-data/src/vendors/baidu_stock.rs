@@ -10,14 +10,18 @@ pub struct BaiduStockVendor {
 }
 
 fn to_baidu_code(stock_code: &str) -> String {
-    let prefix = if stock_code.starts_with('6') || stock_code.starts_with('9') {
+    // 修复(2026-07-22): 去除 sh/sz/bj 前缀,否则 starts_with('6') 判断会失效,
+    // 误把 "sh600887" 当作深圳市场股票,生成 "szsh600887" 导致所有 API 调用返回空数据。
+    let code =
+        stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+    let prefix = if code.starts_with('6') || code.starts_with('9') {
         "sh"
-    } else if stock_code.starts_with('8') || stock_code.starts_with('4') {
+    } else if code.starts_with('8') || code.starts_with('4') {
         "bj"
     } else {
         "sz"
     };
-    format!("{prefix}{stock_code}")
+    format!("{prefix}{code}")
 }
 
 fn val_to_f64(v: &Value) -> Option<f64> {
@@ -69,7 +73,7 @@ impl StockVendor for BaiduStockVendor {
         if pre_close <= 0.0 {
             tracing::warn!("[baidu_stock] {} yestclose 缺失或为 0", stock_code);
         }
-        let volume = val_to_f64(&result["volume"]).unwrap_or(0.0);
+        let volume = val_to_f64(&result["volume"]).unwrap_or(0.0) * 100.0; // 百度行情 volume 单位为"手"，×100 转为"股"
         let amount = val_to_f64(&result["amount"]).unwrap_or(0.0);
         let change_pct = val_to_f64(&result["changepercent"]).unwrap_or(0.0);
         let turnover_rate = val_to_f64(&result["turnoverratio"]).unwrap_or(0.0);
@@ -130,7 +134,7 @@ impl StockVendor for BaiduStockVendor {
                 let close = val_to_f64(item.get("close")?)?;
                 let high = val_to_f64(item.get("high")?)?;
                 let low = val_to_f64(item.get("low")?)?;
-                let volume = val_to_f64(item.get("volume")?).unwrap_or(0.0);
+                let volume = val_to_f64(item.get("volume")?).unwrap_or(0.0) * 100.0; // 百度 K线 volume 单位为"手"，×100 转为"股"
                 let amount = val_to_f64(item.get("amount")?).unwrap_or(0.0);
                 let turnover_rate = item.get("turnoverratio").and_then(val_to_f64);
 
@@ -156,11 +160,16 @@ impl StockVendor for BaiduStockVendor {
         let json = self.fetch_json(&url).await?;
 
         let items = match json["Result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "baidu_stock".into(),
+                    message: format!("get_financials 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
-        Ok(items
+        let reports: Vec<FinancialReport> = items
             .iter()
             .map(|item| FinancialReport {
                 stock_code: stock_code.to_string(),
@@ -183,7 +192,27 @@ impl StockVendor for BaiduStockVendor {
                 quick_ratio: None,
                 estimated: Some(false),
             })
-            .collect())
+            .collect();
+
+        // 修复 M-FIN-2: 关键字段全为 None 时返回 VendorError 触发 fallback
+        let critical_fields_empty = reports.iter().all(|r| {
+            r.roe.is_none()
+                && r.gross_margin.is_none()
+                && r.net_margin.is_none()
+                && r.revenue_yoy.is_none()
+                && r.profit_yoy.is_none()
+        });
+        if critical_fields_empty {
+            tracing::warn!(
+                "[baidu_stock] get_financials 所有财报的5个关键字段均为 None(stock_code={stock_code})，触发 fallback"
+            );
+            return Err(DataError::VendorError {
+                vendor: "baidu_stock".into(),
+                message: format!("财报关键字段全为 None(stock_code={stock_code})"),
+            });
+        }
+
+        Ok(reports)
     }
 
     async fn get_news(&self, stock_code: &str, limit: u32) -> Result<Vec<NewsItem>, DataError> {
@@ -280,8 +309,13 @@ impl StockVendor for BaiduStockVendor {
         let json = self.fetch_json(&url).await?;
 
         let items = match json["Result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "baidu_stock".into(),
+                    message: format!("get_lockup_schedule 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
         Ok(items
@@ -304,7 +338,10 @@ impl StockVendor for BaiduStockVendor {
 
         let data = &json["Result"];
         if data.is_null() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "baidu_stock".into(),
+                message: format!("get_margin_data 数据为空(stock_code={stock_code})"),
+            });
         }
 
         Ok(Some(MarginData {
@@ -378,8 +415,13 @@ impl StockVendor for BaiduStockVendor {
         let json = self.fetch_json(&url).await?;
 
         let items = match json["Result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "baidu_stock".into(),
+                    message: format!("get_shareholder_trades 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
         Ok(items
@@ -479,7 +521,10 @@ impl StockVendor for BaiduStockVendor {
 
         let data = &json["Result"];
         if data.is_null() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "baidu_stock".into(),
+                message: format!("get_concept_blocks 数据为空(stock_code={stock_code})"),
+            });
         }
 
         let industry = data["industry"].as_str().unwrap_or("").to_string();
@@ -498,7 +543,12 @@ impl StockVendor for BaiduStockVendor {
             .unwrap_or_default();
 
         if industry.is_empty() && concepts.is_empty() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "baidu_stock".into(),
+                message: format!(
+                    "get_concept_blocks industry 和 concepts 均为空(stock_code={stock_code})"
+                ),
+            });
         }
 
         Ok(Some(ConceptBlocks {
@@ -554,8 +604,13 @@ impl StockVendor for BaiduStockVendor {
         let json = self.fetch_json(&url).await?;
 
         let items = match json["Result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "baidu_stock".into(),
+                    message: "get_industry_ranking 数据为空".into(),
+                });
+            },
         };
 
         Ok(items
@@ -598,7 +653,10 @@ impl StockVendor for BaiduStockVendor {
 
         let data = &json["Result"];
         if data.is_null() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "baidu_stock".into(),
+                message: "get_north_bound_flow 数据为空".into(),
+            });
         }
 
         let sh_flow = val_to_f64(&data["shFlow"]).unwrap_or(0.0);
@@ -610,6 +668,7 @@ impl StockVendor for BaiduStockVendor {
             sz_flow,
             total_flow: sh_flow + sz_flow,
             timestamp: data["time"].as_str().map(|s| s.to_string()),
+            recent_history: vec![],
         }))
     }
 

@@ -47,12 +47,16 @@ impl GubaVendor {
     }
 
     /// 从 HTML 文本中提取 `var article_list={"re":[...]}` 中的 `re` 数组字符串
+    /// 以及顶层 `bar_name` 字段值
     ///
     /// 实际页面格式(2026-07-21 验证):
-    ///   `var article_list={"re":[{...},{...}],...,"bar_name":"华如科技",...};    var other_list=...`
+    ///   `var article_list={"re":[{...},{...}],...,"bar_name":"华如科技","bar_code":"301302",...};    var other_list=...`
     ///   (注意 `};` 和 `var` 之间可能有多个空格)
     ///
-    /// 返回完整的 `[...]` 数组字符串(含方括号),可直接 serde_json::from_str。
+    /// 返回 `(re 数组字符串, bar_name 字段值)`:
+    ///   - `re 数组字符串`: 完整的 `[...]` 字符串,可直接 serde_json::from_str
+    ///   - `bar_name`: article_list 顶层 `bar_name` 字段值(请求股票的股吧名),
+    ///     若该字段缺失则为 None(调用方需用 stock_code 兜底)
     ///
     /// 定位策略:
     ///   1. 找 `article_list=` 后的 `{` 开头对象
@@ -60,7 +64,13 @@ impl GubaVendor {
     ///   3. 在对象内找 `"re":[` 子串定位数组开始
     ///   4. 用 **平衡括号法** 找数组结束 `]`(因为帖子对象内有嵌套的 `]`,
     ///      如 `user_extendinfos` 字段结束,简单字符串匹配会误判)
-    fn extract_article_list_json(html: &str) -> Option<&str> {
+    ///   5. 在对象内正则匹配 `"bar_name":"xxx"` 提取顶层 bar_name
+    ///
+    /// 修复(2026-07-22): stock_name 之前从帖子的 `stockbar_name` 字段提取,
+    /// 但该字段是帖子所在股吧名(可能是其他股票的股吧,如聚合页/推荐帖场景),
+    /// 导致返回的 stock_name 错误。改用 article_list 顶层的 `bar_name` 字段,
+    /// 它对应请求的 stock_code 的股吧名,不会错位。
+    fn extract_article_list(html: &str) -> Option<(&str, Option<&str>)> {
         let key = "article_list=";
         let start_idx = html.find(key)? + key.len();
         let rest = &html[start_idx..];
@@ -79,6 +89,10 @@ impl GubaVendor {
         let obj_end_rel = before_anchor.rfind("};")?;
         let obj_str = &rest[..obj_end_rel + 1]; // 包含 `}`
 
+        // 提取顶层 bar_name 字段值(请求股票的股吧名)
+        // 格式: "bar_name":"华如科技" 或 "bar_name":null
+        let bar_name = Self::extract_bar_name(obj_str);
+
         // 在对象内找 "re":[ 子串
         let re_key = "\"re\":[";
         let re_start_rel = obj_str.find(re_key)?;
@@ -89,7 +103,28 @@ impl GubaVendor {
         // 用平衡括号法找数组的结束 `]`
         // (帖子对象内有嵌套的 ],如 user_extendinfos 字段,简单字符串匹配会误判)
         let end_rel = Self::find_balanced_array_end(arr_rest)?;
-        Some(&arr_rest[..end_rel + 1]) // 包含 `]`
+        Some((&arr_rest[..end_rel + 1], bar_name)) // 包含 `]`
+    }
+
+    /// 从 article_list 对象字符串中提取顶层 `bar_name` 字段值
+    ///
+    /// 格式: `"bar_name":"华如科技"` 或 `"bar_name":null`
+    /// 返回 None 表示字段缺失或为 null
+    fn extract_bar_name(obj_str: &str) -> Option<&str> {
+        let key = "\"bar_name\":";
+        let key_idx = obj_str.find(key)?;
+        let value_start = key_idx + key.len();
+        let value_rest = &obj_str[value_start..];
+        // 跳过空白
+        let value_rest = value_rest.trim_start();
+        if let Some(inner) = value_rest.strip_prefix('"') {
+            // 字符串值,找结束引号(忽略转义)
+            let end = inner.find('"')?;
+            Some(&inner[..end])
+        } else {
+            // null 或其他字面量,视为无 bar_name
+            None
+        }
     }
 
     /// 用平衡括号法找 JSON 数组的结束位置
@@ -178,18 +213,28 @@ impl StockVendor for GubaVendor {
     /// 改用 `https://guba.eastmoney.com/list,{code}.html` HTML 页面,
     /// 从嵌入的 `var article_list=[...]` 中解析帖子数据。
     ///
+    /// 修复(2026-07-22):
+    ///   1. URL 中去除 stock_code 的 sh/sz/bj 前缀(东方财富股吧 URL 不支持带前缀格式,
+    ///      带前缀会返回聚合页/错误页面,导致帖子的 stockbar_name 是其他股票名)。
+    ///   2. stock_name 改用 article_list 顶层 `bar_name` 字段(请求股票对应的股吧名),
+    ///      不再从帖子的 `stockbar_name` 字段提取(该字段是帖子所在股吧名,
+    ///      在聚合页/推荐帖场景下可能是其他股票)。
+    ///
     /// 情感分析基于帖子标题关键词（"涨"/"牛"/"利好"/"加仓" → 看多,
     /// "跌"/"熊"/"利空"/"减仓" → 看空）。
     async fn get_social_sentiment(
         &self,
         stock_code: &str,
     ) -> Result<Vec<SocialSentiment>, DataError> {
-        let url = format!("https://guba.eastmoney.com/list,{stock_code}.html");
+        // 去除 sh/sz/bj 前缀,东方财富股吧 URL 只接受纯数字代码
+        let pure_code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let url = format!("https://guba.eastmoney.com/list,{pure_code}.html");
         let html = self.guba_get_html(&url).await?;
 
-        // 从 HTML 中提取 article_list JSON 数组
-        let json_str =
-            Self::extract_article_list_json(&html).ok_or_else(|| DataError::VendorError {
+        // 从 HTML 中提取 article_list JSON 数组 + 顶层 bar_name 字段
+        let (json_str, bar_name) =
+            Self::extract_article_list(&html).ok_or_else(|| DataError::VendorError {
                 vendor: "guba".into(),
                 message: format!("股吧 HTML 中未找到 article_list 数据, stock_code={stock_code}"),
             })?;
@@ -201,10 +246,15 @@ impl StockVendor for GubaVendor {
             ))
         })?;
 
+        // 优先使用 article_list 顶层的 bar_name 字段作为股票名称
+        // (bar_name 对应请求的 stock_code,不会错位)
+        // 兜底:如果 bar_name 缺失,则 stock_name 为空字符串
+        let stock_name = bar_name.map(|s| s.trim_end_matches("吧").to_string()).unwrap_or_default();
+
         if posts.is_empty() {
             return Ok(vec![SocialSentiment {
                 stock_code: stock_code.to_string(),
-                stock_name: String::new(),
+                stock_name,
                 platform: "guba".to_string(),
                 post_count: 0,
                 hot_rank: None,
@@ -218,17 +268,9 @@ impl StockVendor for GubaVendor {
         let post_count = posts.len() as u32;
         let mut bull_count = 0u32;
         let mut bear_count = 0u32;
-        let mut stock_name = String::new();
 
         for post in &posts {
             let title = post["post_title"].as_str().unwrap_or("");
-            // 提取股票名称(从第一条帖子的 stockbar_name 字段)
-            if stock_name.is_empty() {
-                if let Some(name) = post["stockbar_name"].as_str() {
-                    // 去掉 "华如科技吧" 的 "吧" 后缀
-                    stock_name = name.trim_end_matches("吧").to_string();
-                }
-            }
 
             // 基于关键词的情感分析（粗略估计）
             if title.contains("涨")
@@ -273,41 +315,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extract_article_list_json_finds_array() {
+    fn extract_article_list_finds_array_and_bar_name() {
         // 实际页面格式: article_list={"re":[...],"bar_name":"..."}
         // 注意 `};` 和 `var` 之间有多个空格(实际页面格式)
         let html = r#"<script>var article_list={"re":[{"post_id":1,"post_title":"涨"},{"post_id":2,"post_title":"跌"}],"count":2,"bar_name":"华如科技","bar_code":"301302"};    var other_list={"re":[]};</script>"#;
-        let json_str = GubaVendor::extract_article_list_json(html).unwrap();
+        let (json_str, bar_name) = GubaVendor::extract_article_list(html).unwrap();
         assert!(json_str.starts_with('['));
         assert!(json_str.ends_with(']'));
         let posts: Vec<Value> = serde_json::from_str(json_str).unwrap();
         assert_eq!(posts.len(), 2);
         assert_eq!(posts[0]["post_title"].as_str(), Some("涨"));
         assert_eq!(posts[1]["post_title"].as_str(), Some("跌"));
+        // 验证 bar_name 字段正确提取
+        assert_eq!(bar_name, Some("华如科技"));
     }
 
     #[test]
-    fn extract_article_list_json_returns_none_when_missing() {
+    fn extract_article_list_returns_none_when_missing() {
         let html = "<html>no article_list here</html>";
-        assert!(GubaVendor::extract_article_list_json(html).is_none());
+        assert!(GubaVendor::extract_article_list(html).is_none());
     }
 
     #[test]
-    fn extract_article_list_json_handles_empty_re() {
-        // re 为空数组的情况
+    fn extract_article_list_handles_empty_re_and_null_bar_name() {
+        // re 为空数组 + bar_name 为 null 的情况
         let html = r#"<script>var article_list={"re":[],"count":0,"bar_name":null}; var other_list={"re":[]};</script>"#;
-        let json_str = GubaVendor::extract_article_list_json(html).unwrap();
+        let (json_str, bar_name) = GubaVendor::extract_article_list(html).unwrap();
         assert_eq!(json_str, "[]");
         let posts: Vec<Value> = serde_json::from_str(json_str).unwrap();
         assert!(posts.is_empty());
+        // bar_name 为 null,返回 None
+        assert_eq!(bar_name, None);
     }
 
     #[test]
-    fn extract_article_list_json_handles_nested_arrays_in_posts() {
+    fn extract_article_list_handles_nested_arrays_in_posts() {
         // 帖子对象内有嵌套数组(如 modules:["a","b"]),不能用简单字符串匹配
         // 必须用平衡括号法才能正确找到 re 数组的结束
-        let html = r#"<script>var article_list={"re":[{"post_id":1,"post_title":"涨","modules":["news","video"],"user_extendinfos":{"medal_list":["a","b"]}},{"post_id":2,"post_title":"跌"}],"count":2};    var other_list={"re":[]};</script>"#;
-        let json_str = GubaVendor::extract_article_list_json(html).unwrap();
+        let html = r#"<script>var article_list={"re":[{"post_id":1,"post_title":"涨","modules":["news","video"],"user_extendinfos":{"medal_list":["a","b"]}},{"post_id":2,"post_title":"跌"}],"count":2,"bar_name":"测试股票"};    var other_list={"re":[]};</script>"#;
+        let (json_str, bar_name) = GubaVendor::extract_article_list(html).unwrap();
         assert!(json_str.starts_with('['));
         assert!(json_str.ends_with(']'));
         let posts: Vec<Value> = serde_json::from_str(json_str).unwrap();
@@ -315,5 +361,14 @@ mod tests {
         assert_eq!(posts[0]["post_title"].as_str(), Some("涨"));
         assert_eq!(posts[0]["modules"][0].as_str(), Some("news"));
         assert_eq!(posts[1]["post_title"].as_str(), Some("跌"));
+        assert_eq!(bar_name, Some("测试股票"));
+    }
+
+    #[test]
+    fn extract_article_list_bar_name_with_spaces() {
+        // bar_name 字段值前后可能有空格,需正确处理
+        let html = r#"<script>var article_list={"re":[],"bar_name": "伊利股份"};    var other_list={};</script>"#;
+        let (_json_str, bar_name) = GubaVendor::extract_article_list(html).unwrap();
+        assert_eq!(bar_name, Some("伊利股份"));
     }
 }

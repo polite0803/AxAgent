@@ -2,9 +2,9 @@ import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { DownloadOutlined, ExpandOutlined } from "@ant-design/icons";
 import { Button, Card, Modal, Tag } from "antd";
 import * as echarts from "echarts";
-import NodeRenderer from "markstream-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReportMarkdown } from "./ReportMarkdown";
 import { extractReadableFromRiskReport, parseVerdictField } from "./utils";
 
 /** 风险类型 → 颜色映射（键名对齐 riskAssessments 实际节点 ID，
@@ -413,7 +413,7 @@ export function RiskMatrix() {
                   {(() => {
                     const readable = readableCache.get(type) ?? "";
                     return readable
-                      ? <NodeRenderer content={readable} isDark={isDark} />
+                      ? <ReportMarkdown content={readable} isDark={isDark} />
                       : <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.noRiskData")}</span>;
                   })()}
                 </div>
@@ -467,7 +467,7 @@ export function RiskMatrix() {
                   {(() => {
                     const readable = readableCache.get(type) ?? "";
                     return readable
-                      ? <NodeRenderer content={readable} isDark={isDark} />
+                      ? <ReportMarkdown content={readable} isDark={isDark} />
                       : <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.noRiskData")}</span>;
                   })()}
                 </div>
@@ -510,7 +510,7 @@ export function RiskMatrix() {
             {(() => {
               const readable = readableCache.get(selectedCard) ?? "";
               return readable
-                ? <NodeRenderer content={readable} isDark={isDark} />
+                ? <ReportMarkdown content={readable} isDark={isDark} />
                 : <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.noRiskData")}</span>;
             })()}
           </div>

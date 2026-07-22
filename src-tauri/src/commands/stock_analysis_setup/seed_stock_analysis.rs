@@ -31,7 +31,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // V56: 修复 pace-calc.rhai 第 310 行 Rhai 语法错误（`(valid_event_count as f64).max(1.0)`
     // 链式调用解析歧义，改为先 `let count_f = ... as f64;` 再用变量）。
     // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
-    const TEMPLATE_VERSION: i32 = 58; // v58: 修复 t-news-data/t-sentiment-data/t-catalyst-data 工具分配错位
+    const TEMPLATE_VERSION: i32 = 64; // v64: t-policy-data 改用新增的 get_stock_policy_news 工具(基于行业关键词搜索政策新闻)
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -846,16 +846,14 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             "get_fundamentals_report_markdown",
             "stock_code",
         ),
-        // 修复 P1: 政策分析师前置数据改用 get_stock_news（新闻）而非
-        // get_announcements（公告）。新闻覆盖宏观/产业政策动态更广，
-        // 与 a-news 的公告视角形成互补。
+        // 修复(2026-07-22): 改用新增的 get_stock_policy_news 工具。
+        // 该工具基于股票所属行业做关键词搜索("政策/规划/通知/补贴"),
+        // 相比原 get_stock_news(综合新闻)能更精准命中政策类内容,
+        // 避免与 t-news-data 重复调用同一工具。
         //
-        // TODO(2026-07-11): 当前 get_stock_news 与 t-news-data 重复调用,
-        //   理想方案: 在 tools/finance.rs 注册新工具 `get_policy_news`,
-        //   接受参数 category=policy 走单独数据源(政府/官媒/监管公告)。
-        //   当前保留 get_stock_news 作为冷启动数据，a-policy 的分析师 prompt
-        //   负责从新闻中过滤政策相关内容。
-        ("t-policy-data", "获取政策新闻", "get_stock_news", "stock_code"),
+        // 数据来源:东方财富搜索 API(基于行业关键词),无需对接政府网站。
+        // 限制:返回的是新闻摘要(非政策原文),a-policy 分析师需基于摘要做推断。
+        ("t-policy-data", "获取政策新闻", "get_stock_policy_news", "stock_code"),
         // F-8 重排: a-hot-money 前置改为资金流向工具
         ("t-hotmoney-data", "获取资金流向", "get_stock_money_flow", "stock_code"),
         // F-8 重排: a-lockup 前置改为解禁质押工具
@@ -954,21 +952,32 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // a-catalyst 改用 Json 输出模式，prompt 已改为纯 JSON 格式
             if *id == "a-catalyst" {
                 a.config.output_mode = OutputMode::Json;
-                // P1 修复(2.2): 强制输出 5 个关键字段，禁止自由文本
+                // P1 修复(2.2): 强制纯 JSON 输出，字段必须与 catalyst-analyst.md 的
+                // 输出格式完全一致——前端 AnalystReportCard.extractSummary/extractTags
+                // 与下游 portfolio-mgr 的 catalyst_level 映射都依赖这套字段，
+                // 之前误写成 target_entity/event_type 等孤儿字段导致卡片恒显
+                // "分析完成，但未返回结构化内容"且催化剂信号丢失。
                 a.config.system_prompt = format!(
                     "{}\n{}\n{}",
                     a.config.system_prompt,
                     tool_prompt(&a.config.tools),
                     "【强制 JSON Schema 约束】\n\
-                     输出必须是纯 JSON，包含以下 5 个必填字段:\n\
+                     输出必须是纯 JSON，字段名须与以下完全一致（不要增删、不要改名）:\n\
                      {\n\
-                       \"target_entity\": \"受影响的公司/行业/产品名称\",\n\
-                       \"event_type\": \"事件类型: 财报/政策/并购/技术突破/行业景气/监管/高管变动/研报/大宗交易/其他\",\n\
-                       \"impact_direction\": \"影响方向: positive/negative/neutral\",\n\
-                       \"impact_timeline\": \"影响时间线: immediate(1-3天)/short(1-4周)/mid(1-3月)/long(3月+)\",\n\
-                       \"confidence_score\": \"置信度评分 0.0-1.0，基于信息来源可信度\"\n\
+                       \"verdict\": \"方向结论，必须三选一：看多 | 看空 | 中性\",\n\
+                       \"bull_score\": \"看多评分 0-100 的整数，与 bear_score 之和接近 100\",\n\
+                       \"bear_score\": \"看空评分 0-100 的整数，与 bull_score 之和接近 100\",\n\
+                       \"report\": \"你的完整分析报告文本（自然语言，可含结构化分析，长度>50字）\",\n\
+                       \"catalyst_level\": \"无 | L1普通消息 | L2业绩拐点级 | L3估值体系级 | L-1普通利空 | L-2业绩暴雷级 | L-3退市/造假级\",\n\
+                       \"institutional_trace\": \"无 | 疑似建仓 | 有建仓痕迹 | 明显建仓\",\n\
+                       \"narrative_completeness\": \"叙事完整度评分 0-100 的整数\",\n\
+                       \"confidence\": \"置信度评分 0-100 的整数\",\n\
+                       \"reasoning\": \"简短的推理过程摘要\"\n\
                      }\n\
-                     只输出上述 JSON 对象，前后不要有任何其他文字。"
+                     只输出上述 JSON 对象，前后不要有任何其他文字（不要用 markdown 代码块包裹）。\n\
+                     verdict/bull_score/bear_score 判定规则：L2/L3 利好催化剂 + 有建仓痕迹 + 叙事完整度≥60 → verdict=看多, bull_score≥60；\n\
+                     L-2/L-3 利空催化剂 + 叙事破位 → verdict=看空, bear_score≥60；\n\
+                     其它情况 → verdict=中性, bull_score/bear_score 均在 40-60 区间。"
                 );
             } else {
                 a.config.system_prompt =
@@ -2034,9 +2043,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // AgentNode(Json mode) 输出包裹在 {role, content: <json_string>, ...} 中
                 ("catalyst_level", "a-catalyst.content.catalyst_level"),
                 ("consensusScore", "debate-convergence.content.consensus_score"),
-                // trader Json 模式输出：{action, targetPrice, stopLoss, timeHorizon, direction, confidence, ...}
+                // trader Json 模式输出：{verdict, currentPrice, targetPrice, stopLoss, timeHorizon, expectedHoldingDays, confidence, reasoning}
                 ("trader_action", "trader.content.action"),
-                ("trader_direction", "trader.content.direction"),
+                ("trader_direction", "trader.content.verdict"),
                 ("trader_confidence", "trader.content.confidence"),
                 // currentPrice: 从 t-scoring 工具节点（get_stock_quote）获取，可靠数据源。
                 // 不用 trader.content.currentPrice，因为 LLM 不一定输出该字段。

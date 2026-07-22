@@ -2,10 +2,11 @@ import { getSignalColor } from "@/lib/stock-analysis-utils";
 import { useSettingsStore } from "@/stores";
 import { ExpandOutlined } from "@ant-design/icons";
 import { Button, Card, Collapse, Empty, Modal, Tag } from "antd";
-import NodeRenderer, { setCustomComponents } from "markstream-react";
+import { setCustomComponents } from "markstream-react";
 import type { RenderContext, RenderNodeFn } from "markstream-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReportMarkdown } from "./ReportMarkdown";
 import { cleanToolCallTags, tryBeautifyJson } from "./utils";
 
 // ── 自定义段落渲染：用 <div> 替代 <p> ─────────────────────────
@@ -428,7 +429,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
 
           {summary && (
             <div className="sa-markdown-content" style={{ marginTop: 4 }}>
-              <NodeRenderer content={summary} isDark={isDark} />
+              <ReportMarkdown content={summary} isDark={isDark} />
             </div>
           )}
           {points.length > 0 && (
@@ -466,7 +467,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
           styles={{ body: { maxHeight: "80vh", overflow: "auto" } }}
         >
           <div className="sa-markdown-content">
-            {summary && <NodeRenderer content={summary} isDark={isDark} />}
+            {summary && <ReportMarkdown content={summary} isDark={isDark} />}
             {points.length > 0 && (
               <ul className="list-disc pl-6 my-2">
                 {points.map((p, i) => <li key={i}>{p}</li>)}
@@ -645,7 +646,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
       >
         {fuzzy.summary && (
           <div className="sa-markdown-content">
-            <NodeRenderer content={fuzzy.summary} isDark={isDark} />
+            <ReportMarkdown content={fuzzy.summary} isDark={isDark} />
           </div>
         )}
         {fuzzy.points.length > 0 && (
@@ -688,7 +689,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
         styles={{ body: { maxHeight: "80vh", overflow: "auto" } }}
       >
         <div className="sa-markdown-content">
-          {fuzzy.summary && <NodeRenderer content={fuzzy.summary} isDark={isDark} />}
+          {fuzzy.summary && <ReportMarkdown content={fuzzy.summary} isDark={isDark} />}
           {fuzzy.points.length > 0 && (
             <ul className="list-disc pl-6 my-2">
               {fuzzy.points.map((p, i) => <li key={i}>{p}</li>)}

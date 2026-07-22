@@ -121,28 +121,54 @@
     },
 
     "catalyst_output": {
-      "description": "LLM Catalyst Agent 输出格式",
+      "description": "LLM Catalyst Agent 输出格式（与 catalyst-analyst.md 及 seed a-catalyst 强制约束保持一致）",
       "type": "object",
-      "required": ["catalyst_level", "events"],
+      "required": [
+        "report",
+        "catalyst_level",
+        "institutional_trace",
+        "narrative_completeness",
+        "confidence",
+        "reasoning"
+      ],
       "properties": {
+        "report": {
+          "type": "string",
+          "description": "完整分析报告文本（自然语言，可含结构化分析）"
+        },
         "catalyst_level": {
           "type": "string",
           "enum": [
-            "L3-估值体系级",
-            "L2-业绩拐点级",
-            "L1-普通消息",
-            "L-1-普通利空",
-            "L-2-业绩暴雷级",
-            "L-3-退市造假级",
-            "无"
+            "L3估值体系级",
+            "L2业绩拐点级",
+            "L1普通消息",
+            "无",
+            "L-1普通利空",
+            "L-2业绩暴雷级",
+            "L-3退市造假级"
           ],
-          "description": "催化剂强度等级"
+          "description": "催化剂强度等级（与 prompt 枚举一致，无连字符）"
         },
-        "events": {
-          "type": "array",
-          "items": { "$ref": "#/schemas/base_event" },
-          "minItems": 0,
-          "maxItems": 10
+        "institutional_trace": {
+          "type": "string",
+          "enum": ["无", "疑似建仓", "有建仓痕迹", "明显建仓"],
+          "description": "机构资金布局痕迹"
+        },
+        "narrative_completeness": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "叙事完整度评分 0-100"
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "置信度评分 0-100"
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "简短的推理过程摘要"
         }
       }
     },

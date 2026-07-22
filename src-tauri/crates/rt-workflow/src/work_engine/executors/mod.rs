@@ -142,10 +142,10 @@ pub(crate) fn resolve_var_path(
 /// 用于 `resolve_var_path` 在导航过程中穿透 ToolNode 的 `result` / AgentNode 的
 /// `content` 字符串包裹，使结构化字段可被正确解析。
 fn auto_parse_value(v: serde_json::Value) -> serde_json::Value {
-    if let serde_json::Value::String(s) = &v {
-        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(s) {
-            return parsed;
-        }
+    if let serde_json::Value::String(s) = &v
+        && let Ok(parsed) = serde_json::from_str::<serde_json::Value>(s)
+    {
+        return parsed;
     }
     v
 }

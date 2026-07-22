@@ -271,6 +271,8 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "get_stock_option_pcr",
             "get_stock_dragon_tiger",
             "get_north_bound_flow",
+            "get_stock_margin_data",
+            "get_stock_quote",
             "search_stock",
         ],
     ),

@@ -23,14 +23,15 @@ use std::sync::RwLock;
 use axagent_astock_data::AStockClient;
 use std::sync::OnceLock;
 
-static GLOBAL_ASTOCK_CLIENT: OnceLock<AStockClient> = OnceLock::new();
+static GLOBAL_ASTOCK_CLIENT: OnceLock<Arc<AStockClient>> = OnceLock::new();
 
-/// 设置全局 AStock 客户端。返回 true 表示成功，false 表示已设置过（重复调用静默忽略）。
-pub fn set_astock_client(client: AStockClient) -> bool {
+/// 设置全局 AStock 客户端（接收 Arc，与 AppState 共享同一实例）。
+/// 返回 true 表示成功，false 表示已设置过（重复调用静默忽略）。
+pub fn set_astock_client(client: Arc<AStockClient>) -> bool {
     GLOBAL_ASTOCK_CLIENT.set(client).is_ok()
 }
 
-pub fn get_astock_client() -> Option<&'static AStockClient> {
+pub fn get_astock_client() -> Option<&'static Arc<AStockClient>> {
     GLOBAL_ASTOCK_CLIENT.get()
 }
 

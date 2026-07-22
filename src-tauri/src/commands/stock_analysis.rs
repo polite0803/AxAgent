@@ -138,7 +138,13 @@ pub struct SimulationGateInfo {
 pub fn compute_what_if(params: WhatIfRequest) -> Result<WhatIfResult, String> {
     use rhai::{Engine, Scope};
 
-    let engine = Engine::new();
+    let mut engine = Engine::new();
+    // C4 补充: portfolio-mgr.rhai 因子多、表达式嵌套深，必须放宽 max_expr_depths
+    // （默认上限会在 line 518 处触发 "Expression exceeds maximum complexity"，且该错误
+    // 是编译期抛出、脚本内 try/catch 无法捕获）。256 为实测下限(48)的 ~5 倍余量。
+    engine.set_max_expr_depths(256, 256);
+    // 注册脚本依赖的 json_parse/clamp/join，否则 safe_parse/clamp 调用会抛 Function not found
+    axagent_harness::rhai_engine::register_common_functions(&mut engine);
     let mut scope = Scope::new();
 
     // 1. 注入显式参数（用户在前端调整的 6 个核心值）
@@ -3223,10 +3229,12 @@ pub async fn recommend_stocks(
     let client: std::sync::Arc<_> = state.astock_client.clone();
     let response = if let Some(ctx) = as_of_ctx {
         axagent_astock_data::as_of::AS_OF
-            .scope(Some(ctx), async { recommender::recommend_stocks(client, period, &vars).await })
+            .scope(Some(ctx), async {
+                recommender::recommend_stocks(client, period, &vars, None).await
+            })
             .await
     } else {
-        recommender::recommend_stocks(client, period, &vars).await
+        recommender::recommend_stocks(client, period, &vars, None).await
     }?;
 
     // ── 持久化荐股结果（仅 live 模式） ──

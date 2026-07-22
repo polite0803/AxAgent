@@ -229,9 +229,9 @@ impl StockVendor for BrowserEastMoneyVendor {
                 close: p(2),
                 high: p(3),
                 low: p(4),
-                volume: p(5),
+                volume: p(5) * 100.0, // 东方财富 K线 f56 单位为"手"，×100 转为"股"
                 amount: p(6),
-                turnover_rate: None,
+                turnover_rate: if parts.len() > 10 { Some(p(10)) } else { None },
                 // R3: vendor 已复权时标记，避免 lib 层二次应用
                 adj_factor: adj_marker,
             });

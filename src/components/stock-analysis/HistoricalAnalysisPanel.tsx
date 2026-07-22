@@ -26,7 +26,7 @@ interface BacktestResult {
   holdingDays: number;
   returnPct: number;
   wasCorrect: boolean;
-  maxDrawdown: number;
+  maxDrawdownPct: number;
 }
 
 interface Props {
@@ -210,7 +210,7 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
             <div>
               <span className="text-gray-400">{t("stockAnalysis.backtest.maxDrawdown")}</span>
               <br />
-              <b>{btResult.maxDrawdown.toFixed(2)}%</b>
+              <b>{btResult.maxDrawdownPct.toFixed(2)}%</b>
             </div>
             <div className="col-span-3 mt-1">
               <Tag color={btResult.wasCorrect ? "green" : "red"}>

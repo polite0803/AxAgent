@@ -2,9 +2,9 @@ import { invoke } from "@/lib/invoke";
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { ExpandOutlined, LineChartOutlined } from "@ant-design/icons";
 import { Button, Card, Collapse, Empty, Modal, Spin, Tag } from "antd";
-import NodeRenderer from "markstream-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReportMarkdown } from "./ReportMarkdown";
 import { cleanToolCallTags, tryBeautifyJson } from "./utils";
 import { ValuationBandChart, type ValuationBandData } from "./ValuationBandChart";
 
@@ -280,7 +280,7 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
             )}
           </div>
           <div className={`prose max-w-none text-sm ${isDark ? "prose-invert" : ""}`}>
-            <NodeRenderer content={data.buffett_verdict} isDark={isDark} />
+            <ReportMarkdown content={data.buffett_verdict} isDark={isDark} />
           </div>
         </div>
       )}
@@ -292,7 +292,7 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
             {t("stockAnalysis.valueAssessment.businessModel")}
           </div>
           <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
-            <NodeRenderer content={data.business_model} isDark={isDark} />
+            <ReportMarkdown content={data.business_model} isDark={isDark} />
           </div>
         </div>
       )}
@@ -308,7 +308,7 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
           </div>
           {data.moat_reasoning && (
             <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
-              <NodeRenderer content={data.moat_reasoning} isDark={isDark} />
+              <ReportMarkdown content={data.moat_reasoning} isDark={isDark} />
             </div>
           )}
         </div>
@@ -321,7 +321,7 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
             {t("stockAnalysis.valueAssessment.financialHealth")}
           </div>
           <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
-            <NodeRenderer content={data.financial_health} isDark={isDark} />
+            <ReportMarkdown content={data.financial_health} isDark={isDark} />
           </div>
         </div>
       )}
@@ -335,12 +335,12 @@ function ValueReportRenderer({ data, isDark }: { data: ValueReportData; isDark: 
           <div className="space-y-1">
             {data.intrinsic_value_range && (
               <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
-                <NodeRenderer content={data.intrinsic_value_range} isDark={isDark} />
+                <ReportMarkdown content={data.intrinsic_value_range} isDark={isDark} />
               </div>
             )}
             {data.margin_of_safety && (
               <div className={`prose max-w-none text-xs ${isDark ? "prose-invert" : ""}`}>
-                <NodeRenderer content={data.margin_of_safety} isDark={isDark} />
+                <ReportMarkdown content={data.margin_of_safety} isDark={isDark} />
               </div>
             )}
           </div>
@@ -492,7 +492,7 @@ export function ValueAssessmentPanel() {
       }
       return (
         <div className={`prose max-w-none text-sm ${isDark ? "prose-invert" : ""}`}>
-          <NodeRenderer content={readableText} isDark={isDark} />
+          <ReportMarkdown content={readableText} isDark={isDark} />
         </div>
       );
     }
@@ -512,7 +512,7 @@ export function ValueAssessmentPanel() {
     }
     return (
       <div className={`prose max-w-none text-sm ${isDark ? "prose-invert" : ""}`}>
-        <NodeRenderer content={cleaned} isDark={isDark} />
+        <ReportMarkdown content={cleaned} isDark={isDark} />
       </div>
     );
   };

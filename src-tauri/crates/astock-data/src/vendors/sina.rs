@@ -168,13 +168,19 @@ impl StockVendor for SinaVendor {
         limit: u32,
         _adj: Option<AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
-        let _ = period;
-        let market = if stock_code.starts_with('6') {
-            "sh"
+        // 网易163 chddata API 仅支持日K线；分钟/周/月线由高优先级 vendor 承担，
+        // 非日K周期直接返回空，避免返回错误周期的数据
+        if !matches!(period, "daily" | "101" | "Daily") {
+            return Ok(vec![]);
+        }
+        // 网易K线API code格式：0+沪市代码, 1+深市代码（与财务API的sh/sz前缀不同）
+        let market = if stock_code.starts_with('6') || stock_code.starts_with('9') {
+            "0"
         } else {
-            "sz"
+            "1"
         };
-        // 网易财经历史 K 线 API（新浪无直接 K 线接口，用 163 补）
+        // 网易财经历史日K线API（新浪无直接K线接口，用163补）
+        // fields顺序: date, TCLOSE(收盘), HIGH(最高), LOW(最低), TOPEN(开盘), LCLOSE(昨收), VOTURNOVER(成交量,手), VATURNOVER(成交额,元)
         let url = format!(
             "https://quotes.money.163.com/service/chddata.html?code={market}{stock_code}&start=20200101&end=20500101&fields=TCLOSE;HIGH;LOW;TOPEN;LCLOSE;VOTURNOVER;VATURNOVER"
         );
@@ -184,21 +190,26 @@ impl StockVendor for SinaVendor {
         let mut klines = Vec::new();
         for line in body.lines().skip(1) {
             let fields: Vec<&str> = line.split(',').collect();
-            if fields.len() < 7 {
+            if fields.len() < 8 {
                 continue;
             }
-            let f = |i: usize| -> f64 { fields.get(i).and_then(|s| s.parse().ok()).unwrap_or(0.0) };
-            // 163 格式: date,TCLOSE(收盘),HIGH(最高),LOW(最低),TOPEN(开盘),LCLOSE(昨收),VOTURNOVER(成交量),VATURNOVER(成交额)
+            let f = |i: usize| -> f64 {
+                fields.get(i).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0)
+            };
+            let date = fields[0].trim().trim_matches('\'').to_string();
+            if date.is_empty() {
+                continue;
+            }
             klines.push(KLine {
-                date: fields[0].to_string(),
-                open: f(3),   // TOPEN
-                high: f(1),   // HIGH
-                low: f(2),    // LOW
-                close: f(4),  // TCLOSE
-                volume: f(5), // VOTURNOVER
-                amount: f(6), // VATURNOVER
+                date,
+                open: f(4),           // TOPEN(开盘)
+                high: f(2),           // HIGH(最高)
+                low: f(3),            // LOW(最低)
+                close: f(1),          // TCLOSE(收盘)
+                volume: f(6) * 100.0, // VOTURNOVER(手) → 股
+                amount: f(7),         // VATURNOVER(元)
                 turnover_rate: None,
-                adj_factor: None,
+                adj_factor: None, // 网易不支持复权
             });
         }
         klines.sort_by(|a, b| a.date.cmp(&b.date));

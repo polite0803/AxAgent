@@ -9,9 +9,10 @@ import { BacktestTab } from "@/components/quant/tabs/BacktestTab";
 import { CompareTab } from "@/components/quant/tabs/CompareTab";
 import { RhaiEditorTab } from "@/components/quant/tabs/RhaiEditorTab";
 import { StrategyListTab } from "@/components/quant/tabs/StrategyListTab";
+import { WfDesTab } from "@/components/quant/tabs/WfDesTab";
 import { PageHeader } from "@/components/stock-analysis/_shared/PageHeader";
 
-type TabKey = "backtest" | "strategies" | "rhai" | "compare";
+type TabKey = "backtest" | "strategies" | "rhai" | "compare" | "wf_des";
 
 export function QuantLab() {
   const { t } = useTranslation();
@@ -48,6 +49,11 @@ export function QuantLab() {
               key: "compare",
               label: t("quant.tabs.compare"),
               children: <CompareTab />,
+            },
+            {
+              key: "wf_des",
+              label: t("quant.tabs.wfDes"),
+              children: <WfDesTab />,
             },
           ]}
         />

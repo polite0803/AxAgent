@@ -117,7 +117,7 @@ export function buildMarkdownReport(data: ExportData): string {
     lines.push(`| 涨跌额 | ${q.change >= 0 ? "+" : ""}${q.change.toFixed(2)} |`);
     lines.push(`| 最高 | ¥${q.high.toFixed(2)} |`);
     lines.push(`| 最低 | ¥${q.low.toFixed(2)} |`);
-    lines.push(`| 成交量 | ${(q.volume / 10000).toFixed(0)} 万手 |`);
+    lines.push(`| 成交量 | ${(q.volume / 10000).toFixed(0)} 万股 |`);
     lines.push(`| 成交额 | ¥${(q.amount / 100000000).toFixed(2)} 亿 |`);
     lines.push("");
   }
@@ -174,7 +174,7 @@ export function buildMarkdownReport(data: ExportData): string {
       lines.push("");
     }
   } else {
-    // 决策为空 → 展示失败上下文
+    // 决策为空 → 仅展示失败上下文（不导出 rawData，按用户要求原始数据不导出）
     lines.push(`> ⚠️ **决策未生成**：portfolio-mgr 节点未产出有效决策\n`);
     if (data.failedNodes.length > 0) {
       lines.push(`\n**相关失败节点**：${data.failedNodes.join("、")}\n`);
@@ -183,31 +183,49 @@ export function buildMarkdownReport(data: ExportData): string {
       lines.push("\n**数据警告**：\n");
       for (const w of data.dataWarnings) { lines.push(`- ${w}\n`); }
     }
-    // 尝试从 rawData 提取 portfolio-mgr 原始输出
-    const pmRaw = data.rawData?.["portfolio-mgr"] || data.rawData?.["portfolio-manager"];
-    if (pmRaw) {
-      h(3, "portfolio-mgr 原始输出");
-      lines.push(`\`\`\`\n${truncateLong(pmRaw, 2000)}\n\`\`\`\n`);
-    }
   }
   lines.push(sep);
 
-  // ── 3. 分析师报告 ──
-  const analystKeys = Object.keys(data.analystReports);
-  if (analystKeys.length > 0) {
-    h(2, `📋 分析师报告（共 ${analystKeys.length} 份）\n`);
-    for (const key of analystKeys) {
-      const raw = data.analystReports[key];
-      if (!raw || raw.trim().length === 0) { continue; }
-      const label = ANALYST_LABELS[key] || key;
-      h(3, label);
-      const tags = extractScoreTags(raw);
-      if (tags.length > 0) { lines.push(`> ${tags.join(" · ")}\n`); }
-      lines.push(truncateLong(safeJson(raw), 2000));
-      lines.push("\n");
-    }
+  // ── 2.5 LLM 决策原始输出（方案 D 双向并存：trader 节点原始 JSON）──
+  if (data.llmDecisionJson && data.llmDecisionJson.trim().length > 0) {
+    h(2, "🤖 LLM 决策原始输出");
+    lines.push(`> 与上方"公式决策"并存，用于人工对比与一致性审计\n`);
+    lines.push(`\`\`\`json\n${truncateLong(safeJson(data.llmDecisionJson), 4000)}\n\`\`\`\n`);
     lines.push(sep);
   }
+
+  // ── 3. 分析师报告 ──
+  const allAnalystIds = [
+    "market-analyst",
+    "sentiment",
+    "news",
+    "fundamentals",
+    "policy",
+    "hot-money",
+    "lockup",
+    "research",
+    "sector",
+    "catalyst",
+  ];
+  const presentAnalystIds = new Set(Object.keys(data.analystReports));
+  const missingAnalystIds = allAnalystIds.filter((id) => !presentAnalystIds.has(id));
+  const presentKeys = allAnalystIds.filter((id) => presentAnalystIds.has(id));
+  h(2, `📋 分析师报告（应有 ${allAnalystIds.length} 份，实际 ${presentKeys.length} 份）\n`);
+  for (const key of presentKeys) {
+    const raw = data.analystReports[key];
+    if (!raw || raw.trim().length === 0) { continue; }
+    const label = ANALYST_LABELS[key] || key;
+    h(3, label);
+    const tags = extractScoreTags(raw);
+    if (tags.length > 0) { lines.push(`> ${tags.join(" · ")}\n`); }
+    lines.push(truncateLong(safeJson(raw), 4000));
+    lines.push("\n");
+  }
+  for (const missing of missingAnalystIds) {
+    h(3, ANALYST_LABELS[missing] || missing);
+    lines.push(`> ⚠️ 该分析师节点未产出报告（可能 LLM 失败/超时）\n\n`);
+  }
+  lines.push(sep);
 
   // ── 4. 辩论记录 ──
   if (data.debateRounds.length > 0) {
@@ -261,6 +279,26 @@ export function buildMarkdownReport(data: ExportData): string {
     lines.push(sep);
   }
 
+  // ── 6.5 规则校验 ──
+  const ruleKeys = Object.keys(data.ruleCheckResults);
+  if (ruleKeys.length > 0) {
+    h(2, "📐 规则校验");
+    const ruleLabels: Record<string, string> = {
+      "rule-check": "规则校验结果",
+      "decision-consistency": "决策一致性",
+      "position-sizing": "仓位规则",
+      "stop-loss-check": "止损规则",
+    };
+    for (const key of ruleKeys) {
+      const raw = data.ruleCheckResults[key];
+      if (!raw || raw.trim().length === 0) { continue; }
+      h(3, ruleLabels[key] || key);
+      lines.push(truncateLong(safeJson(raw), 2000));
+      lines.push("\n");
+    }
+    lines.push(sep);
+  }
+
   // ── 7. 数据质量 ──
   if (data.dataQualitySummary) {
     h(2, "🔍 数据质量");
@@ -286,9 +324,16 @@ export function buildMarkdownReport(data: ExportData): string {
   lines.push(`- **报告生成工具**：AxInvest v2.6`);
   lines.push(`- **股票代码**：${data.stockCode}`);
   lines.push(`- **股票名称**：${data.stockName}`);
-  lines.push(`- **分析师报告数**：${analystKeys.length}`);
+  lines.push(
+    `- **分析师报告**：应有 ${allAnalystIds.length} 份 / 实际导出 ${presentKeys.length} 份${
+      missingAnalystIds.length > 0 ? ` / 缺失 ${missingAnalystIds.length} 份（${missingAnalystIds.join("、")}）` : ""
+    }`,
+  );
   lines.push(`- **辩论轮次**：${data.debateRounds.length}`);
-  lines.push(`- **风险评估项**：${riskKeys.length}`);
+  lines.push(`- **风险评估项**：${Object.keys(data.riskAssessments).length}`);
+  lines.push(`- **估值分析项**：${valKeys.length}`);
+  lines.push(`- **规则校验项**：${ruleKeys.length}`);
+  lines.push(`- **LLM 决策原始输出**：${data.llmDecisionJson ? "已导出" : "未提供"}`);
   lines.push("");
 
   return lines.join("");

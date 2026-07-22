@@ -1513,7 +1513,6 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
- "tauri",
  "tokio",
  "tracing",
  "uuid",

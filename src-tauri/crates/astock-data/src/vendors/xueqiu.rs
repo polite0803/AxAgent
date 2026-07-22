@@ -119,10 +119,18 @@ impl StockVendor for XueqiuVendor {
                 _ => "day",
             }
         };
+        // 雪球复权: none=不复权, before=前复权, after=后复权
+        let adj_type = match _adj {
+            Some(AdjType::None) | None => "none",
+            Some(AdjType::Forward) => "before",
+            Some(AdjType::Backward) => "after",
+        };
+        let adj_marker = if adj_type == "none" { None } else { Some(1.0) };
         // begin=0 表示从最早开始
         let url = format!(
-            "https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={symbol}&begin=0&period={}&type=before&count=-{}&indicator=kline,pe,pb",
+            "https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={symbol}&begin=0&period={}&type={}&count=-{}&indicator=kline,pe,pb",
             period_map(period),
+            adj_type,
             limit
         );
         let resp = self.xq_get(&url).await?;
@@ -137,6 +145,7 @@ impl StockVendor for XueqiuVendor {
                     .as_array()
                     .ok_or_else(|| DataError::ParseError("xueqiu kline: not an array".into()))?;
                 // 雪球日K格式: [timestamp, open, high, low, close, volume, amount, ...]
+                // volume 单位为"股"，amount 单位为"元"
                 if arr.len() < 7 {
                     return Err(DataError::ParseError(format!(
                         "xueqiu kline: expected >=7 fields, got {}",
@@ -155,7 +164,7 @@ impl StockVendor for XueqiuVendor {
                     volume: g(5),
                     amount: g(6),
                     turnover_rate: None,
-                    adj_factor: None,
+                    adj_factor: adj_marker,
                 })
             })
             .collect::<Result<Vec<_>, DataError>>()?;

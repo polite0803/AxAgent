@@ -145,6 +145,23 @@ pub trait StockVendor: Send + Sync {
         Ok(None)
     }
 
+    /// 获取政策相关新闻(国家级/部委级/行业政策)
+    ///
+    /// 实现策略:
+    ///   1. 根据股票代码推断所属行业关键词
+    ///   2. 调用 search_news 搜索 "{行业} 政策"、"{行业} 规划"、"{行业} 通知"
+    ///   3. 合并 + 去重 + 按发布时间排序
+    ///
+    /// 默认实现: 返回空 vec,具体 vendor 按需 override
+    async fn get_policy_news(
+        &self,
+        stock_code: &str,
+        limit: u32,
+    ) -> Result<Vec<NewsItem>, DataError> {
+        let (_stock_code, _limit) = (stock_code, limit);
+        Ok(vec![])
+    }
+
     /// 获取大宗交易记录
     async fn get_block_trades(&self, stock_code: &str) -> Result<Vec<BlockTrade>, DataError> {
         let _ = stock_code;
@@ -337,6 +354,14 @@ pub trait StockVendor: Send + Sync {
 
     async fn get_north_bound_flow_with_asof(&self) -> Result<Option<NorthBoundFlow>, DataError> {
         self.get_north_bound_flow().await
+    }
+
+    async fn get_policy_news_with_asof(
+        &self,
+        stock_code: &str,
+        limit: u32,
+    ) -> Result<Vec<NewsItem>, DataError> {
+        self.get_policy_news(stock_code, limit).await
     }
 
     async fn get_block_trades_with_asof(

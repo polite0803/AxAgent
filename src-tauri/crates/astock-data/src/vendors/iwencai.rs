@@ -200,7 +200,10 @@ impl StockVendor for IwencaiVendor {
         let code_list = self.extract_code_list(&json);
 
         if code_list.is_empty() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "iwencai".into(),
+                message: format!("get_concept_blocks code_list 为空(stock_code={stock_code})"),
+            });
         }
 
         let item = &code_list[0];
@@ -223,7 +226,12 @@ impl StockVendor for IwencaiVendor {
             .unwrap_or_default();
 
         if industry.is_empty() && concepts.is_empty() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "iwencai".into(),
+                message: format!(
+                    "get_concept_blocks industry 和 concepts 均为空(stock_code={stock_code})"
+                ),
+            });
         }
 
         Ok(Some(ConceptBlocks {
@@ -266,6 +274,84 @@ impl StockVendor for IwencaiVendor {
                 })
             })
             .collect())
+    }
+
+    async fn get_peers(&self, stock_code: &str) -> Result<Vec<PeerComparison>, DataError> {
+        // iwencai 的 query 是按问题搜索股票列表，"{stock_code} 同行业股票" 应返回该行业股票
+        let question = format!("{stock_code} 同行业股票");
+        let json = self.query(&question, 20, 1).await?;
+        let code_list = self.extract_code_list(&json);
+
+        if code_list.is_empty() {
+            return Err(DataError::VendorError {
+                vendor: "iwencai".into(),
+                message: format!("get_peers code_list 为空(stock_code={stock_code})"),
+            });
+        }
+
+        // 过滤自身：iwencai 返回的 code 通常是不带前缀的纯代码（如 "600519"）
+        let self_code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+
+        let peers: Vec<PeerComparison> = code_list
+            .iter()
+            .filter_map(|item| {
+                let code = item.get("code")?.as_str()?;
+                // 过滤自身
+                if code == self_code {
+                    return None;
+                }
+                let name = item.get("name")?.as_str()?.to_string();
+                let change_pct = item
+                    .get("change_pct")
+                    .or_else(|| item.get("涨跌幅"))
+                    .and_then(val_to_f64)
+                    .unwrap_or(0.0);
+                let pe = item
+                    .get("pe")
+                    .or_else(|| item.get("市盈率"))
+                    .or_else(|| item.get("PE"))
+                    .and_then(val_to_f64)
+                    .filter(|v| *v > 0.0);
+                let pb = item
+                    .get("pb")
+                    .or_else(|| item.get("市净率"))
+                    .or_else(|| item.get("PB"))
+                    .and_then(val_to_f64)
+                    .filter(|v| *v > 0.0);
+                let roe = item
+                    .get("roe")
+                    .or_else(|| item.get("ROE"))
+                    .or_else(|| item.get("净资产收益率"))
+                    .and_then(val_to_f64)
+                    .filter(|v| *v > 0.0);
+                let market_cap = item
+                    .get("market_cap")
+                    .or_else(|| item.get("总市值"))
+                    .or_else(|| item.get("total_market_cap"))
+                    .and_then(val_to_f64)
+                    .filter(|v| *v > 0.0);
+
+                Some(PeerComparison {
+                    stock_code: code.to_string(),
+                    stock_name: name,
+                    pe,
+                    pb,
+                    roe,
+                    change_pct,
+                    market_cap,
+                })
+            })
+            .collect();
+
+        if peers.is_empty() {
+            return Err(DataError::VendorError {
+                vendor: "iwencai".into(),
+                message: format!("get_peers 过滤自身后同业列表为空(stock_code={stock_code})"),
+            });
+        }
+
+        Ok(peers)
     }
 
     async fn get_sector_info(&self, stock_code: &str) -> Result<Option<SectorInfo>, DataError> {
@@ -317,12 +403,12 @@ impl StockVendor for IwencaiVendor {
     // - get_concept_blocks:当下概念分类 → NoHistoricalSemantic
     // - get_hot_stocks:当下热门榜单 → NoHistoricalSemantic
     // - get_sector_info:当下行业分类 → NoHistoricalSemantic
+    // - get_peers:同行业股票查询是当下语义 → NoHistoricalSemantic
     // 其他 stub:Fallthrough
     fn asof_capability(&self, method: &str) -> AsOfCapability {
         match method {
-            "search_stock" | "get_concept_blocks" | "get_hot_stocks" | "get_sector_info" => {
-                AsOfCapability::NoHistoricalSemantic
-            },
+            "search_stock" | "get_concept_blocks" | "get_hot_stocks" | "get_sector_info"
+            | "get_peers" => AsOfCapability::NoHistoricalSemantic,
             _ => AsOfCapability::Fallthrough,
         }
     }
@@ -339,7 +425,13 @@ mod capability_tests {
     #[test]
     fn iwencai_no_historical_methods() {
         let v = make_vendor();
-        for m in &["search_stock", "get_concept_blocks", "get_hot_stocks", "get_sector_info"] {
+        for m in &[
+            "search_stock",
+            "get_concept_blocks",
+            "get_hot_stocks",
+            "get_sector_info",
+            "get_peers",
+        ] {
             assert_eq!(v.asof_capability(m), AsOfCapability::NoHistoricalSemantic);
         }
     }

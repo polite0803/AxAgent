@@ -355,13 +355,23 @@ pub fn invalidate_cache() {
 /// 调用方应保证传入的 `template_vars` 是当前 workflow template 的变量列表（vendor_* 启用状态）
 ///
 /// `client` 用 `Arc` 包一层，因为后续并行任务（liquidity filter + 4 子策略）需要共享所有权
+///
+/// `preseed` 为可选的预置种子池：
+/// - `Some(seed)`：直接使用该种子，跳过 `build_seed_pool`（热门股/行业龙头/兜底股），
+///   但仍会执行流动性过滤和 Serenity 注入。用于自动化管道从历史推荐中构建候选池。
+/// - `None`：走默认的 `build_seed_pool` 路径（热门股 + 行业龙头 + FALLBACK_STOCKS）。
 pub async fn recommend_stocks(
     client: Arc<AStockClient>,
     period: Period,
     template_vars: &[(String, serde_json::Value)],
+    preseed: Option<Vec<SeedItem>>,
 ) -> Result<RecoResponse, String> {
-    if let Some(cached) = cache_get(period) {
-        return Ok(cached);
+    // preseed 模式跳过缓存（种子来自 DB 历史推荐，内容可能每次不同，不应命中缓存）
+    let use_cache = preseed.is_none();
+    if use_cache {
+        if let Some(cached) = cache_get(period) {
+            return Ok(cached);
+        }
     }
 
     // ── 前置健康探测 ──
@@ -393,7 +403,9 @@ pub async fn recommend_stocks(
             mode: "live".to_string(),
             error_detail: Some(detail),
         };
-        cache_put(period, resp.clone());
+        if use_cache {
+            cache_put(period, resp.clone());
+        }
         return Ok(resp);
     }
 
@@ -413,7 +425,24 @@ pub async fn recommend_stocks(
     });
 
     // 2. seed pool + 流动性过滤
-    let mut seed = build_seed_pool(&client).await;
+    //    preseed 为 Some 时使用调用方提供的种子（如自动化管道从历史推荐构建），
+    //    为 None 时走默认 build_seed_pool（热门股+行业龙头+兜底）。
+    let mut seed = match preseed {
+        Some(custom) => {
+            tracing::info!(
+                "[recommender] period={:?}, using custom preseed size={}",
+                period,
+                custom.len()
+            );
+            // 去重（同一 code+name 只保留一条）
+            let mut seen = std::collections::HashSet::new();
+            custom
+                .into_iter()
+                .filter(|item| seen.insert((item.0.clone(), item.1.clone())))
+                .collect()
+        },
+        None => build_seed_pool(&client).await,
+    };
     let raw_seed_pool_size = seed.len();
     tracing::info!("[recommender] period={:?}, raw_seed_pool_size={}", period, raw_seed_pool_size);
     // 保留 raw_seed 给 WatchlistStrategy（它只依赖 quote，不依赖 K 线）
@@ -732,7 +761,9 @@ pub async fn recommend_stocks(
             .unwrap_or_else(|| "live".to_string()),
         error_detail: None,
     };
-    cache_put(period, resp.clone());
+    if use_cache {
+        cache_put(period, resp.clone());
+    }
     Ok(resp)
 }
 

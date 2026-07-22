@@ -144,12 +144,25 @@ fn parse_quote(raw: &str) -> Result<StockQuote, DataError> {
 }
 
 /// 解析腾讯财经 K 线 JSON 响应
-/// API: http://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sz000001,day,,,120,qfq
-fn parse_klines(raw: &str, _stock_code: &str) -> Result<Vec<KLine>, DataError> {
+/// API (2026年端点):
+///   不复权日/周/月: https://web.ifzq.gtimg.cn/appstock/app/kline/kline?param=sz000001,day,,,120
+///   前/后复权:      https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sz000001,day,,,120,qfq
+///   分钟K:          https://web.ifzq.gtimg.cn/appstock/app/kline/mkline?param=sz000001,m5,,320
+/// 注意：日/周/月K线返回6字段[date,open,close,high,low,volume(手)]，无amount字段
+///       复权K线返回key格式为 {prefix}{period}，如 qfqday/hfqweek
+fn parse_klines(raw: &str, period_key: &str, fq_prefix: &str) -> Result<Vec<KLine>, DataError> {
     let json: serde_json::Value = serde_json::from_str(raw)
         .map_err(|e| DataError::ParseError(format!("K线JSON解析失败: {e}")))?;
-    // 路径: data.{code}.{qfqday|qfqweek|qfqmonth} 或 data.{code}.day/week/month
+    // 检查返回码
+    let code = json["code"].as_i64().unwrap_or(-1);
+    if code != 0 {
+        let msg = json["msg"].as_str().unwrap_or("unknown error");
+        return Err(DataError::ParseError(format!("腾讯K线API返回错误: code={code}, msg={msg}")));
+    }
     let data = &json["data"];
+    if data.is_string() || data.is_null() {
+        return Err(DataError::ParseError("腾讯K线返回data为空".into()));
+    }
     let code_key = data
         .as_object()
         .and_then(|obj| {
@@ -161,15 +174,23 @@ fn parse_klines(raw: &str, _stock_code: &str) -> Result<Vec<KLine>, DataError> {
         return Err(DataError::ParseError("K线数据中未找到股票代码键".into()));
     }
     let stock_data = &data[&code_key];
-    // 尝试各种可能的键名
-    let kline_list = stock_data["qfqday"]
-        .as_array()
-        .or_else(|| stock_data["day"].as_array())
-        .or_else(|| stock_data["qfqweek"].as_array())
-        .or_else(|| stock_data["week"].as_array())
-        .or_else(|| stock_data["qfqmonth"].as_array())
-        .or_else(|| stock_data["month"].as_array())
-        .ok_or_else(|| DataError::ParseError("未找到K线数组".into()))?;
+
+    // 构造可能的键名列表（优先复权键，回退非复权键）
+    // 日/周/月: day/week/month, 复权键为 qfqday/hfqday/qfqweek 等
+    // 分钟: m5/m15/m30/m60, 不复权时key为 m5/m15 等（注意分钟线mkline端点不支持复权）
+    let fq_key = format!("{fq_prefix}{period_key}");
+    let kline_list = if !fq_prefix.is_empty() {
+        stock_data[&fq_key].as_array().or_else(|| stock_data[period_key].as_array())
+    } else {
+        stock_data[period_key].as_array()
+    }
+    .ok_or_else(|| DataError::ParseError(format!("未找到K线数组 (key={fq_key}/{period_key})")))?;
+
+    let adj_marker = if !fq_prefix.is_empty() {
+        Some(1.0)
+    } else {
+        None
+    };
 
     let mut result = Vec::new();
     for item in kline_list {
@@ -180,17 +201,23 @@ fn parse_klines(raw: &str, _stock_code: &str) -> Result<Vec<KLine>, DataError> {
         let parse = |i: usize| -> f64 {
             arr.get(i).and_then(|v| v.as_str()).and_then(|s| s.parse().ok()).unwrap_or(0.0)
         };
+        // 字段顺序: [date, open, close, high, low, volume(手), amount(万元)?]
+        // 注意：2026年API日/周/月K线只有6个字段，无amount；分钟线可能有第7字段
+        let amount = if arr.len() > 6 {
+            parse(6) * 10000.0
+        } else {
+            0.0
+        };
         result.push(KLine {
             date: arr[0].as_str().unwrap_or("").to_string(),
             open: parse(1),
             close: parse(2),
             high: parse(3),
             low: parse(4),
-            volume: parse(5),
-            amount: parse(6),
+            volume: parse(5) * 100.0, // 腾讯 K线 volume 单位为"手"，×100 转为"股"
+            amount,                   // 若有amount字段则×10000(万元→元)，否则为0
             turnover_rate: None,
-            // P1-4: vendor 默认不复权，adj_factor 留 None；调用方可在 aggregation 层按 adj 参数二次校正
-            adj_factor: None,
+            adj_factor: adj_marker,
         });
     }
     Ok(result)
@@ -228,41 +255,58 @@ impl StockVendor for TencentVendor {
         stock_code: &str,
         period: &str,
         limit: u32,
-        _adj: Option<AdjType>,
+        adj: Option<AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
         let tc_code = to_tencent_code(stock_code);
-        let period_code = match period {
-            "weekly" => "week",
-            "monthly" => "month",
-            _ => "day",
+        // 周期映射：支持分钟线和日/周/月线
+        let (period_key, is_minute) = match period {
+            "5" | "Min5" => ("m5", true),
+            "15" | "Min15" => ("m15", true),
+            "30" | "Min30" => ("m30", true),
+            "60" | "Min60" => ("m60", true),
+            "weekly" | "102" | "Weekly" => ("week", false),
+            "monthly" | "103" | "Monthly" => ("month", false),
+            _ => ("day", false),
+        };
+        // 复权参数：分钟线不支持复权（mkline端点无复权参数），日/周/月线根据adj选择
+        // API端点 (2026年):
+        //   分钟线:       kline/mkline (param格式: code,m5,,limit)
+        //   日/周/月不复权: kline/kline  (param格式: code,day,,,limit)
+        //   日/周/月复权:   fqkline/get  (param格式: code,day,,,limit,fq)
+        let (fq_prefix, api_endpoint, param_suffix) = if is_minute {
+            ("", "kline/mkline", format!(",{limit}"))
+        } else {
+            match adj {
+                Some(AdjType::Forward) => ("qfq", "fqkline/get", format!(",,,{limit},qfq")),
+                Some(AdjType::Backward) => ("hfq", "fqkline/get", format!(",,,{limit},hfq")),
+                _ => ("", "kline/kline", format!(",,,{limit}")),
+            }
         };
         let url = format!(
-            "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={tc_code},{period_code},,,{limit},qfq"
+            "https://web.ifzq.gtimg.cn/appstock/app/{api_endpoint}?param={tc_code},{period_key}{param_suffix}"
         );
-        let resp = self.http.get(&url).send().await;
-        // 手动处理 Error 以检查 429
-        let klines = match resp {
+
+        let mut klines = match self.http.get(&url).send().await {
             Ok(r) => {
                 crate::check_response_429(&r, "tencent")?;
                 let body = r.text().await?;
-                parse_klines(&body, stock_code)
+                parse_klines(&body, period_key, fq_prefix)
             },
             Err(e) => Err(DataError::from(e)),
         };
 
-        // 上证指数代码（000xxx）可能被误映射为 sz 前缀
-        // 解析结果为空时用 sh 前缀重试
+        // 上证指数代码（000xxx）可能被误映射为 sz 前缀，解析结果为空时用 sh 前缀重试
         if klines.as_ref().is_ok_and(|v| v.is_empty()) && stock_code.starts_with("00") {
             let sh_code = format!("sh{stock_code}");
             let sh_url = format!(
-                "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={sh_code},{period_code},,,{limit},qfq"
+                "https://web.ifzq.gtimg.cn/appstock/app/{api_endpoint}?param={sh_code},{period_key}{param_suffix}"
             );
-            let sh_resp = self.http.get(&sh_url).send().await;
-            if let Ok(r) = sh_resp {
+            if let Ok(r) = self.http.get(&sh_url).send().await {
                 if let Ok(body) = r.text().await {
-                    let sh_klines = parse_klines(&body, stock_code);
-                    if sh_klines.as_ref().is_ok_and(|v| !v.is_empty()) {
-                        return sh_klines;
+                    if let Ok(sh_klines) = parse_klines(&body, period_key, fq_prefix) {
+                        if !sh_klines.is_empty() {
+                            klines = Ok(sh_klines);
+                        }
                     }
                 }
             }

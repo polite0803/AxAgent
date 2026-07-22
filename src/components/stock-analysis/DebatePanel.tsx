@@ -2,9 +2,9 @@ import { classifySentiment } from "@/lib/stock-analysis-utils";
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { ExpandOutlined, ReloadOutlined, WarningOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Empty, Modal, Segmented, Tag, Typography } from "antd";
-import NodeRenderer from "markstream-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ReportMarkdown } from "./ReportMarkdown";
 import { cleanToolCallTags, tryBeautifyJson } from "./utils";
 
 /* ─── 类型定义 ─── */
@@ -719,7 +719,7 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
   const reportSection = reportText
     ? (
       <div className="sa-markdown-content" style={{ marginBottom: 12 }}>
-        <NodeRenderer content={reportText} isDark={isDark} />
+        <ReportMarkdown content={reportText} isDark={isDark} />
       </div>
     )
     : null;
@@ -792,7 +792,7 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
       if (readable.length > 10) {
         return (
           <div className="sa-markdown-content">
-            <NodeRenderer content={readable} isDark={isDark} />
+            <ReportMarkdown content={readable} isDark={isDark} />
           </div>
         );
       }

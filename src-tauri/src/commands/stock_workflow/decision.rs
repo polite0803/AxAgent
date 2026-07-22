@@ -4,7 +4,9 @@ use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::AsOfContext;
 use axagent_entities::stock_analyses;
 use axagent_harness::workflow_types::{JsonSchema, Variable, WorkflowEdge, WorkflowNode};
-use axagent_rt_workflow::Workflow;
+#[cfg(test)]
+use axagent_rt_workflow::NodeRuntimeState;
+use axagent_rt_workflow::{NodeStatus, Workflow};
 use sea_orm::sea_query::Expr;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
@@ -387,6 +389,48 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
             }
         }
     }
+    // ── V57 硬化：portfolio-mgr 节点未成功产出结果时（Failed / Skipped /
+    // 因上游失败被跳过 / 从未运行），rt-workflow 的 apply_node_status_update
+    // 仅在 result=Some 时才写入 results（见 rt-workflow engine/mod.rs），
+    // 故 results["portfolio-mgr"] 缺位，旧逻辑回退到 wf.output 会再次产出
+    // "全零空壳"/决策缺失。此处携带 node_states["portfolio-mgr"].error 作可见
+    // 诊断，并给出最小有效决策 action:"观望"，避免 UI 静默"决策缺失"。
+    // 注意：只要节点状态不是 Completed（即没拿到有效 result）就触发，
+    // 覆盖 Rhai 运行时错误(Failed)与上游失败导致 Skipped 两种空壳来源。
+    if let Some(state) = wf.node_states.get("portfolio-mgr") {
+        if state.status != NodeStatus::Completed {
+            let error_msg = state.error.clone().unwrap_or_else(|| match state.status {
+                NodeStatus::Skipped => {
+                    "portfolio-mgr 节点被跳过（上游依赖失败导致，无本地错误详情）".to_string()
+                },
+                NodeStatus::Failed => "portfolio-mgr 节点执行失败（无错误详情）".to_string(),
+                _ => "portfolio-mgr 节点未完成（状态非 Completed）".to_string(),
+            });
+            let mut fallback = serde_json::Map::new();
+            fallback.insert("action".to_string(), json!("观望"));
+            fallback.insert("positionPct".to_string(), json!(0));
+            fallback.insert("confidence".to_string(), json!(0.0));
+            fallback.insert("riskLevel".to_string(), json!("低"));
+            fallback.insert("timeHorizon".to_string(), json!("短期"));
+            fallback.insert(
+                "reasoning".to_string(),
+                json!("组合管理节点未产出有效决策，已降级为保守观望。详见 diagnostics.nodeError。"),
+            );
+            let mut diag = serde_json::Map::new();
+            diag.insert("node".to_string(), json!("portfolio-mgr"));
+            diag.insert("nodeStatus".to_string(), json!(format!("{:?}", state.status)));
+            diag.insert("nodeError".to_string(), json!(error_msg.clone()));
+            let hint = if state.status == NodeStatus::Skipped {
+                "portfolio-mgr 被 Skipped：检查其上游依赖节点（trader/research-mgr/a-catalyst/t-risk 等）是否失败或超时，错误在对应 node_states[上游].error。"
+            } else {
+                "portfolio-mgr Rhai 运行失败：检查未走 present() 直接引用的变量、除零或类型错误。"
+            };
+            diag.insert("hint".to_string(), json!(hint));
+            fallback.insert("diagnostics".to_string(), serde_json::Value::Object(diag));
+            return serde_json::to_string(&serde_json::Value::Object(fallback)).ok();
+        }
+    }
+
     // 回退: workflow 顶层 output(无 output_schema 或非 stock-analysis 工作流)
     wf.output.as_ref().and_then(|v| serde_json::to_string(v).ok())
 }
@@ -1000,6 +1044,84 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&dj).expect("必须可解析");
         assert_eq!(parsed["action"], "BUY");
     }
+
+    /// V57 硬化：portfolio-mgr 节点 Failed（Rhai 运行时错误）且 results 缺位时，
+    /// 必须返回最小有效决策 action:"观望" 并携带 diagnostics.nodeError，而非空壳。
+    #[test]
+    pub(crate) fn extract_decision_json_hardens_failed_portfolio_mgr() {
+        use std::collections::HashMap;
+        let results = HashMap::new(); // 无 portfolio-mgr（节点失败未写入结果）
+        let mut node_states = HashMap::new();
+        node_states.insert(
+            "portfolio-mgr".to_string(),
+            NodeRuntimeState {
+                status: NodeStatus::Failed,
+                attempts: 1,
+                error: Some("Rhai 执行失败: Variable not found: foo".to_string()),
+                started_at: None,
+                completed_at: None,
+            },
+        );
+        let wf = Workflow {
+            id: "test".to_string(),
+            name: "test".to_string(),
+            nodes: vec![],
+            edges: vec![],
+            status: axagent_rt_workflow::WorkflowStatus::Failed,
+            created_at: 0,
+            completed_at: None,
+            results,
+            node_states,
+            output: None,
+            error_config: None,
+            error_workflow_id: None,
+        };
+        let dj = extract_decision_json(&wf).expect("失败节点也必须返回最小有效决策");
+        let parsed: serde_json::Value = serde_json::from_str(&dj).expect("必须可解析");
+        assert_eq!(parsed["action"], "观望");
+        assert_eq!(parsed["positionPct"], 0.0);
+        assert_eq!(parsed["confidence"], 0.0);
+        assert_eq!(parsed["diagnostics"]["node"], "portfolio-mgr");
+        assert_eq!(parsed["diagnostics"]["nodeStatus"], "Failed");
+        assert_eq!(parsed["diagnostics"]["nodeError"], "Rhai 执行失败: Variable not found: foo");
+    }
+
+    /// V57 硬化：portfolio-mgr 因上游失败被 Skipped 时同样兜底，
+    /// 不再退化成 wf.output 空壳。
+    #[test]
+    pub(crate) fn extract_decision_json_hardens_skipped_portfolio_mgr() {
+        use std::collections::HashMap;
+        let results = HashMap::new();
+        let mut node_states = HashMap::new();
+        node_states.insert(
+            "portfolio-mgr".to_string(),
+            NodeRuntimeState {
+                status: NodeStatus::Skipped,
+                attempts: 0,
+                error: None,
+                started_at: None,
+                completed_at: None,
+            },
+        );
+        let wf = Workflow {
+            id: "test".to_string(),
+            name: "test".to_string(),
+            nodes: vec![],
+            edges: vec![],
+            status: axagent_rt_workflow::WorkflowStatus::PartiallyCompleted,
+            created_at: 0,
+            completed_at: None,
+            results,
+            node_states,
+            output: None,
+            error_config: None,
+            error_workflow_id: None,
+        };
+        let dj = extract_decision_json(&wf).expect("跳过节点也必须返回最小有效决策");
+        let parsed: serde_json::Value = serde_json::from_str(&dj).expect("必须可解析");
+        assert_eq!(parsed["action"], "观望");
+        assert_eq!(parsed["diagnostics"]["nodeStatus"], "Skipped");
+    }
 }
 
 /// 从 `<!-- VERDICT: {...} -->` 标签中提取并解析 VERDICT JSON。
@@ -1141,6 +1263,11 @@ pub async fn rerun_decision(
     engine.set_max_modules(0);
     engine.set_max_string_size(2_000_000);
     engine.set_max_array_size(50_000);
+    // C4 补充: portfolio-mgr.rhai 因子多、表达式嵌套深（line 518 处超默认上限），
+    // 必须放宽 max_expr_depths，否则 eval 直接抛 "Expression exceeds maximum complexity"
+    // （编译期错误，脚本内 try/catch 无法捕获，会导致整个节点无输出）。
+    // 256 为该脚本实测所需下限(48)的 ~5 倍余量；执行总操作数仍受 set_max_operations 约束。
+    engine.set_max_expr_depths(256, 256);
     axagent_rt_workflow::work_engine::executors::register_common_functions(&mut engine);
     let mut scope = Scope::new();
 

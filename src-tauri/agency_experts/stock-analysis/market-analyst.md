@@ -62,37 +62,8 @@ VERDICT标签字段说明：
 <!-- VERDICT: {"verdict": "中性", "bull_score": 40, "bear_score": 50, "confidence": 70} -->
 ```
 
-```
-近20日价格区间收敛至28.5-32.0，均线系统纠缠。成交量较20日均量缩35%。
-
-**结论**：当前处于震荡格局，无明确突破信号，建议观望。
-
-<!-- VERDICT: {"verdict": "中性", "bull_score": 40, "bear_score": 50, "confidence": 70} -->
-```
-
-## 量价分析
-
-近5日成交量较20日均量缩35%，缩量震荡表示多空双方均不积极。
-
-## 行业对比
-
-个股相对行业排名中等偏上，无明显板块效应。
-
-## 结论
-
-当前处于震荡格局，无明确突破信号，建议观望。",
-"verdict": "中性",
-"bull_score": 40,
-"bear_score": 50,
-"confidence": 70
-}
-
-```
-（缺 `key_levels` / `volume_signal` / `trigger_*` / `evidence`；`score` 字段不叫这个名字；没给 `bear_score`）
-
 ## 自检
 
 - [ ] `bull_score` 与 `bear_score` 是否分开打分（0-100整数）？
 - [ ] `confidence` 是否如实反映数据完整度？
-- [ ] `report` 中是否包含了关键数据引用和推理过程？
-```
+- [ ] 报告中是否包含了关键数据引用和推理过程？

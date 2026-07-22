@@ -12,6 +12,40 @@
 //
 // 缺失因子不参与融合（不编造数据）。
 
+// ── Rhai 全局函数（必须位于全局作用域，Rhai 不允许在 try/块内定义函数）──
+fn present(x) { type_of(x) != "()" }
+fn safe_parse(raw) {
+    if !present(raw) { return (); }
+    if type_of(raw) != "string" || raw == "" { return (); }
+    try {
+        json_parse(raw)
+    } catch (err) {
+        ()
+    }
+}
+fn get_weight(weights, factor, fallback) {
+    if type_of(weights) == "map" {
+        let f = weights[factor];
+        if type_of(f) != "()" && type_of(f) == "map" {
+            let w = f["weight"];
+            if type_of(w) == "f64" { w } else { fallback }
+        } else { fallback }
+    } else { fallback }
+}
+fn risk_rank(label) {
+    switch label {
+        "低风险"|"低" => 0,
+        "中风险"|"中" => 1,
+        "高风险"|"高" => 2,
+        "极高风险"|"极高" => 3,
+        _ => 1
+    }
+}
+
+// ── 防御性兜底：任何 Rhai 运行时错误都返回可解析的保守决策，避免节点无输出 ──
+let __pm_result = ();
+
+try {
 // ── 可配置参数（修复 D7/D8：通过 input_mapping 覆盖，默认值为 V56 校准 A 股参数）──
 // action 阈值（effective_posterior）
 let ACTION_BUY_THRESHOLD = if present(action_buy_threshold) { action_buy_threshold } else { 0.63 };
@@ -41,21 +75,9 @@ let POS_CAP_EXTREME = if present(pos_cap_extreme) { pos_cap_extreme } else { 10.
 let POS_CAP_HIGH = if present(pos_cap_high) { pos_cap_high } else { 35.0 };
 let POS_CAP_MID = if present(pos_cap_mid) { pos_cap_mid } else { 50.0 };
 
-fn present(x) { type_of(x) != "()" }
-
 // 安全解析 JSON：解析失败（非法 JSON / 非字符串 / 空）返回 ()（unit），
 // 避免上游脏数据（如 LLM 返回带 markdown 包裹的 JSON）导致整个工作流崩溃。
 // 调用点已有 type_of 校验，() 会自然跳过，等价于"无数据"。
-fn safe_parse(raw) {
-    if !present(raw) { return (); }
-    if type_of(raw) != "string" || raw == "" { return (); }
-    try {
-        json_parse(raw)
-    } catch (err) {
-        ()
-    }
-}
-
 // ── V55: 累加上游 strict_mode 兜底哨兵 ──
 // 任意上游 AgentNode 走 strict_mode 降级（LLM 输出无法解析为合法 JSON）时，
 // 会通过 NodeOutput 顶层注入 __untrusted=true。本脚本读 input_mapping
@@ -87,15 +109,6 @@ let f_weights = if present(regime_factor_weights) && type_of(regime_factor_weigh
 } else { #{}};  // 空 map 触发等权 fallback
 
 // 尝试从 factor_weights 读取权重；找不到则用等权 fallback
-fn get_weight(weights, factor, fallback) {
-    if type_of(weights) == "map" {
-        let f = weights[factor];
-        if type_of(f) != "()" && type_of(f) == "map" {
-            let w = f["weight"];
-            if type_of(w) == "f64" { w } else { fallback }
-        } else { fallback }
-    } else { fallback }
-}
 
 // ── 因子 1: 技术面 ──
 let f1_default = 0.15;  // V49 修复: 从 0.25 下调 — 技术面(趋势跟踪)必然滞后,
@@ -225,15 +238,6 @@ let risk_source = "算法";  // "算法"/"LLM回退"/"无数据"
 let risk_classified = false;
 
 // 定义排序整数，便于比较风险等级高低
-fn risk_rank(label) {
-    switch label {
-        "低风险"|"低" => 0,
-        "中风险"|"中" => 1,
-        "高风险"|"高" => 2,
-        "极高风险"|"极高" => 3,
-        _ => 1
-    }
-}
 
 if present(risk_volatility) && risk_volatility > 0.0 {
     // 基于波动率/回撤/夏普的确定性分类（A 股校准 V54）
@@ -1188,7 +1192,7 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
 } else { "" };
 
 // ── 输出 ──
-	#{
+	__pm_result = #{
     "action": final_action,
     "positionPct": (position_pct * 10.0).round() / 10.0,
     "confidence": (final_confidence * 10.0).round() / 10.0,
@@ -1249,3 +1253,32 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
         "f7_weight_pct": f7_weight_pct,
     }
 }
+
+}
+
+// ── 错误兜底：Rhai 运行时异常时返回保守决策，确保节点始终输出可解析结果 ──
+catch (err) {
+    __pm_result = #{
+        "action": "观望",
+        "positionPct": 0.0,
+        "confidence": 50.0,
+        "riskLevel": "中风险",
+        "riskSource": "错误兜底",
+        "stopLossPct": 0.0,
+        "takeProfitPct": 0.0,
+        "reasoning": "portfolio-mgr Rhai 执行异常，已降级为保守决策: " + err,
+        "data_gaps": [],
+        "timeHorizon": "short",
+        "expectedHoldingDays": 5,
+        "isContradictory": false,
+        "targetTimeframe": "1w",
+        "evidence": #{ "prior": 0.5, "posterior": 0.5, "activeFactors": 0.0, "totalWeight": 0.0 },
+        "risk_quant": #{ "f4_base": 0.0, "f4_quant_adjust": 0.0, "f4_adjusted": 0.0, "notes": [] },
+        "decision_trail": [],
+        "simulation_gate": #{ "vetoed": false, "rule_id": "", "reason": "" },
+        "computation_logs": "ERROR: " + err,
+        "f7_free": #{ "posterior": 0.5, "action": "观望", "effective_posterior": 0.5, "f7_weight": 0.15, "total_weight": 0.0, "f7_weight_pct": 0.0 }
+    };
+}
+
+__pm_result

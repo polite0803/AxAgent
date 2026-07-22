@@ -46,6 +46,9 @@ data_sources: [get_stock_news, get_stock_announcements, get_stock_sector_info, g
 
 ```json
 {
+  "verdict": "看多",
+  "bull_score": 65,
+  "bear_score": 35,
   "report": "你的完整分析报告文本（自然语言，可包含结构化分析）",
   "catalyst_level": "无 | L1普通消息 | L2业绩拐点级 | L3估值体系级 | L-1普通利空 | L-2业绩暴雷级 | L-3退市/造假级",
   "institutional_trace": "无 | 疑似建仓 | 有建仓痕迹 | 明显建仓",
@@ -57,6 +60,14 @@ data_sources: [get_stock_news, get_stock_announcements, get_stock_sector_info, g
 
 字段说明：
 
+- `verdict`: **方向结论**，必须三选一："看多" / "看空" / "中性"。基于 catalyst_level + institutional_trace + narrative_completeness 综合判断：
+  - L2/L3 利好催化剂 + 有建仓痕迹 + 叙事完整度 ≥ 60 → "看多"
+  - L-2/L-3 利空催化剂 + 叙事破位 → "看空"
+  - 其它情况（L1普通消息、无催化剂、利空利好交织）→ "中性"
+- `bull_score` / `bear_score`: 0-100 整数，分别衡量看多/看空证据成立的程度，二者之和应接近 100（允许 ±5 误差）：
+  - verdict="看多" → bull_score ≥ 60，bear_score = 100 - bull_score
+  - verdict="看空" → bear_score ≥ 60，bull_score = 100 - bear_score
+  - verdict="中性" → bull_score 与 bear_score 均在 40-60 区间
 - `catalyst_level`: 检测到的最高催化剂级别。无催化剂填"无"。
   **利空档位说明**：
   - `L-3退市/造假级`：退市预警、财务造假、证监会立案调查、ST/*ST 风险

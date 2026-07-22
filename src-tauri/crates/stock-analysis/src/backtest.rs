@@ -29,7 +29,7 @@ pub struct BacktestResult {
     /// 决策是否正确（买入/增持应涨，减持/卖出应跌，持有应平）
     pub was_correct: bool,
     /// 持有期间最大回撤（%）
-    pub max_drawdown: f64,
+    pub max_drawdown_pct: f64,
 }
 
 /// 回测统计数据
@@ -189,7 +189,7 @@ impl BacktestEngine {
             holding_days: holding_days.try_into().unwrap_or(u32::MAX),
             return_pct,
             was_correct,
-            max_drawdown: max_dd * 100.0,
+            max_drawdown_pct: max_dd * 100.0,
         })
     }
 
@@ -250,7 +250,7 @@ impl BacktestEngine {
             0.0
         };
         let avg_max_dd: f64 = if total > 0.0 {
-            results.iter().map(|r| r.max_drawdown).sum::<f64>() / total
+            results.iter().map(|r| r.max_drawdown_pct).sum::<f64>() / total
         } else {
             0.0
         };
@@ -283,7 +283,7 @@ impl BacktestEngine {
                     0.0
                 };
                 let avg_dd = if n > 0.0 {
-                    group.iter().map(|r| r.max_drawdown).sum::<f64>() / n
+                    group.iter().map(|r| r.max_drawdown_pct).sum::<f64>() / n
                 } else {
                     0.0
                 };

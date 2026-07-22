@@ -595,7 +595,7 @@ impl StockVendor for MootdxVendor {
                                 open: q.open,
                                 high: q.high,
                                 low: q.low,
-                                volume: q.vol,
+                                volume: q.vol * 100.0, // 通达信行情 vol 单位为"手"，×100 转为"股"
                                 amount: q.amount,
                                 change_pct,
                                 turnover_rate: 0.0,
@@ -672,7 +672,7 @@ impl StockVendor for MootdxVendor {
                                     high: b.high,
                                     low: b.low,
                                     close: b.close,
-                                    volume: b.vol,
+                                    volume: b.vol * 100.0, // 通达信 K线 vol 单位为"手"，×100 转为"股"
                                     amount: b.amount,
                                     turnover_rate: None,
                                     // P1-4: vendor 默认不复权

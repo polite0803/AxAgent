@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use axagent_entities::{portfolio_holdings, stock_analyses, stock_pipeline_runs};
+use axagent_entities::{portfolio_holdings, reco_picks, stock_analyses, stock_pipeline_runs};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
@@ -23,6 +23,80 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use crate::commands::stock_workflow::core::run_single_stock_analysis;
+
+/// 从 reco_picks 表读取历史推荐构造种子池
+///
+/// 数据来源：
+/// - 最近 3 天的 `style='serenity'` 且 `synthetic=0`（瓶颈掘金真实推荐）
+/// - 最近 2 天的其他风格且 `synthetic=0`（智能荐股真实推荐，非兜底合成）
+///
+/// 返回 None 表示数据库无历史推荐，调用方应回退到默认 build_seed_pool。
+async fn load_preseed_from_db(
+    db: &sea_orm::DatabaseConnection,
+) -> Option<Vec<(String, String, Option<String>)>> {
+    // 取最近 3 天的 serenity 推荐
+    let now = chrono::Utc::now();
+    let serenity_cutoff =
+        (now - chrono::Duration::days(3)).format("%Y-%m-%dT%H:%M:%S%.3f").to_string();
+    let other_cutoff =
+        (now - chrono::Duration::days(2)).format("%Y-%m-%dT%H:%M:%S%.3f").to_string();
+
+    // serenity 推荐（最近 3 天，非合成）
+    let serenity_picks = reco_picks::Entity::find()
+        .filter(reco_picks::Column::Style.eq("serenity"))
+        .filter(reco_picks::Column::Synthetic.eq(0))
+        .filter(reco_picks::Column::GeneratedAt.gt(&serenity_cutoff))
+        .order_by_desc(reco_picks::Column::GeneratedAt)
+        .all(db)
+        .await;
+
+    // 其他风格推荐（最近 2 天，非合成）
+    let other_picks = reco_picks::Entity::find()
+        .filter(reco_picks::Column::Synthetic.eq(0))
+        .filter(reco_picks::Column::Style.ne("serenity"))
+        .filter(reco_picks::Column::GeneratedAt.gt(&other_cutoff))
+        .order_by_desc(reco_picks::Column::GeneratedAt)
+        .all(db)
+        .await;
+
+    let serenity_picks = match serenity_picks {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!("[stock_pipeline] 查询 serenity reco_picks 失败: {e}");
+            return None;
+        },
+    };
+    let other_picks = match other_picks {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!("[stock_pipeline] 查询其他 reco_picks 失败: {e}");
+            return None;
+        },
+    };
+
+    if serenity_picks.is_empty() && other_picks.is_empty() {
+        tracing::info!("[stock_pipeline] reco_picks 表无近期历史推荐，回退到默认种子池");
+        return None;
+    }
+
+    // 合并去重：serenity 优先（排在前），其他风格排后
+    let mut seen = std::collections::HashSet::new();
+    let mut seed: Vec<(String, String, Option<String>)> = Vec::new();
+
+    for p in serenity_picks.iter().chain(other_picks.iter()) {
+        if seen.insert(p.stock_code.clone()) {
+            seed.push((p.stock_code.clone(), p.stock_name.clone(), None));
+        }
+    }
+
+    tracing::info!(
+        "[stock_pipeline] 从 reco_picks 构造种子池: serenity={}, other={}, 合计去重={}",
+        serenity_picks.len(),
+        other_picks.len(),
+        seed.len()
+    );
+    Some(seed)
+}
 
 /// 进度回调类型（线程安全）
 type ProgressCallback = Arc<dyn Fn(&str, &str) + Send + Sync>;
@@ -266,7 +340,12 @@ async fn run_pipeline_steps(
     })
 }
 
-/// 步骤 1: 股票发现 — 调 `recommend_stocks` + 排除持仓 + 冷却去重
+/// 步骤 1: 股票发现 — 从 reco_picks 历史推荐构造种子池 + 调 `recommend_stocks` + 排除持仓 + 冷却去重
+///
+/// 种子池来源（优先级）：
+/// 1. reco_picks 表中最近 3 天的 serenity（瓶颈掘金）真实推荐
+/// 2. reco_picks 表中最近 2 天的其他风格智能荐股真实推荐
+/// 3. 若 reco_picks 表无数据（如全新安装），回退到默认 build_seed_pool
 ///
 /// 失败时返回空 vec（不报错），让后续步骤继续执行。
 async fn discover_candidates(
@@ -274,12 +353,16 @@ async fn discover_candidates(
     client: &Arc<axagent_astock_data::AStockClient>,
     config: &PipelineConfig,
 ) -> Vec<String> {
-    // 调 recommend_stocks（Mid 周期）
+    // 从 reco_picks 表读取历史推荐作为种子池
+    let preseed = load_preseed_from_db(db).await;
+
+    // 调 recommend_stocks（Mid 周期），传入 preseed
     let template_vars: Vec<(String, serde_json::Value)> = vec![];
     let reco = match axagent_stock_analysis::recommender::recommend_stocks(
         client.clone(),
         axagent_stock_analysis::recommender::Period::Mid,
         &template_vars,
+        preseed,
     )
     .await
     {

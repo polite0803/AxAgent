@@ -6,7 +6,15 @@ use tokio::sync::RwLock;
 use tokio::time::{interval, Duration};
 
 use axagent_harness::market_data::{MarketDataProvider, StockQuote};
-use tauri::Emitter;
+
+/// 前端事件推送桥接 trait
+///
+/// 由 wiring 层（如 Tauri AppHandle 包装）注入具体实现，
+/// 使 stock-analysis crate 不直接依赖 Tauri 框架。
+/// 未注入时（None）告警仅走内部 broadcast channel。
+pub trait MonitorEventEmitter: Send + Sync {
+    fn emit(&self, event: &str, payload: serde_json::Value);
+}
 
 /// T+0 自动重跑配置 (P2-6)
 ///
@@ -84,7 +92,7 @@ pub struct RealtimeMonitor {
     configs: RwLock<HashMap<String, MonitorConfig>>,
     alert_tx: tokio::sync::broadcast::Sender<MonitorAlert>,
     running: RwLock<bool>,
-    app_handle: RwLock<Option<tauri::AppHandle>>,
+    event_emitter: RwLock<Option<Arc<dyn MonitorEventEmitter>>>,
     last_alerts: RwLock<HashMap<String, i64>>,
     poll_interval_secs: RwLock<u64>,
     alert_cooldown_secs: RwLock<i64>,
@@ -103,7 +111,7 @@ impl RealtimeMonitor {
             configs: RwLock::new(HashMap::new()),
             alert_tx,
             running: RwLock::new(false),
-            app_handle: RwLock::new(None),
+            event_emitter: RwLock::new(None),
             last_alerts: RwLock::new(HashMap::new()),
             poll_interval_secs: RwLock::new(30),
             alert_cooldown_secs: RwLock::new(300),
@@ -130,9 +138,9 @@ impl RealtimeMonitor {
         self.t0_config.read().await.clone()
     }
 
-    /// 设置 Tauri AppHandle 以桥接告警到前端
-    pub async fn set_app_handle(&self, handle: tauri::AppHandle) {
-        *self.app_handle.write().await = Some(handle);
+    /// 设置前端事件推送器以桥接告警到前端
+    pub async fn set_event_emitter(&self, emitter: Arc<dyn MonitorEventEmitter>) {
+        *self.event_emitter.write().await = Some(emitter);
     }
 
     pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<MonitorAlert> {
@@ -367,12 +375,12 @@ impl RealtimeMonitor {
             true
         });
 
-        // 发送告警 — 内部 broadcast channel + Tauri 前端事件桥接
-        let app_handle = self.app_handle.read().await.clone();
+        // 发送告警 — 内部 broadcast channel + 前端事件桥接
+        let emitter = self.event_emitter.read().await.clone();
         for alert in &alerts {
             let _ = self.alert_tx.send(alert.clone());
-            if let Some(ref app) = app_handle {
-                let _ = app.emit(
+            if let Some(ref e) = emitter {
+                e.emit(
                     "stock-monitor-alert",
                     serde_json::json!({
                         "stockCode": alert.stock_code,
@@ -474,9 +482,9 @@ impl RealtimeMonitor {
         );
 
         // 4) 触发 T+0 事件 (前端可订阅用于 toast 提示 + 调 run_stock_workflow)
-        let app_handle = self.app_handle.read().await.clone();
-        if let Some(ref app) = app_handle {
-            let _ = app.emit(
+        let emitter = self.event_emitter.read().await.clone();
+        if let Some(ref e) = emitter {
+            e.emit(
                 "stock-monitor-t0-rerun-requested",
                 serde_json::json!({
                     "stockCode": stock_code,

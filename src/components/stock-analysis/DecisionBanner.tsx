@@ -8,10 +8,10 @@ import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { useTimeAnchorStore } from "@/stores/feature/timeAnchorStore";
 import { ExpandOutlined, FilePptOutlined, FileTextOutlined, FileWordOutlined, ReloadOutlined } from "@ant-design/icons";
 import { App, Button, Card, Dropdown, Modal, Tag, Tooltip } from "antd";
-import NodeRenderer from "markstream-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { ReportMarkdown } from "./ReportMarkdown";
 import { cleanToolCallTags } from "./utils";
 
 export function DecisionBanner() {
@@ -1214,7 +1214,7 @@ export function DecisionBanner() {
           style={{ background: "var(--surface)" }}
         >
           {cleanToolCallTags(decision.reasoning || "")
-            ? <NodeRenderer content={cleanToolCallTags(decision.reasoning || "")} isDark={isDark} />
+            ? <ReportMarkdown content={cleanToolCallTags(decision.reasoning || "")} isDark={isDark} />
             : <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.noDecisionReasoning")}</span>}
         </div>
 

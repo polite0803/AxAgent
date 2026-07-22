@@ -77,13 +77,13 @@ export function StockQuoteCard() {
         {/* 核心数据：4 列紧凑网格 */}
         <div className="grid grid-cols-4 gap-x-3 gap-y-0.5 text-xs" style={{ color: "var(--muted)" }}>
           <span>
-            {t("stockAnalysis.open")}: <b className="font-mono">{quote.open}</b>
+            {t("stockAnalysis.open")}: <b className="font-mono">{quote.open.toFixed(2)}</b>
           </span>
           <span>
-            {t("stockAnalysis.high")}: <b className="font-mono">{quote.high}</b>
+            {t("stockAnalysis.high")}: <b className="font-mono">{quote.high.toFixed(2)}</b>
           </span>
           <span>
-            {t("stockAnalysis.low")}: <b className="font-mono">{quote.low}</b>
+            {t("stockAnalysis.low")}: <b className="font-mono">{quote.low.toFixed(2)}</b>
           </span>
           <span>
             {t("stockAnalysis.volume")}:{" "}
@@ -91,12 +91,12 @@ export function StockQuoteCard() {
           </span>
           {quote.pe != null && (
             <span>
-              PE: <b className="font-mono">{quote.pe}</b>
+              PE: <b className="font-mono">{quote.pe.toFixed(1)}</b>
             </span>
           )}
           {quote.pb != null && (
             <span>
-              PB: <b className="font-mono">{quote.pb}</b>
+              PB: <b className="font-mono">{quote.pb.toFixed(2)}</b>
             </span>
           )}
           {quote.totalMv != null && (

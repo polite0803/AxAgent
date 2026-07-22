@@ -551,8 +551,7 @@ mod tests {
                 let mean_reversion = -deviation * 0.02;
                 let trend = drift;
                 // 确定性伪随机噪声
-                let noise =
-                    ((i_f * 1.618033988749895).sin() * noise_amp).max(-0.03).min(0.03);
+                let noise = ((i_f * 1.618033988749895).sin() * noise_amp).max(-0.03).min(0.03);
                 // 周度模式（周一弱、周五强）
                 let weekly = ((i % 7) as f64 - 3.0) * 0.0015;
 
@@ -593,7 +592,11 @@ mod tests {
             "Overfit:        {} / {} folds  ({})",
             report.overfit_window_count,
             report.windows.len(),
-            if report.overfit_warning { "⚠️ 告警" } else { "正常" }
+            if report.overfit_warning {
+                "⚠️ 告警"
+            } else {
+                "正常"
+            }
         );
         println!("Fold 明细:");
         for (i, w) in report.windows.iter().enumerate() {
@@ -624,17 +627,8 @@ mod tests {
         // 对参数量较大的扫描使用 1000 根 K 线
         let klines = make_noisy_klines(1000, "600519", 10.0, 0.0003, 0.010);
 
-        let param_grid = [
-            (5, 20),
-            (5, 40),
-            (5, 60),
-            (10, 20),
-            (10, 40),
-            (10, 60),
-            (20, 40),
-            (20, 60),
-            (20, 80),
-        ];
+        let param_grid =
+            [(5, 20), (5, 40), (5, 60), (10, 20), (10, 40), (10, 60), (20, 40), (20, 60), (20, 80)];
 
         let wf = WalkForward::new(WalkForwardConfig {
             train_days: 250,

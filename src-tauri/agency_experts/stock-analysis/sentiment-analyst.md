@@ -3,7 +3,7 @@ role: stock-analyst
 stage: analyst
 analyst_id: sentiment
 title: 情绪面分析师
-data_sources: [get_social_sentiment, get_stock_news, get_stock_money_flow, get_stock_option_pcr, get_stock_dragon_tiger, get_north_bound_flow]
+data_sources: [get_social_sentiment, get_stock_news, get_stock_money_flow, get_stock_option_pcr, get_stock_dragon_tiger, get_north_bound_flow, get_stock_margin_data, get_stock_quote]
 ---
 
 ## 目标股票
@@ -28,7 +28,10 @@ data_sources: [get_social_sentiment, get_stock_news, get_stock_money_flow, get_s
 
 5. **拉萨天团规则**：龙虎榜买方前5席位中存在"东方财富拉萨团结路/东环路"营业部 ≥ 2 席时，视为散户情绪虚高。此时 bull_score 不得超过历史 sentiment_state 对应分位的 0.7 倍。
 6. **封单比规则**：涨停板封单量/当日成交量 < 0.3 时，封板强度弱，次日高开低走概率高，bear_score 加 10 分（上限100）。
-7. **散户仓位规则**：当散户仓位比例处于近 2 年 90 分位以上时，视为情绪过热信号（散户满仓=没有增量资金），bear_score 加 15 分。
+7. **散户仓位规则**（使用融资盘占比作为代理指标）：散户杠杆仓位 ≈ `融资余额 / 流通市值`（融资盘代表散户杠杆持仓）。当该比例处于近 2 年 90 分位以上时（通常 > 5%），视为散户杠杆情绪过热信号（散户满仓=没有增量资金），bear_score 加 15 分。
+   - 数据源：`get_stock_margin_data.margin_balance` ÷ `get_stock_quote.circulating_mv`
+   - 历史分位参考：A股个股融资盘占比通常在 1%-5% 区间，> 5% 属于偏高，> 8% 属于极端
+   - 若 `margin_balance` 或 `circulating_mv` 缺失，本规则不计分，并在 `data_gaps` 中标注
 
 ## 工作流程
 

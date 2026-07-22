@@ -737,6 +737,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     ));
     let astock_client =
         Arc::new(axagent_astock_data::AStockClient::new().with_news_archive_sink(news_sink));
+    // 注册到 tools crate 全局状态，供 finance.rs 中的数据 API 工具（get_north_bound_flow 等）使用
+    axagent_tools::global_state::set_astock_client(astock_client.clone());
     let trading_engine =
         Arc::new(TokioRwLock::new(axagent_stock_analysis::trading::TradingEngine::new(
             Arc::new(sea_db.clone()),

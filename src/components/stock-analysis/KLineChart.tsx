@@ -47,11 +47,14 @@ function calcMA(data: number[], w: number): (number | null)[] {
 }
 
 // ── 颜色 ──
-const SA_RED = "oklch(60% 0.20 30)";
-const SA_GREEN = "oklch(62% 0.18 150)";
-const MA_ORANGE = "oklch(68% 0.16 50)";
-const MA_BLUE = "oklch(55% 0.14 250)";
-const MA_PURPLE = "oklch(55% 0.14 310)";
+const SA_RED = "#ef4444";
+const SA_GREEN = "#22c55e";
+const MA_ORANGE = "#f59e0b";
+const MA_BLUE = "#3b82f6";
+const MA_PURPLE = "#a855f7";
+const LIMIT_UP_COLOR = "#ef4444";
+const LIMIT_DOWN_COLOR = "#22c55e";
+const CURRENT_PRICE_COLOR = "#8b5cf6";
 
 const EARNINGS_COLORS: Record<string, string> = {
   preliminary: "#c026d3",
@@ -64,6 +67,7 @@ const EARNINGS_COLORS: Record<string, string> = {
 export function KLineChart() {
   const { t } = useTranslation();
   const klineData = useStockAnalysisStore((s) => s.klineData);
+  const quote = useStockAnalysisStore((s) => s.quote);
   const stockCode = useStockAnalysisStore((s) => s.stockCode);
   const klinePeriod = useStockAnalysisStore((s) => s.klinePeriod);
   const setKlinePeriod = useStockAnalysisStore((s) => s.setKlinePeriod);
@@ -262,6 +266,50 @@ export function KLineChart() {
     const candleName = t("stockAnalysis.klineChart");
     const volumeName = t("stockAnalysis.volumeChart");
 
+    // 构造 markLine 数据：涨停价、跌停价、现价
+    const markLineData: Array<{
+      name: string;
+      yAxis: number;
+      lineStyle: { color: string; type: "solid" | "dashed"; width: number };
+      label: { formatter: string; color: string; position?: string };
+    }> = [];
+    if (quote?.limitUp && quote.limitUp > 0) {
+      markLineData.push({
+        name: t("stockAnalysis.limitUp"),
+        yAxis: quote.limitUp,
+        lineStyle: { color: LIMIT_UP_COLOR, type: "dashed", width: 1 },
+        label: {
+          formatter: `${t("stockAnalysis.limitUp")} ${quote.limitUp.toFixed(2)}`,
+          color: LIMIT_UP_COLOR,
+          position: "insideStartTop",
+        },
+      });
+    }
+    if (quote?.limitDown && quote.limitDown > 0) {
+      markLineData.push({
+        name: t("stockAnalysis.limitDown"),
+        yAxis: quote.limitDown,
+        lineStyle: { color: LIMIT_DOWN_COLOR, type: "dashed", width: 1 },
+        label: {
+          formatter: `${t("stockAnalysis.limitDown")} ${quote.limitDown.toFixed(2)}`,
+          color: LIMIT_DOWN_COLOR,
+          position: "insideStartBottom",
+        },
+      });
+    }
+    if (quote?.price && quote.price > 0) {
+      markLineData.push({
+        name: t("stockAnalysis.price"),
+        yAxis: quote.price,
+        lineStyle: { color: CURRENT_PRICE_COLOR, type: "solid", width: 1.5 },
+        label: {
+          formatter: `${t("stockAnalysis.price")} ${quote.price.toFixed(2)}`,
+          color: CURRENT_PRICE_COLOR,
+          position: "insideEndTop",
+        },
+      });
+    }
+
     chart.setOption({
       animation: true,
       animationDuration: 300,
@@ -281,15 +329,19 @@ export function KLineChart() {
           const k = ohlc[idx];
           if (!k) { return ""; }
           const raw = klineData[idx];
-          const prevClose = idx > 0 ? klineData[idx - 1]?.close : null;
+          const prevRaw = idx > 0 ? klineData[idx - 1] : null;
+          const prevClose = prevRaw?.close ?? null;
           const changePct = raw && prevClose ? (raw.close - prevClose) / prevClose * 100 : null;
+          const changeColor = changePct == null ? "var(--fg)" : changePct >= 0 ? SA_RED : SA_GREEN;
           const lines = [
             `<div style="font-weight:600;margin-bottom:4px">${dates[idx] || ""}</div>`,
-            `${t("stockAnalysis.open")}: ${k[0].toFixed(2)} &nbsp; ${t("stockAnalysis.close")}: ${k[1].toFixed(2)}${
+            `${t("stockAnalysis.open")}: ${k[0].toFixed(2)} &nbsp; ${
+              t("stockAnalysis.close")
+            }: <span style="color:${changeColor};font-weight:600">${k[1].toFixed(2)}</span>${
               changePct != null
-                ? ` &nbsp; ${t("stockAnalysis.changePct")}: <span style="color:${
-                  changePct >= 0 ? "#ef4444" : "#22c55e"
-                }">${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%</span>`
+                ? ` &nbsp; ${t("stockAnalysis.changePct")}: <span style="color:${changeColor};font-weight:600">${
+                  changePct >= 0 ? "+" : ""
+                }${changePct.toFixed(2)}%</span>`
                 : ""
             }`,
             `${t("stockAnalysis.high")}: ${k[3].toFixed(2)} &nbsp; ${t("stockAnalysis.low")}: ${k[2].toFixed(2)}`,
@@ -297,6 +349,14 @@ export function KLineChart() {
               ? `${t("stockAnalysis.volumeChart")}: ${(v.value / 10000).toFixed(1)}${t("stockAnalysis.volumeUnit")}`
               : "",
           ];
+          if (raw && raw.amount > 0) {
+            lines.push(
+              `${t("stockAnalysis.amount")}: ${(raw.amount / 100000000).toFixed(2)}${t("stockAnalysis.amountUnit")}`,
+            );
+          }
+          if (raw && raw.turnoverRate != null) {
+            lines.push(`${t("stockAnalysis.turnoverRate")}: ${raw.turnoverRate.toFixed(2)}%`);
+          }
           if (indicators.ma5 && ma5[idx] != null) {
             lines.push(`<span style="color:${MA_ORANGE}">MA5: ${ma5[idx]}</span>`);
           }
@@ -368,6 +428,13 @@ export function KLineChart() {
               z: 5,
             }
             : undefined,
+          markLine: markLineData.length > 0
+            ? {
+              symbol: "none",
+              data: markLineData,
+              z: 3,
+            }
+            : undefined,
         },
         ...(indicators.ma5
           ? [{
@@ -430,7 +497,7 @@ export function KLineChart() {
     const newHandler = buildZoomHandler(dates.length);
     zoomHandlerRef.current = newHandler;
     chart.on("dataZoom", newHandler);
-  }, [klineData, t, indicators, getChart, earningsEvents, showEarningsOnChart, buildZoomHandler]);
+  }, [klineData, quote, t, indicators, getChart, earningsEvents, showEarningsOnChart, buildZoomHandler]);
 
   const chartHeight = Math.max(300, Math.min(520, window.innerHeight * 0.38));
   const curTierInfo = useMemo(() => {

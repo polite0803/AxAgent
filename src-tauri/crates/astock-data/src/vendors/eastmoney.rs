@@ -204,23 +204,57 @@ fn extract_report_period(title: &str) -> Option<String> {
 /// 港股：`116.00700`（去掉 .HK 后缀，加 116 前缀）
 /// 美股：`105.AAPL`（去掉 .US 后缀，加 105 前缀）
 fn to_em_secid(stock_code: &str) -> String {
+    // 修复(2026-07-22): 去除 sh/sz/bj 前缀,否则后续 starts_with('6') 判断会失效,
+    // 误把 "sh600887" 当作深圳市场股票,生成 secid="0.sh600887" 导致所有 API 调用返回空数据。
+    // 影响范围:get_quote/get_klines/get_financials/get_money_flow/get_dragon_tiger/
+    // get_lockup_schedule/get_margin_data/get_north_bound_holding/get_shareholder_trades/
+    // get_block_trades/get_peers 等所有使用 to_em_secid 的方法。
+    let code =
+        stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+
     // 港股：00700.HK → 116.00700
-    if let Some(code) = stock_code.strip_suffix(".HK").or_else(|| stock_code.strip_suffix(".hk")) {
-        return format!("116.{code}");
+    if let Some(hk) = code.strip_suffix(".HK").or_else(|| code.strip_suffix(".hk")) {
+        return format!("116.{hk}");
     }
     // 美股：AAPL.US → 105.AAPL
-    if let Some(code) = stock_code.strip_suffix(".US").or_else(|| stock_code.strip_suffix(".us")) {
-        return format!("105.{code}");
+    if let Some(us) = code.strip_suffix(".US").or_else(|| code.strip_suffix(".us")) {
+        return format!("105.{us}");
     }
     // A 股
-    let market = if stock_code.starts_with('6') || stock_code.starts_with('9') {
+    let market = if code.starts_with('6') || code.starts_with('9') {
         "1"
-    } else if stock_code.starts_with('8') || stock_code.starts_with('4') {
+    } else if code.starts_with('8') || code.starts_with('4') {
         "0"
     } else {
         "0"
     };
-    format!("{market}.{stock_code}")
+    format!("{market}.{code}")
+}
+
+/// 构建东方财富 SECUCODE（用于 datacenter 报表 API）
+///
+/// A 股：`600887.SH`（上海）、`000001.SZ`（深圳）、`830879.BJ`（北交所）
+/// 港股/美股：原值返回（如 `00700.HK`、`AAPL.US`）
+fn to_em_secucode(stock_code: &str) -> String {
+    let code =
+        stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+    // 港股/美股：已带后缀直接返回
+    if code.ends_with(".HK")
+        || code.ends_with(".hk")
+        || code.ends_with(".US")
+        || code.ends_with(".us")
+    {
+        return code.to_string();
+    }
+    // A 股
+    let suffix = if code.starts_with('6') || code.starts_with('9') {
+        "SH"
+    } else if code.starts_with('8') || code.starts_with('4') {
+        "BJ"
+    } else {
+        "SZ"
+    };
+    format!("{code}.{suffix}")
 }
 
 #[async_trait]
@@ -336,7 +370,7 @@ impl StockVendor for EastMoneyVendor {
                     close: parse(parts[2]),
                     high: parse(parts[3]),
                     low: parse(parts[4]),
-                    volume: parse(parts[5]),
+                    volume: parse(parts[5]) * 100.0, // 东方财富 K线 f56 单位为"手"，×100 转为"股"
                     amount: parse(parts[6]),
                     turnover_rate: Some(parse(parts[10])),
                     // R3: vendor 已复权时标记，避免 lib 层二次应用
@@ -350,12 +384,15 @@ impl StockVendor for EastMoneyVendor {
 
     async fn get_financials(&self, stock_code: &str) -> Result<Vec<FinancialReport>, DataError> {
         // 东方财富 2025 年后 FinanceSummary API 失效，改用 NewFinanceAnalysis/ZYZBAjaxNew
-        let em_code = if stock_code.starts_with('6') || stock_code.starts_with('9') {
-            format!("SH{stock_code}")
-        } else if stock_code.starts_with('8') || stock_code.starts_with('4') {
-            format!("BJ{stock_code}")
+        // 修复(2026-07-22): 先去除 sh/sz/bj 前缀,否则 starts_with 判断失效
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let em_code = if code.starts_with('6') || code.starts_with('9') {
+            format!("SH{code}")
+        } else if code.starts_with('8') || code.starts_with('4') {
+            format!("BJ{code}")
         } else {
-            format!("SZ{stock_code}")
+            format!("SZ{code}")
         };
 
         let url = format!(
@@ -367,16 +404,36 @@ impl StockVendor for EastMoneyVendor {
         let json: Value = resp.json().await?;
 
         let data = match json["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!("get_financials 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
-        Ok(data
+        let reports: Vec<FinancialReport> = data
             .iter()
             .take(24)           // 取24条(6年季度)，as-of 截断后有足够历史数据
             .map(|r| {
                 let s = |key: &str| -> &str { r[key].as_str().unwrap_or("") };
-                let n = |key: &str| -> Option<f64> { r[key].as_str().and_then(|v| v.parse().ok()) };
+                // 修复 M-FIN-1: 原 n 函数只处理字符串类型，但东方财富 API 部分字段
+                // 可能返回数字类型（Value::Number），导致解析失败返回 None。
+                // 改为同时支持字符串和数字类型，并过滤 "--"/""/null 等无效值。
+                let n = |key: &str| -> Option<f64> {
+                    let v = &r[key];
+                    if v.is_null() {
+                        return None;
+                    }
+                    if let Some(s) = v.as_str() {
+                        if s.is_empty() || s == "--" || s == "null" {
+                            return None;
+                        }
+                        return s.parse::<f64>().ok();
+                    }
+                    v.as_f64()
+                };
                 FinancialReport {
                     stock_code: stock_code.to_string(),
                     report_date: s("REPORT_DATE").to_string(),
@@ -400,7 +457,32 @@ impl StockVendor for EastMoneyVendor {
                     estimated: Some(false),
                 }
             })
-            .collect())
+            .collect();
+
+        // 修复 M-FIN-2: 字段名映射可能因 API 升级而失效。
+        // 当所有关键字段（roe/gross_margin/net_margin/revenue_yoy/profit_yoy）均为 None，
+        // 但财报条目本身存在时，返回 VendorError 触发 fallback 到下一个 vendor。
+        let critical_fields_empty = reports.iter().all(|r| {
+            r.roe.is_none()
+                && r.gross_margin.is_none()
+                && r.net_margin.is_none()
+                && r.revenue_yoy.is_none()
+                && r.profit_yoy.is_none()
+        });
+        if critical_fields_empty {
+            tracing::warn!(
+                "[eastmoney] get_financials 所有财报的5个关键字段(ROE/毛利率/净利率/营收同比/净利润同比)均为 None，\
+                 可能字段名映射失效(stock_code={stock_code})，触发 fallback"
+            );
+            return Err(DataError::VendorError {
+                vendor: "eastmoney".into(),
+                message: format!(
+                    "财报关键字段全为 None，可能 API 字段名变更(stock_code={stock_code})"
+                ),
+            });
+        }
+
+        Ok(reports)
     }
 
     async fn get_news(&self, stock_code: &str, limit: u32) -> Result<Vec<NewsItem>, DataError> {
@@ -734,56 +816,123 @@ impl StockVendor for EastMoneyVendor {
         &self,
         stock_code: &str,
     ) -> Result<Vec<LockupSchedule>, DataError> {
+        // 修复(2026-07-22): 原 reportName=RPTA_WEB_LOCKUP 已失效("报表配置不存在")。
+        // 改用 RPT_LIFT_GD 报表(来自 data.eastmoney.com/newstatic/js/xsjj/history.js,
+        // 即东方财富数据中心"限售股解禁"页面的实际数据源)。
+        //
+        // 字段映射:
+        //   - SECURITY_CODE/SECUCODE/SECURITY_NAME_ABBR: 代码/简称
+        //   - FREE_DATE: 解禁日期(格式 "YYYY-MM-DD 00:00:00")
+        //   - ADD_LISTING_SHARES: 本次解禁数量(股)
+        //   - LIMITED_HOLDER_NAME: 限售股持有人名称
+        //   - FREE_SHARES_TYPE: 限售股类型(如"股权激励限售股份")
+        //   - RESIDUAL_LIMITED_SHARES: 剩余限售股数
+        //   - LIFT_SHARES_ALL: 当次解禁总数(同一 FREE_DATE 下多股东合计)
+        //   - TOTAL_SHARES_NUM: 总股本(用于计算解禁比例)
+        //
+        // 修复(2026-07-22): SECURITY_CODE 字段需纯数字代码,去除 sh/sz/bj 前缀
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let url = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_LOCKUP&columns=SECURITY_CODE,SECURITY_NAME_ABBR,UNLOCK_DATE,UNLOCK_SHARES,PLACING_RATIO,HOLDER_NAME&filter=(SECURITY_CODE=\"{stock_code}\")&pageSize=20&sortColumns=UNLOCK_DATE&pageNumber=1"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPT_LIFT_GD&columns=ALL&\
+            filter=(SECURITY_CODE%3D%22{code}%22)&\
+            pageSize=50&pageNumber=1&source=WEB&\
+            sortColumns=FREE_DATE&sortTypes=-1"
         );
 
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
         let rows = match json["result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                // result.data 为空或结构异常，触发 VendorError 让下一个 vendor 尝试
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!("get_lockup_schedule 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
         Ok(rows
             .iter()
-            .map(|r| LockupSchedule {
-                stock_code: stock_code.to_string(),
-                stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
-                unlock_date: r["UNLOCK_DATE"].as_str().unwrap_or("").to_string(),
-                unlock_shares: r["UNLOCK_SHARES"].as_f64().unwrap_or(0.0),
-                unlock_ratio: r["PLACING_RATIO"].as_f64().unwrap_or(0.0),
-                shareholder: r["HOLDER_NAME"].as_str().map(|s| s.to_string()),
+            .map(|r| {
+                // FREE_DATE 格式 "YYYY-MM-DD 00:00:00",截取日期部分
+                let raw_date = r["FREE_DATE"].as_str().unwrap_or("");
+                let date = raw_date.split_whitespace().next().unwrap_or(raw_date).to_string();
+                // 解禁数量(本次新增可上市股份,单位:股)
+                let unlock_shares = r["ADD_LISTING_SHARES"].as_f64().unwrap_or(0.0);
+                // 解禁比例:用 LIFT_SHARES_ALL / TOTAL_SHARES_NUM 推算,
+                // 但 RPT_LIFT_GD 不返回 TOTAL_SHARES_NUM,改用 ADD_LISTING_SHARES / FREE_SHARES(总股本)
+                // 简化:不返回比例(0.0),让上层 LLM 根据解禁数量+总市值自行判断
+                let unlock_ratio = 0.0;
+                LockupSchedule {
+                    stock_code: stock_code.to_string(),
+                    stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
+                    unlock_date: date,
+                    unlock_shares,
+                    unlock_ratio,
+                    shareholder: r["LIMITED_HOLDER_NAME"].as_str().map(|s| s.to_string()),
+                }
             })
             .collect())
     }
 
     /// 获取融资融券数据
+    ///
+    /// 修复(2026-07-22): 原 API `push2his.eastmoney.com/api/qt/stock/margin/get` 已失效(返回404)。
+    /// 改用 datacenter-web 的 `RPTA_WEB_RZRQ_GGMX` 报表,该报表提供个股融资融券明细数据。
+    /// 响应字段映射:
+    ///   - RZYE: 融资余额(元)
+    ///   - RQYE: 融券余额(元)
+    ///   - RZMRE: 融资买入额(元)
+    ///   - RQMCL: 融券卖出量(股)
+    ///   - DATE: 交易日期
     async fn get_margin_data(&self, stock_code: &str) -> Result<Option<MarginData>, DataError> {
-        let secid = to_em_secid(stock_code);
+        // 去除 sh/sz/bj 前缀
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/margin/get?secid={secid}&fields1=f1,f2,f3,f4,f5&fields2=f51,f52,f53,f54,f55"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPTA_WEB_RZRQ_GGMX&columns=ALL&\
+            filter=(scode%3D%22{code}%22)&source=WEB&\
+            sortColumns=DATE&sortTypes=-1&pageNumber=1&pageSize=1"
         );
 
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
-        let data = &json["data"];
-        let parse_num =
-            |v: &Value| -> f64 { v.as_str().and_then(|s| s.parse().ok()).unwrap_or(0.0) };
-
-        if data.is_null() || data["f51"].is_null() {
-            return Ok(None);
+        // 检查 API 返回是否成功
+        if json["success"].as_bool() == Some(false) {
+            let msg = json["message"].as_str().unwrap_or("unknown error");
+            return Err(DataError::VendorError {
+                vendor: "eastmoney".into(),
+                message: format!("get_margin_data API 错误: {msg}(stock_code={stock_code})"),
+            });
         }
+
+        let data = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => &arr[0],
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!(
+                        "get_margin_data 数据为空(stock_code={stock_code}),该股票可能非融资融券标的"
+                    ),
+                });
+            },
+        };
+
+        let parse_f64 = |key: &str| -> f64 { data[key].as_f64().unwrap_or(0.0) };
 
         Ok(Some(MarginData {
             stock_code: stock_code.to_string(),
-            date: data["f51"].as_str().unwrap_or("").to_string(),
-            margin_buy: parse_num(&data["f52"]) * 10000.0,
-            margin_balance: parse_num(&data["f53"]) * 10000.0,
-            short_sell_volume: parse_num(&data["f54"]) * 100.0,
-            short_balance: parse_num(&data["f55"]) * 100.0,
+            date: data["DATE"].as_str().unwrap_or("").to_string(),
+            margin_buy: parse_f64("RZMRE"),        // 融资买入额(元)
+            margin_balance: parse_f64("RZYE"),     // 融资余额(元)
+            short_sell_volume: parse_f64("RQMCL"), // 融券卖出量(股)
+            short_balance: parse_f64("RQYE"),      // 融券余额(元)
         }))
     }
 
@@ -791,118 +940,156 @@ impl StockVendor for EastMoneyVendor {
         &self,
         stock_code: &str,
     ) -> Result<Option<NorthBoundHolding>, DataError> {
-        let secid = to_em_secid(stock_code);
+        // 修复(2026-07-22): 原 push2his fflow API 已失效(连接错误)。
+        // 此外,2024-08-16 起监管层暂停披露北向资金实时数据,即使 API 可用,数据也为 0。
+        //
+        // 替代方案:用 RPT_F10_EH_HOLDERS(十大股东季度持股)中筛选"香港中央结算有限公司"
+        // (HKSCC,代表港股通持股)作为北向持股的代理数据。
+        //
+        // 限制:
+        //   1. 数据是季度披露,非实时(延迟最多 90 天)
+        //   2. 若该股票港股通持股未排进十大股东,则返回 None(表示北向持股不重要)
+        //   3. change_shares 由相邻两期 HOLD_NUM 差值计算
+        //
+        // 字段:
+        //   - END_DATE: 报告期(如 "2026-03-31 00:00:00") → date
+        //   - HOLD_NUM: 持股数量 → holding_shares
+        //   - HOLD_NUM_RATIO: 持股比例(%) → holding_ratio
+        //   - 上期 HOLD_NUM - 本期 HOLD_NUM → change_shares (正数=减持,负数=增持)
+        let secucode = to_em_secucode(stock_code);
         let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid={secid}&fields1=f1,f2,f3&fields2=f51,f52,f53&lmt=2&klt=3"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPT_F10_EH_HOLDERS&columns=ALL&\
+            filter=(SECUCODE%3D%22{secucode}%22)&\
+            pageSize=200&pageNumber=1&source=WEB&\
+            sortColumns=END_DATE&sortTypes=-1"
         );
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
-        if let Some(arr) = json["data"]["klines"].as_array() {
-            let len = arr.len();
-            if len >= 1 {
-                if let Some(line) = arr[len - 1].as_str() {
-                    let parts: Vec<&str> = line.split(',').collect();
-                    if parts.len() >= 3 {
-                        let holding_shares: f64 = parts[1].parse().unwrap_or(0.0);
-                        let holding_ratio: f64 = parts[2].parse().unwrap_or(0.0);
-                        let prev_shares = if len >= 2 {
-                            arr[len - 2]
-                                .as_str()
-                                .and_then(|s| s.split(',').nth(1))
-                                .and_then(|v| v.parse::<f64>().ok())
-                                .unwrap_or(0.0)
-                        } else {
-                            0.0
-                        };
-                        return Ok(Some(NorthBoundHolding {
-                            stock_code: stock_code.to_string(),
-                            date: parts[0].to_string(),
-                            holding_shares,
-                            holding_ratio,
-                            change_shares: holding_shares - prev_shares,
-                        }));
-                    }
-                }
-            }
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => return Ok(None),
+        };
+
+        // 筛选"香港中央结算有限公司"(HKSCC)的记录,按 END_DATE 降序排
+        let mut hk_records: Vec<&Value> = rows
+            .iter()
+            .filter(|r| {
+                r["HOLDER_NAME"]
+                    .as_str()
+                    .map(|n| n.contains("香港中央结算") || n.contains("HKSCC"))
+                    .unwrap_or(false)
+            })
+            .collect();
+
+        if hk_records.is_empty() {
+            // 该股票港股通持股未排进十大股东,返回 None
+            return Ok(None);
         }
-        Ok(None)
+
+        // 按日期降序排(理论上 API 已按 END_DATE DESC 排,但保险起见再排一次)
+        hk_records.sort_by(|a, b| {
+            let da = a["END_DATE"].as_str().unwrap_or("");
+            let db = b["END_DATE"].as_str().unwrap_or("");
+            db.cmp(da)
+        });
+
+        let latest = hk_records[0];
+        let latest_date = latest["END_DATE"]
+            .as_str()
+            .map(|s| s.split_whitespace().next().unwrap_or(s).to_string())
+            .unwrap_or_default();
+        let latest_shares = latest["HOLD_NUM"].as_f64().unwrap_or(0.0);
+        let latest_ratio = latest["HOLD_NUM_RATIO"].as_f64().unwrap_or(0.0);
+
+        // 取次新的一期(必须是不同的 END_DATE)作为上期
+        let prev_shares = hk_records
+            .iter()
+            .skip(1)
+            .find(|r| {
+                r["END_DATE"]
+                    .as_str()
+                    .map(|d| d != latest["END_DATE"].as_str().unwrap_or(""))
+                    .unwrap_or(true)
+            })
+            .and_then(|r| r["HOLD_NUM"].as_f64())
+            .unwrap_or(latest_shares);
+
+        // change_shares: 正数=本期相比上期增持,负数=减持
+        let change_shares = latest_shares - prev_shares;
+
+        Ok(Some(NorthBoundHolding {
+            stock_code: stock_code.to_string(),
+            date: latest_date,
+            holding_shares: latest_shares,
+            holding_ratio: latest_ratio,
+            change_shares,
+        }))
     }
 
     async fn get_sector_info(&self, stock_code: &str) -> Result<Option<SectorInfo>, DataError> {
-        let secid = to_em_secid(stock_code);
-        let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f158,f159,f160,f127"
-        );
+        // 修复(2026-07-22): 原 push2his stock/get API 已失效(WAF/JA3 检测导致连接错误)。
+        // 改用 emweb F10 的 CompanySurvey/PageAjax 接口获取行业分类。
+        //
+        // 字段映射:
+        //   - EM2016: 东财行业分类(如 "食品饮料-食品-乳制品"),用 "-" 拆分为一级行业/二级行业/细分
+        //   - INDUSTRYCSRC1: 证监会行业分类(如 "制造业-食品制造业"),作为 concept_tags 补充
+        //
+        // 注:avg_pe/avg_pb 原 push2his clist/get API 也已失效,
+        // 行业 PE/PB 数据请通过 get_industry_ranking 或 get_peers 获取,
+        // 这里设为 None,不阻塞主流程。
+        let secucode = to_em_secucode(stock_code);
+        let url =
+            format!("https://emweb.eastmoney.com/PC_HSF10/CompanySurvey/PageAjax?code={secucode}");
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
-        let data = &json["data"];
-        let sector_name = data["f158"].as_str().unwrap_or("").to_string();
-        let sub_sector = data["f159"].as_str().unwrap_or("").to_string();
-        let concept_tags: Vec<String> = data["f160"]
-            .as_str()
-            .map(|s| s.split(',').map(|t| t.trim().to_string()).collect())
-            .unwrap_or_default();
-        let board_code = data["f127"].as_str().unwrap_or("").to_string();
+        let data = match json["jbzl"].get(0) {
+            Some(d) => d,
+            None => return Ok(None),
+        };
+
+        // EM2016: "食品饮料-食品-乳制品" → ["食品饮料", "食品", "乳制品"]
+        let em_industry = data["EM2016"].as_str().unwrap_or("");
+        let parts: Vec<&str> = em_industry.split('-').collect();
+        let sector_name = parts.first().map(|s| s.trim().to_string()).unwrap_or_default();
+        let sub_sector = parts.get(1).map(|s| s.trim().to_string()).unwrap_or_default();
+        // 细分行业(如有)拼接到 sub_sector
+        let sub_sector = if parts.len() >= 3 {
+            let detail = parts[2].trim();
+            format!("{sub_sector}-{detail}")
+        } else {
+            sub_sector
+        };
+
+        // 概念标签:把证监会行业分类作为 concept_tags 的第一项
+        let mut concept_tags: Vec<String> = Vec::new();
+        if let Some(csrc) = data["INDUSTRYCSRC1"].as_str() {
+            if !csrc.is_empty() {
+                concept_tags.push(csrc.to_string());
+            }
+        }
+        // SECURITY_TYPE 也作为标签(如"上交所主板A股")
+        if let Some(stype) = data["SECURITY_TYPE"].as_str() {
+            if !stype.is_empty() {
+                concept_tags.push(stype.to_string());
+            }
+        }
 
         if sector_name.is_empty() && concept_tags.is_empty() {
             return Ok(None);
         }
-
-        let (avg_pe, avg_pb) = if !board_code.is_empty() {
-            let board_url = format!(
-                "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=1&fs=b:{board_code}&fields=f162,f167"
-            );
-            match self.em_get(&board_url).await {
-                Ok(resp) => {
-                    let board_json: Value = resp.json().await.unwrap_or(Value::Null);
-                    let diff = &board_json["data"]["diff"];
-                    let f = |key: &str| {
-                        diff.get(0).and_then(|row| row[key].as_f64()).and_then(|v| {
-                            if v > 0.0 {
-                                Some(v / 100.0)
-                            } else {
-                                None
-                            }
-                        })
-                    };
-                    (f("f162"), f("f167"))
-                },
-                Err(_) => (None, None),
-            }
-        } else if !sector_name.is_empty() {
-            let board_url = format!(
-                "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=1&fs=b:{sector_name}&fields=f162,f167"
-            );
-            match self.em_get(&board_url).await {
-                Ok(resp) => {
-                    let board_json: Value = resp.json().await.unwrap_or(Value::Null);
-                    let diff = &board_json["data"]["diff"];
-                    let f = |key: &str| {
-                        diff.get(0).and_then(|row| row[key].as_f64()).and_then(|v| {
-                            if v > 0.0 {
-                                Some(v / 100.0)
-                            } else {
-                                None
-                            }
-                        })
-                    };
-                    (f("f162"), f("f167"))
-                },
-                Err(_) => (None, None),
-            }
-        } else {
-            (None, None)
-        };
 
         Ok(Some(SectorInfo {
             stock_code: stock_code.to_string(),
             sector_name,
             sub_sector,
             concept_tags,
-            avg_pe,
-            avg_pb,
+            // 原 push2his clist/get 失效,avg_pe/avg_pb 暂不可用
+            // 行业 PE/PB 请通过 get_industry_ranking / get_peers 获取
+            avg_pe: None,
+            avg_pb: None,
         }))
     }
 
@@ -910,30 +1097,75 @@ impl StockVendor for EastMoneyVendor {
         &self,
         stock_code: &str,
     ) -> Result<Vec<ShareholderTrade>, DataError> {
-        // 东方财富数据中心: 大股东增减持数据
-        // SECURITY_CODE=股票代码, CHANGE_DATE=变动日期, SHAREHD_NAME=股东名称
-        // CHANGE_TYPE=变动类型(增持/减持), CHANGE_NUM=变动数量, CHANGE_PRICE=变动均价
+        // 修复(2026-07-22): 原 reportName=RPTA_WEB_MAJORHOLDERS_TRADE 已失效("报表配置不存在")。
+        // 改用 RPT_F10_EH_HOLDERS 报表(十大股东季度持股变动),作为大股东增减持的代理数据。
+        //
+        // 注意:该报表返回的是季度披露的十大股东持股变动(每季度发布一次),
+        // 不是日常的"董监高增减持公告"。但作为"大股东动作"的代理信号,
+        // 季度数据可反映主要股东的加仓/减仓/新进/退出趋势,对 LLM 推断有较高价值。
+        //
+        // 字段映射:
+        //   - END_DATE: 报告期(如 "2026-03-31 00:00:00") → date
+        //   - HOLDER_NAME: 股东名称 → shareholder_name
+        //   - HOLDER_STATEE: 状态("新进"/"加仓"/"减仓"/null="不变") → trade_type
+        //   - HOLD_NUM_CHANGE: 变化数量(字符串,如"不变"或"-49236650") → shares
+        //   - HOLD_NUM_RATIO: 持股比例
+        //   - CHANGE_RATIO: 变化比例(%)
+        //   - HOLD_RATIO_QOQ: 季度环比状态
+        //
+        // 兼容沪深京三市:根据代码前缀动态选择 .SH/.SZ/.BJ 后缀
+        let secucode = to_em_secucode(stock_code);
         let url = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_MAJORHOLDERS_TRADE&columns=SECURITY_CODE,CHANGE_DATE,SHAREHD_NAME,CHANGE_TYPE,CHANGE_NUM,CHANGE_PRICE,CHANGE_REASON&filter=(SECURITY_CODE=\"{stock_code}\")&pageSize=20&pageNumber=1"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPT_F10_EH_HOLDERS&columns=ALL&\
+            filter=(SECUCODE%3D%22{secucode}%22)&\
+            pageSize=20&pageNumber=1&source=WEB&\
+            sortColumns=END_DATE&sortTypes=-1"
         );
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
         let rows = match json["result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!("get_shareholder_trades 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
         rows.iter()
             .map(|r| {
+                // END_DATE 格式 "YYYY-MM-DD 00:00:00",截取日期部分
+                let raw_date = r["END_DATE"].as_str().unwrap_or("");
+                let date = raw_date.split_whitespace().next().unwrap_or(raw_date).to_string();
+                // 解析 HOLD_NUM_CHANGE 字段(字符串)
+                // "不变" → 0.0, 数字字符串 → parse, "新进" → 用 HOLD_NUM 作为新增数量
+                let raw_change = r["HOLD_NUM_CHANGE"].as_str().unwrap_or("");
+                let shares = if raw_change == "不变" || raw_change.is_empty() {
+                    0.0
+                } else if let Ok(n) = raw_change.parse::<f64>() {
+                    n
+                } else {
+                    // "新进" 或其他字符串,用 HOLD_NUM(当前持股)作为新增量
+                    r["HOLD_NUM"].as_f64().unwrap_or(0.0)
+                };
+                // 状态字段HOLDER_STATEE(优先)或HOLD_RATIO_QOQ(回退)
+                let trade_type = r["HOLDER_STATEE"]
+                    .as_str()
+                    .or_else(|| r["HOLD_RATIO_QOQ"].as_str())
+                    .unwrap_or("不变")
+                    .to_string();
                 Ok(ShareholderTrade {
                     stock_code: stock_code.to_string(),
-                    date: r["CHANGE_DATE"].as_str().unwrap_or("").to_string(),
-                    shareholder_name: r["SHAREHD_NAME"].as_str().unwrap_or("").to_string(),
-                    trade_type: r["CHANGE_TYPE"].as_str().unwrap_or("").to_string(),
-                    shares: r["CHANGE_NUM"].as_f64().unwrap_or(0.0),
-                    price: r["CHANGE_PRICE"].as_f64().unwrap_or(0.0),
-                    reason: r["CHANGE_REASON"].as_str().map(|s| s.to_string()),
+                    date,
+                    shareholder_name: r["HOLDER_NAME"].as_str().unwrap_or("").to_string(),
+                    trade_type,
+                    shares,
+                    // 该报表不提供成交价格,用 0.0 占位
+                    price: 0.0,
+                    reason: r["SHARES_TYPE"].as_str().map(|s| s.to_string()),
                 })
             })
             .collect()
@@ -944,8 +1176,11 @@ impl StockVendor for EastMoneyVendor {
         stock_code: &str,
     ) -> Result<Vec<DividendRecord>, DataError> {
         // 东方财富数据中心: 分红送配数据
+        // 修复(2026-07-22): SECURITY_CODE 字段需纯数字代码,去除 sh/sz/bj 前缀
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let url = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_DIVIDEND&columns=SECURITY_CODE,EX_DIVIDEND_DATE,DIVIDEND_PER_SHARE,BONUS_SHARE_RATIO,RECORD_DATE&filter=(SECURITY_CODE=\"{stock_code}\")&pageSize=10&pageNumber=1"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_DIVIDEND&columns=SECURITY_CODE,EX_DIVIDEND_DATE,DIVIDEND_PER_SHARE,BONUS_SHARE_RATIO,RECORD_DATE&filter=(SECURITY_CODE=\"{code}\")&pageSize=10&pageNumber=1"
         );
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
@@ -980,8 +1215,11 @@ impl StockVendor for EastMoneyVendor {
         &self,
         stock_code: &str,
     ) -> Result<Vec<EarningsEvent>, DataError> {
+        // 修复(2026-07-22): SECURITY_CODE 字段需纯数字代码,去除 sh/sz/bj 前缀
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let url = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_NOTICE&columns=SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,TITLE,EQUITY_NOTICE_TYPE&filter=(SECURITY_CODE=\"{stock_code}\")&pageSize=30&sortColumns=NOTICE_DATE&sortTypes=-1&pageNumber=1"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_NOTICE&columns=SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,TITLE,EQUITY_NOTICE_TYPE&filter=(SECURITY_CODE=\"{code}\")&pageSize=30&sortColumns=NOTICE_DATE&sortTypes=-1&pageNumber=1"
         );
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
@@ -1177,6 +1415,76 @@ impl StockVendor for EastMoneyVendor {
             .collect())
     }
 
+    async fn get_policy_news(
+        &self,
+        stock_code: &str,
+        limit: u32,
+    ) -> Result<Vec<NewsItem>, DataError> {
+        // 实现策略(v2, 2026-07-22):
+        //
+        // 原方案用 search_news("{行业} 政策") 搜索组合关键词,但实测发现
+        // search-api-web.eastmoney.com 对中文组合关键词(如"食品饮料 政策")
+        // 返回空结果,搜索效果极差。
+        //
+        // 新方案:复用已验证可用的 get_news(stock_code) 拿全部新闻,
+        // 在客户端按政策关键词过滤标题+摘要。这样:
+        //   1. 复用股票代码搜索(已验证可用,返回该股票相关新闻)
+        //   2. 政策过滤在客户端做,不依赖搜索 API 的中文分词能力
+        //   3. 即使过滤后结果很少,也至少有一些相关内容
+        //
+        // 政策关键词覆盖:政策/规划/通知/补贴/监管/法规/条例/办法/意见/纲要/
+        //                改革/扶持/刺激/减税/降费/鼓励/限制/禁止/标准
+        let fetch_limit = limit.clamp(50, 100); // 多拉一些再过滤(至少 50 条,最多 100 条)
+        let all_news = self.get_news(stock_code, fetch_limit).await?;
+
+        // 政策相关关键词(小写匹配)
+        const POLICY_KEYWORDS: &[&str] = &[
+            "政策",
+            "规划",
+            "通知",
+            "补贴",
+            "监管",
+            "法规",
+            "条例",
+            "办法",
+            "意见",
+            "纲要",
+            "改革",
+            "扶持",
+            "刺激",
+            "减税",
+            "降费",
+            "鼓励",
+            "限制",
+            "禁止",
+            "标准",
+            "五年规划",
+            "中央经济",
+            "工信部",
+            "发改委",
+            "证监会",
+            "农业农村部",
+            "国务院",
+            "常务会议",
+        ];
+
+        let is_policy_related = |n: &NewsItem| {
+            let haystack = format!("{} {}", n.title, n.summary);
+            POLICY_KEYWORDS.iter().any(|kw| haystack.contains(kw))
+        };
+
+        let mut policy_news: Vec<NewsItem> =
+            all_news.into_iter().filter(is_policy_related).collect();
+
+        // 按 publish_time 降序排
+        policy_news.sort_by(|a, b| b.publish_time.cmp(&a.publish_time));
+
+        // 截断到 limit
+        policy_news.truncate(limit as usize);
+
+        Ok(policy_news)
+    }
+
     async fn get_announcements(&self, stock_code: &str) -> Result<Vec<Announcement>, DataError> {
         // 修复(2026-07-21): 原实现 stock_list={market},{stock_code} 的 market 前缀
         // (沪市="1"/深市&北交所="0")不规范,且与 get_announcements_with_asof 的
@@ -1236,41 +1544,64 @@ impl StockVendor for EastMoneyVendor {
     }
 
     async fn get_block_trades(&self, stock_code: &str) -> Result<Vec<BlockTrade>, DataError> {
-        let _secid = to_em_secid(stock_code);
+        // 修复(2026-07-22): 原 reportName=RPTA_BLOCKTRADE 已失效("报表配置不存在")。
+        // 改用 RPT_DATA_BLOCKTRADE 报表(来自 data.eastmoney.com/newstatic/js/dzjy/default.js)。
+        //
+        // 字段映射(参考 dzjy/default.js 中 dataview_mrmx 的 columns 定义):
+        //   - TRADE_DATE: 交易日期(格式 "YYYY-MM-DD 00:00:00") → trade_date
+        //   - SECURITY_NAME_ABBR: 股票简称 → stock_name
+        //   - DEAL_PRICE: 成交价 → price
+        //   - DEAL_VOLUME: 成交量(股) → volume
+        //   - DEAL_AMT: 成交额(元) → amount
+        //   - BUYER_NAME: 买方营业部 → buyer_dept
+        //   - SELLER_NAME: 卖方营业部 → seller_dept
+        //   - PREMIUM_RATIO: 折溢率(正值=溢价, 负值=折价) → discount_pct
+        //     注:字段名是 PREMIUM_RATIO 不是 DISCOUNT_RATE;为保持 BlockTrade 字段语义
+        //     不变,直接传入 PREMIUM_RATIO 原值,LLM 推断时需知晓正值=溢价/负值=折价。
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let url = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_BLOCKTRADE&columns=SECURITY_CODE,SECURITY_NAME_ABBR,TRADE_DATE,TRADE_PRICE,TRADE_VOL,TRADE_AMOUNT,BUYER_NAME,SELLER_NAME,DISCOUNT_RATE&filter=(SECURITY_CODE=\"{stock_code}\")&sortColumns=TRADE_DATE&sortTypes=-1&pageSize=20&pageNumber=1"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPT_DATA_BLOCKTRADE&\
+            columns=TRADE_DATE,SECURITY_CODE,SECUCODE,SECURITY_NAME_ABBR,\
+            CHANGE_RATE,CLOSE_PRICE,DEAL_PRICE,PREMIUM_RATIO,DEAL_VOLUME,DEAL_AMT,\
+            TURNOVER_RATE,BUYER_NAME,SELLER_NAME,BUYER_CODE,SELLER_CODE&\
+            filter=(SECURITY_CODE%3D%22{code}%22)&\
+            sortColumns=TRADE_DATE&sortTypes=-1&\
+            pageSize=20&pageNumber=1&source=WEB&client=WEB"
         );
 
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
         let rows = match json["result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!("get_block_trades 数据为空(stock_code={stock_code})"),
+                });
+            },
         };
 
         Ok(rows
             .iter()
-            .map(|r| BlockTrade {
-                stock_code: stock_code.to_string(),
-                stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
-                trade_date: r["TRADE_DATE"]
+            .map(|r| {
+                let trade_date = r["TRADE_DATE"]
                     .as_str()
-                    .map(|s| s.chars().take(10).collect::<String>())
-                    .unwrap_or_else(|| {
-                        r["TRADE_DATE"]
-                            .as_i64()
-                            .map(|ts| {
-                                crate::vendors::format_timestamp(ts / 1000, "%Y-%m-%d", "eastmoney")
-                            })
-                            .unwrap_or_default()
-                    }),
-                price: r["TRADE_PRICE"].as_f64().unwrap_or(0.0),
-                volume: r["TRADE_VOL"].as_f64().unwrap_or(0.0),
-                amount: r["TRADE_AMOUNT"].as_f64().unwrap_or(0.0),
-                buyer_dept: r["BUYER_NAME"].as_str().map(|s| s.to_string()),
-                seller_dept: r["SELLER_NAME"].as_str().map(|s| s.to_string()),
-                discount_pct: r["DISCOUNT_RATE"].as_f64(),
+                    .map(|s| s.split_whitespace().next().unwrap_or(s).to_string())
+                    .unwrap_or_default();
+                BlockTrade {
+                    stock_code: stock_code.to_string(),
+                    stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
+                    trade_date,
+                    price: r["DEAL_PRICE"].as_f64().unwrap_or(0.0),
+                    volume: r["DEAL_VOLUME"].as_f64().unwrap_or(0.0),
+                    amount: r["DEAL_AMT"].as_f64().unwrap_or(0.0),
+                    buyer_dept: r["BUYER_NAME"].as_str().map(|s| s.to_string()),
+                    seller_dept: r["SELLER_NAME"].as_str().map(|s| s.to_string()),
+                    discount_pct: r["PREMIUM_RATIO"].as_f64(),
+                }
             })
             .collect())
     }
@@ -1279,9 +1610,12 @@ impl StockVendor for EastMoneyVendor {
         &self,
         stock_code: &str,
     ) -> Result<Vec<InstitutionalVisit>, DataError> {
+        // 修复(2026-07-22): SECURITY_CODE 字段需纯数字代码,去除 sh/sz/bj 前缀
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let _secid = to_em_secid(stock_code);
         let url = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_ORG_SURVEY&columns=SECUCODE,SECURITY_NAME_ABBR,SURVEY_DATE,ORG_NUM,MAIN_CONTENT,SURVEY_TYPE&filter=(SECURITY_CODE=\"{stock_code}\")&sortColumns=SURVEY_DATE&sortTypes=-1&pageSize=20&pageNumber=1"
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_ORG_SURVEY&columns=SECUCODE,SECURITY_NAME_ABBR,SURVEY_DATE,ORG_NUM,MAIN_CONTENT,SURVEY_TYPE&filter=(SECURITY_CODE=\"{code}\")&sortColumns=SURVEY_DATE&sortTypes=-1&pageSize=20&pageNumber=1"
         );
 
         let resp = self.em_get(&url).await?;
@@ -1347,50 +1681,93 @@ impl StockVendor for EastMoneyVendor {
     }
 
     async fn get_peers(&self, stock_code: &str) -> Result<Vec<PeerComparison>, DataError> {
-        let secid = to_em_secid(stock_code);
-        let board_url =
-            format!("https://push2his.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f127");
-        let resp = self.em_get(&board_url).await?;
-        let json: Value = resp.json().await.unwrap_or(Value::Null);
-        let board_code = json["data"]["f127"].as_str().unwrap_or("").to_string();
-        if board_code.is_empty() {
-            return Ok(vec![]);
-        }
+        // 修复(2026-07-22): 原 `push2his stock/get` + `clist/get` API 已失效
+        // (IncompleteMessage), 改用 `datacenter-web RPT_F10_CORETHEME_BOARDTYPE` 报表
+        // 两步查询:1) 个股板块归属(IS_PRECISE=1 的精准行业板块)
+        //          2) 反查该板块内所有股票
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let secucode = to_em_secucode(code);
 
-        let peer_url = format!(
-            "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=10&fs=b:{board_code}&fields=f12,f14,f162,f167,f173,f2,f116,f170"
+        // 步骤1: 查询个股所属板块, 选 IS_PRECISE=1 的精准行业板块
+        let board_url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+             reportName=RPT_F10_CORETHEME_BOARDTYPE&columns=ALL&\
+             filter=(SECUCODE%3D%22{secucode}%22)(IS_PRECISE%3D%221%22)&\
+             source=WEB&sortColumns=BOARD_RANK&sortTypes=1&pageNumber=1&pageSize=10"
         );
-        let resp = self.em_get(&peer_url).await?;
-        let json: Value = resp.json().await.unwrap_or(Value::Null);
+        let resp = self.em_get(&board_url).await?;
+        let json: Value = resp.json().await.map_err(|e| DataError::VendorError {
+            vendor: "eastmoney".into(),
+            message: format!("get_peers 板块查询 JSON 解析失败: {e}"),
+        })?;
 
-        let rows = match json["data"]["diff"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+        let data_arr = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!("get_peers 未获取到板块代码(stock_code={stock_code})"),
+                });
+            },
         };
 
+        // 选第一个精准行业板块 (BOARD_CODE 通常是数字如 "892")
+        let board_code = data_arr
+            .iter()
+            .find_map(|item| item["BOARD_CODE"].as_str().map(|s| s.to_string()))
+            .ok_or_else(|| DataError::VendorError {
+                vendor: "eastmoney".into(),
+                message: format!("get_peers BOARD_CODE 字段为空(stock_code={stock_code})"),
+            })?;
+
+        // 步骤2: 反查该板块内所有股票
+        let peer_url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+             reportName=RPT_F10_CORETHEME_BOARDTYPE&columns=ALL&\
+             filter=(BOARD_CODE%3D%22{board_code}%22)&\
+             source=WEB&sortColumns=SECURITY_CODE&sortTypes=1&pageNumber=1&pageSize=30"
+        );
+        let resp = self.em_get(&peer_url).await?;
+        let json: Value = resp.json().await.map_err(|e| DataError::VendorError {
+            vendor: "eastmoney".into(),
+            message: format!("get_peers 同业列表 JSON 解析失败: {e}"),
+        })?;
+
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: format!("get_peers 同业列表为空(board_code={board_code})"),
+                });
+            },
+        };
+
+        // 过滤自身:SECURITY_CODE 是纯数字代码(如 "600887")
         Ok(rows
             .iter()
-            .filter(|r| r["f12"].as_str().map(|c| c != stock_code).unwrap_or(false))
-            .map(|r| {
-                let f = |key: &str| r[key].as_f64();
-                PeerComparison {
-                    stock_code: r["f12"].as_str().unwrap_or("").to_string(),
-                    stock_name: r["f14"].as_str().unwrap_or("").to_string(),
-                    pe: f("f162").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
-                    pb: f("f167").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
-                    roe: f("f173").and_then(|v| if v > 0.0 { Some(v / 100.0) } else { None }),
-                    change_pct: f("f170").unwrap_or(0.0) / 100.0,
-                    market_cap: f("f116").filter(|v| *v > 0.0),
-                }
+            .filter(|r| r["SECURITY_CODE"].as_str().map(|c| c != code).unwrap_or(false))
+            .map(|r| PeerComparison {
+                stock_code: r["SECURITY_CODE"].as_str().unwrap_or("").to_string(),
+                stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
+                pe: None,
+                pb: None,
+                roe: None,
+                change_pct: 0.0,
+                market_cap: None,
             })
             .collect())
     }
 
     async fn get_option_pcr(&self, stock_code: &str) -> Result<Option<OptionPCR>, DataError> {
-        let underlying = if stock_code.starts_with('5') || stock_code.starts_with('6') {
-            format!("1.{stock_code}")
+        // 修复(2026-07-22): 先去除 sh/sz/bj 前缀,否则 starts_with 判断失效
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let underlying = if code.starts_with('5') || code.starts_with('6') {
+            format!("1.{code}")
         } else {
-            format!("0.{stock_code}")
+            format!("0.{code}")
         };
         let url = format!(
             "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=50&fs=option_{underlying}&fields=f12,f14,f164,f165,f166,f167"
@@ -1444,73 +1821,275 @@ impl StockVendor for EastMoneyVendor {
         }))
     }
 
-    /// 行业/板块排名 — 东方财富板块 API
+    /// 行业/板块排名 — 东方财富板块资金流 API
+    ///
+    /// 修复(2026-07-22): 原 `push2his.eastmoney.com/api/qt/clist/get` 已失效
+    /// (IncompleteMessage), 改用 `data.eastmoney.com/dataapi/bkzj/getbkzj`。
+    ///
+    /// 该 API 返回行业板块的资金流和涨跌幅数据:
+    /// - f3: 涨跌幅 (×100,如 737 表示 7.37%)
+    /// - f12: 板块代码 (BK1201)
+    /// - f14: 板块名称
+    /// - f62: 主力净流入 (元)
+    /// - f128: 领涨股名称
+    /// - f140: 领涨股代码
     async fn get_industry_ranking(&self) -> Result<Vec<IndustryRank>, DataError> {
-        // m:90 = 行业板块, t:2 = 概念板块；fid=f3 按涨跌幅排序
-        let url = "https://push2his.eastmoney.com/api/qt/clist/get?pn=1&pz=50&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:2&fields=f12,f14,f2,f3,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204,f205,f124";
+        // m:90 = 行业板块, s:2 = 二级行业分类(API 默认按 key 中第一个字段降序)
+        let url = "https://data.eastmoney.com/dataapi/bkzj/getbkzj?key=f3,f62,f12,f14,f128,f140&code=m:90+s:2";
         let resp = self.em_get(url).await?;
-        let json: Value = resp.json().await?;
+        let json: Value = resp.json().await.map_err(|e| DataError::VendorError {
+            vendor: "eastmoney".into(),
+            message: format!("get_industry_ranking JSON 解析失败: {e}"),
+        })?;
 
         let rows = match json["data"]["diff"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
+            Some(arr) if !arr.is_empty() => arr,
+            _ => {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: "get_industry_ranking 行业排名数据为空或结构异常".into(),
+                });
+            },
         };
 
         Ok(rows
             .iter()
             .filter_map(|r| {
                 let industry_name = r["f14"].as_str()?.to_string();
+                if industry_name.is_empty() {
+                    return None;
+                }
                 let change_pct = r["f3"].as_f64().unwrap_or(0.0) / 100.0;
-                let main_inflow = r["f62"].as_f64().map(|v| v * 10000.0);
+                let main_inflow = r["f62"].as_f64();
+                let leader_code = r["f140"].as_str().map(|s| s.to_string());
+                let leader_name = r["f128"].as_str().map(|s| s.to_string());
                 Some(IndustryRank {
                     industry_name,
                     change_pct,
                     turnover: None,
                     main_inflow,
-                    leader_code: None,
-                    leader_name: None,
+                    leader_code,
+                    leader_name,
                     leader_change_pct: None,
                 })
             })
             .collect())
     }
 
+    /// 概念板块归属 — 东方财富 emweb 个股板块归属报表
+    ///
+    /// 修复(2026-07-22): 新增实现。原 eastmoney 未实现此方法(路由降级到
+    /// ths/baidu_stock/iwencai,但 ths industry_board/rank 404、
+    /// baidu_stock gushitong 301,均不可用)。改用 `datacenter-web
+    /// RPT_F10_CORETHEME_BOARDTYPE` 报表查个股板块归属。
+    ///
+    /// IS_PRECISE=1 通常是精准行业板块(如 "乳业"),其余是概念板块(如 "茅指数")。
+    async fn get_concept_blocks(
+        &self,
+        stock_code: &str,
+    ) -> Result<Option<ConceptBlocks>, DataError> {
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let secucode = to_em_secucode(code);
+
+        let url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+             reportName=RPT_F10_CORETHEME_BOARDTYPE&columns=ALL&\
+             filter=(SECUCODE%3D%22{secucode}%22)&\
+             source=WEB&sortColumns=BOARD_RANK&sortTypes=1&pageNumber=1&pageSize=50"
+        );
+        let resp = self.em_get(&url).await?;
+        let json: Value = resp.json().await.map_err(|e| DataError::VendorError {
+            vendor: "eastmoney".into(),
+            message: format!("get_concept_blocks JSON 解析失败: {e}"),
+        })?;
+
+        let data_arr = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => return Ok(None),
+        };
+
+        // IS_PRECISE=1 通常是行业板块 (如 "乳业"), 其余是概念板块 (如 "茅指数")
+        let mut industry = String::new();
+        let mut concepts: Vec<BlockItem> = Vec::new();
+        for item in data_arr {
+            let board_name = item["BOARD_NAME"].as_str().unwrap_or("");
+            if board_name.is_empty() {
+                continue;
+            }
+            let is_precise = item["IS_PRECISE"].as_str() == Some("1");
+            if is_precise && industry.is_empty() {
+                industry = board_name.to_string();
+            } else {
+                concepts.push(BlockItem { name: board_name.to_string(), change_pct: None });
+            }
+        }
+
+        if industry.is_empty() && concepts.is_empty() {
+            return Ok(None);
+        }
+
+        Ok(Some(ConceptBlocks {
+            stock_code: stock_code.to_string(),
+            industry,
+            concepts,
+            regions: vec![],
+        }))
+    }
+
     /// 北向资金（沪深港通）— 东方财富 API
+    ///
+    /// 修复(2026-07-22): 原 API `push2his.eastmoney.com/api/qt/stock/fflow/kline/get`
+    /// 已失效(连接错误),改用 `push2his.eastmoney.com/api/qt/kamt.kline/get`。
+    ///
+    /// 该 API 返回:
+    ///   - hk2sh: 北向沪股通(港→沪)
+    ///   - hk2sz: 北向深股通(港→深)
+    ///   - sh2hk: 南向沪股通(沪→港)
+    ///   - sz2hk: 南向深股通(深→港)
+    ///
+    /// 每条字符串格式: "日期,当日净流入,当日余额,历史累计净流入"
+    /// 字段 f51=日期, f52=当日净流入, f53=当日余额, f54=历史累计
+    ///
+    /// 拉 5 个交易日数据:最新一天填主字段,5 天填 recent_history(从新到旧)
+    /// 用于趋势观察,排除脉冲式流入。
+    ///
+    /// 修复(2026-07-22 v2): 2024-08-16 起监管层暂停披露北向资金实时数据,
+    /// 此后 kamt.kline API 的 hk2sh/hk2sz 的 f52(当日净流入)全部返回 0,
+    /// f53(当日余额)被冻结为 5200000.00(额度上限),f54(累计)也停止更新。
+    /// 这是政策原因,非项目代码缺陷。
+    ///
+    /// 应对策略:当最近 HISTORY_DAYS 日数据全部为 0 时,自动回退拉取
+    /// 监管暂停前最后 HISTORY_DAYS 个交易日(2024-08-16 之前)的数据,
+    /// 用于历史趋势参考。同时在 timestamp 字段中标注"data_source=pre_policy_pause"
+    /// 以便上层 LLM 知道这是政策暂停前的数据。
     async fn get_north_bound_flow(&self) -> Result<Option<NorthBoundFlow>, DataError> {
-        let url = "https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get?lmt=0&klt=1&secid=1.000001&secid2=0.399001&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63";
-        let resp = self.em_get(url).await?;
+        const HISTORY_DAYS: usize = 5;
+        // 监管暂停披露的日期:2024-08-16(此日起北向资金实时数据被冻结为 0)
+        const POLICY_PAUSE_DATE: &str = "2024-08-16";
+
+        // 拉取最近 HISTORY_DAYS 日数据
+        let url = format!(
+            "https://push2his.eastmoney.com/api/qt/kamt.kline/get?\
+            fields1=f1,f2,f3&fields2=f51,f52,f53,f54&klt=101&lmt={HISTORY_DAYS}"
+        );
+        let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await?;
 
         let data = &json["data"];
         if data.is_null() {
-            return Ok(None);
+            return Err(DataError::VendorError {
+                vendor: "eastmoney".into(),
+                message: "get_north_bound_flow 数据为空(kamt.kline/get 返回 data=null)".into(),
+            });
         }
 
-        let parse_kline = |v: &Value| -> (String, f64) {
-            let s = v.as_str().unwrap_or("");
-            let parts: Vec<&str> = s.split(',').collect();
-            let date = parts.first().unwrap_or(&"").to_string();
-            let inflow = parts.get(1).and_then(|v| v.parse().ok()).unwrap_or(0.0);
-            (date, inflow)
+        // 解析 "日期,净流入,余额,累计" 字符串数组,返回 Vec<(date, flow)> 按日期升序
+        let parse_kamt_all = |arr: &Value| -> Vec<(String, f64)> {
+            arr.as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| {
+                            let s = v.as_str()?;
+                            let parts: Vec<&str> = s.split(',').collect();
+                            let date = parts.first().copied()?.to_string();
+                            let flow = parts.get(1).and_then(|x| x.parse().ok()).unwrap_or(0.0);
+                            Some((date, flow))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
         };
 
-        let (_sh_date, sh_flow) = data["klines"]
-            .as_array()
-            .and_then(|arr| arr.last())
-            .map(|v| parse_kline(v))
-            .unwrap_or_default();
-        let (_sz_date, sz_flow) = data["klines2"]
-            .as_array()
-            .and_then(|arr| arr.last())
-            .map(|v| parse_kline(v))
-            .unwrap_or_default();
+        let sh_list = parse_kamt_all(&data["hk2sh"]);
+        let sz_list = parse_kamt_all(&data["hk2sz"]);
+
+        if sh_list.is_empty() {
+            return Err(DataError::VendorError {
+                vendor: "eastmoney".into(),
+                message: "get_north_bound_flow hk2sh 数组为空".into(),
+            });
+        }
+
+        // 检测是否所有最新数据都被冻结为 0(监管暂停后)
+        let all_zero =
+            sh_list.iter().all(|(_, f)| *f == 0.0) && sz_list.iter().all(|(_, f)| *f == 0.0);
+
+        // 若被冻结,拉取监管暂停前最后 HISTORY_DAYS*2 日数据,筛出 pause 之前的最后 5 日
+        let (sh_list, sz_list, data_source_marker) = if all_zero {
+            tracing::info!(
+                "[eastmoney] 北向资金最近 {} 日数据全部为 0(监管层自 {} 起暂停披露实时数据),\
+                 回退拉取监管暂停前最后 {} 个交易日数据用于历史趋势参考",
+                HISTORY_DAYS,
+                POLICY_PAUSE_DATE,
+                HISTORY_DAYS
+            );
+            // 拉 30 日数据,筛选 < POLICY_PAUSE_DATE 的最后 HISTORY_DAYS 个交易日
+            let hist_url = format!(
+                "https://push2his.eastmoney.com/api/qt/kamt.kline/get?\
+                fields1=f1,f2,f3&fields2=f51,f52,f53,f54&klt=101&lmt=30"
+            );
+            let hist_resp = self.em_get(&hist_url).await?;
+            let hist_json: Value = hist_resp.json().await?;
+            let hist_data = &hist_json["data"];
+            if hist_data.is_null() {
+                return Err(DataError::VendorError {
+                    vendor: "eastmoney".into(),
+                    message: "get_north_bound_flow 历史数据为空(kamt.kline lmt=30)".into(),
+                });
+            }
+            let mut sh_hist = parse_kamt_all(&hist_data["hk2sh"]);
+            let mut sz_hist = parse_kamt_all(&hist_data["hk2sz"]);
+            // 筛选 < POLICY_PAUSE_DATE 的数据
+            sh_hist.retain(|(d, _)| d.as_str() < POLICY_PAUSE_DATE);
+            sz_hist.retain(|(d, _)| d.as_str() < POLICY_PAUSE_DATE);
+            // 取最后 HISTORY_DAYS 日
+            let sh_take: Vec<(String, f64)> = if sh_hist.len() > HISTORY_DAYS {
+                sh_hist.split_off(sh_hist.len() - HISTORY_DAYS)
+            } else {
+                sh_hist
+            };
+            let sz_take: Vec<(String, f64)> = if sz_hist.len() > HISTORY_DAYS {
+                sz_hist.split_off(sz_hist.len() - HISTORY_DAYS)
+            } else {
+                sz_hist
+            };
+            (sh_take, sz_take, "pre_policy_pause")
+        } else {
+            (sh_list, sz_list, "realtime")
+        };
+
+        // 按日期对齐 sh 和 sz(取两者都有数据的日期交集,按日期升序)
+        // 简化:假设 sh_list 和 sz_list 长度相同且日期对齐(EM 实际返回就是这样)
+        let mut recent_history: Vec<NorthBoundFlowDaily> = Vec::with_capacity(sh_list.len());
+        for (i, (d, sh)) in sh_list.iter().enumerate() {
+            let sz = sz_list.get(i).map(|(_, f)| *f).unwrap_or(0.0);
+            recent_history.push(NorthBoundFlowDaily {
+                date: d.clone(),
+                sh_flow: *sh,
+                sz_flow: sz,
+                total_flow: sh + sz,
+            });
+        }
+        // recent_history 当前按日期升序,反转成"从新到旧"
+        recent_history.reverse();
+
+        // 主字段取最新一天(recent_history[0])
+        let latest = recent_history.first().cloned().unwrap_or(NorthBoundFlowDaily {
+            date: String::new(),
+            sh_flow: 0.0,
+            sz_flow: 0.0,
+            total_flow: 0.0,
+        });
 
         Ok(Some(NorthBoundFlow {
-            date: _sh_date,
-            sh_flow,
-            sz_flow,
-            total_flow: sh_flow + sz_flow,
-            timestamp: None,
+            date: latest.date,
+            sh_flow: latest.sh_flow,
+            sz_flow: latest.sz_flow,
+            total_flow: latest.total_flow,
+            // 标注数据来源,便于上层 LLM 知晓这是监管暂停前数据
+            timestamp: Some(data_source_marker.to_string()),
+            recent_history,
         }))
     }
 
@@ -1548,6 +2127,7 @@ impl StockVendor for EastMoneyVendor {
             | "get_north_bound_holding"
             | "get_shareholder_trades"
             | "get_dividend_records"
+            | "get_policy_news"
             | "get_consensus_eps"
             | "get_block_trades"
             | "get_institutional_visits"
@@ -1748,9 +2328,9 @@ impl StockVendor for EastMoneyVendor {
                 let s =
                     v.as_str().ok_or_else(|| DataError::ParseError("kline not string".into()))?;
                 let parts: Vec<&str> = s.split(',').collect();
-                if parts.len() < 7 {
+                if parts.len() < 11 {
                     return Err(DataError::ParseError(format!(
-                        "expected 7 fields in kline, got {}",
+                        "expected 11 fields in kline, got {}",
                         parts.len()
                     )));
                 }
@@ -1758,13 +2338,13 @@ impl StockVendor for EastMoneyVendor {
                 Ok(KLine {
                     date: parts[0].to_string(),
                     open: parse(parts[1]),
+                    close: parse(parts[2]),
                     high: parse(parts[3]),
                     low: parse(parts[4]),
-                    close: parse(parts[2]),
-                    volume: parse(parts[5]),
+                    volume: parse(parts[5]) * 100.0, // 东方财富 K线 f56 单位为"手"，×100 转为"股"
                     amount: parse(parts[6]),
-                    turnover_rate: if parts.len() > 7 {
-                        Some(parse(parts[7]))
+                    turnover_rate: if parts.len() > 10 {
+                        Some(parse(parts[10]))
                     } else {
                         None
                     },
@@ -1779,7 +2359,11 @@ impl StockVendor for EastMoneyVendor {
         Ok(klines)
     }
 
-    /// get_margin_data 升级:加 TRADE_DATE 过滤
+    /// get_margin_data 升级:加 DATE 过滤实现 as-of 回放
+    ///
+    /// 修复(2026-07-22): 原 `RPT_MARGIN_DETAIL_BY_STOCK` 报表已不存在(返回"报表配置不存在"),
+    /// 改用与 get_margin_data 相同的 `RPTA_WEB_RZRQ_GGMX` 报表 + DATE 过滤。
+    /// filter 字段大小写不敏感,经测试 (scode="600887")(DATE='2026-07-03') 可用。
     async fn get_margin_data_with_asof(
         &self,
         stock_code: &str,
@@ -1787,77 +2371,132 @@ impl StockVendor for EastMoneyVendor {
         let as_of = crate::as_of::current_as_of()
             .ok_or_else(|| DataError::ParseError("no as_of context".into()))?;
         let trade_date = as_of.as_of_date.format("%Y-%m-%d").to_string();
-        let _secid = to_em_secid(stock_code);
-        // EM 融资融券:支持按个股 + 单日查询
-        // 沪市 1.融券余额 3.融资余额;深市 secid 标识不同
+        // 去除 sh/sz/bj 前缀
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
         let url = format!(
             "https://datacenter-web.eastmoney.com/api/data/v1/get?\
-            reportName=RPT_MARGIN_DETAIL_BY_STOCK&columns=ALL&\
-            filter=(SECURITY_CODE%3D%22{stock_code}%22)(TRADE_DATE%3D%27{trade_date}%27)&\
-            pageNumber=1&pageSize=10"
+            reportName=RPTA_WEB_RZRQ_GGMX&columns=ALL&\
+            filter=(scode%3D%22{code}%22)(DATE%3D%27{trade_date}%27)&source=WEB&\
+            sortColumns=DATE&sortTypes=-1&pageNumber=1&pageSize=1"
         );
+
         let resp = self.em_get(&url).await?;
         let json: Value = resp.json().await.unwrap_or(Value::Null);
-        let rows = match json["result"]["data"].as_array() {
-            Some(arr) => arr,
-            None => return Ok(None),
-        };
-        if rows.is_empty() {
+
+        // as-of 模式下 API 报错或日期无数据(非交易日/停盘)时,返回 Ok(None) 让上层 fallback
+        if json["success"].as_bool() == Some(false) {
+            tracing::debug!(
+                "[eastmoney] get_margin_data_with_asof 无数据(stock_code={stock_code}, date={trade_date}): {}",
+                json["message"].as_str().unwrap_or("unknown")
+            );
             return Ok(None);
         }
-        let r = &rows[0];
+
+        let data = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => &arr[0],
+            _ => return Ok(None),
+        };
+
+        let parse_f64 = |key: &str| -> f64 { data[key].as_f64().unwrap_or(0.0) };
+        // DATE 字段格式 "2026-07-03 00:00:00",截取日期部分
+        let raw_date = data["DATE"].as_str().unwrap_or(&trade_date);
+        let date = raw_date.split_whitespace().next().unwrap_or(&trade_date).to_string();
+
         Ok(Some(MarginData {
             stock_code: stock_code.to_string(),
-            date: trade_date,
-            margin_balance: r["RZYE"].as_f64().unwrap_or(0.0),
-            short_balance: r["RQYE"].as_f64().unwrap_or(0.0),
-            margin_buy: r["RZMR"].as_f64().unwrap_or(0.0),
-            short_sell_volume: r["RQMC"].as_f64().unwrap_or(0.0),
+            date,
+            margin_buy: parse_f64("RZMRE"),        // 融资买入额(元)
+            margin_balance: parse_f64("RZYE"),     // 融资余额(元)
+            short_sell_volume: parse_f64("RQMCL"), // 融券卖出量(股)
+            short_balance: parse_f64("RQYE"),      // 融券余额(元)
         }))
     }
 
-    /// get_north_bound_flow 升级:加 TRADE_DATE 过滤
-    /// (原本只能取最近 2 个交易日,as_of 模式可指定日期)
+    /// get_north_bound_flow 升级:加日期过滤实现 as-of 回放
+    ///
+    /// 修复(2026-07-22): 原 `RPT_MUTUAL_STOCK_HOLDRANKS` 是个股持仓排行报表,
+    /// 不是北向资金总流量报表,返回 NET_FLOW 字段恒为个股净买入而非市场汇总。
+    /// 改用与 get_north_bound_flow 相同的 `kamt.kline/get` API,
+    /// 拉取近 30 个交易日后:
+    ///   1) 按 trade_date 取主字段
+    ///   2) 取 trade_date 及之前最近 5 天作为 recent_history
     async fn get_north_bound_flow_with_asof(&self) -> Result<Option<NorthBoundFlow>, DataError> {
+        const HISTORY_DAYS: usize = 5;
         let as_of = crate::as_of::current_as_of()
             .ok_or_else(|| DataError::ParseError("no as_of context".into()))?;
         let trade_date = as_of.as_of_date.format("%Y-%m-%d").to_string();
-        // EM 北向资金:沪股通 1.000001 + 深股通 0.000001
-        // 用 datacenter-web 接口支持单日查询
-        let url_sh = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
-            reportName=RPT_MUTUAL_STOCK_HOLDRANKS&columns=ALL&\
-            filter=(TRADE_DATE%3D%27{trade_date}%27)(TRADE_TYPE%3D%27001%27)&\
-            pageNumber=1&pageSize=5"
-        );
-        let url_sz = format!(
-            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
-            reportName=RPT_MUTUAL_STOCK_HOLDRANKS&columns=ALL&\
-            filter=(TRADE_DATE%3D%27{trade_date}%27)(TRADE_TYPE%3D%27003%27)&\
-            pageNumber=1&pageSize=5"
-        );
-        let resp_sh = self.em_get(&url_sh).await?;
-        let resp_sz = self.em_get(&url_sz).await?;
-        let json_sh: Value = resp_sh.json().await.unwrap_or(Value::Null);
-        let json_sz: Value = resp_sz.json().await.unwrap_or(Value::Null);
-        // 简化:取沪股通 + 深股通 当日总净买入(在 rows 里的某行)
-        // 真实解析应该按 SECURITY_TYPE 汇总,这里留作未来细化
-        let sh_net = json_sh["result"]["data"]
-            .as_array()
-            .and_then(|arr| arr.first())
-            .and_then(|r| r["NET_FLOW"].as_f64())
-            .unwrap_or(0.0);
-        let sz_net = json_sz["result"]["data"]
-            .as_array()
-            .and_then(|arr| arr.first())
-            .and_then(|r| r["NET_FLOW"].as_f64())
-            .unwrap_or(0.0);
+        // 拉 30 天保证覆盖到 as_of_date(节假日+周末约 10 天,30 天足够)
+        let url = "https://push2his.eastmoney.com/api/qt/kamt.kline/get?\
+            fields1=f1,f2,f3&fields2=f51,f52,f53,f54&klt=101&lmt=30";
+        let resp = self.em_get(url).await?;
+        let json: Value = resp.json().await?;
+
+        let data = &json["data"];
+        if data.is_null() {
+            tracing::debug!(
+                "[eastmoney] get_north_bound_flow_with_asof data=null(date={trade_date})"
+            );
+            return Ok(None);
+        }
+
+        // 解析全部记录,返回 Vec<(date, flow)> 按日期升序
+        let parse_all = |arr: &Value| -> Vec<(String, f64)> {
+            arr.as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| {
+                            let s = v.as_str()?;
+                            let parts: Vec<&str> = s.split(',').collect();
+                            let d = parts.first().copied()?.to_string();
+                            let f = parts.get(1).and_then(|x| x.parse().ok()).unwrap_or(0.0);
+                            Some((d, f))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+
+        let sh_list = parse_all(&data["hk2sh"]);
+        let sz_list = parse_all(&data["hk2sz"]);
+
+        // 过滤 date <= trade_date 的最近 HISTORY_DAYS 天
+        let cutoff = trade_date.as_str();
+        let mut recent_history: Vec<NorthBoundFlowDaily> = Vec::new();
+        for (i, (d, sh)) in sh_list.iter().enumerate() {
+            if d.as_str() > cutoff {
+                continue;
+            }
+            let sz = sz_list.get(i).map(|(_, f)| *f).unwrap_or(0.0);
+            recent_history.push(NorthBoundFlowDaily {
+                date: d.clone(),
+                sh_flow: *sh,
+                sz_flow: sz,
+                total_flow: sh + sz,
+            });
+        }
+        // 取最近 HISTORY_DAYS 天(升序的尾部)
+        let start = recent_history.len().saturating_sub(HISTORY_DAYS);
+        recent_history = recent_history.split_off(start);
+        // 反转成"从新到旧"
+        recent_history.reverse();
+
+        if recent_history.is_empty() {
+            tracing::debug!(
+                "[eastmoney] get_north_bound_flow_with_asof 未匹配到 date<={trade_date} 的数据"
+            );
+            return Ok(None);
+        }
+
+        // 主字段取 recent_history[0](最新一天,即 <= as_of_date 的最大日期)
+        let latest = recent_history[0].clone();
         Ok(Some(NorthBoundFlow {
-            date: trade_date,
-            sh_flow: sh_net,
-            sz_flow: sz_net,
-            total_flow: sh_net + sz_net,
+            date: latest.date,
+            sh_flow: latest.sh_flow,
+            sz_flow: latest.sz_flow,
+            total_flow: latest.total_flow,
             timestamp: None,
+            recent_history,
         }))
     }
 

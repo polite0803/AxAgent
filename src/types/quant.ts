@@ -358,3 +358,109 @@ fn on_bar(bar, ctx) {
     return [];
 }
 `;
+
+// =====================================================================
+// WF + DES 对比模块类型 — 对齐 Rust `wf_des_integration` 命令
+// =====================================================================
+//
+// 注意：Rust `quant::WalkForwardReport` 字段与上面 `WalkForwardReport`
+// （给 quant_backtest_run 用的简化版）不同，所以本节使用 `WfDes*` 前缀
+// 独立命名，避免混淆。
+// =====================================================================
+
+// ── Bar（对齐 harness::strategy_contract::Bar，camelCase 序列化） ──
+
+export interface Bar {
+  date: string;
+  code: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  amount: number;
+  turnoverRate?: number;
+  adjFactor?: number;
+  limitUp?: number;
+  limitDown?: number;
+  isSt?: boolean;
+}
+
+// ── WF + DES 请求参数 ──
+
+export interface WfDesWfConfig {
+  trainDays: number;
+  testDays: number;
+  stepDays: number | null;
+  riskFreeAnnual: number;
+}
+
+export interface WfDesDesConfig {
+  stockCode: string;
+  /** 参考价（单位：分） */
+  referencePrice: number;
+  /** DES 模拟时长（纳秒） */
+  simDurationNs: number;
+  seed: number;
+  initialCash: number;
+  /** 策略唤醒间隔（纳秒） */
+  wakeupIntervalNs: number;
+}
+
+export interface WfDesRequest {
+  klines: Bar[];
+  wfConfig: WfDesWfConfig;
+  desConfig: WfDesDesConfig;
+  /** 策略名称（当前仅支持 "ma_cross"） */
+  strategyName: string;
+}
+
+// ── WF + DES 报告（对齐 Rust WfDesReport） ──
+
+export interface WfDesDeviation {
+  /** Sharpe 偏差（DES - WF） */
+  sharpeDelta: number;
+  /** MaxDD 偏差（百分点） */
+  maxddDelta: number;
+  /** 胜率偏差（百分点） */
+  winRateDelta: number;
+  /** 成交量比（DES / WF） */
+  volumeRatio: number;
+}
+
+export interface WfDesFold {
+  foldIdx: number;
+  trainStart: string;
+  trainEnd: string;
+  testStart: string;
+  testEnd: string;
+  trainBarsCount: number;
+  testBarsCount: number;
+}
+
+export interface WfDesWindowResult {
+  fold: WfDesFold;
+  bestParams: Record<string, unknown> | null;
+  trainMetrics: MetricsReport;
+  testMetrics: MetricsReport;
+  degradationRatio: number;
+  overfitFlag: boolean;
+}
+
+export interface WfDesWalkForwardReport {
+  config: WfDesWfConfig;
+  windows: WfDesWindowResult[];
+  aggregatedOosEquity: EquityPoint[];
+  aggregatedOosMetrics: MetricsReport;
+  stabilityScore: number;
+  overfitWarning: boolean;
+  overfitWindowCount: number;
+  generatedAt: string;
+}
+
+export interface WfDesReport {
+  walkforward: WfDesWalkForwardReport;
+  desMetrics: MetricsReport;
+  desTotalTrades: number;
+  deviation: WfDesDeviation;
+}
