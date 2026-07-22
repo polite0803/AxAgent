@@ -1176,7 +1176,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
                     deviation_threshold: 0.3,
                 }),
                 hallucination_guard: Some(axagent_harness::HallucinationGuardConfig {
-                    enabled: true,
+                    enabled: false,
                     match_threshold: 0.4,
                 }),
                 fallback_model: None,
@@ -1287,7 +1287,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
     //     DAG: reflection-agent → reflection-validator → store-ref;
     //     store-ref input_var 改为 reflection-validated;
     //     validator Rhai 脚本 params_suggestion 改为数组格式
-    const REFLECTION_TEMPLATE_VERSION: i32 = 4;
+    const REFLECTION_TEMPLATE_VERSION: i32 = 5; // v5: 关闭 hallucination_guard（实测误报率 ~100%，无拦截价值）
 
     // 版本检查：已有同版本或更新的记录则跳过
     if let Some(ref existing) =

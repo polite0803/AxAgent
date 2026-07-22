@@ -19,7 +19,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
 
     const TEMPLATE_ID: &str = "serenity-screening";
     // 每次修改 Rhai 脚本或节点拓扑后+1，强制模板重新写入
-    const TEMPLATE_VERSION: i32 = 3; // v3: 重写 consistency-check.rhai（去掉字面量注入+模板字符串），修复 null/# 语法错误
+    const TEMPLATE_VERSION: i32 = 4; // v4: 关闭 hallucination_guard（实测误报率 ~100%，无拦截价值）
     // 检查模板版本，只有需要更新时才会重种子
     if let Some(existing) =
         workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
@@ -513,10 +513,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                 // FIX-05: 显式设置 model_role，确保 domain_constraints 按 stock-analyst 角色注入
                 model_role: Some("stock-analyst".into()),
                 consistency_check: None,
-                // FIX-01: 启用 hallucination_guard 锚定检查
-                // match_threshold=0.4: 瓶颈分析数据分散（供应链数据 vs 行业排名），阈值放宽
+                // V74 关闭: hallucination_guard 锚定检查（同 stock-analysis，实测误报率 ~100%）
                 hallucination_guard: Some(HallucinationGuardConfig {
-                    enabled: true,
+                    enabled: false,
                     match_threshold: 0.4,
                 }),
                 fallback_model: None,
