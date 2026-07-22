@@ -53,6 +53,21 @@ fn is_cjk_codepoint(c: char) -> bool {
     || (0xAC00..=0xD7AF).contains(&cp) // 韩文音节
 }
 
+/// 字符是否需要复合字体（CID/CJK 字体）而非内置 Type1。
+///
+/// 包含 CJK 字符 + Type1 字体（Courier/Helvetica）无法渲染的 Unicode 符号，
+/// 例如框线字符（U+2500–257F）、几何形状（U+25A0–25FF）、箭头（U+2190–21FF 等）。
+/// 这些符号在 CJK TTF 字体（如微软雅黑）中均有字形。
+pub fn needs_cid_font(c: char) -> bool {
+    let cp = c as u32;
+    is_cjk_codepoint(c)
+        || (0x2190..=0x21FF).contains(&cp)    // 箭头
+        || (0x2500..=0x257F).contains(&cp)    // 框线字符
+        || (0x25A0..=0x25FF).contains(&cp)    // 几何形状
+        || cp == 0x2713                         // ✓ 勾号
+        || cp == 0x2717 // ✗ 叉号
+}
+
 /// 获取全局 CJK 字体（首次调用时执行文件系统查找）。
 pub fn cjk_font() -> Option<&'static CjkFont> {
     CJK_FONT.get_or_init(load_cjk_font).as_ref()
@@ -289,6 +304,29 @@ mod tests {
         assert!(needs_cjk_font("Hello 中文"));
         assert!(!needs_cjk_font("Hello World"));
         assert!(!needs_cjk_font("123 !@#"));
+    }
+
+    #[test]
+    fn cid_font_detection() {
+        // CJK 字符
+        assert!(needs_cid_font('中'));
+        assert!(needs_cid_font('文'));
+        // 框线字符
+        assert!(needs_cid_font('┌'));
+        assert!(needs_cid_font('─'));
+        assert!(needs_cid_font('│'));
+        assert!(needs_cid_font('└'));
+        assert!(needs_cid_font('▼'));
+        // 几何形状
+        assert!(needs_cid_font('◆'));
+        assert!(needs_cid_font('◇'));
+        // 箭头
+        assert!(needs_cid_font('→'));
+        // ASCII 不需要
+        assert!(!needs_cid_font('A'));
+        assert!(!needs_cid_font('z'));
+        assert!(!needs_cid_font('0'));
+        assert!(!needs_cid_font(' '));
     }
 
     #[test]

@@ -1791,7 +1791,7 @@ fn measure_text(text: &str, size_pt: f64, cjk: Option<&crate::cjk_font::CjkFont>
     if let Some(cjk) = cjk {
         let mut total = 0.0;
         for c in text.chars() {
-            if crate::cjk_font::is_cjk_codepoint_public(c) {
+            if crate::cjk_font::needs_cid_font(c) {
                 total += cjk.measure(&c.to_string(), size_pt);
             } else {
                 total += size_pt * 0.5;
@@ -1891,19 +1891,19 @@ fn emit_text(
         );
         return;
     }
-    // 混合输出：按字符切 Latin/CJK 段
+    // 混合输出：按字符切 Latin/CID 段（CID 段使用复合字体渲染）
     let cjk_ref = crate::cjk_font::cjk_font().expect("fid_cjk.is_some() 必有 cjk_font");
     let mut current = String::new();
-    let mut current_is_cjk = false;
+    let mut current_needs_cid = false;
     let mut cursor_x = x;
     for c in text.chars() {
-        let is_cjk = crate::cjk_font::is_cjk_codepoint_public(c);
+        let needs_cid = crate::cjk_font::needs_cid_font(c);
         if current.is_empty() {
-            current_is_cjk = is_cjk;
+            current_needs_cid = needs_cid;
             current.push(c);
             continue;
         }
-        if is_cjk == current_is_cjk {
+        if needs_cid == current_needs_cid {
             current.push(c);
         } else {
             // flush current
@@ -1914,12 +1914,12 @@ fn emit_text(
                 y,
                 size,
                 base_font,
-                current_is_cjk,
+                current_needs_cid,
                 cjk_ref,
             );
             current.clear();
             current.push(c);
-            current_is_cjk = is_cjk;
+            current_needs_cid = needs_cid;
         }
     }
     if !current.is_empty() {
@@ -1930,7 +1930,7 @@ fn emit_text(
             y,
             size,
             base_font,
-            current_is_cjk,
+            current_needs_cid,
             cjk_ref,
         );
     }
@@ -3323,8 +3323,6 @@ fn truncate_str(s: &str, max: usize) -> String {
 #[cfg(test)]
 mod cjk_pdf_integration {
     use super::*;
-    use crate::Tool;
-    use crate::markdown;
     use std::path::PathBuf;
 
     fn tmp_out(name: &str) -> PathBuf {
@@ -4411,8 +4409,14 @@ mod mermaid_integration_test {
     }
 
     /// 验证 PDF 导出含 mermaid 代码块时，渲染为 Unicode 框线字符文本
+    /// 需要系统 CJK 字体（msyh.ttc）支持中文渲染，否则跳过。
+    #[cfg(target_os = "windows")]
     #[test]
     fn export_pdf_renders_mermaid_flowchart() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("mermaid.pdf");
         let md = format!("# 流程图测试\n\n```mermaid\n{}\n```\n", TEST_MERMAID);
         let doc = markdown::parse_markdown(&md);
