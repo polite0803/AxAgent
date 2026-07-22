@@ -528,7 +528,7 @@ mod tests {
     fn test_hit_outcome_buy_hit() {
         assert_eq!(compute_hit_outcome("buy", Some(2.0), None, None), Some("hit".to_string()));
         assert_eq!(
-            compute_hit_outcome("buy", Some(0.5), None, Some(true)),
+            compute_hit_outcome("buy", Some(0.5), None, Some(1)),
             Some("hit".to_string())
         );
     }
@@ -544,7 +544,7 @@ mod tests {
     #[test]
     fn test_hit_outcome_buy_miss_stop_loss() {
         assert_eq!(
-            compute_hit_outcome("buy", Some(-3.0), Some(true), None),
+            compute_hit_outcome("buy", Some(-3.0), Some(1), None),
             Some("miss".to_string())
         );
     }
