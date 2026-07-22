@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AnalysisDebugPanel } from "./AnalysisDebugPanel";
 import { AnalysisProgress } from "./AnalysisProgress";
 import { AnalystReportGrid } from "./AnalystReportGrid";
@@ -148,6 +148,9 @@ export function StockAnalysisPage() {
   const isReplay = timeAnchorMode === "replay" || timeAnchorMode === "backtest_sweep";
 
   const [searchParams] = useSearchParams();
+  // 股票工作区（/workspace/...）下使用本页面时，外层 StockWorkspaceShell 已渲染 PageTimeAnchor
+  // 与"返回对话"按钮，此处跳过避免重复
+  const isInWorkspace = useLocation().pathname.startsWith("/workspace");
   const [activeTab, setActiveTab] = useState("market");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetTab, setSheetTab] = useState("trade");
@@ -322,7 +325,7 @@ export function StockAnalysisPage() {
     },
     {
       key: "dashboard",
-      label: t("stockAnalysis.tab.dashboard", "仪表盘"),
+      label: t("stockAnalysis.tab.dashboard"),
       icon: <LayoutDashboard size={14} />,
       children: <DashboardTabContent />,
     },
@@ -388,12 +391,15 @@ export function StockAnalysisPage() {
       <StockAnalysisPageContext.Provider value={{ openDataSourceSettings }}>
         <div className="sa-layout">
           <div className="sa-header">
-            <button type="button" className="sa-header-back" onClick={() => navigate("/")}>
-              ? {t("nav.chat")}
-            </button>
+            {/* 工作区上下文下，外层已渲染"返回对话"与 PageTimeAnchor，此处跳过避免重复 */}
+            {!isInWorkspace && (
+              <button type="button" className="sa-header-back" onClick={() => navigate("/")}>
+                ? {t("nav.chat")}
+              </button>
+            )}
             <h2 className="sa-header-title">{t("stockAnalysis.title")}</h2>
             {marketStatus && <span className="sa-header-meta">{marketStatus}</span>}
-            <PageTimeAnchor />
+            {!isInWorkspace && <PageTimeAnchor />}
             <button
               type="button"
               className="sa-header-back"
@@ -448,7 +454,7 @@ export function StockAnalysisPage() {
                 onClick={() => setShowDebug(!showDebug)}
                 title={t("stockAnalysis.debugPanel.toggleTitle")}
               >
-                🔍 {showDebug ? "隐藏" : "显示"}
+                🔍 {showDebug ? t("stockAnalysis.debugPanel.hide") : t("stockAnalysis.debugPanel.show")}
               </button>
             </div>
 
