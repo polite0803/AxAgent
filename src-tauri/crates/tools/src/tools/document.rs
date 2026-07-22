@@ -3474,10 +3474,7 @@ mod pdf_math_test {
     }
 
     /// 行内数学：$x^2$ 应在 PDF 文本中显示为 x^2 形式（保留 sup 标记以反映结构）
-    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
-    #[cfg(target_os = "windows")]
-    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
-    #[cfg(target_os = "windows")]
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[tokio::test]
     async fn inline_math_appears_in_pdf() {
         if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
@@ -3515,8 +3512,7 @@ mod pdf_math_test {
     }
 
     /// 块级数学：$$...$$ 包含 LaTeX 命令，应展开为 Unicode 字符
-    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
-    #[cfg(target_os = "windows")]
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[tokio::test]
     async fn display_math_unfolds_latex() {
         if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
@@ -3556,8 +3552,7 @@ mod pdf_math_test {
     }
 
     /// 不等式符号：\leq, \geq, \neq
-    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
-    #[cfg(target_os = "windows")]
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[tokio::test]
     async fn inequality_symbols() {
         if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
@@ -4325,8 +4320,13 @@ mod pdf_template_test {
     }
 
     /// 验证自定义 cover_template 渲染到 PDF。
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[test]
     fn custom_cover_template_renders() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("custom_cover.pdf");
         let md = "# 第一章\n\n正文内容\n";
         let doc = markdown::parse_markdown(md);
@@ -4389,8 +4389,13 @@ mod pdf_template_test {
     }
 
     /// 验证 enable_toc 自动生成目录页。
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[test]
     fn enable_toc_generates_table_of_contents() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("toc.pdf");
         let md = "# 第一章\n\n## 1.1 节\n\n# 第二章\n\n## 2.1 节\n\n# 第三章\n";
         let doc = markdown::parse_markdown(md);
