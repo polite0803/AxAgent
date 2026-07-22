@@ -32,10 +32,16 @@ fn extract_verdict(content) {
 fn format_analyst(label, content) {
     let verdict = extract_verdict(content);
     if type_of(verdict) != "map" {
-        return "";
+        return `#### ${label}\n**数据不可用**（该分析师报告解析失败，无法提取评分）\n\n`;
     }
     let bull = verdict["bull_score"];
     let bear = verdict["bear_score"];
+    // 评分数据不可用时标记
+    let bull_valid = type_of(bull) == "i64" || type_of(bull) == "f64";
+    let bear_valid = type_of(bear) == "i64" || type_of(bear) == "f64";
+    if !bull_valid && !bear_valid {
+        return `#### ${label}\n**数据不可用**（评分字段缺失）\n\n`;
+    }
     // 共识分数 = bull - bear（与 build_analyst_input_mapping 一致）
     let cons = if type_of(bull) == "i64" && type_of(bear) == "i64" {
         bull - bear

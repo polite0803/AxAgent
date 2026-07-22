@@ -1043,7 +1043,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // 时序：p-analysts 全部完成后运行 → debate-bull-bear 依赖此摘要。
     {
         let ab_code = include_str!("../analyst-brief.rhai").to_string();
-        let mut ab_input: std::collections::HashMap<String, String> = a_ids
+        let ab_input: std::collections::HashMap<String, String> = a_ids
             .iter()
             .map(|id| {
                 let short = match *id {
@@ -1126,57 +1126,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         edge_type: EdgeType::Direct,
         label: None,
     });
-    // 合并节点：汇总正常摘要路径与降级路径，任一到达即触发辩论
-    // 避免两条路径各自直接连辩论节点造成"必须等全部上游"的死锁
-    nodes.push(WorkflowNode::Merge(MergeNode {
-        base: WorkflowNodeBase {
-            id: "merge-brief-debate".into(),
-            title: "辩论入口合并".into(),
-            description: Some("汇总 analyst-brief 正常路径与降级路径，任一到达即启动辩论".into()),
-            position: Position { x: 250.0, y: 1220.0 },
-            retry: RetryConfig::default(),
-            timeout: Some(5),
-            enabled: true,
-            parent_id: None,
-            compensation: None,
-            continue_on_fail: true,
-        },
-        config: MergeNodeConfig { merge_type: MergeStrategy::Any },
-    }));
-    // switch-brief-valid (brief_ok) → merge
+    // switch-brief-valid (brief_ok) →  debate-bull-bear
+    // brief_fallback（默认分支）不连接任何下游 → 辩论跳过，下游基于结构化评分出决策
     edges.push(WorkflowEdge {
-        id: "e-brief-merge".into(),
+        id: "e-switch-debate".into(),
         source: "switch-brief-valid".into(),
         source_handle: Some("brief_ok".into()),
-        target: "merge-brief-debate".into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    });
-    // switch-brief-valid (brief_fallback) → brief-fallback → merge
-    edges.push(WorkflowEdge {
-        id: "e-switch-fallback".into(),
-        source: "switch-brief-valid".into(),
-        source_handle: Some("brief_fallback".into()),
-        target: "brief-fallback".into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    });
-    edges.push(WorkflowEdge {
-        id: "e-fallback-merge".into(),
-        source: "brief-fallback".into(),
-        source_handle: None,
-        target: "merge-brief-debate".into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    });
-    // merge → debate-bull-bear
-    edges.push(WorkflowEdge {
-        id: "e-merge-debate".into(),
-        source: "merge-brief-debate".into(),
-        source_handle: None,
         target: "debate-bull-bear".into(),
         target_handle: None,
         edge_type: EdgeType::Direct,
