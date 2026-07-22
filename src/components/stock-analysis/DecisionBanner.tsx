@@ -169,6 +169,20 @@ export function DecisionBanner() {
       message.success(result);
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
+      // 打印完整堆栈 + 数据规模上下文，方便区分 pandoc / 工具未注册 / 路径权限 等失败原因
+      console.error("[stock-analysis] export failed:", e, {
+        format,
+        stockCode,
+        stockName,
+        asOfDate,
+        hasAnalystReports: Object.keys(analystReports).length,
+        hasDebate: debateRounds.length,
+        hasRisk: Object.keys(riskAssessments).length,
+        hasValue: Object.keys(valueAssessments).length,
+        hasRule: Object.keys(ruleCheckResults).length,
+        failedNodesCount: failedNodes.length,
+        dataWarningsCount: dataWarnings?.length ?? 0,
+      });
       message.error(t("stockAnalysis.decision.exportFailed", { errMsg }));
     } finally {
       setExporting(null);

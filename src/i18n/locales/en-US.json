@@ -9733,7 +9733,17 @@
       "action": "Suggested Action",
       "confidence": "Confidence",
       "positionPct": "Position %",
-      "riskLevel": "Risk Level"
+      "riskLevel": "Risk Level",
+      "wordDocument": "Word Document (.docx)",
+      "gateControl": "Gate Control",
+      "mandatoryDirection": "Mandatory Direction",
+      "evidenceScore": "Evidence Score",
+      "net": "Net",
+      "oppositeDirection": "Opposite Direction",
+      "disagreement": "Disagreement",
+      "positionGap": "Position Gap {{gap}}%",
+      "confidenceGap": "Confidence Gap {{gap}}%",
+      "exportFailed": "Export failed: {{errMsg}}"
     },
     "earningsOnChart": "Earnings Labels",
     "empty": {

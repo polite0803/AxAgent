@@ -8918,8 +8918,22 @@
     "loadAnalysisFailed": "履歴分析の読み込みに失敗しました",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
     "decision": {
-      "confidenceLabel": "信頼度",
-      "positionLabel": "ポジション"
+      "action": "操作建议",
+      "confidence": "確信度",
+      "positionPct": "仓位比例",
+      "riskLevel": "リスクレベル",
+      "confidenceLabel": "確信度",
+      "positionLabel": "保有比率",
+      "wordDocument": "Word ドキュメント (.docx)",
+      "gateControl": "ゲート制御",
+      "mandatoryDirection": "強制方向",
+      "evidenceScore": "証拠スコア",
+      "net": "ネット",
+      "oppositeDirection": "反対方向",
+      "disagreement": "意見不一致",
+      "positionGap": "ポジション差 {{gap}}%",
+      "confidenceGap": "信頼度差 {{gap}}%",
+      "exportFailed": "エクスポート失敗：{{errMsg}}"
     },
     "position": "Position",
     "targetPrice": "Target Price",
@@ -10113,12 +10127,6 @@
     "cancelled": "分析がキャンセルされました — 部分データを表示",
     "contradiction": "Decision Contradiction",
     "debtRatio": "Debt Ratio",
-    "decision": {
-      "action": "操作建议",
-      "confidence": "確信度",
-      "positionPct": "仓位比例",
-      "riskLevel": "リスクレベル"
-    },
     "earningsOnChart": "Earnings Labels",
     "timeHorizon": "時間軸",
     "expectedHoldingDays": "{{days}}日間保有",

@@ -4,9 +4,8 @@
  * 紧凑设计原则：
  *   - 标题 + 一致性分数同行（色条+数字，无圆环）
  *   - 公式/LLM 双列并排卡片，每列内: action tag + conf% | pos% 单行
- *   - reasoning 截断 80 字符单行，点击展开完整
+ *   - reasoning 展开前 line-clamp-2，点击展开全文
  *   - 分歧诊断用 Tooltip 内联（不另占卡片空间）
- *   - 总高度控制在 ~140px 以内
  */
 import { getActionTKey } from "@/lib/stock-analysis-utils";
 import { Empty, Tag, Tooltip } from "antd";
@@ -42,16 +41,21 @@ function agreementLevel(score: number): "high" | "mid" | "low" {
   return "low";
 }
 
-/** 数字格式化 */
-function fmtNum(v: number | null | undefined, suffix = ""): string {
-  if (typeof v !== "number" || !Number.isFinite(v)) { return "—"; }
-  return `${v.toFixed(0)}${suffix}`;
+/** 带缺失提示的数值组件 */
+function NumValue({ value, suffix = "" }: { value: number | null | undefined; suffix?: string }) {
+  const { t } = useTranslation();
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return <span title={t("common.noData")}>—</span>;
+  }
+  return <>{value.toFixed(0)}{suffix}</>;
 }
 
-/** 截断文本 */
-function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) { return text; }
-  return text.slice(0, maxLen) + "…";
+/** 检查两列 action 是否不一致 */
+function actionsDiffer(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) { return false; }
+  const normA = normalizeAction(a);
+  const normB = normalizeAction(b);
+  return normA !== normB;
 }
 
 export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) {
@@ -83,7 +87,9 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
             <Tag color={actionTagColor(view.decisionAction)}>{t(getActionTKey(view.decisionAction ?? ""))}</Tag>
           </span>
           <span style={{ color: "var(--muted)" }}>{t("dualView.decision.confidence")}</span>
-          <span className="font-mono">{fmtNum(view.confidence)}</span>
+          <span className="font-mono">
+            <NumValue value={view.confidence} />
+          </span>
         </div>
       </div>
     );
@@ -97,9 +103,10 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
     ? "rgba(245,158,11,0.10)"
     : "rgba(239,68,68,0.10)";
 
-  const REASON_MAX = expandedReasoning ? 500 : 80;
   const formulaReasoning = view.decisionReasoning || "";
   const llmReasoning = view.llmDecisionReasoning || "";
+  const actionDiverged = hasLlm && actionsDiffer(view.decisionAction, view.llmDecisionAction);
+  const divBorderColor = actionDiverged ? "rgba(239,68,68,0.30)" : undefined;
 
   return (
     <div className="decision-comparison-panel p-2 space-y-1.5 text-sm">
@@ -178,7 +185,10 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
         {/* ── 公式列 ── */}
         <div
           className="rounded-md p-1.5 space-y-1"
-          style={{ background: "rgba(37,99,235,0.05)", border: "1px solid rgba(37,99,235,0.10)" }}
+          style={{
+            background: "rgba(37,99,235,0.05)",
+            border: `1px solid ${divBorderColor ?? "rgba(37,99,235,0.10)"}`,
+          }}
         >
           <div className="flex items-center justify-between">
             <span
@@ -194,22 +204,28 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
           <div className="flex items-center gap-1.5 font-mono text-sm">
             <span style={{ color: "var(--color-text-secondary)" }}>
               {t("stockAnalysis.decision.confidenceLabel")}{" "}
-              <b style={{ fontSize: "13px" }}>{fmtNum(view.confidence)}%</b>
+              <b style={{ fontSize: "13px" }}>
+                <NumValue value={view.confidence} suffix="%" />
+              </b>
             </span>
             <span style={{ color: "var(--muted)", opacity: 0.4 }}>|</span>
             <span style={{ color: "var(--color-text-secondary)" }}>
               {t("stockAnalysis.decision.positionLabel")}{" "}
-              <b style={{ fontSize: "13px" }}>{fmtNum(view.decisionPositionPct, "%")}</b>
+              <b style={{ fontSize: "13px" }}>
+                <NumValue value={view.decisionPositionPct} suffix="%" />
+              </b>
             </span>
           </div>
           {formulaReasoning && (
             <div
-              className="leading-tight cursor-pointer hover:opacity-70 transition-opacity line-clamp-1"
+              className={`leading-tight cursor-pointer hover:opacity-70 transition-opacity ${
+                expandedReasoning ? "" : "line-clamp-2"
+              }`}
               style={{ color: "var(--color-text-secondary)", fontSize: "12px" }}
               onClick={() => setExpandedReasoning(!expandedReasoning)}
-              title={expandedReasoning ? "" : formulaReasoning}
+              title={expandedReasoning ? t("stockAnalysis.collapseComparison") : formulaReasoning}
             >
-              {truncate(formulaReasoning, REASON_MAX)}
+              {formulaReasoning}
             </div>
           )}
         </div>
@@ -217,7 +233,10 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
         {/* ── LLM 列 ── */}
         <div
           className="rounded-md p-1.5 space-y-1"
-          style={{ background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.10)" }}
+          style={{
+            background: "rgba(124,58,237,0.05)",
+            border: `1px solid ${divBorderColor ?? "rgba(124,58,237,0.10)"}`,
+          }}
         >
           <div className="flex items-center justify-between">
             <span
@@ -237,22 +256,28 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
           <div className="flex items-center gap-1.5 font-mono text-sm">
             <span style={{ color: "var(--color-text-secondary)" }}>
               {t("stockAnalysis.decision.confidenceLabel")}{" "}
-              <b style={{ fontSize: "13px" }}>{fmtNum(view.llmConfidence)}%</b>
+              <b style={{ fontSize: "13px" }}>
+                <NumValue value={view.llmConfidence} suffix="%" />
+              </b>
             </span>
             <span style={{ color: "var(--muted)", opacity: 0.4 }}>|</span>
             <span style={{ color: "var(--color-text-secondary)" }}>
               {t("stockAnalysis.decision.positionLabel")}{" "}
-              <b style={{ fontSize: "13px" }}>{fmtNum(view.llmDecisionPositionPct, "%")}</b>
+              <b style={{ fontSize: "13px" }}>
+                <NumValue value={view.llmDecisionPositionPct} suffix="%" />
+              </b>
             </span>
           </div>
           {llmReasoning && (
             <div
-              className="leading-tight cursor-pointer hover:opacity-70 transition-opacity line-clamp-1"
+              className={`leading-tight cursor-pointer hover:opacity-70 transition-opacity ${
+                expandedReasoning ? "" : "line-clamp-2"
+              }`}
               style={{ color: "var(--color-text-secondary)", fontSize: "12px" }}
               onClick={() => setExpandedReasoning(!expandedReasoning)}
-              title={expandedReasoning ? "" : llmReasoning}
+              title={expandedReasoning ? t("stockAnalysis.collapseComparison") : llmReasoning}
             >
-              {truncate(llmReasoning, REASON_MAX)}
+              {llmReasoning}
             </div>
           )}
         </div>
@@ -275,7 +300,7 @@ export function DecisionComparisonPanel({ data }: DecisionComparisonPanelProps) 
           style={{ color: "var(--muted)", border: "none", background: "none", padding: 0, cursor: "pointer" }}
           onClick={() => setExpandedReasoning(false)}
         >
-          ▾ {t("collapseComparison")}
+          ▾ {t("stockAnalysis.collapseComparison")}
         </button>
       )}
     </div>

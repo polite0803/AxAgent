@@ -8918,8 +8918,22 @@
     "loadAnalysisFailed": "विश्लेषण इतिहास लोड करने में विफल",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
     "decision": {
+      "action": "操作建议",
+      "confidence": "置信度",
+      "positionPct": "仓位比例",
+      "riskLevel": "风险等级",
       "confidenceLabel": "विश्वास",
-      "positionLabel": "स्थिति"
+      "positionLabel": "पोजीशन",
+      "wordDocument": "Word दस्तावेज़ (.docx)",
+      "gateControl": "गेट नियंत्रण",
+      "mandatoryDirection": "अनिवार्य दिशा",
+      "evidenceScore": "साक्ष्य स्कोर",
+      "net": "शुद्ध",
+      "oppositeDirection": "विपरीत दिशा",
+      "disagreement": "असहमति",
+      "positionGap": "पोज़िशन अंतर {{gap}}%",
+      "confidenceGap": "विश्वास अंतर {{gap}}%",
+      "exportFailed": "निर्यात विफल: {{errMsg}}"
     },
     "position": "Position",
     "targetPrice": "Target Price",
@@ -10113,12 +10127,6 @@
     "cancelled": "分析已取消 — 显示部分数据",
     "contradiction": "决策矛盾",
     "debtRatio": "负债率",
-    "decision": {
-      "action": "操作建议",
-      "confidence": "置信度",
-      "positionPct": "仓位比例",
-      "riskLevel": "风险等级"
-    },
     "earningsOnChart": "财报标注",
     "timeHorizon": "时间维度",
     "expectedHoldingDays": "{{days}} दिन",

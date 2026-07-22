@@ -8917,8 +8917,22 @@
     "loadAnalysisFailed": "فشل تحميل سجل التحليل",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
     "decision": {
+      "action": "Suggested Action",
+      "confidence": "Confidence",
+      "positionPct": "Position %",
+      "riskLevel": "Risk Level",
       "confidenceLabel": "الثقة",
-      "positionLabel": "الوظيفة"
+      "positionLabel": "المركز",
+      "wordDocument": "مستند Word (.docx)",
+      "gateControl": "التحكم بالبوابة",
+      "mandatoryDirection": "الاتجاه الإلزامي",
+      "evidenceScore": "درجة الدليل",
+      "net": "صافي",
+      "oppositeDirection": "الاتجاه المعاكس",
+      "disagreement": "خلاف",
+      "positionGap": "فجوة المركز {{gap}}%",
+      "confidenceGap": "فجوة الثقة {{gap}}%",
+      "exportFailed": "فشل التصدير: {{errMsg}}"
     },
     "position": "Position",
     "targetPrice": "Target Price",
@@ -10112,12 +10126,6 @@
     "cancelled": "Analysis cancelled — showing partial data",
     "contradiction": "Decision Contradiction",
     "debtRatio": "Debt Ratio",
-    "decision": {
-      "action": "Suggested Action",
-      "confidence": "Confidence",
-      "positionPct": "Position %",
-      "riskLevel": "Risk Level"
-    },
     "earningsOnChart": "Earnings Labels",
     "timeHorizon": "Time Horizon",
     "expectedHoldingDays": "{{days}} يوم",

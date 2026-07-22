@@ -8918,8 +8918,22 @@
     "loadAnalysisFailed": "Error al cargar el historial de análisis",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
     "decision": {
+      "action": "操作建议",
+      "confidence": "置信度",
+      "positionPct": "仓位比例",
+      "riskLevel": "风险等级",
       "confidenceLabel": "Confianza",
-      "positionLabel": "Posición"
+      "positionLabel": "Posición",
+      "wordDocument": "Documento Word (.docx)",
+      "gateControl": "Control de puerta",
+      "mandatoryDirection": "Dirección obligatoria",
+      "evidenceScore": "Puntuación de evidencia",
+      "net": "Neto",
+      "oppositeDirection": "Dirección opuesta",
+      "disagreement": "Desacuerdo",
+      "positionGap": "Brecha de posición {{gap}}%",
+      "confidenceGap": "Brecha de confianza {{gap}}%",
+      "exportFailed": "Error al exportar: {{errMsg}}"
     },
     "position": "Position",
     "targetPrice": "Target Price",
@@ -10113,12 +10127,6 @@
     "cancelled": "分析已取消 — 显示部分数据",
     "contradiction": "决策矛盾",
     "debtRatio": "负债率",
-    "decision": {
-      "action": "操作建议",
-      "confidence": "置信度",
-      "positionPct": "仓位比例",
-      "riskLevel": "风险等级"
-    },
     "earningsOnChart": "财报标注",
     "timeHorizon": "时间维度",
     "expectedHoldingDays": "{{days}} días",

@@ -31,7 +31,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // V56: 修复 pace-calc.rhai 第 310 行 Rhai 语法错误（`(valid_event_count as f64).max(1.0)`
     // 链式调用解析歧义，改为先 `let count_f = ... as f64;` 再用变量）。
     // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
-    const TEMPLATE_VERSION: i32 = 73; // v73: 补全 seed_variables 缺失的 5 个 vendor 变量（vendor_xueqiu/vendor_neodata 开关 + vendor_iwencai_key/vendor_xueqiu_token/vendor_neodata_token 凭据），修复前端数据 tab 中需要 token 的 vendor 缺失问题
+    const TEMPLATE_VERSION: i32 = 74; // v74: 关闭 hallucination_guard（实测误报率 ~100%，无拦截价值）
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -703,13 +703,14 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 rag_source_ids: vec![],
                 model_role: None,
                 consistency_check: None,
-                // V55 启用: hallucination_guard 锚定检查。
-                // 阈值 0.4（略低于默认 0.5）—— 平衡：长自然语言报告不应被严苛拦截，
-                // 但当 LLM 编造关键数字/术语时（unverified_claims 占比 > 60%）会触发
-                // anchor_result.passed=false → agent_executor 注入 __untrusted 标记 →
-                // portfolio-mgr.rhai 触发 weights_collapsed 兜底（观望+空仓）。
+                // V74 关闭: hallucination_guard 锚定检查。
+                // 原因：LLM 输出是分析结论（自然语言），source_context 是工具返回的 JSON 数据，
+                // 格式天然不匹配导致 2-gram 匹配率极低（实测分数 0.0-0.39，阈值 0.4），
+                // 几乎所有 AgentNode 都触发 WARN 误报，无实际拦截价值。
+                // portfolio-mgr.rhai 已有 __untrusted 兜底机制（来自 a-policy 等数据缺失场景），
+                // 不依赖 hallucination_guard 的输出。
                 hallucination_guard: Some(HallucinationGuardConfig {
-                    enabled: true,
+                    enabled: false,
                     match_threshold: 0.4,
                 }),
                 // H4.1 修复：主模型（如 Qwen3.7-Max）返回空输出时，自动用 GLM-5.2 重试一次。
@@ -717,7 +718,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // 重试使用简化 ChatRequest（无 tools），成功则替换 final_content。
                 fallback_model: Some("glm-5.2".to_string()),
                 task_scene: None,
-                stream_chunk_timeout_secs: None,
+                // stream_chunk_timeout_secs: 300s（5 分钟）
+                // 默认 120s 在大上下文场景下偶发 TTFB >120s 导致超时重试浪费时间
+                // （参见 debate-convergence 节点的同类修复注释）
+                stream_chunk_timeout_secs: Some(300),
             },
         })
     };
@@ -1023,8 +1027,70 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         label: None,
     });
     edges.push(WorkflowEdge {
-        id: "e-p-analysts-debate".into(),
+        id: "e-p-analysts-brief".into(),
         source: "p-analysts".into(),
+        source_handle: None,
+        target: "analyst-brief".into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
+    });
+
+    // ── analyst-brief（分析师摘要）：CodeNode 聚合10份VERDICT评分+关键论据 ──
+    // 替代原「辨手直接加载10份全量报告」方案，大幅降低辩论阶段上下文体积。
+    // 输出 analyst-brief 字符串，经 input_mapping 接收10个分析师的 .content。
+    //
+    // 时序：p-analysts 全部完成后运行 → debate-bull-bear 依赖此摘要。
+    {
+        let ab_code = include_str!("../analyst-brief.rhai").to_string();
+        let mut ab_input: std::collections::HashMap<String, String> = a_ids
+            .iter()
+            .map(|id| {
+                let short = match *id {
+                    "a-market-analyst" => "a_market_raw",
+                    "a-sentiment" => "a_sentiment_raw",
+                    "a-news" => "a_news_raw",
+                    "a-fundamentals" => "a_fundamentals_raw",
+                    "a-policy" => "a_policy_raw",
+                    "a-hot-money" => "a_hot_money_raw",
+                    "a-lockup" => "a_lockup_raw",
+                    "a-research" => "a_research_raw",
+                    "a-sector" => "a_sector_raw",
+                    "a-catalyst" => "a_catalyst_raw",
+                    _ => id,
+                };
+                (short.to_string(), format!("{id}.content"))
+            })
+            .collect();
+        nodes.push(WorkflowNode::Code(CodeNode {
+            base: WorkflowNodeBase {
+                id: "analyst-brief".into(),
+                title: "分析师摘要（VERDICT评分+关键论据）".into(),
+                description: Some(
+                    "将10位分析师的VERDICT评分和bull_points/bear_points压缩为摘要，供辩论阶段使用"
+                        .into(),
+                ),
+                position: Position { x: 50.0, y: 1150.0 },
+                retry: RetryConfig::default(),
+                timeout: Some(10),
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: true,
+            },
+            config: CodeNodeConfig {
+                language: "rhai".into(),
+                code: ab_code,
+                output_var: "analyst-brief".into(),
+                tool_name: None,
+                execute_directly: true,
+                input_mapping: ab_input,
+            },
+        }));
+    }
+    edges.push(WorkflowEdge {
+        id: "e-brief-debate".into(),
+        source: "analyst-brief".into(),
         source_handle: None,
         target: "debate-bull-bear".into(),
         target_handle: None,
@@ -1178,27 +1244,26 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // P0 修复(2026-07-22): 移除 bull_tools，改为纯决策节点。
             // 原问题：bull_tools 含 td_quote/td_kline/td_fin 等需要 stock_code 的工具，
             // 但 input_mapping 未注入 stock_code（只有分析师评分），LLM 会传空值。
-            // 辩手的 context_sources 已包含所有分析师报告（含原始数据），无需重新获取。
+            // 辩手的 context_sources 已包含 analyst-brief 摘要（评分+关键论据），无需重新获取。
             a.config.tools = vec![];
             a.config.exposed_tools = vec![];
             a.config.system_prompt = format!(
                 "{}\n\n--- 数据约束 ---\n\
-                 你是辩论辩手，所有数据来自上游分析师报告和前序辩论输出，禁止调用任何工具重新获取数据。\n\
-                 基于分析师报告中的数据和对方辩手的论据进行论证/质询/反驳。",
+                 你是辩论辩手，所有数据来自分析师摘要节点和前序辩论输出，禁止调用任何工具重新获取数据。\n\
+                 基于分析师摘要中的评分数据和关键论据进行论证/质询/反驳。",
                 a.config.system_prompt
             );
             a.config.max_tool_rounds = Some(0);
             a.config.model_role = Some("debater".into());
-            // 注入前序轮次辩论输出 + 所有分析师报告作为上下文
+            // 注入前序轮次辩论输出 + analyst-brief 摘要作为上下文
+            // （替代原先加载10份全量报告，由 analyst-brief CodeNode 聚合）
             let mut ctx: Vec<String> = Vec::new();
             for r in 1..round_num {
                 ctx.push(format!("bull-r{r}"));
                 ctx.push(format!("bear-r{r}"));
             }
-            // 添加所有分析师报告，让辩手有素材可辩论
-            for aid in &a_ids {
-                ctx.push(aid.to_string());
-            }
+            // 使用 analyst-brief CodeNode 的输出替代10份全量分析师报告
+            ctx.push("analyst-brief".to_string());
             a.config.context_sources = ctx;
             // 注入分析师 params 作为结构化输入（resolve_var_path 支持点号路径）
             a.config.input_mapping = build_analyst_input_mapping(&a_ids);
@@ -1218,28 +1283,26 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // P0 修复(2026-07-22): 移除 bull_tools，改为纯决策节点。
             // 原问题：bull_tools 含 td_quote/td_kline/td_fin 等需要 stock_code 的工具，
             // 但 input_mapping 未注入 stock_code（只有分析师评分），LLM 会传空值。
-            // 辩手的 context_sources 已包含所有分析师报告（含原始数据），无需重新获取。
+            // 辩手的 context_sources 已包含 analyst-brief 摘要（评分+关键论据），无需重新获取。
             a.config.tools = vec![];
             a.config.exposed_tools = vec![];
             a.config.system_prompt = format!(
                 "{}\n\n--- 数据约束 ---\n\
-                 你是辩论辩手，所有数据来自上游分析师报告和前序辩论输出，禁止调用任何工具重新获取数据。\n\
-                 基于分析师报告中的数据和对方辩手的论据进行论证/质询/反驳。",
+                 你是辩论辩手，所有数据来自分析师摘要节点和前序辩论输出，禁止调用任何工具重新获取数据。\n\
+                 基于分析师摘要中的评分数据和关键论据进行论证/质询/反驳。",
                 a.config.system_prompt
             );
             a.config.max_tool_rounds = Some(0);
             a.config.model_role = Some("debater".into());
-            // 注入前序轮次 + 本轮多方输出 + 所有分析师报告作为上下文
+            // 注入前序轮次 + 本轮多方输出 + analyst-brief 摘要作为上下文
             let mut ctx: Vec<String> = Vec::new();
             for r in 1..round_num {
                 ctx.push(format!("bull-r{r}"));
                 ctx.push(format!("bear-r{r}"));
             }
             ctx.push(bull_id.clone());
-            // 添加所有分析师报告
-            for aid in &a_ids {
-                ctx.push(aid.to_string());
-            }
+            // 使用 analyst-brief 替代全量分析师报告
+            ctx.push("analyst-brief".to_string());
             a.config.context_sources = ctx;
             // 注入分析师 params 作为结构化输入
             a.config.input_mapping = build_analyst_input_mapping(&a_ids);

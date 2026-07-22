@@ -745,6 +745,37 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Arc::new(axagent_astock_data::AStockClient::new().with_news_archive_sink(news_sink));
     // 注册到 tools crate 全局状态，供 finance.rs 中的数据 API 工具（get_north_bound_flow 等）使用
     axagent_tools::global_state::set_astock_client(astock_client.clone());
+
+    // 从 stock-analysis 模板加载 vendor 启用状态，注入到 astock_client
+    // 这样前端搜索（Tauri 命令）和工作流执行都能按启用状态过滤 vendor
+    // 修复：必须导入 sea_orm::EntityTrait，否则 Entity::find_by_id 无法解析
+    {
+        use axagent_entities::workflow_template;
+        use sea_orm::EntityTrait;
+        if let Ok(Some(template)) =
+            workflow_template::Entity::find_by_id("stock-analysis").one(&sea_db).await
+        {
+            if let Some(vars_json) = &template.variables {
+                if let Ok(vars) = serde_json::from_str::<
+                    Vec<axagent_harness::workflow_types::Variable>,
+                >(vars_json)
+                {
+                    let template_vars: Vec<(String, serde_json::Value)> =
+                        vars.iter().map(|v| (v.name.clone(), v.value.clone())).collect();
+                    let enabled_set =
+                        axagent_stock_analysis::recommender::pool::load_enabled_vendors_from_template(
+                            &template_vars,
+                        );
+                    tracing::info!("[init] vendor 启用状态已从模板加载: {:?}", enabled_set);
+                    astock_client.set_enabled_vendors(Some(enabled_set));
+                }
+            }
+        } else {
+            tracing::warn!(
+                "[init] stock-analysis 模板未种子化或查询失败，启动时未注入 vendor 状态"
+            );
+        }
+    }
     let trading_engine =
         Arc::new(TokioRwLock::new(axagent_stock_analysis::trading::TradingEngine::new(
             Arc::new(sea_db.clone()),

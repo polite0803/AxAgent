@@ -14,7 +14,7 @@ interface ExpertRow {
   category: string;
   system_prompt: string;
   source_dir: string;
-  is_enabled: boolean;
+  isEnabled: boolean;
 }
 
 export function ExpertPromptList() {
@@ -108,8 +108,8 @@ export function ExpertPromptList() {
                 {expert.description || expert.id.replace("agency-stock-analysis-", "")}
               </span>
             </div>
-            <Tag color={expert.is_enabled ? "green" : "default"} style={{ fontSize: 10 }}>
-              {expert.is_enabled ? t("common.enabled") : t("common.disabled")}
+            <Tag color={expert.isEnabled ? "green" : "default"} style={{ fontSize: 10 }}>
+              {expert.isEnabled ? t("common.enabled") : t("common.disabled")}
             </Tag>
           </div>
           {expandedId === expert.id && (

@@ -15,6 +15,7 @@ const SPECIAL_MAP: Record<string, string> = {
   "risk-neu": "stockAnalysis.workflow.riskNeutral",
   "risk-aggregated": "stockAnalysis.workflow.riskAggregation",
   "risk-convergence": "stockAnalysis.workflow.riskConvergence",
+  "debate-convergence": "stockAnalysis.analysisDebug.debateConvergence",
   "v-validate": "stockAnalysis.workflow.vValidate",
   "notify-result": "stockAnalysis.workflow.notifyResult",
 };

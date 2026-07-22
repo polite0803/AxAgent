@@ -68,13 +68,15 @@ data_sources: [get_fundamentals_report_markdown, get_stock_financials, compute_v
 然后在**末尾另起一行**追加机读标签：
 
 ```
-<!-- VERDICT: {"verdict": "正面", "bull_score": 65, "bear_score": 35, "confidence": 70} -->
+<!-- VERDICT: {"verdict": "正面", "bull_score": 65, "bear_score": 35, "bull_points": ["趋势向好", "资金认可", "结构健康"], "bear_points": ["高位承压", "注意回调"], "confidence": 70} -->
 ```
 
 VERDICT标签字段说明：
 
 - `verdict`: "正面 | 偏正面 | 中性 | 偏负面 | 负面"（基于财务数据的健康度评估，非投资建议）
 - `bull_score` / `bear_score`: 0-100整数
+- `bull_points`: (可选) 2-4条看多关键论据, 每条不超过16字
+- `bear_points`: (可选) 2-4条看空关键论据, 每条不超过16字
 - `confidence`: 0-100整数
 
 **关键规则**：

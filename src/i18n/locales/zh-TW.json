@@ -9266,7 +9266,7 @@
     "volumeChart": "成交量",
     "amount": "成交額",
     "amountUnit": "億元",
-    "turnoverRate": "換手",
+    "turnoverRate": "换手率",
     "changePct": "漲跌",
     "limitUp": "漲停",
     "limitDown": "跌停",
@@ -9414,8 +9414,22 @@
     "loadAnalysisFailed": "載入歷史分析失敗",
     "willOverwrite": "將覆蓋原記錄（保留相同 analysisId）",
     "decision": {
+      "action": "操作建议",
+      "confidence": "置信度",
+      "positionPct": "仓位比例",
+      "riskLevel": "风险等级",
       "confidenceLabel": "置信度",
-      "positionLabel": "仓位"
+      "positionLabel": "倉位",
+      "wordDocument": "Word 文件 (.docx)",
+      "gateControl": "門控",
+      "mandatoryDirection": "強制方向",
+      "evidenceScore": "證據得分",
+      "net": "淨",
+      "oppositeDirection": "方向相反",
+      "disagreement": "存在分歧",
+      "positionGap": "倉位差距 {{gap}}%",
+      "confidenceGap": "信心差距 {{gap}}%",
+      "exportFailed": "匯出失敗：{{errMsg}}"
     },
     "position": "仓位",
     "targetPrice": "目标价",
@@ -9662,7 +9676,6 @@
     "tradingTitle": "交易记录",
     "marketCap": "市值",
     "views": "浏览",
-    "turnoverRate": "换手率",
     "exported": "报告已导出",
     "contextCopied": "上下文已复制",
     "progress.stepDone": "步骤完成",
@@ -10732,12 +10745,6 @@
     "cancelled": "分析已取消 — 顯示部分数据",
     "contradiction": "决策矛盾",
     "debtRatio": "负债率",
-    "decision": {
-      "action": "操作建议",
-      "confidence": "置信度",
-      "positionPct": "仓位比例",
-      "riskLevel": "风险等級"
-    },
     "earningsOnChart": "财報標注",
     "timeHorizon": "时间維度",
     "expectedHoldingDays": "持有{{days}}天",
@@ -10886,7 +10893,10 @@
       "suggestedPrice": "建议挂出"
     },
     "round": "第",
-    "round2Responses": "逐條回應 R2 質詢"
+    "round2Responses": "逐條回應 R2 質詢",
+    "analysisDebug": {
+      "debateConvergence": "辯論收斂"
+    }
   },
   "pipeline": {
     "title": "股票管道",

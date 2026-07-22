@@ -8918,8 +8918,22 @@
     "loadAnalysisFailed": "기록 분석 불러오기 실패",
     "willOverwrite": "Will overwrite the original record (same analysisId retained)",
     "decision": {
+      "action": "操作建议",
+      "confidence": "置信度",
+      "positionPct": "仓位比例",
+      "riskLevel": "风险等级",
       "confidenceLabel": "신뢰도",
-      "positionLabel": "포지션"
+      "positionLabel": "포지션",
+      "wordDocument": "Word 문서 (.docx)",
+      "gateControl": "게이트 제어",
+      "mandatoryDirection": "강제 방향",
+      "evidenceScore": "증거 점수",
+      "net": "순",
+      "oppositeDirection": "반대 방향",
+      "disagreement": "의견 불일치",
+      "positionGap": "포지션 차이 {{gap}}%",
+      "confidenceGap": "신뢰도 차이 {{gap}}%",
+      "exportFailed": "내보내기 실패: {{errMsg}}"
     },
     "position": "Position",
     "targetPrice": "Target Price",
@@ -10113,12 +10127,6 @@
     "cancelled": "分析已取消 — 显示部分数据",
     "contradiction": "决策矛盾",
     "debtRatio": "负债率",
-    "decision": {
-      "action": "操作建议",
-      "confidence": "置信度",
-      "positionPct": "仓位比例",
-      "riskLevel": "风险等级"
-    },
     "earningsOnChart": "财报标注",
     "timeHorizon": "时间维度",
     "expectedHoldingDays": "{{days}}일 보유",

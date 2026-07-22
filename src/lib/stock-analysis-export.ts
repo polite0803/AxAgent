@@ -307,12 +307,12 @@ export function buildMarkdownReport(data: ExportData): string {
   }
 
   // ── 8. 降级与警告 ──
-  if (data.failedNodes.length > 0 || data.dataWarnings.length > 0) {
+  if ((data.failedNodes?.length ?? 0) > 0 || (data.dataWarnings?.length ?? 0) > 0) {
     h(2, "⚠️ 降级与警告");
-    if (data.failedNodes.length > 0) {
+    if ((data.failedNodes?.length ?? 0) > 0) {
       lines.push(`\n**执行失败的节点**：${data.failedNodes.join("、")}\n`);
     }
-    if (data.dataWarnings.length > 0) {
+    if ((data.dataWarnings?.length ?? 0) > 0) {
       lines.push("\n**数据警告**：\n");
       for (const w of data.dataWarnings) { lines.push(`- ${w}\n`); }
     }

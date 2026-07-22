@@ -198,8 +198,11 @@ pub fn load_enabled_vendors_from_template(
         if !KNOWN_VENDORS.contains(&vendor_name) {
             continue;
         }
+        // 修复：旧逻辑 !v.is_empty() 会让字符串 "false"/"0"/"no" 都判为启用
+        // 新逻辑：显式禁用关键字 → false；其他非空字符串 → true（兼容历史 "enabled" 用法）
         let enabled = if let Some(v) = value.as_str() {
-            !v.is_empty()
+            let lower = v.to_ascii_lowercase();
+            !matches!(lower.as_str(), "" | "false" | "0" | "no" | "off" | "disabled")
         } else {
             value.as_bool().unwrap_or(false)
         };
@@ -300,6 +303,45 @@ mod tests {
         assert!(s.contains("akshare"));
         assert!(!s.contains("tencent")); // 空字符串
         assert!(!s.contains("iwencai_key")); // iwencai_key 排除
+    }
+
+    /// 回归测试：字符串 "false" 不应被误判为启用（曾因 !v.is_empty() 导致 BUG）
+    #[test]
+    fn vendor_string_false_should_be_disabled() {
+        let vars = vec![
+            ("vendor_iwencai".to_string(), serde_json::json!("false")),
+            ("vendor_neodata".to_string(), serde_json::json!("False")),
+            ("vendor_xueqiu".to_string(), serde_json::json!("FALSE")),
+            ("vendor_eastmoney".to_string(), serde_json::json!("true")),
+            ("vendor_tencent".to_string(), serde_json::json!("0")),
+            ("vendor_ths".to_string(), serde_json::json!("off")),
+            ("vendor_akshare".to_string(), serde_json::json!("disabled")),
+        ];
+        let s = load_enabled_vendors_from_template(&vars);
+        // 各种大小写的 "false" 都应禁用
+        assert!(!s.contains("iwencai"), "字符串 'false' 应判为禁用");
+        assert!(!s.contains("neodata"), "字符串 'False' 应判为禁用");
+        assert!(!s.contains("xueqiu"), "字符串 'FALSE' 应判为禁用");
+        // 其他禁用关键字
+        assert!(!s.contains("tencent"), "字符串 '0' 应判为禁用");
+        assert!(!s.contains("ths"), "字符串 'off' 应判为禁用");
+        assert!(!s.contains("akshare"), "字符串 'disabled' 应判为禁用");
+        // 启用字符串
+        assert!(s.contains("eastmoney"), "字符串 'true' 应判为启用");
+    }
+
+    /// 回归测试：JSON 布尔值 false 应被正确判为禁用
+    #[test]
+    fn vendor_json_bool_false_should_be_disabled() {
+        let vars = vec![
+            ("vendor_iwencai".to_string(), serde_json::json!(false)),
+            ("vendor_neodata".to_string(), serde_json::json!(false)),
+            ("vendor_eastmoney".to_string(), serde_json::json!(true)),
+        ];
+        let s = load_enabled_vendors_from_template(&vars);
+        assert!(!s.contains("iwencai"), "JSON false 应判为禁用");
+        assert!(!s.contains("neodata"), "JSON false 应判为禁用");
+        assert!(s.contains("eastmoney"), "JSON true 应判为启用");
     }
 
     #[test]

@@ -386,8 +386,8 @@ mod extract_present_vars_tests {
         let local_vars = extract_local_vars(code);
         let present_vars = extract_present_vars(code);
         // present_vars 应包含 f7_signal 和 trader_direction
-        assert!(present_vars.contains("f7_signal"));
-        assert!(present_vars.contains("trader_direction"));
+        assert!(present_vars.contains(&"f7_signal".to_string()));
+        assert!(present_vars.contains(&"trader_direction".to_string()));
         // local_vars 应包含 x, raw, f7_signal
         assert!(local_vars.contains("x"));
         assert!(local_vars.contains("raw"));

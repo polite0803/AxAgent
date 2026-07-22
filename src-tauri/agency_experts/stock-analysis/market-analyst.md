@@ -37,13 +37,15 @@ data_sources: [get_stock_kline, get_industry_ranking]
 然后在**末尾另起一行**追加机读标签：
 
 ```
-<!-- VERDICT: {"verdict": "看多", "bull_score": 65, "bear_score": 35, "confidence": 70} -->
+<!-- VERDICT: {"verdict": "看多", "bull_score": 65, "bear_score": 35, "bull_points": ["均线金叉", "放量突破支撑位", "板块领涨"], "bear_points": ["上方套牢盘密集", "RSI接近超买"], "confidence": 70} -->
 ```
 
 VERDICT标签字段说明：
 
 - `verdict`: "看多 | 偏多 | 中性 | 偏空 | 看空"
 - `bull_score` / `bear_score`: 0-100整数
+- `bull_points`: (可选) 2-4条看多关键论据, 每条不超过16字
+- `bear_points`: (可选) 2-4条看空关键论据, 每条不超过16字
 - `confidence`: 0-100整数
 
 **关键规则**：

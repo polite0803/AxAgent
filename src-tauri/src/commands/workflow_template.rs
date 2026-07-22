@@ -157,6 +157,16 @@ pub async fn update_workflow_template(
     // 保存前提取 tool_defs（确保移动后仍可引用）
     let tool_defs = input.tool_defs.take();
 
+    // 如果更新的是 stock-analysis 模板，先注入 vendor 启用状态到 astock_client
+    // 必须在 input.variables 被移动到 db_repo 之前调用
+    // inject_vendor_state 仅更新内存中的过滤集合，不涉及数据库写入，即使保存失败也无副作用
+    if id == "stock-analysis" {
+        crate::commands::stock_workflow::decision::inject_vendor_state(
+            &state.astock_client,
+            Some(&input.variables),
+        );
+    }
+
     let updated = db_repo::update_workflow_template(
         db,
         &id,

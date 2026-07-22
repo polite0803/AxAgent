@@ -467,26 +467,13 @@ pub async fn execute_mcp_tool(
     match tool_name {
         "search_stock" => {
             let keyword = parse_str(arguments, "keyword");
-            // P0 修复(2026-07-22): 校验 keyword，避免 LLM 传入拼音片段或空字符串。
-            // 日志显示 GLM-5.2 曾生成 "zhong'g"/"中国wei"/"中国卫tong" 等拼音片段，
-            // 导致所有 vendor 搜索失败并重试，浪费 ~14 秒。
             if keyword.trim().is_empty() {
                 return Err(
                     "search_stock 缺少 keyword 参数，请传入完整中文名称或6位数字代码".to_string()
                 );
             }
-            // 拼音片段检测：纯拉丁字母+撇号视为拼音片段（如 "zi'jin"、"zhongguo"）
-            // 6位纯数字代码或包含中文字符的字符串视为合法
-            let trimmed = keyword.trim();
-            let is_pure_digits = trimmed.chars().all(|c| c.is_ascii_digit());
-            let has_cjk = trimmed.chars().any(|c| c as u32 >= 0x4E00 && c as u32 <= 0x9FFF);
-            let is_pinyin_fragment = !is_pure_digits && !has_cjk;
-            if is_pinyin_fragment {
-                tracing::warn!("[search_stock] 检测到拼音片段关键词: '{}'", trimmed);
-                return Err(format!(
-                    "search_stock keyword '{trimmed}' 看起来像拼音片段，请传入完整中文名称（如'紫金矿业'）或6位数字代码（如'601899'），禁止拼音片段。"
-                ));
-            }
+            // 拼音片段检测在 AStockClient::search_stock 底层统一处理
+            // （覆盖 Tauri 命令 + MCP 工具两条路径，避免重复逻辑）
             let keyword = keyword.as_str();
             let results = client.search_stock(keyword).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&results).map_err(|e| e.to_string())

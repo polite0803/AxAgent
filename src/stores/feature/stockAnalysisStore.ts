@@ -1209,6 +1209,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           ruleCheckResults: ruleChecks,
           dataQualitySummary: dataQuality,
           rawData: raws,
+          dataWarnings: [],
         });
 
         // 历史分析回放：也缓存一次共识，让 RecommendationPanel 能用

@@ -358,6 +358,21 @@ pub struct AStockClient {
     enabled_vendors: parking_lot::RwLock<Option<HashSet<String>>>,
 }
 
+/// 判断字符串是否为港股/美股代码格式（如"00700.HK"、"TSM.US"）
+/// 规则：点号前为纯数字或纯大写字母，点号后为 2-3 位大写字母
+fn is_pure_digits_before_dot_and_uppercase_after(s: &str) -> bool {
+    if let Some((before, after)) = s.split_once('.') {
+        let before_ok = !before.is_empty()
+            && (before.chars().all(|c| c.is_ascii_digit())
+                || before.chars().all(|c| c.is_ascii_uppercase()));
+        let after_ok =
+            !after.is_empty() && after.len() <= 3 && after.chars().all(|c| c.is_ascii_uppercase());
+        before_ok && after_ok
+    } else {
+        false
+    }
+}
+
 impl AStockClient {
     /// 修复 P0-A4: 原 `expect("Failed to create HTTP client")` 在 TLS 初始化
     /// 失败时 panic，拖垮整个 Tauri 进程。改为返回 Result。
@@ -2124,6 +2139,40 @@ impl AStockClient {
     }
 
     pub async fn search_stock(&self, keyword: &str) -> Result<Vec<StockSearchResult>, DataError> {
+        // 拼音片段检测：拦截 LLM 生成的拼音片段或中英混合片段
+        // 合法输入：完整中文名称（如"紫金矿业"）、6位数字代码（如"601899"）、港股/美股代码（如"00700.HK"）
+        // 非法输入：纯拼音（如"zi'jin"）、中英混合片段（如"中贝t"、"中贝tong"）
+        let trimmed = keyword.trim();
+        if !trimmed.is_empty() {
+            let is_pure_digits = trimmed.chars().all(|c| c.is_ascii_digit());
+            let has_cjk = trimmed.chars().any(|c| (0x4E00..=0x9FFF).contains(&(c as u32)));
+            // 包含 CJK 的字符串还需检查是否有拉丁字母混合（如"中贝t"）
+            let has_latin = trimmed.chars().any(|c| c.is_ascii_alphabetic());
+            if !is_pure_digits && !has_cjk {
+                // 纯拉丁字母（含撇号）→ 拼音片段
+                tracing::warn!("[search_stock] 检测到拼音片段关键词: '{}'", trimmed);
+                return Err(DataError::VendorError {
+                    vendor: "search_stock".into(),
+                    message: format!(
+                        "keyword '{trimmed}' 看起来像拼音片段，请传入完整中文名称（如'紫金矿业'）或6位数字代码（如'601899'）"
+                    ),
+                });
+            }
+            if has_cjk && has_latin {
+                // 中英混合（如"中贝t"、"中贝tong"）→ 拼音片段
+                // 例外：港股/美股代码格式如"00700.HK"、"TSM.US"（数字+点+字母）
+                let is_hk_us_code = is_pure_digits_before_dot_and_uppercase_after(trimmed);
+                if !is_hk_us_code {
+                    tracing::warn!("[search_stock] 检测到中英混合关键词: '{}'", trimmed);
+                    return Err(DataError::VendorError {
+                        vendor: "search_stock".into(),
+                        message: format!(
+                            "keyword '{trimmed}' 包含中英混合片段，请传入完整中文名称（如'紫金矿业'）或6位数字代码（如'601899'）"
+                        ),
+                    });
+                }
+            }
+        }
         // P5:搜索是当下语义(iwencai NoHistoricalSemantic),as-of 模式检查每日快照或返回空
         // C5.3 修复:cache_key 含 keyword 维度，避免不同 keyword 互相覆盖
         if crate::as_of::is_asof_active() {
