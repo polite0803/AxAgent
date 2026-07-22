@@ -13,12 +13,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         AgentNode, AgentNodeConfig, AggregatorNode, AggregatorNodeConfig, BackoffType, Branch,
         CodeNode, CodeNodeConfig, DebateNode, DebateNodeConfig, DegradeStrategy, EdgeType, EndNode,
         EndNodeConfig, ErrorConfig, JsonSchema, JsonSchemaProperty, LlmClassifierNode,
-        LlmClassifierNodeConfig, MergeStrategy, NotificationNode, NotificationNodeConfig,
-        OnFailureAction, OutputMode, ParallelNode, ParallelNodeConfig, Position, RetryConfig,
-        StorageNode, StorageNodeConfig, SubGraph, SwitchCase, SwitchNode, SwitchNodeConfig,
-        ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode, TriggerType,
-        ValidationAssertion, ValidationNode, ValidationNodeConfig, Variable, WorkflowEdge,
-        WorkflowNode, WorkflowNodeBase, WorkflowRetryPolicy,
+        LlmClassifierNodeConfig, MergeNode, MergeNodeConfig, MergeStrategy, NotificationNode,
+        NotificationNodeConfig, OnFailureAction, OutputMode, ParallelNode, ParallelNodeConfig,
+        Position, RetryConfig, StorageNode, StorageNodeConfig, SubGraph, SwitchCase, SwitchNode,
+        SwitchNodeConfig, ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode,
+        TriggerType, ValidationAssertion, ValidationNode, ValidationNodeConfig, Variable,
+        WorkflowEdge, WorkflowNode, WorkflowNodeBase, WorkflowRetryPolicy,
     };
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
@@ -1088,9 +1088,91 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             },
         }));
     }
+    // ── SwitchNode: 检查 analyst-brief 是否有内容，决定辩论是否执行 ──
+    // 表达式检查：_value 非空即为有效摘要（空/null 走默认分支跳过辩论）
+    nodes.push(WorkflowNode::Switch(SwitchNode {
+        base: WorkflowNodeBase {
+            id: "switch-brief-valid".into(),
+            title: "分析师摘要有效性检查".into(),
+            description: Some("检查 analyst-brief 是否有效，无效则跳过辩论阶段".into()),
+            position: Position { x: 150.0, y: 1170.0 },
+            retry: RetryConfig::default(),
+            timeout: Some(5),
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: false,
+        },
+        config: SwitchNodeConfig {
+            input_var: "analyst-brief".into(),
+            cases: vec![SwitchCase { value: "_value != \"\"".into(), label: "brief_ok".into() }],
+            default_case: Some("brief_fallback".into()),
+            match_mode: "expression".into(),
+            use_llm: None,
+            llm_prompt: None,
+            llm_model: None,
+            output_var: String::new(),
+        },
+    }));
     edges.push(WorkflowEdge {
-        id: "e-brief-debate".into(),
+        id: "e-brief-switch".into(),
         source: "analyst-brief".into(),
+        source_handle: None,
+        target: "switch-brief-valid".into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
+    });
+    // 合并节点：汇总正常摘要路径与降级路径，任一到达即触发辩论
+    // 避免两条路径各自直接连辩论节点造成"必须等全部上游"的死锁
+    nodes.push(WorkflowNode::Merge(MergeNode {
+        base: WorkflowNodeBase {
+            id: "merge-brief-debate".into(),
+            title: "辩论入口合并".into(),
+            description: Some("汇总 analyst-brief 正常路径与降级路径，任一到达即启动辩论".into()),
+            position: Position { x: 250.0, y: 1220.0 },
+            retry: RetryConfig::default(),
+            timeout: Some(5),
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: true,
+        },
+        config: MergeNodeConfig { merge_type: MergeStrategy::Any },
+    }));
+    // switch-brief-valid (brief_ok) → merge
+    edges.push(WorkflowEdge {
+        id: "e-brief-merge".into(),
+        source: "switch-brief-valid".into(),
+        source_handle: Some("brief_ok".into()),
+        target: "merge-brief-debate".into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
+    });
+    // switch-brief-valid (brief_fallback) → brief-fallback → merge
+    edges.push(WorkflowEdge {
+        id: "e-switch-fallback".into(),
+        source: "switch-brief-valid".into(),
+        source_handle: Some("brief_fallback".into()),
+        target: "brief-fallback".into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
+    });
+    edges.push(WorkflowEdge {
+        id: "e-fallback-merge".into(),
+        source: "brief-fallback".into(),
+        source_handle: None,
+        target: "merge-brief-debate".into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
+    });
+    // merge → debate-bull-bear
+    edges.push(WorkflowEdge {
+        id: "e-merge-debate".into(),
+        source: "merge-brief-debate".into(),
         source_handle: None,
         target: "debate-bull-bear".into(),
         target_handle: None,
@@ -1265,8 +1347,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // 使用 analyst-brief CodeNode 的输出替代10份全量分析师报告
             ctx.push("analyst-brief".to_string());
             a.config.context_sources = ctx;
-            // 注入分析师 params 作为结构化输入（resolve_var_path 支持点号路径）
-            a.config.input_mapping = build_analyst_input_mapping(&a_ids);
+            // 注：评分数据已嵌入 analyst-brief 文本，不再额外通过 input_mapping 注入 30 个字段
+            a.config.input_mapping = [].into_iter().collect();
         }
         nodes.push(bull_an);
 
@@ -1304,8 +1386,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             // 使用 analyst-brief 替代全量分析师报告
             ctx.push("analyst-brief".to_string());
             a.config.context_sources = ctx;
-            // 注入分析师 params 作为结构化输入
-            a.config.input_mapping = build_analyst_input_mapping(&a_ids);
+            // 评分数据已嵌入 analyst-brief 文本，不再额外注入
+            a.config.input_mapping = [].into_iter().collect();
         }
         nodes.push(bear_an);
 

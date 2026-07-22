@@ -341,6 +341,14 @@ async fn run_stock_workflow_inner(
     let input_schema = loaded.input_schema;
     let output_schema = loaded.output_schema;
     let template_vars = loaded.variables;
+    // 修复 E0382: 在 spawn 前（即 loaded.variables 被 move 到 template_vars 之后）从 template_vars 读取 tool_timeout
+    let tool_timeout_secs = template_vars
+        .as_ref()
+        .and_then(|vars| {
+            vars.iter().find(|v| v.name == "tool_timeout_secs").and_then(|v| v.value.as_u64())
+        })
+        .map(|s| std::cmp::max(s, 5))
+        .unwrap_or(30u64);
 
     let sc_for_ret = stock_code.clone();
     let sc_name = quote.name.clone();
@@ -433,15 +441,11 @@ async fn run_stock_workflow_inner(
         type_limits.insert("file".into(), 10usize);
         type_limits.insert("llm".into(), max_concurrent);
         type_limits.insert("agent".into(), max_concurrent);
-        // 从模板变量读取工具节点超时（默认 30s）
-        let tool_timeout = loaded.variables.as_ref().and_then(|vars| {
-            vars.iter().find(|v| v.name == "tool_timeout_secs")
-                .and_then(|v| v.value.as_u64())
-        }).map(|s| std::cmp::max(s, 5)).unwrap_or(30);
+        // 从模板变量读取工具节点超时（已在 spawn 前从 template_vars 算出，避免 move 冲突）
         let mut opts = RunOptions {
             max_concurrent,
             step_timeout,
-            tool_timeout: std::time::Duration::from_secs(tool_timeout),
+            tool_timeout: std::time::Duration::from_secs(tool_timeout_secs),
             max_concurrent_by_type: Some(type_limits),
             progress_callback: Some(progress_cb),
             input: Some(json!({"stock_code": &stock_code})),
