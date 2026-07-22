@@ -4320,8 +4320,13 @@ mod pdf_template_test {
     }
 
     /// 验证自定义 cover_template 渲染到 PDF。
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[test]
     fn custom_cover_template_renders() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("custom_cover.pdf");
         let md = "# 第一章\n\n正文内容\n";
         let doc = markdown::parse_markdown(md);
@@ -4384,8 +4389,13 @@ mod pdf_template_test {
     }
 
     /// 验证 enable_toc 自动生成目录页。
+    /// 注：运行时检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
     #[test]
     fn enable_toc_generates_table_of_contents() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("toc.pdf");
         let md = "# 第一章\n\n## 1.1 节\n\n# 第二章\n\n## 2.1 节\n\n# 第三章\n";
         let doc = markdown::parse_markdown(md);
