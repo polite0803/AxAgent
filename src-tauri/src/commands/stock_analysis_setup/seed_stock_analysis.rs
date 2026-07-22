@@ -13,12 +13,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         AgentNode, AgentNodeConfig, AggregatorNode, AggregatorNodeConfig, BackoffType, Branch,
         CodeNode, CodeNodeConfig, DebateNode, DebateNodeConfig, DegradeStrategy, EdgeType, EndNode,
         EndNodeConfig, ErrorConfig, JsonSchema, JsonSchemaProperty, LlmClassifierNode,
-        LlmClassifierNodeConfig, MergeStrategy, NotificationNode,
-        NotificationNodeConfig, OnFailureAction, OutputMode, ParallelNode, ParallelNodeConfig,
-        Position, RetryConfig, StorageNode, StorageNodeConfig, SubGraph, SwitchCase, SwitchNode,
-        SwitchNodeConfig, ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode,
-        TriggerType, ValidationAssertion, ValidationNode, ValidationNodeConfig, Variable,
-        WorkflowEdge, WorkflowNode, WorkflowNodeBase, WorkflowRetryPolicy,
+        LlmClassifierNodeConfig, MergeStrategy, NotificationNode, NotificationNodeConfig,
+        OnFailureAction, OutputMode, ParallelNode, ParallelNodeConfig, Position, RetryConfig,
+        StorageNode, StorageNodeConfig, SubGraph, SwitchCase, SwitchNode, SwitchNodeConfig,
+        ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode, TriggerType,
+        ValidationAssertion, ValidationNode, ValidationNodeConfig, Variable, WorkflowEdge,
+        WorkflowNode, WorkflowNodeBase, WorkflowRetryPolicy,
     };
     use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
