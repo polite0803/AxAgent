@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useFormatCny } from "@/stores";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { Button, Card, Col, Descriptions, Row, Space, Tabs, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
@@ -25,10 +26,6 @@ function formatDuration(ms?: number): string {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
-function formatCost(cost: number): string {
-  return `$${cost.toFixed(4)}`;
-}
-
 function formatTokens(tokens: number): string {
   if (tokens < 1000) {
     return `${tokens}`;
@@ -41,6 +38,8 @@ function formatTokens(tokens: number): string {
 
 export function TraceDetail() {
   const { t } = useTranslation();
+  // 成本以人民币展示
+  const formatCny = useFormatCny();
   const { selectedTrace, selectedSpan, tree, metrics, exportTrace } = useTracerStore();
 
   const [startedAtFormatted, setStartedAtFormatted] = useState("");
@@ -113,7 +112,7 @@ export function TraceDetail() {
                   {formatTokens(trace.metadata.total_tokens)}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.cost")}>
-                  {formatCost(trace.metadata.total_cost_usd)}
+                  {formatCny(trace.metadata.total_cost_usd, 4)}
                 </Descriptions.Item>
               </Descriptions>
             </Card>

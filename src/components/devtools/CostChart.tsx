@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useFormatCny } from "@/stores";
 import type { TraceMetrics } from "@/types";
 import { Card, Progress } from "antd";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,8 @@ function formatTokens(tokens: number): string {
 
 export function CostChart({ metrics }: CostChartProps) {
   const { t } = useTranslation();
+  // 成本以人民币展示
+  const formatCny = useFormatCny();
   const { cost } = metrics;
   const total = cost.total_tokens || 1;
 
@@ -97,7 +100,7 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.totalCost")}
             </div>
             <div className="text-3xl font-bold text-green-600">
-              ${cost.total_cost_usd.toFixed(4)}
+              {formatCny(cost.total_cost_usd, 4)}
             </div>
           </div>
           <div className="text-center">

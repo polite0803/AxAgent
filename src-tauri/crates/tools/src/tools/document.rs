@@ -11,6 +11,7 @@
 use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult, markdown};
 use async_trait::async_trait;
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1211,26 +1212,6 @@ fn build_pdf(
     );
     let mut font_res = dictionary! { "F1" => fid_h, "F2" => fid_hb, "F3" => fid_c };
 
-    // ── CJK 复合字体（Identity-H + CIDFontType2）──
-    let fid_cjk: Option<ObjectId> = if content_needs_cjk {
-        match cjk_font {
-            Some(cjk) => {
-                let cjk_id = register_cjk_font(&mut pdf, cjk);
-                font_res.set("F4", Object::Reference(cjk_id));
-                Some(cjk_id)
-            },
-            None => {
-                tracing::warn!(
-                    "ExportPdf: 文档含 CJK 字符但未找到 CJK 字体，CJK 文本将回退为拉丁字体导致乱码。\
-                     请将 TTF 放到 $AXAGENT_FONT_DIR 或 ./fonts/，或安装系统 CJK 字体。"
-                );
-                None
-            },
-        }
-    } else {
-        None
-    };
-
     // ── 页面参数（A4, pt）──
     let pw: f64 = 595.0;
     let ph: f64 = 842.0;
@@ -1522,6 +1503,43 @@ fn build_pdf(
         }
     }
     push(&mut cur, &mut blocks);
+
+    // ── CJK 复合字体（Identity-H + CIDFontType2，CIDToGIDMap = Identity）──
+    // 必须在收集全部文本（blocks）之后注册：先扫描所有将走 F4 的字符，建立
+    // GID→Unicode 的 ToUnicode CMap，保证 PDF 阅读器/ pdf-extract 能正确提取中文与符号。
+    let mut used_glyphs: BTreeMap<u16, char> = BTreeMap::new();
+    if content_needs_cjk {
+        for blk in &blocks {
+            for op in blk {
+                if let PageOp::Text { text, .. } = op {
+                    for c in text.chars() {
+                        if crate::cjk_font::needs_cid_font(c) {
+                            let gid = cjk_font.and_then(|cj| cj.glyph_index(c)).unwrap_or(0);
+                            used_glyphs.insert(gid, c);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let fid_cjk: Option<ObjectId> = if content_needs_cjk {
+        match cjk_font {
+            Some(cjk) => {
+                let cjk_id = register_cjk_font(&mut pdf, cjk, &used_glyphs);
+                font_res.set("F4", Object::Reference(cjk_id));
+                Some(cjk_id)
+            },
+            None => {
+                tracing::warn!(
+                    "ExportPdf: 文档含 CJK 字符但未找到 CJK 字体，CJK 文本将回退为拉丁字体导致乱码。\
+                     请将 TTF 放到 $AXAGENT_FONT_DIR 或 ./fonts/，或安装系统 CJK 字体。"
+                );
+                None
+            },
+        }
+    } else {
+        None
+    };
 
     // ── 页面分配 ──
     // 第一遍：扫描所有 Image Op 收集其 xobj_id + 对应名字（Im1/Im2/...）
@@ -1969,7 +1987,15 @@ fn write_text_segment(
 }
 
 /// 在 PDF 文档中注册 CIDFontType2 复合字体（Identity-H 编码），返回 Type0 字体 ObjectId。
-fn register_cjk_font(pdf: &mut lopdf::Document, cjk: &crate::cjk_font::CjkFont) -> lopdf::ObjectId {
+///
+/// `used_glyphs` 为本文档实际使用的 `<GID, Unicode 字符>` 映射（已去重，按 GID 升序）。
+/// 因 `CIDToGIDMap = Identity`，内容流里的 CID 即 GID，故 ToUnicode 必须显式把每个 GID
+/// 映射回真实 Unicode，否则 `pdf-extract` / 阅读器会把 GID 当作 Unicode 而提取出乱码。
+fn register_cjk_font(
+    pdf: &mut lopdf::Document,
+    cjk: &crate::cjk_font::CjkFont,
+    used_glyphs: &BTreeMap<u16, char>,
+) -> lopdf::ObjectId {
     use lopdf::{Dictionary, Object, Stream, dictionary};
 
     // 1. FontFile2 stream — TTF 原始字节
@@ -2016,24 +2042,32 @@ fn register_cjk_font(pdf: &mut lopdf::Document, cjk: &crate::cjk_font::CjkFont) 
         "DW" => 1000,
     });
 
-    // 5. ToUnicode CMap（Identity：CID=Unicode 码点），让 PDF 阅读器能复制 / 搜索 / 提取文本
-    let cmap_text = "\
+    // 5. ToUnicode CMap：GID → Unicode（逐字符 bfchar），保证文本可提取 / 搜索 / 复制
+    let mut bfchar = String::new();
+    for (&gid, &ch) in used_glyphs {
+        bfchar.push_str(&format!("<{:04X}> <{}>\n", gid, char_to_utf16_hex(ch)));
+    }
+    let cmap_text = format!(
+        "\
 /CIDInit /ProcSet findresource begin\n\
 12 dict begin\n\
 begincmap\n\
 /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n\
-/CMapName /Adobe-Identity-UCS def\n\
+/CMapName /AxAgent-CJK-ToUnicode def\n\
 /CMapType 2 def\n\
 1 begincodespacerange\n\
 <0000> <FFFF>\n\
 endcodespacerange\n\
-1 beginbfrange\n\
-<0000> <FFFF> <0000>\n\
-endbfrange\n\
+{} beginbfchar\n\
+{}\
+endbfchar\n\
 endcmap\n\
 CMapName currentdict /CMap defineresource pop\n\
 end\n\
-end\n";
+end\n",
+        used_glyphs.len(),
+        bfchar,
+    );
     let cmap_id = pdf.add_object(Stream::new(
         dictionary! { "Length" => cmap_text.len() as i64 },
         cmap_text.as_bytes().to_vec(),
@@ -2048,6 +2082,19 @@ end\n";
         "DescendantFonts" => vec![Object::Reference(cid_id)],
         "ToUnicode" => cmap_id,
     })
+}
+
+/// 字符 → UTF-16BE 十六进制（BMP 为 4 位，非 BMP 为 surrogate pair 8 位），用于 ToUnicode CMap 值。
+fn char_to_utf16_hex(c: char) -> String {
+    let cp = c as u32;
+    if cp <= 0xFFFF {
+        format!("{:04X}", cp)
+    } else {
+        let v = cp - 0x10000;
+        let hi = 0xD800 + (v >> 10);
+        let lo = 0xDC00 + (v & 0x3FF);
+        format!("{:04X}{:04X}", hi, lo)
+    }
 }
 
 fn format_row(cells: &[String], col_w: f64) -> String {
@@ -3376,7 +3423,8 @@ mod cjk_pdf_integration {
         assert!(text.contains("CJK"), "拉丁字符应保留");
         assert!(text.contains("English"), "英文应保留");
 
-        eprintln!("pdf-extract 提取的文本（前 500 字符）:\n{}", &text[..text.len().min(500)]);
+        let preview: String = text.chars().take(500).collect();
+        eprintln!("pdf-extract 提取的文本（前 500 字符）:\n{}", preview);
         let _ = std::fs::remove_file(&out);
     }
 
@@ -3426,8 +3474,16 @@ mod pdf_math_test {
     }
 
     /// 行内数学：$x^2$ 应在 PDF 文本中显示为 x^2 形式（保留 sup 标记以反映结构）
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn inline_math_appears_in_pdf() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("inline_math.pdf");
         let md = "勾股定理：$a^2 + b^2 = c^2$。";
         let doc = markdown::parse_markdown(md);
@@ -3459,8 +3515,14 @@ mod pdf_math_test {
     }
 
     /// 块级数学：$$...$$ 包含 LaTeX 命令，应展开为 Unicode 字符
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn display_math_unfolds_latex() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("display_math.pdf");
         let md = "## 公式\n\n$$\\alpha + \\beta = \\gamma$$\n\n行内 $\\sum_{i=1}^n i$ 求和。";
         let doc = markdown::parse_markdown(md);
@@ -3494,8 +3556,14 @@ mod pdf_math_test {
     }
 
     /// 不等式符号：\leq, \geq, \neq
+    /// 注：Windows 上检查 msyh.ttc 存在后再测，避免并行测试中 OnceLock 被毒化时误报。
+    #[cfg(target_os = "windows")]
     #[tokio::test]
     async fn inequality_symbols() {
+        if !std::path::Path::new(r"C:\Windows\Fonts\msyh.ttc").exists() {
+            eprintln!("跳过：msyh.ttc 不存在");
+            return;
+        }
         let out = tmp_out("inequality.pdf");
         let md = "约束：$a \\leq b$ 且 $b \\neq c$。";
         let doc = markdown::parse_markdown(md);

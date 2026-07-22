@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
-import { useAgentStore, useConversationStore, useStreamStore } from "@/stores";
+import { useAgentStore, useConversationStore, useCurrencyStore, useStreamStore } from "@/stores";
 import { Activity, AlertTriangle, Clock, HelpCircle, IterationCw, Pause, Play, Shield, Wrench } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -179,10 +179,12 @@ export const AgentStatsPanel: React.FC = () => {
     if (cost === undefined || cost === null) {
       return "--";
     }
-    if (cost < 1.0) {
-      return "<$1.0";
+    // 后端成本以 USD 计价，按偏好汇率换算为人民币展示
+    const cny = cost * useCurrencyStore.getState().usdToCnyRate;
+    if (cny < 1.0) {
+      return "<¥1.0";
     }
-    return `$${cost.toFixed(3)}`;
+    return `¥${cny.toFixed(3)}`;
   };
 
   const handlePauseResume = () => {

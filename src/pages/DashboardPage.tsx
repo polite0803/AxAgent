@@ -2,7 +2,13 @@
 
 import { Icon } from "@/components/common/Icon";
 import { invoke } from "@/lib/invoke";
-import { initGatewayStatusListener, useConversationStore, useGatewayStore, useProviderStore } from "@/stores";
+import {
+  initGatewayStatusListener,
+  useConversationStore,
+  useFormatCny,
+  useGatewayStore,
+  useProviderStore,
+} from "@/stores";
 import { CostByProvider, DailyUsage, DashboardStats } from "@/types";
 import { Card, Col, Flex, Row, Spin, Statistic, theme } from "antd";
 import { Bot, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
@@ -213,6 +219,8 @@ function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: 
 export function DashboardPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  // 成本以人民币展示：后端返回 USD，按偏好汇率换算为 CNY
+  const formatCny = useFormatCny();
 
   const conversations = useConversationStore((s) => s.conversations);
   const fetchConversations = useConversationStore((s) => s.fetchConversations);
@@ -645,7 +653,7 @@ export function DashboardPage() {
             <StatCard
               icon={<Zap size={18} />}
               title={t("dashboard.totalCost")}
-              value={`$${(backendStats?.total_cost_usd ?? 0).toFixed(2)}`}
+              value={formatCny(backendStats?.total_cost_usd ?? 0)}
               color="#ff4d4f"
               loading={isLoading}
             />
@@ -655,8 +663,8 @@ export function DashboardPage() {
               icon={<TrendingUp size={18} />}
               title={t("dashboard.avgCostPerSession")}
               value={backendStats && backendStats.total_agent_sessions > 0
-                ? `$${(backendStats.total_cost_usd / backendStats.total_agent_sessions).toFixed(4)}`
-                : "$0.00"}
+                ? formatCny(backendStats.total_cost_usd / backendStats.total_agent_sessions, 4)
+                : formatCny(0)}
               color="#1677ff"
               loading={isLoading}
             />

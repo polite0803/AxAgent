@@ -2,13 +2,13 @@
 
 import { LANG_OPTIONS } from "@/lib/constants";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
-import { useSettingsStore } from "@/stores";
+import { useCurrencyStore, useSettingsStore } from "@/stores";
 import { useProviderStore, useVoicePreferenceStore } from "@/stores";
 import type { TtsVoice } from "@/stores/feature/voicePreferenceStore";
 import { TTS_VOICES } from "@/stores/feature/voicePreferenceStore";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Button, Divider, Switch, Typography } from "antd";
-import { FolderOpen, X } from "lucide-react";
+import { Button, Divider, InputNumber, Switch, Tooltip, Typography } from "antd";
+import { FolderOpen, HelpCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
@@ -21,6 +21,9 @@ export function GeneralSettings() {
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const providers = useProviderStore((s) => s.providers);
+  // 货币汇率偏好：后端成本以 USD 计价，前端按此汇率换算为人民币展示
+  const usdToCnyRate = useCurrencyStore((s) => s.usdToCnyRate);
+  const setUsdToCnyRate = useCurrencyStore((s) => s.setUsdToCnyRate);
   const ttsVoice = useVoicePreferenceStore((s) => s.ttsVoice);
   const sttProviderId = useVoicePreferenceStore((s) => s.sttProviderId);
   const ttsProviderId = useVoicePreferenceStore((s) => s.ttsProviderId);
@@ -81,7 +84,7 @@ export function GeneralSettings() {
                     await disable();
                   }
                 } catch (e) {
-                  logIpcError("自启动切换")(e);
+                  logIpcError("autostart toggle")(e);
                 }
               }
             }}
@@ -194,6 +197,26 @@ export function GeneralSettings() {
                 </Button>
               )}
           </div>
+        </div>
+      </SettingsGroup>
+
+      {/* Currency */}
+      <SettingsGroup title={t("settings.groupCurrency")}>
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="general:currencyRate">
+          <span className="flex items-center gap-1">
+            {t("settings.currencyRate")}
+            <Tooltip title={t("settings.currencyRateHelp")}>
+              <HelpCircle size={13} className="text-zinc-400 cursor-help" />
+            </Tooltip>
+          </span>
+          <InputNumber
+            value={usdToCnyRate}
+            min={0.01}
+            step={0.01}
+            precision={4}
+            style={{ width: 120 }}
+            onChange={(v) => setUsdToCnyRate(Number(v) || 7.2)}
+          />
         </div>
       </SettingsGroup>
 
