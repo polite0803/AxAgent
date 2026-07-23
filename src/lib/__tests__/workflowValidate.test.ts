@@ -220,6 +220,50 @@ describe("validate_workflow", () => {
       const result = validate_workflow(nodes, edges);
       expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
     });
+
+    it("switch 节点有 case-label 分支不报错 (e.g. quality-gate)", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("a", "agent")];
+      const edges = [
+        e("e1", "tr", "sw"),
+        e("e2", "sw", "a", "acceptable"),
+      ];
+      const result = validate_workflow(nodes, edges);
+      expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
+    });
+
+    it("switch 节点用 source_handle (snake_case) 不误报 (后端实际数据格式)", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("a", "agent")];
+      // 模拟后端 WorkflowEdge 序列化：字段名是 source_handle 而非 sourceHandle
+      const snakeCaseEdge = {
+        id: "e2",
+        source: "sw",
+        target: "a",
+        source_handle: "acceptable",
+        edge_type: "direct",
+      } as unknown as WorkflowEdge;
+      const edges = [e("e1", "tr", "sw"), snakeCaseEdge];
+      const result = validate_workflow(nodes, edges);
+      expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
+    });
+
+    it("switch 节点有 branch- 分支不报错 (向后兼容)", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("a", "agent")];
+      const edges = [
+        e("e1", "tr", "sw"),
+        e("e2", "sw", "a", "branch-case1"),
+      ];
+      const result = validate_workflow(nodes, edges);
+      expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
+    });
+
+    it("switch 节点无分支被检出", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch")];
+      const edges = [e("e1", "tr", "sw")];
+      const result = validate_workflow(nodes, edges);
+      const issues = findIssues(result.issues, "unconnected_port");
+      expect(issues).toHaveLength(1);
+      expect(issues[0].nodeIds).toContain("sw");
+    });
   });
 
   // ================================================================

@@ -551,7 +551,7 @@ mod tests {
                 let mean_reversion = -deviation * 0.02;
                 let trend = drift;
                 // 确定性伪随机噪声
-                let noise = ((i_f * 1.618033988749895).sin() * noise_amp).max(-0.03).min(0.03);
+                let noise = ((i_f * 1.618033988749895).sin() * noise_amp).clamp(-0.03, 0.03);
                 // 周度模式（周一弱、周五强）
                 let weekly = ((i % 7) as f64 - 3.0) * 0.0015;
 

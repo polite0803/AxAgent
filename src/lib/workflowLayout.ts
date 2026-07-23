@@ -136,6 +136,8 @@ interface EdgeLike {
   source: string;
   target: string;
   sourceHandle?: string;
+  /** 后端 WorkflowEdge 序列化为 snake_case，前端用 camelCase，兼容两种字段名 */
+  source_handle?: string;
   edge_type?: string;
 }
 
@@ -299,7 +301,16 @@ export function validate_workflow(
   edges: EdgeLike[],
   t: RenderFn = defaultT,
 ): ValidationResult {
-  const realEdges = edges.filter(
+  // 归一化：后端 WorkflowEdge 无 #[serde(rename_all = "camelCase")]，
+  // 序列化为 source_handle (snake_case)，前端用 sourceHandle (camelCase)。
+  // 兼容两种字段名，避免 sourceHandle 读取为 undefined 导致误报"出口未连接"。
+  const normalizedEdges: EdgeLike[] = edges.map((e) =>
+    e.sourceHandle || !e.source_handle
+      ? e
+      : { ...e, sourceHandle: e.source_handle }
+  );
+
+  const realEdges = normalizedEdges.filter(
     (e) =>
       e.edge_type !== "grouping"
       && ((e as unknown as Record<string, unknown>).data as Record<string, unknown> | undefined)?.edgeType
@@ -394,7 +405,7 @@ export function validate_workflow(
   for (const n of nodes) {
     const tType = nodeTypeOf(n);
     if (tType === "condition") {
-      const outgoing = edges.filter((e) => e.source === n.id);
+      const outgoing = normalizedEdges.filter((e) => e.source === n.id);
       const hasTrue = outgoing.some((e) => e.sourceHandle === "true");
       const hasFalse = outgoing.some((e) => e.sourceHandle === "false");
 
@@ -415,8 +426,13 @@ export function validate_workflow(
         });
       }
     } else if (tType === "switch") {
-      const outgoing = edges.filter((e) => e.source === n.id);
-      const hasBranch = outgoing.some((e) => e.sourceHandle?.startsWith("branch-"));
+      const outgoing = normalizedEdges.filter((e) => e.source === n.id);
+      // 分支出口可以是 "branch-*"（用户从编辑器手动连接）或 case label（后端 seed 数据，
+      // 如 quality-gate 的 "acceptable"）。"default" 是 SwitchNode 组件的默认手柄 ID，
+      // 空的 sourceHandle 也是默认出口，两者都不算分支连接。
+      const hasBranch = outgoing.some(
+        (e) => e.sourceHandle && e.sourceHandle !== "default",
+      );
       if (!hasBranch) {
         const key = "workflow.layout.validate.unconnected_port";
         const params = { nodeId: n.id, missing: "branch" };

@@ -88,9 +88,11 @@ pub async fn update_workflow_template(
     error_config: Option<ErrorConfig>,
     tool_defs: Option<Vec<RhaiToolDef>>,
 ) -> Result<bool> {
+    tracing::info!("[workflow_template] update 入口 id={}", id);
     let template = workflow_template::Entity::find_by_id(id).one(db).await?;
 
     if let Some(t) = template {
+        tracing::info!("[workflow_template] 找到模板 id={}, version={}", id, t.version);
         // D9: save old version as a snapshot before updating
         let version_snapshot = workflow_template_version::ActiveModel {
             id: Set(format!("{}_v{}", t.id, t.version)),
@@ -113,12 +115,17 @@ pub async fn update_workflow_template(
             created_at: Set(chrono::Utc::now().timestamp_millis()),
         };
         // 历史快照若已存在（如回滚后再次保存相同 version），保留旧快照不覆盖
+        // 注意：必须用 exec_without_returning，不能用 exec。
+        // 原因：on_conflict() 返回 Insert 类型，其 exec() 在 SQLite RETURNING 子句下，
+        // 冲突时返回 0 行 → 抛出 DbErr::RecordNotInserted ("None of the records are inserted")。
+        // exec_without_returning 不检查 rows_affected，冲突时返回 Ok(0)，符合 do_nothing 语义。
         workflow_template_version::Entity::insert(version_snapshot)
             .on_conflict(
                 OnConflict::column(workflow_template_version::Column::Id).do_nothing().to_owned(),
             )
-            .exec(db)
+            .exec_without_returning(db)
             .await?;
+        tracing::info!("[workflow_template] 版本快照写入完成 id={}", id);
 
         let mut active_model: workflow_template::ActiveModel = t.clone().into();
         active_model.name = Set(name);
@@ -138,7 +145,34 @@ pub async fn update_workflow_template(
             Set(tool_defs.as_ref().map(|tds| serde_json::to_string(tds).unwrap_or_default()));
         active_model.version = Set(t.version + 1);
         active_model.updated_at = Set(chrono::Utc::now().timestamp_millis());
-        active_model.update(db).await?;
+
+        // 使用 upsert 而非 update，避免 find_by_id 与 update 之间记录被删除导致 0 行报错
+        workflow_template::Entity::insert(active_model)
+            .on_conflict(
+                OnConflict::column(workflow_template::Column::Id)
+                    .update_column(workflow_template::Column::Name)
+                    .update_column(workflow_template::Column::Description)
+                    .update_column(workflow_template::Column::Icon)
+                    .update_column(workflow_template::Column::Tags)
+                    .update_column(workflow_template::Column::Version)
+                    .update_column(workflow_template::Column::IsPreset)
+                    .update_column(workflow_template::Column::IsEditable)
+                    .update_column(workflow_template::Column::IsPublic)
+                    .update_column(workflow_template::Column::TriggerConfig)
+                    .update_column(workflow_template::Column::Nodes)
+                    .update_column(workflow_template::Column::Edges)
+                    .update_column(workflow_template::Column::InputSchema)
+                    .update_column(workflow_template::Column::OutputSchema)
+                    .update_column(workflow_template::Column::Variables)
+                    .update_column(workflow_template::Column::ErrorConfig)
+                    .update_column(workflow_template::Column::CompositeSource)
+                    .update_column(workflow_template::Column::ToolDefs)
+                    .update_column(workflow_template::Column::MissionHash)
+                    .update_column(workflow_template::Column::UpdatedAt)
+                    .to_owned(),
+            )
+            .exec(db)
+            .await?;
         Ok(true)
     } else {
         Ok(false)

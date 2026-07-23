@@ -1143,6 +1143,8 @@ macro_rules! register_all_commands {
             commands::strategy_pack::delete_user_strategy_pack,
             commands::strategy_pack::get_user_strategy_packs_dir,
             commands::strategy_pack::count_builtin_strategy_packs,
+            // ── 轻量级一次性对话补全（stub，供 AgentGeneratorModal 使用）──
+            commands::simple_completion::simple_chat_completion,
         ]
     };
 }

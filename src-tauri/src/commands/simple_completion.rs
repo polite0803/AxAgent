@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tauri::State;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct SimpleChatMessage {
     pub role: String,
     pub content: String,
@@ -13,6 +14,7 @@ pub struct SimpleChatMessage {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct SimpleChatInput {
     pub conversation_id: String,
     pub messages: Vec<SimpleChatMessage>,
@@ -29,11 +31,7 @@ pub async fn simple_chat_completion(
     input: SimpleChatInput,
 ) -> Result<String, String> {
     // 当前返回 stub 信息，待后续对接真实 LLM 调用
-    let last_content = input
-        .messages
-        .last()
-        .map(|m| m.content.as_str())
-        .unwrap_or("");
+    let last_content = input.messages.last().map(|m| m.content.as_str()).unwrap_or("");
     tracing::warn!(
         "[simple_chat_completion] stub called, conv={}, last_msg_len={}",
         input.conversation_id,

@@ -279,7 +279,7 @@ mod tests {
             },
         ];
 
-        let (passed, failed, _) = verify_chain(&logs);
+        let (_passed, failed, _) = verify_chain(&logs);
         assert!(failed > 0);
     }
 }

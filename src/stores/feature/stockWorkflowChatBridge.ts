@@ -472,6 +472,68 @@ export async function startStockWorkflowChatBridge(conversationId: string): Prom
       }
       : null;
 
+    // P0 修复：高并发下 workflow-step-done 事件可能晚于 workflow-completed 到达，
+    // 导致 analystsMap / debatesMap / risksMap 等部分节点停留在 "pending"。
+    // 这里在停止监听前，用 results（后端权威快照）补全所有未收到 completed 事件的节点。
+    // 覆盖范围：分析师 / 辩论 / 风险评估 / 额外节点。
+    const reconcileFromResults = (
+      map: Map<string, {
+        status: "pending" | "running" | "done" | "failed";
+        report?: string;
+        rounds?: string[];
+        content?: string;
+      }>,
+      idResolver: (nodeId: string) => string | string[] | undefined,
+      isDebate = false,
+    ) => {
+      for (const [mapKey, entry] of map) {
+        if (entry.status === "done" || entry.status === "failed") { continue; }
+        const candidateIds = idResolver(mapKey);
+        const ids = Array.isArray(candidateIds) ? candidateIds : [candidateIds];
+        let found = false;
+        for (const id of ids) {
+          if (id && results[id] != null) {
+            entry.status = "done";
+            const out = results[id];
+            if (isDebate) {
+              entry.rounds = entry.rounds ?? [];
+              if (entry.rounds.length === 0) { entry.rounds.push(extractContent(out)); }
+            } else {
+              entry.report = extractContent(out);
+            }
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          // results 里也没有，说明节点确实没跑完，标记为 failed
+          entry.status = "failed";
+        }
+      }
+    };
+
+    // 分析师：key === nodeId
+    reconcileFromResults(
+      analystsMap,
+      (id) => id,
+    );
+    // 辩论：bull-r1 ← bull-researcher，其余 ← bull-r2/bull-r3/bear-r2/bear-r3
+    reconcileFromResults(
+      debatesMap,
+      (id) => id === "bull-r1" ? ["bull-researcher", "bull-r1"] : [id],
+      true,
+    );
+    // 风险评估：key === nodeId
+    reconcileFromResults(
+      risksMap,
+      (id) => id,
+    );
+    // 额外节点：key === nodeId
+    reconcileFromResults(
+      extraNodesMap,
+      (id) => id,
+    );
+
     if (aggregateMsgId) {
       scheduleUpdate(buildAggregateContent("done", "done", workflowTotalNodes));
     }

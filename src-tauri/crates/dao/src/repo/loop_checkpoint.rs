@@ -17,27 +17,37 @@ use sea_orm::{DatabaseConnection, DbBackend, Statement};
 /// 写入或覆盖一个 Loop 节点的检查点。
 ///
 /// UPSERT 语义：同一 (execution_id, node_id) 已存在则替换 payload_json。
-/// 使用 SQLite 的 `INSERT OR REPLACE` 简化跨后端差异。
+/// SQLite 用 `INSERT OR REPLACE`；PostgreSQL 用 `INSERT ... ON CONFLICT ... DO UPDATE`。
 pub async fn save_loop_checkpoint(
     db: &DatabaseConnection,
     checkpoint: &LoopCheckpoint,
 ) -> Result<()> {
     let payload = serde_json::to_string(checkpoint)
         .map_err(|e| AxAgentError::Internal(format!("serialize LoopCheckpoint failed: {e}")))?;
-    let sql = "INSERT OR REPLACE INTO loop_checkpoints \
-               (execution_id, node_id, payload_json, updated_at) \
-               VALUES (?1, ?2, ?3, ?4)";
-    db.execute_raw(Statement::from_sql_and_values(
-        DbBackend::Sqlite,
-        sql,
-        vec![
-            checkpoint.execution_id.clone().into(),
-            checkpoint.node_id.clone().into(),
-            payload.into(),
-            (now_ts() as i64).into(),
-        ],
-    ))
-    .await?;
+    let values = vec![
+        checkpoint.execution_id.clone().into(),
+        checkpoint.node_id.clone().into(),
+        payload.into(),
+        (now_ts() as i64).into(),
+    ];
+    let (backend, sql) = if db.get_database_backend() == DbBackend::Postgres {
+        (
+            DbBackend::Postgres,
+            "INSERT INTO loop_checkpoints \
+             (execution_id, node_id, payload_json, updated_at) \
+             VALUES ($1, $2, $3, $4) \
+             ON CONFLICT (execution_id, node_id) DO UPDATE SET \
+             payload_json = EXCLUDED.payload_json, updated_at = EXCLUDED.updated_at",
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "INSERT OR REPLACE INTO loop_checkpoints \
+             (execution_id, node_id, payload_json, updated_at) \
+             VALUES (?1, ?2, ?3, ?4)",
+        )
+    };
+    db.execute_raw(Statement::from_sql_and_values(backend, sql, values)).await?;
     Ok(())
 }
 
@@ -47,11 +57,22 @@ pub async fn load_loop_checkpoint(
     execution_id: &str,
     node_id: &str,
 ) -> Result<Option<LoopCheckpoint>> {
-    let sql = "SELECT payload_json FROM loop_checkpoints \
-               WHERE execution_id = ?1 AND node_id = ?2";
+    let (backend, sql) = if db.get_database_backend() == DbBackend::Postgres {
+        (
+            DbBackend::Postgres,
+            "SELECT payload_json FROM loop_checkpoints \
+             WHERE execution_id = $1 AND node_id = $2",
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "SELECT payload_json FROM loop_checkpoints \
+             WHERE execution_id = ?1 AND node_id = ?2",
+        )
+    };
     let row = db
         .query_one_raw(Statement::from_sql_and_values(
-            DbBackend::Sqlite,
+            backend,
             sql,
             vec![execution_id.to_string().into(), node_id.to_string().into()],
         ))
@@ -73,10 +94,21 @@ pub async fn delete_loop_checkpoint(
     execution_id: &str,
     node_id: &str,
 ) -> Result<()> {
-    let sql = "DELETE FROM loop_checkpoints \
-               WHERE execution_id = ?1 AND node_id = ?2";
+    let (backend, sql) = if db.get_database_backend() == DbBackend::Postgres {
+        (
+            DbBackend::Postgres,
+            "DELETE FROM loop_checkpoints \
+             WHERE execution_id = $1 AND node_id = $2",
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "DELETE FROM loop_checkpoints \
+             WHERE execution_id = ?1 AND node_id = ?2",
+        )
+    };
     db.execute_raw(Statement::from_sql_and_values(
-        DbBackend::Sqlite,
+        backend,
         sql,
         vec![execution_id.to_string().into(), node_id.to_string().into()],
     ))
@@ -90,9 +122,13 @@ pub async fn delete_loop_checkpoints_for_execution(
     db: &DatabaseConnection,
     execution_id: &str,
 ) -> Result<()> {
-    let sql = "DELETE FROM loop_checkpoints WHERE execution_id = ?1";
+    let (backend, sql) = if db.get_database_backend() == DbBackend::Postgres {
+        (DbBackend::Postgres, "DELETE FROM loop_checkpoints WHERE execution_id = $1")
+    } else {
+        (DbBackend::Sqlite, "DELETE FROM loop_checkpoints WHERE execution_id = ?1")
+    };
     db.execute_raw(Statement::from_sql_and_values(
-        DbBackend::Sqlite,
+        backend,
         sql,
         vec![execution_id.to_string().into()],
     ))

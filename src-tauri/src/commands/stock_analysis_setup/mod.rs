@@ -1275,19 +1275,7 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
     ];
 
     // serenity-reflection 模板版本。
-    // v1: 重新种子化
-    // v2: 删除 sub-analysis SubWorkflowNode，改由 run_reflection_workflow
-    //     从 stock_analyses.blackboard_snapshot 加载记忆注入 sub-analysis 变量
-    // v3: 修复 reflection-agent input_mapping（trigger→变量名）;
-    //     store-ref operation 改为 upsert 避免重复 row;
-    //     params_suggestion schema 统一为数组格式;
-    //     新增 implementation_tier/code_diff_proposal 闭环字段;
-    //     新增 hindsight_date 变量注入
-    // v4: 接入 reflection-validator CodeNode（原死代码）;
-    //     DAG: reflection-agent → reflection-validator → store-ref;
-    //     store-ref input_var 改为 reflection-validated;
-    //     validator Rhai 脚本 params_suggestion 改为数组格式
-    const REFLECTION_TEMPLATE_VERSION: i32 = 5; // v5: 关闭 hallucination_guard（实测误报率 ~100%，无拦截价值）
+    const REFLECTION_TEMPLATE_VERSION: i32 = 1;
 
     // 版本检查：已有同版本或更新的记录则跳过
     if let Some(ref existing) =

@@ -1659,7 +1659,18 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     /** 解析分析师节点（a-* 开头，排除辩论） */
     function handleAnalystReport(nodeId: string, text: string) {
       if (nodeId.startsWith("a-") && !nodeId.includes("bull") && !nodeId.includes("bear")) {
-        set({ analystReports: { ...get().analystReports, [nodeId.slice(2)]: text } });
+        const expertId = nodeId.slice(2);
+        // Bug #P0 修复: 如果节点完成但提取的内容为空（如只有工具标签被清理后为空），
+        // 设置降级内容，避免 UI 卡片一直显示"等待中"
+        const safeText = text && text.trim().length > 0
+          ? text
+          : JSON.stringify({
+            report: "## ⚠️ 无分析数据\n\n该分析师节点未能返回有效分析内容（可能因 LLM 服务限流/超时）。",
+            verdict: { verdict: "数据不足", confidence: 0, bull_score: 0, bear_score: 0, position_pct: 0 },
+            __untrusted: true,
+            __empty_fallback: true,
+          });
+        set({ analystReports: { ...get().analystReports, [expertId]: safeText } });
         return true;
       }
       return false;

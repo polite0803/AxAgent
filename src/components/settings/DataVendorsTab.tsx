@@ -185,7 +185,12 @@ const FIXED_TOOLS: ToolRoute[] = [
 
 /** LLM 暴露工具（Agent 自主调用，均走 VendorRouting 降级链）*/
 const EXPOSED_TOOLS: ToolRoute[] = [
-  { tool: "get_stock_quote", label: "quote", kind: "exposed", vendors: ["tencent", "mootdx", "eastmoney"] },
+  {
+    tool: "get_stock_quote",
+    label: "quote",
+    kind: "exposed",
+    vendors: ["tencent", "mootdx", "sina", "xueqiu", "eastmoney"],
+  },
   {
     tool: "get_stock_news",
     label: "news",
@@ -214,12 +219,6 @@ const EXPOSED_TOOLS: ToolRoute[] = [
   { tool: "get_index_quotes", label: "indexQuotes", kind: "exposed", vendors: ["eastmoney"] },
   { tool: "get_stock_peers", label: "peers", kind: "exposed", vendors: ["eastmoney"] },
   { tool: "get_stock_option_pcr", label: "optionPcr", kind: "exposed", vendors: ["eastmoney"] },
-  {
-    tool: "get_stock_quote",
-    label: "quote",
-    kind: "exposed",
-    vendors: ["tencent", "mootdx", "sina", "xueqiu", "eastmoney"],
-  },
 ];
 
 const ALL_TOOLS = [...FIXED_TOOLS, ...EXPOSED_TOOLS];
@@ -383,8 +382,9 @@ export function DataVendorsTab() {
         clearVendorCheckCache();
       } catch { /* 浏览器模式或路径不存在时跳过 */ }
       message.success(t("stockAnalysis.settings.saveSuccess"));
-    } catch {
-      message.error(t("stockAnalysis.settings.saveFailed"));
+    } catch (e) {
+      console.error("[DataVendorsTab] save failed:", e);
+      message.error(t("stockAnalysis.settings.saveFailed", { error: String(e) }));
     } finally {
       setSaving(false);
     }

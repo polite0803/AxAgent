@@ -19,7 +19,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
 
     const TEMPLATE_ID: &str = "serenity-screening";
     // 每次修改 Rhai 脚本或节点拓扑后+1，强制模板重新写入
-    const TEMPLATE_VERSION: i32 = 4; // v4: 关闭 hallucination_guard（实测误报率 ~100%，无拦截价值）
+    const TEMPLATE_VERSION: i32 = 1;
     // 检查模板版本，只有需要更新时才会重种子
     if let Some(existing) =
         workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {

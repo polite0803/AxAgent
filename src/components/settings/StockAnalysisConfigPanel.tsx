@@ -626,12 +626,14 @@ export function StockAnalysisConfigPanel(_props: Props) {
       output_schema: template.output_schema,
       variables: updatedVars,
       error_config: template.error_config,
+      tool_defs: template.tool_defs,
     };
     try {
       await invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input });
       message.success(t("stockAnalysis.settings.saveSuccess"));
-    } catch {
-      message.error(t("stockAnalysis.settings.saveFailed"));
+    } catch (e) {
+      console.error("[StockAnalysisConfigPanel] save failed:", e, { input });
+      message.error(t("stockAnalysis.settings.saveFailed", { error: String(e) }));
     } finally {
       setSaving(false);
     }

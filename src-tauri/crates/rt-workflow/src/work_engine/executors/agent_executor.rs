@@ -993,7 +993,12 @@ impl NodeExecutorTrait for AgentExecutor {
                     stream_content.push_str(content);
                 }
                 if let Some(ref thinking) = chunk.thinking {
-                    stream_thinking = Some(thinking.clone());
+                    // P0 修复(2026-07-23): thinking 是 delta 增量模式，必须追加而非覆盖，
+                    // 否则多 chunk 流式返回时只有最后一个 chunk 的 thinking 被保留。
+                    match stream_thinking {
+                        Some(ref mut existing) => existing.push_str(thinking),
+                        None => stream_thinking = Some(thinking.clone()),
+                    }
                 }
                 if let Some(usage) = chunk.usage {
                     stream_usage = (usage.input_tokens, usage.output_tokens);
@@ -1005,8 +1010,24 @@ impl NodeExecutorTrait for AgentExecutor {
 
             total_usage.0 += stream_usage.0;
             total_usage.1 += stream_usage.1;
-            final_content = stream_content.clone();
-            final_thinking = stream_thinking.clone();
+
+            // P0 修复(2026-07-23): 多轮工具调用时，后续轮次若返回空 content（模型只输出 tool_calls
+            // 或空响应），不得覆盖之前轮次已积累的有效文本，否则达到 max_rounds break 后
+            // final_content 为空字符串，前端卡片显示"等待中"。
+            // 修复策略：仅当本轮 stream_content 非空时更新 final_content；
+            // 空轮次保留上一轮的文本内容。thinking 同理追加合并。
+            if !stream_content.trim().is_empty() {
+                final_content = stream_content.clone();
+            }
+            if let Some(ref t) = stream_thinking {
+                match final_thinking {
+                    Some(ref mut existing) => {
+                        existing.push('\n');
+                        existing.push_str(t);
+                    },
+                    None => final_thinking = Some(t.clone()),
+                }
+            }
 
             // 日志：LLM 返回内容为空时发出警告（帮助排查 analyst 节点无数据问题）
             let has_tc = stream_tool_calls.as_ref().is_some_and(|tc| !tc.is_empty());
@@ -1436,11 +1457,70 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
+        // ── 通用 VERDICT 标签重构（不依赖 strict_mode） ──
+        // 无论 strict_mode 是否开启，只要输出包含 <!-- VERDICT: {...} --> 标签，
+        // 就将其重构为 {"report": "...", "verdict": {...}} JSON 格式，
+        // 使下游 resolve_var_path 能通过 content.verdict.confidence 等路径正确解析。
+        // 仅当 final_content 不是合法 JSON 时才执行（避免重复处理已重构的 strict_mode 输出）。
+        if !final_content.trim().is_empty()
+            && serde_json::from_str::<serde_json::Value>(final_content.trim()).is_err()
+        {
+            let trimmed = final_content.trim().to_string();
+            if let Some(verdict_json) = extract_verdict_tag(&trimmed) {
+                let report_text = strip_verdict_tag(&trimmed);
+                let report_escaped =
+                    serde_json::to_string(&report_text).unwrap_or_else(|_| "\"\"".to_string());
+                let combined =
+                    format!(r#"{{"report":{}, "verdict":{} }}"#, report_escaped, verdict_json);
+                if serde_json::from_str::<serde_json::Value>(&combined).is_ok() {
+                    tracing::info!(
+                        node_id = %node.base_id(),
+                        report_len = report_text.len(),
+                        "通用后处理: 从 VERDICT tag 重构输出为 JSON"
+                    );
+                    final_content = combined;
+                }
+            } else {
+                // V59 修复(2026-07-23): 纯文本输出兜底。
+                // 当 LLM 输出非空、不是合法 JSON、且没有 VERDICT 标签时，
+                // final_content 保持纯文本字符串。下游 input_mapping 的 {id}.content.verdict
+                // 路径无法解析（resolve_var_path 无法从纯文本导航到 .verdict 字段），
+                // 导致 analyst-brief 全部显示"数据不可用"，辩手看到"完全没有数据可用"。
+                // 修复：构造降级 JSON {"report": "原始文本", "verdict": {中性, conf=0},
+                // "__untrusted": true}，确保下游能解析到 verdict 字段
+                // （confidence=0 表示不可信），report 字段保留原始文本供前端展示。
+                let report_escaped =
+                    serde_json::to_string(&trimmed).unwrap_or_else(|_| "\"\"".to_string());
+                let fallback_verdict = serde_json::json!({
+                    "verdict": "中性",
+                    "bull_score": 50,
+                    "bear_score": 50,
+                    "confidence": 0,
+                    "bull_points": [],
+                    "bear_points": []
+                });
+                let combined = format!(
+                    r#"{{"report":{}, "verdict":{}, "__untrusted":true, "verdict_missing":true}}"#,
+                    report_escaped, fallback_verdict
+                );
+                tracing::warn!(
+                    node_id = %node.base_id(),
+                    content_len = trimmed.len(),
+                    "LLM 输出无 VERDICT 标签且非合法 JSON，构造降级 VERDICT (confidence=0, __untrusted=true)"
+                );
+                final_content = combined;
+            }
+        }
+
         // ── 防幻觉锚定检查 ──
         // V53 修复: strict_mode 已生成 fallback JSON 时跳过后验锚定检查。
         // fallback JSON ("strict_mode_fallback": true) 是合成的中性输出，
         // 本身不包含用户内容，对其做锚定检查必然得到 score=0，除了污染日志外无意义。
-        let is_fallback_content = final_content.contains("strict_mode_fallback");
+        // V59: verdict_missing（纯文本兜底降级 JSON）也跳过锚定检查，
+        // 因为 report 字段是 LLM 原始输出但 verdict 是合成的中性评分，
+        // 对合成 verdict 做锚定检查无意义且必然失败。
+        let is_fallback_content = final_content.contains("strict_mode_fallback")
+            || final_content.contains("verdict_missing");
         if let Some(ref hg_config) = an.config.hallucination_guard
             && hg_config.enabled
             && !final_content.is_empty()
@@ -1512,6 +1592,193 @@ impl NodeExecutorTrait for AgentExecutor {
                     node_type = "agent",
                     context_len = %source_context.len(),
                     "上游数据严重不足(<200字符)，跳过锚定检查避免误触发 __untrusted"
+                );
+            }
+        }
+
+        // ── 通用空内容保护（不依赖 strict_mode） ──
+        // P0 修复: 高并发下（如并行度=10）部分 LLM 请求可能被限流/超时/返回空流，
+        // 导致 final_content 为空字符串。旧逻辑仅打 warn 日志就返回 Ok，
+        // 节点被标记为 Completed 但实际无输出，前端卡片显示"等待中"。
+        // 修复策略：
+        //   1. 若配置了 fallback_model 且不同于主模型，用简化请求（无 tools）重试一次
+        //   2. 重试失败则构造降级 JSON 输出，标记 __untrusted=true + 中性 VERDICT，
+        //      确保前端能显示错误信息、下游 data-quality 能识别为低置信度。
+        // 注意：必须先 clean_inline_tool_tags 再判断，否则只包含工具调用标签的输出
+        //       会被误判为非空，导致前端清理后显示空内容、UI 卡片一直"等待中"
+        let content_after_clean = clean_inline_tool_tags(&final_content);
+        if content_after_clean.trim().is_empty() {
+            tracing::error!(
+                node_id = %node.base_id(),
+                primary_model = %model,
+                has_fallback = %an.config.fallback_model.is_some(),
+                "Agent LLM 返回完全空内容，启动 fallback 补救流程"
+            );
+
+            let mut fallback_remedied = false;
+
+            // 步骤 1: 尝试 fallback_model 重试（不带 tools，避免重复工具调用循环）
+            if let Some(ref fb) = an.config.fallback_model
+                && fb != &model
+            {
+                tracing::info!(
+                    node_id = %an.base.id,
+                    fallback_model = %fb,
+                    primary_model = %model,
+                    "通用空内容保护: 用 fallback_model 重试"
+                );
+                if let Ok((fb_prov, fb_key, fb_model, fb_adapter, fb_api_key)) = self
+                    .resolve_provider(
+                        Some(fb.as_str()),
+                        session_model,
+                        session_provider_id,
+                        profile_suggested,
+                    )
+                    .await
+                {
+                    let fb_req_ctx = axagent_harness::build_provider_request_context(
+                        &fb_prov, &fb_key, fb_api_key,
+                    );
+                    let fb_temp = context
+                        .variables
+                        .get("agent_temperature")
+                        .and_then(|v| v.as_f64())
+                        .or_else(|| an.config.temperature.map(|t| t as f64));
+                    let fb_mt = context
+                        .variables
+                        .get("agent_max_tokens")
+                        .and_then(|v| v.as_u64().map(|u| u as u32))
+                        .or(an.config.max_tokens);
+                    let fb_request = ChatRequest {
+                        model: fb_model.clone(),
+                        messages: messages.clone(),
+                        stream: true,
+                        temperature: fb_temp,
+                        max_tokens: fb_mt,
+                        top_p: None,
+                        tools: None, // fallback 重试不带 tools，直接要求输出结果
+                        thinking_budget: None,
+                        use_max_completion_tokens: None,
+                        thinking_param_style: None,
+                        api_mode: None,
+                        instructions: None,
+                        conversation: None,
+                        previous_response_id: None,
+                        store: None,
+                        response_format: None,
+                    };
+                    let llm_config = axagent_harness::LlmCallConfig::default();
+                    match axagent_harness::execute_llm_stream(
+                        fb_adapter.as_ref(),
+                        &fb_req_ctx,
+                        fb_request,
+                        &llm_config,
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(mut fb_stream) => {
+                            let mut fb_content = String::new();
+                            let chunk_timeout = Duration::from_secs(
+                                an.config.stream_chunk_timeout_secs.unwrap_or(120),
+                            );
+                            while let Ok(maybe_chunk) =
+                                tokio::time::timeout(chunk_timeout, fb_stream.next()).await
+                            {
+                                match maybe_chunk {
+                                    Some(Ok(chunk)) => {
+                                        if let Some(ref content) = chunk.content {
+                                            fb_content.push_str(content);
+                                        }
+                                    },
+                                    Some(Err(_)) | None => break,
+                                }
+                            }
+                            let fb_trimmed = fb_content.trim().to_string();
+                            if !fb_trimmed.is_empty() {
+                                tracing::info!(
+                                    node_id = %an.base.id,
+                                    fallback_model = %fb,
+                                    content_len = fb_trimmed.len(),
+                                    "通用空内容保护: fallback_model 重试成功"
+                                );
+                                fallback_remedied = true;
+
+                                // fallback 返回的内容可能也需要 VERDICT 重构
+                                let mut fb_final = fb_content;
+                                if serde_json::from_str::<serde_json::Value>(&fb_trimmed).is_err() {
+                                    if let Some(verdict_json) = extract_verdict_tag(&fb_trimmed) {
+                                        let report_text = strip_verdict_tag(&fb_trimmed);
+                                        let report_escaped = serde_json::to_string(&report_text)
+                                            .unwrap_or_else(|_| "\"\"".to_string());
+                                        let combined = format!(
+                                            r#"{{"report":{}, "verdict":{} }}"#,
+                                            report_escaped, verdict_json
+                                        );
+                                        if serde_json::from_str::<serde_json::Value>(&combined)
+                                            .is_ok()
+                                        {
+                                            fb_final = combined;
+                                        }
+                                    }
+                                }
+                                final_content = fb_final;
+                            } else {
+                                tracing::warn!(
+                                    node_id = %an.base.id,
+                                    fallback_model = %fb,
+                                    "通用空内容保护: fallback_model 仍返回空输出"
+                                );
+                            }
+                        },
+                        Err(err) => {
+                            tracing::warn!(
+                                node_id = %an.base.id,
+                                fallback_model = %fb,
+                                error = %err,
+                                "通用空内容保护: fallback_model 流式调用失败"
+                            );
+                        },
+                    }
+                } else {
+                    tracing::warn!(
+                        node_id = %an.base.id,
+                        fallback_model = %fb,
+                        "通用空内容保护: fallback_model provider 解析失败"
+                    );
+                }
+            }
+
+            // 步骤 2: fallback 也失败，构造降级输出
+            if !fallback_remedied {
+                tracing::error!(
+                    node_id = %node.base_id(),
+                    model = %model,
+                    "通用空内容保护: fallback 补救失败，返回降级输出"
+                );
+                let fallback_report = format!(
+                    "## ⚠️ 分析失败\n\n\
+                     该分析师节点因 LLM 服务异常（高并发限流/网络超时/服务不可用），未能生成有效分析报告。\n\
+                     - 主模型: {}\n\
+                     - fallback 模型: {}\n\
+                     - 节点: {}\n\n\
+                     本节点结论不可信，已标记为低置信度。建议降低并行度后重试。",
+                    model,
+                    an.config.fallback_model.as_deref().unwrap_or("(未配置)"),
+                    node.base_id(),
+                );
+                let report_escaped =
+                    serde_json::to_string(&fallback_report).unwrap_or_else(|_| "\"\"".to_string());
+                let verdict = serde_json::json!({
+                    "verdict": "数据不足",
+                    "bull_score": 0,
+                    "bear_score": 0,
+                    "confidence": 0,
+                    "position_pct": 0
+                });
+                final_content = format!(
+                    r#"{{"report":{}, "verdict":{}, "__untrusted":true, "strict_mode_fallback":true, "fallback_reason":"LLM 返回空内容且 fallback 重试失败"}}"#,
+                    report_escaped, verdict
                 );
             }
         }
@@ -2086,6 +2353,64 @@ fn parse_inline_tool_calls(text: &str) -> Option<Vec<axagent_harness::types::Too
     }
     // 再尝试 XML <tool_call> 格式（agi X-2.0-flash 等模型使用）
     parse_xml_tool_call_format(text)
+}
+
+/// 清理 LLM 输出中内联的工具调用标签，判断剩余内容是否为有效非空文本。
+///
+/// 问题场景：部分模型只输出工具调用标签（如 <tool_call>...</tool_call>、
+/// <|CHAT2API|tool_calls>...</|CHAT2API|tool_calls>）而不输出任何实际分析文本，
+/// 导致 final_content 看似非空但前端 cleanToolCallTags 清理后变为空字符串，
+/// UI 卡片一直显示"等待中"。
+///
+/// 此函数移除所有已知的内联工具调用标签格式，返回剩余文本的 trim 结果，
+/// 用于判断是否有实际有效内容。
+fn clean_inline_tool_tags(text: &str) -> String {
+    let mut cleaned = text.to_string();
+
+    // CHAT2API 格式: <|CHAT2API|tool_calls>...</|CHAT2API|tool_calls>
+    // 使用简单的字符串替换（非贪婪，处理多段）
+    while let Some(start) = cleaned.find("<|CHAT2API|tool_calls>") {
+        if let Some(end) = cleaned[start..].find("</|CHAT2API|tool_calls>") {
+            let end_pos = start + end + "</|CHAT2API|tool_calls>".len();
+            cleaned.replace_range(start..end_pos, "");
+        } else {
+            // 只有开标签没有闭标签，移除开标签之后的所有内容
+            cleaned.truncate(start);
+            break;
+        }
+    }
+
+    // XML 格式: <tool_call>...</tool_call>
+    while let Some(start) = cleaned.find("<tool_call>") {
+        if let Some(end) = cleaned[start..].find("</tool_call>") {
+            let end_pos = start + end + "</tool_call>".len();
+            cleaned.replace_range(start..end_pos, "");
+        } else {
+            // 只有开标签，移除开标签之后的所有内容
+            if let Some(close) = cleaned[start..].find("/>") {
+                cleaned.replace_range(start..start + close + 2, "");
+            } else {
+                cleaned.truncate(start);
+                break;
+            }
+        }
+    }
+
+    // 清理所有 HTML/XML 风格标签的兜底（简单匹配 <...> 模式，避免过度删除正常文本）
+    // 只移除已知的工具相关标签，不移除任意尖括号内容
+    let tag_patterns = &[
+        "<|CHAT2API|invoke",
+        "<|CHAT2API|parameter",
+        "</|CHAT2API|invoke>",
+        "</|CHAT2API|parameter>",
+        "<![CDATA[",
+        "]]>",
+    ];
+    for pat in tag_patterns {
+        cleaned = cleaned.replace(pat, "");
+    }
+
+    cleaned.trim().to_string()
 }
 
 /// 解析 CHAT2API 格式的 inline tool calls

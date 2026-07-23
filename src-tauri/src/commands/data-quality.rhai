@@ -1,10 +1,10 @@
 // data-quality.rhai — 数据质量确定性评分（替代原 LLM Agent，P1-4 修复）
 //
-// 输入：每个 stock-analyst 的 confidence + data_gaps 布尔值
+// 输入：每个 stock-analyst 的 confidence（来自 verdict.confidence）
 // 输出：{grade: "A"|"B"|"C"|"D"|"F", score: 0-100, summary: String}
 //
 // 分析师缩写对照（当前 DAG 10 个分析师）:
-//   mk   → a-market-analyst (market-analyst) 
+//   mk   → a-market-analyst (market-analyst)
 //   sent → a-sentiment (sentiment-analyst)
 //   news → a-news (news-analyst)
 //   fund → a-fundamentals (fundamentals-analyst)
@@ -16,30 +16,46 @@
 //   cat  → a-catalyst (catalyst-analyst)
 //
 // 生命周期维护:
-//   - DAG 中新增 stock-analyst → 在此添加 {abbr}_confidence + {abbr}_data_gaps 两行
-//   - 同步更新下方的 n 值（当前 DAG 有 10 个分析师 = 下文的 10 对字段）
+//   - DAG 中新增 stock-analyst → 在此添加一行 {abbr}_confidence
+//   - 同步更新下方的 n 值（当前 DAG 有 10 个分析师 = 下文的 10 个字段）
 //   - gap_count 阈值（4/3/2/1）是经验值，随分析师数量增大可等比调整
+//
+// P0 修复（2026-07-23）:
+//   - confidence 路径从 content.confidence 改为 content.verdict.confidence
+//     （agent_executor 把 VERDICT tag 重构为 {"report":..., "verdict":{...}}）
+//   - data_gaps 不再从上游读取（分析师不输出 if_data_gaps 字段），
+//     改为用 confidence < 50 推断数据缺口，覆盖三种情况：
+//     ① 节点失败 → confidence=0 ② strict_mode 降级 → confidence=0 ③ 分析师自评低置信度
 
-fn present(x) { type_of(x) != "()" }
 // safe_conf: 缺失字段（unit/null）返回 0.0（零置信度），避免把"数据缺失"误判为"数据正常"
 fn safe_conf(v) { if type_of(v) == "f64" { v } else if type_of(v) == "int" { v.to_float() } else { 0.0 } }
-// safe_gap: 缺失字段（unit/null）返回 true（视为有缺口），避免虚高评分
-fn safe_gap(v) { if type_of(v) == "bool" { v } else { true } }
 
-// ── 分析师字段解析（每新增一个分析师，在此加一对 {abbr}_confidence + {abbr}_data_gaps）──
-let mk_c = safe_conf(mk_confidence); let mk_g = safe_gap(mk_data_gaps);
-let sent_c = safe_conf(sent_confidence); let sent_g = safe_gap(sent_data_gaps);
-let news_c = safe_conf(news_confidence); let news_g = safe_gap(news_data_gaps);
-let fund_c = safe_conf(fund_confidence); let fund_g = safe_gap(fund_data_gaps);
-let pol_c = safe_conf(pol_confidence); let pol_g = safe_gap(pol_data_gaps);
-let hm_c = safe_conf(hm_confidence); let hm_g = safe_gap(hm_data_gaps);
-let lk_c = safe_conf(lk_confidence); let lk_g = safe_gap(lk_data_gaps);
-let res_c = safe_conf(res_confidence); let res_g = safe_gap(res_data_gaps);
-let sec_c = safe_conf(sec_confidence); let sec_g = safe_gap(sec_data_gaps);
-let cat_c = safe_conf(cat_confidence); let cat_g = safe_gap(cat_data_gaps);
+// ── 分析师 confidence 解析（每新增一个分析师，在此加一行 {abbr}_confidence）──
+let mk_c = safe_conf(mk_confidence);
+let sent_c = safe_conf(sent_confidence);
+let news_c = safe_conf(news_confidence);
+let fund_c = safe_conf(fund_confidence);
+let pol_c = safe_conf(pol_confidence);
+let hm_c = safe_conf(hm_confidence);
+let lk_c = safe_conf(lk_confidence);
+let res_c = safe_conf(res_confidence);
+let sec_c = safe_conf(sec_confidence);
+let cat_c = safe_conf(cat_confidence);
+
+// gap 推断：confidence < 50 视为有数据缺口
+let mk_g = mk_c < 50.0;
+let sent_g = sent_c < 50.0;
+let news_g = news_c < 50.0;
+let fund_g = fund_c < 50.0;
+let pol_g = pol_c < 50.0;
+let hm_g = hm_c < 50.0;
+let lk_g = lk_c < 50.0;
+let res_g = res_c < 50.0;
+let sec_g = sec_c < 50.0;
+let cat_g = cat_c < 50.0;
 
 // 分母 = 当前分析师数量。新增分析师时同步更新此值。
-// 注意: 此值必须与上方 {abbr}_confidence 字段对数量一致。
+// 注意: 此值必须与上方 {abbr}_confidence 字段数量一致。
 let n = 10.0;
 
 let good_count = 0;

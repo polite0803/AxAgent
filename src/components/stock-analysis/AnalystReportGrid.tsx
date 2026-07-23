@@ -197,10 +197,10 @@ export function AnalystReportGrid() {
   );
 
   // ── 统一构造显示列表：done / pending / failed ──
-  // done:    analystReports 已有内容 → 渲染完整 AnalystReportCard
+  // done:    analystReports 已有内容（且清理后非空）→ 渲染完整 AnalystReportCard
   // failed:  failedNodes 包含该 nodeId → 渲染失败占位卡片（带错误信息）
   // pending: 工作流运行中且节点未完成未失败 → 渲染等待占位卡片
-  // 工作流完成后既无 report 也未 failed 的节点 → 不显示（理论上不应出现）
+  // 工作流完成后既无 report 也未 failed 的节点 → 显示失败（无数据兜底，避免一直"等待中"）
   const entries = useMemo<AnalystEntry[]>(() => {
     const result: AnalystEntry[] = [];
     const seen = new Set<string>();
@@ -209,22 +209,32 @@ export function AnalystReportGrid() {
     for (const nodeId of ANALYST_NODE_IDS) {
       const expertId = nodeId.slice(2);
       seen.add(expertId);
-      const report = analystReports[expertId];
+      const reportRaw = analystReports[expertId];
+      // 双重检查：即使 reportRaw 存在，也要确保清理工具标签后确实有实际内容
+      const hasContent = typeof reportRaw === "string"
+        && reportRaw.length > 0
+        && cleanToolCallTags(reportRaw).trim().length > 0;
 
-      if (typeof report === "string" && report.length > 0) {
-        result.push({ nodeId, expertId, status: "done", report });
+      if (hasContent) {
+        result.push({ nodeId, expertId, status: "done", report: reportRaw });
       } else if (failedNodes.includes(nodeId)) {
         result.push({ nodeId, expertId, status: "failed", error: failedNodeErrors[nodeId] });
       } else if (isRunning) {
         result.push({ nodeId, expertId, status: "pending" });
+      } else {
+        // Bug #P0 修复: 工作流已完成但节点无有效数据也未标记失败，
+        // 显示失败状态（无数据），避免卡片消失或永远卡在"等待中"
+        result.push({ nodeId, expertId, status: "failed", error: "该节点未返回有效分析数据" });
       }
-      // 工作流已完成但节点既无 report 也未 failed → 跳过（避免渲染空占位）
     }
 
     // 追加 analystReports 中存在但不在预定义列表里的 key（如 trader 的 "investment-plan"）
     for (const [expertId, report] of Object.entries(analystReports)) {
       if (seen.has(expertId)) { continue; }
-      if (typeof report === "string" && report.length > 0) {
+      const hasContent = typeof report === "string"
+        && report.length > 0
+        && cleanToolCallTags(report).trim().length > 0;
+      if (hasContent) {
         result.push({ nodeId: expertId, expertId, status: "done", report });
       }
     }

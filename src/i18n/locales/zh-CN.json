@@ -9396,6 +9396,17 @@
     "searchStock": "搜索股票",
     "loadAnalysisFailed": "加载历史分析失败",
     "willOverwrite": "将覆盖原记录（保留相同 analysisId）",
+    "debugLabel": {
+      "analyst": "分析师",
+      "riskControl": "风控",
+      "bullDebate": "多方辩论",
+      "bearDebate": "空方辩论",
+      "dataTool": "数据工具",
+      "debateConvergence": "辩论收敛",
+      "decisionEngine": "决策引擎",
+      "ruleCheck": "规则检查",
+      "other": "其他"
+    },
     "decision": {
       "action": "操作建议",
       "confidence": "置信度",

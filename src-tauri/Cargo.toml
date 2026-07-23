@@ -226,6 +226,9 @@ opt-level = 0
 #       需要完整调试时执行 `CARGO_PROFILE_DEV_DEBUG=true cargo build` 覆盖。
 debug = "line-tables-only"
 incremental = true
+# Windows MSVC 关键优化：split-debuginfo="unpacked" 将 PDB 拆分到 .pdb 文件，
+# 避免链接器把 debug info 打包进 .dll/.exe，每次链接减少数分钟
+split-debuginfo = "unpacked"
 
 [dev-dependencies]
 anyhow = { workspace = true }

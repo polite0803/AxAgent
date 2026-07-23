@@ -136,7 +136,7 @@ fn main() {
 
     // ── 时间维度匹配检查 ──
     let horizon_mismatch = if actual_days > 0 && expected_days > 0 {
-        let ratio = actual_days as f64 / expected_days as f64;
+        let ratio = actual_days.to_float() / expected_days.to_float();
         if ratio > 2.0 {
             `超期持有：实际${actual_days}天/预期${expected_days}天(${ratio}倍)`
         } else if ratio < 0.3 && actual_days < expected_days {

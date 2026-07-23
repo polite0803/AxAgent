@@ -218,7 +218,18 @@
   "advanced": {
     "cmdTimeout": "명령어 시간 초과",
     "dangerousCmdDetect": "위험 명령어 감지",
-    "fileWriteConfirm": "파일 쓰기 확인"
+    "fileWriteConfirm": "파일 쓰기 확인",
+    "bashSecurity": "Bash安全",
+    "defaultPermission": "默认权限",
+    "networkCmdDetect": "网络命令检测",
+    "networkConfirm": "网络确认",
+    "perm": {
+      "acceptEdits": "接受编辑",
+      "default": "默认",
+      "fullAccess": "完全访问"
+    },
+    "permissionStrategy": "权限策略",
+    "shellConfirm": "Shell确认"
   },
   "advancedSettings": {
     "agentMode": "에이전트 실행 모드",
@@ -290,7 +301,15 @@
     "submitted": "Eingereicht",
     "submitting": "제출 중...",
     "supplementPlaceholder": "추가 메모 (선택사항)...",
-    "typeAnswerPlaceholder": "답변을 입력하세요..."
+    "typeAnswerPlaceholder": "답변을 입력하세요...",
+    "askUserPlaceholder": "输入您的回答...",
+    "askUserSubmit": "提交",
+    "askUserSupplementPlaceholder": "补充说明（可选）...",
+    "askUserSubmitted": "已提交",
+    "permissionFullAccessWarningTitle": "⚠️ 完全访问模式",
+    "permissionAcceptEditsWarningTitle": "⚠️ 接受编辑模式",
+    "permissionFullAccessWarning": "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任所使用的模型和系统提示词。",
+    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。"
   },
   "agentGenerator": {
     "desc": "자연어로 필요한 에이전트를 설명...",
@@ -321,7 +340,10 @@
     "count": "({count})",
     "failed": "실패",
     "running": "실행 중",
-    "title": "에이전트 계층"
+    "title": "에이전트 계층",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "agentMode": {
     "generatingPlan": "계획 생성 중...",
@@ -376,7 +398,9 @@
       "execution": "실행",
       "nlGeneration": "NL 생성",
       "skill": "스킬"
-    }
+    },
+    "chatComingSoon": "Agent 对话功能即将在此处呈现",
+    "chatEmpty": "暂无消息"
   },
   "agentPool": {
     "attempts": "시도 {attempts}/{maxRetries}",
@@ -397,7 +421,10 @@
       "subAgent": "하위 에이전트",
       "worker": "작업자"
     },
-    "viewSubSession": "하위 세션 보기"
+    "viewSubSession": "하위 세션 보기",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "agentProfile": {
     "businessRoleLabel": "비즈니스 역할",
@@ -407,7 +434,17 @@
     "importSkipped": "{{count}}개 건너뜀, {{errors}}개 오류: {{detail}}",
     "importSuccess": "가져오기 성공{{count}} roles",
     "none": "없음",
-    "saveSuccess": "프로필 저장됨"
+    "saveSuccess": "프로필 저장됨",
+    "category": {
+      "general": "通用",
+      "development": "开发",
+      "security": "安全",
+      "data": "数据",
+      "devops": "运维",
+      "design": "设计",
+      "writing": "写作",
+      "business": "商业"
+    }
   },
   "businessRole": {
     "activeDomains": "활성 도메인",
@@ -452,7 +489,8 @@
     "name": "AxAgent",
     "newSkillProposal": "새 스킬 제안: {name}",
     "title": "스마트 워크스페이스",
-    "quickBar": "퀵바"
+    "quickBar": "퀵바",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "에이전트 패널 닫기",
@@ -559,7 +597,16 @@
       "testFailed": "연결 실패",
       "testSuccess": "연결 성공",
       "username": "사용자 이름"
-    }
+    },
+    "title": "备份中心",
+    "delete": "删除备份",
+    "status": "状态",
+    "completed": "Completed",
+    "running": "Running",
+    "failed": "Failed",
+    "errorDetail": "Error Details",
+    "description": "Description",
+    "selectMode": "Select"
   },
   "benchmark": {
     "action": "작업",
@@ -609,7 +656,17 @@
     "totalDuration": "총 소요 시간",
     "traceId": "추적 ID",
     "waiting": "대기 중",
-    "name": "기준"
+    "name": "기준",
+    "selectBenchmarkFirst": "请先选择基准测试",
+    "runFailed": "运行失败",
+    "runner": "基准测试运行器",
+    "selection": "基准测试选择",
+    "runConfig": "运行配置",
+    "emptyHint": "选择基准测试并点击运行以开始测试",
+    "tasks": "任务",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "browser": {
     "clickBody": "페이지 본문 클릭",
@@ -629,7 +686,8 @@
     "pleaseEnterSelector": "선택자를 입력하세요",
     "quickActions": "빠른 작업",
     "screenshot": "스크린샷",
-    "screenshotSuccess": "스크린샷 성공"
+    "screenshotSuccess": "스크린샷 성공",
+    "greetingResponse": "你好！我是 AxAgent 的浏览器预览模式..."
   },
   "buddy": {
     "attr": {
@@ -1283,10 +1341,14 @@
     "recordVideo": "비디오 녹화",
     "workspaceLocked": "Workspace directory cannot be changed after conversation starts",
     "sources": {
-      "title": "Knowledge Sources"
+      "title": "Knowledge Sources",
+      "empty": "No sources available. Please add one in settings first"
     },
     "mode": {
-      "title": "Switch Mode"
+      "title": "Switch Mode",
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -1298,7 +1360,9 @@
       "placeholderName": "e.g. my-connector",
       "placeholderCommand": "e.g. npx @modelcontextprotocol/server-filesystem",
       "placeholderArgs": "e.g. /path/to/dir (space-separated)",
-      "placeholderEndpoint": "e.g. http://localhost:3000/sse"
+      "placeholderEndpoint": "e.g. http://localhost:3000/sse",
+      "noServers": "Please add or enable connectors first",
+      "goConfig": "Go to Settings →"
     },
     "multiModelVote": {
       "title": "Multi-Model Decision Vote",
@@ -1312,8 +1376,185 @@
       "voteBreakdown": "Vote Breakdown",
       "allAgree": "All models agree",
       "disagreement": "Disagreement detected",
-      "noDecision": "No decision to aggregate"
-    }
+      "noDecision": "No decision to aggregate",
+      "button": "聚合投票",
+      "strategy": "聚合策略",
+      "validCount": "有效决策数"
+    },
+    "compactContext": "压缩上下文",
+    "toolbar": {
+      "left": "左侧",
+      "right": "右侧"
+    },
+    "send": "发送",
+    "welcomeSubtitle": "选择一个模型，开始你的 AI 对话之旅",
+    "contextCompressionOn": "智能压缩已开启",
+    "contextCompressionOff": "智能压缩已关闭",
+    "copySuccess": "已复制到剪贴板",
+    "like": "赞",
+    "dislike": "踩",
+    "thinking": {
+      "default": "默认",
+      "none": "禁止思考",
+      "low": "低强度",
+      "medium": "中强度",
+      "high": "高强度",
+      "xhigh": "超高强度"
+    },
+    "typingIndicator": "正在输入...",
+    "selectModel": "选择模型",
+    "welcomePromptCoding": "编程（调试/审查）",
+    "welcomePromptCreative": "创意写作",
+    "welcomePromptTranslation": "翻译助手",
+    "welcomePromptWriting": "写作文档",
+    "welcomePromptResearch": "搜索研究",
+    "welcomePromptAnalysis": "数据分析",
+    "welcomePromptInvestment": "投资分析",
+    "welcomePromptSocialMedia": "自媒体运维",
+    "scenarioTitle": "选择专家",
+    "scenarioPlaceholder": "选择专家",
+    "newTopic": "新话题",
+    "clearInput": "清空输入",
+    "stop": "停止",
+    "commandHint": "输入 / 使用命令",
+    "deselectAll": "取消全选",
+    "moveToCategory": "移动到分类",
+    "removeFromCategory": "移出分类",
+    "artifacts": {
+      "empty": "暂无制品",
+      "title": "制品",
+      "extract": "提取为草稿",
+      "comingSoon": "完整编辑功能即将推出"
+    },
+    "branch": {
+      "compare": "分支对比",
+      "left": "左侧",
+      "right": "右侧",
+      "compareTitle": "分支对比",
+      "current": "当前",
+      "unknownModel": "未知模型",
+      "selectVersion": "选择版本"
+    },
+    "knowledge": {
+      "title": "知识库",
+      "empty": "请先在设置中添加知识库"
+    },
+    "memory": {
+      "title": "记忆",
+      "empty": "请先在设置中添加记忆命名空间",
+      "selectHint": "选择一个记忆命名空间作为存储和检索目标",
+      "noneSelected": "未选择"
+    },
+    "branchIndependent": "分支到独立对话",
+    "branchChild": "分支到子级",
+    "multiModelUseAsContext": "用作上下文",
+    "modelRouting": "模型路由",
+    "workflowTemplates": "工作流模板",
+    "modelRoutingConfig": {
+      "title": "模型路由配置",
+      "save": "保存",
+      "primaryModel": "主模型（决策）",
+      "codeReviewModel": "代码审查模型（可选）",
+      "summarizationModel": "摘要模型（可选）",
+      "translationModel": "翻译模型（可选）",
+      "customRoutingRules": "自定义路由规则",
+      "customRoutingRulesDesc": "将工具名称或内容关键词映射到特定模型。模式匹配针对工具名称和内容进行。",
+      "selectPrimaryModel": "选择主模型",
+      "usePrimaryModel": "使用主模型",
+      "codeReviewPlaceholder": "可选：专用于代码审查的模型",
+      "summarizationPlaceholder": "可选：专用于摘要/压缩的模型",
+      "translationPlaceholder": "可选：专用于翻译的模型",
+      "patternPlaceholder": "模式（如 'shell' 或 'translate'）",
+      "modelPlaceholder": "模型",
+      "add": "添加"
+    },
+    "agentTaskList": {
+      "title": "Agent 任务",
+      "executing": "执行中",
+      "completed": "已完成",
+      "noTasks": "暂无任务",
+      "agentRunning": "Agent 正在执行任务",
+      "summary": {
+        "failed": "执行失败",
+        "fileWritten": "文件已写入",
+        "fileSaved": "文件已保存",
+        "foundLines": "找到 {{count}} 行",
+        "readComplete": "读取完成",
+        "commandComplete": "命令执行完成"
+      }
+    },
+    "agentInitFailed": "Agent 会话初始化失败",
+    "switchAgentModeNoConversation": "请先开始一个新会话，再切换到 Agent 模式",
+    "cancelled": "已取消",
+    "switchModeShortcut": "提示：按 Shift+Tab 可快速切换模式",
+    "searchPastConversations": "搜索所有历史对话...",
+    "searchGo": "搜索",
+    "searchResults": "在历史会话中找到 {{count}} 条结果",
+    "searchNoResults": "暂无结果。按 Enter 或点击搜索。",
+    "tag": "标签",
+    "tags": "标签",
+    "text": "文本",
+    "toolInput": "工具输入",
+    "type": "类型",
+    "unknown": "未知",
+    "unknownError": "未知错误",
+    "unlimited": "不限制",
+    "value": "值",
+    "version": "版本",
+    "versionPlaceholder": "1.0.0",
+    "view": "查看",
+    "viewDetails": "查看详情",
+    "waitingForApproval": "等待审批",
+    "workingDirectory": "工作目录",
+    "yes": "是",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "wiki": {
+      "title": "Wiki Vault",
+      "empty": "Please add a wiki vault in settings first"
+    },
+    "improved": "Improved",
+    "noImprovement": "No improvement",
+    "rewindConversation": "Rewind Conversation",
+    "rewindConfirmContent": "This will delete all messages after this point. This action cannot be undone.",
+    "rewind": "Rewind",
+    "benchmarks": {
+      "failed": "Failed",
+      "passed": "Passed",
+      "refresh": "Refresh",
+      "results": "Results",
+      "run": "Run",
+      "tasks": "Tasks",
+      "title": "Benchmarks"
+    },
+    "conversationNotFound": "Conversation not found",
+    "git": {
+      "branchComparison": "Branch Comparison",
+      "commitError": "Commit failed",
+      "commitMessage": "Commit message",
+      "commitSuccess": "Committed successfully",
+      "commits": "Commits",
+      "createCommit": "Create Commit",
+      "emptyMessage": "Commit message cannot be empty",
+      "filesChanged": "Files changed",
+      "generateMessage": "Generate message",
+      "generateMessageError": "Failed to generate message",
+      "generatedSuggestion": "Suggestion generated",
+      "messagePlaceholder": "Enter commit message...",
+      "noRepo": "No Git repository found",
+      "noStagedChanges": "No staged changes",
+      "prDescription": "PR Description",
+      "stagedChanges": "Staged Changes",
+      "title": "Git Operations"
+    },
+    "selectExpert": "Select Expert Role",
+    "agentInitTransient": "Agent session initialization failed due to a temporary connection issue. You can try again in a moment.",
+    "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation.",
+    "proactiveInsights": "Proactive Insights & Reminders",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)",
+    "clearHistoryDone": "Conversation cleared"
   },
   "chatMarkdown": {
     "inputParams": "입력 매개변수",
@@ -1349,7 +1590,26 @@
     "task": "태스크",
     "teammate": "팀",
     "title": "어시스턴트",
-    "visionAnalysis": "비전"
+    "visionAnalysis": "비전",
+    "research": "调研",
+    "git": "Git",
+    "code": "代码",
+    "benchmark": "评测",
+    "errorRecovery": "恢复",
+    "collaboration": "协作",
+    "branchCompare": "分支对比",
+    "gateway": "网关",
+    "contextClass": "上下文",
+    "cronResult": "定时结果",
+    "categoryEdit": "分类编辑",
+    "filePermission": "文件权限",
+    "sessionShare": "会话分享",
+    "prefetch": "预取",
+    "reminders": "提醒",
+    "contextPrediction": "上下文预测",
+    "steerInput": "引导",
+    "showExtras": "更多面板",
+    "hideExtras": "收起"
   },
   "citationManager": {
     "addCitation": "인용 추가",
@@ -1463,7 +1723,13 @@
     "webdavPath": "WebDAV 경로",
     "webdavUrl": "WebDAV URL",
     "webdavUrlRequired": "WebDAV URL을 입력하세요",
-    "webdavUsername": "사용자 이름"
+    "webdavUsername": "사용자 이름",
+    "syncSuccess": "同步完成，下载 {{downloaded}} 个文件到 {{cacheDir}}",
+    "syncResult": "已缓存：{{downloaded}} 个文件 → {{cacheDir}}",
+    "autoSync": "自动同步",
+    "autoFillConfig": "自动填充配置",
+    "listCloudBackups": "查看云端备份",
+    "providerCategory": "服务商分类"
   },
   "commandPalette": {
     "actions": "작업",
@@ -1477,7 +1743,8 @@
     "placeholder": "명령어를 입력하세요...",
     "searchConversations": "대화 검색",
     "settings": "설정",
-    "toggleSidebar": "사이드바 전환"
+    "toggleSidebar": "사이드바 전환",
+    "toggleInspector": "切换检查器"
   },
   "commandSuggest": {
     "clearHistory": "대화 기록 지우기",
@@ -1627,7 +1894,23 @@
     "unknownError": "Unknown error",
     "deleted": "삭제됨",
     "required": "필수",
-    "action": "액션"
+    "action": "액션",
+    "agentMode": "Agent 模式",
+    "chatMode": "问答",
+    "permissionDefault": "默认",
+    "permissionAcceptEdits": "允许编辑",
+    "permissionFullAccess": "完全访问",
+    "modeLabel": "模式",
+    "copiedToClipboard": "已复制到剪贴板",
+    "confirmDelete": "确认删除",
+    "versionPlaceholder": "1.0.0",
+    "id": "ID",
+    "portPlaceholder": "8080",
+    "startTime": "开始时间",
+    "endTime": "结束时间",
+    "generalPlaceholder": "通用",
+    "createSuccess": "创建成功",
+    "deleteSuccess": "删除成功"
   },
   "computerControl": {
     "auto": "자동",
@@ -1668,7 +1951,13 @@
     }
   },
   "continuation": {
-    "continueFromHere": "여기서 계속"
+    "continueFromHere": "여기서 계속",
+    "continueMsg": "续写",
+    "branchContinue": "分支续写（保留原版）",
+    "appendContinue": "续写（覆盖原版）",
+    "continuing": "续写中…",
+    "noPartial": "没有可续写的消息",
+    "confirmContinue": "该消息似乎未完成，是否续写？"
   },
   "createTeam": {
     "addTeammate": "팀원 추가",
@@ -1682,7 +1971,8 @@
     "subProcess": "서브프로세스",
     "teamName": "팀 이름",
     "teamNamePlaceholder": "예: 프론트엔드 팀, 데이터 분석 팀",
-    "teamNameRequired": "팀 이름을 입력하세요"
+    "teamNameRequired": "팀 이름을 입력하세요",
+    "cancel": "取消"
   },
   "credibility": {
     "authority": "권위",
@@ -1701,7 +1991,9 @@
     "name": "이름",
     "never": "없음",
     "prompt": "프롬프트",
-    "title": "Cron 작업"
+    "title": "Cron 작업",
+    "deleteConfirm": "确定删除此定时任务？",
+    "cancel": "取消"
   },
   "cronResult": {
     "emptyResult": "결과 없음",
@@ -1767,7 +2059,8 @@
     "sampleAdded": "Sample added",
     "samples": "샘플",
     "title": "파인튜닝 데이터셋 관리자",
-    "yes": "예"
+    "yes": "예",
+    "deleteConfirm": "确定删除此数据集？"
   },
   "decomposition": {
     "autoInstallBtn": "자동 설치",
@@ -1823,7 +2116,18 @@
     "reloadConfirmOk": "새로고침",
     "reloadConfirmTitle": "페이지 새로고침",
     "reloadPage": "페이지 새로고침",
-    "startMinimized": "최소화 상태로 시작"
+    "startMinimized": "최소화 상태로 시작",
+    "title": "桌面集成",
+    "capabilities": "桌面功能",
+    "tray": "系统托盘",
+    "globalShortcuts": "全局快捷键",
+    "protocolHandler": "协议处理器",
+    "notifications": "桌面通知",
+    "miniWindow": "迷你窗口",
+    "closeToTray": "关闭到托盘",
+    "browserWarning": "桌面功能需要通过 Tauri 应用使用",
+    "registered": "已注册",
+    "notRegistered": "未注册"
   },
   "devtools": {
     "agentVersion": "에이전트 버전",
@@ -1901,7 +2205,10 @@
     "traceCount": "{{count}}개 트레이스",
     "traceId": "트레이스 ID",
     "tracer": "트레이서",
-    "type": "유형"
+    "type": "유형",
+    "noTraces": "暂无追踪记录",
+    "userId": "用户 ID",
+    "parentSpan": "父 Span"
   },
   "diffViewer": {
     "deleted": "삭제됨",
@@ -1932,7 +2239,10 @@
     "running": "드림 통합 실행 중...",
     "separator": ", ",
     "statsSummary": "{{memories}} 메모리 · {{patterns}} 패턴",
-    "totalConsolidations": "총 {{count}}개 통합"
+    "totalConsolidations": "총 {{count}}개 통합",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "dynamicUI": {
     "button": "버튼",
@@ -2042,7 +2352,11 @@
     "keyPlaceholder": "키",
     "valuePlaceholder": "값",
     "subtitle": "NL 생성 지원으로 동적 UI 구성 요소 생성, 관리 및 미리보기",
-    "title": "동적 UI 관리"
+    "title": "동적 UI 관리",
+    "versionLoading": "加载版本历史...",
+    "versionRequired": "新版本号必须高于当前版本",
+    "versionInvalid": "版本号格式无效（应为 major.minor.patch）",
+    "rollbackArchive": "回滚前存档（回滚到 {version})"
   },
   "dynamicUIPreview": {
     "errorsCount": "{{count}}개의 오류",
@@ -2053,7 +2367,8 @@
     "reset": "초기화",
     "schemaAllValid": "스키마 유효성 검사 통과, 모든 필드가 유효합니다",
     "schemaValidation": "스키마 유효성 검사",
-    "waitingForJson": "유효한 JSON을 기다리는 중..."
+    "waitingForJson": "유효한 JSON을 기다리는 중...",
+    "title": "Dynamic UI Preview"
   },
   "error": {
     "deleteFailed": "삭제에 실패했습니다. 다시 시도하세요",
@@ -2279,7 +2594,12 @@
     "VOICE_INVALID_MESSAGE": "잘못된 음성 메시지 형식",
     "VOICE_SESSION_CREATE_REQUIRED": "먼저 session.create를 보내주세요",
     "STOCK_WORKFLOW_INTERNAL": "주식 워크플로 내부 오류",
-    "STOCK_SETUP_INTERNAL": "주식 설정 내부 오류"
+    "STOCK_SETUP_INTERNAL": "주식 설정 내부 오류",
+    "network": "网络连接失败",
+    "providerNotConfigured": "请先配置服务提供商",
+    "noModelSelected": "请选择模型",
+    "proxyTestFailed": "代理测试失败",
+    "message": "错误"
   },
   "errorBoundary": {
     "copied": "복사됨",
@@ -2346,7 +2666,47 @@
         "desc": "텍스트 그래디언트 최적화 엔진, 경사 하강법과 유사하지만 텍스트 프롬프트 최적화용",
         "name": "TextGrad 최적화기"
       }
-    }
+    },
+    "title": "自我进化系统",
+    "description": "监控和管理自主自我进化引擎",
+    "refresh": "刷新",
+    "infrastructure": "基础设施状态",
+    "llmProvider": "LLM 服务商",
+    "sandbox": "沙箱执行器",
+    "prm": "过程奖励模型",
+    "intrinsic": "内在动机",
+    "metricsOverview": "指标概览",
+    "skillCount": "技能",
+    "trajectories": "轨迹",
+    "autoTools": "自动工具",
+    "dreamKnowledge": "梦境知识",
+    "textGradNodes": "TextGrad 节点",
+    "textGradGradients": "梯度",
+    "constitutionRules": "宪法规则",
+    "coevolutionTasks": "协同进化任务",
+    "engineStatus": "引擎状态",
+    "frequentPatterns": "常用工具模式",
+    "constitutionShield": "宪法护盾",
+    "constitutionActive": "{{count}} 条不可变规则已激活",
+    "constitutionEmpty": "未定义宪法规则",
+    "newToolDiscovered": "发现新的自动工具！",
+    "newDreamKnowledge": "新的梦境知识已整合",
+    "running": "运行中",
+    "idle": "空闲",
+    "processed": "已处理: {{count}}",
+    "engineNames": {
+      "skillEvolution": "技能进化",
+      "rlReward": "RL 奖励",
+      "processRewardModel": "过程奖励模型",
+      "autoToolCreator": "自动工具创建器",
+      "textGradEngine": "TextGrad 引擎",
+      "dreamConsolidator": "梦境整合器",
+      "intrinsicMotivation": "内在动机",
+      "coevolution": "协同进化"
+    },
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "executionStore": {
     "workerCreated": "워커 생성됨"
@@ -2422,7 +2782,15 @@
     "tryCreateNew": "+ 새로 만들기를 클릭하여 사용자 지정 전문가 만들기",
     "tryModifySearch": "검색 조건을 수정해 보세요",
     "unnamed": "이름 없는 전문가",
-    "workflows": "{{count}}개 워크플로우"
+    "workflows": "{{count}}개 워크플로우",
+    "promptPlaceholder": "定义专家的角色、能力和行为规范...",
+    "builtinAlreadyImported": "内置专家已导入",
+    "builtinImported": "已导入 12 个内置专家",
+    "builtinImportedLabel": "已导入",
+    "importBuiltin": "导入全部内置专家（代码审查、调试、架构设计等）",
+    "importBuiltinBtn": "导入内置专家",
+    "capabilityDetail": "能力详情",
+    "detail": "详"
   },
   "expertStore": {
     "clearFailed": "외부 전문가 지우기 실패: {{error}}",
@@ -2491,7 +2859,10 @@
     "missing": "누락",
     "open": "열기",
     "searchPlaceholder": "{{category}} 검색…",
-    "totalItems": "{{total}}개 항목"
+    "totalItems": "{{total}}개 항목",
+    "workflow": "工作流",
+    "cleanup": "清理",
+    "reveal": "定位"
   },
   "fineTune": {
     "dataset": {
@@ -2626,7 +2997,31 @@
     "usageByDay": "일별 사용량",
     "usageByKey": "키별 사용량",
     "usageByProvider": "공급자별 사용량",
-    "viewMoreLogs": "더 보기"
+    "viewMoreLogs": "더 보기",
+    "connectedPrograms": "最近请求记录",
+    "noPrograms": "暂无连接",
+    "active": "活跃",
+    "programs": "接入程序",
+    "diagnostics": "日志",
+    "templates": "集成模板",
+    "quickConnectPlaceholder": "{{name}} 接入功能即将上线",
+    "cliReconnect": "重新接入",
+    "programName": "程序名称",
+    "allowedProviders": "允许的提供商",
+    "allowedModels": "允许的模型",
+    "rateLimit": "速率限制 (次/分钟)",
+    "editPolicy": "编辑策略",
+    "savePolicy": "保存策略",
+    "deletePolicyConfirm": "确定删除此策略？",
+    "runDiagnostics": "运行诊断",
+    "noDiagnostics": "暂无诊断信息",
+    "copyConfig": "复制配置",
+    "copied": "已复制到剪贴板",
+    "target": "目标平台",
+    "format": "格式",
+    "strategyOverwrite": "Overwrite (replace all)",
+    "strategyMerge": "Merge (keep existing)",
+    "strategyDryRun": "Dry run (validate only)"
   },
   "gatewayMonitor": {
     "activeConnections": "활성 연결 수",
@@ -2689,7 +3084,15 @@
     "workflowCreateA": "워크플로우 페이지에서 사이드바의 노드를 캔버스로 드래그하고 연결하여 워크플로우를 구축하세요.",
     "workflowCreateQ": "워크플로우를 만들려면 어떻게 하나요?",
     "workflowRunA": "워크플로우 편집기 우측 상단의 실행 버튼을 클릭하세요. 단계별 디버깅도 가능합니다.",
-    "workflowRunQ": "워크플로우를 실행하려면 어떻게 하나요?"
+    "workflowRunQ": "워크플로우를 실행하려면 어떻게 하나요?",
+    "chatSummary": "发送消息与 AI 模型对话",
+    "agentSummary": "让 AI 自主规划和执行任务",
+    "knowledgeSummary": "上传文档获取上下文感知回答",
+    "shortcutsSummary": "快捷键快速访问",
+    "providersSummary": "配置 AI 模型供应商",
+    "workflowSummary": "设计和运行自动化工作流",
+    "skillsSummary": "使用技能扩展功能",
+    "gatewaySummary": "管理 API 网关和路由"
   },
   "hookLog": {
     "allEvents": "모든 이벤트",
@@ -2747,7 +3150,31 @@
     "placeholder": "예: 사용자가 다크 모드 선호..."
   },
   "knowledge": {
-    "wikiTab": "위키"
+    "wikiTab": "위키",
+    "commonPanel": "公共面板",
+    "commonPanelDesc": "知识库和Wiki的共同操作",
+    "loadFiles": "加载文件",
+    "loadFilesDesc": "从文件夹加载文档到知识库或Wiki",
+    "selectFolder": "选择文件夹",
+    "loadToRAG": "加载到知识库RAG",
+    "sources": "数据源",
+    "sourcesDesc": "管理所有已加载的数据源",
+    "recentSources": "最近使用",
+    "addSource": "添加数据源",
+    "loadToWiki": "加载到Wiki",
+    "ragTab": "知识库 RAG",
+    "importTitle": "导入文档",
+    "selectedFolder": "已选择文件夹",
+    "importDestination": "导入到",
+    "ragSystem": "RAG 知识库",
+    "wikiSystem": "Wiki 系统",
+    "import": "导入",
+    "selectFolderFirst": "请先选择文件夹",
+    "selectDestination": "请选择导入目标",
+    "selectKnowledgeBaseFirst": "请先选择一个知识库",
+    "importSuccess": "导入成功",
+    "folderSelected": "文件夹已选择: {{path}}",
+    "importPartial": "Import done: {ok} succeeded, {failed} failed (failed items not written; check codes and retry)"
   },
   "learningGraph": {
     "all": "전체",
@@ -3213,7 +3640,9 @@
     "typeCustom": "사용자 정의",
     "unlimited": "무제한",
     "updateSettingsFailed": "설정 업데이트 실패",
-    "weighted": "가중치"
+    "weighted": "가중치",
+    "title": "连接",
+    "modelNamePlaceholder": "GPT 5.4 Think"
   },
   "loraConfig": {
     "alpha": "알파",
@@ -3223,7 +3652,8 @@
     "epochs": "에포크",
     "learningRate": "학습률",
     "rank": "랭크",
-    "reset": "초기화"
+    "reset": "초기화",
+    "trainingSetup": "训练设置"
   },
   "markdown": "마크다운",
   "marketplace": {
@@ -3245,7 +3675,16 @@
     "templates": "템플릿",
     "title": "마켓플레이스",
     "writeReview": "리뷰 작성",
-    "yourReview": "내 리뷰"
+    "yourReview": "내 리뷰",
+    "reviewUpdated": "评价更新成功",
+    "reviewSubmitted": "评价提交成功",
+    "reviewSubmitFailed": "评价提交失败",
+    "reviewDeleted": "评价删除成功",
+    "reviewDeleteFailed": "评价删除失败",
+    "importInfo": "导入功能 - 选择工作流文件导入",
+    "ratingRequired": "请选择评分",
+    "reviewPlaceholder": "分享你的使用体验...",
+    "noTemplates": "暂无模板"
   },
   "mcp": {
     "disabled": "사용 안 됨",
@@ -3299,7 +3738,11 @@
     "trade": "Trade",
     "watchlist": "관심종목",
     "pipeline": "Stock Pipeline",
-    "workspace": "Stock Workspace"
+    "workspace": "Stock Workspace",
+    "marketplace": "市场",
+    "prompts": "提示词",
+    "recommend": "推荐",
+    "skills": "技能"
   },
   "notification": {
     "clear": "지우기",
@@ -3403,7 +3846,8 @@
       "writeFile": "파일 {{path}} 쓰기",
       "writeFileGeneric": "파일 생성 또는 수정"
     },
-    "unknownTool": "알 수 없는 도구"
+    "unknownTool": "알 수 없는 도구",
+    "approveError": "审批失败"
   },
   "pinnedGroups": {
     "dashboard": "대시보드",
@@ -3440,7 +3884,11 @@
       "reviewing": "검토 중",
       "running": "실행 중"
     },
-    "stepsApproved": "단계 승인됨"
+    "stepsApproved": "단계 승인됨",
+    "strategyDirect": "直接执行",
+    "strategyPlan": "先规划再执行",
+    "reviewing": "审批中",
+    "executing": "执行中"
   },
   "planStore": {
     "cancelFailed": "계획 취소 실패: {{error}}",
@@ -3460,6 +3908,63 @@
       "documentation": "문서",
       "contextAnalysis": "컨텍스트 분석",
       "toolCache": "도구 캐시"
+    },
+    "accept": "接受",
+    "add": "添加",
+    "addReminder": "添加提醒",
+    "cancel": "取消",
+    "complete": "完成",
+    "completed": "已完成",
+    "contextPrediction": "上下文预测",
+    "delete": "删除",
+    "description": "描述",
+    "descriptionPlaceholder": "输入描述...",
+    "dismiss": "忽略",
+    "dismissAll": "全部忽略",
+    "inDays": "{{count}} 天后",
+    "language": "语言",
+    "loading": "加载中...",
+    "moreSuggestions": "更多建议",
+    "noPredictions": "暂无预测",
+    "noReminders": "暂无提醒",
+    "reminders": "提醒",
+    "scheduledAt": "计划时间",
+    "snooze": "稍后提醒",
+    "suggestedActions": "建议操作",
+    "suggestions": "建议",
+    "title": "主动助手",
+    "titlePlaceholder": "输入标题...",
+    "today": "今天",
+    "tomorrow": "明天",
+    "unknown": "未知",
+    "yesterday": "昨天",
+    "deleteConfirm": "确定要删除此提醒吗？",
+    "everyInterval": "每{{interval}}{{unit}}",
+    "everySingle": "每{{unit}}",
+    "overdue": "已过期",
+    "recurrenceUnitDay": "天",
+    "recurrenceUnitDays": "天",
+    "recurrenceUnitMonth": "月",
+    "recurrenceUnitMonths": "月",
+    "recurrenceUnitWeek": "周",
+    "recurrenceUnitWeeks": "周",
+    "scheduledWas": "计划时间: {{time}}",
+    "retry": "重试",
+    "applied": "已应用",
+    "copied": "已复制到剪贴板",
+    "insight": {
+      "title": "学习洞察",
+      "refresh": "刷新",
+      "all": "全部",
+      "empty": "暂无洞察",
+      "evidence": "依据",
+      "suggestedAction": "建议操作：",
+      "category": {
+        "pattern": "模式",
+        "preference": "偏好",
+        "improvement": "改进",
+        "warning": "警告"
+      }
     }
   },
   "profile": {
@@ -3500,7 +4005,10 @@
       "verbose": "상세히"
     },
     "tone": "톤",
-    "toneDesc": "톤"
+    "toneDesc": "톤",
+    "overview": "画像概览",
+    "userId": "用户 ID",
+    "lastUpdated": "最后更新"
   },
   "progressBar": {
     "executing": "실행 중: {name}",
@@ -3587,7 +4095,20 @@
     "useUrlImportForYaml": "YAML 파일은 URL로 가져오는 것이 좋습니다",
     "variablesSchema": "변수 스키마",
     "versionContent": "버전 내용",
-    "versionHistory": "버전 기록: {{name}}"
+    "versionHistory": "버전 기록: {{name}}",
+    "edit": "编辑模板",
+    "new": "新建模板",
+    "unnamed": "未命名",
+    "descPlaceholder": "模板描述",
+    "varsSchema": "变量 Schema（JSON）",
+    "varsSchemaPlaceholder": "{\"variable\": \"type\"}",
+    "deleteTemplate": "删除模板",
+    "templateCreated": "模板已创建",
+    "templateDeleted": "模板已删除",
+    "templateUpdated": "模板已更新",
+    "version": "版本",
+    "changeTemplate": "更换模板",
+    "selected": "已选择"
   },
   "quickbar": {
     "category": {
@@ -3666,7 +4187,9 @@
     "availableTools": "사용 가능한 도구",
     "recommendedTools": "추천 도구",
     "taskDescription": "작업 설명",
-    "title": "도구 추천"
+    "title": "도구 추천",
+    "toolTitle": "工具推荐",
+    "describePlaceholder": "描述你的任务..."
   },
   "reflection": {
     "analyzing": "작업 실행 분석 중...",
@@ -3757,7 +4280,25 @@
       "unknown": "알수없음",
       "web": "웹",
       "wikipedia": "위키백과"
-    }
+    },
+    "source": {
+      "web": "网页",
+      "academic": "学术",
+      "wikipedia": "维基百科",
+      "documentation": "文档",
+      "news": "新闻",
+      "blog": "博客",
+      "forum": "论坛",
+      "unknown": "未知"
+    },
+    "citations": "参考文献",
+    "generatedAt": "生成时间: {{time}}",
+    "export": "导出",
+    "copyReport": "复制报告",
+    "startNewResearch": "开始新研究",
+    "preview": "预览",
+    "summary": "摘要",
+    "lowCredibilityNotice": "注意: 报告中包含 {{count}} 个低可信度来源，请谨慎使用"
   },
   "reportViewer": {
     "copyReport": "보고서 복사",
@@ -3825,7 +4366,17 @@
     "startResearch": "연구 시작",
     "stop": "정지",
     "topic": "연구 주제:",
-    "topicPlaceholder": "연구 주제를 입력하세요, 예: AI의 역사와 미래 동향"
+    "topicPlaceholder": "연구 주제를 입력하세요, 예: AI의 역사와 미래 동향",
+    "highCredibility": "高可信度",
+    "mediumCredibility": "中可信度",
+    "lowCredibility": "低可信度",
+    "noSearchResults": "暂无搜索结果",
+    "phasePlanning": "规划",
+    "phaseSearching": "搜索",
+    "phaseExtracting": "提取",
+    "phaseAnalyzing": "分析",
+    "phaseSynthesizing": "综合",
+    "phaseReporting": "报告"
   },
   "review": {
     "commentPlaceholder": "댓글을 입력하세요...",
@@ -3887,7 +4438,27 @@
       "strategyOverwrite": "덮어쓰기 (모두 교체)",
       "strategyMerge": "병합 (기존 유지)",
       "strategyDryRun": "시험 실행 (검증만)"
-    }
+    },
+    "policyDashboard": "RL 策略面板",
+    "experiences": "经验",
+    "avgReward": "平均奖励",
+    "createPolicy": "创建新策略",
+    "policyName": "策略名称",
+    "policyNameRequired": "请输入策略名称",
+    "policyNamePlaceholder": "输入策略名称",
+    "policyType": "策略类型",
+    "policyTypeRequired": "请选择策略类型",
+    "policyTypePlaceholder": "选择策略类型",
+    "policyToolSelection": "工具选择",
+    "policyTaskDecomposition": "任务分解",
+    "policyErrorRecovery": "错误恢复",
+    "modelId": "模型 ID",
+    "modelIdRequired": "请输入模型 ID",
+    "modelIdPlaceholder": "输入模型 ID",
+    "train": "训练",
+    "strategyOverwrite": "覆盖（全部替换）",
+    "strategyMerge": "合并（保留现有）",
+    "strategyDryRun": "试运行（仅验证）"
   },
   "rlTrainingStore": {
     "saveCheckpoint": "RL 체크포인트 저장",
@@ -3905,7 +4476,9 @@
     "historyTitle": "기록",
     "noRecords": "레코드 없음",
     "refresh": "새로고침",
-    "success": "성공"
+    "success": "성공",
+    "viewSubExecution": "查看子执行",
+    "subExecutionDetail": "子工作流执行详情"
   },
   "sdk": {
     "acpRequestFailed": "ACP 요청 실패: {{message}}"
@@ -3923,7 +4496,8 @@
     "saveFilterTitle": "필터 저장",
     "savedFilters": "저장된 필터",
     "title": "검색",
-    "useRegex": "정규식 사용"
+    "useRegex": "정규식 사용",
+    "resultPrefix": "以下是联网搜索结果，回答问题前请参考：\n\n"
   },
   "searchProvider": {
     "bocha": "Bocha",
@@ -5363,7 +5937,8 @@
       "title": "고급"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)"
+    "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)",
+    "title": "设置"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"
@@ -5374,7 +5949,14 @@
     "shortcutNotSupported": "시스템이 이 단축키 조합을 지원하지 않습니다",
     "feishuWechat": "Lark/WeChat",
     "qqWechat": "QQ/WeChat",
-    "wechatWindows": "WeChat Windows"
+    "wechatWindows": "WeChat Windows",
+    "newConversation": "新建对话",
+    "closeConversation": "关闭对话",
+    "focusSearch": "聚焦搜索",
+    "openSettings": "打开设置",
+    "conflictApp1": "飞书/微信/企业微信/钉钉",
+    "conflictApp2": "QQ/微信",
+    "conflictApp3": "微信 (Windows)"
   },
   "sidebar": {
     "closeAgent": "에이전트 닫기",
@@ -5389,7 +5971,10 @@
     "sectionInvestWorkspace": "워크스페이스",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
-    "sectionInvestMonitor": "Monitor"
+    "sectionInvestMonitor": "Monitor",
+    "sectionInvest": "投资",
+    "sectionPlugins": "插件",
+    "sectionWork": "工作"
   },
   "skill": {
     "abTest": {
@@ -5499,7 +6084,9 @@
     "timeoutError": "샌드박스 로드 시간이 초과되었습니다. 다시 시도하세요",
     "uninstall": "제거",
     "unknownError": "알 수 없는 오류",
-    "error": "스킬 오류"
+    "error": "스킬 오류",
+    "loadingPage": "加载技能页面...",
+    "loadError": "加载 Skill 失败"
   },
   "skillEditor": {
     "actionAdd": "액션 추가",
@@ -5539,10 +6126,18 @@
     "store": "Store 읽기/쓰기 (store)",
     "storeName": "Store 이름",
     "storeOp": "작업",
-    "storePayload": "페이로드 (JSON)"
+    "storePayload": "페이로드 (JSON)",
+    "editManifest": "编辑清单",
+    "editManifestDesc": "编辑",
+    "supportedCapabilities": "支持的 capability 类型"
   },
   "skillExtension": {
-    "fetchFailed": "[SkillExtension] 스킬을 가져오지 못했습니다"
+    "fetchFailed": "[SkillExtension] 스킬을 가져오지 못했습니다",
+    "duplicateCapability": "[SkillExtension] 重复的 {{type}} ID \"{{id}}\"（命名空间: {{ns}}），技能 \"{{skillName}}\" 的 capability 已被跳过",
+    "toolbarPositionConflict": "[SkillExtension] Toolbar position \"{{position}}\" 冲突：技能 \"{{skillName}}\" 与已有技能 [{{existingSkills}}] 注册了相同 position 的按钮",
+    "pageRouteConflict": "[SkillExtension] Page route \"{{routeId}}\" 冲突：技能 \"{{skillName}}\" 与已有技能 [{{existingSkills}}] 注册了相同 route 的页面",
+    "permissionFailed": "[SkillExtension] Skill \"{{skillName}}\" 权限校验未通过，跳过未授权能力:",
+    "unknownCapabilityType": "[SkillExtension] 未知的 capability 类型: \"{{type}}\""
   },
   "skillPermissions": {
     "commandNotInWhitelist": "명령어 \"{{cmd}}\"이(가) 화이트리스트에 없습니다",
@@ -5593,7 +6188,9 @@
     "sortPopular": "인기순",
     "sortStars": "스타순",
     "source": {
-      "project": "프로젝트"
+      "project": "프로젝트",
+      "builtin": "内置",
+      "bundled": "捆绑"
     },
     "sourceAll": "전체",
     "stats": "통계",
@@ -5601,7 +6198,33 @@
     "uninstallConfirm": "스킬 \"{{name}}\"을(를) 제거하시겠습니까?",
     "uninstallGroupConfirm": "스킬 그룹 \"{{name}}\"과(와) 모든 하위 스킬을 제거하시겠습니까?",
     "uninstallSuccess": "스킬 \"{{name}}\" 제거 완료",
-    "update": "업데이트"
+    "update": "업데이트",
+    "title": "技能管理",
+    "search": "搜索技能...",
+    "refresh": "刷新",
+    "installing": "安装中...",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "stars": "星标",
+    "checkUpdates": "检查更新",
+    "group": "技能组",
+    "createTitle": "创建新技能",
+    "create": "创建",
+    "editTitle": "编辑技能：{{name}}",
+    "edit": "编辑",
+    "patchTitle": "修补技能：{{name}}",
+    "patch": "修补",
+    "name": "技能名称",
+    "namePlaceholder": "例如 deploy-to-aws",
+    "nameRequired": "请输入技能名称",
+    "description": "描述",
+    "descriptionPlaceholder": "简要描述此技能的用途",
+    "content": "技能说明（Markdown）",
+    "contentPlaceholder": "# 我的技能\n\n## 概述\n描述此技能的功能...\n\n## 步骤\n1. 步骤一\n2. 步骤二\n...",
+    "contentRequired": "请输入技能内容",
+    "patchPlaceholder": "描述问题和修复方法...",
+    "editPlaceholder": "编写完整的技能内容（frontmatter 将被保留）...",
+    "atomicSkills": "原子技能"
   },
   "sourceManager": {
     "backToList": "목록으로 돌아가기",
@@ -5664,7 +6287,8 @@
     "wiki": {
       "title": "위키 소스",
       "wikiList": "위키 목록"
-    }
+    },
+    "importSelectBase": "请先选择目标知识库"
   },
   "sshConfig": {
     "connect": "연결",
@@ -5777,7 +6401,9 @@
     "stopConfirm": "이 작업을 중지하시겠습니까?",
     "stopFail": "중지 실패",
     "stopped": "작업 중지됨",
-    "title": "백그라운드 작업"
+    "title": "백그라운드 작업",
+    "startFailed": "启动失败",
+    "bash": "bash"
   },
   "teammatePanel": {
     "createTeam": "팀 만들기",
@@ -5861,7 +6487,9 @@
     "mergeUp": "위와 병합",
     "rename": "이름 바꾸기",
     "splitTopic": "주제 분할",
-    "untitled": "제목 없는 주제"
+    "untitled": "제목 없는 주제",
+    "splitHere": "从此处拆分",
+    "splitGroup": "拆分分组"
   },
   "trace": {
     "bottleneck": {
@@ -5936,7 +6564,10 @@
     "running": "실행 중",
     "status": "상태",
     "title": "훈련 작업",
-    "totalJobs": "총 작업"
+    "totalJobs": "총 작업",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "userProfile": {
     "emoji": "이모지",
@@ -5946,7 +6577,8 @@
     "prefValue": "환경설정 값",
     "profileTab": "프로필",
     "selectImage": "이미지 선택",
-    "title": "프로필"
+    "title": "프로필",
+    "urlPlaceholder": "输入图片 URL"
   },
   "visualEditor": {
     "canvas": {
@@ -6013,6 +6645,54 @@
       },
       "title": "속성 패널",
       "field": "필드"
+    },
+    "categories": {
+      "container": "布局容器",
+      "data-display": "数据展示",
+      "form": "表单",
+      "media": "媒体",
+      "misc": "其他",
+      "basic": "基础",
+      "data": "数据",
+      "layout": "布局",
+      "navigation": "导航"
+    },
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "field": "字段",
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "import": "Import JSON",
+      "export": "Export JSON",
+      "previewMode": "Preview",
+      "editMode": "Edit",
+      "copied": "Copied to clipboard",
+      "cutDone": "Cut",
+      "pasted": "Pasted",
+      "exported": "Exported JSON file",
+      "imported": "Imported JSON",
+      "invalidJson": "Invalid JSON or missing required fields",
+      "viewport": {
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "mobile": "Mobile"
+      }
+    },
+    "outline": {
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
+    },
+    "preview": {
+      "actionTriggered": "Action Triggered"
+    },
+    "error": {
+      "title": "Error rendering property panel",
+      "reset": "Reset"
     }
   },
   "voice": {
@@ -6040,7 +6720,8 @@
     "ticketFailed": "음성 세션 티켓 가져오기 실패",
     "decryptKeyFailed": "게이트웨이 키 복호화 실패, 음성 통화를 시작할 수 없습니다",
     "sessionError": "음성 세션 오류가 발생했습니다",
-    "stateError": "음성 세션이 비정상적으로 연결이 끊어졌습니다"
+    "stateError": "음성 세션이 비정상적으로 연결이 끊어졌습니다",
+    "connectionLost": "语音连接已断开"
   },
   "wiki": {
     "backlinks": "백링크",
@@ -6292,7 +6973,67 @@
     "wiki": "위키",
     "timeline": "타임라인",
     "operationTimeline": "작업 타임라인",
-    "lintReport": "린트 보고서"
+    "lintReport": "린트 보고서",
+    "compile": {
+      "noPages": "没有生成任何页面",
+      "saved": "编译结果已保存",
+      "preview": "预览",
+      "previewTitle": "编译预览",
+      "recompile": "重新编译",
+      "saveAll": "保存全部",
+      "compiling": "正在编译...",
+      "noResults": "暂无编译结果",
+      "pages": "个页面"
+    },
+    "lastCompiled": "上次编译",
+    "lastLinted": "上次检查",
+    "log": {
+      "completed": "已完成",
+      "failed": "失败",
+      "filterStatus": "按状态筛选",
+      "filterType": "按类型筛选",
+      "noOperations": "暂无操作记录",
+      "operationDetail": "操作详情",
+      "running": "运行中",
+      "title": "操作日志",
+      "total": "总计",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
+    },
+    "noSources": "暂无来源",
+    "pageNotFound": "页面未找到",
+    "pageType": "页面类型",
+    "qualityScore": "质量分数",
+    "sources": "来源",
+    "userNote": "用户",
+    "manage": "管理",
+    "viewingWiki": "正在查看 Wiki: {{id}}",
+    "backToNotes": "返回笔记",
+    "browse": "浏览",
+    "dailyNote": "今日笔记",
+    "export": "导出",
+    "exportHtml": "导出 HTML",
+    "exportMarkdown": "导出 Markdown",
+    "exportResult": "已导出：{{exported}}，失败：{{failed}}",
+    "filteredByTag": "已筛选：{{tag}}",
+    "fromTemplate": "从模板创建",
+    "import": "导入",
+    "importObsidian": "导入 Obsidian 库",
+    "importObsidianDesc": "从已有 Obsidian 库导入 Markdown 文件",
+    "importKnowledgeMd": "导入知识源",
+    "importResult": "已导入：{{imported}}，已跳过：{{skipped}}，失败：{{failed}}",
+    "quickCapture": "快速捕获",
+    "startImport": "开始导入",
+    "vaultPath": "库路径",
+    "wikiForm": {
+      "description": "描述",
+      "name": "名称",
+      "rootPath": "根路径"
+    },
+    "wikiMeta": {
+      "rootPath": "根路径"
+    }
   },
   "workflow": {
     "agentNode": {
@@ -8192,7 +8933,8 @@
     "menu": "메뉴"
   },
   "inputArea": {
-    "uploadFile": "파일 업로드"
+    "uploadFile": "파일 업로드",
+    "resizeHandle": "resize handle"
   },
   "debugPanel": {
     "trace": "추적 ID",
@@ -8323,7 +9065,8 @@
     "write": "쓰기"
   },
   "compare": {
-    "title": "비교 분석"
+    "title": "비교 분석",
+    "placeholder": "对比同业公司"
   },
   "dualView": {
     "notRegistered": "등록되지 않은 dual view: {{id}}",
@@ -8343,7 +9086,14 @@
       "llmBadge": "LLM",
       "llmUnavailable": "LLM view unavailable",
       "reviewRecommended": "Manual Review Recommended",
-      "llmMissingHint": "Agreement score: {{score}}/100"
+      "llmMissingHint": "Agreement score: {{score}}/100",
+      "field": "决策维度",
+      "reasoning": "推理过程",
+      "formulaReasoningOmitted": "公式决策无推理过程",
+      "highAgreementHint": "双视角高度一致",
+      "midAgreementHint": "双视角部分一致",
+      "lowAgreementHint": "双视角存在分歧",
+      "executionMode": "执行模式"
     }
   },
   "portfolio": {
@@ -8388,7 +9138,12 @@
       "yes": "Yes",
       "no": "No",
       "foldSharpeChart": "Fold Sharpe Bar Chart",
-      "trades": "체결 내역"
+      "trades": "체결 내역",
+      "overfitWarning": "过拟合预警",
+      "stabilityScore": "稳定性评分",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "common": {
       "empty": "No data"
@@ -8582,7 +9337,11 @@
       "violationNotice": "{{count}}건의 as-of 위반이 기록되었습니다 — Invalid 패널을 참조하세요.",
       "noInvalid": "실패 샘플 없음.",
       "exportCsv": "CSV 내보내기",
-      "exportJson": "JSON 내보내기"
+      "exportJson": "JSON 내보내기",
+      "invalidTitle": "失敗样本",
+      "strategyOverwrite": "Overwrite（覆盖）",
+      "strategyMerge": "Merge（合并）",
+      "strategyDryRun": "DryRun（仅验证）"
     },
     "notice": "이 워크벤치의 모든 데이터, 프롬프트 및 결론은 선택한 날짜를 기준으로 합니다. 라이브 모드로 돌아가려면 명시적 확인이 필요합니다.",
     "exitHint": "아직 리플레이 모드입니다. 다른 곳에서 시작한 새 분석도 리플레이 기준으로 진행됩니다.",
@@ -8594,6 +9353,34 @@
       "smartReco": "스마트 추천",
       "myFilter": "내 필터",
       "serenity": "Bottleneck Hunt"
+    },
+    "placeholder": "依条件篩选股票",
+    "serenityPanel": {
+      "desc": "Serenity 瓶颈分析法：从市场数据中发现产业链瓶颈环节，自动筛选潜在标的",
+      "run": "运行 Serenity 筛选",
+      "running": "筛选中...",
+      "stage_loading": "加载工作流模板...",
+      "stage_scanning": "阶段 0/4: 扫描市场趋势",
+      "stage_decomposing": "阶段 1/4: 拆解产业链",
+      "stage_identifying": "阶段 2/4: 鉴定瓶颈环节",
+      "stage_mapping": "阶段 3/4: 映射候选公司",
+      "stage_saving": "阶段 4/4: 保存结果",
+      "stage_done": "筛选完成",
+      "stage_error": "筛选失败",
+      "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
+      "trendTitle": "发现的产业趋势",
+      "bottleneckLink": "瓶颈环节: ",
+      "candidateTitle": "候选标的",
+      "directBenefit": "直接受益",
+      "indirectBenefit": "间接受益",
+      "themeRelated": "主题相关",
+      "bottleneckProduct": "瓶颈产品: ",
+      "riskPrefix": "风险: ",
+      "confidencePrefix": "置信度 ",
+      "scoreSuffix": "分",
+      "emptyHint": "点击上方按钮运行 Serenity 瓶颈筛选",
+      "errorUnknown": "未知错误",
+      "callFailed": "调用失败"
     }
   },
   "serenityPanel": {
@@ -8655,7 +9442,9 @@
       "deleteSuccess": "{{count}}개 추천 기록이 삭제되었습니다",
       "selectedCount": "{{count}}개 선택됨",
       "exitSelect": "다중 선택 종료",
-      "detailEmpty": "该轮暂无候选股记录"
+      "detailEmpty": "该轮暂无候选股记录",
+      "deleteConfirm": "确定删除选中的 {{count}} 条瓶颈掘金记录？",
+      "empty": "暂无瓶颈掘金历史"
     },
     "settings": "Valuation Filters",
     "filterPeUpper": "PE 상한",
@@ -8673,7 +9462,42 @@
     "stepLogRunning": "(실행 중...)",
     "stepLogNoDetail": "(상세 출력 없음)",
     "exitSignalAlert": "종료 신호 스캔 완료:\n확인 {{checked}} 종목\n- 지금 종료: {{exitNow}} 종목\n- 주의: {{caution}} 종목",
-    "exitSignalAlertNone": "종료 신호 스캔 완료: {{checked}} 종목, 이상 없음"
+    "exitSignalAlertNone": "종료 신호 스캔 완료: {{checked}} 종목, 이상 없음",
+    "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
+    "callFailed": "调用失败",
+    "nodeTitles": {
+      "trigger": "启动筛选",
+      "t-industry-rank": "行业排名",
+      "t-cls-flash": "实时快讯",
+      "t-northbound": "北向资金",
+      "t-baseline-semi": "半导体基线",
+      "t-baseline-battery": "电池基线",
+      "t-baseline-chem": "化工基线",
+      "t-baseline-med": "医药基线",
+      "t-baseline-aero": "军工基线",
+      "t-baseline-consumer-elec": "消费电子基线",
+      "t-baseline-auto": "汽车基线",
+      "a-trend-scanner": "产业趋势扫描",
+      "a-chain-trend1": "产业链拆解 #1",
+      "a-chain-trend2": "产业链拆解 #2",
+      "a-chain-trend3": "产业链拆解 #3",
+      "a-chain-trend4": "产业链拆解 #4",
+      "a-chain-trend5": "产业链拆解 #5",
+      "a-chokepoint-trend1": "瓶颈鉴定 #1",
+      "a-chokepoint-trend2": "瓶颈鉴定 #2",
+      "a-chokepoint-trend3": "瓶颈鉴定 #3",
+      "a-chokepoint-trend4": "瓶颈鉴定 #4",
+      "a-chokepoint-trend5": "瓶颈鉴定 #5",
+      "a-candidate-mapper": "候选公司筛选",
+      "c-bottleneck-trend1": "瓶颈指标计算 #1",
+      "c-bottleneck-trend2": "瓶颈指标计算 #2",
+      "c-bottleneck-trend3": "瓶颈指标计算 #3",
+      "c-bottleneck-trend4": "瓶颈指标计算 #4",
+      "c-bottleneck-trend5": "瓶颈指标计算 #5"
+    },
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   },
   "trade": {
     "title": "Trading Log",
@@ -8718,17 +9542,72 @@
         "tradeDate": "날짜",
         "tradeTime": "시간",
         "fee": "수수료",
-        "errors": "오류"
+        "errors": "오류",
+        "notes": "备注"
       }
+    },
+    "quickRecordHint": "一键录入：目标价与仓位比例需为有效数值（仓位 0–100%）",
+    "agentRole.coordinator": "协调者",
+    "agentRole.researcher": "研究员",
+    "agentRole.planner": "规划者",
+    "agentRole.developer": "开发者",
+    "agentRole.reviewer": "审查者",
+    "agentRole.browser": "浏览器",
+    "agentRole.synthesizer": "综合者",
+    "agentRole.executor": "执行者",
+    "placeholder": "执行与回放交易",
+    "agentRole": {
+      "browser": "[TODO] Browser",
+      "coordinator": "[TODO] Coordinator",
+      "developer": "[TODO] Developer",
+      "executor": "[TODO] Executor",
+      "planner": "[TODO] Planner",
+      "researcher": "[TODO] Researcher",
+      "reviewer": "[TODO] Reviewer",
+      "synthesizer": "[TODO] Synthesizer",
+      "analyst": "分析师",
+      "decisionMaker": "决策者",
+      "riskManager": "风控经理",
+      "strategist": "策略师",
+      "supervisor": "监督者",
+      "trader": "交易员",
+      "validator": "验证者"
     }
   },
   "watchlist": {
-    "title": "관심종목"
+    "title": "관심종목",
+    "placeholder": "管理你的自选股和价格提醒"
   },
   "workEngine": {
     "noExecutionHistory": "실행 기록 없음",
     "executionHistory": "실행 기록",
-    "status": "상태"
+    "status": "상태",
+    "nodeProgress": "节点进度",
+    "workflowStarted": "工作流已启动",
+    "startFailed": "启动失败",
+    "configureProviderFirst": "请先在设置中配置默认 AI 服务商",
+    "cancel": "取消",
+    "cancelExecution": "取消执行",
+    "confirmCancelExecution": "确定取消当前执行？",
+    "duration": "耗时",
+    "executionId": "执行 ID",
+    "pause": "暂停",
+    "pauseExecution": "暂停执行",
+    "resume": "继续",
+    "resumeExecution": "继续执行",
+    "start": "开始",
+    "startExecution": "开始执行",
+    "startTime": "开始时间",
+    "statusCancelled": "已取消",
+    "statusCompleted": "已完成",
+    "statusFailed": "失败",
+    "statusPaused": "已暂停",
+    "statusPending": "待执行",
+    "statusRunning": "运行中",
+    "unsavedTitle": "未保存的更改",
+    "unsavedContent": "你有未保存的更改，确定放弃吗？",
+    "discard": "放弃",
+    "keepEditing": "继续编辑"
   },
   "stockAnalysis": {
     "actionBuy": "Buy",
@@ -11003,6 +11882,17 @@
       "indexQuotes": "대장 지수",
       "peers": "동종 비교",
       "optionPcr": "옵션 PCR"
+    },
+    "debugLabel": {
+      "analyst": "분석가",
+      "riskControl": "위험 통제",
+      "bullDebate": "상승 논쟁",
+      "bearDebate": "하락 논쟁",
+      "dataTool": "데이터 도구",
+      "debateConvergence": "논쟁 수렴",
+      "decisionEngine": "결정 엔진",
+      "ruleCheck": "규칙 확인",
+      "other": "기타"
     }
   },
   "pipeline": {
@@ -11032,6 +11922,12 @@
     "degradedMarker": {
       "tooltip": "리플레이 모드에서는 일부 분석 방법을 사용할 수 없습니다",
       "labelWithCount": "{{n}}개 저하"
+    },
+    "violations": {
+      "violations": {
+        "chip": "{{n}} 项违规",
+        "chipAria": "{{n}} violations"
+      }
     }
   },
   "workspace": {
@@ -11066,7 +11962,8 @@
       "holdings": "보유",
       "empty": "주식이 없습니다, 검색하세요",
       "collapse": "접기",
-      "expand": "펼치기"
+      "expand": "펼치기",
+      "addWatchlist": "加自选"
     },
     "contextSidebar": {
       "title": "컨텍스트",
@@ -11101,8 +11998,248 @@
       "timeframe": "기간",
       "riskLevel": "위험",
       "expectedUpside": "예상 상승폭",
-      "asOf": "기준일"
+      "asOf": "기준일",
+      "hideDetail": "收起",
+      "live": "实时"
     },
-    "collapseComparison": "비교 접기"
+    "collapseComparison": "비교 접기",
+    "viewPlaceholder": "视图占位 — 当前股票: {{code}}（阶段 3 迁入）",
+    "viewPlaceholderNoStock": "请选择股票开始分析"
+  },
+  "appLaunch": {
+    "title": "启动配置",
+    "searchPolicy": "搜索策略",
+    "toolBindings": "工具绑定",
+    "knowledgeBindings": "知识库绑定",
+    "memoryPolicy": "记忆策略",
+    "contextPacks": "上下文包",
+    "launch": "启动",
+    "enableSearch": "启用搜索",
+    "selectProvider": "选择搜索提供商",
+    "selectServers": "选择 MCP 服务器",
+    "approvalMode": "审批模式",
+    "enableMemory": "启用记忆",
+    "writeBack": "回写记忆",
+    "autoAttach": "自动附加",
+    "addPack": "添加上下文包",
+    "packName": "包名称",
+    "packContent": "包内容",
+    "enabledByDefault": "默认启用",
+    "knowledgePlaceholder": "在设置 → 知识库中配置后可用",
+    "memoryPlaceholder": "在设置 → 记忆中配置后可用",
+    "contextBindings": "上下文绑定",
+    "inherit": "继承"
+  },
+  "atomicSkill": {
+    "entryType": "入口类型",
+    "entryTypeBuiltin": "内置",
+    "entryTypeMcp": "MCP",
+    "entryTypeLocal": "本地",
+    "entryTypePlugin": "插件",
+    "source": "来源",
+    "sourceAutoGenerated": "自动生成",
+    "sourceAtomic": "原子",
+    "decomposed": "已分解",
+    "undecomposed": "未分解",
+    "updated": "原子技能已更新",
+    "created": "原子技能已创建",
+    "createTitle": "新建原子技能",
+    "editTitle": "编辑原子技能",
+    "nameRequired": "请输入名称",
+    "namePlaceholder": "atomic_my_skill",
+    "descriptionRequired": "请输入描述",
+    "descriptionPlaceholder": "描述此原子技能的功能",
+    "entryTypeRequired": "请选择入口类型",
+    "entryRef": "入口引用",
+    "entryRefRequired": "请选择或输入入口引用",
+    "inputSchema": "输入 Schema",
+    "outputSchema": "输出 Schema",
+    "tagsCommaSeparated": "标签（逗号分隔）",
+    "tagsPlaceholder": "标签1, 标签2"
+  },
+  "backtest": {
+    "title": "回测验证",
+    "placeholder": "用历史资料验证策略"
+  },
+  "chat:workflow": {
+    "templateList": {
+      "presetsImported": "导入成功"
+    }
+  },
+  "components_skill_SkillABTestResults": {
+    "暂无_A_B_测试数据": "暂无 A/B 测试数据",
+    "components_skill_Ski": "components_skill_SkillABTestResults.暂无_A_B_测试数据",
+    "指标": "指标",
+    "版本_A": "版本 A",
+    "版本_B": "版本 B",
+    "变化": "变化",
+    "优胜": "优胜",
+    "平局": "平局",
+    "推荐采用版本_A": " 推荐采用版本 A。",
+    "推荐采用版本_B": " 推荐采用版本 B。",
+    "两个版本无明显差异": " 两个版本无明显差异。"
+  },
+  "components_skill_SkillEvolutionViewer": {
+    "当前版本": "当前版本",
+    "总进化次数": "总进化次数",
+    "最近进化": "最近进化",
+    "A_B_测试结果": "A/B 测试结果",
+    "components_skill_Ski": "components_skill_SkillEvolutionViewer.A_B_测试结果"
+  },
+  "components_skill_SkillVersionTimeline": {
+    "暂无进化历史": "暂无进化历史",
+    "components_skill_Ski": "components_skill_SkillVersionTimeline.暂无进化历史",
+    "确认回滚": "确认回滚"
+  },
+  "errorRecovery": {
+    "noError": "当前无错误需要恢复",
+    "title": "错误恢复",
+    "attempts": "恢复尝试",
+    "status": "状态",
+    "attemptsLabel": "尝试次数",
+    "time": "时间"
+  },
+  "ipc": {
+    "disconnected": "后端连接已断开",
+    "disconnectedHint": "应用在后台运行过久，后端 IPC 通道可能已断开",
+    "reconnecting": "重连中…",
+    "retry": "重试连接"
+  },
+  "knowledgeSettings": {
+    "title": "知识库"
+  },
+  "lang": {
+    "zhCN": "简体中文",
+    "zhTW": "繁体中文",
+    "ja": "日本语",
+    "ko": "한국어"
+  },
+  "llm": {
+    "prompts": {
+      "extraction": {
+        "systemPrompt": "你是一个知识提取助手。从对话转录中提取重要、可复用的知识。",
+        "userTemplate": "从以下对话中提取可复用的知识：\n\n{0}"
+      },
+      "consolidation": {
+        "systemPrompt": "你是一个知识整合助手。将多条相似的记忆合并为一条简洁的摘要。",
+        "userTemplate": "将以下 {0} 条相似记忆合并为一条：\n\n{1}"
+      },
+      "entityExtraction": {
+        "systemPrompt": "你是一个实体和关系提取助手。从对话转录中提取关键实体及其关系。",
+        "userTemplate": "从以下对话中提取实体和关系：\n\n{0}"
+      },
+      "incrementalExtract": {
+        "systemPrompt": "从最近的对话中提取新的知识。重点关注用户的偏好、决策和项目背景。",
+        "userTemplate": "从以下最近的对话中提取新知识：\n\n{0}"
+      },
+      "conversationSummary": {
+        "mergeTemplate": "你是一个对话摘要助手。请将新增对话内容合并到已有摘要中。\n\n已有摘要：\n{0}\n\n新增对话：\n{1}",
+        "compressTemplate": "你是一个对话摘要助手。请将对话历史压缩为简洁摘要。\n\n对话内容：\n{0}"
+      },
+      "titleGeneration": {
+        "systemPrompt": "你是一个对话标题生成助手。根据对话内容生成简洁标题（不超过50字符）。只返回标题文本。",
+        "userTemplate": "请为以下对话生成标题：\n\n{0}"
+      },
+      "webSearch": {
+        "functionName": "web_search",
+        "functionDesc": "搜索网络获取最新信息。"
+      },
+      "compact": {
+        "continuationPreamble": "此会话从之前的对话续接而来。以下摘要覆盖了对话的早期部分。",
+        "recentMessagesNote": "最近的消息被原样保留。",
+        "resumeInstruction": "从上次中断的地方继续对话，不要再向用户提问。直接继续。"
+      },
+      "workflowAi": {
+        "generationSystem": "你是一个工作流设计助手。根据用户描述生成结构化自动化工作流。输出 JSON 格式。",
+        "generationUser": "基于以下描述生成工作流：{0}"
+      }
+    }
+  },
+  "multiAgent": {
+    "title": "多智能体状态",
+    "tabs": {
+      "agents": "智能体",
+      "messages": "消息",
+      "memory": "内存"
+    },
+    "status": {
+      "running": "运行中",
+      "completed": "已完成",
+      "strategyOverwrite": "Overwrite (replace all)",
+      "strategyMerge": "Merge (keep existing)",
+      "strategyDryRun": "Dry run (validate only)"
+    },
+    "count": "{{running}} 运行中 / {{completed}} 已完成",
+    "noAgents": "暂无注册的智能体",
+    "noMessages": "暂无消息",
+    "selectAgent": "选择一个智能体以查看消息",
+    "noMemory": "暂无共享内存条目",
+    "by": "由",
+    "ttl": "TTL"
+  },
+  "notificationCenter": {
+    "title": "通知"
+  },
+  "permissionMode": {
+    "readOnly": "只读",
+    "allow": "允许",
+    "workspaceWrite": "工作区写入",
+    "fullAccess": "完全访问",
+    "alwaysAsk": "每次确认"
+  },
+  "tool": {
+    "common": {
+      "notFound": "工具未找到",
+      "permissionDenied": "权限被拒绝",
+      "invalidInput": "输入参数无效",
+      "executionFailed": "执行失败",
+      "timeout": "执行超时",
+      "cancelled": "已被取消"
+    },
+    "tray": {
+      "show": "显示主窗口",
+      "quit": "退出"
+    }
+  },
+  "toolCategory": {
+    "fileRead": "文件读取",
+    "fileWrite": "文件写入",
+    "shellCommand": "Shell 命令",
+    "networkRequest": "网络请求",
+    "systemTool": "系统工具",
+    "agentTool": "Agent 工具",
+    "versionControl": "版本控制",
+    "automation": "自动化",
+    "communication": "通信",
+    "aiMedia": "AI 媒体",
+    "externalIntegration": "外部集成",
+    "storageManagement": "存储管理",
+    "knowledgeBase": "知识库",
+    "browser": "浏览器",
+    "desktopControl": "桌面控制"
+  },
+  "tray": {
+    "hide": "隐藏",
+    "key": "键",
+    "quit": "退出",
+    "show": "显示",
+    "value": "值"
+  },
+  "agentStats": {
+    "running": "运行中",
+    "paused": "已暂停",
+    "tokens": "个令牌",
+    "pending": "待处理",
+    "tool": "个工具",
+    "session": "个会话",
+    "resume": "继续",
+    "pause": "暂停",
+    "loading": "加载中...",
+    "failed": "失败",
+    "iteration": "轮迭代",
+    "askUser": "次提问",
+    "strategyOverwrite": "Overwrite（覆盖）",
+    "strategyMerge": "Merge（合并）",
+    "strategyDryRun": "DryRun（仅验证）"
   }
 }

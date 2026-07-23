@@ -92,6 +92,7 @@ pub mod screen_vision;
 pub mod search;
 pub mod session_share;
 pub mod settings;
+pub mod simple_completion;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;

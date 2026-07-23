@@ -24,14 +24,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
 
     const TEMPLATE_ID: &str = "stock-analysis";
 
-    // V57: 双保险修复 pace-calc `Variable not found: llm_events`：
-    // 1) code_executor.rs V57 — 自动扫描脚本 `present(xxx)` 调用并为未注入变量补 unit 默认值
-    //    （一次性根治所有 Rhai 脚本对未注入变量的安全访问问题，对已存在工作流实例生效）
-    // 2) pace-calc input_mapping 显式补 `llm_events: ""` 占位（对新模板双保险）
-    // V56: 修复 pace-calc.rhai 第 310 行 Rhai 语法错误（`(valid_event_count as f64).max(1.0)`
-    // 链式调用解析歧义，改为先 `let count_f = ... as f64;` 再用变量）。
-    // 每次修改 DAG 拓扑/节点配置/input_mapping 后必须递增此常量。
-    const TEMPLATE_VERSION: i32 = 74; // v74: 关闭 hallucination_guard（实测误报率 ~100%，无拦截价值）
+    const TEMPLATE_VERSION: i32 = 1;
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;
@@ -1026,15 +1019,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         edge_type: EdgeType::Direct,
         label: None,
     });
-    edges.push(WorkflowEdge {
-        id: "e-p-analysts-brief".into(),
-        source: "p-analysts".into(),
-        source_handle: None,
-        target: "analyst-brief".into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    });
+    // V58 修复(2026-07-23): 删除 e-p-analysts-brief 伪边（p-analysts 是装饰性容器，
+    // 立即完成且不携带子节点结果），改为直接从 10 个分析师节点连到 analyst-brief，
+    // 确保：1) DAG 调度等所有分析师完成后才执行 analyst-brief；
+    //       2) deps_results 包含 10 个分析师节点的输出，input_mapping 路径解析正确。
+    // 前端验证要求容器节点有至少一条入边/出边，入边 e-trigger-p-analysts 已满足。
 
     // ── analyst-brief（分析师摘要）：CodeNode 聚合10份VERDICT评分+关键论据 ──
     // 替代原「辨手直接加载10份全量报告」方案，大幅降低辩论阶段上下文体积。
@@ -1059,7 +1048,23 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     "a-catalyst" => "a_catalyst_raw",
                     _ => id,
                 };
-                (short.to_string(), format!("{id}.content"))
+                // V58 修复(2026-07-23): 直接下钻到 .content.verdict，
+                // resolve_var_path 会自动解析 content JSON 字符串并提取 verdict map。
+                // 避免 Rhai 脚本中 json_parse 字符串解析的不可靠性。
+                //
+                // V60 修复(2026-07-23): a-catalyst 例外——它用 OutputMode::Json +
+                // 扁平 JSON schema（bull_score/bear_score 在顶层，verdict 字段是字符串
+                // "看多/看空/中性"），不是嵌套的 verdict map。用 .content.verdict 会
+                // 拿到字符串而非 map，analyst-brief 触发"数据不可用"。
+                // 改用 .content 让 Rhai 拿到整个对象，format_analyst 从顶层读
+                // bull_score/bear_score（其他字段如 bull_points 缺失时 Rhai 返回 ()，
+                // present() 检查会自然跳过）。
+                let path = if *id == "a-catalyst" {
+                    format!("{id}.content")
+                } else {
+                    format!("{id}.content.verdict")
+                };
+                (short.to_string(), path)
             })
             .collect();
         nodes.push(WorkflowNode::Code(CodeNode {
@@ -1087,6 +1092,19 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 input_mapping: ab_input,
             },
         }));
+    }
+    // V58 修复: 添加 10 条从分析师节点直连 analyst-brief 的 edges，
+    // 确保 deps_results 包含所有分析师输出，且等所有分析师完成后才执行 analyst-brief。
+    for aid in a_ids.iter() {
+        edges.push(WorkflowEdge {
+            id: format!("e-{aid}-brief"),
+            source: (*aid).into(),
+            source_handle: None,
+            target: "analyst-brief".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        });
     }
     // analyst-brief 直接喂给辩论阶段。个别维度缺数据的兜底由 brief 内的
     // 「**数据不可用**」标记处理——辩手看到标记自然知道跳过该维度。
@@ -1907,26 +1925,24 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 tool_name: None,
                 execute_directly: true,
                 input_mapping: [
-                    ("mk_confidence", "a-market-analyst.content.confidence"),
-                    ("sent_confidence", "a-sentiment.content.confidence"),
-                    ("news_confidence", "a-news.content.confidence"),
-                    ("fund_confidence", "a-fundamentals.content.confidence"),
-                    ("pol_confidence", "a-policy.content.confidence"),
-                    ("hm_confidence", "a-hot-money.content.confidence"),
-                    ("lk_confidence", "a-lockup.content.confidence"),
-                    ("res_confidence", "a-research.content.confidence"),
-                    ("sec_confidence", "a-sector.content.confidence"),
-                    ("cat_confidence", "a-catalyst.content.confidence"),
-                    ("mk_data_gaps", "a-market-analyst.content.if_data_gaps"),
-                    ("sent_data_gaps", "a-sentiment.content.if_data_gaps"),
-                    ("news_data_gaps", "a-news.content.if_data_gaps"),
-                    ("fund_data_gaps", "a-fundamentals.content.if_data_gaps"),
-                    ("pol_data_gaps", "a-policy.content.if_data_gaps"),
-                    ("hm_data_gaps", "a-hot-money.content.if_data_gaps"),
-                    ("lk_data_gaps", "a-lockup.content.if_data_gaps"),
-                    ("res_data_gaps", "a-research.content.if_data_gaps"),
-                    ("sec_data_gaps", "a-sector.content.if_data_gaps"),
-                    ("cat_data_gaps", "a-catalyst.content.if_data_gaps"),
+                    // P0 修复: agent_executor 把 VERDICT tag 重构为
+                    // {"report":..., "verdict":{"confidence":N, ...}}
+                    // 故 confidence 在 content.verdict.confidence，而非 content.confidence。
+                    // 旧路径 content.confidence 恒取不到值 → data-quality 误判全 null → F 级。
+                    ("mk_confidence", "a-market-analyst.content.verdict.confidence"),
+                    ("sent_confidence", "a-sentiment.content.verdict.confidence"),
+                    ("news_confidence", "a-news.content.verdict.confidence"),
+                    ("fund_confidence", "a-fundamentals.content.verdict.confidence"),
+                    ("pol_confidence", "a-policy.content.verdict.confidence"),
+                    ("hm_confidence", "a-hot-money.content.verdict.confidence"),
+                    ("lk_confidence", "a-lockup.content.verdict.confidence"),
+                    ("res_confidence", "a-research.content.verdict.confidence"),
+                    ("sec_confidence", "a-sector.content.verdict.confidence"),
+                    ("cat_confidence", "a-catalyst.content.verdict.confidence"),
+                    // data_gaps 不再从上游读取：10 个分析师 prompt 均不输出 if_data_gaps 字段，
+                    // 旧映射恒取不到值 → safe_gap 返回 true → gap_count 恒为 10 → 必然 F 级。
+                    // 改为在 data-quality.rhai 中用 confidence < 50 推断数据缺口
+                    // （覆盖：节点失败 conf=0 / strict_mode 降级 conf=0 / 分析师自评低置信度）。
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))

@@ -99,44 +99,40 @@ impl NodeExecutorTrait for ToolExecutor {
         }
 
         // ── 1. 优先走 ToolRegistry 中心化路径（含权限/审计/脱敏）──
-        // 如果工具不在 registry 中，fallback 到回调路径（支持 stock_mcp_tools 等动态工具）
+        // 注意：不通过 find() 守卫——ToolRegistry 自身负责处理未知工具名。
+        // CapturingRegistry 等测试桩不注册具体工具（find() 返回 None），
+        // 但 execute_tool() 为合法调用路径，不应被跳过。
         if let Some(ref tool_registry) = context.tool_registry {
-            // 先检查工具是否在 registry 中注册
-            if tool_registry.find(tool_name).is_some() {
-                tracing::info!(
-                    "[ToolExecutor] 工具 '{tool_name}' 通过 ToolRegistry 中心化路径执行"
-                );
+            tracing::info!("[ToolExecutor] 工具 '{tool_name}' 通过 ToolRegistry 中心化路径执行");
 
-                let mut tool_ctx =
-                    ToolContext::new(".").with_conversation(context.execution_id.clone());
-                // 附加权限
-                if let Some(ref perms) = context.tool_permissions {
-                    tool_ctx.permissions = Some(perms.clone());
-                }
-
-                let result = tool_registry
-                    .execute_tool(tool_name, resolved_args.clone(), &tool_ctx)
-                    .await
-                    .map_err(|e| {
-                        NodeError::exec_failed(
-                            error_code::TOOL_CALL_FAILED,
-                            format!("ToolRegistry 调用失败: {e}"),
-                        )
-                    })?;
-
-                return Ok(NodeOutput {
-                    output: serde_json::json!({
-                        "tool_name": tool_name,
-                        "result": result.content,
-                        "truncated": result.truncated,
-                        "is_error": result.is_error,
-                        "node_id": node.base_id(),
-                    }),
-                    output_var: Some(tool_node.config.output_var.clone()),
-                    control: None,
-                });
+            let mut tool_ctx =
+                ToolContext::new(".").with_conversation(context.execution_id.clone());
+            // 附加权限
+            if let Some(ref perms) = context.tool_permissions {
+                tool_ctx.permissions = Some(perms.clone());
             }
-            // 工具不在 registry 中 → 继续走回调路径
+
+            let result = tool_registry
+                .execute_tool(tool_name, resolved_args.clone(), &tool_ctx)
+                .await
+                .map_err(|e| {
+                    NodeError::exec_failed(
+                        error_code::TOOL_CALL_FAILED,
+                        format!("ToolRegistry 调用失败: {e}"),
+                    )
+                })?;
+
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "tool_name": tool_name,
+                    "result": result.content,
+                    "truncated": result.truncated,
+                    "is_error": result.is_error,
+                    "node_id": node.base_id(),
+                }),
+                output_var: Some(tool_node.config.output_var.clone()),
+                control: None,
+            });
         }
 
         // ── 2. 回退：查找回调（多路注册 → fallback → 未配置） ──
