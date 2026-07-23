@@ -706,10 +706,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     enabled: false,
                     match_threshold: 0.4,
                 }),
-                // H4.1 修复：主模型（如 Qwen3.7-Max）返回空输出时，自动用 GLM-5.2 重试一次。
-                // agent_executor 在 strict_mode 校验失败（空内容/格式错误）时触发重试，
-                // 重试使用简化 ChatRequest（无 tools），成功则替换 final_content。
-                fallback_model: Some("glm-5.2".to_string()),
+                // H4.1: fallback_model 不在此硬编码。用户可在工作流编辑器中为单个 Agent 节点
+                // 配置 model（主模型），agent_executor 校验失败时若 fallback_model ≠ model 则触发重试。
+                // 股票分析模板默认不设 fallback，由项目默认模型一致性保证。
+                fallback_model: None,
                 task_scene: None,
                 // stream_chunk_timeout_secs: 300s（5 分钟）
                 // 默认 120s 在大上下文场景下偶发 TTFB >120s 导致超时重试浪费时间

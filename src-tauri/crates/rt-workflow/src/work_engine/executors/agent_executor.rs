@@ -1481,34 +1481,25 @@ impl NodeExecutorTrait for AgentExecutor {
                     final_content = combined;
                 }
             } else {
-                // V59 修复(2026-07-23): 纯文本输出兜底。
-                // 当 LLM 输出非空、不是合法 JSON、且没有 VERDICT 标签时，
-                // final_content 保持纯文本字符串。下游 input_mapping 的 {id}.content.verdict
-                // 路径无法解析（resolve_var_path 无法从纯文本导航到 .verdict 字段），
-                // 导致 analyst-brief 全部显示"数据不可用"，辩手看到"完全没有数据可用"。
-                // 修复：构造降级 JSON {"report": "原始文本", "verdict": {中性, conf=0},
-                // "__untrusted": true}，确保下游能解析到 verdict 字段
-                // （confidence=0 表示不可信），report 字段保留原始文本供前端展示。
-                let report_escaped =
-                    serde_json::to_string(&trimmed).unwrap_or_else(|_| "\"\"".to_string());
-                let fallback_verdict = serde_json::json!({
-                    "verdict": "中性",
-                    "bull_score": 50,
-                    "bear_score": 50,
-                    "confidence": 0,
-                    "bull_points": [],
-                    "bear_points": []
-                });
-                let combined = format!(
-                    r#"{{"report":{}, "verdict":{}, "__untrusted":true, "verdict_missing":true}}"#,
-                    report_escaped, fallback_verdict
-                );
+                // V61 修复(2026-07-23): 回退 V59 的 confidence=0 兜底方案。
+                // V59 把"LLM 无 VERDICT 标签"包装成 confidence=0 的 verdict，
+                // 导致所有异常分析师的 confidence 都是 0 → analyst-brief
+                // 显示 10 个分析师全部 0 → 决策退化为"持有 0%"，比原来的
+                // "数据不可用"路径还差（前端能正确显示缺失，现在变成 10 个假信号）。
+                //
+                // 正确处理：纯文本输出时不下钻 verdict，保持纯文本让 analyst-brief
+                // 通过 type_of(verdict) != "map" 走"数据不可用"标记，前端能正确
+                // 区分"该分析师失败"vs"该分析师有数据但中性"。
+                //
+                // 真正的问题不是数据流路径，而是上游 LLM 没输出 VERDICT 标签——
+                // 这个是 prompt 约束问题（VERDICT 标签在末尾容易漏写），不是路径问题。
+                // 后续应该改 prompt 强制把 VERDICT 标签作为单独消息附加，而不是
+                // 期望 LLM 在长报告末尾自己加上。
                 tracing::warn!(
                     node_id = %node.base_id(),
                     content_len = trimmed.len(),
-                    "LLM 输出无 VERDICT 标签且非合法 JSON，构造降级 VERDICT (confidence=0, __untrusted=true)"
+                    "LLM 输出无 VERDICT 标签且非合法 JSON，analyst-brief 将标记该维度为'数据不可用'"
                 );
-                final_content = combined;
             }
         }
 
@@ -1516,11 +1507,7 @@ impl NodeExecutorTrait for AgentExecutor {
         // V53 修复: strict_mode 已生成 fallback JSON 时跳过后验锚定检查。
         // fallback JSON ("strict_mode_fallback": true) 是合成的中性输出，
         // 本身不包含用户内容，对其做锚定检查必然得到 score=0，除了污染日志外无意义。
-        // V59: verdict_missing（纯文本兜底降级 JSON）也跳过锚定检查，
-        // 因为 report 字段是 LLM 原始输出但 verdict 是合成的中性评分，
-        // 对合成 verdict 做锚定检查无意义且必然失败。
-        let is_fallback_content = final_content.contains("strict_mode_fallback")
-            || final_content.contains("verdict_missing");
+        let is_fallback_content = final_content.contains("strict_mode_fallback");
         if let Some(ref hg_config) = an.config.hallucination_guard
             && hg_config.enabled
             && !final_content.is_empty()
