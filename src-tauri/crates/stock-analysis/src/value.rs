@@ -655,10 +655,12 @@ impl ValueEngine {
 
         // DCF
         let dcf = if fcf > 0.0 && shares_outstanding > 0.0 {
+            // A股校准默认值：growth=12% / perpetual=4% / discount=8.5%
+            // 详见 decision.rs::ValueConfig::default 注释
             let growth_rate =
-                value_config.map(|c| c.dcf_growth_rate / 100.0).unwrap_or(0.08).max(0.0);
-            let terminal_rate = value_config.map(|c| c.dcf_perpetual_rate / 100.0).unwrap_or(0.03);
-            let discount_rate = value_config.map(|c| c.dcf_discount_rate / 100.0).unwrap_or(0.10);
+                value_config.map(|c| c.dcf_growth_rate / 100.0).unwrap_or(0.12).max(0.0);
+            let terminal_rate = value_config.map(|c| c.dcf_perpetual_rate / 100.0).unwrap_or(0.04);
+            let discount_rate = value_config.map(|c| c.dcf_discount_rate / 100.0).unwrap_or(0.085);
             Some(Self::dcf_valuation(
                 fcf,
                 growth_rate,

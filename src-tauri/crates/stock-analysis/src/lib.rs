@@ -22,6 +22,7 @@ pub mod key_levels;
 pub mod market_regime;
 pub mod monitor;
 pub mod plugin;
+pub mod portfolio_formula;
 pub mod portfolio_monitor;
 pub mod portfolio_risk;
 pub mod position_limits;

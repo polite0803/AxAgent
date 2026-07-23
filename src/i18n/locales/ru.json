@@ -9774,6 +9774,7 @@
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
       "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "verdictOnlyLabel": "Этот участник дебатов предоставил только заключение без подробного анализа.",
       "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
@@ -9822,6 +9823,8 @@
     "confidenceHigh": "Высокая",
     "confidenceMedium": "Средняя",
     "confidenceLow": "Низкая (расхождение)",
+    "decisionConfidence": "Уверенность решения",
+    "decisionConfidenceTooltip": "Уверенность в направлении решения — независимо от бычьего/медвежьего, указывает на уверенность в направлении. Когда значение значительно выше уверенности, это указывает на медвежье решение с высокой уверенностью (например, уверенная продажа при сильной перекупленности).",
     "consensusAbbr": "Консенсус",
     "tab.market": "Market",
     "tab.analysts": "Analysts",

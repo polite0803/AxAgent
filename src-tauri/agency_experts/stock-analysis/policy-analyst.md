@@ -36,6 +36,7 @@ data_sources: [search_news, get_stock_news, get_cls_flash]
 ## 输出格式
 
 输出你的完整分析报告（自然语言，可包含Markdown表格/清单/推理过程），
+**报告正文控制在 800 字以内**，重点突出关键指标解读和风险评估，避免罗列原始数据。
 然后在**末尾另起一行**追加机读标签：
 
 ```
@@ -84,12 +85,9 @@ VERDICT标签字段说明：
 
 ## 结论
 
-当前处于震荡格局，无明确突破信号，建议观望。",
-"verdict": "中性",
-"bull_score": 40,
-"bear_score": 50,
-"confidence": 70
-}
+当前处于震荡格局，无明确突破信号，建议观望。
+
+<!-- VERDICT: {"verdict": "中性", "bull_score": 40, "bear_score": 50, "confidence": 70} -->
 
 ```
 （缺 `policy_tier` / `duration_type` / `transmission_path` / `beneficiary_type` / `trigger_*` / `evidence`；`score` 字段名错；多空没分开；没说清楚是主题还是趋势）

@@ -1,13 +1,15 @@
 import { extractLlmField } from "@/lib/agentOutput";
+import { type DecisionInputsReport, summarizeDecisionInputs } from "@/lib/decisionInputDiagnosis";
 import { invoke } from "@/lib/invoke";
 import { exportAnalysisReport } from "@/lib/stock-analysis-export";
-import type { ExportData, ExportFormat } from "@/lib/stock-analysis-export";
+import { type ExportData, type ExportFormat } from "@/lib/stock-analysis-export";
 import { computeStockConsensus } from "@/lib/stock-analysis-utils";
 import { getActionColor, getActionTKey, getRiskColor, getRiskTKey } from "@/lib/stock-analysis-utils";
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { useTimeAnchorStore } from "@/stores/feature/timeAnchorStore";
+import type { DataQualityReport } from "@/types";
 import { ExpandOutlined, FilePptOutlined, FileTextOutlined, FileWordOutlined, ReloadOutlined } from "@ant-design/icons";
-import { App, Button, Card, Dropdown, Modal, Tag, Tooltip } from "antd";
+import { App, Button, Card, Collapse, Dropdown, Modal, Tag, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +36,8 @@ export function DecisionBanner() {
   const riskAssessments = useStockAnalysisStore((s) => s.riskAssessments);
   const valueAssessments = useStockAnalysisStore((s) => s.valueAssessments);
   const dataQualitySummary = useStockAnalysisStore((s) => s.dataQualitySummary);
+  // 决策输入诊断：portfolio-mgr 16 个上游节点的数据符合度（纯前端，不持久化）
+  const decisionInputsReport = useStockAnalysisStore((s) => s.decisionInputsReport);
   const failedNodes = useStockAnalysisStore((s) => s.failedNodes);
   const dataWarnings = useStockAnalysisStore((s) => s.dataWarnings);
   const ruleCheckResults = useStockAnalysisStore((s) => s.ruleCheckResults);
@@ -130,6 +134,99 @@ export function DecisionBanner() {
     const confidencePct = Math.round(decision.confidence ?? 0);
     return { currentPrice, targetPriceNum, upside, confidencePct };
   }, [decision, stockCode, stockName, quote]);
+
+  // 解析 data-quality 节点输出的 JSON 诊断报告
+  // data-quality 是 CodeNode + Rhai，输出为 JSON 字符串（非 agent_executor 包装的 verdict 结构）
+  //
+  // 兼容两种格式：
+  //   1. 新版（2026-07-23+）：含 diagnostics/missing_analysts/low_confidence_analysts/summary
+  //   2. 旧版（仅 grade/score/gap_count 等 6 字段）：无 diagnostics，但既然用户能看到 grade F
+  //      且 gap_count=N 的"全缺失"场景，仍降级渲染一个简化的诊断面板——
+  //      把 gap_count 个分析师标记为 missing，good_count 个标 normal，让用户立即看到
+  //      "哪几个分析师实际上有数据" vs "哪几个全没数据"。
+  //   3. 解析失败或非 JSON：返回 null，不渲染。
+  const dataQualityReport = useMemo<DataQualityReport | null>(() => {
+    if (!dataQualitySummary || !dataQualitySummary.trim()) { return null; }
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(dataQualitySummary);
+    } catch {
+      return null;
+    }
+    if (!parsed || typeof parsed !== "object" || typeof parsed.grade !== "string") {
+      return null;
+    }
+
+    // 1. 新版：含 diagnostics 字段
+    if (typeof parsed.diagnostics === "object" && parsed.diagnostics !== null) {
+      return parsed as DataQualityReport;
+    }
+
+    // 2. 旧版降级：构造 10 个分析师的固定列表
+    //    前 good_count 个标 normal（按固定顺序），其余标 missing
+    //    旧版无法区分 low/normal，统一按 gap_count/missing 重建
+    const fallbackOrder: Array<{ abbr: string; name: string; expected: string }> = [
+      { abbr: "mk", name: "技术面分析师", expected: "K线形态、MACD/RSI、支撑阻力位、成交量（t-market-data）" },
+      { abbr: "sent", name: "情绪面分析师", expected: "市场情绪、资金流向、散户/机构态度（t-sentiment-data）" },
+      { abbr: "news", name: "新闻面分析师", expected: "新闻公告影响评估（t-news-data: get_stock_news）" },
+      { abbr: "fund", name: "基本面分析师", expected: "PE/PB/ROE、营收利润、资产负债（t-fundamentals-data）" },
+      { abbr: "pol", name: "政策面分析师", expected: "宏观政策与行业政策影响（t-policy-data）" },
+      {
+        abbr: "hm",
+        name: "资金面分析师",
+        expected: "游资动向、主力资金净流入（t-hotmoney-data: get_stock_money_flow）",
+      },
+      { abbr: "lk", name: "解禁观察员", expected: "解禁减持、质押风险、大宗交易（t-lockup-data）" },
+      { abbr: "res", name: "研报分析师", expected: "券商研报观点汇总、目标价（t-research-data）" },
+      { abbr: "sec", name: "行业分析师", expected: "行业景气度、轮动分析（t-sector-data）" },
+      { abbr: "cat", name: "催化剂分析师", expected: "催化剂与叙事完整度、公告关键词（t-catalyst-data）" },
+    ];
+    const totalAnalysts = Number(parsed.total_analysts) || fallbackOrder.length;
+    const goodCount = Number(parsed.good_count) || 0;
+    const gapCount = Number(parsed.gap_count) || 0;
+    const avgConf = Number(parsed.avg_confidence) || 0;
+
+    const diagnostics: Record<string, any> = {};
+    const missingList: string[] = [];
+    for (let i = 0; i < fallbackOrder.length && i < totalAnalysts; i++) {
+      const { abbr, name, expected } = fallbackOrder[i];
+      if (i < goodCount) {
+        diagnostics[abbr] = {
+          name,
+          expected_data: expected,
+          confidence: avgConf,
+          status: avgConf < 50 ? "low" : "normal",
+          gap_reason: i < goodCount && gapCount === 0 && avgConf < 50
+            ? `置信度自评 ${avgConf}（旧版数据无 detail，置信度来自平均）`
+            : "",
+        };
+      } else {
+        diagnostics[abbr] = {
+          name,
+          expected_data: expected,
+          confidence: -1,
+          status: "missing",
+          gap_reason:
+            "旧版 data-quality 输出未提供 diagnostics 字段，仅由 gap_count 推断。建议重跑分析以获取详细信息。",
+        };
+        missingList.push(name);
+      }
+    }
+
+    return {
+      grade: parsed.grade,
+      score: Number(parsed.score) || 0,
+      gap_count: gapCount,
+      good_count: goodCount,
+      avg_confidence: avgConf,
+      total_analysts: totalAnalysts,
+      diagnostics,
+      missing_analysts: missingList,
+      low_confidence_analysts: [],
+      summary:
+        `数据质量 ${parsed.grade} 级（得分 ${parsed.score}，旧版输出未提供 summary）：${gapCount} 个分析师数据缺失，${goodCount} 个有数据。建议重跑分析以获取完整的诊断信息。`,
+    };
+  }, [dataQualitySummary]);
 
   // Hooks 必须在 early return 之前 — 闭包内部自己处理 null decision
   const [exporting, setExporting] = useState<string | null>(null);
@@ -310,7 +407,8 @@ export function DecisionBanner() {
             </div>
             {stockCode
               ? (
-                <div className="mt-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {/* 全量重跑：重新执行整个 DAG */}
                   <Button
                     size="small"
                     type="primary"
@@ -324,6 +422,16 @@ export function DecisionBanner() {
                   >
                     {t("stockAnalysis.reAnalyze")}
                   </Button>
+                  {/* 仅重跑决策：从 blackboard_snapshot 恢复上游输出，只执行 portfolio-mgr。分析师/辩论/风险评估数据已完整时无需全量重跑 */}
+                  {analysisId && (
+                    <Button
+                      size="small"
+                      icon={<span>⚡</span>}
+                      onClick={() => useStockAnalysisStore.getState().rerunDecision(analysisId)}
+                    >
+                      {t("stockAnalysis.rerunDecision")}
+                    </Button>
+                  )}
                 </div>
               )
               : (
@@ -378,6 +486,20 @@ export function DecisionBanner() {
     : confidencePct >= 45
     ? "var(--sa-amber)"
     : "var(--sa-red)";
+
+  // V58: 决策方向置信度 — 当与 confidence 差异大时（看空决策被低 confidence 掩盖）展示
+  const decisionConfidencePct = decision.decisionConfidence != null
+    ? Math.round(decision.decisionConfidence)
+    : null;
+  const showDecisionConfidence = decisionConfidencePct != null
+    && Math.abs(decisionConfidencePct - confidencePct) > 15;
+  const decisionConfidenceColor = decisionConfidencePct != null
+    ? (decisionConfidencePct >= 70
+      ? "var(--sa-green)"
+      : decisionConfidencePct >= 45
+      ? "var(--sa-amber)"
+      : "var(--sa-red)")
+    : "var(--sa-amber)";
 
   // 置信度定性标签：让用户快速理解数字含义，而非只看到裸百分比
   const confidenceLabel = confidencePct >= 70
@@ -511,6 +633,21 @@ export function DecisionBanner() {
               >
                 {confidenceLabel}
               </span>
+              {/* V58: 决策方向置信度 — 看空决策 confidence 低但 decision_confidence 高时展示 */}
+              {showDecisionConfidence && decisionConfidencePct != null && (
+                <Tooltip title={t("stockAnalysis.decisionConfidenceTooltip")}>
+                  <span
+                    className="text-sm px-1.5 py-px rounded font-medium cursor-help"
+                    style={{
+                      background: `${decisionConfidenceColor}18`,
+                      color: decisionConfidenceColor,
+                      border: `1px solid ${decisionConfidenceColor}40`,
+                    }}
+                  >
+                    {t("stockAnalysis.decisionConfidence")}: {decisionConfidencePct}%
+                  </span>
+                </Tooltip>
+              )}
             </div>
             {/* 共识分数：当 dual view 分数可用时展示，帮助用户理解低置信原因 */}
             {decisionAgreementScore !== null && (
@@ -1232,6 +1369,148 @@ export function DecisionBanner() {
             : <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.noDecisionReasoning")}</span>}
         </div>
 
+        {/* 数据质量诊断面板：展示决策需要的数据 / 上游给出的数据 / 数据差距 */}
+        {dataQualityReport
+          ? (
+            <div
+              className="mb-4 p-3 rounded"
+              style={{
+                background: dataQualityReport.grade === "F" || dataQualityReport.grade === "D"
+                  ? "rgba(239, 68, 68, 0.06)"
+                  : "rgba(16, 185, 129, 0.05)",
+                borderLeft: `3px solid ${
+                  dataQualityReport.grade === "F" || dataQualityReport.grade === "D" ? "#ef4444" : "#10b981"
+                }`,
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">
+                    🔍 数据质量诊断
+                  </span>
+                  <Tag
+                    color={dataQualityReport.grade === "A" || dataQualityReport.grade === "B"
+                      ? "success"
+                      : dataQualityReport.grade === "C"
+                      ? "warning"
+                      : "error"}
+                    style={{ fontSize: 12, lineHeight: "20px", height: 20, paddingInline: 6 }}
+                  >
+                    {dataQualityReport.grade} · {dataQualityReport.score.toFixed(1)}
+                  </Tag>
+                </div>
+                <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
+                  {dataQualityReport.good_count}/{dataQualityReport.total_analysts} 高置信 · 平均{" "}
+                  {dataQualityReport.avg_confidence.toFixed(1)}
+                </span>
+              </div>
+              <div className="text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                {dataQualityReport.summary}
+              </div>
+              <Collapse
+                ghost
+                defaultActiveKey={dataQualityReport.grade === "F" || dataQualityReport.grade === "D" ? ["diag"] : []}
+                items={[{
+                  key: "diag",
+                  label: <span className="text-sm" style={{ color: "var(--muted)" }}>分析师数据差距详情</span>,
+                  children: (
+                    <div className="overflow-x-auto">
+                      <table className="text-xs w-full" style={{ borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>分析师</th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>预期数据</th>
+                            <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>置信度</th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>状态</th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>差距原因</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(dataQualityReport.diagnostics).map(([key, diag]) => {
+                            const statusColor = diag.status === "missing"
+                              ? "#ef4444"
+                              : diag.status === "low"
+                              ? "#f59e0b"
+                              : "#10b981";
+                            const statusLabel = diag.status === "missing"
+                              ? "❌ 缺失"
+                              : diag.status === "low"
+                              ? "⚠️ 低置信"
+                              : "✅ 正常";
+                            const confText = diag.confidence < 0
+                              ? "—"
+                              : `${diag.confidence.toFixed(0)}`;
+                            return (
+                              <tr
+                                key={key}
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                <td className="py-1.5 px-2 font-medium">{diag.name}</td>
+                                <td className="py-1.5 px-2" style={{ color: "var(--color-text-secondary)" }}>
+                                  {diag.expected_data}
+                                </td>
+                                <td
+                                  className="py-1.5 px-2 text-right font-mono"
+                                  style={{ color: diag.confidence < 0 ? "var(--muted)" : statusColor }}
+                                >
+                                  {confText}
+                                </td>
+                                <td className="py-1.5 px-2" style={{ color: statusColor }}>
+                                  {statusLabel}
+                                </td>
+                                <td className="py-1.5 px-2" style={{ color: "var(--color-text-secondary)" }}>
+                                  {diag.gap_reason || "—"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ),
+                }]}
+              />
+            </div>
+          )
+          : (
+            // dataQualityReport 为 null（解析失败/旧版输出）时显示原始数据片段
+            // 方便用户/开发者一眼看出是"空"还是"格式不匹配"还是"字段缺失"
+            <div
+              className="mb-4 p-2 rounded text-xs"
+              style={{ background: "var(--surface)", borderLeft: "3px solid var(--sa-amber, #f59e0b)" }}
+            >
+              <div className="font-semibold mb-1" style={{ color: "#f59e0b" }}>
+                ⚠️ 数据质量诊断未渲染
+              </div>
+              <div style={{ color: "var(--muted)" }}>
+                dataQualitySummary 长度:
+                <span className="font-mono ml-1">{dataQualitySummary.length}</span>
+                {dataQualitySummary.length > 0 && (
+                  <>
+                    <span className="ml-2">前 200 字符:</span>
+                    <pre
+                      className="mt-1 p-2 rounded font-mono"
+                      style={{ background: "var(--background)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}
+                    >
+                      {dataQualitySummary.slice(0, 200)}
+                      {dataQualitySummary.length > 200 ? "..." : ""}
+                    </pre>
+                  </>
+                )}
+                {dataQualitySummary.length === 0 && (
+                  <div className="mt-1">（空字符串 — store 未填充 dataQualitySummary 字段）</div>
+                )}
+              </div>
+            </div>
+          )}
+
+        {/* 决策输入诊断面板：展示 portfolio-mgr 实际消费的 16 个上游节点的数据符合度 */}
+        {
+          /* 与上方"数据质量诊断"互补：那个只看 10 个分析师的 LLM 输出质量（data-quality 节点视角），
+            这个看所有决策输入节点（含辩手/trader/风控/算法工具等）的数据完整性（portfolio-mgr 视角） */
+        }
+        {decisionInputsReport.length > 0 && <DecisionInputsDiagPanel report={decisionInputsReport} />}
+
         {/* [Phase 2 step 10] Modal 内分歧时 LLM 对比标注 */}
         {decisionAgreementScore !== null && decisionAgreementScore < disagreementThreshold && llmSummary && (
           <div
@@ -1291,5 +1570,143 @@ export function DecisionBanner() {
         </div>
       </Modal>
     </>
+  );
+}
+
+// ── 决策输入诊断面板：展示 portfolio-mgr 16 个上游节点的数据符合度 ──
+// 纯前端展示组件，数据来自 store.decisionInputsReport（不持久化）
+// 按 factor 分组渲染，颜色标注 missing/low/untrusted/normal 四种状态
+function DecisionInputsDiagPanel({ report }: { report: DecisionInputsReport }) {
+  const summary = useMemo(() => summarizeDecisionInputs(report), [report]);
+  // 按 factor 分组
+  const grouped = useMemo(() => {
+    const m = new Map<string, typeof report>();
+    for (const item of report) {
+      const arr = m.get(item.factor) ?? [];
+      arr.push(item);
+      m.set(item.factor, arr);
+    }
+    return Array.from(m.entries());
+  }, [report]);
+
+  const hasIssue = summary.missing > 0 || summary.low > 0 || summary.untrusted > 0;
+  const bgColor = hasIssue ? "rgba(239, 68, 68, 0.04)" : "rgba(16, 185, 129, 0.04)";
+  const borderColor = hasIssue ? "#ef4444" : "#10b981";
+
+  return (
+    <div
+      className="mb-4 p-3 rounded"
+      style={{ background: bgColor, borderLeft: `3px solid ${borderColor}` }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">📋 决策输入诊断</span>
+          <Tag
+            color={hasIssue ? "error" : "success"}
+            style={{ fontSize: 12, lineHeight: "20px", height: 20, paddingInline: 6 }}
+          >
+            {summary.normal}/{summary.total} 正常
+          </Tag>
+        </div>
+        <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
+          {summary.missing > 0 && <span style={{ color: "#ef4444" }}>缺失 {summary.missing} ·</span>}
+          {summary.low > 0 && <span style={{ color: "#f59e0b" }}>低置信 {summary.low} ·</span>}
+          {summary.untrusted > 0 && <span style={{ color: "#ef4444" }}>兜底 {summary.untrusted} ·</span>}
+          <span>共 {summary.total} 项</span>
+        </span>
+      </div>
+      <Collapse
+        ghost
+        defaultActiveKey={hasIssue ? ["inputs-diag"] : []}
+        items={[{
+          key: "inputs-diag",
+          label: <span className="text-sm" style={{ color: "var(--muted)" }}>按因子分组查看</span>,
+          children: (
+            <div className="overflow-x-auto">
+              <table className="text-xs w-full" style={{ borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>因子</th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>节点</th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>角色</th>
+                    <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>权重</th>
+                    <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>置信度</th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>方向/值</th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>状态</th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>备注</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grouped.map(([factor, items]) => (
+                    items.map((item, idx) => {
+                      const statusColor = item.status === "missing" || item.status === "untrusted"
+                        ? "#ef4444"
+                        : item.status === "low"
+                        ? "#f59e0b"
+                        : "#10b981";
+                      const statusLabel = item.status === "missing"
+                        ? "❌ 缺失"
+                        : item.status === "untrusted"
+                        ? "⚠️ 兜底"
+                        : item.status === "low"
+                        ? "⚠️ 低置信"
+                        : "✅ 正常";
+                      const confText = item.confidence === null
+                        ? "—"
+                        : `${item.confidence.toFixed(0)}`;
+                      const weightText = item.weight === null
+                        ? "—"
+                        : `${(item.weight * 100).toFixed(0)}%`;
+                      return (
+                        <tr
+                          key={`${item.nodeId}-${idx}`}
+                          style={{
+                            borderBottom: idx === items.length - 1
+                              ? "2px solid var(--border)"
+                              : "1px solid var(--border)",
+                          }}
+                        >
+                          {idx === 0 && (
+                            <td
+                              className="py-1.5 px-2 font-medium align-top"
+                              rowSpan={items.length}
+                              style={{ color: "var(--color-text-secondary)" }}
+                            >
+                              {factor}
+                            </td>
+                          )}
+                          <td className="py-1.5 px-2 font-mono" style={{ color: "var(--muted)" }}>
+                            {item.nodeId}
+                          </td>
+                          <td className="py-1.5 px-2">{item.role}</td>
+                          <td className="py-1.5 px-2 text-right font-mono" style={{ color: "var(--muted)" }}>
+                            {weightText}
+                          </td>
+                          <td
+                            className="py-1.5 px-2 text-right font-mono"
+                            style={{ color: item.confidence === null ? "var(--muted)" : statusColor }}
+                          >
+                            {confText}
+                          </td>
+                          <td className="py-1.5 px-2" style={{ color: "var(--color-text-secondary)" }}>
+                            {item.stance || "—"}
+                          </td>
+                          <td className="py-1.5 px-2" style={{ color: statusColor }}>
+                            {statusLabel}
+                          </td>
+                          <td className="py-1.5 px-2" style={{ color: "var(--color-text-secondary)" }}>
+                            {item.note || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ),
+        }]}
+      />
+    </div>
   );
 }

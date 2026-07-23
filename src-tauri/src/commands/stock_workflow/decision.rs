@@ -479,6 +479,22 @@ pub(crate) fn extract_llm_decision_json(wf: &Workflow) -> Option<String> {
             if let Some(content_str) = obj.get("content").and_then(|v| v.as_str()) {
                 // 解析 content 内层 JSON 字符串为 JSON 对象，再序列化
                 if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(content_str) {
+                    // V60 修复: 展开 report 字段的嵌套 JSON
+                    // LLM 可能输出 {report: '{...}'} 格式，实际决策数据（verdict/currentPrice/confidence 等）
+                    // 在 report 值的 JSON 字符串内部。将其展开到顶层，使前端 extractLlmField 能直接读取。
+                    if let Some(report_str) = parsed.get("report").and_then(|v| v.as_str()) {
+                        if let Ok(report_parsed) =
+                            serde_json::from_str::<serde_json::Value>(report_str)
+                        {
+                            if let Some(report_obj) = report_parsed.as_object() {
+                                let obj = parsed.as_object_mut().expect("parsed is already Object");
+                                for (k, v) in report_obj {
+                                    // 不覆盖顶层已有的同名字段
+                                    obj.entry(k).or_insert_with(|| v.clone());
+                                }
+                            }
+                        }
+                    }
                     // V46 修复: 标准化 LLM 输出的 action 字段
                     // trader prompt 规定 action ∈ {买入,增持,持有,减持,卖出,观望},
                     // 但 LLM 可能输出"不确定""未知"等非标准值（尤其是当数据矛盾时
@@ -1288,7 +1304,69 @@ pub async fn rerun_decision(
     // 256 为该脚本实测所需下限(48)的 ~5 倍余量；执行总操作数仍受 set_max_operations 约束。
     engine.set_max_expr_depths(256, 256);
     axagent_rt_workflow::work_engine::executors::register_common_functions(&mut engine);
+    // ── P3-1: 注册 portfolio 公式函数（替代 Rhai 内联计算）──
+    // 这些函数定义在 stock-analysis::portfolio_formula，纯数学、无副作用。
+    use axagent_stock_analysis::portfolio_formula;
+    engine.register_fn("pm_evidence_scale", |total_weight: f64, max_weight: f64| -> f64 {
+        portfolio_formula::compute_evidence_scale(total_weight, max_weight)
+    });
+    engine.register_fn(
+        "pm_kelly_position",
+        |posterior: f64, odds: f64, cost_pct: f64, risk_level: &str| -> f64 {
+            portfolio_formula::compute_kelly_position(posterior, odds, cost_pct, risk_level)
+        },
+    );
+    engine.register_fn(
+        "pm_classify_risk",
+        |vol: Option<f64>,
+         sharpe: Option<f64>,
+         dd: Option<f64>,
+         roe: Option<f64>,
+         debt: Option<f64>,
+         growth: Option<f64>|
+         -> String { portfolio_formula::classify_risk(vol, sharpe, dd, roe, debt, growth) },
+    );
+    engine.register_fn("pm_risk_bias", |risk_level: &str| -> f64 {
+        portfolio_formula::compute_risk_bias(risk_level)
+    });
+    engine.register_fn("pm_risk_veto", |action: &str, risk_level: &str| -> String {
+        let (new_action, _, _) = portfolio_formula::apply_risk_veto(action, risk_level);
+        new_action
+    });
+    engine.register_fn(
+        "pm_covariance_decay",
+        |f1_w: f64, f3_w: f64, f9_w: f64, f11_w: f64, decay_target: &str| -> f64 {
+            let (f9, f11) = portfolio_formula::apply_covariance_decay(f1_w, f3_w, f9_w, f11_w);
+            match decay_target {
+                "f9" => f9,
+                "f11" => f11,
+                _ => 0.0,
+            }
+        },
+    );
     let mut scope = Scope::new();
+
+    // ── Gap 2: 注入近期 lessons（reflection_lessons 活跃规则）──
+    // 让 portfolio-mgr.rhai 在决策时知道最近哪些股票犯过错。
+    // lessons 按 confidence 降序取前 10 条，打包为 JSON 注入。
+    {
+        use axagent_entities::reflection_lessons;
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+        let recent_lessons: Vec<String> = reflection_lessons::Entity::find()
+            .filter(reflection_lessons::Column::Status.eq("active"))
+            .filter(reflection_lessons::Column::Confidence.gt(0.5))
+            .order_by(reflection_lessons::Column::Confidence, sea_orm::Order::Desc)
+            .limit(10)
+            .all(db)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|l| l.lesson_summary)
+            .collect();
+        let lessons_json = serde_json::to_string(&recent_lessons).unwrap_or_else(|_| "[]".into());
+        scope.push_constant("recent_lessons", lessons_json);
+        tracing::debug!("[rerun_decision] Gap2: 注入 {} 条 lessons 到 scope", recent_lessons.len());
+    }
 
     // 简化版 resolve_var_path：导航 JSON 嵌套（支持 JSON 字符串自动解析）
     fn resolve_path(
@@ -1601,6 +1679,7 @@ pub async fn rerun_decision(
     Ok(json!({
         "analysis_id": analysis_id,
         "decision": decision_value,
+        "llm_decision_json": analysis.llm_decision_json,
         "dashboardReport": dashboard_report,
         "dashboardMd": dashboard_md,
     }))

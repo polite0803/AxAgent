@@ -361,6 +361,7 @@ impl StockVendor for SinaVendor {
             large_net: r1_in - r1_out,
             medium_net: r2_in - r2_out,
             small_net: r3_in - r3_out,
+            history: Vec::new(),
         }))
     }
 

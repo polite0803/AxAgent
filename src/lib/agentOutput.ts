@@ -298,6 +298,15 @@ export function normalizeDecision(raw: Record<string, unknown>): StockDecision |
   const reasoning = String(source.reasoning ?? "");
   const riskLevel = parseRiskLevel(source.riskLevel ?? source.risk_level);
   const confidence = Math.round(Math.max(0, Math.min(100, Number(source.confidence ?? 0))));
+  // V58: 决策方向置信度 + 信号强度（向后兼容，旧数据无此字段时为 null）
+  const decisionConfidenceRaw = source.decisionConfidence ?? source.decision_confidence;
+  const decisionConfidence = decisionConfidenceRaw != null
+    ? Math.round(Math.max(0, Math.min(100, Number(decisionConfidenceRaw))))
+    : null;
+  const signalStrengthRaw = source.signalStrength ?? source.signal_strength;
+  const signalStrength = signalStrengthRaw != null
+    ? Math.round(Math.max(0, Math.min(100, Number(signalStrengthRaw))))
+    : null;
   const timeHorizon = String(source.timeHorizon ?? source.time_horizon ?? "") || null;
   const expectedHoldingDays = source.expectedHoldingDays != null
     ? Number(source.expectedHoldingDays)
@@ -318,6 +327,8 @@ export function normalizeDecision(raw: Record<string, unknown>): StockDecision |
     reasoning,
     riskLevel,
     confidence,
+    decisionConfidence,
+    signalStrength,
     timeHorizon: timeHorizon || null,
     expectedHoldingDays: expectedHoldingDays != null && !isNaN(expectedHoldingDays) ? expectedHoldingDays : null,
     targetTimeframe: targetTimeframe || null,
@@ -498,6 +509,15 @@ export function extractLlmField(llmDecisionJson: string | null, field: string): 
       const inner = parseJsonLoose(parsed.content);
       if (inner && inner[field] !== undefined && inner[field] !== null) {
         return inner[field];
+      }
+    }
+    // V60 修复: 展开 report 字段的嵌套 JSON
+    // LLM 可能输出 {report: '{verdict, currentPrice, confidence, ...}'} 格式，
+    // 实际决策字段在 report 值的 JSON 字符串内部。
+    if (typeof parsed.report === "string" && parsed.report.length > 0) {
+      const reportParsed = parseJsonLoose(parsed.report);
+      if (reportParsed && reportParsed[field] !== undefined && reportParsed[field] !== null) {
+        return reportParsed[field];
       }
     }
     return null;

@@ -7,6 +7,7 @@ import {
   parseJsonLoose,
   tryParseDecision,
 } from "@/lib/agentOutput";
+import { buildDecisionInputsReport, type DecisionInputsReport } from "@/lib/decisionInputDiagnosis";
 import { invoke, listen } from "@/lib/invoke";
 import type { UnlistenFn } from "@/lib/invoke";
 import { computeStockConsensus, parseAction, parseRiskLevel } from "@/lib/stock-analysis-utils";
@@ -135,8 +136,20 @@ function parseWorkflowResults(results: Record<string, unknown>) {
     } else if (stepId === "rule-check") {
       ruleCheckResults[stepId] = output;
     } else if (stepId === "data-quality") {
-      // 整个工作流只产出一条 data-quality 报告，直接覆盖即可
-      dataQualitySummary = output;
+      // V41 修复: data-quality 是 CodeNode + RHAI，原始 raw 形如
+      //   {status, language, result: {grade, score, diagnostics, ...}, input_params, node_id, params}
+      // extractContent 收到的 raw 会 JSON.stringify 整个包装对象，让 output 变成包装对象的 JSON。
+      // 真正的诊断报告在 raw.result 字段中，DecisionBanner 解析时找不到顶层 grade 字段
+      // （grade 在嵌套的 .result 里）→ 返回 null → 触发"数据质量诊断未渲染"降级面板。
+      // 优先从 raw.result 提取，让 store 存的是纯诊断报告 JSON。
+      let content = output;
+      if (raw && typeof raw === "object") {
+        const r = raw as Record<string, unknown>;
+        if (r.result != null) {
+          content = typeof r.result === "string" ? r.result : JSON.stringify(r.result);
+        }
+      }
+      dataQualitySummary = content;
     } else if (stepId === "raw-data") {
       rawData[stepId] = output;
     }
@@ -307,6 +320,12 @@ interface StockAnalysisState {
   dashboardMd: string | null;
   /** V55: 跟踪哪些 AgentNode 触发了 strict_mode 兜底（LLM 输出无法解析为合法 JSON） */
   untrustedNodes: Record<string, true>;
+  /**
+   * 决策输入诊断报告：纯前端从 workflow results / blackboard snapshot 提取的
+   * portfolio-mgr 16 个上游节点数据符合度。不持久化，只在 workflow-completed
+   * 和 loadAnalysis 时填充，供 DecisionBanner 展示给用户检查决策数据是否齐全。
+   */
+  decisionInputsReport: DecisionInputsReport;
   error: string | null;
   errorCode: string | null;
   failedNodes: string[];
@@ -524,6 +543,7 @@ const initialState = {
   // 后端会在 NodeOutput.output.__untrusted=true 标记，前端提取后存到 untrustedNodes
   // 用于显示红色"数据异常"警告横幅，避免 50/50 兜底被当成有效信号。
   untrustedNodes: {} as Record<string, true>,
+  decisionInputsReport: [] as DecisionInputsReport,
   error: null,
   errorCode: null,
   failedNodes: [],
@@ -746,6 +766,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       timeline: [],
       // 清理跨分析轮次缓存，防止上轮数据污染
       stockCodeConsensus: {},
+      decisionInputsReport: [],
     });
 
     // 先拉取工作流模板（getDryRun），再注册事件监听
@@ -893,6 +914,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       decisionAgreementScore: null,
       dashboardReport: null,
       dashboardMd: null,
+      decisionInputsReport: [],
     });
 
     const record = await invoke<
@@ -1097,7 +1119,13 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         let dataQuality = "";
         for (const [key, value] of Object.entries(snap)) {
           if (key.startsWith("report.")) {
-            reports[key.slice(7)] = String(value);
+            // 统一与 live 模式 (handleAnalystReport / parseWorkflowResults) 保持一致：
+            // 分析师节点 (a-*) 存入 analystReports 时去掉 a- 前缀，
+            // grid 的 `const expertId = nodeId.slice(2)` 才能正确命中。
+            // trader 节点后端映射为 report.investment-plan，已是非 a- 前缀，保留不变。
+            const rawKey = key.slice(7);
+            const normKey = rawKey.startsWith("a-") ? rawKey.slice(2) : rawKey;
+            reports[normKey] = String(value);
           } else if (key.startsWith("debate.bull.round_")) {
             const round = parseInt(key.slice("debate.bull.round_".length));
             const bearKey = `debate.bear.round_${round}`;
@@ -1126,7 +1154,22 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           } else if (key.startsWith("rule_check.")) {
             ruleChecks[key.slice("rule_check.".length)] = String(value);
           } else if (key === "data_quality_summary") {
-            dataQuality = String(value);
+            // V41 修复: 旧版 snapshot 可能是 CodeNode 包装对象
+            //   {status, language, result: {grade, score, ...}, input_params, node_id, params}
+            // 直接 String(对象) 会得到 "[object Object]"（15 字符），导致 DecisionBanner
+            // 解析失败触发"数据质量诊断未渲染"降级面板。
+            // 兼容三种格式：
+            //   1. CodeNode 包装对象 → 提取 .result 字段并 JSON.stringify
+            //   2. 已序列化的 JSON 字符串（新版 blackboard.rs 写入）→ 保留原样
+            //   3. 其他对象 → JSON.stringify 避免 "[object Object]"
+            let v: unknown = value;
+            if (v && typeof v === "object" && !Array.isArray(v)) {
+              const obj = v as Record<string, unknown>;
+              if (obj.result != null) {
+                v = obj.result;
+              }
+            }
+            dataQuality = typeof v === "string" ? v : JSON.stringify(v ?? "");
           } else if (key.startsWith("raw.")) {
             raws[key.slice(4)] = String(value);
           }
@@ -1201,6 +1244,30 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         // bull-r1/bull-r2/bull-r3 三个键在 JSON 字符串里可能是 3/1/2 这种乱序。
         // 这里强制按 round 数字升序排序,保证前端 DebatePanel 按 1→2→3 顺序渲染。
         debates.sort((a, b) => a.round - b.round);
+        // 决策输入诊断：把 snap 的 blackboard 键名归一化为 nodeId,
+        // 再传给 buildDecisionInputsReport 提取 16 个 portfolio-mgr 上游节点的数据符合度
+        const normalizedSnap: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(snap)) {
+          let nodeId = key;
+          if (key === "report.investment-plan") {
+            nodeId = "trader";
+          } else if (key === "data_quality_summary") {
+            nodeId = "data-quality";
+          } else if (key.startsWith("report.")) {
+            nodeId = key.slice(7);
+          }
+          // snap 的 value 是 string（已序列化的 JSON），尝试 parse 成对象让诊断函数能取字段
+          if (typeof value === "string") {
+            try {
+              normalizedSnap[nodeId] = JSON.parse(value);
+            } catch {
+              normalizedSnap[nodeId] = value;
+            }
+          } else {
+            normalizedSnap[nodeId] = value;
+          }
+        }
+        const decisionInputsReport = buildDecisionInputsReport(normalizedSnap, {});
         set({
           analystReports: reports,
           debateRounds: debates,
@@ -1210,6 +1277,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           dataQualitySummary: dataQuality,
           rawData: raws,
           dataWarnings: [],
+          decisionInputsReport,
         });
 
         // 历史分析回放：也缓存一次共识，让 RecommendationPanel 能用
@@ -1231,6 +1299,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       const result = await invoke<{
         analysis_id: string;
         decision: Record<string, unknown>;
+        llm_decision_json: string | null;
         dashboardReport?: DashboardReport | null;
         dashboardMd?: string | null;
       }>(
@@ -1247,6 +1316,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         action,
         positionPct: Number(d.positionPct ?? 0),
         confidence: Number(d.confidence ?? 0),
+        decisionConfidence: d.decisionConfidence != null ? Number(d.decisionConfidence) : null,
+        signalStrength: d.signalStrength != null ? Number(d.signalStrength) : null,
         riskLevel,
         stopLoss: Number(d.stopLossPct ?? 0),
         targetPrice: null,
@@ -1255,8 +1326,62 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         expectedHoldingDays: Number(d.expectedHoldingDays ?? 0),
         targetTimeframe: String(d.targetTimeframe ?? "1m"),
       };
+      // 恢复 LLM 决策（trader 原始输出，rerun 不重跑 LLM 节点，从 DB 读回旧值）
+      const llmDecisionJson = result.llm_decision_json ?? null;
+      // 重算公式 vs LLM 一致性分数（新公式决策 vs 旧 LLM 决策）
+      let decisionAgreementScore: number | null = null;
+      if (llmDecisionJson) {
+        try {
+          const ljAction = extractLlmField(llmDecisionJson, "action") as string | null;
+          const ljStance = extractLlmField(llmDecisionJson, "stance") as string | null;
+          const ljPositionPct = extractLlmField(llmDecisionJson, "positionPct") as number | null;
+          const ljConfidence = extractLlmField(llmDecisionJson, "confidence") as number | null;
+          const norm = (s: string) => s.trim().toLowerCase().replace(/[\s/_\u3000]+/g, "");
+          // action 一致性 (50分)
+          const fa = d.action ? norm(String(d.action)) : null;
+          const laRaw = ljAction ?? ljStance;
+          const la = laRaw ? norm(laRaw) : null;
+          const isBuy = (s: string) => s.includes("买") || s.includes("增持");
+          const isSell = (s: string) => s.includes("卖") || s.includes("减持");
+          const isHold = (s: string) => s === "持有";
+          const isWatch = (s: string) => s === "观望";
+          const isUncertain = (s: string) => s.includes("不确定") || s.includes("未知");
+          let actionScore = 25;
+          if (fa && la) {
+            if (fa === la) { actionScore = 50; }
+            else if (isBuy(fa) && isBuy(la)) { actionScore = 35; }
+            else if (isSell(fa) && isSell(la)) { actionScore = 35; }
+            else if ((isHold(fa) && isWatch(la)) || (isHold(la) && isWatch(fa))) { actionScore = 15; }
+            else if ((isHold(fa) || isWatch(fa)) && isUncertain(la)) { actionScore = 5; }
+            else if ((isHold(la) || isWatch(la)) && isUncertain(fa)) { actionScore = 5; }
+            else if (isWatch(fa) && isUncertain(la) || isWatch(la) && isUncertain(fa)) { actionScore = 10; }
+            else { actionScore = 0; }
+          }
+          // positionPct 一致性 (30分)
+          const fp = typeof d.positionPct === "number" ? d.positionPct : null;
+          const lp = ljPositionPct;
+          let posScore = 15;
+          if (fp !== null && lp !== null) {
+            const diff = Math.abs(fp - lp);
+            posScore = diff <= 5 ? 30 : diff <= 15 ? 20 : diff <= 30 ? 10 : 0;
+          }
+          // confidence 一致性 (20分)
+          const fc = typeof d.confidence === "number" ? d.confidence : null;
+          const lc = ljConfidence;
+          let confScore = 10;
+          if (fc !== null && lc !== null) {
+            const diff = Math.abs(fc - lc);
+            confScore = diff <= 0.1 ? 20 : diff <= 0.2 ? 15 : diff <= 0.4 ? 8 : 0;
+          }
+          decisionAgreementScore = Math.round(actionScore + posScore + confScore);
+        } catch (_e) {
+          // 静默忽略一致性计算失败
+        }
+      }
       set({
         decision,
+        llmDecisionJson,
+        decisionAgreementScore,
         status: "completed",
         error: null,
         dataWarnings: [],
@@ -1677,7 +1802,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     }
 
     /** 按节点类型路由输出到对应 store 字段 */
-    function routeNodeOutput(nodeId: string, text: string): void {
+    // V41 修复: 新增 rawOutput 参数，让 CodeNode 节点（data-quality / rule-check 等）
+    // 能从包装对象 {status, language, result, ...} 中提取真正的 result 字段，
+    // 避免 store 存的是包装对象的 JSON 字符串（深嵌套一层，导致 DecisionBanner 解析失败）。
+    function routeNodeOutput(nodeId: string, text: string, rawOutput?: unknown): void {
       const s = get();
       if (handleAnalystReport(nodeId, text)) { return; }
 
@@ -1703,10 +1831,24 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       } else if (nodeId === "value-investor") {
         set({ valueAssessments: { ...s.valueAssessments, [nodeId]: text } });
       } else if (nodeId === "data-quality") {
-        set({ dataQualitySummary: text });
+        // V41 修复: data-quality 是 CodeNode + Rhai，原始 output 形如
+        //   {status, language, result: {grade, score, diagnostics, ...}, input_params, node_id, params}
+        // extractContent 收到的 raw 会 JSON.stringify 整个包装对象，让 text 变成包装对象的 JSON。
+        // 真正的诊断报告在 raw.result 字段中，DecisionBanner 用 JSON.parse(text) 解析时找不到顶层
+        // grade 字段（grade 在嵌套的 .result 里）→ 返回 null → 触发"数据质量诊断未渲染"降级面板。
+        // 这里优先从 rawOutput 提取 result，让 store 存的是纯诊断报告 JSON。
+        let content = text;
+        const raw = (rawOutput ?? null) as Record<string, unknown> | null;
+        if (raw && typeof raw === "object" && raw.result != null) {
+          const r = raw.result;
+          content = typeof r === "string" ? r : JSON.stringify(r);
+        }
+        set({ dataQualitySummary: content });
       } else if (nodeId === "raw-data") {
         set({ rawData: { ...s.rawData, [nodeId]: text } });
       } else if (nodeId === "rule-check") {
+        // rule-check 是 AgentNode（LLM 调用），输出是 AgentResult 包装 {role, content, ...}，
+        // extractContent 已经从 .content 字段取出 LLM 输出的 JSON 字符串，text 已是正确内容。
         set({ ruleCheckResults: { ...s.ruleCheckResults, [nodeId]: text } });
       }
     }
@@ -1785,7 +1927,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             }
           }
 
-          routeNodeOutput(nodeId, text);
+          routeNodeOutput(nodeId, text, output);
         }
       });
       unlisteners.push(u1);
@@ -1949,6 +2091,9 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           rawData: { ...s.rawData, ...parsed.rawData },
           // V55: 合并 strict_mode 兜底节点标记（用于红色"数据异常"警告横幅）
           untrustedNodes: { ...s.untrustedNodes, ...parsed.untrustedNodes },
+          // 决策输入诊断：从 workflow results 提取 portfolio-mgr 上游 16 个节点的数据符合度
+          // 不持久化，纯前端展示，让用户检查决策数据是否齐全
+          decisionInputsReport: buildDecisionInputsReport(results, parsed.untrustedNodes),
           decision,
           llmDecisionJson,
           decisionAgreementScore,

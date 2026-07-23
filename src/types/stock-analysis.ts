@@ -134,6 +134,10 @@ export interface StockDecision {
   reasoning: string;
   riskLevel: StockRiskLevelType;
   confidence: number;
+  /** 决策方向置信度 (0-100) — 无论买卖方向都体现"多确信"。解决看空决策 confidence 偏低被误读为"不确信" */
+  decisionConfidence?: number | null;
+  /** 信号强度 (0-100) — 偏离中性的程度，0=完全中性，100=极端强信号 */
+  signalStrength?: number | null;
   /** 时间维度: "ultra_short" | "short" | "mid" | "long" */
   timeHorizon?: string | null;
   /** 期望持有天数（交易日） */
@@ -252,6 +256,38 @@ export interface AgreementBreakdown {
   positionGap: number | null;
   confidenceGap: number | null;
   conflictType: string;
+}
+
+/** 单个分析师的数据质量诊断条目（对应 data-quality.rhai 的 diagnostics[field]） */
+export interface DataQualityDiagItem {
+  /** 中文角色名，如"技术面分析师" */
+  name: string;
+  /** 该分析师预期消费的数据来源（静态描述） */
+  expected_data: string;
+  /** 实际 confidence 值；-1 表示字段缺失/节点失败 */
+  confidence: number;
+  /** "missing" | "low" | "normal" */
+  status: "missing" | "low" | "normal";
+  /** 缺失或低置信的具体原因（正常时为空字符串） */
+  gap_reason: string;
+}
+
+/** data-quality 节点输出的结构化诊断报告（data-quality.rhai 输出 JSON） */
+export interface DataQualityReport {
+  grade: "A" | "B" | "C" | "D" | "F";
+  score: number;
+  gap_count: number;
+  good_count: number;
+  avg_confidence: number;
+  total_analysts: number;
+  /** 各分析师详细诊断，键为缩写（mk/sent/news/...） */
+  diagnostics: Record<string, DataQualityDiagItem>;
+  /** 缺失分析师中文名列表 */
+  missing_analysts: string[];
+  /** 低置信度分析师中文名列表 */
+  low_confidence_analysts: string[];
+  /** 人类可读的总结文本 */
+  summary: string;
 }
 
 export interface AnalysisSummary {

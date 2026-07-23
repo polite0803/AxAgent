@@ -292,9 +292,12 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "fundamentals-analyst",
         &[
-            // 注：上游 t-fundamentals-data 用 get_fundamentals_report_markdown（预聚合），
-            // 保留 get_stock_financials 供 LLM 做更细颗粒分析（非重复）。
-            "get_stock_financials",
+            // V63 修复(2026-07-23): 移除 get_stock_financials——上游 t-fundamentals-data
+            // 用 get_fundamentals_report_markdown 已预聚合所有关键财务指标（含
+            // PE/PB/ROE/毛利率/净利率/资产负债率/FCF收益率/同比增速 + 商誉/应收账款）。
+            // LLM 再调 get_stock_financials 会返回多期原始财报 JSON（每期 ~20 字段），
+            // 与预聚合报告数据重复 → input tokens 膨胀 → output 超 max_tokens 截断 →
+            // VERDICT 标签被切掉。与 a-market-analyst 移除 get_stock_kline 同一模式。
             "compute_valuation",
             "get_stock_consensus_eps",
             "get_stock_institutional_visits",
@@ -316,21 +319,27 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
     (
         "lockup-watcher",
         &[
-            // P0 修复(2026-07-22): 移除 get_stock_lockup_bundle——上游 t-lockup-data 已获取。
-            "get_stock_lockup",
-            "get_stock_shareholder_trades",
+            // V63 修复(2026-07-23): 移除 get_stock_lockup / get_stock_shareholder_trades /
+            //   get_stock_block_trades——上游 t-lockup-data 调用 get_stock_lockup_bundle
+            //   已返回 {lockup_schedule, shareholder_trades, block_trades} 三个字段的
+            //   bundled JSON。LLM 再分别调用这三个工具会获取完全相同的数据，
+            //   三份重复 JSON 注入 messages → input tokens 膨胀 3 倍 → output 截断。
+            // 保留 get_stock_margin_data（bundle 不含融资融券）和
+            //   get_stock_announcements（bundle 不含公告）作为补充数据源。
             "get_stock_margin_data",
             "get_stock_announcements",
-            "get_stock_block_trades",
             "search_stock",
         ],
     ),
     (
         "research-analyst",
         &[
-            // P0 修复(2026-07-22): 移除 get_stock_research_reports——上游 t-research-data 已获取。
+            // V63 修复(2026-07-23): 移除 get_stock_financials——研报分析师的核心数据是
+            // 上游 t-research-data 预拉的研报列表（含分析师评级/EPS预测/目标价），
+            // 不需要原始财报 JSON。get_stock_financials 返回多期原始财报（每期 ~20 字段），
+            // 与研报中的财务预测数据重复 → input tokens 膨胀 → output 截断 → VERDICT 丢失。
+            // 与 fundamentals-analyst 移除 get_stock_financials 同一模式。
             "get_stock_consensus_eps",
-            "get_stock_financials",
             "get_stock_news",
             "get_stock_institutional_visits",
             "search_stock",

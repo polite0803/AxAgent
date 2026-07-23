@@ -344,6 +344,7 @@ impl StockVendor for BrowserEastMoneyVendor {
                     large_net: if parts.len() > 3 { parse(3) } else { 0.0 },
                     medium_net: if parts.len() > 4 { parse(4) } else { 0.0 },
                     small_net: if parts.len() > 5 { parse(5) } else { 0.0 },
+                    history: Vec::new(),
                 }))
             },
             _ => Ok(None),

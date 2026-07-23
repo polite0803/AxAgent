@@ -176,13 +176,15 @@ impl ValueInvestingEngine {
         };
         let fcf_per_share = fcf / shares / 1_0000_0000.0;
 
-        let base_g = growth_rate.unwrap_or(0.08).max(0.0);
-        let base_p = perpetual_rate.unwrap_or(0.03);
-        let base_d = discount_rate.unwrap_or(0.10);
+        let base_g = growth_rate.unwrap_or(0.12).max(0.0);
+        let base_p = perpetual_rate.unwrap_or(0.04);
+        let base_d = discount_rate.unwrap_or(0.085);
+        // low 端从 growth×0.6 调整为 growth×0.7，避免过度悲观
+        // （原 ×0.6 会让 low 估值只有 mid 的 60% 左右，加剧系统性低估）
         let low = Self::dcf_two_stage(
             fcf_per_share,
-            (base_g * 0.6).max(0.01),
-            (base_p * 0.7).max(0.01),
+            (base_g * 0.7).max(0.01),
+            (base_p * 0.8).max(0.01),
             base_d,
         );
         let mid = Self::dcf_two_stage(fcf_per_share, base_g.max(0.01), base_p, base_d);

@@ -4041,7 +4041,79 @@ pub async fn apply_param_suggestions(
     Ok(())
 }
 
-// ── R1 复盘→进化：EvolutionDriftPanel 命令 ──
+// ── Path 1: WFO 参数校准 ──
+#[tauri::command]
+pub async fn calibrate_portfolio_mgr_params(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    use axagent_entities::stock_reflections;
+    use axagent_stock_analysis::portfolio_formula::{
+        PortfolioMgrParamSet, score_param_set, try_parse_param_suggestion,
+    };
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+
+    let db = state.harness.db();
+
+    let reflections = stock_reflections::Entity::find()
+        .filter(stock_reflections::Column::Status.eq("completed"))
+        .filter(stock_reflections::Column::ParameterSuggestionsJson.is_not_null())
+        .order_by(stock_reflections::Column::CreatedAt, sea_orm::Order::Desc)
+        .all(db)
+        .await
+        .map_err(|e| format!("查询反思失败: {e}"))?;
+
+    let suggestions: Vec<(String, Option<PortfolioMgrParamSet>)> = reflections
+        .iter()
+        .filter_map(|r| {
+            let verdict = r.verdict.as_deref()?.to_string();
+            let params_json = r.parameter_suggestions_json.as_deref()?;
+            let params = try_parse_param_suggestion(params_json);
+            Some((verdict, params))
+        })
+        .collect();
+
+    if suggestions.is_empty() {
+        return Ok(serde_json::json!({
+            "bestParams": null, "grid": [],
+            "totalReflections": reflections.len(), "parsedSuggestions": 0,
+            "message": "没有可解析的参数建议，请先生成反思（reflection）"
+        }));
+    }
+
+    let grid = PortfolioMgrParamSet::default_grid();
+    let mut results: Vec<serde_json::Value> = grid
+        .iter()
+        .map(|params| {
+            let score = score_param_set(params, &suggestions);
+            serde_json::json!({
+                "buyThreshold": params.buy_threshold,
+                "increaseThreshold": params.increase_threshold,
+                "holdThreshold": params.hold_threshold,
+                "watchThreshold": params.watch_threshold,
+                "reduceThreshold": params.reduce_threshold,
+                "capExtreme": params.cap_extreme,
+                "capHigh": params.cap_high,
+                "capMid": params.cap_mid,
+                "score": (score * 10000.0).round() / 100.0,
+            })
+        })
+        .collect();
+
+    results.sort_by(|a, b| {
+        b.get("score")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0)
+            .partial_cmp(&a.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    Ok(serde_json::json!({
+        "bestParams": results.first(),
+        "grid": results,
+        "totalReflections": reflections.len(),
+        "parsedSuggestions": suggestions.len(),
+    }))
+} // ── R1 复盘→进化：EvolutionDriftPanel 命令 ──
 
 /// 查询进化漂移仪表盘（前端 EvolutionDriftPanel 主页用）
 #[tauri::command]

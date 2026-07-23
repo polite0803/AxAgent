@@ -9774,6 +9774,7 @@
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
       "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "verdictOnlyLabel": "इस वाद-विवादकर्ता ने केवल निष्कर्ष दिया, विस्तृत विश्लेषण नहीं दिया।",
       "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
@@ -9822,6 +9823,8 @@
     "confidenceHigh": "उच्च",
     "confidenceMedium": "मध्यम",
     "confidenceLow": "निम्न (भिन्न)",
+    "decisionConfidence": "निर्णय आत्मविश्वास",
+    "decisionConfidenceTooltip": "निर्णय दिशा आत्मविश्वास — तेजी/मंदी की परवाह किए बिना, दिशा में निश्चितता दर्शाता है। जब यह आत्मविश्वास से काफी अधिक हो, तो यह उच्च-विश्वास वाले मंदी निर्णय को दर्शाता है (जैसे गंभीर अतिखरीद में आत्मविश्वास से बिक्री)।",
     "consensusAbbr": "सर्वसम्मति",
     "tab.market": "Market",
     "tab.analysts": "Analysts",

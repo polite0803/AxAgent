@@ -49,10 +49,10 @@ function getDefaultVariables(): Variable[] {
   b("pos_max_single_pct", 20, "stockAnalysis.configDescriptions.posMaxSinglePct", "number");
   b("pos_max_total", 10, "stockAnalysis.configDescriptions.posMaxTotal", "number");
   b("pos_max_sector_pct", 40, "stockAnalysis.configDescriptions.posMaxSectorPct", "number");
-  // 估值参数
-  b("value_dcf_growth_rate", 8, "stockAnalysis.configDescriptions.valueDcfGrowthRate", "number");
-  b("value_dcf_perpetual_rate", 3, "stockAnalysis.configDescriptions.valueDcfPerpetualRate", "number");
-  b("value_dcf_discount_rate", 10, "stockAnalysis.configDescriptions.valueDcfDiscountRate", "number");
+  // 估值参数（A股校准：growth=12 / perpetual=4 / discount=8.5）
+  b("value_dcf_growth_rate", 12, "stockAnalysis.configDescriptions.valueDcfGrowthRate", "number");
+  b("value_dcf_perpetual_rate", 4, "stockAnalysis.configDescriptions.valueDcfPerpetualRate", "number");
+  b("value_dcf_discount_rate", 8.5, "stockAnalysis.configDescriptions.valueDcfDiscountRate", "number");
   b("value_moat_threshold", 60, "stockAnalysis.configDescriptions.valueMoatThreshold", "number");
   b("value_fscore_buy", 7, "stockAnalysis.configDescriptions.valueFscoreBuy", "number");
   b("value_safety_margin", 20, "stockAnalysis.configDescriptions.valueSafetyMargin", "number");

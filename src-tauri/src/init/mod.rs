@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 pub mod axinvest_decorators;
+pub mod browser_fetcher;
 pub mod database;
 pub mod news_archive_sink;
 pub mod notification_adapters;

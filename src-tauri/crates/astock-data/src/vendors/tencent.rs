@@ -345,6 +345,7 @@ impl StockVendor for TencentVendor {
                     large_net: 0.0,
                     medium_net: 0.0,
                     small_net: parse(7), // 散户净流入
+                    history: Vec::new(),
                 }));
             }
         }

@@ -1,7 +1,8 @@
 import { classifySentiment } from "@/lib/stock-analysis-utils";
 import { useStockAnalysisStore } from "@/stores";
-import { Card, Tag, Tooltip } from "antd";
-import { useMemo } from "react";
+import { Button, Card, Table, Tag, Tooltip } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnalystReportCard } from "./AnalystReportCard";
 import { cleanToolCallTags } from "./utils";
@@ -277,6 +278,229 @@ export function AnalystReportGrid() {
   const bearPct = total > 0 ? Math.round((sentiment.bearish / total) * 100) : 0;
   const neutPct = total > 0 ? Math.round((sentiment.neutral / total) * 100) : 0;
 
+  // ── 解析 10 位分析师的 VERDICT 数据（供辩手的数据诊断） ──
+  const [showBrief, setShowBrief] = useState(false);
+
+  interface AnalystVerdictRow {
+    key: string;
+    name: string;
+    available: boolean;
+    verdict: string | null;
+    directionStatus: "good" | "warning" | "issue";
+    bullScore: number | null;
+    bearScore: number | null;
+    consensusScore: number | null;
+    confidence: number | null;
+    hasBullPoints: boolean;
+    hasBearPoints: boolean;
+  }
+
+  const analystVerdicts = useMemo<AnalystVerdictRow[]>(() => {
+    return ANALYST_NODE_IDS.map((nodeId) => {
+      const expertId = nodeId.slice(2);
+      const name = t(`stockAnalysis.workflow.analyst.${expertId}`, expertId);
+      const report = analystReports[expertId];
+      if (!report) {
+        return {
+          key: expertId,
+          name,
+          available: false,
+          verdict: null,
+          directionStatus: "issue",
+          bullScore: null,
+          bearScore: null,
+          consensusScore: null,
+          confidence: null,
+          hasBullPoints: false,
+          hasBearPoints: false,
+        };
+      }
+      const cleaned = cleanToolCallTags(report);
+      // 解析 VERDICT tag
+      let verdict: Record<string, unknown> | null = null;
+      const vIdx = cleaned.indexOf("<!-- VERDICT:");
+      if (vIdx !== -1) {
+        try {
+          const jsonStr = cleaned.slice(vIdx + "<!-- VERDICT:".length);
+          const jsonEnd = jsonStr.indexOf("-->");
+          if (jsonEnd !== -1) { verdict = JSON.parse(jsonStr.slice(0, jsonEnd).trim()); }
+        } catch { /* ignore */ }
+      }
+      // 兜底：纯 JSON
+      if (!verdict) {
+        try {
+          verdict = JSON.parse(cleaned);
+        } catch { /* ignore */ }
+      }
+      const v = verdict ?? {};
+      // V61 fix: strict_mode 下 verdict 可能是嵌套对象（如 {"verdict":"看多","bull_score":7,...}），
+      // 必须提取为字符串，否则 Table 渲染 <span>{v}</span> 抛出 "Objects not valid as React child"
+      const rawVerdict = v.verdict ?? v.stance ?? null;
+      let verdictStr = rawVerdict !== null && typeof rawVerdict === "object"
+        ? (typeof (rawVerdict as Record<string, unknown>).verdict === "string"
+          ? (rawVerdict as Record<string, unknown>).verdict as string
+          : null)
+        : rawVerdict as string | null;
+      let bull = typeof v.bull_score === "number" ? (v.bull_score > 1 ? v.bull_score : v.bull_score * 10) : null;
+      let bear = typeof v.bear_score === "number" ? (v.bear_score > 1 ? v.bear_score : v.bear_score * 10) : null;
+      const conf = typeof v.confidence === "number" ? (v.confidence > 1 ? v.confidence : v.confidence * 10) : null;
+
+      // V62 fix: 不论 VERDICT/JSON 解析成功与否，都用 extractBullBearScores 补充。
+      // 解决 LLM 输出 JSON 能解析但缺 bull_score/bear_score 字段时，全部列空的问题。
+      const fallbackScores = extractBullBearScores(cleaned);
+      if (fallbackScores) {
+        // JSON 里有 bull_score/bear_score 时优先（精度更高），否则用 regex
+        if (bull === null) { bull = fallbackScores.bull; }
+        if (bear === null) { bear = fallbackScores.bear; }
+        // 仍未提取到 verdict 文字时，用分数推断方向
+        if (!verdictStr) {
+          if (fallbackScores.bull > fallbackScores.bear * 1.2) {
+            verdictStr = t("stockAnalysis.recommendation.bullish");
+          } else if (fallbackScores.bear > fallbackScores.bull * 1.2) {
+            verdictStr = t("stockAnalysis.recommendation.bearish");
+          }
+        }
+      }
+      // 仍未提取到 verdict 文字时，用 classifySentiment 兜底
+      if (!verdictStr && cleaned.trim().length > 0) {
+        const s = classifySentiment(cleaned);
+        if (s === "bullish") { verdictStr = t("stockAnalysis.recommendation.bullish"); }
+        else if (s === "bearish") { verdictStr = t("stockAnalysis.recommendation.bearish"); }
+        if (!verdictStr) { verdictStr = t("stockAnalysis.recommendation.neutral"); }
+      }
+      let ds: "good" | "warning" | "issue" = "issue";
+      if (verdict || bull !== null || bear !== null) {
+        if (verdictStr && bull !== null && bear !== null) { ds = "good"; }
+        else if (verdictStr || bull !== null || bear !== null) { ds = "warning"; }
+      }
+      const fallbackAvailable = verdict !== null || bull !== null || bear !== null || !!verdictStr;
+      return {
+        key: expertId,
+        name,
+        available: fallbackAvailable,
+        verdict: verdictStr,
+        directionStatus: ds,
+        bullScore: bull,
+        bearScore: bear,
+        consensusScore: bull !== null && bear !== null ? Math.round(bull - bear) : null,
+        confidence: conf,
+        hasBullPoints: Array.isArray(v.bull_points) && (v.bull_points as unknown[]).length > 0,
+        hasBearPoints: Array.isArray(v.bear_points) && (v.bear_points as unknown[]).length > 0,
+      };
+    });
+  }, [analystReports, t]);
+
+  const briefColumns: ColumnsType<AnalystVerdictRow> = [
+    { title: t("stockAnalysis.tab.analysts"), dataIndex: "name", key: "name", width: 110, fixed: "left" },
+    {
+      title: "",
+      dataIndex: "available",
+      key: "available",
+      width: 40,
+      align: "center",
+      render: (avail: boolean) =>
+        avail
+          ? (
+            <Tooltip title="数据可用">
+              <span style={{ color: "#52c41a" }}>✅</span>
+            </Tooltip>
+          )
+          : (
+            <Tooltip title="无数据">
+              <span>❌</span>
+            </Tooltip>
+          ),
+    },
+    {
+      title: "判断",
+      dataIndex: "verdict",
+      key: "verdict",
+      width: 60,
+      render: (v: unknown) => {
+        if (v === null || v === undefined || typeof v !== "string") {
+          return <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>;
+        }
+        const isBull = /看多|bull|偏多|买入|增持|正面/i.test(v);
+        const isBear = /看空|bear|偏空|卖出|减持|负面/i.test(v);
+        const color = isBull ? "#f5222d" : isBear ? "#52c41a" : "var(--muted)";
+        return <span style={{ color, fontWeight: 600, fontSize: 12 }}>{v}</span>;
+      },
+    },
+    {
+      title: "📈",
+      dataIndex: "bullScore",
+      key: "bullScore",
+      width: 44,
+      align: "right",
+      render: (v: number | null) =>
+        v !== null
+          ? <span style={{ color: "#f5222d", fontWeight: 600, fontSize: 12 }}>{Math.round(v)}</span>
+          : <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>,
+    },
+    {
+      title: "📉",
+      dataIndex: "bearScore",
+      key: "bearScore",
+      width: 44,
+      align: "right",
+      render: (v: number | null) =>
+        v !== null
+          ? <span style={{ color: "#52c41a", fontWeight: 600, fontSize: 12 }}>{Math.round(v)}</span>
+          : <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>,
+    },
+    {
+      title: "共识",
+      dataIndex: "consensusScore",
+      key: "consensusScore",
+      width: 48,
+      align: "right",
+      render: (v: number | null) => {
+        if (v === null) { return <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>; }
+        const color = v > 0 ? "#f5222d" : v < 0 ? "#52c41a" : "var(--muted)";
+        return <span style={{ color, fontWeight: 700, fontSize: 12 }}>{v > 0 ? `+${v}` : v}</span>;
+      },
+    },
+    {
+      title: "置信",
+      dataIndex: "confidence",
+      key: "confidence",
+      width: 44,
+      align: "right",
+      render: (v: number | null) =>
+        v !== null
+          ? <span style={{ fontWeight: 600, fontSize: 12 }}>{Math.round(v)}</span>
+          : <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>,
+    },
+    {
+      title: "多方论据",
+      key: "hasBullPoints",
+      width: 40,
+      align: "center",
+      render: (_: unknown, row: AnalystVerdictRow) =>
+        row.hasBullPoints
+          ? (
+            <Tooltip title="含多方论据">
+              <span style={{ color: "#f5222d" }}>✅</span>
+            </Tooltip>
+          )
+          : <span style={{ color: "var(--muted)" }}>➖</span>,
+    },
+    {
+      title: "空方论据",
+      key: "hasBearPoints",
+      width: 40,
+      align: "center",
+      render: (_: unknown, row: AnalystVerdictRow) =>
+        row.hasBearPoints
+          ? (
+            <Tooltip title="含空方论据">
+              <span style={{ color: "#52c41a" }}>✅</span>
+            </Tooltip>
+          )
+          : <span style={{ color: "var(--muted)" }}>➖</span>,
+    },
+  ];
+
   return (
     <div>
       {/* 舆情摘要 bar — 醒目的共识卡片 + 大号数字 + 百分比 + 色彩条 */}
@@ -380,6 +604,46 @@ export function AnalystReportGrid() {
           </div>
         </div>
       )}
+
+      {/* ── 分析师数据诊断明细（供辩手） ── */}
+      {sentiment.total > 0 && (
+        <div className="mb-3">
+          <Button
+            type="default"
+            size="small"
+            onClick={() => setShowBrief((v) => !v)}
+            style={{ fontSize: 12 }}
+          >
+            {showBrief ? "🔼" : "🔽"} 分析师数据明细
+            <span style={{ color: "var(--muted)", marginLeft: 6, fontSize: 11 }}>
+              ({analystVerdicts.filter((r) => r.available).length}/{analystVerdicts.length} 有数据)
+            </span>
+          </Button>
+          {showBrief && (
+            <div
+              style={{
+                marginTop: 8,
+                border: "1px solid var(--border, #e5e7eb)",
+                borderRadius: 6,
+                overflow: "auto",
+              }}
+            >
+              <Table
+                dataSource={analystVerdicts}
+                columns={briefColumns}
+                rowKey="key"
+                pagination={false}
+                size="small"
+                bordered
+                style={{ fontSize: 12 }}
+                scroll={{ x: 540 }}
+                onHeaderRow={() => ({ style: { fontSize: 11 } })}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <div
         className="grid gap-2"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))" }}

@@ -338,6 +338,7 @@ impl StockVendor for BaiduStockVendor {
             large_net: val_to_f64(&data["largeNet"]).unwrap_or(0.0),
             medium_net: val_to_f64(&data["mediumNet"]).unwrap_or(0.0),
             small_net: val_to_f64(&data["smallNet"]).unwrap_or(0.0),
+            history: Vec::new(),
         }))
     }
 

@@ -68,6 +68,23 @@ pub struct MoneyFlow {
     pub large_net: f64,
     pub medium_net: f64,
     pub small_net: f64,
+    /// 近 N 日历史资金流向（按日期降序，第 0 条 = 最新日 = 与顶层字段同一天）。
+    /// 只有支持多日查询的 vendor（如 eastmoney）会填充，其他 vendor 留空 Vec。
+    /// prompt 要求"连续 3-5 日趋势"分析，单日数据无法支撑。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub history: Vec<MoneyFlowDaily>,
+}
+
+/// 单日资金流向（历史序列中的一天）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoneyFlowDaily {
+    pub date: String,
+    pub main_net_inflow: f64,
+    pub super_large_net: f64,
+    pub large_net: f64,
+    pub medium_net: f64,
+    pub small_net: f64,
 }
 
 /// 龙虎榜条目

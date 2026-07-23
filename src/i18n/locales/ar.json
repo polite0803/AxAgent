@@ -9774,6 +9774,7 @@
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
       "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "verdictOnlyLabel": "قدم هذا المُناظر استنتاجًا فقط، بدون تحليل مفصل.",
       "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
@@ -9822,6 +9823,8 @@
     "confidenceHigh": "مرتفع",
     "confidenceMedium": "متوسط",
     "confidenceLow": "منخفض (متباين)",
+    "decisionConfidence": "ثقة القرار",
+    "decisionConfidenceTooltip": "ثقة اتجاه القرار — بغض النظر عن صعودي/هبوطي، يشير إلى اليقين في الاتجاه. عندما يكون أعلى بكثير من الثقة، يشير إلى قرار هبوطي عالي الثقة (مثل بيع مؤكد في حالة شراء مفرط).",
     "consensusAbbr": "إجماع",
     "tab.market": "Market",
     "tab.analysts": "Analysts",

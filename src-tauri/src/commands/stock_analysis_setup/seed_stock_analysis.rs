@@ -1414,25 +1414,45 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // 改为辩论最后一轮空方的输出（真辩论结论），而非 DebateNode 容器
                 last_debate_node.clone(),
                 "debate-convergence".into(),
+                // V60 修复(2026-07-23): 接入 t-valuation 客观估值数据
+                // 原问题：context_sources 只含 LLM 叙述(a-fundamentals/a-research/a-sector)，
+                // 没有结构化财务数据。LLM 拿不到 PE/ROE/FCF/增速等原始数字，
+                // 无法计算 PEG 或相对估值，只能凭叙述"猜"内在价值，出于保守本能
+                // 必然给出低于现价的估值（"目标价值很低"问题的根因）。
+                // t-valuation 提供 result.dcf.{low,mid,high,upsidePct}、
+                // result.graham.upsidePct、result.fScore.score、result.moat.label 等
+                // 客观算法估值，作为 LLM 估值的锚点。
+                "t-valuation".into(),
             ];
             a.config.model_role = Some("stock-analyst".into());
             // P0 修复(2026-07-22): 移除所有工具，改为纯决策节点。
             // 原问题：tools 含 get_stock_financials/compute_valuation 等需要 stock_code
             // 的工具，但 input_mapping 未注入 stock_code，LLM 会传空值。
             // value-investor 的 context_sources 已包含 a-fundamentals/a-research/a-sector
-            // + 辩论结果，基本面和估值数据已通过分析师报告注入。
+            // + 辩论结果 + t-valuation，基本面和估值数据已通过上游注入。
             a.config.tools = vec![];
             a.config.exposed_tools = vec![];
             a.config.max_tool_rounds = Some(0);
             a.config.output_mode = OutputMode::Json;
             a.config.system_prompt = format!(
                 "{}\n\n--- 数据约束 ---\n\
-                 你是价值投资评估官，所有数据来自上游分析师报告和辩论结果，禁止调用任何工具重新获取数据。\n\
-                 - 基本面数据: 来自 a-fundamentals\n\
+                 你是价值投资评估官，所有数据来自上游节点输出，禁止调用任何工具重新获取数据。\n\
+                 - 基本面叙述: 来自 a-fundamentals（LLM 分析文本）\n\
                  - 研报数据: 来自 a-research\n\
                  - 行业数据: 来自 a-sector\n\
                  - 辩论共识: 来自 debate-convergence\n\
-                 基于上述数据以巴菲特-芒格价值投资理念评估护城河、财务健康度、管理层、安全边际。",
+                 - **客观估值数据**: 来自 t-valuation（结构化算法结果）\n\
+                   - result.dcf.{{low,mid,high}}: DCF 内在价值区间\n\
+                   - result.dcf.upsidePct: DCF 上行空间百分比（正值=低估，负值=高估）\n\
+                   - result.graham.upsidePct: 格雷厄姆上行空间\n\
+                   - result.fScore.score: Piotrosky F-Score（0-9，越高越好）\n\
+                   - result.moat.label: 护城河评级\n\
+                 \n\
+                 **关键**: t-valuation 是客观算法估值，作为你的估值锚点。\n\
+                 你的 intrinsic_value_range 应参考 result.dcf.{{low,mid,high}} 区间，\n\
+                 margin_of_safety 应参考 result.dcf.upsidePct。\n\
+                 对成长股，参考 result.dcf.upsidePct 判断是否「合理偏低」，\n\
+                 不要一味给出低于现价的保守估值。",
                 a.config.system_prompt
             );
             // 环 A: 注入历史反思教训
@@ -1444,6 +1464,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         // value-investor 的 context_sources 中 debate-convergence 需要显式边，
         // 否则只在 bear-r3 完成后就调度，debate-convergence 还没跑完
         edges.push(edge("e-convergence-value-investor", "debate-convergence", vi_id));
+        // V60 修复: t-valuation 加入 context_sources，需要显式边等待其完成，
+        // 否则 t-valuation 的输出不会进入 value-investor 的变量池。
+        // 拓扑链：bear-r3 → t-scoring → t-valuation → value-investor
+        edges.push(edge("e-valuation-value-investor", "t-valuation", vi_id));
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1925,24 +1949,22 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 tool_name: None,
                 execute_directly: true,
                 input_mapping: [
-                    // P0 修复: agent_executor 把 VERDICT tag 重构为
-                    // {"report":..., "verdict":{"confidence":N, ...}}
-                    // 故 confidence 在 content.verdict.confidence，而非 content.confidence。
-                    // 旧路径 content.confidence 恒取不到值 → data-quality 误判全 null → F 级。
-                    ("mk_confidence", "a-market-analyst.content.verdict.confidence"),
-                    ("sent_confidence", "a-sentiment.content.verdict.confidence"),
-                    ("news_confidence", "a-news.content.verdict.confidence"),
-                    ("fund_confidence", "a-fundamentals.content.verdict.confidence"),
-                    ("pol_confidence", "a-policy.content.verdict.confidence"),
-                    ("hm_confidence", "a-hot-money.content.verdict.confidence"),
-                    ("lk_confidence", "a-lockup.content.verdict.confidence"),
-                    ("res_confidence", "a-research.content.verdict.confidence"),
-                    ("sec_confidence", "a-sector.content.verdict.confidence"),
-                    ("cat_confidence", "a-catalyst.content.verdict.confidence"),
-                    // data_gaps 不再从上游读取：10 个分析师 prompt 均不输出 if_data_gaps 字段，
-                    // 旧映射恒取不到值 → safe_gap 返回 true → gap_count 恒为 10 → 必然 F 级。
-                    // 改为在 data-quality.rhai 中用 confidence < 50 推断数据缺口
-                    // （覆盖：节点失败 conf=0 / strict_mode 降级 conf=0 / 分析师自评低置信度）。
+                    // P1 修复(2026-07-23): resolve_var_path("{id}.content.verdict.confidence") 全员 null，
+                    // 改为 {id}.content.verdict 接收整份 verdict map，在 data-quality.rhai 内提取 confidence。
+                    ("mk_verdict", "a-market-analyst.content.verdict"),
+                    ("sent_verdict", "a-sentiment.content.verdict"),
+                    ("news_verdict", "a-news.content.verdict"),
+                    ("fund_verdict", "a-fundamentals.content.verdict"),
+                    ("pol_verdict", "a-policy.content.verdict"),
+                    ("hm_verdict", "a-hot-money.content.verdict"),
+                    ("lk_verdict", "a-lockup.content.verdict"),
+                    ("res_verdict", "a-research.content.verdict"),
+                    ("sec_verdict", "a-sector.content.verdict"),
+                    // P2 修复(2026-07-23): a-catalyst 的 cat_verdict 映射缺失 → Rhai 报
+                    // "Variable not found: cat_verdict"。a-catalyst 走 OutputMode::Json +
+                    // 扁平 JSON schema，confidence 在顶层（不在 verdict map 内），
+                    // 所以用 .content 拿到完整 JSON 对象，extract_conf(v["confidence"]) 可正确提取。
+                    ("cat_verdict", "a-catalyst.content"),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -1950,6 +1972,13 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             },
         }));
         edges.push(edge("e-v-validate-data-quality", "v-validate", dq_id));
+        // P1 修复(2026-07-24): data-quality 需要读到10个分析师的 verdict 输出，
+        // 但它的依赖链仅含 v-validate → cls-risk-level，这两者都不依赖分析师，
+        // 导致 data-quality 在分析师之前就跑完了。
+        // 添加从每个分析师的边确保 data-quality 等待所有分析师完成。
+        for aid in &a_ids {
+            edges.push(edge(&format!("e-{aid}-data-quality"), aid, dq_id));
+        }
     }
 
     // research-mgr → trader → portfolio-mgr
@@ -2087,7 +2116,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             ("risk_disagreement", "risk-convergence.content.disagreement_score"),
             // P2 修复: 注入数据质量评分，使 trader 知道当前数据覆盖度
             // dqi_score 0-100，低分时 trader 应保守操作
-            ("dqi_score", "data-quality.score"),
+            // V58 修复: data-quality 是 CodeNode，score 在 .result 里
+            ("dqi_score", "data-quality.result.score"),
             // P0 修复(2026-07-22): 注入 t-scoring 完整技术指标，替代 get_stock_quote/kline。
             // 包含 ma5/ma20/bias_ma5/macd_dif/macd_dea/rsi14/boll_upper/boll_lower 等，
             // trader 可直接读取指标制定交易方案，无需重新调用行情工具。
@@ -2140,12 +2170,18 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("totalScore", "t-scoring.result.totalScore"),
                 // AgentNode 输出包裹在 {role, content: <json_string>, ...} 中
                 // V29 修复: data-quality 是 AgentNode，无 .result 字段，必须走 .content.
-                ("dqi_score", "data-quality.score"),
+                // V58 修复: data-quality 实为 CodeNode（Rhai），输出结构为
+                //   {status, result: {grade, score, ...}, input_params, node_id, params}
+                //   score 字段在 .result 里，旧路径 "data-quality.score" 无法穿透
+                //   CodeNode 包装，导致 dqi_score 缺失 → f6_weight=0 → total_weight
+                //   下降触发 weights_collapsed 误坍缩。
+                ("dqi_score", "data-quality.result.score"),
                 // P1/P2: 因子回测数据（compute_scoring 工具附加输出）
                 ("factor_weights", "t-scoring.result.factor_backtest.factors"),
                 // P1-1: 市场状态权重调节（regime-weights.rhai）替代纯回测权重
                 // 牛市→趋势↑, 熊市→估值/风险↑, 高波动→全降权
-                ("regime_factor_weights", "regime-weights.factor_weights"),
+                // V58 修复: regime-weights 是 CodeNode，factor_weights 在 .result 里
+                ("regime_factor_weights", "regime-weights.result.factor_weights"),
                 // market_regime 是 core.rs 注入的工作流变量（非 t-scoring 节点输出）
                 ("market_regime_prior", "market_regime.confidence"),
                 ("market_regime_state", "market_regime.regime"),
@@ -2224,9 +2260,10 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("untrusted_data_quality", "data-quality.__untrusted"),
                 ("untrusted_risk_conv", "risk-convergence.__untrusted"),
                 // ── PACE 情绪因子 f11: pace-calc CodeNode 输出 pace_signal ──
-                ("pace_signal", "pace-calc.pace_signal"),
+                // V58 修复: pace-calc 是 CodeNode，pace_signal/pace_degraded 在 .result 里
+                ("pace_signal", "pace-calc.result.pace_signal"),
                 // P2-2: pace 降级标志（valid_event_count==0 时 pace-calc 设置）
-                ("pace_degraded", "pace-calc.pace_degraded"),
+                ("pace_degraded", "pace-calc.result.pace_degraded"),
                 // ── 技术否决（technical-veto）输入：从 t-scoring 的完整指标获取 ──
                 ("rsi_14", "t-scoring.result.indicators.rsi14"),
                 ("macd_dif", "t-scoring.result.indicators.macdDif"),
@@ -2395,18 +2432,21 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     // 主事件源：公告数据（fallback 路径，pace-calc 会从中提取 event_type）
                     ("announcement_events", "t-catalyst-data.result"),
                     // 资金流向数据（用于背离修正）
-                    // t-hotmoney-data.result 的 JSON 结构含 main_net_inflow / daily_avg_volume
+                    // t-hotmoney-data.result 的 JSON 结构含 main_net_inflow / history（近5日）
                     ("money_flow_net", "t-hotmoney-data.result.main_net_inflow"),
-                    ("daily_avg_volume", "t-hotmoney-data.result.daily_avg_volume"),
+                    // 资金流向历史序列（近5日，含当日），用于趋势背离判断
+                    ("money_flow_history", "t-hotmoney-data.result.history"),
                     // 板块 ETF 资金流向（用于协同增强）- 暂未接入
                     ("sector_etf_direction", ""),
                     // 历史 P 值 - 暂未接入（需要 upstream LLM 长期输出）
                     ("p_history", ""),
                     // LLM 事件源：a-catalyst 输出（含 catalyst_level/confidence/verdict）
                     // P0 修复(2026-07-22): 原为空占位导致 pace-calc 在 a-catalyst 完成前执行，
-                    // 且 llm_events 恒为空。现在接入 a-catalyst.result，pace-calc.rhai 会
+                    // 且 llm_events 恒为空。现在接入 a-catalyst.content，pace-calc.rhai 会
                     // 从 catalyst_level 中提取事件类型。
-                    ("llm_events", "a-catalyst.result"),
+                    // V58 修复: a-catalyst 是 AgentNode（输出 {role, content, ...}），
+                    // 不是 ToolNode/CodeNode，路径应为 .content 而非 .result
+                    ("llm_events", "a-catalyst.content"),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2490,10 +2530,13 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             continue_on_fail: false,
         },
         config: SwitchNodeConfig {
-            // V36 修复: data-quality 已改为 JSON 模式，输出包裹在 {role, content: <json_string>} 中，
-            // resolve_var_path 自动解析 JSON 字符串后导航到 grade 字段。
-            // 不能用 .params.grade — params 不是 AgentNode 输出的顶层字段。
-            input_var: "data-quality.grade".into(),
+            // data-quality 是 CodeNode（Rhai），输出结构为
+            //   {status, result: {grade, score, ...}, input_params, node_id, params}
+            // resolve_var_path 需要导航到 .result.grade 才能取到等级字段。
+            // 旧值 "data-quality.grade" 无法穿透 CodeNode 的 result 包装，
+            // 导致 A 级数据被误判为低质量，路由到 quality-fallback 保守路径
+            // （其 prompt 不输出 confidence 字段 → 前端显示"持有 0%"）。
+            input_var: "data-quality.result.grade".into(),
             cases: vec![SwitchCase {
                 value: "_value == \"A\" || _value == \"B\" || _value == \"C\"".into(),
                 label: "acceptable".into(),
@@ -2607,16 +2650,21 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                  只输出上述JSON对象，前后不要有任何其他文字"
             );
             a.config.input_mapping = [
-                ("pm_action", "portfolio-mgr.action"),
-                ("pm_confidence", "portfolio-mgr.confidence"),
-                ("pm_position_pct", "portfolio-mgr.positionPct"),
-                ("pm_reasoning", "portfolio-mgr.reasoning"),
-                ("pm_risk_level", "portfolio-mgr.riskLevel"),
-                ("pm_stop_loss", "portfolio-mgr.stopLossPct"),
-                ("pm_take_profit", "portfolio-mgr.takeProfitPct"),
-                ("pm_decision_trail", "portfolio-mgr.decision_trail"),
-                ("pm_target_timeframe", "portfolio-mgr.targetTimeframe"),
-                ("pm_computation_logs", "portfolio-mgr.computation_logs"),
+                // V58 修复: portfolio-mgr 是 CodeNode，输出结构为
+                //   {status, result: {action, confidence, ...}, input_params, node_id, params}
+                // 所有字段在 .result 下，旧路径 "portfolio-mgr.<field>" 无法穿透 CodeNode
+                // 包装，导致 decision-explainer 拿不到决策数据，reasoning 字段为空，
+                // 前端 fallback 到 portfolio-mgr 本身的 reasoning（或显示空）。
+                ("pm_action", "portfolio-mgr.result.action"),
+                ("pm_confidence", "portfolio-mgr.result.confidence"),
+                ("pm_position_pct", "portfolio-mgr.result.positionPct"),
+                ("pm_reasoning", "portfolio-mgr.result.reasoning"),
+                ("pm_risk_level", "portfolio-mgr.result.riskLevel"),
+                ("pm_stop_loss", "portfolio-mgr.result.stopLossPct"),
+                ("pm_take_profit", "portfolio-mgr.result.takeProfitPct"),
+                ("pm_decision_trail", "portfolio-mgr.result.decision_trail"),
+                ("pm_target_timeframe", "portfolio-mgr.result.targetTimeframe"),
+                ("pm_computation_logs", "portfolio-mgr.result.computation_logs"),
             ]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -3116,7 +3164,7 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
         id: Set(TEMPLATE_ID.to_string()),
         name: Set("A股多维度分析".to_string()),
         description: Set(Some(
-            "9 维度分析师 → LLM 智能辩论 → 价值投资（巴菲特框架）→ 3 风险维度 → Rhai 评分 → 交易方案 → 投资决策"
+            "10 维度分析师 → LLM 智能辩论 → 价值投资（巴菲特框架）→ 3 风险维度 → Rhai 评分 → 交易方案 → 投资决策"
                 .to_string(),
         )),
         icon: Set("chart-bar".into()),

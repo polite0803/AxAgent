@@ -342,6 +342,15 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
+          {/* 通配子路由：捕获所有 /stock-analysis/* 子路径，防止任意无效子路径触发全局 404 */}
+          <Route
+            path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/*`}
+            element={
+              <PageContextProvider page="stock-analysis">
+                <SafeLazyPage Page={LazyStockAnalysisPage} />
+              </PageContextProvider>
+            }
+          />
           <Route
             path={BUILTIN_PAGE_PATH.screener}
             element={

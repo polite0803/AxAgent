@@ -756,6 +756,11 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
       return (
         <>
           {reportSection}
+          {!reportSection && (
+            <div className="text-xs mb-2" style={{ color: "var(--muted)" }}>
+              {t("stockAnalysis.debate.verdictOnlyLabel")}
+            </div>
+          )}
           <VerdictView data={content.parsed} />
         </>
       );

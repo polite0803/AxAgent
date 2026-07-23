@@ -9774,6 +9774,7 @@
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
       "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "verdictOnlyLabel": "この討論者は結論のみを提示し、詳細な分析は提供されていません。",
       "title": "Debate Summary"
     },
     "debateRound": "Round {{round}}",
@@ -9822,6 +9823,8 @@
     "confidenceHigh": "高信頼度",
     "confidenceMedium": "中信頼度",
     "confidenceLow": "低信頼度（意見分裂）",
+    "decisionConfidence": "決策信頼度",
+    "decisionConfidenceTooltip": "決策方向の信頼度 — 强気/弱気に関らず、その方向への確信度を示す。信頼度より大幅に高い場合、強気の空売り決策（例：過熱時に売りを確信）を示します。",
     "consensusAbbr": "コンセンサス",
     "tab.market": "Market",
     "tab.analysts": "Analysts",

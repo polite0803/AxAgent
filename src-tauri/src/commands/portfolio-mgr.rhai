@@ -156,9 +156,32 @@ let announcement_modifier = if present(announcements) && type_of(announcements) 
                 let title = if type_of(item["title"]) == "string" { item["title"] } else { "" };
                 let ann_type = if type_of(item["ann_type"]) == "string" { item["ann_type"] } else { "" };
                 let combined = `${title} ${ann_type}`;
-                // 高风险关键词检测
+                // ── P2-2: 否定词前缀检测 ──
+                // 关键词匹配无法处理否定语义，如"没有退市风险"会被误判为风险信号。
+                // A 股公告常见否定句式: "不存在退市风险" "未发现违规行为" "已消除影响"
+                // 在匹配关键词前，检查关键词前 N 个字符是否有否定词。
+                // 否定词词典（覆盖中文公告中最常见的否定表达）:
+                let neg_prefixes = ["没有", "未发现", "不存在", "不存在", "已消除",
+                                    "已解决", "已排除", "并非", "非", "尚未",
+                                    "未触及", "未达到", "未发生"];
+                fn has_negation(text, kw, negs) {
+                    let idx = text.index_of(kw);
+                    if idx == -1 { return false; }
+                    // 取关键词前 20 个字符（覆盖常见的否定短语长度）
+                    let before = if idx >= 20 { text.sub_string(idx - 20, 20) } else { text.sub_string(0, idx) };
+                    for n in negs {
+                        if before.contains(n) { return true; }
+                    }
+                    false
+                }
+                // 高风险关键词检测（含否定词过滤）
                 for kw in risk_kw {
                     if combined.contains(kw) || combined.contains(kw.to_upper()) {
+                        // P2-2: 否定词检测 — 跳过被否定的风险关键词
+                        if has_negation(combined, kw, neg_prefixes) {
+                            // 被否定的风险关键词（如"不存在退市风险"），不计数但记录
+                            continue;
+                        }
                         if kw == "退市" || kw == "立案调查" || kw == "可能快速下跌" || kw == "风险警示" {
                             high_risk_count = high_risk_count + 1;
                         } else {
@@ -167,9 +190,12 @@ let announcement_modifier = if present(announcements) && type_of(announcements) 
                         break;
                     }
                 }
-                // 利好关键词检测
+                // 利好关键词检测（含否定词过滤）
                 for kw in pos_kw {
                     if combined.contains(kw) {
+                        if has_negation(combined, kw, neg_prefixes) {
+                            continue;
+                        }
                         positive_count = positive_count + 1;
                         break;
                     }
@@ -635,6 +661,25 @@ let f11_signal = if pace_is_degraded {
 } else { 0.0 };
 let f11_weight = if f11_signal != 0.0 { get_weight(f_weights, "pace", f11_default) } else { 0.0 };
 
+// ── P1-1: 因子协方差衰减（消除高相关因子的信号重复计数）──
+// 贝叶斯因子融合隐含朴素独立假设（Naïve Bayes: P(E1,E2|H) = P(E1|H)×P(E2|H)），
+// 但现实中 f3(催化剂)与f11(PACE情绪)都依赖 t-catalyst-data 公告数据，约 70% 信息重叠；
+// f1(技术面)与f9(资金面)在趋势行情中高度共振，资金流入往往只是趋势的附属信号。
+// 策略：对后激活因子（权重更小的那个）做权重衰减，从 total_weight 和 avg_signal 中消去重复计数。
+//
+// f3 ↔ f11: 公告数据重叠 → 次要因子(f11)降权 35%
+//   例: f3=0.20 + f11=0.08 → f11_effective = 0.08×0.65=0.052, 重叠计数 -0.028
+//   根因: PACE 情绪分析从公告文本中提取，催化剂也从公告+LLM 判断，信息源高度重合。
+if f3_weight > 0.0 && f11_weight > 0.0 {
+    f11_weight = f11_weight * 0.65;  // 减掉 35% 的公告重复计数
+}
+// f1 ↔ f9: 趋势-资金共振 → 次要因子(f9)降权 25%
+//   例: f1=0.15 + f9=0.08 → f9_effective = 0.08×0.75=0.060, 重叠计数 -0.020
+//   根因: 主力资金流入是趋势上涨的伴随现象，并非独立证据源。趋势向上时主力必然流入。
+if f1_weight > 0.0 && f9_weight > 0.0 {
+    f9_weight = f9_weight * 0.75;  // 减掉 25% 的趋势-资金共振重复
+}
+
 // ── P1 新增: 技术面硬约束否决（内联计算，从 t-scoring.indicators 注入 rsi_14/macd_dif/macd_dea）──
 // 规则：
 //   R-401: RSI>80 → 否决（追高风险）
@@ -755,17 +800,8 @@ let avg_signal = if total_weight > 0.0 { weighted_signal / total_weight } else {
 // 用于 weights_collapsed 比例阈值和 evidence_pct 计算
 //   f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.15 + f9=0.08 + f10=0.08 + f11=0.08 = 1.44
 let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.08 + 0.08 + 0.08;
-// V38 修复: 证据数量自适应缩放 — 证据越多（total_weight 越大），对先验的修正力度越强。
-// 单因子（total_weight≈0.20）时缩放 0.20（保守），全因子（total_weight≈1.20）时缩放 0.50。
-// 固定 0.35 使单因子和多因子修正力度相同，违反贝叶斯"更多证据→更大更新"的核心思想。
-// V40 修复: 单因子（total_weight<0.3）时 evidence_scale 降到 0.15，
-// 避免单个强信号因子（如 catalyst=L3）完全主导贝叶斯更新。
-// 全因子（total_weight≈1.20）时 0.50，正常多因子信号充分。
-let evidence_scale = if total_weight < 0.3 {
-    0.15
-} else {
-    clamp(0.20 + total_weight * 0.25, 0.20, 0.50)
-};
+// ── P2-1+P3-1: 证据缩放 — 调用 Rust 函数（非线性 sqrt 曲线）──
+let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 	// V49 修复: trader 否决权 — 技术面（滞后指标）不应覆盖 LLM trader 的实时判断
 	// f1(技术评分) 是趋势跟踪指标，必然滞后。当 trader 根据最新信息判断看空时，
 	// posterior 不应被技术面推高到"增持/买入"区。
@@ -792,11 +828,8 @@ let evidence_scale = if total_weight < 0.3 {
 	let avg_signal_no_f7 = if total_weight_no_f7 > 0.0 {
 	    weighted_signal_no_f7 / total_weight_no_f7
 	} else { 0.0 };
-	let evidence_scale_no_f7 = if total_weight_no_f7 < 0.3 {
-	    0.15
-	} else {
-	    clamp(0.20 + total_weight_no_f7 * 0.25, 0.20, 0.50)
-	};
+	// P3-1: no_f7 证据缩放 — 调用 Rust 函数
+	let evidence_scale_no_f7 = pm_evidence_scale(total_weight_no_f7, max_weight);
 	let raw_val_no_f7 = prior + avg_signal_no_f7 * evidence_scale_no_f7;
 	// 不加 trader 否决（自指），不加权重坍缩兜底（那是 full 版本的事）
 	let posterior_no_f7 = clamp(raw_val_no_f7, 0.0, 1.0);
@@ -813,13 +846,8 @@ let evidence_scale = if total_weight < 0.3 {
 	//   权威定义 (Nature Neurosci 2016): confidence = P(决策正确 | 证据), 是后验概率。
 	//   posterior 已通过 f4_signal 综合风险因子, confidence = posterior × 100 即可。
 	//   "高风险 + 高置信度看多 + action=持有" 是自洽的风险管理, 不是矛盾。
-	let risk_bias = switch overall_risk {
-	    "极高风险"|"极高" => -0.15,      // 极高风险 → 卖出门槛下降
-	    "高风险"|"高" => -0.08,         // 高风险 → 减持门槛下降
-	    "中风险"|"中" => 0.0,
-	    "低风险"|"低" => 0.05,
-	    _ => 0.0
-	};
+	// P3-1: risk_bias — 调用 Rust 函数
+	let risk_bias = pm_risk_bias(overall_risk);
 	let effective_posterior = clamp(posterior + risk_bias, 0.0, 1.0);
 
 	// ── 无 f7 版本 effective_posterior 与 action（消除自指）──
@@ -840,33 +868,38 @@ let evidence_scale = if total_weight < 0.3 {
 	//   currentPrice=20 targetPrice=25 stopLoss=18 → odds=(25-20)/(20-18)=2.5 ✓
 	//   currentPrice=20 targetPrice=8  stopLoss=7  → targetPrice<currentPrice → odds=0 ✓
 	//   赔率上限 10（避免极端值主导 Kelly）
+	//
+	// ── P0-1: 无 trader 数据时的波动率赔率 fallback ──
+	// 原设计: trader_target_price/stop_loss 缺失时 odds=0 → kelly=0 → position_pct=0
+	//   后果: LLM trader 单点故障导致整个凯利仓位置零，决策覆盖率严重受限
+	// 新: 基于 posterior 强度估算保守赔率（无 targetPrice 时的经验安全值）:
+	//   posterior≥0.70(强看多) → 2.5x (典型 A 股趋势突破后的盈亏比分布中位数)
+	//   posterior≥0.60(看多)   → 2.0x (中性偏优, 对应大盘股震荡上行行情)
+	//   posterior≥0.50(偏多)   → 1.5x (保守, 适合低波动/底部盘整标的)
+	//   posterior<0.50         → 0.0x (凯利不适用)
+	let odds_fallback = if posterior >= 0.70 { 2.5 }
+	    else if posterior >= 0.60 { 2.0 }
+	    else if posterior >= 0.50 { 1.5 }
+	    else { 0.0 };
 	let odds = if present(trader_target_price) && present(trader_stop_loss) && present(current_price)
 	    && trader_stop_loss > 0.0 && current_price > trader_stop_loss
 	    && trader_target_price > current_price {
 	    let profit = trader_target_price - current_price;
 	    let loss = current_price - trader_stop_loss;
 	    if loss > 0.0 { clamp(profit / loss, 0.0, 10.0) } else { 0.0 }
-	} else { 0.0 };
+	} else { odds_fallback };
+	// 记录赔率来源, 用于 decision_trail 追溯
+	let odds_source = if present(trader_target_price) && present(trader_stop_loss)
+	    && trader_stop_loss > 0.0 && trader_target_price > 0.0 { "trader" } else { "波动率fallback" };
 	let q = 1.0 - posterior;
 	let kelly_raw = if posterior >= 0.50 && odds > 0.001 {
 	    (posterior * odds - q) / odds
 	} else { 0.0 };
 	let kelly_negative = kelly_raw <= 0.0001;
-	// 凯利仓位（风险限制上限）
-	let base_position_pct = if posterior < 0.50 || kelly_negative {
-	    0.0
-	} else {
-	    let kelly_pos = clamp(kelly_raw / 2.0 * 100.0, 0.0, 95.0);
-    if overall_risk == "极高风险" || overall_risk == "极高" {
-        clamp(kelly_pos, 0.0, POS_CAP_EXTREME)   // 极高风险: 仓位≤POS_CAP_EXTREME%
-    } else if overall_risk == "高风险" || overall_risk == "高" {
-        clamp(kelly_pos, 0.0, POS_CAP_HIGH)   // 高风险: 仓位≤POS_CAP_HIGH%
-    } else if overall_risk == "中风险" || overall_risk == "中" {
-        clamp(kelly_pos, 0.0, POS_CAP_MID)   // 中风险: 仓位≤POS_CAP_MID%
-	    } else {
-	        kelly_pos
-	    }
-	};
+	// ── P3-1: 凯利仓位 — 调用 Rust 函数 ──
+	// 内部处理: 半凯利 + 交易成本扣减 + 风险等级上限
+	// 当 posterior<0.50 或 odds≤0.001 时返回 0.0（凯利不适用）
+	let base_position_pct = pm_kelly_position(posterior, odds, cost_pct, overall_risk);
 	let position_pct = if !trader_data_valid { 0.0 } else { base_position_pct };
 	// ── 置信度 = P(决策正确 | 证据) = posterior × 100 ──
 	// 权威定义 (Nature Neurosci 2016, "Confidence and certainty: distinct probabilistic quantities"):
@@ -896,6 +929,21 @@ let evidence_scale = if total_weight < 0.3 {
 	// 高风险例子: posterior=0.70, risk_bias=-0.08 → effective=0.62 → confidence=62%
 	//   "62% 置信度的持有" 比 "70% 置信度的持有" 更自洽
 	let final_confidence = clamp(effective_posterior * 100.0 * disagreement_mod, 0.0, 100.0);
+	// ── 决策方向置信度 + 信号强度（V58 新增）──
+	// 痛点：A级数据 + 严重超买 → posterior 低 → confidence 低（看空概率），
+	//   但"确信该卖"的语义被低 confidence 掩盖。
+	// 解决：新增两个字段与 confidence 互补：
+	//   decision_confidence = max(p, 1-p) × 100 — 无论买卖方向都体现"多确信"
+	//   signal_strength = |p - 0.5| × 200 — 偏离中性的程度，0=完全中性，100=极端强信号
+	// 说明：基于 effective_posterior（含 risk_bias），与 final_confidence 同源；
+	//   不再叠加 disagreement_mod（confidence 已体现，避免双重惩罚）；
+	//   collapse 会在下方分支同步降权，保持语义一致。
+	let decision_confidence_raw = if effective_posterior >= 0.5 {
+		effective_posterior
+	} else {
+		1.0 - effective_posterior
+	} * 100.0;
+	let signal_strength_raw = (effective_posterior - 0.5).abs() * 200.0;
 
 	// ── M2 修复：LLM 失败级联兜底 ──
 	// V55 扩展: 上游 AgentNode 走 strict_mode 兜底时（LLM 输出无法解析为合法 JSON），
@@ -911,7 +959,16 @@ let evidence_scale = if total_weight < 0.3 {
 //     其余 5 个可信 Agent 的信号仍有价值，不应被单点失败完全否决。
 //   P2 修复: weights_collapsed 改为比例阈值 (total_weight/max_weight<0.3)，
 //     避免在 regime_factor_weights 缩放权重后误判为坍缩。
-	let weights_collapsed = (total_weight / max_weight) < 0.3 || untrusted_count >= 2;
+	// V57 修复: 数据质量为 F 级时（dqi_score<25）视为决策基础不成立,
+	//   强制触发 weights_collapsed,即使 total_weight/max_weight≥0.3.
+	// 根因: 10 个分析师全缺失时,dqi_score=0 意味着分析师层完全无信号,
+	//   但 f4(算法风险)/f5(估值)/f7(trader) 等"非分析师"因子仍有数据,
+	//   导致 total_weight 仍可达 0.45+,f6_signal=-1.0 的负信号被稀释,
+	//   posterior 仍可达到 0.5+,confidence 显示为"中等置信"(60%~70%),
+	//   与"数据质量F级"语义完全矛盾。
+	// 数据质量 F 级阈值(data-quality.rhai line 138-142): score<25 → "F".
+	let dqi_collapsed = present(dqi_score) && dqi_score < 25.0;
+	let weights_collapsed = (total_weight / max_weight) < 0.3 || untrusted_count >= 2 || dqi_collapsed;
 	let partial_degraded = untrusted_count == 1;
 	// 三级降级策略（C2.1 修复：原二级退化为单级，现恢复三分支）
 	//   分支 A: weights_collapsed → 0% 仓位 + confidence × 0.5
@@ -922,20 +979,31 @@ let evidence_scale = if total_weight < 0.3 {
 	if weights_collapsed {
 	    // 分支 A: 权重坍缩或≥2 个上游不可信 → 强制空仓 + 置信度对半
 	    final_confidence = clamp(final_confidence * 0.5, 0.0, 100.0);
+	    decision_confidence_raw = clamp(decision_confidence_raw * 0.5, 0.0, 100.0);
+	    signal_strength_raw = clamp(signal_strength_raw * 0.5, 0.0, 100.0);
 	    position_pct = 0.0;
 	} else if partial_high_confidence {
 	    // 分支 B: 单点不可信但后验高置信 → 保留买入/增持，仓位上限 30%（在仓位对齐段应用）
 	    final_confidence = clamp(final_confidence * 0.85, 0.0, 100.0);
+	    decision_confidence_raw = clamp(decision_confidence_raw * 0.85, 0.0, 100.0);
+	    signal_strength_raw = clamp(signal_strength_raw * 0.85, 0.0, 100.0);
 	} else if partial_low_confidence {
 	    // 分支 C: 单点不可信且后验低置信 → 禁止加仓 + 置信度 × 0.70
 	    final_confidence = clamp(final_confidence * 0.70, 0.0, 100.0);
+	    decision_confidence_raw = clamp(decision_confidence_raw * 0.70, 0.0, 100.0);
+	    signal_strength_raw = clamp(signal_strength_raw * 0.70, 0.0, 100.0);
 	}
 	// C2.1: 三级降级 decision_trail（原 696-713 行前向引用为死代码，移至此处方能生效）
 	if weights_collapsed {
+	    let collapse_reason = if dqi_collapsed && !((total_weight / max_weight) < 0.3) && untrusted_count < 2 {
+	        `数据质量F级(dqi_score=${(dqi_score*10.0).round()/10.0}<25), 10个分析师基本全缺失, 0%仓位+置信度×0.5`
+	    } else {
+	        `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`
+	    };
 	    decision_trail.push(#{
-	        "rule_id": "R-203",
+	        "rule_id": if dqi_collapsed { "R-206" } else { "R-203" },
 	        "status": "DOWNGRADED",
-	        "detail": `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`,
+	        "detail": collapse_reason,
 	        "timestamp": 0.0,
 	    });
 	} else if partial_high_confidence {
@@ -1004,25 +1072,19 @@ let evidence_scale = if total_weight < 0.3 {
 	    "观望"
 	} else { base_action };
 
-	// ── V43 修复: 风险等级硬性 action 约束（风控否决权）──
-	// 根因: risk_bias=-0.08 只是软性偏移, posterior=0.7 时 effective_posterior=0.62
-	//   仍落入增持区(≥0.53), 导致"高风险+增持"的逻辑矛盾。
-	//   风险等级必须拥有 action 否决权, 不能仅靠阈值偏移。
-	// 规则:
-	//   高风险 → 禁止"买入/增持"(加仓=放大高风险敞口, 违背风控), 降级为"持有"
-	//   极高风险 → 禁止"买入/增持/持有"(极高风险不应继续持仓), 降级为"观望"
-	// 注意: 必须在仓位对齐之前执行, 使降级后的 action 正确触发仓位调整
-	let risk_downgraded = false;
-	let risk_downgrade_note = "";
-	if overall_risk == "极高风险" && (final_action == "买入" || final_action == "增持" || final_action == "持有") {
-        risk_downgraded = true;
-        risk_downgrade_note = ` | ⚠️极高风险风控否决:${base_action}→观望(极高风险不应继续持仓)`;
-        final_action = "观望";
-    } else if (overall_risk == "高风险" || overall_risk == "高") && (final_action == "买入" || final_action == "增持") {
-        risk_downgraded = true;
-        risk_downgrade_note = ` | ⚠️高风险风控否决:${base_action}→持有(高风险禁止加仓)`;
-        final_action = "持有";
-    }
+	// ── P3-1: 风控否决 — 调用 Rust 函数 ──
+	// 高风险→禁止买入/增持(降级为持有), 极高风险→禁止买入/增持/持有(降级为观望)
+	let original_action = final_action;
+	final_action = pm_risk_veto(final_action, overall_risk);
+	// 检测是否触发了风控降级，供 decision_trail 和 reasoning 使用
+	let risk_downgraded = original_action != final_action;
+	let risk_downgrade_note = if risk_downgraded {
+	    if overall_risk == "极高风险" || overall_risk == "极高" {
+	        ` | ⚠️极高风险风控否决:${original_action}→${final_action}(极高风险不应继续持仓)`
+	    } else if overall_risk == "高风险" || overall_risk == "高" {
+	        ` | ⚠️高风险风控否决:${original_action}→${final_action}(高风险禁止加仓)`
+	    } else { "" }
+	} else { "" };
 
 	// P0-1 修复: R-200 移至 risk_downgraded 定义之后（原位置前向引用为死代码）
 	// 记录风险否决
@@ -1090,7 +1152,11 @@ let evidence_scale = if total_weight < 0.3 {
 
 	// C2.1 三级降级标注
 let collapse_note = if weights_collapsed {
-    ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`
+    if dqi_collapsed && !((total_weight / max_weight) < 0.3) && untrusted_count < 2 {
+        ` | ⚠️数据质量F级(dqi_score=${(dqi_score*10.0).round()/10.0}<25),0%仓位+置信度×0.5`
+    } else {
+        ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`
+    }
 } else if partial_high_confidence {
     ` | ⚠️单点上游不可信(untrusted_count=1,posterior≥0.70),仓位≤30%+置信度×0.85`
 } else if partial_low_confidence {
@@ -1189,7 +1255,7 @@ let gap_note = if data_gaps.len() > 0 {
     ` | 缺口(${data_gaps.len()}) 证据=${evidence_pct}%`
 } else { "" };
 let bayes_note = ` | 先验=${prior}${prior_src} 后验=${(posterior*100.0).round()/100.0}`;
-let kelly_note = ` | 赔率=${(odds*10.0).round()/10.0} 凯利=${(kelly_raw*1000.0).round()/1000.0}`;
+let kelly_note = ` | 赔率=${(odds*10.0).round()/10.0}(${odds_source}) 凯利=${(kelly_raw*1000.0).round()/1000.0} 成本=${(cost_pct*100.0).to_int()}%`;
 // V50: 分歧度修正标注（仅在 disagreement 显著时标记）
 let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 {
     ` | ⚠️风险分歧(${risk_disagreement})置信修正×${(disagreement_mod*100.0).round().to_int()}%`
@@ -1199,7 +1265,19 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
 	__pm_result = #{
     "action": final_action,
     "positionPct": (position_pct * 10.0).round() / 10.0,
+    "positionPctNormalized": (position_pct * 10.0).round() / 10.0,  // P0-2: 组合归一化前的原始仓位权重
+    "maxPositionPct": if overall_risk == "极高风险" { POS_CAP_EXTREME }
+        else if overall_risk == "高风险" { POS_CAP_HIGH }
+        else if overall_risk == "中风险" { POS_CAP_MID }
+        else { 95.0 },  // P0-2: 本标的在当前风险等级下的单标的上限
+    "portfolioExposureWarning": if position_pct > 33.3 {
+        `⚠️仓位${position_pct}%超过33%——组合层面若持有3个以上同仓位标的，总敞口将超100%`
+    } else { "" },  // P0-2: 组合敞口预警（33%=3标的中性仓位阈值）
     "confidence": (final_confidence * 10.0).round() / 10.0,
+    // V58: 决策方向置信度 — 无论买卖方向都体现"多确信"（解决看空决策 confidence 偏低被误读为"不确信"）
+    "decisionConfidence": (decision_confidence_raw * 10.0).round() / 10.0,
+    // V58: 信号强度 — 偏离中性的程度，0=完全中性，100=极端强信号
+    "signalStrength": (signal_strength_raw * 10.0).round() / 10.0,
     "riskLevel": overall_risk,
     "riskSource": risk_source,
     "stopLossPct": if position_pct > 0.0 { switch time_horizon {
@@ -1218,6 +1296,8 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
         "prior": prior, "posterior": (posterior*1000.0).round()/1000.0,
         "avgSignal": (avg_signal*100.0).round()/100.0,
         "activeFactors": total_weight, "totalWeight": total_weight,
+        "oddsSource": odds_source,
+        "tradingCostPct": (cost_pct*100.0).to_int(),
         "f9_money_flow_signal": (f9_signal*100.0).round()/100.0,
         "f10_chip_signal": (f10_signal*100.0).round()/100.0,
         "f11_pace_signal": (f11_signal*100.0).round()/100.0,
@@ -1266,6 +1346,8 @@ catch (err) {
         "action": "观望",
         "positionPct": 0.0,
         "confidence": 50.0,
+        "decisionConfidence": 50.0,
+        "signalStrength": 0.0,
         "riskLevel": "中风险",
         "riskSource": "错误兜底",
         "stopLossPct": 0.0,

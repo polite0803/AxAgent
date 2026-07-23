@@ -1,11 +1,12 @@
 import { getSignalColor } from "@/lib/stock-analysis-utils";
 import { useSettingsStore } from "@/stores";
-import { ExpandOutlined } from "@ant-design/icons";
+import { ExpandOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import { Button, Card, Collapse, Empty, Modal, Tag } from "antd";
 import { setCustomComponents } from "markstream-react";
 import type { RenderContext, RenderNodeFn } from "markstream-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AnalystDataQualityModal } from "./AnalystDataQualityModal";
 import { ReportMarkdown } from "./ReportMarkdown";
 import { cleanToolCallTags, tryBeautifyJson } from "./utils";
 
@@ -185,10 +186,10 @@ function tryParse(report: string): ParsedReport | null {
 
 /** 从任意 ParsedReport 中提取可读的摘要文本 */
 function extractSummary(parsed: ParsedReport): string {
+  // candidate 顺序：先 prose 字段（reasoning / summary / analysis ...），再 report 兜底。
+  // P2 修复(2026-07-24): trader 节点的 `report` 字段是内层 JSON 字符串而非 markdown，
+  // 排在第一位会导致整张卡片显示 JSON 原文。把 report 放到末尾并跳过 JSON-like 字符串。
   const candidates = [
-    // `report` 字段是 catalyst-analyst 等节点的完整分析报告，
-    // 必须优先于 `reasoning`（一句话摘要），否则会显示"分析完成，但未返回结构化内容"
-    parsed.report,
     parsed.summary,
     parsed.argument,
     parsed.analysis,
@@ -201,9 +202,15 @@ function extractSummary(parsed: ParsedReport): string {
     parsed.financial_health,
     parsed.margin_of_safety,
     parsed.catalyst_detail,
+    parsed.report,
   ];
   for (const c of candidates) {
-    if (typeof c === "string" && c.length > 10) { return c; }
+    if (typeof c === "string" && c.length > 10) {
+      // 跳过看起来像 JSON 的字符串（trader / 包装对象的 inner JSON）
+      const trimmed = c.trimStart();
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) { continue; }
+      return c;
+    }
   }
   return "";
 }
@@ -327,17 +334,27 @@ export function AnalystReportCard({ expertId, report }: Props) {
     displayContent = beautified || report || "";
   }
   const [expanded, setExpanded] = useState(false);
+  const [dqOpen, setDqOpen] = useState(false);
   const hasContent = !!displayContent || !!parsed;
 
-  const expandBtn = hasContent
+  const extraBtns = hasContent
     ? (
-      <Button
-        type="text"
-        size="small"
-        icon={<ExpandOutlined />}
-        onClick={() => setExpanded(true)}
-        title={t("stockAnalysis.expandView")}
-      />
+      <>
+        <Button
+          type="text"
+          size="small"
+          icon={<SafetyCertificateOutlined />}
+          onClick={() => setDqOpen(true)}
+          title={t("stockAnalysis.analystReport.dataQuality")}
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<ExpandOutlined />}
+          onClick={() => setExpanded(true)}
+          title={t("stockAnalysis.expandView")}
+        />
+      </>
     )
     : null;
 
@@ -390,7 +407,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
               {empty && <Tag color="orange">{t("quant.common.empty")}</Tag>}
             </span>
           }
-          extra={expandBtn}
+          extra={extraBtns}
           styles={{ body: { flex: 1, maxHeight: 400, overflow: "auto" } }}
         >
           {/* 看多/看空/置信度 显眼展示 */}
@@ -498,6 +515,14 @@ export function AnalystReportCard({ expertId, report }: Props) {
             />
           </div>
         </Modal>
+        <AnalystDataQualityModal
+          name={name}
+          expertId={expertId}
+          parsed={parsed}
+          report={displayContent}
+          open={dqOpen}
+          onClose={() => setDqOpen(false)}
+        />
       </>
     );
   }
@@ -641,7 +666,7 @@ export function AnalystReportCard({ expertId, report }: Props) {
             {fuzzy.empty && <Tag color="orange" style={{ marginLeft: 8 }}>{t("quant.common.empty")}</Tag>}
           </span>
         }
-        extra={expandBtn}
+        extra={extraBtns}
         styles={{ body: { flex: 1, maxHeight: 400, overflow: "auto" } }}
       >
         {fuzzy.summary && (
@@ -720,6 +745,14 @@ export function AnalystReportCard({ expertId, report }: Props) {
           />
         </div>
       </Modal>
+      <AnalystDataQualityModal
+        name={name}
+        expertId={expertId}
+        parsed={null}
+        report={displayContent}
+        open={dqOpen}
+        onClose={() => setDqOpen(false)}
+      />
     </>
   );
 }

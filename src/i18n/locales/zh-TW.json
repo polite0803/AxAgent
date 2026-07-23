@@ -9757,6 +9757,7 @@
       "unstructuredOutput": "LLM 輸出為非結構化推理文本",
       "unstructuredDesc": "辯論節點未能產出 JSON 格式的結構化數據，原始輸出為 LLM 內部推理過程，無法渲染。",
       "parsedNoDisplay": "(原始數據已解析但無可用展示字段)",
+      "verdictOnlyLabel": "該辯手僅給出了結論，未提供詳細分析文字",
       "title": "辯論總結"
     },
     "debateRound": "第{{round}}轮",
@@ -9805,6 +9806,8 @@
     "confidenceHigh": "高置信",
     "confidenceMedium": "中等置信",
     "confidenceLow": "低置信（多空分歧）",
+    "decisionConfidence": "決策置信度",
+    "decisionConfidenceTooltip": "決策方向置信度 — 無論看多/看空，體現對該方向的確定程度。當此值顯著高於置信度時，說明是高確信的看空決策（如嚴重超買時確信該賣出）。",
     "consensusAbbr": "共識",
     "tab.market": "行情",
     "tab.analysts": "分析师",

@@ -392,6 +392,10 @@ pub fn compute_dashboard(
     is_historical: bool,
     as_of_date: Option<String>,
 ) -> PortfolioDashboard {
+    // P0-2: 计算当前组合中各标的市值占比，用于暴露度分析
+    // 注: portfolio-mgr 的"建议仓位"存在 stock_analyses 表，不在此处聚合。
+    //     真正的组合仓位归一化由 normalize_position_weights 函数提供，
+    //     待前端/命令层集成后启用（当前版本保持 API 可用）。
     let total_mv: f64 = positions.iter().map(|p| p.market_value.unwrap_or(0.0)).sum();
     let total_pnl: f64 = positions.iter().map(|p| p.unrealized_pnl.unwrap_or(0.0)).sum();
     let total_cost: f64 = positions.iter().map(|p| p.avg_cost * p.total_shares as f64).sum();
@@ -426,6 +430,26 @@ pub fn compute_dashboard(
         positions: positions.to_vec(),
         snapshot_at: chrono::Utc::now().timestamp_millis(),
     }
+}
+
+// ── P0-2: 组合仓位归一化 ──
+// portfolio-mgr 对每只股票独立输出 position_pct，各标的仓位之和可能远超 100%。
+// 例如 4 只标的同时建议 35% → 总仓位 140%，实际无法执行。
+// 本函数将传入的仓位列表按比例压缩到总上限内，同时保持相对权重不变。
+//
+// 场景：
+//   A. raw_sum ≤ cap → 不压缩（仓位已经自洽）
+//   B. raw_sum > cap → 按 cap/raw_sum 比例压缩
+//
+// 例: [30%, 25%, 20%] sum=75% ≤ 100% → 不变
+//     [50%, 40%, 30%] sum=120% > 100% → 各 ×100/120=[41.7%, 33.3%, 25.0%]
+pub fn normalize_position_weights(positions: &[f64], max_total_pct: f64) -> Vec<f64> {
+    let raw_sum: f64 = positions.iter().sum();
+    if raw_sum <= max_total_pct || raw_sum <= 0.0 {
+        return positions.to_vec();
+    }
+    let factor = max_total_pct / raw_sum;
+    positions.iter().map(|&p| (p * factor * 10.0).round() / 10.0).collect()
 }
 
 // ── 持久化层 ──

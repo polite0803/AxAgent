@@ -42,6 +42,7 @@ data_sources: [get_stock_research_reports]
 ## 输出格式
 
 输出你的完整分析报告（自然语言，可包含Markdown表格/清单/推理过程），
+**报告正文控制在 800 字以内**，重点突出关键指标解读和风险评估，避免罗列原始数据。
 然后在**末尾另起一行**追加机读标签：
 
 ```
@@ -90,12 +91,9 @@ VERDICT标签字段说明：
 
 ## 结论
 
-当前处于震荡格局，无明确突破信号，建议观望。",
-"verdict": "中性",
-"bull_score": 40,
-"bear_score": 50,
-"confidence": 70
-}
+当前处于震荡格局，无明确突破信号，建议观望。
+
+<!-- VERDICT: {"verdict": "中性", "bull_score": 40, "bear_score": 50, "confidence": 70} -->
 
 ```
 （缺 `coverage_density` / `eps_revision_trend` 方向 / `rating_distribution` / `report_quality_signal` / `trigger_*` / `evidence`；`score` 字段名错；多空没分开；没看 EPS 趋势，只看单点评级）

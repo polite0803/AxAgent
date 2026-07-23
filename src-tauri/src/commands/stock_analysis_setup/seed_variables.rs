@@ -272,25 +272,25 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
             description: Some("最大行业暴露占比 (%)".into()),
             is_secret: false,
         },
-        // ── 估值参数 ──
+        // ── 估值参数（A股校准：详见 decision.rs::ValueConfig::default 注释）──
         Variable {
             name: "value_dcf_growth_rate".into(),
             var_type: "number".into(),
-            value: serde_json::json!(8.0),
+            value: serde_json::json!(12.0),
             description: Some("DCF 增长率 (%)".into()),
             is_secret: false,
         },
         Variable {
             name: "value_dcf_perpetual_rate".into(),
             var_type: "number".into(),
-            value: serde_json::json!(3.0),
+            value: serde_json::json!(4.0),
             description: Some("DCF 永续增长率 (%)".into()),
             is_secret: false,
         },
         Variable {
             name: "value_dcf_discount_rate".into(),
             var_type: "number".into(),
-            value: serde_json::json!(10.0),
+            value: serde_json::json!(8.5),
             description: Some("DCF 折现率 (%)".into()),
             is_secret: false,
         },

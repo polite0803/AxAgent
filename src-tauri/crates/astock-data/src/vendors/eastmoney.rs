@@ -761,25 +761,42 @@ impl StockVendor for EastMoneyVendor {
             _ => return Ok(None),
         };
 
-        // 第一条为最新交易日数据
-        let r = &rows[0];
-        let date = r["TRADE_DATE"]
-            .as_str()
-            .unwrap_or("")
-            .split_whitespace()
-            .next()
-            .unwrap_or("")
-            .to_string();
-        let f = |key: &str| -> f64 {
-            r[key].as_f64().or_else(|| r[key].as_str().and_then(|s| s.parse().ok())).unwrap_or(0.0)
+        // 第一条为最新交易日数据，其余 4 条为历史数据（已按 TRADE_DATE 降序排列）。
+        // 旧实现只取 rows[0] 丢弃了 4 天数据，但 prompt 要求"连续 3-5 日趋势"分析，
+        // 因此把所有行都映射到 history 字段（第 0 条同时映射到顶层字段，保持兼容）。
+        let parse_row = |r: &Value| -> MoneyFlowDaily {
+            let date = r["TRADE_DATE"]
+                .as_str()
+                .unwrap_or("")
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .to_string();
+            let f = |key: &str| -> f64 {
+                r[key]
+                    .as_f64()
+                    .or_else(|| r[key].as_str().and_then(|s| s.parse().ok()))
+                    .unwrap_or(0.0)
+            };
+            MoneyFlowDaily {
+                date,
+                main_net_inflow: f("MAIN_NET_INFLOW"),
+                super_large_net: f("SUPER_LARGE_NET_INFLOW"),
+                large_net: f("LARGE_NET_INFLOW"),
+                medium_net: f("MEDIUM_NET_INFLOW"),
+                small_net: f("SMALL_NET_INFLOW"),
+            }
         };
+        let history: Vec<MoneyFlowDaily> = rows.iter().map(parse_row).collect();
+        let latest = &history[0];
         Ok(Some(MoneyFlow {
-            date,
-            main_net_inflow: f("MAIN_NET_INFLOW"),
-            super_large_net: f("SUPER_LARGE_NET_INFLOW"),
-            large_net: f("LARGE_NET_INFLOW"),
-            medium_net: f("MEDIUM_NET_INFLOW"),
-            small_net: f("SMALL_NET_INFLOW"),
+            date: latest.date.clone(),
+            main_net_inflow: latest.main_net_inflow,
+            super_large_net: latest.super_large_net,
+            large_net: latest.large_net,
+            medium_net: latest.medium_net,
+            small_net: latest.small_net,
+            history,
         }))
     }
 

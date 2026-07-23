@@ -772,7 +772,9 @@ impl NodeExecutorTrait for AgentExecutor {
             )
         })?;
 
-        // 5. 构建 user_prompt：仅包含 context_sources 的变量（更精准，减少噪声）
+        // 5. 构建 user_prompt：仅包含非 context_sources 的变量（避免与 system prompt 中的
+        // 上游节点输出重复——120 根 K 线 JSON 被注入两次会浪费 6000-9000 input tokens，
+        // 挤压模型对 VERDICT 格式要求的注意力，并可能导致输出截断时 VERDICT 标签被切掉）。
         let user_prompt = if an.config.context_sources.is_empty() {
             // 向后兼容：无 context_sources 时包含所有变量
             context
@@ -783,10 +785,16 @@ impl NodeExecutorTrait for AgentExecutor {
                 .collect::<Vec<_>>()
                 .join("\n")
         } else {
-            an.config
-                .context_sources
+            // 有 context_sources 时，user prompt 只放基本变量（stock_code 等），
+            // 大体积上游数据已在 system prompt 的"上游节点输出"段中注入。
+            context
+                .variables
                 .iter()
-                .filter_map(|s| context.variables.get(s).map(|v| format!("{s}: {v}")))
+                .filter(|(k, _)| {
+                    !k.starts_with("__")
+                        && !an.config.context_sources.iter().any(|s| s.as_str() == k.as_str())
+                })
+                .map(|(k, v)| format!("{k}: {v}"))
                 .collect::<Vec<_>>()
                 .join("\n")
         };
@@ -1159,7 +1167,10 @@ impl NodeExecutorTrait for AgentExecutor {
                 messages.push(ChatMessage {
                     role: "system".to_string(),
                     content: ChatContent::Text(
-                        "工具数据已获取。请基于上述工具结果直接输出最终分析结果，不要再调用工具。"
+                        "工具数据已获取。请基于上述工具结果直接输出最终分析结果，不要再调用工具。\
+                         \n**重要**：分析报告末尾必须另起一行追加 VERDICT 标签，格式如下：\
+                         \n<!-- VERDICT: {\"verdict\": \"看多|偏多|中性|偏空|看空\", \"bull_score\": 0-100, \"bear_score\": 0-100, \"bull_points\": [\"2-4条看多论据\"], \"bear_points\": [\"2-4条看空论据\"], \"confidence\": 0-100} -->\
+                         \n缺少 VERDICT 标签或缺少 bull_points/bear_points 的输出将被系统视为无效。"
                             .to_string(),
                     ),
                     tool_calls: None,
@@ -1191,13 +1202,214 @@ impl NodeExecutorTrait for AgentExecutor {
                     role: "system".to_string(),
                     content: ChatContent::Text(
                         "你已经获得了足够的工具数据。现在请基于这些数据直接输出最终分析结果，不要再调用任何工具。\
-                         \n如果你已获得需要的数据，直接输出最终 JSON。不需要额外确认。"
+                         \n如果你已获得需要的数据，直接输出最终分析报告。不需要额外确认。\
+                         \n**重要**：报告末尾必须另起一行追加 VERDICT 标签，格式如下：\
+                         \n<!-- VERDICT: {\"verdict\": \"看多|偏多|中性|偏空|看空\", \"bull_score\": 0-100, \"bear_score\": 0-100, \"bull_points\": [\"2-4条看多论据\"], \"bear_points\": [\"2-4条看空论据\"], \"confidence\": 0-100} -->\
+                         \n缺少 VERDICT 标签或缺少 bull_points/bear_points 的输出将被系统视为无效。"
                             .to_string(),
                     ),
                     tool_calls: None,
                     tool_call_id: None,
                     thinking: None,
                 });
+            }
+        }
+
+        // ── VERDICT 兜底：工具调用循环结束后，若输出无 VERDICT 标签，追加一轮纯总结调用 ──
+        // 根因 1：LLM 在 max_tool_rounds 内全部用于工具调用，break 时 final_content 为空。
+        // 根因 2：LLM 输出被 max_tokens/模型 API 上限截断，VERDICT 标签作为最后一行被切掉。
+        // 两种情况都会导致 strict_mode 降级为 fallback JSON（confidence=0），10 个分析师全部
+        // "数据不足"，决策层触发保守降级。
+        // 修复：追加一轮不带 tools 的 LLM 调用，明确要求输出带 VERDICT 标签的最终分析。
+        // 仅对 analyst 角色（strict_mode + 有 tools 配置）生效。
+        // V58 优化: 区分两种场景——
+        //   (a) 截断场景（final_content 非空但无 VERDICT）：把截断内容作为 user message，
+        //       要求 LLM 基于该内容追加 VERDICT 标签，不传完整历史 messages，避免 input 膨胀。
+        //   (b) 空输出场景：用精简 messages（system + user + 工具结果摘要）。
+        if let Some(ref perms) = context.tool_permissions
+            && perms.strict_mode
+            && !an.config.tools.is_empty()
+        {
+            let needs_verdict_retry = !final_content.trim().is_empty()
+                && extract_verdict_tag(final_content.trim()).is_none()
+                && serde_json::from_str::<serde_json::Value>(final_content.trim()).is_err();
+            let needs_empty_retry = final_content.trim().is_empty();
+
+            if needs_verdict_retry || needs_empty_retry {
+                tracing::info!(
+                    node_id = %node.base_id(),
+                    content_len = final_content.len(),
+                    has_verdict = %!needs_verdict_retry,
+                    mode = if needs_verdict_retry { "truncated" } else { "empty" },
+                    "VERDICT 兜底: 输出无 VERDICT 标签，追加纯总结轮次",
+                );
+
+                // 场景 (a): 截断——把截断内容传给 LLM，要求续写 VERDICT
+                // 场景 (b): 空输出——把 system prompt + 工具结果摘要传给 LLM
+                let retry_messages: Vec<ChatMessage> = if needs_verdict_retry {
+                    // 截断场景：只传截断内容 + 续写指令，不传历史 messages
+                    let truncated_text = final_content.trim().to_string();
+                    vec![
+                        ChatMessage {
+                            role: "system".to_string(),
+                            content: ChatContent::Text(
+                                "你是一个股票分析师。以下是你之前输出的分析报告，但末尾的 VERDICT 标签被截断了。\
+                                 \n请基于该报告内容，追加 VERDICT 机读标签。\
+                                 \n**不要重新写报告**，只输出 VERDICT 标签本身。\
+                                 \n格式：\
+                                 \n<!-- VERDICT: {\"verdict\": \"看多|偏多|中性|偏空|看空\", \"bull_score\": 0-100整数, \"bear_score\": 0-100整数, \"bull_points\": [\"2-4条看多论据,每条不超过16字\"], \"bear_points\": [\"2-4条看空论据,每条不超过16字\"], \"confidence\": 0-100整数} -->\
+                                 \n示例：\
+                                 \n<!-- VERDICT: {\"verdict\": \"偏多\", \"bull_score\": 68, \"bear_score\": 32, \"bull_points\": [\"主力资金净流入\", \"机构持续买入\"], \"bear_points\": [\"短期涨幅较大\"], \"confidence\": 75} -->"
+                                    .to_string(),
+                            ),
+                            tool_calls: None,
+                            tool_call_id: None,
+                            thinking: None,
+                        },
+                        ChatMessage {
+                            role: "user".to_string(),
+                            content: ChatContent::Text(truncated_text),
+                            tool_calls: None,
+                            tool_call_id: None,
+                            thinking: None,
+                        },
+                    ]
+                } else {
+                    // 空输出场景：用 system prompt + 工具结果摘要（从 messages 提取最后几条）
+                    // 只保留 system + 最近 2 条 tool result，避免 input 膨胀
+                    let mut compact_messages: Vec<ChatMessage> = Vec::new();
+                    // 保留第一条 system prompt（含上游数据 + 专家指令）
+                    if let Some(first_sys) = messages.first() {
+                        compact_messages.push(first_sys.clone());
+                    }
+                    // 保留最后 2 条消息（通常是最近的 tool result）
+                    let take = messages.len().saturating_sub(2);
+                    for msg in messages.iter().skip(take.max(1)) {
+                        compact_messages.push(msg.clone());
+                    }
+                    // 追加总结指令
+                    compact_messages.push(ChatMessage {
+                        role: "system".to_string(),
+                        content: ChatContent::Text(
+                            "请基于上述数据输出最终分析报告（控制在 500 字以内），末尾追加 VERDICT 标签。\
+                             \n<!-- VERDICT: {\"verdict\": \"看多|偏多|中性|偏空|看空\", \"bull_score\": 0-100, \"bear_score\": 0-100, \"bull_points\": [\"2-4条看多论据\"], \"bear_points\": [\"2-4条看空论据\"], \"confidence\": 0-100} -->\
+                             \n缺少 VERDICT 标签或缺少 bull_points/bear_points 的输出将被视为无效。"
+                                .to_string(),
+                        ),
+                        tool_calls: None,
+                        tool_call_id: None,
+                        thinking: None,
+                    });
+                    compact_messages
+                };
+
+                let retry_request = ChatRequest {
+                    model: model.clone(),
+                    messages: retry_messages,
+                    stream: true,
+                    temperature: context
+                        .variables
+                        .get("agent_temperature")
+                        .and_then(|v| v.as_f64())
+                        .or_else(|| an.config.temperature.map(|t| t as f64)),
+                    max_tokens: context
+                        .variables
+                        .get("agent_max_tokens")
+                        .and_then(|v| v.as_u64().map(|u| u as u32))
+                        .or(an.config.max_tokens),
+                    top_p: None,
+                    tools: None, // 不传 tools，强制 LLM 只输出文本
+                    thinking_budget: None,
+                    use_max_completion_tokens: None,
+                    thinking_param_style: None,
+                    api_mode: None,
+                    instructions: None,
+                    conversation: None,
+                    previous_response_id: None,
+                    store: None,
+                    response_format: None,
+                };
+                let llm_config = axagent_harness::LlmCallConfig::default();
+                match axagent_harness::execute_llm_stream(
+                    adapter.as_ref(),
+                    &req_ctx,
+                    retry_request,
+                    &llm_config,
+                    None,
+                )
+                .await
+                {
+                    Ok(mut retry_stream) => {
+                        let mut retry_content = String::new();
+                        let chunk_timeout =
+                            Duration::from_secs(an.config.stream_chunk_timeout_secs.unwrap_or(120));
+                        while let Ok(maybe_chunk) =
+                            tokio::time::timeout(chunk_timeout, retry_stream.next()).await
+                        {
+                            match maybe_chunk {
+                                Some(Ok(chunk)) => {
+                                    if let Some(ref content) = chunk.content {
+                                        retry_content.push_str(content);
+                                    }
+                                    if let Some(usage) = chunk.usage {
+                                        total_usage.0 += usage.input_tokens;
+                                        total_usage.1 += usage.output_tokens;
+                                    }
+                                },
+                                Some(Err(_)) | None => break,
+                            }
+                        }
+                        if !retry_content.trim().is_empty() {
+                            // 截断场景：重试只返回 VERDICT 标签，需拼接到原始截断内容后面
+                            if needs_verdict_retry {
+                                let verdict_tag = extract_verdict_tag(retry_content.trim());
+                                if let Some(verdict_json) = verdict_tag {
+                                    // 拼接原始报告 + 重试输出的 VERDICT 标签
+                                    final_content = format!(
+                                        "{}\n<!-- VERDICT: {} -->",
+                                        final_content.trim(),
+                                        verdict_json
+                                    );
+                                    tracing::info!(
+                                        node_id = %node.base_id(),
+                                        original_len = final_content.len(),
+                                        "VERDICT 兜底: 截断场景重试成功，VERDICT 标签已拼接到原始报告末尾",
+                                    );
+                                } else {
+                                    // 重试输出不是纯 VERDICT 标签（LLM 可能重写了报告），直接替换
+                                    tracing::info!(
+                                        node_id = %node.base_id(),
+                                        retry_len = retry_content.len(),
+                                        has_verdict = extract_verdict_tag(retry_content.trim()).is_some(),
+                                        "VERDICT 兜底: 截断场景重试输出非纯标签，直接替换 final_content",
+                                    );
+                                    final_content = retry_content;
+                                }
+                            } else {
+                                // 空输出场景：重试输出完整报告，直接替换
+                                tracing::info!(
+                                    node_id = %node.base_id(),
+                                    retry_len = retry_content.len(),
+                                    has_verdict = extract_verdict_tag(retry_content.trim()).is_some(),
+                                    "VERDICT 兜底: 空输出场景重试成功，替换 final_content",
+                                );
+                                final_content = retry_content;
+                            }
+                        } else {
+                            tracing::warn!(
+                                node_id = %node.base_id(),
+                                "VERDICT 兜底: 重试仍返回空内容，走降级路径",
+                            );
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            node_id = %node.base_id(),
+                            error = %e,
+                            "VERDICT 兜底: 重试 LLM 调用失败，走降级路径",
+                        );
+                    },
+                }
             }
         }
 
@@ -1214,6 +1426,21 @@ impl NodeExecutorTrait for AgentExecutor {
             let verdict_reconstructed = extract_verdict_tag(&trimmed).and_then(|verdict_json| {
                 // 成功提取 VERDICT，用报告文本 + VERDICT 重构 minimal JSON
                 let report_text = strip_verdict_tag(&trimmed);
+                // V72 修复(P1): 当 LLM 仅输出 VERDICT 标签（无正文）时，
+                // report_text 为空字符串，前端 VerdictView 只渲染 stance/score 标签，
+                // 用户看到的只有"看多 强度:65"这类结论性标签——完全看不到分析文字。
+                // 根因：LLM 有时忽略"先写分析再追加标签"的指令，只输出标签。
+                // 修复：report 为空时插入标记性占位文本，防止前端渲染为空。
+                let report_text = if report_text.trim().is_empty() {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        verdict = %verdict_json,
+                        "VERDICT tag 无正文：LLM 仅输出了 VERDICT 标签，未包含分析报告",
+                    );
+                    "(该辩手仅给出了结论标签，未提供详细分析文字)".to_string()
+                } else {
+                    report_text
+                };
                 let report_escaped =
                     serde_json::to_string(&report_text).unwrap_or_else(|_| "\"\"".to_string());
                 let combined =
@@ -1432,21 +1659,26 @@ impl NodeExecutorTrait for AgentExecutor {
                                     })
                                     .collect();
                                 // FIX-03: 增强 strict_mode 降级策略——标记数据异常而非伪装成正常分析
+                                // V57 修复: 不再注入 bull_score=0/bear_score=0/confidence=0 零值。
+                                // 零值会导致下游 portfolio-mgr 因子信号全部为 -1（(0-50)/50=-1），
+                                // posterior 被拉到 0，叠加 weights_collapsed ×0.5 → confidence 恒为 0。
+                                // 改为中性估值（50/50/30），让下游能区分"数据不足但非极端看空"和"看空"。
                                 let fallback_json = serde_json::json!({
                                     "report": trimmed,
-                                    // V40 修复: 增加 position_pct=50 使前端的 computeRiskScore
-                                    // 能通过第1优先级（VERDICT position_pct→风险分=100-50=50）给出
-                                    // 中等风险分，而非因 position_pct 缺失走 confidence=30 给出低风险。
-                                    // 使用默认时间范围
-                                    "verdict": {"verdict": "数据不足", "bull_score": 0, "bear_score": 0, "confidence": 0, "position_pct": 50},
+                                    "verdict": {
+                                        "verdict": "数据不足",
+                                        "bull_score": 50,
+                                        "bear_score": 50,
+                                        "confidence": 30,
+                                        "position_pct": 50,
+                                        "bull_points": ["数据不足，无法给出看多论据"],
+                                        "bear_points": ["数据不足，无法给出看空论据"]
+                                    },
                                     "strict_mode_fallback": true,
                                     "__data_quality_alert": true,
-                                    // P0-2: 标记 __untrusted=true 让 reflection-comparator.rhai 能识别
-                                    // （原版只写 __data_quality_alert，下游扫描 6 路径恒为 null）
                                     "__untrusted": true,
                                     "strict_mode_failure_reason": "LLM 输出非标准格式，无法解析为 JSON",
                                     "tool_results_summary": tool_summary,
-                                    // H4.1: 标记 fallback_model 配置（供下游 portfolio-mgr 感知）
                                     "fallback_model_configured": an.config.fallback_model.is_some(),
                                 });
                                 final_content = fallback_json.to_string();
@@ -1461,45 +1693,73 @@ impl NodeExecutorTrait for AgentExecutor {
         // 无论 strict_mode 是否开启，只要输出包含 <!-- VERDICT: {...} --> 标签，
         // 就将其重构为 {"report": "...", "verdict": {...}} JSON 格式，
         // 使下游 resolve_var_path 能通过 content.verdict.confidence 等路径正确解析。
-        // 仅当 final_content 不是合法 JSON 时才执行（避免重复处理已重构的 strict_mode 输出）。
-        if !final_content.trim().is_empty()
-            && serde_json::from_str::<serde_json::Value>(final_content.trim()).is_err()
-        {
-            let trimmed = final_content.trim().to_string();
-            if let Some(verdict_json) = extract_verdict_tag(&trimmed) {
-                let report_text = strip_verdict_tag(&trimmed);
-                let report_escaped =
-                    serde_json::to_string(&report_text).unwrap_or_else(|_| "\"\"".to_string());
-                let combined =
-                    format!(r#"{{"report":{}, "verdict":{} }}"#, report_escaped, verdict_json);
-                if serde_json::from_str::<serde_json::Value>(&combined).is_ok() {
-                    tracing::info!(
+        //
+        // V62 修复(2026-07-23): 原逻辑仅当 final_content 不是合法 JSON 时才执行重构,
+        //   但 LLM 可能输出合法的裸 JSON（如 {"verdict":"中性","confidence":70,...}），
+        //   此时 verdict 是字符串而非 map，下游 content.verdict.confidence 路径下钻失败。
+        //   新增分支：合法 JSON 但 verdict 字段是字符串（扁平结构）时，
+        //   把 verdict 相关字段提取到嵌套 map，统一为 {"report":..., "verdict":{...}}。
+        if !final_content.trim().is_empty() {
+            let parsed_opt = serde_json::from_str::<serde_json::Value>(final_content.trim()).ok();
+            let needs_verdict_tag_reconstruct = parsed_opt.is_none();
+            let needs_flat_reconstruct = parsed_opt.as_ref().is_some_and(|v| {
+                v.is_object() && v.get("verdict").is_some_and(|vd| !vd.is_object())
+            });
+
+            if needs_verdict_tag_reconstruct {
+                // 分支 A: 非合法 JSON → 从 VERDICT 标签提取并重构
+                let trimmed = final_content.trim().to_string();
+                if let Some(verdict_json) = extract_verdict_tag(&trimmed) {
+                    let report_text = strip_verdict_tag(&trimmed);
+                    let report_escaped =
+                        serde_json::to_string(&report_text).unwrap_or_else(|_| "\"\"".to_string());
+                    let combined =
+                        format!(r#"{{"report":{}, "verdict":{} }}"#, report_escaped, verdict_json);
+                    if serde_json::from_str::<serde_json::Value>(&combined).is_ok() {
+                        tracing::info!(
+                            node_id = %node.base_id(),
+                            report_len = report_text.len(),
+                            "通用后处理: 从 VERDICT tag 重构输出为 JSON"
+                        );
+                        final_content = combined;
+                    }
+                } else {
+                    tracing::warn!(
                         node_id = %node.base_id(),
-                        report_len = report_text.len(),
-                        "通用后处理: 从 VERDICT tag 重构输出为 JSON"
+                        content_len = trimmed.len(),
+                        "LLM 输出无 VERDICT 标签且非合法 JSON，analyst-brief 将标记该维度为'数据不可用'"
                     );
-                    final_content = combined;
                 }
-            } else {
-                // V61 修复(2026-07-23): 回退 V59 的 confidence=0 兜底方案。
-                // V59 把"LLM 无 VERDICT 标签"包装成 confidence=0 的 verdict，
-                // 导致所有异常分析师的 confidence 都是 0 → analyst-brief
-                // 显示 10 个分析师全部 0 → 决策退化为"持有 0%"，比原来的
-                // "数据不可用"路径还差（前端能正确显示缺失，现在变成 10 个假信号）。
-                //
-                // 正确处理：纯文本输出时不下钻 verdict，保持纯文本让 analyst-brief
-                // 通过 type_of(verdict) != "map" 走"数据不可用"标记，前端能正确
-                // 区分"该分析师失败"vs"该分析师有数据但中性"。
-                //
-                // 真正的问题不是数据流路径，而是上游 LLM 没输出 VERDICT 标签——
-                // 这个是 prompt 约束问题（VERDICT 标签在末尾容易漏写），不是路径问题。
-                // 后续应该改 prompt 强制把 VERDICT 标签作为单独消息附加，而不是
-                // 期望 LLM 在长报告末尾自己加上。
-                tracing::warn!(
+            } else if needs_flat_reconstruct {
+                // 分支 B: 合法 JSON 但 verdict 是字符串（扁平结构）→ 重构为嵌套结构
+                let parsed = parsed_opt.unwrap();
+                let obj = parsed.as_object().unwrap();
+                let verdict_keys = [
+                    "verdict",
+                    "confidence",
+                    "bull_score",
+                    "bear_score",
+                    "bull_points",
+                    "bear_points",
+                ];
+                let verdict_map: serde_json::Map<String, serde_json::Value> = obj
+                    .iter()
+                    .filter(|(k, _)| verdict_keys.contains(&k.as_str()))
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .collect();
+                let report = obj
+                    .get("report")
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::Value::String(final_content.trim().to_string()));
+                let combined = serde_json::json!({
+                    "report": report,
+                    "verdict": verdict_map
+                });
+                tracing::info!(
                     node_id = %node.base_id(),
-                    content_len = trimmed.len(),
-                    "LLM 输出无 VERDICT 标签且非合法 JSON，analyst-brief 将标记该维度为'数据不可用'"
+                    "通用后处理: 扁平 JSON verdict(字符串) 重构为嵌套 verdict(map)"
                 );
+                final_content = combined.to_string();
             }
         }
 

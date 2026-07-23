@@ -1090,6 +1090,7 @@ macro_rules! register_all_commands {
             commands::stock_analysis::run_reflection_now,
             commands::stock_analysis::list_param_suggestions,
             commands::stock_analysis::apply_param_suggestions,
+            commands::stock_analysis::calibrate_portfolio_mgr_params,
             commands::stock_analysis::get_evolution_drift_dashboard,
             commands::stock_analysis::get_evolution_drift_timeline,
             commands::stock_analysis::get_agreement_score_history,

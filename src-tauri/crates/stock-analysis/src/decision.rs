@@ -16,8 +16,18 @@ pub struct StockDecision {
     pub reasoning: String,
     /// 风险等级: 低/中/高
     pub risk_level: String,
-    /// 置信度 (0-100)
+    /// 置信度 (0-100) — 看多概率，用于仓位计算。低值表示看空。
     pub confidence: f64,
+    /// 决策方向置信度 (0-100) — 无论买卖方向都体现"多确信"。
+    /// = max(effective_posterior, 1-effective_posterior) × 100
+    /// 解决痛点：看空决策 confidence 偏低被误读为"不确信"。
+    #[serde(default)]
+    pub decision_confidence: Option<f64>,
+    /// 信号强度 (0-100) — 偏离中性的程度。
+    /// = |effective_posterior - 0.5| × 200
+    /// 0=完全中性，100=极端强信号。
+    #[serde(default)]
+    pub signal_strength: Option<f64>,
     /// 时间维度: "ultra_short" | "short" | "mid" | "long"
     #[serde(default)]
     pub time_horizon: Option<String>,
@@ -204,13 +214,16 @@ pub struct ValueConfig {
 }
 
 fn default_dcf_growth() -> f64 {
-    8.0
+    // A股校准：优秀公司平均增速 12%（原 8% 偏保守，导致系统性低估成长股）
+    12.0
 }
 fn default_dcf_perpetual() -> f64 {
-    3.0
+    // A股校准：接近长期名义 GDP 增速 4%（原 3% 偏低）
+    4.0
 }
 fn default_dcf_discount() -> f64 {
-    10.0
+    // A股校准：无风险利率 2.5% + 6% 风险溢价（原 10% 偏高）
+    8.5
 }
 fn default_moat_threshold() -> u32 {
     60
@@ -225,9 +238,10 @@ fn default_safety_margin() -> f64 {
 impl Default for ValueConfig {
     fn default() -> Self {
         Self {
-            dcf_growth_rate: 8.0,
-            dcf_perpetual_rate: 3.0,
-            dcf_discount_rate: 10.0,
+            // A股校准参数：详见 default_dcf_* 函数注释
+            dcf_growth_rate: 12.0,
+            dcf_perpetual_rate: 4.0,
+            dcf_discount_rate: 8.5,
             moat_threshold: 60,
             f_score_buy_threshold: 7,
             safety_margin_min: 20.0,

@@ -77,6 +77,19 @@ pub fn build_blackboard_snapshot(
                         let reconstructed = format!("{}<!-- VERDICT: {} -->", report, verdict);
                         value_to_store = Value::String(reconstructed);
                     }
+                } else if let Some(result) = obj.get("result") {
+                    // V41 修复 (2026-07-24): CodeNode 包装但无 verdict 字段
+                    //   (data-quality / rule-check / quality-fallback 等 RHAI 确定性节点
+                    //    的 output 形如 {status, language, result: <诊断报告>, input_params, node_id, params})
+                    // 历史 bug: 直接存整个包装对象 → 前端 String(对象) = "[object Object]" (15 字符)，
+                    //          JSON.parse 解析失败 → DecisionBanner 触发"数据质量诊断未渲染"降级面板。
+                    // 这里提取 result 字段并 JSON.stringify 成字符串存入 snapshot,
+                    // 前端 loadAnalysis 拿到的是纯诊断报告 JSON 字符串,可直接 JSON.parse。
+                    let json_str = match serde_json::to_string(result) {
+                        Ok(s) => s,
+                        Err(_) => result.to_string(),
+                    };
+                    value_to_store = Value::String(json_str);
                 }
             }
             bb.insert(key, value_to_store);

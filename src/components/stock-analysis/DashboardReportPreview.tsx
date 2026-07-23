@@ -1,9 +1,11 @@
+import { useSettingsStore } from "@/stores";
 import type { Catalyst, ChecklistItem, DashboardReport, RiskAlert } from "@/types";
 import { AlertOutlined, BulbOutlined, CheckCircleOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import { Alert, Card, Checkbox, Progress, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
+import { ReportMarkdown } from "./ReportMarkdown";
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Title } = Typography;
 
 /** 根据动作返回对应颜色 */
 function actionColor(action: string): string {
@@ -62,6 +64,9 @@ function fmtNum(v?: number | null): string {
 /** 风险警报区块 */
 function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
   const { t } = useTranslation();
+  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const isDark = themeMode === "dark"
+    || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   if (alerts.length === 0) {
     return null;
   }
@@ -81,7 +86,7 @@ function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
           <div key={idx}>
             <Tag color={severityColor(alert.severity)}>{alert.severity}</Tag>
             {alert.source && <Tag>{alert.source}</Tag>}
-            <Text>{alert.description}</Text>
+            <ReportMarkdown content={alert.description ?? ""} isDark={isDark} />
           </div>
         ))}
       </Space>
@@ -92,6 +97,9 @@ function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
 /** 催化因素区块 */
 function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
   const { t } = useTranslation();
+  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const isDark = themeMode === "dark"
+    || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   if (catalysts.length === 0) {
     return null;
   }
@@ -111,7 +119,7 @@ function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
           <div key={idx}>
             <Tag color={cat.direction === "利好" ? "red" : "green"}>{cat.direction}</Tag>
             {cat.timeline && <Tag>{cat.timeline}</Tag>}
-            <Text>{cat.description}</Text>
+            <ReportMarkdown content={cat.description ?? ""} isDark={isDark} />
             {cat.confidenceScore !== null && cat.confidenceScore !== undefined && (
               <Text type="secondary" style={{ marginLeft: 8 }}>
                 {t("stockAnalysis.dashboard.confidence")}: {cat.confidenceScore.toFixed(0)}%
@@ -127,6 +135,9 @@ function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
 /** 操作检查清单区块 */
 function ChecklistSection({ items }: { items: ChecklistItem[] }) {
   const { t } = useTranslation();
+  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const isDark = themeMode === "dark"
+    || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   if (items.length === 0) {
     return null;
   }
@@ -145,7 +156,7 @@ function ChecklistSection({ items }: { items: ChecklistItem[] }) {
         {items.map((item, idx) => (
           <Checkbox key={idx} checked={item.checked} disabled>
             <Tag>{item.category}</Tag>
-            <Text>{item.description}</Text>
+            <ReportMarkdown content={item.description ?? ""} isDark={isDark} />
           </Checkbox>
         ))}
       </Space>
@@ -156,6 +167,9 @@ function ChecklistSection({ items }: { items: ChecklistItem[] }) {
 /** 决策仪表盘预览组件 */
 export function DashboardReportPreview({ report }: { report: DashboardReport }) {
   const { t } = useTranslation();
+  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const isDark = themeMode === "dark"
+    || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const scoreColor = report.score >= 60 ? "#52c41a" : report.score >= 30 ? "#faad14" : "#f5222d";
 
@@ -209,7 +223,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
           size="small"
           style={{ marginBottom: 8 }}
         />
-        <Paragraph>{report.coreConclusion}</Paragraph>
+        <ReportMarkdown content={report.coreConclusion} isDark={isDark} />
       </Card>
 
       {/* 2. 买卖点位 */}
@@ -251,7 +265,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
       {/* 6. 最新动态 */}
       {report.latestNews && (
         <Card size="small" title={t("stockAnalysis.dashboard.latestNews")} style={{ marginTop: 12 }}>
-          <Paragraph>{report.latestNews}</Paragraph>
+          <ReportMarkdown content={report.latestNews} isDark={isDark} />
         </Card>
       )}
 
@@ -262,7 +276,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
           title={t("stockAnalysis.dashboard.earningsExpectation")}
           style={{ marginTop: 12 }}
         >
-          <Paragraph>{report.earningsExpectation}</Paragraph>
+          <ReportMarkdown content={report.earningsExpectation} isDark={isDark} />
         </Card>
       )}
     </div>

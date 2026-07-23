@@ -9711,6 +9711,8 @@
     "confidenceHigh": "High",
     "confidenceMedium": "Medium",
     "confidenceLow": "Low (diverged)",
+    "decisionConfidence": "Decision Confidence",
+    "decisionConfidenceTooltip": "Decision direction confidence — regardless of bullish/bearish, indicates certainty in the direction. When significantly higher than confidence, it indicates a high-conviction bearish decision (e.g., confident sell during severe overbought conditions).",
     "consensusAbbr": "Consensus",
     "contextCopied": "Context copied",
     "contradiction": "Decision Contradiction",
@@ -9815,6 +9817,7 @@
       "unstructuredOutput": "LLM output is unstructured reasoning text",
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
       "parsedNoDisplay": "(Parsed but no displayable fields)",
+      "verdictOnlyLabel": "The debater only provided a conclusion, without detailed analysis.",
       "title": "Debate Summary"
     },
     "debateHistory": "Debate History",

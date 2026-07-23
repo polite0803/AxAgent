@@ -29,6 +29,10 @@ pub struct FinancialRatios {
     pub profit_yoy: Option<f64>,
     pub eps: Option<f64>,
     pub bps: Option<f64>,
+    /// 商誉（绝对值，用于 A 股特色风险评估）
+    pub goodwill: Option<f64>,
+    /// 应收账款（绝对值，用于 A 股特色风险评估）
+    pub accounts_receivable: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -118,6 +122,8 @@ impl FundamentalsAnalyzer {
             r.profit_yoy = f.profit_yoy;
             r.eps = f.eps;
             r.bps = f.bps;
+            r.goodwill = f.goodwill;
+            r.accounts_receivable = f.accounts_receivable;
             r.roa = if let (Some(np), Some(ta)) = (f.net_profit, f.total_assets) {
                 if ta > 0.0 {
                     Some(np / ta * 100.0)
@@ -278,7 +284,7 @@ impl FundamentalsAnalyzer {
     }
 
     pub fn completeness(r: &FinancialRatios) -> f64 {
-        let total = 14.0;
+        let total = 16.0;
         let filled = [
             r.pe.is_some(),
             r.pb.is_some(),
@@ -294,6 +300,8 @@ impl FundamentalsAnalyzer {
             r.fcf.is_some(),
             r.fcf_yield.is_some(),
             r.revenue_yoy.is_some(),
+            r.goodwill.is_some(),
+            r.accounts_receivable.is_some(),
         ]
         .iter()
         .filter(|x| **x)
@@ -365,6 +373,13 @@ impl FundamentalsReport {
         }
         if let Some(v) = r.profit_yoy {
             s.push_str(&format!("| 成长 | 净利同比 | {:.1}% |\n", v));
+        }
+        // A 股特色风险指标（商誉/应收账款）
+        if let Some(v) = r.goodwill {
+            s.push_str(&format!("| 风险 | 商誉 | {:.2}亿 |\n", v / 1e8));
+        }
+        if let Some(v) = r.accounts_receivable {
+            s.push_str(&format!("| 风险 | 应收账款 | {:.2}亿 |\n", v / 1e8));
         }
 
         if !self.key_takeaways.is_empty() {
@@ -485,7 +500,7 @@ mod tests {
         r.pe = Some(10.0);
         r.pb = Some(2.0);
         let c = FundamentalsAnalyzer::completeness(&r);
-        assert!((c - 2.0 / 14.0).abs() < 1e-6);
+        assert!((c - 2.0 / 16.0).abs() < 1e-6);
     }
 
     #[test]
