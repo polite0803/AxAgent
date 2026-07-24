@@ -40,22 +40,25 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     // ========================================================================
     // We need this row to exist before we can INSERT into knowledge_entities
     // with this knowledge_base_id (FK constraint).
-    let now = chrono::Utc::now().timestamp();
+    // 用于 PHASE 6 数据迁移时缺失时间戳的兜底值（毫秒）。
+    let now = chrono::Utc::now().timestamp_millis();
 
+    // 注意：knowledge_bases 表（v100 DDL 与 entity 权威定义）不包含 created_at/updated_at 列，
+    // 因此 sentinel 行不能引用这两列，否则会报 "no such column: created_at"。
     if is_pg {
         db.execute_unprepared(&format!(
-            "INSERT INTO knowledge_bases (id, name, description, enabled, created_at, updated_at) \
+            "INSERT INTO knowledge_bases (id, name, description, enabled) \
              VALUES ('{}', 'System Trajectory Entities', 'Auto-extracted entities from conversation trajectories', \
-             FALSE, {}, {}) \
+             FALSE) \
              ON CONFLICT (id) DO NOTHING",
-            TRAJECTORY_KB_ID, now, now
+            TRAJECTORY_KB_ID
         )).await?;
     } else {
         db.execute_unprepared(&format!(
-            "INSERT OR IGNORE INTO knowledge_bases (id, name, description, enabled, created_at, updated_at) \
+            "INSERT OR IGNORE INTO knowledge_bases (id, name, description, enabled) \
              VALUES ('{}', 'System Trajectory Entities', 'Auto-extracted entities from conversation trajectories', \
-             0, {}, {})",
-            TRAJECTORY_KB_ID, now, now
+             0)",
+            TRAJECTORY_KB_ID
         )).await?;
     }
 
