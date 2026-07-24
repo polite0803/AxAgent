@@ -141,7 +141,7 @@ export function BacktestChart({
             </span>
           )}
         </h4>
-        <ResponsiveContainer width={width} height={height * 0.65}>
+        <ResponsiveContainer width={width as any} height={height * 0.65}>
           <ComposedChart data={equityCurve}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
@@ -230,7 +230,7 @@ export function BacktestChart({
         <h4 className="text-sm font-medium text-gray-300 mb-2">
           {t("stockAnalysis.backtest.chart.drawdown", "回撤曲线")}
         </h4>
-        <ResponsiveContainer width={width} height={height * 0.35}>
+        <ResponsiveContainer width={width as any} height={height * 0.35}>
           <AreaChart data={drawdownData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
