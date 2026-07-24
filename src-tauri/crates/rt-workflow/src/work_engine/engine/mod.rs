@@ -1037,6 +1037,31 @@ impl WorkEngine {
         results
     }
 
+    /// 根据节点的 `context_sources` 配置从执行期工作副本中读取上游节点结果。
+    ///
+    /// V57+: 供 debate/swarm/loop 回调使用，避免跳过引擎主循环的
+    /// `get_node_dependency_results` 路径导致 context_sources 变量缺失。
+    pub(crate) fn get_context_source_results(
+        workflow: &Workflow,
+        node_id: &str,
+    ) -> HashMap<String, serde_json::Value> {
+        let node = match workflow.nodes.iter().find(|n| n.base_id() == node_id) {
+            Some(n) => n,
+            None => return HashMap::new(),
+        };
+        let sources: Vec<String> = match node {
+            WorkflowNode::Agent(agent) => agent.config.context_sources.clone(),
+            _ => return HashMap::new(),
+        };
+        let mut results = HashMap::new();
+        for source in &sources {
+            if let Some(result) = workflow.results.get(source.as_str()) {
+                results.insert(source.clone(), result.clone());
+            }
+        }
+        results
+    }
+
     pub async fn get_ready_steps(&self, workflow_id: &str) -> Result<Vec<String>, WorkflowError> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
@@ -1937,6 +1962,9 @@ impl WorkEngine {
                     }
                 }
                 exec_ctx.variables = merged_vars;
+                // V57+: 注入 run_workflow 的 execution_id，供 debate/swarm/loop
+                // 内部 dispatch 回调定位执行期工作副本（execution_workflows）。
+                exec_ctx.parent_execution_id = Some(execution_id.clone());
                 exec_ctx.cancel_token = Some(cancel_token.clone());
                 exec_ctx.dry_run = options.dry_run;
                 {
@@ -2101,9 +2129,15 @@ impl WorkEngine {
                         tool_handlers,
                         tool_fallback,
                         subworkflow: Some(sub_cb),
-                        loop_body_dispatch: Some(build_loop_body_dispatch(self.clone())),
+                        loop_body_dispatch: Some(build_loop_body_dispatch(
+                            self.clone(),
+                            execution_id.clone(),
+                        )),
                         loop_checkpoint: Some(build_loop_checkpoint_ops()),
-                        debate_body_dispatch: Some(build_debate_body_dispatch(self.clone())),
+                        debate_body_dispatch: Some(build_debate_body_dispatch(
+                            self.clone(),
+                            execution_id.clone(),
+                        )),
                     });
                 }
 
@@ -2888,6 +2922,9 @@ impl WorkEngine {
                             }
                         }
                         exec_ctx.variables = merged_vars;
+                        // V57+: 注入 run_workflow 的 execution_id，供 debate/swarm/loop
+                        // 内部 dispatch 回调定位执行期工作副本（execution_workflows）。
+                        exec_ctx.parent_execution_id = Some(execution_id.clone());
                         exec_ctx.tool_registry = self.tool_registry();
                         exec_ctx.cancel_token = Some(cancel_token.clone());
                         exec_ctx.dry_run = options.dry_run;
@@ -3698,10 +3735,30 @@ pub struct LoopResumeDecision {
 /// 状态都是 Arc<...>，clone 是廉价的），按 (body_step_node_id, ctx) 在
 /// dispatcher 中查找对应 WorkflowNode 并 dispatch。`ctx` 已经由 LoopExecutor
 /// 拷贝（包含 iteratee_var 注入、当前 iteration 的 variables 快照）。
-pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::LoopBodyDispatchFn {
-    Arc::new(move |step_id: String, ctx: super::execution_state::ExecutionState| {
+///
+/// V57+: 新增 `run_execution_id` 参数，用于在 dispatch 前后读写
+/// `execution_workflows`：dispatch 前注入 context_sources 变量，
+/// dispatch 后回写结果，确保后续 body step 能正确读取前置步骤的输出。
+pub fn build_loop_body_dispatch(
+    engine: WorkEngine,
+    run_execution_id: String,
+) -> super::execution_state::LoopBodyDispatchFn {
+    Arc::new(move |step_id: String, mut ctx: super::execution_state::ExecutionState| {
         let engine = engine.clone();
+        let eid = run_execution_id.clone();
         Box::pin(async move {
+            // V57+: 从 execution_workflows 解析 context_sources 变量并注入
+            {
+                let exec_wfs = engine.execution_workflows.read().await;
+                if let Some(exec_wf) = exec_wfs.get(&eid) {
+                    let source_results = WorkEngine::get_context_source_results(exec_wf, &step_id);
+                    drop(exec_wfs);
+                    for (k, v) in source_results {
+                        ctx.variables.entry(k).or_insert(v);
+                    }
+                }
+            }
+
             // 从 ctx.workflow_id 找到对应 workflow，从 nodes 里找出 step_id 对应节点。
             let workflow_id = ctx.workflow_id.clone();
             let workflows = engine.workflows.read().await;
@@ -3715,7 +3772,20 @@ pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::L
                     format!("Loop body step '{step_id}' not found in workflow '{workflow_id}'"),
                 ));
             };
-            engine.dispatcher.read().await.dispatch(&node, &ctx).await
+            let output = engine.dispatcher.read().await.dispatch(&node, &ctx).await?;
+
+            // V57+: 回写结果到 execution_workflows.results
+            {
+                let mut exec_wfs = engine.execution_workflows.write().await;
+                if let Some(exec_wf) = exec_wfs.get_mut(&eid) {
+                    exec_wf.results.insert(step_id.clone(), output.output.clone());
+                    if let Some(ref var) = output.output_var {
+                        exec_wf.results.insert(var.clone(), output.output.clone());
+                    }
+                }
+            }
+
+            Ok(output)
         })
     })
 }
@@ -3726,12 +3796,30 @@ pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::L
 /// 单独工厂仅为语义清晰：Loop 是迭代 body_steps，Swarm/Debate 是多轮协作
 /// 驱动 agent_steps / debater_steps。两者底层走同一 dispatcher 路径，
 /// 保留 progress_callback / 节点状态切换 / node_records 统一埋点。
+///
+/// V57+: 新增 `run_execution_id` 参数，在 dispatch 前从 `execution_workflows`
+/// 注入 context_sources 变量，dispatch 后回写结果到 `execution_workflows.results`，
+/// 确保每个 round 内后续辩手能正确读取前置辩手的输出。
 pub fn build_debate_body_dispatch(
     engine: WorkEngine,
+    run_execution_id: String,
 ) -> super::execution_state::LoopBodyDispatchFn {
-    Arc::new(move |step_id: String, ctx: super::execution_state::ExecutionState| {
+    Arc::new(move |step_id: String, mut ctx: super::execution_state::ExecutionState| {
         let engine = engine.clone();
+        let eid = run_execution_id.clone();
         Box::pin(async move {
+            // V57+: 从 execution_workflows 解析 context_sources 变量并注入
+            {
+                let exec_wfs = engine.execution_workflows.read().await;
+                if let Some(exec_wf) = exec_wfs.get(&eid) {
+                    let source_results = WorkEngine::get_context_source_results(exec_wf, &step_id);
+                    drop(exec_wfs);
+                    for (k, v) in source_results {
+                        ctx.variables.entry(k).or_insert(v);
+                    }
+                }
+            }
+
             let workflow_id = ctx.workflow_id.clone();
             let workflows = engine.workflows.read().await;
             let node = workflows
@@ -3746,7 +3834,20 @@ pub fn build_debate_body_dispatch(
                     ),
                 ));
             };
-            engine.dispatcher.read().await.dispatch(&node, &ctx).await
+            let output = engine.dispatcher.read().await.dispatch(&node, &ctx).await?;
+
+            // V57+: 回写结果到 execution_workflows.results
+            {
+                let mut exec_wfs = engine.execution_workflows.write().await;
+                if let Some(exec_wf) = exec_wfs.get_mut(&eid) {
+                    exec_wf.results.insert(step_id.clone(), output.output.clone());
+                    if let Some(ref var) = output.output_var {
+                        exec_wf.results.insert(var.clone(), output.output.clone());
+                    }
+                }
+            }
+
+            Ok(output)
         })
     })
 }

@@ -191,7 +191,8 @@ mod tests {
             first_token_latency_ms INTEGER,
             cache_creation_tokens INTEGER,
             cache_read_tokens INTEGER,
-            parts TEXT
+            parts TEXT,
+            quoted_message_id TEXT
         )";
 
     async fn test_db() -> DatabaseConnection {
