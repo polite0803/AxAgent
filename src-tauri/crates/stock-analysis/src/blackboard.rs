@@ -90,6 +90,11 @@ pub fn build_blackboard_snapshot(
                         Err(_) => result.to_string(),
                     };
                     value_to_store = Value::String(json_str);
+                } else if let Some(output) = obj.get("output") {
+                    // V63 修复: portfolio-mgr 格式为 {node_id, output, source, status}，
+                    // 决策数据在 .output 字段中（无 result/verdict）。提取 output 字段
+                    // 让前端 loadAnalysis 能正确解析决策数据。
+                    value_to_store = output.clone();
                 }
             }
             bb.insert(key, value_to_store);

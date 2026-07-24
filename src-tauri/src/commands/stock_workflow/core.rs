@@ -857,20 +857,6 @@ async fn run_stock_workflow_inner(
                             Some((r, m)) => (json!(r), json!(m)),
                             None => (serde_json::Value::Null, serde_json::Value::Null),
                         };
-                        if let Err(e) = app_h.emit(
-                            "workflow-completed",
-                            serde_json::json!({
-                                "workflowId": wf_id,
-                                "results": result.results,
-                                "output": result.output,
-                                "degraded": true,
-                                "degradationReason": "部分分析步骤失败，结果为部分数据",
-                                "dashboardReport": dashboard_report,
-                                "dashboardMd": dashboard_md,
-                            }),
-                        ) {
-                            tracing::warn!("[emit] workflow-completed 发送失败: {e}");
-                        }
                         // 即使有节点失败，仍然保存已有结果
                         // 修复"决策信息缺失"误报:优先从 portfolio-mgr 节点本身
                         // 提取决策(见 extract_decision_json 注释),回退到 wf.output。
@@ -938,6 +924,21 @@ async fn run_stock_workflow_inner(
                                 .exec(&db)
                                 .await;
                         }
+                        // DB 写入后再 emit，避免前端 extract_evidence_citations 读到空的 decision_reasoning
+                        if let Err(e) = app_h.emit(
+                            "workflow-completed",
+                            serde_json::json!({
+                                "workflowId": wf_id,
+                                "results": result.results,
+                                "output": result.output,
+                                "degraded": true,
+                                "degradationReason": "部分分析步骤失败，结果为部分数据",
+                                "dashboardReport": dashboard_report,
+                                "dashboardMd": dashboard_md,
+                            }),
+                        ) {
+                            tracing::warn!("[emit] workflow-completed 发送失败: {e}");
+                        }
                     },
                     _ => {
                         // 构建 DashboardReport（与 rerun_decision 复用同一逻辑），让前端
@@ -956,18 +957,6 @@ async fn run_stock_workflow_inner(
                             Some((r, m)) => (json!(r), json!(m)),
                             None => (serde_json::Value::Null, serde_json::Value::Null),
                         };
-                        if let Err(e) = app_h.emit(
-                            "workflow-completed",
-                            serde_json::json!({
-                                "workflowId": wf_id,
-                                "results": result.results,
-                                "output": result.output,
-                                "dashboardReport": dashboard_report,
-                                "dashboardMd": dashboard_md,
-                            }),
-                        ) {
-                            tracing::warn!("[emit] workflow-completed 发送失败: {e}");
-                        }
                         // 修复"决策信息缺失"误报:优先从 portfolio-mgr 节点本身
                         // 提取决策(见 extract_decision_json 注释),回退到 wf.output。
                         let decision_json = extract_decision_json(&result);
@@ -1163,6 +1152,20 @@ async fn run_stock_workflow_inner(
                             .await
                         {
                             tracing::error!("[DB] 保存分析结果失败: {e}");
+                        }
+
+                        // DB 写入后再 emit，避免前端 extract_evidence_citations 读到空的 decision_reasoning
+                        if let Err(e) = app_h.emit(
+                            "workflow-completed",
+                            serde_json::json!({
+                                "workflowId": wf_id,
+                                "results": result.results,
+                                "output": result.output,
+                                "dashboardReport": dashboard_report,
+                                "dashboardMd": dashboard_md,
+                            }),
+                        ) {
+                            tracing::warn!("[emit] workflow-completed 发送失败: {e}");
                         }
 
                         // 索引决策到 Memory RAG（best-effort，失败不阻塞）
