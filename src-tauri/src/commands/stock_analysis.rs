@@ -1292,15 +1292,15 @@ pub async fn conditional_order_save(
 /// 评估条件单（测试用）
 #[tauri::command]
 pub async fn conditional_order_evaluate(
-    stock_code: String,
-    current_price: f64,
-    prev_close: f64,
-    turnover_rate: Option<f64>,
+    _stock_code: String,
+    _current_price: f64,
+    _prev_close: f64,
+    _turnover_rate: Option<f64>,
 ) -> Result<Vec<serde_json::Value>, String> {
     use axagent_stock_analysis::conditional_order::ConditionalOrderEngine;
 
     // 简化版：本地评估（不依赖 DB），返回匹配结果
-    let engine = ConditionalOrderEngine::new();
+    let _engine = ConditionalOrderEngine::new();
     // 这里仅做框架示例，实际评估由后台引擎完成
     Ok(vec![])
 }
@@ -1335,12 +1335,12 @@ pub async fn analyze_sentiment_depth(
 /// 运行组合回测（简化版 — 调用 quant crate）
 #[tauri::command]
 pub async fn portfolio_backtest_run(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     config_json: String,
 ) -> Result<serde_json::Value, String> {
     let config: axagent_quant::PortfolioConfig =
         serde_json::from_str(&config_json).map_err(|e| format!("解析组合配置失败: {e}"))?;
-    let engine = axagent_quant::PortfolioEngine::new(config.clone()).map_err(|e| e.to_string())?;
+    let _engine = axagent_quant::PortfolioEngine::new(config.clone()).map_err(|e| e.to_string())?;
     // 返回配置校验结果（实际执行需要前端传入K线）
     Ok(serde_json::json!({
         "status": "config_valid",
