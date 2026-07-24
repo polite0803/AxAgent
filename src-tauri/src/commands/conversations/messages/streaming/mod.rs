@@ -136,6 +136,7 @@ pub(super) fn spawn_stream_task(
                         parts: Set(None),
                         cache_creation_tokens: Set(None),
                         cache_read_tokens: Set(None),
+                        quoted_message_id: Set(None),
                     })
                     .insert(&db)
                     .await
