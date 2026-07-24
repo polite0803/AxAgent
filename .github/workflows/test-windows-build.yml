@@ -47,7 +47,7 @@ jobs:
           Expand-Archive protoc.zip -DestinationPath "$env:RUNNER_TOOL_CACHE\protoc"
           echo "$env:RUNNER_TOOL_CACHE\protoc\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'npm'

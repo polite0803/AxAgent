@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'npm'
@@ -125,7 +125,7 @@ jobs:
         run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
 
       - name: Setup Node.js (for Rust lint scripts)
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -181,7 +181,7 @@ jobs:
       - name: Run Rust tests
         run: cargo nextest run --workspace --manifest-path src-tauri/Cargo.toml
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'npm'
@@ -206,7 +206,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'npm'
