@@ -162,7 +162,7 @@ pub fn build_learning_graph(
         });
     }
 
-    // 4. Entity nodes — 来自 trajectory_entities 表的真实实体
+    // 4. Entity nodes — 来自 knowledge_entities 表的真实实体 (v101 合并自 trajectory_entities)
     for entity in entities {
         // detail 拼接 aliases 与关键属性，便于前端展示
         let mut detail_parts: Vec<String> = Vec::new();
@@ -195,7 +195,7 @@ pub fn build_learning_graph(
 
     // 5. Compute edges
 
-    // 5a. 真实关系边（来自 trajectory_relationships 表）
+    // 5a. 真实关系边（来自 knowledge_relations 表，v101 合并自 trajectory_relationships）
     for rel in relationships {
         edges.push(GraphEdge {
             source: format!("entity:{}", rel.source_id),

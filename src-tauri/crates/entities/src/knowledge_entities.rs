@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +18,12 @@ pub struct Model {
     pub metadata: Option<Json>,
     pub created_at: i64,
     pub updated_at: i64,
+    // v101: trajectory entity fields
+    pub aliases: String,
+    pub mention_count: i32,
+    pub confidence: f64,
+    pub first_seen_at: Option<String>,
+    pub last_seen_at: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

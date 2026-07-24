@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +14,17 @@ pub struct Model {
     pub index_status: String,
     pub index_error: Option<String>,
     pub updated_at: String,
+    // v101: trajectory memory fields
+    pub tier: String,
+    pub importance: f64,
+    pub access_count: i32,
+    pub last_accessed: Option<i64>,
+    pub decay_rate: f64,
+    pub expires_at: Option<i64>,
+    pub source_conversation_id: Option<String>,
+    pub source_message_id: Option<String>,
+    pub memory_nature: String,
+    pub tags: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

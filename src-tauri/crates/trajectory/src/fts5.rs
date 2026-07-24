@@ -101,7 +101,7 @@ impl FTS5Search {
                     tokenize='porter unicode61'
                 );
 
-                CREATE VIRTUAL TABLE IF NOT EXISTS trajectory_memories_fts USING fts5(
+                CREATE VIRTUAL TABLE IF NOT EXISTS memory_items_fts USING fts5(
                     id UNINDEXED,
                     memory_type UNINDEXED,
                     content,
@@ -200,7 +200,7 @@ impl FTS5Search {
             let conn = conn.blocking_lock();
 
             conn.execute(
-                r#"INSERT INTO trajectory_memories_fts (id, memory_type, content, entities, created_at)
+                r#"INSERT INTO memory_items_fts (id, memory_type, content, entities, created_at)
                    VALUES (?1, ?2, ?3, ?4, ?5)"#,
                 params![
                     id,
@@ -335,7 +335,7 @@ impl FTS5Search {
             } else {
                 vec![
                     "trajectories_fts".to_string(),
-                    "trajectory_memories_fts".to_string(),
+                    "memory_items_fts".to_string(),
                     "trajectory_skills_fts".to_string(),
                     "trajectory_messages_fts".to_string(),
                 ]
@@ -360,7 +360,7 @@ impl FTS5Search {
                         LIMIT ?2 OFFSET ?3
                         "#
                     },
-                    "trajectory_memories_fts" => {
+                    "memory_items_fts" => {
                         r#"
                         SELECT 
                             m.id,
@@ -370,9 +370,9 @@ impl FTS5Search {
                             m.created_at,
                             NULL as quality_score,
                             NULL as outcome,
-                            bm25(trajectory_memories_fts) as rank
-                        FROM trajectory_memories_fts m
-                        WHERE trajectory_memories_fts MATCH ?1
+                            bm25(memory_items_fts) as rank
+                        FROM memory_items_fts m
+                        WHERE memory_items_fts MATCH ?1
                         ORDER BY rank
                         LIMIT ?2 OFFSET ?3
                         "#
@@ -633,7 +633,7 @@ impl FTS5Search {
             conn.execute_batch(
                 r#"
                 INSERT INTO trajectories_fts(trajectories_fts) VALUES('optimize');
-                INSERT INTO trajectory_memories_fts(trajectory_memories_fts) VALUES('optimize');
+                INSERT INTO memory_items_fts(memory_items_fts) VALUES('optimize');
                 INSERT INTO trajectory_skills_fts(trajectory_skills_fts) VALUES('optimize');
                 INSERT INTO trajectory_messages_fts(trajectory_messages_fts) VALUES('optimize');
                 "#,
@@ -652,7 +652,7 @@ impl FTS5Search {
             conn.execute_batch(
                 r#"
                 INSERT INTO trajectories_fts(trajectories_fts) VALUES('vacuum');
-                INSERT INTO trajectory_memories_fts(trajectory_memories_fts) VALUES('vacuum');
+                INSERT INTO memory_items_fts(memory_items_fts) VALUES('vacuum');
                 INSERT INTO trajectory_skills_fts(trajectory_skills_fts) VALUES('vacuum');
                 INSERT INTO trajectory_messages_fts(trajectory_messages_fts) VALUES('vacuum');
                 "#,

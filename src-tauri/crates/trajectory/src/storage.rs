@@ -11,10 +11,11 @@ use crate::trajectory::{
 };
 use anyhow::{Context, Result};
 use axagent_entities::{
-    trajectories, trajectory_entities, trajectory_learned_patterns, trajectory_memories,
-    trajectory_messages, trajectory_patterns, trajectory_preferences, trajectory_relationships,
-    trajectory_rewards, trajectory_sessions, trajectory_skill_executions, trajectory_skills,
-    trajectory_steps, trajectory_workflow_reflections,
+    knowledge_entities, knowledge_relations, memory_items, trajectories,
+    trajectory_learned_patterns, trajectory_messages, trajectory_patterns,
+    trajectory_preferences, trajectory_rewards, trajectory_sessions,
+    trajectory_skill_executions, trajectory_skills, trajectory_steps,
+    trajectory_workflow_reflections,
 };
 use chrono::Utc;
 use futures::FutureExt;
@@ -707,31 +708,45 @@ impl TrajectoryStorage {
         Ok(())
     }
 
-    // ── Entities ──
+    // ── Entities (stored in knowledge_entities table, v101 merge) ──
+
+    const TRAJECTORY_KB_ID: &str = "__sys_trajectory__";
 
     pub async fn save_entity(&self, e: &Entity) -> Result<()> {
-        trajectory_entities::Entity::insert(trajectory_entities::ActiveModel {
+        use sea_orm::sea_query::OnConflict;
+        use knowledge_entities::Column;
+
+        let now_ts = Utc::now().timestamp();
+        knowledge_entities::Entity::insert(knowledge_entities::ActiveModel {
             id: Set(e.id.clone()),
+            knowledge_base_id: Set(Self::TRAJECTORY_KB_ID.to_string()),
             name: Set(e.name.clone()),
             entity_type: Set(serde_json::to_string(&e.entity_type).unwrap_or_default()),
-            properties: Set(
-                serde_json::to_string(&e.properties).unwrap_or_else(|_| "{}".to_string())
-            ),
+            description: Set(None),
+            source_path: Set(String::new()),
+            source_language: Set(None),
+            properties: Set(serde_json::Value::Object(
+                e.properties.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+            )),
+            lifecycle: Set(None),
+            behaviors: Set(None),
+            metadata: Set(None),
+            created_at: Set(now_ts),
+            updated_at: Set(now_ts),
             aliases: Set(serde_json::to_string(&e.aliases).unwrap_or_else(|_| "[]".to_string())),
-            first_seen_at: Set(e.first_seen_at.to_rfc3339()),
-            last_seen_at: Set(e.last_seen_at.to_rfc3339()),
             mention_count: Set(e.mention_count as i32),
             confidence: Set(e.confidence),
-            created_at: Set(e.created_at.map(|dt| dt.to_rfc3339())),
-            updated_at: Set(e.updated_at.map(|dt| dt.to_rfc3339())),
+            first_seen_at: Set(Some(e.first_seen_at.to_rfc3339())),
+            last_seen_at: Set(Some(e.last_seen_at.to_rfc3339())),
         })
         .on_conflict(
-            sea_orm::sea_query::OnConflict::column(trajectory_entities::Column::Id)
+            OnConflict::column(knowledge_entities::Column::Id)
                 .update_columns([
-                    trajectory_entities::Column::Name,
-                    trajectory_entities::Column::LastSeenAt,
-                    trajectory_entities::Column::MentionCount,
-                    trajectory_entities::Column::Confidence,
+                    Column::Name,
+                    Column::LastSeenAt,
+                    Column::MentionCount,
+                    Column::Confidence,
+                    Column::UpdatedAt,
                 ])
                 .to_owned(),
         )
@@ -741,66 +756,84 @@ impl TrajectoryStorage {
     }
 
     pub async fn get_entity(&self, id: &str) -> Result<Option<Entity>> {
-        Ok(trajectory_entities::Entity::find_by_id(id)
+        Ok(knowledge_entities::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await?
-            .map(|e| model_to_entity(&e)))
+            .map(|e| ke_to_entity(&e)))
     }
 
     pub async fn get_all_entities(&self) -> Result<Vec<Entity>> {
-        Ok(trajectory_entities::Entity::find()
-            .order_by_desc(trajectory_entities::Column::LastSeenAt)
+        Ok(knowledge_entities::Entity::find()
+            .filter(knowledge_entities::Column::KnowledgeBaseId.eq(Self::TRAJECTORY_KB_ID))
+            .order_by_desc(knowledge_entities::Column::UpdatedAt)
             .all(self.db.as_ref())
             .await?
             .iter()
-            .map(model_to_entity)
+            .map(ke_to_entity)
             .collect())
     }
 
     pub async fn search_entities(&self, query: &str, limit: usize) -> Result<Vec<Entity>> {
-        Ok(trajectory_entities::Entity::find()
-            .filter(trajectory_entities::Column::Name.like(format!("%{}%", query)))
+        let pattern = format!("%{}%", query);
+        Ok(knowledge_entities::Entity::find()
+            .filter(
+                knowledge_entities::Column::KnowledgeBaseId
+                    .eq(Self::TRAJECTORY_KB_ID)
+                    .and(knowledge_entities::Column::Name.like(&pattern)),
+            )
             .all(self.db.as_ref())
             .await?
             .iter()
             .take(limit)
-            .map(model_to_entity)
+            .map(ke_to_entity)
             .collect())
     }
 
     /// P1-3: 删除实体时级联删除其所有 relationships
     pub async fn delete_entity(&self, id: &str) -> Result<()> {
         let txn = self.db.begin().await?;
-        trajectory_relationships::Entity::delete_many()
+        knowledge_relations::Entity::delete_many()
             .filter(
-                trajectory_relationships::Column::SourceId
+                knowledge_relations::Column::SourceEntityId
                     .eq(id)
-                    .or(trajectory_relationships::Column::TargetId.eq(id)),
+                    .or(knowledge_relations::Column::TargetEntityId.eq(id)),
             )
             .exec(&txn)
             .await?;
-        trajectory_entities::Entity::delete_by_id(id).exec(&txn).await?;
+        knowledge_entities::Entity::delete_by_id(id).exec(&txn).await?;
         txn.commit().await?;
         Ok(())
     }
 
-    // ── Relationships ──
+    // ── Relationships (stored in knowledge_relations table, v101 merge) ──
 
     pub async fn save_relationship(&self, rel: &Relationship) -> Result<()> {
-        trajectory_relationships::Entity::insert(trajectory_relationships::ActiveModel {
+        use sea_orm::sea_query::OnConflict;
+        use knowledge_relations::Column;
+
+        let now_ts = Utc::now().timestamp();
+        knowledge_relations::Entity::insert(knowledge_relations::ActiveModel {
             id: Set(rel.id.clone()),
-            source_id: Set(rel.source_id.clone()),
-            target_id: Set(rel.target_id.clone()),
+            knowledge_base_id: Set(Self::TRAJECTORY_KB_ID.to_string()),
+            source_entity_id: Set(rel.source_id.clone()),
+            target_entity_id: Set(rel.target_id.clone()),
             relation_type: Set(serde_json::to_string(&rel.relation_type).unwrap_or_default()),
-            properties: Set(
-                serde_json::to_string(&rel.properties).unwrap_or_else(|_| "{}".to_string())
-            ),
+            description: Set(None),
+            properties: Set(if rel.properties.is_empty() {
+                None
+            } else {
+                Some(serde_json::Value::Object(
+                    rel.properties.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+                ))
+            }),
+            metadata: Set(None),
+            created_at: Set(now_ts),
+            updated_at: Set(now_ts),
             weight: Set(rel.weight),
-            created_at: Set(rel.created_at.to_rfc3339()),
         })
         .on_conflict(
-            sea_orm::sea_query::OnConflict::column(trajectory_relationships::Column::Id)
-                .update_columns([trajectory_relationships::Column::Weight])
+            OnConflict::column(knowledge_relations::Column::Id)
+                .update_columns([Column::Weight, Column::UpdatedAt])
                 .to_owned(),
         )
         .exec(self.db.as_ref())
@@ -809,31 +842,32 @@ impl TrajectoryStorage {
     }
 
     pub async fn get_relationships_by_entity(&self, eid: &str) -> Result<Vec<Relationship>> {
-        Ok(trajectory_relationships::Entity::find()
+        Ok(knowledge_relations::Entity::find()
             .filter(
-                trajectory_relationships::Column::SourceId
+                knowledge_relations::Column::SourceEntityId
                     .eq(eid)
-                    .or(trajectory_relationships::Column::TargetId.eq(eid)),
+                    .or(knowledge_relations::Column::TargetEntityId.eq(eid)),
             )
             .all(self.db.as_ref())
             .await?
             .iter()
-            .map(model_to_relationship)
+            .map(kr_to_relationship)
             .collect())
     }
 
     pub async fn get_all_relationships(&self) -> Result<Vec<Relationship>> {
-        Ok(trajectory_relationships::Entity::find()
-            .order_by_desc(trajectory_relationships::Column::CreatedAt)
+        Ok(knowledge_relations::Entity::find()
+            .filter(knowledge_relations::Column::KnowledgeBaseId.eq(Self::TRAJECTORY_KB_ID))
+            .order_by_desc(knowledge_relations::Column::CreatedAt)
             .all(self.db.as_ref())
             .await?
             .iter()
-            .map(model_to_relationship)
+            .map(kr_to_relationship)
             .collect())
     }
 
     pub async fn delete_relationship(&self, id: &str) -> Result<()> {
-        trajectory_relationships::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
+        knowledge_relations::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
         Ok(())
     }
 
@@ -972,24 +1006,28 @@ impl TrajectoryStorage {
             .collect())
     }
 
-    // ── Memories ──
+    // ── Memories (stored in memory_items table, v101 merge) ──
+
+    const TRAJECTORY_MEM_NS_ID: &str = "__sys_trajectory_memory__";
 
     pub async fn get_all_memories(&self) -> Result<Vec<crate::memory::MemoryEntry>> {
-        Ok(trajectory_memories::Entity::find()
+        use sea_orm::QueryFilter;
+        Ok(memory_items::Entity::find()
+            .filter(memory_items::Column::NamespaceId.eq(Self::TRAJECTORY_MEM_NS_ID))
             .all(self.db.as_ref())
             .await?
             .into_iter()
             .map(|m| crate::memory::MemoryEntry {
                 id: m.id,
                 content: m.content,
-                memory_type: m.memory_type,
+                memory_type: m.title, // memory_items.title maps to memory_type
                 tier: crate::memory::MemoryTier::from_str(&m.tier),
                 importance: m.importance,
                 access_count: m.access_count as u64,
                 last_accessed: m.last_accessed.unwrap_or(0),
                 decay_rate: m.decay_rate,
-                created_at: m.created_at.unwrap_or(0),
-                updated_at: m.updated_at,
+                created_at: 0,
+                updated_at: m.updated_at.parse().unwrap_or(0),
                 expires_at: m.expires_at,
                 nature: crate::memory::MemoryNature::from_str(&m.memory_nature),
                 provenance: Some(crate::memory::MemoryProvenance {
@@ -998,50 +1036,54 @@ impl TrajectoryStorage {
                     extraction_method: "unknown".to_string(),
                 }),
                 tags: serde_json::from_str(&m.tags).unwrap_or_default(),
-                namespace_id: m.namespace_id.clone(),
+                namespace_id: Some(m.namespace_id),
             })
             .collect())
     }
 
     pub async fn save_memory(&self, mem: &crate::memory::MemoryEntry) -> Result<()> {
-        let _provenance_json =
-            mem.provenance.as_ref().map(|p| serde_json::to_string(p).unwrap_or_default());
+        use sea_orm::sea_query::OnConflict;
+        use memory_items::Column;
+
         let source_conv_id = mem.provenance.as_ref().and_then(|p| p.conversation_id.clone());
         let source_msg_id = mem.provenance.as_ref().and_then(|p| p.message_id.clone());
-        trajectory_memories::Entity::insert(trajectory_memories::ActiveModel {
+        let now = chrono::Utc::now().timestamp_millis().to_string();
+
+        memory_items::Entity::insert(memory_items::ActiveModel {
             id: Set(mem.id.clone()),
+            namespace_id: Set(Self::TRAJECTORY_MEM_NS_ID.to_string()),
+            title: Set(mem.memory_type.clone()),
             content: Set(mem.content.clone()),
-            memory_type: Set(mem.memory_type.clone()),
-            updated_at: Set(mem.updated_at),
+            source: Set(source_conv_id.clone().unwrap_or_else(|| "trajectory".to_string())),
+            index_status: Set("ready".to_string()),
+            index_error: Set(None),
+            updated_at: Set(now.clone()),
             tier: Set(mem.tier.as_str().to_string()),
             importance: Set(mem.importance),
             access_count: Set(mem.access_count as i32),
             last_accessed: Set(Some(mem.last_accessed)),
             decay_rate: Set(mem.decay_rate),
-            created_at: Set(Some(mem.created_at)),
             expires_at: Set(mem.expires_at),
             source_conversation_id: Set(source_conv_id),
             source_message_id: Set(source_msg_id),
             memory_nature: Set(mem.nature.as_str().to_string()),
             tags: Set(serde_json::to_string(&mem.tags).unwrap_or_else(|_| "[]".to_string())),
-            namespace_id: Set(mem.namespace_id.clone()),
         })
         .on_conflict(
-            sea_orm::sea_query::OnConflict::column(trajectory_memories::Column::Id)
+            OnConflict::column(memory_items::Column::Id)
                 .update_columns([
-                    trajectory_memories::Column::Content,
-                    trajectory_memories::Column::UpdatedAt,
-                    trajectory_memories::Column::Tier,
-                    trajectory_memories::Column::Importance,
-                    trajectory_memories::Column::AccessCount,
-                    trajectory_memories::Column::LastAccessed,
-                    trajectory_memories::Column::DecayRate,
-                    trajectory_memories::Column::ExpiresAt,
-                    trajectory_memories::Column::MemoryNature,
-                    trajectory_memories::Column::Tags,
-                    trajectory_memories::Column::NamespaceId,
-                    trajectory_memories::Column::SourceConversationId,
-                    trajectory_memories::Column::SourceMessageId,
+                    Column::Content,
+                    Column::UpdatedAt,
+                    Column::Tier,
+                    Column::Importance,
+                    Column::AccessCount,
+                    Column::LastAccessed,
+                    Column::DecayRate,
+                    Column::ExpiresAt,
+                    Column::MemoryNature,
+                    Column::Tags,
+                    Column::SourceConversationId,
+                    Column::SourceMessageId,
                 ])
                 .to_owned(),
         )
@@ -1052,7 +1094,7 @@ impl TrajectoryStorage {
 
     /// P1-3: 删除 memory 时也清理 FTS 索引
     pub async fn delete_memory(&self, id: &str) -> Result<()> {
-        trajectory_memories::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
+        memory_items::Entity::delete_by_id(id).exec(self.db.as_ref()).await?;
         let _ = self.delete_memory_fts(id).await;
         Ok(())
     }
@@ -1334,11 +1376,26 @@ impl TrajectoryStorage {
         }
     }
     pub async fn delete_memory_fts(&self, id: &str) -> Result<()> {
+        // v101: trajectory_memories_fts was dropped; memory_items FTS is TBD
+        // Gracefully handle missing FTS table.
         if let Some(ref fts) = self.fts_searcher {
-            fts.delete_from_fts("trajectory_memories_fts", id).await
-        } else {
-            Ok(())
+            let _ = fts.delete_from_fts("memory_items_fts", id).await;
         }
+        Ok(())
+    }
+
+    pub async fn index_memory_fts(
+        &self,
+        id: &str,
+        mt: &str,
+        content: &str,
+        entities: &[String],
+    ) -> Result<()> {
+        // v101: trajectory_memories_fts was dropped; memory_items FTS is TBD
+        if let Some(ref fts) = self.fts_searcher {
+            let _ = fts.index_memory(id, mt, content, entities).await;
+        }
+        Ok(())
     }
     pub async fn delete_skill_fts(&self, id: &str) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
@@ -1459,45 +1516,47 @@ fn model_to_traj_pattern(p: &trajectory_patterns::Model) -> TrajectoryPattern {
     }
 }
 
-fn model_to_entity(e: &trajectory_entities::Model) -> Entity {
+fn ke_to_entity(e: &knowledge_entities::Model) -> Entity {
     use crate::memory::EntityType;
     Entity {
         id: e.id.clone(),
         name: e.name.clone(),
         entity_type: serde_json::from_str(&format!("\"{}\"", e.entity_type))
             .unwrap_or(EntityType::Concept),
-        properties: serde_json::from_str(&e.properties).unwrap_or_default(),
+        properties: match &e.properties {
+            serde_json::Value::Object(map) => map.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+            _ => std::collections::HashMap::new(),
+        },
         aliases: serde_json::from_str(&e.aliases).unwrap_or_default(),
-        first_seen_at: chrono::DateTime::parse_from_rfc3339(&e.first_seen_at)
-            .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|_| Utc::now()),
-        last_seen_at: chrono::DateTime::parse_from_rfc3339(&e.last_seen_at)
-            .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|_| Utc::now()),
+        first_seen_at: e.first_seen_at.as_ref().and_then(|s| {
+            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
+        }).unwrap_or_else(|| Utc::now()),
+        last_seen_at: e.last_seen_at.as_ref().and_then(|s| {
+            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
+        }).unwrap_or_else(|| Utc::now()),
         mention_count: e.mention_count as u32,
         confidence: e.confidence,
-        created_at: e.created_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
-        }),
-        updated_at: e.updated_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
-        }),
+        created_at: Some(Utc::now()),
+        updated_at: Some(Utc::now()),
     }
 }
 
-fn model_to_relationship(r: &trajectory_relationships::Model) -> Relationship {
+fn kr_to_relationship(r: &knowledge_relations::Model) -> Relationship {
     use crate::memory::RelationshipType;
     Relationship {
         id: r.id.clone(),
-        source_id: r.source_id.clone(),
-        target_id: r.target_id.clone(),
+        source_id: r.source_entity_id.clone(),
+        target_id: r.target_entity_id.clone(),
         relation_type: serde_json::from_str(&format!("\"{}\"", r.relation_type))
             .unwrap_or(RelationshipType::RelatedTo),
-        properties: serde_json::from_str(&r.properties).unwrap_or_default(),
+        properties: match &r.properties {
+            Some(serde_json::Value::Object(map)) => {
+                map.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+            },
+            _ => std::collections::HashMap::new(),
+        },
         weight: r.weight,
-        created_at: chrono::DateTime::parse_from_rfc3339(&r.created_at)
-            .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|_| Utc::now()),
+        created_at: Utc::now(),
     }
 }
 
