@@ -316,6 +316,12 @@ pub struct WorkEngine {
     /// 用 `std::sync::RwLock` 包裹:仅 setter 写一次,publish 时先 clone Arc
     /// 再释放锁,不跨 await 持有读锁。
     event_bus: Arc<std::sync::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>>,
+    /// 2.5 P1:Agent 单轮 ReAct 执行器(可选,None = 走 inline ReAct fallback)。
+    ///
+    /// 由 wiring 层把 SessionManager 适配器注入;AgentExecutor 在执行前检查
+    /// 此字段,有则委托 trait(支持 trajectory / 权限询问 / 压缩),
+    /// 无则走 inline ReAct(向后兼容,不破坏旧测试)。
+    agent_turn_runner: Arc<std::sync::RwLock<Option<Arc<dyn axagent_harness::AgentTurnRunner>>>>,
 }
 
 /// P1-14: 提取节点的类型字符串（用于白名单校验）。
@@ -779,6 +785,7 @@ impl WorkEngine {
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
             db: Arc::new(std::sync::Mutex::new(None)),
             event_bus: Arc::new(std::sync::RwLock::new(None)),
+            agent_turn_runner: Arc::new(std::sync::RwLock::new(None)),
         }
     }
 
@@ -792,6 +799,30 @@ impl WorkEngine {
         } else {
             tracing::warn!("WorkEngine::set_event_bus: RwLock poisoned, 注入失败");
         }
+    }
+
+    /// 2.5 P1:注入 Agent 单轮 ReAct 执行器。
+    ///
+    /// 注入后,`AgentExecutor` 在执行 Agent 节点前检查此字段:
+    /// - 有值 → 委托 trait(支持 trajectory / 权限询问 / 上下文压缩)
+    /// - 无值 → 走 inline ReAct fallback(向后兼容)
+    ///
+    /// 通常由 wiring 层在 `create_app_state` 中调用,把 SessionManager 适配器注入。
+    pub fn set_agent_turn_runner(&self, runner: Arc<dyn axagent_harness::AgentTurnRunner>) {
+        if let Ok(mut guard) = self.agent_turn_runner.write() {
+            *guard = Some(runner);
+        } else {
+            tracing::warn!("WorkEngine::set_agent_turn_runner: RwLock poisoned, 注入失败");
+        }
+    }
+
+    /// 2.5 P1:获取已注入的 AgentTurnRunner(供 AgentExecutor fallback 决策)。
+    ///
+    /// 返回 `Option<Arc<dyn AgentTurnRunner>>` 的 clone — `Some` 表示已注入,
+    /// `None` 表示未注入(AgentExecutor 应走 inline ReAct)。
+    /// 用 `RwLock::read` 而非 `Mutex`,允许多个 Agent 节点并发读取。
+    pub async fn get_agent_turn_runner(&self) -> Option<Arc<dyn axagent_harness::AgentTurnRunner>> {
+        self.agent_turn_runner.read().await.clone()
     }
 
     /// 发布一个工作流领域事件到统一总线(若已注入)。

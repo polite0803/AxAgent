@@ -855,6 +855,9 @@
     "regenerate": "再生成",
     "removeFromWorkspace": "ワークスペースから削除",
     "rename": "名前を変更",
+    "latex": {
+      "parseError": "LaTeX 解析失敗"
+    },
     "renderingChart": "チャートをレンダリング中…",
     "rewardScale": "スケール",
     "rewardWeights": {

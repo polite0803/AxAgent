@@ -224,6 +224,82 @@ impl AgentExecutor {
         self
     }
 
+    /// 2.5 P1:尝试把 Agent 节点委托给已注入的 `AgentTurnRunner` 执行。
+    ///
+    /// 此方法在 `execute` 入口处被调用。若 `AgentTurnRunner` 已注入且
+    /// `is_available()=true`,则构造 `AgentTurnRequest` 调用 `run_turn`,
+    /// 把返回的 `AgentTurnResult` 包装为 `NodeOutput`。
+    ///
+    /// **字段映射策略**(最小化):
+    /// - `system_prompt`: 直接取 `AgentNodeConfig.system_prompt`
+    /// - `user_input`: 从 `context.input_params` 提取(若为 JSON object 则取所有值拼接)
+    /// - `tools`: 用 `tool_defs_to_chat_tools` 转换 `AgentNodeConfig.tools`
+    /// - `model` / `temperature` / `max_tokens` / `max_tool_rounds`: 透传节点配置
+    /// - `history`: 空 Vec(单轮委托,多轮对话由 streaming.rs 处理)
+    ///
+    /// **不处理的字段**(由 inline ReAct 负责,fallback 时走原路径):
+    /// - context_sources 注入 / RAG 检索 / profile 加载 / domain_constraints
+    /// - 模板渲染 / input_mapping / builtin_vars
+    ///
+    /// 因此本方法适用于"简单 Agent 节点"(无 profile / 无 RAG / 无 context_sources)。
+    /// 复杂节点仍走 inline ReAct — 由调用方根据返回 Err 自动 fallback。
+    async fn try_delegate_to_turn_runner(
+        &self,
+        runner: &Arc<dyn axagent_harness::AgentTurnRunner>,
+        node: &WorkflowNode,
+        an: &axagent_harness::workflow_types::AgentNode,
+        context: &ExecutionState,
+    ) -> Result<NodeOutput, String> {
+        // 构造 system_prompt — 节点 inline prompt(未做模板渲染,简化处理)
+        let system_prompt = an.config.system_prompt.clone();
+
+        // 构造 user_input — 从 input_params 提取
+        let user_input = if let Some(obj) = context.input_params.as_object() {
+            obj.values().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>().join("\n")
+        } else {
+            context.input_params.to_string()
+        };
+
+        // 构造 tools — 用 harness 提供的转换函数
+        let tools = axagent_harness::agent_turn_runner::tool_defs_to_chat_tools(&an.config.tools);
+
+        let request = axagent_harness::AgentTurnRequest {
+            execution_id: context.execution_id.clone(),
+            node_id: node.base_id(),
+            role_id: an.config.agent_profile_id.clone(),
+            system_prompt,
+            user_input,
+            history: Vec::new(),
+            tools,
+            tool_permissions: None,
+            model: an.config.model.clone().unwrap_or_default(),
+            provider_id: None,
+            temperature: an.config.temperature,
+            max_tokens: an.config.max_tokens,
+            max_tool_rounds: an.config.max_tool_rounds,
+            workspace_dir: None,
+        };
+
+        let result = runner
+            .run_turn(request)
+            .await
+            .map_err(|e| format!("AgentTurnRunner::run_turn failed: {e}"))?;
+
+        // 把 AgentTurnResult 包装为 NodeOutput
+        Ok(NodeOutput {
+            output: serde_json::json!({
+                "content": result.content,
+                "thinking": result.thinking,
+                "tool_calls": result.tool_calls,
+                "usage": result.usage,
+                "iterations": result.iterations,
+                "stopped_by_limit": result.stopped_by_limit,
+            }),
+            output_var: Some(an.config.output_var.clone()),
+            control: None,
+        })
+    }
+
     /// 设置 Plan 模式用的 PlannerAdapter（共享槽，热更新）
     pub fn set_planner(&self, planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>) {
         *lock_or_recover(self.planner.lock()) = Some(planner);
@@ -312,6 +388,33 @@ impl NodeExecutorTrait for AgentExecutor {
                 super::node_type_name(node).to_string(),
             ));
         };
+
+        // 2.5 P1:AgentTurnRunner 委托(可选)。
+        //
+        // 若 wiring 层注入了 AgentTurnRunner 且 is_available()=true,
+        // 把 Agent 节点委托给 trait 执行(支持 trajectory / 权限询问 / 压缩)。
+        // 任何错误或未注入场景都 fallback 到下方 inline ReAct,不破坏现有行为。
+        //
+        // 注意:此处只做"入口委托",不替换 inline ReAct — streaming.rs 等自由对话
+        // 路径不受影响。未来三套 ReAct 合并时再统一入口。
+        if let Some(ref engine_opt) = lock_or_recover(self.engine.lock()).as_ref() {
+            if let Some(engine) = engine_opt {
+                if let Some(runner) = engine.get_agent_turn_runner().await {
+                    if runner.is_available() {
+                        match self.try_delegate_to_turn_runner(&runner, node, an, context).await {
+                            Ok(output) => return Ok(output),
+                            Err(e) => {
+                                tracing::warn!(
+                                    node_id = %node.base_id(),
+                                    error = %e,
+                                    "AgentTurnRunner 委托失败,fallback 到 inline ReAct"
+                                );
+                            },
+                        }
+                    }
+                }
+            }
+        }
 
         // 1. 加载 agent profile（带 TTL 缓存，经 harness repository 抽象，不直接依赖 entities）
         // 修复缺陷 6：缓存项 60 秒后失效，避免用户修改 profile 后缓存仍是旧的

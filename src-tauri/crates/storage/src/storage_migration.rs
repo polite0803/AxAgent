@@ -279,6 +279,7 @@ mod tests {
             cache_creation_tokens: Set(None),
             cache_read_tokens: Set(None),
             parts: Set(None),
+            quoted_message_id: Set(None),
         };
         am.insert(db).await.unwrap();
     }

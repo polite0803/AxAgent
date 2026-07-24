@@ -855,6 +855,9 @@
     "regenerate": "Neu generieren",
     "removeFromWorkspace": "Aus Arbeitsbereich entfernen",
     "rename": "Umbenennen",
+    "latex": {
+      "parseError": "LaTeX-Analyse fehlgeschlagen"
+    },
     "renderingChart": "Diagramm wird gerendert…",
     "rewardScale": "Skalierung",
     "rewardWeights": {

@@ -855,6 +855,9 @@
     "regenerate": "재생성",
     "removeFromWorkspace": "작업 영역에서 제거",
     "rename": "이름 바꾸기",
+    "latex": {
+      "parseError": "LaTeX 구문 분석 실패"
+    },
     "renderingChart": "차트 렌더링 중…",
     "rewardScale": "스케일",
     "rewardWeights": {

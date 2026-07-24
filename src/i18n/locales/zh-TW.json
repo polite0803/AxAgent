@@ -855,6 +855,9 @@
     "regenerate": "重新生成",
     "removeFromWorkspace": "移出工作區",
     "rename": "重新命名",
+    "latex": {
+      "parseError": "LaTeX 解析失敗"
+    },
     "renderingChart": "正在渲染圖表…",
     "rewardScale": "獎勵縮放",
     "rewardWeights": {

@@ -8,6 +8,8 @@ import { BlockMath, InlineMath } from "react-katex";
 // 引入 KaTeX 样式（含字体）；Vite/Esm 会自动去重，多次实例化不会重复打包
 import "katex/dist/katex.min.css";
 
+import { useTranslation } from "react-i18next";
+
 import type { ReactNode } from "react";
 
 interface LatexRendererProps {
@@ -21,7 +23,7 @@ interface LatexRendererProps {
  * LaTeX 渲染失败的回退节点：红色边框 + 原始公式文本
  * 方便用户定位问题并复制原文
  */
-function renderLatexError(content: string): (error: Error) => ReactNode {
+function renderLatexError(content: string, title: string): (error: Error) => ReactNode {
   return (_error: Error) => (
     <span
       style={{
@@ -36,7 +38,7 @@ function renderLatexError(content: string): (error: Error) => ReactNode {
         whiteSpace: "pre-wrap",
         wordBreak: "break-all",
       }}
-      title="LaTeX 解析失败"
+      title={title}
     >
       {content}
     </span>
@@ -50,7 +52,9 @@ function renderLatexError(content: string): (error: Error) => ReactNode {
  * 解析失败时回退显示原始 LaTeX 文本（红色边框提示）。
  */
 export function LatexRenderer({ content, displayMode = false }: LatexRendererProps) {
-  const errorRenderer = renderLatexError(content);
+  const { t } = useTranslation();
+  const errorTitle = t("chat.latex.parseError");
+  const errorRenderer = renderLatexError(content, errorTitle);
   if (displayMode) {
     return <BlockMath math={content} renderError={errorRenderer} />;
   }

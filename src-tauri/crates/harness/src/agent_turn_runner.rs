@@ -147,11 +147,7 @@ pub fn tool_defs_to_chat_tools(defs: &[ToolDef]) -> Vec<ChatTool> {
             function: crate::types::ChatToolFunction {
                 name: d.name.clone(),
                 description: d.description.clone(),
-                parameters: d
-                    .parameters
-                    .as_ref()
-                    .map(|p| serde_json::to_value(p).ok())
-                    .flatten(),
+                parameters: d.parameters.as_ref().map(|p| serde_json::to_value(p).ok()).flatten(),
             },
         })
         .collect()
@@ -230,10 +226,7 @@ mod tests {
         let tools = tool_defs_to_chat_tools(&defs);
         assert_eq!(tools.len(), 1);
         assert_eq!(tools[0].function.name, "search");
-        assert_eq!(
-            tools[0].function.description.as_deref(),
-            Some("Search the web")
-        );
+        assert_eq!(tools[0].function.description.as_deref(), Some("Search the web"));
     }
 
     #[test]

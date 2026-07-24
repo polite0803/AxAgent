@@ -84,6 +84,15 @@ pub mod tool;
 pub mod tool_permissions;
 pub mod tool_validation;
 
+// ── Agent 单轮 ReAct 执行器契约(2.5 P1)──
+// trait 定义在 foundation 层,由 wiring 把 SessionManager 适配器注入到 WorkEngine,
+// rt-workflow 的 AgentExecutor 通过 trait 对象调用,实现"委托"语义。
+// 未注入时 AgentExecutor 走 inline ReAct fallback(向后兼容)。
+pub mod agent_turn_runner;
+pub use agent_turn_runner::{
+    AgentToolCallRecord, AgentTurnRequest, AgentTurnResult, AgentTurnRunner,
+};
+
 // ── 依赖注入容器 ──
 pub mod graph_dtos;
 pub mod louvain_dtos;

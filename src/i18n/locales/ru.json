@@ -855,6 +855,9 @@
     "regenerate": "Регенерировать",
     "removeFromWorkspace": "Удалить из рабочей области",
     "rename": "Переименовать",
+    "latex": {
+      "parseError": "Ошибка разбора LaTeX"
+    },
     "renderingChart": "Рендеринг графика…",
     "rewardScale": "Масштаб",
     "rewardWeights": {

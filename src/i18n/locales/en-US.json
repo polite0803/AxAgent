@@ -855,6 +855,9 @@
     "regenerate": "Regenerate",
     "removeFromWorkspace": "Remove from Workspace",
     "rename": "Rename",
+    "latex": {
+      "parseError": "LaTeX parse failed"
+    },
     "renderingChart": "Rendering chart…",
     "rewardScale": "Scale",
     "rewardWeights": {

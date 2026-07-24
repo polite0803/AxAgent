@@ -855,6 +855,9 @@
     "regenerate": "إعادة التوليد",
     "removeFromWorkspace": "إزالة من مساحة العمل",
     "rename": "إعادة التسمية",
+    "latex": {
+      "parseError": "فشل تحليل LaTeX"
+    },
     "renderingChart": "جارٍ رسم المخطط…",
     "rewardScale": "المقياس",
     "rewardWeights": {

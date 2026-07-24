@@ -855,6 +855,9 @@
     "regenerate": "पुनः उत्पन्न करें",
     "removeFromWorkspace": "कार्यक्षेत्र से हटाएं",
     "rename": "नाम बदलें",
+    "latex": {
+      "parseError": "LaTeX पार्स विफल"
+    },
     "renderingChart": "चार्ट रेंडर हो रहा है…",
     "rewardScale": "पैमाना",
     "rewardWeights": {
