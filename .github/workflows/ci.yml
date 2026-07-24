@@ -241,7 +241,7 @@ jobs:
         continue-on-error: true
         run: |
           if cargo audit --version &>/dev/null; then
-            cargo audit --ignore RUSTSEC-2023-0071
+            cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195
           else
             echo "cargo-audit not available, skipping"
           fi

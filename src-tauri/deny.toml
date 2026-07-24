@@ -4,8 +4,13 @@ unmaintained = "workspace"
 # Assessment (2026-06-29): backoff is a mature, stable exponential-backoff crate with
 # minimal attack surface. Risk is LOW for desktop app context.
 # Mitigation plan: evaluate fork or migrate to tokio-retry by Q3 2026.
+# RUSTSEC-2026-0194 / RUSTSEC-2026-0195: quick-xml 0.30.0 via xcap → xcb (X11 screenshot).
+# xcb 1.7.0 is latest, hard-depends on quick-xml 0.30.0.
+# XML parsing DoS — only parses local X11 protocol descriptions, not attacker input.
 ignore = [
   "RUSTSEC-2025-0012",
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
 ]
 
 [licenses]
