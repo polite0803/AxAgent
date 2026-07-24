@@ -265,7 +265,7 @@ impl AgentExecutor {
 
         let request = axagent_harness::AgentTurnRequest {
             execution_id: context.execution_id.clone(),
-            node_id: node.base_id(),
+            node_id: node.base_id().to_string(),
             role_id: an.config.agent_profile_id.clone(),
             system_prompt,
             user_input,
@@ -397,20 +397,25 @@ impl NodeExecutorTrait for AgentExecutor {
         //
         // 注意:此处只做"入口委托",不替换 inline ReAct — streaming.rs 等自由对话
         // 路径不受影响。未来三套 ReAct 合并时再统一入口。
-        if let Some(ref engine_opt) = lock_or_recover(self.engine.lock()).as_ref() {
-            if let Some(engine) = engine_opt {
-                if let Some(runner) = engine.get_agent_turn_runner().await {
-                    if runner.is_available() {
-                        match self.try_delegate_to_turn_runner(&runner, node, an, context).await {
-                            Ok(output) => return Ok(output),
-                            Err(e) => {
-                                tracing::warn!(
-                                    node_id = %node.base_id(),
-                                    error = %e,
-                                    "AgentTurnRunner 委托失败,fallback 到 inline ReAct"
-                                );
-                            },
-                        }
+        //
+        // 安全性:先 clone Arc<WorkEngine> 出来,释放 std::sync::RwLock guard
+        // (guard 是 !Send,不能跨 await 持有)。
+        let engine_clone = {
+            let guard = lock_or_recover(self.engine.lock());
+            guard.as_ref().cloned()
+        };
+        if let Some(engine) = engine_clone {
+            if let Some(runner) = engine.get_agent_turn_runner() {
+                if runner.is_available() {
+                    match self.try_delegate_to_turn_runner(&runner, node, an, context).await {
+                        Ok(output) => return Ok(output),
+                        Err(e) => {
+                            tracing::warn!(
+                                node_id = %node.base_id(),
+                                error = %e,
+                                "AgentTurnRunner 委托失败,fallback 到 inline ReAct"
+                            );
+                        },
                     }
                 }
             }

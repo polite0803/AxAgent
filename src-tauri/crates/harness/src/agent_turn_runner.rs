@@ -147,7 +147,7 @@ pub fn tool_defs_to_chat_tools(defs: &[ToolDef]) -> Vec<ChatTool> {
             function: crate::types::ChatToolFunction {
                 name: d.name.clone(),
                 description: d.description.clone(),
-                parameters: d.parameters.as_ref().map(|p| serde_json::to_value(p).ok()).flatten(),
+                parameters: d.parameters.as_ref().and_then(|p| serde_json::to_value(p).ok()),
             },
         })
         .collect()

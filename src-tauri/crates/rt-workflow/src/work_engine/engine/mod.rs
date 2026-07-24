@@ -820,9 +820,9 @@ impl WorkEngine {
     ///
     /// 返回 `Option<Arc<dyn AgentTurnRunner>>` 的 clone — `Some` 表示已注入,
     /// `None` 表示未注入(AgentExecutor 应走 inline ReAct)。
-    /// 用 `RwLock::read` 而非 `Mutex`,允许多个 Agent 节点并发读取。
-    pub async fn get_agent_turn_runner(&self) -> Option<Arc<dyn axagent_harness::AgentTurnRunner>> {
-        self.agent_turn_runner.read().await.clone()
+    /// 用 `std::sync::RwLock::read()` 同步读取,guard 不跨 await。
+    pub fn get_agent_turn_runner(&self) -> Option<Arc<dyn axagent_harness::AgentTurnRunner>> {
+        self.agent_turn_runner.read().ok().and_then(|g| g.clone())
     }
 
     /// 发布一个工作流领域事件到统一总线(若已注入)。
