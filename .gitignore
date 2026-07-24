@@ -123,6 +123,9 @@ axagent-layout-v4.html
 # Temp debug output (Rust)
 /src-tauri/temp/
 
+# Dprint temp cache (should never have been tracked)
+/temp/
+
 # Python
 __pycache__/
 *.pyc

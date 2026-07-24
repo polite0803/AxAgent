@@ -766,10 +766,11 @@ pub async fn collect_rag_context(
 const DEDUP_JACCARD_THRESHOLD: f64 = 0.65;
 
 fn source_type_priority(source_type: &str) -> u8 {
+    // v101: 知识库（curated）> Wiki > Memory（auto-extracted），与之前相反
     match source_type {
-        "memory" => 4,
+        "knowledge" => 4,
         "wiki" => 3,
-        "knowledge" => 2,
+        "memory" => 2,
         _ => 1,
     }
 }

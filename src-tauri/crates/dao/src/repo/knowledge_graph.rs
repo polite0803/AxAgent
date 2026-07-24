@@ -14,6 +14,9 @@ use axagent_harness::types::{
 };
 use axagent_harness::util_fns::gen_id;
 
+/// Sentinel KB ID for trajectory-derived entities (v101 merge).
+pub const TRAJECTORY_KB_ID: &str = "__sys_trajectory__";
+
 fn model_to_entity(m: knowledge_entities::Model) -> KnowledgeEntity {
     KnowledgeEntity {
         id: m.id,
@@ -29,6 +32,12 @@ fn model_to_entity(m: knowledge_entities::Model) -> KnowledgeEntity {
         metadata: m.metadata,
         created_at: m.created_at,
         updated_at: m.updated_at,
+        // v101: trajectory entity fields
+        aliases: m.aliases,
+        mention_count: m.mention_count,
+        confidence: m.confidence,
+        first_seen_at: m.first_seen_at,
+        last_seen_at: m.last_seen_at,
     }
 }
 
@@ -63,6 +72,8 @@ fn model_to_relation(m: knowledge_relations::Model) -> KnowledgeRelation {
         metadata: m.metadata,
         created_at: m.created_at,
         updated_at: m.updated_at,
+        // v101: trajectory relationship weight
+        weight: m.weight,
     }
 }
 
@@ -125,6 +136,11 @@ pub async fn create_knowledge_entity(
         metadata: Set(input.metadata),
         created_at: Set(now),
         updated_at: Set(now),
+        aliases: Set("[]".to_string()),
+        mention_count: Set(1),
+        confidence: Set(0.5),
+        first_seen_at: Set(None),
+        last_seen_at: Set(None),
     };
 
     am.insert(db).await?;
@@ -215,6 +231,7 @@ pub async fn create_knowledge_relation(
         metadata: Set(input.metadata),
         created_at: Set(now),
         updated_at: Set(now),
+        weight: Set(1.0),
     };
 
     am.insert(db).await?;
@@ -370,4 +387,175 @@ pub async fn list_knowledge_interfaces(
         .await?;
 
     Ok(models.into_iter().map(model_to_interface).collect())
+}
+
+// ── v101: Trajectory-style entity operations ───────────────────────────────
+
+/// Get a single entity by ID.
+pub async fn get_entity_by_id(
+    db: &DatabaseConnection,
+    id: &str,
+) -> Result<Option<KnowledgeEntity>> {
+    let model = knowledge_entities::Entity::find_by_id(id).one(db).await?;
+    Ok(model.map(model_to_entity))
+}
+
+/// Get all entities by knowledge_base_id, ordered by last_seen_at desc.
+pub async fn get_all_entities_by_kb(
+    db: &DatabaseConnection,
+    kb_id: &str,
+) -> Result<Vec<KnowledgeEntity>> {
+    let models = knowledge_entities::Entity::find()
+        .filter(knowledge_entities::Column::KnowledgeBaseId.eq(kb_id))
+        .order_by_desc(knowledge_entities::Column::UpdatedAt)
+        .all(db)
+        .await?;
+    Ok(models.into_iter().map(model_to_entity).collect())
+}
+
+/// Name-based search for entities (like trajectory storage's search_entities).
+pub async fn search_entities_by_name(
+    db: &DatabaseConnection,
+    kb_id: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<KnowledgeEntity>> {
+    let pattern = format!("%{}%", query);
+    let models = knowledge_entities::Entity::find()
+        .filter(
+            knowledge_entities::Column::KnowledgeBaseId
+                .eq(kb_id)
+                .and(knowledge_entities::Column::Name.like(&pattern)),
+        )
+        .all(db)
+        .await?
+        .into_iter()
+        .take(limit)
+        .map(model_to_entity)
+        .collect();
+    Ok(models)
+}
+
+/// Upsert an entity (trajectory-style save with on-conflict update).
+// 8 params justified: it maps 1:1 to the DB insert/upsert columns with distinct semantics.
+#[allow(clippy::too_many_arguments)]
+pub async fn upsert_entity(
+    db: &DatabaseConnection,
+    kb_id: &str,
+    name: &str,
+    entity_type: &str,
+    aliases: &str,
+    confidence: f64,
+    first_seen_at: Option<String>,
+    last_seen_at: Option<String>,
+) -> Result<KnowledgeEntity> {
+    use axagent_harness::util_fns::gen_id;
+    use sea_orm::sea_query::OnConflict;
+
+    let now = chrono::Utc::now().timestamp();
+    let id = format!("ent_{}", gen_id());
+
+    let am = knowledge_entities::ActiveModel {
+        id: Set(id.clone()),
+        knowledge_base_id: Set(kb_id.to_string()),
+        name: Set(name.to_string()),
+        entity_type: Set(entity_type.to_string()),
+        description: Set(None),
+        source_path: Set(String::new()),
+        source_language: Set(None),
+        properties: Set(serde_json::Value::Object(Default::default())),
+        lifecycle: Set(None),
+        behaviors: Set(None),
+        metadata: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+        aliases: Set(aliases.to_string()),
+        mention_count: Set(1),
+        confidence: Set(confidence),
+        first_seen_at: Set(first_seen_at),
+        last_seen_at: Set(last_seen_at),
+    };
+
+    knowledge_entities::Entity::insert(am)
+        .on_conflict(
+            OnConflict::column(knowledge_entities::Column::Id)
+                .update_columns([
+                    knowledge_entities::Column::Name,
+                    knowledge_entities::Column::LastSeenAt,
+                    knowledge_entities::Column::MentionCount,
+                    knowledge_entities::Column::Confidence,
+                    knowledge_entities::Column::UpdatedAt,
+                ])
+                .to_owned(),
+        )
+        .exec(db)
+        .await?;
+
+    get_entity_by_id(db, &id)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeEntity {}", id)))
+}
+
+/// Delete an entity and cascade-delete its relations.
+pub async fn delete_entity_cascade(db: &DatabaseConnection, id: &str) -> Result<()> {
+    let txn = db.begin().await?;
+    knowledge_relations::Entity::delete_many()
+        .filter(
+            knowledge_relations::Column::SourceEntityId
+                .eq(id)
+                .or(knowledge_relations::Column::TargetEntityId.eq(id)),
+        )
+        .exec(&txn)
+        .await?;
+    knowledge_entities::Entity::delete_by_id(id).exec(&txn).await?;
+    txn.commit().await?;
+    Ok(())
+}
+
+/// Upsert a relationship (trajectory-style save).
+pub async fn upsert_relation(
+    db: &DatabaseConnection,
+    source_id: &str,
+    target_id: &str,
+    relation_type: &str,
+    weight: f64,
+) -> Result<KnowledgeRelation> {
+    use axagent_harness::util_fns::gen_id;
+    use sea_orm::sea_query::OnConflict;
+
+    let now = chrono::Utc::now().timestamp();
+    let id = format!("rel_{}", gen_id());
+
+    let am = knowledge_relations::ActiveModel {
+        id: Set(id.clone()),
+        knowledge_base_id: Set(String::new()),
+        source_entity_id: Set(source_id.to_string()),
+        target_entity_id: Set(target_id.to_string()),
+        relation_type: Set(relation_type.to_string()),
+        description: Set(None),
+        properties: Set(None),
+        metadata: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+        weight: Set(weight),
+    };
+
+    knowledge_relations::Entity::insert(am)
+        .on_conflict(
+            OnConflict::column(knowledge_relations::Column::Id)
+                .update_columns([
+                    knowledge_relations::Column::Weight,
+                    knowledge_relations::Column::UpdatedAt,
+                ])
+                .to_owned(),
+        )
+        .exec(db)
+        .await?;
+
+    let model = knowledge_relations::Entity::find_by_id(&id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeRelation {}", id)))?;
+
+    Ok(model_to_relation(model))
 }

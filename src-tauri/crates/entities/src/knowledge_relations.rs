@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +15,8 @@ pub struct Model {
     pub metadata: Option<Json>,
     pub created_at: i64,
     pub updated_at: i64,
+    // v101: trajectory relationship weight
+    pub weight: f64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

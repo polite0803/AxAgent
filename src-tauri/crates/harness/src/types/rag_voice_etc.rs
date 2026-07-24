@@ -259,6 +259,22 @@ pub struct KnowledgeEntity {
     pub metadata: Option<Value>,
     pub created_at: i64,
     pub updated_at: i64,
+    // v101: trajectory entity fields
+    #[serde(default = "default_aliases")]
+    pub aliases: String,
+    #[serde(default)]
+    pub mention_count: i32,
+    #[serde(default = "default_confidence")]
+    pub confidence: f64,
+    pub first_seen_at: Option<String>,
+    pub last_seen_at: Option<String>,
+}
+
+fn default_aliases() -> String {
+    "[]".to_string()
+}
+fn default_confidence() -> f64 {
+    0.5
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -324,6 +340,13 @@ pub struct KnowledgeRelation {
     pub metadata: Option<Value>,
     pub created_at: i64,
     pub updated_at: i64,
+    // v101: trajectory relationship weight
+    #[serde(default = "default_weight")]
+    pub weight: f64,
+}
+
+fn default_weight() -> f64 {
+    1.0
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

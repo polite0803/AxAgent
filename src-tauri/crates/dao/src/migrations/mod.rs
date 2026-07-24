@@ -37,6 +37,7 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub mod pg_ddl;
 pub mod v100_consolidated;
+pub mod v101_consolidate_knowledge_memory;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 
@@ -70,8 +71,13 @@ struct Migration {
 const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 100,
-        description: "v100_consolidated: 上游基线 — 合并 v001–v011 + v101–v103 的全部 DDL（表/索引/触发器/种子数据），DDL 直接写 PG 语法，SQLite 侧 sqlite_ddl 自动转换",
+        description: "v100_consolidated: 合并 v001–v011 + v101–v104 的全部 DDL（表/索引/触发器/种子数据），统一用正确类型建表；不再保留旧库类型修复 ALTER 通道",
         up: |db| Box::pin(v100_consolidated::up(db)),
+    },
+    Migration {
+        version: 101,
+        description: "v101_consolidate_knowledge_memory: 合并轨迹实体/关系到知识图谱知识实体/关系表，合并轨迹记忆到记忆条目表，删除 trajectory_entities/relationships/memories 旧表",
+        up: |db| Box::pin(v101_consolidate_knowledge_memory::up(db)),
     },
     Migration {
         version: 200,
@@ -224,7 +230,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 2 行（v100 上游基线 + v200 AxInvest 独有表）
+        // schema_version 表应有 4 行（v100 + v101 + v200 + v201）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -234,7 +240,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 3, "schema_version should have exactly 3 rows (v100 + v200 + v201)");
+        assert_eq!(cnt, 4, "schema_version should have exactly 4 rows (v100 + v101 + v200 + v201)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

@@ -43,6 +43,7 @@ fn model_to_item(m: memory_items::Model) -> MemoryItem {
 
 pub async fn list_namespaces(db: &DatabaseConnection) -> Result<Vec<MemoryNamespace>> {
     let models = memory_namespaces::Entity::find()
+        .filter(memory_namespaces::Column::Scope.ne("system"))
         .order_by_asc(memory_namespaces::Column::SortOrder)
         .all(db)
         .await?;
@@ -181,6 +182,17 @@ pub async fn add_item(db: &DatabaseConnection, input: CreateMemoryItemInput) -> 
         index_status: Set(constants::status::PENDING.to_string()),
         index_error: Set(None),
         updated_at: Set(current_rfc3339()),
+        // v101 新增字段，默认值与迁移一致
+        tier: Set("working".to_string()),
+        importance: Set(0.5),
+        access_count: Set(0),
+        last_accessed: Set(None),
+        decay_rate: Set(0.01),
+        expires_at: Set(None),
+        source_conversation_id: Set(None),
+        source_message_id: Set(None),
+        memory_nature: Set("semantic".to_string()),
+        tags: Set("[]".to_string()),
     };
 
     am.insert(db).await?;

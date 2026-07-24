@@ -90,13 +90,11 @@ pub mod wiki_templates;
 pub mod wikis;
 
 pub mod trajectories;
-pub mod trajectory_entities;
+// trajectory_entities/trajectory_relationships/trajectory_memories 已合并到 knowledge_entities/knowledge_relations/memory_items (v101)
 pub mod trajectory_learned_patterns;
-pub mod trajectory_memories;
 pub mod trajectory_messages;
 pub mod trajectory_patterns;
 pub mod trajectory_preferences;
-pub mod trajectory_relationships;
 pub mod trajectory_rewards;
 pub mod trajectory_sessions;
 pub mod trajectory_skill_executions;
