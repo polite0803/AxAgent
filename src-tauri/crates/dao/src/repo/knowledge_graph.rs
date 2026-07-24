@@ -437,6 +437,8 @@ pub async fn search_entities_by_name(
 }
 
 /// Upsert an entity (trajectory-style save with on-conflict update).
+// 8 params justified: it maps 1:1 to the DB insert/upsert columns with distinct semantics.
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_entity(
     db: &DatabaseConnection,
     kb_id: &str,
@@ -489,9 +491,9 @@ pub async fn upsert_entity(
         .exec(db)
         .await?;
 
-    Ok(get_entity_by_id(db, &id)
+    get_entity_by_id(db, &id)
         .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeEntity {}", id)))?)
+        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeEntity {}", id)))
 }
 
 /// Delete an entity and cascade-delete its relations.
