@@ -1971,6 +1971,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             ? {
               keys: Object.keys(pmRaw as object),
               hasResult: !!(pmRaw as Record<string, unknown>).result,
+              hasOutput: !!(pmRaw as Record<string, unknown>).output,
+              hasSource: !!((pmRaw as Record<string, unknown>).source),
               type: typeof pmRaw,
             }
             : null;
@@ -1982,7 +1984,15 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             { hasPortfolioMgr: !!pmRaw, pmDump, hasOutput: output !== undefined, outputDump },
           );
           if (pmRaw && typeof pmRaw === "object") {
+            const pmObj = pmRaw as Record<string, unknown>;
             console.log("[StockAnalysis] pmRaw 完整内容:", JSON.stringify(pmRaw, null, 2).slice(0, 2000));
+            // 额外输出 output 和 source 字段（{node_id, output, source, status} 格式诊断）
+            if (pmObj.output) {
+              console.log("[StockAnalysis] pmRaw.output:", JSON.stringify(pmObj.output, null, 2).slice(0, 1000));
+            }
+            if (pmObj.source) {
+              console.log("[StockAnalysis] pmRaw.source:", pmObj.source);
+            }
           }
         }
 

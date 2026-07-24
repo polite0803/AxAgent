@@ -232,6 +232,11 @@ export function normalizeDecision(raw: Record<string, unknown>): StockDecision |
       if (pmObj.result && typeof pmObj.result === "object" && !Array.isArray(pmObj.result)) {
         return normalizeDecision(pmObj.result as Record<string, unknown>);
       }
+      // portfolio-mgr 格式为 {node_id, output, source, status}（不含 result/params）：
+      // 从 output 字段提取决策数据
+      if (pmObj.output && typeof pmObj.output === "object" && !Array.isArray(pmObj.output)) {
+        return normalizeDecision(pmObj.output as Record<string, unknown>);
+      }
       // portfolio-mgr 是 CodeNode 包装但 .result 缺失（异常路径），
       // 降级用 portfolio-mgr 本身，让后续 CodeNode 检测继续尝试。
       return normalizeDecision(pmObj);
@@ -239,13 +244,16 @@ export function normalizeDecision(raw: Record<string, unknown>): StockDecision |
   }
 
   // CodeNode 输出兼容：若顶层字段是 CodeNode 包装（status/result/params/node_id），
-  // 从 result 或 params 中提取
-  const source: Record<string, unknown> = (!("action" in raw) && !("confidence" in raw) && !raw.result && !raw.params)
+  // 从 result / params / output 中提取（output 对应 {node_id, output, source, status} 格式）
+  const source: Record<string, unknown> = (!("action" in raw) && !("confidence" in raw) && !raw.result && !raw.params && !raw.output)
     ? raw
     : (!("action" in raw) && !("confidence" in raw) && typeof raw.result === "object" && raw.result !== null)
     ? (raw.result as Record<string, unknown>)
     : (!("action" in raw) && !("confidence" in raw) && typeof raw.params === "object" && raw.params !== null)
     ? (raw.params as Record<string, unknown>)
+    // {node_id, output, source, status} 格式：从 output 提取（无 result/params 时）
+    : (!("action" in raw) && !("confidence" in raw) && typeof raw.output === "object" && raw.output !== null && !raw.result && !raw.params)
+    ? (raw.output as Record<string, unknown>)
     : raw;
 
   // ── "全零空壳"检测：所有有意义的字段都缺失/为默认值 ──
@@ -417,10 +425,10 @@ export function extractDecision(value: unknown): StockDecision | null {
     if (content && typeof content === "object" && !Array.isArray(content)) {
       return normalizeDecision(content as Record<string, unknown>);
     }
-    // normalizeDecision 内部已处理 CodeNode 的 result/params 包装
+    // normalizeDecision 内部已处理 CodeNode 的 result/params/output 包装
     if (
       "action" in record || "confidence" in record || "positionPct" in record || "position_pct" in record
-      || "result" in record || "params" in record
+      || "result" in record || "params" in record || "output" in record
     ) {
       return normalizeDecision(record);
     }
