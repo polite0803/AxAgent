@@ -142,6 +142,7 @@ export function StockAnalysisPage() {
   const getStockQuote = useStockAnalysisStore((s) => s.getStockQuote);
   const getStockKline = useStockAnalysisStore((s) => s.getStockKline);
   const klinePeriod = useStockAnalysisStore((s) => s.klinePeriod);
+  const analysisId = useStockAnalysisStore((s) => s.analysisId);
 
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   const isMobile = deviceLayout === "mobile" || deviceLayout === "tablet";
@@ -470,7 +471,7 @@ export function StockAnalysisPage() {
                 {/* Experiment trail */}
                 <ExperimentTrail />
                 <EvidenceCitationPanel
-                  analysisId={useStockAnalysisStore((s) => s.analysisId) ?? ""}
+                  analysisId={analysisId ?? ""}
                 />
               </div>
             )}
