@@ -72,7 +72,7 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Spin tip={t("stockAnalysis.evidenceCitation.loading", "提取证据引用中...")} />
+        <Spin description={t("stockAnalysis.evidenceCitation.loading", "提取证据引用中...")} />
       </div>
     );
   }

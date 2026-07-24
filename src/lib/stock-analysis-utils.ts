@@ -163,8 +163,7 @@ export function parseAction(raw: unknown): StockActionType {
 
 /** 解析股票风险等级（兼容英文/中文/大小写） */
 export function parseRiskLevel(raw: unknown): StockRiskLevelType {
-  if (typeof raw !== "string" && typeof raw !== "number") {
-    console.warn("[parseRiskLevel] 无法识别的风险等级类型:", typeof raw, raw);
+  if (raw == null || (typeof raw !== "string" && typeof raw !== "number")) {
     return StockRiskLevel.MID;
   }
   const clean = String(raw).trim().toUpperCase();
