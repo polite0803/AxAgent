@@ -1522,14 +1522,14 @@ fn ke_to_entity(e: &knowledge_entities::Model) -> Entity {
             .and_then(|s| {
                 chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
             })
-            .unwrap_or_else(|| Utc::now()),
+            .unwrap_or_else(Utc::now),
         last_seen_at: e
             .last_seen_at
             .as_ref()
             .and_then(|s| {
                 chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
             })
-            .unwrap_or_else(|| Utc::now()),
+            .unwrap_or_else(Utc::now),
         mention_count: e.mention_count as u32,
         confidence: e.confidence,
         created_at: Some(Utc::now()),
