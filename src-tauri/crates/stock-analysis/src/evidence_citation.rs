@@ -280,7 +280,7 @@ fn extract_snippet(text: &str, query: &str, context_chars: usize) -> String {
 /// 将 CitationsReport 渲染为可读的 Markdown 文本
 pub fn citations_to_markdown(report: &CitationReport) -> String {
     let mut md = String::new();
-    md.push_str(&format!("## 证据引用审计\n\n"));
+    md.push_str("## 证据引用审计\n\n");
     md.push_str(&format!("**决策**: {} (置信度 {:.0}%)\n\n", report.decision_action, report.decision_confidence));
     md.push_str(&format!("**数据支撑率**: {:.0}% ({}/{})\n\n", report.support_rate * 100.0, report.supported_claims, report.total_claims));
     md.push_str(&format!("**参与分析师**: {} 个\n\n", report.analyst_count));

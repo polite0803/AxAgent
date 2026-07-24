@@ -97,7 +97,7 @@ export function BacktestChart({
   }, [equityCurve]);
 
   // 格式化金额
-  const fmtMoney = (v: number) => {
+  const fmtMoney = (v: any) => {
     if (Math.abs(v) >= 1_0000_0000) { return `¥${(v / 1_0000_0000).toFixed(2)}亿`; }
     if (Math.abs(v) >= 1_0000) { return `¥${(v / 1_0000).toFixed(2)}万`; }
     return `¥${v.toFixed(2)}`;
@@ -156,7 +156,7 @@ export function BacktestChart({
               tick={{ fill: "#9CA3AF", fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: "#4B5563" }}
-              tickFormatter={(v: number) => fmtMoney(v)}
+              tickFormatter={(v: any) => fmtMoney(v)}
             />
             <Tooltip
               contentStyle={{
@@ -245,7 +245,7 @@ export function BacktestChart({
               tick={{ fill: "#9CA3AF", fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: "#4B5563" }}
-              tickFormatter={(v: number) => `${v.toFixed(1)}%`}
+              tickFormatter={(v: any) => `${v.toFixed(1)}%`}
             />
             <Tooltip
               contentStyle={{

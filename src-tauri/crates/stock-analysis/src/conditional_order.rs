@@ -206,6 +206,12 @@ pub struct ConditionalOrderEngine {
     orders: Vec<ConditionalOrder>,
 }
 
+impl Default for ConditionalOrderEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConditionalOrderEngine {
     pub fn new() -> Self {
         Self { orders: Vec::new() }
