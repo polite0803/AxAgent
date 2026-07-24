@@ -1383,19 +1383,6 @@ impl TrajectoryStorage {
         Ok(())
     }
 
-    pub async fn index_memory_fts(
-        &self,
-        id: &str,
-        mt: &str,
-        content: &str,
-        entities: &[String],
-    ) -> Result<()> {
-        // v101: trajectory_memories_fts was dropped; memory_items FTS is TBD
-        if let Some(ref fts) = self.fts_searcher {
-            let _ = fts.index_memory(id, mt, content, entities).await;
-        }
-        Ok(())
-    }
     pub async fn delete_skill_fts(&self, id: &str) -> Result<()> {
         if let Some(ref fts) = self.fts_searcher {
             fts.delete_from_fts("trajectory_skills_fts", id).await
