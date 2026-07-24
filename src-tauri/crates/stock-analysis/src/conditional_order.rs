@@ -20,8 +20,8 @@
 //! 没有执行动作（触发后怎么办）。ConditionalOrder 在 MonitorConfig 之上
 //! 绑定了一个 Action，实现"条件满足 → 自动交易"的闭环。
 
-use serde::{Deserialize, Serialize};
 use chrono::Timelike;
+use serde::{Deserialize, Serialize};
 
 /// 条件触发后的执行动作
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -131,7 +131,10 @@ impl ConditionalOrder {
         if self.last_triggered_at > 0 {
             let elapsed_min = (now_ms - self.last_triggered_at) / 60_000;
             if elapsed_min < self.cool_down_minutes as i64 {
-                return TriggerDecision::Skip(format!("冷却中 ({}m < {}m)", elapsed_min, self.cool_down_minutes));
+                return TriggerDecision::Skip(format!(
+                    "冷却中 ({}m < {}m)",
+                    elapsed_min, self.cool_down_minutes
+                ));
             }
         }
 
@@ -239,7 +242,10 @@ impl ConditionalOrderEngine {
         self.orders
             .iter()
             .filter(|o| o.stock_code == stock_code)
-            .filter(|o| o.should_trigger(current_price, prev_close, turnover_rate, now_ms) == TriggerDecision::Trigger)
+            .filter(|o| {
+                o.should_trigger(current_price, prev_close, turnover_rate, now_ms)
+                    == TriggerDecision::Trigger
+            })
             .collect()
     }
 }
@@ -268,15 +274,13 @@ mod tests {
         };
 
         // 价格从100跌到90，应该触发
-        assert_eq!(
-            order.should_trigger(90.0, 100.0, None, 1000),
-            TriggerDecision::Trigger
-        );
+        assert_eq!(order.should_trigger(90.0, 100.0, None, 1000), TriggerDecision::Trigger);
 
         // 价格从100涨到105，不应该触发
-        assert!(
-            matches!(order.should_trigger(105.0, 100.0, None, 1000), TriggerDecision::Skip(..))
-        );
+        assert!(matches!(
+            order.should_trigger(105.0, 100.0, None, 1000),
+            TriggerDecision::Skip(..)
+        ));
     }
 
     #[test]
@@ -318,9 +322,7 @@ mod tests {
             ..Default::default()
         };
 
-        assert!(
-            matches!(order.should_trigger(200.0, 100.0, None, 0), TriggerDecision::Skip(..))
-        );
+        assert!(matches!(order.should_trigger(200.0, 100.0, None, 0), TriggerDecision::Skip(..)));
     }
 
     #[test]
@@ -336,14 +338,12 @@ mod tests {
         };
 
         // 换手率 5% < 10%，不触发
-        assert!(
-            matches!(order.should_trigger(100.0, 100.0, Some(5.0), 0), TriggerDecision::Skip(..))
-        );
+        assert!(matches!(
+            order.should_trigger(100.0, 100.0, Some(5.0), 0),
+            TriggerDecision::Skip(..)
+        ));
 
         // 换手率 15% > 10%，触发
-        assert_eq!(
-            order.should_trigger(100.0, 100.0, Some(15.0), 0),
-            TriggerDecision::Trigger
-        );
+        assert_eq!(order.should_trigger(100.0, 100.0, Some(15.0), 0), TriggerDecision::Trigger);
     }
 }

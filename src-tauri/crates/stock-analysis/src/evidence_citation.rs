@@ -95,10 +95,7 @@ fn analyst_display_name(id: &str) -> String {
 /// - `blackboard_snapshot`: 工作流结束时保存的黑板快照 JSON 字符串
 ///
 /// 返回按匹配置信度降序排列的引用列表。
-pub fn extract_citations(
-    decision_reasoning: &str,
-    blackboard_snapshot: &str,
-) -> CitationReport {
+pub fn extract_citations(decision_reasoning: &str, blackboard_snapshot: &str) -> CitationReport {
     let mut citations = Vec::new();
 
     // 1. 解析黑板快照
@@ -139,7 +136,11 @@ pub fn extract_citations(
                 report_text.chars().take(2000).collect();
             let intersection = claim_chars.intersection(&report_chars).count() as f64;
             let union = claim_chars.union(&report_chars).count() as f64;
-            let jaccard = if union > 0.0 { intersection / union } else { 0.0 };
+            let jaccard = if union > 0.0 {
+                intersection / union
+            } else {
+                0.0
+            };
 
             // 也检查是否包含相同的财务数字模式
             let number_overlap = extract_numbers(claim)
@@ -157,9 +158,9 @@ pub fn extract_citations(
         }
 
         if let Some((analyst_id, score, snippet)) = best_match {
-            let has_data = extract_numbers(claim).iter().any(|n| {
-                analyst_reports.iter().any(|(_, text)| text.contains(&n.to_string()))
-            });
+            let has_data = extract_numbers(claim)
+                .iter()
+                .any(|n| analyst_reports.iter().any(|(_, text)| text.contains(&n.to_string())));
             if has_data {
                 supported += 1;
             }
@@ -191,10 +192,16 @@ pub fn extract_citations(
     }
 
     // 按置信度降序
-    citations.sort_by(|a, b| b.match_confidence.partial_cmp(&a.match_confidence).unwrap_or(std::cmp::Ordering::Equal));
+    citations.sort_by(|a, b| {
+        b.match_confidence.partial_cmp(&a.match_confidence).unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     let total = citations.len();
-    let support_rate = if total > 0 { supported as f64 / total as f64 } else { 0.0 };
+    let support_rate = if total > 0 {
+        supported as f64 / total as f64
+    } else {
+        0.0
+    };
 
     // 分析师数量（在 citations 被 move 前计算）
     let analyst_ids: Vec<String> = citations.iter().map(|c| c.source_analyst_id.clone()).collect();
@@ -258,9 +265,8 @@ fn extract_snippet(text: &str, query: &str, context_chars: usize) -> String {
         }
     } else {
         // 用重叠词定位
-        let words: Vec<&str> = query.split(|c: char| !c.is_alphanumeric())
-            .filter(|w| w.len() > 1)
-            .collect();
+        let words: Vec<&str> =
+            query.split(|c: char| !c.is_alphanumeric()).filter(|w| w.len() > 1).collect();
         for w in words {
             if let Some(pos) = text.find(w) {
                 let start = pos.saturating_sub(context_chars);
@@ -281,8 +287,16 @@ fn extract_snippet(text: &str, query: &str, context_chars: usize) -> String {
 pub fn citations_to_markdown(report: &CitationReport) -> String {
     let mut md = String::new();
     md.push_str("## 证据引用审计\n\n");
-    md.push_str(&format!("**决策**: {} (置信度 {:.0}%)\n\n", report.decision_action, report.decision_confidence));
-    md.push_str(&format!("**数据支撑率**: {:.0}% ({}/{})\n\n", report.support_rate * 100.0, report.supported_claims, report.total_claims));
+    md.push_str(&format!(
+        "**决策**: {} (置信度 {:.0}%)\n\n",
+        report.decision_action, report.decision_confidence
+    ));
+    md.push_str(&format!(
+        "**数据支撑率**: {:.0}% ({}/{})\n\n",
+        report.support_rate * 100.0,
+        report.supported_claims,
+        report.total_claims
+    ));
     md.push_str(&format!("**参与分析师**: {} 个\n\n", report.analyst_count));
 
     for (i, citation) in report.citations.iter().enumerate() {
@@ -291,11 +305,7 @@ pub fn citations_to_markdown(report: &CitationReport) -> String {
             3..=6 => "🟢",
             _ => "🔵",
         };
-        md.push_str(&format!(
-            "{}. {}\n",
-            i + 1,
-            citation.claim
-        ));
+        md.push_str(&format!("{}. {}\n", i + 1, citation.claim));
         md.push_str(&format!(
             "   {} 来源: {} (匹配度 {:.0}%)\n",
             confidence_bar,

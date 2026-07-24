@@ -1149,9 +1149,7 @@ pub async fn watchlist_update_group(
 
 /// 获取所有分组列表（从 settings 表读取）
 #[tauri::command]
-pub async fn watchlist_list_groups(
-    state: State<'_, AppState>,
-) -> Result<Vec<String>, String> {
+pub async fn watchlist_list_groups(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     use axagent_entities::settings;
     let setting = settings::Entity::find_by_id("watchlist_groups")
         .one(state.harness.db())
@@ -1184,10 +1182,8 @@ pub async fn watchlist_save_groups(
         active.value = Set(value);
         active.update(state.harness.db()).await.map_err(|e| format!("更新分组设置失败: {e}"))?;
     } else {
-        let active = settings::ActiveModel {
-            key: Set("watchlist_groups".into()),
-            value: Set(value),
-        };
+        let active =
+            settings::ActiveModel { key: Set("watchlist_groups".into()), value: Set(value) };
         active.insert(state.harness.db()).await.map_err(|e| format!("创建分组设置失败: {e}"))?;
     }
     Ok(())
@@ -1286,10 +1282,8 @@ pub async fn conditional_order_save(
         active.value = Set(value);
         active.update(state.harness.db()).await.map_err(|e| format!("更新条件单失败: {e}"))?;
     } else {
-        let active = settings::ActiveModel {
-            key: Set("conditional_orders".into()),
-            value: Set(value),
-        };
+        let active =
+            settings::ActiveModel { key: Set("conditional_orders".into()), value: Set(value) };
         active.insert(state.harness.db()).await.map_err(|e| format!("保存条件单失败: {e}"))?;
     }
     Ok(())
@@ -1318,12 +1312,8 @@ pub async fn generate_monthly_report(
     year: i32,
     month: u32,
 ) -> Result<axagent_stock_analysis::monthly_report::MonthlyReport, String> {
-    axagent_stock_analysis::monthly_report::generate_monthly_report(
-        state.harness.db(),
-        year,
-        month,
-    )
-    .await
+    axagent_stock_analysis::monthly_report::generate_monthly_report(state.harness.db(), year, month)
+        .await
 }
 
 /// 获取情绪深度分析报告
@@ -1336,7 +1326,9 @@ pub async fn analyze_sentiment_depth(
     let history: Vec<axagent_stock_analysis::sentiment_analysis::SentimentSnapshot> =
         serde_json::from_str(&history_json).map_err(|e| format!("解析历史数据失败: {e}"))?;
     Ok(axagent_stock_analysis::sentiment_analysis::analyze_sentiment(
-        &stock_code, &stock_name, &history,
+        &stock_code,
+        &stock_name,
+        &history,
     ))
 }
 
@@ -1346,10 +1338,9 @@ pub async fn portfolio_backtest_run(
     state: State<'_, AppState>,
     config_json: String,
 ) -> Result<serde_json::Value, String> {
-    let config: axagent_quant::PortfolioConfig = serde_json::from_str(&config_json)
-        .map_err(|e| format!("解析组合配置失败: {e}"))?;
-    let engine = axagent_quant::PortfolioEngine::new(config.clone())
-        .map_err(|e| e.to_string())?;
+    let config: axagent_quant::PortfolioConfig =
+        serde_json::from_str(&config_json).map_err(|e| format!("解析组合配置失败: {e}"))?;
+    let engine = axagent_quant::PortfolioEngine::new(config.clone()).map_err(|e| e.to_string())?;
     // 返回配置校验结果（实际执行需要前端传入K线）
     Ok(serde_json::json!({
         "status": "config_valid",
@@ -1360,18 +1351,22 @@ pub async fn portfolio_backtest_run(
 
 /// 获取因子分析结果
 #[tauri::command]
-pub async fn factor_analysis_list(
-) -> Result<Vec<serde_json::Value>, String> {
+pub async fn factor_analysis_list() -> Result<Vec<serde_json::Value>, String> {
     let registry = axagent_stock_analysis::factor_analysis::FactorRegistry::new();
     let factors = registry.all_factors();
-    Ok(factors.iter().map(|f| serde_json::json!({
-        "id": f.id,
-        "name": f.name,
-        "category": format!("{:?}", f.category),
-        "higherIsBetter": f.higher_is_better,
-        "defaultWeight": f.default_weight,
-        "enabled": f.enabled,
-    })).collect())
+    Ok(factors
+        .iter()
+        .map(|f| {
+            serde_json::json!({
+                "id": f.id,
+                "name": f.name,
+                "category": format!("{:?}", f.category),
+                "higherIsBetter": f.higher_is_better,
+                "defaultWeight": f.default_weight,
+                "enabled": f.enabled,
+            })
+        })
+        .collect())
 }
 
 /// 获取宏观经济数据快照
