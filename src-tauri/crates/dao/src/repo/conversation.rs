@@ -455,6 +455,11 @@ pub async fn archive_to_knowledge_base(
         }))),
         created_at: Set(now),
         updated_at: Set(now),
+        aliases: Set("[]".to_string()),
+        mention_count: Set(1),
+        confidence: Set(0.5),
+        first_seen_at: Set(None),
+        last_seen_at: Set(None),
     };
     entity_am.insert(&txn).await?;
 
@@ -643,6 +648,11 @@ pub async fn archive_to_knowledge_base(
             metadata: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
+            aliases: Set("[]".to_string()),
+            mention_count: Set(1),
+            confidence: Set(0.5),
+            first_seen_at: Set(None),
+            last_seen_at: Set(None),
         };
         qa_entity_am.insert(&txn).await?;
 
@@ -658,6 +668,7 @@ pub async fn archive_to_knowledge_base(
             metadata: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
+            weight: Set(1.0),
         };
         rel_am.insert(&txn).await?;
 
@@ -674,6 +685,7 @@ pub async fn archive_to_knowledge_base(
                 metadata: Set(None),
                 created_at: Set(now),
                 updated_at: Set(now),
+                weight: Set(1.0),
             };
             seq_rel_am.insert(&txn).await?;
         }
