@@ -12,10 +12,9 @@ use crate::trajectory::{
 use anyhow::{Context, Result};
 use axagent_entities::{
     knowledge_entities, knowledge_relations, memory_items, trajectories,
-    trajectory_learned_patterns, trajectory_messages, trajectory_patterns,
-    trajectory_preferences, trajectory_rewards, trajectory_sessions,
-    trajectory_skill_executions, trajectory_skills, trajectory_steps,
-    trajectory_workflow_reflections,
+    trajectory_learned_patterns, trajectory_messages, trajectory_patterns, trajectory_preferences,
+    trajectory_rewards, trajectory_sessions, trajectory_skill_executions, trajectory_skills,
+    trajectory_steps, trajectory_workflow_reflections,
 };
 use chrono::Utc;
 use futures::FutureExt;
@@ -713,8 +712,8 @@ impl TrajectoryStorage {
     const TRAJECTORY_KB_ID: &str = "__sys_trajectory__";
 
     pub async fn save_entity(&self, e: &Entity) -> Result<()> {
-        use sea_orm::sea_query::OnConflict;
         use knowledge_entities::Column;
+        use sea_orm::sea_query::OnConflict;
 
         let now_ts = Utc::now().timestamp();
         knowledge_entities::Entity::insert(knowledge_entities::ActiveModel {
@@ -808,8 +807,8 @@ impl TrajectoryStorage {
     // ── Relationships (stored in knowledge_relations table, v101 merge) ──
 
     pub async fn save_relationship(&self, rel: &Relationship) -> Result<()> {
-        use sea_orm::sea_query::OnConflict;
         use knowledge_relations::Column;
+        use sea_orm::sea_query::OnConflict;
 
         let now_ts = Utc::now().timestamp();
         knowledge_relations::Entity::insert(knowledge_relations::ActiveModel {
@@ -1042,8 +1041,8 @@ impl TrajectoryStorage {
     }
 
     pub async fn save_memory(&self, mem: &crate::memory::MemoryEntry) -> Result<()> {
-        use sea_orm::sea_query::OnConflict;
         use memory_items::Column;
+        use sea_orm::sea_query::OnConflict;
 
         let source_conv_id = mem.provenance.as_ref().and_then(|p| p.conversation_id.clone());
         let source_msg_id = mem.provenance.as_ref().and_then(|p| p.message_id.clone());
@@ -1524,16 +1523,26 @@ fn ke_to_entity(e: &knowledge_entities::Model) -> Entity {
         entity_type: serde_json::from_str(&format!("\"{}\"", e.entity_type))
             .unwrap_or(EntityType::Concept),
         properties: match &e.properties {
-            serde_json::Value::Object(map) => map.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+            serde_json::Value::Object(map) => {
+                map.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+            },
             _ => std::collections::HashMap::new(),
         },
         aliases: serde_json::from_str(&e.aliases).unwrap_or_default(),
-        first_seen_at: e.first_seen_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
-        }).unwrap_or_else(|| Utc::now()),
-        last_seen_at: e.last_seen_at.as_ref().and_then(|s| {
-            chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
-        }).unwrap_or_else(|| Utc::now()),
+        first_seen_at: e
+            .first_seen_at
+            .as_ref()
+            .and_then(|s| {
+                chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
+            })
+            .unwrap_or_else(|| Utc::now()),
+        last_seen_at: e
+            .last_seen_at
+            .as_ref()
+            .and_then(|s| {
+                chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc)).ok()
+            })
+            .unwrap_or_else(|| Utc::now()),
         mention_count: e.mention_count as u32,
         confidence: e.confidence,
         created_at: Some(Utc::now()),
