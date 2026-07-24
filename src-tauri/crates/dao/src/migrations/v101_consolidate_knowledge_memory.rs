@@ -75,7 +75,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             db.execute_unprepared(&format!(
                 "ALTER TABLE knowledge_entities ADD COLUMN IF NOT EXISTS {} {}",
                 col.0, col.1
-            )).await?;
+            ))
+            .await?;
         }
     } else {
         // SQLite: ALTER TABLE ADD COLUMN is limited, do best-effort (ignore "duplicate column")
@@ -99,9 +100,11 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             "ALTER TABLE knowledge_relations ADD COLUMN IF NOT EXISTS weight DOUBLE PRECISION NOT NULL DEFAULT 1.0"
         ).await?;
     } else {
-        let _ = db.execute_unprepared(
-            "ALTER TABLE knowledge_relations ADD COLUMN weight REAL NOT NULL DEFAULT 1.0"
-        ).await;
+        let _ = db
+            .execute_unprepared(
+                "ALTER TABLE knowledge_relations ADD COLUMN weight REAL NOT NULL DEFAULT 1.0",
+            )
+            .await;
     }
 
     // ========================================================================
@@ -129,22 +132,35 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             db.execute_unprepared(&format!(
                 "ALTER TABLE memory_items ADD COLUMN IF NOT EXISTS {} {}",
                 col.0, col.1
-            )).await?;
+            ))
+            .await?;
         }
     } else {
         for (name, _dtype) in mem_cols {
             // SQLite ALTER TABLE ADD COLUMN doesn't support complex types in same way;
             // we just add with simple TEXT/INTEGER/REAL
             let sql = match *name {
-                "tier" => "ALTER TABLE memory_items ADD COLUMN tier TEXT NOT NULL DEFAULT 'working'",
-                "importance" => "ALTER TABLE memory_items ADD COLUMN importance REAL NOT NULL DEFAULT 0.5",
-                "access_count" => "ALTER TABLE memory_items ADD COLUMN access_count INTEGER NOT NULL DEFAULT 0",
+                "tier" => {
+                    "ALTER TABLE memory_items ADD COLUMN tier TEXT NOT NULL DEFAULT 'working'"
+                },
+                "importance" => {
+                    "ALTER TABLE memory_items ADD COLUMN importance REAL NOT NULL DEFAULT 0.5"
+                },
+                "access_count" => {
+                    "ALTER TABLE memory_items ADD COLUMN access_count INTEGER NOT NULL DEFAULT 0"
+                },
                 "last_accessed" => "ALTER TABLE memory_items ADD COLUMN last_accessed BIGINT",
-                "decay_rate" => "ALTER TABLE memory_items ADD COLUMN decay_rate REAL NOT NULL DEFAULT 0.01",
+                "decay_rate" => {
+                    "ALTER TABLE memory_items ADD COLUMN decay_rate REAL NOT NULL DEFAULT 0.01"
+                },
                 "expires_at" => "ALTER TABLE memory_items ADD COLUMN expires_at BIGINT",
-                "source_conversation_id" => "ALTER TABLE memory_items ADD COLUMN source_conversation_id TEXT",
+                "source_conversation_id" => {
+                    "ALTER TABLE memory_items ADD COLUMN source_conversation_id TEXT"
+                },
                 "source_message_id" => "ALTER TABLE memory_items ADD COLUMN source_message_id TEXT",
-                "memory_nature" => "ALTER TABLE memory_items ADD COLUMN memory_nature TEXT NOT NULL DEFAULT 'semantic'",
+                "memory_nature" => {
+                    "ALTER TABLE memory_items ADD COLUMN memory_nature TEXT NOT NULL DEFAULT 'semantic'"
+                },
                 "tags" => "ALTER TABLE memory_items ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
                 _ => unreachable!(),
             };
@@ -162,13 +178,15 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
              VALUES ('{}', '{}', 'system', 0) \
              ON CONFLICT (id) DO NOTHING",
             TRAJECTORY_MEM_NS_ID, TRAJECTORY_MEM_NS_NAME
-        )).await?;
+        ))
+        .await?;
     } else {
         db.execute_unprepared(&format!(
             "INSERT OR IGNORE INTO memory_namespaces (id, name, scope, sort_order) \
              VALUES ('{}', '{}', 'system', 0)",
             TRAJECTORY_MEM_NS_ID, TRAJECTORY_MEM_NS_NAME
-        )).await?;
+        ))
+        .await?;
     }
 
     // ========================================================================
@@ -216,7 +234,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                   te.first_seen_at, te.last_seen_at \
                  FROM trajectory_entities te",
                 TRAJECTORY_KB_ID, now, now
-            )).await?;
+            ))
+            .await?;
         }
     }
 
@@ -258,7 +277,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                   tr.weight \
                  FROM trajectory_relationships tr",
                 TRAJECTORY_KB_ID, now, now
-            )).await?;
+            ))
+            .await?;
         }
     }
 
@@ -308,7 +328,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
                   tm.memory_nature, tm.tags \
                  FROM trajectory_memories tm",
                 TRAJECTORY_MEM_NS_ID
-            )).await?;
+            ))
+            .await?;
         }
     }
 
@@ -318,9 +339,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // Drop FTS virtual tables first (SQLite only)
     if !is_pg {
-        for ftstable in &[
-            "trajectory_memories_fts",
-        ] {
+        for ftstable in &["trajectory_memories_fts"] {
             let _ = db.execute_unprepared(&format!("DROP TABLE IF EXISTS {}", ftstable)).await;
         }
     }
@@ -368,27 +387,30 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 }
 
 /// Check if a table exists and has at least one row.
-async fn table_has_rows(db: &sea_orm::DatabaseConnection, table: &str, is_pg: bool) -> Result<bool, DbErr> {
+async fn table_has_rows(
+    db: &sea_orm::DatabaseConnection,
+    table: &str,
+    is_pg: bool,
+) -> Result<bool, DbErr> {
     let sql = if is_pg {
         format!(
             "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{}') AS has",
             table
         )
     } else {
-        format!(
-            "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='{}'",
-            table
-        )
+        format!("SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='{}'", table)
     };
     let exists = db.query_one_raw(Statement::from_string(db.get_database_backend(), sql)).await?;
     if exists.is_none() {
         return Ok(false);
     }
     // Check rows
-    let row = db.query_one_raw(Statement::from_string(
-        db.get_database_backend(),
-        format!("SELECT COUNT(*) AS cnt FROM {}", table),
-    )).await;
+    let row = db
+        .query_one_raw(Statement::from_string(
+            db.get_database_backend(),
+            format!("SELECT COUNT(*) AS cnt FROM {}", table),
+        ))
+        .await;
     match row {
         Ok(Some(r)) => {
             let cnt: i64 = r.try_get_by("cnt").unwrap_or(0);

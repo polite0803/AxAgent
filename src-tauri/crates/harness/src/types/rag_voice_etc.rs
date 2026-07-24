@@ -270,8 +270,12 @@ pub struct KnowledgeEntity {
     pub last_seen_at: Option<String>,
 }
 
-fn default_aliases() -> String { "[]".to_string() }
-fn default_confidence() -> f64 { 0.5 }
+fn default_aliases() -> String {
+    "[]".to_string()
+}
+fn default_confidence() -> f64 {
+    0.5
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -341,7 +345,9 @@ pub struct KnowledgeRelation {
     pub weight: f64,
 }
 
-fn default_weight() -> f64 { 1.0 }
+fn default_weight() -> f64 {
+    1.0
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

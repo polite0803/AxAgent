@@ -392,7 +392,10 @@ pub async fn list_knowledge_interfaces(
 // ── v101: Trajectory-style entity operations ───────────────────────────────
 
 /// Get a single entity by ID.
-pub async fn get_entity_by_id(db: &DatabaseConnection, id: &str) -> Result<Option<KnowledgeEntity>> {
+pub async fn get_entity_by_id(
+    db: &DatabaseConnection,
+    id: &str,
+) -> Result<Option<KnowledgeEntity>> {
     let model = knowledge_entities::Entity::find_by_id(id).one(db).await?;
     Ok(model.map(model_to_entity))
 }
@@ -420,7 +423,8 @@ pub async fn search_entities_by_name(
     let pattern = format!("%{}%", query);
     let models = knowledge_entities::Entity::find()
         .filter(
-            knowledge_entities::Column::KnowledgeBaseId.eq(kb_id)
+            knowledge_entities::Column::KnowledgeBaseId
+                .eq(kb_id)
                 .and(knowledge_entities::Column::Name.like(&pattern)),
         )
         .all(db)
