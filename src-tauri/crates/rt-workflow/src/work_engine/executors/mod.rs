@@ -50,6 +50,8 @@ pub use agent_executor::{
 };
 pub(crate) use agent_executor::{ProfileCache, ProviderCache};
 pub use code_executor::CodeExecutor;
+// P1-D10: 导出 Engine 初始化回调注册函数，供 wiring 层注册 pm_* 等额外函数
+pub use code_executor::register_shared_engine_initializer;
 // P1-3: register_common_functions 已下沉到 harness，保持下游 API 路径不变
 pub use axagent_harness::register_common_functions;
 pub use condition_executor::ConditionExecutor;

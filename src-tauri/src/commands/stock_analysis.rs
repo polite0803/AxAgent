@@ -221,7 +221,13 @@ pub fn compute_what_if(params: WhatIfRequest) -> Result<WhatIfResult, String> {
     //    使用 include_str! 编译时嵌入，与 DAG 中实际使用的文件保持同步
     let code = include_str!("portfolio-mgr.rhai");
 
-    let result: rhai::Dynamic = engine.eval_with_scope(&mut scope, code).map_err(|e| {
+    // P1-D10: 通过全局 AST 缓存复用编译结果，避免 What-If 回测时重复编译 1373 行脚本。
+    // AST 与 Engine 解耦，缓存的 AST 可被当前 Engine（含 common_functions）正确执行。
+    let ast = axagent_harness::get_or_compile_ast("portfolio-mgr-whatif", code, &engine).map_err(
+        |e| ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("Rhai AST 编译失败: {e}")),
+    )?;
+
+    let result: rhai::Dynamic = engine.eval_ast_with_scope(&mut scope, &ast).map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("Rhai 执行失败: {e}"))
     })?;
 
@@ -1111,6 +1117,82 @@ pub async fn remove_from_watchlist(state: State<'_, AppState>, id: String) -> Re
     Ok(())
 }
 
+/// 更新自选股的分组归属
+#[tauri::command]
+pub async fn watchlist_update_group(
+    state: State<'_, AppState>,
+    id: String,
+    group_name: String,
+) -> Result<(), String> {
+    let item = watchlist_items::Entity::find_by_id(&id)
+        .one(state.harness.db())
+        .await
+        .map_err(|e| format!("查询自选股失败: {e}"))?
+        .ok_or_else(|| format!("自选股 {id} 不存在"))?;
+
+    let mut notes_json: serde_json::Value = item
+        .notes
+        .as_deref()
+        .and_then(|n| serde_json::from_str(n).ok())
+        .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+
+    if let Some(obj) = notes_json.as_object_mut() {
+        obj.insert("group".into(), serde_json::Value::String(group_name));
+    }
+
+    let mut active: watchlist_items::ActiveModel = item.into();
+    active.notes = Set(Some(notes_json.to_string()));
+    active.updated_at = Set(chrono::Utc::now().timestamp_millis());
+    active.update(state.harness.db()).await.map_err(|e| format!("更新自选股分组失败: {e}"))?;
+    Ok(())
+}
+
+/// 获取所有分组列表（从 settings 表读取）
+#[tauri::command]
+pub async fn watchlist_list_groups(
+    state: State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    use axagent_entities::settings;
+    let setting = settings::Entity::find_by_id("watchlist_groups")
+        .one(state.harness.db())
+        .await
+        .map_err(|e| format!("查询分组设置失败: {e}"))?;
+
+    match setting {
+        Some(s) => Ok(serde_json::from_str(&s.value).unwrap_or_default()),
+        None => Ok(vec![]),
+    }
+}
+
+/// 保存分组列表（写入 settings 表）
+#[tauri::command]
+pub async fn watchlist_save_groups(
+    state: State<'_, AppState>,
+    groups: Vec<String>,
+) -> Result<(), String> {
+    use axagent_entities::settings;
+    let value = serde_json::to_string(&groups).map_err(|e| format!("序列化分组失败: {e}"))?;
+
+    // upsert
+    let existing = settings::Entity::find_by_id("watchlist_groups")
+        .one(state.harness.db())
+        .await
+        .map_err(|e| format!("查询设置失败: {e}"))?;
+
+    if let Some(s) = existing {
+        let mut active: settings::ActiveModel = s.into();
+        active.value = Set(value);
+        active.update(state.harness.db()).await.map_err(|e| format!("更新分组设置失败: {e}"))?;
+    } else {
+        let active = settings::ActiveModel {
+            key: Set("watchlist_groups".into()),
+            value: Set(value),
+        };
+        active.insert(state.harness.db()).await.map_err(|e| format!("创建分组设置失败: {e}"))?;
+    }
+    Ok(())
+}
+
 /// 自选股列表
 #[tauri::command]
 pub async fn list_watchlist(
@@ -1125,6 +1207,178 @@ pub async fn list_watchlist(
                 .with_detail(format!("查询自选股列表失败: {e}"))
                 .to_string()
         })
+}
+
+/// 提取证据引用链（审计溯源）
+///
+/// 从指定股票分析的 `decision_json` + `blackboard_snapshot` 中
+/// 提取每条决策理由的来源分析师报告引用。
+#[tauri::command]
+pub async fn extract_evidence_citations(
+    state: State<'_, AppState>,
+    analysis_id: String,
+) -> Result<axagent_stock_analysis::evidence_citation::CitationReport, String> {
+    use axagent_stock_analysis::evidence_citation::extract_citations;
+
+    let analysis = axagent_entities::stock_analyses::Entity::find_by_id(&analysis_id)
+        .one(state.harness.db())
+        .await
+        .map_err(|e| format!("查询分析记录失败: {e}"))?
+        .ok_or_else(|| format!("分析记录 {analysis_id} ��存在"))?;
+
+    let reasoning = analysis.decision_reasoning.unwrap_or_default();
+    let snapshot = analysis.blackboard_snapshot.unwrap_or_else(|| "{}".into());
+
+    let mut report = extract_citations(&reasoning, &snapshot);
+    report.stock_code = analysis.stock_code;
+    report.stock_name = analysis.stock_name;
+    report.analysis_date = analysis.analysis_date;
+    report.decision_action = analysis.decision_action.unwrap_or_default();
+    report.decision_confidence = 0.0; // 从 decision_json 解析
+
+    // 尝试从 decision_json 解析置信度
+    if let Some(dj) = &analysis.decision_json {
+        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(dj) {
+            if let Some(conf) = parsed.get("confidence").and_then(|v| v.as_f64()) {
+                report.decision_confidence = conf;
+            }
+        }
+    }
+
+    Ok(report)
+}
+
+// ── 条件单 ──
+
+/// 获取所有条件单
+#[tauri::command]
+pub async fn conditional_order_list(
+    state: State<'_, AppState>,
+) -> Result<Vec<axagent_stock_analysis::conditional_order::ConditionalOrder>, String> {
+    use axagent_entities::settings;
+    let setting = settings::Entity::find_by_id("conditional_orders")
+        .one(state.harness.db())
+        .await
+        .map_err(|e| format!("查询条件单失败: {e}"))?;
+
+    match setting {
+        Some(s) => Ok(serde_json::from_str(&s.value).unwrap_or_default()),
+        None => Ok(vec![]),
+    }
+}
+
+/// 保存条件单列表
+#[tauri::command]
+pub async fn conditional_order_save(
+    state: State<'_, AppState>,
+    orders: Vec<axagent_stock_analysis::conditional_order::ConditionalOrder>,
+) -> Result<(), String> {
+    use axagent_entities::settings;
+    let value = serde_json::to_string(&orders).map_err(|e| format!("序列化条件单失败: {e}"))?;
+
+    let existing = settings::Entity::find_by_id("conditional_orders")
+        .one(state.harness.db())
+        .await
+        .map_err(|e| format!("查询设置失败: {e}"))?;
+
+    if let Some(s) = existing {
+        let mut active: settings::ActiveModel = s.into();
+        active.value = Set(value);
+        active.update(state.harness.db()).await.map_err(|e| format!("更新条件单失败: {e}"))?;
+    } else {
+        let active = settings::ActiveModel {
+            key: Set("conditional_orders".into()),
+            value: Set(value),
+        };
+        active.insert(state.harness.db()).await.map_err(|e| format!("保存条件单失败: {e}"))?;
+    }
+    Ok(())
+}
+
+/// 评估条件单（测试用）
+#[tauri::command]
+pub async fn conditional_order_evaluate(
+    stock_code: String,
+    current_price: f64,
+    prev_close: f64,
+    turnover_rate: Option<f64>,
+) -> Result<Vec<serde_json::Value>, String> {
+    use axagent_stock_analysis::conditional_order::ConditionalOrderEngine;
+
+    // 简化版：本地评估（不依赖 DB），返回匹配结果
+    let engine = ConditionalOrderEngine::new();
+    // 这里仅做框架示例，实际评估由后台引擎完成
+    Ok(vec![])
+}
+
+/// 生成月度投资报告
+#[tauri::command]
+pub async fn generate_monthly_report(
+    state: State<'_, AppState>,
+    year: i32,
+    month: u32,
+) -> Result<axagent_stock_analysis::monthly_report::MonthlyReport, String> {
+    axagent_stock_analysis::monthly_report::generate_monthly_report(
+        state.harness.db(),
+        year,
+        month,
+    )
+    .await
+}
+
+/// 获取情绪深度分析报告
+#[tauri::command]
+pub async fn analyze_sentiment_depth(
+    stock_code: String,
+    stock_name: String,
+    history_json: String,
+) -> Result<axagent_stock_analysis::sentiment_analysis::SentimentReport, String> {
+    let history: Vec<axagent_stock_analysis::sentiment_analysis::SentimentSnapshot> =
+        serde_json::from_str(&history_json).map_err(|e| format!("解析历史数据失败: {e}"))?;
+    Ok(axagent_stock_analysis::sentiment_analysis::analyze_sentiment(
+        &stock_code, &stock_name, &history,
+    ))
+}
+
+/// 运行组合回测（简化版 — 调用 quant crate）
+#[tauri::command]
+pub async fn portfolio_backtest_run(
+    state: State<'_, AppState>,
+    config_json: String,
+) -> Result<serde_json::Value, String> {
+    let config: axagent_quant::PortfolioConfig = serde_json::from_str(&config_json)
+        .map_err(|e| format!("解析组合配置失败: {e}"))?;
+    let engine = axagent_quant::PortfolioEngine::new(config.clone())
+        .map_err(|e| e.to_string())?;
+    // 返回配置校验结果（实际执行需要前端传入K线）
+    Ok(serde_json::json!({
+        "status": "config_valid",
+        "strategies": config.strategies.len(),
+        "message": "配置校验通过。回测执行需要前端传入K线数据。",
+    }))
+}
+
+/// 获取因子分析结果
+#[tauri::command]
+pub async fn factor_analysis_list(
+) -> Result<Vec<serde_json::Value>, String> {
+    let registry = axagent_stock_analysis::factor_analysis::FactorRegistry::new();
+    let factors = registry.all_factors();
+    Ok(factors.iter().map(|f| serde_json::json!({
+        "id": f.id,
+        "name": f.name,
+        "category": format!("{:?}", f.category),
+        "higherIsBetter": f.higher_is_better,
+        "defaultWeight": f.default_weight,
+        "enabled": f.enabled,
+    })).collect())
+}
+
+/// 获取宏观经济数据快照
+#[tauri::command]
+pub async fn macro_data_snapshot() -> Result<axagent_astock_data::MacroDataSnapshot, String> {
+    let client = axagent_astock_data::macro_data::MacroDataClient::new();
+    Ok(client.snapshot().await)
 }
 
 // ── Portfolio ──
@@ -3002,6 +3256,50 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
             .with_detail(format!("检查数据源健康度失败: {e}"))
             .to_string()
     })
+}
+
+/// 获取所有数据源的实时健康状态
+#[tauri::command]
+pub async fn get_vendor_health_all(
+    state: State<'_, AppState>,
+) -> Result<Vec<axagent_astock_data::vendor_health::VendorHealth>, String> {
+    Ok(state.astock_client.health_tracker.get_all_health().await)
+}
+
+/// P3-B5(F): 获取 vendor fallback 日志，用于前端调试"为什么 X 数据用了 Y vendor"
+#[tauri::command]
+pub async fn get_vendor_fallback_log(
+    state: State<'_, AppState>,
+) -> Result<Vec<axagent_astock_data::vendor_health::FallbackRecord>, String> {
+    Ok(state.astock_client.health_tracker.get_fallback_log().await)
+}
+
+/// P3-B5(B): 手动设置 vendor 状态（healthy/degraded/disabled）
+/// 用于前端设置页"vendor 健康面板"手动启停 vendor
+#[tauri::command]
+pub async fn set_vendor_status(
+    state: State<'_, AppState>,
+    vendor: String,
+    status: String,
+) -> Result<(), String> {
+    use axagent_astock_data::vendor_health::VendorStatus;
+
+    let st = match status.as_str() {
+        "healthy" => VendorStatus::Healthy,
+        "degraded" => VendorStatus::Degraded,
+        "disabled" => VendorStatus::Disabled,
+        other => {
+            return Err(ErrorResponse::new(wf_err::INTERNAL)
+                .with_detail(format!(
+                    "无效的 vendor 状态: {other}（可选: healthy/degraded/disabled）"
+                ))
+                .to_string());
+        },
+    };
+
+    state.astock_client.health_tracker.set_vendor_status(&vendor, st).await;
+    tracing::info!("[P3-B5] vendor '{vendor}' 状态已手动设置为 '{status}'");
+    Ok(())
 }
 
 /// 将 NeoData token 保存到 Python 脚本缓存文件

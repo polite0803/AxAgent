@@ -1222,3 +1222,322 @@ pub async fn rebuild_knowledge_document(
 
     Ok(())
 }
+
+// ── lemonhu 开源股票知识库导入 ─────────────────────────────
+
+/// 从 knowledge-sources/lemonhu/ 导入全部知识图谱数据
+///
+/// 导入 CSV（stock/concept/industry/executive + 关系）和 wiki_pages 到 DB。
+/// 幂等：已存在的记录会被跳过。
+#[tauri::command]
+pub async fn import_lemonhu_knowledge(
+    state: State<'_, AppState>,
+    knowledge_dir: Option<String>,
+) -> Result<serde_json::Value, String> {
+    use axagent_entities::{
+        knowledge_bases, knowledge_documents, knowledge_entities, knowledge_relations,
+    };
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
+
+    let db = state.harness.db();
+    let kb_id = "lemonhu_knowledge_graph";
+    let now_ms = chrono::Utc::now().timestamp_millis();
+
+    // 确定知识库目录
+    let knowledge_dir = match knowledge_dir {
+        Some(d) => PathBuf::from(d),
+        None => {
+            let cwd = std::env::current_dir().map_err(|e| format!("获取 cwd 失败: {e}"))?;
+            let candidate = cwd.parent().unwrap_or(&cwd).join("knowledge-sources").join("lemonhu");
+            if candidate.exists() {
+                candidate
+            } else {
+                cwd.join("knowledge-sources").join("lemonhu")
+            }
+        },
+    };
+    if !knowledge_dir.exists() {
+        return Err(format!("知识库目录不存在: {}", knowledge_dir.display()));
+    }
+
+    // 确保 knowledge_bases 存在
+    let kb_exists = knowledge_bases::Entity::find_by_id(kb_id)
+        .one(db)
+        .await
+        .map_err(|e| format!("查 knowledge_bases 失败: {e}"))?
+        .is_some();
+    if !kb_exists {
+        knowledge_bases::ActiveModel {
+            id: Set(kb_id.to_string()),
+            name: Set("开源股票知识库(lemonhu)".into()),
+            description: Set(Some(
+                "由开源项目 lemonhu 构建的 A 股知识图谱，含概念/行业/公司/高管关系及百科文档"
+                    .into(),
+            )),
+            embedding_provider: Set(None),
+            enabled: Set(1),
+            icon_type: Set(Some("book".into())),
+            icon_value: Set(None),
+            sort_order: Set(0),
+            embedding_dimensions: Set(None),
+            retrieval_threshold: Set(None),
+            retrieval_top_k: Set(None),
+            chunk_size: Set(None),
+            chunk_overlap: Set(None),
+            separator: Set(None),
+        }
+        .insert(db)
+        .await
+        .map_err(|e| format!("创建 knowledge_bases 失败: {e}"))?;
+    }
+
+    let raw_dir = knowledge_dir.join("raw");
+    let mut entity_count = 0usize;
+    let mut rel_count = 0usize;
+
+    // ── 收集 entities ──
+    // (id, name, entity_type, source_path)
+    let mut entity_data: Vec<(String, String, &str, &str)> = Vec::new();
+
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(4, ',').collect();
+            if fields.len() < 3 {
+                continue;
+            }
+            entity_data.push((
+                fields[0].to_string(),
+                fields[1].to_string(),
+                "company",
+                "raw/stock.csv",
+            ));
+        }
+    }
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("concept.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(3, ',').collect();
+            if fields.len() < 2 {
+                continue;
+            }
+            entity_data.push((
+                fields[0].to_string(),
+                fields[1].to_string(),
+                "concept",
+                "raw/concept.csv",
+            ));
+        }
+    }
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("industry.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(3, ',').collect();
+            if fields.len() < 2 {
+                continue;
+            }
+            entity_data.push((
+                fields[0].to_string(),
+                fields[1].to_string(),
+                "industry",
+                "raw/industry.csv",
+            ));
+        }
+    }
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("executive.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(5, ',').collect();
+            if fields.len() < 2 {
+                continue;
+            }
+            entity_data.push((
+                fields[0].to_string(),
+                fields[1].to_string(),
+                "person",
+                "raw/executive.csv",
+            ));
+        }
+    }
+
+    for (id, name, etype, source) in entity_data {
+        let exists = knowledge_entities::Entity::find_by_id(&id)
+            .one(db)
+            .await
+            .map(|o| o.is_some())
+            .unwrap_or(false);
+        if exists {
+            continue;
+        }
+        let active = knowledge_entities::ActiveModel {
+            id: Set(id),
+            knowledge_base_id: Set(kb_id.to_string()),
+            name: Set(name),
+            entity_type: Set(etype.into()),
+            description: Set(None),
+            source_path: Set(source.into()),
+            source_language: Set(None),
+            properties: Set(serde_json::json!({})),
+            lifecycle: Set(None),
+            behaviors: Set(None),
+            metadata: Set(None),
+            created_at: Set(now_ms),
+            updated_at: Set(now_ms),
+        };
+        if active.insert(db).await.is_ok() {
+            entity_count += 1;
+        }
+    }
+
+    // ── 收集 relations ──
+    // (id, source, target, relation_type)
+    let mut rel_data: Vec<(String, String, String, String)> = Vec::new();
+
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_concept.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(3, ',').collect();
+            if fields.len() < 3 {
+                continue;
+            }
+            let src = fields[0].to_string();
+            let tgt = fields[1].to_string();
+            rel_data.push((format!("{src}_has_concept_{tgt}"), src, tgt, "has_concept".into()));
+        }
+    }
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_industry.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(3, ',').collect();
+            if fields.len() < 3 {
+                continue;
+            }
+            let src = fields[0].to_string();
+            let tgt = fields[1].to_string();
+            rel_data.push((format!("{src}_in_industry_{tgt}"), src, tgt, "in_industry".into()));
+        }
+    }
+    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("executive_stock.csv")) {
+        for line in csv.lines().skip(1) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let fields: Vec<&str> = line.splitn(4, ',').collect();
+            if fields.len() < 4 {
+                continue;
+            }
+            let src = fields[0].to_string();
+            let position = fields[1].replace('/', "_");
+            let tgt = fields[2].to_string();
+            let rel_type = format!("employ_{position}");
+            rel_data.push((format!("{src}_{rel_type}_{tgt}"), src, tgt, rel_type));
+        }
+    }
+
+    for (id, src, tgt, rtype) in rel_data {
+        let exists = knowledge_relations::Entity::find_by_id(&id)
+            .one(db)
+            .await
+            .map(|o| o.is_some())
+            .unwrap_or(false);
+        if exists {
+            continue;
+        }
+        let active = knowledge_relations::ActiveModel {
+            id: Set(id),
+            knowledge_base_id: Set(kb_id.to_string()),
+            source_entity_id: Set(src),
+            target_entity_id: Set(tgt),
+            relation_type: Set(rtype),
+            description: Set(None),
+            properties: Set(None),
+            metadata: Set(None),
+            created_at: Set(now_ms),
+            updated_at: Set(now_ms),
+        };
+        if active.insert(db).await.is_ok() {
+            rel_count += 1;
+        }
+    }
+
+    // ── 导入 wiki_pages ──
+    let mut doc_count = 0usize;
+    let wiki_dir = knowledge_dir.join("wiki_pages");
+    if wiki_dir.exists() {
+        let existing_docs = knowledge_documents::Entity::find()
+            .filter(knowledge_documents::Column::KnowledgeBaseId.eq(kb_id))
+            .count(db)
+            .await
+            .unwrap_or(0);
+        if existing_docs == 0 {
+            if let Ok(mut reader) = std::fs::read_dir(&wiki_dir) {
+                while let Ok(Some(entry)) = reader.next().transpose() {
+                    let path = entry.path();
+                    if path.extension().and_then(|s| s.to_str()) != Some("md") {
+                        continue;
+                    }
+                    let content = match std::fs::read_to_string(&path) {
+                        Ok(c) => c,
+                        Err(_) => continue,
+                    };
+                    let file_name =
+                        path.file_stem().and_then(|s| s.to_str()).unwrap_or("unknown").to_string();
+                    let title = content
+                        .lines()
+                        .find(|l| !l.trim().is_empty())
+                        .map(|l| l.trim().chars().take(80).collect::<String>())
+                        .unwrap_or_else(|| file_name.clone());
+                    let active = knowledge_documents::ActiveModel {
+                        id: Set(uuid::Uuid::new_v4().to_string()),
+                        knowledge_base_id: Set(kb_id.to_string()),
+                        title: Set(title),
+                        source_path: Set(path.to_string_lossy().to_string()),
+                        mime_type: Set("text/markdown".into()),
+                        size_bytes: Set(content.len() as i64),
+                        indexing_status: Set("pending".into()),
+                        doc_type: Set("markdown".into()),
+                        index_error: Set(None),
+                        source_conversation_id: Set(None),
+                        created_at: Set(now_ms),
+                        updated_at: Set(now_ms),
+                    };
+                    if active.insert(db).await.is_ok() {
+                        doc_count += 1;
+                    }
+                }
+            }
+        } else {
+            tracing::info!("[lemonhu] DB 已有 {existing_docs} 篇文档，跳过 wiki_pages 导入");
+        }
+    }
+
+    tracing::info!(
+        "[lemonhu] 导入完成: {entity_count} 节点 + {rel_count} 关系 + {doc_count} 文档 (kb={kb_id})"
+    );
+
+    Ok(serde_json::json!({
+        "knowledgeBaseId": kb_id,
+        "entityCount": entity_count,
+        "relationCount": rel_count,
+        "documentCount": doc_count,
+    }))
+}

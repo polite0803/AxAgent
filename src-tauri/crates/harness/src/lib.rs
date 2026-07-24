@@ -60,6 +60,17 @@ pub use market_data::{
     detect_market_type, get_price_limit_pct, get_st_price_limit_pct,
 };
 
+// ── P2-C7: 技术指标纯函数（SMA/EMA/RSI/stddev）──
+// P3-C8: 追加 Sharpe ratio 统一实现（收口 stock-analysis/astock-data/tools/quant 的 6 处重复）。
+// 收口原本散落在 astock-data/quant/market-sim/stock-analysis 的重复实现,
+// foundation 层零 axagent-* 依赖,符合 harness 角色。
+pub mod indicators;
+pub use indicators::{
+    A_SHARE_TRADING_DAYS_PER_YEAR, RISK_FREE_ANNUAL_DEFAULT, SharpeComponents, build_ema_series,
+    ema_last, rsi_wilder, sharpe_components, sharpe_ratio, sharpe_ratio_annual,
+    sharpe_ratio_with_annualization, sma, stddev_sample,
+};
+
 // ── 时间旅行(As-Of) DTO 契约 ──
 pub mod as_of;
 pub use as_of::{
@@ -150,7 +161,9 @@ pub use plugin_hook::{
 pub mod prompt_guard;
 pub mod provider;
 pub mod registry;
+pub mod rhai_ast_cache;
 pub mod rhai_engine;
+pub use rhai_ast_cache::{cache_size, get_or_compile_ast};
 pub mod session_tracer;
 pub mod storage_backend;
 pub mod test_support;

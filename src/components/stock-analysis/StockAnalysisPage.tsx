@@ -39,6 +39,8 @@ import "./dual-view";
 import { AnalysisHistoryButton } from "./AnalysisHistoryButton";
 import { DualViewRenderer } from "./dual-view";
 import { EventCalendarPanel } from "./EventCalendarPanel";
+import { EvidenceCitationPanel } from "./EvidenceCitationPanel";
+import { VendorHealthDashboard } from "./VendorHealthDashboard";
 
 /** 决策双视角 Tab 内容：从 store 取 LLM vs 公式决策数据传入 DualViewRenderer */
 function DecisionComparisonTabContent() {
@@ -467,6 +469,9 @@ export function StockAnalysisPage() {
                 <AnalystConsensusBar />
                 {/* Experiment trail */}
                 <ExperimentTrail />
+                <EvidenceCitationPanel
+                  analysisId={useStockAnalysisStore((s) => s.analysisId) ?? ""}
+                />
               </div>
             )}
 
@@ -680,6 +685,13 @@ export function StockAnalysisPage() {
                   />
                 )}
               </div>
+
+              {/* 数据源健康仪表盘 — 在所有状态下都可见 */}
+              {!stockCode && (
+                <div className="p-2">
+                  <VendorHealthDashboard />
+                </div>
+              )}
             </div>
           </div>
 

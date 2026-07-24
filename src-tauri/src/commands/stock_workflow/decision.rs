@@ -1570,7 +1570,15 @@ pub async fn rerun_decision(
     }
 
     // 执行 Rhai 脚本
-    let result: rhai::Dynamic = engine.eval_with_scope(&mut scope, &code).map_err(|e| {
+    // P1-D10: 通过全局 AST 缓存复用编译结果，避免 Rerun Decision 时重复编译。
+    // 注意：code 来自数据库 workflow_template，可能与 include_str! 版本不同
+    // （用户修改了 portfolio-mgr.rhai 后重新 seed），AST 缓存按 code hash 区分，
+    // code 变化时自动产生新 key，不会命中旧缓存。
+    let ast = axagent_harness::get_or_compile_ast("portfolio-mgr-rerun", &code, &engine).map_err(
+        |e| ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("Rhai AST 编译失败: {e}")),
+    )?;
+
+    let result: rhai::Dynamic = engine.eval_ast_with_scope(&mut scope, &ast).map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("Rhai 脚本执行失败: {e}"))
     })?;
 

@@ -430,6 +430,12 @@ async fn run_stock_workflow_inner(
     // H4.2 修复：捕获 shutdown_token，使 spawn 任务在应用关闭时能协作取消，
     // 避免 AppState::drop 后后台任务仍阻塞 run_workflow 等待 LLM 响应。
     let shutdown_token = state.shutdown_token.clone();
+    // P1-E13: 在 spawn 前克隆 astock_client，供组合风控门查询股票行业信息。
+    // state 是借用引用，不能逃逸到 tokio::spawn 内部，必须在此克隆后 move 进去。
+    let astock_for_sector = state.astock_client.clone();
+    // P2-F15: 克隆 analysis_id 供 spawn 内部使用（record_lesson_applications），
+    // 保留原始 analysis_id 供函数返回值使用。
+    let analysis_id_for_spawn = analysis_id.clone();
     tokio::spawn(async move {
         // P3 修复: 在 spawn 内恢复 AS_OF + DEGRADATION_LOG 作用域
         as_of::with_optional_asof(captured_asof, async {
@@ -578,6 +584,77 @@ async fn run_stock_workflow_inner(
                 is_secret: false,
             });
         }
+        // ── P1-E13: 注入组合风控门所需的持仓/现金/行业变量 ──
+        // portfolio-risk-gate CodeNode 读取这些变量做组合层约束检查
+        {
+            use axagent_entities::portfolio_holdings;
+            // 1. 查询当前持仓，构造 PositionSummary JSON
+            //    用 avg_cost 估值 market_value（避免逐个调 get_quote 造成延迟）
+            let holdings = portfolio_holdings::Entity::find()
+                .all(&db)
+                .await
+                .unwrap_or_default();
+            let holdings_json: Vec<serde_json::Value> = holdings
+                .iter()
+                .map(|h| {
+                    let mv = h.shares * h.avg_cost;
+                    serde_json::json!({
+                        "stockCode": h.stock_code,
+                        "stockName": h.stock_name,
+                        "totalShares": h.shares as i32,
+                        "avgCost": h.avg_cost,
+                        "currentPrice": h.avg_cost,
+                        "marketValue": mv,
+                        "unrealizedPnl": 0.0,
+                        "unrealizedPnlPct": 0.0,
+                        "totalRealizedPnl": 0.0,
+                        "sectorName": null,
+                    })
+                })
+                .collect();
+            let holdings_json_str =
+                serde_json::to_string(&holdings_json).unwrap_or_else(|_| "[]".into());
+            merged_vars.push(axagent_harness::workflow_types::Variable {
+                name: "holdings_json".into(),
+                var_type: "string".into(),
+                value: serde_json::Value::String(holdings_json_str),
+                description: Some("当前持仓 JSON 数组（供组合风控门检查仓位/行业暴露）".into()),
+                is_secret: false,
+            });
+            // 2. portfolio_cash（暂时注入 0.0，后续可扩展为从账户设置读取）
+            merged_vars.push(axagent_harness::workflow_types::Variable {
+                name: "portfolio_cash".into(),
+                var_type: "number".into(),
+                value: serde_json::json!(0.0),
+                description: Some("可用现金（供组合风控门计算组合总价值）".into()),
+                is_secret: false,
+            });
+            // 3. stock_sector（当前股票的申万一级行业，供行业暴露检查）
+            //    astock_for_sector 已在 spawn 前克隆，避免借用 state（生命周期安全）
+            let stock_sector = astock_for_sector
+                .get_sector_info(&stock_code)
+                .await
+                .ok()
+                .flatten()
+                .map(|s| s.sector_name)
+                .unwrap_or_default();
+            if !stock_sector.is_empty() {
+                merged_vars.push(axagent_harness::workflow_types::Variable {
+                    name: "stock_sector".into(),
+                    var_type: "string".into(),
+                    value: serde_json::Value::String(stock_sector.clone()),
+                    description: Some(
+                        "当前股票的申万一级行业（供组合风控门检查行业暴露）".into(),
+                    ),
+                    is_secret: false,
+                });
+            }
+            tracing::info!(
+                "[stock-analysis] P1-E13 注入: holdings={}条, sector={}",
+                holdings.len(),
+                if stock_sector.is_empty() { "(空)" } else { &stock_sector }
+            );
+        }
         // 从 market_regime 派生 prompt 偏向 + 触发规则
         let regime_str = regime_value["regime"].as_str().unwrap_or("unknown");
         let vol_str = regime_value["volatility"].as_str().unwrap_or("low");
@@ -624,7 +701,11 @@ async fn run_stock_workflow_inner(
         // 注入历史反思教训（从 stock_reflections 表取最近的结构化反思结果）
         // 必须始终注入，即使为空，否则 value-investor/research-mgr/trader 等节点
         // 的 input_mapping 引用 {{stock_lessons}} 会报 VARIABLE_NOT_FOUND。
-        let lessons_str = fetch_stock_lessons(&stock_code, &db).await;
+        //
+        // P2-F15 切入点 3：fetch_stock_lessons 同时返回被引用的 lesson_ids，
+        // 在此批量写入 lesson_applications 表，用于后续 run_lesson_validation
+        // 精确统计 times_applied / success_count（替代旧的模糊匹配）。
+        let (lessons_str, applied_lesson_ids) = fetch_stock_lessons(&stock_code, &db).await;
         let default_lessons = "（暂无历史反思）".to_string();
         let lessons_val = lessons_str.unwrap_or_else(|| default_lessons.clone());
         merged_vars.push(axagent_harness::workflow_types::Variable {
@@ -634,6 +715,16 @@ async fn run_stock_workflow_inner(
             description: Some("该股历史反思教训（错因/被忽视信号/改进建议）".into()),
             is_secret: false,
         });
+        // P2-F15: 批量写入 lesson_applications（失败不阻塞主流程）
+        if !applied_lesson_ids.is_empty() {
+            record_lesson_applications(
+                &db,
+                &applied_lesson_ids,
+                &analysis_id_for_spawn,
+                &stock_code,
+            )
+            .await;
+        }
         // P1: 注入 per-role 经验和教训到辩论角色 prompt
         merged_vars.push(axagent_harness::workflow_types::Variable {
             name: "bull_lessons".into(),
@@ -1269,9 +1360,15 @@ pub async fn run_single_stock_analysis(
     //   该股最近 90 天的反思教训(lesson_summary),避免重蹈覆辙。前端触发场景下
     //   run_stock_workflow_inner 同样会注入,这里是补齐 cron / batch 入口。
     //   必须始终注入,即使为空（否则 VARIABLE_NOT_FOUND）。
-    let lessons_str = fetch_stock_lessons(stock_code, db).await;
+    //
+    //   P2-F15 切入点 3：同时收集被引用的 lesson_ids，写入 lesson_applications 表。
+    let (lessons_str, applied_lesson_ids) = fetch_stock_lessons(stock_code, db).await;
     let default_lessons = "（暂无历史反思）".to_string();
     let lessons_val = lessons_str.unwrap_or_else(|| default_lessons.clone());
+    // P2-F15: 批量写入 lesson_applications（失败不阻塞主流程）
+    if !applied_lesson_ids.is_empty() {
+        record_lesson_applications(db, &applied_lesson_ids, &analysis_id, stock_code).await;
+    }
     let variables = vec![
         Variable {
             name: "stock_lessons".into(),
@@ -1527,7 +1624,7 @@ pub(crate) async fn fetch_similar_cases(
 pub(crate) async fn fetch_stock_lessons(
     stock_code: &str,
     db: &sea_orm::DatabaseConnection,
-) -> Option<String> {
+) -> (Option<String>, Vec<String>) {
     use chrono::Utc;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
@@ -1560,7 +1657,8 @@ pub(crate) async fn fetch_stock_lessons(
         .collect();
 
     if same_ticker.is_empty() && all_recent.is_empty() {
-        return None;
+        // 仍需查询规则化教训（可能存在）
+        return fetch_rule_lessons(stock_code, db).await;
     }
 
     let mut lines: Vec<String> = Vec::new();
@@ -1601,6 +1699,34 @@ pub(crate) async fn fetch_stock_lessons(
         }
     }
 
+    // 追加规则化教训 + 收集被引用的 lesson_ids
+    let (rule_lines, lesson_ids) = fetch_rule_lessons(stock_code, db).await;
+    if let Some(rule_text) = rule_lines {
+        lines.push(rule_text);
+    }
+
+    let text = if lines.is_empty() {
+        None
+    } else {
+        Some(lines.join("\n"))
+    };
+    (text, lesson_ids)
+}
+
+/// 查询规则化教训（reflection_lessons 表）
+///
+/// 返回 `(Option<String>, Vec<String>)`：
+/// - `Option<String>`：拼好的规则化教训文本（无则 None）
+/// - `Vec<String>`：被引用的 lesson_id 列表（供调用方写入 lesson_applications）
+///
+/// P2-F15 切入点 3：被引用的 lesson_ids 会写入 lesson_applications 表，
+/// 用于后续 run_lesson_validation 精确统计 times_applied / success_count。
+async fn fetch_rule_lessons(
+    stock_code: &str,
+    db: &sea_orm::DatabaseConnection,
+) -> (Option<String>, Vec<String>) {
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+
     // ── [F1 闭环] 规则化教训：从 reflection_lessons 表查询 ──
     // 修复首轮分析发现的"reflection_lessons 闭环断裂"问题：
     // extract_lesson_to_rule 会把高质量 lesson_summary 写入 reflection_lessons,
@@ -1618,23 +1744,262 @@ pub(crate) async fn fetch_stock_lessons(
         .take(5)
         .collect();
 
-    if !rule_lessons.is_empty() {
-        lines.push(String::new());
-        lines.push(format!("【规则化教训 {} 条(按置信度降序)】", rule_lessons.len()));
-        for (i, l) in rule_lessons.iter().enumerate() {
-            lines.push(format!(
-                "#{} (confidence={:.2}, 应用{}次/成功{}次): {}",
-                i + 1,
-                l.confidence,
-                l.times_applied,
-                l.success_count,
-                l.lesson_summary
-            ));
-            if let Some(ref p) = l.rule_pattern {
-                lines.push(format!("  - 触发条件：{}", p));
-            }
+    if rule_lessons.is_empty() {
+        return (None, Vec::new());
+    }
+
+    // P2-F15: 收集被引用的 lesson_ids 供调用方写入 lesson_applications
+    let lesson_ids: Vec<String> = rule_lessons.iter().map(|l| l.id.clone()).collect();
+
+    let mut lines: Vec<String> = Vec::new();
+    lines.push(String::new());
+    lines.push(format!("【规则化教训 {} 条(按置信度降序)】", rule_lessons.len()));
+    for (i, l) in rule_lessons.iter().enumerate() {
+        lines.push(format!(
+            "#{} (confidence={:.2}, 应用{}次/成功{}次): {}",
+            i + 1,
+            l.confidence,
+            l.times_applied,
+            l.success_count,
+            l.lesson_summary
+        ));
+        if let Some(ref p) = l.rule_pattern {
+            lines.push(format!("  - 触发条件：{}", p));
         }
     }
 
-    Some(lines.join("\n"))
+    (Some(lines.join("\n")), lesson_ids)
+}
+
+/// P2-F15 切入点 3：批量写入 lesson_applications 关联表
+///
+/// 在 `fetch_stock_lessons` 注入规则化教训到分析上下文后调用，记录"本次决策分析
+/// 引用了哪些 lesson"。后续 `run_lesson_validation` 据此精确统计
+/// `times_applied` / `success_count`，替代旧的 `lesson_summary.contains()`
+/// 模糊匹配。
+///
+/// ## 幂等性
+/// 按 `(lesson_id, analysis_id)` 复合唯一性去重：同一条 lesson 在同一个
+/// analysis 中只记录一次。实现上用 `INSERT OR IGNORE` 语义（先 SELECT
+/// 再 INSERT，存在则跳过），避免重复分析场景下产生重复行。
+///
+/// ## 错误处理
+/// 单条插入失败不阻塞主流程，仅记录 warn 日志。理由：lesson_applications
+/// 是追踪表，写入失败只影响后续验证精度，不应让股票分析主流程失败。
+///
+/// ## 参数
+/// - `db`: 数据库连接
+/// - `lesson_ids`: 被引用的 reflection_lessons.id 列表
+/// - `analysis_id`: 本次决策分析的 stock_analyses.id
+/// - `stock_code`: 股票代码（冗余字段，便于按股票维度查询）
+pub(crate) async fn record_lesson_applications(
+    db: &sea_orm::DatabaseConnection,
+    lesson_ids: &[String],
+    analysis_id: &str,
+    stock_code: &str,
+) {
+    use axagent_entities::lesson_applications;
+    use axagent_entities::reflection_lessons;
+    use sea_orm::ExprTrait;
+    use sea_orm::sea_query::Expr;
+
+    let now_rfc3339 = chrono::Utc::now().to_rfc3339();
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let mut inserted = 0usize;
+    let mut skipped = 0usize;
+
+    for lesson_id in lesson_ids {
+        // 幂等：先查 (lesson_id, analysis_id) 是否已存在
+        let existing = lesson_applications::Entity::find()
+            .filter(lesson_applications::Column::LessonId.eq(lesson_id.as_str()))
+            .filter(lesson_applications::Column::AnalysisId.eq(analysis_id))
+            .one(db)
+            .await;
+
+        match existing {
+            Ok(Some(_)) => {
+                skipped += 1;
+                continue;
+            },
+            Ok(None) => {
+                // 不存在，继续插入
+            },
+            Err(e) => {
+                tracing::warn!(
+                    "[lesson_applications] 查询 (lesson_id={lesson_id}, analysis_id={analysis_id}) 失败: {e}, 跳过"
+                );
+                continue;
+            },
+        }
+
+        let active = lesson_applications::ActiveModel {
+            id: Set(uuid::Uuid::new_v4().to_string()),
+            lesson_id: Set(lesson_id.clone()),
+            analysis_id: Set(analysis_id.to_string()),
+            stock_code: Set(stock_code.to_string()),
+            applied_at: Set(now_rfc3339.clone()),
+            outcome_at_validation: Set(None),
+            validation_source: Set(None),
+            created_at: Set(now_ms),
+        };
+
+        match lesson_applications::Entity::insert(active).exec(db).await {
+            Ok(_) => inserted += 1,
+            Err(e) => {
+                tracing::warn!(
+                    "[lesson_applications] 插入 (lesson_id={lesson_id}, analysis_id={analysis_id}) 失败: {e}"
+                );
+            },
+        }
+    }
+
+    // 顺带同步 reflection_lessons.times_applied（+1）
+    // 理由：times_applied 是冗余字段，lesson_applications 才是权威来源。
+    //       但 fetch_rule_lessons 按 confidence 排序时仍需读 times_applied，
+    //       保持同步避免显示陈旧数据。
+    for lesson_id in lesson_ids {
+        let _ = reflection_lessons::Entity::update_many()
+            .col_expr(
+                reflection_lessons::Column::TimesApplied,
+                Expr::col(reflection_lessons::Column::TimesApplied).add(1),
+            )
+            .col_expr(reflection_lessons::Column::UpdatedAt, Expr::value(now_ms))
+            .filter(reflection_lessons::Column::Id.eq(lesson_id.as_str()))
+            .exec(db)
+            .await;
+    }
+
+    tracing::info!(
+        "[lesson_applications] analysis_id={analysis_id} stock={stock_code}: 插入 {inserted} 条, 跳过 {skipped} 条"
+    );
+}
+
+/// P2-F15 切入点 3：T+N 验证完成后回写 lesson_applications.outcome_at_validation
+///
+/// 当某条决策分析（`stock_analyses.id`）的 outcome 被确定后调用，更新所有
+/// 引用了该 analysis 的 `lesson_applications` 行的 `outcome_at_validation`
+/// 和 `validation_source` 字段。后续 `run_lesson_validation` 据此精确统计
+/// `success_count`。
+///
+/// ## 调用时机
+/// - `run_decision_backtest` 完成 T+N 验证后（通过 stock_code + 日期反推 analysis_id）
+/// - 手动标注 outcome 后（validation_source = "manual"）
+/// - 未来 outcome 链路打通后的任何更新点
+///
+/// ## 参数
+/// - `db`: 数据库连接
+/// - `analysis_id`: 决策分析 ID（stock_analyses.id）
+/// - `outcome`: "win" / "loss"
+/// - `validation_source`: "t_plus_5" / "t_plus_20" / "t_plus_60" / "manual"
+///
+/// ## 返回
+/// 更新的行数（0 表示无匹配行，即该 analysis 没有引用任何 lesson）
+pub(crate) async fn update_lesson_application_outcome(
+    db: &sea_orm::DatabaseConnection,
+    analysis_id: &str,
+    outcome: &str,
+    validation_source: &str,
+) -> u64 {
+    use axagent_entities::lesson_applications;
+    use sea_orm::sea_query::Expr;
+
+    let result = lesson_applications::Entity::update_many()
+        .col_expr(
+            lesson_applications::Column::OutcomeAtValidation,
+            Expr::value(outcome),
+        )
+        .col_expr(
+            lesson_applications::Column::ValidationSource,
+            Expr::value(validation_source),
+        )
+        .filter(lesson_applications::Column::AnalysisId.eq(analysis_id))
+        // 只更新尚未回写的行，避免覆盖已验证结果
+        .filter(lesson_applications::Column::OutcomeAtValidation.is_null())
+        .exec(db)
+        .await;
+
+    match result {
+        Ok(r) => {
+            tracing::info!(
+                "[lesson_applications] analysis_id={analysis_id} outcome={outcome} source={validation_source}: 更新 {} 行",
+                r.rows_affected
+            );
+            r.rows_affected
+        },
+        Err(e) => {
+            tracing::warn!(
+                "[lesson_applications] 更新 outcome 失败 analysis_id={analysis_id}: {e}"
+            );
+            0
+        },
+    }
+}
+
+/// P2-F15 切入点 3：同步 lesson_applications.outcome_at_validation
+///
+/// 扫描所有 `outcome_at_validation IS NULL` 的 `lesson_applications` 行，
+/// 根据其 `analysis_id` 查 `stock_analyses.outcome`，如果 outcome 已被设置
+/// （win/loss），则回写 `lesson_applications.outcome_at_validation`。
+///
+/// ## 调用时机
+/// 在 `run_lesson_validation` 开始前调用，确保尽可能多的 lesson_applications
+/// 行有 outcome 数据，提高 success_count 统计精度。
+///
+/// ## 返回
+/// 回写的行数
+pub(crate) async fn sync_lesson_application_outcomes(db: &sea_orm::DatabaseConnection) -> u64 {
+    use axagent_entities::lesson_applications;
+    use axagent_entities::stock_analyses;
+
+    // 1. 查所有 outcome_at_validation IS NULL 的行
+    let pending_apps: Vec<lesson_applications::Model> = lesson_applications::Entity::find()
+        .filter(lesson_applications::Column::OutcomeAtValidation.is_null())
+        .all(db)
+        .await
+        .unwrap_or_default();
+
+    if pending_apps.is_empty() {
+        return 0;
+    }
+
+    // 2. 收集所有 analysis_id，批量查 stock_analyses.outcome
+    let analysis_ids: Vec<String> = pending_apps
+        .iter()
+        .map(|a| a.analysis_id.clone())
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    let analyses: Vec<stock_analyses::Model> = stock_analyses::Entity::find()
+        .filter(stock_analyses::Column::Id.is_in(analysis_ids))
+        .filter(stock_analyses::Column::Outcome.is_not_null())
+        .all(db)
+        .await
+        .unwrap_or_default();
+
+    if analyses.is_empty() {
+        return 0;
+    }
+
+    // 3. 构建 analysis_id → outcome 映射
+    let outcome_map: std::collections::HashMap<String, String> =
+        analyses.iter().filter_map(|a| a.outcome.clone().map(|o| (a.id.clone(), o))).collect();
+
+    // 4. 逐行回写（只接受 win/loss，忽略其他值如 pending）
+    let mut updated = 0u64;
+    for (analysis_id, outcome) in &outcome_map {
+        if outcome != "win" && outcome != "loss" {
+            continue;
+        }
+        updated +=
+            update_lesson_application_outcome(db, analysis_id, outcome, "stock_analyses_outcome")
+                .await;
+    }
+
+    if updated > 0 {
+        tracing::info!(
+            "[lesson_applications] sync_outcomes: 从 stock_analyses.outcome 回写 {updated} 行"
+        );
+    }
+    updated
 }

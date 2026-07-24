@@ -261,12 +261,16 @@ pub async fn run_reflection_workflow(
         // 反思 prompt 模板里引用了 {{stock_lessons}},必须显式注入,
         // 否则 work_engine 报 VARIABLE_NOT_FOUND 导致反思节点 Failed。
         // 数据源: 该股最近 3 个月的反思记录(去重排除当前正在创建的记录)。
+        // P2-F15: fetch_stock_lessons 返回 (Option<String>, Vec<String>) 元组，
+        // .0 是教训文本，.1 是被引用的 lesson_ids（在此场景不写入 lesson_applications，
+        // 因为 reflection 工作流不是决策分析，不需要追踪 lesson 应用）。
         axagent_harness::workflow_types::Variable {
             name: "stock_lessons".into(),
             var_type: "string".into(),
             value: serde_json::Value::String(
                 fetch_stock_lessons(stock_code, db)
                     .await
+                    .0
                     .unwrap_or_else(|| "（暂无历史反思）".to_string()),
             ),
             description: Some("该股历史反思教训（错因/被忽视信号/改进建议）".into()),
@@ -1077,16 +1081,27 @@ async fn extract_lesson_to_rule(
 // - 引用后决策成功率（success_count）：基于 stock_analyses 表的 posterior 字段
 // - 规则置信度衰减/提升：基于实际表现调整 confidence
 //
-// 调用方式：cron 调度器或 Tauri 命令 `run_lesson_validation`。
+// 调用方式：cron 调度器或 Tauri 命令 `run_lesson_validation_command`。
 // 已接入 start_background_services 的 start_lesson_validation 定时任务。
 pub async fn run_lesson_validation(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<serde_json::Value, String> {
+    use axagent_entities::lesson_applications;
     use axagent_entities::reflection_lessons;
     use axagent_entities::stock_reflections;
     use axagent_stock_analysis::reflection_lesson_validator::{
         build_lesson_validation, build_lesson_validation_report,
     };
+
+    // 0. P2-F15 预处理：同步 lesson_applications.outcome_at_validation
+    // 扫描所有 outcome_at_validation IS NULL 的行，从 stock_analyses.outcome 回写。
+    // 确保 success_count 统计尽可能精确。
+    let synced = super::core::sync_lesson_application_outcomes(db).await;
+    if synced > 0 {
+        tracing::info!(
+            "[lesson-validation] 预处理: 从 stock_analyses.outcome 回写 {synced} 条 lesson_applications"
+        );
+    }
 
     // 1. 加载所有 active 规则
     let lessons: Vec<reflection_lessons::Model> = reflection_lessons::Entity::find()
@@ -1099,26 +1114,82 @@ pub async fn run_lesson_validation(
 
     let mut validations = Vec::new();
     let mut updated_count = 0u32;
+    // P2-F15 统计：精确统计 vs 模糊匹配的使用情况
+    let mut precise_count = 0u32;
+    let mut fallback_count = 0u32;
 
     for lesson in &lessons {
-        // 2. 统计 times_applied：在 stock_reflections 中模糊匹配 lesson_summary
-        let applied_count = stock_reflections::Entity::find()
-            .filter(stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary))
-            .filter(stock_reflections::Column::Status.eq("completed"))
+        // ── P2-F15 切入点 3：优先用 lesson_applications 精确统计 ──
+        // 旧的 lesson_summary.contains() 模糊匹配存在误匹配/漏匹配问题，
+        // 且统计的是"反思时提到该 lesson 的次数"而非"决策时应用了该 lesson 的次数"。
+        // 现在优先用 lesson_applications 表精确统计 times_applied。
+        //
+        // success_count 优先用 lesson_applications.outcome_at_validation = 'win' 精确统计；
+        // 如果所有 outcome_at_validation 都是 NULL（outcome 链路未打通），
+        // 回退到旧的 stock_reflections.verdict 模糊匹配，避免误判所有规则为 0 成功率。
+        let apps: Vec<lesson_applications::Model> = lesson_applications::Entity::find()
+            .filter(lesson_applications::Column::LessonId.eq(&lesson.id))
             .all(db)
             .await
-            .map(|v| v.len() as i32)
-            .unwrap_or(0);
+            .unwrap_or_default();
 
-        // 3. 统计 success_count：基于 verdict 推断（correct/partial 视为成功）
-        let success_count = stock_reflections::Entity::find()
-            .filter(stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary))
-            .filter(stock_reflections::Column::Status.eq("completed"))
-            .filter(stock_reflections::Column::Verdict.is_in(vec!["correct", "partial"]))
-            .all(db)
-            .await
-            .map(|v| v.len() as i32)
-            .unwrap_or(0);
+        let (applied_count, success_count, used_precise) = if !apps.is_empty() {
+            // 精确统计路径
+            let precise_applied = apps.len() as i32;
+            // 统计 outcome_at_validation = 'win' 的数量
+            let precise_success =
+                apps.iter().filter(|a| a.outcome_at_validation.as_deref() == Some("win")).count()
+                    as i32;
+
+            // 检查是否有任何 outcome_at_validation 已被填充
+            let has_any_outcome = apps.iter().any(|a| a.outcome_at_validation.is_some());
+
+            if has_any_outcome {
+                // outcome 链路已打通，完全使用精确统计
+                (precise_applied, precise_success, true)
+            } else {
+                // outcome_at_validation 全部为 NULL（链路未打通）
+                // times_applied 用精确统计，success_count 回退到模糊匹配
+                let fallback_success = stock_reflections::Entity::find()
+                    .filter(
+                        stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary),
+                    )
+                    .filter(stock_reflections::Column::Status.eq("completed"))
+                    .filter(stock_reflections::Column::Verdict.is_in(vec!["correct", "partial"]))
+                    .all(db)
+                    .await
+                    .map(|v| v.len() as i32)
+                    .unwrap_or(0);
+                (precise_applied, fallback_success, true)
+            }
+        } else {
+            // lesson_applications 表中无记录（旧数据或未接入），
+            // 完全回退到旧的模糊匹配逻辑
+            let fuzzy_applied = stock_reflections::Entity::find()
+                .filter(stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary))
+                .filter(stock_reflections::Column::Status.eq("completed"))
+                .all(db)
+                .await
+                .map(|v| v.len() as i32)
+                .unwrap_or(0);
+
+            let fuzzy_success = stock_reflections::Entity::find()
+                .filter(stock_reflections::Column::LessonSummary.contains(&lesson.lesson_summary))
+                .filter(stock_reflections::Column::Status.eq("completed"))
+                .filter(stock_reflections::Column::Verdict.is_in(vec!["correct", "partial"]))
+                .all(db)
+                .await
+                .map(|v| v.len() as i32)
+                .unwrap_or(0);
+
+            (fuzzy_applied, fuzzy_success, false)
+        };
+
+        if used_precise {
+            precise_count += 1;
+        } else {
+            fallback_count += 1;
+        }
 
         // 4. 构建验证记录
         let validation = build_lesson_validation(
@@ -1167,10 +1238,12 @@ pub async fn run_lesson_validation(
     let report = build_lesson_validation_report(&validations);
 
     tracing::info!(
-        "[lesson-validation] 完成: validated={} deprecated={} avg_success_rate={:.2}",
+        "[lesson-validation] 完成: validated={} deprecated={} avg_success_rate={:.2} | 精确统计={} 模糊回退={}",
         report.validated_lessons,
         report.deprecated_lessons,
-        report.avg_success_rate
+        report.avg_success_rate,
+        precise_count,
+        fallback_count
     );
 
     Ok(serde_json::json!({
@@ -1185,7 +1258,25 @@ pub async fn run_lesson_validation(
             "unchanged": report.confidence_adjustment_stats.unchanged,
         },
         "updatedCount": updated_count,
+        // P2-F15: 统计来源分布，便于监控迁移进度
+        "statsSource": {
+            "precise": precise_count,
+            "fallback": fallback_count,
+        },
     }))
+}
+
+/// P2-F15 修复: 手动触发 lesson 验证的 Tauri 命令包装。
+///
+/// 内部核心函数 `run_lesson_validation` 已通过 `start_lesson_validation` 后台
+/// 定时任务自动调度，但未暴露为 Tauri 命令，导致前端无法手动触发校证。
+/// 此包装函数补齐该缺口，便于调试和紧急校证场景。
+#[tauri::command]
+pub async fn run_lesson_validation_command(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let db = state.harness.db().clone();
+    run_lesson_validation(&db).await
 }
 
 // ── [缺陷5 fix] 内部批量反思函数(非 Tauri 命令,供 cron 调度器直接调用) ──

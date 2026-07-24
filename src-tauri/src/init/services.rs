@@ -15,6 +15,12 @@ pub fn start_background_services(
     app_dir: std::path::PathBuf,
     _tray_language: String,
 ) {
+    // P1-D10 收尾: 注册 portfolio-mgr.rhai 依赖的 pm_* 函数到共享 Rhai Engine。
+    // 必须在任何工作流执行（cron / pipeline / batch_reflection 等）之前完成，
+    // 否则 shared_rhai_engine() 已初始化后注册会被 OnceLock 拒绝（仅记 warn）。
+    // 修复前: DAG 主路径未注册 pm_*, portfolio-mgr.rhai 的 pm_* 调用失败被
+    // try/catch 吞掉, 决策永远走保守兜底（action="观望", confidence=0）。
+    register_portfolio_mgr_rhai_functions();
     init_mcp_oauth(state);
     start_auto_backup(app, state, app_dir.clone());
     start_webdav_sync(app, state, app_dir.clone());
@@ -47,6 +53,115 @@ pub fn start_background_services(
     start_dream_consolidation(state);
     // 股票全业务管道：每日 18:00 自动发现+分析+持仓再评估
     start_stock_pipeline(app, state);
+    // P3-B5(G): vendor 健康后台周期探测，加速 Degraded vendor 恢复
+    start_vendor_health_prober(state);
+}
+
+/// P1-D10: 注册 portfolio-mgr.rhai 依赖的 pm_* 函数到共享 Rhai Engine。
+///
+/// rt-workflow（hybrid 层）不能依赖 AxInvest 专属 crate `axagent-stock-analysis`，
+/// 但主 crate（wiring 层）可以同时依赖两者。此函数在应用启动时调用
+/// `register_shared_engine_initializer`，把 6 个 pm_* 函数注入到
+/// `code_executor::shared_rhai_engine()` 的初始化流程中。
+///
+/// 注册的函数（与 `stock_workflow/decision.rs` Rerun Decision 路径保持一致）：
+/// - `pm_evidence_scale`: 非线性证据缩放（sqrt 曲线）
+/// - `pm_kelly_position`: 凯利仓位计算（半凯利 + 成本扣减 + 风险上限）
+/// - `pm_classify_risk`: 基于量化指标的算法风险分类
+/// - `pm_risk_bias`: 风险等级对应的行为阈值偏移
+/// - `pm_risk_veto`: 风控否决（高风险禁止加仓 / 极高风险禁止持仓）
+/// - `pm_covariance_decay`: 因子协方差衰减（减少信号重复计数）
+/// - `pm_portfolio_risk_gate`: 组合风控门（P1-E13）
+/// - `pm_compute_news_sentiment`: 统一新闻情感分（P2-B4，[-1.0, 1.0]）
+/// - `pm_compute_text_sentiment`: 单文本情感分（P2-B4，[-1.0, 1.0]）
+///
+/// 必须在 `shared_rhai_engine()` 首次调用前注册（即任何工作流执行前）。
+/// 后续注册不会生效（`OnceLock::set` 在已初始化后返回 Err，仅记 warn）。
+fn register_portfolio_mgr_rhai_functions() {
+    use axagent_rt_workflow::work_engine::executors::register_shared_engine_initializer;
+    use axagent_stock_analysis::portfolio_formula;
+
+    register_shared_engine_initializer(Box::new(|engine| {
+        engine.register_fn("pm_evidence_scale", |total_weight: f64, max_weight: f64| -> f64 {
+            portfolio_formula::compute_evidence_scale(total_weight, max_weight)
+        });
+        engine.register_fn(
+            "pm_kelly_position",
+            |posterior: f64, odds: f64, cost_pct: f64, risk_level: &str| -> f64 {
+                portfolio_formula::compute_kelly_position(posterior, odds, cost_pct, risk_level)
+            },
+        );
+        engine.register_fn(
+            "pm_classify_risk",
+            |vol: Option<f64>,
+             sharpe: Option<f64>,
+             dd: Option<f64>,
+             roe: Option<f64>,
+             debt: Option<f64>,
+             growth: Option<f64>|
+             -> String {
+                portfolio_formula::classify_risk(vol, sharpe, dd, roe, debt, growth)
+            },
+        );
+        engine.register_fn("pm_risk_bias", |risk_level: &str| -> f64 {
+            portfolio_formula::compute_risk_bias(risk_level)
+        });
+        engine.register_fn("pm_risk_veto", |action: &str, risk_level: &str| -> String {
+            let (new_action, _, _) = portfolio_formula::apply_risk_veto(action, risk_level);
+            new_action
+        });
+        engine.register_fn(
+            "pm_covariance_decay",
+            |f1_w: f64, f3_w: f64, f9_w: f64, f11_w: f64, decay_target: &str| -> f64 {
+                let (f9, f11) = portfolio_formula::apply_covariance_decay(f1_w, f3_w, f9_w, f11_w);
+                match decay_target {
+                    "f9" => f9,
+                    "f11" => f11,
+                    _ => 0.0,
+                }
+            },
+        );
+        // P1-E13: 组合风控门 — 在 portfolio-mgr 之后运行，做组合层约束检查
+        engine.register_fn(
+            "pm_portfolio_risk_gate",
+            |pm_action: &str,
+             pm_position_pct: f64,
+             pm_risk_level: &str,
+             current_price: f64,
+             target_price: Option<f64>,
+             stock_code: &str,
+             stock_sector: Option<&str>,
+             holdings_json: &str,
+             portfolio_cash: f64|
+             -> String {
+                portfolio_formula::portfolio_risk_gate(
+                    pm_action,
+                    pm_position_pct,
+                    pm_risk_level,
+                    current_price,
+                    target_price,
+                    stock_code,
+                    stock_sector,
+                    holdings_json,
+                    portfolio_cash,
+                )
+            },
+        );
+        // P2-B4: 统一新闻情感分词典 — 供 portfolio-mgr.rhai 公告关键词检测复用
+        // 输入: 新闻/公告标题 + 摘要, 返回 [-1.0, 1.0] 区间的 sentiment_score
+        // 无任何关键词命中时返回 0.0(Rhai 不支持 Option<f64>, 用 0.0 表示 None)
+        // 内部含否定词检测(避免"不存在退市风险"被误判为风险信号)
+        engine.register_fn("pm_compute_news_sentiment", |title: &str, summary: &str| -> f64 {
+            axagent_astock_data::sentiment::compute_news_sentiment(title, summary).unwrap_or(0.0)
+        });
+        // P2-B4: 单文本版本(只传标题或合并后的文本)
+        engine.register_fn("pm_compute_text_sentiment", |text: &str| -> f64 {
+            axagent_astock_data::sentiment::compute_text_sentiment(text).unwrap_or(0.0)
+        });
+    }));
+    tracing::info!(
+        "[P1-D10/E13 + P2-B4] portfolio-mgr pm_* + risk-gate + sentiment 函数已注册到共享 Rhai Engine 初始化器"
+    );
 }
 
 /// 初始化 MCP OAuth 凭据存储的全局单例。
@@ -311,6 +426,80 @@ fn start_lesson_validation(state: &AppState) {
                         }
                         Err(e) => {
                             tracing::error!("[lesson_validation] 失败: {e}");
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// P3-B5(G): vendor 健康后台周期探测任务
+///
+/// 每 90 秒扫描所有 vendor，对 Degraded 状态的 vendor 主动调用
+/// `check_vendor_health` 探针方法。探测成功 → `record_success` 加速恢复；
+/// 探测失败 → 更新 `last_failure_at`，延长恢复时间。
+///
+/// 设计动机：原架构为被动恢复——Degraded vendor 必须等 `try_vendors_retry`
+/// 调用尝试才能恢复。若该 vendor 不在主路径上（如 ths/cninfo 在非热门股
+/// 分析场景），可能长期无法自动恢复，影响后续分析质量。
+///
+/// Disabled 状态的 vendor 不参与探测（用户手动禁用，需手动恢复）。
+/// 监听 `shutdown_token` 支持优雅关闭。
+fn start_vendor_health_prober(state: &AppState) {
+    let client = state.astock_client.clone();
+    let token = state.shutdown_token.clone();
+    state.task_manager.spawn("vendor_health_prober", async move {
+        let initial_delay = std::time::Duration::from_secs(90);
+        let interval = std::time::Duration::from_secs(90);
+        tokio::time::sleep(initial_delay).await;
+        loop {
+            tokio::select! {
+                _ = token.cancelled() => {
+                    tracing::info!("[vendor_health_prober] 收到关闭信号");
+                    break;
+                }
+                _ = tokio::time::sleep(interval) => {
+                    // 获取所有 vendor 的当前健康状态
+                    let health_states = client.health_tracker.get_all_health().await;
+                    // 筛选 Degraded 状态的 vendor（排除 Disabled 和 Healthy）
+                    let degraded_vendors: Vec<String> = health_states
+                        .iter()
+                        .filter(|h| h.status == axagent_astock_data::vendor_health::VendorStatus::Degraded)
+                        .map(|h| h.name.clone())
+                        .collect();
+
+                    if degraded_vendors.is_empty() {
+                        continue;
+                    }
+
+                    tracing::info!(
+                        "[vendor_health_prober] 发现 {} 个 Degraded vendor，开始探测: {:?}",
+                        degraded_vendors.len(),
+                        degraded_vendors
+                    );
+
+                    for vendor_name in &degraded_vendors {
+                        // 探测单个 vendor
+                        match client.check_vendor_health(vendor_name).await {
+                            Ok(()) => {
+                                client.health_tracker.record_success(vendor_name).await;
+                                tracing::info!(
+                                    "[vendor_health_prober] {} 探测成功，触发自动恢复",
+                                    vendor_name
+                                );
+                            },
+                            Err(e) => {
+                                client
+                                    .health_tracker
+                                    .record_failure(vendor_name, &e.to_string())
+                                    .await;
+                                tracing::debug!(
+                                    "[vendor_health_prober] {} 探测仍失败: {}",
+                                    vendor_name,
+                                    e
+                                );
+                            },
                         }
                     }
                 }

@@ -276,6 +276,10 @@ export interface DataQualityDiagItem {
 export interface DataQualityReport {
   grade: "A" | "B" | "C" | "D" | "F";
   score: number;
+  /** P1-B3: 报告质量分（0-100），基于字数+关键词覆盖+占位符检测 */
+  report_quality_score?: number;
+  /** P1-B3: 工具可信度分（0-100），基于 avg_conf + gap/good_count */
+  tool_credibility_score?: number;
   gap_count: number;
   good_count: number;
   avg_confidence: number;
@@ -286,6 +290,8 @@ export interface DataQualityReport {
   missing_analysts: string[];
   /** 低置信度分析师中文名列表 */
   low_confidence_analysts: string[];
+  /** P1-B3: 数据质量问题列表（字数不足/占位符/低置信等） */
+  warnings?: string[];
   /** 人类可读的总结文本 */
   summary: string;
 }

@@ -18,9 +18,12 @@ pub mod fallback;
 pub mod fundamentals_report;
 pub mod gate;
 pub mod indicators;
+pub mod macro_data;
 pub mod mcp_tools;
+pub mod realtime_quote;
 pub mod regime;
 pub mod scoring;
+pub mod sentiment;
 pub mod types;
 pub mod validation;
 pub mod valuation_band;
@@ -41,6 +44,8 @@ use crate::as_of_capability::AsOfCapability;
 use crate::gate::DomainGate;
 use crate::vendor_health::{VendorHealthConfig, VendorHealthTracker};
 pub use error::DataError;
+pub use macro_data::{MacroDataClient, MacroDataPoint, MacroDataSnapshot};
+pub use realtime_quote::{QuoteCallback, QuoteChangeEvent, RealTimeQuoteWatcher, WatchPriority};
 pub use types::*;
 // R3: 估值带（暴露在 crate 根，方便 commands 端直接 `axagent_astock_data::ValuationBand`）
 pub use valuation_band::{FinancialSnapshotLike, MetricBand, ValuationBand};
@@ -50,6 +55,7 @@ use vendors::browser_eastmoney::{BrowserEastMoneyVendor, BrowserHttpFetch};
 use vendors::cninfo::CninfoVendor;
 use vendors::eastmoney::EastMoneyVendor;
 use vendors::guba::GubaVendor;
+use vendors::international::InternationalVendor;
 use vendors::iwencai::IwencaiVendor;
 use vendors::mootdx::MootdxVendor;
 use vendors::neodata::NeoDataVendor;
@@ -438,6 +444,8 @@ impl AStockClient {
         self.register_vendor("akshare", Box::new(AkshareVendor { http: http.clone() }));
         self.register_vendor("mootdx", Box::new(MootdxVendor::new()));
         self.register_vendor("browser_eastmoney", Box::new(BrowserEastMoneyVendor::new()));
+        // 国际股票（港股/美股/ETF）
+        self.register_vendor("international", Box::new(InternationalVendor { http: http.clone() }));
         // NeoData Financial Search — 末位 fallback vendor
         let neodata_token = Arc::new(RwLock::new(String::new()));
         self.neodata_token = Some(neodata_token.clone());
@@ -1088,6 +1096,19 @@ impl AStockClient {
                     match fetch_fn(name, vendor).await {
                         Ok(result) => {
                             self.health_tracker.record_success(name).await;
+                            // P3-B5(F): 若此 vendor 是 fallback（非首选），记录 fallback 路径
+                            // 用于前端调试"为什么 X 数据用了 Y vendor 而非 Z"
+                            if name != names_to_try.first().map(|s| s.as_str()).unwrap_or("") {
+                                self.health_tracker
+                                    .record_fallback(
+                                        route_key,
+                                        stock_code,
+                                        names_to_try.first().map(|s| s.as_str()).unwrap_or(""),
+                                        name,
+                                        "primary_failed",
+                                    )
+                                    .await;
+                            }
                             return Ok(result);
                         },
                         Err(e) => {
@@ -1317,6 +1338,11 @@ impl AStockClient {
         if let Some(ref snap) = self.daily_snapshot {
             snap.set_keyword_snapshot(method, keyword, date, json);
         }
+    }
+
+    /// P3-B5(G): 返回所有已注册的 vendor 名单，供后台健康探测遍历
+    pub fn vendor_names(&self) -> Vec<String> {
+        self.vendors.iter().map(|(n, _)| n.to_string()).collect()
     }
 
     /// 检查指定 vendor 的连接可用性（按实际能力选择探针方法）
@@ -1782,6 +1808,19 @@ impl AStockClient {
         }
     }
 
+    /// P2-B4: 对 vendor 返回的新闻列表填充 sentiment_score
+    ///
+    /// 仅当原值为 None 时填充,保留 vendor 可能提供的精确评分。
+    /// 在 get_news / search_news / get_policy_news 的 Ok(result) 入口统一调用,
+    /// 确保缓存和 news_archive_sink 持久化的数据都带 sentiment_score。
+    fn fill_sentiment_scores(items: &mut [NewsItem]) {
+        for n in items.iter_mut() {
+            if n.sentiment_score.is_none() {
+                n.sentiment_score = crate::sentiment::compute_news_sentiment(&n.title, &n.summary);
+            }
+        }
+    }
+
     pub async fn get_news(&self, stock_code: &str, limit: u32) -> Result<Vec<NewsItem>, DataError> {
         {
             let cache_key = Self::cache_key_for("news", &format!("{stock_code}:{limit}"));
@@ -1818,7 +1857,9 @@ impl AStockClient {
             })
             .await
         {
-            Ok(result) => {
+            Ok(mut result) => {
+                // P2-B4: 统一填充 sentiment_score(在缓存和持久化前完成)
+                Self::fill_sentiment_scores(&mut result);
                 let cache_key = Self::cache_key_for("news", &format!("{stock_code}:{limit}"));
                 self.cache_set_serialized(cache_key, &result, 300).await;
                 // P6:自动 upsert 到 news_archive(无关缓存命中/降级,
@@ -1937,7 +1978,9 @@ impl AStockClient {
             })
             .await
         {
-            Ok(result) => {
+            Ok(mut result) => {
+                // P2-B4: 统一填充 sentiment_score(在缓存和持久化前完成)
+                Self::fill_sentiment_scores(&mut result);
                 let cache_key =
                     Self::cache_key_for("policy_news", &format!("{stock_code}:{limit}"));
                 self.cache_set_serialized(cache_key, &result, 300).await;
@@ -2322,7 +2365,9 @@ impl AStockClient {
             })
             .await
         {
-            Ok(result) => {
+            Ok(mut result) => {
+                // P2-B4: 统一填充 sentiment_score(在缓存和持久化前完成)
+                Self::fill_sentiment_scores(&mut result);
                 // H1.2 修复:写入 L1 缓存(60s TTL)
                 let cache_key = Self::cache_key_for("search_news", &format!("{keyword}:{limit}"));
                 self.cache_set_serialized(cache_key, &result, 60).await;

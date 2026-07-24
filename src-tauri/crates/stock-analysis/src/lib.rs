@@ -6,11 +6,14 @@ pub mod dashboard_report;
 pub mod data_clean;
 pub mod decision;
 pub mod decision_tracker;
+pub mod evidence_citation;
 pub mod evidence_weight;
 pub mod evolution_drift;
 pub mod exit_recommend;
+pub mod factor_analysis;
 pub mod hit_rate_backtest;
 pub mod intent_parser;
+pub mod knowledge_loader;
 // Phase 2: fundamentals_report 迁移到 astock-data 层(被 tools crate 依赖),
 // 此处用 pub use 保持向后兼容。
 // re-export conserved for backward compat
@@ -18,8 +21,10 @@ pub use axagent_astock_data::fundamentals_report;
 // K 线形态和价量背离检测 — 权威实现在 astock-data crate，此处 re-export 保持向后兼容
 pub use axagent_astock_data::{candlestick_pattern, divergence};
 pub mod concept_index;
+pub mod conditional_order;
 pub mod key_levels;
 pub mod market_regime;
+pub mod monthly_report;
 pub mod monitor;
 pub mod plugin;
 pub mod portfolio_formula;
@@ -37,6 +42,7 @@ pub mod rules;
 pub mod schema_serde_regression;
 pub mod scoring;
 pub mod screener;
+pub mod sentiment_analysis;
 pub mod signals;
 pub mod strategy_pack;
 pub mod trade_import;

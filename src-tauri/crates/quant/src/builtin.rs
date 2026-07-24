@@ -17,9 +17,10 @@
 //!
 //! ## 关于指标 helper
 //!
-//! `astock-data::indicators` 中的 sma/ema/rsi 是 private fn。
-//! M1 阶段在 quant 内复制必要的实现（自给自足、不改 astock-data 公开面）；
-//! 后续可考虑将 astock-data 指标函数提升为 pub 复用。
+//! P2-C7: 技术指标（SMA/EMA/RSI/stddev）已统一收口到 `axagent_harness::indicators`。
+//! 本 crate 通过 `use` 引用 harness 版本，消除历史重复实现。
+//! 仅保留 `rsi_wilder` 作为 pub(crate) wrapper，将 `Option<f64>` 转为 `f64`
+//! （数据不足返回 50.0 中性值），维持 script.rs 的调用签名兼容。
 
 use async_trait::async_trait;
 use serde_json::{Value, json};
@@ -27,6 +28,8 @@ use serde_json::{Value, json};
 // 引入 harness 的 Result 别名（即 Result<_, AxAgentError>）—— 用 HarnessResult 避免遮蔽 std Result
 // Strategy trait 已下沉到 harness，方法返回 axagent_harness::core_error::Result
 use axagent_harness::core_error::Result as HarnessResult;
+// P2-C7: 技术指标统一来源（harness foundation 层）
+use axagent_harness::indicators::{build_ema_series, sma, stddev_sample};
 // 保留 QuantError：作为策略实现的内部错误类型，通过 From<QuantError> for AxAgentError
 // 在 `?` 处自动转换为 AxAgentError
 use crate::error::QuantError;
@@ -36,72 +39,16 @@ use crate::types::{Bar, CloseReason, Signal, SignalAction};
 use crate::ctx::StrategyCtx;
 use crate::strategy::Strategy;
 
-// ===================== 共享指标 helpers =====================
+// ===================== RSI wrapper =====================
 
-fn sma_last(values: &[f64], period: usize) -> Option<f64> {
-    if values.len() < period || period == 0 {
-        return None;
-    }
-    let start = values.len() - period;
-    Some(values[start..].iter().sum::<f64>() / period as f64)
-}
-
-fn ema_series(data: &[f64], period: usize) -> Vec<f64> {
-    if data.is_empty() || period == 0 {
-        return vec![0.0];
-    }
-    let multiplier = 2.0 / (period as f64 + 1.0);
-    let mut ema = data[0];
-    let mut out = Vec::with_capacity(data.len());
-    out.push(ema);
-    for &v in &data[1..] {
-        ema = (v - ema) * multiplier + ema;
-        out.push(ema);
-    }
-    out
-}
-
-fn stddev_sample(data: &[f64], mean: f64) -> f64 {
-    let n = data.len() as f64;
-    if n < 2.0 {
-        return 0.0;
-    }
-    let v = data.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (n - 1.0);
-    v.sqrt()
-}
-
-/// RSI (Wilder 平滑) 指标计算
+/// RSI (Wilder 平滑) 指标计算 — pub(crate) wrapper
 ///
 /// 修复 M-RES-9: 改为 pub(crate) 以便 script.rs 的 rsi_rhai 复用，
 /// 消除重复实现（DRY 原则）。
+/// P2-C7: 内部委托 `axagent_harness::indicators::rsi_wilder`，
+/// 数据不足时返回 50.0 中性值（保持原 f64 返回签名兼容）。
 pub(crate) fn rsi_wilder(closes: &[f64], period: usize) -> f64 {
-    if closes.len() < period + 1 {
-        return 50.0;
-    }
-    let mut avg_gain = 0.0;
-    let mut avg_loss = 0.0;
-    for i in 1..=period {
-        let diff = closes[i] - closes[i - 1];
-        if diff > 0.0 {
-            avg_gain += diff;
-        } else {
-            avg_loss += -diff;
-        }
-    }
-    avg_gain /= period as f64;
-    avg_loss /= period as f64;
-    for i in (period + 1)..closes.len() {
-        let diff = closes[i] - closes[i - 1];
-        let g = if diff > 0.0 { diff } else { 0.0 };
-        let l = if diff < 0.0 { -diff } else { 0.0 };
-        avg_gain = (avg_gain * (period - 1) as f64 + g) / period as f64;
-        avg_loss = (avg_loss * (period - 1) as f64 + l) / period as f64;
-    }
-    if avg_loss < 1e-10 {
-        return 100.0;
-    }
-    let rs = avg_gain / avg_loss;
-    100.0 - (100.0 / (1.0 + rs))
+    axagent_harness::indicators::rsi_wilder(closes, period).unwrap_or(50.0)
 }
 
 fn closes(history: &[Bar]) -> Vec<f64> {
@@ -178,19 +125,19 @@ impl Strategy for MaCrossStrategy {
             _ => return Ok(vec![]),
         };
         let cs = closes(history);
-        let cur_short = match sma_last(&cs, self.short_period) {
+        let cur_short = match sma(&cs, self.short_period) {
             Some(v) => v,
             None => return Ok(vec![]),
         };
-        let cur_long = match sma_last(&cs, self.long_period) {
+        let cur_long = match sma(&cs, self.long_period) {
             Some(v) => v,
             None => return Ok(vec![]),
         };
-        let prev_short = match sma_last(&cs[..cs.len() - 1], self.short_period) {
+        let prev_short = match sma(&cs[..cs.len() - 1], self.short_period) {
             Some(v) => v,
             None => return Ok(vec![]),
         };
-        let prev_long = match sma_last(&cs[..cs.len() - 1], self.long_period) {
+        let prev_long = match sma(&cs[..cs.len() - 1], self.long_period) {
             Some(v) => v,
             None => return Ok(vec![]),
         };
@@ -302,11 +249,11 @@ impl Strategy for MacdStrategy {
             _ => return Ok(vec![]),
         };
         let cs = closes(history);
-        let ema_fast = ema_series(&cs, self.fast);
-        let ema_slow = ema_series(&cs, self.slow);
+        let ema_fast = build_ema_series(&cs, self.fast);
+        let ema_slow = build_ema_series(&cs, self.slow);
         let dif_series: Vec<f64> =
             ema_fast.iter().zip(ema_slow.iter()).map(|(a, b)| a - b).collect();
-        let dea_series = ema_series(&dif_series, self.signal);
+        let dea_series = build_ema_series(&dif_series, self.signal);
         if dif_series.len() < 2 || dea_series.len() < 2 {
             return Ok(vec![]);
         }
@@ -520,7 +467,7 @@ impl Strategy for BollStrategy {
             _ => return Ok(vec![]),
         };
         let cs = closes(history);
-        let mid = match sma_last(&cs, self.period) {
+        let mid = match sma(&cs, self.period) {
             Some(v) => v,
             None => return Ok(vec![]),
         };

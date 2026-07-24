@@ -17,7 +17,10 @@ use std::sync::OnceLock;
 // 复用 harness 下沉的通用 Rhai 函数与转换工具，避免重复定义（铁律 4）。
 // 历史上 rt-workflow 与 quant 各自维护一份 json_value_to_dynamic/json_value_to_rhai，
 // 且 rt-workflow 版本把 JSON 整数静默转 f64，存在 subtle bug。下沉后统一采纳 quant 版本语义。
-use axagent_harness::{dynamic_to_json_value, json_value_to_dynamic, register_common_functions};
+// P1-D10: 引入 AST 缓存，避免批量分析时重复编译 portfolio-mgr.rhai（1373 行）等静态脚本。
+use axagent_harness::{
+    dynamic_to_json_value, get_or_compile_ast, json_value_to_dynamic, register_common_functions,
+};
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
@@ -51,8 +54,44 @@ fn shared_rhai_engine() -> &'static Engine {
         engine.set_max_array_size(50_000);
         engine.set_max_expr_depths(1024, 1024);
         register_common_functions(&mut engine);
+        // P1-D10 修复: 调用 wiring 层注册的额外初始化函数（如 pm_* 函数）。
+        // rt-workflow 是 hybrid 层，不能依赖 stock-analysis（AxInvest 专属 implementor），
+        // 但 wiring 层（src/init/）可以同时依赖两者，通过此回调在 Engine 初始化时
+        // 注入 portfolio-mgr.rhai 依赖的 pm_evidence_scale / pm_kelly_position 等函数。
+        // 修复前：DAG 主路径未注册 pm_*，导致 portfolio-mgr.rhai 的 pm_* 调用失败
+        // 被 try/catch 吞掉，决策永远走保守兜底路径（action="观望", confidence=0）。
+        if let Some(init) = EXTRA_INITIALIZER.get() {
+            init(&mut engine);
+        }
         engine
     })
+}
+
+/// 额外的 Engine 初始化回调类型。
+/// wiring 层通过 [`register_shared_engine_initializer`] 注册，
+/// 在 `shared_rhai_engine()` 首次创建时调用。
+type EngineInitializer = Box<dyn Fn(&mut Engine) + Send + Sync>;
+
+static EXTRA_INITIALIZER: OnceLock<EngineInitializer> = OnceLock::new();
+
+/// 注册额外的 Rhai Engine 初始化函数。
+///
+/// 必须在 `shared_rhai_engine()` 首次调用前注册（通常在应用启动时 `src/init/` 调用）。
+/// 后续注册不会生效（`OnceLock::set` 在已初始化后返回 Err）。
+///
+/// # 用途
+///
+/// rt-workflow（hybrid 层）不能依赖 AxInvest 专属 crate（如 stock-analysis），
+/// 但 portfolio-mgr.rhai 调用了 `pm_evidence_scale` 等 5 个由 stock-analysis
+/// 提供的 Rust 函数。wiring 层通过此回调在 Engine 初始化时注册这些函数，
+/// 使 DAG 主路径执行 portfolio-mgr.rhai 时 pm_* 调用能正确解析。
+pub fn register_shared_engine_initializer(init: EngineInitializer) {
+    if EXTRA_INITIALIZER.set(init).is_err() {
+        tracing::warn!(
+            "[code_executor] register_shared_engine_initializer 调用过晚：\
+             shared_rhai_engine 已初始化，额外注册将被忽略"
+        );
+    }
 }
 
 /// 执行 Rhai 脚本的 in-process 引擎。
@@ -62,7 +101,11 @@ fn shared_rhai_engine() -> &'static Engine {
 /// Phase 5: 返回 (script_result, input_params_snapshot) 二元组。
 /// input_params_snapshot 是所有 input_mapping 解析值的快照，
 /// 用于 What-If 回测 UI 读取原始参数值。
+///
+/// P1-D10: 通过 `cache_key` 复用全局 AST 缓存，避免批量分析时重复编译。
+/// `cache_key` 通常传 node_id（如 "portfolio-mgr"），仅用于日志诊断。
 async fn execute_rhai_directly(
+    cache_key: &str,
     code: &str,
     input_mapping: &std::collections::HashMap<String, String>,
     context: &ExecutionState,
@@ -133,19 +176,30 @@ async fn execute_rhai_directly(
 
     // 执行脚本，期望返回一个 map
     // scope_vars 已从 input_mapping 直接构建为 HashMap，避免 Rhai Scope 的 Send 限制。
-    // 使用 `eval_with_scope` 而非 `eval`：`eval` 不接受 scope，会导致 input_mapping
+    // 使用 `eval_ast_with_scope` 而非 `eval`：`eval` 不接受 scope，会导致 input_mapping
     // 注入的所有变量（llm_events / money_flow_net 等）根本无法被脚本访问，
     // 触发 `Variable not found: xxx` 错误。这是 V57 修复的真正根因。
-    // 使用 `eval_with_scope` 而非 `eval_expression_with_scope`：.rhai 脚本含 `fn` 定义、
+    // 使用 `eval_ast_with_scope` 而非 `eval_expression_with_scope`：.rhai 脚本含 `fn` 定义、
     // `let` 语句等，`eval_expression_*` 仅支持单个表达式，遇到 `fn`/`let` 会报 "Unexpected 'fn'"。
+    //
+    // P1-D10: 先通过全局 AST 缓存获取编译后的 AST（首次编译，后续命中缓存），
+    // 再用 `eval_ast_with_scope` 执行。避免批量分析时重复编译 1373 行的 portfolio-mgr.rhai。
+    // AST 与 Engine 解耦：AST 只包含语法树，函数在 eval 时按 Engine 查找，
+    // 因此缓存的 AST 可被任意 Engine（含不同函数注册集）执行。
     let code_owned = code.to_string();
+    let cache_key_owned = cache_key.to_string();
     let join = tokio::task::spawn_blocking(move || {
         let engine = shared_rhai_engine();
+        // P1-D10: 获取或编译 AST（全局缓存，首次编译后永久命中）
+        let ast = get_or_compile_ast(&cache_key_owned, &code_owned, engine).map_err(|e| {
+            tracing::error!(error = %e, "Rhai AST 编译失败");
+            e
+        })?;
         let mut scope = rhai::Scope::new();
         for (k, v) in scope_vars {
             scope.push_constant(k, v);
         }
-        engine.eval_with_scope::<rhai::Dynamic>(&mut scope, &code_owned).map_err(|e| e.to_string())
+        engine.eval_ast_with_scope::<rhai::Dynamic>(&mut scope, &ast).map_err(|e| e.to_string())
     });
     let result: rhai::Dynamic = match tokio::time::timeout(
         std::time::Duration::from_secs(30), // P2-18: 30s 硬上限
@@ -438,6 +492,7 @@ impl NodeExecutorTrait for CodeExecutor {
                 super::resolve_var_path("a-catalyst.content.catalyst_level", &context.variables),
             );
             let (result, input_params) = execute_rhai_directly(
+                &code_node.base.id,
                 &code_node.config.code,
                 &code_node.config.input_mapping,
                 context,

@@ -1,0 +1,204 @@
+/**
+ * 数据源健康仪表盘 — 展示所有 vendor 的实时健康状态
+ *
+ * 数据来源: get_vendor_health_all 后端命令
+ * 覆盖: 在线状态 / 成功率 / 连续失败 / 窗口失败 / 最后错误 / 最后成功时间
+ */
+
+import { invoke } from "@/lib/invoke";
+import { Card, Spin, Tag, Tooltip } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+/** 对应后端 VendorHealth struct */
+interface VendorHealthItem {
+  name: string;
+  consecutiveFailures: number;
+  totalSuccesses: number;
+  totalFailures: number;
+  status: "healthy" | "degraded" | "disabled";
+  lastError: string | null;
+  lastSuccessAt: number | null;
+  lastFailureAt: number | null;
+}
+
+const VENDOR_LABELS: Record<string, string> = {
+  tencent: "腾讯行情",
+  eastmoney: "东方财富",
+  sina: "新浪财经",
+  ths: "同花顺",
+  cninfo: "巨潮资讯",
+  baidu_stock: "百度股票",
+  iwencai: "问财",
+  akshare: "AKShare",
+  mootdx: "MooTDX",
+  browser_eastmoney: "浏览器东方财富",
+  neodata: "NeoData",
+  xueqiu: "雪球",
+  guba: "东方财富股吧",
+  international: "国际股票",
+};
+
+/** 状态颜色映射 */
+const STATUS_COLORS: Record<string, string> = {
+  healthy: "#22c55e",
+  degraded: "#eab308",
+  disabled: "#ef4444",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  healthy: "正常",
+  degraded: "降级",
+  disabled: "已禁用",
+};
+
+export function VendorHealthDashboard() {
+  const { t } = useTranslation();
+  const [data, setData] = useState<VendorHealthItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await invoke<VendorHealthItem[]>("get_vendor_health_all");
+      setData(result);
+    } catch (e: unknown) {
+      setError(typeof e === "string" ? e : e instanceof Error ? e.message : "加载失败");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    // 每 30s 自动刷新
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
+  }, [load]);
+
+  // 统计
+  const healthyCount = data.filter((d) => d.status === "healthy").length;
+  const degradedCount = data.filter((d) => d.status === "degraded").length;
+  const disabledCount = data.filter((d) => d.status === "disabled").length;
+
+  const formatTime = (ms: number | null): string => {
+    if (!ms) { return "-"; }
+    const d = new Date(ms);
+    const now = Date.now();
+    const diffMin = Math.floor((now - ms) / 60000);
+    if (diffMin < 1) { return "刚刚"; }
+    if (diffMin < 60) { return `${diffMin} 分钟前`; }
+    return d.toLocaleString("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  return (
+    <Card
+      size="small"
+      title={
+        <div className="flex items-center gap-3">
+          <span>{t("stockAnalysis.settings.vendorHealth", "数据源健康状态")}</span>
+          <div className="flex gap-2 text-xs">
+            <Tag color="green">{healthyCount} 正常</Tag>
+            {degradedCount > 0 && <Tag color="orange">{degradedCount} 降级</Tag>}
+            {disabledCount > 0 && <Tag color="red">{disabledCount} 禁用</Tag>}
+          </div>
+        </div>
+      }
+      extra={
+        <button
+          onClick={load}
+          className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? t("common.loading", "刷新中...") : t("common.refresh", "刷新")}
+        </button>
+      }
+      className="bg-gray-900/50"
+    >
+      {loading && data.length === 0
+        ? (
+          <div className="flex justify-center py-8">
+            <Spin />
+          </div>
+        )
+        : error
+        ? <div className="text-red-400 text-center py-4 text-sm">{error}</div>
+        : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {data.map((vendor) => (
+              <Tooltip
+                key={vendor.name}
+                title={
+                  <div className="text-xs space-y-1">
+                    <div>
+                      {t("stockAnalysis.settings.vendorTotalSuccess", "总成功")}:{" "}
+                      {vendor.totalSuccesses.toLocaleString()}
+                    </div>
+                    <div>
+                      {t("stockAnalysis.settings.vendorTotalFailures", "总失败")}:{" "}
+                      {vendor.totalFailures.toLocaleString()}
+                    </div>
+                    <div>
+                      {t("stockAnalysis.settings.vendorConsecutiveFailures", "连续失败")}: {vendor.consecutiveFailures}
+                    </div>
+                    {vendor.lastError && (
+                      <div className="text-red-300">
+                        {t("stockAnalysis.settings.vendorLastError", "最后错误")}: {vendor.lastError}
+                      </div>
+                    )}
+                  </div>
+                }
+              >
+                <div
+                  className="flex items-center justify-between p-2 rounded-md text-xs cursor-default"
+                  style={{
+                    backgroundColor: vendor.status === "healthy"
+                      ? "rgba(34,197,94,0.08)"
+                      : vendor.status === "degraded"
+                      ? "rgba(234,179,8,0.08)"
+                      : "rgba(239,68,68,0.08)",
+                  }}
+                >
+                  {/* 左侧：名称 + 状态 */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: STATUS_COLORS[vendor.status] ?? "#6B7280" }}
+                    />
+                    <span className="text-gray-200 truncate">
+                      {VENDOR_LABELS[vendor.name] ?? vendor.name}
+                    </span>
+                    <Tag
+                      className="text-[10px] leading-none px-1 py-0"
+                      color={STATUS_COLORS[vendor.status] ?? "default"}
+                    >
+                      {STATUS_LABELS[vendor.status] ?? vendor.status}
+                    </Tag>
+                  </div>
+
+                  {/* 右侧：时间信息 */}
+                  <div className="text-gray-500 text-[10px] text-right shrink-0 ml-2">
+                    <div>
+                      {t("stockAnalysis.settings.vendorLastSuccess", "成功")}: {formatTime(vendor.lastSuccessAt)}
+                    </div>
+                    {vendor.lastFailureAt && (
+                      <div className="text-red-400/60">
+                        {t("stockAnalysis.settings.vendorLastFailure", "失败")}: {formatTime(vendor.lastFailureAt)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Tooltip>
+            ))}
+          </div>
+        )}
+    </Card>
+  );
+}

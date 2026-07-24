@@ -410,6 +410,7 @@ pub mod browser_eastmoney;
 pub mod cninfo;
 pub mod eastmoney;
 pub mod guba;
+pub mod international;
 pub mod iwencai;
 pub mod mootdx;
 pub mod neodata;

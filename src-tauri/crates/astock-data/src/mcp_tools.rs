@@ -904,12 +904,21 @@ pub async fn execute_mcp_tool(
                         }
                     })
                     .collect();
-                // 年化波动率 = std(daily_returns) * sqrt(252) * 100
+                // P3-C8: 夏普比率统一走 harness 实现（样本方差 n-1，A 股 244 天年化）。
+                // 修复历史 bug: 原实现误用总体方差（n 分母），且 252/244 混用导致
+                // 与 stock-analysis/risk.rs 的 Sharpe 结果分叉。
+                // 保留 rf=3% 作为 A 股长期无风险利率近似（10 年期国债中枢）。
+                let rf_daily = 0.03 / axagent_harness::indicators::A_SHARE_TRADING_DAYS_PER_YEAR;
+                let sharpe = axagent_harness::indicators::sharpe_ratio_with_annualization(
+                    &returns,
+                    rf_daily,
+                    axagent_harness::indicators::A_SHARE_TRADING_DAYS_PER_YEAR,
+                );
+                // 年化波动率: 复用 harness stddev_sample 保持算法一致（样本方差 n-1）
                 let mean = returns.iter().sum::<f64>() / returns.len() as f64;
-                let variance = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>()
-                    / returns.len().max(1) as f64;
-                let std = variance.sqrt();
-                let ann_vol = std * (252.0_f64).sqrt() * 100.0;
+                let std = axagent_harness::indicators::stddev_sample(&returns, mean);
+                let ann_vol =
+                    std * axagent_harness::indicators::A_SHARE_TRADING_DAYS_PER_YEAR.sqrt() * 100.0;
                 // 最大回撤
                 let mut peak = closes[0];
                 let mut max_dd = 0.0_f64;
@@ -925,13 +934,6 @@ pub async fn execute_mcp_tool(
                     }
                 }
                 let max_dd_pct = max_dd * 100.0;
-                // 夏普比率 (年化, rf=3%)
-                let rf_daily = 0.03 / 252.0;
-                let sharpe = if std > 0.0 {
-                    (mean - rf_daily) / std * (252.0_f64).sqrt()
-                } else {
-                    0.0
-                };
                 (
                     (ann_vol * 10.0).round() / 10.0,
                     (max_dd_pct * 10.0).round() / 10.0,

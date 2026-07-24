@@ -30,6 +30,7 @@ pub mod agent;
 pub mod calibration;
 pub mod config;
 pub mod error;
+pub mod events;
 pub mod kernel;
 pub mod monte_carlo;
 pub mod oracle;
@@ -47,11 +48,14 @@ pub use types::{
 
 // Phase 2+3 re-exports
 pub use agent::{
-    AgentAction, AgentContext, AgentMessage, AgentType, BackgroundAgent, ExchangeAgent,
-    InstitutionalAgent, MarketMakerAgent, MessageBody, MomentumAgent, NoiseAgent,
+    AgentAction, AgentContext, AgentMessage, AgentType, BackgroundAgent, EventDrivenAgent,
+    ExchangeAgent, InstitutionalAgent, MarketMakerAgent, MessageBody, MomentumAgent, NoiseAgent,
     QuantStrategyAgent, RhaiAgent, SimAgent, StrategyAgent, ValueAgent,
 };
 pub use calibration::{BEST_PARAMS, CalibrationParam, CalibrationResult, CalibrationRunner};
 pub use config::{LatencyMatrix, SimConfig};
 pub use kernel::{SimKernel, SimResult, SimStats};
 pub use stylized_facts::{StylizedFacts, TargetRange};
+
+// P2-C9: 外部事件 DTO + 事件注入接口
+pub use events::{ExternalEvent, ExternalEventKind};

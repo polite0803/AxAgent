@@ -319,6 +319,8 @@ pub struct AppState {
     pub astock_client: Arc<axagent_astock_data::AStockClient>,
     /// 交易引擎（持仓 / 回测 / 组合风险）
     pub trading_engine: Arc<TokioRwLock<axagent_stock_analysis::trading::TradingEngine>>,
+    /// 执行桥接器（量化信号→实盘交易）
+    pub execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState,
     /// 实时监控器（T+0 / 盘口 / 异常波动），可选
     pub stock_monitor: Option<Arc<axagent_stock_analysis::monitor::RealtimeMonitor>>,
     /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）

@@ -807,14 +807,15 @@ mod tests {
 
     #[test]
     fn sharpe_rejects_too_few_points() {
-        assert!(compute_sharpe(&[1.0, 2.0, 3.0], 252.0).is_none());
+        // P3-C8: 年化因子切换为 A 股 244 天
+        assert!(compute_sharpe(&[1.0, 2.0, 3.0], 244.0).is_none());
     }
 
     #[test]
     fn sharpe_basic_calculation() {
-        // 6 个点 1% mean 0.5% std → sharpe = 1/0.5 * sqrt(252) ≈ 31.7
+        // 6 个点 1% mean 0.5% std → sharpe = 1/0.5 * sqrt(244) ≈ 31.2
         let r = vec![0.5, 1.0, 1.5, 1.0, 0.5, 1.5];
-        let s = compute_sharpe(&r, 252.0).unwrap();
+        let s = compute_sharpe(&r, 244.0).unwrap();
         assert!(s > 25.0 && s < 40.0, "sharpe = {s}");
     }
 

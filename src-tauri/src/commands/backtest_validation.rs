@@ -183,6 +183,23 @@ pub async fn run_decision_backtest(
         })?
     };
 
+    // ── 4.5 P2-F15: outcome 回写 ──
+    // T+N 验证完成后，根据 hit_outcome 反推 stock_analyses.outcome（win/loss），
+    // 然后回写 lesson_applications.outcome_at_validation。
+    // 这样 run_lesson_validation 就能精确统计 success_count。
+    //
+    // 匹配策略：通过 stock_code + generated_at 日期匹配 stock_analyses 行。
+    // 注意：reco_picks 和 stock_analyses 是两条独立路径，这里用日期近似匹配，
+    // 可能存在一对多情况（同一天同一只股票多个 analysis），取最近的一条。
+    if !dry_run && !validations.is_empty() {
+        let synced = sync_outcomes_to_stock_analyses(db, &validations).await;
+        if synced > 0 {
+            tracing::info!(
+                "[backtest] P2-F15: 从 decision_validations 回写 {synced} 条 stock_analyses.outcome + lesson_applications"
+            );
+        }
+    }
+
     // ── 5. 聚合报告 ──
     let report = if validations.is_empty() {
         empty_report()
@@ -482,6 +499,111 @@ fn uuid_v4() -> String {
         std::process::id(),
         nanos as u64 & 0xFFFFFFFFFFFF
     )
+}
+
+/// P2-F15 切入点 3：从 decision_validations 回写 stock_analyses.outcome + lesson_applications.outcome_at_validation
+///
+/// 遍历本次 T+N 验证结果（`PickValidation`），根据 `hit_outcome` 推断 win/loss，
+/// 然后通过 `stock_code + generated_at` 日期匹配 `stock_analyses` 行，更新其
+/// `outcome` 字段，并同步回写 `lesson_applications.outcome_at_validation`。
+///
+/// ## hit_outcome → outcome 映射
+/// - `hit` / `partial` → `win`
+/// - `miss` / `false_hit` → `loss`
+/// - `insufficient` / `None` → 跳过（数据不足，不做判定）
+///
+/// ## 匹配策略
+/// `reco_picks.generated_at`（ISO 8601）取日期部分，匹配 `stock_analyses.analysis_date`
+/// （YYYY-MM-DD）。同一只股票同一天可能有多个 analysis，取 `created_at` 最大（最新）的一条。
+///
+/// ## 幂等性
+/// `update_lesson_application_outcome` 内部有 `outcome_at_validation IS NULL` 守卫，
+/// 不会覆盖已验证结果。`stock_analyses.outcome` 用 `update_many` 直接覆盖，
+/// 但同一 analysis 的 T+N 验证结果应该是一致的（T+5/T+20/T+60 可能不同，
+/// 取最严重的 loss 优先）。
+async fn sync_outcomes_to_stock_analyses(
+    db: &sea_orm::DatabaseConnection,
+    validations: &[PickValidation],
+) -> u64 {
+    use axagent_entities::stock_analyses;
+    use sea_orm::sea_query::Expr;
+    use sea_orm::{ColumnTrait, Condition, EntityTrait, QueryFilter, QueryOrder};
+
+    let mut synced = 0u64;
+
+    for v in validations {
+        // 1. hit_outcome → outcome 映射
+        let Some(ref hit_outcome) = v.hit_outcome else {
+            continue;
+        };
+        let outcome = match hit_outcome.as_str() {
+            "hit" | "partial" => "win",
+            "miss" | "false_hit" => "loss",
+            "insufficient" => continue,
+            _ => continue,
+        };
+
+        // 2. 从 generated_at 提取日期（YYYY-MM-DD）
+        let decision_date = v.generated_at.get(..10).unwrap_or(&v.generated_at);
+
+        // 3. 查 stock_analyses 中匹配的行（stock_code + analysis_date）
+        //    取最新的一条，避免一对多时更新多条
+        //    只更新 outcome 为 NULL 或 pending 的行，避免覆盖已验证结果
+        let matching = stock_analyses::Entity::find()
+            .filter(stock_analyses::Column::StockCode.eq(&v.stock_code))
+            .filter(stock_analyses::Column::AnalysisDate.eq(decision_date))
+            .filter(
+                Condition::any()
+                    .add(stock_analyses::Column::Outcome.is_null())
+                    .add(stock_analyses::Column::Outcome.eq("pending")),
+            )
+            .order_by_desc(stock_analyses::Column::CreatedAt)
+            .one(db)
+            .await;
+
+        let Ok(Some(analysis)) = matching else {
+            // 无匹配行或查询失败，跳过
+            continue;
+        };
+
+        // 4. 更新 stock_analyses.outcome
+        let validation_source = match v.t_plus_n {
+            5 => "t_plus_5",
+            20 => "t_plus_20",
+            60 => "t_plus_60",
+            _ => "t_plus_n",
+        };
+
+        let update_result = stock_analyses::Entity::update_many()
+            .col_expr(stock_analyses::Column::Outcome, Expr::value(outcome))
+            .col_expr(
+                stock_analyses::Column::UpdatedAt,
+                Expr::value(chrono::Utc::now().timestamp_millis()),
+            )
+            .filter(stock_analyses::Column::Id.eq(&analysis.id))
+            .exec(db)
+            .await;
+
+        if update_result.is_err() {
+            continue;
+        }
+
+        // 5. 回写 lesson_applications.outcome_at_validation
+        //    调用 core::update_lesson_application_outcome
+        let affected = crate::commands::stock_workflow::core::update_lesson_application_outcome(
+            db,
+            &analysis.id,
+            outcome,
+            validation_source,
+        )
+        .await;
+
+        if affected > 0 {
+            synced += affected;
+        }
+    }
+
+    synced
 }
 
 #[cfg(test)]

@@ -77,99 +77,22 @@ impl Default for IndicatorConfig {
     }
 }
 
-/// Compute SMA (Simple Moving Average) — 取最近 period 个数据
-///
-/// 本 crate 内 SMA 的唯一实现；跨 crate（stock-analysis）通过
-/// `axagent_astock_data::indicators::sma` 复用，避免重复定义。
-pub fn sma(data: &[f64], period: usize) -> Option<f64> {
-    if data.len() < period || period == 0 {
-        return None;
-    }
-    let start = data.len() - period;
-    Some(data[start..].iter().sum::<f64>() / period as f64)
-}
+// ── P2-C7: 技术指标统一收口到 harness foundation 层 ──
+//
+// 历史上 SMA/EMA/RSI/stddev 在 astock-data、quant、market-sim、stock-analysis
+// 各有重复实现，存在算法漂移风险。现已统一到 `axagent_harness::indicators`，
+// 本 crate 通过 `pub use` re-export 保持外部 API 兼容（`axagent_astock_data::indicators::sma` 等）。
+//
+// - `sma`            → harness::indicators::sma
+// - `build_ema_series` → harness::indicators::build_ema_series
+// - `rsi`            → harness::indicators::rsi_wilder (别名)
+// - `stddev`         → harness::indicators::stddev_sample (crate 内部别名, 原 private)
+// - `ema` (单值版)   → 删除, 测试改用 build_ema_series 或 ema_last
 
-/// Compute EMA for a single final value
-#[allow(dead_code)]
-fn ema(data: &[f64], period: usize) -> f64 {
-    if data.is_empty() {
-        return 0.0;
-    }
-    let multiplier = 2.0 / (period as f64 + 1.0);
-    let mut result = data[0];
-    for &val in &data[1..] {
-        result = (val - result) * multiplier + result;
-    }
-    result
-}
-
-/// Build complete EMA series (one EMA value per input point)
-///
-/// 本 crate 内 EMA 序列的唯一实现；跨 crate（stock-analysis）通过
-/// `axagent_astock_data::indicators::build_ema_series` 复用。
-/// 首值用前 `period` 个数据的 SMA 初始化（标准 EMA 初始化）。
-pub fn build_ema_series(data: &[f64], period: usize) -> Vec<f64> {
-    if data.is_empty() || period == 0 {
-        return vec![0.0];
-    }
-    let multiplier = 2.0 / (period as f64 + 1.0);
-    let mut result = Vec::with_capacity(data.len());
-    let init_n = period.min(data.len());
-    let init_sma: f64 = data[..init_n].iter().sum::<f64>() / init_n as f64;
-    let mut ema_val = init_sma;
-    result.push(ema_val);
-    for &val in &data[1..] {
-        ema_val = (val - ema_val) * multiplier + ema_val;
-        result.push(ema_val);
-    }
-    result
-}
-
-/// Compute RSI (Wilder's smoothing method)
-///
-/// 本 crate 内 RSI 的唯一实现；跨 crate 通过
-/// `axagent_astock_data::indicators::rsi` 复用。
-/// 数据不足（`len < period + 1` 或 `period == 0`）返回 `None`，
-/// 调用方自行决定中性默认值（如 50.0）。
-pub fn rsi(closes: &[f64], period: usize) -> Option<f64> {
-    if closes.len() < period + 1 || period == 0 {
-        return None;
-    }
-    let mut avg_gain = 0.0;
-    let mut avg_loss = 0.0;
-    for i in 1..=period {
-        let diff = closes[i] - closes[i - 1];
-        if diff > 0.0 {
-            avg_gain += diff;
-        } else {
-            avg_loss += -diff;
-        }
-    }
-    avg_gain /= period as f64;
-    avg_loss /= period as f64;
-    for i in (period + 1)..closes.len() {
-        let diff = closes[i] - closes[i - 1];
-        let gain = if diff > 0.0 { diff } else { 0.0 };
-        let loss = if diff < 0.0 { -diff } else { 0.0 };
-        avg_gain = (avg_gain * (period - 1) as f64 + gain) / period as f64;
-        avg_loss = (avg_loss * (period - 1) as f64 + loss) / period as f64;
-    }
-    if avg_loss < 1e-10 {
-        return Some(100.0);
-    }
-    let rs = avg_gain / avg_loss;
-    Some(100.0 - (100.0 / (1.0 + rs)))
-}
-
-/// Compute sample standard deviation for Bollinger Bands (n-1 denominator)
-fn stddev(data: &[f64], mean: f64) -> f64 {
-    let n = data.len() as f64;
-    if n < 2.0 {
-        return 0.0;
-    }
-    let variance = data.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n - 1.0);
-    variance.sqrt()
-}
+pub use axagent_harness::indicators::rsi_wilder as rsi;
+pub use axagent_harness::indicators::{build_ema_series, sma};
+// crate 内部便捷别名（原 private fn，外部不应依赖）
+pub(crate) use axagent_harness::indicators::stddev_sample as stddev;
 
 /// Compute all technical indicators from K-line data with configurable parameters.
 /// Pass `None` for `config` to use default parameters.
@@ -461,8 +384,10 @@ mod tests {
 
     #[test]
     fn test_ema_non_empty() {
+        // P2-C7: 本地 ema(单值版) 已删除, 改用 harness::build_ema_series 末值
         let data = vec![10.0, 20.0, 30.0, 40.0, 50.0];
-        let result = ema(&data, 5);
+        let series = build_ema_series(&data, 5);
+        let result = series.last().copied().unwrap_or(0.0);
         assert!(result > 0.0);
     }
 

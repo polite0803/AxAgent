@@ -8,6 +8,7 @@
 //!   ⑤ 性能基准
 
 use async_trait::async_trait;
+use axagent_harness::indicators::sma;
 use axagent_market_sim::{
     BEST_PARAMS, ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel,
     SimResult, StrategyAgent,
@@ -354,10 +355,10 @@ impl axagent_harness::strategy_contract::Strategy for MockMaCrossStrategy {
             return Ok(vec![]);
         }
         let cs: Vec<f64> = history.iter().map(|b| b.close).collect();
-        let cur_short = sma_last(&cs, self.short_period);
-        let cur_long = sma_last(&cs, self.long_period);
-        let prev_short = sma_last(&cs[..cs.len() - 1], self.short_period);
-        let prev_long = sma_last(&cs[..cs.len() - 1], self.long_period);
+        let cur_short = sma(&cs, self.short_period);
+        let cur_long = sma(&cs, self.long_period);
+        let prev_short = sma(&cs[..cs.len() - 1], self.short_period);
+        let prev_long = sma(&cs[..cs.len() - 1], self.long_period);
 
         if let (Some(cs_), Some(cl_), Some(ps_), Some(pl_)) =
             (cur_short, cur_long, prev_short, prev_long)
@@ -385,12 +386,4 @@ impl axagent_harness::strategy_contract::Strategy for MockMaCrossStrategy {
         }
         Ok(vec![])
     }
-}
-
-fn sma_last(values: &[f64], period: usize) -> Option<f64> {
-    if values.len() < period || period == 0 {
-        return None;
-    }
-    let start = values.len() - period;
-    Some(values[start..].iter().sum::<f64>() / period as f64)
 }

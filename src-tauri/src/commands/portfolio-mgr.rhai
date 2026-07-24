@@ -11,6 +11,12 @@
 //   - 因子权重 = t-scoring 回测的信息系数(IC)归一化
 //
 // 缺失因子不参与融合（不编造数据）。
+//
+// P2-B4: 统一新闻情感分词典已在 `axagent_astock_data::sentiment` 落地,
+// 并通过 `pm_compute_news_sentiment(title, summary)` / `pm_compute_text_sentiment(text)`
+// 注册到共享 Rhai Engine。下方公告关键词检测逻辑(risk_kw/pos_kw)保留独立实现,
+// 因为它输出 [-0.3, 0.3] 修正信号(语义不同于 sentiment_score [-1.0, 1.0])。
+// 未来重构可考虑调用 pm_compute_news_sentiment 替代本地词典。
 
 // ── Rhai 全局函数（必须位于全局作用域，Rhai 不允许在 try/块内定义函数）──
 fn present(x) { type_of(x) != "()" }
@@ -40,6 +46,18 @@ fn risk_rank(label) {
         "极高风险"|"极高" => 3,
         _ => 1
     }
+}
+// has_negation: 检查关键词前 N 字符是否含否定词（避免"没有退市风险"被误判为风险信号）
+// 必须位于全局作用域（Rhai 不允许在块内定义函数）
+fn has_negation(text, kw, negs) {
+    let idx = text.index_of(kw);
+    if idx == -1 { return false; }
+    // 取关键词前 20 个字符（覆盖常见的否定短语长度）
+    let before = if idx >= 20 { text.sub_string(idx - 20, 20) } else { text.sub_string(0, idx) };
+    for n in negs {
+        if before.contains(n) { return true; }
+    }
+    false
 }
 
 // ── 防御性兜底：任何 Rhai 运行时错误都返回可解析的保守决策，避免节点无输出 ──
@@ -164,16 +182,7 @@ let announcement_modifier = if present(announcements) && type_of(announcements) 
                 let neg_prefixes = ["没有", "未发现", "不存在", "不存在", "已消除",
                                     "已解决", "已排除", "并非", "非", "尚未",
                                     "未触及", "未达到", "未发生"];
-                fn has_negation(text, kw, negs) {
-                    let idx = text.index_of(kw);
-                    if idx == -1 { return false; }
-                    // 取关键词前 20 个字符（覆盖常见的否定短语长度）
-                    let before = if idx >= 20 { text.sub_string(idx - 20, 20) } else { text.sub_string(0, idx) };
-                    for n in negs {
-                        if before.contains(n) { return true; }
-                    }
-                    false
-                }
+                // has_negation 函数已移至全局作用域（Rhai 不允许在块内定义函数）
                 // 高风险关键词检测（含否定词过滤）
                 for kw in risk_kw {
                     if combined.contains(kw) || combined.contains(kw.to_upper()) {

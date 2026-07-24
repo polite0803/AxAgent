@@ -1149,6 +1149,9 @@ mod tests_conversation {
                     Box::new(axagent_trajectory::DefaultSandboxToolTester),
                 ),
             ))),
+            execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(
+                Arc::new(db.clone()),
+            ),
         };
 
         let attachments = vec![AttachmentInput {

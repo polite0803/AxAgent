@@ -4,8 +4,10 @@
 
 use serde::Serialize;
 
-/// 默认日频年化因子（252 个交易日）
-pub const ANNUALIZATION_FACTOR_DAILY: f64 = 252.0;
+// P3-C8: 年化因子改用 harness 统一常量（A 股 244 天），消除 252/244 混用。
+// 保留 `ANNUALIZATION_FACTOR_DAILY` 名称作为对外 API 稳定性兼容（portfolio_monitor 等下游引用），
+// 但语义已从"美股 252"切换为"A 股 244"。
+pub use axagent_harness::indicators::A_SHARE_TRADING_DAYS_PER_YEAR as ANNUALIZATION_FACTOR_DAILY;
 /// 凯利公式默认重仓阈值
 pub const KELLY_HEAVY_THRESHOLD: f64 = 0.25;
 /// 凯利公式默认中仓阈值
@@ -52,32 +54,28 @@ pub fn sharpe_ratio(returns: &[f64], risk_free: f64) -> SharpeResult {
 
 /// 夏普比率核心计算：返回 (sharpe, annualized, mean_return, stddev)。
 ///
-/// 使用样本方差（n-1）；`portfolio_monitor::compute_sharpe` 复用本函数避免重复实现。
+/// P3-C8: 委托 `axagent_harness::indicators::sharpe_components` 统一实现，
+/// 消除本 crate 与 astock-data/tools/quant 的算法分叉（252/244、n/n-1）。
+/// `portfolio_monitor::compute_sharpe` 复用本函数避免重复实现。
+///
+/// 保留四舍五入到 3-4 位小数的历史行为，确保下游序列化输出稳定。
 pub(crate) fn sharpe_components(
     returns: &[f64],
     risk_free: f64,
     annualization_factor: f64,
 ) -> (f64, f64, f64, f64) {
-    let n = returns.len();
-    if n < 2 {
-        return (0.0, 0.0, 0.0, 0.0);
-    }
-    let mean: f64 = returns.iter().sum::<f64>() / n as f64;
-    let variance: f64 = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
-    let stddev = variance.sqrt();
-    let excess = mean - risk_free;
-    let sharpe = if stddev > 0.0 { excess / stddev } else { 0.0 };
-    let annualized = sharpe * annualization_factor.sqrt();
+    let c =
+        axagent_harness::indicators::sharpe_components(returns, risk_free, annualization_factor);
     (
-        (sharpe * 1000.0).round() / 1000.0,
-        (annualized * 1000.0).round() / 1000.0,
-        (mean * 10000.0).round() / 100.0,
-        (stddev * 10000.0).round() / 100.0,
+        (c.sharpe * 1000.0).round() / 1000.0,
+        (c.annualized * 1000.0).round() / 1000.0,
+        (c.mean_return * 10000.0).round() / 100.0,
+        (c.stddev * 10000.0).round() / 100.0,
     )
 }
 
 /// 带自定义年化因子的夏普比率。
-/// `annualization_factor` 为年化时的周期数（日频=252，周频=52，月频=12）。
+/// `annualization_factor` 为年化时的周期数（A 股日频=244，周频=52，月频=12）。
 pub fn sharpe_ratio_with_annualization(
     returns: &[f64],
     risk_free: f64,
@@ -343,7 +341,8 @@ mod tests {
     #[test]
     fn test_sharpe_ratio() {
         let returns = vec![0.01, 0.02, -0.01, 0.005, 0.015];
-        let r = sharpe_ratio(&returns, 0.02 / 252.0);
+        // P3-C8: 年化因子切换为 A 股 244 天
+        let r = sharpe_ratio(&returns, 0.02 / 244.0);
         assert!(r.sharpe > 0.0, "positive mean return should give positive sharpe");
     }
 

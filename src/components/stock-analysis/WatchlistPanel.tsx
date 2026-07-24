@@ -24,7 +24,6 @@ interface QuoteSnapshot {
 }
 
 const DEFAULT_GROUP = "__default__";
-const GROUP_STORAGE_KEY = "ax_watchlist_groups";
 
 type SortKey = "name" | "change" | "code";
 
@@ -49,36 +48,47 @@ export function WatchlistPanel() {
   const [newGroup, setNewGroup] = useState("");
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
 
-  // 分组列表（从 localStorage）—— 使用 ref 避免在 onClose 事件里拿到旧值
+  // 分组列表（从 DB settings 表）
   const groupsRef = useRef<string[]>([]);
   const [groupsVersion, setGroupsVersion] = useState(0);
-  const groups = useMemo(() => {
+
+  // 从 DB 加载分组
+  const loadGroups = useCallback(async () => {
     try {
-      return JSON.parse(localStorage.getItem(GROUP_STORAGE_KEY) ?? "[]") as string[];
+      const g = await invoke<string[]>("watchlist_list_groups");
+      groupsRef.current = g;
+      setGroupsVersion((v) => v + 1);
     } catch {
-      return [];
+      groupsRef.current = [];
+      setGroupsVersion((v) => v + 1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupsVersion]);
+  }, []);
+
   useEffect(() => {
-    groupsRef.current = groups;
-  }, [groups]);
+    loadGroups();
+  }, [loadGroups]);
 
-  const saveGroups = (g: string[]) => {
-    localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(g));
-    setGroupsVersion((v) => v + 1);
-  };
+  const groups = useMemo(() => groupsRef.current, [groupsVersion]);
 
-  const removeGroupAndReassign = (g: string) => {
-    const next = groupsRef.current.filter((x) => x !== g);
-    saveGroups(next);
-    setActiveGroup(DEFAULT_GROUP);
-    setEditingGroup(null);
-    // 将该分组下所有自选股移回默认分组
-    const moving = items.filter((i) => i.group === g);
-    if (moving.length === 0) { return; }
-    Promise.all(moving.map((i) => invoke("add_to_watchlist", { stockCode: i.stockCode, notes: "" })))
-      .catch(() => message.error(t("common.error")));
+  const removeGroupAndReassign = async (g: string) => {
+    try {
+      const next = groupsRef.current.filter((x) => x !== g);
+      await invoke("watchlist_save_groups", { groups: next });
+      groupsRef.current = next;
+      setGroupsVersion((v) => v + 1);
+      setActiveGroup(DEFAULT_GROUP);
+      setEditingGroup(null);
+      // 将该分组下所有自选股移回默认分组
+      const moving = items.filter((i) => i.group === g);
+      for (const item of moving) {
+        try {
+          await invoke("watchlist_update_group", { id: item.id, groupName: DEFAULT_GROUP });
+        } catch { /* 继续 */ }
+      }
+      setItems((prev) => prev.map((i) => (i.group === g ? { ...i, group: DEFAULT_GROUP } : i)));
+    } catch {
+      message.error(t("common.error"));
+    }
   };
 
   const loadWatchlist = useCallback(async () => {
@@ -216,8 +226,7 @@ export function WatchlistPanel() {
 
   const moveToGroup = async (item: WatchlistItem, targetGroup: string) => {
     try {
-      const notes = JSON.stringify({ group: targetGroup });
-      await invoke("add_to_watchlist", { stockCode: item.stockCode, stockName: item.stockName, notes });
+      await invoke("watchlist_update_group", { id: item.id, groupName: targetGroup });
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, group: targetGroup } : i)));
     } catch { /* 静默 */ }
   };
@@ -240,13 +249,17 @@ export function WatchlistPanel() {
     message.info(t("stockAnalysis.watchlist.analysisStarted", { count: sorted.length }));
   };
 
-  const addGroup = () => {
+  const addGroup = async () => {
     const name = newGroup.trim();
     if (!name || groups.includes(name)) { return; }
     const updated = [...groups, name];
-    saveGroups(updated);
-    setNewGroup("");
-    setActiveGroup(name);
+    try {
+      await invoke("watchlist_save_groups", { groups: updated });
+      groupsRef.current = updated;
+      setGroupsVersion((v) => v + 1);
+      setNewGroup("");
+      setActiveGroup(name);
+    } catch { /* 静默 */ }
   };
 
   if (loading) {
@@ -277,17 +290,49 @@ export function WatchlistPanel() {
           {t("stockAnalysis.watchlist.all", { count: items.length })}
         </Tag>
         {groups.map((g) => (
-          <Tag
-            key={g}
-            color={activeGroup === g ? "blue" : "default"}
-            className="cursor-pointer m-0 text-xs"
-            closable={editingGroup === g}
-            onClose={() => removeGroupAndReassign(g)}
-            onClick={() => setActiveGroup(g)}
-            onDoubleClick={() => setEditingGroup(g)}
-          >
-            {g} ({items.filter((i) => i.group === g).length})
-          </Tag>
+          editingGroup === g
+            ? (
+              <Input
+                key={g}
+                size="small"
+                style={{ width: 100 }}
+                defaultValue={g}
+                autoFocus
+                onPressEnter={async (e) => {
+                  const newName = (e.target as HTMLInputElement).value.trim();
+                  if (newName && newName !== g) {
+                    const updated = groupsRef.current.map((x) => (x === g ? newName : x));
+                    try {
+                      await invoke("watchlist_save_groups", { groups: updated });
+                      groupsRef.current = updated;
+                      setGroupsVersion((v) => v + 1);
+                      // 同时更新该分组下自选股的 group 名
+                      for (const item of items.filter((i) => i.group === g)) {
+                        try {
+                          await invoke("watchlist_update_group", { id: item.id, groupName: newName });
+                        } catch { /* continue */ }
+                      }
+                      setItems((prev) => prev.map((i) => (i.group === g ? { ...i, group: newName } : i)));
+                    } catch { /* 静默 */ }
+                  }
+                  setEditingGroup(null);
+                }}
+                onBlur={() => setEditingGroup(null)}
+              />
+            )
+            : (
+              <Tag
+                key={g}
+                color={activeGroup === g ? "blue" : "default"}
+                className="cursor-pointer m-0 text-xs"
+                closable={false}
+                onClose={() => removeGroupAndReassign(g)}
+                onClick={() => setActiveGroup(g)}
+                onDoubleClick={() => setEditingGroup(g)}
+              >
+                {g} ({items.filter((i) => i.group === g).length})
+              </Tag>
+            )
         ))}
         <Input
           size="small"

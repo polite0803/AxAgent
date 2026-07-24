@@ -40,6 +40,7 @@ pub mod error_code;
 pub mod evaluator;
 pub mod evolution;
 pub mod evolution_engine;
+pub(crate) mod execution_bridge;
 pub(crate) mod file_cleanup;
 pub mod files;
 pub mod files_page;

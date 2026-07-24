@@ -38,9 +38,10 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 pub mod pg_ddl;
 pub mod v100_consolidated;
 pub mod v200_axinvest_stock_tables;
+pub mod v201_lesson_application_tracking;
 
 /// 当前 schema 版本号。
-pub const CURRENT_VERSION: i32 = 200;
+pub const CURRENT_VERSION: i32 = 201;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -76,6 +77,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 200,
         description: "v200_axinvest_stock_tables: AxInvest 独有股票业务表（stock_analyses / stock_reflections / stock_pipeline_runs / strategy_performance）+ agency_experts/agent_profiles 的 category CHECK 约束扩展（加入 stock-analysis）",
         up: |db| Box::pin(v200_axinvest_stock_tables::up(db)),
+    },
+    Migration {
+        version: 201,
+        description: "v201_lesson_application_tracking: P2-F15 切入点 3 —— lesson_applications 关联表（记录决策分析引用了哪些 lesson + T+N 验证后回写 outcome，用于精确计算 times_applied/success_count）",
+        up: |db| Box::pin(v201_lesson_application_tracking::up(db)),
     },
 ];
 
@@ -228,7 +234,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 2, "schema_version should have exactly 2 rows (v100 + v200)");
+        assert_eq!(cnt, 3, "schema_version should have exactly 3 rows (v100 + v200 + v201)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

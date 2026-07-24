@@ -31,6 +31,8 @@ pub enum AgentType {
     Rhai,
     /// 用户主策略 Agent（AxInvest 策略的模拟接入点）
     Strategy,
+    /// 事件驱动 Agent（P2-C9：基于新闻/公告/财报事件触发交易）
+    EventDriven,
     /// 自定义类型
     Custom(String),
 }
@@ -46,6 +48,7 @@ impl AgentType {
             AgentType::Institutional => "institutional",
             AgentType::Rhai => "rhai",
             AgentType::Strategy => "strategy",
+            AgentType::EventDriven => "event_driven",
             AgentType::Custom(s) => s.as_str(),
         }
     }
@@ -105,6 +108,14 @@ pub enum MessageBody {
     RequestQuote,
     /// 订单簿快照回复（← ExchangeAgent）
     QuoteReply(BookSnapshot),
+
+    // ── 外部事件（P2-C9：Kernel → 广播给所有 Agent） ──
+    /// 外部事件通知（新闻/公告/财报/市场冲击）
+    ///
+    /// 由 `SimKernel::inject_event` 注入，Kernel 按事件 scheduled_at
+    /// 广播给所有已注册 Agent。EventDrivenAgent 收到后根据事件情感
+    /// 和影响强度决定交易行为。
+    ExternalEvent(crate::events::ExternalEvent),
 
     // ── 系统消息 ──
     /// 定时唤醒（Kernel → Agent 自唤醒）

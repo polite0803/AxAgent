@@ -155,6 +155,53 @@ impl Default for PipelineConfig {
     }
 }
 
+impl PipelineConfig {
+    /// P3-D12: 根据 vendor 健康度动态调节并发数。
+    ///
+    /// 算法（基于 `astock-data` 的 VendorHealthTracker 状态）：
+    /// - healthy_ratio = healthy_count / (healthy + degraded)（Disabled 不计入分母）
+    /// - healthy_ratio < 0.3（数据源大面积降级）→ 降到 1（保命模式）
+    /// - healthy_ratio < 0.6（部分降级）→ 降到 `max(1, base / 2)`
+    /// - 否则 → 保持 `base`
+    ///
+    /// 这样在批量股票分析时：
+    /// - 上游数据源健康 → 保持配置并发（默认 2）
+    /// - 部分降级 → 自动降速避免雪崩（如 200 只股票 × 8 并发 × 全部 vendor 重试）
+    /// - 大面积降级 → 强制串行（避免拖垮上游）
+    ///
+    /// 返回 `(actual_new_concurrency, actual_reassess_concurrency, healthy_ratio)`。
+    /// 调用方可记录日志反映调节情况。
+    pub fn resolve_concurrency_with_vendor_health(
+        &self,
+        health_snapshot: &[axagent_astock_data::vendor_health::VendorHealth],
+    ) -> (usize, usize, f64) {
+        use axagent_astock_data::vendor_health::VendorStatus;
+
+        // 过滤 Disabled（手动禁用的 vendor 不参与健康度计算）
+        let active: Vec<_> =
+            health_snapshot.iter().filter(|h| h.status != VendorStatus::Disabled).collect();
+        if active.is_empty() {
+            // 无 vendor 健康数据（首次运行 / 未探测）→ 保持配置值，不阻断业务
+            return (self.new_analysis_concurrency, self.holdings_reassess_concurrency, 1.0);
+        }
+        let healthy_count = active.iter().filter(|h| h.status == VendorStatus::Healthy).count();
+        let healthy_ratio = healthy_count as f64 / active.len() as f64;
+
+        let (new_c, reassess_c) = if healthy_ratio < 0.3 {
+            (1usize, 1usize)
+        } else if healthy_ratio < 0.6 {
+            (
+                (self.new_analysis_concurrency / 2).max(1),
+                (self.holdings_reassess_concurrency / 2).max(1),
+            )
+        } else {
+            (self.new_analysis_concurrency, self.holdings_reassess_concurrency)
+        };
+
+        (new_c, reassess_c, healthy_ratio)
+    }
+}
+
 /// 管道执行内部函数（供 Tauri 命令和 cron 调用）
 ///
 /// 不依赖 `AppHandle`/`State`，适合批量/cron 调用。
@@ -274,6 +321,35 @@ async fn run_pipeline_steps(
     run_id: &str,
     emit_step: &(dyn Fn(&str, &str) + Sync),
 ) -> Result<PipelineResult, String> {
+    // P3-D12: 根据 vendor 健康度动态调节并发数，避免上游降级时雪崩。
+    // client.health_tracker 由 astock-data 维护（30s 滑动窗口、自动恢复），
+    // 这里仅在批量入口取一次快照，避免每次 acquire 都查健康表的开销。
+    let health_snapshot = client.health_tracker.get_all_health().await;
+    let (actual_new_conc, actual_reassess_conc, healthy_ratio) =
+        config.resolve_concurrency_with_vendor_health(&health_snapshot);
+    if (actual_new_conc, actual_reassess_conc)
+        != (config.new_analysis_concurrency, config.holdings_reassess_concurrency)
+    {
+        let msg = format!(
+            "[stock_pipeline] P3-D12 并发动态调节: vendor healthy_ratio={:.2} → \
+             new_analysis {}→{}, holdings_reassess {}→{}",
+            healthy_ratio,
+            config.new_analysis_concurrency,
+            actual_new_conc,
+            config.holdings_reassess_concurrency,
+            actual_reassess_conc,
+        );
+        tracing::warn!("{msg}");
+        emit_step("concurrency_adjusted", &msg);
+    } else {
+        tracing::info!(
+            "[stock_pipeline] P3-D12 vendor healthy_ratio={:.2} → 并发保持配置值 (new={}, reassess={})",
+            healthy_ratio,
+            actual_new_conc,
+            actual_reassess_conc,
+        );
+    }
+
     // ── 步骤 1: 股票发现 ──
     emit_step("discovery", "开始股票发现");
     let candidates = discover_candidates(db, client, config).await;
@@ -286,7 +362,7 @@ async fn run_pipeline_steps(
         client,
         engine,
         &candidates,
-        config.new_analysis_concurrency,
+        actual_new_conc,
         as_of_date,
         emit_step,
     )
@@ -309,7 +385,7 @@ async fn run_pipeline_steps(
         client,
         engine,
         &holding_codes,
-        config.holdings_reassess_concurrency,
+        actual_reassess_conc,
         as_of_date,
         emit_step,
     )
@@ -679,4 +755,155 @@ pub async fn get_pipeline_run_detail(
         "reassessed": run.reassessed_json.and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok()),
         "summary": run.summary_json.and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok()),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axagent_astock_data::vendor_health::{VendorHealth, VendorStatus};
+
+    fn make_health(name: &str, status: VendorStatus) -> VendorHealth {
+        let mut h = VendorHealth::new(name);
+        h.status = status;
+        h
+    }
+
+    fn default_config() -> PipelineConfig {
+        PipelineConfig {
+            max_candidates: 5,
+            new_analysis_concurrency: 4,
+            holdings_reassess_concurrency: 4,
+            new_analysis_cooldown_days: 7,
+            holdings_reassess_cooldown_days: 3,
+        }
+    }
+
+    #[test]
+    fn resolve_concurrency_all_healthy_keeps_config() {
+        let cfg = default_config();
+        let health = vec![
+            make_health("tencent", VendorStatus::Healthy),
+            make_health("eastmoney", VendorStatus::Healthy),
+            make_health("sina", VendorStatus::Healthy),
+        ];
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 4);
+        assert_eq!(reassess_c, 4);
+        assert!((ratio - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn resolve_concurrency_partial_degradation_halves_concurrency() {
+        // 5 个 active vendor, 2 个 Degraded → ratio = 3/5 = 0.6
+        // 0.6 不 < 0.6 → 保持配置值
+        let cfg = default_config();
+        let health = vec![
+            make_health("tencent", VendorStatus::Healthy),
+            make_health("eastmoney", VendorStatus::Healthy),
+            make_health("sina", VendorStatus::Healthy),
+            make_health("ths", VendorStatus::Degraded),
+            make_health("cninfo", VendorStatus::Degraded),
+        ];
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 4, "ratio=0.6 应保持配置值");
+        assert_eq!(reassess_c, 4);
+        assert!((ratio - 0.6).abs() < 1e-10);
+    }
+
+    #[test]
+    fn resolve_concurrency_below_60_pct_halves_concurrency() {
+        // 4 个 active vendor, 2 个 Degraded → ratio = 2/4 = 0.5 < 0.6
+        // → max(1, 4/2) = 2
+        let cfg = default_config();
+        let health = vec![
+            make_health("tencent", VendorStatus::Healthy),
+            make_health("eastmoney", VendorStatus::Healthy),
+            make_health("sina", VendorStatus::Degraded),
+            make_health("ths", VendorStatus::Degraded),
+        ];
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 2, "ratio=0.5 < 0.6 应降到 base/2");
+        assert_eq!(reassess_c, 2);
+        assert!((ratio - 0.5).abs() < 1e-10);
+    }
+
+    #[test]
+    fn resolve_concurrency_severe_degradation_forces_serial() {
+        // 5 个 active, 4 个 Degraded → ratio = 1/5 = 0.2 < 0.3 → 降到 1
+        let cfg = default_config();
+        let health = vec![
+            make_health("tencent", VendorStatus::Healthy),
+            make_health("eastmoney", VendorStatus::Degraded),
+            make_health("sina", VendorStatus::Degraded),
+            make_health("ths", VendorStatus::Degraded),
+            make_health("cninfo", VendorStatus::Degraded),
+        ];
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 1, "ratio<0.3 应强制串行");
+        assert_eq!(reassess_c, 1);
+        assert!(ratio < 0.3);
+    }
+
+    #[test]
+    fn resolve_concurrency_excludes_disabled_vendors() {
+        // 5 个 vendor: 2 Healthy + 1 Degraded + 2 Disabled
+        // active = 3 (Healthy+Degraded), ratio = 2/3 ≈ 0.667 → 保持配置
+        let cfg = default_config();
+        let health = vec![
+            make_health("tencent", VendorStatus::Healthy),
+            make_health("eastmoney", VendorStatus::Healthy),
+            make_health("sina", VendorStatus::Degraded),
+            make_health("ths", VendorStatus::Disabled),
+            make_health("cninfo", VendorStatus::Disabled),
+        ];
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 4, "Disabled 不计入分母, ratio=2/3>0.6 应保持");
+        assert_eq!(reassess_c, 4);
+        assert!((ratio - 2.0 / 3.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn resolve_concurrency_empty_health_keeps_config() {
+        // 无 vendor 健康数据（首次运行）→ 保持配置值
+        let cfg = default_config();
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&[]);
+        assert_eq!(new_c, 4);
+        assert_eq!(reassess_c, 4);
+        assert!((ratio - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn resolve_concurrency_all_disabled_keeps_config() {
+        // 全部 Disabled（极端场景）→ active 为空 → 保持配置值
+        let cfg = default_config();
+        let health = vec![
+            make_health("tencent", VendorStatus::Disabled),
+            make_health("eastmoney", VendorStatus::Disabled),
+        ];
+        let (new_c, reassess_c, ratio) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 4);
+        assert_eq!(reassess_c, 4);
+        assert!((ratio - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn resolve_concurrency_min_one_floor() {
+        // base=1, 部分降级 → max(1, 1/2) = 1（不应降到 0）
+        let cfg = PipelineConfig {
+            max_candidates: 5,
+            new_analysis_concurrency: 1,
+            holdings_reassess_concurrency: 1,
+            new_analysis_cooldown_days: 7,
+            holdings_reassess_cooldown_days: 3,
+        };
+        let health = vec![
+            make_health("tencent", VendorStatus::Healthy),
+            make_health("eastmoney", VendorStatus::Degraded),
+            make_health("sina", VendorStatus::Degraded),
+            make_health("ths", VendorStatus::Degraded),
+        ];
+        let (new_c, reassess_c, _) = cfg.resolve_concurrency_with_vendor_health(&health);
+        assert_eq!(new_c, 1, "base=1, ratio=0.25 < 0.3 应强制 1");
+        assert_eq!(reassess_c, 1);
+    }
 }

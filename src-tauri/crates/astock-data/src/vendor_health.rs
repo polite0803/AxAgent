@@ -49,7 +49,8 @@ pub struct VendorHealth {
 }
 
 impl VendorHealth {
-    fn new(name: &str) -> Self {
+    /// P3-D12: pub 化以支持 stock_pipeline 测试构造健康快照
+    pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
             consecutive_failures: 0,
@@ -162,6 +163,12 @@ impl VendorHealthTracker {
         let mut vendors = self.vendors.write().await;
         let now = chrono::Utc::now().timestamp_millis();
         let entry = vendors.entry(name.to_string()).or_insert_with(|| VendorHealth::new(name));
+
+        // P3-B5(B): Disabled vendor 完全冻结，不受事件影响
+        if entry.status == VendorStatus::Disabled {
+            return;
+        }
+
         entry.consecutive_failures = 0;
         entry.total_successes += 1;
         entry.last_success_at = Some(now);
@@ -184,6 +191,12 @@ impl VendorHealthTracker {
         let mut vendors = self.vendors.write().await;
         let now = chrono::Utc::now().timestamp_millis();
         let entry = vendors.entry(name.to_string()).or_insert_with(|| VendorHealth::new(name));
+
+        // P3-B5(B): Disabled vendor 完全冻结，不受事件影响
+        if entry.status == VendorStatus::Disabled {
+            return false;
+        }
+
         entry.consecutive_failures += 1;
         entry.total_failures += 1;
         entry.last_error = Some(error.to_string());
@@ -251,6 +264,35 @@ impl VendorHealthTracker {
         // clone 时 window_failures VecDeque 也会 clone（跳过 serde）
         result.sort_by(|a, b| a.name.cmp(&b.name));
         result
+    }
+
+    /// P3-B5(B): 手动设置 vendor 状态
+    /// 用于前端设置页手动启停 vendor：
+    /// - `Healthy` → 重置失败计数，立即恢复
+    /// - `Degraded` → 标记为降级，但允许窗口恢复
+    /// - `Disabled` → 完全禁用，`try_vendors` 永远跳过（除非再次手动设为 Healthy）
+    pub async fn set_vendor_status(&self, name: &str, status: VendorStatus) {
+        let mut vendors = self.vendors.write().await;
+        let now = chrono::Utc::now().timestamp_millis();
+        let entry = vendors.entry(name.to_string()).or_insert_with(|| VendorHealth::new(name));
+        let old_status = entry.status;
+        entry.status = status;
+
+        match status {
+            VendorStatus::Healthy => {
+                entry.consecutive_failures = 0;
+                entry.window_failures.clear();
+                entry.last_success_at = Some(now);
+            },
+            VendorStatus::Degraded => {
+                entry.last_failure_at = Some(now);
+            },
+            VendorStatus::Disabled => {
+                // Disabled 状态完全冻结，不修改其他字段
+            },
+        }
+
+        tracing::info!("[VendorHealth] {} 状态手动变更: {:?} → {:?}", name, old_status, status);
     }
 
     /// 记录 fallback 路径
@@ -393,5 +435,59 @@ mod tests {
         let h = health.iter().find(|h| h.name == "flaky").unwrap();
         assert_eq!(h.consecutive_failures, 0);
         assert_eq!(h.status, VendorStatus::Healthy);
+    }
+
+    /// P3-B5(B): set_vendor_status 手动切换状态
+    #[tokio::test]
+    async fn manual_disable_vendor_filters_it() {
+        let tracker = VendorHealthTracker::new(VendorHealthConfig::default());
+        // 初始为 Healthy，手动禁用
+        tracker.set_vendor_status("bad-vendor", VendorStatus::Disabled).await;
+        // try_vendors 应过滤掉 Disabled vendor
+        let vendors = ["bad-vendor".to_string(), "good-vendor".to_string()];
+        let available = tracker.try_vendors(&vendors).await;
+        assert!(
+            !available.iter().any(|v| v.as_str() == "bad-vendor"),
+            "Disabled vendor 不应出现在 try_vendors 结果"
+        );
+        assert!(available.iter().any(|v| v.as_str() == "good-vendor"), "Healthy vendor 应保留");
+    }
+
+    /// P3-B5(B): 手动设为 Healthy 应清空失败窗口
+    #[tokio::test]
+    async fn manual_restore_clears_window() {
+        let config = VendorHealthConfig { degraded_threshold: 3, ..Default::default() };
+        let tracker = VendorHealthTracker::new(config);
+        // 3 次失败 → 降级
+        for _ in 0..3 {
+            tracker.record_failure("flaky", "error").await;
+        }
+        let health = tracker.get_all_health().await;
+        assert_eq!(
+            health.iter().find(|h| h.name == "flaky").unwrap().status,
+            VendorStatus::Degraded
+        );
+
+        // 手动恢复
+        tracker.set_vendor_status("flaky", VendorStatus::Healthy).await;
+        let health = tracker.get_all_health().await;
+        let h = health.iter().find(|h| h.name == "flaky").unwrap();
+        assert_eq!(h.status, VendorStatus::Healthy);
+        assert_eq!(h.consecutive_failures, 0);
+        assert!(h.window_failures.is_empty());
+    }
+
+    /// P3-B5(B): Disabled vendor 不受 record_success/record_failure 影响
+    #[tokio::test]
+    async fn disabled_vendor_ignores_events() {
+        let tracker = VendorHealthTracker::new(VendorHealthConfig::default());
+        tracker.set_vendor_status("frozen", VendorStatus::Disabled).await;
+
+        // 即使 record_success 也不应恢复
+        tracker.record_success("frozen").await;
+        let health = tracker.get_all_health().await;
+        let h = health.iter().find(|h| h.name == "frozen").unwrap();
+        // record_success 的窗口恢复逻辑只对 Degraded 生效，Disabled 保持不变
+        assert_eq!(h.status, VendorStatus::Disabled);
     }
 }

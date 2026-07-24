@@ -86,8 +86,9 @@ use std::time::{Duration, Instant};
 
 use crate::recommender::pool::SeedItem;
 use crate::recommender::pool::{
-    build_seed_pool, clear_cached_vendors, get_cached_vendors, liquidity_filter_and_truncate,
-    load_enabled_vendors_from_template, set_cached_vendors,
+    build_seed_pool, clear_cached_vendors, get_cached_vendors,
+    liquidity_filter_and_truncate_with_concurrency, load_enabled_vendors_from_template,
+    set_cached_vendors,
 };
 use crate::recommender::scoring::{dedup_and_merge, group_by_style_and_trim};
 use crate::recommender::strategies::{
@@ -447,7 +448,33 @@ pub async fn recommend_stocks(
     tracing::info!("[recommender] period={:?}, raw_seed_pool_size={}", period, raw_seed_pool_size);
     // 保留 raw_seed 给 WatchlistStrategy（它只依赖 quote，不依赖 K 线）
     let raw_seed = seed.clone();
-    seed = liquidity_filter_and_truncate(client.clone(), seed).await;
+    // P3-D12: 根据 vendor 健康度动态调节流动性过滤并发数
+    // - healthy_ratio >= 0.6 → 8（默认全速）
+    // - 0.3 <= healthy_ratio < 0.6 → 4（部分降级，降速避免雪崩）
+    // - healthy_ratio < 0.3 → 2（保命模式）
+    let health_snapshot = client.health_tracker.get_all_health().await;
+    let liquidity_concurrency = {
+        use axagent_astock_data::vendor_health::VendorStatus;
+        let active: Vec<_> =
+            health_snapshot.iter().filter(|h| h.status != VendorStatus::Disabled).collect();
+        if active.is_empty() {
+            8 // 无数据默认全速
+        } else {
+            let healthy = active.iter().filter(|h| h.status == VendorStatus::Healthy).count();
+            let ratio = healthy as f64 / active.len() as f64;
+            if ratio < 0.3 {
+                2
+            } else if ratio < 0.6 {
+                4
+            } else {
+                8
+            }
+        }
+    };
+    tracing::info!("[recommender] P3-D12 liquidity_filter concurrency={}", liquidity_concurrency,);
+    seed =
+        liquidity_filter_and_truncate_with_concurrency(client.clone(), seed, liquidity_concurrency)
+            .await;
     tracing::info!(
         "[recommender] after liquidity filter, seed={}, raw_seed={}",
         seed.len(),

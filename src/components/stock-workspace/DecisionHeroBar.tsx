@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useIsMobile } from "@/components/stock-analysis/MobileResponsive";
 import { DecisionConsensusMeter } from "@/components/stock-workspace/DecisionConsensusMeter";
 import { extractLlmField } from "@/lib/agentOutput";
 import { getActionColor, getActionTKey, getRiskColor, getRiskTKey } from "@/lib/stock-analysis-utils";
@@ -21,7 +22,8 @@ import { useTranslation } from "react-i18next";
 export function DecisionHeroBar() {
   const { t } = useTranslation();
   const userMode = useWorkspaceStore((s) => s.userMode);
-  const isSimple = userMode === "simple";
+  const isMobile = useIsMobile();
+  const isSimple = userMode === "simple" || isMobile;
 
   const decision = useStockAnalysisStore((s) => s.decision);
   const stockCode = useStockAnalysisStore((s) => s.stockCode);
@@ -85,6 +87,7 @@ export function DecisionHeroBar() {
         style={{
           background: "var(--surface)",
           borderLeft: `3px solid var(--accent)`,
+          fontSize: isMobile ? 12 : undefined,
         }}
       >
         {/* 股票名称 */}

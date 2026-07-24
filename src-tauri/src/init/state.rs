@@ -879,6 +879,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         session_share_manager,
         astock_client,
         trading_engine,
+        execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(Arc::new(
+            sea_db.clone(),
+        )),
         stock_monitor: None,
         #[cfg(not(mobile))]
         pty_manager,

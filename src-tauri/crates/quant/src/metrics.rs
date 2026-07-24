@@ -17,10 +17,10 @@ use serde::{Deserialize, Serialize};
 use crate::ctx::{EquityPoint, Trade};
 use crate::engine::BacktestResult;
 
-/// A 股每年实际交易日数（约 244 天，而非美股的 252 天）。
-/// 修复 L-5: 原代码硬编码 252.0，导致 Sharpe / 年化波动率等指标对 A 股略有偏差。
-/// 统一为常量便于复用。
-pub const A_SHARE_TRADING_DAYS_PER_YEAR: f64 = 244.0;
+// P3-C8: A 股年交易日数常量改为 re-export harness 统一定义，
+// 消除 stock-analysis/astock-data/tools/quant 四处重复定义的 252/244 混用。
+// 保留 `pub const` 形式以维持下游 API 稳定性（quant 内部及 prelude 均有引用）。
+pub use axagent_harness::indicators::A_SHARE_TRADING_DAYS_PER_YEAR;
 
 /// 完整绩效报告
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -218,21 +218,17 @@ fn annual_volatility(curve: &[EquityPoint], days_per_year: f64) -> f64 {
     var.sqrt() * days_per_year.sqrt()
 }
 
-/// 夏普比率（年化，样本方差 n-1；本 crate 内唯一实现；engine 复用）
+/// 夏普比率（年化，样本方差 n-1）
+///
+/// P3-C8: 委托 `axagent_harness::indicators::sharpe_ratio_annual` 统一实现，
+/// 消除与 stock-analysis/risk.rs、astock-data/mcp_tools.rs、tools/finance.rs 的算法分叉。
+/// 接受 `EquityPoint` 曲线作为输入（内部转换为日收益率切片）。
 pub fn sharpe_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f64) -> f64 {
     let rets = daily_returns(curve);
     if rets.len() < 2 {
         return 0.0;
     }
-    let n = rets.len();
-    let mean = rets.iter().sum::<f64>() / n as f64;
-    let var = rets.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1) as f64;
-    let std = var.sqrt();
-    if std < 1e-10 {
-        return 0.0;
-    }
-    let daily_rf = risk_free_annual / days_per_year;
-    (mean - daily_rf) / std * days_per_year.sqrt()
+    axagent_harness::indicators::sharpe_ratio_annual(&rets, risk_free_annual, days_per_year)
 }
 
 fn sortino_ratio(curve: &[EquityPoint], risk_free_annual: f64, days_per_year: f64) -> f64 {

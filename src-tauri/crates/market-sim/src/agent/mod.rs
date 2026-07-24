@@ -9,8 +9,10 @@
 //! - `rhai` — Rhai 脚本定义的 Agent（用户自定义行为）
 //! - `institutional` — 机构投资者（TWAP/VWAP 拆单执行）
 //! - `background` — 后台监控 Agent
+//! - `event_driven` — 事件驱动 Agent（P2-C9：基于新闻/公告/财报事件交易）
 
 pub mod background;
+pub mod event_driven;
 pub mod exchange;
 pub mod institutional;
 pub mod market_maker;
@@ -23,6 +25,7 @@ pub mod traits;
 pub mod value;
 
 pub use background::BackgroundAgent;
+pub use event_driven::EventDrivenAgent;
 pub use exchange::ExchangeAgent;
 pub use institutional::InstitutionalAgent;
 pub use market_maker::MarketMakerAgent;

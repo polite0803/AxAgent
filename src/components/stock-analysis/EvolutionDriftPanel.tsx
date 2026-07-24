@@ -15,14 +15,16 @@ import {
   ArrowUpOutlined,
   MinusOutlined,
   ReloadOutlined,
+  SettingOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import { App, Button, Empty, Spin, Table, Tag, Tooltip } from "antd";
+import { App, Button, Empty, Modal, Spin, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { invoke } from "@/lib/invoke";
 import {
   type EvolutionRecentChangeRow,
   type EvolutionStrategyStatRow,
@@ -62,6 +64,17 @@ export function EvolutionDriftPanel() {
     [],
   );
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [calibrating, setCalibrating] = useState(false);
+  const [calibrateResult, setCalibrateResult] = useState<
+    {
+      bestParams: Record<string, number> | null;
+      grid: Array<Record<string, number>>;
+      totalReflections: number;
+      parsedSuggestions: number;
+      message?: string;
+    } | null
+  >(null);
+  const [calibrateModalOpen, setCalibrateModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboard(asOfDate);
@@ -108,6 +121,51 @@ export function EvolutionDriftPanel() {
       setTimelineLoading(false);
     }
   };
+
+  const handleCalibrate = useCallback(async () => {
+    setCalibrating(true);
+    setCalibrateResult(null);
+    try {
+      const result = await invoke<{
+        bestParams: Record<string, number> | null;
+        grid: Array<Record<string, number>>;
+        totalReflections: number;
+        parsedSuggestions: number;
+        message?: string;
+      }>("calibrate_portfolio_mgr_params");
+      setCalibrateResult(result);
+      setCalibrateModalOpen(true);
+      if (result.bestParams) {
+        message.success(t("stockAnalysis.evolutionDrift.calibrateSuccess"));
+      } else {
+        message.info(result.message || t("stockAnalysis.evolutionDrift.calibrateNoData"));
+      }
+    } catch (e) {
+      console.error("[EvolutionDriftPanel] calibrate failed:", e);
+      message.error(t("stockAnalysis.evolutionDrift.calibrateFailed", { msg: String(e) }));
+    } finally {
+      setCalibrating(false);
+    }
+  }, [message, t]);
+
+  const handleApplyBest = useCallback(async () => {
+    if (!calibrateResult?.bestParams) { return; }
+    const bp = calibrateResult.bestParams;
+    const updates = Object.entries(bp)
+      .filter(([key]) => key !== "score")
+      .map(([key, value]) => {
+        const paramName = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+        return { param: paramName, value };
+      });
+    try {
+      await invoke("apply_param_suggestions", { updates });
+      message.success(t("stockAnalysis.evolutionDrift.calibrateApplyDone"));
+      setCalibrateModalOpen(false);
+    } catch (e) {
+      console.error("[EvolutionDriftPanel] apply best params failed:", e);
+      message.error(t("stockAnalysis.evolutionDrift.calibrateFailed", { msg: String(e) }));
+    }
+  }, [calibrateResult, message, t]);
 
   if (!dashboard) {
     return (
@@ -198,117 +256,248 @@ export function EvolutionDriftPanel() {
   ];
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>
-          <ThunderboltOutlined /> {t("stockAnalysis.evolutionDrift.title")}
-        </h3>
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
-          loading={recalculating}
-          onClick={handleRecalc}
-        >
-          {t("stockAnalysis.evolutionDrift.recalcNow")}
-        </Button>
-      </div>
+    <React.Fragment>
+      <div style={{ padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ margin: 0 }}>
+            <ThunderboltOutlined /> {t("stockAnalysis.evolutionDrift.title")}
+          </h3>
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            loading={recalculating}
+            onClick={handleRecalc}
+          >
+            {t("stockAnalysis.evolutionDrift.recalcNow")}
+          </Button>
+          <Button
+            icon={<SettingOutlined />}
+            loading={calibrating}
+            onClick={handleCalibrate}
+          >
+            {t("stockAnalysis.evolutionDrift.calibrateParams")}
+          </Button>
+        </div>
 
-      <div style={{ marginBottom: 12, fontSize: 12, color: "#8c8c8c" }}>
-        {t("stockAnalysis.evolutionDrift.lastRecalcAt", {
-          time: formatTime(dashboard.lastRecalcAt),
-        })}
-        {asOfDate && (
-          <Tag color="purple" style={{ marginLeft: 8 }}>
-            {t("stockAnalysis.evolutionDrift.replayMode", { date: asOfDate })}
-          </Tag>
-        )}
-      </div>
+        <div style={{ marginBottom: 12, fontSize: 12, color: "#8c8c8c" }}>
+          {t("stockAnalysis.evolutionDrift.lastRecalcAt", {
+            time: formatTime(dashboard.lastRecalcAt),
+          })}
+          {asOfDate && (
+            <Tag color="purple" style={{ marginLeft: 8 }}>
+              {t("stockAnalysis.evolutionDrift.replayMode", { date: asOfDate })}
+            </Tag>
+          )}
+        </div>
 
-      <div style={{ marginBottom: 24 }}>
-        <h4 style={{ marginTop: 0 }}>
-          {t("stockAnalysis.evolutionDrift.summaryTitle")}
-        </h4>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {dashboard.strategySummary.map((s: EvolutionStrategySummaryRow) => (
-            <div
-              key={s.strategyId}
-              style={{
-                border: "1px solid #d9d9d9",
-                borderRadius: 4,
-                padding: "8px 12px",
-                minWidth: 140,
-              }}
-            >
-              <div style={{ fontSize: 12, color: "#8c8c8c" }}>{s.strategyId}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-                {trendIcon[s.trend] ?? trendIcon.stable}
-                <span style={{ fontSize: 18, fontWeight: 600 }}>{s.avgWeight.toFixed(2)}</span>
+        <div style={{ marginBottom: 24 }}>
+          <h4 style={{ marginTop: 0 }}>
+            {t("stockAnalysis.evolutionDrift.summaryTitle")}
+          </h4>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {dashboard.strategySummary.map((s: EvolutionStrategySummaryRow) => (
+              <div
+                key={s.strategyId}
+                style={{
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 4,
+                  padding: "8px 12px",
+                  minWidth: 140,
+                }}
+              >
+                <div style={{ fontSize: 12, color: "#8c8c8c" }}>{s.strategyId}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                  {trendIcon[s.trend] ?? trendIcon.stable}
+                  <span style={{ fontSize: 18, fontWeight: 600 }}>{s.avgWeight.toFixed(2)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#8c8c8c", marginTop: 2 }}>
+                  {t("stockAnalysis.evolutionDrift.summarySamples", { n: s.totalSamples })} ·{" "}
+                  {t("stockAnalysis.evolutionDrift.summaryWinRate", { p: (s.avgWinRate * 100).toFixed(0) })}
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: "#8c8c8c", marginTop: 2 }}>
-                {t("stockAnalysis.evolutionDrift.summarySamples", { n: s.totalSamples })} ·{" "}
-                {t("stockAnalysis.evolutionDrift.summaryWinRate", { p: (s.avgWinRate * 100).toFixed(0) })}
+            ))}
+          </div>
+        </div>
+
+        <h4>{t("stockAnalysis.evolutionDrift.tableTitle")}</h4>
+        <Table
+          size="small"
+          rowKey={(r) => `${r.strategyId}_${r.period}`}
+          columns={columns}
+          dataSource={dashboard.stats}
+          pagination={false}
+          rowClassName={(r) => `${r.strategyId}_${r.period}` === selectedKey ? "ant-table-row-selected" : ""}
+          onRow={(r) => ({
+            onClick: () => handleSelect(r),
+            style: { cursor: "pointer" },
+          })}
+          locale={{
+            emptyText: <Empty description={t("stockAnalysis.evolutionDrift.noData")} />,
+          }}
+        />
+
+        {selectedKey && (
+          <div style={{ marginTop: 16, padding: 12, background: "#fafafa", borderRadius: 4 }}>
+            <h4 style={{ marginTop: 0 }}>
+              {t("stockAnalysis.evolutionDrift.timelineTitle", { key: selectedKey })}
+            </h4>
+            {timelineLoading
+              ? <Spin size="small" />
+              : timelineData.length === 0
+              ? <Empty description={t("stockAnalysis.evolutionDrift.noTimeline")} />
+              : <TimelineSparkline points={timelineData} />}
+          </div>
+        )}
+
+        <div style={{ marginTop: 24 }}>
+          <h4>{t("stockAnalysis.evolutionDrift.reasonsTitle")}</h4>
+          {dashboard.recentChanges.length === 0
+            ? <Empty description={t("stockAnalysis.evolutionDrift.noReasons")} />
+            : (
+              <ul style={{ paddingLeft: 16, margin: 0 }}>
+                {dashboard.recentChanges.map((r: EvolutionRecentChangeRow) => (
+                  <li key={r.id} style={{ marginBottom: 8, fontSize: 13 }}>
+                    <Tag color="blue">{r.strategyId}</Tag>
+                    <Tag>{r.period}</Tag>
+                    <Tag color={r.deltaPct > 0 ? "red" : r.deltaPct < 0 ? "green" : "default"}>
+                      {(r.deltaPct > 0 ? "+" : "") + r.deltaPct.toFixed(1) + "%"}
+                    </Tag>
+                    <span style={{ color: "#8c8c8c", marginLeft: 8 }}>{formatTime(r.appliedAt)}</span>
+                    {r.rationale && (
+                      <div style={{ color: "#595959", marginTop: 2, marginLeft: 8 }}>
+                        {r.rationale}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+        </div>
+
+        {/* 双视角一致性趋势 — 结束处插入校准 Modal */}
+      </div>{" "}
+      {/* 关闭主 content div */}
+
+      <Modal
+        title={
+          <>
+            <SettingOutlined /> {t("stockAnalysis.evolutionDrift.calibrateParams")}
+          </>
+        }
+        open={calibrateModalOpen}
+        onCancel={() => setCalibrateModalOpen(false)}
+        width={720}
+        footer={calibrateResult?.bestParams
+          ? [
+            <Button key="close" onClick={() => setCalibrateModalOpen(false)}>关闭</Button>,
+            <Button key="apply" type="primary" onClick={handleApplyBest}>
+              {t("stockAnalysis.evolutionDrift.calibrateApplyBest")}
+            </Button>,
+          ]
+          : [<Button key="close" onClick={() => setCalibrateModalOpen(false)}>关闭</Button>]}
+      >
+        {calibrateResult?.bestParams && (
+          <div>
+            <h4>{t("stockAnalysis.evolutionDrift.calibrateBestTitle")}</h4>
+            <div style={{ background: "var(--bg-secondary, #f5f5f5)", padding: 12, borderRadius: 6, marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {[
+                  { key: "buyThreshold", label: t("stockAnalysis.evolutionDrift.calibrateBuyThreshold") },
+                  { key: "increaseThreshold", label: t("stockAnalysis.evolutionDrift.calibrateIncreaseThreshold") },
+                  { key: "holdThreshold", label: t("stockAnalysis.evolutionDrift.calibrateHoldThreshold") },
+                  { key: "watchThreshold", label: t("stockAnalysis.evolutionDrift.calibrateWatchThreshold") },
+                  { key: "reduceThreshold", label: t("stockAnalysis.evolutionDrift.calibrateReduceThreshold") },
+                  { key: "capExtreme", label: t("stockAnalysis.evolutionDrift.calibrateCapExtreme") },
+                  { key: "capHigh", label: t("stockAnalysis.evolutionDrift.calibrateCapHigh") },
+                  { key: "capMid", label: t("stockAnalysis.evolutionDrift.calibrateCapMid") },
+                ].map(({ key, label }) => (
+                  <div key={key} style={{ minWidth: 100 }}>
+                    <div style={{ fontSize: 11, color: "var(--muted, #8c8c8c)" }}>{label}</div>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>
+                      {calibrateResult.bestParams![key]?.toFixed(2) ?? "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 12, color: "var(--muted, #8c8c8c)" }}>
+                {t("stockAnalysis.evolutionDrift.calibrateRefreshCount", { total: calibrateResult.totalReflections })}
+                ·{" "}
+                {t("stockAnalysis.evolutionDrift.calibrateParsedCount", { parsed: calibrateResult.parsedSuggestions })}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+            <h4>{t("stockAnalysis.evolutionDrift.calibrateGridTitle")}</h4>
+            <Table
+              size="small"
+              rowKey={(_, i) => String(i)}
+              pagination={false}
+              dataSource={calibrateResult.grid}
+              columns={[
+                {
+                  title: "评分",
+                  dataIndex: "score",
+                  key: "score",
+                  width: 60,
+                  align: "right",
+                  render: (v: number) => (
+                    <Tag color={v >= 50 ? "green" : v >= 0 ? "orange" : "red"}>{v.toFixed(1)}</Tag>
+                  ),
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateBuyThreshold"),
+                  dataIndex: "buyThreshold",
+                  width: 70,
+                  align: "right",
+                  render: (v: number) => v.toFixed(2),
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateIncreaseThreshold"),
+                  dataIndex: "increaseThreshold",
+                  width: 70,
+                  align: "right",
+                  render: (v: number) => v.toFixed(2),
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateHoldThreshold"),
+                  dataIndex: "holdThreshold",
+                  width: 70,
+                  align: "right",
+                  render: (v: number) => v.toFixed(2),
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateWatchThreshold"),
+                  dataIndex: "watchThreshold",
+                  width: 70,
+                  align: "right",
+                  render: (v: number) => v.toFixed(2),
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateReduceThreshold"),
+                  dataIndex: "reduceThreshold",
+                  width: 70,
+                  align: "right",
+                  render: (v: number) => v.toFixed(2),
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateCapHigh"),
+                  dataIndex: "capHigh",
+                  width: 60,
+                  align: "right",
+                  render: (v: number) => `${v.toFixed(0)}%`,
+                },
+                {
+                  title: t("stockAnalysis.evolutionDrift.calibrateCapMid"),
+                  dataIndex: "capMid",
+                  width: 60,
+                  align: "right",
+                  render: (v: number) => `${v.toFixed(0)}%`,
+                },
+              ]}
+            />
+          </div>
+        )}
+        {calibrateResult?.message && !calibrateResult.bestParams && <Empty description={calibrateResult.message} />}
+      </Modal>
 
-      <h4>{t("stockAnalysis.evolutionDrift.tableTitle")}</h4>
-      <Table
-        size="small"
-        rowKey={(r) => `${r.strategyId}_${r.period}`}
-        columns={columns}
-        dataSource={dashboard.stats}
-        pagination={false}
-        rowClassName={(r) => `${r.strategyId}_${r.period}` === selectedKey ? "ant-table-row-selected" : ""}
-        onRow={(r) => ({
-          onClick: () => handleSelect(r),
-          style: { cursor: "pointer" },
-        })}
-        locale={{
-          emptyText: <Empty description={t("stockAnalysis.evolutionDrift.noData")} />,
-        }}
-      />
-
-      {selectedKey && (
-        <div style={{ marginTop: 16, padding: 12, background: "#fafafa", borderRadius: 4 }}>
-          <h4 style={{ marginTop: 0 }}>
-            {t("stockAnalysis.evolutionDrift.timelineTitle", { key: selectedKey })}
-          </h4>
-          {timelineLoading
-            ? <Spin size="small" />
-            : timelineData.length === 0
-            ? <Empty description={t("stockAnalysis.evolutionDrift.noTimeline")} />
-            : <TimelineSparkline points={timelineData} />}
-        </div>
-      )}
-
-      <div style={{ marginTop: 24 }}>
-        <h4>{t("stockAnalysis.evolutionDrift.reasonsTitle")}</h4>
-        {dashboard.recentChanges.length === 0
-          ? <Empty description={t("stockAnalysis.evolutionDrift.noReasons")} />
-          : (
-            <ul style={{ paddingLeft: 16, margin: 0 }}>
-              {dashboard.recentChanges.map((r: EvolutionRecentChangeRow) => (
-                <li key={r.id} style={{ marginBottom: 8, fontSize: 13 }}>
-                  <Tag color="blue">{r.strategyId}</Tag>
-                  <Tag>{r.period}</Tag>
-                  <Tag color={r.deltaPct > 0 ? "red" : r.deltaPct < 0 ? "green" : "default"}>
-                    {(r.deltaPct > 0 ? "+" : "") + r.deltaPct.toFixed(1) + "%"}
-                  </Tag>
-                  <span style={{ color: "#8c8c8c", marginLeft: 8 }}>{formatTime(r.appliedAt)}</span>
-                  {r.rationale && (
-                    <div style={{ color: "#595959", marginTop: 2, marginLeft: 8 }}>
-                      {r.rationale}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-      </div>
-
-      {/* Phase 3: 双视角一致性趋势 */}
       <div style={{ marginTop: 24 }}>
         <h4>{t("stockAnalysis.evolutionDrift.agreementTrendTitle")}</h4>
         {agreementLoading
@@ -329,7 +518,7 @@ export function EvolutionDriftPanel() {
             </div>
           )}
       </div>
-    </div>
+    </React.Fragment>
   );
 }
 

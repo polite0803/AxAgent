@@ -220,8 +220,9 @@ impl StockVendor for GubaVendor {
     ///      不再从帖子的 `stockbar_name` 字段提取(该字段是帖子所在股吧名,
     ///      在聚合页/推荐帖场景下可能是其他股票)。
     ///
-    /// 情感分析基于帖子标题关键词（"涨"/"牛"/"利好"/"加仓" → 看多,
-    /// "跌"/"熊"/"利空"/"减仓" → 看空）。
+    /// 情感分析基于帖子标题关键词,使用 `crate::sentiment` 统一词典(P2-B4)。
+    /// - bull_ratio: 旧有指标,基于词典 bull/bear 计数
+    /// - sentiment_score: 细粒度评分 [-1.0, 1.0],含否定词检测
     async fn get_social_sentiment(
         &self,
         stock_code: &str,
@@ -264,27 +265,34 @@ impl StockVendor for GubaVendor {
             }]);
         }
 
-        // 统计帖子数 + 简单情感分析
+        // 统计帖子数 + 情感分析(P2-B4: 改用统一词典)
         let post_count = posts.len() as u32;
         let mut bull_count = 0u32;
         let mut bear_count = 0u32;
+        // P2-B4: 累积每条帖子的细粒度 sentiment_score,用于计算平均情感分
+        let mut score_sum = 0.0f64;
+        let mut score_count = 0u32;
 
         for post in &posts {
             let title = post["post_title"].as_str().unwrap_or("");
 
-            // 基于关键词的情感分析（粗略估计）
-            if title.contains("涨")
-                || title.contains("牛")
-                || title.contains("利好")
-                || title.contains("加仓")
-            {
+            // 基于统一词典的情感分析(替换原 8 词硬编码)
+            // bull/bear 计数保留(用于 bull_ratio),score 累加用于 sentiment_score
+            let is_bull = crate::sentiment::POSITIVE_KEYWORDS.iter().any(|kw| title.contains(kw));
+            let is_bear = crate::sentiment::RISK_KEYWORDS.iter().any(|kw| title.contains(kw))
+                || crate::sentiment::HIGH_RISK_KEYWORDS.iter().any(|kw| title.contains(kw));
+
+            if is_bull {
                 bull_count += 1;
-            } else if title.contains("跌")
-                || title.contains("熊")
-                || title.contains("利空")
-                || title.contains("减仓")
-            {
+            }
+            if is_bear {
                 bear_count += 1;
+            }
+
+            // 细粒度 score(标题单文本评分,[-1.0, 1.0])
+            if let Some(s) = crate::sentiment::compute_text_sentiment(title) {
+                score_sum += s;
+                score_count += 1;
             }
         }
 
@@ -294,8 +302,13 @@ impl StockVendor for GubaVendor {
         } else {
             None
         };
-        // sentiment_score: -1.0 ~ 1.0，bull_ratio 0.5 → 0.0
-        let sentiment_score = bull_ratio.map(|r| (r - 0.5) * 2.0);
+        // sentiment_score: P2-B4 改为统一词典的平均评分(更精确,包含否定词检测)
+        // fallback: 若统一词典全部未命中(纯水帖),用 bull_ratio 兜底
+        let sentiment_score = if score_count > 0 {
+            Some(score_sum / score_count as f64)
+        } else {
+            bull_ratio.map(|r| (r - 0.5) * 2.0)
+        };
 
         Ok(vec![SocialSentiment {
             stock_code: stock_code.to_string(),

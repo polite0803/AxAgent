@@ -81,10 +81,31 @@ pub async fn liquidity_filter_and_truncate(
     client: Arc<AStockClient>,
     seed: Vec<SeedItem>,
 ) -> Vec<SeedItem> {
+    // P3-D12: 保留原签名作为薄包装，向后兼容。
+    // 默认并发数 8 来自历史硬编码值。
+    liquidity_filter_and_truncate_with_concurrency(client, seed, 8).await
+}
+
+/// P3-D12: 带自定义并发数的流动性过滤。
+///
+/// `max_concurrent` 控制对 `client.get_quote` 的并发拉取上限。
+/// 调用方可根据 vendor 健康度动态传入：
+/// - 上游全部健康 → 8（默认）
+/// - 部分降级 → 4（避免雪崩）
+/// - 大面积降级 → 2（保命）
+///
+/// 截断到 200 个标的。
+pub async fn liquidity_filter_and_truncate_with_concurrency(
+    client: Arc<AStockClient>,
+    seed: Vec<SeedItem>,
+    max_concurrent: usize,
+) -> Vec<SeedItem> {
     use futures::stream::{FuturesUnordered, StreamExt};
     use tokio::sync::Semaphore;
 
-    let sem = Arc::new(Semaphore::new(8));
+    // P3-D12: 防御性下限，避免调用方误传 0
+    let concurrency = max_concurrent.max(1);
+    let sem = Arc::new(Semaphore::new(concurrency));
     let mut tasks: FuturesUnordered<_> = FuturesUnordered::new();
 
     for item in seed {

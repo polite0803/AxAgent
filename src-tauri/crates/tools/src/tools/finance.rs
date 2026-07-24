@@ -76,19 +76,14 @@ struct SharpeR {
     stddev: f64,
 }
 fn sharpe_ratio(returns: &[f64], rf: f64, annualization: f64) -> SharpeR {
-    let n = returns.len();
-    if n < 2 {
-        return SharpeR { sharpe: 0.0, annualized: 0.0, mean_return: 0.0, stddev: 0.0 };
-    }
-    let m = returns.iter().sum::<f64>() / n as f64;
-    let v = returns.iter().map(|r| (r - m).powi(2)).sum::<f64>() / (n - 1) as f64;
-    let std = v.sqrt();
-    let sh = if std > 0.0 { (m - rf) / std } else { 0.0 };
+    // P3-C8: 委托 harness 统一实现（样本方差 n-1，避免重复算法分叉）。
+    // 保留 SharpeR 名称和 round 行为以稳定历史序列化输出。
+    let c = axagent_harness::indicators::sharpe_components(returns, rf, annualization);
     SharpeR {
-        sharpe: (sh * 1000.0).round() / 1000.0,
-        annualized: (sh * annualization.sqrt() * 1000.0).round() / 1000.0,
-        mean_return: (m * 10000.0).round() / 100.0,
-        stddev: (std * 10000.0).round() / 100.0,
+        sharpe: (c.sharpe * 1000.0).round() / 1000.0,
+        annualized: (c.annualized * 1000.0).round() / 1000.0,
+        mean_return: (c.mean_return * 10000.0).round() / 100.0,
+        stddev: (c.stddev * 10000.0).round() / 100.0,
     }
 }
 
@@ -1050,7 +1045,12 @@ calc_tool_r!(CalcSharpeRatioTool, "calc_sharpe_ratio", "计算夏普比率", |in
         "risk_free_rate",
         0.03,
     ));
-    let ann = tv_f64(&input, "risk_sharpe_annualization", 252.0);
+    // P3-C8: 默认年化因子统一为 A 股 244 天
+    let ann = tv_f64(
+        &input,
+        "risk_sharpe_annualization",
+        axagent_harness::indicators::A_SHARE_TRADING_DAYS_PER_YEAR,
+    );
     serde_json::to_value(sharpe_ratio(&returns, rf, ann)).unwrap_or_default()
 });
 calc_tool_r!(CalcVarTool, "calc_var", "历史模拟法 VaR 计算", |input| {

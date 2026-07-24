@@ -1965,6 +1965,19 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     // 扁平 JSON schema，confidence 在顶层（不在 verdict map 内），
                     // 所以用 .content 拿到完整 JSON 对象，extract_conf(v["confidence"]) 可正确提取。
                     ("cat_verdict", "a-catalyst.content"),
+                    // P1-B3 新增(2026-07-24): 拿 10 个分析师的报告正文，算法化 report_quality_score。
+                    // AgentExecutor OutputMode::Text 把 LLM 输出包装为 {report, verdict} JSON，
+                    // 因此 .content.report 直接是字符串正文（含自然语言分析，不含 VERDICT 标签）。
+                    ("mk_report", "a-market-analyst.content.report"),
+                    ("sent_report", "a-sentiment.content.report"),
+                    ("news_report", "a-news.content.report"),
+                    ("fund_report", "a-fundamentals.content.report"),
+                    ("pol_report", "a-policy.content.report"),
+                    ("hm_report", "a-hot-money.content.report"),
+                    ("lk_report", "a-lockup.content.report"),
+                    ("res_report", "a-research.content.report"),
+                    ("sec_report", "a-sector.content.report"),
+                    ("cat_report", "a-catalyst.content.report"),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2310,6 +2323,58 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     edges.push(edge("e-trader-portfolio-mgr", "trader", "portfolio-mgr"));
     edges.push(edge("e-research-mgr-portfolio-mgr", "research-mgr", "portfolio-mgr"));
 
+    // ── P1-E13: portfolio-risk-gate 组合风控门（CodeNode + Rhai）──
+    // 在 portfolio-mgr 之后、rule-check 之前运行。
+    // 职责：单股仓位上限、行业暴露、持仓数量、风险档位否决、空头强制卖出、组合归一化
+    // 输出保留 portfolio-mgr 的所有字段，仅覆盖 action/positionPct/riskLevel，追加 risk_gate 元数据
+    let prg_code = include_str!("../portfolio-risk-gate.rhai").to_string();
+    let prg = WorkflowNode::Code(CodeNode {
+        base: WorkflowNodeBase {
+            id: "portfolio-risk-gate".into(),
+            title: "组合风控门".into(),
+            description: Some(
+                "组合层风控：仓位上限/行业暴露/风险档位否决/空头强制卖出/组合归一化".into(),
+            ),
+            position: Position { x: 480.0, y: 4200.0 },
+            retry: RetryConfig::default(),
+            timeout: Some(10),
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: true,
+        },
+        config: CodeNodeConfig {
+            language: "rhai".into(),
+            code: prg_code,
+            output_var: "portfolio-risk-gate".into(),
+            tool_name: None,
+            execute_directly: true,
+            input_mapping: [
+                // portfolio-mgr 的完整 result 对象（保留所有字段，覆盖调整字段）
+                ("pm_result", "portfolio-mgr.result"),
+                // 当前价（用于计算新增仓位市值 + 空头检测）
+                ("current_price", "t-scoring.result.currentPrice"),
+                // 目标价（用于空头检测：target < current × 0.85 → 强制卖出）
+                ("target_price", "trader.content.targetPrice"),
+                // 工作流变量（core.rs 注入）
+                ("stock_code", "stock_code"),
+                ("stock_sector", "stock_sector"),
+                ("holdings_json", "holdings_json"),
+                ("portfolio_cash", "portfolio_cash"),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+        },
+    });
+    nodes.push(prg);
+    // portfolio-mgr → portfolio-risk-gate（主依赖）
+    edges.push(edge("e-portfolio-mgr-risk-gate", "portfolio-mgr", "portfolio-risk-gate"));
+    // t-scoring → portfolio-risk-gate（current_price 输入）
+    edges.push(edge("e-t-scoring-risk-gate", "t-scoring", "portfolio-risk-gate"));
+    // trader → portfolio-risk-gate（target_price 输入）
+    edges.push(edge("e-trader-risk-gate", "trader", "portfolio-risk-gate"));
+
     // ── P1-1: regime-weights 市场状态权重调节（CodeNode + Rhai）──
     // 在 portfolio-mgr 之前运行，输出调节后的因子权重。
     // 牛市→趋势+资金面权重↑，熊市→估值+风险权重↑，高波动→所有因子降权
@@ -2473,7 +2538,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         let mut rc = agent(rc_id, rc_title, "rule-checker", None, 700.0, rc_y);
         if let WorkflowNode::Agent(ref mut a) = rc {
             a.config.context_sources = vec![
-                "portfolio-mgr".into(),
+                "portfolio-risk-gate".into(),
                 "t-scoring".into(),
                 "t-valuation".into(),
                 "t-risk".into(),
@@ -2498,16 +2563,16 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                  - 估值数据(DCF/格雷厄姆/F-Score): 参考 t-valuation\n\
                  - 风险指标(波动率/最大回撤/夏普比率): 参考 t-risk\n\
                  - 交易方案(入场价/目标价/止损价): 参考 trader\n\
-                 - 组合决策(action/positionPct): 参考 portfolio-mgr\n\
+                 - 组合决策(action/positionPct): 参考 portfolio-risk-gate\n\
                  基于上述数据直接检查交易方案是否违反硬性规则（RSI超买/乖离率追高/缺失止损/放量下跌/空头排列），\n\
                  输出 violations / corrections / force_signals。",
                 a.config.system_prompt
             );
         }
         nodes.push(rc);
-        // ── NotificationNode 由 rule-check 完成后触发（不再保留 portfolio-mgr → notify
-        // 直连，避免通知在规则检查改写决策之前发出）──
-        edges.push(edge("e-portfolio-mgr-rule-check", "portfolio-mgr", rc_id));
+        // ── P1-E13: portfolio-risk-gate → rule-check（替代原 portfolio-mgr → rule-check）──
+        // rule-check 现在从组合风控门获取最终决策（含风控调整），而非直接从 portfolio-mgr
+        edges.push(edge("e-risk-gate-rule-check", "portfolio-risk-gate", rc_id));
         edges.push(edge("e-rule-check-quality-gate", rc_id, "quality-gate"));
         // data-quality → quality-gate: 显式边确保 data-quality 变量在 switch 判断前就绪
         edges.push(edge("e-data-quality-quality-gate", "data-quality", "quality-gate"));
@@ -2607,8 +2672,8 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     edges.push(edge("e-quality-fallback-explainer", "quality-fallback", "decision-explainer"));
 
     // ── P0 补: decision-explainer（三明治第三段）──
-    // 在 portfolio-mgr 硬裁决完成后，用 LLM 生成决策依据说明书 + 规则追溯码
-    // 输入: portfolio-mgr 的 final_action / confidence / reasoning / decision_trail
+    // 在 portfolio-risk-gate 组合风控门完成后，用 LLM 生成决策依据说明书 + 规则追溯码
+    // 输入: portfolio-risk-gate 的 final_action / confidence / reasoning / decision_trail
     // 输出: 自然语言解释文案，带规则追溯码 R-xxx
     {
         let de_id = "decision-explainer";
@@ -2616,7 +2681,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         let mut de = agent(de_id, de_title, "explainer", None, 700.0, 4400.0);
         if let WorkflowNode::Agent(ref mut a) = de {
             a.config.context_sources = vec![
-                "portfolio-mgr".into(),
+                "portfolio-risk-gate".into(),
                 "rule-check".into(),
                 "t-scoring".into(),
                 "t-risk".into(),
@@ -2650,21 +2715,20 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                  只输出上述JSON对象，前后不要有任何其他文字"
             );
             a.config.input_mapping = [
-                // V58 修复: portfolio-mgr 是 CodeNode，输出结构为
-                //   {status, result: {action, confidence, ...}, input_params, node_id, params}
-                // 所有字段在 .result 下，旧路径 "portfolio-mgr.<field>" 无法穿透 CodeNode
-                // 包装，导致 decision-explainer 拿不到决策数据，reasoning 字段为空，
-                // 前端 fallback 到 portfolio-mgr 本身的 reasoning（或显示空）。
-                ("pm_action", "portfolio-mgr.result.action"),
-                ("pm_confidence", "portfolio-mgr.result.confidence"),
-                ("pm_position_pct", "portfolio-mgr.result.positionPct"),
-                ("pm_reasoning", "portfolio-mgr.result.reasoning"),
-                ("pm_risk_level", "portfolio-mgr.result.riskLevel"),
-                ("pm_stop_loss", "portfolio-mgr.result.stopLossPct"),
-                ("pm_take_profit", "portfolio-mgr.result.takeProfitPct"),
-                ("pm_decision_trail", "portfolio-mgr.result.decision_trail"),
-                ("pm_target_timeframe", "portfolio-mgr.result.targetTimeframe"),
-                ("pm_computation_logs", "portfolio-mgr.result.computation_logs"),
+                // P1-E13: decision-explainer 现在从 portfolio-risk-gate 读取最终决策
+                // portfolio-risk-gate 是 CodeNode，输出结构为
+                //   {status, result: {action, confidence, ..., risk_gate: {...}}, ...}
+                // 保留了 portfolio-mgr 的所有字段，并覆盖了被风控门调整的字段
+                ("pm_action", "portfolio-risk-gate.result.action"),
+                ("pm_confidence", "portfolio-risk-gate.result.confidence"),
+                ("pm_position_pct", "portfolio-risk-gate.result.positionPct"),
+                ("pm_reasoning", "portfolio-risk-gate.result.reasoning"),
+                ("pm_risk_level", "portfolio-risk-gate.result.riskLevel"),
+                ("pm_stop_loss", "portfolio-risk-gate.result.stopLossPct"),
+                ("pm_take_profit", "portfolio-risk-gate.result.takeProfitPct"),
+                ("pm_decision_trail", "portfolio-risk-gate.result.decision_trail"),
+                ("pm_target_timeframe", "portfolio-risk-gate.result.targetTimeframe"),
+                ("pm_computation_logs", "portfolio-risk-gate.result.computation_logs"),
             ]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -2718,7 +2782,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     // 注：移除 e-portfolio-mgr-notify 直连，notify-result 现在仅由 rule-check 完成后触发
 
     // ── StorageNode: 分析结果持久化 ──
-    // 将完整分析结果（portfolio-mgr 决策）写入 SQLite history 表，供后续回测/复盘引用。
+    // 将完整分析结果（portfolio-risk-gate 最终决策）写入 SQLite history 表，供后续回测/复盘引用。
     nodes.push(WorkflowNode::Storage(StorageNode {
         base: WorkflowNodeBase {
             id: "store-result".into(),
@@ -2735,22 +2799,22 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         config: StorageNodeConfig {
             backend: "sqlite".into(),
             operation: "insert".into(),
-            input_var: "portfolio-mgr".into(),
+            input_var: "portfolio-risk-gate".into(),
             collection: "analysis_history".into(),
             key_var: None,
             output_var: "storage-result".into(),
         },
     }));
     edges.push(edge("e-notify-store-result", "notify-result", "store-result"));
-    // store-result 直接从 portfolio-mgr 取决策变量，绕过 state.variables 查找
-    edges.push(edge("e-portfolio-mgr-store-result", "portfolio-mgr", "store-result"));
+    // store-result 直接从 portfolio-risk-gate 取决策变量，绕过 state.variables 查找
+    edges.push(edge("e-risk-gate-store-result", "portfolio-risk-gate", "store-result"));
 
-    // EndNode: 把 portfolio-mgr 输出提升为工作流顶层输出
+    // EndNode: 把 portfolio-risk-gate 输出提升为工作流顶层输出
     nodes.push(WorkflowNode::End(EndNode {
         base: WorkflowNodeBase {
             id: "end-output".into(),
             title: "最终输出".into(),
-            description: Some("将 portfolio-mgr 决策结果提升到工作流输出".into()),
+            description: Some("将 portfolio-risk-gate 决策结果提升到工作流输出".into()),
             position: Position { x: 300.0, y: 5100.0 },
             retry: RetryConfig::default(),
             timeout: None,
@@ -2759,7 +2823,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             compensation: None,
             continue_on_fail: false,
         },
-        config: EndNodeConfig { output_var: Some("portfolio-mgr".into()) },
+        config: EndNodeConfig { output_var: Some("portfolio-risk-gate".into()) },
     }));
     edges.push(edge("e-store-end", "store-result", "end-output"));
 

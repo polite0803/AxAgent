@@ -33,6 +33,11 @@ pub struct BatchRequest {
     pub per_stock_timeout: Duration,
     pub total_timeout: Duration,
     pub max_failures: usize,
+    /// P3-D12: 最大并发数。
+    /// - `0`：自动按 vendor 健康度决定（由 `BatchRunner::resolve_concurrency` 解析），
+    ///   健康时取 `BATCH_DEFAULT_CONCURRENCY`，部分降级降速，大面积降级进保命模式
+    /// - `>0`：显式指定并发上限（调用方已知 vendor 状态时可用，跳过健康快照查询）
+    pub max_concurrent: usize,
 }
 
 impl Default for BatchRequest {
@@ -42,6 +47,7 @@ impl Default for BatchRequest {
             per_stock_timeout: Duration::from_secs(8),
             total_timeout: Duration::from_secs(30),
             max_failures: 0,
+            max_concurrent: 0,
         }
     }
 }
@@ -63,6 +69,12 @@ impl BatchRequest {
 
     pub fn with_max_failures(mut self, n: usize) -> Self {
         self.max_failures = n;
+        self
+    }
+
+    /// P3-D12: 显式指定并发上限（`0` 仍表示自动）。
+    pub fn with_max_concurrent(mut self, n: usize) -> Self {
+        self.max_concurrent = n;
         self
     }
 }
@@ -209,9 +221,62 @@ pub struct BatchRunner {
     inner: Arc<crate::AStockClient>,
 }
 
+/// P3-D12: 批量查询默认并发上限。
+///
+/// 选 16 的依据：
+/// - 单个 HTTP 请求约 200-500ms，16 并发下 200 只股票总耗时约 2.5-6s
+/// - 比无限制并发（200+ task 同时跑）显著降低 socket / fd 压力
+/// - 比串行（1 并发）快 16 倍，批量场景串行会导致整体超时
+pub const BATCH_DEFAULT_CONCURRENCY: usize = 16;
+
+/// P3-D12: 保命模式下的最小并发数（vendor 大面积降级时使用）。
+///
+/// 不降到 1 的原因：批量场景下串行 200 只股票 × 8s 超时 = 1600s，
+/// 远超 `total_timeout`（默认 30s），会全部超时。
+/// 2 并发能在保命模式下勉强完成小批量请求。
+pub const BATCH_MIN_CONCURRENCY: usize = 2;
+
 impl BatchRunner {
     pub fn new(client: Arc<crate::AStockClient>) -> Self {
         Self { inner: client }
+    }
+
+    /// P3-D12: 根据 vendor 健康度解析并发数。
+    ///
+    /// 算法与 `stock_pipeline::PipelineConfig::resolve_concurrency_with_vendor_health` 一致，
+    /// 但批量场景的默认上限更高（`BATCH_DEFAULT_CONCURRENCY = 16`）：
+    /// - `healthy_ratio < 0.3`（大面积降级）→ `BATCH_MIN_CONCURRENCY`（保命模式，2 并发）
+    /// - `healthy_ratio < 0.6`（部分降级）→ `max(BATCH_MIN, BATCH_DEFAULT / 2)` = 8
+    /// - 否则 → `BATCH_DEFAULT_CONCURRENCY`（16）
+    ///
+    /// `max_concurrent > 0` 时直接返回该值（调用方显式指定，跳过健康度查询）。
+    /// 无 vendor 健康数据（首次运行）→ 返回默认值，不阻断业务。
+    pub async fn resolve_concurrency(&self, max_concurrent: usize) -> usize {
+        if max_concurrent > 0 {
+            return max_concurrent;
+        }
+        let health = self.inner.health_tracker.get_all_health().await;
+        Self::concurrency_from_health(&health)
+    }
+
+    /// P3-D12: 纯函数版并发解析（便于单元测试）。
+    pub fn concurrency_from_health(health: &[crate::vendor_health::VendorHealth]) -> usize {
+        use crate::vendor_health::VendorStatus;
+
+        let active: Vec<_> = health.iter().filter(|h| h.status != VendorStatus::Disabled).collect();
+        if active.is_empty() {
+            return BATCH_DEFAULT_CONCURRENCY;
+        }
+        let healthy_count = active.iter().filter(|h| h.status == VendorStatus::Healthy).count();
+        let healthy_ratio = healthy_count as f64 / active.len() as f64;
+
+        if healthy_ratio < 0.3 {
+            BATCH_MIN_CONCURRENCY
+        } else if healthy_ratio < 0.6 {
+            (BATCH_DEFAULT_CONCURRENCY / 2).max(BATCH_MIN_CONCURRENCY)
+        } else {
+            BATCH_DEFAULT_CONCURRENCY
+        }
     }
 
     async fn run_batch<T, F, Fut>(
@@ -231,13 +296,33 @@ impl BatchRunner {
         let per_timeout = req.per_stock_timeout;
         let max_failures = req.max_failures;
 
+        // P3-D12: 解析并发上限。
+        // - `max_concurrent == 0`：根据 vendor 健康度自动决定
+        // - `max_concurrent > 0`：显式指定
+        // 无限制（unbounded）只在健康度查询失败且无显式值时作为兜底，避免阻塞业务。
+        let concurrency = self.resolve_concurrency(req.max_concurrent).await;
+        let sem = Arc::new(tokio::sync::Semaphore::new(concurrency));
+
+        tracing::info!(
+            "[batch:{}] P3-D12 并发上限 = {}（codes={}）",
+            method,
+            concurrency,
+            codes.len(),
+        );
+
         let fetcher = Arc::new(fetcher);
         let mut tasks = FuturesUnordered::new();
 
         for code in codes {
             let fetcher = fetcher.clone();
             let method = method.clone();
+            let sem = sem.clone();
             tasks.push(tokio::spawn(async move {
+                // P3-D12: 通过 Semaphore 限制并发，避免一次性 spawn 200+ task 打爆 socket / vendor
+                let _permit = match sem.acquire_owned().await {
+                    Ok(p) => p,
+                    Err(_) => return (code, Err(format!("{}: Semaphore 已关闭", method))),
+                };
                 let result = tokio::time::timeout(per_timeout, fetcher(code.clone())).await;
                 let result = match result {
                     Ok(Ok(v)) => Ok(v),
@@ -392,5 +477,71 @@ mod tests {
         r.failures.insert("b".into(), "err".into());
         assert!(!r.is_all_success());
         assert_eq!(r.total(), 2);
+    }
+
+    /// P3-D12: 验证并发数解析的纯函数逻辑
+    #[test]
+    fn d12_concurrency_from_health_all_healthy() {
+        use crate::vendor_health::{VendorHealth, VendorStatus};
+        let health = vec![
+            VendorHealth { status: VendorStatus::Healthy, ..VendorHealth::new("tencent") },
+            VendorHealth { status: VendorStatus::Healthy, ..VendorHealth::new("eastmoney") },
+        ];
+        assert_eq!(BatchRunner::concurrency_from_health(&health), BATCH_DEFAULT_CONCURRENCY);
+    }
+
+    #[test]
+    fn d12_concurrency_from_health_partial_degraded() {
+        use crate::vendor_health::{VendorHealth, VendorStatus};
+        // 5 个 vendor，1 healthy + 4 degraded → healthy_ratio=0.2 < 0.3 → 保命模式
+        let health = vec![
+            VendorHealth { status: VendorStatus::Healthy, ..VendorHealth::new("tencent") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("eastmoney") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("sina") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("ths") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("akshare") },
+        ];
+        assert_eq!(BatchRunner::concurrency_from_health(&health), BATCH_MIN_CONCURRENCY);
+
+        // 5 个 vendor，2 healthy + 3 degraded → healthy_ratio=0.4 ∈ [0.3, 0.6) → 降速
+        let health = vec![
+            VendorHealth { status: VendorStatus::Healthy, ..VendorHealth::new("tencent") },
+            VendorHealth { status: VendorStatus::Healthy, ..VendorHealth::new("eastmoney") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("sina") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("ths") },
+            VendorHealth { status: VendorStatus::Degraded, ..VendorHealth::new("akshare") },
+        ];
+        assert_eq!(
+            BatchRunner::concurrency_from_health(&health),
+            (BATCH_DEFAULT_CONCURRENCY / 2).max(BATCH_MIN_CONCURRENCY)
+        );
+    }
+
+    #[test]
+    fn d12_concurrency_from_health_all_disabled() {
+        use crate::vendor_health::{VendorHealth, VendorStatus};
+        // 全部 Disabled → active 为空 → 返回默认值（不阻断业务）
+        let health = vec![
+            VendorHealth { status: VendorStatus::Disabled, ..VendorHealth::new("tencent") },
+            VendorHealth { status: VendorStatus::Disabled, ..VendorHealth::new("eastmoney") },
+        ];
+        assert_eq!(BatchRunner::concurrency_from_health(&health), BATCH_DEFAULT_CONCURRENCY);
+    }
+
+    #[test]
+    fn d12_concurrency_from_health_empty() {
+        // 无 vendor 健康数据（首次运行）→ 返回默认值
+        let health: Vec<crate::vendor_health::VendorHealth> = vec![];
+        assert_eq!(BatchRunner::concurrency_from_health(&health), BATCH_DEFAULT_CONCURRENCY);
+    }
+
+    #[test]
+    fn d12_batch_request_with_max_concurrent() {
+        let r = BatchRequest::new(vec!["600519".into()]).with_max_concurrent(4);
+        assert_eq!(r.max_concurrent, 4);
+
+        // 默认值 0 = 自动
+        let r = BatchRequest::default();
+        assert_eq!(r.max_concurrent, 0);
     }
 }

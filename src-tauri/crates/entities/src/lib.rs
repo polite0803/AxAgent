@@ -122,6 +122,7 @@ pub mod divergence_logs;
 pub mod earnings_events;
 pub mod financial_snapshots;
 pub mod fund_transfers;
+pub mod lesson_applications;
 pub mod news_archive;
 pub mod portfolio_correlation_snapshot;
 pub mod portfolio_holdings;

@@ -3285,6 +3285,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
                 Box::new(axagent_trajectory::DefaultSandboxToolTester),
             ),
         ))),
+        execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(Arc::new(
+            db.clone(),
+        )),
     };
 
     let attachments = vec![AttachmentInput {

@@ -4,10 +4,12 @@ import { Tabs } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "./_shared/PageHeader";
+import { BacktestChart } from "./BacktestChart";
 import { BacktestPanel } from "./BacktestPanel";
 import { HistoricalAnalysisPanel } from "./HistoricalAnalysisPanel";
 import { MarketSimPanel } from "./MarketSimPanel";
 import { MonteCarloPanel } from "./MonteCarloPanel";
+import { PnLHistogram, SectorAllocationDonut } from "./PortfolioCharts";
 import { QuantSimPanel } from "./QuantSimPanel";
 import { QuickBacktestPanel } from "./QuickBacktestPanel";
 import { RecoSignalTimeline } from "./RecoSignalTimeline";
@@ -72,6 +74,28 @@ export function BacktestPage() {
                 key: "quant_sim",
                 label: "🤖 策略模拟",
                 children: <QuantSimPanel />,
+              },
+              {
+                key: "charts",
+                label: t("stockAnalysis.backtest.tabCharts", "📊 可视化"),
+                children: (
+                  <div className="space-y-4">
+                    <BacktestChart
+                      equityCurve={[]}
+                      metrics={{
+                        strategyName: "",
+                        totalReturn: 0,
+                        annualizedReturn: 0,
+                        sharpe: 0,
+                        maxDrawdown: 0,
+                        winRate: 0,
+                        totalTrades: 0,
+                      }}
+                    />
+                    <SectorAllocationDonut data={[]} />
+                    <PnLHistogram data={[]} />
+                  </div>
+                ),
               },
             ]}
           />

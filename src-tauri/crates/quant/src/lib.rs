@@ -44,6 +44,8 @@ mod error;
 mod kline_provider;
 mod matcher;
 mod metrics;
+mod param_optimizer;
+mod portfolio;
 mod script;
 mod strategy;
 mod types;
@@ -55,6 +57,12 @@ pub use engine::{BacktestConfig, BacktestEngine, BacktestResult};
 pub use error::QuantError;
 pub use matcher::{Matcher, MatcherConfig};
 pub use metrics::MetricsReport;
+pub use param_optimizer::{ParamOptimizer, ParamScanResult, ParamSpace, ParamTrialResult};
+pub use portfolio::{
+    AlphaDecomposition, AttributionReport, PerStrategyResult, PortfolioBacktestResult,
+    PortfolioConfig, PortfolioEngine, PortfolioStrategySpec, RebalanceMode, RebalanceRecord,
+    SignalAggregation, StockContribution, StrategyContribution,
+};
 pub use script::RhaiStrategy;
 pub use strategy::Strategy;
 pub use types::{Bar, CloseReason, Fill, Order, OrderType, Side, Signal, SignalAction};

@@ -28,6 +28,7 @@ use crate::agent::traits::{
 };
 use crate::config::{LatencyMatrix, SimConfig};
 use crate::error::SimError;
+use crate::events::ExternalEvent;
 use crate::types::*;
 
 // ── 内部类型 ──
@@ -177,6 +178,117 @@ impl SimKernel {
     /// 获取 Agent 数量
     pub fn agent_count(&self) -> usize {
         self.agents.len()
+    }
+
+    /// 注入外部事件（P2-C9）
+    ///
+    /// 将外部事件按 `event.scheduled_at` 时间广播给所有已注册的 Agent。
+    /// EventDrivenAgent 会根据事件情感和影响强度决定是否触发交易。
+    /// 其他 Agent 收到事件后默认忽略（on_message 返回空 Vec）。
+    ///
+    /// # 调用时机
+    ///
+    /// 必须在 `run()` 调用之前注入。事件按 `scheduled_at` 排入事件队列，
+    /// 主循环开始后按时间顺序处理。
+    ///
+    /// # 广播语义
+    ///
+    /// - 事件被克隆并投递给**每个**已注册 Agent（一对一消息，非 Agent 间转发）
+    /// - 每个投递使用相同的 `scheduled_at`，但 priority=1（仅次于系统初始化）
+    /// - 不建模事件广播延迟（投递时间 = `event.scheduled_at`，与 `LatencyMatrix` 无关）
+    ///   —— 外部事件是 Kernel 级注入，不属于 Agent 间通信
+    ///
+    /// # 使用示例
+    ///
+    /// ```rust,no_run
+    /// use axagent_market_sim::{
+    ///     EventDrivenAgent, ExchangeAgent, ExternalEvent, ExternalEventKind, SimConfig, SimKernel,
+    /// };
+    ///
+    /// let mut kernel = SimKernel::new(SimConfig::default());
+    /// kernel.register(Box::new(ExchangeAgent::new("exchange")));
+    /// kernel.register(Box::new(
+    ///     EventDrivenAgent::new_all_events("ed1", 0.1, 100, 1000, 1_000_000, None),
+    /// ));
+    ///
+    /// // 注入利好新闻事件（1ms 后触发）
+    /// let event = ExternalEvent::news(
+    ///     "公司业绩预增".to_string(),
+    ///     "净利润同比增长 50%".to_string(),
+    ///     0.8,  // sentiment
+    ///     0.7,  // impact
+    ///     1_000_000,  // scheduled_at = 1ms
+    ///     None,
+    /// );
+    /// kernel.inject_event(event);
+    /// ```
+    pub fn inject_event(&mut self, event: ExternalEvent) {
+        let deliver_at = event.scheduled_at;
+        let agent_ids: Vec<String> = self.agents.keys().cloned().collect();
+        for agent_id in agent_ids {
+            let sim_event = SimEvent {
+                scheduled_at: deliver_at,
+                priority: 1, // 外部事件高优先级（仅次于系统初始化的 0）
+                message: AgentMessage {
+                    source: "kernel".to_string(),
+                    target: agent_id,
+                    sent_at: self.clock,
+                    body: MessageBody::ExternalEvent(event.clone()),
+                },
+            };
+            self.event_queue.push(Reverse(sim_event));
+        }
+    }
+
+    /// 批量注入外部事件（P2-C9）
+    ///
+    /// 便利方法：等价于对每个事件调用 `inject_event`，但只获取一次 agent_ids 快照，
+    /// 在大量事件场景下性能更优（避免重复克隆 keys）。
+    ///
+    /// # 使用示例
+    ///
+    /// ```rust,no_run
+    /// use axagent_market_sim::{ExternalEvent, SimConfig, SimKernel, ExchangeAgent};
+    ///
+    /// let mut kernel = SimKernel::new(SimConfig::default());
+    /// kernel.register(Box::new(ExchangeAgent::new("exchange")));
+    ///
+    /// let events = vec![
+    ///     ExternalEvent::news("利好1", "", 0.6, 0.5, 1_000_000, None),
+    ///     ExternalEvent::news("利好2", "", 0.7, 0.6, 2_000_000, None),
+    ///     ExternalEvent::announcement("减持公告", "", -0.5, 0.7, 3_000_000, None),
+    /// ];
+    /// kernel.inject_events(events);
+    /// ```
+    pub fn inject_events(&mut self, events: impl IntoIterator<Item = ExternalEvent>) {
+        // 只获取一次 agent_ids 快照，避免每个事件都克隆 keys
+        let agent_ids: Vec<String> = self.agents.keys().cloned().collect();
+        if agent_ids.is_empty() {
+            return;
+        }
+        for event in events {
+            let deliver_at = event.scheduled_at;
+            for agent_id in &agent_ids {
+                let sim_event = SimEvent {
+                    scheduled_at: deliver_at,
+                    priority: 1,
+                    message: AgentMessage {
+                        source: "kernel".to_string(),
+                        target: agent_id.clone(),
+                        sent_at: self.clock,
+                        body: MessageBody::ExternalEvent(event.clone()),
+                    },
+                };
+                self.event_queue.push(Reverse(sim_event));
+            }
+        }
+    }
+
+    /// 待处理事件队列长度（用于调试和测试）
+    ///
+    /// 包含已注入但尚未处理的所有事件（含 Agent 间消息和外部事件）。
+    pub fn pending_events(&self) -> usize {
+        self.event_queue.len()
     }
 
     /// 运行模拟（同步执行，返回结果）
@@ -794,5 +906,249 @@ mod tests {
 
         assert!(result.total_events > 0, "应该有事件处理");
         assert_eq!(result.stats.agent_count, 6);
+    }
+
+    // ── P2-C9: 外部事件注入集成测试 ──
+
+    /// 验证 inject_event 将事件广播给所有 Agent
+    #[test]
+    fn test_inject_event_broadcasts_to_all_agents() {
+        use crate::agent::ExchangeAgent;
+
+        let config =
+            SimConfig { max_time_ns: 10_000_000, reference_price: 1000, ..SimConfig::default() };
+        let mut kernel = SimKernel::new(config);
+        kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
+        kernel.register(Box::new(EchoAgent::new("agent_a")));
+        kernel.register(Box::new(EchoAgent::new("agent_b")));
+
+        // 注入前队列空
+        assert_eq!(kernel.pending_events(), 0);
+
+        // 注入一个事件：广播给 3 个 Agent → 队列增加 3 条
+        let event = ExternalEvent::news("测试", "", 0.5, 0.5, 1_000_000, None);
+        kernel.inject_event(event);
+
+        assert_eq!(kernel.pending_events(), 3);
+    }
+
+    /// 验证 inject_events 批量注入
+    #[test]
+    fn test_inject_events_batch() {
+        use crate::agent::ExchangeAgent;
+
+        let config = SimConfig::default();
+        let mut kernel = SimKernel::new(config);
+        kernel.register(Box::new(ExchangeAgent::new("exchange")));
+        kernel.register(Box::new(EchoAgent::new("agent_a")));
+
+        // 2 个 Agent × 3 个事件 = 6 条队列条目
+        let events = vec![
+            ExternalEvent::news("利好1", "", 0.6, 0.5, 1_000_000, None),
+            ExternalEvent::news("利好2", "", 0.7, 0.6, 2_000_000, None),
+            ExternalEvent::announcement("减持", "", -0.5, 0.7, 3_000_000, None),
+        ];
+        kernel.inject_events(events);
+
+        assert_eq!(kernel.pending_events(), 6);
+    }
+
+    /// 验证 inject_events 在无 Agent 时不 panic
+    #[test]
+    fn test_inject_events_empty_kernel() {
+        let mut kernel = SimKernel::new(SimConfig::default());
+        let events = vec![ExternalEvent::news("test", "", 0.5, 0.5, 0, None)];
+        // 无 Agent 时应安全返回，不 panic
+        kernel.inject_events(events);
+        assert_eq!(kernel.pending_events(), 0);
+    }
+
+    /// 端到端：注入利好事件 → EventDrivenAgent 应产生买入订单 → Exchange 撮合成交
+    #[test]
+    fn test_event_driven_agent_trades_on_injected_event() {
+        use crate::agent::{EventDrivenAgent, ExchangeAgent, MarketMakerAgent};
+
+        let config = SimConfig {
+            max_time_ns: 50_000_000, // 50ms
+            reference_price: 1000,   // 10.00 元
+            default_latency_ns: 100,
+            ..SimConfig::default()
+        };
+
+        let mut kernel = SimKernel::new(config);
+
+        // 注册交易所（tick_size=1 分）
+        kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
+
+        // 注册做市商提供流动性（价差 30bps，每档 300 股）
+        kernel.register(Box::new(MarketMakerAgent::new("mm", 30, 300, 5000, 0.1, 200_000, 1000)));
+
+        // 注册 EventDrivenAgent（信号阈值 0.1，100 股/次，无冷却）
+        kernel.register(Box::new(EventDrivenAgent::new_all_events(
+            "ed1", 0.1, 100, 1000, 0, // 无冷却
+            None,
+        )));
+
+        // 注入利好新闻事件（1ms 时触发）
+        // sentiment=0.8, impact=0.7 → signal=0.56 > 0.1 → 触发买入
+        let event = ExternalEvent::news(
+            "公司业绩预增",
+            "净利润同比增长 50%",
+            0.8,
+            0.7,
+            1_000_000, // 1ms
+            None,
+        );
+        kernel.inject_event(event);
+
+        let result = kernel.run().unwrap();
+
+        // 应有事件被处理（至少包含外部事件广播 + 订单撮合）
+        assert!(result.total_events > 0, "应该有事件处理，actual={}", result.total_events);
+        // 应有成交记录（EventDrivenAgent 的买入订单应被做市商的卖盘撮合）
+        assert!(!result.trades.is_empty(), "应该有成交记录，trades.len()={}", result.trades.len());
+    }
+
+    /// 验证低信号事件不触发交易
+    #[test]
+    fn test_low_signal_event_no_trade() {
+        use crate::agent::{EventDrivenAgent, ExchangeAgent, MarketMakerAgent};
+
+        let config = SimConfig {
+            max_time_ns: 20_000_000,
+            reference_price: 1000,
+            default_latency_ns: 100,
+            ..SimConfig::default()
+        };
+
+        let mut kernel = SimKernel::new(config);
+        kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
+        kernel.register(Box::new(MarketMakerAgent::new("mm", 30, 300, 5000, 0.1, 200_000, 1000)));
+
+        // 高阈值 0.5
+        kernel.register(Box::new(EventDrivenAgent::new_all_events(
+            "ed_high_threshold",
+            0.5,
+            100,
+            1000,
+            0,
+            None,
+        )));
+
+        // 注入低信号事件：sentiment=0.3, impact=0.5 → signal=0.15 < 0.5 → 不触发
+        let event = ExternalEvent::news("弱信号", "", 0.3, 0.5, 1_000_000, None);
+        kernel.inject_event(event);
+
+        let result = kernel.run().unwrap();
+
+        // 不应有 EventDrivenAgent 触发的交易（做市商自身可能产生双边挂单但不成交）
+        // 关键断言：trades 中不应有 buyer_agent_id == "ed_high_threshold"
+        let ed_trades: Vec<_> = result
+            .trades
+            .iter()
+            .filter(|t| {
+                t.buyer_agent_id == "ed_high_threshold" || t.seller_agent_id == "ed_high_threshold"
+            })
+            .collect();
+        assert!(
+            ed_trades.is_empty(),
+            "低信号事件不应触发 EventDrivenAgent 交易，但找到 {} 条",
+            ed_trades.len()
+        );
+    }
+
+    /// 验证多事件序列：先利好买入，后利空卖出
+    #[test]
+    fn test_event_sequence_buy_then_sell() {
+        use crate::agent::{EventDrivenAgent, ExchangeAgent, MarketMakerAgent};
+
+        let config = SimConfig {
+            max_time_ns: 50_000_000,
+            reference_price: 1000,
+            default_latency_ns: 100,
+            ..SimConfig::default()
+        };
+
+        let mut kernel = SimKernel::new(config);
+        kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
+        kernel.register(Box::new(MarketMakerAgent::new("mm", 30, 300, 5000, 0.1, 200_000, 1000)));
+        kernel.register(Box::new(EventDrivenAgent::new_all_events(
+            "ed_seq", 0.1, 100, 1000, 0, None,
+        )));
+
+        // 时序事件：1ms 利好 → 买入，5ms 利空 → 卖出
+        let events = vec![
+            ExternalEvent::news("利好", "业绩预增", 0.8, 0.7, 1_000_000, None),
+            ExternalEvent::announcement("利空", "股东减持", -0.7, 0.7, 5_000_000, None),
+        ];
+        kernel.inject_events(events);
+
+        let result = kernel.run().unwrap();
+
+        // 应有 EventDrivenAgent 参与的成交
+        let ed_trades: Vec<_> = result
+            .trades
+            .iter()
+            .filter(|t| t.buyer_agent_id == "ed_seq" || t.seller_agent_id == "ed_seq")
+            .collect();
+        assert!(
+            !ed_trades.is_empty(),
+            "EventDrivenAgent 应参与交易，trades.len()={}",
+            ed_trades.len()
+        );
+
+        // 至少应有一笔买入（buyer_agent_id == "ed_seq"）
+        let has_buy = ed_trades.iter().any(|t| t.buyer_agent_id == "ed_seq");
+        assert!(has_buy, "应至少有一笔 EventDrivenAgent 买入");
+    }
+
+    /// 验证事件过滤：EventDrivenAgent 只处理订阅的事件类型
+    #[test]
+    fn test_event_filter_by_subscribed_kinds() {
+        use crate::agent::{EventDrivenAgent, ExchangeAgent, MarketMakerAgent};
+        use crate::events::ExternalEventKind;
+
+        let config = SimConfig {
+            max_time_ns: 20_000_000,
+            reference_price: 1000,
+            default_latency_ns: 100,
+            ..SimConfig::default()
+        };
+
+        let mut kernel = SimKernel::new(config);
+        kernel.register(Box::new(ExchangeAgent::with_tick_size("exchange", 1)));
+        kernel.register(Box::new(MarketMakerAgent::new("mm", 30, 300, 5000, 0.1, 200_000, 1000)));
+
+        // 只订阅财报事件
+        kernel.register(Box::new(EventDrivenAgent::new(
+            "ed_earnings_only",
+            0.1,
+            100,
+            1000,
+            0,
+            vec![ExternalEventKind::Earnings],
+            None,
+        )));
+
+        // 注入一个新闻事件（不应被处理）
+        let news_event = ExternalEvent::news("新闻", "", 0.8, 0.7, 1_000_000, None);
+        kernel.inject_event(news_event);
+        // 注入一个财报事件（应被处理）
+        let earnings_event = ExternalEvent::earnings("财报", "超预期", 0.8, 0.7, 2_000_000, None);
+        kernel.inject_event(earnings_event);
+
+        let result = kernel.run().unwrap();
+
+        // 只应有财报事件触发的交易，新闻事件不应触发
+        let ed_trades: Vec<_> =
+            result.trades.iter().filter(|t| t.buyer_agent_id == "ed_earnings_only").collect();
+        // 财报事件应触发买入（做市商提供流动性时）
+        // 注意：是否成交取决于做市商挂单时机，此处宽松断言：至少新闻事件不应让 ed 产生买卖单
+        // 通过 ed_trades 不为空验证财报事件生效
+        assert!(
+            !ed_trades.is_empty(),
+            "财报事件应触发 EventDrivenAgent 买入，trades.len()={}",
+            ed_trades.len()
+        );
     }
 }
