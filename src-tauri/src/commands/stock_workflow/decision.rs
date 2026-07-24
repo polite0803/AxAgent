@@ -387,9 +387,18 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
         // CodeNode 包装: { status, result, input_params, node_id, params }
         // 实际决策在 .result 字段;若 .result 缺失(旧版/异常路径)则降级用
         // 整个 pm 值,让 extract_decision_fields 至少能拿到 action 等字段。
+        //
+        // V63 修复: portfolio-mgr 也可能是 {node_id, output, source, status}
+        // 格式（不含 result/params），决策数据在 .output 字段中。
         let actual = match pm {
             serde_json::Value::Object(obj) => {
-                obj.get("result").cloned().unwrap_or_else(|| pm.clone())
+                if let Some(result) = obj.get("result") {
+                    result.clone()
+                } else if let Some(output) = obj.get("output") {
+                    output.clone()
+                } else {
+                    pm.clone()
+                }
             },
             _ => pm.clone(),
         };
