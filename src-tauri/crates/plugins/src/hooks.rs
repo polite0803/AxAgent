@@ -579,7 +579,7 @@ mod tests {
         fs::write(
             root.join(".claude-plugin").join("plugin.json"),
             format!(
-                "{{\n  \"name\": \"{name}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"hook plugin\",\n  \"hooks\": {{\n    \"PreToolUse\": [\"./hooks/{pre_ext}\"],\n    \"PostToolUse\": [\"./hooks/{post_ext}\"],\n    \"PostToolUseFailure\": [\"./hooks/{failure_ext}\"]\n  }}\n}}"
+                "{{\n  \"name\": \"{name}\",\n  \"version\": \"1.0.0\",\n  \"description\": \"hook plugin\",\n  \"permissions\": [\"subprocess_execution\"],\n  \"hooks\": {{\n    \"PreToolUse\": [\"./hooks/{pre_ext}\"],\n    \"PostToolUse\": [\"./hooks/{post_ext}\"],\n    \"PostToolUseFailure\": [\"./hooks/{failure_ext}\"]\n  }}\n}}"
             ),
         )
         .expect("write plugin manifest");
