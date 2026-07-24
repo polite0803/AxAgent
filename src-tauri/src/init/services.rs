@@ -2039,12 +2039,20 @@ fn start_persistent_runner(state: &AppState) {
         })
     });
 
-    let handle = runner.spawn_daemon(60, executor);
-    tracing::info!("[start_persistent_runner] 守护线程已启动(默认 enabled=false,空转等待配置启用)");
+    // 修复：spawn_daemon 内部调用 tokio::spawn,必须在 tokio runtime 上下文中执行。
+    // start_background_services 是同步函数,在 Tauri setup 闭包中直接调用时不在 runtime 上下文,
+    // 直接调用 spawn_daemon 会 panic "there is no reactor running"。
+    // 用 tauri::async_runtime::spawn 包裹,确保进入 runtime 上下文后再调用 spawn_daemon。
+    tauri::async_runtime::spawn(async move {
+        let handle = runner.spawn_daemon(60, executor);
+        tracing::info!(
+            "[start_persistent_runner] 守护线程已启动(默认 enabled=false,空转等待配置启用)"
+        );
 
-    // JoinHandle 被 drop 时 tokio 不会取消任务(detach),守护线程继续运行。
-    // 若需要优雅关闭,可后续把 handle 挂到 task_manager。
-    drop(handle);
+        // JoinHandle 被 drop 时 tokio 不会取消任务(detach),守护线程继续运行。
+        // 若需要优雅关闭,可后续把 handle 挂到 task_manager。
+        drop(handle);
+    });
 }
 
 fn start_trajectory_cleanup(state: &AppState) {

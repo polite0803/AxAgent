@@ -58,6 +58,18 @@ pub async fn recover_workflow_triggers(
         match cfg.trigger_type {
             TriggerType::Manual => {},
             TriggerType::Schedule => {
+                // AxInvest 兼容：stock-analysis 等模板使用 `schedules` 多时段格式
+                // （{ "schedules": { "morning": "0 9 * * 1-5", ... } }），由独立调度器
+                // （如 start_stock_pipeline）管理，不通过 TriggerManager 注册。
+                // 上游 ScheduleTriggerConfig 要求单个 `cron` 字段，解析会失败。
+                // 此处检测到 `schedules` 字段时记 debug 跳过，不记 warn。
+                if cfg.config.get("schedules").is_some() {
+                    tracing::debug!(
+                        "[trigger_recovery] 模板 {} 使用 AxInvest schedules 多时段格式,由独立调度器管理,跳过 TriggerManager 注册",
+                        tpl.id
+                    );
+                    continue;
+                }
                 let sched: ScheduleTriggerConfig = match serde_json::from_value(cfg.config) {
                     Ok(s) => s,
                     Err(e) => {
