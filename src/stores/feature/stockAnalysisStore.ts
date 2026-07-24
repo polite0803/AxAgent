@@ -5,6 +5,7 @@ import {
   extractLlmField,
   normalizeDecision,
   parseJsonLoose,
+  reconstructVerdictTag,
   tryParseDecision,
 } from "@/lib/agentOutput";
 import { buildDecisionInputsReport, type DecisionInputsReport } from "@/lib/decisionInputDiagnosis";
@@ -94,7 +95,7 @@ function parseWorkflowResults(results: Record<string, unknown>) {
     }
 
     if (stepId.startsWith("a-") && !stepId.includes("bull") && !stepId.includes("bear")) {
-      analystReports[stepId.slice(2)] = output;
+      analystReports[stepId.slice(2)] = reconstructVerdictTag(output);
     } else if (stepId === "bull-researcher" || (stepId.startsWith("bull-r") && stepId !== "bull-researcher")) {
       // 辩论子节点: 实际 nodeId 为 "bull-researcher" (DAG 引擎单次执行)
       // 兼容未来多轮模式: bull-r1, bull-r2...
@@ -1795,7 +1796,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             __untrusted: true,
             __empty_fallback: true,
           });
-        set({ analystReports: { ...get().analystReports, [expertId]: safeText } });
+        set({ analystReports: { ...get().analystReports, [expertId]: reconstructVerdictTag(safeText) } });
         return true;
       }
       return false;

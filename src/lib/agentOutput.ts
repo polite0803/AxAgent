@@ -245,16 +245,18 @@ export function normalizeDecision(raw: Record<string, unknown>): StockDecision |
 
   // CodeNode 输出兼容：若顶层字段是 CodeNode 包装（status/result/params/node_id），
   // 从 result / params / output 中提取（output 对应 {node_id, output, source, status} 格式）
-  const source: Record<string, unknown> = (!("action" in raw) && !("confidence" in raw) && !raw.result && !raw.params && !raw.output)
-    ? raw
-    : (!("action" in raw) && !("confidence" in raw) && typeof raw.result === "object" && raw.result !== null)
-    ? (raw.result as Record<string, unknown>)
-    : (!("action" in raw) && !("confidence" in raw) && typeof raw.params === "object" && raw.params !== null)
-    ? (raw.params as Record<string, unknown>)
-    // {node_id, output, source, status} 格式：从 output 提取（无 result/params 时）
-    : (!("action" in raw) && !("confidence" in raw) && typeof raw.output === "object" && raw.output !== null && !raw.result && !raw.params)
-    ? (raw.output as Record<string, unknown>)
-    : raw;
+  const source: Record<string, unknown> =
+    (!("action" in raw) && !("confidence" in raw) && !raw.result && !raw.params && !raw.output)
+      ? raw
+      : (!("action" in raw) && !("confidence" in raw) && typeof raw.result === "object" && raw.result !== null)
+      ? (raw.result as Record<string, unknown>)
+      : (!("action" in raw) && !("confidence" in raw) && typeof raw.params === "object" && raw.params !== null)
+      ? (raw.params as Record<string, unknown>)
+      // {node_id, output, source, status} 格式：从 output 提取（无 result/params 时）
+      : (!("action" in raw) && !("confidence" in raw) && typeof raw.output === "object" && raw.output !== null
+          && !raw.result && !raw.params)
+      ? (raw.output as Record<string, unknown>)
+      : raw;
 
   // ── "全零空壳"检测：所有有意义的字段都缺失/为默认值 ──
   // 判定"有意义"的字段：action / confidence / positionPct / targetPrice /
@@ -541,4 +543,45 @@ export function extractLlmField(llmDecisionJson: string | null, field: string): 
     }
   } catch { /* ignore */ }
   return null;
+}
+
+/**
+ * 重构 LLM 输出的 {report, verdict} 结构化 JSON 为 report<!-- VERDICT: {verdict} --> 格式。
+ *
+ * Rust 端 build_blackboard_snapshot（blackboard.rs:97-112）已有相同逻辑 → 历史路径正常。
+ * 实时路径（parseWorkflowResults / handleAnalystReport）缺少此重构 → AnalystReportGrid
+ * 从顶层取 v.bull_score 失败（字段在 v.verdict 内部嵌套）→ 分析师数据/多方空方论据为空。
+ *
+ * 当 LLM 直接输出结构化 JSON（strict_mode）而非 prompt 要求的 VERDICT 标签格式时，
+ * 此函数将 {report, verdict} 转为前端能解析的 report + VERDICT 标签格式。
+ * 如果输入不是 {report, verdict} 格式，原样返回。
+ */
+export function reconstructVerdictTag(text: string): string {
+  if (!text || text.trim().length === 0) { return text; }
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(text.trim());
+  } catch {
+    return text;
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) { return text; }
+
+  // 检测 {report, verdict} 格式
+  if (typeof parsed.report !== "string" || parsed.verdict === undefined || parsed.verdict === null) {
+    return text;
+  }
+
+  const report = parsed.report;
+  const verdict = typeof parsed.verdict === "object"
+    ? JSON.stringify(parsed.verdict)
+    : String(parsed.verdict);
+
+  if (report.trim().length > 0) {
+    return `${report}\n\n<!-- VERDICT: ${verdict} -->`;
+  }
+
+  // 无正文只有 verdict
+  return `<!-- VERDICT: ${verdict} -->`;
 }
