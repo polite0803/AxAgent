@@ -166,6 +166,9 @@ pub enum PluginError {
     /// `subprocess_execution` 权限等）。与 `CommandFailed` 区分以便上层
     /// 做权限引导而非通用错误处理。
     PermissionDenied(String),
+    /// 插件已安装冲突 — install 时检测到 plugin_id 已存在,
+    /// 调用方应提示用户使用 update 而非 install。
+    AlreadyExists(String),
 }
 
 impl Display for PluginError {
@@ -194,7 +197,8 @@ impl Display for PluginError {
             Self::InvalidManifest(message)
             | Self::NotFound(message)
             | Self::CommandFailed(message)
-            | Self::PermissionDenied(message) => write!(f, "{message}"),
+            | Self::PermissionDenied(message)
+            | Self::AlreadyExists(message) => write!(f, "{message}"),
         }
     }
 }
@@ -386,6 +390,19 @@ impl PluginManager {
 
         let plugin_id = plugin_id(&manifest.name, EXTERNAL_MARKETPLACE);
         let install_path = self.install_root().join(sanitize_plugin_id(&plugin_id));
+
+        // P3 安全:install 冲突检测 — 若 plugin_id 已存在于 registry,
+        // 返回 AlreadyExists 错误,提示用户使用 update 而非 install。
+        // 防止恶意插件冒充合法插件(同名覆盖)。
+        {
+            let registry = self.load_registry()?;
+            if registry.plugins.contains_key(&plugin_id) {
+                return Err(PluginError::AlreadyExists(format!(
+                    "plugin `{plugin_id}` is already installed, use `update` instead of `install`"
+                )));
+            }
+        }
+
         if install_path.exists() {
             fs::remove_dir_all(&install_path)?;
         }
@@ -574,7 +591,32 @@ impl PluginManager {
         let manifest = load_plugin_from_directory(&staged_source)?;
         self.validate_dependencies(&manifest)?;
 
+        // P3 安全:升级备份机制 — 在覆盖前备份旧版本到 `.bak` 目录,
+        // 保留用户对 plugin.json / SKILL.md / hooks 的本地修改。
+        // 备份失败不阻断升级(降级到原行为),仅 warn 日志。
+        // 备份目录命名:{install_path}.bak,仅保留最近 1 个版本。
+        let backup_path = record.install_path.with_extension("bak");
         if record.install_path.exists() {
+            // 先清理旧的备份目录(若存在)
+            if backup_path.exists() {
+                let _ = fs::remove_dir_all(&backup_path);
+            }
+            match copy_dir_all(&record.install_path, &backup_path) {
+                Ok(()) => {
+                    tracing::info!(
+                        "[plugin_update] plugin `{}` 旧版本已备份到 {}",
+                        plugin_id,
+                        backup_path.display()
+                    );
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "[plugin_update] plugin `{}` 备份失败: {} — 继续升级,旧版本将被覆盖",
+                        plugin_id,
+                        e
+                    );
+                },
+            }
             fs::remove_dir_all(&record.install_path)?;
         }
         copy_dir_all(&staged_source, &record.install_path)?;

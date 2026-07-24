@@ -334,6 +334,19 @@ pub struct AppState {
     /// 所有 `record()` 调用都会经过 `FilteringSink` 过滤后落盘。
     pub telemetry_sink: Arc<dyn axagent_telemetry::TelemetrySink>,
 
+    /// 3.3 P2:持久化重试调度器(可选,None = 未启用)。
+    ///
+    /// 由 wiring 层在 `create_app_state` 中根据 `UnifiedConfig.persistent_runner.enabled`
+    /// 决定是否构造。`enabled: false`(默认)时不构造,零开销。
+    ///
+    /// 启用后,`start_background_services` 会调用 `spawn_daemon` 启动后台守护循环,
+    /// 每 60 秒检查 pending session 并调度执行。
+    ///
+    /// **注意**:当前 executor 闭包为占位实现(返回 `Err("not implemented")`),
+    /// 真正的 SessionManager 适配器需后续实现。启用配置后守护线程会运行,
+    /// 但实际执行会失败并记录 warn 日志。
+    pub persistent_runner: Option<Arc<axagent_runtime::persistent_runner::PersistentRunner>>,
+
     /// 统一事件总线(跨 crate 事件流标准入口)。
     ///
     /// 由 wiring 层(src/init/state.rs)在构造 AppState 时实例化,

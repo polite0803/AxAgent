@@ -213,7 +213,7 @@ export const PermissionModal: React.FC = () => {
       title={
         <Space size={8}>
           <Shield size={18} style={{ color: "var(--ant-color-primary)" }} />
-          <span>{t("permissionModal.title")}</span>
+          <span id="permission-modal-title">{t("permissionModal.title")}</span>
           {permissionRequest && (
             <Tag
               color={riskCfg.color}
@@ -234,6 +234,7 @@ export const PermissionModal: React.FC = () => {
       closable={false}
       maskClosable={false}
       width={520}
+      aria-labelledby="permission-modal-title"
       footer={
         <div
           style={{

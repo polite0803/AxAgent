@@ -69,13 +69,14 @@ export const PlanApprovalModal: React.FC = () => {
       title={
         <Space size={8}>
           <FileText size={18} style={{ color: "var(--ant-color-primary)" }} />
-          <span>{t("planApprovalModal.title")}</span>
+          <span id="plan-approval-modal-title">{t("planApprovalModal.title")}</span>
         </Space>
       }
       open={!!pendingPlan}
       closable={false}
       maskClosable={false}
       width={560}
+      aria-labelledby="plan-approval-modal-title"
       footer={
         <div
           style={{

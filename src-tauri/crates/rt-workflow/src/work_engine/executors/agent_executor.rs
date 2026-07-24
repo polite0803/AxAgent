@@ -404,20 +404,19 @@ impl NodeExecutorTrait for AgentExecutor {
             let guard = lock_or_recover(self.engine.lock());
             guard.as_ref().cloned()
         };
-        if let Some(engine) = engine_clone {
-            if let Some(runner) = engine.get_agent_turn_runner() {
-                if runner.is_available() {
-                    match self.try_delegate_to_turn_runner(&runner, node, an, context).await {
-                        Ok(output) => return Ok(output),
-                        Err(e) => {
-                            tracing::warn!(
-                                node_id = %node.base_id(),
-                                error = %e,
-                                "AgentTurnRunner 委托失败,fallback 到 inline ReAct"
-                            );
-                        },
-                    }
-                }
+        if let Some(engine) = engine_clone
+            && let Some(runner) = engine.get_agent_turn_runner()
+            && runner.is_available()
+        {
+            match self.try_delegate_to_turn_runner(&runner, node, an, context).await {
+                Ok(output) => return Ok(output),
+                Err(e) => {
+                    tracing::warn!(
+                        node_id = %node.base_id(),
+                        error = %e,
+                        "AgentTurnRunner 委托失败,fallback 到 inline ReAct"
+                    );
+                },
             }
         }
 

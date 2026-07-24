@@ -781,6 +781,22 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }
     };
 
+    // 3.3 P2:构造 PersistentRunner(持久化重试调度器)。
+    //
+    // 使用默认配置(enabled: false),守护线程会空转不调度。
+    // 未来用户通过配置启用后,守护线程立即开始检查 pending session。
+    //
+    // 注意:executor 闭包为占位实现,真正的 SessionManager 适配器需后续实现。
+    let persistent_runner = {
+        let config = axagent_runtime::persistent_runner::PersistentRunnerConfig::default();
+        let runner =
+            Arc::new(axagent_runtime::persistent_runner::PersistentRunner::new(&app_dir, config));
+        tracing::info!(
+            "[persistent_runner] 实例已构造(默认 enabled=false,守护线程将在 start_background_services 中启动)"
+        );
+        Some(runner)
+    };
+
     Ok(AppState {
         harness,
         gateway: gateway_server,
@@ -865,6 +881,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         pty_manager,
         telemetry_level_handle,
         telemetry_sink,
+        persistent_runner,
         event_bus,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,

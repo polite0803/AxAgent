@@ -36,6 +36,7 @@ pub fn start_background_services(
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
     start_trigger_recovery(state);
+    start_persistent_runner(state);
     start_platform_adapters(state);
     start_skill_watcher(app, state);
     start_memory_decay_tick(state);
@@ -1612,6 +1613,36 @@ fn start_trigger_recovery(state: &AppState) {
             event
         );
     });
+}
+
+/// 3.3 P2:启动 PersistentRunner 后台守护线程。
+///
+/// 守护线程每 60 秒检查一次 pending session。默认 `enabled: false` 时
+/// 守护线程空转 sleep,不会有任何调度行为。
+///
+/// **注意**:当前 executor 闭包为占位实现,返回 `Err("not implemented")`。
+/// 真正的 SessionManager 适配器需后续实现 — 实现后即可通过配置启用持久化重试。
+fn start_persistent_runner(state: &AppState) {
+    let Some(runner) = state.persistent_runner.clone() else {
+        tracing::debug!("[start_persistent_runner] PersistentRunner 未构造,跳过");
+        return;
+    };
+
+    // 占位 executor — 真正的 SessionManager 适配器需后续实现。
+    // 当前返回 Err,让 PersistentRunner 记录 warn 日志但不 panic。
+    let executor: axagent_runtime::persistent_runner::SessionExecutor = Arc::new(|_session| {
+        Box::pin(async {
+            tracing::warn!("[PersistentRunner] SessionExecutor 适配器尚未实现,session 执行被跳过");
+            Err("SessionExecutor adapter not yet implemented".to_string())
+        })
+    });
+
+    let handle = runner.spawn_daemon(60, executor);
+    tracing::info!("[start_persistent_runner] 守护线程已启动(默认 enabled=false,空转等待配置启用)");
+
+    // JoinHandle 被 drop 时 tokio 不会取消任务(detach),守护线程继续运行。
+    // 若需要优雅关闭,可后续把 handle 挂到 task_manager。
+    drop(handle);
 }
 
 fn start_trajectory_cleanup(state: &AppState) {

@@ -208,7 +208,8 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
       onOk={handleSave}
       okText={t("common.ok")}
       cancelText={t("common.cancel")}
-      title={t("userProfile.title")}
+      title={<span id="user-profile-modal-title">{t("userProfile.title")}</span>}
+      aria-labelledby="user-profile-modal-title"
       width={680}
       destroyOnHidden
     >

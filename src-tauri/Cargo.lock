@@ -1415,6 +1415,7 @@ dependencies = [
  "axagent-dao",
  "axagent-entities",
  "axagent-harness",
+ "axagent-kit",
  "chrono",
  "dirs 6.0.0",
  "hex",

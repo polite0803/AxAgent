@@ -8,6 +8,7 @@ publish = false
 async-trait = "0.1"
 axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
+axagent-kit = { path = "../kit" }
 chrono = { workspace = true }
 dirs = "6"
 hex = "0.4"

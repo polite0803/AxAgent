@@ -12,6 +12,9 @@
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+// P3 质量:路径校验统一到 axagent_kit::path,消除重复定义。
+use axagent_kit::path as kit_path;
+
 use serde::Serialize;
 
 use crate::commands::error::{ErrorCategory, ErrorResponse};
@@ -79,23 +82,11 @@ fn validate_new_name(new_name: &str) -> Result<(), ErrorResponse> {
     Ok(())
 }
 
-/// 去掉 Windows 上 canonicalize 引入的 `\\?\` UNC 前缀，让返回给前端的路径更友好。
-fn strip_unc_prefix(p: PathBuf) -> PathBuf {
-    let s = p.to_string_lossy().into_owned();
-    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
-        PathBuf::from(format!(r"\\{}", rest))
-    } else if let Some(rest) = s.strip_prefix(r"\\?\") {
-        PathBuf::from(rest)
-    } else {
-        p
-    }
-}
-
-/// 规范化路径：canonicalize，不存在时回退到词法形式；并剥离 UNC 前缀。
+/// 规范化路径:canonicalize,不存在时回退到词法形式;并剥离 UNC 前缀。
+///
+/// P3 质量:实现已统一到 `axagent_kit::path::canonicalize_with_fallback`。
 fn canonicalize_path(path: &str) -> Result<PathBuf, ErrorResponse> {
-    let p = Path::new(path);
-    let canonical = p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
-    Ok(strip_unc_prefix(canonical))
+    Ok(kit_path::canonicalize_with_fallback(Path::new(path)))
 }
 
 /// 把 IO 错误映射为带错误码的 ErrorResponse。

@@ -15,6 +15,8 @@ pub mod html_cleaner;
 pub mod model_knowledge;
 pub mod operation_audit;
 pub mod output_processor;
+/// 路径校验统一模块(P3 质量)— 消除 `validate_relative_path` 重复定义。
+pub mod path;
 pub mod prompt_template;
 pub mod resource_limits;
 pub mod sandbox_runner;

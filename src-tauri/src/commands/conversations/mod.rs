@@ -3050,6 +3050,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         )),
         telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
             as Arc<dyn axagent_telemetry::TelemetrySink>,
+        persistent_runner: None,
         semantic_cache: semantic_cache.clone(),
         prompt_cache: Arc::new(PromptCache::new()),
         harness: axagent_runtime::harness::RuntimeHarness::new(
