@@ -22,7 +22,7 @@ jobs:
     name: Build (x86_64-pc-windows-msvc)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: master
           submodules: recursive
@@ -47,7 +47,7 @@ jobs:
           Expand-Archive protoc.zip -DestinationPath "$env:RUNNER_TOOL_CACHE\protoc"
           echo "$env:RUNNER_TOOL_CACHE\protoc\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: 'npm'

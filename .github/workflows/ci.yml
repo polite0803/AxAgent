@@ -42,9 +42,9 @@ jobs:
     name: Frontend Check
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: 'npm'
@@ -83,7 +83,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -125,7 +125,7 @@ jobs:
         run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
 
       - name: Setup Node.js (for Rust lint scripts)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
 
@@ -139,7 +139,7 @@ jobs:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Add swap space
         run: |
@@ -181,7 +181,7 @@ jobs:
       - name: Run Rust tests
         run: cargo nextest run --workspace --manifest-path src-tauri/Cargo.toml
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: 'npm'
@@ -204,9 +204,9 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: 'npm'
@@ -225,7 +225,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -252,7 +252,7 @@ jobs:
     if: needs.should-run-heavy.outputs.skip != 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
