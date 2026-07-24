@@ -1954,6 +1954,13 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         if (pmRaw) {
           decision = extractDecision(pmRaw);
         }
+        console.log("[workflow-completed] portfolio-mgr raw:", {
+          pmRaw: pmRaw ? JSON.stringify(pmRaw).slice(0, 2000) : "(undefined)",
+          pmRawKeys: pmRaw && typeof pmRaw === "object" ? Object.keys(pmRaw as object) : null,
+          hasResult: pmRaw && typeof pmRaw === "object" ? !!(pmRaw as Record<string, unknown>).result : null,
+          decisionConfidence: decision?.confidence,
+          decisionAction: decision?.action,
+        });
 
         // 回退：从 output 中提取 decision
         if (!decision && output !== undefined) {
