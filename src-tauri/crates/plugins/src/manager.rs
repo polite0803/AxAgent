@@ -1957,6 +1957,10 @@ fn discover_plugin_dirs(root: &Path) -> Result<Vec<PathBuf>, PluginError> {
             let mut paths = Vec::new();
             for entry in entries {
                 let path = entry?.path();
+                // 跳过 .bak 备份目录（update 遗留），避免被误当作插件
+                if path.extension().is_some_and(|ext| ext == "bak") {
+                    continue;
+                }
                 if path.is_dir() && plugin_manifest_path(&path).is_ok() {
                     paths.push(path);
                 }
