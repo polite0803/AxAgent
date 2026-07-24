@@ -34,6 +34,9 @@ const LazyDashboardPage = lazy(() =>
 );
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
+const LazyWorkflowMarketplace = lazy(() =>
+  import("@/pages/WorkflowMarketplace").then((m) => ({ default: m.WorkflowMarketplace }))
+);
 const LazyTraceExplorer = lazy(() =>
   import("@/pages/DevTools/TraceExplorer").then((m) => ({
     default: m.TraceExplorer,
@@ -194,6 +197,14 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="workflow">
                 <SafeLazyPage Page={LazyWorkflowPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.marketplace}
+            element={
+              <PageContextProvider page="marketplace">
+                <SafeLazyPage Page={LazyWorkflowMarketplace} />
               </PageContextProvider>
             }
           />

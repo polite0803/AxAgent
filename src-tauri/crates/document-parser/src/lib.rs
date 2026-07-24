@@ -6,6 +6,8 @@
 //! Extracted from `axagent-core` as part of harness architecture refactoring.
 
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
+use std::time::Duration;
 
 use axagent_harness::core_error::{AxAgentError, Result};
 
@@ -18,7 +20,28 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
             .map_err(|e| AxAgentError::Provider(format!("Failed to read file: {e}"))),
 
         // PDF
-        "application/pdf" => extract_pdf(file_path),
+        "application/pdf" => {
+            let text = extract_pdf(file_path)?;
+            // 扫描版 PDF 文本层为空时回退到 OCR
+            if text.trim().is_empty() {
+                let ocr_text = ocr_fallback(file_path).unwrap_or_default();
+                if !ocr_text.trim().is_empty() {
+                    return Ok(ocr_text);
+                }
+            }
+            Ok(text)
+        },
+
+        // 图片类型 —— 直接走 OCR
+        "image/png" | "image/jpeg" | "image/tiff" | "image/bmp" | "image/webp" => {
+            let ocr_text = ocr_fallback(file_path).unwrap_or_default();
+            if ocr_text.trim().is_empty() {
+                // OCR 无结果时返回错误，便于上层判断
+                Err(AxAgentError::Provider(format!("OCR 未识别出文字，MIME 类型 '{}'", mime_type)))
+            } else {
+                Ok(ocr_text)
+            }
+        },
 
         // DOCX — basic XML extraction without external crate
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => {
@@ -43,6 +66,66 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
                     mime_type
                 ))
             })
+        },
+    }
+}
+
+/// OCR 回退：调用系统 tesseract 命令行工具识别图片中的文字。
+///
+/// - 默认语言 `eng+chi_sim`（英文 + 简体中文）
+/// - 超时 120 秒
+/// - tesseract 未安装或调用失败时返回 `Ok(String::new())`（空字符串），
+///   不向上层抛错，让 RAG 链路可以正常处理空文本
+///
+/// 注意：document-parser crate 是同步的，所以这里用 `std::process::Command`
+/// 而非 `tokio::process::Command`。超时通过 spawn 子线程 + mpsc channel 实现。
+///
+/// 返回类型显式写 `std::result::Result` 以避免与 crate 内 import 的
+/// `axagent_harness::core_error::Result`（type alias，只接受 1 个泛型）冲突。
+pub fn ocr_fallback(path: &Path) -> std::result::Result<String, String> {
+    let path_owned = path.to_path_buf();
+    let (tx, rx) = mpsc::channel::<std::io::Result<std::process::Output>>();
+
+    let worker = std::thread::spawn(move || {
+        let result = std::process::Command::new("tesseract")
+            .arg(&path_owned)
+            .arg("stdout")
+            .arg("-l")
+            .arg("eng+chi_sim")
+            .output();
+        // 忽略发送失败（接收端超时后已 drop）
+        let _ = tx.send(result);
+    });
+
+    match rx.recv_timeout(Duration::from_secs(120)) {
+        Ok(Ok(output)) => {
+            // tesseract 成功返回 —— 取 stdout 文本
+            let text = String::from_utf8_lossy(&output.stdout).to_string();
+            // 等待工作线程退出，避免泄漏
+            let _ = worker.join();
+            Ok(text)
+        },
+        Ok(Err(e)) if e.kind() == std::io::ErrorKind::NotFound => {
+            // tesseract 未安装 —— 静默返回空字符串
+            let _ = worker.join();
+            Ok(String::new())
+        },
+        Ok(Err(e)) => {
+            // tesseract 调用失败 —— 记录日志并返回空字符串
+            tracing::warn!(target: "document-parser", "tesseract 调用失败: {}", e);
+            let _ = worker.join();
+            Ok(String::new())
+        },
+        Err(mpsc::RecvTimeoutError::Timeout) => {
+            // 超时：尽力 kill 已 spawn 的子进程（通过 drop worker 不能 kill child，
+            // 这里只能让 worker 线程在后台自然结束，主流程继续）
+            tracing::warn!(target: "document-parser", "OCR 超时 (120s)，跳过");
+            Err(format!("OCR 超时 (120 秒): {}", path.display()))
+        },
+        Err(mpsc::RecvTimeoutError::Disconnected) => {
+            // 工作线程 panic 或提前结束 —— 返回空字符串
+            let _ = worker.join();
+            Ok(String::new())
         },
     }
 }

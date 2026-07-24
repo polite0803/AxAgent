@@ -13,6 +13,7 @@
 //! skills, nudges, and session history.
 
 use axagent_harness::types::{ChatContent, ChatMessage};
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use axagent_kit::token_counter;
 use axagent_trajectory::{ContextAssembler, TokenBudget};
 
@@ -515,7 +516,7 @@ pub fn build_summary_prompt(request: &SummarizationRequest) -> Vec<ChatMessage> 
                 },
             };
             let truncated = if content_text.len() > 2000 {
-                format!("{}...[已截断]", &content_text[..2000])
+                format!("{}...[已截断]", truncate_to_char_boundary(&content_text, 2000))
             } else {
                 content_text
             };
@@ -578,7 +579,7 @@ pub fn build_summary_prompt_with_custom(
                 },
             };
             let truncated = if content_text.len() > 2000 {
-                format!("{}...[已截断]", &content_text[..2000])
+                format!("{}...[已截断]", truncate_to_char_boundary(&content_text, 2000))
             } else {
                 content_text
             };

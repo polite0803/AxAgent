@@ -84,7 +84,16 @@ pub trait GatewayKeyRepository: Send + Sync {
         request_tokens: u64,
         response_tokens: u64,
         cached_input_tokens: u64,
+        // 本次请求估算的美元成本（由调用方基于 ModelPricing 换算后传入）。
+        // 未知定价时传 0.0，dao 层会原样落库。
+        cost_usd: f64,
     ) -> Result<()>;
+
+    /// 聚合全量与今日的请求数、token 数、估算美元成本。
+    ///
+    /// 供 `/v1/usage` 端点暴露成本统计；dao 层通过单条 SQL 聚合，
+    /// 避免多次往返。今日边界用本地时区 0 点。
+    async fn get_metrics(&self) -> Result<crate::types::GatewayMetrics>;
 }
 
 // ── 4. GatewayRequestLogRepository ──

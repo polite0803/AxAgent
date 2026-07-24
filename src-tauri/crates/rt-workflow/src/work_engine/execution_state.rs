@@ -76,6 +76,10 @@ pub struct ExecutionContextCallbacks {
     /// Loop 检查点持久化回调（save/load/delete）。LoopExecutor 通过它
     /// 写 `loop_checkpoints` 表。
     pub loop_checkpoint: Option<LoopCheckpointOps>,
+    /// Swarm/Debate 容器内部驱动子节点（agent_steps / debater_steps）时使用的调度回调。
+    /// 签名与 `loop_body_dispatch` 一致（按 step_id + ctx 调度单节点），
+    /// 单独命名字段以区分语义：Loop 是迭代驱动，Swarm/Debate 是多轮协作驱动。
+    pub debate_body_dispatch: Option<LoopBodyDispatchFn>,
 }
 
 impl std::fmt::Debug for ExecutionContextCallbacks {
@@ -90,6 +94,7 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
             .field("subworkflow", &self.subworkflow.is_some())
             .field("loop_body_dispatch", &self.loop_body_dispatch.is_some())
             .field("loop_checkpoint", &self.loop_checkpoint.is_some())
+            .field("debate_body_dispatch", &self.debate_body_dispatch.is_some())
             .finish()
     }
 }

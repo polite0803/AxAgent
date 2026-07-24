@@ -20,10 +20,13 @@ use crate::handlers::platform_bridge::{
     Platform, direct_message, platform_health, receive_webhook,
 };
 use crate::handlers::{
-    cancel_run, chat_completions, create_job, delete_job, delete_response, detailed_health_check,
-    disable_job, enable_job, get_job, get_job_schedule, get_response, get_run, get_run_logs,
-    health_check, list_jobs, list_models, list_runs, pause_job, resume_job, retry_run, trigger_job,
-    trigger_run, update_job, update_job_schedule,
+    cancel_fine_tuning_job, cancel_run, chat_completions, create_embedding, create_fine_tuning_job,
+    create_image, create_job, create_speech, create_transcription, delete_file, delete_job,
+    delete_response, detailed_health_check, disable_job, enable_job, get_job, get_job_schedule,
+    get_response, get_run, get_run_logs, health_check, list_files, list_fine_tuning_jobs,
+    list_jobs, list_models, list_runs, pause_job, resume_job, retrieve_file,
+    retrieve_fine_tuning_job, retry_run, trigger_job, trigger_run, update_job, update_job_schedule,
+    upload_file, usage_handler,
 };
 
 /// Wrapper that extracts the `{platform}` path parameter, converts it to a
@@ -73,10 +76,33 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/v1/messages", post(anthropic_messages))
         .route("/v1/messages/count_tokens", post(anthropic_count_tokens))
         .route("/v1/models", get(list_models))
+        // 网关用量与成本聚合统计（受 auth 保护）
+        .route("/v1/usage", get(usage_handler))
         .route("/v1beta/models", get(gemini_list_models))
         .route(
             "/v1beta/models/{model_action}",
             post(gemini_model_operation),
+        )
+        // OpenAI 兼容端点：embeddings / images / audio
+        .route("/v1/embeddings", post(create_embedding))
+        .route("/v1/images/generations", post(create_image))
+        .route("/v1/audio/transcriptions", post(create_transcription))
+        .route("/v1/audio/speech", post(create_speech))
+        // OpenAI 兼容端点：files（501，路由已注册）
+        .route("/v1/files", get(list_files))
+        .route("/v1/files", post(upload_file))
+        .route("/v1/files/{file_id}", get(retrieve_file))
+        .route("/v1/files/{file_id}", delete(delete_file))
+        // OpenAI 兼容端点：fine_tuning（501，路由已注册）
+        .route("/v1/fine_tuning/jobs", post(create_fine_tuning_job))
+        .route("/v1/fine_tuning/jobs", get(list_fine_tuning_jobs))
+        .route(
+            "/v1/fine_tuning/jobs/{job_id}",
+            get(retrieve_fine_tuning_job),
+        )
+        .route(
+            "/v1/fine_tuning/jobs/{job_id}",
+            delete(cancel_fine_tuning_job),
         )
         .route("/api/jobs", get(list_jobs))
         .route("/api/jobs", post(create_job))
@@ -305,6 +331,9 @@ mod tests {
             )),
             client_ip_policy: std::sync::Arc::new(ClientIpPolicy::trust_all()),
             qr_bind_store: crate::qr_bind::QrBindStore::new(),
+            routing_strategy: axagent_harness::types::LoadBalanceStrategy::default(),
+            latency_tracker: crate::routing::LatencyTracker::new(),
+            round_robin_cursor: crate::routing::RoundRobinCursor::new(),
         }
     }
 
@@ -349,6 +378,29 @@ mod tests {
     async fn realtime_requires_auth() {
         // SECURITY (H3): realtime 必须鉴权
         assert_protected_route_exists(Method::GET, "/v1/realtime").await;
+    }
+
+    #[tokio::test]
+    async fn usage_endpoint_requires_auth() {
+        // /v1/usage 暴露成本与用量统计，必须鉴权
+        assert_protected_route_exists(Method::GET, "/v1/usage").await;
+    }
+
+    #[tokio::test]
+    async fn openai_compat_endpoints_require_auth() {
+        // 新增的 OpenAI 兼容端点必须受 auth_middleware 保护
+        assert_protected_route_exists(Method::POST, "/v1/embeddings").await;
+        assert_protected_route_exists(Method::POST, "/v1/images/generations").await;
+        assert_protected_route_exists(Method::POST, "/v1/audio/transcriptions").await;
+        assert_protected_route_exists(Method::POST, "/v1/audio/speech").await;
+        assert_protected_route_exists(Method::GET, "/v1/files").await;
+        assert_protected_route_exists(Method::POST, "/v1/files").await;
+        assert_protected_route_exists(Method::GET, "/v1/files/file-abc").await;
+        assert_protected_route_exists(Method::DELETE, "/v1/files/file-abc").await;
+        assert_protected_route_exists(Method::POST, "/v1/fine_tuning/jobs").await;
+        assert_protected_route_exists(Method::GET, "/v1/fine_tuning/jobs").await;
+        assert_protected_route_exists(Method::GET, "/v1/fine_tuning/jobs/job-abc").await;
+        assert_protected_route_exists(Method::DELETE, "/v1/fine_tuning/jobs/job-abc").await;
     }
 
     #[test]

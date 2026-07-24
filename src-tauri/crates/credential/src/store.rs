@@ -17,6 +17,62 @@ use crate::types::Credential;
 
 const NONCE_SIZE: usize = 12;
 
+/// keyring 中主密钥的 service name（跨平台 OS 密钥库命名空间）
+const KEYRING_SERVICE: &str = "AxAgent";
+/// keyring 中主密钥的 username（同一 service 下唯一标识）
+const KEYRING_MASTER_KEY_USER: &str = "credential_master_key";
+
+/// OS 级密钥库主密钥存储封装。
+///
+/// 跨平台后端：
+/// - macOS: Keychain
+/// - Windows: Credential Manager
+/// - Linux: secret-service（需 D-Bus）
+///
+/// 主密钥以 hex 字符串形式存入 keyring（keyring API 仅接受字符串/字节），
+/// 读取时解码回 32 字节。
+pub(crate) struct KeyringMasterKeyStore {
+    entry: keyring::Entry,
+}
+
+impl KeyringMasterKeyStore {
+    pub(crate) fn new() -> Result<Self> {
+        let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_MASTER_KEY_USER)
+            .map_err(|e| CredentialError::Internal(format!("keyring entry 创建失败: {e}")))?;
+        Ok(Self { entry })
+    }
+
+    /// 从 keyring 读取主密钥；无条目返回 Ok(None)，其他错误返回 Err。
+    pub(crate) fn load(&self) -> Result<Option<[u8; 32]>> {
+        match self.entry.get_password() {
+            Ok(hex_str) => {
+                let bytes = hex::decode(&hex_str).map_err(|e| {
+                    CredentialError::Crypto(format!("keyring 主密钥 hex 解码失败: {e}"))
+                })?;
+                if bytes.len() != 32 {
+                    return Err(CredentialError::Crypto(format!(
+                        "keyring 主密钥长度异常: 期望 32 字节, 实际 {} 字节",
+                        bytes.len()
+                    )));
+                }
+                let mut key = [0u8; 32];
+                key.copy_from_slice(&bytes);
+                Ok(Some(key))
+            },
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(e) => Err(CredentialError::Internal(format!("keyring 读取失败: {e}"))),
+        }
+    }
+
+    /// 将主密钥以 hex 形式写入 keyring。写入失败返回错误（绝不静默丢弃）。
+    pub(crate) fn store(&self, key: &[u8; 32]) -> Result<()> {
+        let hex_str = hex::encode(key);
+        self.entry
+            .set_password(&hex_str)
+            .map_err(|e| CredentialError::Internal(format!("keyring 写入失败: {e}")))
+    }
+}
+
 /// Metadata-only view of a credential (secrets stripped).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialMeta {
@@ -51,27 +107,35 @@ impl CredentialStore {
         Self { store_dir, master_key }
     }
 
-    /// Derive or load the master key from environment / configuration.
-    pub fn derive_master_key() -> [u8; 32] {
-        if let Ok(hex_key) = std::env::var("AXAGENT_CREDENTIAL_MASTER_KEY")
-            && let Ok(bytes) = hex::decode(&hex_key)
-            && bytes.len() == 32
-        {
-            let mut key = [0u8; 32];
-            key.copy_from_slice(&bytes);
-            return key;
+    /// 派生或加载主密钥。
+    ///
+    /// 优先级链（高 → 低）：
+    /// 1. 环境变量 `AXAGENT_CREDENTIAL_MASTER_KEY` / `AXAGENT_MASTER_KEY`
+    ///    （hex 编码 32 字节，向后兼容旧部署）
+    /// 2. OS 级密钥库（keyring）读取已持久化的主密钥
+    /// 3. 上述都没有：生成新的 32 字节随机主密钥并立即写入 OS 密钥库；
+    ///    写入失败返回错误（绝不静默丢弃，避免重启后旧凭证无法解密）。
+    pub fn derive_master_key() -> Result<[u8; 32]> {
+        // 优先级 1：环境变量（向后兼容）
+        if let Some(key) = load_master_key_from_env() {
+            return Ok(key);
         }
-        if let Ok(hex_key) = std::env::var("AXAGENT_MASTER_KEY")
-            && let Ok(bytes) = hex::decode(&hex_key)
-            && bytes.len() == 32
-        {
-            let mut key = [0u8; 32];
-            key.copy_from_slice(&bytes);
-            return key;
+        // 优先级 2 & 3：OS 密钥库
+        let store = KeyringMasterKeyStore::new()?;
+        if let Some(key) = store.load()? {
+            return Ok(key);
         }
+        // 都没有：生成新 key 并写入 keyring（写入失败返回错误而非丢弃）
         let mut key = [0u8; 32];
         rand::rng().fill(&mut key);
-        key
+        store.store(&key)?;
+        tracing::info!(
+            target: "axagent.credential",
+            "已生成新的主密钥并持久化到 OS 密钥库 (service={}, user={})",
+            KEYRING_SERVICE,
+            KEYRING_MASTER_KEY_USER
+        );
+        Ok(key)
     }
 
     fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>> {
@@ -181,6 +245,25 @@ impl CredentialStore {
     }
 }
 
+/// 从环境变量读取主密钥（hex 编码 32 字节）。
+///
+/// 按顺序尝试 `AXAGENT_CREDENTIAL_MASTER_KEY` → `AXAGENT_MASTER_KEY`。
+/// 任一变量存在但格式/长度非法时跳过该变量（向后兼容旧部署的容错策略）。
+/// 全部未设置或全部非法时返回 None。
+fn load_master_key_from_env() -> Option<[u8; 32]> {
+    for var in ["AXAGENT_CREDENTIAL_MASTER_KEY", "AXAGENT_MASTER_KEY"] {
+        if let Ok(hex_key) = std::env::var(var)
+            && let Ok(bytes) = hex::decode(&hex_key)
+            && bytes.len() == 32
+        {
+            let mut key = [0u8; 32];
+            key.copy_from_slice(&bytes);
+            return Some(key);
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -266,6 +349,8 @@ mod tests {
                     client_secret: "cs".into(),
                     token_url: "tu".into(),
                     scopes: vec!["s1".into()],
+                    access_token: None,
+                    expires_at: None,
                 },
             ),
         ];
@@ -342,7 +427,20 @@ mod tests {
 
     #[test]
     fn derive_master_key_length() {
-        let key = CredentialStore::derive_master_key();
+        // 通过环境变量提供主密钥，避免测试时污染 OS 密钥库，
+        // 同时避免依赖 keyring 后端（CI 可能无 secret-service）
+        let hex_key = hex::encode([0x42u8; 32]);
+        // SAFETY: 其他测试均直接用 `CredentialStore::new(dir, key)` 构造，不读 env var，
+        //         此处 set/remove 不会与其他测试竞争。
+        unsafe {
+            std::env::set_var("AXAGENT_CREDENTIAL_MASTER_KEY", &hex_key);
+        }
+        let key = CredentialStore::derive_master_key().expect("env var 模式应成功");
         assert_eq!(key.len(), 32);
+        assert_eq!(key, [0x42u8; 32]);
+        // SAFETY: 同上
+        unsafe {
+            std::env::remove_var("AXAGENT_CREDENTIAL_MASTER_KEY");
+        }
     }
 }

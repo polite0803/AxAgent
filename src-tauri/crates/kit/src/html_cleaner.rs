@@ -5,6 +5,7 @@
 //! 消除项目中 3 处重复的 HTML 清理代码（tools/web_search.rs、tools/web_fetch.rs、
 //! agent/web_search.rs），提供可配置的 HTML 内容提取能力。
 
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use scraper::{Html, Selector};
 
 const DEFAULT_MAX_LENGTH: usize = 80_000;
@@ -313,7 +314,11 @@ fn clean_whitespace(text: &str) -> String {
 
 fn truncate_if_needed(text: &str, max_length: usize) -> String {
     if text.len() > max_length {
-        format!("{}...\n[Content truncated at {} chars]", &text[..max_length], max_length)
+        format!(
+            "{}...\n[Content truncated at {} chars]",
+            truncate_to_char_boundary(text, max_length),
+            max_length
+        )
     } else {
         text.to_string()
     }

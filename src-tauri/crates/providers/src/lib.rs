@@ -4,20 +4,25 @@
 
 pub mod adapter;
 pub mod anthropic;
+pub mod deepseek;
 pub mod gemini;
+pub mod glm;
 pub mod hermes;
 pub mod image_gen;
+pub mod kimi;
 pub mod managed_tool_adapter;
 pub mod ollama;
 pub mod openai;
 pub mod openai_responses;
 pub mod openclaw;
+pub mod qwen;
 pub mod registry;
 #[cfg(feature = "computer-use")]
 pub mod screen_vision;
 pub mod structured_output;
 pub mod transport;
 pub mod url_utils;
+pub mod wenxin;
 
 pub use image_gen::{
     DallEProvider, FluxProvider, GeneratedImage, ImageGenModelInfo, ImageGenProvider,

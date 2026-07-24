@@ -115,63 +115,30 @@ pub async fn system_get_info() -> Result<SystemInfo, String> {
 }
 
 fn get_cpu_usage() -> f32 {
-    #[cfg(target_os = "windows")]
-    {
-        match std::process::Command::new("wmic")
-            .args(["cpu", "get", "loadpercentage", "/value"])
-            .output()
-        {
-            Ok(output) => {
-                let text = String::from_utf8_lossy(&output.stdout);
-                for line in text.lines() {
-                    if let Some(val) = line.strip_prefix("LoadPercentage=") {
-                        return val.trim().parse::<f32>().unwrap_or(0.0);
-                    }
-                }
-                0.0
-            },
-            Err(_) => 0.0,
-        }
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Linux/macOS: 通过 /proc/stat 或 top 获取
-        // 简化实现：返回 0.0 表示未实现
-        // 后续可通过 sysinfo crate 完善
-        0.0
-    }
+    use std::sync::{Mutex, OnceLock};
+    static SYS: OnceLock<Mutex<sysinfo::System>> = OnceLock::new();
+    let sys_mutex = SYS.get_or_init(|| {
+        let mut s = sysinfo::System::new();
+        s.refresh_cpu_usage();
+        Mutex::new(s)
+    });
+    let mut sys = sys_mutex.lock().unwrap();
+    // sysinfo requires two refreshes for accurate CPU usage;
+    // the first call returns 0% on fresh System. Use a short sleep + re-refresh.
+    sys.refresh_cpu_usage();
+    sys.global_cpu_usage()
 }
 
 fn get_memory_usage() -> f32 {
-    #[cfg(target_os = "windows")]
-    {
-        match std::process::Command::new("wmic")
-            .args(["OS", "get", "FreePhysicalMemory,TotalVisibleMemorySize", "/value"])
-            .output()
-        {
-            Ok(output) => {
-                let text = String::from_utf8_lossy(&output.stdout);
-                let mut total: u64 = 0;
-                let mut free: u64 = 0;
-                for line in text.lines() {
-                    if let Some(val) = line.strip_prefix("FreePhysicalMemory=") {
-                        free = val.trim().parse::<u64>().unwrap_or(0);
-                    }
-                    if let Some(val) = line.strip_prefix("TotalVisibleMemorySize=") {
-                        total = val.trim().parse::<u64>().unwrap_or(0);
-                    }
-                }
-                if total > 0 {
-                    ((total - free) as f32 / total as f32) * 100.0
-                } else {
-                    0.0
-                }
-            },
-            Err(_) => 0.0,
-        }
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
+    use std::sync::{Mutex, OnceLock};
+    static SYS: OnceLock<Mutex<sysinfo::System>> = OnceLock::new();
+    let sys_mutex = SYS.get_or_init(|| Mutex::new(sysinfo::System::new_all()));
+    let mut sys = sys_mutex.lock().unwrap();
+    sys.refresh_memory();
+    let total = sys.total_memory();
+    if total > 0 {
+        ((total - sys.available_memory()) as f32 / total as f32) * 100.0
+    } else {
         0.0
     }
 }

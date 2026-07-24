@@ -100,6 +100,13 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
+    key: "marketplace",
+    icon: <Icon icon="fluent:store-microsoft-20-filled" size={17} />,
+    labelKey: "nav.marketplace",
+    path: BUILTIN_PAGE_PATH.marketplace,
+    isPlugin: false,
+  },
+  {
     key: "dynamic-ui",
     icon: <Icon icon="fluent:apps-20-filled" size={17} />,
     labelKey: "nav.dynamicUI",
@@ -353,7 +360,7 @@ export function Sidebar() {
       labelKey: "sidebar.sectionInfrastructure",
       items: builtinNavItems.filter((n) =>
         n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
-        || n.key === "dynamic-ui"
+        || n.key === "marketplace" || n.key === "dynamic-ui"
       ),
     });
 

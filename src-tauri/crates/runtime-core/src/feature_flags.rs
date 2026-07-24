@@ -17,6 +17,9 @@
 //! | `TOOL_CONCURRENCY` | true | 工具并发安全批量执行 |
 //! | `ACP_PROTOCOL` | false | ACP 协议服务端 |
 //! | `DREAM_TASK` | true | 梦境任务（后台整合压缩） |
+//! | `COEVOLUTION_TASK` | true | 协同进化任务（自适应难度调整 + 任务生成） |
+//! | `PATTERN_ANALYZER_TASK` | true | 跨会话模式分析任务（代码风格 / 工具偏好 / 时间分布） |
+//! | `INSIGHT_GENERATOR_TASK` | true | 学习洞察生成任务（日/周报告 + 模式洞察） |
 //! | `SUBSCRIBE_PR` | true | PR 订阅通知 |
 
 use std::collections::{BTreeMap, HashMap};
@@ -65,6 +68,21 @@ const BUILTIN_FEATURE_FLAGS: &[FeatureFlagDef] = &[
     FeatureFlagDef { name: "ACP_PROTOCOL", default: false, description: "ACP 协议服务端" },
     FeatureFlagDef {
         name: "DREAM_TASK", default: true, description: "梦境任务（后台整合压缩）"
+    },
+    FeatureFlagDef {
+        name: "COEVOLUTION_TASK",
+        default: true,
+        description: "协同进化任务（自适应难度调整 + 任务生成）",
+    },
+    FeatureFlagDef {
+        name: "PATTERN_ANALYZER_TASK",
+        default: true,
+        description: "跨会话模式分析任务（代码风格 / 工具偏好 / 时间分布）",
+    },
+    FeatureFlagDef {
+        name: "INSIGHT_GENERATOR_TASK",
+        default: true,
+        description: "学习洞察生成任务（日/周报告 + 模式洞察）",
     },
     FeatureFlagDef { name: "SUBSCRIBE_PR", default: true, description: "PR 订阅通知" },
 ];
@@ -222,6 +240,21 @@ impl FeatureFlags {
         self.is_enabled("DREAM_TASK").await
     }
 
+    /// 协同进化任务是否启用
+    pub async fn coevolution_task(&self) -> bool {
+        self.is_enabled("COEVOLUTION_TASK").await
+    }
+
+    /// 跨会话模式分析任务是否启用
+    pub async fn pattern_analyzer_task(&self) -> bool {
+        self.is_enabled("PATTERN_ANALYZER_TASK").await
+    }
+
+    /// 学习洞察生成任务是否启用
+    pub async fn insight_generator_task(&self) -> bool {
+        self.is_enabled("INSIGHT_GENERATOR_TASK").await
+    }
+
     /// PR 订阅是否启用
     pub async fn subscribe_pr(&self) -> bool {
         self.is_enabled("SUBSCRIBE_PR").await
@@ -243,6 +276,18 @@ impl FeatureFlags {
 
     pub fn dream_task_sync(&self) -> bool {
         self.is_enabled_sync("DREAM_TASK")
+    }
+
+    pub fn coevolution_task_sync(&self) -> bool {
+        self.is_enabled_sync("COEVOLUTION_TASK")
+    }
+
+    pub fn pattern_analyzer_task_sync(&self) -> bool {
+        self.is_enabled_sync("PATTERN_ANALYZER_TASK")
+    }
+
+    pub fn insight_generator_task_sync(&self) -> bool {
+        self.is_enabled_sync("INSIGHT_GENERATOR_TASK")
     }
 
     pub fn swarm_mode_sync(&self) -> bool {
@@ -340,7 +385,7 @@ mod tests {
     #[test]
     fn definitions_metadata_is_complete() {
         let defs = FeatureFlags::definitions();
-        assert_eq!(defs.len(), 10);
+        assert_eq!(defs.len(), 13);
         for def in defs {
             assert!(!def.name.is_empty());
             assert!(!def.description.is_empty());

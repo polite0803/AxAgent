@@ -14,6 +14,7 @@ use sea_orm::DatabaseConnection;
 
 use std::sync::Arc;
 
+use axagent_credential::{CredentialManager, CredentialType};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 use axagent_harness::{
@@ -587,6 +588,40 @@ static RAG_CACHE: std::sync::LazyLock<
 
 const RAG_CACHE_TTL_SECS: u64 = 30;
 
+/// 根据 `RerankConfig.backend` 和 `api_key_ref`，从 `CredentialManager` 解析出云端 reranker 的实际 API Key。
+///
+/// - 本地 backend（`rule` / `cross_encoder` / `pipeline`）直接返回 `None`，无需凭证。
+/// - 云端 backend（`cohere` / `jina` / `voyage`）要求 `api_key_ref` 指向已存储的凭证；
+///   凭证缺失或类型不匹配时返回 `None`，由下游 `create_rerank_pipeline` 自动降级到 `RuleReranker`。
+async fn resolve_rerank_api_key(
+    credential_manager: &CredentialManager,
+    rerank_config: &axagent_harness::rag_config::RerankConfig,
+) -> Option<String> {
+    let backend = rerank_config.backend.as_str();
+    if !matches!(backend, "cohere" | "jina" | "voyage") {
+        return None;
+    }
+    let key_ref = rerank_config.api_key_ref.as_ref()?;
+    match credential_manager.get_credential(key_ref).await {
+        Ok(cred) => match cred.credential_type {
+            CredentialType::ApiKey { key, .. } => Some(key),
+            CredentialType::BearerToken { token } => Some(token),
+            _ => {
+                tracing::warn!(
+                    "Rerank 凭证 '{}' 类型不支持（{:?}），降级到 RuleReranker",
+                    key_ref,
+                    cred.credential_type
+                );
+                None
+            },
+        },
+        Err(e) => {
+            tracing::warn!("Rerank 凭证 '{}' 加载失败：{}，降级到 RuleReranker", key_ref, e);
+            None
+        },
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn collect_rag_context(
     db: &DatabaseConnection,
@@ -597,6 +632,7 @@ pub async fn collect_rag_context(
     wiki_ids: &[String],
     query: &str,
     top_k: usize,
+    credential_manager: &Arc<CredentialManager>,
 ) -> RagContextResult {
     if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
         return RagContextResult { context_parts: vec![], source_results: vec![] };
@@ -687,6 +723,10 @@ pub async fn collect_rag_context(
     // Pipeline results are not cached (involve LLM calls whose outputs vary)
     let pipeline_cfg: axagent_harness::types::RAGPipelineConfig =
         serde_json::from_value(pipeline_config.clone()).unwrap_or_default();
+
+    // 解析云端 reranker 的 API Key（本地 backend 返回 None）
+    let rerank_api_key = resolve_rerank_api_key(credential_manager, &pipeline_cfg.rerank).await;
+
     rag::collect_rag_context_with_pipeline(
         db,
         master_key,
@@ -699,6 +739,7 @@ pub async fn collect_rag_context(
         ProviderEmbedFn,
         &pipeline_cfg,
         llm_fn,
+        rerank_api_key,
     )
     .await
 }

@@ -309,6 +309,13 @@ pub struct WorkEngine {
     loop_interrupt_signals: Arc<Mutex<HashMap<String, std::sync::Arc<tokio::sync::Notify>>>>,
     /// 数据库连接（用于 ApprovalOps 回调持久化审批记录等）。
     db: Arc<std::sync::Mutex<Option<sea_orm::DatabaseConnection>>>,
+    /// 统一事件总线（可选，由 wiring 层注入）。
+    ///
+    /// 注入后,WorkEngine 在节点执行完成等关键节点额外 publish `DomainEvent`
+    /// 到统一总线,供跨 crate 订阅者消费。未注入时保持原有行为。
+    /// 用 `std::sync::RwLock` 包裹:仅 setter 写一次,publish 时先 clone Arc
+    /// 再释放锁,不跨 await 持有读锁。
+    event_bus: Arc<std::sync::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>>,
 }
 
 /// P1-14: 提取节点的类型字符串（用于白名单校验）。
@@ -582,6 +589,16 @@ impl WorkEngine {
                     status = "ok",
                     "execute_node → dispatch complete"
                 );
+                // 桥接到统一事件总线(若已注入):发布 NodeCompleted
+                self.publish_workflow_event(
+                    "NodeCompleted",
+                    serde_json::json!({
+                        "nodeId": node_id,
+                        "nodeType": node_type,
+                        "durationMs": duration_ms,
+                    }),
+                )
+                .await;
                 Ok(output)
             },
             Err(e) => {
@@ -593,6 +610,18 @@ impl WorkEngine {
                     error = %e,
                     "execute_node → dispatch failed"
                 );
+                // 桥接到统一事件总线(若已注入):发布 NodeFailed
+                let err_msg = e.to_string();
+                self.publish_workflow_event(
+                    "NodeFailed",
+                    serde_json::json!({
+                        "nodeId": node_id,
+                        "nodeType": node_type,
+                        "durationMs": duration_ms,
+                        "error": err_msg,
+                    }),
+                )
+                .await;
                 Err(e)
             },
         }
@@ -749,6 +778,44 @@ impl WorkEngine {
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
             db: Arc::new(std::sync::Mutex::new(None)),
+            event_bus: Arc::new(std::sync::RwLock::new(None)),
+        }
+    }
+
+    /// 注入统一事件总线,启用跨 crate 事件桥接。
+    ///
+    /// 注入后,WorkEngine 在节点执行完成等关键节点自动 publish `DomainEvent`
+    /// 到统一总线。未注入时保持原有行为。通常由 wiring 层调用。
+    pub fn set_event_bus(&self, bus: Arc<dyn axagent_harness::EventBus>) {
+        if let Ok(mut guard) = self.event_bus.write() {
+            *guard = Some(bus);
+        } else {
+            tracing::warn!("WorkEngine::set_event_bus: RwLock poisoned, 注入失败");
+        }
+    }
+
+    /// 发布一个工作流领域事件到统一总线(若已注入)。
+    ///
+    /// 未注入 event_bus 时静默返回,不影响原有逻辑。
+    /// `kind` 为事件类型字符串(如 `"NodeCompleted"`、`"WorkflowStarted"`)。
+    async fn publish_workflow_event(&self, kind: &str, payload: serde_json::Value) {
+        let bus_clone = {
+            match self.event_bus.read() {
+                Ok(guard) => guard.as_ref().map(Arc::clone),
+                Err(_) => {
+                    tracing::warn!("WorkEngine::publish_workflow_event: RwLock poisoned");
+                    None
+                },
+            }
+        };
+        if let Some(bus) = bus_clone {
+            let event = axagent_harness::DomainEvent::new(
+                axagent_harness::EventCategory::Workflow,
+                kind,
+                payload,
+                "rt-workflow",
+            );
+            bus.publish(event).await;
         }
     }
 
@@ -1891,6 +1958,7 @@ impl WorkEngine {
                         subworkflow: None,
                         loop_body_dispatch: None,
                         loop_checkpoint: None,
+                        debate_body_dispatch: None,
                     });
 
                     let engine_clone = self.clone();
@@ -2004,6 +2072,7 @@ impl WorkEngine {
                         subworkflow: Some(sub_cb),
                         loop_body_dispatch: Some(build_loop_body_dispatch(self.clone())),
                         loop_checkpoint: Some(build_loop_checkpoint_ops()),
+                        debate_body_dispatch: Some(build_debate_body_dispatch(self.clone())),
                     });
                 }
 
@@ -3613,6 +3682,37 @@ pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::L
                 return Err(super::node_executor_trait::NodeError::exec_failed(
                     super::node_executor_trait::error_code::NODE_NOT_FOUND,
                     format!("Loop body step '{step_id}' not found in workflow '{workflow_id}'"),
+                ));
+            };
+            engine.dispatcher.read().await.dispatch(&node, &ctx).await
+        })
+    })
+}
+
+/// 构造 Swarm/Debate 容器用的 `debate_body_dispatch` 回调。
+///
+/// 签名与 `build_loop_body_dispatch` 完全一致（按 step_id + ctx 调度单节点），
+/// 单独工厂仅为语义清晰：Loop 是迭代 body_steps，Swarm/Debate 是多轮协作
+/// 驱动 agent_steps / debater_steps。两者底层走同一 dispatcher 路径，
+/// 保留 progress_callback / 节点状态切换 / node_records 统一埋点。
+pub fn build_debate_body_dispatch(
+    engine: WorkEngine,
+) -> super::execution_state::LoopBodyDispatchFn {
+    Arc::new(move |step_id: String, ctx: super::execution_state::ExecutionState| {
+        let engine = engine.clone();
+        Box::pin(async move {
+            let workflow_id = ctx.workflow_id.clone();
+            let workflows = engine.workflows.read().await;
+            let node = workflows
+                .get(&workflow_id)
+                .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == step_id).cloned());
+            drop(workflows);
+            let Some(node) = node else {
+                return Err(super::node_executor_trait::NodeError::exec_failed(
+                    super::node_executor_trait::error_code::NODE_NOT_FOUND,
+                    format!(
+                        "Debate/Swarm body step '{step_id}' not found in workflow '{workflow_id}'"
+                    ),
                 ));
             };
             engine.dispatcher.read().await.dispatch(&node, &ctx).await

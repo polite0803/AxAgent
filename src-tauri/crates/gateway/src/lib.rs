@@ -11,4 +11,5 @@ pub mod qr_bind_handlers;
 pub mod realtime;
 pub mod realtime_ticket;
 pub mod routes;
+pub mod routing;
 pub mod server;

@@ -144,6 +144,7 @@ pub async fn regenerate_message(
             &wiki_ids,
             &last_user_msg.content,
             5,
+            &state.credential_manager,
         )
         .await;
 
@@ -584,6 +585,7 @@ pub async fn regenerate_with_model(
             &wiki_ids,
             &user_msg.content,
             5,
+            &state.credential_manager,
         )
         .await;
 

@@ -11,11 +11,13 @@
 
 // P1-6 修复:移除 `#![allow(unused_imports)]`(unused imports 应当修复而非压制)。
 //
-// 保留 `#![allow(dead_code)]` 的理由(研究性 crate 的合理压制):
-//   trajectory 是研究性模块集合,许多模块(dream_data_provider / replay / coevolution 等)
-//   预留为未来接入点,当前未被 wiring 层引用。彻底删除会丢失研究成果,
-//   全部接入则超出当前任务范围。改为按需局部 `#[allow(dead_code)]` 标注更精确,
-//   但工作量过大,暂保留 crate 级 allow 并在此说明,后续按模块逐个评估接入或删除。
+// dead_code 策略(2026-07-24 更新):
+//   trajectory 是研究性 crate,许多模块(auto_memory / auto_tool / batch /
+//   dream_consolidation / nudge / pattern_analyzer / process_reward 等)预留为未来
+//   接入点,其内部部分字段/方法/常量/枚举变体当前未被 wiring 层引用。彻底删除会
+//   丢失研究成果,逐文件加 inner attribute 工作量过大且易遗漏。保留 crate 级
+//   `#![allow(dead_code)]` 统一压制;同时按模块加 `#[allow(dead_code)]` 标注哪些
+//   模块尚未接入,后续逐个评估接入或删除。
 #![allow(dead_code)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::result_large_err)]
@@ -24,8 +26,11 @@
 #![allow(clippy::manual_strip)]
 
 mod adaptation;
+#[allow(dead_code)]
 mod auto_memory;
+#[allow(dead_code)]
 mod auto_tool;
+#[allow(dead_code)]
 mod batch;
 mod behavior_tracker;
 mod coevolution;
@@ -33,6 +38,7 @@ mod compactor;
 mod constitution;
 mod context;
 mod context_predictor;
+#[allow(dead_code)]
 mod dream_consolidation;
 mod dream_data_provider;
 mod fts5;
@@ -41,33 +47,45 @@ mod intrinsic_reward;
 mod learning_graph;
 mod memory;
 mod memory_providers;
+#[allow(dead_code)]
 mod nudge;
 mod parallel_execution;
 mod pattern;
+#[allow(dead_code)]
 mod pattern_analyzer;
 mod preference_learner;
 mod proactive_assistant;
+#[allow(dead_code)]
 mod process_reward;
 mod reminder_manager;
 mod replay;
 mod rl;
 mod sandbox_executor;
 mod skill;
+#[allow(dead_code)]
 mod skill_decomposition;
+#[allow(dead_code)]
 mod skill_evolution;
+#[allow(dead_code)]
 mod skill_manager;
+#[allow(dead_code)]
 mod skill_matcher;
+#[allow(dead_code)]
 mod skill_proposal;
 mod skills_hub_adapter;
 mod storage;
 mod style_applier;
 mod style_extractor;
 mod style_vectorizer;
+#[allow(dead_code)]
 mod sub_agent;
+#[allow(dead_code)]
 mod suggestion_engine;
+#[allow(dead_code)]
 mod task_prefetcher;
 mod text_grad;
 mod trajectory;
+#[allow(dead_code)]
 mod trajectory_compressor;
 mod trajectory_impl;
 mod user_profile;
@@ -141,6 +159,11 @@ pub use parallel_execution::{
 };
 
 pub use pattern::{CrossSessionLearner, PatternConfig, PatternLearner, PatternType};
+
+pub use pattern_analyzer::{
+    CodingPatternSummary, PatternAnalysisSummary, TemporalPatternSummary, ToolPreferenceSummary,
+    TopicPatternSummary, analyze_trajectories,
+};
 
 pub use preference_learner::{LearningMetrics, PreferenceLearner};
 

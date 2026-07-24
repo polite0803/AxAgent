@@ -39,7 +39,7 @@ pub struct CreateGatewayKeyResult {
     pub plain_key: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GatewayMetrics {
     pub total_requests: u64,
     pub total_tokens: u64,
@@ -50,6 +50,10 @@ pub struct GatewayMetrics {
     pub today_tokens: u64,
     pub today_request_tokens: u64,
     pub today_response_tokens: u64,
+    /// 全部历史请求的估算美元成本（基于 ModelPricing 换算）。
+    pub total_cost_usd: f64,
+    /// 今日请求的估算美元成本。
+    pub today_cost_usd: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,9 +113,30 @@ pub struct GatewaySettings {
     pub load_balance_strategy: LoadBalanceStrategy,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// 网关智能路由策略。
+///
+/// 仅在请求的 `model` 字段为 **bare model name**（不含 `provider/` 前缀）
+/// 且该 model 被多个 enabled provider 同时支持时触发；其余场景保持
+/// 显式指定 provider 的既有行为不变。
+///
+/// - `Failover`：默认值。按 provider 优先级选首选，失败时按优先级 fallback。
+/// - `Priority`：始终选最高优先级的可用 provider。
+/// - `Latency`：选最近 N 次请求平均延迟最低的 provider。
+/// - `Cost`：选单 token 成本最低的 provider。
+/// - `RoundRobin`：在可用 provider 间轮询。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LoadBalanceStrategy {
+    /// 默认策略：首选最高优先级 provider，失败按优先级 fallback。
+    #[default]
+    Failover,
+    /// 始终选最高优先级的可用 provider。
+    Priority,
+    /// 选最近 N 次请求平均延迟最低的 provider。
+    Latency,
+    /// 选单 token 成本最低的 provider。
+    Cost,
+    /// 在可用 provider 间轮询。
     RoundRobin,
 }
 

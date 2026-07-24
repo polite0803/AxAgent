@@ -833,6 +833,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.11.0",
+ "sysinfo",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
@@ -916,6 +917,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "hex",
+ "keyring",
  "rand 0.10.2",
  "reqwest",
  "serde",
@@ -981,6 +983,7 @@ dependencies = [
  "axagent-harness",
  "pdf-extract",
  "tokio",
+ "tracing",
  "zip 8.6.0",
 ]
 

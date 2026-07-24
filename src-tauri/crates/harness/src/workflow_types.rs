@@ -1513,8 +1513,10 @@ pub enum EdgeType {
 pub struct WorkflowEdge {
     pub id: String,
     pub source: String,
+    #[serde(rename = "sourceHandle")]
     pub source_handle: Option<String>,
     pub target: String,
+    #[serde(rename = "targetHandle")]
     pub target_handle: Option<String>,
     pub edge_type: EdgeType,
     pub label: Option<String>,

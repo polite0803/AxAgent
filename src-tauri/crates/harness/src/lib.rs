@@ -29,6 +29,14 @@ pub mod contracts;
 pub use contracts::HarnessToolExecutor;
 pub mod conversation_model;
 pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
+
+// ── 模型定价表与成本估算（foundation 层权威定义，下沉自 runtime-core）──
+// gateway（consumer）需要在此处换算 cost，而 consumer 不能依赖 runtime-core，
+// 故 ModelPricing / pricing_for_model / UsageCostEstimate 必须位于 harness。
+pub mod usage_pricing;
+pub use usage_pricing::{
+    ModelPricing, UsageCostEstimate, cost_for_tokens, format_usd, pricing_for_model,
+};
 pub mod core_error;
 pub mod error_codes;
 pub mod orchestration_dispatch;
@@ -172,7 +180,8 @@ pub mod llm_executor;
 pub use llm_executor::{LlmCallConfig, LlmUsage, execute_llm, execute_llm_stream};
 pub mod marketplace;
 pub use marketplace::{
-    CreateReviewRequest, MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
+    CatalogItem, CatalogPage, CatalogQuery, CreateReviewRequest, MarketplaceCatalogService,
+    MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
 };
 
 // ── Gateway 平台层 trait（让 gateway crate 不依赖 dao / crypto） ──
@@ -466,3 +475,9 @@ pub use compact_session::{
     cleanup_task_boundary, compact_session, decay_weight, detect_task_boundary,
     format_compact_summary, get_compact_continuation_message, summarize_turn,
 };
+
+// ── 统一事件总线契约（跨 crate 事件流标准入口） ──
+// agent / rt-workflow / orchestrator 三方通过 `Arc<dyn EventBus>` 桥接,
+// 保留各自原有 event_bus,统一总线作为额外发布通道。
+pub mod event_bus;
+pub use event_bus::{DomainEvent, EventBus, EventBusSubscription, EventCategory};

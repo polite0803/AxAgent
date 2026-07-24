@@ -915,8 +915,8 @@ mod tests {
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
             "edges": [
-                {"id": "e1", "source": "n1", "source_handle": null,
-                 "target": "n1", "target_handle": null,
+                {"id": "e1", "source": "n1", "sourceHandle": null,
+                 "target": "n1", "targetHandle": null,
                  "edge_type": "direct", "label": null}
             ],
             "variables": [],
@@ -944,8 +944,8 @@ mod tests {
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
             "edges": [
-                {"id": "e1", "source": "n1", "source_handle": null,
-                 "target": "missing", "target_handle": null,
+                {"id": "e1", "source": "n1", "sourceHandle": null,
+                 "target": "missing", "targetHandle": null,
                  "edge_type": "direct", "label": null}
             ],
             "variables": [],
@@ -1031,8 +1031,8 @@ mod tests {
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
             "edges": [
-                {"id": "e1", "source": "n1", "source_handle": null,
-                 "target": "n1", "target_handle": null,
+                {"id": "e1", "source": "n1", "sourceHandle": null,
+                 "target": "n1", "targetHandle": null,
                  "edge_type": "direct", "label": null}
             ],
             "variables": [],
@@ -1070,8 +1070,8 @@ mod tests {
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
             "edges": [
-                {"id": "e1", "source": "t", "source_handle": null,
-                 "target": "d", "target_handle": null,
+                {"id": "e1", "source": "t", "sourceHandle": null,
+                 "target": "d", "targetHandle": null,
                  "edge_type": "direct", "label": null}
             ],
             "variables": [],

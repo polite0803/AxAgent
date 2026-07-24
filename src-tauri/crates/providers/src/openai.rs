@@ -131,6 +131,9 @@ struct OpenAIMessageResp {
     content: Option<String>,
     #[serde(default, deserialize_with = "deserialize_optional_text")]
     reasoning_content: Option<String>,
+    /// 通义千问 / 智谱 GLM 等国内厂商在 OpenAI 兼容模式下使用的思考字段
+    #[serde(default, deserialize_with = "deserialize_optional_text")]
+    thinking: Option<String>,
     #[serde(default, deserialize_with = "deserialize_optional_text")]
     reasoning: Option<String>,
     reasoning_details: Option<Vec<ReasoningDetail>>,
@@ -145,6 +148,9 @@ struct OpenAIDelta {
     content: Option<String>,
     #[serde(default, deserialize_with = "deserialize_optional_text")]
     reasoning_content: Option<String>,
+    /// 通义千问 / 智谱 GLM 等国内厂商在 OpenAI 兼容模式下使用的思考字段
+    #[serde(default, deserialize_with = "deserialize_optional_text")]
+    thinking: Option<String>,
     #[serde(default, deserialize_with = "deserialize_optional_text")]
     reasoning: Option<String>,
     reasoning_details: Option<Vec<ReasoningDetail>>,
@@ -160,14 +166,22 @@ struct ReasoningDetail {
 }
 
 /// Extract thinking text from delta/message fields.
-/// Priority: reasoning_content > reasoning > reasoning_details[0].text
+/// Priority: reasoning_content > thinking > reasoning > reasoning_details[0].text
+///
+/// `reasoning_content` 是 DeepSeek / SiliconFlow 等厂商使用的字段；
+/// `thinking` 是通义千问 / 智谱 GLM 等国内厂商在 OpenAI 兼容模式下使用的字段；
+/// `reasoning` 与 `reasoning_details` 是其他兼容端点的回退字段。
 fn extract_thinking(
     reasoning_content: &Option<String>,
+    thinking: &Option<String>,
     reasoning: &Option<String>,
     reasoning_details: &Option<Vec<ReasoningDetail>>,
 ) -> Option<String> {
     if reasoning_content.is_some() {
         return reasoning_content.clone();
+    }
+    if thinking.is_some() {
+        return thinking.clone();
     }
     if reasoning.is_some() {
         return reasoning.clone();
@@ -779,6 +793,7 @@ impl ProviderAdapter for OpenAIAdapter {
             content: extract_primary_content(&msg.content, &msg.extra).unwrap_or_default(),
             thinking: extract_thinking(
                 &msg.reasoning_content,
+                &msg.thinking,
                 &msg.reasoning,
                 &msg.reasoning_details,
             ),
@@ -952,6 +967,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         .and_then(|delta| {
                             extract_thinking(
                                 &delta.reasoning_content,
+                                &delta.thinking,
                                 &delta.reasoning,
                                 &delta.reasoning_details,
                             )
@@ -960,6 +976,7 @@ impl ProviderAdapter for OpenAIAdapter {
                             choice.message.as_ref().and_then(|message| {
                                 extract_thinking(
                                     &message.reasoning_content,
+                                    &message.thinking,
                                     &message.reasoning,
                                     &message.reasoning_details,
                                 )

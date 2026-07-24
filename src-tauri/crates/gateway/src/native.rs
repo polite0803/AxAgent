@@ -560,6 +560,7 @@ async fn resolve_native_context(
 #[allow(clippy::too_many_arguments)]
 async fn record_native_outcome(
     adapter: &Arc<dyn axagent_harness::PlatformAdapter>,
+    latency_tracker: &crate::routing::LatencyTracker,
     gateway_key: &GatewayKey,
     provider_id: &str,
     model_id: Option<&str>,
@@ -575,6 +576,12 @@ async fn record_native_outcome(
         && status_code < 400
         && let Some(usage) = usage
     {
+        // 用全局定价表估算成本（native 协议路径不查 provider 自带价格，
+        // 精度损失可接受：model_id 通常能命中全局定价表）。
+        let cost_usd = model_id
+            .and_then(axagent_harness::usage_pricing::pricing_for_model)
+            .map(|p| p.cost_for(*usage).total_cost_usd())
+            .unwrap_or(0.0);
         let _ = adapter
             .gateway_keys()
             .record_usage(
@@ -584,11 +591,14 @@ async fn record_native_outcome(
                 usage.input_tokens as u64,
                 usage.output_tokens as u64,
                 usage.cache_read_input_tokens as u64,
+                cost_usd,
             )
             .await;
     }
 
     let elapsed = start_time.elapsed().as_millis() as i64;
+    // 记录延迟样本，供 Latency 策略使用
+    latency_tracker.record(provider_id, elapsed as u64);
     let request_tokens = usage.map(|usage| usage.input_tokens as i64).unwrap_or(0);
     let response_tokens = usage.map(|usage| usage.output_tokens as i64).unwrap_or(0);
     let _ = adapter
@@ -629,6 +639,7 @@ async fn proxy_buffered_response(
         Err(e) => {
             record_native_outcome(
                 &state.adapter,
+                &state.latency_tracker,
                 gateway_key,
                 provider_id,
                 model_id,
@@ -663,6 +674,7 @@ async fn proxy_buffered_response(
 
     record_native_outcome(
         &state.adapter,
+        &state.latency_tracker,
         gateway_key,
         provider_id,
         model_id,
@@ -744,6 +756,7 @@ async fn proxy_stream_response(
     protocol: NativeProtocol,
     gateway_key: GatewayKey,
     adapter: Arc<dyn axagent_harness::PlatformAdapter>,
+    latency_tracker: crate::routing::LatencyTracker,
     method: Method,
     path: String,
     provider_id: String,
@@ -787,6 +800,7 @@ async fn proxy_stream_response(
         };
         record_native_outcome(
             &adapter,
+            &latency_tracker,
             &gateway_key,
             &provider_id,
             model_id.as_deref(),
@@ -927,6 +941,7 @@ async fn handle_native_request(
         Err(e) => {
             record_native_outcome(
                 &state.adapter,
+                &state.latency_tracker,
                 &gateway_key,
                 &resolved.provider.id,
                 resolved.model_id.as_deref(),
@@ -959,6 +974,7 @@ async fn handle_native_request(
         Err(e) => {
             record_native_outcome(
                 &state.adapter,
+                &state.latency_tracker,
                 &gateway_key,
                 &resolved.provider.id,
                 resolved.model_id.as_deref(),
@@ -980,6 +996,7 @@ async fn handle_native_request(
             protocol,
             gateway_key,
             state.adapter.clone(),
+            state.latency_tracker.clone(),
             method,
             path,
             resolved.provider.id.clone(),
@@ -1070,8 +1087,8 @@ mod tests {
         ProviderRepository, SettingsRepository,
     };
     use axagent_harness::types::{
-        AppSettings, GatewayKey, Model, ModelCapability, ModelType, ProviderConfig, ProviderKey,
-        ProviderType, TokenUsage,
+        AppSettings, GatewayKey, GatewayMetrics, Model, ModelCapability, ModelType, ProviderConfig,
+        ProviderKey, ProviderType, TokenUsage,
     };
     use axum::{
         Router,
@@ -1259,8 +1276,12 @@ mod tests {
             _request_tokens: u64,
             _response_tokens: u64,
             _cached_input_tokens: u64,
+            _cost_usd: f64,
         ) -> Result<()> {
             Ok(())
+        }
+        async fn get_metrics(&self) -> Result<GatewayMetrics> {
+            Ok(GatewayMetrics::default())
         }
     }
 
@@ -1368,6 +1389,9 @@ mod tests {
             )),
             client_ip_policy: std::sync::Arc::new(crate::auth::ClientIpPolicy::trust_all()),
             qr_bind_store: crate::qr_bind::QrBindStore::new(),
+            routing_strategy: axagent_harness::types::LoadBalanceStrategy::default(),
+            latency_tracker: crate::routing::LatencyTracker::new(),
+            round_robin_cursor: crate::routing::RoundRobinCursor::new(),
         }
     }
 

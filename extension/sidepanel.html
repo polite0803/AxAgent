@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AxAgent 侧边栏</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <!-- 顶部标题区 -->
+  <header class="app-header">
+    <div class="app-title">
+      <img src="icons/icon32.svg" alt="AxAgent" class="app-logo" />
+      <span>AxAgent 对话</span>
+    </div>
+    <button id="clearBtn" class="icon-btn" title="清空对话">清空</button>
+  </header>
+
+  <!-- 当前页面上下文预览 -->
+  <div class="context-bar" id="contextBar" hidden>
+    <div class="context-label">当前页面：</div>
+    <div class="context-title" id="contextTitle"></div>
+    <div class="context-url" id="contextUrl"></div>
+  </div>
+
+  <!-- 消息列表 -->
+  <main class="message-list" id="messageList">
+    <div class="empty-tip" id="emptyTip">向 AxAgent 提问，可结合当前网页上下文。</div>
+  </main>
+
+  <!-- 输入区 -->
+  <footer class="input-bar">
+    <textarea
+      id="userInput"
+      class="user-input"
+      placeholder="输入问题，回车发送（Shift+回车换行）"
+      rows="2"
+    ></textarea>
+    <button id="sendBtn" class="send-btn" title="发送">发送</button>
+  </footer>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

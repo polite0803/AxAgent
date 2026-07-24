@@ -931,6 +931,7 @@ pub async fn send_message(
         &wiki_ids,
         &content,
         5,
+        &state.credential_manager,
     )
     .await;
 

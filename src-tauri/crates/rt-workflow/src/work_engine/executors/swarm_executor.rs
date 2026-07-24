@@ -95,12 +95,8 @@ impl NodeExecutorTrait for SwarmExecutor {
 
             for step_id in agent_steps {
                 let mut round_ctx = ctx.clone();
-                round_ctx
-                    .variables
-                    .insert("__swarm_topic__".to_string(), topic.clone());
-                round_ctx
-                    .variables
-                    .insert("__swarm_round__".to_string(), serde_json::json!(round));
+                round_ctx.variables.insert("__swarm_topic__".to_string(), topic.clone());
+                round_ctx.variables.insert("__swarm_round__".to_string(), serde_json::json!(round));
                 round_ctx
                     .variables
                     .insert("__swarm_max_rounds__".to_string(), serde_json::json!(max_rounds));
@@ -145,18 +141,17 @@ impl NodeExecutorTrait for SwarmExecutor {
             // 收敛检测（从第 2 轮开始）
             if round > 0
                 && convergence_prompt.is_some()
-                && Self::check_convergence(&round_results, &round_outputs[round.saturating_sub(1) as usize])
+                && super::check_round_convergence(
+                    &round_results,
+                    &round_outputs[round.saturating_sub(1) as usize],
+                )
             {
                 tracing::info!("Swarm converged at round {}/{}", round + 1, max_rounds);
                 break;
             }
 
-            prev_round_snapshot = Some(
-                round_results
-                    .values()
-                    .cloned()
-                    .collect::<Vec<serde_json::Value>>(),
-            );
+            prev_round_snapshot =
+                Some(round_results.values().cloned().collect::<Vec<serde_json::Value>>());
         }
 
         let final_output = serde_json::json!({
@@ -164,75 +159,9 @@ impl NodeExecutorTrait for SwarmExecutor {
             "total_rounds": round_outputs.len(),
             "max_rounds": max_rounds,
             "rounds": round_outputs,
-            "consensus": Self::build_consensus(&round_outputs),
+            "consensus": super::build_round_consensus(&round_outputs),
         });
 
-        Ok(NodeOutput {
-            output: final_output,
-            output_var: Some(output_var),
-            control: None,
-        })
+        Ok(NodeOutput { output: final_output, output_var: Some(output_var), control: None })
     }
 }
-
-impl SwarmExecutor {
-    /// 简单收敛检测：基于相邻轮次输出内容相似度
-    fn check_convergence(
-        current: &HashMap<String, serde_json::Value>,
-        previous: &HashMap<String, serde_json::Value>,
-    ) -> bool {
-        let mut matching = 0u32;
-        let mut total = 0u32;
-        for (key, cur_val) in current {
-            if let Some(prev_val) = previous.get(key) {
-                total += 1;
-                if cur_val == prev_val {
-                    matching += 1;
-                } else {
-                    let cur_str = serde_json::to_string(cur_val).unwrap_or_default();
-                    let prev_str = serde_json::to_string(prev_val).unwrap_or_default();
-                    if !cur_str.is_empty()
-                        && !prev_str.is_empty()
-                        && (cur_str.len().abs_diff(prev_str.len()) as f64
-                            / prev_str.len().max(1) as f64)
-                            < 0.10
-                        && crate::work_engine::executors::simple_similarity(&cur_str, &prev_str)
-                            > 0.85
-                    {
-                        matching += 1;
-                        total += 1;
-                    }
-                }
-            }
-        }
-        if total == 0 {
-            return false;
-        }
-        matching as f64 / total as f64 >= 0.80
-    }
-
-    /// 从各轮输出中构建共识结果
-    fn build_consensus(round_outputs: &[HashMap<String, serde_json::Value>]) -> serde_json::Value {
-        if let Some(last_round) = round_outputs.last() {
-            let entries: Vec<serde_json::Value> = last_round
-                .iter()
-                .map(|(step_id, output)| {
-                    serde_json::json!({
-                        "agent": step_id,
-                        "output": output,
-                    })
-                })
-                .collect();
-            serde_json::json!({
-                "entries": entries,
-                "total_rounds": round_outputs.len(),
-            })
-        } else {
-            serde_json::json!({
-                "entries": [],
-                "total_rounds": 0,
-            })
-        }
-    }
-}
-

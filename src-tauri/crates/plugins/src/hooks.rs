@@ -11,6 +11,10 @@ use std::time::Duration;
 
 use serde_json::json;
 
+use crate::sandbox::{
+    SandboxConfig, apply_env_to_command, build_sandbox_from_permissions,
+    check_subprocess_permission,
+};
 use crate::{PluginError, PluginHooks, PluginRegistry};
 
 // HookEvent 权威定义在 axagent-harness（29 变体全集，含 pub as_str），此处 re-export 复用。
@@ -58,6 +62,10 @@ pub struct HookRunner {
     hooks: PluginHooks,
     timeout: Duration,
     in_process_hooks: Vec<Arc<dyn axagent_harness::PluginHook>>,
+    /// 沙箱配置：控制 hook 子进程的 ENV 白名单过滤、subprocess 权限拦截等。
+    /// 默认 [`SandboxConfig::permissive`]，由 [`HookRunner::from_registry`] 根据
+    /// 聚合权限自动构建。
+    sandbox: SandboxConfig,
 }
 
 impl std::fmt::Debug for HookRunner {
@@ -66,6 +74,7 @@ impl std::fmt::Debug for HookRunner {
             .field("hooks", &self.hooks)
             .field("timeout", &self.timeout)
             .field("in_process_hooks_count", &self.in_process_hooks.len())
+            .field("sandbox", &self.sandbox)
             .finish()
     }
 }
@@ -75,6 +84,7 @@ impl PartialEq for HookRunner {
         self.hooks == other.hooks
             && self.timeout == other.timeout
             && self.in_process_hooks.len() == other.in_process_hooks.len()
+            && self.sandbox == other.sandbox
     }
 }
 
@@ -87,17 +97,42 @@ impl HookRunner {
             hooks,
             timeout: Duration::from_secs(DEFAULT_HOOK_TIMEOUT_SECS),
             in_process_hooks: Vec::new(),
+            // 默认采用 permissive 配置：保留 ENV 过滤与敏感路径黑名单这两项
+            // 无争议的安全增强，同时不因 subprocess 拦截破坏向后兼容性。
+            sandbox: SandboxConfig::permissive(),
         }
     }
 
     pub fn from_registry(plugin_registry: &PluginRegistry) -> Result<Self, PluginError> {
-        Ok(Self::new(plugin_registry.aggregated_hooks()?))
+        // 先聚合 hooks 触发 validate，再根据聚合权限构建沙箱。
+        let hooks = plugin_registry.aggregated_hooks()?;
+        let permissions = plugin_registry.aggregated_permissions();
+        let sandbox = build_sandbox_from_permissions(&permissions);
+        Ok(Self {
+            hooks,
+            timeout: Duration::from_secs(DEFAULT_HOOK_TIMEOUT_SECS),
+            in_process_hooks: Vec::new(),
+            sandbox,
+        })
     }
 
     #[must_use]
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
+    }
+
+    /// 替换沙箱配置（builder 风格）。供需要自定义路径白名单等场景使用。
+    #[must_use]
+    pub fn with_sandbox(mut self, sandbox: SandboxConfig) -> Self {
+        self.sandbox = sandbox;
+        self
+    }
+
+    /// 返回当前沙箱配置的不可变引用（供测试与审计）。
+    #[must_use]
+    pub fn sandbox(&self) -> &SandboxConfig {
+        &self.sandbox
     }
 
     pub fn register_in_process_hook(&mut self, hook: Arc<dyn axagent_harness::PluginHook>) {
@@ -119,6 +154,7 @@ impl HookRunner {
             None,
             false,
             self.timeout,
+            &self.sandbox,
         )
     }
 
@@ -138,6 +174,7 @@ impl HookRunner {
             Some(tool_output),
             is_error,
             self.timeout,
+            &self.sandbox,
         )
     }
 
@@ -156,9 +193,11 @@ impl HookRunner {
             Some(tool_error),
             true,
             self.timeout,
+            &self.sandbox,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn run_commands(
         event: HookEvent,
         commands: &[String],
@@ -167,6 +206,7 @@ impl HookRunner {
         tool_output: Option<&str>,
         is_error: bool,
         timeout: Duration,
+        sandbox: &SandboxConfig,
     ) -> HookRunResult {
         if commands.is_empty() {
             return HookRunResult::allow(Vec::new());
@@ -186,6 +226,7 @@ impl HookRunner {
                 is_error,
                 &payload,
                 timeout,
+                sandbox,
             ) {
                 HookCommandOutcome::Allow { message } => {
                     if let Some(message) = message {
@@ -237,8 +278,23 @@ impl HookRunner {
         is_error: bool,
         payload: &str,
         timeout: Duration,
+        sandbox: &SandboxConfig,
     ) -> HookCommandOutcome {
+        // 沙箱检查：未声明 subprocess_execution 权限时禁止调用 shell 执行 hook 脚本。
+        // 这是 P0 安全拦截：即便 manifest 配置被篡改，未声明权限的插件也无法启动子进程。
+        if let Err(error) = check_subprocess_permission(sandbox) {
+            return HookCommandOutcome::Failed {
+                message: format!(
+                    "{} hook `{command}` blocked by sandbox for `{tool_name}`: {error}",
+                    event.as_str()
+                ),
+            };
+        }
+
         let mut child = shell_command(command);
+        // 沙箱：ENV 白名单过滤。先 env_clear 清空继承的变量，再仅回填白名单变量。
+        // 必须在设置 HOOK_EVENT 等专用变量之前调用，确保显式设置的变量不受白名单约束。
+        child.apply_sandbox_env(sandbox);
         child.stdin(std::process::Stdio::piped());
         child.stdout(std::process::Stdio::piped());
         child.stderr(std::process::Stdio::piped());
@@ -366,6 +422,14 @@ struct CommandWithStdin {
 impl CommandWithStdin {
     fn new(command: Command) -> Self {
         Self { command }
+    }
+
+    /// 应用沙箱 ENV 白名单过滤：先 `env_clear` 清空继承的变量，再仅回填白名单变量。
+    /// 调用方在调用此方法之后，仍可继续 `env(...)` 设置插件专用变量
+    /// （如 `HOOK_EVENT`），这些显式设置不受白名单约束。
+    fn apply_sandbox_env(&mut self, config: &SandboxConfig) -> &mut Self {
+        apply_env_to_command(&mut self.command, config);
+        self
     }
 
     fn stdin(&mut self, cfg: std::process::Stdio) -> &mut Self {

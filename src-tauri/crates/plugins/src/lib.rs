@@ -3,6 +3,7 @@
 
 pub mod core;
 pub mod manager;
+pub mod sandbox;
 pub mod types;
 
 pub mod agent_provider;
@@ -15,6 +16,11 @@ pub use core::*;
 pub use hooks::{HookEvent, HookRunResult, HookRunner};
 pub use manager::*;
 pub use mcp_launcher::{McpLaunchError, McpLauncher};
+pub use sandbox::{
+    SandboxConfig, apply_env_to_command, build_sandbox_from_manifest,
+    build_sandbox_from_permissions, check_path_permission, check_subprocess_permission,
+    default_denied_paths, filter_env_vars, is_env_allowed, note_network_access,
+};
 pub use skill_installer::SkillInstaller;
 pub use types::*;
 

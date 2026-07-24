@@ -12,6 +12,7 @@ use crate::skill::SkillProposal;
 use crate::skill_manager::SkillCreationParams;
 use crate::storage::TrajectoryStorage;
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -219,7 +220,7 @@ fn truncate_args(args: &str, max_len: usize) -> String {
     if args.len() <= max_len {
         args.to_string()
     } else {
-        format!("{}...", &args[..max_len])
+        format!("{}...", truncate_to_char_boundary(args, max_len))
     }
 }
 

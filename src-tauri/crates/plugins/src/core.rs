@@ -42,6 +42,8 @@ pub trait Plugin {
     fn tools(&self) -> &[PluginTool];
     fn mcp_servers(&self) -> &[PluginMcpServer];
     fn skills(&self) -> &[PluginSkillEntry];
+    /// 插件声明的权限集合（来自 manifest），供沙箱执行前 capability 检查使用。
+    fn permissions(&self) -> &[PluginPermission];
     fn validate(&self) -> Result<(), PluginError>;
     fn initialize(&self) -> Result<(), PluginError>;
     fn shutdown(&self) -> Result<(), PluginError>;
@@ -77,6 +79,10 @@ impl Plugin for BuiltinPlugin {
 
     fn skills(&self) -> &[PluginSkillEntry] {
         &self.skills
+    }
+
+    fn permissions(&self) -> &[PluginPermission] {
+        &self.permissions
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -128,6 +134,10 @@ impl Plugin for BundledPlugin {
         &self.skills
     }
 
+    fn permissions(&self) -> &[PluginPermission] {
+        &self.permissions
+    }
+
     fn validate(&self) -> Result<(), PluginError> {
         validate_hook_paths(self.metadata.root.as_deref(), &self.hooks)?;
         validate_lifecycle_paths(self.metadata.root.as_deref(), &self.lifecycle)?;
@@ -171,6 +181,10 @@ impl Plugin for ExternalPlugin {
 
     fn skills(&self) -> &[PluginSkillEntry] {
         &self.skills
+    }
+
+    fn permissions(&self) -> &[PluginPermission] {
+        &self.permissions
     }
 
     fn validate(&self) -> Result<(), PluginError> {
@@ -242,6 +256,14 @@ impl Plugin for PluginDefinition {
         }
     }
 
+    fn permissions(&self) -> &[PluginPermission] {
+        match self {
+            Self::Builtin(plugin) => plugin.permissions(),
+            Self::Bundled(plugin) => plugin.permissions(),
+            Self::External(plugin) => plugin.permissions(),
+        }
+    }
+
     fn validate(&self) -> Result<(), PluginError> {
         match self {
             Self::Builtin(plugin) => plugin.validate(),
@@ -292,6 +314,11 @@ impl RegisteredPlugin {
     #[must_use]
     pub fn tools(&self) -> &[PluginTool] {
         self.definition.tools()
+    }
+
+    #[must_use]
+    pub fn permissions(&self) -> &[PluginPermission] {
+        self.definition.permissions()
     }
 
     #[must_use]
@@ -500,6 +527,25 @@ impl PluginRegistry {
             }
         }
         Ok(tools)
+    }
+
+    /// 聚合所有 enabled 插件声明的权限集合（去重）。
+    ///
+    /// 用于在 [`crate::hooks::HookRunner`] 等执行入口构建统一沙箱：
+    /// 任一插件声明的能力在聚合后即放行（并集语义），避免单个插件的
+    /// 缺失权限阻塞其他插件的合法子进程调用。
+    #[must_use]
+    pub fn aggregated_permissions(&self) -> Vec<PluginPermission> {
+        let mut seen = BTreeSet::new();
+        let mut aggregated: Vec<PluginPermission> = Vec::new();
+        for plugin in self.plugins.iter().filter(|plugin| plugin.is_enabled()) {
+            for permission in plugin.permissions() {
+                if seen.insert(*permission) {
+                    aggregated.push(*permission);
+                }
+            }
+        }
+        aggregated
     }
 
     pub fn initialize(&self) -> Result<(), PluginError> {

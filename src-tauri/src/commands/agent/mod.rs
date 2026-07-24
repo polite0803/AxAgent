@@ -1265,6 +1265,7 @@ pub async fn agent_query(
         &wiki_ids,
         &request.input,
         5,
+        &app_state.credential_manager,
     )
     .await;
 
@@ -1769,6 +1770,7 @@ pub async fn agent_query(
                 None,
                 0,
                 parts_json.as_deref(),
+                None,
             )
             .await
             .map_err(|e| {

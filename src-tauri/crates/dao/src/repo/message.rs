@@ -71,6 +71,7 @@ fn message_from_entity(m: messages::Model) -> Result<Message> {
         cache_read_tokens: m.cache_read_tokens.map(|v| v as u32),
         parts: m.parts,
         blocks,
+        quoted_message_id: m.quoted_message_id,
     })
 }
 
@@ -154,6 +155,7 @@ pub async fn create_message(
         parent_message_id,
         version_index,
         None,
+        None,
     )
     .await
 }
@@ -168,6 +170,7 @@ pub async fn create_message_with_parts(
     parent_message_id: Option<&str>,
     version_index: i32,
     parts: Option<&str>,
+    quoted_message_id: Option<&str>,
 ) -> Result<Message> {
     let id = gen_id();
     let now = now_ts();
@@ -185,6 +188,7 @@ pub async fn create_message_with_parts(
         version_index: Set(version_index),
         is_active: Set(1),
         parts: Set(parts.map(|s| s.to_string())),
+        quoted_message_id: Set(quoted_message_id.map(|s| s.to_string())),
         ..Default::default()
     }
     .insert(db)
@@ -568,6 +572,7 @@ pub async fn create_tool_result_message(
         cache_creation_tokens: Set(None),
         cache_read_tokens: Set(None),
         parts: Set(None),
+        quoted_message_id: Set(None),
     }
     .insert(db)
     .await?;
@@ -612,6 +617,7 @@ pub async fn create_assistant_tool_call_message(
         cache_creation_tokens: Set(None),
         cache_read_tokens: Set(None),
         parts: Set(None),
+        quoted_message_id: Set(None),
     }
     .insert(db)
     .await?;

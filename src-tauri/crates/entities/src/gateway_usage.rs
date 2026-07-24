@@ -14,6 +14,9 @@ pub struct Model {
     pub request_tokens: i64,
     pub response_tokens: i64,
     pub cached_input_tokens: i64,
+    /// 本次请求估算的美元成本（基于 ModelPricing 换算）。
+    /// 历史数据通过 migration `ALTER TABLE ... ADD COLUMN cost REAL NOT NULL DEFAULT 0.0` 补列。
+    pub cost: f64,
     pub created_at: i64,
 }
 

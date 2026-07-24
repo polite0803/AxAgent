@@ -399,6 +399,18 @@ pub mod common {
     pub const TIMEOUT: &str = "COMMON_TIMEOUT";
 }
 
+/// 市场目录相关错误码
+pub mod marketplace {
+    /// 目录项未找到
+    pub const NOT_FOUND: &str = "MARKETPLACE_NOT_FOUND";
+    /// 安装失败
+    pub const INSTALL_FAILED: &str = "MARKETPLACE_INSTALL_FAILED";
+    /// 卸载失败
+    pub const UNINSTALL_FAILED: &str = "MARKETPLACE_UNINSTALL_FAILED";
+    /// 发布失败
+    pub const PUBLISH_FAILED: &str = "MARKETPLACE_PUBLISH_FAILED";
+}
+
 // ── 别名模块：统一子命令内部使用的简写名称 ──
 // 以下 re-export 被具体命令文件通过 `use error_code::<alias>` 直接引用，
 // 属活跃契约别名，删除会导致编译失败（非死代码）：

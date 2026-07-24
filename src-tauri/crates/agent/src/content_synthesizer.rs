@@ -155,7 +155,7 @@ impl ContentSynthesizer {
                     s.title,
                     s.url,
                     if s.snippet.len() > 500 {
-                        format!("{}...", &s.snippet[..500])
+                        format!("{}...", truncate_to_char_boundary(&s.snippet, 500))
                     } else {
                         s.snippet.clone()
                     }
@@ -209,7 +209,7 @@ impl ContentSynthesizer {
                     s.title,
                     s.url,
                     if s.snippet.len() > 800 {
-                        format!("{}...", &s.snippet[..800])
+                        format!("{}...", truncate_to_char_boundary(&s.snippet, 800))
                     } else {
                         s.snippet.clone()
                     }

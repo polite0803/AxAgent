@@ -122,6 +122,7 @@
   }
 
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // 原有：popup.js 通过 background 中转请求完整内容
     if (request.action === "getContent") {
       const content = extractContent();
       const selection = getSelectedText();
@@ -129,7 +130,27 @@
         content,
         selection,
       });
+      return true;
     }
+
+    // 新增：响应来自 background.js / sidepanel.js 的内容提取请求
+    // 仅返回轻量字段（title/url/text/excerpt），供 sidePanel 上下文与剪藏使用
+    if (request.action === "extractContent") {
+      const content = extractContent();
+      const selection = getSelectedText();
+      sendResponse({
+        title: content.title,
+        url: content.url,
+        text: content.text,
+        excerpt: content.excerpt,
+        author: content.author,
+        publishDate: content.publishDate,
+        siteName: content.siteName,
+        selection: selection ? selection.text : null,
+      });
+      return true;
+    }
+
     return true;
   });
 })();

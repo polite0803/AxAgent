@@ -205,6 +205,8 @@ export interface Message {
   first_token_latency_ms?: number | null;
   /** Structured content blocks (from agent session ContentBlock). */
   blocks?: ContentBlock[];
+  /** 引用回复：被引用消息的 ID（区别于 parent_message_id） */
+  quoted_message_id?: string | null;
 }
 
 // ── Content Block (Part-based message model, short-term) ──────────────

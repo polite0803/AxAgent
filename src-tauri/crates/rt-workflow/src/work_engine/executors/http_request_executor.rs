@@ -135,7 +135,7 @@ impl NodeExecutorTrait for HttpRequestExecutor {
     async fn execute(
         &self,
         node: &WorkflowNode,
-        _context: &ExecutionState,
+        context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let WorkflowNode::HttpRequest(http_node) = node else {
             return Err(NodeError::type_mismatch(
@@ -150,6 +150,28 @@ impl NodeExecutorTrait for HttpRequestExecutor {
                 "http_error",
                 "HTTP Request URL is empty".to_string(),
             ));
+        }
+
+        // ── Dry Run 短路 ──
+        // 单步调试模式下不发真实请求，返回 200 OK + mock body，
+        // 完全避免 SSRF/网络副作用（DNS 解析、TCP 连接、TLS 握手等均不触发）。
+        if context.dry_run {
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "status": 200,
+                    "status_text": "success",
+                    "headers": {},
+                    "body": "[DRY RUN] HTTP 200 OK 模拟响应",
+                    "dry_run": true,
+                    "node_id": node.base_id(),
+                }),
+                output_var: if config.output_var.is_empty() {
+                    None
+                } else {
+                    Some(config.output_var.clone())
+                },
+                control: None,
+            });
         }
 
         // P0-4: SSRF 校验必须在发请求前做（IP 解析后再发，避免 DNS rebinding）

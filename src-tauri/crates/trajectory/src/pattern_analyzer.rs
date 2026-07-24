@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(dead_code)]
-
 use crate::behavior_tracker::{BehaviorEvent, BehaviorEventType};
 use crate::user_profile::{
     CodingStyleProfile, CommentStyle, CommunicationProfile, DetailLevel, IndentationStyle,
@@ -470,4 +468,262 @@ struct ToolStats {
 struct TopicInfo {
     count: u32,
     last_seen: DateTime<Utc>,
+}
+
+// ── 公开封装：供 wiring 层（runtime::tasks::pattern_task）调用 ──────────
+//
+// PatternAnalyzer 及其依赖的 BehaviorEvent / BehaviorEventType / EventContext
+// 均为 `pub(crate)`，不对外暴露。这里提供一个序列化友好的公开摘要类型
+// `PatternAnalysisSummary` + 入口函数 `analyze_trajectories`，内部完成
+// Trajectory → BehaviorEvent 的转换，调用方无需感知内部类型体系。
+
+/// 跨会话模式分析结果摘要（公开接口）
+///
+/// 由 [`analyze_trajectories`] 产生。内部 [`PatternAnalyzer`] 依赖的
+/// `BehaviorEvent` 类型体系保持 `pub(crate)`，调用方无需感知。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PatternAnalysisSummary {
+    /// 分析的轨迹数量
+    pub trajectories_analyzed: usize,
+    /// 转换并喂给 PatternAnalyzer 的 BehaviorEvent 总数
+    pub total_events_analyzed: usize,
+    /// 代码风格模式（命名 / 缩进 / 注释 / 模块结构 / 错误处理）
+    pub coding_patterns: Vec<CodingPatternSummary>,
+    /// 时间分布模式（高峰时段 / 低谷时段 / 偏好工作日）
+    pub temporal_patterns: Vec<TemporalPatternSummary>,
+    /// 工具偏好模式（按使用频率排序）
+    pub tool_preference_patterns: Vec<ToolPreferenceSummary>,
+    /// 主题模式（按频率排序）
+    pub topic_patterns: Vec<TopicPatternSummary>,
+}
+
+/// 代码风格模式摘要
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CodingPatternSummary {
+    /// 模式类型（naming / indentation / comment / module_structure / error_handling）
+    pub pattern_type: String,
+    /// 模式值（如 "lang:rust"、"spacious"、"extensive"）
+    pub value: String,
+    /// 置信度 [0.0, 1.0]
+    pub confidence: f32,
+    /// 出现次数
+    pub occurrences: u32,
+}
+
+/// 时间分布模式摘要
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TemporalPatternSummary {
+    /// 模式类型（peak_hours / low_activity_hours / preferred_days）
+    pub pattern_type: String,
+    /// 起始小时（UTC 0-23）
+    pub start_hour: u8,
+    /// 结束小时（UTC 0-23）
+    pub end_hour: u8,
+    /// 置信度 [0.0, 1.0]
+    pub confidence: f32,
+}
+
+/// 工具偏好模式摘要
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ToolPreferenceSummary {
+    /// 工具名称
+    pub tool_name: String,
+    /// 使用频率 [0.0, 1.0]（相对总事件数）
+    pub usage_frequency: f32,
+    /// 平均执行耗时（毫秒）
+    pub avg_duration_ms: u64,
+    /// 成功率 [0.0, 1.0]
+    pub success_rate: f32,
+}
+
+/// 主题模式摘要
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TopicPatternSummary {
+    /// 主题（如 "code:rust"、"search:doc"、"general"）
+    pub topic: String,
+    /// 出现频次
+    pub frequency: u32,
+}
+
+/// 从一批轨迹中提取跨会话行为模式（供 wiring 层周期任务调用）
+///
+/// 内部完成 [`crate::trajectory::Trajectory`] → [`BehaviorEvent`] 的转换，
+/// 再调用 [`PatternAnalyzer::analyze`]。转换规则（保守映射，避免误判）：
+///
+/// - `Trajectory.topic` → `ConversationStart { intent }`
+/// - `TrajectoryStep.role == Assistant` 且内容包含代码块 → `CodeGeneration`
+/// - `TrajectoryStep.tool_results` → `ToolUsage`（`is_error` 取反作为 success）
+/// - `Trajectory.created_at` → `time_of_day` / `day_of_week`
+///
+/// # 示例
+///
+/// ```ignore
+/// let trajectories = storage.get_trajectories(Some(20)).await?;
+/// let summary = axagent_trajectory::analyze_trajectories(&trajectories);
+/// tracing::info!("分析 {} 条轨迹，提取 {} 个代码模式",
+///     summary.trajectories_analyzed, summary.coding_patterns.len());
+/// ```
+pub fn analyze_trajectories(
+    trajectories: &[crate::trajectory::Trajectory],
+) -> PatternAnalysisSummary {
+    let analyzer = PatternAnalyzer::new();
+    let events = trajectories.iter().flat_map(traj_to_behavior_events).collect::<Vec<_>>();
+
+    let extracted = analyzer.analyze(&events);
+
+    PatternAnalysisSummary {
+        trajectories_analyzed: trajectories.len(),
+        total_events_analyzed: events.len(),
+        coding_patterns: extracted
+            .coding_patterns
+            .iter()
+            .map(|p| CodingPatternSummary {
+                pattern_type: match p.pattern_type {
+                    PatternType::Naming => "naming",
+                    PatternType::Indentation => "indentation",
+                    PatternType::Comment => "comment",
+                    PatternType::ModuleStructure => "module_structure",
+                    PatternType::ErrorHandling => "error_handling",
+                }
+                .to_string(),
+                value: p.value.clone(),
+                confidence: p.confidence,
+                occurrences: p.occurrences,
+            })
+            .collect(),
+        temporal_patterns: extracted
+            .temporal_patterns
+            .iter()
+            .map(|p| TemporalPatternSummary {
+                pattern_type: match p.pattern_type {
+                    TemporalPatternType::PeakHours => "peak_hours",
+                    TemporalPatternType::LowActivityHours => "low_activity_hours",
+                    TemporalPatternType::PreferredDays => "preferred_days",
+                }
+                .to_string(),
+                start_hour: p.time_range.start_hour,
+                end_hour: p.time_range.end_hour,
+                confidence: p.confidence,
+            })
+            .collect(),
+        tool_preference_patterns: extracted
+            .tool_preference_patterns
+            .iter()
+            .map(|p| ToolPreferenceSummary {
+                tool_name: p.tool_name.clone(),
+                usage_frequency: p.usage_frequency,
+                avg_duration_ms: p.avg_duration_ms,
+                success_rate: p.success_rate,
+            })
+            .collect(),
+        topic_patterns: extracted
+            .topic_patterns
+            .iter()
+            .map(|p| TopicPatternSummary { topic: p.topic.clone(), frequency: p.frequency })
+            .collect(),
+    }
+}
+
+/// 单条轨迹 → BehaviorEvent 列表（私有转换）
+fn traj_to_behavior_events(traj: &crate::trajectory::Trajectory) -> Vec<BehaviorEvent> {
+    use crate::trajectory::MessageRole;
+    use chrono::{Datelike, Timelike};
+
+    let mut events = Vec::new();
+    let user_id = traj.user_id.clone();
+
+    // 1. ConversationStart：以 topic 为 intent
+    events.push(BehaviorEvent::new(
+        user_id.clone(),
+        BehaviorEventType::ConversationStart { intent: Some(traj.topic.clone()) },
+    ));
+
+    // 2. 遍历步骤，提取 CodeGeneration / ToolUsage
+    for (step_idx, step) in traj.steps.iter().enumerate() {
+        let duration_ms = step_duration_ms(traj, step_idx);
+
+        // Assistant 步骤中包含代码块 → CodeGeneration
+        if matches!(step.role, MessageRole::Assistant)
+            && let Some(info) = detect_code_block(&step.content)
+        {
+            events.push(BehaviorEvent::new(
+                user_id.clone(),
+                BehaviorEventType::CodeGeneration {
+                    language: info.language,
+                    framework: None,
+                    line_count: info.line_count,
+                    has_tests: false,
+                },
+            ));
+        }
+
+        // 工具结果 → ToolUsage（is_error 取反作为 success）
+        if let Some(tool_results) = &step.tool_results {
+            for result in tool_results {
+                events.push(BehaviorEvent::new(
+                    user_id.clone(),
+                    BehaviorEventType::ToolUsage {
+                        tool_name: result.tool_name.clone(),
+                        success: !result.is_error,
+                        duration_ms,
+                    },
+                ));
+            }
+        }
+    }
+
+    // 3. 给所有事件补 context（time_of_day / day_of_week / session_id）
+    let session_id = traj.session_id.clone();
+    for event in &mut events {
+        event.context.session_id = Some(session_id.clone());
+        event.context.time_of_day = Some(traj.created_at.hour() as u8);
+        event.context.day_of_week = Some(traj.created_at.weekday().num_days_from_monday() as u8);
+    }
+
+    events
+}
+
+/// 计算步骤的估算耗时（毫秒）
+fn step_duration_ms(traj: &crate::trajectory::Trajectory, step_idx: usize) -> u64 {
+    let steps = &traj.steps;
+    if step_idx + 1 < steps.len() {
+        steps[step_idx + 1].timestamp_ms.saturating_sub(steps[step_idx].timestamp_ms)
+    } else if !steps.is_empty() {
+        // 末步：用轨迹总时长均摊到剩余步骤
+        traj.duration_ms / steps.len() as u64
+    } else {
+        0
+    }
+}
+
+/// 检测文本中的代码块（```lang ... ```）
+fn detect_code_block(content: &str) -> Option<CodeBlockInfo> {
+    let mut lines = content.lines();
+    while let Some(line) = lines.next() {
+        let trimmed = line.trim_start();
+        if let Some(lang) = trimmed.strip_prefix("```") {
+            let language = if lang.is_empty() {
+                "text".to_string()
+            } else {
+                // 取第一个 token 作为语言标识（```rust edition2021 → rust）
+                lang.split_whitespace().next().unwrap_or("text").to_string()
+            };
+            // 统计代码块行数直到闭合 ```
+            let mut line_count = 0u32;
+            for code_line in lines.by_ref() {
+                if code_line.trim_start().starts_with("```") {
+                    return Some(CodeBlockInfo { language, line_count });
+                }
+                line_count += 1;
+            }
+            // 未闭合的代码块也计入
+            return Some(CodeBlockInfo { language, line_count });
+        }
+    }
+    None
+}
+
+struct CodeBlockInfo {
+    language: String,
+    line_count: u32,
 }

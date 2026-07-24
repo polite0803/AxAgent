@@ -1,405 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//! 用量与成本聚合。
+//!
+//! `ModelPricing` / `pricing_for_model` / `UsageCostEstimate` /
+//! `cost_for_tokens` / `format_usd` 的权威定义已下沉到
+//! `axagent_harness::usage_pricing`（foundation 层），以便 gateway 等
+//! consumer crate 在不依赖 runtime-core 的情况下也能换算成本。
+//! 本 crate 通过 `pub use` 透传，保持现有引用路径不变。
+//!
+//! `TokenCost` trait（对 `TokenUsage` 的扩展）与 `UsageTracker`（运行时
+//! 累积器）仍保留在本 crate，因为它们属于 consumer 层的运行时行为。
+
 use crate::session::Session;
 pub use axagent_harness::TokenUsage;
-
-const DEFAULT_INPUT_COST_PER_MILLION: f64 = 3.0;
-const DEFAULT_OUTPUT_COST_PER_MILLION: f64 = 15.0;
-const DEFAULT_CACHE_CREATION_COST_PER_MILLION: f64 = 3.75;
-const DEFAULT_CACHE_READ_COST_PER_MILLION: f64 = 0.3;
-
-/// Per-million-token pricing used for cost estimation.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ModelPricing {
-    pub input_cost_per_million: f64,
-    pub output_cost_per_million: f64,
-    pub cache_creation_cost_per_million: f64,
-    pub cache_read_cost_per_million: f64,
-}
-
-impl ModelPricing {
-    #[must_use]
-    pub const fn default_sonnet_tier() -> Self {
-        Self {
-            input_cost_per_million: DEFAULT_INPUT_COST_PER_MILLION,
-            output_cost_per_million: DEFAULT_OUTPUT_COST_PER_MILLION,
-            cache_creation_cost_per_million: DEFAULT_CACHE_CREATION_COST_PER_MILLION,
-            cache_read_cost_per_million: DEFAULT_CACHE_READ_COST_PER_MILLION,
-        }
-    }
-}
-
-/// Estimated dollar cost derived from a [`TokenUsage`] sample.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UsageCostEstimate {
-    pub input_cost_usd: f64,
-    pub output_cost_usd: f64,
-    pub cache_creation_cost_usd: f64,
-    pub cache_read_cost_usd: f64,
-}
-
-impl UsageCostEstimate {
-    #[must_use]
-    pub fn total_cost_usd(self) -> f64 {
-        self.input_cost_usd
-            + self.output_cost_usd
-            + self.cache_creation_cost_usd
-            + self.cache_read_cost_usd
-    }
-}
-
-/// Returns pricing metadata for a known model alias or family.
-#[must_use]
-pub fn pricing_for_model(model: &str) -> Option<ModelPricing> {
-    let normalized = model.to_ascii_lowercase();
-
-    // ── OpenAI GPT-5.x ──
-    if normalized.contains("gpt-5.5") {
-        return Some(ModelPricing {
-            input_cost_per_million: 5.00,
-            output_cost_per_million: 30.00,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.50,
-        });
-    }
-    if normalized.contains("gpt-5.4-mini") || normalized.contains("gpt-5-mini") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.75,
-            output_cost_per_million: 4.50,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.075,
-        });
-    }
-    if normalized.contains("gpt-5.4")
-        || normalized.contains("gpt-5.1")
-        || normalized.contains("gpt-5.2")
-        || normalized == "gpt-5"
-    {
-        return Some(ModelPricing {
-            input_cost_per_million: 2.50,
-            output_cost_per_million: 15.00,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.25,
-        });
-    }
-
-    // ── OpenAI GPT-4.1 (legacy) ──
-    if normalized.contains("gpt-4.1-nano") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.10,
-            output_cost_per_million: 0.40,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.025,
-        });
-    }
-    if normalized.contains("gpt-4.1-mini") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.40,
-            output_cost_per_million: 1.60,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.10,
-        });
-    }
-    if normalized.contains("gpt-4.1") {
-        return Some(ModelPricing {
-            input_cost_per_million: 2.00,
-            output_cost_per_million: 8.00,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.50,
-        });
-    }
-
-    // ── OpenAI o-series reasoning ──
-    if normalized.contains("o4-mini") {
-        return Some(ModelPricing {
-            input_cost_per_million: 1.10,
-            output_cost_per_million: 4.40,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.275,
-        });
-    }
-    if normalized.contains("o3-mini") {
-        return Some(ModelPricing {
-            input_cost_per_million: 1.10,
-            output_cost_per_million: 4.40,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.275,
-        });
-    }
-    if normalized == "o3" {
-        return Some(ModelPricing {
-            input_cost_per_million: 2.00,
-            output_cost_per_million: 8.00,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.50,
-        });
-    }
-
-    // ── Anthropic Claude ──
-    if normalized.contains("haiku") {
-        return Some(ModelPricing {
-            input_cost_per_million: 1.0,
-            output_cost_per_million: 5.0,
-            cache_creation_cost_per_million: 1.25,
-            cache_read_cost_per_million: 0.1,
-        });
-    }
-    if normalized.contains("opus") {
-        return Some(ModelPricing {
-            input_cost_per_million: 5.0,
-            output_cost_per_million: 25.0,
-            cache_creation_cost_per_million: 6.25,
-            cache_read_cost_per_million: 0.5,
-        });
-    }
-    if normalized.contains("sonnet") {
-        return Some(ModelPricing::default_sonnet_tier());
-    }
-
-    // ── Qwen (通义千问) ──
-    // qwen3.7-max: ¥12/¥36 per 1M tokens ≈ $1.66/$4.98; cache_read = input×20% ≈ $0.332
-    if normalized.contains("qwen3.7-max") {
-        return Some(ModelPricing {
-            input_cost_per_million: 1.66,
-            output_cost_per_million: 4.98,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.332,
-        });
-    }
-    // qwen3.6-plus: ¥2/¥6 per 1M tokens ≈ $0.28/$0.83; cache_read = input×20% ≈ $0.056
-    if normalized.contains("qwen3.6-plus") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.28,
-            output_cost_per_million: 0.83,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.056,
-        });
-    }
-    // qwen3.6-flash: ¥0.3/¥0.6 per 1M tokens ≈ $0.04/$0.08; cache_read = input×20% ≈ $0.008
-    if normalized.contains("qwen3.6-flash") || normalized.contains("qwen3.5-flash") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.04,
-            output_cost_per_million: 0.08,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.008,
-        });
-    }
-    // qwen3.5-plus: ¥0.8/¥2 per 1M tokens ≈ $0.11/$0.28; cache_read = input×20% ≈ $0.022
-    if normalized.contains("qwen3.5-plus") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.11,
-            output_cost_per_million: 0.28,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.022,
-        });
-    }
-    // qwen3-max / qwen-plus: ¥2/¥6 per 1M tokens ≈ $0.28/$0.83; cache_read = input×20% ≈ $0.056
-    if normalized.contains("qwen3-max")
-        || normalized.contains("qwen-plus")
-        || normalized.contains("qwen-max")
-    {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.28,
-            output_cost_per_million: 0.83,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.056,
-        });
-    }
-    // qwen-turbo / qwen-flash: ¥0.3/¥0.6 per 1M tokens ≈ $0.04/$0.08; cache_read = input×20% ≈ $0.008
-    if normalized.contains("qwen-turbo") || normalized.contains("qwen-flash") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.04,
-            output_cost_per_million: 0.08,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.008,
-        });
-    }
-
-    // ── Kimi (月之暗面) ──
-    // kimi-k2.6: ¥6.5/¥27 per 1M tokens ≈ $0.90/$3.73; cache hit ¥1.10 ≈ $0.15
-    if normalized.contains("kimi-k2.6") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.90,
-            output_cost_per_million: 3.73,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.15,
-        });
-    }
-    // kimi-k2.5: ¥4/¥21 per 1M tokens ≈ $0.55/$2.90; cache hit ¥0.70 ≈ $0.10
-    if normalized.contains("kimi-k2.5") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.55,
-            output_cost_per_million: 2.90,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.10,
-        });
-    }
-    // kimi-k2: ¥4/¥16 per 1M tokens ≈ $0.55/$2.21
-    if normalized.contains("kimi-k2")
-        && !normalized.contains("k2.5")
-        && !normalized.contains("k2.6")
-    {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.55,
-            output_cost_per_million: 2.21,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.10,
-        });
-    }
-    // moonshot-v1: ¥12/¥12 per 1M tokens ≈ $1.66/$1.66
-    if normalized.contains("moonshot-v1") {
-        return Some(ModelPricing {
-            input_cost_per_million: 1.66,
-            output_cost_per_million: 1.66,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-
-    // ── Doubao (豆包) ──
-    // doubao-1.5-pro: ¥4/¥16 per 1M tokens ≈ $0.55/$2.21
-    if normalized.contains("doubao-1.5-pro") || normalized.contains("doubao-pro") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.55,
-            output_cost_per_million: 2.21,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // doubao-1.5-lite: ¥0.3/¥0.6 per 1M tokens ≈ $0.04/$0.08
-    if normalized.contains("doubao-1.5-lite") || normalized.contains("doubao-lite") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.04,
-            output_cost_per_million: 0.08,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-
-    // ── SiliconFlow (硅基流动) ──
-    // Pro/DeepSeek-R1: ¥4/¥16 per 1M tokens ≈ $0.56/$2.22
-    if normalized.contains("deepseek-ai/deepseek-r1")
-        || normalized.contains("deepseek-ai/deepseek-r1-0120")
-    {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.56,
-            output_cost_per_million: 2.22,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // Pro/DeepSeek-V3: ¥2/¥8 per 1M tokens ≈ $0.28/$1.11
-    if normalized.contains("deepseek-ai/deepseek-v3") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.28,
-            output_cost_per_million: 1.11,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // Qwen3-235B-A22B: ¥2.5/¥10 per 1M tokens ≈ $0.35/$1.39
-    if normalized.contains("qwen3-235b") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.35,
-            output_cost_per_million: 1.39,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // Qwen3-32B: ¥1/¥4 per 1M tokens ≈ $0.14/$0.56
-    if normalized.contains("qwen3-32b") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.14,
-            output_cost_per_million: 0.56,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // Qwen3-14B: ¥0.5/¥2 per 1M tokens ≈ $0.07/$0.28
-    if normalized.contains("qwen3-14b") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.07,
-            output_cost_per_million: 0.28,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // Qwen2.5-72B: ¥4.13/¥4.13 per 1M tokens ≈ $0.57/$0.57
-    if normalized.contains("qwen2.5-72b") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.57,
-            output_cost_per_million: 0.57,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-    // QwQ-32B: ¥1/¥4 per 1M tokens ≈ $0.14/$0.56
-    if normalized.contains("qwq-32b") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.14,
-            output_cost_per_million: 0.56,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0,
-        });
-    }
-
-    // ── DeepSeek V4 Flash (1M context, free-tier) ──
-    if normalized.contains("deepseek") && normalized.contains("v4-flash") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.14,
-            output_cost_per_million: 0.28,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0028,
-        });
-    }
-    // ── DeepSeek V4 Pro (1M context, 75% off permanent) ──
-    if normalized.contains("deepseek") && normalized.contains("v4-pro") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.435,
-            output_cost_per_million: 0.87,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.003625,
-        });
-    }
-    // DeepSeek legacy aliases: deepseek-chat → V4 Flash, deepseek-reasoner → V4 Pro
-    if normalized.contains("deepseek") && normalized.contains("chat") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.14,
-            output_cost_per_million: 0.28,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0028,
-        });
-    }
-    if normalized.contains("deepseek")
-        && (normalized.contains("reasoner") || normalized.contains("r1"))
-    {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.435,
-            output_cost_per_million: 0.87,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.003625,
-        });
-    }
-    // DeepSeek V3 legacy (same as V4 Flash pricing)
-    if normalized.contains("deepseek") && normalized.contains("v3") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.14,
-            output_cost_per_million: 0.28,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0028,
-        });
-    }
-    // DeepSeek Coder (legacy, same as V4 Flash pricing)
-    if normalized.contains("deepseek") && normalized.contains("coder") {
-        return Some(ModelPricing {
-            input_cost_per_million: 0.14,
-            output_cost_per_million: 0.28,
-            cache_creation_cost_per_million: 0.0,
-            cache_read_cost_per_million: 0.0028,
-        });
-    }
-    None
-}
+// 从 harness foundation 层透传定价相关类型（权威定义下沉后保持旧路径可用）
+pub use axagent_harness::usage_pricing::{
+    ModelPricing, UsageCostEstimate, cost_for_tokens, format_usd, pricing_for_model,
+};
 
 // ── TokenCost trait (extension pattern: define trait in runtime-core, impl for harness type) ──
 
@@ -454,18 +71,7 @@ impl TokenCost for TokenUsage {
     }
 
     fn estimate_cost_usd_with_pricing(self, pricing: ModelPricing) -> UsageCostEstimate {
-        UsageCostEstimate {
-            input_cost_usd: cost_for_tokens(self.input_tokens, pricing.input_cost_per_million),
-            output_cost_usd: cost_for_tokens(self.output_tokens, pricing.output_cost_per_million),
-            cache_creation_cost_usd: cost_for_tokens(
-                self.cache_creation_input_tokens,
-                pricing.cache_creation_cost_per_million,
-            ),
-            cache_read_cost_usd: cost_for_tokens(
-                self.cache_read_input_tokens,
-                pricing.cache_read_cost_per_million,
-            ),
-        }
+        pricing.cost_for(self)
     }
 
     fn summary_lines(self, label: &str) -> Vec<String> {
@@ -493,10 +99,10 @@ impl TokenCost for TokenUsage {
         };
         let hit_rate_suffix = self
             .cache_hit_rate()
-            .map_or(String::new(), |rate| format!(" hit_rate={:.1}%", rate * 100.0));
+            .map_or_else(String::new, |rate| format!(" hit_rate={:.1}%", rate * 100.0));
         let cache_miss_suffix = self
             .cache_miss_input_tokens
-            .map_or(String::new(), |miss| format!(" cache_miss={miss}"));
+            .map_or_else(String::new, |miss| format!(" cache_miss={miss}"));
         vec![
             format!(
                 "{label}: total_tokens={} input={} output={} cache_write={} cache_read={}{} estimated_cost={}{}{}{}",
@@ -520,16 +126,6 @@ impl TokenCost for TokenUsage {
             ),
         ]
     }
-}
-
-fn cost_for_tokens(tokens: u32, usd_per_million_tokens: f64) -> f64 {
-    f64::from(tokens) / 1_000_000.0 * usd_per_million_tokens
-}
-
-#[must_use]
-/// Formats a dollar-denominated value for CLI display.
-pub fn format_usd(amount: f64) -> String {
-    format!("${amount:.4}")
 }
 
 /// Aggregates token usage across a running session.

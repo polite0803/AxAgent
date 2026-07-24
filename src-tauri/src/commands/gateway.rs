@@ -513,7 +513,7 @@ pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Resu
 pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMetrics, String> {
     // NOTE: active_connections 暂硬编码为 0（DAO 层）。
     // 真正实现需要 GatewayServer 内置连接计数中间件，留待后续。
-    axagent_dao::repo::gateway::get_gateway_metrics(state.harness.db()).await.map_err(|e| {
+    axagent_dao::repo::gateway_usage::get_metrics(state.harness.db()).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
@@ -664,7 +664,7 @@ pub async fn get_gateway_status(state: State<'_, AppState>) -> Result<GatewaySta
 pub async fn get_gateway_usage_by_key(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByKey>, String> {
-    axagent_dao::repo::gateway::get_usage_by_key(state.harness.db()).await.map_err(|e| {
+    axagent_dao::repo::gateway_usage::get_usage_by_key(state.harness.db()).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
@@ -676,7 +676,7 @@ pub async fn get_gateway_usage_by_key(
 pub async fn get_gateway_usage_by_provider(
     state: State<'_, AppState>,
 ) -> Result<Vec<UsageByProvider>, String> {
-    axagent_dao::repo::gateway::get_usage_by_provider(state.harness.db()).await.map_err(|e| {
+    axagent_dao::repo::gateway_usage::get_usage_by_provider(state.harness.db()).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
@@ -689,7 +689,7 @@ pub async fn get_gateway_usage_by_day(
     state: State<'_, AppState>,
     days: Option<u32>,
 ) -> Result<Vec<UsageByDay>, String> {
-    axagent_dao::repo::gateway::get_usage_by_day(state.harness.db(), days.unwrap_or(30))
+    axagent_dao::repo::gateway_usage::get_usage_by_day(state.harness.db(), days.unwrap_or(30))
         .await
         .map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
@@ -703,12 +703,14 @@ pub async fn get_gateway_usage_by_day(
 pub async fn get_connected_programs(
     state: State<'_, AppState>,
 ) -> Result<Vec<ConnectedProgram>, String> {
-    axagent_dao::repo::gateway::get_connected_programs(state.harness.db()).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    axagent_dao::repo::gateway_usage::get_connected_programs(state.harness.db()).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )
 }
 
 #[tauri::command]
