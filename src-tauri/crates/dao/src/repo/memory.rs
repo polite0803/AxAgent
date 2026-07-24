@@ -43,6 +43,7 @@ fn model_to_item(m: memory_items::Model) -> MemoryItem {
 
 pub async fn list_namespaces(db: &DatabaseConnection) -> Result<Vec<MemoryNamespace>> {
     let models = memory_namespaces::Entity::find()
+        .filter(memory_namespaces::Column::Scope.ne("system"))
         .order_by_asc(memory_namespaces::Column::SortOrder)
         .all(db)
         .await?;
