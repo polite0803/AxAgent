@@ -91,23 +91,23 @@ pub async fn generate_monthly_report(
 
     // 概览
     md.push_str("## 📋 月度概览\n\n");
-    md.push_str(&format!("| 指标 | 数值 |\n"));
-    md.push_str(&format!("|------|------|\n"));
+    md.push_str("| 指标 | 数值 |\n");
+    md.push_str("|------|------|\n");
     md.push_str(&format!("| 分析股票数 | {} |\n", total));
     md.push_str(&format!("| 可验证决策数 | {} |\n", total_outcome));
     md.push_str(&format!("| 综合准确率 | {:.1}% |\n", accuracy));
-    md.push_str("\n");
+    md.push('\n');
 
     // 决策分布
     md.push_str("## 🎯 决策分布\n\n");
     md.push_str("| 决策方向 | 次数 |\n");
     md.push_str("|----------|------|\n");
     let mut sorted_dist: Vec<_> = dist.into_iter().collect();
-    sorted_dist.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted_dist.sort_by_key(|item| std::cmp::Reverse(item.1));
     for (action, count) in &sorted_dist {
         md.push_str(&format!("| {} | {} |\n", action, count));
     }
-    md.push_str("\n");
+    md.push('\n');
 
     // 最近分析
     md.push_str("## 📝 最近分析\n\n");

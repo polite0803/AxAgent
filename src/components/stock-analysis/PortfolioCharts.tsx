@@ -100,7 +100,7 @@ export function SectorAllocationDonut({ data, height = 250 }: SectorAllocationDo
               fontSize: 12,
             }}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any, name: string) => [`${value.toFixed(1)}%`, name]}
+            formatter={(value: any, name: any) => [`${value.toFixed(1)}%`, name]}
           />
         </PieChart>
       </ResponsiveContainer>
@@ -335,7 +335,7 @@ export function PortfolioPerformanceLine({ data, height = 250 }: PortfolioPerfor
               fontSize: 12,
             }}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any, name: string) => {
+            formatter={(value: any, name: any) => {
               const labels: Record<string, string> = {
                 portfolio: t("stockAnalysis.charts.portfolio", "组合"),
                 benchmark: t("stockAnalysis.charts.benchmark", "基准"),

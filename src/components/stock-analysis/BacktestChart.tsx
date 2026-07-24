@@ -166,7 +166,7 @@ export function BacktestChart({
                 color: "#F3F4F6",
               }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: string) => {
+              formatter={(value: any, name: any) => {
                 const labels: Record<string, string> = {
                   equity: t("stockAnalysis.backtest.chart.equity", "净资产"),
                   cash: t("stockAnalysis.backtest.chart.cash", "现金"),
