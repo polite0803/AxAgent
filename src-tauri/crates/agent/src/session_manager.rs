@@ -244,6 +244,13 @@ pub struct SessionManager {
     /// 轨迹学习服务（可选，用于压缩完整性校验和任务复杂度估算）
     trajectory: Option<Arc<dyn TrajectoryService>>,
     agent_session_repo: Arc<dyn AgentSessionRepository>,
+    /// 统一事件总线（可选，由 wiring 层注入）。
+    ///
+    /// 注入后,SessionManager 在 turn 开始 / 结束等关键节点额外 publish
+    /// `DomainEvent` 到统一总线,供跨 crate 订阅者消费。
+    /// 未注入时保持原有行为,不影响现有功能。
+    /// 用 RwLock 包裹以支持在 `Arc<SessionManager>` 上运行时注入。
+    event_bus: tokio::sync::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -262,6 +269,37 @@ impl SessionManager {
             progress_trackers: tokio::sync::RwLock::new(std::collections::HashMap::new()),
             trajectory: None,
             agent_session_repo,
+            event_bus: tokio::sync::RwLock::new(None),
+        }
+    }
+
+    /// 注入统一事件总线,启用跨 crate 事件桥接。
+    ///
+    /// 注入后,SessionManager 在 turn 开始 / 结束等关键节点自动 publish
+    /// `DomainEvent` 到统一总线。未注入时保持原有行为。
+    /// 通常由 wiring 层(src/init/state.rs)在构造 AppState 时调用。
+    pub async fn set_event_bus(&self, bus: Arc<dyn axagent_harness::EventBus>) {
+        let mut guard = self.event_bus.write().await;
+        *guard = Some(bus);
+    }
+
+    /// 发布一个 agent 领域事件到统一总线(若已注入)。
+    ///
+    /// 未注入 event_bus 时静默返回,不影响原有逻辑。
+    /// `kind` 对应 `AgentEventType::to_string()`(如 `"TurnStarted"`)。
+    async fn publish_agent_event(&self, kind: &str, payload: serde_json::Value) {
+        let bus_clone = {
+            let guard = self.event_bus.read().await;
+            guard.as_ref().map(Arc::clone)
+        };
+        if let Some(bus) = bus_clone {
+            let event = axagent_harness::DomainEvent::new(
+                axagent_harness::EventCategory::Agent,
+                kind,
+                payload,
+                "agent",
+            );
+            bus.publish(event).await;
         }
     }
 
@@ -416,6 +454,15 @@ impl SessionManager {
                     .await;
             }
         }
+
+        // 桥接到统一事件总线(若已注入):发布 TurnCompleted
+        self.publish_agent_event(
+            "TurnCompleted",
+            serde_json::json!({
+                "conversationId": conversation_id,
+            }),
+        )
+        .await;
     }
 
     /// Clear the session for a given conversation (used when context is cleared).
@@ -524,6 +571,16 @@ impl SessionManager {
             .get_session(session_id)
             .await
             .ok_or_else(|| RuntimeError::new(format!("Session not found: {}", session_id)))?;
+
+        // 桥接到统一事件总线(若已注入):发布 TurnStarted
+        self.publish_agent_event(
+            "TurnStarted",
+            serde_json::json!({
+                "conversationId": conversation_id,
+                "sessionId": session_id,
+            }),
+        )
+        .await;
 
         // Auto-compact if the session exceeds the token threshold.
         // Use CompactionConfig::default() consistently for both the check

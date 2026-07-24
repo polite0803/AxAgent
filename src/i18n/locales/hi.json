@@ -1048,10 +1048,23 @@
     },
     "preferences": "प्राथमिकताएँ",
     "profile": "प्रोफ़ाइल",
+    "quote": {
+      "cancel": "उद्धरण रद्द करें",
+      "jumpHint": "मूल संदेश पर जाने के लिए क्लिक करें",
+      "reply": "उद्धरण के साथ उत्तर",
+      "replyingTo": "का उत्तर दे रहे हैं",
+      "roleAssistant": "सहायक",
+      "roleSystem": "सिस्टम",
+      "roleTool": "उपकरण",
+      "roleUser": "उपयोगकर्ता"
+    },
     "quality": "गुणवत्ता",
     "regenerate": "पुनः उत्पन्न करें",
     "removeFromWorkspace": "कार्यक्षेत्र से हटाएं",
     "rename": "नाम बदलें",
+    "latex": {
+      "parseError": "LaTeX पार्स विफल"
+    },
     "renderingChart": "चार्ट रेंडर हो रहा है…",
     "rewardScale": "पैमाना",
     "rewardWeights": {
@@ -2472,6 +2485,10 @@
     "MCP_TIMEOUT": "MCP संचालन का समय समाप्त",
     "MCP_TOOL_DISCOVERY_TIMEOUT": "MCP टूल खोज का समय समाप्त",
     "MCP_TRANSPORT_UNSUPPORTED": "असमर्थित MCP ट्रांसपोर्ट प्रकार",
+    "MARKETPLACE_INSTALL_FAILED": "मार्केटप्लेस टेम्पलेट स्थापित करने में विफल",
+    "MARKETPLACE_NOT_FOUND": "मार्केटप्लेस आइटम नहीं मिला",
+    "MARKETPLACE_PUBLISH_FAILED": "मार्केटप्लेस टेम्पलेट प्रकाशित करने में विफल",
+    "MARKETPLACE_UNINSTALL_FAILED": "मार्केटप्लेस टेम्पलेट अनइंस्टॉल करने में विफल",
     "MEMORY_CONSOLIDATE_FAILED": "मेमोरी समेकित करने में विफल",
     "MEMORY_CREATE_FAILED": "मेमोरी बनाने में विफल",
     "MEMORY_DELETE_FAILED": "मेमोरी हटाने में विफल",
@@ -2862,7 +2879,31 @@
     "totalItems": "{{total}} आइटम",
     "workflow": "工作流",
     "cleanup": "清理",
-    "reveal": "定位"
+    "reveal": "定位",
+    "contextDelete": "हटाएं",
+    "contextMkdir": "नया फ़ोल्डर",
+    "contextMove": "में ले जाएं…",
+    "contextRename": "नाम बदलें",
+    "deleteConfirmContent": "क्या आप वाकई «{{name}}» को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।",
+    "deleteConfirmTitle": "हटाने की पुष्टि",
+    "mkdirPlaceholder": "फ़ोल्डर का नाम दर्ज करें",
+    "mkdirSuccess": "फ़ोल्डर बनाया गया",
+    "mkdirTitle": "नया फ़ोल्डर",
+    "movePlaceholder": "लक्ष्य निर्देशिका का पूर्ण पथ दर्ज करें",
+    "moveSuccess": "ले जाया गया",
+    "moveTitle": "में ले जाएं",
+    "previewDirType": "फ़ोल्डर",
+    "previewEmpty": "पूर्वावलोकन के लिए फ़ाइल चुनें",
+    "previewFailed": "पूर्वावलोकन लोड नहीं हो सका",
+    "previewModified": "संशोधित",
+    "previewPath": "पथ",
+    "previewSize": "आकार",
+    "previewTitle": "फ़ाइल पूर्वावलोकन",
+    "previewType": "प्रकार",
+    "previewUnknownType": "अज्ञात",
+    "renameSuccess": "नाम बदला गया",
+    "renameTitle": "नाम बदलें",
+    "treeEmpty": "खाली निर्देशिका"
   },
   "fineTune": {
     "dataset": {
@@ -3742,7 +3783,9 @@
     "marketplace": "市场",
     "prompts": "提示词",
     "recommend": "推荐",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "मार्केटप्लेस",
+    "dynamicUI": "डायनामिक पृष्ठ"
   },
   "notification": {
     "clear": "साफ़ करें",

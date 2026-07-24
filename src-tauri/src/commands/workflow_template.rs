@@ -143,6 +143,16 @@ pub async fn create_workflow_template(
 
     state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
 
+    // 2.7 P1:同步运行时触发器 — DB 已持久化 trigger_config,此处把同一份配置
+    // 注册到 TriggerManager,使 Schedule/Webhook/Event 触发器立即生效。
+    // 失败仅 warn 日志,不阻断命令返回(下次启动恢复时会重新注册)。
+    crate::init::trigger_recovery::sync_workflow_trigger(
+        &state.work_engine.trigger_manager,
+        &template.id,
+        template.trigger_config.as_ref(),
+    )
+    .await;
+
     Ok(template.id)
 }
 
@@ -156,6 +166,10 @@ pub async fn update_workflow_template(
 
     // 保存前提取 tool_defs（确保移动后仍可引用）
     let tool_defs = input.tool_defs.take();
+    // 2.7 P1:同步提取 trigger_config — 持久化后还要用于运行时触发器同步。
+    // clone 一份给 sync 用,原值 move 到 db_repo。
+    let trigger_config = input.trigger_config.take();
+    let trigger_config_for_sync = trigger_config.clone();
 
     // 如果更新的是 stock-analysis 模板，先注入 vendor 启用状态到 astock_client
     // 必须在 input.variables 被移动到 db_repo 之前调用
@@ -174,7 +188,7 @@ pub async fn update_workflow_template(
         input.description,
         input.icon,
         input.tags,
-        input.trigger_config,
+        trigger_config,
         input.nodes,
         input.edges,
         input.input_schema,
@@ -196,6 +210,16 @@ pub async fn update_workflow_template(
         state.work_engine.precompile_tool_defs(&id, tds).await;
     }
 
+    // 2.7 P1:同步运行时触发器 — DB 已更新 trigger_config,此处把运行时
+    // TriggerManager 的注册状态同步为新配置(先清理旧注册,再按新配置注册)。
+    // 失败仅 warn 日志,不阻断命令返回。
+    crate::init::trigger_recovery::sync_workflow_trigger(
+        &state.work_engine.trigger_manager,
+        &id,
+        trigger_config_for_sync.as_ref(),
+    )
+    .await;
+
     Ok(updated)
 }
 
@@ -211,6 +235,15 @@ pub async fn delete_workflow_template(
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
+
+    // 2.7 P1:清理运行时触发器注册状态 — DB 已删除模板,此处把 TriggerManager
+    // 中残留的 schedule/webhook 注册一并清理(event 订阅可能残留,见文档注释)。
+    crate::init::trigger_recovery::unregister_workflow_triggers(
+        &state.work_engine.trigger_manager,
+        &id,
+    )
+    .await;
+
     Ok(deleted)
 }
 

@@ -108,6 +108,7 @@ fn make_state(execution_id: &str) -> ExecutionState {
         subworkflow: None,
         loop_body_dispatch: None,
         loop_checkpoint: None,
+        debate_body_dispatch: None,
     });
     s
 }

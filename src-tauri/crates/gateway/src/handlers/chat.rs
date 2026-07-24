@@ -13,8 +13,10 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio_stream::wrappers::ReceiverStream;
 
+use axagent_harness::conversation_model::TokenUsage;
 use axagent_harness::types::*;
 use axagent_harness::url_utils::resolve_base_url_for_type;
+use axagent_harness::usage_pricing::{cost_for_tokens, pricing_for_model};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 
 use crate::auth::AuthenticatedKey;
@@ -22,6 +24,7 @@ use crate::handlers::error::{error_response, provider_type_to_str, record_log};
 use crate::handlers::models::{
     build_provider_public_id_map, parse_model_field, resolve_provider_for_model,
 };
+use crate::routing::select_provider_index;
 use crate::server::GatewayAppState;
 
 /// Maximum key failover retries for a single request.
@@ -35,6 +38,39 @@ fn is_retriable_key_error(msg: &str) -> bool {
         || msg.contains("401 Unauthorized")
         || msg.contains("403 Forbidden")
         || msg.contains("rate limit")
+}
+
+/// 基于实际 token 用量估算美元成本。
+///
+/// 优先级：
+/// 1. provider 自带的 per-model 价格（`input_price_per_mtok` / `output_price_per_mtok`）。
+///    此路径不覆盖 cache 维度（provider 元数据未提供 cache 单价），按 input+output 计算。
+/// 2. 全局定价表 [`pricing_for_model`]，覆盖 input/output/cache_creation/cache_read 四维。
+/// 3. 都无定价信息时返回 `0.0`，dao 层原样落库（不阻断用量记录）。
+///
+/// 设计原则：成本估算为"尽力而为"，缺失定价时降级而非报错，
+/// 避免网关热路径因定价表滞后而拒绝记录用量。
+#[allow(dead_code)]
+fn estimate_cost_usd(model_id: &str, usage: &TokenUsage, provider_model: Option<&Model>) -> f64 {
+    // 1) provider 自带价格
+    if let Some(m) = provider_model
+        && let (Some(inp), Some(out)) = (m.input_price_per_mtok, m.output_price_per_mtok)
+    {
+        return cost_for_tokens(usage.input_tokens, inp)
+            + cost_for_tokens(usage.output_tokens, out);
+    }
+    // 2) 全局定价表
+    if let Some(pricing) = pricing_for_model(model_id) {
+        return pricing.cost_for(*usage).total_cost_usd();
+    }
+    // 3) 未知定价
+    0.0
+}
+
+/// 在 provider 的 models 列表中查找指定 model_id（enabled）。
+#[allow(dead_code)]
+fn find_enabled_model<'a>(provider: &'a ProviderConfig, model_id: &str) -> Option<&'a Model> {
+    provider.models.iter().find(|m| m.enabled && m.model_id == model_id)
 }
 
 /// POST /v1/chat/completions — main proxy handler
@@ -76,11 +112,62 @@ pub async fn chat_completions(
     // legacy "provider_id:model_id" (compat), or bare "model_id".
     let parsed = parse_model_field(&request.model, &known_public_ids);
 
-    // Resolve the provider and canonical model_id.
-    let (provider, model_id) = match resolve_provider_for_model(&providers, &public_id_map, &parsed)
-    {
-        Ok(pair) => pair,
-        Err(resp) => return resp,
+    // 解析 provider 与 canonical model_id。
+    //
+    // 智能路由分支：当 model 字段为 bare name（无 provider 前缀）且被多个
+    // enabled provider 同时支持时，按 `routing_strategy` 选首选 provider；
+    // 其余场景（显式前缀 / 唯一匹配 / 无匹配）保持原有 `resolve_provider_for_model`
+    // 行为不变，避免破坏存量显式指定 provider 的请求。
+    let (provider, model_id) = match &parsed.provider_hint {
+        None => {
+            // 收集所有 enabled 且支持该 model 的 provider。
+            let candidates: Vec<&ProviderConfig> = providers
+                .iter()
+                .filter(|p| {
+                    p.enabled && p.models.iter().any(|m| m.enabled && m.model_id == parsed.model_id)
+                })
+                .collect();
+
+            match candidates.len() {
+                0 => {
+                    // 无匹配 → 走原有解析逻辑（返回 NOT_FOUND）
+                    match resolve_provider_for_model(&providers, &public_id_map, &parsed) {
+                        Ok(pair) => pair,
+                        Err(resp) => return resp,
+                    }
+                },
+                1 => {
+                    // 唯一匹配 → 直接用（与原逻辑一致）
+                    ((*candidates[0]).clone(), parsed.model_id.clone())
+                },
+                _ => {
+                    // 多匹配 → 智能路由
+                    let idx = match select_provider_index(
+                        state.routing_strategy,
+                        &candidates,
+                        &parsed.model_id,
+                        &state.latency_tracker,
+                        &state.round_robin_cursor,
+                    ) {
+                        Some(i) => i,
+                        None => {
+                            return error_response(
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "No provider available for routing",
+                            );
+                        },
+                    };
+                    ((*candidates[idx]).clone(), parsed.model_id.clone())
+                },
+            }
+        },
+        Some(_) => {
+            // 显式 provider 前缀 → 走原有解析逻辑
+            match resolve_provider_for_model(&providers, &public_id_map, &parsed) {
+                Ok(pair) => pair,
+                Err(resp) => return resp,
+            }
+        },
     };
 
     // Get active key and decrypt
@@ -144,6 +231,10 @@ pub async fn chat_completions(
         },
     };
 
+    // 取 provider 自带的 model 元数据（用于成本估算的 per-model 价格）。
+    // 缺失时回退到全局定价表，不影响用量记录。
+    let provider_model = find_enabled_model(&provider, &model_id).cloned();
+
     let adapter_ref: &dyn ProviderAdapter = &*adapter;
     if request.stream {
         handle_stream(
@@ -154,6 +245,7 @@ pub async fn chat_completions(
             &gateway_key,
             &provider.id,
             &model_id,
+            provider_model,
             start_time,
         )
         .await
@@ -166,6 +258,7 @@ pub async fn chat_completions(
             &gateway_key,
             &provider.id,
             &model_id,
+            provider_model.as_ref(),
             start_time,
         )
         .await
@@ -186,6 +279,7 @@ pub(crate) async fn handle_non_stream_with_failover(
     gateway_key: &GatewayKey,
     provider_id: &str,
     model_id: &str,
+    provider_model: Option<&Model>,
     start_time: Instant,
 ) -> axum::response::Response {
     let mut current_ctx = initial_ctx.clone();
@@ -202,7 +296,8 @@ pub(crate) async fn handle_non_stream_with_failover(
                         "Chat completion succeeded after key failover"
                     );
                 }
-                // Record usage
+                // 估算成本并记录用量
+                let cost_usd = estimate_cost_usd(model_id, &response.usage, provider_model);
                 let _ = state
                     .adapter
                     .gateway_keys()
@@ -213,10 +308,13 @@ pub(crate) async fn handle_non_stream_with_failover(
                         response.usage.input_tokens as u64,
                         response.usage.output_tokens as u64,
                         response.usage.cache_read_input_tokens as u64,
+                        cost_usd,
                     )
                     .await;
 
                 let elapsed = start_time.elapsed().as_millis() as i64;
+                // 记录延迟样本，供 Latency 策略使用
+                state.latency_tracker.record(provider_id, elapsed as u64);
                 record_log!(
                     &state.adapter,
                     gateway_key,
@@ -311,6 +409,7 @@ pub(crate) async fn handle_stream(
     gateway_key: &GatewayKey,
     provider_id: &str,
     model_id: &str,
+    provider_model: Option<Model>,
     start_time: Instant,
 ) -> axum::response::Response {
     let model_str = model_id.to_string();
@@ -323,6 +422,7 @@ pub(crate) async fn handle_stream(
 
     let (tx, rx) = tokio::sync::mpsc::channel::<Result<Event, Infallible>>(32);
     let platform_adapter = state.adapter.clone();
+    let latency_tracker = state.latency_tracker.clone();
     let key = gateway_key.clone();
     let prov_id = provider_id.to_string();
     let mod_id = model_id.to_string();
@@ -390,7 +490,15 @@ pub(crate) async fn handle_stream(
             }
         }
 
-        // Record usage
+        // 估算成本并记录用量
+        let usage = TokenUsage {
+            input_tokens: total_prompt,
+            output_tokens: total_completion,
+            cache_creation_input_tokens: total_cache_creation,
+            cache_read_input_tokens: total_cached,
+            cache_miss_input_tokens: None,
+        };
+        let cost_usd = estimate_cost_usd(&mod_id, &usage, provider_model.as_ref());
         let _ = platform_adapter
             .gateway_keys()
             .record_usage(
@@ -400,10 +508,13 @@ pub(crate) async fn handle_stream(
                 total_prompt as u64,
                 total_completion as u64,
                 total_cached as u64,
+                cost_usd,
             )
             .await;
 
         let elapsed = start_time.elapsed().as_millis() as i64;
+        // 记录延迟样本，供 Latency 策略使用
+        latency_tracker.record(&prov_id, elapsed as u64);
         let status_code = if stream_error.is_some() { 502 } else { 200 };
         record_log!(
             &platform_adapter,

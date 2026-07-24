@@ -1048,10 +1048,23 @@
     },
     "preferences": "환경설정",
     "profile": "프로필",
+    "quote": {
+      "cancel": "인용 취소",
+      "jumpHint": "클릭하여 원본 메시지로 이동",
+      "reply": "인용 답장",
+      "replyingTo": "답장 중",
+      "roleAssistant": "어시스턴트",
+      "roleSystem": "시스템",
+      "roleTool": "도구",
+      "roleUser": "사용자"
+    },
     "quality": "품질",
     "regenerate": "재생성",
     "removeFromWorkspace": "작업 영역에서 제거",
     "rename": "이름 바꾸기",
+    "latex": {
+      "parseError": "LaTeX 구문 분석 실패"
+    },
     "renderingChart": "차트 렌더링 중…",
     "rewardScale": "스케일",
     "rewardWeights": {
@@ -2472,6 +2485,10 @@
     "MCP_TIMEOUT": "MCP 작업 시간이 초과되었습니다",
     "MCP_TOOL_DISCOVERY_TIMEOUT": "MCP 도구 검색 시간이 초과되었습니다",
     "MCP_TRANSPORT_UNSUPPORTED": "지원되지 않는 MCP 전송 방식입니다",
+    "MARKETPLACE_INSTALL_FAILED": "마켓플레이스 템플릿 설치 실패",
+    "MARKETPLACE_NOT_FOUND": "마켓플레이스 항목을 찾을 수 없습니다",
+    "MARKETPLACE_PUBLISH_FAILED": "마켓플레이스 템플릿 게시 실패",
+    "MARKETPLACE_UNINSTALL_FAILED": "마켓플레이스 템플릿 제거 실패",
     "MEMORY_CONSOLIDATE_FAILED": "메모리 통합에 실패했습니다",
     "MEMORY_CREATE_FAILED": "메모리 생성에 실패했습니다",
     "MEMORY_DELETE_FAILED": "메모리 삭제에 실패했습니다",
@@ -2862,7 +2879,31 @@
     "totalItems": "{{total}}개 항목",
     "workflow": "工作流",
     "cleanup": "清理",
-    "reveal": "定位"
+    "reveal": "定位",
+    "contextDelete": "삭제",
+    "contextMkdir": "새 폴더",
+    "contextMove": "이동…",
+    "contextRename": "이름 변경",
+    "deleteConfirmContent": "\"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "deleteConfirmTitle": "삭제 확인",
+    "mkdirPlaceholder": "폴더 이름 입력",
+    "mkdirSuccess": "폴더가 생성되었습니다",
+    "mkdirTitle": "새 폴더",
+    "movePlaceholder": "대상 디렉토리의 전체 경로 입력",
+    "moveSuccess": "이동됨",
+    "moveTitle": "이동",
+    "previewDirType": "폴더",
+    "previewEmpty": "미리보기할 파일 선택",
+    "previewFailed": "미리보기를 불러올 수 없습니다",
+    "previewModified": "수정 시간",
+    "previewPath": "경로",
+    "previewSize": "크기",
+    "previewTitle": "파일 미리보기",
+    "previewType": "유형",
+    "previewUnknownType": "알 수 없음",
+    "renameSuccess": "이름이 변경되었습니다",
+    "renameTitle": "이름 변경",
+    "treeEmpty": "빈 디렉토리"
   },
   "fineTune": {
     "dataset": {
@@ -3742,7 +3783,9 @@
     "marketplace": "市场",
     "prompts": "提示词",
     "recommend": "推荐",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "마켓플레이스",
+    "dynamicUI": "동적 페이지"
   },
   "notification": {
     "clear": "지우기",

@@ -35,6 +35,14 @@ pub mod contracts;
 pub use contracts::HarnessToolExecutor;
 pub mod conversation_model;
 pub use conversation_model::{ContentBlock, ConversationMessage, SessionInfo, TokenUsage};
+
+// ── 模型定价表与成本估算（foundation 层权威定义，下沉自 runtime-core）──
+// gateway（consumer）需要在此处换算 cost，而 consumer 不能依赖 runtime-core，
+// 故 ModelPricing / pricing_for_model / UsageCostEstimate 必须位于 harness。
+pub mod usage_pricing;
+pub use usage_pricing::{
+    ModelPricing, UsageCostEstimate, cost_for_tokens, format_usd, pricing_for_model,
+};
 pub mod core_error;
 pub mod error_codes;
 pub mod orchestration_dispatch;
@@ -108,6 +116,15 @@ pub mod output_sanitizer;
 pub mod tool;
 pub mod tool_permissions;
 pub mod tool_validation;
+
+// ── Agent 单轮 ReAct 执行器契约(2.5 P1)──
+// trait 定义在 foundation 层,由 wiring 把 SessionManager 适配器注入到 WorkEngine,
+// rt-workflow 的 AgentExecutor 通过 trait 对象调用,实现"委托"语义。
+// 未注入时 AgentExecutor 走 inline ReAct fallback(向后兼容)。
+pub mod agent_turn_runner;
+pub use agent_turn_runner::{
+    AgentToolCallRecord, AgentTurnRequest, AgentTurnResult, AgentTurnRunner,
+};
 
 // ── 依赖注入容器 ──
 pub mod graph_dtos;
@@ -207,7 +224,8 @@ pub mod llm_executor;
 pub use llm_executor::{LlmCallConfig, LlmUsage, execute_llm, execute_llm_stream};
 pub mod marketplace;
 pub use marketplace::{
-    CreateReviewRequest, MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
+    CatalogItem, CatalogPage, CatalogQuery, CreateReviewRequest, MarketplaceCatalogService,
+    MarketplaceService, MarketplaceStats, ReviewResponse, UpdateReviewRequest,
 };
 
 // ── Gateway 平台层 trait（让 gateway crate 不依赖 dao / crypto） ──
@@ -527,3 +545,9 @@ pub mod strategy_pack;
 pub use strategy_pack::{
     StrategyPack, StrategyPackManifest, StrategyPackSpec, StrategyPackStrategyEntry,
 };
+
+// ── 统一事件总线契约（跨 crate 事件流标准入口） ──
+// agent / rt-workflow / orchestrator 三方通过 `Arc<dyn EventBus>` 桥接,
+// 保留各自原有 event_bus,统一总线作为额外发布通道。
+pub mod event_bus;
+pub use event_bus::{DomainEvent, EventBus, EventBusSubscription, EventCategory};

@@ -96,23 +96,11 @@ pub fn build_relative_path(original_name: &str, mime_type: &str, hash: &str) -> 
 }
 
 /// Validates a relative path (no traversal, no absolute, lowercase dir).
+///
+/// P3 质量:实现已统一到 `axagent_kit::path::validate_relative_path`(Strict 策略)。
+/// 本函数保留为薄包装,维持外部 API 不变;内部委托到 kit 统一实现。
 pub fn validate_relative_path(path: &str) -> Result<(), String> {
-    if path.is_empty() {
-        return Err("path must not be empty".to_string());
-    }
-    if path.starts_with('/') || path.starts_with('\\') {
-        return Err("path must not be absolute".to_string());
-    }
-    if path.contains("..") {
-        return Err("path must not contain '..' traversal".to_string());
-    }
-    if path.len() >= 2 {
-        let b = path.as_bytes();
-        if b[0].is_ascii_alphabetic() && b[1] == b':' {
-            return Err("path must not contain Windows drive letter".to_string());
-        }
-    }
-    Ok(())
+    axagent_kit::path::validate_relative_path(path, axagent_kit::path::TraversalPolicy::Strict)
 }
 
 /// Ensures the documents root and subdirectories exist.

@@ -1717,8 +1717,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             id: (e.id || `sub_e_${i}`) as string,
             source: e.source as string,
             target: e.target as string,
-            sourceHandle: (e.source_handle || e.sourceHandle) as string | undefined,
-            targetHandle: (e.target_handle || e.targetHandle) as string | undefined,
+            sourceHandle: e.sourceHandle as string | undefined,
+            targetHandle: e.targetHandle as string | undefined,
           }));
           const subLayouted = auto_layout(rfSubNodes, rfSubEdges);
           const updatedSubNodes: Array<Record<string, unknown>> = subNodes.map((n) => {

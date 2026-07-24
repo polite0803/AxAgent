@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, Message, MessageRole};
+use axagent_harness::util_fns::truncate_to_char_boundary;
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_kit::prompts::{PromptLang, PromptRegistry};
 use serde::{Deserialize, Serialize};
@@ -106,7 +107,7 @@ pub async fn extract_memories_from_messages(
     }
 
     if transcript.len() > 12000 {
-        transcript = transcript[..12000].to_string();
+        transcript = truncate_to_char_boundary(&transcript, 12000).to_string();
     }
 
     let prompt = format!("Extract reusable knowledge from this conversation:\n\n{}", transcript);
@@ -326,7 +327,7 @@ pub async fn extract_entities_from_messages(
     }
 
     if transcript.len() > 8000 {
-        transcript = transcript[..8000].to_string();
+        transcript = truncate_to_char_boundary(&transcript, 8000).to_string();
     }
 
     let prompt =
@@ -424,7 +425,7 @@ pub async fn extract_incremental_memories(
     }
 
     if transcript.len() > 4000 {
-        transcript = transcript[..4000].to_string();
+        transcript = truncate_to_char_boundary(&transcript, 4000).to_string();
     }
 
     let prompt = format!(

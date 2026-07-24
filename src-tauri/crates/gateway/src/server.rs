@@ -17,10 +17,12 @@ use sea_orm::DatabaseConnection;
 use tokio::task::JoinHandle;
 
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::types::LoadBalanceStrategy;
 
 use crate::auth::{ClientIpPolicy, KeyVerifyLimiter};
 use crate::qr_bind::QrBindStore;
 use crate::realtime_ticket::TicketStore;
+use crate::routing::{LatencyTracker, RoundRobinCursor, routing_strategy_from_env};
 
 /// Shared state for Axum handlers (separate from Tauri AppState).
 #[derive(Clone)]
@@ -50,6 +52,14 @@ pub struct GatewayAppState {
     /// P1-7: 客户端 IP 提取策略（trusted_proxies）。
     /// 默认 trust_all 保留向后兼容；生产环境应通过环境变量 `TRUSTED_PROXIES=...` 显式收紧。
     pub client_ip_policy: Arc<ClientIpPolicy>,
+    /// 智能路由策略（从 `AXAGENT_GATEWAY_ROUTING_STRATEGY` 解析，默认 failover）。
+    /// 仅在 bare model name 且多 provider 同时支持时生效。
+    pub routing_strategy: LoadBalanceStrategy,
+    /// per-provider 延迟滑动窗口（16 样本环形缓冲）。
+    /// `Latency` 策略下用于选最低延迟 provider；`record_usage` 后写入。
+    pub latency_tracker: LatencyTracker,
+    /// `RoundRobin` 策略的 per-model 游标。
+    pub round_robin_cursor: RoundRobinCursor,
 }
 
 /// TLS certificate material.
@@ -191,6 +201,11 @@ impl GatewayServer {
         mcp_client: Arc<dyn axagent_harness::mcp_service::McpClientService>,
     ) -> Result<Self> {
         let started_at = axagent_harness::util_fns::now_ts();
+        let routing_strategy = routing_strategy_from_env();
+        tracing::info!(
+            strategy = ?routing_strategy,
+            "网关智能路由策略已加载（bare model name 多 provider 场景生效）"
+        );
         let app_state = GatewayAppState {
             db: pool,
             master_key,
@@ -207,6 +222,9 @@ impl GatewayServer {
             // P1-7: 默认从环境变量 `TRUSTED_PROXIES=ip1,ip2,...` 读取可信代理；
             // 未配置时回退到 `trust_all()` 保留向后兼容，但打 warn 提醒生产环境收紧。
             client_ip_policy: Arc::new(client_ip_policy_from_env_or_default()),
+            routing_strategy,
+            latency_tracker: LatencyTracker::new(),
+            round_robin_cursor: RoundRobinCursor::new(),
         };
         Self::start_inner(app_state, config).await
     }

@@ -115,19 +115,11 @@ jobs:
       - name: Check formatting
         run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
 
-      - name: Clippy (normal crates — deny warnings)
+      - name: Clippy
         run: |
           cargo clippy --workspace --all-targets --all-features \
             --manifest-path src-tauri/Cargo.toml \
-            --exclude axagent-disk-cache --exclude axagent-rt-theme \
             -- -D warnings
-
-      - name: Clippy (ICE crates — allow all, rustc 1.97 bug)
-        run: |
-          cargo clippy -p axagent-disk-cache -p axagent-rt-theme \
-            --all-targets --all-features \
-            --manifest-path src-tauri/Cargo.toml \
-            -- --allow clippy::all
 
       - name: Check build
         run: cargo check --workspace --manifest-path src-tauri/Cargo.toml
@@ -249,7 +241,7 @@ jobs:
         continue-on-error: true
         run: |
           if cargo audit --version &>/dev/null; then
-            cargo audit --ignore RUSTSEC-2023-0071
+            cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195
           else
             echo "cargo-audit not available, skipping"
           fi

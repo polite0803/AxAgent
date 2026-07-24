@@ -98,6 +98,24 @@ impl NodeExecutorTrait for ToolExecutor {
             }
         }
 
+        // ── Dry Run 短路 ──
+        // 单步调试模式下不执行真实工具调用（避免 MCP 副作用、外部 API 请求），
+        // 返回模拟执行结果。工具名与参数保留以供下游节点识别节点配置。
+        if context.dry_run {
+            tracing::info!("[ToolExecutor] dry_run 模式：工具 '{}' 短路返回模拟结果", tool_name);
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "tool_name": tool_name,
+                    "result": "[DRY RUN] 工具模拟执行结果",
+                    "args": resolved_args,
+                    "dry_run": true,
+                    "node_id": node.base_id(),
+                }),
+                output_var: Some(tool_node.config.output_var.clone()),
+                control: None,
+            });
+        }
+
         // ── 1. 优先走 ToolRegistry 中心化路径（含权限/审计/脱敏）──
         // 注意：不通过 find() 守卫——ToolRegistry 自身负责处理未知工具名。
         // CapturingRegistry 等测试桩不注册具体工具（find() 返回 None），

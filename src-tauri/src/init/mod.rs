@@ -3,11 +3,13 @@
 pub mod axinvest_decorators;
 pub mod browser_fetcher;
 pub mod database;
+pub mod llm_providers;
 pub mod news_archive_sink;
 pub mod notification_adapters;
 pub mod plugins;
 pub mod services;
 pub mod state;
+pub mod trigger_recovery;
 pub mod workflow_injections;
 
 pub use database::init_database_with_dir;

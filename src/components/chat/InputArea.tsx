@@ -48,7 +48,22 @@ import {
 import { AudioOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { App, Badge, Button, Checkbox, Form, Image, Input, Modal, Popover, Radio, Select, Tag, theme } from "antd";
+import {
+  App,
+  Badge,
+  Button,
+  Checkbox,
+  Form,
+  Image,
+  Input,
+  Modal,
+  Popover,
+  Radio,
+  Select,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
 import {
   ArrowUp,
   Atom,
@@ -492,6 +507,18 @@ export function InputArea() {
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
+  // 引用回复：当前被引用的消息 ID 及其清理函数
+  const quotedMessageId = useUIStore((s) => s.quotedMessageId);
+  const setQuotedMessageId = useUIStore((s) => s.setQuotedMessageId);
+  const quotedMessage = useMemo(() => {
+    if (!quotedMessageId) { return null; }
+    return useConversationStore.getState().messages.find((m) => m.id === quotedMessageId) ?? null;
+  }, [quotedMessageId]);
+
+  // 引用回复：切换会话时清除引用状态，避免跨会话残留
+  useEffect(() => {
+    setQuotedMessageId(null);
+  }, [activeConversationId, setQuotedMessageId]);
 
   // Load search providers on mount
   useEffect(() => {
@@ -1962,8 +1989,11 @@ export function InputArea() {
           trimmed,
           attachments,
           effectiveSearchProviderId,
+          quotedMessageId,
         );
       }
+      // 引用回复：发送成功后清除引用状态
+      setQuotedMessageId(null);
     } catch (e) {
       setValue((current) => current || trimmed);
       setAttachedFiles((current) => current.length > 0 ? current : submittedFiles);
@@ -2001,6 +2031,8 @@ export function InputArea() {
     workStrategy,
     selectedGatewayId,
     effectiveSearchProviderId,
+    quotedMessageId,
+    setQuotedMessageId,
   ]);
 
   const handleFillLastMessage = useCallback(() => {
@@ -2627,6 +2659,55 @@ export function InputArea() {
               <Trash2 size={11} />
               {t("chat.clearAll")}
             </span>
+          </div>
+        )}
+
+        {/* 引用回复预览条：显示当前被引用的消息 */}
+        {quotedMessage && (
+          <div
+            className="quote-preview-bar"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 10px",
+              marginBottom: 6,
+              backgroundColor: token.colorFillTertiary,
+              borderLeft: `3px solid ${token.colorPrimary}`,
+              borderRadius: token.borderRadiusSM,
+            }}
+          >
+            <MessageSquare size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />
+            <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+              <Typography.Text
+                style={{ fontSize: 12, color: token.colorTextTertiary, display: "block" }}
+              >
+                {t("chat.quote.replyingTo")}
+              </Typography.Text>
+              <Typography.Text
+                style={{
+                  fontSize: 13,
+                  color: token.colorTextSecondary,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "block",
+                }}
+              >
+                {quotedMessage.content.length > 100
+                  ? `${quotedMessage.content.slice(0, 100)}…`
+                  : quotedMessage.content}
+              </Typography.Text>
+            </div>
+            <Tooltip title={t("chat.quote.cancel")}>
+              <Button
+                type="text"
+                size="small"
+                icon={<X size={14} />}
+                onClick={() => setQuotedMessageId(null)}
+                style={{ color: token.colorTextTertiary, flexShrink: 0 }}
+              />
+            </Tooltip>
           </div>
         )}
 

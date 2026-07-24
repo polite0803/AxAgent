@@ -187,13 +187,20 @@ pub async fn list_workflow_executions(
 // ── 可视化工作流节点执行 ──
 
 /// P1-14: 节点类型白名单。**仅允许这些节点类型通过 IPC 直接触发执行**，
-/// 其余类型（agent / tool / subWorkflow / databaseQuery / httpRequest /
-/// storage / email / notification / approval / webhookSend / debate / fallback /
-/// llm / llmClassifier / code / documentParser / vectorRetrieve 等）必须
-/// 走完整的 `run_workflow` 流程，不能被可视化调试接口"借壳"执行。
+/// 其余类型（agent / databaseQuery / storage / email / notification /
+/// approval / webhookSend / debate / fallback / llmClassifier /
+/// documentParser / vectorRetrieve 等）必须走完整的 `run_workflow` 流程，
+/// 不能被可视化调试接口"借壳"执行。
 ///
-/// 允许的语义是"纯函数式节点"——单次 execute 不会写库、发网络、占资源。
+/// 节点分两类：
+/// - **纯函数式节点**（trigger/end/logging/validation/dataTransformer/switch/
+///   merge/delay/aggregator）—— 单次 execute 不会写库、发网络、占资源。
+/// - **单步调试增强节点**（llm/tool/httpRequest/code/subWorkflow）—— 原本必须
+///   走完整 run_workflow 流程；现开放给可视化调试接口，但要求执行器在
+///   `context.dry_run = true` 时短路返回模拟输出，避免真实副作用（发网络请求、
+///   调用 LLM、执行子工作流等）。
 const DEBUGGABLE_NODE_TYPES: &[&str] = &[
+    // 纯函数式节点
     "trigger",
     "end",
     "logging",
@@ -203,6 +210,12 @@ const DEBUGGABLE_NODE_TYPES: &[&str] = &[
     "merge",
     "delay",
     "aggregator",
+    // 单步调试增强节点（执行器需支持 dry_run 短路）
+    "llm",
+    "tool",
+    "httpRequest",
+    "code",
+    "subWorkflow",
 ];
 
 /// P1-14: input 大小上限（bytes），超过直接拒绝 —— 防止通过 input 注入

@@ -16,19 +16,27 @@ use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::url_utils::resolve_base_url_for_type;
 use std::sync::Arc;
 
-/// 从数据库构建 LLM Bridge（自动选择首个启用的 provider；使用默认 registry）
-pub async fn build_llm_bridge_from_db(master_key: &[u8; 32]) -> Option<ProviderLlmBridge> {
+/// 从数据库构建 LLM 组件三元组（adapter + ctx + model）。
+///
+/// 这是 wiring 层的基础工厂：所有需要直接使用 `(adapter, ctx, model)` 的
+/// 消费者（如 `LlmDrivenReasoningProvider`、`LlmBasedDecomposer`）都应调用本函数
+/// 获取组件，而非各自重复 DB 查询逻辑。
+///
+/// 选用首个启用的 provider；使用默认 registry。
+pub async fn build_llm_components_from_db(
+    master_key: &[u8; 32],
+) -> Option<(Arc<dyn ProviderAdapter>, ProviderRequestContext, String)> {
     let registry = default_registry();
-    build_llm_bridge_from_db_with(master_key, &registry, None, None).await
+    build_llm_components_from_db_with(master_key, &registry, None, None).await
 }
 
-/// 从数据库构建 LLM Bridge（指定 provider 和 model；调用方提供 registry）
-pub async fn build_llm_bridge_from_db_with(
+/// 从数据库构建 LLM 组件三元组（指定 provider 和 model；调用方提供 registry）。
+pub async fn build_llm_components_from_db_with(
     master_key: &[u8; 32],
     provider_registry: &Arc<dyn ProviderRegistry>,
     preferred_provider_id: Option<&str>,
     preferred_model_id: Option<&str>,
-) -> Option<ProviderLlmBridge> {
+) -> Option<(Arc<dyn ProviderAdapter>, ProviderRequestContext, String)> {
     let providers =
         axagent_harness::repositories::provider_repository().list_providers().await.ok()?;
 
@@ -68,6 +76,29 @@ pub async fn build_llm_bridge_from_db_with(
         prov.models.first().map(|m| m.model_id.clone()).unwrap_or_else(|| "default".to_string())
     };
 
+    Some((adapter, ctx, model))
+}
+
+/// 从数据库构建 LLM Bridge（自动选择首个启用的 provider；使用默认 registry）
+pub async fn build_llm_bridge_from_db(master_key: &[u8; 32]) -> Option<ProviderLlmBridge> {
+    let (adapter, ctx, model) = build_llm_components_from_db(master_key).await?;
+    Some(ProviderLlmBridge::new(adapter, ctx, model))
+}
+
+/// 从数据库构建 LLM Bridge（指定 provider 和 model；调用方提供 registry）
+pub async fn build_llm_bridge_from_db_with(
+    master_key: &[u8; 32],
+    provider_registry: &Arc<dyn ProviderRegistry>,
+    preferred_provider_id: Option<&str>,
+    preferred_model_id: Option<&str>,
+) -> Option<ProviderLlmBridge> {
+    let (adapter, ctx, model) = build_llm_components_from_db_with(
+        master_key,
+        provider_registry,
+        preferred_provider_id,
+        preferred_model_id,
+    )
+    .await?;
     Some(ProviderLlmBridge::new(adapter, ctx, model))
 }
 

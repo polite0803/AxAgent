@@ -230,8 +230,12 @@ impl GatewayKeyRepository for EmptyGatewayKeyRepository {
         _request_tokens: u64,
         _response_tokens: u64,
         _cached_input_tokens: u64,
+        _cost_usd: f64,
     ) -> Result<()> {
         Ok(())
+    }
+    async fn get_metrics(&self) -> Result<crate::types::GatewayMetrics> {
+        Ok(crate::types::GatewayMetrics::default())
     }
 }
 

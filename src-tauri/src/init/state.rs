@@ -459,6 +459,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             // 及 pending 中的 Llm/Condition/LlmClassifier。缺此调用会导致 dispatch 时
             // panic("FallbackExecutor must be registered")。
             engine.init_dispatcher().await;
+            // 2.7 P1:初始化 TriggerManager — 注入 WorkEngine 引用,
+            // 使 Schedule/Webhook/Event 触发器在触发时能调用 run_workflow。
+            // 缺此调用会导致 TriggerManager.engine 一直为 None,
+            // register_schedule 返回 "引擎未就绪" 错误。
+            engine.init_trigger_manager().await;
             // ApprovalNode HITL: 注入数据库连接供 ApprovalOps 回调使用
             engine.set_db(sea_db.clone());
             // 注：ToolRegistry 暂未注入到 WorkEngine。
@@ -469,6 +474,15 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             // 未来注入需要重构为 parking_lot::Mutex 或创建异步适配器。
             engine
         };
+
+    // ── 统一事件总线实例化与注入 ──────────────────────────────────────────
+    // 同一份 `Arc<dyn EventBus>` 注入到 agent / rt-workflow / orchestrator 三方,
+    // 供跨 crate 事件订阅者消费。未注入时三方保持原有行为,不影响现有功能。
+    // orchestrator 在命令层临时创建,通过 AppState.event_bus 字段在调用时注入。
+    let event_bus: Arc<dyn axagent_harness::EventBus> =
+        Arc::new(axagent_runtime_core::BroadcastEventBus::new(1024));
+    agent_session_manager.set_event_bus(Arc::clone(&event_bus)).await;
+    work_engine.set_event_bus(Arc::clone(&event_bus));
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
         Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new()));
     let proactive_service: Arc<tokio::sync::RwLock<ProactiveService>> =
@@ -796,6 +810,60 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_telemetry::TelemetryLevel::from_str_or_off(&app_settings.telemetry_level);
     let telemetry_level_handle = Arc::new(std::sync::RwLock::new(telemetry_level));
 
+    // 2.7 P1:构造生产 sink 链 — JsonlTelemetrySink(落盘) + FilteringSink(级别过滤)。
+    //
+    // `FilteringSink::new_with_handle` 与上面的 `telemetry_level_handle` 共享同一
+    // `Arc<RwLock<TelemetryLevel>>`,因此 `save_settings` 更新 handle 时
+    // sink 链立即响应(无需重建)。
+    //
+    // 落盘失败不阻断启动:用 `MemoryTelemetrySink` 兜底,事件至少保留在内存中
+    // (供同进程内 SessionTracer 消费),并通过 warn 日志告知用户。
+    let telemetry_sink: Arc<dyn axagent_telemetry::TelemetrySink> = {
+        let jsonl_path = app_dir.join("telemetry.jsonl");
+        let initialized_level = telemetry_level_handle
+            .read()
+            .map(|g| *g)
+            .unwrap_or(axagent_telemetry::TelemetryLevel::Off);
+        match axagent_telemetry::JsonlTelemetrySink::new(&jsonl_path) {
+            Ok(jsonl_sink) => {
+                let filtering = axagent_telemetry::FilteringSink::new_with_handle(
+                    Arc::new(jsonl_sink),
+                    telemetry_level_handle.clone(),
+                );
+                tracing::info!(
+                    "[telemetry] sink chain initialized: JsonlTelemetrySink({}) + FilteringSink(level={})",
+                    jsonl_path.display(),
+                    initialized_level
+                );
+                Arc::new(filtering)
+            },
+            Err(e) => {
+                tracing::warn!(
+                    "[telemetry] JsonlTelemetrySink init failed at {}: {} — falling back to MemoryTelemetrySink (events not persisted)",
+                    jsonl_path.display(),
+                    e
+                );
+                Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
+            },
+        }
+    };
+
+    // 3.3 P2:构造 PersistentRunner(持久化重试调度器)。
+    //
+    // 使用默认配置(enabled: false),守护线程会空转不调度。
+    // 未来用户通过配置启用后,守护线程立即开始检查 pending session。
+    //
+    // 注意:executor 闭包为占位实现,真正的 SessionManager 适配器需后续实现。
+    let persistent_runner = {
+        let config = axagent_runtime::persistent_runner::PersistentRunnerConfig::default();
+        let runner =
+            Arc::new(axagent_runtime::persistent_runner::PersistentRunner::new(&app_dir, config));
+        tracing::info!(
+            "[persistent_runner] 实例已构造(默认 enabled=false,守护线程将在 start_background_services 中启动)"
+        );
+        Some(runner)
+    };
+
     Ok(AppState {
         harness,
         gateway: gateway_server,
@@ -886,6 +954,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         #[cfg(not(mobile))]
         pty_manager,
         telemetry_level_handle,
+        telemetry_sink,
+        persistent_runner,
+        event_bus,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,

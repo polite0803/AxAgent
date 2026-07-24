@@ -83,6 +83,11 @@ interface UIState {
   selectArtifact: (id: string | null) => void;
   startCompare: (messageIds: [string, string]) => void;
   clearCompare: () => void;
+
+  // --- Chat Quote Reply ---
+  /** 引用回复：被引用消息的 ID（null 表示未引用） */
+  quotedMessageId: string | null;
+  setQuotedMessageId: (id: string | null) => void;
 }
 
 /** 根据窗口宽度解析布局模式 */
@@ -124,6 +129,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   selectArtifact: (id) => set({ selectedArtifactId: id }),
   startCompare: (messageIds) => set({ comparedMessageIds: messageIds }),
   clearCompare: () => set({ comparedMessageIds: null }),
+
+  // --- Chat Quote Reply state ---
+  quotedMessageId: null,
+  setQuotedMessageId: (id) => set({ quotedMessageId: id }),
   setActivePage: (page) => set({ activePage: page }),
   enterSettings: () => {
     const current = get().activePage;

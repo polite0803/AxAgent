@@ -140,7 +140,7 @@ pub struct OrchestrateResult {
 /// 接收自然语言使命描述，经 Orchestrator 分解为子任务 DAG 并返回。
 #[tauri::command]
 pub async fn orchestrate_mission(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     mission: String,
     strategy: Option<String>,
 ) -> Result<OrchestrateResult, String> {
@@ -154,9 +154,22 @@ pub async fn orchestrate_mission(
     };
 
     let mut subgraph_builder = DynamicSubGraph::new();
-    // 注入生产 SubTaskDispatcher(默认 Noop,后续 init 阶段替换为真实 handler)
-    let executor =
-        OrchestratorExecutor::new().with_dispatcher(Arc::new(RuntimeSubTaskDispatcher::noop()));
+
+    // 构建 executor：优先注入 LlmBasedDecomposer（语义化分解），降级到 RuleBasedDecomposer
+    let executor = {
+        let master_key = state.harness.master_key_owned();
+        crate::init::llm_providers::build_llm_decomposer_from_db(&master_key).await.map_or_else(
+            || {
+                tracing::info!("[orchestrate] 未配置可用 LLM provider，降级到 RuleBasedDecomposer");
+                OrchestratorExecutor::new()
+            },
+            OrchestratorExecutor::with_decomposer,
+        )
+    }
+    .with_dispatcher(Arc::new(RuntimeSubTaskDispatcher::noop()));
+    // 注入统一事件总线(与 agent / rt-workflow 共享同一份 Arc<dyn EventBus>),
+    // 让 orchestrator 的分解 / 状态迁移事件可被跨 crate 订阅者消费。
+    executor.set_event_bus(Arc::clone(&state.event_bus)).await;
     let plan = executor
         .receive_mission(&mission, strategy)
         .await

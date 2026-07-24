@@ -122,6 +122,7 @@ fn spawn_stream_task(
                     parts: Set(None),
                     cache_creation_tokens: Set(None),
                     cache_read_tokens: Set(None),
+                    quoted_message_id: Set(None),
                 })
                 .insert(&db)
                 .await
@@ -652,7 +653,8 @@ pub async fn send_message(
     state: State<'_, AppState>,
     params: SendMessageParams,
 ) -> Result<Message, String> {
-    let SendMessageParams { conversation_id, content, attachments, options } = params;
+    let SendMessageParams { conversation_id, content, attachments, options, quoted_message_id } =
+        params;
     let SendMessageOptions {
         enabled_mcp_server_ids,
         thinking_budget,
@@ -669,7 +671,7 @@ pub async fn send_message(
         })?;
 
     // 1. Save user message to DB
-    let user_message = axagent_dao::repo::message::create_message(
+    let user_message = axagent_dao::repo::message::create_message_with_parts(
         state.harness.db(),
         &conversation_id,
         MessageRole::User,
@@ -677,6 +679,8 @@ pub async fn send_message(
         &persisted_attachments,
         None,
         0,
+        None,
+        quoted_message_id.as_deref(),
     )
     .await
     .map_err(|e| {
@@ -891,6 +895,7 @@ pub async fn send_message(
         &wiki_ids,
         &content,
         5,
+        &state.credential_manager,
     )
     .await;
 
@@ -1457,6 +1462,7 @@ pub async fn regenerate_message(
             &wiki_ids,
             &last_user_msg.content,
             5,
+            &state.credential_manager,
         )
         .await;
 
@@ -1909,6 +1915,7 @@ pub async fn regenerate_with_model(
             &wiki_ids,
             &user_msg.content,
             5,
+            &state.credential_manager,
         )
         .await;
 
@@ -2174,6 +2181,7 @@ pub async fn regenerate_with_model(
             parts: Set(None),
             cache_creation_tokens: Set(None),
             cache_read_tokens: Set(None),
+            quoted_message_id: Set(None),
         })
         .insert(state.harness.db())
         .await

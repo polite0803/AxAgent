@@ -132,6 +132,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             created_at BIGINT NOT NULL, parts TEXT, prompt_tokens BIGINT, \
             completion_tokens BIGINT, status TEXT NOT NULL DEFAULT 'complete', \
             tokens_per_second DOUBLE PRECISION, first_token_latency_ms BIGINT, \
+            quoted_message_id TEXT, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
@@ -141,6 +142,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     for sql in &[
         "ALTER TABLE messages ADD COLUMN cache_creation_tokens BIGINT",
         "ALTER TABLE messages ADD COLUMN cache_read_tokens BIGINT",
+        // 引用回复字段：v101 新增，旧库需 ALTER 补列；新库 CREATE TABLE 已包含此列
+        "ALTER TABLE messages ADD COLUMN quoted_message_id TEXT",
     ] {
         let _ = db.execute_unprepared(sql).await;
     }
@@ -164,6 +167,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         .execute_unprepared(
             "ALTER TABLE gateway_usage ADD COLUMN cached_input_tokens BIGINT NOT NULL DEFAULT 0",
         )
+        .await;
+
+    // 网关用量成本估算列：record_usage 时根据 ModelPricing 换算的美元成本。
+    // SQLite REAL 等价于 f64；历史行回填 0.0，新行由 dao 写入实际估算值。
+    let _ = db
+        .execute_unprepared("ALTER TABLE gateway_usage ADD COLUMN cost REAL NOT NULL DEFAULT 0.0")
         .await;
 
     for sql in &[

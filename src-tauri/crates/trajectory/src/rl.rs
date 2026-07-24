@@ -42,10 +42,18 @@ impl RLState {
     }
 }
 
+/// 默认 LLM 评判器占位实现（未配置 LLM）。
+///
+/// **注意**：这是规则化占位实现，所有 trait 方法返回 `Err(NotConfigured)`。
+/// 生产环境必须通过 `RLEngine::with_llm_judge()` 或 `RLEngine::set_llm_judge()` 注入真实
+/// LLM 评判器（如 `axagent_runtime::llm_bridge::ProviderLlmBridge` 或 wiring 层的
+/// `WiringLlmJudge`）。保留内部启发式函数仅供测试/调试参考。
 pub(crate) struct DefaultLlmJudge;
 
-impl LlmJudge for DefaultLlmJudge {
-    fn evaluate_reasoning(&self, reasoning: &str, _context: &str) -> LlmJudgeFuture<'_> {
+impl DefaultLlmJudge {
+    /// 基于关键词匹配的推理评分启发式（仅辅助，不参与生产 LLM 评判）。
+    #[allow(dead_code)]
+    fn heuristic_reasoning_score(&self, reasoning: &str) -> f64 {
         let length_score = (reasoning.len() as f64 / 500.0).min(1.0) * 0.2;
 
         let structure_indicators =
@@ -66,17 +74,12 @@ impl LlmJudge for DefaultLlmJudge {
             || reasoning.to_lowercase().contains("might");
         let reflection_score = if has_reflection { 0.2 } else { 0.0 };
 
-        let score = (length_score + structure_score + alternatives_score + reflection_score)
-            .clamp(0.0, 1.0);
-        Box::pin(async move { Ok(score) })
+        (length_score + structure_score + alternatives_score + reflection_score).clamp(0.0, 1.0)
     }
 
-    fn evaluate_tool_efficiency(
-        &self,
-        tool_name: &str,
-        args: &str,
-        result: &str,
-    ) -> LlmJudgeFuture<'_> {
+    /// 基于字段非空启发式的工具效率评分（仅辅助，不参与生产 LLM 评判）。
+    #[allow(dead_code)]
+    fn heuristic_tool_efficiency_score(&self, tool_name: &str, args: &str, result: &str) -> f64 {
         let name_relevance = if tool_name.is_empty() { 0.3 } else { 0.5 };
         let args_quality = if args.is_empty() {
             0.3
@@ -84,8 +87,26 @@ impl LlmJudge for DefaultLlmJudge {
             (args.len() as f64 / 200.0).min(1.0) * 0.3
         };
         let result_quality = if result.is_empty() { 0.2 } else { 0.5 };
-        let score = (name_relevance + args_quality + result_quality).clamp(0.0, 1.0);
-        Box::pin(async move { Ok(score) })
+        (name_relevance + args_quality + result_quality).clamp(0.0, 1.0)
+    }
+}
+
+impl LlmJudge for DefaultLlmJudge {
+    fn evaluate_reasoning(&self, _reasoning: &str, _context: &str) -> LlmJudgeFuture<'_> {
+        Box::pin(async move {
+            Err("DefaultLlmJudge not configured: inject a real LlmJudge via RLEngine::with_llm_judge() or set_llm_judge()".to_string())
+        })
+    }
+
+    fn evaluate_tool_efficiency(
+        &self,
+        _tool_name: &str,
+        _args: &str,
+        _result: &str,
+    ) -> LlmJudgeFuture<'_> {
+        Box::pin(async move {
+            Err("DefaultLlmJudge not configured: inject a real LlmJudge via RLEngine::with_llm_judge() or set_llm_judge()".to_string())
+        })
     }
 }
 

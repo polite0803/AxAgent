@@ -68,6 +68,23 @@ impl std::fmt::Display for OrchestratorState {
 /// Callback invoked on orchestration events.
 pub type OrchestrationEventHandler = Arc<dyn Fn(OrchestrationEvent) + Send + Sync>;
 
+/// 将 `OrchestrationEvent` 变体映射为 PascalCase 字符串,用作 `DomainEvent.kind`。
+///
+/// 与 agent crate 的 `AgentEventType::to_string()` 风格保持一致,
+/// 便于订阅端按 `kind` 字符串过滤。
+fn orchestration_event_kind(event: &OrchestrationEvent) -> &'static str {
+    match event {
+        OrchestrationEvent::DecompositionStarted { .. } => "DecompositionStarted",
+        OrchestrationEvent::DecompositionCompleted { .. } => "DecompositionCompleted",
+        OrchestrationEvent::SubTaskDispatched { .. } => "SubTaskDispatched",
+        OrchestrationEvent::SubTaskCompleted { .. } => "SubTaskCompleted",
+        OrchestrationEvent::SubTaskFailed { .. } => "SubTaskFailed",
+        OrchestrationEvent::ReplanTriggered { .. } => "ReplanTriggered",
+        OrchestrationEvent::OrchestrationCompleted { .. } => "OrchestrationCompleted",
+        OrchestrationEvent::OrchestrationAborted { .. } => "OrchestrationAborted",
+    }
+}
+
 // ── OrchestratorExecutor ──────────────────────────────────────────────
 
 /// The orchestrator executor that implements the full decomposition→execution→monitor→replan loop.
@@ -88,6 +105,12 @@ pub struct OrchestratorExecutor {
     stream_reporter: Option<Arc<dyn AgentStreamReporter>>,
     /// 可选的 SubTask 派发器 —— 注入后 execute_subgraph() 可实际派发执行
     dispatcher: Option<Arc<dyn SubTaskDispatcher>>,
+    /// 统一事件总线（可选，由 wiring 层注入）。
+    ///
+    /// 注入后,`emit()` 在通知本地 listeners 之外,额外 publish 一份
+    /// `DomainEvent` 到统一总线,供跨 crate 订阅者消费。
+    /// 未注入时保持原有行为。用 `RwLock` 包裹以支持 `Arc<Self>` 上运行时注入。
+    event_bus: RwLock<Option<Arc<dyn axagent_harness::EventBus>>>,
 }
 
 impl OrchestratorExecutor {
@@ -101,6 +124,7 @@ impl OrchestratorExecutor {
             event_listeners: RwLock::new(Vec::new()),
             stream_reporter: None,
             dispatcher: None,
+            event_bus: RwLock::new(None),
         }
     }
 
@@ -126,6 +150,15 @@ impl OrchestratorExecutor {
         self
     }
 
+    /// 注入统一事件总线,启用跨 crate 事件桥接。
+    ///
+    /// 注入后,`emit()` 在通知本地 listeners 之外,额外 publish 一份
+    /// `DomainEvent` 到统一总线。通常由 wiring 层调用。
+    pub async fn set_event_bus(&self, bus: Arc<dyn axagent_harness::EventBus>) {
+        let mut guard = self.event_bus.write().await;
+        *guard = Some(bus);
+    }
+
     // ── Event system ────────────────────────────────────────────────
 
     /// Register an event listener.
@@ -137,6 +170,23 @@ impl OrchestratorExecutor {
         tracing::info!(?event, "orchestrator event");
         for listener in self.event_listeners.read().await.iter() {
             listener(event.clone());
+        }
+
+        // 桥接到统一事件总线(若已注入):把 OrchestrationEvent 转为 DomainEvent
+        let bus_clone = {
+            let guard = self.event_bus.read().await;
+            guard.as_ref().map(Arc::clone)
+        };
+        if let Some(bus) = bus_clone {
+            let kind = orchestration_event_kind(&event);
+            let payload = serde_json::to_value(&event).unwrap_or(serde_json::Value::Null);
+            let domain_event = axagent_harness::DomainEvent::new(
+                axagent_harness::EventCategory::Orchestration,
+                kind,
+                payload,
+                "orchestrator",
+            );
+            bus.publish(domain_event).await;
         }
     }
 

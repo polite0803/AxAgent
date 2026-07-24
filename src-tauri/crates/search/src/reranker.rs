@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use async_trait::async_trait;
 use std::sync::Arc;
+use std::time::Duration;
+
+use async_trait::async_trait;
+use serde_json::json;
 
 use crate::hybrid_search::HybridSearchResult;
 use axagent_harness::InferenceEngine;
+use axagent_harness::core_error::{AxAgentError, Result};
 
 // ── Config ──────────────────────────────────────────────────
 
@@ -33,7 +37,7 @@ pub trait RerankBackend: Send + Sync {
         &self,
         query: &str,
         chunks: &[(String, String, f32)], // (id, content, original_score)
-    ) -> axagent_harness::core_error::Result<Vec<(String, f32)>>;
+    ) -> Result<Vec<(String, f32)>>;
 }
 
 // ── Rule backend (migrated from existing logic) ──────────────
@@ -46,7 +50,7 @@ impl RerankBackend for RuleReranker {
         &self,
         query: &str,
         chunks: &[(String, String, f32)],
-    ) -> axagent_harness::core_error::Result<Vec<(String, f32)>> {
+    ) -> Result<Vec<(String, f32)>> {
         let query_lower = query.to_lowercase();
         let query_terms: Vec<&str> =
             query_lower.split_whitespace().filter(|w| w.len() > 1).collect();
@@ -107,7 +111,7 @@ impl RerankBackend for CrossEncoderReranker {
         &self,
         query: &str,
         chunks: &[(String, String, f32)],
-    ) -> axagent_harness::core_error::Result<Vec<(String, f32)>> {
+    ) -> Result<Vec<(String, f32)>> {
         if chunks.is_empty() {
             return Ok(vec![]);
         }
@@ -126,6 +130,266 @@ impl RerankBackend for CrossEncoderReranker {
             Err(e) => {
                 tracing::warn!("Cross-encoder rerank failed, fallback: {}", e);
                 Ok(chunks.iter().map(|(id, _, s)| (id.clone(), *s)).collect())
+            },
+        }
+    }
+}
+
+// ── 云端 Rerank 公共逻辑 ──────────────────────────────────────
+//
+// 三家厂商（Cohere / Jina / Voyage）的接口语义高度相似：
+//   POST {base}/v1/rerank
+//   Authorization: Bearer {api_key}
+//   body: { model, query, documents, top_n }
+//   resp: { results: [{ index, relevance_score }] }（Voyage 用 data 字段）
+//
+// 通过 `cloud_rerank_request` helper 统一发请求 + 解析响应，
+// 各厂商 struct 只负责定义 base URL、默认 model、body 字段名差异。
+
+/// 云端 rerank API 请求结果：(候选 index, relevance_score)
+type CloudRerankResponse = Vec<(usize, f32)>;
+
+/// 调用云端 rerank API 并解析返回的 (index, score) 列表。
+///
+/// - 超时 30 秒
+/// - 任何 HTTP / 解析错误均返回 `AxAgentError::Provider`，由上层降级处理
+async fn cloud_rerank_request(
+    url: &str,
+    api_key: &str,
+    body: serde_json::Value,
+) -> std::result::Result<CloudRerankResponse, AxAgentError> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| AxAgentError::Provider(format!("HTTP client 构建失败: {e}")))?;
+
+    let resp = client
+        .post(url)
+        .bearer_auth(api_key)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("Rerank API 请求失败: {e}")))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AxAgentError::Provider(format!("Rerank API 返回非 2xx: {status} - {text}")));
+    }
+
+    let json: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| AxAgentError::Provider(format!("Rerank API 响应解析失败: {e}")))?;
+
+    // 兼容 Cohere/Jina 的 `results` 数组 与 Voyage 的 `data` 数组
+    let arr = json
+        .get("results")
+        .or_else(|| json.get("data"))
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| AxAgentError::Provider("Rerank 响应缺少 results/data 数组".into()))?;
+
+    let mut scored: Vec<(usize, f32)> = arr
+        .iter()
+        .map(|item| {
+            let index = item.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+            let score = item
+                .get("relevance_score")
+                .or_else(|| item.get("score"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0) as f32;
+            (index, score)
+        })
+        .collect();
+
+    // 按 score 降序排序（API 通常已排序，但保险起见再排一次）
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    Ok(scored)
+}
+
+/// 把云端 API 返回的 (index, score) 列表映射回 (chunk_id, score)，
+/// 失败时降级为原分数排序（与 CrossEncoderReranker 失败回退策略一致）。
+fn map_cloud_response(
+    chunks: &[(String, String, f32)],
+    scored: CloudRerankResponse,
+) -> Vec<(String, f32)> {
+    scored
+        .iter()
+        .filter_map(|(idx, score)| chunks.get(*idx).map(|(id, _, _)| (id.clone(), *score)))
+        .collect()
+}
+
+/// 云端 reranker 失败时的统一降级：返回原分数排序结果
+fn fallback_original_scores(chunks: &[(String, String, f32)]) -> Vec<(String, f32)> {
+    let mut result: Vec<(String, f32)> = chunks.iter().map(|(id, _, s)| (id.clone(), *s)).collect();
+    result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    result
+}
+
+// ── Cohere 云端 Rerank ────────────────────────────────────────
+
+/// Cohere Rerank API 客户端
+///
+/// 文档：https://docs.cohere.com/reference/rerank
+/// 默认模型：`rerank-multilingual-v3.0`
+pub struct CohereReranker {
+    api_key: String,
+    api_base: Option<String>,
+    model: String,
+}
+
+impl CohereReranker {
+    pub fn new(api_key: String, api_base: Option<String>, model: Option<String>) -> Self {
+        Self {
+            api_key,
+            api_base,
+            model: model.unwrap_or_else(|| "rerank-multilingual-v3.0".to_string()),
+        }
+    }
+
+    fn url(&self) -> String {
+        let base = self.api_base.as_deref().unwrap_or("https://api.cohere.ai");
+        format!("{}/v1/rerank", base.trim_end_matches('/'))
+    }
+}
+
+#[async_trait]
+impl RerankBackend for CohereReranker {
+    async fn rerank(
+        &self,
+        query: &str,
+        chunks: &[(String, String, f32)],
+    ) -> Result<Vec<(String, f32)>> {
+        if chunks.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let documents: Vec<&str> = chunks.iter().map(|(_, c, _)| c.as_str()).collect();
+        // 让 API 对所有候选打分，排序交给本地 top_n 截断逻辑
+        let body = json!({
+            "model": self.model,
+            "query": query,
+            "documents": documents,
+            "top_n": chunks.len(),
+        });
+
+        match cloud_rerank_request(&self.url(), &self.api_key, body).await {
+            Ok(scored) => Ok(map_cloud_response(chunks, scored)),
+            Err(e) => {
+                tracing::warn!("Cohere rerank 失败，降级到原分数排序: {}", e);
+                Ok(fallback_original_scores(chunks))
+            },
+        }
+    }
+}
+
+// ── Jina 云端 Rerank ──────────────────────────────────────────
+
+/// Jina Rerank API 客户端
+///
+/// 文档：https://jina.ai/models/jina-reranker-v2-base-multilingual
+/// 默认模型：`jina-reranker-v2-base-multilingual`
+pub struct JinaReranker {
+    api_key: String,
+    api_base: Option<String>,
+    model: String,
+}
+
+impl JinaReranker {
+    pub fn new(api_key: String, api_base: Option<String>, model: Option<String>) -> Self {
+        Self {
+            api_key,
+            api_base,
+            model: model.unwrap_or_else(|| "jina-reranker-v2-base-multilingual".to_string()),
+        }
+    }
+
+    fn url(&self) -> String {
+        let base = self.api_base.as_deref().unwrap_or("https://api.jina.ai");
+        format!("{}/v1/rerank", base.trim_end_matches('/'))
+    }
+}
+
+#[async_trait]
+impl RerankBackend for JinaReranker {
+    async fn rerank(
+        &self,
+        query: &str,
+        chunks: &[(String, String, f32)],
+    ) -> Result<Vec<(String, f32)>> {
+        if chunks.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let documents: Vec<&str> = chunks.iter().map(|(_, c, _)| c.as_str()).collect();
+        let body = json!({
+            "model": self.model,
+            "query": query,
+            "documents": documents,
+            "top_n": chunks.len(),
+        });
+
+        match cloud_rerank_request(&self.url(), &self.api_key, body).await {
+            Ok(scored) => Ok(map_cloud_response(chunks, scored)),
+            Err(e) => {
+                tracing::warn!("Jina rerank 失败，降级到原分数排序: {}", e);
+                Ok(fallback_original_scores(chunks))
+            },
+        }
+    }
+}
+
+// ── Voyage AI 云端 Rerank ─────────────────────────────────────
+
+/// Voyage AI Rerank API 客户端
+///
+/// 文档：https://docs.voyageai.com/reference/reranker
+/// 默认模型：`rerank-2`
+///
+/// 注意：Voyage 的请求字段是 `top_k`（不是 `top_n`），响应字段是 `data`（不是 `results`）。
+pub struct VoyageReranker {
+    api_key: String,
+    api_base: Option<String>,
+    model: String,
+}
+
+impl VoyageReranker {
+    pub fn new(api_key: String, api_base: Option<String>, model: Option<String>) -> Self {
+        Self { api_key, api_base, model: model.unwrap_or_else(|| "rerank-2".to_string()) }
+    }
+
+    fn url(&self) -> String {
+        let base = self.api_base.as_deref().unwrap_or("https://api.voyageai.com");
+        format!("{}/v1/rerank", base.trim_end_matches('/'))
+    }
+}
+
+#[async_trait]
+impl RerankBackend for VoyageReranker {
+    async fn rerank(
+        &self,
+        query: &str,
+        chunks: &[(String, String, f32)],
+    ) -> Result<Vec<(String, f32)>> {
+        if chunks.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Voyage 接受 String 数组（而非 &str），先转换
+        let documents: Vec<String> = chunks.iter().map(|(_, c, _)| c.clone()).collect();
+        let body = json!({
+            "query": query,
+            "documents": documents,
+            "model": self.model,
+            "top_k": chunks.len(),
+        });
+
+        match cloud_rerank_request(&self.url(), &self.api_key, body).await {
+            Ok(scored) => Ok(map_cloud_response(chunks, scored)),
+            Err(e) => {
+                tracing::warn!("Voyage rerank 失败，降级到原分数排序: {}", e);
+                Ok(fallback_original_scores(chunks))
             },
         }
     }
@@ -221,9 +485,16 @@ impl RerankPipeline {
 
 // ── Factory ──────────────────────────────────────────────────
 
+/// 创建 rerank pipeline。
+///
+/// - `engine`：本地 Cross-Encoder 推理引擎（仅 `cross_encoder`/`pipeline` backend 需要）
+/// - `api_key`：云端 reranker 的实际 API Key（仅 `cohere`/`jina`/`voyage` backend 需要）。
+///   该 key 应由 wiring 层根据 `RerankConfig.api_key_ref` 凭证引用名解析后注入；
+///   当前调用方暂传 `None`（占位），后续 wiring 层接入后改为传入实际 key。
 pub fn create_rerank_pipeline(
     config: &RerankConfig,
     engine: Option<Arc<dyn InferenceEngine>>,
+    api_key: Option<String>,
 ) -> RerankPipeline {
     let mut pipeline = RerankPipeline::new();
     match config.backend.as_str() {
@@ -252,7 +523,46 @@ pub fn create_rerank_pipeline(
                 pipeline.add_stage(Box::new(CrossEncoderReranker::new(model, eng)));
             }
         },
-        _ => {
+        "cohere" => {
+            if let Some(key) = api_key {
+                pipeline.add_stage(Box::new(CohereReranker::new(
+                    key,
+                    config.api_base.clone(),
+                    None,
+                )));
+            } else {
+                tracing::warn!(
+                    "Cohere rerank backend 未提供 api_key（api_key_ref 尚未由 wiring 层注入），降级到 rule reranker"
+                );
+                pipeline.add_stage(Box::new(RuleReranker));
+            }
+        },
+        "jina" => {
+            if let Some(key) = api_key {
+                pipeline.add_stage(Box::new(JinaReranker::new(key, config.api_base.clone(), None)));
+            } else {
+                tracing::warn!(
+                    "Jina rerank backend 未提供 api_key（api_key_ref 尚未由 wiring 层注入），降级到 rule reranker"
+                );
+                pipeline.add_stage(Box::new(RuleReranker));
+            }
+        },
+        "voyage" => {
+            if let Some(key) = api_key {
+                pipeline.add_stage(Box::new(VoyageReranker::new(
+                    key,
+                    config.api_base.clone(),
+                    None,
+                )));
+            } else {
+                tracing::warn!(
+                    "Voyage rerank backend 未提供 api_key（api_key_ref 尚未由 wiring 层注入），降级到 rule reranker"
+                );
+                pipeline.add_stage(Box::new(RuleReranker));
+            }
+        },
+        unknown => {
+            tracing::warn!("未知 rerank backend '{}'，降级到 rule reranker", unknown);
             pipeline.add_stage(Box::new(RuleReranker));
         },
     }
@@ -279,7 +589,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_rule_reranker_sorts_by_relevance() {
-        let pipeline = create_rerank_pipeline(&RerankConfig::default(), None);
+        let pipeline = create_rerank_pipeline(&RerankConfig::default(), None, None);
         let results = vec![
             make_result("1", "The quick brown fox", 0.5),
             make_result("2", "fox jumps over the lazy dog", 0.9),
@@ -290,7 +600,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_empty_results() {
-        let pipeline = create_rerank_pipeline(&RerankConfig::default(), None);
+        let pipeline = create_rerank_pipeline(&RerankConfig::default(), None, None);
         let reranked = pipeline.execute("test", vec![], &RerankConfig::default()).await;
         assert!(reranked.is_empty());
     }
@@ -298,7 +608,7 @@ mod tests {
     #[tokio::test]
     async fn test_disabled_config() {
         let config = RerankConfig { enabled: false, ..Default::default() };
-        let pipeline = create_rerank_pipeline(&config, None);
+        let pipeline = create_rerank_pipeline(&config, None, None);
         let results = vec![make_result("1", "test content", 0.8)];
         let reranked = pipeline.execute("test", results, &config).await;
         assert_eq!(reranked.len(), 1);
@@ -308,7 +618,7 @@ mod tests {
     #[tokio::test]
     async fn test_top_n_limit() {
         let config = RerankConfig { top_n: 2, candidate_k: 5, ..Default::default() };
-        let pipeline = create_rerank_pipeline(&config, None);
+        let pipeline = create_rerank_pipeline(&config, None, None);
         let results = vec![
             make_result("1", "a", 0.3),
             make_result("2", "b", 0.5),
@@ -317,5 +627,60 @@ mod tests {
         ];
         let reranked = pipeline.execute("test", results, &config).await;
         assert_eq!(reranked.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_cohere_backend_without_api_key_falls_back_to_rule() {
+        let config = RerankConfig {
+            backend: "cohere".to_string(),
+            api_key_ref: Some("cohere_key".to_string()),
+            ..Default::default()
+        };
+        // api_key=None 时应降级到 rule reranker，不 panic
+        let pipeline = create_rerank_pipeline(&config, None, None);
+        let results =
+            vec![make_result("1", "machine learning", 0.3), make_result("2", "deep learning", 0.9)];
+        let reranked = pipeline.execute("learning", results, &config).await;
+        assert_eq!(reranked.len(), 2);
+    }
+
+    #[tokio::test]
+    #[ignore = "需要外网访问真实 Voyage AI API；CI 环境下默认跳过，本地手动运行"]
+    async fn test_voyage_backend_with_invalid_key_falls_back() {
+        // 提供一个无效的 API key，HTTP 调用会失败，应降级到原分数排序而不抛错
+        let config = RerankConfig {
+            backend: "voyage".to_string(),
+            api_key_ref: Some("voyage_key".to_string()),
+            ..Default::default()
+        };
+        let pipeline =
+            create_rerank_pipeline(&config, None, Some("invalid-test-key-not-real".to_string()));
+        let results =
+            vec![make_result("1", "rust programming", 0.3), make_result("2", "rust language", 0.9)];
+        let reranked = pipeline.execute("rust", results, &config).await;
+        // 失败降级后仍应返回所有候选（最多 top_n 条，这里只有 2 条候选）
+        assert_eq!(reranked.len(), 2);
+        // 降级到原分数排序时，分数高的应排在前
+        assert_eq!(reranked[0].id, "2");
+        assert_eq!(reranked[1].id, "1");
+    }
+
+    #[test]
+    fn test_cloud_reranker_url_construction() {
+        let r = CohereReranker::new("k".to_string(), None, None);
+        assert_eq!(r.url(), "https://api.cohere.ai/v1/rerank");
+
+        let r = CohereReranker::new(
+            "k".to_string(),
+            Some("https://gateway.example.com/".to_string()),
+            None,
+        );
+        assert_eq!(r.url(), "https://gateway.example.com/v1/rerank");
+
+        let r = JinaReranker::new("k".to_string(), None, None);
+        assert_eq!(r.url(), "https://api.jina.ai/v1/rerank");
+
+        let r = VoyageReranker::new("k".to_string(), None, None);
+        assert_eq!(r.url(), "https://api.voyageai.com/v1/rerank");
     }
 }

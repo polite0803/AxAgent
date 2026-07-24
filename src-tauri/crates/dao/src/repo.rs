@@ -19,6 +19,7 @@ pub mod gateway_key;
 pub mod gateway_link;
 pub mod gateway_link_manager;
 pub mod gateway_request_log;
+pub mod gateway_usage;
 pub mod generated_tool;
 pub mod index_jobs;
 pub mod knowledge;

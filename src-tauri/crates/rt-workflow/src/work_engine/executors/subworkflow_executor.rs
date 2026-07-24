@@ -159,6 +159,32 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
             },
         };
 
+        // ── Dry Run 短路 ──
+        // 单步调试模式下不真正递归执行子工作流（避免级联副作用、长时间运行），
+        // 返回模拟执行结果。子工作流 ID 与映射输入保留以供下游节点识别节点配置。
+        //
+        // 注意：此前实现在 execute_with_retry 完成后才检查 dry_run，
+        // 导致 dry_run 模式下仍然真正执行子工作流，违背 dry_run 语义。
+        if context.dry_run {
+            let mapped_input = Self::map_inputs(sub_node, context)?;
+            tracing::info!(
+                "[SubWorkflowExecutor] dry_run 模式：子工作流 '{}' 短路返回模拟结果",
+                sub_node.config.sub_workflow_id
+            );
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "status": "dry_run",
+                    "sub_workflow_id": sub_node.config.sub_workflow_id,
+                    "input": mapped_input,
+                    "result": "[DRY RUN] 子工作流模拟执行结果",
+                    "dry_run": true,
+                    "node_id": node.base_id(),
+                }),
+                output_var: Some(sub_node.config.output_var.clone()),
+                control: None,
+            });
+        }
+
         let cb = context.callbacks.as_ref().and_then(|cbs| cbs.subworkflow.clone()).ok_or_else(
             || {
                 NodeError::exec_failed(
@@ -193,7 +219,8 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         let (child_execution_id, output) = result;
         let child_eid_value = serde_json::Value::String(child_execution_id.clone());
 
-        let mut enriched_output = if output.is_object() {
+        // dry_run 已在前面短路，此处不会到达；移除原 dry_run 后处理逻辑。
+        let enriched_output = if output.is_object() {
             let mut obj = output.as_object().cloned().unwrap_or_default();
             obj.insert("_child_execution_id".to_string(), child_eid_value.clone());
             serde_json::Value::Object(obj)
@@ -203,20 +230,6 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
                 "_child_execution_id": child_eid_value,
             })
         };
-
-        if context.dry_run
-            && let Some(obj) = enriched_output.as_object_mut()
-        {
-            obj.insert("status".to_string(), serde_json::Value::String("dry_run".to_string()));
-            obj.insert(
-                "sub_workflow_id".to_string(),
-                serde_json::Value::String(sub_node.config.sub_workflow_id.clone()),
-            );
-            obj.insert(
-                "message".to_string(),
-                serde_json::Value::String("Sub-workflow dry run completed".to_string()),
-            );
-        }
 
         Ok(NodeOutput {
             output: enriched_output,

@@ -26,6 +26,10 @@
 
 pub mod balance;
 pub mod cache_guard;
+// ── 统一事件总线默认实现(基于 tokio broadcast) ──
+// 供 wiring 层实例化并注入到 agent / rt-workflow / orchestrator 三方。
+pub mod event_bus;
+pub use event_bus::{BroadcastEventBus, BroadcastSubscription};
 pub mod compact;
 pub mod compact_thresholds;
 pub mod compact_warning;

@@ -266,6 +266,7 @@ pub async fn search_all_sources(
         &wiki_ids,
         &query,
         top_k,
+        &state.credential_manager,
     )
     .await;
 

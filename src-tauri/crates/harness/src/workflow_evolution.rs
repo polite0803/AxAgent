@@ -392,9 +392,9 @@ mod validate_genome_basic_tests {
                 json!({
                     "id": format!("{s}-{t}"),
                     "source": s,
-                    "source_handle": null,
+                    "sourceHandle": null,
                     "target": t,
-                    "target_handle": null,
+                    "targetHandle": null,
                     "edge_type": "direct",
                     "label": null
                 })

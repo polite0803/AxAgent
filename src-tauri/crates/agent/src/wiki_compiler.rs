@@ -465,9 +465,21 @@ impl WikiCompiler {
         let mut start = 0;
 
         while start < content.len() {
-            let end = (start + chunk_size).min(content.len());
-            let mut chunk_end = end;
+            // 1. 计算原始 end，并对齐到字符边界（向下取整），
+            //    避免 content[start..end] / content[start..chunk_end] 在多字节字符中间切片 panic。
+            let mut end = (start + chunk_size).min(content.len());
+            while end > start && !content.is_char_boundary(end) {
+                end -= 1;
+            }
+            // chunk_size 过小无法容纳一个字符时，至少前进一个字符
+            if end <= start {
+                end = start + content[start..].chars().next().map(|c| c.len_utf8()).unwrap_or(1);
+                if end > content.len() {
+                    end = content.len();
+                }
+            }
 
+            let mut chunk_end = end;
             if end < content.len()
                 && let Some(pos) = content[start..end].rfind('\n')
             {
@@ -481,11 +493,25 @@ impl WikiCompiler {
                 break;
             }
 
-            start = if chunk_end > overlap {
+            // 2. 计算下一个 start，并对齐到字符边界（向上取整），
+            //    避免 chunk_end - overlap 落在多字节字符中间导致下一轮切片 panic。
+            let mut next_start = if chunk_end > overlap {
                 chunk_end - overlap
             } else {
                 chunk_end
             };
+            while next_start < content.len() && !content.is_char_boundary(next_start) {
+                next_start += 1;
+            }
+            // 防止死循环：next_start 必须严格大于 start
+            if next_start <= start {
+                next_start =
+                    start + content[start..].chars().next().map(|c| c.len_utf8()).unwrap_or(1);
+                if next_start > content.len() {
+                    next_start = content.len();
+                }
+            }
+            start = next_start;
         }
 
         chunks

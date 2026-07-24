@@ -115,6 +115,9 @@ pub struct Message {
     /// Parsed content blocks for frontend consumption.
     #[serde(default)]
     pub blocks: Option<Vec<ContentBlock>>,
+    /// 引用回复：被引用消息的 ID（区别于 parent_message_id 的多版本语义）
+    #[serde(default)]
+    pub quoted_message_id: Option<String>,
 }
 
 /// A structured content block in a message (Part-based model).

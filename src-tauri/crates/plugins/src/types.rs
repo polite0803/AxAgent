@@ -20,6 +20,7 @@ use serde_json::{Map, Value};
 use axagent_harness::{NpmRegistryService, parse_npm_package_spec};
 
 use crate::manager::PluginError;
+use crate::sandbox::{SandboxConfig, apply_env_to_command, check_subprocess_permission};
 
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
@@ -573,6 +574,94 @@ impl PluginTool {
             }
         }
     }
+
+    /// 在沙箱约束下执行工具命令。
+    ///
+    /// 与 [`execute`](Self::execute) 的区别：
+    /// 1. 执行前调用 [`check_subprocess_permission`]，未声明 `subprocess_execution`
+    ///    权限时直接返回 [`PluginError::PermissionDenied`]，不启动子进程。
+    /// 2. 通过 [`apply_env_to_command`] 对子进程 ENV 做白名单过滤，屏蔽
+    ///    API Key / Token / Secret 等敏感变量。
+    ///
+    /// 显式设置的 `CLAWD_PLUGIN_ID` 等专用变量在 `apply_env_to_command` 之后
+    /// 写入，不受白名单约束。
+    pub fn execute_sandboxed(
+        &self,
+        input: &Value,
+        sandbox: &SandboxConfig,
+    ) -> Result<String, PluginError> {
+        // 沙箱检查：未声明 subprocess_execution 权限时禁止启动子进程
+        check_subprocess_permission(sandbox)?;
+
+        let input_json = input.to_string();
+        let mut process = Command::new(&self.command);
+        // 沙箱：ENV 白名单过滤（env_clear + 回填白名单变量）
+        apply_env_to_command(&mut process, sandbox);
+        process
+            .args(&self.args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .env("CLAWD_PLUGIN_ID", &self.plugin_id)
+            .env("CLAWD_PLUGIN_NAME", &self.plugin_name)
+            .env("CLAWD_TOOL_NAME", &self.definition.name)
+            .env("CLAWD_TOOL_INPUT", &input_json);
+        // Windows: 隐藏控制台窗口（插件命令可能是 node/python 等控制台程序）
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            process.creation_flags(0x08000000);
+        }
+        if let Some(root) = &self.root {
+            process.current_dir(root).env("CLAWD_PLUGIN_ROOT", root.display().to_string());
+        }
+
+        let mut child = process.spawn()?;
+        if let Some(stdin) = child.stdin.as_mut() {
+            use std::io::Write as _;
+            stdin.write_all(input_json.as_bytes())?;
+        }
+
+        let timeout = Duration::from_secs(Self::DEFAULT_TOOL_TIMEOUT_SECS);
+        let start = std::time::Instant::now();
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let output = child.wait_with_output()?;
+                    if status.success() {
+                        return Ok(String::from_utf8_lossy(&output.stdout).trim().to_string());
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                        return Err(PluginError::CommandFailed(format!(
+                            "plugin tool `{}` from `{}` failed for `{}`: {}",
+                            self.definition.name,
+                            self.plugin_id,
+                            self.command,
+                            if stderr.is_empty() {
+                                format!("exit status {}", status)
+                            } else {
+                                stderr
+                            }
+                        )));
+                    }
+                },
+                Ok(None) => {
+                    if start.elapsed() >= timeout {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return Err(PluginError::CommandFailed(format!(
+                            "plugin tool `{}` from `{}` timed out after {}s",
+                            self.definition.name,
+                            self.plugin_id,
+                            timeout.as_secs()
+                        )));
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                },
+                Err(e) => return Err(PluginError::Io(e)),
+            }
+        }
+    }
 }
 
 fn default_tool_permission_label() -> String {
@@ -619,6 +708,8 @@ pub struct BuiltinPlugin {
     pub tools: Vec<PluginTool>,
     pub mcp_servers: Vec<PluginMcpServer>,
     pub skills: Vec<PluginSkillEntry>,
+    /// 插件声明的权限集合（来自 manifest），用于沙箱 capability 检查。
+    pub permissions: Vec<PluginPermission>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -629,6 +720,8 @@ pub struct BundledPlugin {
     pub tools: Vec<PluginTool>,
     pub mcp_servers: Vec<PluginMcpServer>,
     pub skills: Vec<PluginSkillEntry>,
+    /// 插件声明的权限集合（来自 manifest），用于沙箱 capability 检查。
+    pub permissions: Vec<PluginPermission>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -639,4 +732,6 @@ pub struct ExternalPlugin {
     pub tools: Vec<PluginTool>,
     pub mcp_servers: Vec<PluginMcpServer>,
     pub skills: Vec<PluginSkillEntry>,
+    /// 插件声明的权限集合（来自 manifest），用于沙箱 capability 检查。
+    pub permissions: Vec<PluginPermission>,
 }

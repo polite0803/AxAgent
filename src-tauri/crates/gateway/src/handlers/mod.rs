@@ -15,24 +15,38 @@
 //!   body builders.
 //! - [`streaming`]  — re-export of the streaming helpers from `chat` for callers
 //!   that prefer the family-specific module path.
+//! - [`usage`]     — `GET /v1/usage` 网关用量与成本聚合统计。
 //!
 //! External callers should keep importing via `crate::handlers::xxx` — the
 //! `pub use` re-exports below preserve the original module surface.
 
+pub mod audio;
 pub mod chat;
+pub mod embeddings;
 pub mod error;
+pub mod files;
+pub mod fine_tuning;
 pub mod health;
+pub mod images;
 pub mod jobs;
 pub mod mcp_proxy;
 pub mod models;
 pub mod platform_bridge;
 pub mod responses;
 pub mod streaming;
+pub mod usage;
 
 // Re-exports to preserve the original `crate::handlers::xxx` paths.
+pub use audio::{create_speech, create_transcription};
 #[allow(unused_imports)]
 pub(crate) use chat::{chat_completions, handle_non_stream_with_failover, handle_stream};
+pub use embeddings::create_embedding;
+pub use files::{delete_file, list_files, retrieve_file, upload_file};
+pub use fine_tuning::{
+    cancel_fine_tuning_job, create_fine_tuning_job, list_fine_tuning_jobs, retrieve_fine_tuning_job,
+};
 pub use health::{detailed_health_check, health_check};
+pub use images::create_image;
 pub use jobs::{
     cancel_run, create_job, delete_job, disable_job, enable_job, get_job, get_job_schedule,
     get_run, get_run_logs, list_jobs, list_runs, pause_job, resume_job, retry_run, trigger_job,
@@ -40,6 +54,7 @@ pub use jobs::{
 };
 pub use models::list_models;
 pub use responses::{delete_response, get_response};
+pub use usage::usage_handler;
 // These items are `pub(crate)` in their submodules; re-export them at the
 // same crate-private level so other modules in the gateway crate can keep
 // referring to them as `crate::handlers::xxx` (or simply via the

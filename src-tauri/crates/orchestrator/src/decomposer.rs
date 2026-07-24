@@ -32,12 +32,21 @@ pub trait MissionDecomposer: Send + Sync {
     ) -> Result<DecompositionPlan, OrchestrationError>;
 }
 
-// ── Rule-based (default) ───────────────────────────────────────────────
+// ── Rule-based (fallback) ─────────────────────────────────────────────
 
-/// Keyword-matching decomposer (original behavior).
+/// 关键词匹配的规则化分解器（**默认兜底实现**）。
 ///
-/// Detects common terms — review, refactor, design — and produces
-/// fixed template sub-task DAGs. Fast, deterministic, no external deps.
+/// 检测常见术语 — review、refactor、design — 并生成固定模板子任务 DAG。
+/// 快速、确定性、无外部依赖。
+///
+/// **架构定位**：
+/// - 作为 `OrchestratorExecutor` 的**默认 decomposer**，无需 LLM 即可工作。
+/// - 作为 [`LlmBasedDecomposer`] 的**降级兜底**：当 LLM 调用失败、响应解析失败、
+///   或返回空结果时，自动回退到本规则分解器，保证 mission 分解链路始终可用。
+/// - 生产环境如需语义化分解，应通过 wiring 层注入 [`LlmBasedDecomposer`]。
+///
+/// **注意**：本 decomposer **不返回 Err**，规则匹配失败时走 default 分支
+/// 生成通用的 analyze→implement→review 三段式 DAG，确保调用方总能拿到合法 plan。
 pub struct RuleBasedDecomposer;
 
 impl RuleBasedDecomposer {

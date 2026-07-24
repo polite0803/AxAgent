@@ -207,6 +207,8 @@ export interface Message {
   blocks?: ContentBlock[];
   /** Additional metadata for extensibility */
   meta?: Record<string, unknown>;
+  /** 引用回复：被引用消息的 ID（区别于 parent_message_id） */
+  quoted_message_id?: string | null;
 }
 
 // ── Content Block (Part-based message model, short-term) ──────────────

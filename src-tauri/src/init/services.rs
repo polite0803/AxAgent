@@ -36,9 +36,14 @@ pub fn start_background_services(
     start_skill_evolution(state);
     start_dream_consolidation(state);
     start_dream_task_executor(state);
+    start_coevolution_task_executor(state);
+    start_pattern_analyzer_task_executor(state);
+    start_insight_generator_task_executor(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
+    start_trigger_recovery(state);
+    start_persistent_runner(state);
     start_platform_adapters(state);
     start_skill_watcher(app, state);
     start_memory_decay_tick(state);
@@ -1411,6 +1416,121 @@ fn start_dream_task_executor(state: &AppState) {
     });
 }
 
+/// CoevolutionTask 协同进化定时任务
+///
+/// 每 30 分钟执行一次，根据近期轨迹成功率驱动难度调整 + 生成针对薄弱类别的新任务。
+/// 与 `start_skill_evolution` 共享同一 `CoevolutionEnvironment` 实例：
+/// - `start_skill_evolution` 在技能进化成功后被动更新性能
+/// - 本任务主动周期性地用整体成功率驱动协同进化
+///
+/// 依赖：`coevolution_env` / `trajectory_storage` / `insight_system`
+/// 任一缺失会跳过对应子功能并在 `result.errors` 中记录。
+fn start_coevolution_task_executor(state: &AppState) {
+    let ctx = axagent_runtime::tasks::coevolution_task::CoevolutionTaskContext {
+        coevolution_env: Some(state.coevolution_env.clone()),
+        trajectory_storage: Some(state.trajectory_storage.clone()),
+        insight_system: Some(state.insight_system.clone()),
+    };
+
+    tauri::async_runtime::spawn(async move {
+        // 启动后延迟 10 分钟首次执行，避免与启动期间的其它密集任务冲突
+        let initial_delay = std::time::Duration::from_secs(10 * 60);
+        tokio::time::sleep(initial_delay).await;
+
+        let interval = std::time::Duration::from_secs(30 * 60);
+        loop {
+            tracing::info!("[coevolution_task_executor] 触发协同进化周期任务");
+            let result =
+                axagent_runtime::tasks::coevolution_task::CoevolutionTaskExecutor::execute(&ctx)
+                    .await;
+            if !result.errors.is_empty() {
+                tracing::warn!(
+                    "[coevolution_task_executor] 本次执行有 {} 个子任务跳过/失败: {:?}",
+                    result.errors.len(),
+                    result.errors
+                );
+            }
+            tokio::time::sleep(interval).await;
+        }
+    });
+}
+
+/// PatternAnalyzerTask 跨会话模式分析定时任务
+///
+/// 每 2 小时执行一次，从近期轨迹提取代码风格 / 工具偏好 / 时间分布模式，
+/// 把关键发现作为 `LearningInsight` 写入 `insight_system`。
+///
+/// 与 `start_pattern_learning` 互补：
+/// - `start_pattern_learning` 学习任务级 `TrajectoryPattern`（含 success_rate）
+/// - 本任务提取更细粒度的用户行为模式，用于丰富用户画像与行为洞察
+///
+/// 依赖：`trajectory_storage` / `insight_system`
+fn start_pattern_analyzer_task_executor(state: &AppState) {
+    let ctx = axagent_runtime::tasks::pattern_task::PatternAnalyzerTaskContext {
+        trajectory_storage: Some(state.trajectory_storage.clone()),
+        insight_system: Some(state.insight_system.clone()),
+    };
+
+    tauri::async_runtime::spawn(async move {
+        // 启动后延迟 15 分钟首次执行，比 coevolution 稍晚以错峰
+        let initial_delay = std::time::Duration::from_secs(15 * 60);
+        tokio::time::sleep(initial_delay).await;
+
+        let interval = std::time::Duration::from_secs(2 * 60 * 60);
+        loop {
+            tracing::info!("[pattern_analyzer_task_executor] 触发模式分析周期任务");
+            let result =
+                axagent_runtime::tasks::pattern_task::PatternAnalyzerTaskExecutor::execute(&ctx)
+                    .await;
+            if !result.errors.is_empty() {
+                tracing::warn!(
+                    "[pattern_analyzer_task_executor] 本次执行有 {} 个子任务跳过/失败: {:?}",
+                    result.errors.len(),
+                    result.errors
+                );
+            }
+            tokio::time::sleep(interval).await;
+        }
+    });
+}
+
+/// InsightGeneratorTask 学习洞察生成定时任务
+///
+/// 每 6 小时执行一次，从近期轨迹分析整体趋势（成功率 / 质量分布），
+/// 生成趋势洞察 + 日报。与 `start_insight_generation` 互补：
+/// - `start_insight_generation` 从实时反馈生成洞察（10 分钟一次，关注实时）
+/// - 本任务从轨迹存储的整体趋势生成洞察 + 日报（周期更长，关注长期）
+///
+/// 依赖：`trajectory_storage` / `insight_system`
+fn start_insight_generator_task_executor(state: &AppState) {
+    let ctx = axagent_runtime::tasks::insight_task::InsightGeneratorTaskContext {
+        trajectory_storage: Some(state.trajectory_storage.clone()),
+        insight_system: Some(state.insight_system.clone()),
+    };
+
+    tauri::async_runtime::spawn(async move {
+        // 启动后延迟 20 分钟首次执行，与其它任务错峰
+        let initial_delay = std::time::Duration::from_secs(20 * 60);
+        tokio::time::sleep(initial_delay).await;
+
+        let interval = std::time::Duration::from_secs(6 * 60 * 60);
+        loop {
+            tracing::info!("[insight_generator_task_executor] 触发洞察生成周期任务");
+            let result =
+                axagent_runtime::tasks::insight_task::InsightGeneratorTaskExecutor::execute(&ctx)
+                    .await;
+            if !result.errors.is_empty() {
+                tracing::warn!(
+                    "[insight_generator_task_executor] 本次执行有 {} 个子任务跳过/失败: {:?}",
+                    result.errors.len(),
+                    result.errors
+                );
+            }
+            tokio::time::sleep(interval).await;
+        }
+    });
+}
+
 fn start_auto_tool_observation(state: &AppState) {
     let trajectory_storage = state.trajectory_storage.clone();
     let auto_tool_creator = state.auto_tool_creator.clone();
@@ -1872,6 +1992,59 @@ fn start_cron_scheduler(state: &AppState) {
     });
 
     tracing::info!("[CronScheduler] 已启动（统一 Cron + ScheduledTask），每30秒轮询一次");
+}
+
+/// 2.7 P1:启动时从 DB 恢复工作流触发器到运行时 `TriggerManager`。
+///
+/// 在 `start_cron_scheduler` 之后调用 — `init_trigger_manager` 已在
+/// `create_app_state` 中执行,这里只需扫描 `workflow_templates.trigger_config`
+/// 字段,对非 Manual 类型触发器批量调用 `register_*`。
+///
+/// 失败仅 warn 日志,不阻断启动 — 即使所有触发器恢复失败,工作流模板
+/// 本身仍然可用,用户可手动触发或通过 update 命令重新激活。
+fn start_trigger_recovery(state: &AppState) {
+    let db = state.harness.db().clone();
+    let trigger_manager = state.work_engine.trigger_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        let (sched, webhook, event) =
+            crate::init::trigger_recovery::recover_workflow_triggers(&db, &trigger_manager).await;
+        tracing::info!(
+            "[start_trigger_recovery] 触发器恢复完成: {} schedule, {} webhook, {} event",
+            sched,
+            webhook,
+            event
+        );
+    });
+}
+
+/// 3.3 P2:启动 PersistentRunner 后台守护线程。
+///
+/// 守护线程每 60 秒检查一次 pending session。默认 `enabled: false` 时
+/// 守护线程空转 sleep,不会有任何调度行为。
+///
+/// **注意**:当前 executor 闭包为占位实现,返回 `Err("not implemented")`。
+/// 真正的 SessionManager 适配器需后续实现 — 实现后即可通过配置启用持久化重试。
+fn start_persistent_runner(state: &AppState) {
+    let Some(runner) = state.persistent_runner.clone() else {
+        tracing::debug!("[start_persistent_runner] PersistentRunner 未构造,跳过");
+        return;
+    };
+
+    // 占位 executor — 真正的 SessionManager 适配器需后续实现。
+    // 当前返回 Err,让 PersistentRunner 记录 warn 日志但不 panic。
+    let executor: axagent_runtime::persistent_runner::SessionExecutor = Arc::new(|_session| {
+        Box::pin(async {
+            tracing::warn!("[PersistentRunner] SessionExecutor 适配器尚未实现,session 执行被跳过");
+            Err("SessionExecutor adapter not yet implemented".to_string())
+        })
+    });
+
+    let handle = runner.spawn_daemon(60, executor);
+    tracing::info!("[start_persistent_runner] 守护线程已启动(默认 enabled=false,空转等待配置启用)");
+
+    // JoinHandle 被 drop 时 tokio 不会取消任务(detach),守护线程继续运行。
+    // 若需要优雅关闭,可后续把 handle 挂到 task_manager。
+    drop(handle);
 }
 
 fn start_trajectory_cleanup(state: &AppState) {

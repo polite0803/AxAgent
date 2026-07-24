@@ -101,6 +101,7 @@ export interface SendMethods {
     content: string,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
+    quotedMessageId?: string | null,
   ) => Promise<void>;
   sendAgentMessage: (
     content: string,
@@ -139,6 +140,7 @@ export function createSendMethods(
       content: string,
       attachments: AttachmentInput[] = [],
       searchProviderId: string | null = null,
+      quotedMessageId: string | null = null,
     ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) {
@@ -184,6 +186,8 @@ export function createSendMethods(
         version_index: 0,
         is_active: true,
         status: "complete",
+        // 引用回复：乐观更新时携带 quoted_message_id，确保 UI 立即显示引用块
+        quoted_message_id: quotedMessageId,
       };
 
       // Create assistant placeholder upfront (for search status or streaming)
@@ -310,6 +314,8 @@ export function createSendMethods(
               enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
               requirePlanApproval: useAgentStore.getState().planApprovalEnabled,
             } as any,
+            // 引用回复：传递被引用消息 ID 到后端
+            quotedMessageId: quotedMessageId ?? undefined,
           },
         });
 
@@ -426,6 +432,8 @@ export function createSendMethods(
                         ? usePreferenceStore.getState().enabledWikiIds
                         : undefined,
                     },
+                    // 引用回复：fallback 路径也需传递被引用消息 ID
+                    quotedMessageId: quotedMessageId ?? undefined,
                   },
                 });
                 // Re-start stream

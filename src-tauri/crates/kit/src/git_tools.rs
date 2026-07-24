@@ -208,7 +208,9 @@ impl GitTools {
                 }
                 let index_status = line.chars().next()?;
                 let worktree_status = line.chars().nth(1)?;
-                let path = line[3..].to_string();
+                // porcelain v1 格式：前 2 字节是状态码，第 3 字节是空格，第 4 字节起是路径
+                // 正常情况下前 3 字节是 ASCII，byte 3 是字符边界；用 get() 防御性处理异常输出
+                let path = line.get(3..).unwrap_or("").to_string();
                 let staged = index_status != ' ' && index_status != '?';
                 let status = match (index_status, worktree_status) {
                     ('?', '?') => "untracked".to_string(),

@@ -9,7 +9,7 @@ use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, Tho
 use axagent_harness::kit_bridge::{KitTokenBudgetDecision, KitTokenBudgetTracker};
 use axagent_harness::llm_execution::{LlmCallConfig, SharedLlmExecutionService};
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_harness::util_fns::estimate_tokens;
+use axagent_harness::util_fns::{estimate_tokens, truncate_to_char_boundary};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use std::sync::Arc;
 use std::time::Duration;
@@ -109,6 +109,12 @@ pub trait LlmReasoningProvider: Send + Sync {
     ) -> Result<String, ReActError>;
 }
 
+/// 默认推理 provider 占位实现（未配置 LLM）。
+///
+/// **注意**：这是规则化占位实现，所有 trait 方法返回 `Err(NotConfigured)`。
+/// 生产环境必须通过 `ReActEngine::with_reasoning_provider()` 注入真实 LLM provider
+/// （如 [`LlmDrivenReasoningProvider`](LlmDrivenReasoningProvider) 或 wiring 层的
+/// `WiringReasoningProvider`）。保留内部辅助函数仅供测试/调试参考。
 pub struct DefaultReasoningProvider;
 
 impl DefaultReasoningProvider {
@@ -116,6 +122,8 @@ impl DefaultReasoningProvider {
         Self
     }
 
+    /// 分析输入文本的字数、复杂度等统计信息（仅辅助，不参与 LLM 推理）。
+    #[allow(dead_code)]
     fn analyze_input(&self, input: &str) -> String {
         let word_count = input.split_whitespace().count();
         let has_code =
@@ -136,6 +144,7 @@ impl DefaultReasoningProvider {
         )
     }
 
+    #[allow(dead_code)]
     fn generate_reasoning(&self, input: &str, context: &ReasoningContext) -> String {
         let goal = context.current_goal.as_deref().unwrap_or("Unknown goal");
         let sub_goals_count = context.sub_goals.len();
@@ -149,6 +158,7 @@ impl DefaultReasoningProvider {
         )
     }
 
+    #[allow(dead_code)]
     fn create_plan(&self, input: &str, context: &mut ReasoningContext) -> String {
         context.increment_depth();
 
@@ -171,6 +181,7 @@ impl DefaultReasoningProvider {
         plan_steps.join(" -> ")
     }
 
+    #[allow(dead_code)]
     fn generate_reflection(&self, chain: &ThoughtChain, context: &ReasoningContext) -> String {
         let total_steps = chain.steps.len();
         let successful_steps = chain.steps.iter().filter(|s| s.is_verified).count();
@@ -182,6 +193,7 @@ impl DefaultReasoningProvider {
         )
     }
 
+    #[allow(dead_code)]
     fn generate_synthesis(&self, chain: &ThoughtChain, context: &ReasoningContext) -> String {
         let total_steps = chain.steps.len();
         let verified_steps = chain.steps.iter().filter(|s| s.is_verified).count();
@@ -205,51 +217,54 @@ impl Default for DefaultReasoningProvider {
 impl LlmReasoningProvider for DefaultReasoningProvider {
     async fn analyze(
         &self,
-        input: &str,
+        _input: &str,
         _context: &ReasoningContext,
     ) -> Result<String, ReActError> {
-        Ok(self.analyze_input(input))
+        Err(ReActError::LlmReasoningError(
+            "DefaultReasoningProvider not configured: inject a real LlmReasoningProvider via ReActEngine::with_reasoning_provider()".to_string()
+        ))
     }
 
     async fn think(
         &self,
-        input: &str,
-        context: &ReasoningContext,
+        _input: &str,
+        _context: &ReasoningContext,
         _chain: &ThoughtChain,
     ) -> Result<String, ReActError> {
-        Ok(self.generate_reasoning(input, context))
+        Err(ReActError::LlmReasoningError(
+            "DefaultReasoningProvider not configured: inject a real LlmReasoningProvider via ReActEngine::with_reasoning_provider()".to_string()
+        ))
     }
 
     async fn plan(
         &self,
-        input: &str,
-        context: &mut ReasoningContext,
+        _input: &str,
+        _context: &mut ReasoningContext,
         _chain: &ThoughtChain,
     ) -> Result<Action, ReActError> {
-        let plan = self.create_plan(input, context);
-        Ok(Action {
-            action_type: ActionType::Plan,
-            tool_name: None,
-            tool_input: None,
-            llm_prompt: Some(plan.clone()),
-            requires_confirmation: false,
-        })
+        Err(ReActError::LlmReasoningError(
+            "DefaultReasoningProvider not configured: inject a real LlmReasoningProvider via ReActEngine::with_reasoning_provider()".to_string()
+        ))
     }
 
     async fn reflect(
         &self,
-        chain: &ThoughtChain,
-        context: &ReasoningContext,
+        _chain: &ThoughtChain,
+        _context: &ReasoningContext,
     ) -> Result<String, ReActError> {
-        Ok(self.generate_reflection(chain, context))
+        Err(ReActError::LlmReasoningError(
+            "DefaultReasoningProvider not configured: inject a real LlmReasoningProvider via ReActEngine::with_reasoning_provider()".to_string()
+        ))
     }
 
     async fn synthesize(
         &self,
-        chain: &ThoughtChain,
-        context: &ReasoningContext,
+        _chain: &ThoughtChain,
+        _context: &ReasoningContext,
     ) -> Result<String, ReActError> {
-        Ok(self.generate_synthesis(chain, context))
+        Err(ReActError::LlmReasoningError(
+            "DefaultReasoningProvider not configured: inject a real LlmReasoningProvider via ReActEngine::with_reasoning_provider()".to_string()
+        ))
     }
 }
 
@@ -1424,7 +1439,7 @@ fn truncate_string(s: &str, max_len: usize) -> String {
         s.to_string()
     } else {
         let end = max_len.saturating_sub(3);
-        format!("{}...", &s[..end])
+        format!("{}...", truncate_to_char_boundary(s, end))
     }
 }
 
@@ -1511,9 +1526,8 @@ mod tests {
     async fn test_default_reasoning_provider_analyze() {
         let provider = DefaultReasoningProvider::new();
         let context = ReasoningContext::new("Hello world");
-        let result = provider.analyze("Hello world", &context).await.unwrap();
-        assert!(result.contains("2 words"));
-        assert!(result.contains("complexity=low"));
+        let result = provider.analyze("Hello world", &context).await;
+        assert!(result.is_err(), "DefaultReasoningProvider should return Err when not configured");
     }
 
     #[tokio::test]
@@ -1522,8 +1536,8 @@ mod tests {
         let mut context = ReasoningContext::new("Test input");
         context.set_goal("Test goal".to_string());
         let chain = ThoughtChain::new();
-        let result = provider.think("Test input", &context, &chain).await.unwrap();
-        assert!(result.contains("Test goal"));
+        let result = provider.think("Test input", &context, &chain).await;
+        assert!(result.is_err(), "DefaultReasoningProvider should return Err when not configured");
     }
 
     #[tokio::test]
@@ -1531,9 +1545,8 @@ mod tests {
         let provider = DefaultReasoningProvider::new();
         let mut context = ReasoningContext::new("Test input");
         let chain = ThoughtChain::new();
-        let action = provider.plan("Test input", &mut context, &chain).await.unwrap();
-        assert_eq!(action.action_type, ActionType::Plan);
-        assert!(action.llm_prompt.is_some());
+        let result = provider.plan("Test input", &mut context, &chain).await;
+        assert!(result.is_err(), "DefaultReasoningProvider should return Err when not configured");
     }
 
     #[tokio::test]
@@ -1541,8 +1554,8 @@ mod tests {
         let provider = DefaultReasoningProvider::new();
         let context = ReasoningContext::new("Test input");
         let chain = ThoughtChain::new();
-        let result = provider.reflect(&chain, &context).await.unwrap();
-        assert!(result.contains("Reflection:"));
+        let result = provider.reflect(&chain, &context).await;
+        assert!(result.is_err(), "DefaultReasoningProvider should return Err when not configured");
     }
 
     #[tokio::test]
@@ -1551,9 +1564,8 @@ mod tests {
         let mut context = ReasoningContext::new("Test input");
         context.set_goal("Test goal".to_string());
         let chain = ThoughtChain::new();
-        let result = provider.synthesize(&chain, &context).await.unwrap();
-        assert!(result.contains("Synthesis:"));
-        assert!(result.contains("Test goal"));
+        let result = provider.synthesize(&chain, &context).await;
+        assert!(result.is_err(), "DefaultReasoningProvider should return Err when not configured");
     }
 
     #[tokio::test]

@@ -1,7 +1,16 @@
 [advisories]
 # 2026-07-05: 经 cargo update 后，所有历史 ignore 条目（RUSTSEC-2024-0437、RUSTSEC-2023-0071、RUSTSEC-2026-0104）均已消除。
 # 新增告警请在此补充。
-ignore = []
+#
+# 2026-07-24: quick-xml 0.30.0 漏洞（RUSTSEC-2026-0194 / RUSTSEC-2026-0195）
+# 来源: xcb v1.7.0 的 build-dependencies（仅 Linux X11 平台）
+# 现状: xcb 已是最新版本 1.7.0，其 Cargo.toml 锁定 quick-xml = "^0.30.0"，无法跨 0.x 次版本升级
+# 风险评估: xcb 仅在编译时解析固定的 libxcb XML 协议文件，不处理用户输入，漏洞无法触发
+# 跟进: 待 xcb 发布使用 quick-xml >=0.41 的新版本后移除
+ignore = [
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+]
 
 [output]
 deny = []

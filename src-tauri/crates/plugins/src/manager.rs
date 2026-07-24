@@ -31,6 +31,7 @@ const SKILL_MD_FILE_NAME: &str = "SKILL.md";
 
 use crate::core::*;
 use crate::mcp_launcher::McpLauncher;
+use crate::sandbox::{SandboxConfig, apply_env_to_command, check_subprocess_permission};
 use crate::skill_installer::SkillInstaller;
 use crate::types::*;
 
@@ -161,6 +162,13 @@ pub enum PluginError {
     InvalidManifest(String),
     NotFound(String),
     CommandFailed(String),
+    /// 沙箱权限拦截：插件执行前 capability 检查未通过（路径越权 / 缺少
+    /// `subprocess_execution` 权限等）。与 `CommandFailed` 区分以便上层
+    /// 做权限引导而非通用错误处理。
+    PermissionDenied(String),
+    /// 插件已安装冲突 — install 时检测到 plugin_id 已存在,
+    /// 调用方应提示用户使用 update 而非 install。
+    AlreadyExists(String),
 }
 
 impl Display for PluginError {
@@ -188,7 +196,9 @@ impl Display for PluginError {
             },
             Self::InvalidManifest(message)
             | Self::NotFound(message)
-            | Self::CommandFailed(message) => write!(f, "{message}"),
+            | Self::CommandFailed(message)
+            | Self::PermissionDenied(message)
+            | Self::AlreadyExists(message) => write!(f, "{message}"),
         }
     }
 }
@@ -380,6 +390,19 @@ impl PluginManager {
 
         let plugin_id = plugin_id(&manifest.name, EXTERNAL_MARKETPLACE);
         let install_path = self.install_root().join(sanitize_plugin_id(&plugin_id));
+
+        // P3 安全:install 冲突检测 — 若 plugin_id 已存在于 registry,
+        // 返回 AlreadyExists 错误,提示用户使用 update 而非 install。
+        // 防止恶意插件冒充合法插件(同名覆盖)。
+        {
+            let registry = self.load_registry()?;
+            if registry.plugins.contains_key(&plugin_id) {
+                return Err(PluginError::AlreadyExists(format!(
+                    "plugin `{plugin_id}` is already installed, use `update` instead of `install`"
+                )));
+            }
+        }
+
         if install_path.exists() {
             fs::remove_dir_all(&install_path)?;
         }
@@ -568,7 +591,32 @@ impl PluginManager {
         let manifest = load_plugin_from_directory(&staged_source)?;
         self.validate_dependencies(&manifest)?;
 
+        // P3 安全:升级备份机制 — 在覆盖前备份旧版本到 `.bak` 目录,
+        // 保留用户对 plugin.json / SKILL.md / hooks 的本地修改。
+        // 备份失败不阻断升级(降级到原行为),仅 warn 日志。
+        // 备份目录命名:{install_path}.bak,仅保留最近 1 个版本。
+        let backup_path = record.install_path.with_extension("bak");
         if record.install_path.exists() {
+            // 先清理旧的备份目录(若存在)
+            if backup_path.exists() {
+                let _ = fs::remove_dir_all(&backup_path);
+            }
+            match copy_dir_all(&record.install_path, &backup_path) {
+                Ok(()) => {
+                    tracing::info!(
+                        "[plugin_update] plugin `{}` 旧版本已备份到 {}",
+                        plugin_id,
+                        backup_path.display()
+                    );
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "[plugin_update] plugin `{}` 备份失败: {} — 继续升级,旧版本将被覆盖",
+                        plugin_id,
+                        e
+                    );
+                },
+            }
             fs::remove_dir_all(&record.install_path)?;
         }
         copy_dir_all(&staged_source, &record.install_path)?;
@@ -917,6 +965,7 @@ pub fn builtin_plugins() -> Vec<PluginDefinition> {
         tools: Vec::new(),
         mcp_servers: Vec::new(),
         skills: Vec::new(),
+        permissions: Vec::new(),
     })]
 }
 
@@ -942,6 +991,7 @@ fn load_plugin_definition(
     let tools = resolve_tools(root, &metadata.id, &metadata.name, &manifest.tools);
     let mcp_servers = manifest.mcp_servers;
     let skills = manifest.skills;
+    let permissions = manifest.permissions;
     Ok(match kind {
         PluginKind::Builtin => PluginDefinition::Builtin(BuiltinPlugin {
             metadata,
@@ -950,6 +1000,7 @@ fn load_plugin_definition(
             tools,
             mcp_servers,
             skills,
+            permissions,
         }),
         PluginKind::Bundled => PluginDefinition::Bundled(BundledPlugin {
             metadata,
@@ -958,6 +1009,7 @@ fn load_plugin_definition(
             tools,
             mcp_servers,
             skills,
+            permissions,
         }),
         PluginKind::External => PluginDefinition::External(ExternalPlugin {
             metadata,
@@ -966,6 +1018,7 @@ fn load_plugin_definition(
             tools,
             mcp_servers,
             skills,
+            permissions,
         }),
     })
 }
@@ -1679,6 +1732,72 @@ pub fn run_lifecycle_commands(
 
         let mut process = Command::new(executable);
         process.args(args);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            process.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        if let Some(root) = &metadata.root {
+            process.current_dir(root);
+        }
+        let output = process.output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(PluginError::CommandFailed(format!(
+                "plugin `{}` {} failed for `{}`: {}",
+                metadata.id,
+                phase,
+                command,
+                if stderr.is_empty() {
+                    format!("exit status {}", output.status)
+                } else {
+                    stderr
+                }
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+/// 在沙箱约束下执行 lifecycle 命令（init / shutdown）。
+///
+/// 与 [`run_lifecycle_commands`] 的区别：
+/// 1. 执行前调用 [`check_subprocess_permission`]，未声明 `subprocess_execution`
+///    权限时直接返回 [`PluginError::PermissionDenied`]，不启动子进程。
+/// 2. 通过 [`apply_env_to_command`] 对子进程 ENV 做白名单过滤，屏蔽
+///    API Key / Token / Secret 等敏感变量。
+///
+/// 原始 [`run_lifecycle_commands`] 保持不变以维持向后兼容；需要沙箱隔离的
+/// 调用方（如基于 manifest 权限构建沙箱后执行 lifecycle）应使用本函数。
+pub fn run_lifecycle_commands_sandboxed(
+    metadata: &PluginMetadata,
+    lifecycle: &PluginLifecycle,
+    phase: &str,
+    commands: &[String],
+    sandbox: &SandboxConfig,
+) -> Result<(), PluginError> {
+    if lifecycle.is_empty() || commands.is_empty() {
+        return Ok(());
+    }
+
+    // 沙箱检查：未声明 subprocess_execution 权限时禁止执行 lifecycle 命令
+    check_subprocess_permission(sandbox)?;
+
+    for command in commands {
+        // SECURITY: 同 run_lifecycle_commands，直接 exec 避免 shell 注入
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+        let executable = parts[0];
+        let args = &parts[1..];
+
+        let mut process = Command::new(executable);
+        process.args(args);
+        // 沙箱：ENV 白名单过滤（env_clear + 回填白名单变量）
+        apply_env_to_command(&mut process, sandbox);
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;

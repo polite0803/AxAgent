@@ -37,6 +37,7 @@ import { CronResultNode } from "./CronResultNode";
 import { DiagramModeToggle } from "./DiagramModeToggle";
 import { InfographicBlockHeaderActions } from "./InfographicBlockHeaderActions";
 import { KnowledgeRetrievalNode } from "./KnowledgeRetrievalNode";
+import { LatexRenderer, splitContentWithLatex } from "./LatexRenderer";
 import { McpContainerNode } from "./McpContainerNode";
 import { MemoryRetrievalNode } from "./MemoryRetrievalNode";
 import { MermaidBlockHeaderActions } from "./MermaidBlockHeaderActions";
@@ -1239,6 +1240,15 @@ const AssistantMarkdown = React.memo(
       () => (codeFontFamily ? { fontFamily: codeFontFamily } : undefined),
       [codeFontFamily],
     );
+    // LaTeX 公式分割：仅当内容含 $ 时才走分割渲染路径，多数消息命中快速路径无开销
+    const latexSegments = useMemo(
+      () => splitContentWithLatex(content),
+      [content],
+    );
+    const hasLatex = useMemo(
+      () => latexSegments.some((s) => s.type !== "text"),
+      [latexSegments],
+    );
     const singleD2Node = useMemo(
       () => getSingleD2CodeBlockNode(nodes),
       [nodes],
@@ -1360,7 +1370,48 @@ const AssistantMarkdown = React.memo(
               className="axagent-chat-markdown"
               key={`render:${nodeRendererReseedKey}`}
             >
-              {nodes
+              {hasLatex
+                ? latexSegments.map((seg, idx) => {
+                  if (seg.type === "block-math") {
+                    return (
+                      <div
+                        key={`latex-block-${idx}`}
+                        style={{ margin: "8px 0", overflowX: "auto" }}
+                      >
+                        <LatexRenderer content={seg.content} displayMode />
+                      </div>
+                    );
+                  }
+                  if (seg.type === "inline-math") {
+                    return (
+                      <LatexRenderer
+                        key={`latex-inline-${idx}`}
+                        content={seg.content}
+                      />
+                    );
+                  }
+                  // 文本段：走原 Markdown 渲染器（content 模式）
+                  return (
+                    <NodeRenderer
+                      key={`text-${idx}`}
+                      content={seg.content}
+                      isDark={isDarkMode}
+                      customId="chat"
+                      customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+                      final={!isStreaming}
+                      typewriter={isStreaming}
+                      themes={codeBlockThemes}
+                      codeBlockLightTheme={codeBlockLightTheme}
+                      codeBlockDarkTheme={codeBlockDarkTheme}
+                      codeBlockProps={codeBlockProps}
+                      codeBlockMonacoOptions={codeBlockMonacoOptions}
+                      mermaidProps={CHAT_MERMAID_PROPS}
+                      infographicProps={CHAT_INFOGRAPHIC_PROPS}
+                      {...CHAT_RENDER_BATCH_PROPS}
+                    />
+                  );
+                })
+                : nodes
                 ? (
                   <NodeRenderer
                     key={nodeRendererReseedKey}

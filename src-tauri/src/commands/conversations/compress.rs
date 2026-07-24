@@ -571,6 +571,7 @@ mod tests_conversation {
                 first_token_latency_ms: None,
                 parts: None,
                 blocks: None,
+                quoted_message_id: None,
             };
 
             build_message_content(&file_store, &message).unwrap()
@@ -631,6 +632,7 @@ mod tests_conversation {
                 first_token_latency_ms: None,
                 parts: None,
                 blocks: None,
+                quoted_message_id: None,
             };
 
             build_message_content(&file_store, &message).unwrap()
@@ -762,6 +764,8 @@ mod tests_conversation {
             credential_manager: Arc::new(axagent_credential::CredentialManager::new(
                 axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
             )),
+            event_bus: Arc::new(axagent_runtime_core::BroadcastEventBus::new(64))
+                as Arc<dyn axagent_harness::EventBus>,
             gateway: Arc::new(Mutex::new(None)),
             close_to_tray: Arc::new(AtomicBool::new(false)),
             app_data_dir: temp_dir.clone(),
@@ -888,6 +892,9 @@ mod tests_conversation {
             telemetry_level_handle: Arc::new(std::sync::RwLock::new(
                 axagent_telemetry::TelemetryLevel::default(),
             )),
+            telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
+                as Arc<dyn axagent_telemetry::TelemetrySink>,
+            persistent_runner: None,
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(

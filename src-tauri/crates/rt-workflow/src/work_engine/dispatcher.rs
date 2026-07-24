@@ -14,8 +14,8 @@ use super::executors::{
     DatabaseQueryExecutor, DebateExecutor, DelayExecutor, DocumentParserExecutor, EmailExecutor,
     EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor, LoggingExecutor,
     LoopExecutor, MergeExecutor, NotificationExecutor, ParallelExecutor, StorageExecutor,
-    SubWorkflowExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor, VectorRetrieveExecutor,
-    WebhookSendExecutor,
+    SubWorkflowExecutor, SwarmExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor,
+    VectorRetrieveExecutor, WebhookSendExecutor,
 };
 use super::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
@@ -102,6 +102,7 @@ impl NodeDispatcher {
         // LlmClassifierExecutor / SwitchExecutor 由 WorkEngine::init_dispatcher 配置并注册
         self.register(AggregatorExecutor::new()).await;
         self.register(EmailExecutor::new()).await;
+        self.register(SwarmExecutor::new()).await;
     }
 
     /// 注册 executor。若同名 executor 已存在，记录 warn 日志

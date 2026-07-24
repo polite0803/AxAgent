@@ -147,6 +147,8 @@ pub struct SendMessageParams {
     pub content: String,
     pub attachments: Vec<AttachmentInput>,
     pub options: SendMessageOptions,
+    /// 引用回复：被引用消息的 ID（区别于 parent_message_id）
+    pub quoted_message_id: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -2735,6 +2737,7 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
             first_token_latency_ms: None,
             parts: None,
             blocks: None,
+            quoted_message_id: None,
         };
 
         build_message_content(&file_store, &message).unwrap()
@@ -2795,6 +2798,7 @@ pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_i
             first_token_latency_ms: None,
             parts: None,
             blocks: None,
+            quoted_message_id: None,
         };
 
         build_message_content(&file_store, &message).unwrap()
@@ -2922,6 +2926,8 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         credential_manager: Arc::new(axagent_credential::CredentialManager::new(
             axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
         )),
+        event_bus: Arc::new(axagent_runtime_core::BroadcastEventBus::new(64))
+            as Arc<dyn axagent_harness::EventBus>,
         gateway: Arc::new(tokio::sync::Mutex::new(None)),
         close_to_tray: Arc::new(AtomicBool::new(false)),
         app_data_dir: temp_dir.clone(),
@@ -3043,6 +3049,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         telemetry_level_handle: Arc::new(std::sync::RwLock::new(
             axagent_telemetry::TelemetryLevel::default(),
         )),
+        telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
+            as Arc<dyn axagent_telemetry::TelemetrySink>,
+        persistent_runner: None,
         semantic_cache: semantic_cache.clone(),
         prompt_cache: Arc::new(PromptCache::new()),
         harness: axagent_runtime::harness::RuntimeHarness::new(

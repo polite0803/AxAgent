@@ -21,6 +21,7 @@ use axagent_harness::runtime_types::conversation::ToolExecutor as RuntimeToolExe
 // serde_json::Value used for JSON Schema in MCP tool configs
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -1055,6 +1056,20 @@ impl UnifiedToolRegistry {
                 }
             }
 
+            // ── 文件类工具路径校验（FileRead / FileWrite） ──
+            // 闭合 P0 安全缺口：原仅 Shell/Network 走沙箱，文件工具可绕过
+            // allowed_paths / denied_paths 限制。此处从工具参数提取路径并统一校验。
+            // 若参数中无路径字段，跳过校验，避免误伤（如 ListDirectory 默认工作目录）。
+            if matches!(category, ToolCategory::FileRead | ToolCategory::FileWrite) {
+                let paths = extract_paths_from_args(&input_val);
+                if !paths.is_empty()
+                    && let Err(msg) =
+                        validate_file_paths(&paths, self.sandbox.as_ref(), &self.working_dir)
+                {
+                    return Err(ToolError::permission_denied(tool_name, &msg));
+                }
+            }
+
             let ctx = crate::ToolContext {
                 working_dir: self.working_dir.clone(),
                 conversation_id: self.conversation_id.clone(),
@@ -1243,6 +1258,166 @@ fn truncate_str(s: &str, max_len: usize) -> String {
     } else {
         format!("{}...", &s[..max_len])
     }
+}
+
+// ============================================================
+// 文件类工具沙箱路径校验
+//
+// 闭合 P0 安全缺口：原 registry 仅对 Shell/Network 应用沙箱策略，
+// FileRead/FileWrite/FileEdit/ListDirectory/MoveFile 等文件工具可绕过
+// allowed_paths / denied_paths 限制。此处统一从工具参数提取路径并校验。
+// ============================================================
+
+/// 从工具参数中提取文件路径
+///
+/// 覆盖所有内置文件工具的参数字段：
+/// - 单值：`file_path` / `path` / `target_path` / `source_path` / `source` /
+///   `destination` / `notebook_path` / `vault_path`
+/// - 数组：`paths`
+///
+/// 仅提取非空字符串；空字符串与缺失字段会被忽略（跳过校验，避免误伤）。
+fn extract_paths_from_args(args: &Value) -> Vec<PathBuf> {
+    const SINGLE_KEYS: &[&str] = &[
+        "file_path",
+        "path",
+        "target_path",
+        "source_path",
+        "source",
+        "destination",
+        "notebook_path",
+        "vault_path",
+    ];
+    let mut out = Vec::new();
+    for key in SINGLE_KEYS {
+        if let Some(s) = args.get(key).and_then(|v| v.as_str())
+            && !s.is_empty()
+        {
+            out.push(PathBuf::from(s));
+        }
+    }
+    if let Some(arr) = args.get("paths").and_then(|v| v.as_array()) {
+        for v in arr {
+            if let Some(s) = v.as_str()
+                && !s.is_empty()
+            {
+                out.push(PathBuf::from(s));
+            }
+        }
+    }
+    out
+}
+
+/// 规范化路径：先 `canonicalize`（解析符号链接、绝对化），失败时退化为词法规范化
+///
+/// 用于统一比较基准，防止 `../` 跨越与符号链接逃逸。
+fn normalize_path(path: &Path) -> PathBuf {
+    match std::fs::canonicalize(path) {
+        Ok(canon) => simplify_unc(canon),
+        Err(_) => lexical_normalize(path),
+    }
+}
+
+/// 去掉 Windows `canonicalize` 产生的 `\\?\` 前缀
+///
+/// Windows 上 `std::fs::canonicalize` 返回 UNC 形式 `\\?\D:\foo`，
+/// 与配置中的普通路径 `D:\foo` 按组件比较会因 Prefix 不同而失败。
+/// 统一去掉前缀，保证两侧比较基准一致。
+#[cfg(windows)]
+fn simplify_unc(path: PathBuf) -> PathBuf {
+    let s = path.to_string_lossy();
+    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(stripped.to_string())
+    } else {
+        path
+    }
+}
+
+#[cfg(not(windows))]
+fn simplify_unc(path: PathBuf) -> PathBuf {
+    path
+}
+
+/// 词法规范化路径（处理 `.` 和 `..`，不解析符号链接）
+///
+/// 用于 `canonicalize` 失败（文件不存在等）时的回退，至少消除 `.`/`..`
+/// 段，避免明显的路径穿越逃逸。
+fn lexical_normalize(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let mut out: Vec<Component> = Vec::new();
+    for comp in path.components() {
+        match comp {
+            Component::CurDir => {},
+            Component::ParentDir => {
+                // 回退一级：保留 RootDir / Prefix，避免 `..` 越过根
+                if let Some(last) = out.last()
+                    && !matches!(last, Component::RootDir | Component::Prefix(_))
+                {
+                    out.pop();
+                }
+            },
+            c => out.push(c),
+        }
+    }
+    out.iter().collect()
+}
+
+/// 校验文件路径是否符合沙箱策略
+///
+/// 规则（与现有 bash sandbox 保持一致）：
+/// 1. `denied_paths` 命中即拒绝（优先级最高）
+/// 2. `allowed_paths` 非空时，必须在任一 `allowed_paths` 内（任一匹配即通过）
+/// 3. `allowed_paths` 为空时，默认只允许 `workspace_root` 内的路径
+/// 4. 路径规范化（`canonicalize` + 词法回退）后再比较，防止 `../` 穿越
+///
+/// 相对路径会先 join `working_dir` 再规范化，确保比较基准正确。
+fn validate_file_paths(
+    paths: &[PathBuf],
+    sandbox: &crate::AccessPolicyValidator,
+    working_dir: &str,
+) -> Result<(), String> {
+    let config = sandbox.config();
+    let working_dir_norm = normalize_path(Path::new(working_dir));
+    let allowed_empty = config.allowed_paths.is_empty();
+
+    for path in paths {
+        // 相对路径先 join working_dir，确保规范化后能正确比较
+        let abs_path = if path.is_absolute() {
+            path.clone()
+        } else {
+            Path::new(working_dir).join(path)
+        };
+        let norm = normalize_path(&abs_path);
+
+        // 1. denied_paths 检查（优先级最高）
+        for denied in &config.denied_paths {
+            let denied_norm = normalize_path(denied);
+            if norm.starts_with(&denied_norm) {
+                return Err(format!("路径 '{}' 在沙箱禁止列表中", path.display()));
+            }
+        }
+
+        // 2. allowed_paths 处理
+        if allowed_empty {
+            // 未配置 allowed_paths：默认只允许 workspace_root 内
+            if !norm.starts_with(&working_dir_norm) {
+                return Err(format!(
+                    "路径 '{}' 不在工作区 '{}' 内（allowed_paths 未配置）",
+                    path.display(),
+                    working_dir
+                ));
+            }
+        } else {
+            // 配置了 allowed_paths：必须在任一允许路径内
+            let is_allowed = config.allowed_paths.iter().any(|allowed| {
+                let allowed_norm = normalize_path(allowed);
+                norm.starts_with(&allowed_norm)
+            });
+            if !is_allowed {
+                return Err(format!("路径 '{}' 不在沙箱允许列表中", path.display()));
+            }
+        }
+    }
+    Ok(())
 }
 
 impl Default for UnifiedToolRegistry {
@@ -1447,5 +1622,233 @@ mod tests {
 
         let by_alias = registry.find("echo_test").unwrap();
         assert_eq!(by_alias.name(), "echo");
+    }
+}
+
+// ============================================================
+// 文件类工具沙箱路径校验测试
+// ============================================================
+
+#[cfg(test)]
+mod file_sandbox_tests {
+    use super::*;
+    use crate::SandboxConfig;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    /// 创建唯一的临时目录用于测试（避免并行测试冲突）
+    fn make_temp_dir(prefix: &str) -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "axagent_test_{}_{}_{}",
+            prefix,
+            std::process::id(),
+            nanos
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn extract_paths_single_fields() {
+        let args = serde_json::json!({
+            "file_path": "/a/b.txt",
+            "path": "/c",
+            "source": "/d/src",
+            "destination": "/e/dst",
+            "target_path": "/t",
+            "source_path": "/sp",
+            "notebook_path": "/nb",
+            "vault_path": "/v"
+        });
+        let paths = extract_paths_from_args(&args);
+        assert_eq!(paths.len(), 8);
+        assert!(paths.contains(&PathBuf::from("/a/b.txt")));
+        assert!(paths.contains(&PathBuf::from("/c")));
+        assert!(paths.contains(&PathBuf::from("/d/src")));
+        assert!(paths.contains(&PathBuf::from("/e/dst")));
+    }
+
+    #[test]
+    fn extract_paths_array_field() {
+        let args = serde_json::json!({ "paths": ["/x", "/y", "/z"] });
+        let paths = extract_paths_from_args(&args);
+        assert_eq!(paths.len(), 3);
+        assert!(paths.contains(&PathBuf::from("/x")));
+    }
+
+    #[test]
+    fn extract_paths_ignores_empty_and_null() {
+        let args = serde_json::json!({
+            "file_path": "",
+            "path": "/c",
+            "target_path": null,
+            "source": "/s"
+        });
+        let paths = extract_paths_from_args(&args);
+        // file_path 空字符串跳过，target_path null 跳过
+        assert_eq!(paths.len(), 2);
+        assert!(paths.contains(&PathBuf::from("/c")));
+        assert!(paths.contains(&PathBuf::from("/s")));
+    }
+
+    #[test]
+    fn extract_paths_empty_object_returns_empty() {
+        let paths = extract_paths_from_args(&serde_json::json!({}));
+        assert!(paths.is_empty());
+    }
+
+    #[test]
+    fn validate_allowed_inside_workspace_passes() {
+        let workspace = make_temp_dir("ws");
+        let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+        let inside = workspace.join("file.txt");
+        std::fs::write(&inside, "test").unwrap();
+
+        let result = validate_file_paths(&[inside], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_ok(), "工作区内路径应允许");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    #[test]
+    fn validate_outside_workspace_is_denied() {
+        let workspace = make_temp_dir("ws");
+        let outside = make_temp_dir("out");
+        let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+        let outside_file = outside.join("secret.txt");
+        std::fs::write(&outside_file, "secret").unwrap();
+
+        let result = validate_file_paths(&[outside_file], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_err(), "工作区外路径应拒绝");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+        let _ = std::fs::remove_dir_all(&outside);
+    }
+
+    #[test]
+    fn validate_denied_list_takes_priority() {
+        let workspace = make_temp_dir("ws");
+        let secret_dir = workspace.join("secret");
+        std::fs::create_dir_all(&secret_dir).unwrap();
+        let config = SandboxConfig {
+            allowed_paths: vec![workspace.clone()],
+            denied_paths: vec![secret_dir.clone()],
+            ..Default::default()
+        };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+        let secret_file = secret_dir.join("key.txt");
+        std::fs::write(&secret_file, "key").unwrap();
+
+        let result = validate_file_paths(&[secret_file], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_err(), "denied_paths 命中应拒绝（即使在工作区内）");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    #[test]
+    fn validate_empty_allowed_defaults_to_workspace() {
+        let workspace = make_temp_dir("ws");
+        let outside = make_temp_dir("out");
+        // allowed_paths 为空 → 默认只允许 workspace_root 内
+        let config = SandboxConfig { allowed_paths: vec![], ..Default::default() };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+
+        // 工作区内允许
+        let inside = workspace.join("file.txt");
+        std::fs::write(&inside, "test").unwrap();
+        let result = validate_file_paths(&[inside], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_ok(), "allowed_paths 为空时工作区内路径应允许");
+
+        // 工作区外拒绝
+        let outside_file = outside.join("secret.txt");
+        std::fs::write(&outside_file, "secret").unwrap();
+        let result = validate_file_paths(&[outside_file], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_err(), "allowed_paths 为空时工作区外路径应拒绝");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+        let _ = std::fs::remove_dir_all(&outside);
+    }
+
+    #[test]
+    fn validate_traversal_dotdot_is_blocked() {
+        let workspace = make_temp_dir("ws");
+        // 在 workspace 的父目录下创建一个真实逃逸目录，使 canonicalize 能成功
+        let escaped = workspace.parent().unwrap().join("axagent_escaped_test");
+        std::fs::create_dir_all(&escaped).unwrap();
+        let escaped_file = escaped.join("secret.txt");
+        std::fs::write(&escaped_file, "secret").unwrap();
+
+        let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+
+        // 用 ../ 形式构造穿越路径，canonicalize 后会解析到 workspace 父目录
+        let traversal = workspace.join("..").join("axagent_escaped_test").join("secret.txt");
+        let result = validate_file_paths(&[traversal], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_err(), "../ 穿越路径应被拒绝");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+        let _ = std::fs::remove_dir_all(&escaped);
+    }
+
+    #[test]
+    fn validate_relative_path_resolved_against_working_dir() {
+        let workspace = make_temp_dir("ws");
+        let subdir = workspace.join("sub");
+        std::fs::create_dir_all(&subdir).unwrap();
+        let file = subdir.join("file.txt");
+        std::fs::write(&file, "test").unwrap();
+
+        let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+
+        // 相对路径 "sub/file.txt" 应被 join working_dir 后通过校验
+        let rel = PathBuf::from("sub").join("file.txt");
+        let result = validate_file_paths(&[rel], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_ok(), "工作区内相对路径应允许");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    #[test]
+    fn validate_multiple_paths_all_must_pass() {
+        let workspace = make_temp_dir("ws");
+        let outside = make_temp_dir("out");
+        let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
+        let sandbox = crate::AccessPolicyValidator::new(config);
+
+        let inside = workspace.join("a.txt");
+        std::fs::write(&inside, "a").unwrap();
+        let outside_file = outside.join("b.txt");
+        std::fs::write(&outside_file, "b").unwrap();
+
+        // 一个在工作区内，一个在外 → 整体拒绝
+        let result =
+            validate_file_paths(&[inside, outside_file], &sandbox, workspace.to_str().unwrap());
+        assert!(result.is_err(), "多路径中任一越权应整体拒绝");
+
+        let _ = std::fs::remove_dir_all(&workspace);
+        let _ = std::fs::remove_dir_all(&outside);
+    }
+
+    #[test]
+    fn lexical_normalize_handles_dotdot() {
+        let p = Path::new("/a/b/../c");
+        assert_eq!(lexical_normalize(p), PathBuf::from("/a/c"));
+    }
+
+    #[test]
+    fn lexical_normalize_handles_curdir() {
+        let p = Path::new("/a/./b");
+        assert_eq!(lexical_normalize(p), PathBuf::from("/a/b"));
+    }
+
+    #[test]
+    fn lexical_normalize_does_not_escape_root() {
+        // /.. 不应越过根，保留为 /
+        let p = Path::new("/../etc");
+        assert_eq!(lexical_normalize(p), PathBuf::from("/etc"));
     }
 }

@@ -79,9 +79,20 @@ impl CredentialManager {
                 Ok(request.basic_auth(username, Some(password)))
             },
             CredentialType::BearerToken { token } => Ok(request.bearer_auth(token)),
-            CredentialType::OAuth2 { .. } => Err(CredentialError::Internal(
-                "OAuth2 credential injection not yet implemented".to_string(),
-            )),
+            CredentialType::OAuth2 { access_token, .. } => {
+                // 过期检测：阻断已过期的 token，避免无效请求
+                if credential.credential_type.is_oauth2_expired() {
+                    return Err(CredentialError::Validation(
+                        "OAuth2 access token 已过期，需要刷新".to_string(),
+                    ));
+                }
+                let token = access_token.as_ref().ok_or_else(|| {
+                    CredentialError::Validation(
+                        "OAuth2 凭证尚未授权（access_token 缺失，需先刷新）".to_string(),
+                    )
+                })?;
+                Ok(request.bearer_auth(token))
+            },
             _ => Ok(request),
         }
     }
@@ -98,6 +109,20 @@ impl CredentialManager {
             CredentialType::BasicAuth { username, password } => {
                 let encoded = BASE64.encode(format!("{username}:{password}"));
                 Ok(vec![("Authorization".to_string(), format!("Basic {encoded}"))])
+            },
+            CredentialType::OAuth2 { access_token, .. } => {
+                // 过期检测：阻断已过期的 token
+                if credential.credential_type.is_oauth2_expired() {
+                    return Err(CredentialError::Validation(
+                        "OAuth2 access token 已过期，需要刷新".to_string(),
+                    ));
+                }
+                let token = access_token.as_ref().ok_or_else(|| {
+                    CredentialError::Validation(
+                        "OAuth2 凭证尚未授权（access_token 缺失，需先刷新）".to_string(),
+                    )
+                })?;
+                Ok(vec![("Authorization".to_string(), format!("Bearer {token}"))])
             },
             _ => Ok(vec![]),
         }
@@ -251,6 +276,52 @@ mod tests {
         let hdrs = tm.mgr.get_auth_headers(&basic).unwrap();
         let expected = format!("Basic {}", BASE64.encode("u:p"));
         assert_eq!(hdrs, vec![("Authorization".to_string(), expected)]);
+
+        // OAuth2：有 access_token 且未过期 → 返回 Bearer
+        let oauth_ok = Credential::new(
+            "d".into(),
+            "d".into(),
+            CredentialType::OAuth2 {
+                client_id: "ci".into(),
+                client_secret: "cs".into(),
+                token_url: "tu".into(),
+                scopes: vec!["s1".into()],
+                access_token: Some("access-tok".into()),
+                expires_at: Some(chrono::Utc::now().timestamp_millis() + 3_600_000),
+            },
+        );
+        let hdrs = tm.mgr.get_auth_headers(&oauth_ok).unwrap();
+        assert_eq!(hdrs, vec![("Authorization".to_string(), "Bearer access-tok".to_string())]);
+
+        // OAuth2：access_token 为 None → 返回 Validation 错误
+        let oauth_no_token = Credential::new(
+            "e".into(),
+            "e".into(),
+            CredentialType::OAuth2 {
+                client_id: "ci".into(),
+                client_secret: "cs".into(),
+                token_url: "tu".into(),
+                scopes: vec!["s1".into()],
+                access_token: None,
+                expires_at: None,
+            },
+        );
+        assert!(tm.mgr.get_auth_headers(&oauth_no_token).is_err());
+
+        // OAuth2：已过期 → 返回 Validation 错误
+        let oauth_expired = Credential::new(
+            "f".into(),
+            "f".into(),
+            CredentialType::OAuth2 {
+                client_id: "ci".into(),
+                client_secret: "cs".into(),
+                token_url: "tu".into(),
+                scopes: vec!["s1".into()],
+                access_token: Some("access-tok".into()),
+                expires_at: Some(chrono::Utc::now().timestamp_millis() - 1_000),
+            },
+        );
+        assert!(tm.mgr.get_auth_headers(&oauth_expired).is_err());
     }
 
     #[tokio::test]

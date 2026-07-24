@@ -1048,10 +1048,23 @@
     },
     "preferences": "Предпочтения",
     "profile": "Профиль",
+    "quote": {
+      "cancel": "Отменить цитирование",
+      "jumpHint": "Нажмите, чтобы перейти к исходному сообщению",
+      "reply": "Ответить с цитатой",
+      "replyingTo": "Ответ для",
+      "roleAssistant": "Ассистент",
+      "roleSystem": "Система",
+      "roleTool": "Инструмент",
+      "roleUser": "Пользователь"
+    },
     "quality": "Качество",
     "regenerate": "Регенерировать",
     "removeFromWorkspace": "Удалить из рабочей области",
     "rename": "Переименовать",
+    "latex": {
+      "parseError": "Ошибка разбора LaTeX"
+    },
     "renderingChart": "Рендеринг графика…",
     "rewardScale": "Масштаб",
     "rewardWeights": {
@@ -2472,6 +2485,10 @@
     "MCP_TIMEOUT": "Превышено время ожидания MCP операции",
     "MCP_TOOL_DISCOVERY_TIMEOUT": "Превышено время обнаружения MCP инструментов",
     "MCP_TRANSPORT_UNSUPPORTED": "Неподдерживаемый тип MCP транспорта",
+    "MARKETPLACE_INSTALL_FAILED": "Не удалось установить шаблон магазина",
+    "MARKETPLACE_NOT_FOUND": "Элемент магазина не найден",
+    "MARKETPLACE_PUBLISH_FAILED": "Не удалось опубликовать шаблон магазина",
+    "MARKETPLACE_UNINSTALL_FAILED": "Не удалось удалить шаблон магазина",
     "MEMORY_CONSOLIDATE_FAILED": "Не удалось консолидировать память",
     "MEMORY_CREATE_FAILED": "Не удалось создать память",
     "MEMORY_DELETE_FAILED": "Не удалось удалить память",
@@ -2862,7 +2879,31 @@
     "totalItems": "{{total}} элементов",
     "workflow": "工作流",
     "cleanup": "清理",
-    "reveal": "定位"
+    "reveal": "定位",
+    "contextDelete": "Удалить",
+    "contextMkdir": "Новая папка",
+    "contextMove": "Переместить…",
+    "contextRename": "Переименовать",
+    "deleteConfirmContent": "Вы уверены, что хотите удалить «{{name}}»? Это действие нельзя отменить.",
+    "deleteConfirmTitle": "Подтверждение удаления",
+    "mkdirPlaceholder": "Введите имя папки",
+    "mkdirSuccess": "Папка создана",
+    "mkdirTitle": "Новая папка",
+    "movePlaceholder": "Введите полный путь к целевой директории",
+    "moveSuccess": "Перемещено",
+    "moveTitle": "Переместить в",
+    "previewDirType": "Папка",
+    "previewEmpty": "Выберите файл для предпросмотра",
+    "previewFailed": "Не удалось загрузить предпросмотр",
+    "previewModified": "Изменён",
+    "previewPath": "Путь",
+    "previewSize": "Размер",
+    "previewTitle": "Предпросмотр файла",
+    "previewType": "Тип",
+    "previewUnknownType": "Неизвестно",
+    "renameSuccess": "Переименовано",
+    "renameTitle": "Переименовать",
+    "treeEmpty": "Пустая директория"
   },
   "fineTune": {
     "dataset": {
@@ -3742,7 +3783,9 @@
     "marketplace": "市场",
     "prompts": "提示词",
     "recommend": "推荐",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "Маркетплейс",
+    "dynamicUI": "Динамические страницы"
   },
   "notification": {
     "clear": "Очистить",

@@ -95,8 +95,9 @@ impl GatewayKeyRepository for DefaultGatewayKeyRepository {
         request_tokens: u64,
         response_tokens: u64,
         cached_input_tokens: u64,
+        cost_usd: f64,
     ) -> Result<()> {
-        repo::gateway::record_usage(
+        repo::gateway_usage::record_usage(
             &self.db,
             key_id,
             provider_id,
@@ -104,8 +105,13 @@ impl GatewayKeyRepository for DefaultGatewayKeyRepository {
             request_tokens,
             response_tokens,
             cached_input_tokens,
+            cost_usd,
         )
         .await
+    }
+
+    async fn get_metrics(&self) -> Result<axagent_harness::types::GatewayMetrics> {
+        repo::gateway_usage::get_metrics(&self.db).await
     }
 }
 

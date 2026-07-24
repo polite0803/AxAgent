@@ -812,6 +812,9 @@ mod tests_conversation {
             telemetry_level_handle: Arc::new(std::sync::RwLock::new(
                 axagent_telemetry::TelemetryLevel::default(),
             )),
+            telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
+                as Arc<dyn axagent_telemetry::TelemetrySink>,
+            persistent_runner: None,
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
             harness: axagent_runtime::harness::RuntimeHarness::new(

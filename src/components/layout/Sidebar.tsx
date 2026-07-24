@@ -101,6 +101,13 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
+    key: "marketplace",
+    icon: <Icon icon="fluent:store-microsoft-20-filled" size={17} />,
+    labelKey: "nav.marketplace",
+    path: BUILTIN_PAGE_PATH.marketplace,
+    isPlugin: false,
+  },
+  {
     key: "dynamic-ui",
     icon: <Icon icon="fluent:apps-20-filled" size={17} />,
     labelKey: "nav.dynamicUI",
@@ -320,22 +327,26 @@ function MobileActions() {
       }}
     >
       <Tooltip title={t("desktop.alwaysOnTop")} placement="right">
-        <button style={btnBase} onClick={togglePin}>
+        <button style={btnBase} onClick={togglePin} aria-label={t("desktop.alwaysOnTop")} aria-pressed={pinned}>
           {pinned ? <Pin size={16} /> : <PinOff size={16} />}
         </button>
       </Tooltip>
       <Tooltip title={t("settings.groupTheme")} placement="right">
-        <button style={btnBase} onClick={cycleTheme}>
+        <button style={btnBase} onClick={cycleTheme} aria-label={t("settings.groupTheme")}>
           <ThemeIcon size={16} />
         </button>
       </Tooltip>
       <Tooltip title={t("desktop.reloadPage")} placement="right">
-        <button style={btnBase} onClick={() => window.location.reload()}>
+        <button style={btnBase} onClick={() => window.location.reload()} aria-label={t("desktop.reloadPage")}>
           <RotateCcw size={16} />
         </button>
       </Tooltip>
       <Tooltip title={t("settings.openSettings")} placement="right">
-        <button style={btnBase} onClick={() => navigate(BUILTIN_PAGE_PATH.settings)}>
+        <button
+          style={btnBase}
+          onClick={() => navigate(BUILTIN_PAGE_PATH.settings)}
+          aria-label={t("settings.openSettings")}
+        >
           <Settings size={16} />
         </button>
       </Tooltip>
@@ -383,7 +394,7 @@ export function Sidebar() {
       labelKey: "sidebar.sectionInfrastructure",
       items: builtinNavItems.filter((n) =>
         n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
-        || n.key === "dynamic-ui"
+        || n.key === "marketplace" || n.key === "dynamic-ui"
       ),
     });
 

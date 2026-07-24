@@ -329,11 +329,40 @@ pub struct AppState {
     /// 2.7 P1:遥测级别共享句柄 — 启动时从 `AppSettings.telemetry_level`
     /// 读取初值,`save_settings` 命令检测到变更后更新此句柄;运行中的
     /// `FilteringSink` 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
-    ///
-    /// 当前主 crate 未实例化 `JsonlTelemetrySink`(基础设施已就绪但未接入
-    /// 生产路径),此字段先行就位 — 未来接入 sink 时直接
-    /// `FilteringSink::new(inner, *handle.read().unwrap())` 即可。
     pub telemetry_level_handle: Arc<std::sync::RwLock<TelemetryLevel>>,
+    /// 2.7 P1:生产实例化的遥测 sink 链根节点。
+    ///
+    /// 由 wiring 层(`init/state.rs`)在构造 AppState 时实例化:
+    /// 1. `JsonlTelemetrySink::new(app_dir/telemetry.jsonl)` — 落盘 sink
+    /// 2. `FilteringSink::new_with_handle(inner, telemetry_level_handle)` — 按级别过滤
+    ///
+    /// 同一份 `telemetry_level_handle` 同时挂载到本字段与 `FilteringSink.level`,
+    /// 因此 `save_settings` 更新 handle 时 sink 链立即响应,无需重建。
+    ///
+    /// 消费方:agent / streaming / providers 等通过
+    /// `SessionTracer::new(sid, sink.clone())` 创建会话级 tracer,
+    /// 所有 `record()` 调用都会经过 `FilteringSink` 过滤后落盘。
+    pub telemetry_sink: Arc<dyn axagent_telemetry::TelemetrySink>,
+
+    /// 3.3 P2:持久化重试调度器(可选,None = 未启用)。
+    ///
+    /// 由 wiring 层在 `create_app_state` 中根据 `UnifiedConfig.persistent_runner.enabled`
+    /// 决定是否构造。`enabled: false`(默认)时不构造,零开销。
+    ///
+    /// 启用后,`start_background_services` 会调用 `spawn_daemon` 启动后台守护循环,
+    /// 每 60 秒检查 pending session 并调度执行。
+    ///
+    /// **注意**:当前 executor 闭包为占位实现(返回 `Err("not implemented")`),
+    /// 真正的 SessionManager 适配器需后续实现。启用配置后守护线程会运行,
+    /// 但实际执行会失败并记录 warn 日志。
+    pub persistent_runner: Option<Arc<axagent_runtime::persistent_runner::PersistentRunner>>,
+
+    /// 统一事件总线(跨 crate 事件流标准入口)。
+    ///
+    /// 由 wiring 层(src/init/state.rs)在构造 AppState 时实例化,
+    /// 同一份 `Arc<dyn EventBus>` 注入到 agent / rt-workflow / orchestrator 三方,
+    /// 供跨 crate 事件订阅者消费。未注入时三方保持原有行为。
+    pub event_bus: Arc<dyn axagent_harness::EventBus>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

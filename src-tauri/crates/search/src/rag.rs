@@ -1177,6 +1177,10 @@ pub type LlmCallFn = std::sync::Arc<
 /// 带管线增强的上下文收集（新入口）
 ///
 /// 相比 collect_rag_context 增加了查询增强、重排序和质检阶段。
+///
+/// `api_key`：云端 reranker（cohere/jina/voyage）的实际 API Key，
+/// 由 wiring 层（`indexing.rs::collect_rag_context`）从 `CredentialManager` 解析后注入。
+/// 为 `None` 时云端 backend 自动降级到 `RuleReranker`（本地规则排序）。
 #[allow(clippy::too_many_arguments)]
 pub async fn collect_rag_context_with_pipeline(
     db: &DatabaseConnection,
@@ -1190,6 +1194,7 @@ pub async fn collect_rag_context_with_pipeline(
     embed_fn: impl AsyncEmbedFn,
     pipeline_config: &axagent_harness::types::RAGPipelineConfig,
     llm_fn: Option<LlmCallFn>,
+    api_key: Option<String>,
 ) -> RagContextResult {
     // 阶段 0：查询增强
     let queries: Vec<String> = if pipeline_config.query_enhancement.enabled {
@@ -1232,7 +1237,7 @@ pub async fn collect_rag_context_with_pipeline(
         .await;
     }
 
-    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config);
+    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, None, api_key);
 
     if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
         return RagContextResult { context_parts: vec![], source_results: vec![] };

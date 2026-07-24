@@ -1,96 +1,57 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { ImportExportModal } from "@/components/workflow/Templates/ImportExportModal";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { MarketplaceStats, reviewApi, ReviewResponse } from "@/lib/reviewApi";
-import { DownloadOutlined, DownloadOutlined as DLOutlined, StarOutlined, UploadOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Card,
-  Empty,
-  Form,
-  Input,
-  message,
-  Modal,
-  Rate,
-  Space,
-  Spin,
-  Tabs,
-  Tag,
-  theme,
-  Typography,
-} from "antd";
-import { useCallback, useState } from "react";
+import { DownloadOutlined, StarOutlined, UploadOutlined } from "@ant-design/icons";
+import { App, Button, Card, Empty, Form, Input, Modal, Rate, Space, Spin, Tabs, Tag, theme, Typography } from "antd";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 
-interface MarketplaceTemplate {
+/**
+ * 目录条目类型，与后端 `axagent_harness::marketplace::CatalogItem` 对齐
+ * （serde rename_all = "camelCase" 序列化）。
+ */
+interface CatalogItem {
   id: string;
+  /** "workflow_template" 或 "skill" */
+  itemType: string;
   name: string;
   description?: string;
-  category: string;
-  author: string;
-  downloads: number;
-  rating: number;
-  isFeatured: boolean;
-  icon: string;
-  tags?: string[];
+  category?: string;
+  author?: string;
+  tags: string[];
+  version?: string;
+  /** 是否已安装到本地 */
+  installed: boolean;
+  ratingAverage?: number;
+  downloadCount?: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
-const mockTemplates: MarketplaceTemplate[] = [
-  {
-    id: "1",
-    name: "Document Summarizer",
-    description: "Automatically summarize long documents into concise summaries",
-    category: "Productivity",
-    author: "System",
-    downloads: 1250,
-    rating: 4.5,
-    isFeatured: true,
-    icon: "FileText",
-    tags: ["summarization", "documents"],
-  },
-  {
-    id: "2",
-    name: "Code Review Assistant",
-    description: "AI-powered code review with best practices suggestions",
-    category: "Development",
-    author: "Community",
-    downloads: 890,
-    rating: 4.8,
-    isFeatured: true,
-    icon: "Code",
-    tags: ["code", "review"],
-  },
-  {
-    id: "3",
-    name: "Data Pipeline Builder",
-    description: "Build and manage ETL data pipelines",
-    category: "Data",
-    author: "Community",
-    downloads: 567,
-    rating: 4.2,
-    isFeatured: false,
-    icon: "Database",
-    tags: ["data", "pipeline"],
-  },
-  {
-    id: "4",
-    name: "Customer Support Bot",
-    description: "Automated customer support workflow",
-    category: "Business",
-    author: "System",
-    downloads: 2100,
-    rating: 4.6,
-    isFeatured: true,
-    icon: "CustomerService",
-    tags: ["support", "automation"],
-  },
-];
+/** 市场目录查询参数（与后端 CatalogQuery 对齐）。 */
+interface CatalogQuery {
+  keyword?: string;
+  category?: string;
+  itemType?: string;
+  limit?: number;
+  offset?: number;
+}
 
-const categories = [
+/** 市场目录分页结果（与后端 CatalogPage 对齐）。 */
+interface CatalogPage {
+  items: CatalogItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+const CATEGORIES = [
   "All",
   "Productivity",
   "Development",
@@ -106,14 +67,13 @@ function formatDate(timestamp: number): string {
 
 /**
  * Extracted component for rendering a template card.
- * Fixes react-doctor/no-render-in-render by moving renderTemplateCard() out of WorkflowMarketplace.
  */
 function TemplateCard({
   template,
   onTemplateClick,
 }: {
-  template: MarketplaceTemplate;
-  onTemplateClick: (template: MarketplaceTemplate) => void;
+  template: CatalogItem;
+  onTemplateClick: (template: CatalogItem) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -131,7 +91,9 @@ function TemplateCard({
             borderBottom: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
-          <span style={{ fontSize: 48 }}>📄</span>
+          <span style={{ fontSize: 48 }}>
+            {template.itemType === "skill" ? "⚡" : "📄"}
+          </span>
         </div>
       }
       styles={{
@@ -142,9 +104,9 @@ function TemplateCard({
         title={
           <Space size={4}>
             <Text strong>{template.name}</Text>
-            {template.isFeatured && (
-              <Tag color="gold" style={{ margin: 0 }}>
-                {t("marketplace.featured")}
+            {template.installed && (
+              <Tag color="green" style={{ margin: 0 }}>
+                {t("marketplace.installed")}
               </Tag>
             )}
           </Space>
@@ -152,17 +114,21 @@ function TemplateCard({
         description={
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
-              {template.description}
+              {template.description ?? t("marketplace.noDescription")}
             </Text>
             <Space size={8}>
-              <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
-                <StarOutlined style={{ fontSize: 12, marginRight: 4 }} />
-                {template.rating}
-              </Tag>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                <DownloadOutlined style={{ fontSize: 12, marginRight: 4 }} />
-                {template.downloads}
-              </Text>
+              {template.ratingAverage !== undefined && template.ratingAverage > 0 && (
+                <Tag color="blue" style={{ margin: 0, fontSize: 12 }}>
+                  <StarOutlined style={{ fontSize: 12, marginRight: 4 }} />
+                  {template.ratingAverage.toFixed(1)}
+                </Tag>
+              )}
+              {template.downloadCount !== undefined && template.downloadCount > 0 && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  <DownloadOutlined style={{ fontSize: 12, marginRight: 4 }} />
+                  {template.downloadCount}
+                </Text>
+              )}
             </Space>
           </div>
         }
@@ -173,14 +139,17 @@ function TemplateCard({
 
 export function WorkflowMarketplace() {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const { token } = theme.useToken();
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [templates] = useState<MarketplaceTemplate[]>(mockTemplates);
+  const [templates, setTemplates] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedTemplate, setSelectedTemplate] = useState<MarketplaceTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<CatalogItem | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("templates");
+  const [installing, setInstalling] = useState(false);
 
   const [reviews, setReviews] = useState<ReviewResponse[]>([]);
   const [myReview, setMyReview] = useState<ReviewResponse | null>(null);
@@ -189,6 +158,29 @@ export function WorkflowMarketplace() {
   const [submittingReview, setSubmittingReview] = useState(false);
 
   const [reviewForm] = Form.useForm();
+
+  // ── 加载市场目录 ──
+  const loadCatalog = useCallback(async () => {
+    setLoading(true);
+    try {
+      const query: CatalogQuery = {
+        keyword: searchText.trim() || undefined,
+        category: selectedCategory !== "All" ? selectedCategory : undefined,
+        limit: 100,
+        offset: 0,
+      };
+      const page = await invoke<CatalogPage>("list_marketplace_catalog", { query });
+      setTemplates(page.items);
+    } catch (e) {
+      showBackendError(message, e, { context: "list_marketplace_catalog" });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchText, selectedCategory, message]);
+
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
 
   const loadReviews = useCallback(async (marketplaceId: string) => {
     setLoadingReviews(true);
@@ -208,7 +200,7 @@ export function WorkflowMarketplace() {
     }
   }, []);
 
-  const handleTemplateClick = (template: MarketplaceTemplate) => {
+  const handleTemplateClick = (template: CatalogItem) => {
     setSelectedTemplate(template);
     setIsDetailOpen(true);
     loadReviews(template.id);
@@ -245,10 +237,8 @@ export function WorkflowMarketplace() {
       }
       loadReviews(selectedTemplate.id);
       reviewForm.resetFields();
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : t("review.failedToSubmit"),
-      );
+    } catch (e) {
+      showBackendError(message, e, { context: "submitReview" });
     } finally {
       setSubmittingReview(false);
     }
@@ -265,22 +255,32 @@ export function WorkflowMarketplace() {
       if (selectedTemplate) {
         loadReviews(selectedTemplate.id);
       }
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : t("review.failedToDelete"),
-      );
+    } catch (e) {
+      showBackendError(message, e, { context: "deleteReview" });
     }
   };
 
-  const filteredTemplates = templates.filter((t) => {
-    const matchesSearch = t.name.toLowerCase().includes(searchText.toLowerCase())
-      || t.description?.toLowerCase().includes(searchText.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || t.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const handleDownload = (template: MarketplaceTemplate) => {
-    message.success(t("marketplace.downloading", { name: template.name }));
+  // ── 安装模板：调用后端 install_marketplace_template ──
+  const handleDownload = async (template: CatalogItem) => {
+    // 技能类目录项已恒为 installed=true，无需安装
+    if (template.itemType === "skill" || template.installed) {
+      message.info(t("marketplace.alreadyInstalled"));
+      return;
+    }
+    setInstalling(true);
+    try {
+      await invoke<void>("install_marketplace_template", { templateId: template.id });
+      message.success(t("marketplace.installSuccess", { name: template.name }));
+      // 刷新目录以反映 installed 状态变更
+      void loadCatalog();
+      if (selectedTemplate?.id === template.id) {
+        setSelectedTemplate({ ...template, installed: true });
+      }
+    } catch (e) {
+      showBackendError(message, e, { context: "install_marketplace_template" });
+    } finally {
+      setInstalling(false);
+    }
   };
 
   const handleImport = () => {
@@ -293,6 +293,17 @@ export function WorkflowMarketplace() {
       { json_data: jsonData },
     );
   };
+
+  const filteredTemplates = templates.filter((item) => {
+    const matchesSearch = item.name.toLowerCase().includes(searchText.toLowerCase())
+      || item.description?.toLowerCase().includes(searchText.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const featuredTemplates = filteredTemplates.filter((item) =>
+    item.ratingAverage !== undefined && item.ratingAverage >= 4.5
+  );
 
   const renderReviewsTab = () => (
     <div className="space-y-4">
@@ -420,7 +431,7 @@ export function WorkflowMarketplace() {
           {t("marketplace.categories")}
         </Title>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {categories.map((cat) => (
+          {CATEGORIES.map((cat) => (
             <Button
               key={cat}
               type={selectedCategory === cat ? "primary" : "text"}
@@ -477,40 +488,45 @@ export function WorkflowMarketplace() {
               key: "templates",
               label: t("marketplace.templates"),
               children: (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: 16,
-                  }}
-                >
-                  {filteredTemplates.length > 0
-                    ? (
-                      filteredTemplates.map((t) => (
-                        <div key={t.id} style={{ position: "relative" }}>
-                          <TemplateCard
-                            template={t}
-                            onTemplateClick={handleTemplateClick}
-                          />
-                          <Button
-                            type="primary"
-                            icon={<DLOutlined />}
-                            style={{ position: "absolute", top: 8, right: 8 }}
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(t);
-                            }}
-                          />
+                <Spin spinning={loading}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: 16,
+                    }}
+                  >
+                    {filteredTemplates.length > 0
+                      ? (
+                        filteredTemplates.map((item) => (
+                          <div key={item.id} style={{ position: "relative" }}>
+                            <TemplateCard
+                              template={item}
+                              onTemplateClick={handleTemplateClick}
+                            />
+                            {!item.installed && (
+                              <Button
+                                type="primary"
+                                icon={<DownloadOutlined />}
+                                style={{ position: "absolute", top: 8, right: 8 }}
+                                size="small"
+                                loading={installing}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleDownload(item);
+                                }}
+                              />
+                            )}
+                          </div>
+                        ))
+                      )
+                      : (
+                        <div style={{ gridColumn: "span 3" }}>
+                          <Empty description={t("marketplace.noTemplatesFound")} />
                         </div>
-                      ))
-                    )
-                    : (
-                      <div style={{ gridColumn: "span 3" }}>
-                        <Empty description={t("marketplace.noTemplatesFound")} />
-                      </div>
-                    )}
-                </div>
+                      )}
+                  </div>
+                </Spin>
               ),
             },
             {
@@ -524,28 +540,35 @@ export function WorkflowMarketplace() {
                     gap: 16,
                   }}
                 >
-                  {templates.flatMap((t) =>
-                    t.isFeatured
-                      ? [
-                        <div key={t.id} style={{ position: "relative" }}>
+                  {featuredTemplates.length > 0
+                    ? (
+                      featuredTemplates.map((item) => (
+                        <div key={item.id} style={{ position: "relative" }}>
                           <TemplateCard
-                            template={t}
+                            template={item}
                             onTemplateClick={handleTemplateClick}
                           />
-                          <Button
-                            type="primary"
-                            icon={<DLOutlined />}
-                            style={{ position: "absolute", top: 8, right: 8 }}
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(t);
-                            }}
-                          />
-                        </div>,
-                      ]
-                      : []
-                  )}
+                          {!item.installed && (
+                            <Button
+                              type="primary"
+                              icon={<DownloadOutlined />}
+                              style={{ position: "absolute", top: 8, right: 8 }}
+                              size="small"
+                              loading={installing}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleDownload(item);
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))
+                    )
+                    : (
+                      <div style={{ gridColumn: "span 3" }}>
+                        <Empty description={t("marketplace.noTemplatesFound")} />
+                      </div>
+                    )}
                 </div>
               ),
             },
@@ -576,9 +599,13 @@ export function WorkflowMarketplace() {
             key="download"
             type="primary"
             icon={<DownloadOutlined />}
-            onClick={() => selectedTemplate && handleDownload(selectedTemplate)}
+            loading={installing}
+            disabled={selectedTemplate?.installed}
+            onClick={() => selectedTemplate && void handleDownload(selectedTemplate)}
           >
-            {t("common.download")}
+            {selectedTemplate?.installed
+              ? t("marketplace.installed")
+              : t("common.download")}
           </Button>,
         ]}
         width={700}
@@ -594,42 +621,51 @@ export function WorkflowMarketplace() {
                     <Space direction="vertical" className="w-full" size="large">
                       <div>
                         <Text type="secondary">{t("common.description")}</Text>
-                        <div>{selectedTemplate.description}</div>
+                        <div>{selectedTemplate.description ?? t("marketplace.noDescription")}</div>
                       </div>
                       <div className="flex gap-8">
-                        <div>
-                          <Text type="secondary">{t("common.category")}</Text>
+                        {selectedTemplate.category && (
                           <div>
-                            <Tag>{selectedTemplate.category}</Tag>
+                            <Text type="secondary">{t("common.category")}</Text>
+                            <div>
+                              <Tag>{selectedTemplate.category}</Tag>
+                            </div>
+                          </div>
+                        )}
+                        {selectedTemplate.author && (
+                          <div>
+                            <Text type="secondary">
+                              {t("marketplace.author")}
+                            </Text>
+                            <div>{selectedTemplate.author}</div>
+                          </div>
+                        )}
+                        {selectedTemplate.downloadCount !== undefined && (
+                          <div>
+                            <Text type="secondary">
+                              {t("marketplace.downloads")}
+                            </Text>
+                            <div>{selectedTemplate.downloadCount}</div>
+                          </div>
+                        )}
+                      </div>
+                      {selectedTemplate.ratingAverage !== undefined
+                        && selectedTemplate.ratingAverage > 0 && (
+                        <div>
+                          <Text type="secondary">{t("common.rating")}</Text>
+                          <div>
+                            <Rate
+                              disabled
+                              value={selectedTemplate.ratingAverage}
+                              allowHalf
+                            />
+                            <Text className="ml-2">
+                              ({selectedTemplate.ratingAverage.toFixed(1)})
+                            </Text>
                           </div>
                         </div>
-                        <div>
-                          <Text type="secondary">
-                            {t("marketplace.author")}
-                          </Text>
-                          <div>{selectedTemplate.author}</div>
-                        </div>
-                        <div>
-                          <Text type="secondary">
-                            {t("marketplace.downloads")}
-                          </Text>
-                          <div>{selectedTemplate.downloads}</div>
-                        </div>
-                      </div>
-                      <div>
-                        <Text type="secondary">{t("common.rating")}</Text>
-                        <div>
-                          <Rate
-                            disabled
-                            defaultValue={selectedTemplate.rating}
-                            allowHalf
-                          />
-                          <Text className="ml-2">
-                            ({selectedTemplate.rating})
-                          </Text>
-                        </div>
-                      </div>
-                      {selectedTemplate.tags && (
+                      )}
+                      {selectedTemplate.tags.length > 0 && (
                         <div>
                           <Text type="secondary">{t("common.tags")}</Text>
                           <div className="flex gap-1 mt-1">

@@ -1048,10 +1048,23 @@
     },
     "preferences": "Préférences",
     "profile": "Profil",
+    "quote": {
+      "cancel": "Annuler la citation",
+      "jumpHint": "Cliquez pour aller au message d'origine",
+      "reply": "Répondre en citant",
+      "replyingTo": "Répondre à",
+      "roleAssistant": "Assistant",
+      "roleSystem": "Système",
+      "roleTool": "Outil",
+      "roleUser": "Utilisateur"
+    },
     "quality": "Qualité",
     "regenerate": "Régénérer",
     "removeFromWorkspace": "Retirer de l'espace de travail",
     "rename": "Renommer",
+    "latex": {
+      "parseError": "Échec de l'analyse LaTeX"
+    },
     "renderingChart": "Rendu du graphique…",
     "rewardScale": "Échelle",
     "rewardWeights": {
@@ -2472,6 +2485,10 @@
     "MCP_TIMEOUT": "Délai d'opération MCP dépassé",
     "MCP_TOOL_DISCOVERY_TIMEOUT": "Délai de découverte des outils MCP dépassé",
     "MCP_TRANSPORT_UNSUPPORTED": "Type de transport MCP non pris en charge",
+    "MARKETPLACE_INSTALL_FAILED": "Échec de l'installation du modèle de marketplace",
+    "MARKETPLACE_NOT_FOUND": "Élément de marketplace introuvable",
+    "MARKETPLACE_PUBLISH_FAILED": "Échec de la publication du modèle de marketplace",
+    "MARKETPLACE_UNINSTALL_FAILED": "Échec de la désinstallation du modèle de marketplace",
     "MEMORY_CONSOLIDATE_FAILED": "Échec de la consolidation de la mémoire",
     "MEMORY_CREATE_FAILED": "Échec de la création de la mémoire",
     "MEMORY_DELETE_FAILED": "Échec de la suppression de la mémoire",
@@ -2862,7 +2879,31 @@
     "totalItems": "{{total}} éléments",
     "workflow": "工作流",
     "cleanup": "清理",
-    "reveal": "定位"
+    "reveal": "定位",
+    "contextDelete": "Supprimer",
+    "contextMkdir": "Nouveau dossier",
+    "contextMove": "Déplacer vers…",
+    "contextRename": "Renommer",
+    "deleteConfirmContent": "Voulez-vous vraiment supprimer « {{name}} » ? Cette action est irréversible.",
+    "deleteConfirmTitle": "Confirmation de suppression",
+    "mkdirPlaceholder": "Entrez le nom du dossier",
+    "mkdirSuccess": "Dossier créé",
+    "mkdirTitle": "Nouveau dossier",
+    "movePlaceholder": "Entrez le chemin complet du répertoire cible",
+    "moveSuccess": "Déplacé",
+    "moveTitle": "Déplacer vers",
+    "previewDirType": "Dossier",
+    "previewEmpty": "Sélectionnez un fichier à prévisualiser",
+    "previewFailed": "Impossible de charger l'aperçu",
+    "previewModified": "Modifié",
+    "previewPath": "Chemin",
+    "previewSize": "Taille",
+    "previewTitle": "Aperçu du fichier",
+    "previewType": "Type",
+    "previewUnknownType": "Inconnu",
+    "renameSuccess": "Renommé",
+    "renameTitle": "Renommer",
+    "treeEmpty": "Dossier vide"
   },
   "fineTune": {
     "dataset": {
@@ -3742,7 +3783,9 @@
     "marketplace": "市场",
     "prompts": "提示词",
     "recommend": "推荐",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "Marché",
+    "dynamicUI": "Pages dynamiques"
   },
   "notification": {
     "clear": "Effacer",

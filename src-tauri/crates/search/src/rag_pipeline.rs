@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::sync::Arc;
+
 use sea_orm::DatabaseConnection;
 
 use crate::hybrid_search::HybridSearchResult;
@@ -7,6 +9,7 @@ use crate::rag::{self, AsyncEmbedFn};
 use crate::reranker::{self, RerankPipeline};
 use crate::self_rag::{RetrievalQuality, SelfRagGate};
 use crate::vector_store::VectorStore;
+use axagent_harness::InferenceEngine;
 use axagent_harness::core_error::Result;
 use axagent_harness::types::*;
 
@@ -17,9 +20,24 @@ pub struct RAGPipeline {
 }
 
 impl RAGPipeline {
-    pub fn new(config: &RAGPipelineConfig) -> Self {
+    /// 创建 RAG 管线。
+    ///
+    /// - `engine`：本地 Cross-Encoder 推理引擎（仅 `cross_encoder`/`pipeline` backend 需要）。
+    ///   传 `None` 时 cross_encoder 会降级到 rule reranker。
+    /// - `api_key`：云端 reranker（cohere/jina/voyage）的实际 API Key，
+    ///   应由 wiring 层根据 `RerankConfig.api_key_ref` 凭证引用名解析后注入；
+    ///   当前调用方暂传 `None`（占位），后续 wiring 层接入后改为传入实际 key。
+    pub fn new(
+        config: &RAGPipelineConfig,
+        engine: Option<Arc<dyn InferenceEngine>>,
+        api_key: Option<String>,
+    ) -> Self {
         Self {
-            rerank_pipeline: reranker::create_rerank_pipeline(&config.rerank, None),
+            // 修复：原本硬编码传 None 给 engine，导致 cross_encoder 永远降级到 rule。
+            // 现在改为根据 config + 注入的 engine/api_key 创建合适的 rerank pipeline，
+            // 让 rule / cross_encoder / pipeline / cohere / jina / voyage 各 backend
+            // 都能被正确实例化。
+            rerank_pipeline: reranker::create_rerank_pipeline(&config.rerank, engine, api_key),
             self_rag_gate: SelfRagGate::new(config.self_rag.clone()),
         }
     }

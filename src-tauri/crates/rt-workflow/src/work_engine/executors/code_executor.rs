@@ -471,6 +471,23 @@ impl NodeExecutorTrait for CodeExecutor {
             ));
         };
 
+        // ── Dry Run 短路 ──
+        // 单步调试模式下不执行真实代码（避免 Rhai 脚本副作用、资源消耗），
+        // 返回模拟执行结果。语言字段保留以供下游节点识别节点配置。
+        if context.dry_run {
+            return Ok(NodeOutput {
+                output: serde_json::json!({
+                    "status": "executed",
+                    "language": code_node.config.language,
+                    "result": "[DRY RUN] 代码模拟执行结果",
+                    "dry_run": true,
+                    "node_id": node.base_id(),
+                }),
+                output_var: Some(code_node.config.output_var.clone()),
+                control: None,
+            });
+        }
+
         // ── 直接执行模式（execute_directly=true）──
         // Rhai 脚本在 DAG 中直接执行，通过 input_mapping 消费上游结构化参数。
         if code_node.config.execute_directly && code_node.config.language == "rhai" {

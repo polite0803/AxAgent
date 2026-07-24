@@ -316,6 +316,19 @@ impl FilteringSink {
         Self { inner, level: Arc::new(std::sync::RwLock::new(level)) }
     }
 
+    /// 用外部已存在的级别句柄构造，使 wiring 层可以把同一个 `Arc<RwLock<TelemetryLevel>>`
+    /// 同时放进 `AppState.telemetry_level_handle` 和 `FilteringSink.level`，
+    /// 这样 `save_settings` 更新句柄时 sink 链立即响应，无需重建。
+    ///
+    /// 生产环境应优先使用此构造函数；`new` 仅用于测试或无热更新需求的场景。
+    #[must_use]
+    pub fn new_with_handle(
+        inner: Arc<dyn TelemetrySink>,
+        level: Arc<std::sync::RwLock<TelemetryLevel>>,
+    ) -> Self {
+        Self { inner, level }
+    }
+
     /// 返回共享级别句柄,调用方可用于运行时切换级别。
     #[must_use]
     pub fn level_handle(&self) -> Arc<std::sync::RwLock<TelemetryLevel>> {

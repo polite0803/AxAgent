@@ -139,7 +139,10 @@ pub use mcp_lifecycle_hardened::{
     McpDegradedReport, McpErrorSurface, McpFailedServer, McpLifecyclePhase, McpLifecycleState,
     McpLifecycleValidator, McpPhaseResult,
 };
-pub use mcp_server::{MCP_SERVER_PROTOCOL_VERSION, McpServer, McpServerSpec, ToolCallHandler};
+pub use mcp_server::{
+    LlmSampler, MCP_SERVER_PROTOCOL_VERSION, McpSamplingCreateMessageParams,
+    McpSamplingCreateMessageResult, McpSamplingMessage, McpServer, McpServerSpec, ToolCallHandler,
+};
 pub use mcp_stdio::{
     JsonRpcError, JsonRpcId, JsonRpcRequest, JsonRpcResponse, ManagedMcpTool, McpDiscoveryFailure,
     McpInitializeClientInfo, McpInitializeParams, McpInitializeResult, McpInitializeServerInfo,

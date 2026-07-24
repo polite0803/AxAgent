@@ -379,7 +379,7 @@ pub async fn archive_to_knowledge_base(
             _ => continue,
         };
         let content = if msg.content.len() > 8000 {
-            format!("{}...(truncated)", &msg.content[..8000])
+            format!("{}...(truncated)", truncate_to_char_boundary(&msg.content, 8000))
         } else {
             msg.content.clone()
         };
@@ -387,14 +387,14 @@ pub async fn archive_to_knowledge_base(
 
         if first_user_content.is_none() && msg.role == "user" {
             first_user_content = Some(if msg.content.len() > 200 {
-                format!("{}...", &msg.content[..200])
+                format!("{}...", truncate_to_char_boundary(&msg.content, 200))
             } else {
                 msg.content.clone()
             });
         }
 
         let preview = if msg.content.len() > 100 {
-            format!("{}...", &msg.content[..100])
+            format!("{}...", truncate_to_char_boundary(&msg.content, 100))
         } else {
             msg.content.clone()
         };
@@ -562,7 +562,7 @@ pub async fn archive_to_knowledge_base(
 
     for (turn_idx, turn) in turns.iter().enumerate() {
         let q_preview = if turn.user_msg.content.len() > 100 {
-            format!("{}...", &turn.user_msg.content[..100])
+            format!("{}...", truncate_to_char_boundary(&turn.user_msg.content, 100))
         } else {
             turn.user_msg.content.clone()
         };
@@ -592,7 +592,7 @@ pub async fn archive_to_knowledge_base(
                 Some(serde_json::json!({
                     "toolCalls": tc,
                     "contentPreview": if a.msg.content.len() > 100 {
-                        format!("{}...", &a.msg.content[..100])
+                        format!("{}...", truncate_to_char_boundary(&a.msg.content, 100))
                     } else {
                         a.msg.content.clone()
                     },

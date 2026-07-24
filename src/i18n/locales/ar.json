@@ -1048,10 +1048,23 @@
     },
     "preferences": "التفضيلات",
     "profile": "الملف الشخصي",
+    "quote": {
+      "cancel": "إلغاء الاقتباس",
+      "jumpHint": "انقر للانتقال إلى الرسالة الأصلية",
+      "reply": "رد مع اقتباس",
+      "replyingTo": "رد على",
+      "roleAssistant": "المساعد",
+      "roleSystem": "النظام",
+      "roleTool": "الأداة",
+      "roleUser": "المستخدم"
+    },
     "quality": "الجودة",
     "regenerate": "إعادة التوليد",
     "removeFromWorkspace": "إزالة من مساحة العمل",
     "rename": "إعادة التسمية",
+    "latex": {
+      "parseError": "فشل تحليل LaTeX"
+    },
     "renderingChart": "جارٍ رسم المخطط…",
     "rewardScale": "المقياس",
     "rewardWeights": {
@@ -2472,6 +2485,10 @@
     "MCP_TIMEOUT": "انتهت مهلة عملية MCP",
     "MCP_TOOL_DISCOVERY_TIMEOUT": "انتهت مهلة اكتشاف أدوات MCP",
     "MCP_TRANSPORT_UNSUPPORTED": "نوع نقل MCP غير مدعوم",
+    "MARKETPLACE_INSTALL_FAILED": "فشل تثبيت قالب السوق",
+    "MARKETPLACE_NOT_FOUND": "عنصر السوق غير موجود",
+    "MARKETPLACE_PUBLISH_FAILED": "فشل نشر قالب السوق",
+    "MARKETPLACE_UNINSTALL_FAILED": "فشل إزالة قالب السوق",
     "MEMORY_CONSOLIDATE_FAILED": "فشل توحيد الذاكرة",
     "MEMORY_CREATE_FAILED": "فشل إنشاء الذاكرة",
     "MEMORY_DELETE_FAILED": "فشل حذف الذاكرة",
@@ -2862,7 +2879,31 @@
     "totalItems": "{{total}} عنصر",
     "workflow": "工作流",
     "cleanup": "清理",
-    "reveal": "定位"
+    "reveal": "定位",
+    "contextDelete": "حذف",
+    "contextMkdir": "مجلد جديد",
+    "contextMove": "نقل إلى…",
+    "contextRename": "إعادة تسمية",
+    "deleteConfirmContent": "هل أنت متأكد من حذف «{{name}}»؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteConfirmTitle": "تأكيد الحذف",
+    "mkdirPlaceholder": "أدخل اسم المجلد",
+    "mkdirSuccess": "تم إنشاء المجلد",
+    "mkdirTitle": "مجلد جديد",
+    "movePlaceholder": "أدخل المسار الكامل للدليل الهدف",
+    "moveSuccess": "تم النقل",
+    "moveTitle": "نقل إلى",
+    "previewDirType": "مجلد",
+    "previewEmpty": "اختر ملفًا للمعاينة",
+    "previewFailed": "تعذر تحميل المعاينة",
+    "previewModified": "تاريخ التعديل",
+    "previewPath": "المسار",
+    "previewSize": "الحجم",
+    "previewTitle": "معاينة الملف",
+    "previewType": "النوع",
+    "previewUnknownType": "غير معروف",
+    "renameSuccess": "تمت إعادة التسمية",
+    "renameTitle": "إعادة تسمية",
+    "treeEmpty": "دليل فارغ"
   },
   "fineTune": {
     "dataset": {
@@ -3742,7 +3783,9 @@
     "marketplace": "市场",
     "prompts": "提示词",
     "recommend": "推荐",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "السوق",
+    "dynamicUI": "صفحات ديناميكية"
   },
   "notification": {
     "clear": "مسح",

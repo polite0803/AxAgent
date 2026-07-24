@@ -66,6 +66,7 @@ export function InputAreaTextarea(props: {
         onKeyDown={onKeyDown}
         onPaste={onPaste}
         placeholder={t("chat.inputPlaceholder")}
+        aria-label={t("chat.inputPlaceholder")}
         rows={1}
         style={{
           color: token.colorText,

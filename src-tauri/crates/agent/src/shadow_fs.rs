@@ -224,7 +224,11 @@ impl ShadowFs {
     }
 }
 
-/// 验证相对路径安全性(防止路径遍历攻击)
+/// 验证相对路径安全性(防止路径遍历攻击)。
+///
+/// **注意**:本函数与 `axagent_kit::path::validate_relative_path(AllowIntermediate)`
+/// 语义等价。因 agent crate 是 consumer,按 AGENTS.md 铁律不能依赖 kit(implementor),
+/// 故保留本地实现。kit 中的统一实现为本函数的副本,修改时请同步两处。
 fn validate_relative_path(path: &str) -> Result<(), String> {
     if path.is_empty() || path.starts_with('/') || path.starts_with('\\') {
         return Err(format!("invalid relative path: {}", path));

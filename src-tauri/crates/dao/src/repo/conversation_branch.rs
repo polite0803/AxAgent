@@ -246,6 +246,7 @@ mod tests_2_6 {
             cache_creation_tokens: None,
             cache_read_tokens: None,
             parts: None,
+            quoted_message_id: None,
         };
         let s = message_to_summary(m);
         assert_eq!(s.id, "msg1");

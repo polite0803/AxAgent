@@ -1048,10 +1048,23 @@
     },
     "preferences": "Präferenzen",
     "profile": "Profil",
+    "quote": {
+      "cancel": "Zitat abbrechen",
+      "jumpHint": "Klicken, um zur ursprünglichen Nachricht zu springen",
+      "reply": "Zitat antworten",
+      "replyingTo": "Antwort an",
+      "roleAssistant": "Assistent",
+      "roleSystem": "System",
+      "roleTool": "Werkzeug",
+      "roleUser": "Benutzer"
+    },
     "quality": "Qualität",
     "regenerate": "Neu generieren",
     "removeFromWorkspace": "Aus Arbeitsbereich entfernen",
     "rename": "Umbenennen",
+    "latex": {
+      "parseError": "LaTeX-Analyse fehlgeschlagen"
+    },
     "renderingChart": "Diagramm wird gerendert…",
     "rewardScale": "Skalierung",
     "rewardWeights": {
@@ -2472,6 +2485,10 @@
     "MCP_TIMEOUT": "Zeitüberschreitung bei MCP-Operation",
     "MCP_TOOL_DISCOVERY_TIMEOUT": "Zeitüberschreitung bei MCP-Tool-Erkennung",
     "MCP_TRANSPORT_UNSUPPORTED": "Nicht unterstützter MCP-Transporttyp",
+    "MARKETPLACE_INSTALL_FAILED": "Installation der Marketplace-Vorlage fehlgeschlagen",
+    "MARKETPLACE_NOT_FOUND": "Marketplace-Eintrag nicht gefunden",
+    "MARKETPLACE_PUBLISH_FAILED": "Veröffentlichung der Marketplace-Vorlage fehlgeschlagen",
+    "MARKETPLACE_UNINSTALL_FAILED": "Deinstallation der Marketplace-Vorlage fehlgeschlagen",
     "MEMORY_CONSOLIDATE_FAILED": "Konsolidieren des Speichers fehlgeschlagen",
     "MEMORY_CREATE_FAILED": "Erstellen des Speichers fehlgeschlagen",
     "MEMORY_DELETE_FAILED": "Löschen des Speichers fehlgeschlagen",
@@ -2862,7 +2879,31 @@
     "totalItems": "{{total}} Einträge",
     "workflow": "工作流",
     "cleanup": "清理",
-    "reveal": "定位"
+    "reveal": "定位",
+    "contextDelete": "Löschen",
+    "contextMkdir": "Neuer Ordner",
+    "contextMove": "Verschieben nach…",
+    "contextRename": "Umbenennen",
+    "deleteConfirmContent": "Möchten Sie „{{name}}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteConfirmTitle": "Löschen bestätigen",
+    "mkdirPlaceholder": "Ordnernamen eingeben",
+    "mkdirSuccess": "Ordner erstellt",
+    "mkdirTitle": "Neuer Ordner",
+    "movePlaceholder": "Vollständigen Pfad des Zielverzeichnisses eingeben",
+    "moveSuccess": "Verschoben",
+    "moveTitle": "Verschieben nach",
+    "previewDirType": "Ordner",
+    "previewEmpty": "Datei zur Vorschau auswählen",
+    "previewFailed": "Vorschau konnte nicht geladen werden",
+    "previewModified": "Geändert",
+    "previewPath": "Pfad",
+    "previewSize": "Größe",
+    "previewTitle": "Dateivorschau",
+    "previewType": "Typ",
+    "previewUnknownType": "Unbekannt",
+    "renameSuccess": "Umbenannt",
+    "renameTitle": "Umbenennen",
+    "treeEmpty": "Leeres Verzeichnis"
   },
   "fineTune": {
     "dataset": {
@@ -3742,7 +3783,9 @@
     "marketplace": "市场",
     "prompts": "提示词",
     "recommend": "推荐",
-    "skills": "技能"
+    "skills": "技能",
+    "marketplace": "Marktplatz",
+    "dynamicUI": "Dynamische Seiten"
   },
   "notification": {
     "clear": "Löschen",

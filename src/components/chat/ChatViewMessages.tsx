@@ -104,6 +104,7 @@ import {
   useSettingsStore,
   useStreamStore,
   useTopicGroupStore,
+  useUIStore,
   useUserProfileStore,
 } from "@/stores";
 import type { Message } from "@/types";
@@ -119,6 +120,7 @@ import { ModelSelector } from "./ModelSelector";
 import { ModelTags } from "./ModelTags";
 import { LayoutSwitcher, MultiModelDisplay, type MultiModelDisplayMode } from "./MultiModelDisplay";
 import { PermissionCard } from "./PermissionCard";
+import { QuoteBlock } from "./QuoteBlock";
 import { ToolCallBlockView } from "./ToolCallBlockView";
 import { ToolCallCard } from "./ToolCallCard";
 import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "./toolCallDisplay";
@@ -135,6 +137,7 @@ function AssistantFooter({
   displayMode,
   onDisplayModeChange,
   onMultiModelDetected,
+  onQuoteReply,
 }: {
   msg: Message;
   conversationId: string;
@@ -155,6 +158,8 @@ function AssistantFooter({
     mode: MultiModelDisplayMode,
   ) => void;
   onMultiModelDetected?: (parentMsgId: string, versions: Message[]) => void;
+  /** 引用回复：点击引用按钮时回调 */
+  onQuoteReply?: (messageId: string) => void;
   isDarkMode: boolean;
   codeBlockDarkTheme: string;
   codeBlockLightTheme: string;
@@ -352,6 +357,18 @@ function AssistantFooter({
                   });
                 },
               },
+              ...(onQuoteReply
+                ? [
+                  {
+                    key: "quote",
+                    icon: <MessageSquare size={14} />,
+                    label: t("chat.quote.reply"),
+                    onItemClick: () => {
+                      onQuoteReply(msg.id);
+                    },
+                  },
+                ]
+                : []),
               {
                 key: "regenerate",
                 icon: <RotateCcw size={14} />,
@@ -607,8 +624,30 @@ export function useChatViewMessages({
   );
   const regenerateMessage = useConversationStore((s) => s.regenerateMessage);
   const removeContextClear = useConversationStore((s) => s.removeContextClear);
+  const setQuotedMessageId = useUIStore((s) => s.setQuotedMessageId);
   const getCompressionSummary = useCompressStore(
     (s) => s.getCompressionSummary,
+  );
+
+  // 引用回复：滚动到被引用消息
+  const handleJumpToMessage = useCallback((messageId: string) => {
+    const el = document.querySelector(`[data-axagent-msg="${messageId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
+
+  // 引用回复：根据 quoted_message_id 查找被引用消息
+  const messageById = useMemo(
+    () => new Map(messages.map((msg) => [msg.id, msg])),
+    [messages],
+  );
+  const getQuotedMessage = useCallback(
+    (quotedId: string | null | undefined): Message | null => {
+      if (!quotedId) { return null; }
+      return messageById.get(quotedId) ?? null;
+    },
+    [messageById],
   );
   const deleteCompression = useCompressStore((s) => s.deleteCompression);
   const providers = useProviderStore((s) => s.providers);
@@ -649,10 +688,6 @@ export function useChatViewMessages({
 
   const activeMessages = useMemo(
     () => messages.filter((msg) => msg.is_active !== false),
-    [messages],
-  );
-  const messageById = useMemo(
-    () => new Map(messages.map((msg) => [msg.id, msg])),
     [messages],
   );
   const assistantByParentId = useMemo(() => {
@@ -1095,6 +1130,7 @@ export function useChatViewMessages({
     (bubbleData: BubbleItemType) => {
       const msg = messageById.get(String(bubbleData.key));
       const attachments = msg?.attachments ?? [];
+      const quotedMessage = getQuotedMessage(msg?.quoted_message_id);
       return {
         placement: "end" as const,
         className: "msg-row user",
@@ -1109,6 +1145,11 @@ export function useChatViewMessages({
                   data-axagent-msg={msg?.id}
                   style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
                 />
+                {quotedMessage && (
+                  <div style={{ textAlign: "left" }}>
+                    <QuoteBlock quotedMessage={quotedMessage} onJump={handleJumpToMessage} />
+                  </div>
+                )}
                 {text
                   && (settings.render_user_markdown
                     ? (
@@ -1151,6 +1192,11 @@ export function useChatViewMessages({
                   data-axagent-msg={msg?.id}
                   style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
                 />
+                {quotedMessage && (
+                  <div style={{ textAlign: "left", marginBottom: 4 }}>
+                    <QuoteBlock quotedMessage={quotedMessage} onJump={handleJumpToMessage} />
+                  </div>
+                )}
                 {settings.render_user_markdown
                   ? (
                     <AssistantMarkdown
@@ -1214,6 +1260,16 @@ export function useChatViewMessages({
                 },
               },
               {
+                key: "quote",
+                icon: <MessageSquare size={14} />,
+                label: t("chat.quote.reply"),
+                onItemClick: () => {
+                  if (msg) {
+                    setQuotedMessageId(msg.id);
+                  }
+                },
+              },
+              {
                 key: "regenerate",
                 icon: <RotateCcw size={14} />,
                 label: t("chat.regenerate"),
@@ -1270,7 +1326,9 @@ export function useChatViewMessages({
       deleteMessageGroup,
       formatTime,
       getBubbleVariant,
+      getQuotedMessage,
       handleEditMessage,
+      handleJumpToMessage,
       isDarkMode,
       isUserMsgCopied,
       messageApi,
@@ -1279,6 +1337,7 @@ export function useChatViewMessages({
       regenerateMessage,
       settings.code_font_family,
       settings.render_user_markdown,
+      setQuotedMessageId,
       t,
       token.colorError,
       token.colorPrimary,
@@ -1395,10 +1454,16 @@ export function useChatViewMessages({
               style={{ height: 0, overflow: "hidden", lineHeight: 0 }}
             />
           );
+          // 引用回复：被引用消息预览块（streaming 时不显示，避免干扰）
+          const quotedMessage = !isStreaming ? getQuotedMessage(msg?.quoted_message_id) : null;
+          const quoteBlock = quotedMessage
+            ? <QuoteBlock quotedMessage={quotedMessage} onJump={handleJumpToMessage} />
+            : null;
           if (msg?.status === "error") {
             return (
               <>
                 {msgMarker}
+                {quoteBlock}
                 <Alert
                   type="error"
                   message={text.length > 200 ? text.slice(0, 200) + "…" : text}
@@ -1440,6 +1505,7 @@ export function useChatViewMessages({
             return (
               <>
                 {msgMarker}
+                {quoteBlock}
                 <MultiModelDisplay
                   versions={allVersions}
                   activeMessageId={msg!.id}
@@ -1501,6 +1567,7 @@ export function useChatViewMessages({
             return (
               <>
                 {msgMarker}
+                {quoteBlock}
                 <span className="axagent-streaming-dots" aria-hidden="true">
                   <span />
                   <span />
@@ -1539,6 +1606,7 @@ export function useChatViewMessages({
           return (
             <>
               {msgMarker}
+              {quoteBlock}
               <div className={`ai-content-wrapper${isCollapsed ? " ai-content-collapsed" : ""}`}>
                 <AssistantMarkdown
                   content={text}
@@ -1714,6 +1782,7 @@ export function useChatViewMessages({
                 displayMode={effectiveDisplayMode}
                 onDisplayModeChange={handleDisplayModeOverride}
                 onMultiModelDetected={handleMultiModelDetected}
+                onQuoteReply={(messageId) => setQuotedMessageId(messageId)}
                 isDarkMode={isDarkMode}
                 codeBlockDarkTheme={codeBlockDarkTheme}
                 codeBlockLightTheme={codeBlockLightTheme}
@@ -1761,8 +1830,10 @@ export function useChatViewMessages({
       formatTime,
       getBubbleVariant,
       getModelDisplayInfo,
+      getQuotedMessage,
       handleDisplayModeOverride,
       handleEditMessage,
+      handleJumpToMessage,
       handleMultiModelDetected,
       isDarkMode,
       messageById,
@@ -1774,6 +1845,7 @@ export function useChatViewMessages({
       renderConvIconForChat,
       settings,
       setCollapsedAiIds,
+      setQuotedMessageId,
       streaming,
       streamingMessageId,
       switchMessageVersion,

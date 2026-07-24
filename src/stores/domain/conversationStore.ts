@@ -211,6 +211,7 @@ export interface ConversationState {
     content: string,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
+    quotedMessageId?: string | null,
   ) => Promise<void>;
   /** Send a message in agent mode (non-streaming MVP) */
   sendAgentMessage: (

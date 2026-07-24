@@ -32,6 +32,8 @@ pub struct Model {
     pub cache_creation_tokens: Option<i64>,
     pub cache_read_tokens: Option<i64>,
     pub parts: Option<String>,
+    /// 引用回复：被引用消息的 ID（区别于 parent_message_id 的多版本语义）
+    pub quoted_message_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
