@@ -165,7 +165,8 @@ export function BacktestChart({
                 borderRadius: "8px",
                 color: "#F3F4F6",
               }}
-              formatter={(value: number, name: string) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any, name: string) => {
                 const labels: Record<string, string> = {
                   equity: t("stockAnalysis.backtest.chart.equity", "净资产"),
                   cash: t("stockAnalysis.backtest.chart.cash", "现金"),
@@ -253,9 +254,8 @@ export function BacktestChart({
                 borderRadius: "8px",
                 color: "#F3F4F6",
               }}
-              formatter={(
-                value: number,
-              ) => [`${value.toFixed(2)}%`, t("stockAnalysis.backtest.chart.drawdown", "回撤")]}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any) => [`${value.toFixed(2)}%`, t("stockAnalysis.backtest.chart.drawdown", "回撤")]}
             />
             <Area
               type="monotone"

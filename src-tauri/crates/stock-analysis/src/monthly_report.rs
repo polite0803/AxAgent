@@ -3,11 +3,10 @@
 //! 生成 Markdown 格式的月度投资报告，可通过通知渠道推送。
 //! 覆盖：月度收益总结 / 决策准确率 / 持仓变动 / 最佳/最差操作 / 市场回顾
 
-use chrono::{NaiveDate, Utc};
+use chrono::Utc;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use axagent_entities::stock_analyses;
 
