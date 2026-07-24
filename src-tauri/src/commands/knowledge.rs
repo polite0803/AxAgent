@@ -1393,6 +1393,12 @@ pub async fn import_lemonhu_knowledge(
             lifecycle: Set(None),
             behaviors: Set(None),
             metadata: Set(None),
+            // v101: trajectory entity fields
+            aliases: Set(String::new()),
+            mention_count: Set(0),
+            confidence: Set(0.0),
+            first_seen_at: Set(None),
+            last_seen_at: Set(None),
             created_at: Set(now_ms),
             updated_at: Set(now_ms),
         };
@@ -1471,6 +1477,8 @@ pub async fn import_lemonhu_knowledge(
             description: Set(None),
             properties: Set(None),
             metadata: Set(None),
+            // v101: trajectory relationship weight
+            weight: Set(0.0),
             created_at: Set(now_ms),
             updated_at: Set(now_ms),
         };
