@@ -3,7 +3,13 @@
 //! 子模块：
 //! - seed_stock_analysis: 股票分析主工作流模板种子
 //! - seed_serenity: Serenity 瓶颈筛选工作流模板种子
+//! - seed_daily_market_events: G4 每日市场主线提炼工作流模板种子
+//! - seed_screenshot_portfolio_diagnosis: G6 截图持仓诊断工作流模板种子
+//! - seed_multi_agent_roles: G5 Multi-Agent 固定角色（analyst/implementer/reviewer）种子
 
+pub mod seed_daily_market_events;
+pub mod seed_multi_agent_roles;
+pub mod seed_screenshot_portfolio_diagnosis;
 pub mod seed_serenity;
 pub mod seed_stock_analysis;
 pub mod seed_variables;
@@ -14,6 +20,8 @@ pub mod seed_variables;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_setup;
 use axagent_dao::repo;
+use seed_daily_market_events::seed_daily_market_events_template;
+use seed_screenshot_portfolio_diagnosis::seed_screenshot_portfolio_diagnosis_template;
 use seed_serenity::seed_serenity_screening_workflow_template;
 use seed_stock_analysis::seed_stock_analysis_workflow_template;
 
@@ -310,9 +318,13 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
         "hot-money-tracker",
         &[
             // P0 修复(2026-07-22): 移除 get_stock_money_flow——上游 t-hotmoney-data 已获取。
+            // 2026-07-25 修复: 补充 get_stock_margin_data（融资融券）——lockup-watcher
+            // 虽也有此工具，但 hot-money-tracker 的分析需要融资融券作为真金白银信号，
+            // 且 lockup-watcher 不保证在 hot-money-tracker 之前运行。
             "get_stock_dragon_tiger",
             "get_north_bound_flow",
             "get_stock_institutional_visits",
+            "get_stock_margin_data",
             "search_stock",
         ],
     ),
@@ -480,6 +492,41 @@ pub async fn ensure_stock_analysis_experts_seeded(
     seed_stock_analysis_workflow_template(db).await?;
     seed_reflection_workflow_template(db).await?;
     // seed_debate_subworkflow(db).await?;  // 辩论子工作流未引用，暂不种子化
+
+    // P2-2: 决策事件总线订阅方模板 — 失败不阻塞主流程（独立 try）
+    // 两个模板都订阅 "decision.completed" 事件，由 stock_workflow/core.rs 的
+    // publish_event 自动触发，实现决策→仓位规划/止损复查的联动编排。
+    tracing::warn!("[stock_analysis_setup] === 开始种子决策事件订阅模板 ===");
+    if let Err(e) = seed_auto_position_plan_template(db).await {
+        tracing::error!("[stock_analysis_setup] auto-position-plan 模板种子失败 (非致命): {e}");
+    }
+    if let Err(e) = seed_auto_stop_loss_review_template(db).await {
+        tracing::error!("[stock_analysis_setup] auto-stop-loss-review 模板种子失败 (非致命): {e}");
+    }
+    tracing::warn!("[stock_analysis_setup] === 决策事件订阅模板种子完成 ===");
+
+    // G4: daily-market-events 每日市场主线提炼模板 — 失败不阻塞主流程
+    tracing::warn!("[stock_analysis_setup] === 开始种子 G4 市场主线模板 ===");
+    if let Err(e) = seed_daily_market_events_template(db).await {
+        tracing::error!("[stock_analysis_setup] daily-market-events 模板种子失败 (非致命): {e}");
+    }
+    tracing::warn!("[stock_analysis_setup] === G4 市场主线模板种子完成 ===");
+
+    // G6: screenshot-portfolio-diagnosis 截图持仓诊断模板 — 失败不阻塞主流程
+    tracing::warn!("[stock_analysis_setup] === 开始种子 G6 截图诊断模板 ===");
+    if let Err(e) = seed_screenshot_portfolio_diagnosis_template(db).await {
+        tracing::error!(
+            "[stock_analysis_setup] screenshot-portfolio-diagnosis 模板种子失败 (非致命): {e}"
+        );
+    }
+    tracing::warn!("[stock_analysis_setup] === G6 截图诊断模板种子完成 ===");
+
+    // G5: Multi-Agent 固定角色（analyst/implementer/reviewer）— 失败不阻塞主流程
+    tracing::warn!("[stock_analysis_setup] === 开始种子 G5 Multi-Agent 固定角色 ===");
+    if let Err(e) = seed_multi_agent_roles::seed_multi_agent_roles(db).await {
+        tracing::error!("[stock_analysis_setup] Multi-Agent 固定角色种子失败 (非致命): {e}");
+    }
+    tracing::warn!("[stock_analysis_setup] === G5 Multi-Agent 固定角色种子完成 ===");
     Ok(())
 }
 
@@ -853,6 +900,12 @@ pub(crate) fn merge_variable_values(
         ("monitor_pollIntervalSecs", "monitor_poll_interval_secs"),
         ("monitor_changePctThreshold", "monitor_change_pct"),
         ("monitor_turnoverThreshold", "monitor_turnover"),
+        ("monitor_alertCooldownSecs", "monitor_alert_cooldown_secs"),
+        // 跨股票聚合器（P2 配置入口）
+        ("aggregator_windowSecs", "aggregator_window_secs"),
+        ("aggregator_minSignalCount", "aggregator_min_signal_count"),
+        ("aggregator_cooldownSecs", "aggregator_cooldown_secs"),
+        ("aggregator_minStrength", "aggregator_min_strength"),
     ];
 
     // 构建旧变量名 → value 的映射（处理重命名别名）
@@ -1404,4 +1457,410 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
         "[stock_analysis_setup] 反思复盘工作流模板已创建 (stock-reflection, SubWorkflowNode 嵌套)"
     );
     Ok(())
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// P2-2: 决策事件总线订阅方模板
+//
+// 两个模板都订阅 stock_workflow/core.rs 在决策落库后发布的 "decision.completed"
+// 事件。事件 payload 字段（camelCase）:
+//   { analysisId, stockCode, stockName, action, decisionJson, asOfDate,
+//     parentAnalysisId, timestamp }
+//
+// publish_event → engine.run_workflow(wf_id, RunOptions { input: payload })
+// → start_workflow 把 payload 存入 state.input_params
+// → 节点执行时 merged_vars 合并顺序：deps_results → context_sources
+//    → state.variables → state.input_params（兜底）
+// → AgentNode 通过 input_mapping 引用 payload 字段（value = payload 字段名）
+// ───────────────────────────────────────────────────────────────────────────
+
+/// 事件订阅型决策联动模板的公共字段配置。
+struct EventTriggeredTemplateSpec {
+    /// 模板 ID（也是 workflow_id，注册到 TriggerManager）
+    template_id: &'static str,
+    /// 模板显示名
+    name: &'static str,
+    /// 模板描述
+    description: &'static str,
+    /// 图标
+    icon: &'static str,
+    /// Agent 节点 ID（用于前端节点标题国际化）
+    agent_node_id: &'static str,
+    /// Agent 节点标题
+    agent_node_title: &'static str,
+    /// Agent 系统提示词（支持 {{stock_code}} 等占位符）
+    agent_system_prompt: &'static str,
+    /// Agent 输出变量名
+    output_var: &'static str,
+    /// 模板版本
+    version: i32,
+    /// 标签
+    tags: &'static [&'static str],
+}
+
+/// 内部辅助函数：构建并持久化一个事件订阅型决策联动工作流模板。
+///
+/// 模板结构：TriggerNode(Event) → AgentNode → EndNode
+/// - TriggerNode 配置 EventTriggerConfig { event_type: "decision.completed" }
+/// - AgentNode 通过 input_mapping 引用 payload 字段，输出 JSON 结果
+/// - EndNode 终止工作流
+///
+/// 顶层 `trigger_config` 字段也写入 EventTriggerConfig，供 trigger_recovery.rs
+/// 在进程重启时恢复事件订阅到 TriggerManager。
+async fn seed_event_triggered_decision_template(
+    db: &sea_orm::DatabaseConnection,
+    spec: EventTriggeredTemplateSpec,
+) -> Result<(), String> {
+    use axagent_entities::workflow_template;
+    use axagent_harness::workflow_types::{
+        AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, EventTriggerConfig,
+        OutputMode, Position, RetryConfig, TriggerConfig, TriggerNode, TriggerType, WorkflowEdge,
+        WorkflowNode, WorkflowNodeBase,
+    };
+    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+
+    let now = chrono::Utc::now().timestamp_millis();
+
+    // 事件触发器配置（同时用于 TriggerNode 和顶层 trigger_config 字段）
+    let event_cfg =
+        EventTriggerConfig { event_type: "decision.completed".to_string(), filter: None };
+    let event_cfg_value = serde_json::to_value(&event_cfg).map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化事件配置失败: {e}"))
+    })?;
+    let trigger_config =
+        TriggerConfig { trigger_type: TriggerType::Event, config: event_cfg_value.clone() };
+
+    // ── 节点定义 ──
+    let nodes: Vec<WorkflowNode> = vec![
+        // 1. 触发器：订阅 decision.completed 事件
+        WorkflowNode::Trigger(TriggerNode {
+            base: WorkflowNodeBase {
+                id: "trigger".into(),
+                title: "决策事件触发器".into(),
+                description: Some("订阅 decision.completed 事件，决策落库后自动触发".into()),
+                position: Position { x: 20.0, y: 20.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: false,
+            },
+            config: trigger_config.clone(),
+        }),
+        // 2. Agent 节点：基于决策 payload 推理输出
+        WorkflowNode::Agent(AgentNode {
+            base: WorkflowNodeBase {
+                id: spec.agent_node_id.into(),
+                title: spec.agent_node_title.into(),
+                description: Some(spec.description.into()),
+                position: Position { x: 20.0, y: 180.0 },
+                retry: RetryConfig { enabled: true, max_retries: 1, ..Default::default() },
+                timeout: Some(300),
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: false,
+            },
+            config: AgentNodeConfig {
+                system_prompt: spec.agent_system_prompt.into(),
+                // 引用触发器节点输出（含 status/trigger_type/config/timestamp），
+                // 实际决策数据通过 input_mapping + input_params 兜底注入。
+                context_sources: vec!["trigger".into()],
+                input_mapping: [
+                    ("stock_code".to_string(), "stockCode".to_string()),
+                    ("stock_name".to_string(), "stockName".to_string()),
+                    ("action".to_string(), "action".to_string()),
+                    ("decision_json".to_string(), "decisionJson".to_string()),
+                    ("as_of_date".to_string(), "asOfDate".to_string()),
+                    ("analysis_id".to_string(), "analysisId".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+                output_var: spec.output_var.into(),
+                model: None,
+                temperature: Some(0.3),
+                max_tokens: Some(4096),
+                tools: vec![],
+                exposed_tools: vec![],
+                output_mode: OutputMode::Json,
+                agent_profile_id: None,
+                max_tool_rounds: Some(1),
+                execution_mode: None,
+                rag_source_ids: vec![],
+                model_role: Some("decision-maker".into()),
+                consistency_check: None,
+                hallucination_guard: None,
+                fallback_model: None,
+                task_scene: None,
+                stream_chunk_timeout_secs: None,
+            },
+        }),
+        // 3. 终止节点
+        WorkflowNode::End(EndNode {
+            base: WorkflowNodeBase {
+                id: "end".into(),
+                title: "结束".into(),
+                description: None,
+                position: Position { x: 20.0, y: 340.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: false,
+            },
+            config: EndNodeConfig { output_var: Some(spec.output_var.into()) },
+        }),
+    ];
+
+    let edges: Vec<WorkflowEdge> = vec![
+        WorkflowEdge {
+            id: "e-trigger-agent".into(),
+            source: "trigger".into(),
+            source_handle: None,
+            target: spec.agent_node_id.into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+        WorkflowEdge {
+            id: "e-agent-end".into(),
+            source: spec.agent_node_id.into(),
+            source_handle: None,
+            target: "end".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+    ];
+
+    // ── 版本检查与快照（与 seed_reflection_workflow_template 同款逻辑）──
+    if let Some(ref existing) =
+        workflow_template::Entity::find_by_id(spec.template_id).one(db).await.map_err(|e| {
+            ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("查重失败: {e}"))
+        })?
+    {
+        if existing.version >= spec.version {
+            tracing::info!(
+                "[stock_analysis_setup] {} 模板已是最新 v{}，跳过种子化",
+                spec.template_id,
+                existing.version
+            );
+            return Ok(());
+        }
+        // 旧版本 → 保存快照
+        let ver_id = format!("{}_v{}", spec.template_id, existing.version);
+        if axagent_entities::workflow_template_version::Entity::find_by_id(&ver_id)
+            .one(db)
+            .await
+            .map_err(|e| {
+                ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("查重失败: {e}"))
+            })?
+            .is_none()
+        {
+            let snapshot = axagent_entities::workflow_template_version::ActiveModel {
+                id: Set(ver_id.clone()),
+                template_id: Set(spec.template_id.to_string()),
+                name: Set(existing.name.clone()),
+                description: Set(existing.description.clone()),
+                icon: Set(existing.icon.clone()),
+                tags: Set(existing.tags.clone()),
+                version: Set(existing.version),
+                is_preset: Set(existing.is_preset),
+                is_editable: Set(existing.is_editable),
+                is_public: Set(existing.is_public),
+                trigger_config: Set(existing.trigger_config.clone()),
+                nodes: Set(existing.nodes.clone()),
+                edges: Set(existing.edges.clone()),
+                input_schema: Set(existing.input_schema.clone()),
+                output_schema: Set(existing.output_schema.clone()),
+                variables: Set(existing.variables.clone()),
+                error_config: Set(existing.error_config.clone()),
+                created_at: Set(chrono::Utc::now().timestamp_millis()),
+            };
+            snapshot.insert(db).await.map_err(|e| {
+                ErrorResponse::new(stock_setup::INTERNAL)
+                    .with_detail(format!("写入版本快照失败: {e}"))
+            })?;
+            tracing::info!(
+                "[stock_analysis_setup] {} 模板旧版本快照已保存: {ver_id}",
+                spec.template_id
+            );
+        }
+    }
+
+    // 序列化节点/边/标签
+    let nodes_json = serde_json::to_string(&nodes).map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化节点失败: {e}"))
+    })?;
+    let edges_json = serde_json::to_string(&edges).map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化边失败: {e}"))
+    })?;
+    let tags_json = serde_json::to_string(spec.tags).map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化标签失败: {e}"))
+    })?;
+    let trigger_config_json = serde_json::to_string(&trigger_config).map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化触发器配置失败: {e}"))
+    })?;
+
+    // 先删再插，避免 .save() 对已存在记录的 update 失败
+    let _ = workflow_template::Entity::delete_by_id(spec.template_id).exec(db).await;
+    workflow_template::ActiveModel {
+        id: Set(spec.template_id.to_string()),
+        name: Set(spec.name.to_string()),
+        description: Set(Some(spec.description.to_string())),
+        icon: Set(spec.icon.into()),
+        tags: Set(Some(tags_json)),
+        version: Set(spec.version),
+        is_preset: Set(true),
+        is_editable: Set(true),
+        is_public: Set(true),
+        trigger_config: Set(Some(trigger_config_json)),
+        nodes: Set(nodes_json),
+        edges: Set(edges_json),
+        input_schema: Set(None),
+        output_schema: Set(None),
+        variables: Set(None),
+        error_config: Set(None),
+        composite_source: Set(None),
+        tool_defs: Set(None),
+        mission_hash: Set(None),
+        created_at: Set(now),
+        updated_at: Set(now),
+    }
+    .insert(db)
+    .await
+    .map_err(|e| {
+        ErrorResponse::new(stock_setup::INTERNAL)
+            .with_detail(format!("写入 {} 模板失败: {e}", spec.template_id))
+    })?;
+
+    tracing::info!(
+        "[stock_analysis_setup] 决策事件订阅模板已创建: {} ({})",
+        spec.template_id,
+        spec.name
+    );
+    Ok(())
+}
+
+/// P2-2: 自动仓位规划模板。
+///
+/// 订阅 `decision.completed` 事件，决策落库后自动触发，基于决策的 action /
+/// confidence / positionPct 等字段生成分批建仓 / 止损位 / 止盈位 / 资金分配
+/// 方案。输出 JSON 结果到工作流执行历史，供前端展示与后续追溯。
+async fn seed_auto_position_plan_template(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
+    let spec = EventTriggeredTemplateSpec {
+        template_id: "auto-position-plan",
+        name: "自动仓位规划",
+        description: "订阅决策完成事件，自动生成分批建仓/止损/止盈/资金分配方案",
+        icon: "wallet",
+        agent_node_id: "position-planner",
+        agent_node_title: "仓位规划助手",
+        version: 1,
+        tags: &["stock", "position", "auto", "A股"],
+        agent_system_prompt: r#"你是 A 股仓位规划助手。基于上游交易决策，输出结构化的仓位执行方案。
+
+【输入决策上下文】
+- 股票代码: {{stock_code}}
+- 股票名称: {{stock_name}}
+- 决策动作: {{action}}（买入/增持/持有/减持/卖出/观望）
+- 决策详情(JSON): {{decision_json}}
+- 分析日期: {{as_of_date}}
+- 分析记录 ID: {{analysis_id}}
+
+【任务】
+根据决策动作与置信度，制定可执行的仓位方案。规则约束：
+1. 仅对"买入/增持"动作输出建仓方案；"减持/卖出"输出减仓方案；"持有/观望"输出维持建议。
+2. 单只股票总仓位不超过总资金的 30%（A 股单票集中度风控）。
+3. 分批建仓：至少分 2-3 批，每批间隔 2-5 个交易日，首批不超过目标仓位的 40%。
+4. 止损位基于决策详情中的风险等级与置信度：高置信(≥0.8) 止损幅度 -8%；中置信(0.5-0.8) -6%；低置信(<0.5) -4%。
+5. 止盈位分两档：第一档 +15% 减仓 50%，第二档 +30% 全部清仓。
+6. 必须考虑 T+1 交易规则（买入当日不能卖出）。
+
+【输出格式】
+严格 JSON（不要 Markdown 代码块、不要多余文本）：
+{
+  "stockCode": "股票代码",
+  "stockName": "股票名称",
+  "action": "原始决策动作",
+  "planType": "build | reduce | hold",
+  "targetPositionPct": 0,
+  "batches": [
+    { "seq": 1, "pctOfTarget": 0.4, "triggerCondition": "首日开盘价±2%内", "delayDays": 0 },
+    { "seq": 2, "pctOfTarget": 0.3, "triggerCondition": "回调至支撑位", "delayDays": 3 },
+    { "seq": 3, "pctOfTarget": 0.3, "triggerCondition": "突破前高确认", "delayDays": 5 }
+  ],
+  "stopLoss": { "pricePct": -0.06, "triggerCondition": "收盘价跌破止损位", "action": "全部清仓" },
+  "takeProfit": [
+    { "tier": 1, "pricePct": 0.15, "reducePct": 0.5 },
+    { "tier": 2, "pricePct": 0.30, "reducePct": 1.0 }
+  ],
+  "capitalAllocation": { "totalPct": 0, "reservedCashPct": 0 },
+  "riskNotes": "风控提示（≤100 字符）",
+  "executionPriority": "high | medium | low"
+}"#,
+        output_var: "position-plan",
+    };
+    seed_event_triggered_decision_template(db, spec).await
+}
+
+/// P2-2: 自动止损复查模板。
+///
+/// 订阅 `decision.completed` 事件，对决策的止损合理性进行独立复查，
+/// 输出复查结论与调整建议。与 auto-position-plan 形成双视角对照。
+async fn seed_auto_stop_loss_review_template(
+    db: &sea_orm::DatabaseConnection,
+) -> Result<(), String> {
+    let spec = EventTriggeredTemplateSpec {
+        template_id: "auto-stop-loss-review",
+        name: "自动止损复查",
+        description: "订阅决策完成事件，独立复查止损位合理性并输出调整建议",
+        icon: "shield",
+        agent_node_id: "stop-loss-reviewer",
+        agent_node_title: "止损复查助手",
+        version: 1,
+        tags: &["stock", "risk", "auto", "A股"],
+        agent_system_prompt: r#"你是 A 股止损位独立复查助手。对上游交易决策的止损合理性进行风控视角的二次审视。
+
+【输入决策上下文】
+- 股票代码: {{stock_code}}
+- 股票名称: {{stock_name}}
+- 决策动作: {{action}}
+- 决策详情(JSON): {{decision_json}}
+- 分析日期: {{as_of_date}}
+- 分析记录 ID: {{analysis_id}}
+
+【任务】
+独立审视决策的止损设置是否合理，重点关注：
+1. **止损幅度合理性**：对照 A 股个股日均波动率（一般 2-4%），止损过紧易被洗盘，过松损失过大。
+   - 高波动股（如创业板/科创板）止损幅度建议 -8% 至 -10%
+   - 主板蓝筹股止损幅度建议 -5% 至 -7%
+   - 严禁止损幅度超过 -12%（单笔最大损失边界）
+2. **止损触发条件**：必须明确"收盘价跌破"还是"盘中触及"，避免假突破洗盘。
+3. **置信度匹配**：决策置信度低于 0.5 时，止损应更紧（-4% 至 -5%）；高于 0.8 时可适度放宽。
+4. **T+1 约束**：买入当日无法止损，需考虑隔夜跳空风险。
+5. **资金管理**：建议单笔最大损失不超过总资金的 2%（凯利公式简化版）。
+
+【输出格式】
+严格 JSON（不要 Markdown 代码块、不要多余文本）：
+{
+  "stockCode": "股票代码",
+  "stockName": "股票名称",
+  "reviewVerdict": "approve | adjust | reject",
+  "originalStopLoss": { "pricePct": 0, "parsedFrom": "decision_json.stopLoss 或 null" },
+  "suggestedStopLoss": { "pricePct": 0, "triggerCondition": "收盘价跌破", "reason": "调整原因" },
+  "riskAssessment": {
+    "volatilityLevel": "high | medium | low",
+    "maxLossPerTrade": 0,
+    "maxLossPctOfCapital": 0,
+    "overnightRisk": "high | medium | low"
+  },
+  "issues": ["问题1", "问题2"],
+  "recommendations": ["建议1", "建议2"],
+  "finalConfidence": 0
+}"#,
+        output_var: "stop-loss-review",
+    };
+    seed_event_triggered_decision_template(db, spec).await
 }

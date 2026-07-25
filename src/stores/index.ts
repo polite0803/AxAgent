@@ -80,6 +80,21 @@ export { useWorkflowStore } from "./feature/workflowStore";
 // ── AxInvest stock analysis ──
 export { useStockAnalysisStore } from "./feature/stockAnalysisStore";
 export type { ExperimentRecord } from "./feature/stockAnalysisStore";
+// ── G2 模拟观察组合（Paper Trading Portfolio） ──
+export { usePaperPortfolioStore } from "./feature/paperPortfolioStore";
+
+// ── G4 市场主线自动提炼（Market Mainline） ──
+export { useMarketMainlineStore } from "./feature/marketMainlineStore";
+
+// ── G6 截图持仓诊断（Screenshot Diagnosis） ──
+export { useScreenshotDiagnosisStore } from "./feature/screenshotDiagnosisStore";
+
+// ── G5 Multi-Agent 固定角色 pool ──
+export { useMultiAgentStore } from "./feature/multiAgentStore";
+
+// ── G1 跨市场数据接入（美股/港股/外汇/基准指数） ──
+export { useCrossMarketStore } from "./feature/crossMarketStore";
+export type { CrossMarketState } from "./feature/crossMarketStore";
 
 // ── AxInvest 股票工作区（激进重构：单股票全生命周期） ──
 export { useWorkspaceStore } from "./feature/workspaceStore";

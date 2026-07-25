@@ -40,9 +40,14 @@ pub mod v100_consolidated;
 pub mod v101_consolidate_knowledge_memory;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
+pub mod v202_stock_analyses_parent_version;
+pub mod v203_price_alerts_align_monitor;
+pub mod v204_paper_portfolio;
+pub mod v205_market_mainline;
+pub mod v206_screenshot_diagnosis;
 
 /// 当前 schema 版本号。
-pub const CURRENT_VERSION: i32 = 201;
+pub const CURRENT_VERSION: i32 = 206;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -88,6 +93,31 @@ const MIGRATIONS: &[Migration] = &[
         version: 201,
         description: "v201_lesson_application_tracking: P2-F15 切入点 3 —— lesson_applications 关联表（记录决策分析引用了哪些 lesson + T+N 验证后回写 outcome，用于精确计算 times_applied/success_count）",
         up: |db| Box::pin(v201_lesson_application_tracking::up(db)),
+    },
+    Migration {
+        version: 202,
+        description: "v202_stock_analyses_parent_version: stock_analyses 表新增 parent_analysis_id 字段，支持版本化分析（重跑分析保留历史版本而非覆盖）",
+        up: |db| Box::pin(v202_stock_analyses_parent_version::up(db)),
+    },
+    Migration {
+        version: 203,
+        description: "v203_price_alerts_align_monitor: price_alerts 表新增 alert_type/condition_type/threshold 列并与 RealtimeMonitor 6 类告警对齐，回填老 above/below 数据",
+        up: |db| Box::pin(v203_price_alerts_align_monitor::up(db)),
+    },
+    Migration {
+        version: 204,
+        description: "v204_paper_portfolio: G2 模拟观察组合 —— paper_portfolios 主表 + paper_positions 持仓表，承接 DojoAgents 场景 1/2/3 的研究观察列表 / 模拟建仓实体",
+        up: |db| Box::pin(v204_paper_portfolio::up(db)),
+    },
+    Migration {
+        version: 205,
+        description: "v205_market_mainline: G4 市场主线自动提炼 —— market_mainlines 表，承接 daily-market-events 工作流每日自动提炼的市场主题 + 叙述 + 代表标的 + 强度评分 + 持续性",
+        up: |db| Box::pin(v205_market_mainline::up(db)),
+    },
+    Migration {
+        version: 206,
+        description: "v206_screenshot_diagnosis: G6 截图持仓诊断完整闭环 —— screenshot_diagnoses 表，承接 screenshot-portfolio-diagnosis 工作流，含 OCR 文本 / 结构化持仓 / 风险诊断 schema / 建议动作",
+        up: |db| Box::pin(v206_screenshot_diagnosis::up(db)),
     },
 ];
 
@@ -240,7 +270,10 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 4, "schema_version should have exactly 4 rows (v100 + v101 + v200 + v201)");
+        assert_eq!(
+            cnt, 5,
+            "schema_version should have exactly 5 rows (v100 + v101 + v200 + v201 + v202)"
+        );
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

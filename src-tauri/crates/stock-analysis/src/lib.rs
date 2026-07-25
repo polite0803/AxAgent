@@ -1,3 +1,5 @@
+/// price_alerts 表 ↔ RealtimeMonitor 双向转换（v203 数据模型对齐）
+pub mod alert_mapping;
 pub mod backtest;
 pub mod backtest_feedback;
 pub mod backtest_strategy;
@@ -22,10 +24,15 @@ pub use axagent_astock_data::fundamentals_report;
 pub use axagent_astock_data::{candlestick_pattern, divergence};
 pub mod concept_index;
 pub mod conditional_order;
+// P3-1: 跨股票信号聚合器 — 在 signals.rs（单股）和 portfolio_monitor.rs（持仓指标）之间填补信号聚合层
+pub mod cross_stock_aggregator;
+// P3-2: 板块联动分析 — 基于 ConceptIndex 识别同板块龙头-从属传导模式
 pub mod key_levels;
+pub mod market_mainline;
 pub mod market_regime;
 pub mod monitor;
 pub mod monthly_report;
+pub mod paper_portfolio;
 pub mod plugin;
 pub mod portfolio_formula;
 pub mod portfolio_monitor;
@@ -42,6 +49,8 @@ pub mod rules;
 pub mod schema_serde_regression;
 pub mod scoring;
 pub mod screener;
+pub mod screenshot_diagnosis;
+pub mod sector_coherence;
 pub mod sentiment_analysis;
 pub mod signals;
 pub mod strategy_pack;

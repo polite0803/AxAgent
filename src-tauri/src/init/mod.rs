@@ -4,6 +4,7 @@ pub mod axinvest_decorators;
 pub mod browser_fetcher;
 pub mod database;
 pub mod llm_providers;
+pub mod monitor_emitter;
 pub mod news_archive_sink;
 pub mod notification_adapters;
 pub mod plugins;

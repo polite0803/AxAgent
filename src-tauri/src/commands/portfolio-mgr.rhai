@@ -457,26 +457,62 @@ let f6_weight = if present(dqi_score) { f6_default } else { 0.0 };
 let f6_signal = if f6_weight > 0.0 { (dqi_score - 50.0) / 50.0 } else { 0.0 };
 
 // ── 因子 7: 交易方案方向与质量 ──
-// P2-1 架构调整: LLM trader 降权至 15%（原 30%），改为纯定性提案角色。
-// f7 不再输出 targetPrice/stopLoss（定量的责任交回凯利公式和风控层），
-// 仅输出 {direction, catalysts, risk_factors, confidence} 定性字段。
-// f7_signal 基于 direction 和 confidence 计算。
-// 保留 targetPrice/stopLoss 兼容路径（若存在则用于凯利赔率，但不再主导信号）。
-let f7_weight = 0.15;
+// V65 架构调整: LLM trader 进一步降权至 10%（原 15%/30%）。
+// 原因：trader 现在输出与 portfolio-mgr 同维度的完整决策（action/positionPct/riskLevel），
+// 不再是"提案"，而是"独立 LLM 视角"。f7 因子如果消费 trader 的 action/positionPct，
+// 会导致公式决策与 LLM 决策产生自指污染（compute_decision_agreement 的 f7_weight_pct 标记）。
+// 因此 V65 将 f7 降权至 0.10，仅作为"定性方向参考"，定量决策（仓位/止损/止盈）
+// 完全由公式独立计算，避免双视角对比虚高。
+//
+// f7_signal 综合考虑:
+//   ① trader.verdict 方向（基础信号，权重 60%）
+//   ② trader.confidence 调制（0.5 为中性，>0.5 加强 / <0.5 减弱）
+//   ③ trader.evidence_cited 数量（V65 新增，引用 ≥3 条加强信号，<3 条减弱）
+//   ④ trader.riskLevel 风险等级（V65 新增，极高风险/高风险减弱信号幅度）
+// 不消费 trader.positionPct（避免仓位自指）、不消费 trader.action（避免 action 自指）。
+let f7_weight = 0.10;
 let f7_signal = if present(trader_direction) && type_of(trader_direction) == "string" {
-    // P2-1 新路径: 定性方向 + 置信度
+    // V65 新路径: 定性方向 + 置信度 + 证据密度 + 风险调制
     let dir = trader_direction.to_lower();
     let conf = if present(trader_confidence) && type_of(trader_confidence) == "f64" {
         trader_confidence
     } else { 0.5 };
+
+    // V65: 证据密度调制 — 引用上游论据 ≥3 条加强信号，<3 条减弱
+    // trader_evidence_count 来自 trader.content.evidence_cited（数组长度由 LLM 输出决定）
+    let evidence_count = if present(trader_evidence_count) && type_of(trader_evidence_count) == "array" {
+        trader_evidence_count.len()
+    } else { 0 };
+    let evidence_mod = if evidence_count >= 5 {
+        1.15  // 引用充分，信号加强 15%
+    } else if evidence_count >= 3 {
+        1.0   // 引用达标，信号不变
+    } else if evidence_count >= 1 {
+        0.7   // 引用不足，信号减弱 30%
+    } else {
+        0.4   // 无引用，信号减弱 60%（接近兜底）
+    };
+
+    // V65: 风险等级调制 — 极高风险/高风险减弱信号幅度（保守化）
+    let risk_mod = if present(trader_risk_level) && type_of(trader_risk_level) == "string" {
+        let rl = trader_risk_level.to_lower();
+        if rl.contains("极高") { 0.5 }
+        else if rl.contains("高") && !rl.contains("极高") { 0.7 }
+        else if rl.contains("中") { 1.0 }
+        else if rl.contains("低") { 1.1 }
+        else { 1.0 }
+    } else { 1.0 };
+
+    // 综合调制因子（clamped 防止过度放大）
+    let combined_mod = clamp(evidence_mod * risk_mod, 0.2, 1.3);
+
     if dir.contains("buy") || dir.contains("bull") || dir.contains("看多") || dir.contains("买入") || dir.contains("long") {
-        clamp(conf * 0.6, 0.1, 0.6)
+        clamp(conf * 0.6 * combined_mod, 0.05, 0.6)
     } else if dir.contains("sell") || dir.contains("bear") || dir.contains("看空") || dir.contains("卖出") || dir.contains("short") {
-        clamp(-conf * 0.6, -0.6, -0.1)
+        clamp(-conf * 0.6 * combined_mod, -0.6, -0.05)
     } else { 0.0 }
 } else if present(trader_target_price) && present(trader_stop_loss) && trader_stop_loss > 0.0 {
-    // 旧兼容路径: 仍有 targetPrice/stopLoss 时
-    // P2-1: 兼容路径权重 0.15（原 0.30）
+    // 旧兼容路径: 仍有 targetPrice/stopLoss 但无 verdict（极少见，仅作兜底）
     if present(current_price) && current_price > 0.0 {
         let upside = (trader_target_price - current_price) / current_price;
         if upside > 0.05 {
@@ -926,33 +962,43 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 	//
 	// V50 修复: 接入 risk-convergence 的三方分歧度。
 	//   当 risk_disagreement 存在且高时(>50), 三个风险评估师分歧大,
-	//   说明风险评估本身不确定性高, 应降低最终置信度。
+	//   说明风险评估本身不确定性高, 应适度降低最终置信度。
 	//   这是对"风险评估的可靠性"的独立修正，与 f4_signal(风险方向)正交。
-	//   分歧度 0~100, 修正因子 = (100 - disagreement) / 100, 范围 [0.3, 1.0]
+	//   分歧度 0~100, 修正因子 = (100 - disagreement) / 100, 范围 [0.7, 1.0]
+	//   P0 修复(2026-07-25): 原下限 0.3 导致数据质量A级时 confidence 也被砍到19%。
+	//     风险已通过 f4_signal 进入贝叶斯 posterior, disagreement_mod 是二次惩罚。
+	//     0.3 下限意味着分歧度70时 confidence 打三折 → 63%→19%, 让用户觉得分析不可信。
+	//     提高到 0.7: 分歧度70时 confidence 打七折 → 63%→44%, 仍反映不确定性但不过度。
 	let disagreement_mod = if present(risk_disagreement) {
-	    clamp((100.0 - risk_disagreement) / 100.0, 0.3, 1.0)
+	    clamp((100.0 - risk_disagreement) / 100.0, 0.7, 1.0)
 	} else { 1.0 };
-	// P1 修复: confidence 应与 action 使用一致的 effective_posterior（含 risk_bias）
-	// 原: posterior * 100.0 × disagreement_mod — 与 action 阈值不一致（action 用 effective_posterior）
-	// 改: effective_posterior * 100.0 × disagreement_mod — 确保数字与 action 语义一致
-	// 高风险例子: posterior=0.70, risk_bias=-0.08 → effective=0.62 → confidence=62%
-	//   "62% 置信度的持有" 比 "70% 置信度的持有" 更自洽
-	let final_confidence = clamp(effective_posterior * 100.0 * disagreement_mod, 0.0, 100.0);
-	// ── 决策方向置信度 + 信号强度（V58 新增）──
-	// 痛点：A级数据 + 严重超买 → posterior 低 → confidence 低（看空概率），
-	//   但"确信该卖"的语义被低 confidence 掩盖。
-	// 解决：新增两个字段与 confidence 互补：
-	//   decision_confidence = max(p, 1-p) × 100 — 无论买卖方向都体现"多确信"
-	//   signal_strength = |p - 0.5| × 200 — 偏离中性的程度，0=完全中性，100=极端强信号
-	// 说明：基于 effective_posterior（含 risk_bias），与 final_confidence 同源；
-	//   不再叠加 disagreement_mod（confidence 已体现，避免双重惩罚）；
-	//   collapse 会在下方分支同步降权，保持语义一致。
+	// ── 置信度: 贝叶斯因子驱动 + 数据质量门控（P0 2026-07-25 重写 v3）──
+	// 定义：置信度 = posterior 偏离 prior 的证据强度（贝叶斯因子）
+	//   BF = posterior_odds / prior_odds (posterior≥prior时)
+	//   BF = prior_odds / posterior_odds (posterior<prior时)
+	//   BF ≥ 1,越大证据越强。BF=1 → 50%, BF=10 → 90.9%, BF=100+ → 99.5%+
+	// 数据质量门控(P0 2026-07-25 新增): 上限与 dqi_score 挂钩
+	//   A 级(dqi≥90) → 99.9 / B 级(dqi≥75) → 85 / C 级(dqi≥60) → 75 / D 级(dqi<60) → 60
+	let bayes_confidence = pm_compute_bayes_confidence(prior, effective_posterior);
+	let confidence_quality_cap = if present(dqi_score) && dqi_score >= 90.0 {
+	    99.9
+	} else if present(dqi_score) && dqi_score >= 75.0 {
+	    85.0
+	} else if present(dqi_score) && dqi_score >= 60.0 {
+	    75.0
+	} else if present(dqi_score) {
+	    60.0
+	} else {
+	    99.9
+	};
+	// decision_confidence(方向确信度)保留供参考,但不是"置信度"
 	let decision_confidence_raw = if effective_posterior >= 0.5 {
 		effective_posterior
 	} else {
 		1.0 - effective_posterior
 	} * 100.0;
 	let signal_strength_raw = (effective_posterior - 0.5).abs() * 200.0;
+	let final_confidence = clamp(bayes_confidence, 0.0, confidence_quality_cap);
 
 	// ── M2 修复：LLM 失败级联兜底 ──
 	// V55 扩展: 上游 AgentNode 走 strict_mode 兜底时（LLM 输出无法解析为合法 JSON），
@@ -986,19 +1032,17 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 	let partial_high_confidence = partial_degraded && posterior >= 0.70;
 	let partial_low_confidence = partial_degraded && posterior < 0.70;
 	if weights_collapsed {
-	    // 分支 A: 权重坍缩或≥2 个上游不可信 → 强制空仓 + 置信度对半
-	    final_confidence = clamp(final_confidence * 0.5, 0.0, 100.0);
+	    // 分支 A: 权重坍缩或≥2 个上游不可信 → 强制空仓(仓位控制已够防御)
+	    // 置信度来自假设检验,不受坍缩影响。
 	    decision_confidence_raw = clamp(decision_confidence_raw * 0.5, 0.0, 100.0);
 	    signal_strength_raw = clamp(signal_strength_raw * 0.5, 0.0, 100.0);
 	    position_pct = 0.0;
 	} else if partial_high_confidence {
 	    // 分支 B: 单点不可信但后验高置信 → 保留买入/增持，仓位上限 30%（在仓位对齐段应用）
-	    final_confidence = clamp(final_confidence * 0.85, 0.0, 100.0);
 	    decision_confidence_raw = clamp(decision_confidence_raw * 0.85, 0.0, 100.0);
 	    signal_strength_raw = clamp(signal_strength_raw * 0.85, 0.0, 100.0);
 	} else if partial_low_confidence {
-	    // 分支 C: 单点不可信且后验低置信 → 禁止加仓 + 置信度 × 0.70
-	    final_confidence = clamp(final_confidence * 0.70, 0.0, 100.0);
+	    // 分支 C: 单点不可信且后验低置信 → 禁止加仓 + 方向确信度 × 0.70
 	    decision_confidence_raw = clamp(decision_confidence_raw * 0.70, 0.0, 100.0);
 	    signal_strength_raw = clamp(signal_strength_raw * 0.70, 0.0, 100.0);
 	}
@@ -1283,6 +1327,8 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
         `⚠️仓位${position_pct}%超过33%——组合层面若持有3个以上同仓位标的，总敞口将超100%`
     } else { "" },  // P0-2: 组合敞口预警（33%=3标的中性仓位阈值）
     "confidence": (final_confidence * 10.0).round() / 10.0,
+    // P0: 原始上涨概率 posterior × 100（与 confidence 对比参考）
+    "posterior": ((effective_posterior * 100.0) * 10.0).round() / 10.0,
     // V58: 决策方向置信度 — 无论买卖方向都体现"多确信"（解决看空决策 confidence 偏低被误读为"不确信"）
     "decisionConfidence": (decision_confidence_raw * 10.0).round() / 10.0,
     // V58: 信号强度 — 偏离中性的程度，0=完全中性，100=极端强信号

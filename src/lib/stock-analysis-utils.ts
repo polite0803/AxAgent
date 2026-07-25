@@ -8,6 +8,7 @@
 // ── 证据质量驱动权重 (P0-1) ──
 
 import { invoke } from "@/lib/invoke";
+import type { CSSProperties } from "react";
 
 /** 市场环境信息（与后端 EvidenceWeightRequest 对应） */
 export interface MarketRegimeInfo {
@@ -181,7 +182,12 @@ export function parseRiskLevel(raw: unknown): StockRiskLevelType {
 
 // ── 颜色 & i18n 键 ──
 
-export function getActionColor(action: string): "red" | "green" | "orange" | "blue" | "default" {
+/**
+ * 返回 Ant Design Tag 预设色名（red/green/blue/orange 等）。
+ * 用于详情页等 Ant Design 主题环境下的 Tag color 属性。
+ * 列表/下拉面板请使用 getActionTagStyle（CSS 变量样式）。
+ */
+export function getActionColor(action: string): string {
   switch (action) {
     case StockAction.BUY:
     case StockAction.INCREASE:
@@ -191,13 +197,63 @@ export function getActionColor(action: string): "red" | "green" | "orange" | "bl
       return "green";
     case StockAction.HOLD:
       return "blue";
-    case StockAction.UNCERTAIN:
-      return "default";
     case StockAction.WAIT:
-      return "default";
+      return "orange";
+    case StockAction.UNCERTAIN:
     default:
       return "default";
   }
+}
+
+/**
+ * 返回决策 Tag 的内联样式，使用主题 CSS 变量（非硬编码色名）。
+ * 遵循 A 股涨跌色习惯：红=买入/增持，绿=卖出/减持。
+ * 背景使用半透明底色 + 实色文字 + 同色细边框，深色/浅色模式自动适配。
+ * 适用于自定义面板/下拉列表等非标准 Ant Design 容器。
+ */
+export function getActionTagStyle(action: string): CSSProperties {
+  const base: CSSProperties = {
+    margin: 0,
+    fontSize: 10,
+    lineHeight: "16px",
+    padding: "0 5px",
+    borderRadius: 3,
+    border: "1px solid",
+  };
+  let fg: string;
+  let bg: string;
+  let bd: string;
+  switch (action) {
+    case StockAction.BUY:
+    case StockAction.INCREASE:
+      fg = "var(--color-danger)";
+      bg = "color-mix(in oklch, var(--color-danger) 14%, transparent)";
+      bd = "color-mix(in oklch, var(--color-danger) 30%, transparent)";
+      break;
+    case StockAction.SELL:
+    case StockAction.REDUCE:
+      fg = "var(--color-success)";
+      bg = "color-mix(in oklch, var(--color-success) 14%, transparent)";
+      bd = "color-mix(in oklch, var(--color-success) 30%, transparent)";
+      break;
+    case StockAction.HOLD:
+      fg = "var(--color-info)";
+      bg = "color-mix(in oklch, var(--color-info) 14%, transparent)";
+      bd = "color-mix(in oklch, var(--color-info) 30%, transparent)";
+      break;
+    case StockAction.WAIT:
+      fg = "var(--color-warning)";
+      bg = "color-mix(in oklch, var(--color-warning) 14%, transparent)";
+      bd = "color-mix(in oklch, var(--color-warning) 30%, transparent)";
+      break;
+    case StockAction.UNCERTAIN:
+    default:
+      fg = "var(--color-t-tertiary)";
+      bg = "color-mix(in oklch, var(--color-t-tertiary) 12%, transparent)";
+      bd = "color-mix(in oklch, var(--color-t-tertiary) 25%, transparent)";
+      break;
+  }
+  return { ...base, color: fg, background: bg, borderColor: bd };
 }
 
 export function getActionTKey(action: string): string {

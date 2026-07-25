@@ -129,6 +129,34 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
+    key: "paper-portfolio",
+    icon: <Icon icon="fluent:notebook-20-filled" size={17} />,
+    labelKey: "nav.paperPortfolio",
+    path: BUILTIN_PAGE_PATH["paper-portfolio"],
+    isPlugin: false,
+  },
+  {
+    key: "market-mainline",
+    icon: <Icon icon="fluent:trending-20-filled" size={17} />,
+    labelKey: "nav.marketMainline",
+    path: BUILTIN_PAGE_PATH["market-mainline"],
+    isPlugin: false,
+  },
+  {
+    key: "screenshot-diagnosis",
+    icon: <Icon icon="fluent:image-20-filled" size={17} />,
+    labelKey: "nav.screenshotDiagnosis",
+    path: BUILTIN_PAGE_PATH["screenshot-diagnosis"],
+    isPlugin: false,
+  },
+  {
+    key: "multi-agent",
+    icon: <Icon icon="fluent:people-team-20-filled" size={17} />,
+    labelKey: "nav.multiAgent",
+    path: BUILTIN_PAGE_PATH["multi-agent"],
+    isPlugin: false,
+  },
+  {
     key: "quant",
     icon: <Icon icon="fluent:brain-20-filled" size={17} />,
     labelKey: "nav.quant",
@@ -401,7 +429,11 @@ export function Sidebar() {
     sections.push({
       key: "invest-workspace",
       labelKey: "sidebar.sectionInvestWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "workspace" || n.key === "screener"),
+      items: builtinNavItems.filter((n) =>
+        n.key === "workspace" || n.key === "screener" || n.key === "paper-portfolio"
+        || n.key === "market-mainline" || n.key === "screenshot-diagnosis"
+        || n.key === "multi-agent"
+      ),
     });
 
     sections.push({

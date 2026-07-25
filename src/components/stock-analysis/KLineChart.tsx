@@ -64,7 +64,7 @@ const EARNINGS_COLORS: Record<string, string> = {
   other: "#6b7280",
 };
 
-export function KLineChart() {
+export function KLineChart(_props?: { klines?: KLine[]; height?: number }) {
   const { t } = useTranslation();
   const klineData = useStockAnalysisStore((s) => s.klineData);
   const quote = useStockAnalysisStore((s) => s.quote);

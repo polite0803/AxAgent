@@ -252,13 +252,55 @@ fn extract_numbers(text: &str) -> Vec<f64> {
     nums
 }
 
+/// 将字节位置向后调整到最近的 UTF-8 字符边界
+fn floor_byte_pos(text: &str, byte_pos: usize) -> usize {
+    if byte_pos >= text.len() {
+        return text.len();
+    }
+    if text.is_char_boundary(byte_pos) {
+        return byte_pos;
+    }
+    // 向前找到前一个字符的起始位置
+    let mut i = byte_pos;
+    while i > 0 && !text.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
+/// 将字节位置向前调整到最近的 UTF-8 字符边界
+fn ceil_byte_pos(text: &str, byte_pos: usize) -> usize {
+    if byte_pos >= text.len() {
+        return text.len();
+    }
+    if text.is_char_boundary(byte_pos) {
+        return byte_pos;
+    }
+    for i in byte_pos + 1..=text.len() {
+        if text.is_char_boundary(i) {
+            return i;
+        }
+    }
+    text.len()
+}
+
+/// 安全地在 UTF-8 字符串字节范围切片（自动调整非字符边界的起始/结束位置）
+fn safe_slice(text: &str, start_byte: usize, end_byte: usize) -> &str {
+    let start = floor_byte_pos(text, start_byte);
+    let end = ceil_byte_pos(text, end_byte);
+    &text[start.min(end)..end]
+}
+
 /// 在原文中定位匹配文本段
 fn extract_snippet(text: &str, query: &str, context_chars: usize) -> String {
-    if let Some(pos) = text.find(&query[..query.len().min(20)]) {
-        let start = pos.saturating_sub(context_chars);
-        let end = (pos + query.len() + context_chars).min(text.len());
-        let snippet = &text[start..end];
-        if start > 0 {
+    // 取 query 前 20 字节（但调整到 UTF-8 字符边界）
+    let search_prefix_end = query.len().min(20);
+    let search_prefix_end = floor_byte_pos(query, search_prefix_end);
+    if let Some(pos) = text.find(&query[..search_prefix_end]) {
+        let raw_start = pos.saturating_sub(context_chars);
+        let raw_end = (pos + query.len() + context_chars).min(text.len());
+        let snippet = safe_slice(text, raw_start, raw_end);
+        if raw_start > 0 {
             format!("...{}...", snippet)
         } else {
             format!("{}...", snippet)
@@ -269,10 +311,10 @@ fn extract_snippet(text: &str, query: &str, context_chars: usize) -> String {
             query.split(|c: char| !c.is_alphanumeric()).filter(|w| w.len() > 1).collect();
         for w in words {
             if let Some(pos) = text.find(w) {
-                let start = pos.saturating_sub(context_chars);
-                let end = (pos + context_chars * 2).min(text.len());
-                let snippet = &text[start..end];
-                return if start > 0 {
+                let raw_start = pos.saturating_sub(context_chars);
+                let raw_end = (pos + context_chars * 2).min(text.len());
+                let snippet = safe_slice(text, raw_start, raw_end);
+                return if raw_start > 0 {
                     format!("...{}...", snippet)
                 } else {
                     format!("{}...", snippet)
@@ -355,5 +397,27 @@ mod tests {
         // 至少有一个理由匹配上了
         let matched = report.citations.iter().filter(|c| c.match_confidence > 0.0).count();
         assert!(matched > 0, "应有至少一个理由匹配到分析师报告");
+    }
+
+    /// 验证中文字符串不会因 UTF-8 字节切片导致 panic
+    #[test]
+    fn test_utf8_safe_slicing() {
+        // 构造长中文文本 + 长中文 query（>20 字节），trigger 两个临界路径
+        let text = "公司基本面稳健，ROE连续多年保持在20%以上，现金流充沛。".repeat(10);
+        let query = "基本面稳健ROE连续多年保持在20%以上";
+        // 主路径：query > 20 bytes
+        let snippet = extract_snippet(&text, query, 30);
+        assert!(!snippet.is_empty(), "主路径应能提取非空片段");
+
+        // 回退路径：用重叠词定位（split 后保留多字节汉字）
+        let short_text = "催化剂正在催化的效果明显。";
+        let short_query = "催化剂";
+        let snippet2 = extract_snippet(short_text, short_query, 10);
+        assert!(!snippet2.is_empty(), "回退路径应能提取非空片段");
+
+        // 边缘情况：context_chars 导致 start 落在中文字符中间
+        let three_byte_text = format!("突破xx{}", "上".repeat(50));
+        let snippet3 = extract_snippet(&three_byte_text, "xx", 5);
+        assert!(snippet3.contains("x"), "边缘情况应包含查询词的内容");
     }
 }

@@ -145,3 +145,130 @@ pub async fn query_decision_backtest(
     }
     Ok(results)
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// P3-4: 跨股票信号聚合 + 板块联动分析 Tauri 命令
+// ───────────────────────────────────────────────────────────────────────────
+
+/// P3-4: 查询跨股票信号聚合器的当前配置
+#[tauri::command]
+pub async fn get_cross_stock_aggregator_config(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let Some(agg) = state.cross_stock_aggregator.get() else {
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("跨股票信号聚合器未初始化")
+            .to_string());
+    };
+    let cfg = agg.config().await;
+    serde_json::to_value(cfg).map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化配置失败: {e}")).to_string()
+    })
+}
+
+/// P3-4: 热更新跨股票信号聚合器配置
+#[tauri::command]
+pub async fn set_cross_stock_aggregator_config(
+    state: State<'_, AppState>,
+    config: axagent_stock_analysis::cross_stock_aggregator::AggregatorConfig,
+) -> Result<(), String> {
+    let Some(agg) = state.cross_stock_aggregator.get() else {
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("跨股票信号聚合器未初始化")
+            .to_string());
+    };
+    agg.set_config(config).await;
+    Ok(())
+}
+
+/// P3-4: 查询聚合器缓冲区快照（调试用）
+#[tauri::command]
+pub async fn get_cross_stock_aggregator_buffer(
+    state: State<'_, AppState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let Some(agg) = state.cross_stock_aggregator.get() else {
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("跨股票信号聚合器未初始化")
+            .to_string());
+    };
+    let buf = agg.buffer_snapshot().await;
+    Ok(buf.into_iter().filter_map(|s| serde_json::to_value(s).ok()).collect())
+}
+
+/// P3-4: 计算指定板块的联动报告
+///
+/// 调用方需提供 `concept_id`（如 "concept_ai"），后端通过 ConceptIndex 查询成员股票，
+/// 批量拉取实时行情，调用 `compute_sector_coherence` 生成报告。
+#[tauri::command]
+pub async fn get_sector_coherence_report(
+    state: State<'_, AppState>,
+    concept_id: String,
+) -> Result<serde_json::Value, String> {
+    use axagent_stock_analysis::concept_index::{build_sample_index, seed_ashare_ontology};
+    use axagent_stock_analysis::sector_coherence::compute_sector_coherence;
+
+    // 构建概念索引（A 股本体）
+    let mut idx = build_sample_index();
+    seed_ashare_ontology(&mut idx);
+
+    let members = idx.members(&concept_id);
+    if members.is_empty() {
+        return Err(ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("概念 {concept_id} 不存在或无成员股票"))
+            .to_string());
+    }
+
+    // 批量拉取行情（直接走 astock_client，不依赖 monitor 是否启动）
+    let quotes = state.astock_client.clone();
+    let mut quote_list = Vec::with_capacity(members.len());
+    for code in &members {
+        if let Ok(q) = quotes.get_quote(code).await {
+            quote_list.push(q);
+        }
+    }
+
+    let timestamp = chrono::Utc::now().timestamp();
+    let report = compute_sector_coherence(&idx, &concept_id, &quote_list, timestamp);
+    report.map(|r| serde_json::to_value(r).unwrap_or(serde_json::Value::Null)).ok_or_else(|| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail("板块联动报告生成失败（行情数据为空？）")
+            .to_string()
+    })
+}
+
+/// P3-4: 批量扫描多个板块的联动情况
+///
+/// 返回按联动强度（coherence 绝对值）降序排列的报告列表，
+/// 调用方可据此快速识别"异动板块"。
+#[tauri::command]
+pub async fn scan_sector_coherence(
+    state: State<'_, AppState>,
+    concept_ids: Vec<String>,
+) -> Result<Vec<serde_json::Value>, String> {
+    use axagent_stock_analysis::concept_index::{build_sample_index, seed_ashare_ontology};
+    use axagent_stock_analysis::sector_coherence::scan_sectors;
+    use std::collections::HashMap;
+
+    let mut idx = build_sample_index();
+    seed_ashare_ontology(&mut idx);
+
+    let quotes_client = state.astock_client.clone();
+    let mut quotes_by_concept: HashMap<String, Vec<_>> = HashMap::new();
+    for cid in &concept_ids {
+        let members = idx.members(cid);
+        if members.is_empty() {
+            continue;
+        }
+        let mut ql = Vec::with_capacity(members.len());
+        for code in &members {
+            if let Ok(q) = quotes_client.get_quote(code).await {
+                ql.push(q);
+            }
+        }
+        quotes_by_concept.insert(cid.clone(), ql);
+    }
+
+    let timestamp = chrono::Utc::now().timestamp();
+    let reports = scan_sectors(&idx, &concept_ids, &quotes_by_concept, timestamp);
+    Ok(reports.into_iter().filter_map(|r| serde_json::to_value(r).ok()).collect())
+}

@@ -40,13 +40,20 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   screener: "/screener",
   watchlist: "/watchlist",
   portfolio: "/portfolio",
-  trade: "/trade",
+  "paper-portfolio": "/paper-portfolio",
+  "market-mainline": "/market-mainline",
+  "screenshot-diagnosis": "/screenshot-diagnosis",
+  "trade": "/trade",
   backtest: "/backtest",
   compare: "/compare",
   "scheduled-analysis": "/scheduled-analysis",
   quant: "/quant",
   "replay-workbench": "/replay-workbench",
   pipeline: "/pipeline",
+  // G1 跨市场数据接入
+  "cross-market": "/cross-market",
+  // G5 Multi-Agent 固定角色 pool
+  "multi-agent": "/multi-agent",
   // 以下为历史兼容入口 / devtools 等次要路由，同样收归此处以消除散写硬编码
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",

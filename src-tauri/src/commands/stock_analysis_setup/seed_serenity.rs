@@ -569,10 +569,36 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         ("t-industry-rank", "行业排名", "get_industry_ranking", "t-industry-rank", 240.0, 80.0),
         ("t-cls-flash", "实时快讯", "get_cls_flash", "t-cls-flash", 440.0, 80.0),
         ("t-northbound", "北向资金", "get_north_bound_flow", "t-northbound", 840.0, 80.0),
+        ("t-policy-news", "政策新闻", "search_news", "t-policy-news", 1040.0, 80.0),
     ];
     let t_trend_ids: Vec<&str> = t_names.iter().map(|(id, _, _, _, _, _)| *id).collect();
     for (id, title, tool, output, x, y) in &t_names {
-        nodes.push(tool_node(id, title, tool, output, *x, *y));
+        if *id == "t-policy-news" {
+            // search_news 需要固定搜索关键词
+            let mut im = std::collections::HashMap::new();
+            im.insert("query".to_string(), "政策 利好 促进 扶持 振兴 补贴 实施方案 专项 消费 产业 投资".to_string());
+            nodes.push(WorkflowNode::Tool(ToolNode {
+                base: WorkflowNodeBase {
+                    id: id.to_string(),
+                    title: title.to_string(),
+                    description: Some("搜索近期政策类新闻".into()),
+                    position: Position { x: *x, y: *y },
+                    retry: RetryConfig { enabled: true, max_retries: 2, ..Default::default() },
+                    timeout: Some(120),
+                    enabled: true,
+                    parent_id: None,
+                    compensation: None,
+                    continue_on_fail: true,
+                },
+                config: ToolNodeConfig {
+                    tool_name: "search_news".into(),
+                    input_mapping: im,
+                    output_var: id.to_string(),
+                },
+            }));
+        } else {
+            nodes.push(tool_node(id, title, tool, output, *x, *y));
+        }
         edges.push(edge(&format!("e-trigger-{id}"), "trigger", id));
     }
 
@@ -595,7 +621,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          2. 排除已过度上涨的赛道：排名中 1 月涨幅 > 30% 的板块直接排除。\n\
          3. 每个趋势必须有可验证的 CapEx/订单/政策证据支撑——纯 LLM 推测不可接受。\n\
          4. 每个趋势必须给出明确的上下游因果链。\n\
-         5. 必须输出至少一个 bottleneck_candidate（初步判断的瓶颈环节）。\n\
+         5. **策略分类**：每个趋势必须标注 strategy_type（bottleneck/policy/earnings/capital）。\n\
+            bottleneck=产业链供给瓶颈（首选），policy=政策驱动，earnings=业绩驱动，capital=资金面驱动。\n\
+         6. 必须输出至少一个 bottleneck_candidate（初步判断的瓶颈环节）。\n\
          \n\
          ============== 输出格式强约束（必须严格遵守） ==============\n\
          1. 你的回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n\
@@ -610,6 +638,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          <数据> 结构：\n\
          {\"trends\": [{\"trend_name\": \"...\", \"confidence\": 75, \"phase\": \"accelerating\",\
          \"core_logic\": \"...\", \"causal_chain\": \"...\",\
+         \"strategy_type\": \"bottleneck | policy | earnings | capital\",\
          \"bottleneck_candidate\": \"...\", \"bottleneck_rationale\": \"...\",\
          \"demand_evidence\": {\"type\": \"capex | policy_mandate | order_backlog\",\
          \"source\": \"具体证据来源\", \"confidence\": 75, \"detail\": \"...\"},\
@@ -627,6 +656,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     // 注入 industry_ranking 作为结构化变量，取代 LLM 自行猜测
     let mut ts_input_mapping = std::collections::HashMap::new();
     ts_input_mapping.insert("industry_ranking".to_string(), "t-industry-rank.result".to_string());
+    ts_input_mapping.insert("policy_news".to_string(), "t-policy-news.result".to_string());
     nodes.push(agent_node(
         "a-trend-scanner",
         "产业趋势扫描",
@@ -797,6 +827,11 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             "t-baseline-consumer-elec.result".to_string(),
         );
         cd_input_mapping.insert("baseline_auto".to_string(), "t-baseline-auto.result".to_string());
+        // 注入策略类型，Agent 根据 strategy_type 选择分析模式
+        cd_input_mapping.insert(
+            "trend_strategy".to_string(),
+            format!("a-trend-scanner.content.trends[{i}].strategy_type"),
+        );
         nodes.push(agent_node(
             &decomposer_id,
             &format!("产业链拆解 #{i}"),

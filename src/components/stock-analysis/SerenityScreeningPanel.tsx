@@ -1,7 +1,5 @@
 import { invoke, listen } from "@/lib/invoke";
 import {
-  type AttentionMetrics,
-  type ExitSignals,
   type SerenityCandidate,
   type StepLog,
   type StepStage,
@@ -40,6 +38,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { SerenityCandidateCard } from "./SerenityCandidateCard";
 
 const { Text, Title } = Typography;
 
@@ -203,20 +202,45 @@ function findCandidatesDeep(obj: Record<string, unknown>, depth = 0): SerenityCa
 }
 
 // ── 节点 ID → 阶段映射 ──
+// 与 seed_serenity.rs 中实际节点 ID 同步（v4 模板）
 const NODE_STAGE_MAP: Record<string, StepStage> = {
   trigger: "loading",
-  "t-hot-stocks": "scanning",
+  // Phase 0: 市场扫描
   "t-industry-rank": "scanning",
   "t-cls-flash": "scanning",
   "t-northbound": "scanning",
+  "t-baseline-semi": "scanning",
+  "t-baseline-battery": "scanning",
+  "t-baseline-chem": "scanning",
+  "t-baseline-med": "scanning",
+  "t-baseline-aero": "scanning",
+  "t-baseline-consumer-elec": "scanning",
+  "t-baseline-auto": "scanning",
+  "t-signal-semi": "scanning",
+  "t-signal-battery": "scanning",
+  "t-signal-chem": "scanning",
+  "t-signal-med": "scanning",
+  "t-signal-aero": "scanning",
+  "t-signal-consumer-elec": "scanning",
+  "t-signal-auto": "scanning",
   "a-trend-scanner": "scanning",
+  // Phase 1: 产业链拆解
   "a-chain-trend1": "decomposing",
   "a-chain-trend2": "decomposing",
   "a-chain-trend3": "decomposing",
-  "a-chokepoint-trend1": "identifying",
-  "a-chokepoint-trend2": "identifying",
-  "a-chokepoint-trend3": "identifying",
+  "a-chain-trend4": "decomposing",
+  "a-chain-trend5": "decomposing",
+  // Phase 2: 瓶颈指标计算
+  "c-bottleneck-trend1": "identifying",
+  "c-bottleneck-trend2": "identifying",
+  "c-bottleneck-trend3": "identifying",
+  "c-bottleneck-trend4": "identifying",
+  "c-bottleneck-trend5": "identifying",
+  "c-consistency-check": "identifying",
+  // Phase 3: 候选公司映射
   "a-candidate-mapper": "mapping",
+  "c-data-verifier": "mapping",
+  // Phase 4: 保存
   "s-save-candidates": "saving",
 };
 
@@ -581,56 +605,6 @@ export function SerenityScreeningPanel() {
     },
     [],
   );
-
-  // 候选标签颜色
-  const relevanceColor = (rel: string) => {
-    if (rel === "direct") { return "green"; }
-    if (rel === "indirect") { return "blue"; }
-    return "default";
-  };
-  const relevanceLabel = (rel: string) => {
-    if (rel === "direct") { return t("serenityPanel.directBenefit"); }
-    if (rel === "indirect") { return t("serenityPanel.indirectBenefit"); }
-    return t("serenityPanel.themeRelated");
-  };
-
-  const catalystColor = (type: string) => {
-    if (type === "earnings") { return "green"; }
-    if (type === "production_ramp") { return "blue"; }
-    if (type === "policy") { return "orange"; }
-    if (type === "supply_shock") { return "red"; }
-    if (type === "capacity_release") { return "purple"; }
-    if (type === "contract_award") { return "cyan"; }
-    return "default";
-  };
-  const catalystLabel = (type: string) => {
-    const map: Record<string, string> = {
-      earnings: t("serenityPanel.catalystEarnings"),
-      production_ramp: t("serenityPanel.catalystProdRamp"),
-      policy: t("serenityPanel.catalystPolicy"),
-      supply_shock: t("serenityPanel.catalystSupplyShock"),
-      capacity_release: t("serenityPanel.catalystCapacityRelease"),
-      contract_award: t("serenityPanel.catalystContractAward"),
-    };
-    return map[type] ?? type;
-  };
-  const timeframeLabel = (tf: string) => {
-    if (tf === "short_term") { return t("serenityPanel.timeframeShort"); }
-    if (tf === "mid_term") { return t("serenityPanel.timeframeMid"); }
-    return t("serenityPanel.timeframeLong");
-  };
-  const exitUrgencyColor = (urgency?: string) => {
-    if (urgency === "exit_now") { return "red"; }
-    if (urgency === "caution") { return "orange"; }
-    if (urgency === "watch") { return "blue"; }
-    return "default";
-  };
-  const attentionColor = (score?: number) => {
-    if (score == null) { return "default"; }
-    if (score <= 30) { return "green"; }
-    if (score <= 60) { return "blue"; }
-    return "red";
-  };
 
   // 当前阶段文案
   const stageLabel = (() => {
@@ -1028,126 +1002,11 @@ export function SerenityScreeningPanel() {
           </div>
           {candidates.map((c, i) => {
             const code = c.stock_code ?? c.stockCode ?? "";
-            const name = c.stockName ?? c.stock_name ?? "";
             return (
-              <Card
+              <SerenityCandidateCard
                 key={`${code}-${i}`}
-                size="small"
-                hoverable
-                className="w-full"
-                onClick={() => navigate(`/stock-analysis?code=${code}`, { replace: true })}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Text strong className="text-sm">
-                        {name}
-                      </Text>
-                      <Text type="secondary" className="text-xs font-mono">
-                        {code}
-                      </Text>
-                      {c.relevance && (
-                        <Tag color={relevanceColor(c.relevance)} className="text-xs">
-                          {relevanceLabel(c.relevance)}
-                        </Tag>
-                      )}
-                    </div>
-                    {c.bottleneckProduct ?? c.bottleneck_product
-                      ? (
-                        <Text type="secondary" className="text-xs">
-                          {t("serenityPanel.bottleneckProduct")}
-                          {c.bottleneckProduct ?? c.bottleneck_product}
-                        </Text>
-                      )
-                      : null}
-                    {c.primaryRisk ?? c.primary_risk
-                      ? (
-                        <Text type="danger" className="text-xs">
-                          {t("serenityPanel.riskPrefix")}
-                          {c.primaryRisk ?? c.primary_risk}
-                        </Text>
-                      )
-                      : null}
-
-                    {/* 催化剂 */}
-                    {(c.catalysts ?? []).length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1 mt-1">
-                        <Text type="secondary" className="text-xs mr-1">
-                          {t("serenityPanel.catalystLabelPrefix")}
-                        </Text>
-                        {(c.catalysts ?? []).slice(0, 2).map((cat, ci) => (
-                          <Tag
-                            key={ci}
-                            color={catalystColor(cat.type)}
-                            className="text-xs"
-                            title={cat.description}
-                          >
-                            {catalystLabel(cat.type)} {timeframeLabel(cat.expected_timeframe)} {cat.confidence}%
-                          </Tag>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* 退出信号 */}
-                    {(() => {
-                      const es: ExitSignals | undefined = c.exit_signals ?? c.exitSignals;
-                      if (!es) { return null; }
-                      return (
-                        <div className="flex items-center gap-2 mt-1">
-                          {es.overall_exit_urgency && (
-                            <Tag color={exitUrgencyColor(es.overall_exit_urgency)} className="text-xs">
-                              {t("serenityPanel.exitLabelPrefix")}
-                              {es.overall_exit_urgency === "exit_now"
-                                ? t("serenityPanel.exitNow")
-                                : es.overall_exit_urgency === "caution"
-                                ? t("serenityPanel.exitCaution")
-                                : es.overall_exit_urgency === "watch"
-                                ? t("serenityPanel.exitWatch")
-                                : t("serenityPanel.exitNone")}
-                            </Tag>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* 关注度 */}
-                    {(() => {
-                      const am: AttentionMetrics | undefined = c.attention_metrics ?? c.attentionMetrics;
-                      if (!am) { return null; }
-                      return (
-                        <div className="flex items-center gap-2 mt-1">
-                          {am.attention_score != null && (
-                            <Tag color={attentionColor(am.attention_score)} className="text-xs">
-                              {t("serenityPanel.attentionLabelPrefix")}
-                              {am.attention_score}
-                            </Tag>
-                          )}
-                          {am.search_heat && (
-                            <Text type="secondary" className="text-xs">
-                              {t("serenityPanel.heatLabelPrefix")}
-                              {am.search_heat}
-                            </Text>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <Tag color="purple" className="text-xs font-bold">
-                      {c.serenityScore ?? c.serenity_score ?? 0}
-                      {t("serenityPanel.scoreSuffix")}
-                    </Tag>
-                    {c.confidence
-                      ? (
-                        <Text type="secondary" className="text-xs">
-                          {t("serenityPanel.confidencePrefix")}
-                          {c.confidence}%
-                        </Text>
-                      )
-                      : null}
-                  </div>
-                </div>
-              </Card>
+                candidate={c}
+              />
             );
           })}
         </div>

@@ -131,6 +131,7 @@ function tryParseVerdictFormat(report: string): ParsedReport | null {
       else { verdict = meta.stance; }
     }
     return {
+      ...meta,
       verdict,
       bull_score: bull,
       bear_score: bear,

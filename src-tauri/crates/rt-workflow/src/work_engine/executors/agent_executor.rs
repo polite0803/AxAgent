@@ -1247,17 +1247,33 @@ impl NodeExecutorTrait for AgentExecutor {
                     Err(e) => (format!("Error: {e}"), true),
                 };
 
+                // P1 修复(2026-07-25): 截断大型 tool result 防止上下文膨胀。
+                // 根因：资金流向(K线)、龙虎榜等数据返回数十 KB JSON，塞入 messages 后
+                // 输入上下文迅速膨胀，挤占输出 token 预算，导致 final report 在 max_tokens
+                // 处被截断（VERDICT 标签丢失）。
+                // 限制：单条 tool result 最多保留 3000 字符（约 1500 中文字，足够 LLM 理解结论）。
+                const TOOL_RESULT_MAX_CHARS: usize = 3000;
+                let limited_result = if result_str.len() > TOOL_RESULT_MAX_CHARS {
+                    format!(
+                        "{}……\n[数据过长，已截断至 {} 字符]",
+                        &result_str[..TOOL_RESULT_MAX_CHARS],
+                        TOOL_RESULT_MAX_CHARS,
+                    )
+                } else {
+                    result_str
+                };
+
                 tool_calls_made.push(serde_json::json!({
                     "tool": &tc.function.name,
                     "arguments": args,
-                    "result": result_str,
+                    "result": limited_result.as_str(),
                     "is_error": is_error,
                 }));
 
-                // 追加 tool 角色消息
+                // 追加 tool 角色消息（已截断的版本）
                 messages.push(ChatMessage {
                     role: "tool".to_string(),
-                    content: ChatContent::Text(result_str),
+                    content: ChatContent::Text(limited_result),
                     tool_calls: None,
                     tool_call_id: Some(tc.id.clone()),
                     thinking: None,
@@ -1330,9 +1346,10 @@ impl NodeExecutorTrait for AgentExecutor {
         // 修复：追加一轮不带 tools 的 LLM 调用，明确要求输出带 VERDICT 标签的最终分析。
         // 仅对 analyst 角色（strict_mode + 有 tools 配置）生效。
         // V58 优化: 区分两种场景——
-        //   (a) 截断场景（final_content 非空但无 VERDICT）：把截断内容作为 user message，
-        //       要求 LLM 基于该内容追加 VERDICT 标签，不传完整历史 messages，避免 input 膨胀。
-        //   (b) 空输出场景：用精简 messages（system + user + 工具结果摘要）。
+        //   (a) 截断场景（final_content 非空但无 VERDICT）：传 system prompt + 最近工具结果 +
+        //       截断内容，要求 LLM 基于所有数据重写完整报告（P1 2026-07-25: 原"仅补标签"策略
+        //       导致报告末尾内容永久丢失，用户看到报告突然中断）。
+        //   (b) 空输出场景：用精简 messages（system + 工具结果摘要）。
         if let Some(ref perms) = context.tool_permissions
             && perms.strict_mode
             && !an.config.tools.is_empty()
@@ -1351,36 +1368,53 @@ impl NodeExecutorTrait for AgentExecutor {
                     "VERDICT 兜底: 输出无 VERDICT 标签，追加纯总结轮次",
                 );
 
-                // 场景 (a): 截断——把截断内容传给 LLM，要求续写 VERDICT
-                // 场景 (b): 空输出——把 system prompt + 工具结果摘要传给 LLM
+                // P1 修复(2026-07-25): 截断场景改为重写完整报告而非仅补 VERDICT 标签。
+                // 根因：原逻辑"只输出 VERDICT 标签本身"虽能修复标签缺失，但被截断的
+                // 报告末尾内容永久丢失，用户看到报告在中间突然中断。
+                // 新逻辑：传 system prompt + 最近工具结果 + 截断内容，要求基于所有数据
+                // 重新生成完整报告，确保末尾包含 VERDICT 标签（类比空输出场景的 compact 策略）。
+                // 场景 (a): 截断——携带原始上下文让 LLM 重写完整报告
+                // 场景 (b): 空输出——用精简 messages（system + 工具结果摘要）
                 let retry_messages: Vec<ChatMessage> = if needs_verdict_retry {
-                    // 截断场景：只传截断内容 + 续写指令，不传历史 messages
                     let truncated_text = final_content.trim().to_string();
-                    vec![
-                        ChatMessage {
-                            role: "system".to_string(),
-                            content: ChatContent::Text(
-                                "你是一个股票分析师。以下是你之前输出的分析报告，但末尾的 VERDICT 标签被截断了。\
-                                 \n请基于该报告内容，追加 VERDICT 机读标签。\
-                                 \n**不要重新写报告**，只输出 VERDICT 标签本身。\
-                                 \n格式：\
-                                 \n<!-- VERDICT: {\"verdict\": \"看多|偏多|中性|偏空|看空\", \"bull_score\": 0-100整数, \"bear_score\": 0-100整数, \"bull_points\": [\"2-4条看多论据,每条不超过16字\"], \"bear_points\": [\"2-4条看空论据,每条不超过16字\"], \"confidence\": 0-100整数} -->\
-                                 \n示例：\
-                                 \n<!-- VERDICT: {\"verdict\": \"偏多\", \"bull_score\": 68, \"bear_score\": 32, \"bull_points\": [\"主力资金净流入\", \"机构持续买入\"], \"bear_points\": [\"短期涨幅较大\"], \"confidence\": 75} -->"
-                                    .to_string(),
-                            ),
-                            tool_calls: None,
-                            tool_call_id: None,
-                            thinking: None,
-                        },
-                        ChatMessage {
-                            role: "user".to_string(),
-                            content: ChatContent::Text(truncated_text),
-                            tool_calls: None,
-                            tool_call_id: None,
-                            thinking: None,
-                        },
-                    ]
+                    // P1: 同空输出策略，保留 system + 最近 2 条工具结果，附加截断内容 +
+                    // 重写指令。避免全量 messages 重传导致的 input 膨胀。
+                    let mut compact_messages: Vec<ChatMessage> = Vec::new();
+                    if let Some(first_sys) = messages.first() {
+                        compact_messages.push(first_sys.clone());
+                    }
+                    let take = messages.len().saturating_sub(2);
+                    for msg in messages.iter().skip(take.max(1)) {
+                        compact_messages.push(msg.clone());
+                    }
+                    // 附加截断的报告内容
+                    compact_messages.push(ChatMessage {
+                        role: "user".to_string(),
+                        content: ChatContent::Text(format!(
+                            "以下是被截断的之前版本报告（末尾不完整，供参考）：\n\n{}",
+                            truncated_text,
+                        )),
+                        tool_calls: None,
+                        tool_call_id: None,
+                        thinking: None,
+                    });
+                    // 追加重写指令
+                    compact_messages.push(ChatMessage {
+                        role: "system".to_string(),
+                        content: ChatContent::Text(
+                            "你是一位股票分析师。请基于以上工具数据和被截断的报告，\
+                             重新生成一份**完整的**分析报告。\
+                             \n报告正文控制在 800 字以内，重点突出关键指标解读和风险评估。\
+                             \n报告末尾必须另起一行追加 VERDICT 机读标签：\
+                             \n<!-- VERDICT: {{\"verdict\": \"看多|偏多|中性|偏空|看空\", \"bull_score\": 0-100整数, \"bear_score\": 0-100整数, \"bull_points\": [\"2-4条看多论据,每条不超过16字\"], \"bear_points\": [\"2-4条看空论据,每条不超过16字\"], \"confidence\": 0-100整数}} -->\
+                             \n缺少 VERDICT 标签或缺少 bull_points/bear_points 的输出将被视为无效。"
+                                .to_string(),
+                        ),
+                        tool_calls: None,
+                        tool_call_id: None,
+                        thinking: None,
+                    });
+                    compact_messages
                 } else {
                     // 空输出场景：用 system prompt + 工具结果摘要（从 messages 提取最后几条）
                     // 只保留 system + 最近 2 条 tool result，避免 input 膨胀
@@ -1467,30 +1501,28 @@ impl NodeExecutorTrait for AgentExecutor {
                             }
                         }
                         if !retry_content.trim().is_empty() {
-                            // 截断场景：重试只返回 VERDICT 标签，需拼接到原始截断内容后面
+                            // P1 修复(2026-07-25): 截断场景重试已生成完整报告，直接替换。
+                            // 原逻辑：检测到 VERDICT 标签后拼接旧截断内容 + 新标签——这在新
+                            // 重写模式下会导致旧截断报告 + 新报告标签的错位拼接，内容混乱。
+                            // 新逻辑：截断和空输出场景统一用 retry_content 替换 final_content。
                             if needs_verdict_retry {
                                 let verdict_tag = extract_verdict_tag(retry_content.trim());
-                                if let Some(verdict_json) = verdict_tag {
-                                    // 拼接原始报告 + 重试输出的 VERDICT 标签
-                                    final_content = format!(
-                                        "{}\n<!-- VERDICT: {} -->",
-                                        final_content.trim(),
-                                        verdict_json
-                                    );
+                                if verdict_tag.is_some() {
+                                    // 重写场景：retry 输出是完整报告 + VERDICT，直接替换
+                                    final_content = retry_content;
                                     tracing::info!(
                                         node_id = %node.base_id(),
-                                        original_len = final_content.len(),
-                                        "VERDICT 兜底: 截断场景重试成功，VERDICT 标签已拼接到原始报告末尾",
+                                        retry_len = final_content.len(),
+                                        "VERDICT 兜底: 截断场景重写成功(retry 含 VERDICT 标签)",
                                     );
                                 } else {
-                                    // 重试输出不是纯 VERDICT 标签（LLM 可能重写了报告），直接替换
-                                    tracing::info!(
-                                        node_id = %node.base_id(),
-                                        retry_len = retry_content.len(),
-                                        has_verdict = extract_verdict_tag(retry_content.trim()).is_some(),
-                                        "VERDICT 兜底: 截断场景重试输出非纯标签，直接替换 final_content",
-                                    );
+                                    // 重试输出不含 VERDICT 标签（异常），直接替换后让下游 strict_mode 校验走降级
                                     final_content = retry_content;
+                                    tracing::warn!(
+                                        node_id = %node.base_id(),
+                                        retry_len = final_content.len(),
+                                        "VERDICT 兜底: 截断场景重试输出不含 VERDICT 标签，走降级路径",
+                                    );
                                 }
                             } else {
                                 // 空输出场景：重试输出完整报告，直接替换
@@ -1841,23 +1873,17 @@ impl NodeExecutorTrait for AgentExecutor {
                 // 分支 B: 合法 JSON 但 verdict 是字符串（扁平结构）→ 重构为嵌套结构
                 let parsed = parsed_opt.unwrap();
                 let obj = parsed.as_object().unwrap();
-                let verdict_keys = [
-                    "verdict",
-                    "confidence",
-                    "bull_score",
-                    "bear_score",
-                    "bull_points",
-                    "bear_points",
-                ];
-                let verdict_map: serde_json::Map<String, serde_json::Value> = obj
-                    .iter()
-                    .filter(|(k, _)| verdict_keys.contains(&k.as_str()))
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect();
                 let report = obj
                     .get("report")
                     .cloned()
                     .unwrap_or_else(|| serde_json::Value::String(final_content.trim().to_string()));
+                // 把除了 report 之外的所有字段都放入 verdict map，
+                // 避免 catalyst_level / institutional_trace / narrative_completeness 等特有字段丢失
+                let verdict_map: serde_json::Map<String, serde_json::Value> = obj
+                    .iter()
+                    .filter(|(k, _)| k.as_str() != "report")
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .collect();
                 let combined = serde_json::json!({
                     "report": report,
                     "verdict": verdict_map

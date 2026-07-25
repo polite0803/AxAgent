@@ -63,6 +63,7 @@ use crate::native::{
 use crate::qr_bind_handlers::{consume_qr_token, generate_qr_token};
 use crate::realtime::{issue_realtime_ticket, realtime_handler};
 use crate::server::GatewayAppState;
+use crate::stock_ws_handler::stock_quote_stream_handler;
 
 pub fn create_router(state: GatewayAppState) -> Router {
     let cors = build_cors_layer();
@@ -160,6 +161,8 @@ pub fn create_router(state: GatewayAppState) -> Router {
             "/v1/mcp/servers/{server_id}/tools/call",
             post(call_mcp_tool),
         )
+        // P3: WebSocket 行情推送（受 auth_middleware 保护）
+        .route("/v1/stock/quote/stream", get(stock_quote_stream_handler))
         .layer(Extension(state.ticket_store.clone()))
         .layer(middleware::from_fn_with_state(
             AuthState {
@@ -334,6 +337,7 @@ mod tests {
             routing_strategy: axagent_harness::types::LoadBalanceStrategy::default(),
             latency_tracker: crate::routing::LatencyTracker::new(),
             round_robin_cursor: crate::routing::RoundRobinCursor::new(),
+            market_data_streamer: None,
         }
     }
 

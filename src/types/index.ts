@@ -737,6 +737,9 @@ export type BuiltinPageKey =
   | "screener"
   | "watchlist"
   | "portfolio"
+  | "paper-portfolio"
+  | "market-mainline"
+  | "screenshot-diagnosis"
   | "trade"
   | "backtest"
   | "compare"
@@ -744,10 +747,12 @@ export type BuiltinPageKey =
   | "pipeline"
   | "quant"
   | "replay-workbench"
+  | "cross-market"
   | "workspace"
   | "settings"
   | "marketplace"
-  | "wiki";
+  | "wiki"
+  | "multi-agent";
 export type PageKey = BuiltinPageKey | string;
 export type SettingsSection =
   | "providers"
@@ -1177,14 +1182,18 @@ export * from "./expert";
 export * from "./knowledge";
 export * from "./llmWiki";
 export * from "./localTool";
+export * from "./market-mainline";
 export * from "./mcp";
 export * from "./memory";
+export * from "./multi-agent";
 export * from "./nudge";
+export * from "./paper-portfolio";
 export * from "./permission";
 export * from "./persona";
 export * from "./pipeline";
 export * from "./platform";
 export * from "./proactive";
+export * from "./screenshot-diagnosis";
 export * from "./search";
 export * from "./stock-analysis";
 export * from "./style";

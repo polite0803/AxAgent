@@ -2207,7 +2207,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 // AgentNode(Json mode) 输出包裹在 {role, content: <json_string>, ...} 中
                 ("catalyst_level", "a-catalyst.content.catalyst_level"),
                 ("consensusScore", "debate-convergence.content.consensus_score"),
-                // trader Json 模式输出：{verdict, currentPrice, targetPrice, stopLoss, timeHorizon, expectedHoldingDays, confidence, reasoning}
+                // V65: trader 输出完整 6 维度字段（与 portfolio-mgr 同维度对齐用于双视角对比）
+                // 旧字段保留: trader_direction/trader_target_price/trader_stop_loss 供 f7 兼容路径
+                // trader Json 模式输出：{action, verdict, positionPct, confidence, riskLevel, currentPrice,
+                //   targetPrice, stopLoss, stopLossPct, takeProfitPct, timeHorizon, expectedHoldingDays,
+                //   data_gaps, evidence_cited, risk_factors, decision_trail, lessons_applied, reasoning}
                 ("trader_action", "trader.content.action"),
                 ("trader_direction", "trader.content.verdict"),
                 ("trader_confidence", "trader.content.confidence"),
@@ -2218,6 +2222,13 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("trader_stop_loss", "trader.content.stopLoss"),
                 ("trader_time_horizon", "trader.content.timeHorizon"),
                 ("trader_holding_days", "trader.content.expectedHoldingDays"),
+                // V65 新增: trader 6 维度对比字段（f7 可消费更丰富的 LLM 信号）
+                ("trader_position_pct", "trader.content.positionPct"),
+                ("trader_risk_level", "trader.content.riskLevel"),
+                ("trader_stop_loss_pct", "trader.content.stopLossPct"),
+                ("trader_take_profit_pct", "trader.content.takeProfitPct"),
+                ("trader_data_gaps", "trader.content.data_gaps"),
+                ("trader_evidence_count", "trader.content.evidence_cited"),
                 // V50 修复: 接入 risk-convergence 的三方风险分歧度
                 // 避免该 LLM 节点（约5-10s）的输出被浪费
                 ("risk_disagreement", "risk-convergence.content.disagreement_score"),
@@ -2446,6 +2457,11 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     edges.push(edge("e-t-lockup-data-portfolio-mgr", "t-lockup-data", "portfolio-mgr"));
     // ── P2 新增: 龙虎榜数据源 → portfolio-mgr 显式边 ──
     edges.push(edge("e-t-dragon-tiger-data-portfolio-mgr", "t-dragon-tiger-data", "portfolio-mgr"));
+    // ── 2026-07-25 修复: 龙虎榜数据 → a-hot-money 显式边 ──
+    // t-dragon-tiger-data 输出 get_stock_dragon_tiger 结果（机构席位/游资动向/上榜原因），
+    // a-hot-money 需要此数据做资金面追踪分析。LLM 仍可通过 PROFILE_TOOLS 调 get_stock_dragon_tiger
+    // 补充，但有了这条边 + input_mapping 注入后可免 LLM 自行调用。
+    edges.push(edge("e-t-dragon-tiger-data-hot-money", "t-dragon-tiger-data", "a-hot-money"));
     // ── P2 新增: 公告数据源 → portfolio-mgr 显式边 ──
     // t-catalyst-data 输出公司公告列表，用于公告关键词风险检测
     edges.push(edge("e-t-catalyst-data-portfolio-mgr", "t-catalyst-data", "portfolio-mgr"));

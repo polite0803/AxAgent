@@ -50,6 +50,7 @@ pub mod interrupt;
 pub mod lint_checker;
 pub mod llm_bridge;
 pub mod metrics;
+pub mod multi_agent_hook;
 pub mod noop_kit;
 pub mod outline_builder;
 pub mod personality;
@@ -186,6 +187,12 @@ pub use provider_fallback::{
 pub use reasoning_router::{
     FEATURE_ANALYSIS_PROMPT, ReasoningEngine, TaskFeatures, auto_select_engine,
     route_reasoning_engine, select_with_llm_hint,
+};
+
+// multi_agent_hook — 外部引用：init/services 注册 PluginHook
+pub use multi_agent_hook::{
+    MultiAgentTriggerConfig, MultiAgentTriggerHook, create_multi_agent_trigger_hook,
+    create_multi_agent_trigger_hook_with_config,
 };
 
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）

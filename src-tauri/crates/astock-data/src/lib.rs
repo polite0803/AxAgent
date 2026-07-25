@@ -45,7 +45,9 @@ use crate::gate::DomainGate;
 use crate::vendor_health::{VendorHealthConfig, VendorHealthTracker};
 pub use error::DataError;
 pub use macro_data::{MacroDataClient, MacroDataPoint, MacroDataSnapshot};
-pub use realtime_quote::{QuoteCallback, QuoteChangeEvent, RealTimeQuoteWatcher, WatchPriority};
+pub use realtime_quote::{
+    HttpPollingStreamer, QuoteCallback, QuoteChangeEvent, RealTimeQuoteWatcher, WatchPriority,
+};
 pub use types::*;
 // R3: 估值带（暴露在 crate 根，方便 commands 端直接 `axagent_astock_data::ValuationBand`）
 pub use valuation_band::{FinancialSnapshotLike, MetricBand, ValuationBand};
@@ -240,7 +242,11 @@ impl VendorRouting {
                 "browser_eastmoney".into(),
                 "baidu_stock".into(),
             ],
-            dragon_tiger: vec!["eastmoney".into(), "baidu_stock".into()],
+            dragon_tiger: vec![
+                "eastmoney".into(),
+                "browser_eastmoney".into(),
+                "baidu_stock".into(),
+            ],
             lockup: vec!["eastmoney".into(), "baidu_stock".into()],
             search: vec![
                 "eastmoney".into(),
@@ -249,8 +255,8 @@ impl VendorRouting {
                 "neodata".into(),
             ],
             search_news: vec!["eastmoney".into(), "akshare".into(), "neodata".into()],
-            margin: vec!["eastmoney".into(), "baidu_stock".into()],
-            north_bound: vec!["eastmoney".into(), "baidu_stock".into()],
+            margin: vec!["eastmoney".into(), "browser_eastmoney".into(), "baidu_stock".into()],
+            north_bound: vec!["eastmoney".into(), "browser_eastmoney".into(), "baidu_stock".into()],
             sector: vec![
                 "eastmoney".into(),
                 "ths".into(),
@@ -295,13 +301,18 @@ impl VendorRouting {
                 "neodata".into(),
             ],
             cls_flash: vec!["eastmoney".into(), "akshare".into(), "neodata".into()],
-            north_bound_flow: vec!["eastmoney".into(), "ths".into(), "baidu_stock".into()],
+            north_bound_flow: vec![
+                "eastmoney".into(),
+                "browser_eastmoney".into(),
+                "ths".into(),
+                "baidu_stock".into(),
+            ],
             block_trades: vec!["eastmoney".into(), "baidu_stock".into()],
             // 政策新闻:优先 eastmoney(基于行业关键词搜索),baidu_stock 作为备选(个股新闻+政策过滤),
             // akshare 未实现 get_policy_news(默认返回空),实际不生效。
             // P1-2 修复(2026-07-22): 新增 baidu_stock 作为有效备选，避免 eastmoney 单点故障。
             policy_news: vec!["eastmoney".into(), "baidu_stock".into(), "akshare".into()],
-            institutional_visits: vec!["eastmoney".into()],
+            institutional_visits: vec!["eastmoney".into(), "browser_eastmoney".into()],
             index_quotes: vec!["eastmoney".into(), "tencent".into(), "neodata".into()],
             peers: vec!["eastmoney".into(), "iwencai".into(), "neodata".into()], // neodata 末位兜底
             option_pcr: vec!["eastmoney".into()],
@@ -384,6 +395,76 @@ fn is_pure_digits_before_dot_and_uppercase_after(s: &str) -> bool {
     } else {
         false
     }
+}
+
+/// G1 跨市场数据接入：判断代码是否为国际股票（港股/美股/ETF）
+///
+/// 规则：
+/// - "00700.HK" / "AAPL.US" / "BABA.US" → true（带后缀）
+/// - "00700" / "09988"（≤5 位纯数字） → true（港股代码长度）
+/// - "AAPL" / "TSLA" / "BABA"（1-5 位纯字母） → true（美股代码）
+/// - "000001" / "600519" / "688981"（6 位纯数字） → false（A 股）
+/// - "US_AAPL" / "hk00700"（已编码国际格式） → true
+/// - "SPX" / "IXIC" / "HSI"（基准指数，3-4 位大写字母） → true
+/// - 其他 → false
+pub fn is_international_code(code: &str) -> bool {
+    let trimmed = code.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    // 已编码的国际格式
+    if trimmed.starts_with("US_") || trimmed.starts_with("hk") {
+        return true;
+    }
+    // 带后缀形式
+    if let Some((_, suffix)) = trimmed.split_once('.') {
+        let s = suffix.to_uppercase();
+        return s == "HK" || s == "US";
+    }
+    // 6 位纯数字 → A 股
+    if trimmed.len() == 6 && trimmed.chars().all(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    // ≤5 位纯数字 → 港股（00700 / 09988 / 03690）
+    if trimmed.len() <= 5 && trimmed.chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+    // 1-5 位纯大写字母 → 美股（AAPL / TSLA / BABA / NVDA）
+    if !trimmed.is_empty() && trimmed.len() <= 5 && trimmed.chars().all(|c| c.is_ascii_uppercase())
+    {
+        return true;
+    }
+    false
+}
+
+/// 判断是否为基准指数代码（标普 500 / 纳指 / 恒生 / 上证等）
+pub fn is_benchmark_code(code: &str) -> bool {
+    matches!(
+        code.trim().to_uppercase().as_str(),
+        "SPX"
+            | "SP500"
+            | "S&P500"
+            | "IXIC"
+            | "NDX"
+            | "DJI"
+            | "HSI"
+            | "HSCEI"
+            | "000001.SH"
+            | "SH000001"
+            | "399001"
+            | "399006"
+            | "000300"
+    )
+}
+
+/// 判断是否为外汇对代码（USD/CNY、HKD/CNY 等）
+pub fn is_forex_pair(code: &str) -> bool {
+    let trimmed = code.trim().to_uppercase();
+    if let Some((base, quote)) = trimmed.split_once('/') {
+        return (base == "USD" || base == "HKD" || base == "EUR" || base == "JPY")
+            && (quote == "CNY" || quote == "CNH" || quote == "USD" || quote == "HKD");
+    }
+    false
 }
 
 impl AStockClient {
@@ -1388,6 +1469,11 @@ impl AStockClient {
     }
 
     pub async fn get_quote(&self, stock_code: &str) -> Result<StockQuote, DataError> {
+        // G1 跨市场数据接入：国际代码直接路由到 international vendor，绕过 A 股 routing
+        // 避免 A 股 vendor 不识别国际代码导致的 6 vendor × 2 轮无效重试
+        if is_international_code(stock_code) {
+            return self.get_international_quote(stock_code).await;
+        }
         // As-Of 模式：K线最后一行合成行情。K线合成失败时返回 Error，绝不回退到
         // vendor.get_quote（返回今日实时数据，时间泄露）。
         if crate::as_of::is_asof_active() {
@@ -1505,6 +1591,131 @@ impl AStockClient {
         Ok(result)
     }
 
+    /// G1 跨市场数据接入：国际股票行情（港股/美股）
+    ///
+    /// 直接调用 international vendor，绕过 A 股 routing，避免无效重试。
+    /// 缓存 30s（与 A 股 get_quote 一致）。
+    pub async fn get_international_quote(&self, stock_code: &str) -> Result<StockQuote, DataError> {
+        let cache_key = format!("intl_quote:{stock_code}");
+        if let Some(cached) = self.cache_get(&cache_key).await {
+            if let Ok(q) = serde_json::from_str::<StockQuote>(&cached) {
+                return Ok(q);
+            }
+        }
+        let vendor = self.find_vendor("international").ok_or_else(|| DataError::VendorError {
+            vendor: "international".into(),
+            message: "国际股票 vendor 未注册".into(),
+        })?;
+        let result = vendor.get_quote(stock_code).await?;
+        self.cache_set_serialized(cache_key, &result, 30).await;
+        Ok(result)
+    }
+
+    /// G1 跨市场数据接入：国际股票 K 线
+    pub async fn get_international_klines(
+        &self,
+        stock_code: &str,
+        period: &str,
+        limit: u32,
+        adj_type: Option<crate::types::AdjType>,
+    ) -> Result<Vec<KLine>, DataError> {
+        let cache_key = format!("intl_klines:{stock_code}:{period}:{limit}:{:?}", adj_type);
+        if let Some(cached) = self.cache_get(&cache_key).await {
+            if let Ok(ks) = serde_json::from_str::<Vec<KLine>>(&cached) {
+                if ks.len() >= limit as usize {
+                    let start = ks.len().saturating_sub(limit as usize);
+                    return Ok(ks[start..].to_vec());
+                }
+            }
+        }
+        let vendor = self.find_vendor("international").ok_or_else(|| DataError::VendorError {
+            vendor: "international".into(),
+            message: "国际股票 vendor 未注册".into(),
+        })?;
+        let result = vendor.get_klines(stock_code, period, limit, adj_type).await?;
+        self.cache_set_serialized(cache_key, &result, 300).await;
+        Ok(result)
+    }
+
+    /// G1 跨市场数据接入：基准指数 K 线（标普 500 / 纳指 / 恒生 / 上证等）
+    ///
+    /// 通过 eastmoney 国际指数接口获取，统一返回 KLine 数组。
+    /// 支持的代码：SPX/SP500/IXIC/NDX/DJI/HSI/HSCEI（国际）+ 000001.SH/399001/399006/000300（A 股）
+    pub async fn get_benchmark_klines(
+        &self,
+        benchmark_code: &str,
+        period: &str,
+        limit: u32,
+    ) -> Result<Vec<KLine>, DataError> {
+        let cache_key = format!("benchmark_klines:{benchmark_code}:{period}:{limit}");
+        if let Some(cached) = self.cache_get(&cache_key).await {
+            if let Ok(ks) = serde_json::from_str::<Vec<KLine>>(&cached) {
+                if ks.len() >= limit as usize {
+                    let start = ks.len().saturating_sub(limit as usize);
+                    return Ok(ks[start..].to_vec());
+                }
+            }
+        }
+        // 国际指数走 international vendor；A 股指数走默认 routing
+        let result = if is_international_code(benchmark_code)
+            || matches!(
+                benchmark_code.trim().to_uppercase().as_str(),
+                "SPX" | "SP500" | "S&P500" | "IXIC" | "NDX" | "DJI" | "HSI" | "HSCEI"
+            ) {
+            let vendor =
+                self.find_vendor("international").ok_or_else(|| DataError::VendorError {
+                    vendor: "international".into(),
+                    message: "international vendor 未注册".into(),
+                })?;
+            // 国际指数通过 eastmoney 接口获取，使用国际代码格式
+            let intl_code = match benchmark_code.trim().to_uppercase().as_str() {
+                "SPX" | "SP500" | "S&P500" => "US_SPX".to_string(),
+                "IXIC" => "US_IXIC".to_string(),
+                "NDX" => "US_NDX".to_string(),
+                "DJI" => "US_DJI".to_string(),
+                "HSI" => "hkHSI".to_string(),
+                "HSCEI" => "hkHSCEI".to_string(),
+                other => other.to_string(),
+            };
+            vendor.get_klines(&intl_code, period, limit, None).await?
+        } else {
+            // A 股指数：剥离后缀，直接走默认 K 线 routing
+            let clean_code = benchmark_code.trim().trim_end_matches(".SH").trim_end_matches(".SZ");
+            self.get_klines(clean_code, period, limit).await?
+        };
+        self.cache_set_serialized(cache_key, &result, 300).await;
+        Ok(result)
+    }
+
+    /// G1 跨市场数据接入：外汇 K 线（USD/CNY、HKD/CNY 等）
+    ///
+    /// 通过 eastmoney 外汇接口获取。`pair` 格式为 "BASE/QUOTE"（如 "USD/CNY"）。
+    pub async fn get_forex_klines(
+        &self,
+        pair: &str,
+        period: &str,
+        limit: u32,
+    ) -> Result<Vec<KLine>, DataError> {
+        let cache_key = format!("forex_klines:{pair}:{period}:{limit}");
+        if let Some(cached) = self.cache_get(&cache_key).await {
+            if let Ok(ks) = serde_json::from_str::<Vec<KLine>>(&cached) {
+                if ks.len() >= limit as usize {
+                    let start = ks.len().saturating_sub(limit as usize);
+                    return Ok(ks[start..].to_vec());
+                }
+            }
+        }
+        let vendor = self.find_vendor("international").ok_or_else(|| DataError::VendorError {
+            vendor: "international".into(),
+            message: "international vendor 未注册".into(),
+        })?;
+        // 外汇代码转换：USD/CNY → forex.usdcny
+        let forex_code = pair.trim().to_uppercase().replace('/', "");
+        let result = vendor.get_klines(&format!("forex.{forex_code}"), period, limit, None).await?;
+        self.cache_set_serialized(cache_key, &result, 300).await;
+        Ok(result)
+    }
+
     pub async fn get_klines(
         &self,
         stock_code: &str,
@@ -1529,6 +1740,10 @@ impl AStockClient {
         limit: u32,
         adj_type: Option<crate::types::AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
+        // G1 跨市场数据接入：国际代码直接路由到 international vendor
+        if is_international_code(stock_code) {
+            return self.get_international_klines(stock_code, period, limit, adj_type).await;
+        }
         let cache_key = Self::kline_cache_key(stock_code, period, adj_type);
         let fetch_limit = limit.max(500);
 

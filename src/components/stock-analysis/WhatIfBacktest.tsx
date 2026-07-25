@@ -26,7 +26,8 @@ interface AnalysisRecord {
   stockCode: string;
   stockName: string;
   decisionJson: string | null;
-  blackboardSnapshot: string | null;
+  /** 列表场景不返回，详情页通过 get_stock_analysis 单独获取 */
+  blackboardSnapshot?: string | null;
   createdAt: number;
   status: string;
   analysisKind: string;

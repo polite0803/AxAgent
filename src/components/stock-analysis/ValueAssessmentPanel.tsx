@@ -213,7 +213,7 @@ function tryParseValueReport(report: string): ValueReportData | null {
         const parsed = JSON.parse(candidate);
         if (parsed && typeof parsed === "object") {
           console.log("[tryParseValueReport] 解析成功（直接）");
-          return parsed as ValueReportData;
+          return flattenVerdictReport(parsed as ValueReportData);
         }
       } catch { /* try next */ }
 
@@ -223,7 +223,7 @@ function tryParseValueReport(report: string): ValueReportData | null {
         const parsed = JSON.parse(sanitized);
         if (parsed && typeof parsed === "object") {
           console.log("[tryParseValueReport] 解析成功（修复后）");
-          return parsed as ValueReportData;
+          return flattenVerdictReport(parsed as ValueReportData);
         }
       } catch (e) {
         errors.push(`candidate(${candidate.slice(0, 50)}...): ${e instanceof Error ? e.message : e}`);
@@ -248,7 +248,7 @@ function tryParseValueReport(report: string): ValueReportData | null {
         const parsed = JSON.parse(candidate);
         if (parsed && typeof parsed === "object") {
           console.log("[tryParseValueReport] 解析成功（清理 tool call 后）");
-          return parsed as ValueReportData;
+          return flattenVerdictReport(parsed as ValueReportData);
         }
       }
     }
@@ -263,6 +263,33 @@ function tryParseValueReport(report: string): ValueReportData | null {
   }
 
   return null;
+}
+
+/**
+ * 检测并展开 strict_mode 压缩的 {report, verdict} 格式。
+ *
+ * 后端 strict_mode 将 LLM 完整扁平 JSON（含 buffett_verdict / moat_rating / financial_health 等）
+ * 压缩为 {report: string, verdict: object} 两个顶级键，导致 ValueReportData 的顶层字段全部为 undefined。
+ *
+ * 此函数在解析成功时将 verdict 子字段提升到顶层，使面板组件能正常读取。
+ */
+function flattenVerdictReport(data: ValueReportData): ValueReportData {
+  if (typeof data.report !== "string" || !data.verdict || typeof data.verdict !== "object") {
+    return data;
+  }
+  const verdict = data.verdict as Record<string, unknown>;
+  // 把 verdict 对象的字段复制到顶层（不覆盖 report 本身）
+  const keys = Object.keys(verdict);
+  if (keys.length > 0) {
+    const merged: ValueReportData = { ...data };
+    for (const k of keys) {
+      if (k !== "report" && !(k in data) || data[k as keyof ValueReportData] === undefined) {
+        (merged as Record<string, unknown>)[k] = verdict[k];
+      }
+    }
+    return merged;
+  }
+  return data;
 }
 
 /** 结构化估值报告渲染 —— 风格与 AnalystReportCard 保持一致 */

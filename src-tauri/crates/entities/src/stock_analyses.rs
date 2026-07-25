@@ -37,6 +37,10 @@ pub struct Model {
     /// LLM 决策 JSON（方案 D 双向并存：trader 节点的 `{stance, positionPct, confidence}`）
     #[sea_orm(default_value = "NULL")]
     pub llm_decision_json: Option<String>,
+    /// 版本化分析：重跑分析时指向原始分析记录的 ID，实现"同一股票多个时间版本"。
+    /// 首次分析为 NULL；重跑时指向被重跑的原始记录 ID。
+    #[sea_orm(default_value = "NULL")]
+    pub parent_analysis_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

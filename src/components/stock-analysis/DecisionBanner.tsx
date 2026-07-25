@@ -75,6 +75,34 @@ export function DecisionBanner() {
       ?? (extractLlmField(llmDecisionJson, "summary") as string | null)
       ?? null;
   }, [llmDecisionJson]);
+  // V65: 解析 LLM 完整字段（仓位/风险/缺口/证据）用于双视角对比
+  const llmFields = useMemo(() => {
+    if (!llmDecisionJson) {
+      return null;
+    }
+    const pos = extractLlmField(llmDecisionJson, "positionPct") as number | null;
+    const conf = extractLlmField(llmDecisionJson, "confidence") as number | null;
+    const risk = extractLlmField(llmDecisionJson, "riskLevel") as string | null;
+    const gaps = extractLlmField(llmDecisionJson, "data_gaps") as string[] | null;
+    const evidence = extractLlmField(llmDecisionJson, "evidence_cited") as
+      | Array<{ source?: string; point?: string }>
+      | null;
+    const targetPrice = extractLlmField(llmDecisionJson, "targetPrice") as number | null;
+    const stopLoss = extractLlmField(llmDecisionJson, "stopLoss") as number | null;
+    const stopLossPct = extractLlmField(llmDecisionJson, "stopLossPct") as number | null;
+    const takeProfitPct = extractLlmField(llmDecisionJson, "takeProfitPct") as number | null;
+    return {
+      pos,
+      conf,
+      risk,
+      gaps: Array.isArray(gaps) ? gaps : null,
+      evidence: Array.isArray(evidence) ? evidence : null,
+      targetPrice,
+      stopLoss,
+      stopLossPct,
+      takeProfitPct,
+    };
+  }, [llmDecisionJson]);
   // timeline-jump 高亮：被 evidence 指向时短暂加 ring 样式
   const highlightedPanel = useStockAnalysisStore((s) => s.highlightedPanel);
   // 时间旅行: 当前决策所基于的 as-of 锚点 (live 时为 null)
@@ -417,7 +445,7 @@ export function DecisionBanner() {
                         stockCode,
                         // 重跑覆盖原 analysisId 对应记录(不传则后端新建 UUID)。
                         // 从决策缺失占位卡点出时 store.analysisId 必然是已点开的历史记录 id。
-                        analysisId ? { replaceAnalysisId: analysisId } : undefined,
+                        analysisId ? { parentAnalysisId: analysisId } : undefined,
                       )}
                   >
                     {t("stockAnalysis.reAnalyze")}
@@ -1018,7 +1046,7 @@ export function DecisionBanner() {
                 onClick={() => {
                   useStockAnalysisStore.getState().startAnalysis(
                     stockCode,
-                    analysisId ? { replaceAnalysisId: analysisId } : undefined,
+                    analysisId ? { parentAnalysisId: analysisId } : undefined,
                   );
                 }}
               >
@@ -1193,6 +1221,67 @@ export function DecisionBanner() {
                   </b>
                 </span>
               </div>
+              {/* V65: LLM 风险等级 + 止损/止盈百分比 */}
+              {llmFields && (
+                <div
+                  className="font-mono flex flex-wrap gap-2"
+                  style={{ color: "var(--color-text-secondary)", fontSize: "12px" }}
+                >
+                  {llmFields.risk && (
+                    <span>
+                      {t("stockAnalysis.riskLevel")}{" "}
+                      <b style={{ color: getRiskColor(llmFields.risk) }}>
+                        {t(getRiskTKey(llmFields.risk))}
+                      </b>
+                    </span>
+                  )}
+                  {llmFields.stopLossPct != null && (
+                    <span>
+                      止损 <b style={{ color: "var(--sa-red)" }}>{llmFields.stopLossPct.toFixed(1)}%</b>
+                    </span>
+                  )}
+                  {llmFields.takeProfitPct != null && (
+                    <span>
+                      止盈 <b style={{ color: "var(--sa-green)" }}>{llmFields.takeProfitPct.toFixed(1)}%</b>
+                    </span>
+                  )}
+                </div>
+              )}
+              {/* V65: LLM 数据缺口 */}
+              {llmFields?.gaps && llmFields.gaps.length > 0 && (
+                <div className="flex flex-wrap gap-1" style={{ fontSize: "11px" }}>
+                  <span style={{ color: "var(--muted)" }}>缺口:</span>
+                  {llmFields.gaps.slice(0, 3).map((g, i) => (
+                    <span
+                      key={i}
+                      className="px-1 rounded"
+                      style={{ background: "rgba(239,68,68,0.10)", color: "#ef4444" }}
+                    >
+                      {g}
+                    </span>
+                  ))}
+                  {llmFields.gaps.length > 3 && (
+                    <span style={{ color: "var(--muted)" }}>+{llmFields.gaps.length - 3}</span>
+                  )}
+                </div>
+              )}
+              {/* V65: LLM 引用上游论据 */}
+              {llmFields?.evidence && llmFields.evidence.length > 0 && (
+                <div className="space-y-0.5" style={{ fontSize: "11px" }}>
+                  <span style={{ color: "var(--muted)" }}>
+                    论据({llmFields.evidence.length}):
+                  </span>
+                  {llmFields.evidence.slice(0, 2).map((e, i) => (
+                    <div key={i} style={{ color: "var(--color-text-secondary)" }}>
+                      <span style={{ color: "#7c3aed" }}>[{e.source ?? "?"}]</span>{" "}
+                      <span className="line-clamp-1">{e.point ?? ""}</span>
+                    </div>
+                  ))}
+                  {llmFields.evidence.length > 2 && (
+                    <div style={{ color: "var(--muted)" }}>+{llmFields.evidence.length - 2} 条</div>
+                  )}
+                </div>
+              )}
               {llmSummary && (
                 <div className="line-clamp-2" style={{ color: "var(--muted)", fontSize: "12px" }}>
                   {llmSummary.slice(0, 120)}
@@ -1201,31 +1290,98 @@ export function DecisionBanner() {
               )}
             </div>
           </div>
-          {/* 分歧诊断（单行内联） */}
+          {/* V65: 6 维度分歧诊断（带原始分展示） */}
           {decision?.agreementBreakdown && decisionAgreementScore < 80 && (
             <div
-              className="flex gap-2 text-sm pt-0.5"
-              style={{ borderTop: "1px solid var(--border)", color: "var(--muted)" }}
+              className="pt-0.5 space-y-0.5"
+              style={{ borderTop: "1px solid var(--border)" }}
             >
-              <span>
-                {decision.agreementBreakdown.actionNote === "opposite"
-                  ? t("stockAnalysis.decision.oppositeDirection")
-                  : t("stockAnalysis.decision.disagreement")}
-                ({decision.agreementBreakdown.formulaAction} vs {decision.agreementBreakdown.llmAction})
-              </span>
-              {decision.agreementBreakdown.positionGap != null && (
+              <div className="flex flex-wrap gap-2 text-sm" style={{ color: "var(--muted)" }}>
                 <span>
-                  {t("stockAnalysis.decision.positionGap", {
-                    gap: Math.round(decision.agreementBreakdown.positionGap),
-                  })}
+                  {decision.agreementBreakdown.actionNote === "opposite"
+                    ? t("stockAnalysis.decision.oppositeDirection")
+                    : t("stockAnalysis.decision.disagreement")}
+                  ({decision.agreementBreakdown.formulaAction} vs {decision.agreementBreakdown.llmAction})
                 </span>
-              )}
-              {decision.agreementBreakdown.confidenceGap != null && (
-                <span>
-                  {t("stockAnalysis.decision.confidenceGap", {
-                    gap: Math.round(decision.agreementBreakdown.confidenceGap),
-                  })}
-                </span>
+                {decision.agreementBreakdown.positionGap != null && (
+                  <span>
+                    {t("stockAnalysis.decision.positionGap", {
+                      gap: Math.round(decision.agreementBreakdown.positionGap),
+                    })}
+                  </span>
+                )}
+                {decision.agreementBreakdown.confidenceGap != null && (
+                  <span>
+                    {t("stockAnalysis.decision.confidenceGap", {
+                      gap: Math.round(decision.agreementBreakdown.confidenceGap),
+                    })}
+                  </span>
+                )}
+              </div>
+              {/* V65: 6 维度原始分柱状条 */}
+              <div className="grid grid-cols-6 gap-1 text-[11px] font-mono">
+                {([
+                  { label: "act", score: decision.agreementBreakdown.actionScore, max: 30 },
+                  { label: "pos", score: decision.agreementBreakdown.positionScore, max: 20 },
+                  { label: "conf", score: decision.agreementBreakdown.confidenceScore, max: 15 },
+                  { label: "risk", score: decision.agreementBreakdown.riskLevelScore, max: 15 },
+                  { label: "gaps", score: decision.agreementBreakdown.dataGapsScore, max: 10 },
+                  { label: "evid", score: decision.agreementBreakdown.evidenceScore, max: 10 },
+                ] as const).map((dim) => {
+                  const s = typeof dim.score === "number" ? dim.score : 0;
+                  const ratio = dim.max > 0 ? s / dim.max : 0;
+                  const color = ratio >= 0.8
+                    ? "#10b981"
+                    : ratio >= 0.5
+                    ? "#f59e0b"
+                    : "#ef4444";
+                  return (
+                    <div key={dim.label} className="flex flex-col items-center gap-0.5">
+                      <span style={{ color: "var(--muted)" }}>{dim.label}</span>
+                      <div
+                        className="w-full rounded-sm overflow-hidden"
+                        style={{ height: 4, background: "var(--surface)" }}
+                      >
+                        <div
+                          style={{
+                            width: `${ratio * 100}%`,
+                            height: "100%",
+                            background: color,
+                          }}
+                        />
+                      </div>
+                      <span style={{ color }}>
+                        {Math.round(s)}/{dim.max}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* V65: 风险等级对比 */}
+              {decision.agreementBreakdown.formulaRiskLevel
+                && decision.agreementBreakdown.llmRiskLevel
+                && decision.agreementBreakdown.formulaRiskLevel !== "?"
+                && decision.agreementBreakdown.llmRiskLevel !== "?" && (
+                <div className="text-[11px]" style={{ color: "var(--muted)" }}>
+                  风险等级: 公式
+                  <span style={{ color: getRiskColor(decision.agreementBreakdown.formulaRiskLevel) }}>
+                    {t(getRiskTKey(decision.agreementBreakdown.formulaRiskLevel))}
+                  </span>{" "}
+                  vs LLM{" "}
+                  <span style={{ color: getRiskColor(decision.agreementBreakdown.llmRiskLevel) }}>
+                    {t(getRiskTKey(decision.agreementBreakdown.llmRiskLevel))}
+                  </span>
+                  {decision.agreementBreakdown.dataGapsSimilarity != null && (
+                    <span className="ml-2">
+                      · 缺口相似度: {(decision.agreementBreakdown.dataGapsSimilarity * 100).toFixed(0)}%
+                    </span>
+                  )}
+                  {typeof decision.agreementBreakdown.evidenceCount === "number" && (
+                    <span className="ml-2">
+                      · LLM 引用论据: {decision.agreementBreakdown.evidenceCount} 条
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -1540,7 +1696,7 @@ export function DecisionBanner() {
                 onClick={() => {
                   useStockAnalysisStore.getState().startAnalysis(
                     stockCode,
-                    analysisId ? { replaceAnalysisId: analysisId } : undefined,
+                    analysisId ? { parentAnalysisId: analysisId } : undefined,
                   );
                 }}
               >

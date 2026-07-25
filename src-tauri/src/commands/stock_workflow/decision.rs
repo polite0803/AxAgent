@@ -562,6 +562,29 @@ pub(crate) fn extract_llm_decision_json(wf: &Workflow) -> Option<String> {
                             }
                         }
                     }
+                    // V64 修复: report 展开后, 若顶层有 verdict 无 action,
+                    // 将 verdict 映射为 action (trader 输出方向标签而非操作指令)
+                    let needs_action = parsed.get("action").and_then(|v| v.as_str()).is_none();
+                    if needs_action {
+                        // 先 clone verdict 值, 避免与后续 mutable borrow 冲突
+                        let verdict_clone =
+                            parsed.get("verdict").and_then(|v| v.as_str()).map(|s| s.to_string());
+                        if let Some(ref v) = verdict_clone {
+                            let mapped: &str = match v.trim() {
+                                "看多" | "看涨" => "买入",
+                                "看空" | "看跌" => "卖出",
+                                "中性" | "震荡" => "持有",
+                                "不确定" | "无法判断" => "观望",
+                                _ => v.trim(), // 兜底: 保留原值, 让 normalize_llm_action 处理
+                            };
+                            if let Some(obj) = parsed.as_object_mut() {
+                                obj.insert(
+                                    "action".into(),
+                                    serde_json::Value::String(mapped.to_string()),
+                                );
+                            }
+                        }
+                    }
                     // V46 修复: 标准化 LLM 输出的 action 字段
                     // trader prompt 规定 action ∈ {买入,增持,持有,减持,卖出,观望},
                     // 但 LLM 可能输出"不确定""未知"等非标准值（尤其是当数据矛盾时
@@ -628,20 +651,23 @@ pub(crate) fn normalize_llm_action(parsed: &mut serde_json::Value) {
 
 /// 双视角一致性诊断结果
 ///
-/// V50 升级: compute_decision_agreement 不再只返回 0-100 总分,
-/// 而是返回分维度诊断结构体。上层可根据维度详情:
+/// V65 升级: 从 3 维度（action 50/positionPct 30/confidence 20）扩展为 6 维度
+///   (action 30 + positionPct 20 + confidence 15 + riskLevel 15 + data_gaps 10 + evidence_cited 10)
+/// 总分 100，低于 60 触发人工复核。
+///
+/// 上层可根据维度详情:
 ///   - 决定 confidence 调制幅度
 ///   - 生成分歧诊断 reasoning 文本
 ///   - 判断是否触发人工复核
 ///
-/// P0 修复: 新增 f7 自指污染标记字段，标注公式决策中 trader 因子(f7)的参与程度，
+/// P0 修复: 保留 f7 自指污染标记字段，标注公式决策中 trader 因子(f7)的参与程度，
 /// 帮助识别"公式已含 trader 观点"导致一致性虚高或逻辑矛盾。
 pub(crate) struct AgreementBreakdown {
-    /// 总分 0-100
+    /// 总分 0-100（6 维度加权）
     pub total: i32,
-    /// action 维度原始分 (满分 50)
+    /// action 维度原始分 (满分 30)
     pub action_score: f64,
-    /// action 是否基本一致 (>= 35 分)
+    /// action 是否基本一致 (>= 20 分)
     pub action_ok: bool,
     /// action 一致性说明 (exact_match / same_direction / opposite / ...)
     pub action_note: String,
@@ -649,44 +675,55 @@ pub(crate) struct AgreementBreakdown {
     pub formula_action: String,
     /// LLM 视角的 action 原始值
     pub llm_action: String,
-    /// positionPct 维度原始分 (满分 30)
+    /// positionPct 维度原始分 (满分 20)
     pub position_score: f64,
     /// 仓位差值绝对值
     pub position_gap: Option<f64>,
-    /// confidence 维度原始分 (满分 20)
+    /// confidence 维度原始分 (满分 15)
     pub confidence_score: f64,
     /// 置信度差值绝对值
     pub confidence_gap: Option<f64>,
-    /// 冲突类型: all_agree / opposite_direction / action_divergence / position_gap / confidence_gap
+    /// V65 新增: riskLevel 维度原始分 (满分 15)
+    pub risk_level_score: f64,
+    /// V65 新增: 公式 riskLevel 原始值
+    pub formula_risk_level: String,
+    /// V65 新增: LLM riskLevel 原始值
+    pub llm_risk_level: String,
+    /// V65 新增: data_gaps 维度原始分 (满分 10)
+    pub data_gaps_score: f64,
+    /// V65 新增: data_gaps Jaccard 相似度 (0-1)
+    pub data_gaps_similarity: Option<f64>,
+    /// V65 新增: evidence_cited 维度原始分 (满分 10)
+    pub evidence_score: f64,
+    /// V65 新增: LLM 引用上游论据数量
+    pub evidence_count: i32,
+    /// 冲突类型: all_agree / opposite_direction / action_divergence / position_gap / confidence_gap / risk_gap / data_gaps_diverge
     pub conflict_type: String,
-    // ── P0: f7 自指污染标记 ──
+    // ── P0: f7 自指污染标记（向后兼容保留）──
     /// 公式决策中 f7（trader 因子）权重占总权重百分比。None=无 f7 数据。
     pub f7_weight_pct: Option<f64>,
     /// 排除 f7 后的"纯净"后验值（0~1）。None=无 f7 数据。
     pub f7_free_posterior: Option<f64>,
     /// 排除 f7 后的"纯净"action。None=无 f7 数据。
     pub f7_free_action: Option<String>,
-    /// 无 f7 版本的 action 一致性原始分 (满分 50，与主 action_score 相同语义)
+    /// 无 f7 版本的 action 一致性原始分 (满分 30，与主 action_score 相同语义)
     pub f7_free_action_score: Option<f64>,
 }
 
 /// 计算公式决策与 LLM 决策的一致性分数（0-100）。
 ///
-/// 借鉴 TradingAgents 的冗余校验机制：
-/// 对比 action（操作方向）、positionPct（仓位百分比）、confidence（置信度）
-/// 三个维度，权重分别为 50/30/20。
-///
-/// V40 修复：
-/// - 从 trader 输出取 action 而非 stance（trader prompt 输出字段为 action）
-/// - trader 无 positionPct 字段，故 LLM 的 positionPct 视为缺失→pos_score 走兜底 15
-/// - 移除 #[allow(dead_code)]，在 stock_workflow 完成时调用并写入决策元数据
+/// V65 升级：6 维度对比，对应 trader.md 中"双视角对比说明"的权重分配：
+///   - action: 30 分（精确匹配 30 / 同向 20 / 中性不同义 5-10 / 对立 0）
+///   - positionPct: 20 分（≤10% 满分 20 / ≤20% 半分 10 / >20% 零分 0）
+///   - confidence: 15 分（差值 ≤10 满分 15 / ≤20 半分 10 / 否则 5）
+///   - riskLevel: 15 分（精确匹配 15 / 相邻 8 / 跨级 0）
+///   - data_gaps: 10 分（Jaccard 相似度 × 10）
+///   - evidence 引用密度: 10 分（≥3 条满分 10 / 2 条 5 / <2 条 0）
 ///
 /// 归一化规则（与前端 normalizeAction 保持一致）:
 /// - 移除空格/斜杠/下划线/全角空格
 /// - 小写比较
 /// - "买"和"增持"视为一致，"卖"和"减持"视为一致
-///
-/// V50 升级: 返回 AgreementBreakdown 而非 Option<i32>，包含分维度诊断
 pub(crate) fn compute_decision_agreement(
     formula_json: Option<&str>,
     llm_json: Option<&str>,
@@ -697,20 +734,39 @@ pub(crate) fn compute_decision_agreement(
     // 归一化操作字符串
     let norm = |s: &str| s.trim().to_lowercase().replace([' ', '/', '_', '\u{3000}'], "");
 
-    // 公式字段: action / positionPct / confidence
+    // ── 公式字段 ──
     let f_action = fj.get("action").and_then(|v| v.as_str().map(norm));
     let f_pos = fj.get("positionPct").and_then(|v| v.as_f64());
     let f_conf = fj.get("confidence").and_then(|v| v.as_f64());
+    // V65: 公式 riskLevel / data_gaps
+    let f_risk = fj.get("riskLevel").and_then(|v| v.as_str()).map(norm).unwrap_or_default();
+    let f_gaps: std::collections::HashSet<String> = fj
+        .get("data_gaps")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(norm)).collect())
+        .unwrap_or_default();
 
-    // V40: LLM 字段也取 action（trader prompt 输出格式中的字段名是 action 而非 stance）
+    // ── LLM 字段（V65: trader 现在输出完整字段）──
     let l_action = lj.get("action").and_then(|v| v.as_str().map(norm));
     let l_pos = lj.get("positionPct").and_then(|v| v.as_f64());
     let l_conf = lj.get("confidence").and_then(|v| v.as_f64());
+    let l_risk = lj.get("riskLevel").and_then(|v| v.as_str()).map(norm).unwrap_or_default();
+    let l_gaps: std::collections::HashSet<String> = lj
+        .get("data_gaps")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(norm)).collect())
+        .unwrap_or_default();
+    // V65: evidence_cited 数量
+    let evidence_count: i32 = lj
+        .get("evidence_cited")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.len() as i32)
+        .unwrap_or(0);
 
     // V50: 保存原始 action 值用于诊断展示
     let f_action_raw = fj.get("action").and_then(|v| v.as_str()).unwrap_or("?").to_string();
     let l_action_raw = lj.get("action").and_then(|v| v.as_str()).unwrap_or("?").to_string();
-    // V50: 预计算维度差值
+    // 预计算维度差值
     let pos_gap: Option<f64> = match (f_pos, l_pos) {
         (Some(a), Some(b)) => Some((a - b).abs()),
         _ => None,
@@ -720,82 +776,124 @@ pub(crate) fn compute_decision_agreement(
         _ => None,
     };
 
-    // V45 修复: action 一致性评分精细化（纠正"中性桶"虚高问题）
-    //
-    // 旧逻辑缺陷: 所有"非买卖"的 action 归入同一个"中性桶", 给 40/50 分。
-    //   导致 "持有"(明确持仓决策) vs "不确定"(无判断) 得到 80% 一致性,
-    //   与 "买入 vs 增持"(同向微差) 同分, 语义上完全不合理。
-    //
-    // 新逻辑 — 四级评分:
-    //   精确匹配(50) > 同向同类(35) > 中性不同义(5~15) > 对立方向(0)
-    //
-    // 中性内部细分:
-    //   "持有" vs "观望" = 15 (都是明确操作建议, 只是激进度不同)
-    //   "持有/观望" vs "不确定" = 5 (一个明确, 一个无判断, 差距极大)
-    //   "观望" vs "不确定" = 10 (观望至少排除了买卖, 不确定连这个都没排除)
+    // ── V65: action 评分（满分 30，原满分 50 的 60%）──
+    // 精确匹配 30 > 同向同类 20 > 中性不同义 5-10 > 对立 0
     let is_buy = |s: &str| s.contains("买") || s.contains("增持");
     let is_sell = |s: &str| s.contains("卖") || s.contains("减持");
     let is_hold = |s: &str| s == "持有";
     let is_watch = |s: &str| s == "观望";
     let is_uncertain = |s: &str| s.contains("不确定") || s.contains("未知");
     let action_score: f64 = match (f_action.clone(), l_action.clone()) {
-        (Some(a), Some(b)) if a == b => 50.0,
-        (Some(a), Some(b)) if is_buy(&a) && is_buy(&b) => 35.0,
-        (Some(a), Some(b)) if is_sell(&a) && is_sell(&b) => 35.0,
-        // 中性但不同义: 持有 vs 观望 = 15
+        (Some(a), Some(b)) if a == b => 30.0,
+        (Some(a), Some(b)) if is_buy(&a) && is_buy(&b) => 20.0,
+        (Some(a), Some(b)) if is_sell(&a) && is_sell(&b) => 20.0,
+        // 中性但不同义: 持有 vs 观望 = 10
         (Some(a), Some(b)) if (is_hold(&a) && is_watch(&b)) || (is_hold(&b) && is_watch(&a)) => {
-            15.0
+            10.0
         },
-        // 明确中性 vs 不确定: 持有/观望 vs 不确定 = 5
-        (Some(a), Some(b)) if (is_hold(&a) || is_watch(&a)) && is_uncertain(&b) => 5.0,
-        (Some(a), Some(b)) if (is_hold(&b) || is_watch(&b)) && is_uncertain(&a) => 5.0,
-        // 观望 vs 不确定 = 10 (观望比持有弱一点, 所以惩罚轻一些)
+        // 明确中性 vs 不确定: 持有/观望 vs 不确定 = 3
+        (Some(a), Some(b)) if (is_hold(&a) || is_watch(&a)) && is_uncertain(&b) => 3.0,
+        (Some(a), Some(b)) if (is_hold(&b) || is_watch(&b)) && is_uncertain(&a) => 3.0,
+        // 观望 vs 不确定 = 6
         (Some(a), Some(b))
             if is_watch(&a) && is_uncertain(&b) || is_watch(&b) && is_uncertain(&a) =>
         {
-            10.0
+            6.0
         },
         // 对立方向
         (Some(_), Some(_)) => 0.0,
         // 单侧缺失
-        _ => 25.0,
+        _ => 15.0,
     };
 
-    // positionPct 一致性 (权重 30%)
+    // ── V65: positionPct 评分（满分 20，原满分 30 的 2/3）──
     let pos_score: f64 = match (f_pos, l_pos) {
         (Some(a), Some(b)) => {
             let diff = (a - b).abs();
-            if diff <= 5.0 {
-                30.0
-            } else if diff <= 15.0 {
+            if diff <= 10.0 {
                 20.0
-            } else if diff <= 30.0 {
+            } else if diff <= 20.0 {
                 10.0
             } else {
                 0.0
             }
         },
-        _ => 15.0,
+        // V65: 单侧缺失不再给兜底分（避免虚高），记 0
+        _ => 0.0,
     };
 
-    // confidence 一致性 (权重 20%)
+    // ── V65: confidence 评分（满分 15，原满分 20 的 75%）──
+    // 注意：trader 的 confidence 是 0-100 整数，公式也是 0-100
     let conf_score: f64 = match (f_conf, l_conf) {
         (Some(a), Some(b)) => {
             let diff = (a - b).abs();
-            if diff <= 0.1 {
-                20.0
-            } else if diff <= 0.2 {
+            if diff <= 10.0 {
                 15.0
-            } else if diff <= 0.4 {
-                8.0
+            } else if diff <= 20.0 {
+                10.0
+            } else if diff <= 40.0 {
+                5.0
             } else {
                 0.0
             }
         },
-        _ => 10.0,
+        _ => 0.0,
     };
 
-    let total = (action_score + pos_score + conf_score).round() as i32;
+    // ── V65: riskLevel 评分（满分 15）──
+    // 公式与 LLM 都输出 4 档风险等级，比较等级距离
+    let risk_rank = |s: &str| -> i32 {
+        match s {
+            s if s.contains("低") => 0,
+            s if s.contains("中") => 1,
+            s if s.contains("高") && !s.contains("极高") => 2,
+            s if s.contains("极高") => 3,
+            _ => 1, // 默认中风险
+        }
+    };
+    let f_risk_rank = risk_rank(&f_risk);
+    let l_risk_rank = risk_rank(&l_risk);
+    let risk_diff = (f_risk_rank - l_risk_rank).abs();
+    let risk_level_score: f64 = match risk_diff {
+        0 => 15.0, // 精确匹配
+        1 => 8.0,  // 相邻
+        _ => 0.0,  // 跨级
+    };
+    let f_risk_raw = fj.get("riskLevel").and_then(|v| v.as_str()).unwrap_or("?").to_string();
+    let l_risk_raw = lj.get("riskLevel").and_then(|v| v.as_str()).unwrap_or("?").to_string();
+
+    // ── V65: data_gaps 评分（满分 10）──
+    // Jaccard 相似度 = |A ∩ B| / |A ∪ B|
+    let data_gaps_similarity: Option<f64> = if !f_gaps.is_empty() || !l_gaps.is_empty() {
+        let intersection = f_gaps.intersection(&l_gaps).count() as f64;
+        let union = f_gaps.union(&l_gaps).count() as f64;
+        if union > 0.0 {
+            Some(intersection / union)
+        } else {
+            Some(1.0) // 双方都为空视为完全一致
+        }
+    } else {
+        // 双方都无 data_gaps 字段 → None（无法判断）
+        None
+    };
+    let data_gaps_score: f64 = data_gaps_similarity.unwrap_or(0.0) * 10.0;
+
+    // ── V65: evidence_cited 评分（满分 10）──
+    // ≥3 条满分 10 / 2 条 5 / <2 条 0
+    let evidence_score: f64 = match evidence_count {
+        n if n >= 3 => 10.0,
+        2 => 5.0,
+        _ => 0.0,
+    };
+
+    // ── V65: 6 维度加权总分 ──
+    let total = (action_score
+        + pos_score
+        + conf_score
+        + risk_level_score
+        + data_gaps_score
+        + evidence_score)
+        .round() as i32;
 
     // ── P0: 从公式决策中提取 f7_free 信息（消除自指悖论）──
     let f7_free_info = fj.get("f7_free").and_then(|v| {
@@ -818,63 +916,64 @@ pub(crate) fn compute_decision_agreement(
     let (f7_weight_pct, f7_free_posterior, f7_free_action) =
         f7_free_info.unwrap_or((None, None, None));
 
-    // 计算无 f7 版本的 action 一致性评分
-    // P0: 比较 formula(no-f7) vs LLM action（当 LLM 有 action 时）
-    // P3: 当 LLM 无 action 时，回退到 formula(no-f7) vs formula(full) — trader 影响度
+    // 计算无 f7 版本的 action 一致性评分（与主 action_score 同尺度，满分 30）
     let f7_compare_target = l_action.as_deref().or(f_action.as_deref());
-    let f7_free_action_score =
-        match (f7_free_action.as_deref().map(norm), f7_compare_target.map(norm)) {
-            (Some(a), Some(b)) if a == b => Some(50.0),
-            (Some(a), Some(b)) if is_buy(&a) && is_buy(&b) => Some(35.0),
-            (Some(a), Some(b)) if is_sell(&a) && is_sell(&b) => Some(35.0),
-            (Some(a), Some(b))
-                if (is_hold(&a) && is_watch(&b)) || (is_hold(&b) && is_watch(&a)) =>
-            {
-                Some(15.0)
-            },
-            (Some(a), Some(b)) if (is_hold(&a) || is_watch(&a)) && is_uncertain(&b) => Some(5.0),
-            (Some(a), Some(b)) if (is_hold(&b) || is_watch(&b)) && is_uncertain(&a) => Some(5.0),
-            (Some(a), Some(b))
-                if is_watch(&a) && is_uncertain(&b) || is_watch(&b) && is_uncertain(&a) =>
-            {
-                Some(10.0)
-            },
-            (Some(_), Some(_)) => Some(0.0),
-            _ => None,
-        };
+    let f7_free_action_score = match (f7_free_action.as_deref().map(norm), f7_compare_target) {
+        (Some(a), Some(b)) if a == b => Some(30.0),
+        (Some(a), Some(b)) if is_buy(&a) && is_buy(&b) => Some(20.0),
+        (Some(a), Some(b)) if is_sell(&a) && is_sell(&b) => Some(20.0),
+        (Some(a), Some(b)) if (is_hold(&a) && is_watch(&b)) || (is_hold(&b) && is_watch(&a)) => {
+            Some(10.0)
+        },
+        (Some(a), Some(b)) if (is_hold(&a) || is_watch(&a)) && is_uncertain(&b) => Some(3.0),
+        (Some(a), Some(b)) if (is_hold(&b) || is_watch(&b)) && is_uncertain(&a) => Some(3.0),
+        (Some(a), Some(b))
+            if is_watch(&a) && is_uncertain(&b) || is_watch(&b) && is_uncertain(&a) =>
+        {
+            Some(6.0)
+        },
+        (Some(_), Some(_)) => Some(0.0),
+        _ => None,
+    };
 
-    // ── V50: 冲突类型分类 ──
-    // P3: 新增 f7_influence 类型 — trader 不输出 action，用 formula(no-f7) vs formula(full)
-    //     衡量 trader 信息对公式的影响度
-    let conflict_type: &str = if l_action.is_none() {
-        // P3: 无 LLM action, 用 f7_free_action_score 区间判断 influence 程度
+    // ── V65: 冲突类型分类（6 维度版）──
+    let conflict_type: &str = if l_action.is_none() && evidence_count == 0 {
+        // 完全无 LLM 视角输入
         match f7_free_action_score {
-            Some(s) if s >= 45.0 => "f7_low_influence", // trader 信息对公式影响小
-            Some(s) if s >= 35.0 => "f7_moderate_influence", // trader 信息有中等影响
-            Some(s) if s >= 20.0 => "f7_high_influence", // trader 信息大幅改变公式输出
-            _ => "f7_dominant",                         // trader 信息主导公式决策
+            Some(s) if s >= 25.0 => "f7_low_influence",
+            Some(s) if s >= 15.0 => "f7_moderate_influence",
+            Some(s) if s >= 8.0 => "f7_high_influence",
+            _ => "f7_dominant",
         }
-    } else if action_score >= 45.0 && pos_score >= 25.0 && conf_score >= 18.0 {
+    } else if action_score >= 25.0
+        && pos_score >= 15.0
+        && conf_score >= 12.0
+        && risk_level_score >= 12.0
+    {
         "all_agree"
     } else if action_score == 0.0 {
         "opposite_direction"
     } else if action_score <= 5.0 {
         "action_divergence"
-    } else if pos_score <= 10.0 {
+    } else if pos_score == 0.0 && f_pos.is_some() && l_pos.is_some() {
         "position_gap"
+    } else if risk_level_score == 0.0 && !f_risk.is_empty() && !l_risk.is_empty() {
+        "risk_gap"
+    } else if data_gaps_score < 5.0 && data_gaps_similarity.is_some() {
+        "data_gaps_diverge"
     } else {
         "confidence_gap"
     };
-    // ── V50: action_note 分类 ──
-    let action_note: &str = if action_score >= 50.0 {
+    // action_note 分类
+    let action_note: &str = if action_score >= 30.0 {
         "exact_match"
-    } else if action_score >= 35.0 {
+    } else if action_score >= 20.0 {
         "same_direction"
-    } else if action_score >= 15.0 {
-        "hold_vs_watch"
     } else if action_score >= 10.0 {
+        "hold_vs_watch"
+    } else if action_score >= 6.0 {
         "watch_vs_uncertain"
-    } else if action_score >= 5.0 {
+    } else if action_score >= 3.0 {
         "definite_vs_uncertain"
     } else if action_score == 0.0 {
         "opposite"
@@ -885,7 +984,7 @@ pub(crate) fn compute_decision_agreement(
     Some(AgreementBreakdown {
         total,
         action_score,
-        action_ok: action_score >= 35.0,
+        action_ok: action_score >= 20.0,
         action_note: action_note.to_string(),
         formula_action: f_action_raw,
         llm_action: l_action_raw,
@@ -893,6 +992,13 @@ pub(crate) fn compute_decision_agreement(
         position_gap: pos_gap,
         confidence_score: conf_score,
         confidence_gap: conf_gap,
+        risk_level_score,
+        formula_risk_level: f_risk_raw,
+        llm_risk_level: l_risk_raw,
+        data_gaps_score,
+        data_gaps_similarity,
+        evidence_score,
+        evidence_count,
         conflict_type: conflict_type.to_string(),
         f7_weight_pct,
         f7_free_posterior,
@@ -1457,6 +1563,10 @@ pub async fn rerun_decision(
             }
         },
     );
+    // P0: 贝叶斯因子置信度（基于 prior→posterior 的证据强度）
+    engine.register_fn("pm_compute_bayes_confidence", |prior: f64, posterior: f64| -> f64 {
+        portfolio_formula::compute_bayes_confidence(prior, posterior)
+    });
     let mut scope = Scope::new();
 
     // ── Gap 2: 注入近期 lessons（reflection_lessons 活跃规则）──

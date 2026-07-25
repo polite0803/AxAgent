@@ -110,10 +110,12 @@ pub struct MarketRegimeInfo {
     pub description: String,
     /// 20 日年化波动率(%)
     pub volatility_pct: Option<f64>,
-    /// 连续上涨天数
-    pub consecutive_up: i32,
-    /// 连续下跌天数
-    pub consecutive_down: i32,
+    /// 连续上涨天数（前端可选，缺失时视为 0）
+    #[serde(default)]
+    pub consecutive_up: Option<i32>,
+    /// 连续下跌天数（前端可选，缺失时视为 0）
+    #[serde(default)]
+    pub consecutive_down: Option<i32>,
 }
 
 /// 单个分析师的运行时信息
@@ -812,8 +814,8 @@ mod tests {
             volatility: vol.to_string(),
             description: "test".into(),
             volatility_pct: None,
-            consecutive_up: 0,
-            consecutive_down: 0,
+            consecutive_up: Some(0),
+            consecutive_down: Some(0),
         }
     }
 

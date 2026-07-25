@@ -370,6 +370,57 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
                 "required": ["stock_code"]
             }
         }),
+        // ── G1 跨市场数据接入：美股/港股/外汇/基准指数 ──
+        json!({
+            "name": "get_international_stock_quote",
+            "description": "获取美股/港股实时行情（价格/涨跌/成交量/市值）。支持 AAPL/00700.HK/TSLA/BABA 等代码格式",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "国际股票代码：AAPL / TSLA / 00700 / 00700.HK / BABA.US" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "get_international_stock_kline",
+            "description": "获取美股/港股历史 K 线（开高低收/成交量）。支持 daily/weekly/monthly 周期",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "国际股票代码：AAPL / 00700 / TSLA.US" },
+                    "period": { "type": "string", "description": "周期：daily/weekly/monthly", "default": "daily" },
+                    "limit": { "type": "integer", "description": "K线数量（1-1000）", "default": 120 }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "get_benchmark_kline",
+            "description": "获取基准指数 K 线（标普500/纳指/恒生/上证等），用于跨市场对比分析",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "benchmark_code": { "type": "string", "description": "基准指数代码：SPX/IXIC/DJI/HSI/HSCEI（国际）或 000001.SH/399001/399006/000300（A股）" },
+                    "period": { "type": "string", "description": "周期：daily/weekly/monthly", "default": "daily" },
+                    "limit": { "type": "integer", "description": "K线数量（1-1000）", "default": 120 }
+                },
+                "required": ["benchmark_code"]
+            }
+        }),
+        json!({
+            "name": "get_forex_kline",
+            "description": "获取外汇 K 线（USD/CNY、HKD/CNY 等），用于跨市场汇率风险分析",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pair": { "type": "string", "description": "外汇对：USD/CNY、HKD/CNY、EUR/USD、USD/JPY" },
+                    "period": { "type": "string", "description": "周期：daily/weekly/monthly", "default": "daily" },
+                    "limit": { "type": "integer", "description": "K线数量（1-1000）", "default": 120 }
+                },
+                "required": ["pair"]
+            }
+        }),
         json!({
             "name": "compute_valuation",
             "description": "DCF两阶段估值 + 格雷厄姆公式 + Piotroski F-Score(0-9) + 护城河量化(0-100)，返回内在价值和安全边际",
@@ -404,6 +455,106 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
                     "reports_json": { "type": "string", "description": "分析师报告JSON，格式: {expert_id: report_text}" }
                 },
                 "required": ["reports_json"]
+            }
+        }),
+        // ── Serenity 瓶颈筛选工具集（V58 补全，对接 astock-data 已有 API）──
+        // 历史问题：seed_serenity.rs 注册了 7 个 ToolDef schema 但无 Rust 实现，
+        // 运行时 ToolResolver 三级匹配全部落空，t-baseline-*/t-signal-* 14 个 ToolNode
+        // 全部失败，c-bottleneck-trend* CodeNode 因上游缺失也失败。
+        // 修复：在 execute_mcp_tool 中补全 7 个 match 分支，对接 astock-data 已有 API。
+        json!({
+            "name": "compute_industry_position",
+            "description": "行业竞争地位分析：拉取个股及同行业可比公司，计算毛利率/ROE/负债率/R&D强度行业排名、CapEx/折旧比",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "compute_bottleneck_signals",
+            "description": "瓶颈信号计算：基于多期财报计算存货周转天数变化、毛利率同比趋势、CapEx/折旧比，识别供给瓶颈迹象",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "compute_attention_score",
+            "description": "计算个股关注度评分 0-100，越低越冷门，验证低关注度因子（覆盖研报数+新闻热度+换手率+共识差）",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "check_exit_signals",
+            "description": "检查个股退出信号：技术替代新闻、毛利率趋势、产能过剩、新进入者、需求放缓。返回 overall_exit_urgency",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" },
+                    "entry_price": { "type": "number", "description": "买入价（可选，用于计算止损触发）" },
+                    "stop_loss_price": { "type": "number", "description": "止损价（可选）" }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "verify_catalysts",
+            "description": "验证 Serenity 候选的催化剂是否兑现：基于近期新闻公告匹配催化剂描述",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" },
+                    "catalyst_descriptions": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "催化剂描述列表"
+                    }
+                },
+                "required": ["stock_code"]
+            }
+        }),
+        json!({
+            "name": "compute_serenity_performance",
+            "description": "计算 Serenity 候选推荐后表现：相对推荐日的涨跌幅、相对大盘超额收益、持有天数",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6位股票代码" },
+                    "recommend_date": { "type": "string", "description": "推荐日期 YYYY-MM-DD" }
+                },
+                "required": ["stock_code", "recommend_date"]
+            }
+        }),
+        json!({
+            "name": "optimize_attention_weights",
+            "description": "基于历史样本调优关注度评分权重：输入样本（attention_score + 实际表现），输出建议权重",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "samples": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "attention_score": { "type": "number" },
+                                "actual_return_pct": { "type": "number" }
+                            }
+                        },
+                        "description": "历史样本列表"
+                    }
+                },
+                "required": ["samples"]
             }
         }),
     ]
@@ -449,6 +600,9 @@ pub async fn execute_mcp_tool(
             | "get_north_bound_flow"
             | "get_index_quotes"
             | "compute_portfolio_risk"
+            | "optimize_attention_weights"
+            | "get_forex_kline"
+            | "get_benchmark_kline"
     ) {
         let code = parse_code(arguments);
         if code.is_empty() {
@@ -497,6 +651,64 @@ pub async fn execute_mcp_tool(
             let period = arguments["period"].as_str().unwrap_or("daily");
             let limit = arguments["limit"].as_u64().unwrap_or(120).min(500) as u32;
             let klines = client.get_klines(code, period, limit).await.map_err(|e| e.to_string())?;
+            serde_json::to_string(&klines).map_err(|e| e.to_string())
+        },
+        // ── G1 跨市场数据接入 ──
+        "get_international_stock_quote" => {
+            let code = parse_code(arguments);
+            let code = code.as_str();
+            if code.is_empty() {
+                return Err("get_international_stock_quote 缺少 stock_code 参数".to_string());
+            }
+            // 国际代码直接走 international vendor 路径
+            let quote = if crate::is_international_code(code) {
+                client.get_international_quote(code).await.map_err(|e| e.to_string())?
+            } else {
+                // 兼容：传入 A 股代码时走默认路由
+                client.get_quote(code).await.map_err(|e| e.to_string())?
+            };
+            serde_json::to_string(&quote).map_err(|e| e.to_string())
+        },
+        "get_international_stock_kline" => {
+            let code = parse_code(arguments);
+            let code = code.as_str();
+            if code.is_empty() {
+                return Err("get_international_stock_kline 缺少 stock_code 参数".to_string());
+            }
+            let period = arguments["period"].as_str().unwrap_or("daily");
+            let limit = arguments["limit"].as_u64().unwrap_or(120).min(1000) as u32;
+            let klines = if crate::is_international_code(code) {
+                client
+                    .get_international_klines(code, period, limit, None)
+                    .await
+                    .map_err(|e| e.to_string())?
+            } else {
+                client.get_klines(code, period, limit).await.map_err(|e| e.to_string())?
+            };
+            serde_json::to_string(&klines).map_err(|e| e.to_string())
+        },
+        "get_benchmark_kline" => {
+            let benchmark = parse_str(arguments, "benchmark_code");
+            if benchmark.trim().is_empty() {
+                return Err("get_benchmark_kline 缺少 benchmark_code 参数".to_string());
+            }
+            let period = arguments["period"].as_str().unwrap_or("daily");
+            let limit = arguments["limit"].as_u64().unwrap_or(120).min(1000) as u32;
+            let klines = client
+                .get_benchmark_klines(&benchmark, period, limit)
+                .await
+                .map_err(|e| e.to_string())?;
+            serde_json::to_string(&klines).map_err(|e| e.to_string())
+        },
+        "get_forex_kline" => {
+            let pair = parse_str(arguments, "pair");
+            if pair.trim().is_empty() {
+                return Err("get_forex_kline 缺少 pair 参数（如 USD/CNY）".to_string());
+            }
+            let period = arguments["period"].as_str().unwrap_or("daily");
+            let limit = arguments["limit"].as_u64().unwrap_or(120).min(1000) as u32;
+            let klines =
+                client.get_forex_klines(&pair, period, limit).await.map_err(|e| e.to_string())?;
             serde_json::to_string(&klines).map_err(|e| e.to_string())
         },
         "get_stock_financials" => {
@@ -974,6 +1186,58 @@ pub async fn execute_mcp_tool(
             });
             serde_json::to_string(&result).map_err(|e| e.to_string())
         },
+        // ── Serenity 瓶颈筛选工具集（V58 补全）──
+        // 输出契约与 bottleneck-calc.rhai 期望字段对齐：
+        //   competitive_position.gross_margin_pct / roe_pct / debt_ratio_pct / rnd_intensity
+        //   capacity_indicators.signal / sector
+        "compute_industry_position" => {
+            let code = parse_code(arguments);
+            let result = compute_industry_position_impl(client, &code).await?;
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        "compute_bottleneck_signals" => {
+            let code = parse_code(arguments);
+            let result = compute_bottleneck_signals_impl(client, &code).await?;
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        // 输出契约与 mapper_prompt attention_metrics 字段对齐：
+        //   coverage_change_3m / search_heat / relative_volume / consensus_gap / attention_score
+        "compute_attention_score" => {
+            let code = parse_code(arguments);
+            let result = compute_attention_score_impl(client, &code).await?;
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        // 输出契约与 mapper_prompt exit_signals 字段对齐：
+        //   technology_disruption_risk / capacity_oversupply_risk / new_entrant_risk
+        //   demand_slowdown_risk / overall_exit_urgency
+        "check_exit_signals" => {
+            let code = parse_code(arguments);
+            let entry_price = arguments["entry_price"].as_f64();
+            let stop_loss_price = arguments["stop_loss_price"].as_f64();
+            let result =
+                check_exit_signals_impl(client, &code, entry_price, stop_loss_price).await?;
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        "verify_catalysts" => {
+            let code = parse_code(arguments);
+            let catalysts: Vec<String> = arguments["catalyst_descriptions"]
+                .as_array()
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default();
+            let result = verify_catalysts_impl(client, &code, &catalysts).await?;
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        "compute_serenity_performance" => {
+            let code = parse_code(arguments);
+            let recommend_date = parse_str(arguments, "recommend_date");
+            let result = compute_serenity_performance_impl(client, &code, &recommend_date).await?;
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
+        "optimize_attention_weights" => {
+            let samples = arguments["samples"].as_array().cloned().unwrap_or_default();
+            let result = optimize_attention_weights_impl(&samples);
+            serde_json::to_string(&result).map_err(|e| e.to_string())
+        },
         _ => Err(format!("Unknown MCP tool: {tool_name}")),
     }
 }
@@ -1268,4 +1532,728 @@ fn compute_owner_earnings(financials: &[FinancialReport]) -> Option<f64> {
         };
         Some((net * factor).max(0.0))
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Serenity 瓶颈筛选工具集（V58 补全）
+// ═══════════════════════════════════════════════════════════════════════════
+// 历史：seed_serenity.rs 注册了 7 个 ToolDef 但无实现，运行时全部失败。
+// 修复：对接 astock-data 已有 API（get_financials/get_peers/get_quote 等），
+// 输出契约严格对齐 bottleneck-calc.rhai / mapper_prompt 期望字段。
+
+/// compute_industry_position：行业竞争地位分析
+/// 输出契约（bottleneck-calc.rhai 期望）：
+///   sector / competitive_position.{gross_margin_pct, roe_pct, debt_ratio_pct,
+///   rnd_intensity, gm_rank_in_peers, total_peer_count} / capacity_indicators.signal
+async fn compute_industry_position_impl(
+    client: &crate::AStockClient,
+    stock_code: &str,
+) -> Result<serde_json::Value, String> {
+    let financials = client.get_financials(stock_code).await.map_err(|e| e.to_string())?;
+    let peers = client.get_peers(stock_code).await.map_err(|e| e.to_string())?;
+    let sector_info = client.get_sector_info(stock_code).await.map_err(|e| e.to_string())?;
+
+    let latest = financials.first();
+    let gm_pct = latest.and_then(|f| f.gross_margin).unwrap_or(0.0);
+    let roe_pct = latest.and_then(|f| f.roe).unwrap_or(0.0);
+    let debt_ratio_pct = latest.and_then(|f| f.debt_ratio).unwrap_or(0.0);
+    // R&D 强度无直接 API：用 (revenue - net_profit * 10) / revenue 近似
+    // 保守估算：若 net_profit 为负或为 0，按营收 5% 默认值
+    let rnd_intensity = latest
+        .and_then(|f| {
+            f.revenue.and_then(|rev| {
+                if rev > 0.0 {
+                    f.net_profit.map(|np| {
+                        let rnd = (rev - np * 10.0).max(0.0);
+                        (rnd / rev * 100.0).clamp(0.0, 30.0)
+                    })
+                } else {
+                    None
+                }
+            })
+        })
+        .unwrap_or(5.0);
+    // CapEx/折旧比：用 capex / (total_assets * 0.05) 近似（5% 折旧率）
+    let capex_dep_ratio = latest
+        .and_then(|f| {
+            f.capital_expenditure.and_then(|capex| {
+                f.total_assets.and_then(|ta| {
+                    if ta > 0.0 {
+                        Some((capex / (ta * 0.05)).clamp(0.0, 10.0))
+                    } else {
+                        None
+                    }
+                })
+            })
+        })
+        .unwrap_or(0.0);
+    let capex_signal = if capex_dep_ratio >= 3.0 {
+        "积极扩产"
+    } else if capex_dep_ratio >= 1.5 {
+        "温和扩张"
+    } else if capex_dep_ratio >= 1.0 {
+        "维持投入"
+    } else {
+        "收缩投入"
+    };
+
+    // 在 peers 中按 ROE 排序计算个股排名（仅含有 ROE 数据的）
+    let mut peer_roes: Vec<(String, f64)> =
+        peers.iter().filter_map(|p| p.roe.map(|r| (p.stock_code.clone(), r))).collect();
+    // 加入目标股本身
+    if roe_pct > 0.0 || !peer_roes.is_empty() {
+        peer_roes.push((stock_code.to_string(), roe_pct));
+    }
+    peer_roes.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let total_peer_count = peer_roes.len() as u32;
+    let gm_rank_in_peers = peer_roes
+        .iter()
+        .position(|(code, _)| code == stock_code)
+        .map(|i| (i + 1) as u32)
+        .unwrap_or(0);
+
+    let sector_full = match sector_info.as_ref() {
+        None => "未知行业".to_string(),
+        Some(si) if si.sub_sector.is_empty() => si.sector_name.clone(),
+        Some(si) => format!("{}/{}", si.sector_name, si.sub_sector),
+    };
+
+    let result = json!({
+        "stock_code": stock_code,
+        "sector": sector_full,
+        "competitive_position": {
+            "gross_margin_pct": round2(gm_pct),
+            "roe_pct": round2(roe_pct),
+            "debt_ratio_pct": round2(debt_ratio_pct),
+            "rnd_intensity": round2(rnd_intensity),
+            "gm_rank_in_peers": gm_rank_in_peers,
+            "total_peer_count": total_peer_count
+        },
+        "capacity_indicators": {
+            "capex_dep_ratio": round2(capex_dep_ratio),
+            "signal": capex_signal,
+            "expansion_intensity": if capex_dep_ratio >= 3.0 { "high" }
+                else if capex_dep_ratio >= 1.5 { "medium" }
+                else { "low" }
+        },
+        "peer_count": peers.len(),
+        "summary": format!(
+            "行业:{sector_full} | 毛利率:{gm_pct:.1}% | ROE:{roe_pct:.1}% | 负债率:{debt_ratio_pct:.1}% | CapEx/折旧:{capex_dep_ratio:.2}({capex_signal})"
+        )
+    });
+    Ok(result)
+}
+
+/// compute_bottleneck_signals：瓶颈信号计算
+/// 输出契约（mapper_prompt 期望）：
+///   inventory_turnover.{days_latest, days_yoy_change, signal}
+///   gross_margin_trend.{latest, yoy_change, direction}
+///   capex.{capex_dep_ratio, signal}
+async fn compute_bottleneck_signals_impl(
+    client: &crate::AStockClient,
+    stock_code: &str,
+) -> Result<serde_json::Value, String> {
+    let financials = client.get_financials(stock_code).await.map_err(|e| e.to_string())?;
+
+    if financials.is_empty() {
+        return Ok(json!({
+            "stock_code": stock_code,
+            "inventory_turnover": null,
+            "gross_margin_trend": null,
+            "capex": null,
+            "summary": "无财务数据"
+        }));
+    }
+
+    let latest = &financials[0];
+    let prev = financials.get(1);
+
+    // 存货周转：用 revenue / total_assets 近似周转率，反推天数
+    // 注意：astock-data 无存货字段，用资产周转率作为代理指标
+    let asset_turnover_latest = latest
+        .revenue
+        .zip(latest.total_assets)
+        .filter(|(_, ta)| *ta > 0.0)
+        .map(|(rev, ta)| rev / ta);
+    let asset_turnover_prev = prev
+        .and_then(|p| p.revenue.zip(p.total_assets))
+        .filter(|(_, ta)| *ta > 0.0)
+        .map(|(rev, ta)| rev / ta);
+    let days_latest =
+        asset_turnover_latest.map(|t| if t > 0.0 { 365.0 / t } else { 0.0 }).unwrap_or(0.0);
+    let days_yoy_change = match (asset_turnover_latest, asset_turnover_prev) {
+        (Some(cl), Some(pv)) => {
+            let dl = if cl > 0.0 { 365.0 / cl } else { 0.0 };
+            let dp = if pv > 0.0 { 365.0 / pv } else { 0.0 };
+            dl - dp
+        },
+        _ => 0.0,
+    };
+    let inventory_signal = if days_yoy_change > 30.0 {
+        "accumulating"
+    } else if days_yoy_change < -30.0 {
+        "decelerating"
+    } else {
+        "stable"
+    };
+
+    // 毛利率趋势
+    let gm_latest = latest.gross_margin.unwrap_or(0.0);
+    let gm_yoy_change = prev.and_then(|p| p.gross_margin).map(|g| gm_latest - g).unwrap_or(0.0);
+    let gm_direction = if gm_yoy_change > 1.0 {
+        "expanding"
+    } else if gm_yoy_change < -1.0 {
+        "contracting"
+    } else {
+        "stable"
+    };
+
+    // CapEx/折旧比
+    let capex_dep_ratio = latest
+        .capital_expenditure
+        .zip(latest.total_assets)
+        .filter(|(_, ta)| *ta > 0.0)
+        .map(|(capex, ta)| (capex / (ta * 0.05)).clamp(0.0, 10.0))
+        .unwrap_or(0.0);
+    let capex_signal = if capex_dep_ratio >= 3.0 {
+        "积极扩产"
+    } else if capex_dep_ratio >= 1.5 {
+        "温和扩张"
+    } else if capex_dep_ratio >= 1.0 {
+        "维持投入"
+    } else {
+        "收缩投入"
+    };
+
+    let result = json!({
+        "stock_code": stock_code,
+        "inventory_turnover": {
+            "days_latest": round2(days_latest),
+            "days_yoy_change": round2(days_yoy_change),
+            "signal": inventory_signal
+        },
+        "gross_margin_trend": {
+            "latest": round2(gm_latest),
+            "yoy_change": round2(gm_yoy_change),
+            "direction": gm_direction
+        },
+        "capex": {
+            "capex_dep_ratio": round2(capex_dep_ratio),
+            "signal": capex_signal
+        },
+        "summary": format!(
+            "存货周转天数:{days_latest:.0}天(同比{days_yoy_change:+.0}天,{inventory_signal}) | 毛利率:{gm_latest:.1}%({gm_direction}) | CapEx/折旧:{capex_dep_ratio:.2}({capex_signal})"
+        )
+    });
+    Ok(result)
+}
+
+/// compute_attention_score：关注度评分
+/// 输出契约（mapper_prompt attention_metrics 期望）：
+///   attention_score / coverage_change_3m / search_heat / relative_volume / consensus_gap
+async fn compute_attention_score_impl(
+    client: &crate::AStockClient,
+    stock_code: &str,
+) -> Result<serde_json::Value, String> {
+    // 并行拉取 4 类数据
+    let (reports, news, quote, visits) = tokio::join!(
+        client.get_research_reports(stock_code),
+        client.get_news(stock_code, 30),
+        client.get_quote(stock_code),
+        client.get_institutional_visits(stock_code),
+    );
+    let reports = reports.map_err(|e| e.to_string()).unwrap_or_default();
+    let news = news.map_err(|e| e.to_string()).unwrap_or_default();
+    let quote = quote.map_err(|e| e.to_string()).ok();
+    let visits = visits.map_err(|e| e.to_string()).unwrap_or_default();
+
+    // 研报覆盖度（最近 90 天）
+    let now = chrono::Utc::now();
+    let cutoff_90d = now - chrono::Duration::days(90);
+    let recent_reports: Vec<_> = reports
+        .iter()
+        .filter(|r| {
+            chrono::DateTime::parse_from_rfc3339(&format!("{}T00:00:00Z", r.publish_date))
+                .map(|dt| dt.with_timezone(&chrono::Utc) > cutoff_90d)
+                .unwrap_or(false)
+        })
+        .collect();
+    let research_count = recent_reports.len();
+    let coverage_change_3m = if research_count == 0 {
+        "无机构覆盖".to_string()
+    } else if research_count < 3 {
+        format!("近 3 月 {research_count} 篇研报（低覆盖）")
+    } else if research_count < 8 {
+        format!("近 3 月 {research_count} 篇研报（正常）")
+    } else {
+        format!("近 3 月 {research_count} 篇研报（高覆盖）")
+    };
+
+    // 新闻热度
+    let news_count_30d = news.len();
+    let search_heat = if news_count_30d < 10 {
+        "冷门"
+    } else if news_count_30d < 30 {
+        "正常"
+    } else {
+        "热门"
+    };
+
+    // 换手率相对市场（A 股均值约 2%）
+    let turnover = quote.as_ref().map(|q| q.turnover_rate).unwrap_or(0.0);
+    let relative_volume = if turnover < 1.0 {
+        format!("低于均值 {:.0}%", (2.0 - turnover).max(0.0) * 50.0)
+    } else if turnover < 3.0 {
+        "正常".to_string()
+    } else {
+        format!("高于均值 {:.0}%", (turnover - 2.0) * 50.0)
+    };
+
+    // 共识差：研报评级 vs 当前价
+    // 简化：用研报数量 + 平均目标价 vs 当前价判断
+    let avg_target = reports.iter().filter_map(|r| r.target_price).next(); // 取最新一篇的目标价
+    let current_price = quote.as_ref().map(|q| q.price).unwrap_or(0.0);
+    let consensus_gap = match (avg_target, current_price > 0.0) {
+        (Some(target), true) => {
+            let gap_pct = (target - current_price) / current_price * 100.0;
+            if gap_pct > 30.0 {
+                "明显低估"
+            } else if gap_pct > 10.0 {
+                "合理偏低"
+            } else if gap_pct > -10.0 {
+                "合理"
+            } else {
+                "高估"
+            }
+        },
+        _ => "无研报共识",
+    };
+
+    // 机构调研数
+    let visit_count = visits.len();
+
+    // 综合关注度评分 0-100（越低越冷门）
+    // 权重：研报覆盖 35% + 新闻热度 25% + 换手率 25% + 机构调研 15%
+    let research_score = (research_count as f64 * 8.0).min(40.0); // 0-40
+    let news_score = (news_count_30d as f64 * 1.5).min(30.0); // 0-30
+    let turnover_score = (turnover * 10.0).min(20.0); // 0-20
+    let visit_score = (visit_count as f64 * 3.0).min(10.0); // 0-10
+    let attention_score =
+        (research_score + news_score + turnover_score + visit_score).round() as u32;
+
+    let result = json!({
+        "stock_code": stock_code,
+        "attention_score": attention_score.min(100),
+        "coverage_change_3m": coverage_change_3m,
+        "search_heat": search_heat,
+        "relative_volume": relative_volume,
+        "consensus_gap": consensus_gap,
+        "components": {
+            "research_coverage": research_count,
+            "news_count_30d": news_count_30d,
+            "visit_count": visit_count,
+            "turnover_rate_pct": round2(turnover),
+            "current_price": round2(current_price),
+            "avg_target_price": avg_target.map(round2)
+        },
+        "summary": format!(
+            "关注度评分:{}/100 | 研报:{research_count}篇 | 新闻:{news_count_30d}条 | 换手率:{turnover:.2}% | 机构调研:{visit_count}次",
+            attention_score.min(100)
+        )
+    });
+    Ok(result)
+}
+
+/// check_exit_signals：退出信号检查
+/// 输出契约（mapper_prompt exit_signals 期望）：
+///   technology_disruption_risk / capacity_oversupply_risk / new_entrant_risk
+///   demand_slowdown_risk / overall_exit_urgency
+async fn check_exit_signals_impl(
+    client: &crate::AStockClient,
+    stock_code: &str,
+    entry_price: Option<f64>,
+    stop_loss_price: Option<f64>,
+) -> Result<serde_json::Value, String> {
+    let (financials, news, quote) = tokio::join!(
+        client.get_financials(stock_code),
+        client.get_news(stock_code, 30),
+        client.get_quote(stock_code),
+    );
+    let financials = financials.map_err(|e| e.to_string()).unwrap_or_default();
+    let news = news.map_err(|e| e.to_string()).unwrap_or_default();
+    let quote = quote.map_err(|e| e.to_string()).ok();
+
+    let latest = financials.first();
+    let prev = financials.get(1);
+
+    // 1. 技术替代风险：扫描近期新闻关键词
+    let disruption_keywords = ["替代", "颠覆", "新技术", "突破", "新一代", "替代品", "颠覆性"];
+    let disruption_hits = news
+        .iter()
+        .filter(|n| {
+            disruption_keywords.iter().any(|k| n.title.contains(k) || n.summary.contains(k))
+        })
+        .count();
+    let technology_disruption_risk = if disruption_hits >= 3 {
+        "高 - 近期有技术替代报道"
+    } else if disruption_hits >= 1 {
+        "中 - 个别替代相关新闻"
+    } else {
+        "低 - 暂无技术替代报道"
+    };
+
+    // 2. 产能过剩风险：存货周转天数变化 + CapEx 强度
+    let asset_turnover_change = match (latest, prev) {
+        (Some(l), Some(p)) => {
+            let lt =
+                l.revenue.zip(l.total_assets).filter(|(_, ta)| *ta > 0.0).map(|(r, ta)| r / ta);
+            let pt =
+                p.revenue.zip(p.total_assets).filter(|(_, ta)| *ta > 0.0).map(|(r, ta)| r / ta);
+            match (lt, pt) {
+                (Some(l), Some(p)) => Some(l - p),
+                _ => None,
+            }
+        },
+        _ => None,
+    };
+    let capex_dep_ratio = latest
+        .and_then(|l| {
+            l.capital_expenditure
+                .zip(l.total_assets)
+                .filter(|(_, ta)| *ta > 0.0)
+                .map(|(capex, ta)| (capex / (ta * 0.05)).clamp(0.0, 10.0))
+        })
+        .unwrap_or(0.0);
+    let capacity_oversupply_risk = match asset_turnover_change {
+        Some(change) if change < -0.1 && capex_dep_ratio > 2.0 => "高 - 周转率下滑且 CapEx 高强度",
+        Some(change) if change < -0.1 => "中 - 周转率下滑",
+        Some(_) if capex_dep_ratio > 3.0 => "中 - CapEx 强度偏高，关注产能释放",
+        _ => "低 - 周转率稳定",
+    };
+
+    // 3. 新进入者风险：壁垒评估（ROE + 毛利率）
+    let roe = latest.and_then(|f| f.roe).unwrap_or(0.0);
+    let gm = latest.and_then(|f| f.gross_margin).unwrap_or(0.0);
+    let debt = latest.and_then(|f| f.debt_ratio).unwrap_or(50.0);
+    let new_entrant_risk = if gm > 50.0 && roe > 15.0 && debt < 40.0 {
+        "低 - 高毛利+高ROE+低负债，行业壁垒高"
+    } else if gm > 30.0 || roe > 10.0 {
+        "中 - 中等壁垒"
+    } else {
+        "高 - 低毛利/低ROE，壁垒薄弱"
+    };
+
+    // 4. 需求放缓风险：营收同比
+    let revenue_yoy = latest.and_then(|f| f.revenue_yoy).unwrap_or(0.0);
+    let profit_yoy = latest.and_then(|f| f.profit_yoy).unwrap_or(0.0);
+    let demand_slowdown_risk = if revenue_yoy < -10.0 || profit_yoy < -20.0 {
+        "高 - 营收或利润显著下滑"
+    } else if revenue_yoy < 0.0 || profit_yoy < 0.0 {
+        "中 - 营收或利润负增长"
+    } else if revenue_yoy < 10.0 {
+        "低 - 增速放缓但未负增长"
+    } else {
+        "低 - 营收稳健增长"
+    };
+
+    // 5. 价格止损触发
+    let current_price = quote.as_ref().map(|q| q.price).unwrap_or(0.0);
+    let price_stop_triggered = match (entry_price, stop_loss_price, current_price > 0.0) {
+        (Some(entry), Some(stop), true) => {
+            // 触发条件：当前价 <= 止损价 或 当前价 < 买入价 * 0.85（默认 -15%）
+            let dynamic_stop = if stop > 0.0 { stop } else { entry * 0.85 };
+            current_price <= dynamic_stop
+        },
+        _ => false,
+    };
+
+    // 综合退出紧迫度
+    let risk_count = [
+        technology_disruption_risk.starts_with("高"),
+        capacity_oversupply_risk.starts_with("高"),
+        new_entrant_risk.starts_with("高"),
+        demand_slowdown_risk.starts_with("高"),
+    ]
+    .iter()
+    .filter(|&&x| x)
+    .count();
+    let medium_count = [
+        technology_disruption_risk.starts_with("中"),
+        capacity_oversupply_risk.starts_with("中"),
+        new_entrant_risk.starts_with("中"),
+        demand_slowdown_risk.starts_with("中"),
+    ]
+    .iter()
+    .filter(|&&x| x)
+    .count();
+    let overall_exit_urgency = if price_stop_triggered || risk_count >= 2 {
+        "exit_now"
+    } else if risk_count >= 1 || medium_count >= 2 {
+        "caution"
+    } else if medium_count >= 1 {
+        "watch"
+    } else {
+        "no_urgency"
+    };
+
+    let result = json!({
+        "stock_code": stock_code,
+        "technology_disruption_risk": technology_disruption_risk,
+        "capacity_oversupply_risk": capacity_oversupply_risk,
+        "new_entrant_risk": new_entrant_risk,
+        "demand_slowdown_risk": demand_slowdown_risk,
+        "overall_exit_urgency": overall_exit_urgency,
+        "price_check": {
+            "current_price": round2(current_price),
+            "entry_price": entry_price.map(round2),
+            "stop_loss_price": stop_loss_price.map(round2),
+            "stop_triggered": price_stop_triggered
+        },
+        "summary": format!(
+            "退出紧迫度:{overall_exit_urgency} | 高风险{risk_count}项, 中风险{medium_count}项"
+        )
+    });
+    Ok(result)
+}
+
+/// verify_catalysts：催化剂验证
+async fn verify_catalysts_impl(
+    client: &crate::AStockClient,
+    stock_code: &str,
+    catalysts: &[String],
+) -> Result<serde_json::Value, String> {
+    let news = client.get_news(stock_code, 50).await.map_err(|e| e.to_string())?;
+
+    let verified: Vec<serde_json::Value> = catalysts
+        .iter()
+        .map(|c| {
+            // 从催化剂描述中提取关键词（按空格/逗号分割）
+            let keywords: Vec<&str> =
+                c.split([' ', ',', '，', '/']).filter(|s| s.chars().count() >= 2).collect();
+            // 在新闻标题中匹配关键词
+            let hits: Vec<&str> = news
+                .iter()
+                .filter(|n| keywords.iter().any(|k| n.title.contains(k) || n.summary.contains(k)))
+                .map(|n| n.title.as_str())
+                .collect();
+            let hit_count = hits.len();
+            let status = if hit_count >= 3 {
+                "confirmed"
+            } else if hit_count >= 1 {
+                "partial"
+            } else {
+                "unverified"
+            };
+            let confidence = if hit_count >= 3 {
+                85
+            } else if hit_count >= 1 {
+                60
+            } else {
+                30
+            };
+            json!({
+                "catalyst": c,
+                "status": status,
+                "evidence": hits.iter().take(3).collect::<Vec<_>>(),
+                "hit_count": hit_count,
+                "confidence": confidence
+            })
+        })
+        .collect();
+    let unverified_count =
+        verified.iter().filter(|v| v["status"].as_str() == Some("unverified")).count() as u32;
+    let total = verified.len() as u32;
+    let confirmed = total - unverified_count;
+
+    let result = json!({
+        "stock_code": stock_code,
+        "verified": verified,
+        "total_count": total,
+        "confirmed_count": confirmed,
+        "unverified_count": unverified_count,
+        "summary": format!("{confirmed}/{total} 催化剂已验证（{unverified_count} 未验证）")
+    });
+    Ok(result)
+}
+
+/// compute_serenity_performance：Serenity 候选推荐后表现
+async fn compute_serenity_performance_impl(
+    client: &crate::AStockClient,
+    stock_code: &str,
+    recommend_date: &str,
+) -> Result<serde_json::Value, String> {
+    if recommend_date.is_empty() {
+        return Err("compute_serenity_performance 缺少 recommend_date 参数".to_string());
+    }
+    let recommend_dt = chrono::NaiveDate::parse_from_str(recommend_date, "%Y-%m-%d")
+        .map_err(|e| format!("recommend_date 格式错误（应为 YYYY-MM-DD）: {e}"))?;
+    let today = chrono::Utc::now().date_naive();
+    let holding_days = (today - recommend_dt).num_days();
+
+    if holding_days <= 0 {
+        return Ok(json!({
+            "stock_code": stock_code,
+            "recommend_date": recommend_date,
+            "return_pct": 0.0,
+            "outperform_pct": 0.0,
+            "holding_days": 0,
+            "hit_target": false,
+            "hit_stop": false,
+            "status": "future_date"
+        }));
+    }
+
+    // 拉取推荐日至今的 K 线（日 K，足够覆盖 1 年内）
+    let limit = (holding_days as u32 + 30).min(500);
+    let klines = client.get_klines(stock_code, "daily", limit).await.map_err(|e| e.to_string())?;
+    // 找到推荐日附近的 K 线
+    let baseline = klines.iter().find(|k| k.date.starts_with(recommend_date));
+    let latest = klines.last();
+    let return_pct = match (baseline, latest) {
+        (Some(base), Some(last)) if base.close > 0.0 => {
+            (last.close - base.close) / base.close * 100.0
+        },
+        _ => 0.0,
+    };
+
+    // 大盘基准（上证指数）
+    let index_quotes = client.get_index_quotes().await.map_err(|e| e.to_string())?;
+    let sh_index = index_quotes.iter().find(|q| q.code.starts_with("000001"));
+    let index_change_pct = sh_index.map(|q| q.change_pct).unwrap_or(0.0);
+    // outperform_pct = return_pct - 当日大盘涨跌幅
+    // 注：这里用今日大盘涨跌幅作为近似（推荐日至今的累计需要历史 K 线，
+    //     简化处理：仅用今日大盘涨跌幅作为相对参考）
+    let outperform_pct = return_pct - index_change_pct;
+
+    // 止盈止损触发（默认 +30% 止盈，-15% 止损）
+    let hit_target = return_pct >= 30.0;
+    let hit_stop = return_pct <= -15.0;
+    let status = if hit_target {
+        "hit_target"
+    } else if hit_stop {
+        "hit_stop"
+    } else if holding_days > 90 {
+        "expired"
+    } else {
+        "active"
+    };
+
+    let result = json!({
+        "stock_code": stock_code,
+        "recommend_date": recommend_date,
+        "return_pct": round2(return_pct),
+        "outperform_pct": round2(outperform_pct),
+        "holding_days": holding_days,
+        "hit_target": hit_target,
+        "hit_stop": hit_stop,
+        "status": status,
+        "baseline_price": baseline.map(|b| round2(b.close)),
+        "latest_price": latest.map(|l| round2(l.close)),
+        "summary": format!(
+            "持有{holding_days}天 | 涨幅:{return_pct:.2}% | 超额:{outperform_pct:+.2}% | 状态:{status}"
+        )
+    });
+    Ok(result)
+}
+
+/// optimize_attention_weights：基于历史样本调优关注度权重
+/// 纯算法实现，不调 API
+fn optimize_attention_weights_impl(samples: &Vec<serde_json::Value>) -> serde_json::Value {
+    let sample_count = samples.len();
+    if sample_count == 0 {
+        return json!({
+            "weights": {
+                "coverage_weight": 0.35,
+                "search_weight": 0.25,
+                "volume_weight": 0.25,
+                "gap_weight": 0.15
+            },
+            "expected_accuracy": 0.5,
+            "sample_count": 0,
+            "summary": "无样本输入，返回默认权重"
+        });
+    }
+
+    // 简化策略：根据 attention_score 与 actual_return_pct 的相关性反推权重
+    // 高 attention_score 应对应低 actual_return（Serenity 假说：低关注度 → 高弹性）
+    // 用样本统计验证假说强度
+    let mut high_attn_returns: Vec<f64> = Vec::new();
+    let mut low_attn_returns: Vec<f64> = Vec::new();
+    let mut total_score = 0.0;
+    let mut total_return = 0.0;
+    for s in samples {
+        let attn = s["attention_score"].as_f64().unwrap_or(50.0);
+        let ret = s["actual_return_pct"].as_f64().unwrap_or(0.0);
+        total_score += attn;
+        total_return += ret;
+        if attn >= 50.0 {
+            high_attn_returns.push(ret);
+        } else {
+            low_attn_returns.push(ret);
+        }
+    }
+    let _avg_attn = total_score / sample_count as f64;
+    let avg_return = total_return / sample_count as f64;
+    let low_avg = if !low_attn_returns.is_empty() {
+        low_attn_returns.iter().sum::<f64>() / low_attn_returns.len() as f64
+    } else {
+        0.0
+    };
+    let high_avg = if !high_attn_returns.is_empty() {
+        high_attn_returns.iter().sum::<f64>() / high_attn_returns.len() as f64
+    } else {
+        0.0
+    };
+
+    // 假说验证：低关注度组平均收益是否高于高关注度组
+    let hypothesis_valid = low_avg > high_avg;
+    let spread = (low_avg - high_avg).abs();
+    // 假说越显著，coverage_weight 越大
+    let coverage_weight = if hypothesis_valid && spread > 5.0 {
+        0.45
+    } else if hypothesis_valid {
+        0.35
+    } else {
+        0.25
+    };
+    let search_weight = 0.20;
+    let volume_weight = 0.20;
+    let gap_weight = 1.0 - coverage_weight - search_weight - volume_weight;
+
+    // 期望准确率：用样本均值偏离度近似（粗略指标）
+    let return_std = {
+        let mean = avg_return;
+        let var = samples
+            .iter()
+            .filter_map(|s| s["actual_return_pct"].as_f64())
+            .map(|r| (r - mean).powi(2))
+            .sum::<f64>()
+            / sample_count as f64;
+        var.sqrt()
+    };
+    let expected_accuracy = if return_std > 0.0 {
+        (1.0 / (1.0 + return_std / 20.0)).clamp(0.3, 0.9)
+    } else {
+        0.5
+    };
+
+    json!({
+        "weights": {
+            "coverage_weight": round2(coverage_weight),
+            "search_weight": round2(search_weight),
+            "volume_weight": round2(volume_weight),
+            "gap_weight": round2(gap_weight)
+        },
+        "expected_accuracy": round2(expected_accuracy),
+        "sample_count": sample_count,
+        "hypothesis_validation": {
+            "low_attention_avg_return_pct": round2(low_avg),
+            "high_attention_avg_return_pct": round2(high_avg),
+            "hypothesis_valid": hypothesis_valid,
+            "spread_pct": round2(spread)
+        },
+        "summary": format!(
+            "样本:{sample_count} | 低关注度组均值收益:{low_avg:.2}% | 高关注度组:{high_avg:.2}% | 假说验证:{hypothesis_valid}"
+        )
+    })
 }

@@ -167,6 +167,55 @@ pub trait MarketDataProvider: Send + Sync {
     async fn search_stock(&self, keyword: &str) -> Result<Vec<StockSearchResult>>;
 }
 
+// ── MarketDataStreamer Trait (P3: WebSocket 升级架构占位) ────────────────
+
+/// 行情变更事件（流式推送的载荷）
+///
+/// 与 `axagent_astock_data::realtime_quote::QuoteChangeEvent` 的语义一致,
+/// 但放在 harness 以便 consumer crate（gateway/quant）不依赖 astock-data。
+/// astock-data 实现层负责把内部 `QuoteChangeEvent` 转换为本类型。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuoteUpdate {
+    pub stock_code: String,
+    pub current: StockQuote,
+    /// 当日涨跌幅（相对于前收盘）
+    pub change_pct: f64,
+    /// 触发类型: "tick" | "price_change" | "significant_move"
+    pub trigger: String,
+    /// 数据源类型: "http_poll" | "websocket"
+    pub source: String,
+    pub timestamp_ms: i64,
+}
+
+/// 市场数据流式推送接口（P3: WebSocket 升级架构占位）
+///
+/// 与 `MarketDataProvider` 共存：
+/// - `MarketDataProvider`：同步请求-响应（适合按需查询）
+/// - `MarketDataStreamer`：异步流式推送（适合实时监控、ws 转发）
+///
+/// 实现方：
+/// - `HttpPollingStreamer`（astock-data）：用 tokio::interval 轮询 `AStockClient`，
+///   生成 `QuoteUpdate` 流。当前默认数据源。
+/// - `WebSocketStreamer`（未来）：连接东方财富/新浪等 WS 接口，推送真实 tick。
+///   架构占位，尚未实现（A 股免费 WS 数据源不稳定，需要供应商调研）。
+///
+/// 消费者：gateway（ws 转发）、RealtimeMonitor（监控循环）。
+#[async_trait]
+pub trait MarketDataStreamer: Send + Sync {
+    /// 订阅指定股票的行情更新流
+    ///
+    /// 返回的 stream 会持续推送 `QuoteUpdate`，直到调用方 drop。
+    /// 实现方负责内部去重（仅在价格/成交量变化时推送）。
+    async fn subscribe(
+        &self,
+        codes: Vec<String>,
+    ) -> Result<tokio::sync::mpsc::Receiver<QuoteUpdate>>;
+
+    /// 数据源类型标识（"http_poll" / "websocket"），用于日志和监控
+    fn source_type(&self) -> &'static str;
+}
+
 // ── 市场工具函数（A股 / 港股 / 美股）────────────────────────────
 
 /// 根据股票代码识别市场板块

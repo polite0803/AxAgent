@@ -723,6 +723,14 @@ pub async fn run_serenity_screening(
     // 解析 as_of_date（支持回放模式）
     let as_of_ctx = parse_asof_param(as_of_date.clone())?;
 
+    // 运行前确保模板为最新版（幂等：版本已是最新则跳过）。
+    // 修复：启动时 seed 在异步任务中执行（lib.rs:446），失败被吞掉（mod.rs:471 只 log）。
+    // 若数据库停留在旧版本（如 v2 缺少 baseline_* input_mapping），
+    // Rhai 脚本会报 "Variable not found: baseline_semi"。此处兜底重新 seed。
+    crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(state.harness.db())
+        .await
+        .map_err(|e| format!("重新种子化失败: {e}"))?;
+
     // 1. 加载 serenity-screening 模板
     let loaded = load_and_inject_template(state.harness.db(), "", "", "serenity-screening").await?;
 

@@ -60,6 +60,12 @@ pub fn start_background_services(
     start_stock_pipeline(app, state);
     // P3-B5(G): vendor 健康后台周期探测，加速 Degraded vendor 恢复
     start_vendor_health_prober(state);
+    // P0: 启动实时监控引擎（价格告警 + T+0 异动重跑）
+    // 之前 app_state.stock_monitor 一直是 None，PriceAlertPanel 创建的告警永远不会触发。
+    // 此处初始化 RealtimeMonitor，注入 TauriMonitorEmitter，并启动 30s 轮询循环。
+    start_realtime_monitor(app, state);
+    // P1-2: 启动实时行情推送（替代前端 15s 轮询，2s Active / 10s Background 自适应）
+    start_realtime_quote_watcher(app, state);
 }
 
 /// P1-D10: 注册 portfolio-mgr.rhai 依赖的 pm_* 函数到共享 Rhai Engine。
@@ -2214,4 +2220,259 @@ fn next_18_00_shanghai() -> chrono::DateTime<chrono::Utc> {
     } else {
         (today_18_shanghai + chrono::Duration::days(1)).with_timezone(&chrono::Utc)
     }
+}
+
+/// P0: 启动 RealtimeMonitor（实时监控引擎）
+///
+/// 之前 `app_state.stock_monitor` 一直是 `None`，PriceAlertPanel 创建的告警永远
+/// 不会触发。此处：
+///   1. 构造 `RealtimeMonitor`（注入 AStockClient 作为 MarketDataProvider）
+///   2. 注入 `TauriMonitorEmitter`（emit 前端事件 + 写 DB + 推送通知）
+///   3. 从 `price_alerts` 表加载未触发告警到 monitor 配置
+///   4. 启动 30s 轮询循环（非交易时段自动跳过）
+///
+/// 启动后 `app_state.stock_monitor` 由 `Some(Arc<RealtimeMonitor>)` 占位，
+/// `create_price_alert` 等命令可调用 `monitor.add_config()` 即时加入监控。
+fn start_realtime_monitor(app: &tauri::AppHandle, state: &AppState) {
+    use crate::commands::stock_workflow::core::trigger_t0_rerun;
+    use crate::init::monitor_emitter::TauriMonitorEmitter;
+    use axagent_entities::price_alerts;
+    use axagent_harness::market_data::MarketDataProvider;
+    use axagent_stock_analysis::cross_stock_aggregator::{
+        AggregatorConfig, CrossStockSignalAggregator,
+    };
+    use axagent_stock_analysis::monitor::{MonitorConfig, RealtimeMonitor, TZeroCallback};
+    use sea_orm::ColumnTrait;
+    use sea_orm::EntityTrait;
+    use sea_orm::QueryFilter;
+
+    // 将 Arc<AStockClient> 转为 Arc<dyn MarketDataProvider>
+    let provider: Arc<dyn MarketDataProvider> = state.astock_client.clone();
+
+    let monitor = Arc::new(RealtimeMonitor::new(provider));
+
+    // P3-3: 实例化跨股票信号聚合器并注入 monitor
+    // 默认配置：5 分钟窗口内 ≥3 只同向信号触发组合级告警，10 分钟冷却
+    let aggregator = Arc::new(CrossStockSignalAggregator::new(AggregatorConfig::default()));
+    let monitor_for_agg = monitor.clone();
+    let agg_for_monitor = aggregator.clone();
+    tauri::async_runtime::block_on(async move {
+        monitor_for_agg.set_aggregator(agg_for_monitor).await;
+    });
+    tracing::info!(
+        "[realtime_monitor] 跨股票信号聚合器已注入（5min 窗口 / 3 只同向触发 / 10min 冷却）"
+    );
+
+    // 注入 TauriMonitorEmitter
+    let emitter = Arc::new(TauriMonitorEmitter::new(
+        app.clone(),
+        state.harness.db().clone(),
+        state.notification_dispatcher.clone(),
+    ));
+    let monitor_clone = monitor.clone();
+    tauri::async_runtime::block_on(async move {
+        monitor_clone.set_event_emitter(emitter).await;
+    });
+
+    // P1-1: 注入 T+0 重跑 callback —— 后端直接调 run_stock_workflow_inner，
+    //        不依赖前端 UI 在线。失败仅记录日志，不阻塞监控循环。
+    //        spawn 是必要的：callback 内部调用 async fn，且要释放 monitor 的内部锁。
+    let app_for_t0 = app.clone();
+    let t0_callback: TZeroCallback = Arc::new(move |stock_code: String| {
+        let app = app_for_t0.clone();
+        Box::pin(async move {
+            // 立即 spawn 一个独立任务执行重跑，避免阻塞 monitor 主循环
+            // （run_stock_workflow_inner 是长耗时操作，包含 LLM 调用）
+            let app_clone = app.clone();
+            let stock_clone = stock_code.clone();
+            tokio::spawn(async move { trigger_t0_rerun(app_clone, stock_clone).await })
+                .await
+                .map_err(|e| format!("T+0 重跑任务 panic: {e}"))?
+                .map_err(|e| format!("T+0 重跑失败: {e}"))
+        })
+    });
+    let monitor_for_t0 = monitor.clone();
+    tauri::async_runtime::block_on(async move {
+        monitor_for_t0.set_t0_callback(t0_callback).await;
+    });
+    tracing::info!("[realtime_monitor] T+0 callback 已注入（后端自动重跑）");
+
+    // 从 price_alerts 表加载未触发的告警到 monitor 配置
+    let db = state.harness.db().clone();
+    let monitor_for_load = monitor.clone();
+    tauri::async_runtime::spawn(async move {
+        match price_alerts::Entity::find()
+            .filter(price_alerts::Column::IsTriggered.eq(0))
+            .all(&db)
+            .await
+        {
+            Ok(alerts) => {
+                let count = alerts.len();
+                for a in &alerts {
+                    // 将 price_alerts 表的 condition 映射到 MonitorConfig
+                    // above → take_profit；below → stop_loss
+                    let config = MonitorConfig {
+                        stock_code: a.stock_code.clone(),
+                        stock_name: a.stock_name.clone(),
+                        stop_loss: if a.condition == "below" {
+                            Some(a.target_price)
+                        } else {
+                            None
+                        },
+                        take_profit: if a.condition == "above" {
+                            Some(a.target_price)
+                        } else {
+                            None
+                        },
+                        resistance_break: None,
+                        support_break: None,
+                        change_pct_alert: None,
+                        turnover_rate_alert: None,
+                        enabled: true,
+                    };
+                    monitor_for_load.add_config(config).await;
+                }
+                tracing::info!("[realtime_monitor] 已加载 {} 个未触发告警到监控配置", count);
+            },
+            Err(e) => {
+                tracing::warn!("[realtime_monitor] 加载 price_alerts 失败: {e}");
+            },
+        }
+    });
+
+    // 启动 30s 轮询循环（非交易时段自动跳过）
+    // P1-1: 从 stock-analysis 工作流模板的 variables 读取用户配置的
+    // monitor_poll_interval_secs / monitor_alert_cooldown_secs（若模板/变量缺失则用默认值）
+    let monitor_for_start = monitor.clone();
+    let db_for_start = state.harness.db().clone();
+    tauri::async_runtime::spawn(async move {
+        let (poll_secs, cooldown_secs) = load_monitor_runtime_config(&db_for_start).await;
+        monitor_for_start.start_with_config(poll_secs, cooldown_secs).await;
+    });
+
+    // 写入 AppState，供 create_price_alert 等命令使用
+    // OnceLock::set 仅在首次调用成功；后续调用返回 Err 但不影响已启动的 monitor
+    if state.stock_monitor.set(monitor).is_err() {
+        tracing::warn!("[realtime_monitor] stock_monitor 已初始化，跳过重复 set");
+    }
+    // P3-3: 聚合器写入 AppState，供 Tauri 命令访问
+    if state.cross_stock_aggregator.set(aggregator).is_err() {
+        tracing::warn!("[realtime_monitor] cross_stock_aggregator 已初始化，跳过重复 set");
+    }
+
+    tracing::info!(
+        "[realtime_monitor] 已启动（轮询 + 告警冷却配置由 stock-analysis 模板 variables 决定）"
+    );
+}
+
+/// P1-1: 从 stock-analysis 工作流模板的 variables JSON 字段读取 monitor 运行时配置。
+///
+/// 读取变量：
+/// - `monitor_poll_interval_secs` (u64, 默认 30)
+/// - `monitor_alert_cooldown_secs` (i64, 默认 300)
+///
+/// 模板或变量缺失时返回默认值，不阻塞 monitor 启动。
+async fn load_monitor_runtime_config(db: &sea_orm::DatabaseConnection) -> (u64, i64) {
+    use axagent_entities::workflow_template;
+    use sea_orm::EntityTrait;
+
+    let default_poll: u64 = 30;
+    let default_cooldown: i64 = 300;
+
+    let Ok(Some(tpl)) = workflow_template::Entity::find_by_id("stock-analysis").one(db).await
+    else {
+        return (default_poll, default_cooldown);
+    };
+
+    let Some(vars_json) = tpl.variables.as_ref() else {
+        return (default_poll, default_cooldown);
+    };
+
+    let Ok(vars) = serde_json::from_str::<serde_json::Value>(vars_json) else {
+        return (default_poll, default_cooldown);
+    };
+
+    let Some(arr) = vars.as_array() else {
+        return (default_poll, default_cooldown);
+    };
+
+    let mut poll = default_poll;
+    let mut cooldown = default_cooldown;
+    for v in arr {
+        let Some(name) = v.get("name").and_then(|n| n.as_str()) else {
+            continue;
+        };
+        let Some(value) = v.get("value") else {
+            continue;
+        };
+        match name {
+            "monitor_poll_interval_secs" => {
+                if let Some(s) = value.as_u64() {
+                    poll = s;
+                }
+            },
+            "monitor_alert_cooldown_secs" => {
+                if let Some(s) = value.as_i64() {
+                    cooldown = s;
+                }
+            },
+            _ => {},
+        }
+    }
+
+    (poll, cooldown)
+}
+
+/// P1-2: 启动实时行情推送引擎（替代前端 15s 轮询）。
+///
+/// 设计要点：
+/// - 构造 `RealTimeQuoteWatcher`，注入 `QuoteCallback` 通过 `app.emit("stock-quote-update", ...)`
+///   将行情变更事件推送到前端，前端监听该事件实时更新 UI（延迟从 15s 降到 2s）
+/// - 前端通过 `watch_stock_quotes` 命令加入监控列表（Active 优先级 2s，Background 10s）
+/// - 启动时无监控股票，等前端加入后才轮询（空列表时 5s 空转 sleep）
+/// - 写入 `app_state.quote_watcher` 供命令端使用
+fn start_realtime_quote_watcher(app: &tauri::AppHandle, state: &AppState) {
+    use axagent_astock_data::realtime_quote::{QuoteChangeEvent, RealTimeQuoteWatcher};
+    use futures::future::BoxFuture;
+    use tauri::Emitter;
+
+    // 构造 callback（不依赖 tokio runtime）
+    let app_for_callback = app.clone();
+    let callback: axagent_astock_data::realtime_quote::QuoteCallback =
+        Arc::new(move |event: QuoteChangeEvent| {
+            let app = app_for_callback.clone();
+            Box::pin(async move {
+                // payload 结构与前端 stockAnalysisStore 的 StockQuoteUpdate 类型对齐
+                let payload = serde_json::json!({
+                    "stockCode": event.stock_code,
+                    "current": event.current,
+                    "changePct": event.change_pct,
+                    "trigger": event.trigger,
+                    // 上一帧行情（首次为 null）
+                    "previous": event.previous,
+                });
+                if let Err(e) = app.emit("stock-quote-update", payload) {
+                    tracing::trace!("[quote_watcher] emit stock-quote-update 失败: {e}");
+                }
+            }) as BoxFuture<'static, ()>
+        });
+
+    let watcher = Arc::new(RealTimeQuoteWatcher::new(state.astock_client.clone(), Some(callback)));
+
+    // start() 内部调用 tokio::spawn，必须确保在 runtime 上下文中。
+    // start_background_services 是同步函数，Tauri setup 闭包直接调用时不在 runtime 上下文，
+    // 用 tauri::async_runtime::spawn 包裹进入 runtime 上下文。
+    {
+        let w = watcher.clone();
+        tauri::async_runtime::spawn(async move {
+            let _join_handle = w.start();
+        });
+    }
+
+    // 写入 AppState，供 watch_stock_quotes 等命令使用
+    if state.quote_watcher.set(watcher).is_err() {
+        tracing::warn!("[quote_watcher] quote_watcher 已初始化，跳过重复 set");
+    }
+
+    tracing::info!("[quote_watcher] 已启动（2s Active / 10s Background 自适应轮询）");
 }

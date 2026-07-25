@@ -8,6 +8,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use axagent_astock_data::as_of::{self, AsOfContext};
+use axagent_entities::price_alerts;
 use axagent_entities::stock_analyses;
 use axagent_entities::stock_reflections;
 use axagent_harness::workflow_types::Variable;
@@ -23,8 +24,7 @@ use tauri::{Emitter, State};
 /// 启动股票分析工作流（DAG 模式）。
 ///
 /// - 默认：生成新 UUID 并 INSERT 新 `stock_analyses` 行（fresh start）。
-/// - 重跑分析场景：传入 `analysis_id` 让后端先 DELETE 同 id 旧行再 INSERT,
-///   保留 id 稳定,前端 store 引用不会断。
+/// - 重跑分析场景：传入 `parent_analysis_id` 指向原始记录，新建独立行保留历史版本。
 #[tauri::command]
 pub async fn run_stock_workflow(
     app: tauri::AppHandle,
@@ -32,9 +32,9 @@ pub async fn run_stock_workflow(
     stock_code: String,
     dry_run: Option<bool>,
     as_of_date: Option<String>,
-    // 可选: 传入已存在的 analysisId 即可"覆盖"该记录（用于重跑分析场景）。
-    // 不传则生成新 UUID 并 INSERT 新行(fresh start)。
-    analysis_id: Option<String>,
+    // 版本化分析: 传入原始 analysisId 作为 parent，新建一条独立记录保留历史版本。
+    // 不传则为首次分析（parent_analysis_id = NULL）。
+    parent_analysis_id: Option<String>,
     // V53: 筛选来源标记 — "serenity" 表示来自瓶颈掘金候选
     screening_source: Option<String>,
     // P2-3.3: 报告输出语言 — "en" / "english" 英文报告，其他值或 None 默认中文
@@ -48,11 +48,11 @@ pub async fn run_stock_workflow(
             .scope(Some(ctx), async {
                 run_stock_workflow_inner(
                     app,
-                    state,
+                    state.inner(),
                     stock_code,
                     dry_run,
                     as_of_date,
-                    analysis_id,
+                    parent_analysis_id,
                     screening_source,
                     language,
                 )
@@ -62,11 +62,11 @@ pub async fn run_stock_workflow(
     } else {
         run_stock_workflow_inner(
             app,
-            state,
+            state.inner(),
             stock_code,
             dry_run,
             None,
-            analysis_id,
+            parent_analysis_id,
             screening_source,
             language,
         )
@@ -74,13 +74,130 @@ pub async fn run_stock_workflow(
     }
 }
 
-async fn run_stock_workflow_inner(
+/// P1-1: T+0 异动重跑后端入口（由 RealtimeMonitor 的 t0_callback 调用）。
+///
+/// 与 `run_stock_workflow` 命令的区别：
+/// - 不需要 Tauri 命令注入的 `State<'_, AppState>`，内部用 `app.state::<AppState>()` 获取
+/// - 固定为 live 模式（as_of_date=None）—— T+0 重跑针对实时行情
+/// - 不传 parent_analysis_id —— 每次新建独立版本（live 模式纯版本化策略）
+/// - 不传 screening_source / language —— 走默认中文 + 非筛选来源
+/// - 返回 analysisId 供 monitor 日志追踪
+///
+/// 设计要点：
+/// - 使用 `tauri::Manager` trait 的 `app.state::<T>()` 获取共享状态
+/// - 失败时返回 Err(String)，由调用方（monitor.rs）记录日志，不阻塞监控循环
+///
+/// P1-2: 并发控制
+/// - 全局 `stock_workflow_t0_semaphore`（permits=5）：50+ 股票同时异动时限流
+/// - per-stock `stock_workflow_t0_per_stock_locks`：同股票多次触发串行执行
+/// - 三个 Tauri 事件让前端感知排队状态：
+///   * `stock-t0-queue-entered`：进入队列等待（含队列深度）
+///   * `stock-t0-rerun-started`：获取 permit + per-stock 锁，开始执行
+///   * `stock-t0-rerun-completed`：执行结束（含 success / error 信息）
+pub(crate) async fn trigger_t0_rerun(
     app: tauri::AppHandle,
-    state: State<'_, AppState>,
+    stock_code: String,
+) -> Result<String, String> {
+    use tauri::Manager;
+
+    let state = app.state::<AppState>();
+    let state_inner = state.inner();
+
+    // P1-2: 1) 发出 queue-entered 事件（前端 toast 提示"排队中"）
+    //       同时尝试获取全局 semaphore permit（阻塞等待）
+    // active_count = 5 - available_permits 表示当前正在执行的 T+0 重跑数
+    // （Semaphore 不直接暴露等待数，用 active_count 作为队列压力指标）
+    let active_count =
+        5_usize.saturating_sub(state_inner.stock_workflow_t0_semaphore.available_permits());
+    let _ = app.emit(
+        "stock-t0-queue-entered",
+        json!({
+            "stockCode": stock_code,
+            "activeCount": active_count,
+            "maxConcurrency": 5,
+            "timestamp": chrono::Utc::now().timestamp_millis(),
+        }),
+    );
+
+    // 2) 获取全局 permit（阻塞等待，但 callback 已在 tokio::spawn 内，不会阻塞 monitor 主循环）
+    let _permit = state_inner
+        .stock_workflow_t0_semaphore
+        .acquire()
+        .await
+        .map_err(|e| format!("T+0 semaphore acquire 失败: {e}"))?;
+
+    // 3) 获取 per-stock 锁（同股票串行，不同股票并行）
+    let per_stock_lock = {
+        let mut locks = state_inner.stock_workflow_t0_per_stock_locks.lock().await;
+        locks
+            .entry(stock_code.clone())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    };
+    let _stock_guard = per_stock_lock.lock().await;
+
+    // 4) 发出 rerun-started 事件
+    let started_at = chrono::Utc::now().timestamp_millis();
+    let _ = app.emit(
+        "stock-t0-rerun-started",
+        json!({
+            "stockCode": stock_code,
+            "startedAt": started_at,
+        }),
+    );
+
+    // 5) 执行工作流（permit + per-stock 锁同时持有）
+    let app_for_inner = app.clone();
+    let exec_result = run_stock_workflow_inner(
+        app_for_inner,
+        state_inner,
+        stock_code.clone(),
+        None, // dry_run
+        None, // as_of_date — live 模式
+        None, // parent_analysis_id — 新建独立版本
+        None, // screening_source
+        None, // language — 默认中文
+    )
+    .await;
+
+    // 6) 发出 rerun-completed 事件（无论成功失败）
+    let completed_at = chrono::Utc::now().timestamp_millis();
+    let (success, analysis_id, error_msg) = match &exec_result {
+        Ok(payload) => {
+            let aid =
+                payload.get("analysisId").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+            (true, aid, None::<String>)
+        },
+        Err(e) => (false, "unknown".to_string(), Some(e.clone())),
+    };
+    let _ = app.emit(
+        "stock-t0-rerun-completed",
+        json!({
+            "stockCode": stock_code,
+            "analysisId": analysis_id,
+            "success": success,
+            "error": error_msg,
+            "startedAt": started_at,
+            "completedAt": completed_at,
+            "durationMs": completed_at - started_at,
+        }),
+    );
+
+    // 7) 返回结果（permit + per-stock 锁在此自动释放）
+    let result = exec_result?;
+    let analysis_id =
+        result.get("analysisId").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    Ok(analysis_id)
+}
+
+pub(crate) async fn run_stock_workflow_inner(
+    app: tauri::AppHandle,
+    state: &AppState,
     stock_code: String,
     dry_run: Option<bool>,
     as_of_date: Option<String>,
-    analysis_id_override: Option<String>,
+    // 版本化分析：重跑时指向原始记录 ID，新建独立行保留历史版本。
+    parent_analysis_id: Option<String>,
     // V53: 筛选来源标记 — 告诉 stock-analysis 工作流当前股票来自哪里。
     // "serenity" 表示来自瓶颈掘金候选，允许风险分类器做评分修正。
     screening_source: Option<String>,
@@ -93,65 +210,141 @@ async fn run_stock_workflow_inner(
     })?;
     let now_ms = chrono::Utc::now().timestamp_millis();
 
-    // 重跑分析（override 模式）：不删旧行，先用临时 ID INSERT 新行。
-    // 工作流成功后再删旧行 + 更新临时行 ID 为 override id。
-    // 失败则删除临时行，旧数据完好无损。
-    let override_target = if let Some(ref provided) = analysis_id_override {
-        // 验证旧行存在再记录，避免 Delete Nonexistent 后 ID 丢失
-        match stock_analyses::Entity::find_by_id(provided.as_str()).one(state.harness.db()).await {
-            Ok(Some(_)) => Some(provided.clone()),
-            _ => {
-                tracing::warn!(
-                    "[run_stock_workflow] override_id={provided} 对应的旧行不存在,跳过覆盖"
-                );
-                None
-            },
-        }
-    } else {
-        None
-    };
-    let analysis_id = uuid::Uuid::new_v4().to_string();
+    // ── 版本化策略：live 纯版本化，replay 同日覆盖 ──
+    // - live 模式（as_of_date 为 None）：纯版本化，每次重跑都新建独立记录
+    //   业务语义：日内行情实时变化（创业板最高 20% 涨跌幅），
+    //   同日多次分析应各自保留为独立版本，以支持日内涨跌分析。
+    // - replay 模式（as_of_date 指定）：以 as_of_date（YYYY-MM-DD）为版本边界
+    //   - 重跑时 as_of_date 与原始记录相同 → 覆盖（UPDATE 现有记录，不新建行）
+    //   - 重跑时 as_of_date 不同 → 新建版本（INSERT 新行，parent 指向原始记录）
+    //   业务语义：历史数据已固定，重跑只是修正决策；跨交易日数据不同则保留版本。
+    // - 首次分析 → INSERT 新行，parent=NULL
+    let current_as_of =
+        as_of_date.clone().unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
+    let is_live_mode = as_of_date.is_none();
 
-    stock_analyses::ActiveModel {
-        id: Set(analysis_id.clone()),
-        stock_code: Set(stock_code.clone()),
-        stock_name: Set(quote.name.clone()),
-        // B12: 在 as-of 模式下,analysis_date 必须是 as-of 截止日,而不是 today
-        // —— spec §4.1 闭世界假设要求工作流产物日期 = 截断日,否则回放历史会串味
-        analysis_date: Set(as_of::current_as_of()
-            .map(|c| c.as_string())
-            .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string())),
-        provider_id: Set("workflow".into()),
-        conversation_id: Set(uuid::Uuid::new_v4().to_string()),
-        status: Set("running".into()),
-        decision_action: Set(None),
-        decision_position_pct: Set(None),
-        decision_reasoning: Set(None),
-        decision_json: Set(None),
-        llm_decision_json: Set(None),
-        blackboard_snapshot: Set(None),
-        config_id: Set(None),
-        // Time-travel metadata: 标记该 analysis 为 replay 模式 + 截止日
-        analysis_kind: Set(if as_of_date.is_some() {
-            "replay".into()
-        } else {
-            "live".into()
-        }),
-        // 始终保存 as_of_date：live 模式用分析当日，replay 模式用用户指定日期
-        as_of_date: Set(Some(
-            as_of_date.clone().unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string()),
-        )),
-        model_version: Set(None),
-        data_snapshot_id: Set(None),
-        outcome: Set(None),
-        decision_time_horizon: Set(None),
-        decision_expected_holding_days: Set(None),
-        created_at: Set(now_ms),
-        updated_at: Set(now_ms),
+    let (analysis_id, parent_for_record, need_insert) = match &parent_analysis_id {
+        Some(parent_id) => {
+            match stock_analyses::Entity::find_by_id(parent_id.as_str())
+                .one(state.harness.db())
+                .await
+            {
+                Ok(Some(parent_record)) => {
+                    if is_live_mode {
+                        // live 模式：纯版本化，每次重跑都新建独立记录
+                        tracing::info!(
+                            "[run_stock_workflow] live 重跑(新建版本): parent={}",
+                            parent_id
+                        );
+                        (uuid::Uuid::new_v4().to_string(), Some(parent_id.clone()), true)
+                    } else {
+                        // replay 模式：比较 as_of_date，相同则覆盖，不同则新建版本
+                        let parent_as_of = parent_record.as_of_date.as_deref().unwrap_or("");
+                        if parent_as_of == current_as_of {
+                            // 同一 as_of_date：覆盖现有记录（重置为 running）
+                            tracing::info!(
+                                "[run_stock_workflow] replay 同日重跑(覆盖模式): parent={}, as_of={}",
+                                parent_id,
+                                current_as_of
+                            );
+                            stock_analyses::Entity::update_many()
+                                .col_expr(stock_analyses::Column::Status, Expr::value("running"))
+                                .col_expr(
+                                    stock_analyses::Column::DecisionAction,
+                                    Expr::value(None::<String>),
+                                )
+                                .col_expr(
+                                    stock_analyses::Column::DecisionPositionPct,
+                                    Expr::value(None::<f64>),
+                                )
+                                .col_expr(
+                                    stock_analyses::Column::DecisionReasoning,
+                                    Expr::value(None::<String>),
+                                )
+                                .col_expr(
+                                    stock_analyses::Column::DecisionJson,
+                                    Expr::value(None::<String>),
+                                )
+                                .col_expr(
+                                    stock_analyses::Column::LlmDecisionJson,
+                                    Expr::value(None::<String>),
+                                )
+                                .col_expr(stock_analyses::Column::UpdatedAt, Expr::value(now_ms))
+                                .filter(stock_analyses::Column::Id.eq(parent_id.as_str()))
+                                .exec(state.harness.db())
+                                .await
+                                .map_err(|e| {
+                                    ErrorResponse::new(wf_err::INTERNAL)
+                                        .with_detail(format!("覆盖更新失败: {e}"))
+                                })?;
+                            (parent_id.clone(), None, false)
+                        } else {
+                            // 跨 as_of_date：新建版本
+                            tracing::info!(
+                                "[run_stock_workflow] replay 跨日新建版本: parent={}, old_as_of={}, new_as_of={}",
+                                parent_id,
+                                parent_as_of,
+                                current_as_of
+                            );
+                            (uuid::Uuid::new_v4().to_string(), Some(parent_id.clone()), true)
+                        }
+                    }
+                },
+                _ => {
+                    tracing::warn!(
+                        "[run_stock_workflow] parent={} 不存在,降级为 fresh start",
+                        parent_id
+                    );
+                    (uuid::Uuid::new_v4().to_string(), None, true)
+                },
+            }
+        },
+        None => {
+            // 首次分析
+            (uuid::Uuid::new_v4().to_string(), None, true)
+        },
+    };
+
+    if need_insert {
+        stock_analyses::ActiveModel {
+            id: Set(analysis_id.clone()),
+            stock_code: Set(stock_code.clone()),
+            stock_name: Set(quote.name.clone()),
+            // B12: 在 as-of 模式下,analysis_date 必须是 as-of 截止日,而不是 today
+            analysis_date: Set(as_of::current_as_of()
+                .map(|c| c.as_string())
+                .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string())),
+            provider_id: Set("workflow".into()),
+            conversation_id: Set(uuid::Uuid::new_v4().to_string()),
+            status: Set("running".into()),
+            decision_action: Set(None),
+            decision_position_pct: Set(None),
+            decision_reasoning: Set(None),
+            decision_json: Set(None),
+            llm_decision_json: Set(None),
+            blackboard_snapshot: Set(None),
+            config_id: Set(None),
+            analysis_kind: Set(if as_of_date.is_some() {
+                "replay".into()
+            } else {
+                "live".into()
+            }),
+            as_of_date: Set(Some(current_as_of.clone())),
+            model_version: Set(None),
+            data_snapshot_id: Set(None),
+            outcome: Set(None),
+            decision_time_horizon: Set(None),
+            decision_expected_holding_days: Set(None),
+            parent_analysis_id: Set(parent_for_record.clone()),
+            created_at: Set(now_ms),
+            updated_at: Set(now_ms),
+        }
+        .insert(state.harness.db())
+        .await
+        .map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("DB 写入失败: {e}"))
+        })?;
     }
-    .insert(state.harness.db())
-    .await
-    .map_err(|e| ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("DB 写入失败: {e}")))?;
 
     // ── 数据质量预检：在发起 DAG 执行前检查关键数据是否完整 ──
     let stock_code_for_check = stock_code.clone();
@@ -197,11 +390,11 @@ async fn run_stock_workflow_inner(
             return Ok(json!({
                 "status": "skipped",
                 "reason": summary,
-                "data_missing_report": missing_report,
-                "analysis_id": analysis_id,
-                "stock_code": stock_code,
-                "stock_name": quote.name,
-                "data_quality_precheck": "insufficient",
+                "dataMissingReport": missing_report,
+                "analysisId": analysis_id,
+                "stockCode": stock_code,
+                "stockName": quote.name,
+                "dataQualityPrecheck": "insufficient",
             }));
         },
         QualityPrecheckResult::Pass => {
@@ -279,7 +472,6 @@ async fn run_stock_workflow_inner(
     let app_h = app.clone();
     let db = state.harness.db().clone();
     let aid = analysis_id.clone();
-    let override_target_for_spawn = override_target.clone();
 
     let progress_app = app.clone();
     let progress_wf_id = wf_id.clone();
@@ -436,6 +628,10 @@ async fn run_stock_workflow_inner(
     // P2-F15: 克隆 analysis_id 供 spawn 内部使用（record_lesson_applications），
     // 保留原始 analysis_id 供函数返回值使用。
     let analysis_id_for_spawn = analysis_id.clone();
+    // P0: 克隆 RealtimeMonitor，供决策落库后自动创建价格告警
+    let monitor_for_spawn = state.stock_monitor.get().cloned();
+    // P2-1: 克隆 TriggerManager，供决策落库后发布 decision.completed 事件
+    let trigger_mgr_for_spawn = state.work_engine.trigger_manager.clone();
     tokio::spawn(async move {
         // P3 修复: 在 spawn 内恢复 AS_OF + DEGRADATION_LOG 作用域
         as_of::with_optional_asof(captured_asof, async {
@@ -802,12 +998,7 @@ async fn run_stock_workflow_inner(
                 {
                     tracing::error!("[DB] timeout 状态更新失败: {db_e}");
                 }
-                // 重跑超时：清理临时行，旧数据不受影响
-                if override_target_for_spawn.is_some() {
-                    let _ = stock_analyses::Entity::delete_by_id(aid.as_str())
-                        .exec(&db)
-                        .await;
-                }
+                // 版本化模式：保留失败记录供复盘，不删除
             },
             Ok(inner_result) => match inner_result {
                 Ok(result) => {
@@ -832,12 +1023,7 @@ async fn run_stock_workflow_inner(
                         {
                             tracing::error!("[DB] Cancelled 状态更新失败: {e}");
                         }
-                        // 重跑取消：清理临时行，旧数据不受影响
-                        if override_target_for_spawn.is_some() {
-                            let _ = stock_analyses::Entity::delete_by_id(aid.as_str())
-                                .exec(&db)
-                                .await;
-                        }
+                        // 版本化模式：保留取消记录供复盘，不删除
                     },
                     axagent_rt_workflow::workflow_engine::WorkflowStatus::Failed => {
                         tracing::warn!(%wf_id, status=?wf_status, "工作流以 Failed 状态结束，保存部分结果");
@@ -913,18 +1099,7 @@ async fn run_stock_workflow_inner(
                         {
                             tracing::error!("[DB] Failed 状态下保存分析结果失败: {e}");
                         }
-                        // 重跑（Failed 有部分结果）：删旧行，更新临时行 ID 到 override id
-                        if let Some(ref old_id) = override_target_for_spawn {
-                            let _ = stock_analyses::Entity::delete_by_id(old_id.as_str())
-                                .exec(&db)
-                                .await;
-                            let _ = stock_analyses::Entity::update_many()
-                                .col_expr(stock_analyses::Column::Id, Expr::value(old_id.as_str()))
-                                .filter(stock_analyses::Column::Id.eq(&aid))
-                                .exec(&db)
-                                .await;
-                        }
-                        // DB 写入后再 emit，避免前端 extract_evidence_citations 读到空的 decision_reasoning
+                        // 版本化模式：不再删旧行/改 ID，直接用新行 ID emit
                         if let Err(e) = app_h.emit(
                             "workflow-completed",
                             serde_json::json!({
@@ -973,7 +1148,7 @@ async fn run_stock_workflow_inner(
                             let f7_note = ab.f7_weight_pct.map(|pct|
                                 format!(" [f7污染{}%]", pct)
                             ).unwrap_or_default();
-                            // P3: trader 不输出 action, 改用 trader 影响度评分
+                            // V65: 6 维度版分歧诊断
                             if ab.conflict_type.starts_with("f7_") {
                                 let inf_level = match ab.conflict_type.as_str() {
                                     "f7_low_influence" => "低",
@@ -990,9 +1165,21 @@ async fn run_stock_workflow_inner(
                                     f7_note,
                                 )
                             } else if ab.total >= 60 {
-                                format!("🤝双视角一致:{}分{}", ab.total, f7_note)
+                                format!(
+                                    "🤝双视角一致:{}分(维度:act={} pos={} conf={} risk={} gaps={} evid={}){}",
+                                    ab.total, ab.action_score as i32, ab.position_score as i32,
+                                    ab.confidence_score as i32, ab.risk_level_score as i32,
+                                    ab.data_gaps_score as i32, ab.evidence_score as i32,
+                                    f7_note
+                                )
                             } else if ab.total >= 40 {
-                                format!("⚠️双视角部分一致:{}分{}", ab.total, f7_note)
+                                format!(
+                                    "⚠️双视角部分一致:{}分(维度:act={} pos={} conf={} risk={} gaps={} evid={}){}",
+                                    ab.total, ab.action_score as i32, ab.position_score as i32,
+                                    ab.confidence_score as i32, ab.risk_level_score as i32,
+                                    ab.data_gaps_score as i32, ab.evidence_score as i32,
+                                    f7_note
+                                )
                             } else {
                                 // P0: f7 纯净版 action 一致性对比
                                 let f7_free_note = match (ab.f7_free_action.as_deref(), ab.f7_free_action_score) {
@@ -1001,10 +1188,11 @@ async fn run_stock_workflow_inner(
                                     _ => String::new(),
                                 };
                                 format!(
-                                    "🔴双视角分歧:{}分(公式{} vs LLM{},维度:act={} pos={} conf={}){}{}",
+                                    "🔴双视角分歧:{}分(公式{} vs LLM{},维度:act={} pos={} conf={} risk={} gaps={} evid={}){}{}",
                                     ab.total, ab.formula_action, ab.llm_action,
                                     ab.action_score as i32, ab.position_score as i32,
-                                    ab.confidence_score as i32,
+                                    ab.confidence_score as i32, ab.risk_level_score as i32,
+                                    ab.data_gaps_score as i32, ab.evidence_score as i32,
                                     f7_note, f7_free_note
                                 )
                             }
@@ -1019,17 +1207,28 @@ async fn run_stock_workflow_inner(
                                             "formulaLlmAgreement".into(),
                                             serde_json::json!(ab.total),
                                         );
-                                        // V50: 完整诊断结构体
+                                        // V65: 完整 6 维度诊断结构体
                                         obj.insert("agreementBreakdown".into(), serde_json::json!({
                                             "total": ab.total,
                                             "actionOk": ab.action_ok,
                                             "actionNote": ab.action_note,
                                             "formulaAction": ab.formula_action,
                                             "llmAction": ab.llm_action,
+                                            "actionScore": ab.action_score,
+                                            "positionScore": ab.position_score,
                                             "positionGap": ab.position_gap,
+                                            "confidenceScore": ab.confidence_score,
                                             "confidenceGap": ab.confidence_gap,
+                                            // V65 新增维度
+                                            "riskLevelScore": ab.risk_level_score,
+                                            "formulaRiskLevel": ab.formula_risk_level,
+                                            "llmRiskLevel": ab.llm_risk_level,
+                                            "dataGapsScore": ab.data_gaps_score,
+                                            "dataGapsSimilarity": ab.data_gaps_similarity,
+                                            "evidenceScore": ab.evidence_score,
+                                            "evidenceCount": ab.evidence_count,
                                             "conflictType": ab.conflict_type,
-                                            // P0: f7 自指污染标记
+                                            // P0: f7 自指污染标记（向后兼容）
                                             "f7WeightPct": ab.f7_weight_pct,
                                             "f7FreePosterior": ab.f7_free_posterior,
                                             "f7FreeAction": ab.f7_free_action,
@@ -1154,21 +1353,159 @@ async fn run_stock_workflow_inner(
                             tracing::error!("[DB] 保存分析结果失败: {e}");
                         }
 
-                        // DB 写入后再 emit，避免前端 extract_evidence_citations 读到空的 decision_reasoning
-                        if let Err(e) = app_h.emit(
-                            "workflow-completed",
-                            serde_json::json!({
-                                "workflowId": wf_id,
-                                "results": result.results,
-                                "output": result.output,
-                                "dashboardReport": dashboard_report,
-                                "dashboardMd": dashboard_md,
-                            }),
-                        ) {
-                            tracing::warn!("[emit] workflow-completed 发送失败: {e}");
+                        // P0: 决策落库后自动创建价格告警（targetPrice/stopLoss → price_alerts 表）
+                        // 用户做完分析后无需手动设告警，决策结论自动变成可执行的价格触发器。
+                        // 仅对含方向性动作（买入/增持/持有/减持/卖出）的决策创建告警；
+                        // 观望/skip 不创建。targetPrice → above 告警，stopLoss → below 告警。
+                        if let Some(ref dj_str) = mem_dj {
+                            if let Ok(dj_val) = serde_json::from_str::<serde_json::Value>(dj_str) {
+                                let dj_action = dj_val
+                                    .get("action")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("");
+                                let should_create_alert = matches!(
+                                    dj_action,
+                                    "买入" | "增持" | "持有" | "减持" | "卖出"
+                                );
+                                if should_create_alert {
+                                    let target_price = dj_val
+                                        .get("targetPrice")
+                                        .and_then(|v| v.as_f64());
+                                    let stop_loss = dj_val
+                                        .get("stopLoss")
+                                        .and_then(|v| v.as_f64());
+                                    let now_ms = chrono::Utc::now().timestamp_millis();
+
+                                    // 创建止盈告警（above targetPrice → alert_type=take_profit）
+                                    if let Some(tp) = target_price {
+                                        if tp > 0.0 {
+                                            let alert_id = uuid::Uuid::new_v4().to_string();
+                                            let alert_model = price_alerts::ActiveModel {
+                                                id: Set(alert_id),
+                                                stock_code: Set(stock_code.clone()),
+                                                stock_name: Set(sc_name_for_spawn.clone()),
+                                                condition: Set("above".into()),
+                                                target_price: Set(tp),
+                                                alert_type: Set(Some(
+                                                    "take_profit".into(),
+                                                )),
+                                                condition_type: Set(Some("price".into())),
+                                                threshold: Set(Some(tp)),
+                                                is_triggered: Set(0),
+                                                triggered_at: Set(None),
+                                                created_at: Set(now_ms),
+                                                updated_at: Set(now_ms),
+                                            };
+                                            if let Ok(inserted) =
+                                                alert_model.insert(&db).await
+                                            {
+                                                // 同步加入 RealtimeMonitor
+                                                if let Some(ref monitor) = monitor_for_spawn {
+                                                    use axagent_stock_analysis::monitor::MonitorConfig;
+                                                    let config = MonitorConfig {
+                                                        stock_code: stock_code.clone(),
+                                                        stock_name: sc_name_for_spawn.clone(),
+                                                        stop_loss: None,
+                                                        take_profit: Some(tp),
+                                                        resistance_break: None,
+                                                        support_break: None,
+                                                        change_pct_alert: None,
+                                                        turnover_rate_alert: None,
+                                                        enabled: true,
+                                                    };
+                                                    monitor.add_config(config).await;
+                                                }
+                                                tracing::info!(
+                                                    "[auto_price_alert] 已创建止盈告警: {} {} above {:.2} (id={})",
+                                                    stock_code, sc_name_for_spawn, tp, inserted.id
+                                                );
+                                            }
+                                        }
+                                    }
+
+                                    // 创建止损告警（below stopLoss → alert_type=stop_loss）
+                                    if let Some(sl) = stop_loss {
+                                        if sl > 0.0 {
+                                            let alert_id = uuid::Uuid::new_v4().to_string();
+                                            let alert_model = price_alerts::ActiveModel {
+                                                id: Set(alert_id),
+                                                stock_code: Set(stock_code.clone()),
+                                                stock_name: Set(sc_name_for_spawn.clone()),
+                                                condition: Set("below".into()),
+                                                target_price: Set(sl),
+                                                alert_type: Set(Some(
+                                                    "stop_loss".into(),
+                                                )),
+                                                condition_type: Set(Some("price".into())),
+                                                threshold: Set(Some(sl)),
+                                                is_triggered: Set(0),
+                                                triggered_at: Set(None),
+                                                created_at: Set(now_ms),
+                                                updated_at: Set(now_ms),
+                                            };
+                                            if let Ok(inserted) =
+                                                alert_model.insert(&db).await
+                                            {
+                                                // 同步加入 RealtimeMonitor
+                                                if let Some(ref monitor) = monitor_for_spawn {
+                                                    use axagent_stock_analysis::monitor::MonitorConfig;
+                                                    let config = MonitorConfig {
+                                                        stock_code: stock_code.clone(),
+                                                        stock_name: sc_name_for_spawn.clone(),
+                                                        stop_loss: Some(sl),
+                                                        take_profit: None,
+                                                        resistance_break: None,
+                                                        support_break: None,
+                                                        change_pct_alert: None,
+                                                        turnover_rate_alert: None,
+                                                        enabled: true,
+                                                    };
+                                                    monitor.add_config(config).await;
+                                                }
+                                                tracing::info!(
+                                                    "[auto_price_alert] 已创建止损告警: {} {} below {:.2} (id={})",
+                                                    stock_code, sc_name_for_spawn, sl, inserted.id
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // P2-1: 决策事件总线 — 发布 decision.completed 事件
+                        // 订阅该事件的工作流（如 auto-position-plan / auto-stop-loss-review）会被自动触发。
+                        // publish_event 内部会调用 engine.run_workflow，失败仅 warn 不阻塞主流程。
+                        // 事件 payload 设计：包含完整决策上下文，订阅方可按需取用。
+                        {
+                            let event_payload = serde_json::json!({
+                                "analysisId": aid,
+                                "stockCode": stock_code,
+                                "stockName": sc_name_for_spawn,
+                                "action": mem_action,
+                                "decisionJson": mem_dj.as_ref().and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()).unwrap_or(serde_json::Value::Null),
+                                "asOfDate": as_of::current_as_of().map(|c| c.as_string()),
+                                "parentAnalysisId": parent_for_record,
+                                "timestamp": chrono::Utc::now().timestamp_millis(),
+                            });
+                            // spawn 避免阻塞主流程：publish_event 内部可能触发多个工作流
+                            let mgr = trigger_mgr_for_spawn.clone();
+                            let payload_clone = event_payload.clone();
+                            tokio::spawn(async move {
+                                let triggered = mgr.publish_event("decision.completed", payload_clone).await;
+                                if !triggered.is_empty() {
+                                    tracing::info!(
+                                        "[decision_bus] decision.completed 已触发 {} 个工作流: {:?}",
+                                        triggered.len(), triggered
+                                    );
+                                }
+                            });
+                            // 同时 emit 前端事件，让 UI 也能感知决策事件总线活动（可选）
+                            let _ = app_h.emit("decision-completed", event_payload);
                         }
 
                         // 索引决策到 Memory RAG（best-effort，失败不阻塞）
+                        // 版本化模式：直接使用 aid（新行 ID 稳定，不会变更）
                         if let Some(ref dj) = mem_dj {
                             if !dj.is_empty() {
                                 let confidence_str = serde_json::from_str::<serde_json::Value>(dj)
@@ -1198,16 +1535,19 @@ async fn run_stock_workflow_inner(
                                 .await;
                             }
                         }
-                        // 重跑成功：删旧行，更新临时行 ID 到 override id（保持前端 URL 稳定）
-                        if let Some(ref old_id) = override_target_for_spawn {
-                            let _ = stock_analyses::Entity::delete_by_id(old_id.as_str())
-                                .exec(&db)
-                                .await;
-                            let _ = stock_analyses::Entity::update_many()
-                                .col_expr(stock_analyses::Column::Id, Expr::value(old_id.as_str()))
-                                .filter(stock_analyses::Column::Id.eq(&aid))
-                                .exec(&db)
-                                .await;
+
+                        // DB 写入完成后再 emit，避免前端 extract_evidence_citations 读到空数据
+                        if let Err(e) = app_h.emit(
+                            "workflow-completed",
+                            serde_json::json!({
+                                "workflowId": wf_id,
+                                "results": result.results,
+                                "output": result.output,
+                                "dashboardReport": dashboard_report,
+                                "dashboardMd": dashboard_md,
+                            }),
+                        ) {
+                            tracing::warn!("[emit] workflow-completed 发送失败: {e}");
                         }
                     },
                 }
@@ -1229,12 +1569,7 @@ async fn run_stock_workflow_inner(
                 {
                     tracing::error!("[DB] run_workflow Err 状态更新失败: {db_e}");
                 }
-                // 重跑工作流引擎错误：清理临时行，旧数据不受影响
-                if override_target_for_spawn.is_some() {
-                    let _ = stock_analyses::Entity::delete_by_id(aid.as_str())
-                        .exec(&db)
-                        .await;
-                }
+                // 版本化模式：保留错误记录供复盘，不删除
             },
         } // end inner match (Ok(result) / Err(e))
         }}).await  // end outer match + async block + with_degradation_log
@@ -1303,6 +1638,7 @@ pub async fn run_single_stock_analysis(
         outcome: Set(None),
         decision_time_horizon: Set(None),
         decision_expected_holding_days: Set(None),
+        parent_analysis_id: Set(None),
         created_at: Set(now_ms),
         updated_at: Set(now_ms),
     }

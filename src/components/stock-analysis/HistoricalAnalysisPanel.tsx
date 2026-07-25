@@ -1,6 +1,6 @@
 import { List } from "@/components/common/AntdList";
 import { invoke } from "@/lib/invoke";
-import { getActionColor } from "@/lib/stock-analysis-utils";
+import { getActionTagStyle, getActionTKey, parseAction } from "@/lib/stock-analysis-utils";
 import { SearchOutlined } from "@ant-design/icons";
 import { App, Button, Card, Checkbox, Collapse, Empty, Input, Spin, Statistic, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
@@ -10,10 +10,20 @@ interface AnalysisRecord {
   id: string;
   stockCode: string;
   stockName: string;
+  analysisDate: string;
+  /** 决策动作（后端直返，如 BUY/SELL/HOLD/WAIT/UNCERTAIN） */
+  decisionAction: string | null;
+  /** 决策仓位百分比（后端直返，0-100） */
+  decisionPositionPct: number | null;
+  /** 完整决策 JSON（含 confidence 等，部分旧数据可能为 null） */
   decisionJson: string | null;
-  blackboardSnapshot: string | null;
+  /** 列表场景不返回，详情页通过 get_stock_analysis 单独获取 */
+  blackboardSnapshot?: string | null;
   createdAt: number;
+  updatedAt?: number;
   status: string;
+  /** 版本化分析：指向原始记录 ID，null 表示首次分析 */
+  parentAnalysisId: string | null;
 }
 
 interface BacktestResult {
@@ -111,6 +121,21 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
       || (r.decisionJson && r.decisionJson.toLowerCase().includes(q))
     );
   }, [records, search]);
+
+  // 按 stockCode 分组：组名 "股票名称(股票代码)"，组内按时间倒序
+  const grouped = useMemo(() => {
+    const map = new Map<string, { stockName: string; stockCode: string; items: AnalysisRecord[] }>();
+    for (const r of filtered) {
+      if (!map.has(r.stockCode)) {
+        map.set(r.stockCode, { stockName: r.stockName, stockCode: r.stockCode, items: [] });
+      }
+      map.get(r.stockCode)!.items.push(r);
+    }
+    for (const g of map.values()) {
+      g.items.sort((a, b) => b.createdAt - a.createdAt);
+    }
+    return Array.from(map.values());
+  }, [filtered]);
 
   const reportEntries = Object.entries(snapshot ?? {}).filter(([k]) => k.startsWith("report."));
   const debateEntries = Object.entries(snapshot ?? {}).filter(([k]) => k.startsWith("debate."));
@@ -290,78 +315,142 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
           ? <Spin size="small" />
           : filtered.length === 0
           ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("stockAnalysis.noRecords")} />
-          : (
-            <List
-              size="small"
-              dataSource={filtered}
-              renderItem={(r) => {
-                let decision: Record<string, unknown> | null = null;
-                try {
-                  if (r.decisionJson) { decision = JSON.parse(r.decisionJson); }
-                } catch { /* */ }
-                return (
-                  <List.Item
-                    style={{ cursor: "pointer", padding: "4px 0" }}
-                    onClick={() => {
-                      if (selectMode) {
-                        setSelectedIds((prev) =>
-                          prev.includes(r.id) ? prev.filter((id) => id !== r.id) : [...prev, r.id]
-                        );
-                      } else {
-                        runBacktest(r);
-                      }
-                    }}
-                    actions={[
-                      selectMode
-                        ? (
-                          <Checkbox
-                            key="select"
-                            checked={selectedIds.includes(r.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={() => {
-                              setSelectedIds((prev) =>
-                                prev.includes(r.id) ? prev.filter((id) => id !== r.id) : [...prev, r.id]
-                              );
-                            }}
-                          />
-                        )
-                        : (
-                          <>
-                            {decision && (
-                              <Tag
-                                key="act"
-                                color={getActionColor(decision.action as string)}
-                                className="text-xs m-0"
+          : grouped.map((g) => (
+            <div key={g.stockCode} className="mb-2">
+              {/* 组标题：股票名称(股票代码) - 名称用主题色，代码用次要色 */}
+              <div
+                className="text-xs font-semibold flex items-center gap-1 px-1 py-1"
+                style={{
+                  borderBottom: "1px solid var(--color-border, #333)",
+                }}
+              >
+                <span style={{ color: "var(--accent, #7c3aed)" }}>{g.stockName}</span>
+                <span style={{ color: "var(--color-text-secondary, #888)", fontSize: 10 }}>
+                  ({g.stockCode})
+                </span>
+              </div>
+              {/* 组内记录：日期为记录名 */}
+              <List
+                size="small"
+                dataSource={g.items}
+                renderItem={(r) => {
+                  // 优先使用后端直返字段 decisionAction / decisionPositionPct，
+                  // decisionJson 仅用于提取 confidence 等额外字段（兼容旧数据）。
+                  let action = r.decisionAction ? parseAction(r.decisionAction) : "";
+                  let posPct: number | null = r.decisionPositionPct;
+                  let conf: number | null = null;
+                  if (r.decisionJson) {
+                    try {
+                      const d = JSON.parse(r.decisionJson) as Record<string, unknown>;
+                      if (!action && d.action) { action = parseAction(d.action as string); }
+                      if (posPct == null && typeof d.positionPct === "number") { posPct = d.positionPct; }
+                      if (typeof d.confidence === "number") { conf = d.confidence; }
+                    } catch { /* */ }
+                  }
+                  const hasDecision = !!action;
+                  return (
+                    <List.Item
+                      style={{ cursor: "pointer", padding: "4px 0 4px 12px" }}
+                      onClick={() => {
+                        if (selectMode) {
+                          setSelectedIds((prev) =>
+                            prev.includes(r.id) ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                          );
+                        } else {
+                          runBacktest(r);
+                        }
+                      }}
+                      actions={[
+                        selectMode
+                          ? (
+                            <Checkbox
+                              key="select"
+                              checked={selectedIds.includes(r.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => {
+                                setSelectedIds((prev) =>
+                                  prev.includes(r.id) ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                                );
+                              }}
+                            />
+                          )
+                          : (
+                            <>
+                              {hasDecision && (
+                                <Tag
+                                  key="act"
+                                  style={getActionTagStyle(action)}
+                                >
+                                  {t(getActionTKey(action))}
+                                </Tag>
+                              )}
+                              <Button
+                                key="bt"
+                                size="small"
+                                type="link"
+                                className="text-xs px-1"
+                                loading={btLoading}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  runBacktest(r);
+                                }}
                               >
-                                {decision.action as string}
-                              </Tag>
-                            )}
-                            <Button
-                              key="bt"
-                              size="small"
-                              type="link"
-                              className="text-xs px-1"
-                              loading={btLoading}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                runBacktest(r);
+                                {t("stockAnalysis.backtest.run")}
+                              </Button>
+                            </>
+                          ),
+                      ]}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span>{r.analysisDate || new Date(r.createdAt).toLocaleDateString()}</span>
+                          {r.parentAnalysisId && (
+                            <Tag
+                              className="m-0"
+                              style={{
+                                margin: 0,
+                                fontSize: 10,
+                                lineHeight: "16px",
+                                padding: "0 4px",
+                                borderRadius: 3,
+                                border: "1px solid var(--color-accent)",
+                                color: "var(--color-accent)",
+                                background: "color-mix(in oklch, var(--color-accent) 12%, transparent)",
                               }}
                             >
-                              {t("stockAnalysis.backtest.run")}
-                            </Button>
-                          </>
-                        ),
-                    ]}
-                  >
-                    <div className="flex items-center gap-2 text-xs">
-                      <Tag className="m-0 text-xs">{r.stockCode}</Tag>
-                      <span>{r.stockName}</span>
-                    </div>
-                  </List.Item>
-                );
-              }}
-            />
-          )}
+                              ↻
+                            </Tag>
+                          )}
+                        </div>
+                        {r.createdAt > 0 && (
+                          <div className="text-[10px]" style={{ color: "var(--color-t-tertiary, #888)" }}>
+                            {t("stockAnalysis.analysisTime")}{" "}
+                            {new Date(r.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        )}
+                        {/* 重要要素：仓位 + 置信度 */}
+                        {(() => {
+                          const parts: string[] = [];
+                          if (posPct != null) {
+                            parts.push(`${t("stockAnalysis.decision.positionPct")}${posPct}%`);
+                          }
+                          if (conf != null) {
+                            parts.push(`${t("stockAnalysis.decision.confidence")}${conf.toFixed(0)}%`);
+                          }
+                          if (parts.length === 0) { return null; }
+                          return (
+                            <div className="text-[10px]" style={{ color: "var(--color-t-tertiary, #888)" }}>
+                              {parts.join(" · ")}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </List.Item>
+                  );
+                }}
+              />
+            </div>
+          ))}
       </Card>
     </div>
   );

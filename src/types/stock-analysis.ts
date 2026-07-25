@@ -7,6 +7,7 @@ export {
   computeStockConsensus,
   type Consensus,
   getActionColor,
+  getActionTagStyle,
   getActionTKey,
   getRiskColor,
   getRiskTKey,
@@ -246,16 +247,41 @@ export interface DashboardDigest {
   marketReview?: MarketReviewReport | null;
 }
 
-/** V50: 双视角一致性分维度诊断结果 */
+/** V65: 双视角一致性 6 维度诊断结果 */
 export interface AgreementBreakdown {
   total: number;
   actionOk: boolean;
   actionNote: string;
   formulaAction: string;
   llmAction: string;
+  /** V65: action 维度原始分 (满分 30) */
+  actionScore?: number;
+  /** V65: positionPct 维度原始分 (满分 20) */
+  positionScore?: number;
   positionGap: number | null;
+  /** V65: confidence 维度原始分 (满分 15) */
+  confidenceScore?: number;
   confidenceGap: number | null;
+  /** V65: riskLevel 维度原始分 (满分 15) */
+  riskLevelScore?: number;
+  /** V65: 公式 riskLevel 原始值 */
+  formulaRiskLevel?: string;
+  /** V65: LLM riskLevel 原始值 */
+  llmRiskLevel?: string;
+  /** V65: data_gaps 维度原始分 (满分 10) */
+  dataGapsScore?: number;
+  /** V65: data_gaps Jaccard 相似度 (0-1) */
+  dataGapsSimilarity?: number | null;
+  /** V65: evidence_cited 维度原始分 (满分 10) */
+  evidenceScore?: number;
+  /** V65: LLM 引用上游论据数量 */
+  evidenceCount?: number;
   conflictType: string;
+  /** 向后兼容: f7 自指污染标记 */
+  f7WeightPct?: number | null;
+  f7FreePosterior?: number | null;
+  f7FreeAction?: string | null;
+  f7FreeActionScore?: number | null;
 }
 
 /** 单个分析师的数据质量诊断条目（对应 data-quality.rhai 的 diagnostics[field]） */
@@ -303,11 +329,18 @@ export interface AnalysisSummary {
   analysisDate: string;
   status: string;
   decisionAction: string | null;
+  /** 决策仓位百分比（0-100），列表场景由 decisionJson 解析或后端直返 */
+  decisionPositionPct: number | null;
+  /** 决策 JSON 字符串（含 action/positionPct/confidence 等），列表场景用于渲染决策 Tag */
+  decisionJson: string | null;
   createdAt: number;
+  updatedAt: number;
   /** "live" | "replay" */
-  analysisKind: string | null;
+  analysisKind: string;
   /** as_of_date YYYY-MM-DD（仅 replay 模式非空） */
   asOfDate: string | null;
+  /** 版本化分析：指向原始分析记录 ID，null 表示首次分析 */
+  parentAnalysisId: string | null;
 }
 
 export interface AnalysisEvent {

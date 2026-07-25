@@ -73,49 +73,155 @@
     },
 
     "trader_output": {
-      "description": "LLM Trader Agent 输出格式 — P2-1 定性提案",
+      "description": "LLM Trader Agent 输出格式 — 双视角冗余校验的 LLM 视角（V65 升级：与 portfolio-mgr 公式决策同维度对齐）",
       "type": "object",
-      "required": ["direction", "confidence"],
+      "required": [
+        "action",
+        "verdict",
+        "positionPct",
+        "confidence",
+        "riskLevel",
+        "currentPrice",
+        "targetPrice",
+        "stopLoss",
+        "stopLossPct",
+        "takeProfitPct",
+        "timeHorizon",
+        "expectedHoldingDays",
+        "evidence_cited",
+        "reasoning"
+      ],
       "properties": {
-        "direction": {
+        "action": {
           "type": "string",
-          "enum": ["bull", "bear", "neutral"],
-          "description": "交易方向：bull=看多，bear=看空，neutral=中性"
+          "enum": ["买入", "增持", "持有", "观望", "减持", "卖出"],
+          "description": "操作指令（与 portfolio-mgr 的 action 同维度，用于双视角对比）"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["看多", "看空", "中性"],
+          "description": "方向结论，必须与 action 严格一致（买入/增持→看多，卖出/减持→看空，持有/观望→中性）"
+        },
+        "positionPct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 95,
+          "description": "建议仓位百分比 0-95，必须与 riskLevel 反相关，与 action 匹配"
         },
         "confidence": {
           "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0,
-          "description": "交易方向置信度"
+          "minimum": 0,
+          "maximum": 100,
+          "description": "本交易员对决策的置信度 0-100（整数）。与 evidence_cited 数量挂钩：≥5 条可达 80-100，3-4 条可达 60-80，<3 条强制 ≤40"
         },
-        "catalysts": {
+        "riskLevel": {
+          "type": "string",
+          "enum": ["低风险", "中风险", "高风险", "极高风险"],
+          "description": "风险等级（与 portfolio-mgr 的 riskLevel 同维度，用于双视角对比）"
+        },
+        "currentPrice": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "当前价（元），优先使用 context 中的 reference_price"
+        },
+        "targetPrice": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "目标价（元），与 action/verdict 关系一致（看多→targetPrice > currentPrice×1.05）"
+        },
+        "stopLoss": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "止损价（元），必须 > 0"
+        },
+        "stopLossPct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30,
+          "description": "止损百分比（相对 currentPrice），与 timeHorizon 匹配（ultra_short:2-4, short:4-7, mid:6-12, long:10-15）"
+        },
+        "takeProfitPct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50,
+          "description": "止盈百分比（相对 currentPrice），必须 > stopLossPct（盈亏比 > 1）"
+        },
+        "timeHorizon": {
+          "type": "string",
+          "enum": ["ultra_short", "short", "mid", "long"],
+          "description": "时间视角：ultra_short=1-2天，short=1周，mid=1月，long=3月"
+        },
+        "expectedHoldingDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 250,
+          "description": "预期持有天数（交易日）"
+        },
+        "data_gaps": {
           "type": "array",
-          "items": { "$ref": "#/schemas/base_event" },
-          "minItems": 1,
-          "maxItems": 5,
-          "description": "支撑交易方向的关键催化剂事件列表"
+          "items": { "type": "string" },
+          "description": "LLM 视角识别到的数据缺口列表（与 portfolio-mgr 的 data_gaps 做 Jaccard 相似度对比）",
+          "maxItems": 20
+        },
+        "evidence_cited": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "point"],
+            "properties": {
+              "source": {
+                "type": "string",
+                "description": "上游节点名（如 research-mgr/debate-convergence/risk-convergence/a-catalyst/t-scoring/data-quality）"
+              },
+              "point": {
+                "type": "string",
+                "minLength": 5,
+                "description": "引用的具体论据（≥5 字符，禁止空话）"
+              }
+            }
+          },
+          "minItems": 3,
+          "maxItems": 10,
+          "description": "强制引用上游论据列表，≥3 条为有效决策，<3 条触发 strict_mode 降级"
         },
         "risk_factors": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["risk_name", "severity"],
+            "required": ["name", "severity"],
             "properties": {
-              "risk_name": { "type": "string" },
+              "name": { "type": "string", "minLength": 2 },
               "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
               "probability": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
             }
           },
           "maxItems": 5,
-          "description": "关键风险因素"
+          "description": "关键风险因素列表"
         },
-        "targetPrice": {
-          "type": "number",
-          "description": "DEPRECATED P2-1: 目标价字段废弃，不再作为决策因子，仅作参考"
+        "decision_trail": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step", "input", "conclusion"],
+            "properties": {
+              "step": { "type": "string", "description": "推理步骤名（如方向判断/仓位计算/价位设定）" },
+              "input": { "type": "string", "description": "该步骤的输入依据" },
+              "conclusion": { "type": "string", "description": "该步骤的结论" }
+            }
+          },
+          "maxItems": 10,
+          "description": "LLM 推理链（与 portfolio-mgr 的 decision_trail 做结构对比）"
         },
-        "stopLoss": {
-          "type": "number",
-          "description": "DEPRECATED P2-1: 止损价字段废弃，由凯利公式和风控层计算"
+        "lessons_applied": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "本次方案吸取的历史教训列表（来自 stock_lessons）",
+          "maxItems": 5
+        },
+        "reasoning": {
+          "type": "string",
+          "minLength": 50,
+          "description": "完整推理过程，必须引用 ≥3 个上游节点的具体论据，禁止空话"
         }
       }
     },
@@ -207,9 +313,23 @@
       "enabled": true
     },
     "backward_compatibility": {
-      "description": "P2-1: targetPrice/stopLoss 标记为 DEPRECATED，不再作为 Schema 必填字段",
-      "deprecated_fields": ["targetPrice", "stopLoss"],
+      "description": "V65: targetPrice/stopLoss 恢复为必填字段（双视角对比需要价位维度）；direction 字段被 verdict 取代",
+      "deprecated_fields": ["direction"],
       "grace_period": "2026-09-01"
+    },
+    "trader_strict_mode_rules": {
+      "description": "trader 节点 strict_mode 校验规则（违反任一规则注入 __untrusted=true）",
+      "rules": [
+        "action 与 verdict 严格一致（买入/增持→看多，卖出/减持→看空，持有/观望→中性）",
+        "action 与 targetPrice/currentPrice 关系一致",
+        "positionPct 与 riskLevel 反相关（极高风险≤10，高风险≤35，中风险≤50，低风险≤95）",
+        "positionPct 与 action 匹配（买入≥15，增持≥10，观望/卖出=0，减持≤15）",
+        "stopLossPct 与 timeHorizon 匹配（ultra_short:2-4, short:4-7, mid:6-12, long:10-15）",
+        "takeProfitPct > stopLossPct",
+        "stopLoss > 0",
+        "evidence_cited 数量 ≥ 3",
+        "confidence 与 evidence_cited 数量挂钩（<3 条→confidence≤40）"
+      ]
     },
     "event_type_enum_loose": {
       "description": "Event_Type 枚举允许 '其他' 兜底，但若 '其他' 占比 > 30% 触发数据质量警告",

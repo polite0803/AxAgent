@@ -352,11 +352,114 @@ impl StockVendor for BrowserEastMoneyVendor {
         }
     }
 
-    async fn get_dragon_tiger(
+    async fn get_dragon_tiger(&self, stock_code: &str) -> Result<Vec<DragonTigerEntry>, DataError> {
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPT_DAILYBILLBOARD_DETAILS&columns=ALL&\
+            filter=(SECURITY_CODE%3D%22{code}%22)&\
+            pageSize=20&pageNumber=1&source=WEB&\
+            sortColumns=TRADE_DATE&sortTypes=-1"
+        );
+        let json = browser_fetch(self.fetcher.as_ref(), &url).await?;
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => return Ok(vec![]),
+        };
+        rows.iter()
+            .map(|r| {
+                let trade_date = r["TRADE_DATE"].as_str().unwrap_or("");
+                let date = if trade_date.len() >= 10 {
+                    trade_date[..10].to_string()
+                } else {
+                    trade_date.to_string()
+                };
+                let buy_seat = r["BUY_SEAT_NEW"].as_i64().unwrap_or(0);
+                let sell_seat = r["SELL_SEAT_NEW"].as_i64().unwrap_or(0);
+                Ok(DragonTigerEntry {
+                    stock_code: stock_code.to_string(),
+                    date,
+                    dept_name: format!("买入{}席位/卖出{}席位", buy_seat, sell_seat),
+                    buy_amount: r["BILLBOARD_BUY_AMT"].as_f64().unwrap_or(0.0),
+                    sell_amount: r["BILLBOARD_SELL_AMT"].as_f64().unwrap_or(0.0),
+                    net_amount: r["BILLBOARD_NET_AMT"].as_f64().unwrap_or(0.0),
+                    reason: r["EXPLANATION"].as_str().map(|s| s.to_string()),
+                })
+            })
+            .collect()
+    }
+
+    async fn get_margin_data(&self, stock_code: &str) -> Result<Option<MarginData>, DataError> {
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPTA_WEB_RZRQ_GGMX&columns=ALL&\
+            filter=(scode%3D%22{code}%22)&source=WEB&\
+            sortColumns=DATE&sortTypes=-1&pageNumber=1&pageSize=1"
+        );
+        let json = browser_fetch(self.fetcher.as_ref(), &url).await?;
+        if json["success"].as_bool() == Some(false) {
+            return Ok(None);
+        }
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => return Ok(None),
+        };
+        let r = &rows[0];
+        Ok(Some(MarginData {
+            stock_code: stock_code.to_string(),
+            date: r["DATE"].as_str().unwrap_or("").to_string(),
+            margin_balance: r["RZYE"].as_f64().unwrap_or(0.0),
+            short_balance: r["RQYE"].as_f64().unwrap_or(0.0),
+            margin_buy: r["RZMRE"].as_f64().unwrap_or(0.0),
+            short_sell_volume: r["RQMCL"].as_f64().unwrap_or(0.0),
+        }))
+    }
+
+    async fn get_north_bound_holding(
         &self,
-        _stock_code: &str,
-    ) -> Result<Vec<DragonTigerEntry>, DataError> {
-        Ok(vec![])
+        stock_code: &str,
+    ) -> Result<Option<NorthBoundHolding>, DataError> {
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+            reportName=RPT_F10_EH_HOLDERS&columns=ALL&\
+            filter=(SECURITY_CODE=%22{code}%22)(HOLDER_NAME=%22香港中央结算有限公司%22)&\
+            pageSize=2&pageNumber=1&sortColumns=END_DATE&sortTypes=-1"
+        );
+        let json = browser_fetch(self.fetcher.as_ref(), &url).await?;
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) if !arr.is_empty() => arr,
+            _ => return Ok(None),
+        };
+
+        if rows.is_empty() {
+            return Ok(None);
+        }
+        let r = &rows[0];
+        let hold_num = r["HOLD_NUM"].as_f64().unwrap_or(0.0);
+        let total_shares = r["TOTAL_SHARES"].as_f64().unwrap_or(0.0);
+        let ratio = if total_shares > 0.0 {
+            hold_num / total_shares
+        } else {
+            0.0
+        };
+        let change = if rows.len() > 1 {
+            let prev = rows[1]["HOLD_NUM"].as_f64().unwrap_or(0.0);
+            hold_num - prev
+        } else {
+            0.0
+        };
+        Ok(Some(NorthBoundHolding {
+            stock_code: stock_code.to_string(),
+            date: r["END_DATE"].as_str().unwrap_or("").to_string(),
+            holding_shares: hold_num,
+            holding_ratio: ratio,
+            change_shares: change,
+        }))
     }
 
     async fn get_lockup_schedule(
@@ -415,6 +518,39 @@ impl StockVendor for BrowserEastMoneyVendor {
                 }
             })
             .collect())
+    }
+
+    async fn get_north_bound_flow(&self) -> Result<Option<NorthBoundFlow>, DataError> {
+        let url = "https://push2his.eastmoney.com/api/qt/kamt.kline/get?fields1=f1,f2,f3&fields2=f51,f52,f53,f54&klt=101&lmt=5";
+        let json = browser_fetch(self.fetcher.as_ref(), url).await?;
+        let data = &json["data"];
+        if data.is_null() {
+            return Ok(None);
+        }
+        // 尝试解析 hk2sh（沪股通方向）
+        let hk2sh = data["hk2sh"].as_str().unwrap_or("");
+        if hk2sh.is_empty() {
+            return Ok(None);
+        }
+        let parts: Vec<&str> = hk2sh.split(',').collect();
+        if parts.len() < 4 {
+            return Ok(None);
+        }
+        let parse = |i: usize| -> f64 { parts.get(i).and_then(|s| s.parse().ok()).unwrap_or(0.0) };
+        let total = parse(1);
+        let sz_flow = data["hk2sz"]
+            .as_str()
+            .and_then(|s| s.split(',').nth(1))
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.0);
+        Ok(Some(NorthBoundFlow {
+            date: parts[0].to_string(),
+            sh_flow: parse(1),
+            sz_flow,
+            total_flow: total,
+            timestamp: Some(chrono::Utc::now().to_rfc3339()),
+            recent_history: Vec::new(),
+        }))
     }
 
     /// P3 修复(2026-07-25): 实现 earnings_calendar,作为 eastmoney datacenter-web

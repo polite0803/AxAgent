@@ -167,28 +167,68 @@ export function WatchlistPanel() {
     setRefreshing(false);
   }, [groupItems]);
 
+  // P1-2: 用 RealTimeQuoteWatcher 替代 15s setInterval 轮询。
+  // - groupItems 变化时调用 watch_stock_quotes 命令加入后端监控
+  // - 监听 stock-quote-update 事件实时更新 quotes 状态（延迟 2s）
+  // - 组件卸载时调用 unwatch_stock_quotes 释放后端资源
   useEffect(() => {
-    const refresh = async () => {
-      if (groupItems.length === 0) { return; }
-      const snap: Record<string, QuoteSnapshot> = {};
-      for (const item of groupItems) {
-        try {
-          const q = await invoke("get_stock_quote", { stockCode: item.stockCode }) as Record<string, unknown>;
-          snap[item.stockCode] = {
-            price: (q?.price as number) ?? 0,
-            changePct: (q?.changePct as number) ?? 0,
-            pe: q?.pe as number | undefined,
-            timestamp: (q?.timestamp ?? "") as string,
-          };
-        } catch { /* skip */ }
+    if (groupItems.length === 0) {
+      setQuotes({});
+      return;
+    }
+
+    // 1) 首次拉取一次行情作为初始快照
+    refreshQuotes();
+
+    // 2) 加入后端监控（Active 优先级 2s 轮询，replace=true 替换旧列表）
+    const codes = groupItems.map((i) => i.stockCode);
+    invoke("watch_stock_quotes", {
+      stockCodes: codes,
+      priority: "active",
+      replace: true,
+    }).catch((e) => console.warn("[WatchlistPanel] watch_stock_quotes 失败:", e));
+
+    // 3) 监听 stock-quote-update 事件，增量更新 quotes 状态
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisten = await listen<{
+          stockCode: string;
+          current: { price: number; changePct: number; pe?: number; timestamp: string };
+          changePct: number;
+          trigger: string;
+        }>("stock-quote-update", (event) => {
+          const { stockCode, current } = event.payload;
+          setQuotes((prev) => ({
+            ...prev,
+            [stockCode]: {
+              price: current.price ?? 0,
+              changePct: current.changePct ?? 0,
+              pe: current.pe,
+              timestamp: current.timestamp ?? "",
+            },
+          }));
+        });
+        if (cancelled) {
+          unlisten?.();
+          unlisten = null;
+        }
+      } catch (e) {
+        console.error("[WatchlistPanel] listen stock-quote-update 失败:", e);
       }
-      setQuotes(snap);
-      setRefreshing(false);
+    })();
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+      // 组件卸载 / groupItems 变化时，从后端监控列表移除
+      invoke("unwatch_stock_quotes", { stockCodes: codes }).catch((e) =>
+        console.warn("[WatchlistPanel] unwatch_stock_quotes 失败:", e)
+      );
     };
-    refresh();
-    const timer = setInterval(refresh, 15000);
-    return () => clearInterval(timer);
-  }, [groupItems]);
+  }, [groupItems, refreshQuotes]);
 
   // 排序
   const sorted = useMemo(() => {

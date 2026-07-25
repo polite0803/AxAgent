@@ -2035,6 +2035,11 @@ impl WorkEngine {
                 exec_ctx.business_rule_engine = self.business_rule_engine();
                 // 注入工具注册表（可选），tool_executor 优先走中心化路径
                 exec_ctx.tool_registry = self.tool_registry();
+                // 注入真实工作流 execution_id，供容器执行器（debate/swarm）内部
+                // build_debate_body_dispatch 正确查找 execution_workflows。
+                // per-node exec_ctx.execution_id 是随机 UUID（format!("node_{uuid})），
+                // 不是真实的工作流 execution_id。
+                exec_ctx.parent_execution_id = Some(execution_id.clone());
 
                 let exec_pause_signal = {
                     let mut executions = self.executions.lock().await;
@@ -2189,9 +2194,15 @@ impl WorkEngine {
                         tool_handlers,
                         tool_fallback,
                         subworkflow: Some(sub_cb),
-                        loop_body_dispatch: Some(build_loop_body_dispatch(self.clone())),
+                        loop_body_dispatch: Some(build_loop_body_dispatch(
+                            self.clone(),
+                            execution_id.clone(),
+                        )),
                         loop_checkpoint: Some(build_loop_checkpoint_ops()),
-                        debate_body_dispatch: Some(build_debate_body_dispatch(self.clone())),
+                        debate_body_dispatch: Some(build_debate_body_dispatch(
+                            self.clone(),
+                            execution_id.clone(),
+                        )),
                     });
                 }
 
@@ -3024,10 +3035,12 @@ impl WorkEngine {
                                     subworkflow: None,
                                     loop_body_dispatch: Some(build_loop_body_dispatch(
                                         self.clone(),
+                                        execution_id.clone(),
                                     )),
                                     loop_checkpoint: Some(build_loop_checkpoint_ops()),
                                     debate_body_dispatch: Some(build_debate_body_dispatch(
                                         self.clone(),
+                                        execution_id.clone(),
                                     )),
                                 });
                         }
@@ -3869,24 +3882,178 @@ pub struct LoopResumeDecision {
 /// 状态都是 Arc<...>，clone 是廉价的），按 (body_step_node_id, ctx) 在
 /// dispatcher 中查找对应 WorkflowNode 并 dispatch。`ctx` 已经由 LoopExecutor
 /// 拷贝（包含 iteratee_var 注入、当前 iteration 的 variables 快照）。
-pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::LoopBodyDispatchFn {
-    Arc::new(move |step_id: String, ctx: super::execution_state::ExecutionState| {
+pub fn build_loop_body_dispatch(
+    engine: WorkEngine,
+    run_execution_id: String,
+) -> super::execution_state::LoopBodyDispatchFn {
+    Arc::new(move |step_id: String, mut ctx: super::execution_state::ExecutionState| {
         let engine = engine.clone();
+        let eid = run_execution_id.clone();
         Box::pin(async move {
-            // 从 ctx.workflow_id 找到对应 workflow，从 nodes 里找出 step_id 对应节点。
+            // V57+: 使用 run_execution_id（真实 workflow execution_id，非 per-node UUID）
+            // 来查 execution_workflows 和写回结果。
+            let execution_id = eid.clone();
             let workflow_id = ctx.workflow_id.clone();
-            let workflows = engine.workflows.read().await;
-            let node = workflows
-                .get(&workflow_id)
-                .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == step_id).cloned());
-            drop(workflows);
+            let node_id = step_id.clone();
+
+            // 从 execution_workflows（运行时状态）获取节点定义和依赖结果
+            let (node, deps_results, context_source_results) = {
+                let workflows = engine.execution_workflows.read().await;
+                let wf = match workflows.get(&execution_id) {
+                    Some(wf) => wf,
+                    None => {
+                        // fallback: 从模板 workflows 找节点定义
+                        drop(workflows);
+                        let templates = engine.workflows.read().await;
+                        let node = templates.get(&workflow_id).and_then(|wf| {
+                            wf.nodes.iter().find(|n| n.base_id() == step_id).cloned()
+                        });
+                        return match node {
+                            Some(node) => {
+                                // 无运行时状态，直接 dispatch
+                                engine.dispatcher.read().await.dispatch(&node, &ctx).await
+                            },
+                            None => Err(super::node_executor_trait::NodeError::exec_failed(
+                                super::node_executor_trait::error_code::NODE_NOT_FOUND,
+                                format!(
+                                    "Loop body step '{step_id}' not found in workflow '{workflow_id}'"
+                                ),
+                            )),
+                        };
+                    },
+                };
+                let node = wf.nodes.iter().find(|n| n.base_id() == step_id).cloned();
+                let deps = WorkEngine::get_node_dependency_results(wf, &step_id);
+                let ctx_sources = WorkEngine::get_context_source_results(wf, &step_id);
+                (node, deps, ctx_sources)
+            };
+
             let Some(node) = node else {
                 return Err(super::node_executor_trait::NodeError::exec_failed(
                     super::node_executor_trait::error_code::NODE_NOT_FOUND,
-                    format!("Loop body step '{step_id}' not found in workflow '{workflow_id}'"),
+                    format!("Loop body step '{step_id}' not found in execution '{execution_id}'"),
                 ));
             };
-            engine.dispatcher.read().await.dispatch(&node, &ctx).await
+
+            // 合并依赖结果到 ctx.variables（已有变量优先，保留父容器注入的 __debate_topic__ 等）
+            // 合并顺序优先级（从低到高）：deps_results < context_source_results < ctx.variables（已有）
+            for (k, v) in deps_results {
+                ctx.variables.entry(k).or_insert(v);
+            }
+            for (k, v) in context_source_results {
+                ctx.variables.entry(k).or_insert(v);
+            }
+
+            // 确保关键引擎引用已注入
+            ctx.business_rule_engine = engine.business_rule_engine();
+            ctx.tool_registry = engine.tool_registry();
+            {
+                let compiled = engine.compiled_prompts.read().await;
+                ctx.compiled_prompts = compiled.get(&workflow_id).cloned();
+            }
+
+            let started_at = Utc::now().timestamp_millis();
+
+            // 标记节点为 Running
+            engine
+                .update_node_status_for_execution(
+                    &execution_id,
+                    &node_id,
+                    NodeStatus::Running,
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .ok();
+
+            let dispatch_result = engine.dispatcher.read().await.dispatch(&node, &ctx).await;
+
+            match dispatch_result {
+                Ok(output) => {
+                    let elapsed_ms = Utc::now().timestamp_millis() - started_at;
+                    let out_var = output.output_var.clone();
+
+                    tracing::info!(
+                        workflow_id = %workflow_id,
+                        node_id = %node_id,
+                        status = "completed",
+                        duration_ms = elapsed_ms,
+                        "Loop body node completed"
+                    );
+
+                    // 将结果写入 workflow.results，确保后续节点（如同循环后续步骤）能通过 context_sources 引用
+                    engine
+                        .update_node_status_for_execution(
+                            &execution_id,
+                            &node_id,
+                            NodeStatus::Completed,
+                            Some(output.output.clone()),
+                            None,
+                            out_var.as_deref(),
+                        )
+                        .await
+                        .ok();
+
+                    // Condition 节点分支跳过处理
+                    if matches!(node, WorkflowNode::Condition(_)) {
+                        let mut workflows = engine.execution_workflows.write().await;
+                        if let Some(wf) = workflows.get_mut(&execution_id) {
+                            skip_disabled_branch_nodes(wf, &wf.edges.clone(), &node_id);
+                        }
+                    }
+
+                    // 记录节点执行历史
+                    let node_type_str = node_type_name(&node).to_string();
+                    let node_name = Some(node.base_title().to_string());
+                    engine
+                        .record_node_execution(
+                            &execution_id,
+                            NodeExecutionRecord {
+                                node_id: node_id.clone(),
+                                node_type: node_type_str,
+                                node_name,
+                                status: "completed".to_string(),
+                                input: None,
+                                output: Some(output.output.clone()),
+                                execution_time_ms: Some(elapsed_ms.max(0) as u64),
+                                error: None,
+                                started_at,
+                                completed_at: Some(Utc::now().timestamp_millis()),
+                                parent_execution_id: ctx.parent_execution_id.clone(),
+                                sub_workflow_id: None,
+                            },
+                        )
+                        .await
+                        .ok();
+
+                    Ok(output)
+                },
+                Err(e) => {
+                    let elapsed_ms = Utc::now().timestamp_millis() - started_at;
+                    tracing::warn!(
+                        workflow_id = %workflow_id,
+                        node_id = %node_id,
+                        error = %e,
+                        duration_ms = elapsed_ms,
+                        "Loop body node failed"
+                    );
+
+                    engine
+                        .update_node_status_for_execution(
+                            &execution_id,
+                            &node_id,
+                            NodeStatus::Failed,
+                            None,
+                            Some(e.to_string()),
+                            None,
+                        )
+                        .await
+                        .ok();
+
+                    Err(e)
+                },
+            }
         })
     })
 }
@@ -3897,27 +4064,190 @@ pub fn build_loop_body_dispatch(engine: WorkEngine) -> super::execution_state::L
 /// 单独工厂仅为语义清晰：Loop 是迭代 body_steps，Swarm/Debate 是多轮协作
 /// 驱动 agent_steps / debater_steps。两者底层走同一 dispatcher 路径，
 /// 保留 progress_callback / 节点状态切换 / node_records 统一埋点。
+///
+/// **V58 修复**：与正常 execute_node 路径一致，合并 deps_results + context_source_results
+/// 到 ctx.variables，并在执行成功后将结果写入 workflow.results，确保同一轮/下一轮
+/// 辩手能通过 context_sources 引用前面辩手的输出，解决
+/// `context_sources 变量未在 context.variables 中找到` ERROR。
+///
+/// **V60 修复（2026-07-25）**：对齐上游，新增 `run_execution_id` 参数代替
+/// `parent_execution_id` 回退方案。`ctx.execution_id` 是 per-node 随机 UUID
+/// （`format!("node_{uuid})`），不是真实的工作流 execution_id，导致查
+/// `execution_workflows` 不命中。由主调度循环在调用时传入真实 `execution_id`。
 pub fn build_debate_body_dispatch(
     engine: WorkEngine,
+    run_execution_id: String,
 ) -> super::execution_state::LoopBodyDispatchFn {
-    Arc::new(move |step_id: String, ctx: super::execution_state::ExecutionState| {
+    Arc::new(move |step_id: String, mut ctx: super::execution_state::ExecutionState| {
         let engine = engine.clone();
+        let eid = run_execution_id.clone();
         Box::pin(async move {
+            // V60（上游对齐）：使用 run_execution_id（真实 workflow execution_id，
+            // 非 per-node UUID）来查 execution_workflows 和写回结果。
+            let execution_id = eid.clone();
             let workflow_id = ctx.workflow_id.clone();
-            let workflows = engine.workflows.read().await;
-            let node = workflows
-                .get(&workflow_id)
-                .and_then(|wf| wf.nodes.iter().find(|n| n.base_id() == step_id).cloned());
-            drop(workflows);
+            let node_id = step_id.clone();
+
+            // 从 execution_workflows（运行时状态）获取节点定义和依赖结果
+            let (node, deps_results, context_source_results) = {
+                let workflows = engine.execution_workflows.read().await;
+                let wf = match workflows.get(&execution_id) {
+                    Some(wf) => wf,
+                    None => {
+                        // fallback: 从模板 workflows 找节点定义
+                        drop(workflows);
+                        let templates = engine.workflows.read().await;
+                        let node = templates.get(&workflow_id).and_then(|wf| {
+                            wf.nodes.iter().find(|n| n.base_id() == step_id).cloned()
+                        });
+                        return match node {
+                            Some(node) => {
+                                engine.dispatcher.read().await.dispatch(&node, &ctx).await
+                            },
+                            None => Err(super::node_executor_trait::NodeError::exec_failed(
+                                super::node_executor_trait::error_code::NODE_NOT_FOUND,
+                                format!(
+                                    "Debate/Swarm body step '{step_id}' not found in workflow '{workflow_id}'"
+                                ),
+                            )),
+                        };
+                    },
+                };
+                let node = wf.nodes.iter().find(|n| n.base_id() == step_id).cloned();
+                let deps = WorkEngine::get_node_dependency_results(wf, &step_id);
+                let ctx_sources = WorkEngine::get_context_source_results(wf, &step_id);
+                (node, deps, ctx_sources)
+            };
+
             let Some(node) = node else {
                 return Err(super::node_executor_trait::NodeError::exec_failed(
                     super::node_executor_trait::error_code::NODE_NOT_FOUND,
                     format!(
-                        "Debate/Swarm body step '{step_id}' not found in workflow '{workflow_id}'"
+                        "Debate/Swarm body step '{step_id}' not found in execution '{execution_id}'"
                     ),
                 ));
             };
-            engine.dispatcher.read().await.dispatch(&node, &ctx).await
+
+            // 合并依赖结果到 ctx.variables（已有变量优先，保留父容器注入的 __debate_topic__/__debate_round__ 等）
+            // 合并顺序优先级（从低到高）：deps_results < context_source_results < ctx.variables（已有）
+            for (k, v) in deps_results {
+                ctx.variables.entry(k).or_insert(v);
+            }
+            for (k, v) in context_source_results {
+                ctx.variables.entry(k).or_insert(v);
+            }
+
+            // 确保关键引擎引用已注入
+            ctx.business_rule_engine = engine.business_rule_engine();
+            ctx.tool_registry = engine.tool_registry();
+            {
+                let compiled = engine.compiled_prompts.read().await;
+                ctx.compiled_prompts = compiled.get(&workflow_id).cloned();
+            }
+
+            let started_at = Utc::now().timestamp_millis();
+
+            // 标记节点为 Running
+            engine
+                .update_node_status_for_execution(
+                    &execution_id,
+                    &node_id,
+                    NodeStatus::Running,
+                    None,
+                    None,
+                    None,
+                )
+                .await
+                .ok();
+
+            let dispatch_result = engine.dispatcher.read().await.dispatch(&node, &ctx).await;
+
+            match dispatch_result {
+                Ok(output) => {
+                    let elapsed_ms = Utc::now().timestamp_millis() - started_at;
+                    let out_var = output.output_var.clone();
+
+                    tracing::info!(
+                        workflow_id = %workflow_id,
+                        node_id = %node_id,
+                        status = "completed",
+                        duration_ms = elapsed_ms,
+                        "Debate/Swarm body node completed"
+                    );
+
+                    // 关键修复：将结果写入 workflow.results，确保同一轮后续辩手和下一轮辩手
+                    // 能通过 context_source_results 找到该节点输出
+                    engine
+                        .update_node_status_for_execution(
+                            &execution_id,
+                            &node_id,
+                            NodeStatus::Completed,
+                            Some(output.output.clone()),
+                            None,
+                            out_var.as_deref(),
+                        )
+                        .await
+                        .ok();
+
+                    // Condition 节点分支跳过处理
+                    if matches!(node, WorkflowNode::Condition(_)) {
+                        let mut workflows = engine.execution_workflows.write().await;
+                        if let Some(wf) = workflows.get_mut(&execution_id) {
+                            skip_disabled_branch_nodes(wf, &wf.edges.clone(), &node_id);
+                        }
+                    }
+
+                    // 记录节点执行历史
+                    let node_type_str = node_type_name(&node).to_string();
+                    let node_name = Some(node.base_title().to_string());
+                    engine
+                        .record_node_execution(
+                            &execution_id,
+                            NodeExecutionRecord {
+                                node_id: node_id.clone(),
+                                node_type: node_type_str,
+                                node_name,
+                                status: "completed".to_string(),
+                                input: None,
+                                output: Some(output.output.clone()),
+                                execution_time_ms: Some(elapsed_ms.max(0) as u64),
+                                error: None,
+                                started_at,
+                                completed_at: Some(Utc::now().timestamp_millis()),
+                                parent_execution_id: ctx.parent_execution_id.clone(),
+                                sub_workflow_id: None,
+                            },
+                        )
+                        .await
+                        .ok();
+
+                    Ok(output)
+                },
+                Err(e) => {
+                    let elapsed_ms = Utc::now().timestamp_millis() - started_at;
+                    tracing::warn!(
+                        workflow_id = %workflow_id,
+                        node_id = %node_id,
+                        error = %e,
+                        duration_ms = elapsed_ms,
+                        "Debate/Swarm body node failed"
+                    );
+
+                    engine
+                        .update_node_status_for_execution(
+                            &execution_id,
+                            &node_id,
+                            NodeStatus::Failed,
+                            None,
+                            Some(e.to_string()),
+                            None,
+                        )
+                        .await
+                        .ok();
+
+                    Err(e)
+                },
+            }
         })
     })
 }

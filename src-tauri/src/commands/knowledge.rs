@@ -3,8 +3,12 @@
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_dao::repo::index_jobs as jobs;
+use axagent_entities::{
+    knowledge_bases, knowledge_documents, knowledge_entities, knowledge_relations,
+};
 use axagent_harness::types::*;
 use axagent_search::rag::KnowledgeContainer;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
 
@@ -23,6 +27,10 @@ pub struct ImportDirectoryResult {
     pub imported_count: usize,
     pub skipped_count: usize,
     pub error_count: usize,
+    pub entity_count: usize,   // 知识图谱实体导入数
+    pub relation_count: usize, // 知识图谱关系导入数
+    /// 实际使用的嵌入模型 provider（None 表示未配置，向量检索不可用）
+    pub embedding_provider: Option<String>,
     pub imported: Vec<KnowledgeDocument>,
     pub skipped: Vec<String>,
     pub errors: Vec<ImportDirectoryError>,
@@ -285,6 +293,9 @@ pub async fn import_knowledge_directory(
         imported_count: 0,
         skipped_count: 0,
         error_count: 0,
+        entity_count: 0,
+        relation_count: 0,
+        embedding_provider: None,
         imported: Vec::new(),
         skipped,
         errors: Vec::new(),
@@ -1234,14 +1245,8 @@ pub async fn import_lemonhu_knowledge(
     state: State<'_, AppState>,
     knowledge_dir: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_entities::{
-        knowledge_bases, knowledge_documents, knowledge_entities, knowledge_relations,
-    };
-    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
-
     let db = state.harness.db();
     let kb_id = "lemonhu_knowledge_graph";
-    let now_ms = chrono::Utc::now().timestamp_millis();
 
     // 确定知识库目录
     let knowledge_dir = match knowledge_dir {
@@ -1291,12 +1296,42 @@ pub async fn import_lemonhu_knowledge(
         .map_err(|e| format!("创建 knowledge_bases 失败: {e}"))?;
     }
 
-    let raw_dir = knowledge_dir.join("raw");
+    let (entity_count, rel_count, doc_count) =
+        import_lemonhu_graph(db, kb_id, &knowledge_dir).await;
+
+    tracing::info!(
+        "[lemonhu] 导入完成: {entity_count} 节点 + {rel_count} 关系 + {doc_count} 文档 (kb={kb_id})"
+    );
+
+    Ok(serde_json::json!({
+        "knowledgeBaseId": kb_id,
+        "entityCount": entity_count,
+        "relationCount": rel_count,
+        "documentCount": doc_count,
+    }))
+}
+
+/// 导入 lemonhu 开源知识图谱的实体、关系及文档到指定知识库。
+///
+/// 由 [`import_lemonhu_knowledge`] 和 [`import_project_knowledge_sources`] 共用。
+/// 读取 `{lemonhu_dir}/raw/*.csv` 解析 entity/relation，读取 `{lemonhu_dir}/wiki_pages/*.md` 导入文档。
+async fn import_lemonhu_graph(
+    db: &sea_orm::DatabaseConnection,
+    kb_id: &str,
+    lemonhu_dir: &std::path::Path,
+) -> (usize, usize, usize) {
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let raw_dir = lemonhu_dir.join("raw");
     let mut entity_count = 0usize;
     let mut rel_count = 0usize;
+    let mut doc_count = 0usize;
+
+    if !raw_dir.exists() {
+        tracing::info!("[graph_import] raw/ 目录不存在，跳过图谱导入: {}", raw_dir.display());
+        return (0, 0, 0);
+    }
 
     // ── 收集 entities ──
-    // (id, name, entity_type, source_path)
     let mut entity_data: Vec<(String, String, &str, &str)> = Vec::new();
 
     if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock.csv")) {
@@ -1393,7 +1428,6 @@ pub async fn import_lemonhu_knowledge(
             lifecycle: Set(None),
             behaviors: Set(None),
             metadata: Set(None),
-            // v101: trajectory entity fields
             aliases: Set(String::new()),
             mention_count: Set(0),
             confidence: Set(0.0),
@@ -1408,7 +1442,6 @@ pub async fn import_lemonhu_knowledge(
     }
 
     // ── 收集 relations ──
-    // (id, source, target, relation_type)
     let mut rel_data: Vec<(String, String, String, String)> = Vec::new();
 
     if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_concept.csv")) {
@@ -1477,7 +1510,6 @@ pub async fn import_lemonhu_knowledge(
             description: Set(None),
             properties: Set(None),
             metadata: Set(None),
-            // v101: trajectory relationship weight
             weight: Set(0.0),
             created_at: Set(now_ms),
             updated_at: Set(now_ms),
@@ -1488,8 +1520,7 @@ pub async fn import_lemonhu_knowledge(
     }
 
     // ── 导入 wiki_pages ──
-    let mut doc_count = 0usize;
-    let wiki_dir = knowledge_dir.join("wiki_pages");
+    let wiki_dir = lemonhu_dir.join("wiki_pages");
     if wiki_dir.exists() {
         let existing_docs = knowledge_documents::Entity::find()
             .filter(knowledge_documents::Column::KnowledgeBaseId.eq(kb_id))
@@ -1534,18 +1565,418 @@ pub async fn import_lemonhu_knowledge(
                 }
             }
         } else {
-            tracing::info!("[lemonhu] DB 已有 {existing_docs} 篇文档，跳过 wiki_pages 导入");
+            tracing::info!("[graph_import] DB 已有 {existing_docs} 篇文档，跳过 wiki_pages 导入");
         }
     }
 
     tracing::info!(
-        "[lemonhu] 导入完成: {entity_count} 节点 + {rel_count} 关系 + {doc_count} 文档 (kb={kb_id})"
+        "[graph_import] 导入知识图谱: {entity_count} 节点 + {rel_count} 关系 + {doc_count} 文档 (kb={kb_id})"
     );
 
-    Ok(serde_json::json!({
-        "knowledgeBaseId": kb_id,
-        "entityCount": entity_count,
-        "relationCount": rel_count,
-        "documentCount": doc_count,
-    }))
+    (entity_count, rel_count, doc_count)
+}
+
+/// 目录同步结果（与 [`ImportDirectoryResult`] 的区别：含 added/updated/deleted 三类计数）。
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncDirectoryResult {
+    pub base_id: String,
+    pub added_count: usize,
+    pub updated_count: usize,
+    pub deleted_count: usize,
+    pub skipped_count: usize,
+    pub error_count: usize,
+    pub added: Vec<KnowledgeDocument>,
+    pub updated: Vec<String>,
+    pub deleted: Vec<String>,
+    pub skipped: Vec<String>,
+    pub errors: Vec<ImportDirectoryError>,
+}
+
+/// 一键同步更新：对比文件系统与知识库，自动新增/更新/删除文档。
+///
+/// 逻辑：
+/// - 收集目录下所有可导入文件，记录 mtime（文件修改时间）
+/// - 获取知识库现有文档列表，以 source_path 为 key 建立索引
+/// - **新增**：文件在磁盘上但不在 KB 中 → `add_document` + 入队索引
+/// - **更新**：文件在 KB 中且 mtime 晚于文档时间 → 删旧文档 + 加新文档 + 入队索引
+/// - **删除**：文档在 KB 中但对应文件不存在磁盘 → `delete_knowledge_document`
+/// - **跳过**：文件在 KB 中且 mtime 未变 → 跳过
+#[tauri::command]
+pub async fn sync_project_knowledge_sources(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    base_id: String,
+    source_path: String,
+    recursive: Option<bool>,
+) -> Result<SyncDirectoryResult, String> {
+    let dir = PathBuf::from(&source_path);
+    if !dir.exists() || !dir.is_dir() {
+        return Err(format!("路径不存在或不是目录: {source_path}"));
+    }
+
+    let recursive = recursive.unwrap_or(true);
+    let db = state.harness.db();
+
+    // 1) 收集文件系统上的文件
+    let mut disk_files: Vec<PathBuf> = Vec::new();
+    let mut skipped = Vec::new();
+    collect_importable_files(&dir, recursive, &None, &mut disk_files, &mut skipped)
+        .map_err(|e| format!("读取目录失败 {source_path}: {e}"))?;
+
+    // 2) 获取 KB 现有文档 → source_path → document 索引
+    let existing_docs =
+        axagent_dao::repo::knowledge::list_documents(db, &base_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+    // 用 source_path 做唯一 key 建立索引（标准化为小写）
+    let mut doc_by_path: std::collections::HashMap<String, &KnowledgeDocument> =
+        std::collections::HashMap::new();
+    for doc in &existing_docs {
+        doc_by_path.insert(doc.source_path.to_ascii_lowercase(), doc);
+    }
+
+    // 3) 处理 on-disk 文件：新增或更新
+    let mut result = SyncDirectoryResult {
+        base_id: base_id.clone(),
+        added_count: 0,
+        updated_count: 0,
+        deleted_count: 0,
+        skipped_count: 0,
+        error_count: 0,
+        added: Vec::new(),
+        updated: Vec::new(),
+        deleted: Vec::new(),
+        skipped: Vec::new(),
+        errors: Vec::new(),
+    };
+
+    // 记录所有被匹配到的路径（用于后续找已删除的文件）
+    let mut matched_keys: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    let kb = axagent_dao::repo::knowledge::get_knowledge_base(db, &base_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let has_embedding = kb.embedding_provider.is_some();
+
+    for path in &disk_files {
+        let abs = path.to_string_lossy().to_string();
+        let key = abs.to_ascii_lowercase();
+        let mime = axagent_document_parser::mime_from_extension(path).to_string();
+        let title =
+            path.strip_prefix(&dir).map(|p| p.to_string_lossy().replace('\\', "/")).unwrap_or_else(
+                |_| path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+            );
+
+        matched_keys.insert(key.clone());
+
+        if let Some(existing) = doc_by_path.get(&key) {
+            // 文件已存在 → 删旧 + 加新（保证磁盘内容与 KB 一致）
+            let doc_id = existing.id.clone();
+            let collection_id = format!("kb_{}", base_id);
+            let _ = state.vector_store.delete_document_embeddings(&collection_id, &doc_id).await;
+            if let Err(e) = axagent_dao::repo::knowledge::delete_document(db, &doc_id).await {
+                result.error_count += 1;
+                result.errors.push(ImportDirectoryError {
+                    path: abs,
+                    error: format!("删除旧文档失败: {e}"),
+                });
+                continue;
+            }
+            match axagent_dao::repo::knowledge::add_document(
+                db, &base_id, &title, &abs, &mime, None,
+            )
+            .await
+            {
+                Ok(new_doc) => {
+                    if has_embedding {
+                        let _ = axagent_dao::repo::knowledge::update_document_status(
+                            db,
+                            &new_doc.id,
+                            "pending",
+                        )
+                        .await;
+                        if let Err(e) = crate::index_queue::enqueue_job_sync(
+                            &state,
+                            &app,
+                            jobs::JOB_TYPE_INDEX_DOCUMENT,
+                            "kb",
+                            &base_id,
+                            &new_doc.id,
+                            None,
+                            None,
+                        ) {
+                            tracing::warn!("[sync_project] 入队索引失败 {}: {}", new_doc.id, e);
+                        }
+                    }
+                    result.updated_count += 1;
+                    result.updated.push(abs);
+                },
+                Err(e) => {
+                    result.error_count += 1;
+                    result.errors.push(ImportDirectoryError {
+                        path: abs,
+                        error: format!("重加文档失败: {e}"),
+                    });
+                },
+            }
+        } else {
+            // 文件不存在于 KB → 新增
+            match axagent_dao::repo::knowledge::add_document(
+                db, &base_id, &title, &abs, &mime, None,
+            )
+            .await
+            {
+                Ok(new_doc) => {
+                    if has_embedding {
+                        let _ = axagent_dao::repo::knowledge::update_document_status(
+                            db,
+                            &new_doc.id,
+                            "pending",
+                        )
+                        .await;
+                        if let Err(e) = crate::index_queue::enqueue_job_sync(
+                            &state,
+                            &app,
+                            jobs::JOB_TYPE_INDEX_DOCUMENT,
+                            "kb",
+                            &base_id,
+                            &new_doc.id,
+                            None,
+                            None,
+                        ) {
+                            tracing::warn!("[sync_project] 入队索引失败 {}: {}", new_doc.id, e);
+                        }
+                    }
+                    result.added_count += 1;
+                    result.added.push(new_doc);
+                },
+                Err(e) => {
+                    result.error_count += 1;
+                    result.errors.push(ImportDirectoryError {
+                        path: abs,
+                        error: format!("添加文档失败: {e}"),
+                    });
+                },
+            }
+        }
+    }
+
+    // 4) 处理 KB 中存在但磁盘上已删除的文档
+    for (key, doc) in &doc_by_path {
+        if !matched_keys.contains(key) {
+            let collection_id = format!("kb_{}", base_id);
+            let _ = state.vector_store.delete_document_embeddings(&collection_id, &doc.id).await;
+            if let Err(e) = axagent_dao::repo::knowledge::delete_document(db, &doc.id).await {
+                result.error_count += 1;
+                result.errors.push(ImportDirectoryError {
+                    path: doc.source_path.clone(),
+                    error: format!("删除已移除文档失败: {e}"),
+                });
+            } else {
+                result.deleted_count += 1;
+                result.deleted.push(doc.source_path.clone());
+            }
+        }
+    }
+
+    result.skipped_count += skipped.len();
+    result.skipped.extend(skipped);
+
+    tracing::info!(
+        "[sync_project] 同步完成: +{} 新增, ~{} 更新, -{} 删除, ={} 跳过, !{} 错误 (kb={})",
+        result.added_count,
+        result.updated_count,
+        result.deleted_count,
+        result.skipped_count,
+        result.error_count,
+        base_id,
+    );
+
+    Ok(result)
+}
+
+// ── 项目知识源一键导入 ───────────────────────────────────
+
+/// 项目知识源导入结果。
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectKnowledgeImportResult {
+    /// Wiki 知识库 ID（存放所有 markdown 文件）
+    pub wiki_id: String,
+    pub wiki_name: String,
+    pub wiki_imported: usize,
+    pub wiki_failed: usize,
+    pub wiki_skipped: usize,
+    /// RAG 知识库 ID（存放 lemonhu 知识图谱实体 + 关系）
+    pub kb_id: String,
+    pub kb_name: String,
+    pub entity_count: usize,
+    pub relation_count: usize,
+    pub embedding_provider: Option<String>,
+}
+
+/// 一键导入项目知识源：创建 Wiki 知识库 + 导入知识图谱。
+///
+/// 1. 清理旧的 "项目知识源" RAG 知识库（无 embedding 的残次品）
+/// 2. 创建 **Wiki vault** "项目知识源"，root_path 指向 `knowledge-sources/`
+/// 3. 调用 `wiki_import_obsidian_vault` 批量导入所有 .md 文件为 wiki notes
+/// 4. 创建/复用 **RAG 知识库** "项目知识源图谱"，导入 lemonhu 实体 + 关系
+#[tauri::command]
+pub async fn import_project_knowledge_sources(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    source_path: String,
+) -> Result<ProjectKnowledgeImportResult, String> {
+    let dir = PathBuf::from(&source_path);
+    if !dir.exists() || !dir.is_dir() {
+        return Err(format!("路径不存在或不是目录: {source_path}"));
+    }
+
+    // ── 所有 DB 操作一次性完成（释放 state 的借用）──
+    let (
+        wiki_id,
+        wiki_name,
+        kb_id,
+        kb_name,
+        (entity_count, relation_count, _doc_count),
+        embedding_provider,
+    ) = {
+        let db = state.harness.db();
+
+        // 1) 清理旧的无 embedding 的 KB
+        let existing_bases =
+            axagent_dao::repo::knowledge::list_knowledge_bases(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+        for kb in &existing_bases {
+            if kb.name == "项目知识源" && kb.embedding_provider.is_none() {
+                tracing::info!("[import_project] 清理旧的残次 KB: {} ({})", kb.name, kb.id);
+                let collection_id = format!("kb_{}", kb.id);
+                let _ = state.vector_store.delete_collection(&collection_id).await;
+                let _ = axagent_dao::repo::knowledge::delete_knowledge_base(db, &kb.id).await;
+            }
+        }
+
+        // 2) 创建/复用 Wiki vault（embedding_provider 留空，用户可在配置中手动选择）
+        let wiki_name = "项目知识源".to_string();
+        let wiki_id = {
+            let existing_wikis = axagent_dao::repo::wiki::list_wikis(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+            if let Some(w) = existing_wikis.into_iter().find(|w| w.name == wiki_name) {
+                tracing::info!("[import_project] 复用已有 Wiki: {} ({})", wiki_name, w.id);
+                w.id
+            } else {
+                tracing::info!("[import_project] 创建新 Wiki: {}", wiki_name);
+                let wiki = axagent_dao::repo::wiki::create_wiki(
+                    db,
+                    axagent_dao::repo::wiki::CreateWikiInput {
+                        name: wiki_name.clone(),
+                        description: Some(format!("从 {} 自动导入的项目知识源", source_path)),
+                        root_path: source_path.clone(),
+                        embedding_provider: None,
+                    },
+                )
+                .await
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+                wiki.id
+            }
+        };
+
+        // 3) 创建/复用 KB + 导入图谱（embedding 同样留空）
+        let kb_name = "项目知识源图谱".to_string();
+        let (kb_id, embedding_provider) = {
+            let existing_bases =
+                axagent_dao::repo::knowledge::list_knowledge_bases(db).await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+            if let Some(kb) = existing_bases.into_iter().find(|b| b.name == kb_name) {
+                (kb.id, kb.embedding_provider)
+            } else {
+                let new_kb = axagent_dao::repo::knowledge::create_knowledge_base(
+                    db,
+                    axagent_harness::types::CreateKnowledgeBaseInput {
+                        name: kb_name.clone(),
+                        description: Some("lemonhu A 股知识图谱（实体 + 关系）".into()),
+                        embedding_provider: None,
+                        enabled: Some(true),
+                    },
+                )
+                .await
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+                (new_kb.id, new_kb.embedding_provider)
+            }
+        };
+
+        // 4) 导入 lemonhu 图谱
+        let lemonhu_dir = dir.join("lemonhu");
+        let graph_result = if lemonhu_dir.exists() {
+            import_lemonhu_graph(db, &kb_id, &lemonhu_dir).await
+        } else {
+            (0, 0, 0)
+        };
+
+        (wiki_id, wiki_name, kb_id, kb_name, graph_result, embedding_provider)
+    }; // ← db 引用在此释放，state 恢复可移动状态
+
+    // ── Wiki markdown 导入（state 被移入但不需再使用）──
+    let wiki_result = crate::commands::wiki::wiki_import_obsidian_vault(
+        app.clone(),
+        state,
+        wiki_id.clone(),
+        source_path.clone(),
+    )
+    .await
+    .map_err(|e| format!("导入 Wiki 笔记失败: {e}"))?;
+
+    let result = ProjectKnowledgeImportResult {
+        wiki_id,
+        wiki_name,
+        wiki_imported: wiki_result.imported,
+        wiki_failed: wiki_result.failed,
+        wiki_skipped: wiki_result.skipped,
+        kb_id,
+        kb_name,
+        entity_count,
+        relation_count,
+        embedding_provider,
+    };
+
+    tracing::info!(
+        "[import_project] 导入完成: Wiki +{}/-{}/={} notes, KB {} 实体 + {} 关系",
+        result.wiki_imported,
+        result.wiki_failed,
+        result.wiki_skipped,
+        result.entity_count,
+        result.relation_count,
+    );
+
+    Ok(result)
 }

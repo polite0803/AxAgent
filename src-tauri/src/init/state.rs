@@ -950,7 +950,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(Arc::new(
             sea_db.clone(),
         )),
-        stock_monitor: None,
+        stock_monitor: std::sync::OnceLock::new(),
+        // P3: 跨股票信号聚合器，由 start_realtime_monitor 启动时注入
+        cross_stock_aggregator: std::sync::OnceLock::new(),
+        // P1-2: 实时行情监视器，由 start_realtime_quote_watcher 启动时注入
+        quote_watcher: std::sync::OnceLock::new(),
+        // P1-2: T+0 重跑全局并发上限 5（监控 50+ 股票异动时的限流）
+        stock_workflow_t0_semaphore: Arc::new(tokio::sync::Semaphore::new(5)),
+        // P1-2: per-stock 互斥锁容器，首次触发时懒加载对应股票的锁
+        stock_workflow_t0_per_stock_locks: Arc::new(tokio::sync::Mutex::new(
+            std::collections::HashMap::new(),
+        )),
         #[cfg(not(mobile))]
         pty_manager,
         telemetry_level_handle,

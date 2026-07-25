@@ -79,6 +79,18 @@ const LazyStockAnalysisPage = lazy(() =>
 const LazyScreenerPage = lazy(() => import("@/pages/ScreenerPage").then((m) => ({ default: m.ScreenerPage })));
 const LazyWatchlistPage = lazy(() => import("@/pages/WatchlistPage").then((m) => ({ default: m.WatchlistPage })));
 const LazyPortfolioPage = lazy(() => import("@/pages/PortfolioPage").then((m) => ({ default: m.PortfolioPage })));
+const LazyPaperPortfolioPage = lazy(() =>
+  import("@/pages/PaperPortfolioPage").then((m) => ({ default: m.PaperPortfolioPage }))
+);
+const LazyMarketMainlinePage = lazy(() =>
+  import("@/pages/MarketMainlinePage").then((m) => ({ default: m.MarketMainlinePage }))
+);
+const LazyScreenshotDiagnosisPage = lazy(() =>
+  import("@/pages/ScreenshotDiagnosisPage").then((m) => ({
+    default: m.ScreenshotDiagnosisPage,
+  }))
+);
+const LazyMultiAgentPage = lazy(() => import("@/pages/MultiAgentPage").then((m) => ({ default: m.MultiAgentPage })));
 const LazyTradePage = lazy(() => import("@/pages/TradePage").then((m) => ({ default: m.TradePage })));
 const LazyBacktestPage = lazy(() => import("@/pages/BacktestPage").then((m) => ({ default: m.BacktestPage })));
 const LazyComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
@@ -383,6 +395,38 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="portfolio">
                 <SafeLazyPage Page={LazyPortfolioPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH["paper-portfolio"]}
+            element={
+              <PageContextProvider page="paper-portfolio">
+                <SafeLazyPage Page={LazyPaperPortfolioPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH["market-mainline"]}
+            element={
+              <PageContextProvider page="market-mainline">
+                <SafeLazyPage Page={LazyMarketMainlinePage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH["screenshot-diagnosis"]}
+            element={
+              <PageContextProvider page="screenshot-diagnosis">
+                <SafeLazyPage Page={LazyScreenshotDiagnosisPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH["multi-agent"]}
+            element={
+              <PageContextProvider page="multi-agent">
+                <SafeLazyPage Page={LazyMultiAgentPage} />
               </PageContextProvider>
             }
           />

@@ -228,3 +228,132 @@ async fn poll_and_emit(
         }
     }
 }
+
+// ── P3: MarketDataStreamer 实现 ──────────────────────────────────────────
+
+/// HTTP 轮询行情流式推送器（P3: WebSocket 升级架构占位）
+///
+/// 实现 `axagent_harness::market_data::MarketDataStreamer` trait,
+/// 包装 `AStockClient` 用 tokio::interval 轮询生成 `QuoteUpdate` 流。
+///
+/// 与 `RealTimeQuoteWatcher` 的区别：
+/// - `RealTimeQuoteWatcher`：固定后台轮询，通过 `QuoteCallback` 推送
+/// - `HttpPollingStreamer`：按需 `subscribe(codes)`，返回 mpsc Receiver
+///   供 consumer（如 gateway ws handler）拉取
+///
+/// 当前是默认数据源。未来可由 `WebSocketStreamer` 替代（架构无需改 consumer）。
+pub struct HttpPollingStreamer {
+    client: Arc<AStockClient>,
+    /// 轮询间隔（毫秒），默认 2000ms
+    poll_interval_ms: u64,
+}
+
+impl HttpPollingStreamer {
+    pub fn new(client: Arc<AStockClient>) -> Self {
+        Self { client, poll_interval_ms: 2000 }
+    }
+
+    /// 自定义轮询间隔（例如 5000ms 降低压力）
+    pub fn with_interval(mut self, interval_ms: u64) -> Self {
+        self.poll_interval_ms = interval_ms;
+        self
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::market_data::MarketDataStreamer for HttpPollingStreamer {
+    async fn subscribe(
+        &self,
+        codes: Vec<String>,
+    ) -> Result<
+        tokio::sync::mpsc::Receiver<axagent_harness::market_data::QuoteUpdate>,
+        axagent_harness::core_error::AxAgentError,
+    > {
+        use axagent_harness::core_error::AxAgentError;
+        use axagent_harness::market_data::QuoteUpdate;
+
+        if codes.is_empty() {
+            return Err(AxAgentError::Validation("subscribe codes 不能为空".to_string()));
+        }
+
+        let (tx, rx) = tokio::sync::mpsc::channel(64);
+        let client = self.client.clone();
+        let interval_ms = self.poll_interval_ms;
+        let source = self.source_type().to_string();
+
+        tokio::spawn(async move {
+            let mut last_quotes: HashMap<String, StockQuote> = HashMap::new();
+
+            loop {
+                let mut any_change = false;
+                for code in &codes {
+                    match client.get_quote(code).await {
+                        Ok(quote) => {
+                            let prev = last_quotes.insert(code.clone(), quote.clone());
+                            let change_pct = if let Some(ref p) = prev {
+                                if p.pre_close > 0.0 {
+                                    (quote.price - p.pre_close) / p.pre_close * 100.0
+                                } else {
+                                    0.0
+                                }
+                            } else {
+                                0.0
+                            };
+
+                            // 仅在价格变化超过 0.01 元 或 首次获取时推送
+                            let should_emit = match &prev {
+                                Some(prev_q) => (quote.price - prev_q.price).abs() > 0.01,
+                                None => true,
+                            };
+
+                            if should_emit {
+                                any_change = true;
+                                let trigger = if prev.is_none() {
+                                    "tick"
+                                } else if change_pct.abs() >= 3.0 {
+                                    "significant_move"
+                                } else {
+                                    "price_change"
+                                };
+
+                                let update = QuoteUpdate {
+                                    stock_code: code.clone(),
+                                    current: quote,
+                                    change_pct,
+                                    trigger: trigger.to_string(),
+                                    source: source.clone(),
+                                    timestamp_ms: chrono::Utc::now().timestamp_millis(),
+                                };
+
+                                if tx.send(update).await.is_err() {
+                                    // 接收方已 drop，结束轮询
+                                    tracing::debug!(
+                                        "[HttpPollingStreamer] 接收方关闭，停止 {code} 轮询"
+                                    );
+                                    return;
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            tracing::trace!("[HttpPollingStreamer] {code} 行情拉取失败: {e}");
+                        },
+                    }
+                }
+
+                // 无变化时缩短 sleep，有变化时按配置间隔轮询
+                let sleep_ms = if any_change {
+                    interval_ms
+                } else {
+                    interval_ms.min(5000)
+                };
+                tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
+            }
+        });
+
+        Ok(rx)
+    }
+
+    fn source_type(&self) -> &'static str {
+        "http_poll"
+    }
+}

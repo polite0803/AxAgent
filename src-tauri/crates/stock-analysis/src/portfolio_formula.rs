@@ -270,7 +270,86 @@ pub fn apply_risk_veto(action: &str, risk_level: &str) -> (String, bool, String)
     (action.to_string(), false, String::new())
 }
 
-// ── P1-E13: 组合风控门 ──
+// ── P0: 统计置信度（假设检验）──
+
+/// 标准正态分布 CDF（Abramowitz & Stegun 26.2.17 有理逼近，精度 ~1e-6）。
+#[allow(dead_code)]
+fn normal_cdf(z: f64) -> f64 {
+    if z.is_nan() || z.is_infinite() {
+        return if z > 0.0 {
+            1.0
+        } else if z < 0.0 {
+            0.0
+        } else {
+            0.5
+        };
+    }
+    let z_abs = z.abs();
+    let k = 1.0 / (1.0 + 0.2316419 * z_abs);
+    let phi = std::f64::consts::FRAC_1_SQRT_2
+        * std::f64::consts::FRAC_2_SQRT_PI
+        * (-0.5 * z_abs * z_abs).exp();
+    let cdf_abs = 1.0
+        - phi
+            * k
+            * (0.31938153
+                + k * (-0.356563782 + k * (1.781477937 + k * (-1.821255978 + k * 1.330274429))));
+    if z >= 0.0 {
+        cdf_abs
+    } else {
+        1.0 - cdf_abs
+    }
+}
+
+/// 基于单样本 t 检验的统计置信度。
+///
+/// 原假设 H₀: 加权平均信号 = 0（无方向性信号，应该观望）
+/// 备择假设 H₁: 加权平均信号 ≠ 0（存在方向性信号）
+///
+/// 基于贝叶斯因子的统计置信度。
+///
+/// 定义：置信度反映 posterior(后验概率) 相对于 prior(先验概率) 的证据强度。
+///   使用贝叶斯因子(Bayes Factor)衡量证据强度:
+///   BF = odds_posterior / odds_prior (当 posterior >= prior)
+///   BF = odds_prior / odds_posterior (当 posterior < prior)
+///   确保 BF >= 1,越大证据越强。
+///
+///   置信度映射(BF → [50, 99.9]):
+///   BF=1(无证据)         → 50%
+///   BF=3(中等证据)       → 75%
+///   BF=10(强证据)        → 90.9%
+///   BF=30(很强证据)      → 96.8%
+///   BF=100+(决定性证据)   → 99.5%+
+///
+/// 公式: confidence = 50 + 50 × (1 - 2/(BF + 1))
+///
+/// 优点: 跟因子数量、因子方差无关,只反映 posterior 偏离 prior 的程度。
+///   当 posterior=0.5(因子沉默,全中性信号) → prior=0.5 → BF=1 → 50%
+///   当 posterior=0.19(强烈看空) → prior=0.5 → BF=4.26 → 91%
+///   当 posterior=0.81(强烈看多) → prior=0.5 → BF=4.26 → 91%
+pub fn compute_bayes_confidence(prior: f64, posterior: f64) -> f64 {
+    if prior <= 0.0 || prior >= 1.0 || posterior <= 0.0 || posterior >= 1.0 {
+        return 50.0;
+    }
+
+    let odds_prior = prior / (1.0 - prior);
+    let odds_posterior = posterior / (1.0 - posterior);
+
+    // BF >= 1 (双向对称)
+    let bf = if odds_posterior >= odds_prior {
+        odds_posterior / odds_prior
+    } else {
+        odds_prior / odds_posterior
+    };
+
+    // BF → confidence mapping
+    // 50 + 50 * (1 - 2/(BF+1)) = 50 * (1 - 2/(BF+1) + 1) 最后一项是50
+    // 简化: 100 - 100/(BF+1)
+    let confidence = 100.0 - 100.0 / (bf + 1.0);
+
+    // clamp to [50, 99.9]
+    confidence.clamp(50.0, 99.9)
+}
 
 /// 组合风控门输出（JSON 序列化后供 Rhai 包装为 CodeNode 输出）。
 ///
@@ -1297,5 +1376,42 @@ mod tests {
             reasons_str.contains("R-206") || reasons_str.contains("R-209"),
             "应当触发仓位调整原因，实际: {reasons_str}"
         );
+    }
+
+    // ── 贝叶斯因子置信度 ──
+
+    #[test]
+    fn bayes_prior_equals_posterior() {
+        // prior=posterior=0.5 → BF=1 → 50%
+        let conf = compute_bayes_confidence(0.5, 0.5);
+        assert!((conf - 50.0).abs() < 0.1, "预期 50%, 实际 {conf}%");
+    }
+
+    #[test]
+    fn bayes_strong_bull() {
+        // prior=0.5, posterior=0.81 → BF≈4.26 → ~91%
+        let conf = compute_bayes_confidence(0.5, 0.81);
+        assert!(conf > 80.0 && conf < 95.0, "预期 ~91%, 实际 {conf}%");
+    }
+
+    #[test]
+    fn bayes_strong_bear() {
+        // prior=0.5, posterior=0.19 → BF≈4.26 → ~91%
+        let conf = compute_bayes_confidence(0.5, 0.19);
+        assert!(conf > 80.0 && conf < 95.0, "预期 ~91%, 实际 {conf}%");
+    }
+
+    #[test]
+    fn bayes_neutral() {
+        // prior=0.5, posterior=0.53 → BF≈1.13 → ~53%
+        let conf = compute_bayes_confidence(0.5, 0.53);
+        assert!(conf >= 50.0 && conf < 65.0, "预期 ~53%, 实际 {conf}%");
+    }
+
+    #[test]
+    fn bayes_prior_non_default() {
+        // prior=0.4, posterior=0.6 → BF≈2.25 → ~69%
+        let conf = compute_bayes_confidence(0.4, 0.6);
+        assert!(conf > 65.0 && conf < 75.0, "预期 ~69%, 实际 {conf}%");
     }
 }

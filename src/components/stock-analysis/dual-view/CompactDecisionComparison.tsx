@@ -26,18 +26,38 @@ export interface CompactDecisionShape {
   llmDecisionAction?: string | null;
   llmDecisionPositionPct?: number | null;
   llmConfidence?: number | null;
+  /** V65: LLM 风险等级 */
+  llmRiskLevel?: string | null;
+  /** V65: LLM 止损百分比 */
+  llmStopLossPct?: number | null;
+  /** V65: LLM 止盈百分比 */
+  llmTakeProfitPct?: number | null;
+  /** V65: LLM 数据缺口列表 */
+  llmDataGaps?: string[] | null;
+  /** V65: LLM 引用上游论据 */
+  llmEvidenceCited?: Array<{ source?: string; point?: string }> | null;
   /** LLM 决策推理文本(用于 panel 完整版展示) */
   llmDecisionReasoning?: string | null;
   decisionAgreementScore?: number | null;
-  /** V50: 双视角一致性分维度诊断 */
+  /** V65: 双视角一致性 6 维度诊断 */
   agreementBreakdown?: {
     total: number;
     actionOk: boolean;
     actionNote: string;
     formulaAction: string;
     llmAction: string;
+    actionScore?: number;
+    positionScore?: number;
     positionGap: number | null;
+    confidenceScore?: number;
     confidenceGap: number | null;
+    riskLevelScore?: number;
+    formulaRiskLevel?: string;
+    llmRiskLevel?: string;
+    dataGapsScore?: number;
+    dataGapsSimilarity?: number | null;
+    evidenceScore?: number;
+    evidenceCount?: number;
     conflictType: string;
   } | null;
 }

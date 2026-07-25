@@ -322,7 +322,30 @@ pub struct AppState {
     /// 执行桥接器（量化信号→实盘交易）
     pub execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState,
     /// 实时监控器（T+0 / 盘口 / 异常波动），可选
-    pub stock_monitor: Option<Arc<axagent_stock_analysis::monitor::RealtimeMonitor>>,
+    /// P0: 改用 OnceLock 以便 start_realtime_monitor 在启动后期能注入。
+    /// 命令端用 `state.stock_monitor.get()` 获取 `Option<&Arc<RealtimeMonitor>>`。
+    pub stock_monitor: std::sync::OnceLock<Arc<axagent_stock_analysis::monitor::RealtimeMonitor>>,
+    /// P3: 跨股票信号聚合器（组合级告警），由 `start_realtime_monitor` 注入。
+    /// Tauri 命令通过 `state.cross_stock_aggregator.get()` 访问。
+    pub cross_stock_aggregator: std::sync::OnceLock<
+        Arc<axagent_stock_analysis::cross_stock_aggregator::CrossStockSignalAggregator>,
+    >,
+    /// 实时行情监视器（P1-2: 替代前端 15s 轮询，2s/10s 自适应）
+    /// 由 `start_realtime_quote_watcher` 在启动时注入。
+    /// 前端通过 `watch_stock_quotes` 命令加入监控，通过 `stock-quote-update` 事件接收推送。
+    pub quote_watcher:
+        std::sync::OnceLock<Arc<axagent_astock_data::realtime_quote::RealTimeQuoteWatcher>>,
+
+    /// P1-2: T+0 重跑全局并发上限（默认 5 个并发），防止 50+ 股票同时异动时
+    /// 瞬间触发数十个 `run_stock_workflow_inner`（每个含 LLM 调用）压垮后端。
+    /// 通过 `acquire_owned()` 获取 permit，整个 T+0 重跑周期内持有。
+    pub stock_workflow_t0_semaphore: Arc<tokio::sync::Semaphore>,
+
+    /// P1-2: T+0 重跑 per-stock 互斥锁，保证同一只股票的多次 T+0 触发串行执行，
+    /// 避免同股票后端重跑并发写 `stock_analyses` 表造成版本号冲突。
+    /// 外层 Mutex 保护 HashMap，内层 Mutex 是真正的 per-stock 锁。
+    pub stock_workflow_t0_per_stock_locks:
+        Arc<tokio::sync::Mutex<std::collections::HashMap<String, Arc<tokio::sync::Mutex<()>>>>>,
     /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）
     #[cfg(not(mobile))]
     pub pty_manager: Arc<axagent_runtime::pty::PtyManager>,

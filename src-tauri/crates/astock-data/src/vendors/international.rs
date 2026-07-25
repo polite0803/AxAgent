@@ -1,4 +1,4 @@
-//! 国际股票 vendor — 港股 + 美股数据获取
+//! 国际股票 vendor — 港股 + 美股 + 国际指数 + 外汇数据获取
 //!
 //! ## 设计
 //!
@@ -7,6 +7,8 @@
 //! - 港股: `hk00700`（腾讯控股）
 //! - 美股: `US_TSLA`（特斯拉）
 //! - 中概: `US_BABA`（阿里巴巴）
+//! - 国际指数: `US_SPX`（标普 500）/ `US_IXIC`（纳指）/ `hkHSI`（恒生）
+//! - 外汇: `forex.USDCNY`（美元人民币）
 //!
 //! ## 使用
 //!
@@ -20,9 +22,20 @@ use crate::error::DataError;
 use crate::types::*;
 use crate::vendors::StockVendor;
 
-/// 国际股票 vendor（港股 + 美股 + ETF）
+/// 国际股票 vendor（港股 + 美股 + ETF + 国际指数 + 外汇）
 pub struct InternationalVendor {
     pub http: reqwest::Client,
+}
+
+/// eastmoney secid 市场前缀
+///
+/// - 0.<code>  — 港股/美股/外汇/国际指数
+/// - 1.<code>  — 上交所
+/// - 0.51xxxx  — 上证 ETF
+fn to_em_secid(intl_code: &str) -> String {
+    // eastmoney 国际行情统一走 secid=0.<intl_code>
+    // （与 eastmoney.rs A 股 secid=1.<6位数字> 不同）
+    format!("0.{intl_code}")
 }
 
 /// 将国际股票代码转为 eastmoney API 兼容格式
@@ -31,8 +44,16 @@ pub struct InternationalVendor {
 /// - "00700" / "00700.HK" → "hk00700"
 /// - "TSLA" / "TSLA.US" → "US_TSLA"
 /// - "BABA" / "BABA.US" → "US_BABA"
+/// - "US_SPX" / "hkHSI" / "forex.USDCNY" → 原样保留（已编码）
 /// - 其他保留原样（由 API 自行处理）
 fn to_international_code(stock_code: &str) -> String {
+    // 已编码格式直接返回
+    if stock_code.starts_with("US_")
+        || stock_code.starts_with("hk")
+        || stock_code.starts_with("forex.")
+    {
+        return stock_code.to_string();
+    }
     let (code, suffix) = if let Some((before, after)) = stock_code.split_once('.') {
         (before, after.to_uppercase())
     } else {
@@ -53,12 +74,12 @@ fn to_international_code(stock_code: &str) -> String {
 
 #[async_trait]
 impl StockVendor for InternationalVendor {
-    /// 获取港股/美股行情
+    /// 获取港股/美股/国际指数/外汇行情
     async fn get_quote(&self, stock_code: &str) -> Result<StockQuote, DataError> {
         let intl_code = to_international_code(stock_code);
+        let secid = to_em_secid(&intl_code);
         let url = format!(
-            "https://push2.eastmoney.com/api/qt/stock/get?secid=0.{}&fields=f43,f44,f45,f46,f47,f48,f50,f51,f52,f57,f58,f60,f116,f117,f162,f168,f170",
-            intl_code
+            "https://push2.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f43,f44,f45,f46,f47,f48,f50,f51,f52,f57,f58,f60,f116,f117,f162,f168,f170"
         );
 
         let resp = self.http.get(&url).send().await.map_err(|e| DataError::VendorError {
@@ -83,6 +104,7 @@ impl StockVendor for InternationalVendor {
         adj: Option<AdjType>,
     ) -> Result<Vec<KLine>, DataError> {
         let intl_code = to_international_code(stock_code);
+        let secid = to_em_secid(&intl_code);
         let period_code = match period {
             "daily" => "101",
             "weekly" => "102",
@@ -90,8 +112,8 @@ impl StockVendor for InternationalVendor {
             _ => "101",
         };
         let url = format!(
-            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=0.{}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57&klt={}&fqt={}&end=20500101&lmt={}",
-            intl_code, period_code, if matches!(adj, Some(AdjType::Forward) | None) { "1" } else { "0" }, limit.min(1000)
+            "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57&klt={}&fqt={}&end=20500101&lmt={}",
+            period_code, if matches!(adj, Some(AdjType::Forward) | None) { "1" } else { "0" }, limit.min(1000)
         );
 
         let resp = self.http.get(&url).send().await.map_err(|e| DataError::VendorError {

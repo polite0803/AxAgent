@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
+import { parseModelValue, useProviderNameMap } from "@/components/shared/ModelSelect";
 import { invoke } from "@/lib/invoke";
 import { useKnowledgeStore } from "@/stores";
 import { useSourceStore } from "@/stores";
@@ -40,6 +41,7 @@ import {
   Layers,
   Network,
   Plus,
+  RefreshCw,
   Search,
   Settings,
   Sparkles,
@@ -270,15 +272,28 @@ function SourceCard({
   source,
   onViewConfig,
   onViewDocument,
+  onDelete,
 }: {
   source: UnifiedSource;
   onViewConfig: (s: UnifiedSource) => void;
   onViewDocument?: (s: UnifiedSource) => void;
+  onDelete?: (s: UnifiedSource) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const meta = TYPE_META[source.containerType];
+  const providerNameMap = useProviderNameMap();
+
+  const providerDisplay = useMemo(() => {
+    if (!source.embeddingProvider) { return null; }
+    const parsed = parseModelValue(source.embeddingProvider);
+    if (!parsed) { return source.embeddingProvider; }
+    const providerName = providerNameMap.get(parsed.providerId);
+    return providerName
+      ? `${providerName} · ${parsed.model_id}`
+      : parsed.model_id;
+  }, [source.embeddingProvider, providerNameMap]);
 
   const handleView = useCallback(() => {
     if (onViewDocument && source.containerType === "knowledge") {
@@ -337,9 +352,9 @@ function SourceCard({
           </div>
           <div className="flex items-center gap-2 mb-2">
             <TypeBadge containerType={source.containerType} />
-            {source.embeddingProvider && (
+            {providerDisplay && (
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {source.embeddingProvider}
+                {providerDisplay}
                 {source.embeddingDimensions
                   ? ` · ${source.embeddingDimensions}d`
                   : ""}
@@ -373,6 +388,19 @@ function SourceCard({
             >
               {t("sourceManager.viewConfig")}
             </Button>
+            {onDelete && (
+              <Popconfirm
+                title={t("sourceManager.deleteConfirm", { name: source.name })}
+                onConfirm={() => onDelete(source)}
+              >
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<Trash2 size={12} />}
+                />
+              </Popconfirm>
+            )}
           </div>
         </div>
       </div>
@@ -390,7 +418,8 @@ function KnowledgeTab({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
-  const { bases, loadBases, loading: knowledgeLoading } = useKnowledgeStore();
+  const { bases, loadBases, loading: knowledgeLoading, deleteBase } = useKnowledgeStore();
+  const fetchSources = useSourceStore((s) => s.fetchSources);
   const allSources = useSourceStore((s) => s.sources);
   const knowledgeSources = useMemo(
     () => allSources.filter((s) => s.containerType === "knowledge"),
@@ -409,6 +438,15 @@ function KnowledgeTab({
     const base = bases.find((b) => b.name === source.name);
     if (base) { setSelectedBase(base); }
   }, [bases]);
+
+  const handleDeleteBase = useCallback(async (source: UnifiedSource) => {
+    try {
+      await deleteBase(source.id);
+      await fetchSources();
+    } catch (e) {
+      message.error(String(e));
+    }
+  }, [deleteBase, fetchSources]);
 
   const configuredCount = knowledgeSources.filter(
     (s) => s.embeddingProvider,
@@ -497,7 +535,12 @@ function KnowledgeTab({
                   <Row gutter={[12, 12]}>
                     {knowledgeSources.map((source) => (
                       <Col key={source.id} xs={24} sm={12} lg={8}>
-                        <SourceCard source={source} onViewConfig={onViewConfig} onViewDocument={handleViewDocument} />
+                        <SourceCard
+                          source={source}
+                          onViewConfig={onViewConfig}
+                          onViewDocument={handleViewDocument}
+                          onDelete={handleDeleteBase}
+                        />
                       </Col>
                     ))}
                   </Row>
@@ -753,6 +796,7 @@ function WikiTab({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { wikis, loadWikis } = useLlmWikiStore();
+  const fetchSources = useSourceStore((s) => s.fetchSources);
   const allSources = useSourceStore((s) => s.sources);
   const wikiSources = useMemo(
     () => allSources.filter((s) => s.containerType === "wiki"),
@@ -762,6 +806,20 @@ function WikiTab({
   useEffect(() => {
     loadWikis();
   }, [loadWikis]);
+
+  // Wiki 删除后同步刷新 UnifiedSource 列表，清除残留的 SourceCard
+  useEffect(() => {
+    if (wikis.length === 0 && wikiSources.length > 0) {
+      fetchSources();
+    } else {
+      // 比较 wikis 和 wikiSources 是否一致，不一致时刷新
+      const wikiIds = new Set(wikis.map((w) => w.id));
+      const staleSources = wikiSources.filter((s) => !wikiIds.has(s.id));
+      if (staleSources.length > 0) {
+        fetchSources();
+      }
+    }
+  }, [wikis, wikiSources, fetchSources]);
 
   const totalNotes = wikis.reduce((sum, w) => sum + (w.noteCount ?? 0), 0);
   const totalSources = wikis.reduce((sum, w) => sum + (w.sourceCount ?? 0), 0);
@@ -984,9 +1042,11 @@ function AllSourcesTab({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { sources, loading, searchAllSources } = useSourceStore();
+  const { sources, loading, searchAllSources, fetchSources } = useSourceStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [searchResults, setSearchResults] = useState<UnifiedSource[] | null>(
     null,
   );
@@ -1007,6 +1067,74 @@ function AllSourcesTab({
       setSearching(false);
     }
   }, [searchQuery, searchAllSources, sources]);
+
+  const handleImportProjectSources = useCallback(async () => {
+    setImporting(true);
+    try {
+      const result = await invoke<{
+        wikiId: string;
+        wikiName: string;
+        wikiImported: number;
+        wikiFailed: number;
+        wikiSkipped: number;
+        kbId: string;
+        kbName: string;
+        entityCount: number;
+        relationCount: number;
+        embeddingProvider: string | null;
+      }>("import_project_knowledge_sources", {
+        sourcePath: "D:/OneManager/AxInvest/knowledge-sources",
+      });
+      message.success(t("sourceManager.importSuccess", {
+        imported: result.wikiImported,
+        skipped: result.wikiFailed + result.wikiSkipped,
+        entities: result.entityCount,
+        relations: result.relationCount,
+        wikiName: result.wikiName,
+        kbName: result.kbName,
+      }));
+      message.info(t("sourceManager.importNoEmbedding"));
+      await fetchSources();
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setImporting(false);
+    }
+  }, [fetchSources, t]);
+
+  const handleSyncProjectSources = useCallback(async () => {
+    const targetSource = sources.find(
+      (s) => s.containerType === "knowledge" && s.name === "项目知识源图谱",
+    );
+    if (!targetSource) {
+      message.warning(t("sourceManager.syncNoTarget"));
+      return;
+    }
+    setSyncing(true);
+    try {
+      const result = await invoke<{
+        addedCount: number;
+        updatedCount: number;
+        deletedCount: number;
+        skippedCount: number;
+        errorCount: number;
+      }>("sync_project_knowledge_sources", {
+        baseId: targetSource.id,
+        sourcePath: "D:/OneManager/AxInvest/knowledge-sources",
+      });
+      message.success(t("sourceManager.syncSuccess", {
+        added: result.addedCount,
+        updated: result.updatedCount,
+        deleted: result.deletedCount,
+        skipped: result.skippedCount + result.errorCount,
+      }));
+      await fetchSources();
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setSyncing(false);
+    }
+  }, [sources, fetchSources, t]);
 
   const displaySources = searchResults ?? sources;
 
@@ -1163,6 +1291,24 @@ function AllSourcesTab({
         <Col>
           <Button icon={<Plus size={14} />} onClick={onCreateClick}>
             {t("sourceManager.createSource")}
+          </Button>
+        </Col>
+        <Col>
+          <Button
+            icon={<FolderPlus size={14} />}
+            onClick={handleImportProjectSources}
+            loading={importing}
+          >
+            {t("sourceManager.importProjectSources")}
+          </Button>
+        </Col>
+        <Col>
+          <Button
+            icon={<RefreshCw size={14} />}
+            onClick={handleSyncProjectSources}
+            loading={syncing}
+          >
+            {t("sourceManager.syncProjectSources")}
           </Button>
         </Col>
       </Row>

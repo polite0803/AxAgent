@@ -415,7 +415,7 @@ interface StockAnalysisState {
   ) => Promise<void>;
   startAnalysis: (
     stockCode: string,
-    options?: { replaceAnalysisId?: string; language?: string },
+    options?: { parentAnalysisId?: string; language?: string },
   ) => Promise<void>;
   rerunDecision: (analysisId: string) => Promise<void>;
   cancelAnalysis: () => Promise<void>;
@@ -728,7 +728,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     }
   },
 
-  startAnalysis: async (stockCode: string, options?: { replaceAnalysisId?: string; language?: string }) => {
+  startAnalysis: async (stockCode: string, options?: { parentAnalysisId?: string; language?: string }) => {
     const { status } = get();
     if (status === "loading" || status === "running") {
       console.warn("[StockAnalysis] Analysis already in progress, ignoring duplicate start");
@@ -796,17 +796,15 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         asOfDate,
         mode: anchorMode === "backtest_sweep" ? "backtest_sweep" : anchorMode === "replay" ? "replay" : "live",
       });
-      // 重跑分析：透传已存在 id 让后端 DELETE 同 id 旧行再 INSERT,实现"覆盖"。
-      // 不传则是 fresh start,后端生成新 UUID。
-      // 注意: 仅在显式传入 replaceAnalysisId 时才带 analysisId 键,避免默认调用
-      // 多出一个键导致 toHaveBeenCalledWith 的 deep equality 失败。
+      // 版本化分析：透传原始 analysisId 作为 parent，后端新建独立行保留历史版本。
+      // 不传则是首次分析（parent_analysis_id = NULL）。
       const runArgs: Record<string, unknown> = {
         stockCode,
         dryRun,
         asOfDate,
       };
-      if (options?.replaceAnalysisId) {
-        runArgs.analysisId = options.replaceAnalysisId;
+      if (options?.parentAnalysisId) {
+        runArgs.parentAnalysisId = options.parentAnalysisId;
       }
       // P2-3.3: 报告语言切换 — 传入 language 让后端追加语言指示到 Agent prompt
       // 优先使用 options.language（显式传入），否则使用 store 中的 reportLanguage
@@ -977,6 +975,23 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         const normalized = normalizeDecision(raw);
         if (normalized) {
           set({ decision: normalized });
+          // V64 修复: decisionJson 含 confidence 等字段但无 action 时，
+          // normalizeDecision 返回 WAIT，但 llmDecisionJson 可能包含 verdict/report
+          // 可推导真实 action。此处复用 llmDecisionJson 兜底逻辑进行修补，
+          // 而非等待全零空壳分支（后者因 hasConfidence=true 永远不会触发）。
+          if (
+            (normalized.action === "WAIT" || !normalized.action)
+            && record.llmDecisionJson
+          ) {
+            const llmRaw = parseJsonLoose(record.llmDecisionJson);
+            if (llmRaw?.reasoning) {
+              const derived = parseAction(String(llmRaw.reasoning));
+              if (derived !== "WAIT") {
+                normalized.action = derived;
+                set({ decision: normalized });
+              }
+            }
+          }
         } else {
           console.warn(
             "[StockAnalysis] loadAnalysis decisionJson 全零空壳，跳过 set:",
@@ -1034,7 +1049,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         // 优先取后端预计算的一致性分数
         // 宽松解析：decisionJson 同样可能被 ```json 代码块包裹
         const djParsed = record.decisionJson ? parseJsonLoose(record.decisionJson) : null;
-        console.log("[loadAnalysis] djParsed.formulaLlmAgreement:", djParsed?.formulaLlmAgreement);
+        console.log(
+          "[loadAnalysis] djParsed.formulaLlmAgreement:",
+          djParsed?.formulaLlmAgreement ?? "(未设置，将使用前端手动计算降级)",
+        );
         if (djParsed?.formulaLlmAgreement != null) {
           decisionAgreementScore = Math.round(Number(djParsed.formulaLlmAgreement));
         } else {
@@ -1954,6 +1972,28 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         const pmRaw = results["portfolio-mgr"];
         if (pmRaw) {
           decision = extractDecision(pmRaw);
+          // P0 防御: extractDecision 走 normalizeDecision 的复杂 source 选择逻辑,
+          // 可能在边缘情况下匹配到错误的 source 路径。增加一条更直接的路径:
+          // 从 pmRaw.result (CodeNode 容器的原始 Rhai 输出) 直接提取。
+          // 仅在 extractDecision 返回 null 或置信度为 0 时补跑, 避免覆盖正确值。
+          if (
+            (!decision || decision.confidence === 0)
+            && pmRaw && typeof pmRaw === "object"
+          ) {
+            const pmObj = pmRaw as Record<string, unknown>;
+            if (pmObj.result && typeof pmObj.result === "object" && !Array.isArray(pmObj.result)) {
+              const direct = normalizeDecision(pmObj.result as Record<string, unknown>);
+              if (direct && (direct.confidence > 0 || !decision)) {
+                if (decision) {
+                  console.warn(
+                    "[StockAnalysis] workflow-completed extractDecision 返回置信度 0, direct result path 覆盖:",
+                    { oldConf: decision.confidence, newConf: direct.confidence, newAction: direct.action },
+                  );
+                }
+                decision = direct;
+              }
+            }
+          }
         }
         console.log("[workflow-completed] portfolio-mgr raw:", {
           pmRaw: pmRaw ? JSON.stringify(pmRaw).slice(0, 2000) : "(undefined)",
@@ -1962,6 +2002,19 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           decisionConfidence: decision?.confidence,
           decisionAction: decision?.action,
         });
+        // P0 防御日志: 当 event 提取的置信度为 0 但 pmRaw 有 result 时, dump 完整结构
+        if (decision?.confidence === 0 && pmRaw && typeof pmRaw === "object") {
+          const pmObj = pmRaw as Record<string, unknown>;
+          if (pmObj.result && typeof pmObj.result === "object") {
+            console.warn(
+              "[StockAnalysis] workflow-completed 置信度为 0 但 pmRaw.result 存在, dump 结构:",
+              {
+                resultKeys: Object.keys(pmObj.result as object),
+                resultPreview: JSON.stringify(pmObj.result).slice(0, 1000),
+              },
+            );
+          }
+        }
 
         // 回退：从 output 中提取 decision
         if (!decision && output !== undefined) {
@@ -2128,6 +2181,45 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           // #21 工作流成功完成，重置自动重试计数，允许下次失败再次重试
           _workflowErrorRetries: 0,
         });
+
+        // ── P0 防御: DB 决策权威覆盖 ──
+        // 历史反复出现的问题: 工作流执行完成后 UI 显示置信度 0%, 但重新以历史记录打开
+        // 该分析置信度正常(如 19%)。代码审查表明两条路径都应提取到相同的正确值,
+        // 但可能存在极难重现的 IPC 序列化/竞态条件导致事件 payload 的决策提取异常。
+        // 后端在 emit workflow-completed 之前已完成 DB 写入, 这里异步查一次 DB,
+        // 如果 DB 决策置信度高于事件提取值, 用 DB 值覆盖, 确保 UI 显示与历史记录一致。
+        if (get().analysisId) {
+          (async () => {
+            try {
+              const persisted = await invoke<{
+                decisionJson: string | null;
+              }>("get_stock_analysis", { analysisId: get().analysisId });
+              if (persisted?.decisionJson) {
+                const dbRaw = parseJsonLoose(persisted.decisionJson);
+                if (dbRaw) {
+                  const dbDecision = normalizeDecision(dbRaw);
+                  const eventConf = get().decision?.confidence ?? 0;
+                  const dbConf = dbDecision?.confidence ?? 0;
+                  if (dbDecision && dbConf > eventConf + 3) {
+                    console.warn(
+                      "[StockAnalysis] workflow-completed DB 决策置信度高于事件提取值, 使用 DB 值覆盖:",
+                      { eventConf, dbConf, eventDecision: get().decision?.action, dbDecision: dbDecision.action },
+                    );
+                    set({ decision: dbDecision });
+                  } else if (dbDecision && eventConf > dbConf + 3) {
+                    // 反向差异也记录, 帮助诊断
+                    console.warn(
+                      "[StockAnalysis] workflow-completed 事件置信度高于 DB:",
+                      { eventConf, dbConf, analysisId: get().analysisId },
+                    );
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn("[StockAnalysis] workflow-completed DB 决策覆盖检查失败:", e);
+            }
+          })();
+        }
 
         // 荐股 ↔ 分析师交叉验证：把本次的分析师投票结果缓存到 stockCodeConsensus
         // RecommendationPanel 会读取这个缓存来提示用户"推荐与共识是否一致"。
