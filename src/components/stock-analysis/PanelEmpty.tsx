@@ -78,7 +78,7 @@ export function PanelEmpty(props: PanelEmptyProps) {
         type="warning"
         showIcon
         icon={<AlertTriangle size={16} />}
-        message={
+        title={
           <Space size={6}>
             <Clock size={12} className="text-purple-500" />
             <span>{t("stockAnalysis.empty.replayDegradedTitle")}</span>

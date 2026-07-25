@@ -208,7 +208,7 @@ export function TradeImportPanel() {
       <Alert
         type="info"
         showIcon
-        message={t("trade.import.formatHint")}
+        title={t("trade.import.formatHint")}
         style={{ marginBottom: 12 }}
       />
 

@@ -93,7 +93,7 @@ export function RhaiEditorTab() {
         <Alert
           type="error"
           showIcon
-          message={t("quant.rhai.compileError")}
+          title={t("quant.rhai.compileError")}
           description={
             <pre style={{ whiteSpace: "pre-wrap", maxHeight: 200, overflow: "auto", margin: 0 }}>
               {lastError}
@@ -105,7 +105,7 @@ export function RhaiEditorTab() {
         <Alert
           type="success"
           showIcon
-          message={t("quant.rhai.saved")}
+          title={t("quant.rhai.saved")}
           description={
             <Space>
               <Tag color="green">{lastSaved}</Tag>

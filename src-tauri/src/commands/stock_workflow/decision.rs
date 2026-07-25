@@ -460,7 +460,65 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
     }
 
     // 回退: workflow 顶层 output(无 output_schema 或非 stock-analysis 工作流)
-    wf.output.as_ref().and_then(|v| serde_json::to_string(v).ok())
+    //
+    // P4 修复(2026-07-25):若 wf.output 是 results map(顶层含 stock-analysis
+    // 已知节点 ID 之一,如 trigger/portfolio-mgr/trader 等),说明 portfolio-mgr
+    // 节点未产出有效结果且 node_states 也无记录(可能是工作流异常终止或 rt-workflow
+    // 未写入 node_states 的边界场景)。此时直接序列化 wf.output 会让前端
+    // normalizeDecision 拿到 results map → 识别为 results map 后因 portfolio-mgr
+    // 缺失而判为"全零空壳"返回 null → 前端日志噪音 + UI 闪烁。
+    //
+    // 修复策略:检测到 results map 时,走最小占位结构(与 V57 硬化同款),
+    // 给前端一个明确的"决策缺失,已降级为观望"信号,而非含糊的 results map。
+    if let Some(output) = wf.output.as_ref() {
+        // 检测:顶层是 object 且含已知 workflow 节点 ID
+        let is_results_map = output
+            .as_object()
+            .map(|obj| {
+                obj.contains_key("portfolio-mgr")
+                    || obj.contains_key("trigger")
+                    || obj.contains_key("end-output")
+                    || obj.contains_key("research-mgr")
+                    || obj.contains_key("trader")
+                    || obj.contains_key("value-investor")
+                    || obj.contains_key("debate-convergence")
+                    || obj.contains_key("raw-data")
+                    || obj.contains_key("t-quote")
+                    || obj.contains_key("t-kline")
+            })
+            .unwrap_or(false);
+        if is_results_map {
+            tracing::warn!(
+                "[extract_decision_json] portfolio-mgr 缺位且 node_states 无记录,wf.output 是 results map,降级为最小占位决策"
+            );
+            let mut fallback = serde_json::Map::new();
+            fallback.insert("action".to_string(), json!("观望"));
+            fallback.insert("positionPct".to_string(), json!(0));
+            fallback.insert("confidence".to_string(), json!(0.0));
+            fallback.insert("riskLevel".to_string(), json!("低"));
+            fallback.insert("timeHorizon".to_string(), json!("短期"));
+            fallback.insert(
+                "reasoning".to_string(),
+                json!("组合管理节点未产出有效决策,已降级为保守观望。portfolio-mgr 节点缺位且 node_states 无状态记录。"),
+            );
+            let mut diag = serde_json::Map::new();
+            diag.insert("node".to_string(), json!("portfolio-mgr"));
+            diag.insert("nodeStatus".to_string(), json!("Missing"));
+            diag.insert(
+                "nodeError".to_string(),
+                json!("portfolio-mgr 节点在 results 和 node_states 中均缺位,可能工作流异常终止"),
+            );
+            diag.insert(
+                "hint".to_string(),
+                json!("检查工作流执行日志,确认 portfolio-mgr 节点是否被正确调度。若为工作流引擎 bug,需排查 rt-workflow engine 的节点写入逻辑。"),
+            );
+            fallback.insert("diagnostics".to_string(), serde_json::Value::Object(diag));
+            return serde_json::to_string(&serde_json::Value::Object(fallback)).ok();
+        }
+        serde_json::to_string(output).ok()
+    } else {
+        None
+    }
 }
 
 /// 从 Workflow 结果中提取 trader 节点的 LLM 决策 JSON。
@@ -1165,6 +1223,52 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&dj).expect("必须可解析");
         assert_eq!(parsed["action"], "观望");
         assert_eq!(parsed["diagnostics"]["nodeStatus"], "Skipped");
+    }
+
+    /// P4 修复(2026-07-25): portfolio-mgr 节点在 results 和 node_states 中均缺位,
+    /// 但 wf.output 是整个 results map(顶层含 trigger/portfolio-mgr 等 workflow
+    /// 节点 ID)。旧逻辑直接序列化 wf.output,前端 normalizeDecision 识别为
+    /// results map 后因 portfolio-mgr 缺失而判为"全零空壳"返回 null。
+    ///
+    /// 修复后:检测到 wf.output 是 results map 时,降级为最小占位决策
+    /// (action="观望" + diagnostics.nodeStatus="Missing"),前端不再误报"全零空壳"。
+    #[test]
+    pub(crate) fn extract_decision_json_hardens_workflow_output_results_map() {
+        use std::collections::HashMap;
+        let results = HashMap::new(); // results map 为空,模拟 portfolio-mgr 从未运行
+        let node_states = HashMap::new(); // node_states 也无记录
+        // wf.output 是整个 workflow 的 results map,顶层是节点 ID 而非决策字段
+        let wf = Workflow {
+            id: "test".to_string(),
+            name: "test".to_string(),
+            nodes: vec![],
+            edges: vec![],
+            status: axagent_rt_workflow::WorkflowStatus::Failed,
+            created_at: 0,
+            completed_at: None,
+            results,
+            node_states,
+            output: Some(json!({
+                "trigger": { "status": "Completed", "result": "ok" },
+                "research-mgr": { "status": "Completed", "content": "..." },
+                "trader": { "status": "Completed", "content": "{...}" },
+                // 注意:portfolio-mgr 缺位(节点未运行)
+            })),
+            error_config: None,
+            error_workflow_id: None,
+        };
+        let dj = extract_decision_json(&wf).expect("results map 必须降级为最小占位决策");
+        let parsed: serde_json::Value = serde_json::from_str(&dj).expect("必须可解析");
+        // 不应是 results map,应是最小占位决策
+        assert_eq!(parsed["action"], "观望");
+        assert_eq!(parsed["positionPct"], 0.0);
+        assert_eq!(parsed["confidence"], 0.0);
+        assert_eq!(parsed["diagnostics"]["node"], "portfolio-mgr");
+        assert_eq!(parsed["diagnostics"]["nodeStatus"], "Missing");
+        // 确认没有把 trigger/research-mgr/trader 这些 results map key 写入
+        assert!(parsed.get("trigger").is_none());
+        assert!(parsed.get("research-mgr").is_none());
+        assert!(parsed.get("trader").is_none());
     }
 }
 

@@ -352,7 +352,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
           type="warning"
           showIcon
           className="!text-xs !mb-2"
-          message={
+          title={
             <span className="text-xs">
               {t("stockAnalysis.recommendation.bannerAsOf", { date: asOfDate })}
             </span>
@@ -366,7 +366,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
             type="warning"
             showIcon
             className="!text-xs !mb-2"
-            message={
+            title={
               <span className="text-xs">
                 {t("stockAnalysis.recommendation.bannerVendorDisabled", { styles: disabledStyleNames })}
               </span>
@@ -385,7 +385,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
             type="info"
             showIcon
             className="!text-xs !mb-2"
-            message={
+            title={
               <span className="text-xs">
                 {t("stockAnalysis.recommendation.dataQualitySummary", {
                   real: dataQuality.real,
@@ -402,7 +402,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
             type="warning"
             showIcon
             className="!text-xs !mb-2"
-            message={
+            title={
               <span className="text-xs">
                 {t("stockAnalysis.recommendation.bannerDegraded", {
                   styles: Array.from(degradedStyleSet)
@@ -421,7 +421,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
             type="warning"
             showIcon
             className="!text-xs !mb-2"
-            message={
+            title={
               <span className="text-xs">
                 ⚠ {t("stockAnalysis.settings.panels.noData")} — {errorDetail}
               </span>

@@ -236,7 +236,7 @@ export function ReplaySweep() {
       <Alert
         type="info"
         showIcon
-        message={t("replayWorkbench.sweep.intro")}
+        title={t("replayWorkbench.sweep.intro")}
         style={{ marginBottom: 12 }}
       />
 
@@ -335,7 +335,7 @@ export function ReplaySweep() {
         <Alert
           type="error"
           showIcon
-          message={error}
+          title={error}
           style={{ marginTop: 12 }}
         />
       )}
@@ -387,7 +387,7 @@ export function ReplaySweep() {
               type="warning"
               showIcon
               icon={<ShieldAlert size={14} />}
-              message={t("replayWorkbench.sweep.violationNotice", {
+              title={t("replayWorkbench.sweep.violationNotice", {
                 count: result.invalid,
               })}
               style={{ marginTop: 12 }}

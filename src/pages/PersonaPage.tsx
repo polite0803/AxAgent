@@ -452,7 +452,7 @@ export function PersonaPage() {
           {autoLearnError && (
             <Alert
               type="error"
-              message={t("settings.persona.autoLearn.failed")}
+              title={t("settings.persona.autoLearn.failed")}
               description={autoLearnError}
               showIcon
             />
@@ -460,7 +460,7 @@ export function PersonaPage() {
           {autoLearnResult && (
             <Alert
               type={autoLearnResult.learned ? "success" : "warning"}
-              message={autoLearnResult.learned
+              title={autoLearnResult.learned
                 ? t("settings.persona.autoLearn.successTitle", {
                   name: autoLearnResult.persona_name,
                 })

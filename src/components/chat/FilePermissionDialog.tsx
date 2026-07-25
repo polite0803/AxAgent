@@ -151,7 +151,7 @@ export function FilePermissionDialog({
               type="warning"
               showIcon
               icon={<AlertTriangle size={14} />}
-              message={t("filePermission.authRequest")}
+              title={t("filePermission.authRequest")}
               description={
                 <Space direction="vertical" size={4}>
                   <Typography.Text>
@@ -273,7 +273,7 @@ export function FilePermissionDialog({
                   <Alert
                     type="success"
                     showIcon
-                    message={t("filePermission.authSuccess")}
+                    title={t("filePermission.authSuccess")}
                     description={
                       <Space direction="vertical" size={4}>
                         <Typography.Text>{result.message}</Typography.Text>
@@ -312,7 +312,7 @@ export function FilePermissionDialog({
                   <Alert
                     type="error"
                     showIcon
-                    message={t("filePermission.authFailed")}
+                    title={t("filePermission.authFailed")}
                     description={result.message}
                   />
                   <Space style={{ width: "100%", justifyContent: "flex-end" }}>

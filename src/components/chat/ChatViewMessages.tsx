@@ -1466,7 +1466,7 @@ export function useChatViewMessages({
                 {quoteBlock}
                 <Alert
                   type="error"
-                  message={text.length > 200 ? text.slice(0, 200) + "…" : text}
+                  title={text.length > 200 ? text.slice(0, 200) + "…" : text}
                   description={text.length > 100
                     ? (
                       <div

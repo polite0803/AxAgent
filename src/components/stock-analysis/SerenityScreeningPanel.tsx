@@ -1160,7 +1160,7 @@ export function SerenityScreeningPanel() {
             <Alert
               type="info"
               showIcon
-              message={t("serenityPanel.noCandidateTitle")}
+              title={t("serenityPanel.noCandidateTitle")}
               description={emptyReason}
               className="w-full"
             />
@@ -1176,7 +1176,7 @@ export function SerenityScreeningPanel() {
         <Alert
           type="info"
           showIcon
-          message={t("serenityPanel.noCandidateTitle")}
+          title={t("serenityPanel.noCandidateTitle")}
           description={emptyReason}
           className="w-full"
         />

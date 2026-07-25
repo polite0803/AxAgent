@@ -56,7 +56,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
     return (
       <Alert
         type="success"
-        message={t("decomposition.readyLabel", { name: dependency.name })}
+        title={t("decomposition.readyLabel", { name: dependency.name })}
         showIcon
       />
     );

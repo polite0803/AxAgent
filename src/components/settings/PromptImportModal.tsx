@@ -297,7 +297,7 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
           <Space direction="vertical" className="w-full">
             <Alert
               type={totalErrors > 0 ? "warning" : "success"}
-              message={
+              title={
                 <span>
                   {t("promptTemplates.imported")}: <Tag color="green">{totalImported}</Tag>{" "}
                   {t("promptTemplates.skipped")}: <Tag color="orange">{totalSkipped}</Tag>{" "}

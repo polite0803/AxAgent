@@ -367,7 +367,7 @@ export function WfDesTab() {
         <Alert
           type="error"
           showIcon
-          message={t("quant.wfDes.klineError")}
+          title={t("quant.wfDes.klineError")}
           description={klineError}
           closable
           onClose={() => setKlineError(null)}
@@ -378,7 +378,7 @@ export function WfDesTab() {
         <Alert
           type="error"
           showIcon
-          message={t("quant.wfDes.errorRunning")}
+          title={t("quant.wfDes.errorRunning")}
           description={error}
           closable
           onClose={() => setError(null)}

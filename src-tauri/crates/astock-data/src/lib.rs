@@ -199,6 +199,9 @@ impl VendorRouting {
                 "sina".into(),
                 "xueqiu".into(),
                 "eastmoney".into(),
+                // P1 修复(2026-07-25): eastmoney push2his 反爬触发时自动 fallback 到
+                // 浏览器内核(绕过 JA3 TLS 指纹封锁)。仅桌面端 fetcher 已注入时生效。
+                "browser_eastmoney".into(),
                 "neodata".into(), // 末位兜底（美股/港股）
             ],
             klines: vec![
@@ -279,7 +282,11 @@ impl VendorRouting {
                 "iwencai".into(),
                 "neodata".into(),
             ],
-            earnings_calendar: vec!["eastmoney".into(), "neodata".into()],
+            // P3 修复(2026-07-25): 移除 neodata(走 trait 默认 Ok(vec![]) 会把 vendor 故障
+            // 误报为"成功无数据");加入 browser_eastmoney 作为反爬 fallback。
+            // 现在语义清晰:eastmoney 故障 → fallback 到 browser_eastmoney;
+            // 两个都失败 → 返回明确错误,前端不再被"假成功空数组"误导。
+            earnings_calendar: vec!["eastmoney".into(), "browser_eastmoney".into()],
             social_sentiment: vec!["guba".into()],
             industry_ranking: vec![
                 "eastmoney".into(),
@@ -2241,12 +2248,20 @@ impl AStockClient {
         }
         // ── live 模式 ──
         // H1.1 修复:live 模式也添加 L1 缓存(搜索结果 60s 内变化不大,频繁搜索同关键词可命中缓存)
+        // P2 修复(2026-07-25): 正缓存 TTL 从 60s 提到 300s(搜索结果变化慢,5 分钟足够);
+        //                    新增负缓存(失败关键词 30s 内不重打全 vendor 链,避免 4-13s 串行延迟放大)。
         {
             let cache_key = Self::cache_key_for("search_stock", keyword);
             if let Some(cached) = self.cache_get(&cache_key).await {
                 if let Ok(data) = serde_json::from_str::<Vec<StockSearchResult>>(&cached) {
                     return Ok(data);
                 }
+            }
+            // 负缓存:30s 内相同关键词失败过 → 直接返回空 vec,不重打 vendor 链
+            let neg_key = format!("search_stock:neg::{}", keyword);
+            if self.cache_get(&neg_key).await.is_some() {
+                tracing::debug!("[search_stock] 负缓存命中(30s 内失败过): keyword={}", keyword);
+                return Ok(vec![]);
             }
         }
         let vendor_names: Vec<String> = self.routing.search.iter().map(|n| n.to_string()).collect();
@@ -2268,14 +2283,18 @@ impl AStockClient {
             .await
         {
             Ok(result) => {
-                // H1.1 修复:写入 L1 缓存(TTL 60s,搜索结果变化快,使用较短 TTL)
+                // P2:正缓存 TTL 300s(原 60s 太短,用户切换关键词再回来时几乎必 miss)
                 let cache_key = Self::cache_key_for("search_stock", keyword);
-                self.cache_set_serialized(cache_key, &result, 60).await;
+                self.cache_set_serialized(cache_key, &result, 300).await;
                 Ok(result)
             },
             Err(e) => {
                 // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
                 tracing::warn!("[search_stock] 所有 vendor 失败(keyword={}): {e}", keyword);
+                // P2:负缓存 30s,避免相同失败关键词短时间内反复触发完整 vendor 链(单次最差 13s)
+                // 30s 是 trade-off:长则 vendor 恢复后用户感知慢,短则负缓存命中率低
+                let neg_key = format!("search_stock:neg::{}", keyword);
+                self.cache_set(neg_key, "1".to_string(), 30).await;
                 Ok(vec![])
             },
         }

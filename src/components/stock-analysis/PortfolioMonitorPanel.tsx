@@ -87,7 +87,7 @@ export function PortfolioMonitorPanel() {
             type="error"
             showIcon
             className="mt-2"
-            message={t("stockAnalysis.portfolioMonitor.loadError")}
+            title={t("stockAnalysis.portfolioMonitor.loadError")}
             description={lastError}
           />
         )}
@@ -117,7 +117,7 @@ export function PortfolioMonitorPanel() {
         <Alert
           type="info"
           showIcon
-          message={t("stockAnalysis.portfolioMonitor.historicalTitle", { date: dashboard.asOfDate ?? asOfDate })}
+          title={t("stockAnalysis.portfolioMonitor.historicalTitle", { date: dashboard.asOfDate ?? asOfDate })}
           description={t("stockAnalysis.portfolioMonitor.historicalDesc")}
         />
       )}
@@ -127,7 +127,7 @@ export function PortfolioMonitorPanel() {
           type="warning"
           showIcon
           icon={<WarningOutlined />}
-          message={t("stockAnalysis.portfolioMonitor.warningTitle")}
+          title={t("stockAnalysis.portfolioMonitor.warningTitle")}
           description={dashboard.concentrationWarning}
         />
       )}

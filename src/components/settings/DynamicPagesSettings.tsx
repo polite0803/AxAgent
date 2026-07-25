@@ -628,7 +628,7 @@ export function DynamicPagesSettings() {
                     ? (
                       <Alert
                         type="error"
-                        message={t("dynamicUIManager.parseError")}
+                        title={t("dynamicUIManager.parseError")}
                         description={derivedEditParseError}
                       />
                     )
@@ -636,7 +636,7 @@ export function DynamicPagesSettings() {
                     ? (
                       <Alert
                         type="success"
-                        message={t("dynamicUIManager.schemaValid")}
+                        title={t("dynamicUIManager.schemaValid")}
                       />
                     )
                     : null}

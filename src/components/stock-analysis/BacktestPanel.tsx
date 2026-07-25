@@ -107,7 +107,7 @@ export function BacktestPanel() {
           type="info"
           showIcon
           className="!text-xs !mb-2"
-          message={
+          title={
             <span className="text-xs">
               {t("stockAnalysis.backtest.backtestHint", { date: asOfDate })}
             </span>
@@ -204,7 +204,7 @@ export function BacktestPanel() {
             type="warning"
             showIcon
             className="!text-xs !mb-2"
-            message={strategyError}
+            title={strategyError}
           />
         )}
 

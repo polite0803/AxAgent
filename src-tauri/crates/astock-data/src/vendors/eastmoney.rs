@@ -148,7 +148,7 @@ impl EastMoneyVendor {
 /// - "年报"/"季报"/"半年报" → ("formal", 期间)
 /// - "股东大会" → ("shareholders_meeting", None)
 /// - 其他 → ("other", None)
-fn classify_earnings_title(title: &str) -> (&'static str, Option<String>) {
+pub(crate) fn classify_earnings_title(title: &str) -> (&'static str, Option<String>) {
     // 提取期间（如 "2024年年度报告" → "2024年报"，"2025年第三季度报告" → "2025Q3"）
     let period = extract_report_period(title);
 
@@ -179,15 +179,17 @@ fn extract_report_period(title: &str) -> Option<String> {
         // 提取年份
         let year: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
         if year.len() == 4 {
+            // P3 修复(2026-07-25): 半年度/半年报/中报必须先于"年度报告"判断,
+            // 否则"2024年半年度报告"会先匹配到"年度报告"误返回"2024年报"。
+            if title.contains("半年度") || title.contains("半年报") || title.contains("中报")
+            {
+                return Some(format!("{year}Q2"));
+            }
             if title.contains("年度报告") || title.contains("年报") {
                 return Some(format!("{year}年报"));
             }
             if title.contains("第一季度") {
                 return Some(format!("{year}Q1"));
-            }
-            if title.contains("半年度") || title.contains("半年报") || title.contains("中报")
-            {
-                return Some(format!("{year}Q2"));
             }
             if title.contains("第三季度") {
                 return Some(format!("{year}Q3"));
@@ -3059,5 +3061,42 @@ mod asof_capability_tests {
         assert_eq!(v.asof_capability("get_market_dragon_tiger"), AsOfCapability::NativeDateParam);
         assert_eq!(v.asof_capability("get_quote"), AsOfCapability::SynthesizeFromKline);
         assert_eq!(v.asof_capability("get_hot_stocks"), AsOfCapability::NoHistoricalSemantic);
+    }
+
+    /// P3 测试(2026-07-25): classify_earnings_title 标题分类正确性
+    /// 此函数被 eastmoney.rs 和 browser_eastmoney.rs 共用,需保证行为一致。
+    /// 回归点:避免后续修改破坏分类规则,影响财报日历 UI 显示。
+    #[test]
+    fn classify_earnings_title_categorizes_correctly() {
+        // 业绩预告类
+        assert_eq!(classify_earnings_title("2024年业绩预告").0, "preliminary");
+        assert_eq!(classify_earnings_title("2024年预增公告").0, "preliminary");
+        assert_eq!(classify_earnings_title("2024年预减公告").0, "preliminary");
+
+        // 业绩快报类
+        assert_eq!(classify_earnings_title("2024年业绩快报").0, "express");
+
+        // 股东大会
+        assert_eq!(
+            classify_earnings_title("2024年第二次临时股东大会决议").0,
+            "shareholders_meeting"
+        );
+        assert_eq!(classify_earnings_title("2024年股东大会通知").1, None);
+
+        // 正式报告类(年报/季报/半年报)
+        assert_eq!(classify_earnings_title("2024年年度报告").0, "formal");
+        assert_eq!(classify_earnings_title("2025年第一季度报告").0, "formal");
+        assert_eq!(classify_earnings_title("2024年半年度报告").0, "formal");
+        assert_eq!(classify_earnings_title("2024年半年报").0, "formal");
+        assert_eq!(classify_earnings_title("2024年报").0, "formal");
+
+        // 期间提取
+        assert_eq!(classify_earnings_title("2024年年度报告").1.as_deref(), Some("2024年报"));
+        assert_eq!(classify_earnings_title("2025年第三季度报告").1.as_deref(), Some("2025Q3"));
+        assert_eq!(classify_earnings_title("2024年半年度报告").1.as_deref(), Some("2024Q2"));
+
+        // 其他
+        assert_eq!(classify_earnings_title("关于公司章程修订的公告").0, "other");
+        assert_eq!(classify_earnings_title("关于公司章程修订的公告").1, None);
     }
 }

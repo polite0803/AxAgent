@@ -366,7 +366,7 @@ export const DynamicUIRenderer: React.FC<DynamicUIProps> = React.memo(
       return (
         <Alert
           type="error"
-          message={t("dynamicUI.schemaValidationFailed")}
+          title={t("dynamicUI.schemaValidationFailed")}
           description={
             <ul className="list-disc pl-4 mt-1">
               {validation.errors.slice(0, 5).map((err, i) => (
@@ -428,7 +428,7 @@ function ErrorPlaceholder({
   return (
     <Alert
       type="error"
-      message={t("dynamicUI.renderFailed", { type })}
+      title={t("dynamicUI.renderFailed", { type })}
       description={
         <pre className="text-xs whitespace-pre-wrap">
           {error instanceof Error ? error.message : String(error)}

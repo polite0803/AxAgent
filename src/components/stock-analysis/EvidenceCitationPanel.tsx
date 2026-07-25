@@ -81,7 +81,7 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
     return (
       <Alert
         type="error"
-        message={t("stockAnalysis.evidenceCitation.error", "提取失败")}
+        title={t("stockAnalysis.evidenceCitation.error", "提取失败")}
         description={error}
         showIcon
       />

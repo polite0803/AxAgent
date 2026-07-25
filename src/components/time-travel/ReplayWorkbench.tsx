@@ -141,7 +141,7 @@ export function ReplayWorkbench() {
         <Alert
           type="info"
           showIcon
-          message={t("replayWorkbench.notice")}
+          title={t("replayWorkbench.notice")}
           style={{ marginBottom: 16 }}
         />
 

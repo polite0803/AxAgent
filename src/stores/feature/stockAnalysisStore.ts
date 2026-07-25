@@ -778,7 +778,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       await get().setupEventListener();
 
       // 数据源健康检查（非阻塞，仅打日志）
-      const VENDORS = ["eastmoney", "sina", "tencent", "akshare"];
+      // P1 修复(2026-07-25): 加入 browser_eastmoney，让用户看到反爬 fallback 通道的状态
+      const VENDORS = ["eastmoney", "browser_eastmoney", "sina", "tencent", "akshare"];
       for (const v of VENDORS) {
         invoke("check_vendor_health", { vendor: v }).catch((e) => {
           const msg = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e);
@@ -2240,8 +2241,11 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         changePct: number;
         turnoverRate: number;
         timestamp: number;
+        // P1-1: 后端 callback 已触发重跑时携带 backendTriggered=true，
+        // 前端据此跳过 startAnalysis（避免后端+前端重复重跑），仅做 toast 提示。
+        backendTriggered?: boolean;
       }>("stock-monitor-t0-rerun-requested", (event) => {
-        const { stockCode, reason } = event.payload;
+        const { stockCode, reason, backendTriggered } = event.payload;
         // 防抖: 当前正在跑 workflow 就不重入
         const cur = get();
         if (cur.status === "running" || cur.status === "loading") {
@@ -2249,8 +2253,14 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           return;
         }
         console.info(
-          `[t0] 收到 T+0 重跑请求: stock=${stockCode} reason=${reason}`,
+          `[t0] 收到 T+0 重跑请求: stock=${stockCode} reason=${reason} backendTriggered=${backendTriggered ?? false}`,
         );
+        // P1-1: 后端已通过 t0_callback 触发重跑，前端不再调 startAnalysis，
+        //       只做 toast 提示（避免后端+前端双跑造成资源浪费和版本冲突）
+        if (backendTriggered) {
+          console.info(`[t0] 后端已重跑，前端跳过 startAnalysis`);
+          return;
+        }
         // 直接调 store 内的 startAnalysis (它会拉 quote/kline 再触发 workflow)
         get().startAnalysis(stockCode);
       });

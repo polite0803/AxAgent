@@ -1,5 +1,6 @@
 use crate::error::DataError;
 use crate::types::*;
+use crate::vendors::eastmoney::classify_earnings_title;
 use crate::vendors::StockVendor;
 use async_trait::async_trait;
 use serde_json::Value;
@@ -412,6 +413,55 @@ impl StockVendor for BrowserEastMoneyVendor {
                     volume: 0.0,
                     amount: 0.0,
                 }
+            })
+            .collect())
+    }
+
+    /// P3 修复(2026-07-25): 实现 earnings_calendar,作为 eastmoney datacenter-web
+    /// 反爬时的浏览器 fallback 通道。复用 eastmoney.rs 的 classify_earnings_title
+    /// 保持分类逻辑一致,通过 browser_fetch 绕过 JA3 TLS 指纹封锁。
+    async fn get_earnings_calendar(
+        &self,
+        stock_code: &str,
+    ) -> Result<Vec<EarningsEvent>, DataError> {
+        let code =
+            stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
+        let url = format!(
+            "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_NOTICE&columns=SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,TITLE,EQUITY_NOTICE_TYPE&filter=(SECURITY_CODE=\"{code}\")&pageSize=30&sortColumns=NOTICE_DATE&sortTypes=-1&pageNumber=1"
+        );
+        let json = browser_fetch(self.fetcher.as_ref(), &url).await?;
+
+        let rows = match json["result"]["data"].as_array() {
+            Some(arr) => arr,
+            None => return Ok(vec![]),
+        };
+
+        Ok(rows
+            .iter()
+            .filter_map(|r| {
+                let title = r["TITLE"].as_str().unwrap_or("");
+                let notice_date = r["NOTICE_DATE"].as_str().unwrap_or("");
+                if title.is_empty() || notice_date.is_empty() {
+                    return None;
+                }
+
+                let (event_type, period) = classify_earnings_title(title);
+
+                // 只保留财报相关事件（与 eastmoney.rs 一致）
+                if event_type == "other" && !title.contains("报告") && !title.contains("业绩") {
+                    return None;
+                }
+
+                Some(EarningsEvent {
+                    stock_code: stock_code.to_string(),
+                    stock_name: r["SECURITY_NAME_ABBR"].as_str().unwrap_or("").to_string(),
+                    event_date: notice_date.to_string(),
+                    event_type: event_type.to_string(),
+                    period,
+                    detail: Some(title.to_string()),
+                    source: Some("browser_eastmoney".to_string()),
+                    created_at: chrono::Utc::now().timestamp(),
+                })
             })
             .collect())
     }

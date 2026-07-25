@@ -138,7 +138,7 @@ export const ToolCallCard = React.memo(
                 {tc.isError
                   ? (
                     <Alert
-                      message={t("chat.inspector.toolError")}
+                      title={t("chat.inspector.toolError")}
                       description={tc.output}
                       type="error"
                       showIcon

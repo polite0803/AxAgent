@@ -143,7 +143,7 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
           <Alert
             data-testid="files-error-alert"
             type="error"
-            message={error}
+            title={error}
             closable
             onClose={clearError}
           />

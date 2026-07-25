@@ -812,7 +812,7 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
       <Alert
         type="warning"
         showIcon
-        message={t("stockAnalysis.debate.unstructuredOutput")}
+        title={t("stockAnalysis.debate.unstructuredOutput")}
         description={t("stockAnalysis.debate.unstructuredDesc")}
         className="text-xs"
       />

@@ -159,7 +159,7 @@ export const ToolCallBlockView = React.memo(
                             {isError
                               ? (
                                 <Alert
-                                  message={t("chat.inspector.toolError")}
+                                  title={t("chat.inspector.toolError")}
                                   description={result.output}
                                   type="error"
                                   showIcon

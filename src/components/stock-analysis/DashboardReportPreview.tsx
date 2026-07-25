@@ -188,7 +188,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
           <Alert
             type="warning"
             showIcon
-            message={t("stockAnalysis.dashboard.integrityWarning")}
+            title={t("stockAnalysis.dashboard.integrityWarning")}
             style={{ padding: "2px 8px" }}
           />
         )}

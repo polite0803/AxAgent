@@ -170,7 +170,7 @@ function BuiltinToolsTab() {
     <div className="flex-1 overflow-auto">
       {error && (
         <Alert
-          message={error}
+          title={error}
           type="error"
           showIcon
           className="mb-3"
