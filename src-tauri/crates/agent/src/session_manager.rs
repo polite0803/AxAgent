@@ -768,9 +768,10 @@ impl SessionManager {
         if let Some(axagent_session_id) = session.axagent_session_id() {
             let tokens_delta =
                 summary.usage.input_tokens as i64 + summary.usage.output_tokens as i64;
-            // Cost is now calculated in agent_query command and emitted via agent-done event.
-            // The DB field is kept for historical records; we store 0.0 here as the
-            // authoritative cost comes from the event payload.
+            // Cost is now persisted separately in agent_query (agent/mod.rs) after
+            // estimate_cost_usd() runs with pricing info. We keep 0.0 here to avoid
+            // duplicating the pricing logic in session_manager; the real cost_delta
+            // is written via a direct update_agent_session_after_query call.
             let cost_delta = 0.0;
 
             let _ = self
