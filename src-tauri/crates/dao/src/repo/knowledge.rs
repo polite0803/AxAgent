@@ -154,6 +154,16 @@ pub async fn reorder_knowledge_bases(db: &DatabaseConnection, base_ids: &[String
 }
 
 pub async fn delete_knowledge_base(db: &DatabaseConnection, id: &str) -> Result<()> {
+    // 取消该知识库下所有未完成的索引任务，避免队列继续轮询已删除容器
+    // 导致 NotFound 错误刷屏（container_type 与 rag::ContainerType 对齐）
+    if let Err(e) = crate::repo::index_jobs::cancel_jobs_by_container(db, "knowledge", id).await {
+        tracing::warn!(
+            kb_id = id,
+            error = %e,
+            "[dao::knowledge] 取消相关索引任务失败，继续级联删除"
+        );
+    }
+
     // 级联删除子表（SQLite 启用了 PRAGMA foreign_keys=ON，
     // 但 migration DDL 未统一声明 ON DELETE CASCADE，需手动清理避免外键约束失败）
     knowledge_documents::Entity::delete_many()

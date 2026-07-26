@@ -116,6 +116,16 @@ pub async fn update_wiki(
 }
 
 pub async fn delete_wiki(db: &DatabaseConnection, id: &str) -> Result<()> {
+    // 取消该 Wiki 下所有未完成的索引任务，避免队列继续轮询已删除容器
+    // 导致 NotFound 错误刷屏（container_type 与 rag::ContainerType 对齐）
+    if let Err(e) = crate::repo::index_jobs::cancel_jobs_by_container(db, "wiki", id).await {
+        tracing::warn!(
+            wiki_id = id,
+            error = %e,
+            "[dao::wiki] 取消相关索引任务失败，继续级联删除"
+        );
+    }
+
     // 级联删除子表（wikis 关联表多，SQLite 启用了 PRAGMA foreign_keys=ON，
     // 未级联清理会触发外键约束失败）
     wiki_sources::Entity::delete_many()

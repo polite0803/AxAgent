@@ -341,6 +341,37 @@ pub async fn cancel_pending_jobs_for_item(
     Ok(result.rows_affected)
 }
 
+/// 取消指定容器下所有未完成（pending / retrying / processing）的索引任务。
+///
+/// 用于删除知识容器（wiki / knowledge_base / memory namespace）时清理残留任务，
+/// 避免队列继续轮询已删除容器导致 NotFound 错误刷屏。
+pub async fn cancel_jobs_by_container(
+    db: &DatabaseConnection,
+    container_type: &str,
+    container_id: &str,
+) -> Result<u64> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
+    let result = index_jobs::Entity::update_many()
+        .col_expr(index_jobs::Column::Status, Expr::value(INDEX_JOB_STATUS_CANCELLED))
+        .col_expr(index_jobs::Column::CompletedAt, Expr::value(now))
+        .filter(
+            index_jobs::Column::ContainerType
+                .eq(container_type)
+                .and(index_jobs::Column::ContainerId.eq(container_id))
+                .and(index_jobs::Column::Status.is_in([
+                    INDEX_JOB_STATUS_PENDING,
+                    INDEX_JOB_STATUS_RETRYING,
+                    INDEX_JOB_STATUS_PROCESSING,
+                ])),
+        )
+        .exec(db)
+        .await?;
+    Ok(result.rows_affected)
+}
+
 pub async fn count_jobs_by_status(db: &DatabaseConnection, status: &str) -> Result<u64> {
     let count =
         index_jobs::Entity::find().filter(index_jobs::Column::Status.eq(status)).count(db).await?;
