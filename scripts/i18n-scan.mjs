@@ -109,6 +109,15 @@ function scanFile(f, rel) {
     const lnum = idx + 1;
     const text = line.trim();
     if (!text) return;
+    // ── Rule 1 误报豁免：以下形态含 CJK 但非面向用户的硬编码 UI 文案 ──
+    // 1) 已国际化的 t() 调用（CJK 仅作兜底默认值，符合 AGENTS.md 约定）
+    if (/\bt\s*\(/.test(text)) return;
+    // 2) 调试日志（console.*）
+    if (/\bconsole\.(log|warn|error|info|debug|trace)\s*\(/.test(text)) return;
+    // 3) 正则 / 字符串匹配逻辑（.test/.match/.replace/.search/.includes 内的 CJK）
+    if (/(?:\.(test|match|exec|replace|search|includes))\s*\([^)]*[一-鿿]/.test(text)) return;
+    // 4) TypeScript 类型联合成员（如 | "科技" 或 key: "低" | "中" | "高"）
+    if (/^\s*\|?\s*"[^"]+"\s*[,;]?\s*$/.test(text) || /:\s*"[^"]+"\s*\|/.test(text)) return;
     if (isCJK(text)) out.push({ rule: 1, file: rel, line: lnum, content: text });
     if (/message\.(success|error|warning|info)\(\s*['"]/.test(text))
       out.push({ rule: 2, file: rel, line: lnum, content: text });
