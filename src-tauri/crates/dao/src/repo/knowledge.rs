@@ -3,7 +3,10 @@
 use sea_orm::sea_query::Expr;
 use sea_orm::*;
 
-use axagent_entities::{knowledge_bases, knowledge_documents};
+use axagent_entities::{
+    knowledge_attributes, knowledge_bases, knowledge_documents, knowledge_entities,
+    knowledge_flows, knowledge_interfaces, knowledge_relations,
+};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::{
     CreateKnowledgeBaseInput, KnowledgeBase, KnowledgeDocument, UpdateKnowledgeBaseInput,
@@ -151,6 +154,33 @@ pub async fn reorder_knowledge_bases(db: &DatabaseConnection, base_ids: &[String
 }
 
 pub async fn delete_knowledge_base(db: &DatabaseConnection, id: &str) -> Result<()> {
+    // 级联删除子表（SQLite 启用了 PRAGMA foreign_keys=ON，
+    // 但 migration DDL 未统一声明 ON DELETE CASCADE，需手动清理避免外键约束失败）
+    knowledge_documents::Entity::delete_many()
+        .filter(knowledge_documents::Column::KnowledgeBaseId.eq(id))
+        .exec(db)
+        .await?;
+    knowledge_entities::Entity::delete_many()
+        .filter(knowledge_entities::Column::KnowledgeBaseId.eq(id))
+        .exec(db)
+        .await?;
+    knowledge_attributes::Entity::delete_many()
+        .filter(knowledge_attributes::Column::KnowledgeBaseId.eq(id))
+        .exec(db)
+        .await?;
+    knowledge_interfaces::Entity::delete_many()
+        .filter(knowledge_interfaces::Column::KnowledgeBaseId.eq(id))
+        .exec(db)
+        .await?;
+    knowledge_relations::Entity::delete_many()
+        .filter(knowledge_relations::Column::KnowledgeBaseId.eq(id))
+        .exec(db)
+        .await?;
+    knowledge_flows::Entity::delete_many()
+        .filter(knowledge_flows::Column::KnowledgeBaseId.eq(id))
+        .exec(db)
+        .await?;
+
     let result = knowledge_bases::Entity::delete_by_id(id).exec(db).await?;
 
     if result.rows_affected == 0 {

@@ -4,7 +4,10 @@ use sea_orm::*;
 use serde::{Deserialize, Serialize};
 
 use crate::repo::note::calculate_content_hash;
-use axagent_entities::{wiki_page_versions, wiki_templates, wikis};
+use axagent_entities::{
+    note_backlinks, note_links, notes, wiki_page_versions, wiki_pages, wiki_sources,
+    wiki_templates, wikis,
+};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::util_fns::gen_id;
 
@@ -113,15 +116,28 @@ pub async fn update_wiki(
 }
 
 pub async fn delete_wiki(db: &DatabaseConnection, id: &str) -> Result<()> {
-    let model = wikis::Entity::find_by_id(id)
-        .one(db)
-        .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", id)))?;
+    // 级联删除子表（wikis 关联表多，SQLite 启用了 PRAGMA foreign_keys=ON，
+    // 未级联清理会触发外键约束失败）
+    wiki_sources::Entity::delete_many()
+        .filter(wiki_sources::Column::WikiId.eq(id))
+        .exec(db)
+        .await?;
+    wiki_page_versions::Entity::delete_many()
+        .filter(wiki_page_versions::Column::WikiId.eq(id))
+        .exec(db)
+        .await?;
+    wiki_pages::Entity::delete_many().filter(wiki_pages::Column::WikiId.eq(id)).exec(db).await?;
+    note_links::Entity::delete_many().filter(note_links::Column::VaultId.eq(id)).exec(db).await?;
+    note_backlinks::Entity::delete_many()
+        .filter(note_backlinks::Column::VaultId.eq(id))
+        .exec(db)
+        .await?;
+    notes::Entity::delete_many().filter(notes::Column::VaultId.eq(id)).exec(db).await?;
 
-    let mut am = model.into_active_model();
-    am.updated_at = Set(chrono::Utc::now().timestamp());
-    am.update(db).await?;
-
+    let result = wikis::Entity::delete_by_id(id).exec(db).await?;
+    if result.rows_affected == 0 {
+        return Err(AxAgentError::NotFound(format!("Wiki {} not found", id)));
+    }
     Ok(())
 }
 

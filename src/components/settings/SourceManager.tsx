@@ -9,6 +9,7 @@ import { useMemoryStore } from "@/stores/feature/memoryStore";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
 import type { KnowledgeBase } from "@/types";
 import {
+  App as AntdApp,
   Button,
   Card,
   Col,
@@ -402,6 +403,7 @@ function SourceCard({
   const deleteSource = useSourceStore((s) => s.deleteSource);
   const fetchSources = useSourceStore((s) => s.fetchSources);
   const [messageApi, contextHolder] = message.useMessage();
+  const { modal } = AntdApp.useApp();
 
   const handleView = useCallback(() => {
     if (onViewDocument && source.containerType === "knowledge") {
@@ -422,7 +424,7 @@ function SourceCard({
   }, [navigate, onViewDocument, source]);
 
   const handleDeleteClick = () => {
-    Modal.confirm({
+    modal.confirm({
       title: t("sourceManager.confirmDelete"),
       content: t("sourceManager.deleteWarning"),
       okText: t("sourceManager.confirmDeleteOk"),
