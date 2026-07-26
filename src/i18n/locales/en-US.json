@@ -6071,8 +6071,14 @@
   "sourceManager": {
     "backToList": "Back to list",
     "config": {
+      "changeEmbeddingTitle": "Confirm Embedding Model Change",
+      "changeWarning": "Changing the embedding model will clear the existing vector index and trigger a rebuild. Retrieval may be unavailable during this process.",
+      "confirmRebuild": "Confirm Rebuild",
       "dimensions": "Dimensions",
+      "editEmbedding": "Edit Embedding Model",
       "provider": "Embedding Provider",
+      "rebuildStarted": "Index rebuild started",
+      "saveSuccess": "Saved",
       "threshold": "Retrieval Threshold",
       "topK": "Retrieval Top K"
     },
@@ -6123,9 +6129,13 @@
       "wiki": "Structured knowledge graph with note linking and visualization"
     },
     "typeLabel": "Type",
-    "view": "View",
+    "view": "Open",
     "viewAll": "View All",
     "viewConfig": "Config",
+    "confirmDelete": "Delete Source",
+    "confirmDeleteOk": "Delete",
+    "deleteSuccess": "Deleted",
+    "deleteWarning": "This action is irreversible. All vector data and database records will be cleared.",
     "wiki": {
       "title": "Wiki Sources",
       "wikiList": "Wiki List"

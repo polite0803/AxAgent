@@ -6417,8 +6417,14 @@
   "sourceManager": {
     "backToList": "Zurück zur Liste",
     "config": {
+      "changeEmbeddingTitle": "Änderung des Embedding-Modells bestätigen",
+      "changeWarning": "Das Ändern des Embedding-Modells löscht den bestehenden Vektorindex und löst einen Neuaufbau aus. Währenddessen ist die Suche möglicherweise nicht verfügbar.",
+      "confirmRebuild": "Neuaufbau bestätigen",
       "dimensions": "Dimensionen",
+      "editEmbedding": "Embedding-Modell bearbeiten",
       "provider": "Embedding-Anbieter",
+      "rebuildStarted": "Neuaufbau des Index gestartet",
+      "saveSuccess": "Gespeichert",
       "threshold": "Abrufschwelle",
       "topK": "Abruf Top K"
     },
@@ -6472,6 +6478,10 @@
     "view": "Ansicht",
     "viewAll": "Alle anzeigen",
     "viewConfig": "Konfig",
+    "confirmDelete": "Quelle löschen",
+    "confirmDeleteOk": "Löschen",
+    "deleteSuccess": "Gelöscht",
+    "deleteWarning": "Diese Aktion ist unwiderruflich. Alle Vektordaten und Datenbankeinträge werden gelöscht.",
     "wiki": {
       "title": "Wiki-Quellen",
       "wikiList": "Wiki-Liste"

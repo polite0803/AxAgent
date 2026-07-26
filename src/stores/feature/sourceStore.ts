@@ -60,6 +60,18 @@ interface SourceState {
   wikiSources: () => UnifiedSource[];
   configuredSources: () => UnifiedSource[];
   sourceById: () => Map<string, UnifiedSource>;
+  /** 修改数据源的向量模型；按 containerType 路由到对应后端命令 */
+  updateSourceEmbedding: (
+    source: Pick<UnifiedSource, "id" | "containerType" | "embeddingProvider">,
+    newProvider: string | undefined,
+  ) => Promise<{ embeddingChanged: boolean }>;
+  /** 触发对应数据源类型的向量索引重建 */
+  rebuildSourceIndex: (
+    containerType: string,
+    containerId: string,
+  ) => Promise<void>;
+  /** 删除数据源容器（含向量集合）；按 containerType 路由到对应后端命令 */
+  deleteSource: (source: Pick<UnifiedSource, "id" | "containerType">) => Promise<void>;
 }
 
 export const useSourceStore = create<SourceState>((set, get) => ({
@@ -112,5 +124,90 @@ export const useSourceStore = create<SourceState>((set, get) => ({
       map.set(s.id, s);
     }
     return map;
+  },
+
+  updateSourceEmbedding: async (source, newProvider) => {
+    const oldProvider = source.embeddingProvider;
+    const embeddingChanged = (oldProvider ?? "") !== (newProvider ?? "");
+
+    switch (source.containerType) {
+      case "knowledge": {
+        await invoke("update_knowledge_base", {
+          id: source.id,
+          input: {
+            embeddingProvider: newProvider,
+            updateEmbeddingProvider: true,
+          },
+        });
+        break;
+      }
+      case "memory": {
+        await invoke("update_memory_namespace", {
+          id: source.id,
+          input: {
+            embeddingProvider: newProvider,
+            updateEmbeddingProvider: true,
+          },
+        });
+        break;
+      }
+      case "wiki": {
+        await invoke("update_wiki", {
+          id: source.id,
+          // dao::repo::wiki::update_wiki 仅在 Some 时更新；传 undefined 保持原值
+          embeddingProvider: newProvider,
+        });
+        break;
+      }
+      default:
+        throw new Error(`Unsupported container type: ${source.containerType}`);
+    }
+
+    // 同步本地 sources 列表中的 embeddingProvider，避免下次读取仍是旧值
+    set((state) => ({
+      sources: state.sources.map((s) =>
+        s.id === source.id
+          ? { ...s, embeddingProvider: newProvider }
+          : s
+      ),
+    }));
+
+    return { embeddingChanged };
+  },
+
+  rebuildSourceIndex: async (containerType, containerId) => {
+    switch (containerType) {
+      case "knowledge":
+        await invoke("rebuild_knowledge_index", { baseId: containerId });
+        break;
+      case "memory":
+        await invoke("rebuild_memory_index", { namespaceId: containerId });
+        break;
+      case "wiki":
+        await invoke("rebuild_wiki_index", { wikiId: containerId });
+        break;
+      default:
+        throw new Error(`Unsupported container type: ${containerType}`);
+    }
+  },
+
+  deleteSource: async (source) => {
+    switch (source.containerType) {
+      case "knowledge":
+        await invoke("delete_knowledge_base", { id: source.id });
+        break;
+      case "memory":
+        await invoke("delete_memory_namespace", { id: source.id });
+        break;
+      case "wiki":
+        await invoke("delete_wiki", { id: source.id });
+        break;
+      default:
+        throw new Error(`Unsupported container type: ${source.containerType}`);
+    }
+    // 同步本地 sources 缓存
+    set((state) => ({
+      sources: state.sources.filter((s) => s.id !== source.id),
+    }));
   },
 }));
