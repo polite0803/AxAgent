@@ -10,7 +10,16 @@
 //!
 //! - `CandleLoraLayer`：可训练的 LoRA 线性层（A/B 分解）
 //! - `CandleLoraTrainer`：训练器，管理前向/反向/优化
-//! - `train_lora_model()`：高层入口（接收训练任务，返回 safetensors 路径）
+//! - `train_with_embeddings()`：高层入口（接收预计算的真实 embedding，返回 safetensors 路径）
+//! - `train_lora()`：保留的向后兼容入口，使用字符级特征向量
+//!
+//! ## 升级说明（2026-07-26）
+//!
+//! 原 `train_lora()` 使用字符频率向量（vocab_size=128, hidden_size=64），
+//! 仅适用于验证训练管线端到端工作。
+//! 新 `train_with_embeddings()` 接受来自 LLM provider 的真实 embedding 向量，
+//! 使用 embedding model 的实际维度（如 text-embedding-3-small 的 1536 维），
+//! 使训练可处理真实语义特征。
 
 use std::path::{Path, PathBuf};
 
@@ -206,74 +215,107 @@ fn clip_gradient(t: &Tensor, max_norm: f64) -> candle_core::Result<Tensor> {
     }
 }
 
-// ── 高层训练入口 ──────────────────────────────────────────────────────────
+// ── 高层训练入口（真实 Embedding） ────────────────────────────────────────
 
-/// 使用 candle 执行一次实际的 LoRA 训练。
+/// 使用预计算的真实 embedding 向量执行 LoRA 训练。
 ///
-/// 返回生成的 safetensors 文件路径，或错误信息。
+/// 这是升级后的主要入口。命令层从 provider 的 `embed()` API 获取
+/// 真实语义向量后传入。embedding_model_dim 反映 embedding model 的实际维度
+/// （如 768 / 1536 / 1024 等），不再硬编码 64/128。
 ///
 /// ## 参数
-/// - `dataset`: 训练数据集（样本需包含输入和输出文本）
+/// - `input_embeddings`: 每条样本输入的 embedding 向量（长度=embedding_model_dim）
+/// - `target_embeddings`: 每条样本目标的 embedding 向量（长度=embedding_model_dim）
 /// - `config`: LoRA 训练配置（rank, alpha, lr, epochs）
 /// - `output_dir`: 输出目录（safetensors 文件写入此处）
+/// - `embedding_model_dim`: embedding 模型的向量维度
+/// - `progress_callback`: 可选进度回调 (progress_0_1, current_loss)
 ///
 /// ## 限制
-/// 当前实现使用简化的字符级向量映射（非真实 LLM embedding），
-/// 适用于验证训练管线端到端工作。未来可接入真实 tokenizer + embedding。
-pub fn train_lora(
-    dataset: &FineTuneDataset,
+/// 基础权重仍为随机初始化（candle 无法直接加载任意 LLM 权重文件），
+/// 但输入特征为真实语义向量，使训练在语义级别有意义。
+pub fn train_with_embeddings(
+    input_embeddings: Vec<Vec<f32>>,
+    target_embeddings: Vec<Vec<f32>>,
     config: &LoRAConfig,
     output_dir: &Path,
+    embedding_model_dim: usize,
     progress_callback: Option<impl Fn(f32, f64)>,
 ) -> Result<PathBuf, String> {
     let device = Device::Cpu;
 
-    // 1. 准备简易特征——将文本映射为固定长度向量
-    // 基于字符频率的简单特征提取，而非真实 embedding
-    let vocab_size: usize = 128;
-    let hidden_size: usize = 64;
+    // 校验数据
+    if input_embeddings.is_empty() {
+        return Err("Dataset has no samples".to_string());
+    }
+    if input_embeddings.len() != target_embeddings.len() {
+        return Err(format!(
+            "Input/target count mismatch: {} vs {}",
+            input_embeddings.len(),
+            target_embeddings.len()
+        ));
+    }
+    for v in &input_embeddings {
+        if v.len() != embedding_model_dim {
+            return Err(format!(
+                "Input embedding dimension mismatch: expected {}, got {}",
+                embedding_model_dim,
+                v.len()
+            ));
+        }
+    }
+    for v in &target_embeddings {
+        if v.len() != embedding_model_dim {
+            return Err(format!(
+                "Target embedding dimension mismatch: expected {}, got {}",
+                embedding_model_dim,
+                v.len()
+            ));
+        }
+    }
 
-    let samples: Vec<(Tensor, Tensor)> = dataset
-        .samples
-        .iter()
-        .map(|s| {
-            let input_vec = text_to_features(&s.input, vocab_size, &device)
-                .unwrap_or_else(|_| Tensor::zeros(vocab_size, DType::F32, &device).unwrap());
-            let output_vec = text_to_features(&s.output, vocab_size, &device)
-                .unwrap_or_else(|_| Tensor::zeros(vocab_size, DType::F32, &device).unwrap());
-            (input_vec, output_vec)
+    let input_dim = embedding_model_dim;
+    let hidden_dim = input_dim; // 使用同维度简化，实际应用中可以是不同值
+
+    // 1. 将 Vec<Vec<f32>> 转为 Tensor
+    let samples: Vec<(Tensor, Tensor)> = input_embeddings
+        .into_iter()
+        .zip(target_embeddings)
+        .map(|(inp, tgt)| {
+            let inp_t = Tensor::from_vec(inp, (1, input_dim), &device)
+                .unwrap_or_else(|_| Tensor::zeros(input_dim, DType::F32, &device).unwrap());
+            let tgt_t = Tensor::from_vec(tgt, (1, hidden_dim), &device)
+                .unwrap_or_else(|_| Tensor::zeros(hidden_dim, DType::F32, &device).unwrap());
+            (inp_t, tgt_t)
         })
         .collect();
 
-    if samples.is_empty() {
-        return Err("Dataset has no samples".to_string());
-    }
-
-    // 2. 构造 LoRA 层（模拟基础权重）
-    let base_weight = Tensor::randn(0.0, 0.1, (hidden_size, vocab_size), &device)
+    // 2. 构造 LoRA 层（模拟基础权重，维度与真实 embedding 匹配）
+    let base_weight = Tensor::randn(0.0, 0.1, (hidden_dim, input_dim), &device)
         .map_err(|e| format!("base weight init: {e}"))?;
     let lora_layer = CandleLoraLayer::new(
         base_weight,
         None,
         config.rank as usize,
         config.alpha as f32,
-        vocab_size,
-        hidden_size,
+        input_dim,
+        hidden_dim,
         &device,
     );
 
-    // 3. 训练循环
+    // 3. 训练循环（与 train_lora 相同）
     let lr = config.learning_rate as f64;
     let mut engine = SimpleLoraEngine::new(lora_layer, lr);
     let batch_size = config.batch_size as usize;
     let epochs = config.epochs as usize;
 
     info!(
-        "[CandleLoRA] Starting training: {} samples, {} epochs, lr={}, rank={}",
+        "[CandleLoRA] Training with real embeddings: {} samples, {} epochs, lr={}, rank={}, dim={}",
         samples.len(),
         epochs,
         lr,
-        config.rank
+        config.rank,
+        embedding_model_dim
     );
 
     for epoch in 0..epochs {
@@ -284,7 +326,6 @@ pub fn train_lora(
             let batch_end = (batch_start + batch_size).min(samples.len());
             let batch = &samples[batch_start..batch_end];
 
-            // 拼合 batch
             let inputs =
                 stack_tensors(&batch.iter().map(|(i, _)| i).cloned().collect::<Vec<_>>(), &device)
                     .map_err(|e| format!("stack inputs: {e}"))?;
@@ -325,46 +366,96 @@ pub fn train_lora(
     let adapter_dir = output_dir.join(&adapter_id);
     std::fs::create_dir_all(&adapter_dir).map_err(|e| format!("create output dir: {e}"))?;
 
-    // 用 safetensors 格式保存 LoRA 权重
     let safetensors_path = adapter_dir.join("adapter_model.safetensors");
     export_lora_safetensors(&engine.layer.lora_a, &engine.layer.lora_b, config, &safetensors_path)?;
 
-    // 同时写入配置 JSON 供加载时使用
+    // 配置 JSON 反映真实维度
     let config_json = serde_json::json!({
         "adapter_type": "lora",
         "base_model": "candle-builtin",
         "rank": config.rank,
         "alpha": config.alpha,
         "target_modules": config.target_modules,
-        "training_job_id": dataset.id,
+        "training_job_id": adapter_id,
         "format": "safetensors",
-        "lora_a_shape": [config.rank as u32, 128u32],
-        "lora_b_shape": [64u32, config.rank as u32],
+        "embedding_model_dim": embedding_model_dim,
+        "lora_a_shape": [config.rank, embedding_model_dim as u32],
+        "lora_b_shape": [embedding_model_dim as u32, config.rank],
     });
     let config_path = adapter_dir.join("adapter_config.json");
     std::fs::write(&config_path, serde_json::to_string_pretty(&config_json).unwrap())
         .map_err(|e| format!("write config: {e}"))?;
 
     info!(
-        "[CandleLoRA] Training complete: adapter={}, safetensors={}",
+        "[CandleLoRA] Training complete: adapter={}, safetensors={} (dim={})",
         adapter_id,
-        safetensors_path.display()
+        safetensors_path.display(),
+        embedding_model_dim
     );
 
     Ok(safetensors_path)
 }
 
+// ── 向后兼容入口（字符级特征） ─────────────────────────────────────────────
+
+/// 使用字符频率特征的向后兼容训练入口。
+///
+/// 内部将文本转为字符频率向量后调用 `train_with_embeddings()`。
+/// 推荐新代码直接使用 `train_with_embeddings()` 获取真实语义特征。
+pub fn train_lora(
+    dataset: &FineTuneDataset,
+    config: &LoRAConfig,
+    output_dir: &Path,
+    progress_callback: Option<impl Fn(f32, f64)>,
+) -> Result<PathBuf, String> {
+    let vocab_size: usize = 256;
+
+    let input_embeddings: Vec<Vec<f32>> = dataset
+        .samples
+        .iter()
+        .map(|s| {
+            text_to_feature_vec(&s.input, vocab_size).unwrap_or_else(|| vec![0.0_f32; vocab_size])
+        })
+        .collect();
+    let target_embeddings: Vec<Vec<f32>> = dataset
+        .samples
+        .iter()
+        .map(|s| {
+            text_to_feature_vec(&s.output, vocab_size).unwrap_or_else(|| vec![0.0_f32; vocab_size])
+        })
+        .collect();
+
+    if input_embeddings.is_empty() {
+        return Err("Dataset has no samples".to_string());
+    }
+
+    info!(
+        "[CandleLoRA] Using char-level features (vocab={}), forwarding to train_with_embeddings",
+        vocab_size
+    );
+
+    train_with_embeddings(
+        input_embeddings,
+        target_embeddings,
+        config,
+        output_dir,
+        vocab_size,
+        progress_callback,
+    )
+}
+
 // ── 辅助函数 ──────────────────────────────────────────────────────────────
 
 /// 将文本转换为固定长度 float 特征向量（基于字符频率）。
-fn text_to_features(text: &str, size: usize, device: &Device) -> candle_core::Result<Tensor> {
+/// 返回 `Vec<f32>` 而非 Tensor，便于在 `train_with_embeddings` 中统一处理。
+fn text_to_feature_vec(text: &str, size: usize) -> Option<Vec<f32>> {
     let mut features = vec![0.0_f32; size];
     for (i, ch) in text.chars().enumerate() {
         let idx = (ch as usize) % size;
         features[idx] += 1.0;
-        if i >= 1000 {
+        if i >= 2000 {
             break;
-        } // 截断过长的文本
+        }
     }
     // 归一化
     let sum: f32 = features.iter().sum();
@@ -373,10 +464,10 @@ fn text_to_features(text: &str, size: usize, device: &Device) -> candle_core::Re
             *v /= sum;
         }
     }
-    Tensor::from_vec(features, (1, size), device)
+    Some(features)
 }
 
-/// 将多个 2D 张量堆叠成 Batch 维度。
+// ── 张量辅助函数 ──────────────────────────────────────────────────────────
 fn stack_tensors(tensors: &[Tensor], device: &Device) -> candle_core::Result<Tensor> {
     if tensors.is_empty() {
         return Err(candle_core::Error::Msg("empty tensor list".to_string()));

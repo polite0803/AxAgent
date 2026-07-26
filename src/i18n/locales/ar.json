@@ -4633,6 +4633,8 @@
     "markerPrefixDesc": "بادئة العلامة (الافتراضية CHAT2API، عادةً لا حاجة للتعديل)",
     "showDeveloperTools": "إظهار أدوات المطوّر",
     "showDeveloperToolsDesc": "إظهار قسم أدوات المطوّر (التتبع/قياس الأداء/الضبط/التعلم المعزز) في الشريط الجانبي",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "استباقي",
     "proactiveNudge": "اقتراحات استباقية",
     "proactiveNudgeDesc": "قدّم تلميحات واقتراحات أو الخطوات التالية بشكل استباقي بناءً على سياق المحادثة",

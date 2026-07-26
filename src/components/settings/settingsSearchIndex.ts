@@ -738,6 +738,11 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
         keywords: ["开发者工具", "devtools", "开发工具"],
       },
       {
+        itemKey: "about:loraFinetune",
+        labelKey: "settings.loraFinetuneEnabled",
+        keywords: ["LoRA", "微调", "fine-tune", "finetune", "lora"],
+      },
+      {
         itemKey: "about:replayTutorial",
         labelKey: "help.onboardingReplayDesc",
         keywords: ["引导", "tutorial", "onboarding", "新手指引"],

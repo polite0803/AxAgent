@@ -4633,6 +4633,8 @@
     "markerPrefixDesc": "标记前缀（默认 CHAT2API，通常无需修改）",
     "showDeveloperTools": "显示开发者工具",
     "showDeveloperToolsDesc": "在侧边栏显示开发者工具分组（追踪/基准测试/微调/强化学习）",
+    "loraFinetuneEnabled": "启用 LoRA 微调",
+    "loraFinetuneEnabledDesc": "启用后可在开发者工具中使用 LoRA 模型微调功能",
     "proactiveBehavior": "主动能力",
     "proactiveNudge": "主动建议",
     "proactiveNudgeDesc": "根据对话上下文主动给出提示、建议或下一步操作",

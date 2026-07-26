@@ -4633,6 +4633,8 @@
     "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно изменять)",
     "showDeveloperTools": "Показывать инструменты разработчика",
     "showDeveloperToolsDesc": "Показывать раздел инструментов разработчика (Трассировка/Бенчмарк/Настройка/RL) на боковой панели",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "Проактивность",
     "proactiveNudge": "Проактивные подсказки",
     "proactiveNudgeDesc": "Активно предлагать подсказки, рекомендации или следующие шаги на основе контекста беседы",

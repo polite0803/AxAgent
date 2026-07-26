@@ -5,6 +5,7 @@ pub mod dataset;
 pub mod lora;
 pub mod trainer;
 
+pub use candle_trainer::{train_lora, train_with_embeddings};
 pub use dataset::{DataFormat, DatasetMetadata, FineTuneDataset, FineTuneSample};
 pub use lora::{JobStatus, LoRAAdapterInfo, LoRAConfig, LoRAConfigBuilder, TrainingJob};
 pub use trainer::FineTuneTrainer;

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_agent::fine_tune::candle_trainer::train_with_embeddings;
 use axagent_agent::fine_tune::dataset::{
     DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata,
 };
@@ -8,11 +9,14 @@ use axagent_agent::fine_tune::trainer::TrainingStats;
 use axagent_agent::fine_tune::{
     ActiveModelConfig, BaseModelInfo, FineTuneTrainer, ModelManager, TrainingJob,
 };
+use axagent_harness::types::{EmbedRequest, ModelType};
+use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use tauri::command;
 use tracing::warn;
 
@@ -60,6 +64,8 @@ struct FineTuneState {
     samples: HashMap<String, Vec<Sample>>,
     trainer: FineTuneTrainer,
     model_manager: ModelManager,
+    /// 取消训练标志：job_id → cancel flag
+    job_cancel_flags: HashMap<String, Arc<AtomicBool>>,
 }
 
 impl Default for FineTuneState {
@@ -69,6 +75,7 @@ impl Default for FineTuneState {
             samples: HashMap::new(),
             trainer: FineTuneTrainer::new(),
             model_manager: ModelManager::new(),
+            job_cancel_flags: HashMap::new(),
         }
     }
 }
@@ -230,45 +237,61 @@ pub async fn start_training_job(
     job_id: String,
 ) -> Result<(), String> {
     // 检查 lora_finetune_enabled 门控
-    let settings = axagent_dao::repo::settings::get_settings(app_state.harness.db())
+    let db = app_state.harness.db();
+    let settings = axagent_dao::repo::settings::get_settings(db)
         .await
         .map_err(|e| format!("Failed to read settings: {e}"))?;
     if !settings.lora_finetune_enabled {
-        return Err("LoRA fine-tuning is disabled. Enable 'lora_finetune_enabled' in settings to use this feature.".to_string());
+        return Err(
+            "LoRA fine-tuning is disabled. Enable 'lora_finetune_enabled' in settings to use this feature."
+                .to_string(),
+        );
     }
 
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
-
-    // 获取训练任务配置
-    let config;
-    let ds_id;
-    {
+    // 提取训练所需数据后立即释放锁
+    let (config, ds_id, samples, num_samples, cancel_flag) = {
+        let mut guard = state().lock().map_err(|e| format!("Lock error: {e}"))?;
         let job =
-            s.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{}' not found", job_id))?;
-        config = job.config.clone();
-        ds_id = job.dataset_id.clone();
+            guard.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{job_id}' not found"))?;
+        let config = job.config.clone();
+        let ds_id = job.dataset_id.clone();
+        let dataset =
+            guard.datasets.get(&ds_id).ok_or_else(|| format!("Dataset '{ds_id}' not found"))?;
+        let samples = guard.samples.get(&ds_id).cloned().unwrap_or_default();
+        let num_samples = samples.len();
+        let _ds_name = dataset.name.clone();
+
+        // 创建取消标志
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+        guard.job_cancel_flags.insert(job_id.clone(), cancel_flag.clone());
+
+        // 标记为 Preparing
+        if let Some(j) = guard.trainer.get_job_mut(&job_id) {
+            j.status = axagent_agent::fine_tune::lora::JobStatus::Preparing;
+        }
+
+        (config, ds_id.clone(), samples, num_samples, cancel_flag)
+    };
+
+    if samples.is_empty() {
+        let mut guard = state().lock().map_err(|e| format!("Lock error: {e}"))?;
+        let _ = guard.trainer.fail_job(&job_id);
+        guard.job_cancel_flags.remove(&job_id);
+        return Err("Dataset has no samples".to_string());
     }
 
-    // 获取数据集
-    let dataset = s.datasets.get(&ds_id).ok_or_else(|| format!("Dataset '{}' not found", ds_id))?;
-    let samples = s.samples.get(&ds_id).cloned().unwrap_or_default();
-    let num_samples = samples.len();
-    let dataset_id = dataset.id.clone();
-    let dataset_name = dataset.name.clone();
-    drop(s); // 释放锁（训练可能耗时）
-
-    // 构建 FineTuneDataset（使用显式字段，SampleMetadata/DatasetMetadata 无 Default）
+    // 构建 FineTuneDataset
     let ft_dataset = FineTuneDataset {
-        id: dataset_id.clone(),
-        name: dataset_name,
+        id: ds_id.clone(),
+        name: String::new(),
         description: String::new(),
         samples: samples
-            .into_iter()
-            .map(|s| FineTuneSample {
+            .iter()
+            .map(|smp| FineTuneSample {
                 id: uuid::Uuid::new_v4().to_string(),
-                input: s.input,
-                output: s.output,
-                system_prompt: s.system_prompt,
+                input: smp.input.clone(),
+                output: smp.output.clone(),
+                system_prompt: smp.system_prompt.clone(),
                 metadata: SampleMetadata {
                     source: "manual".to_string(),
                     category: None,
@@ -287,34 +310,156 @@ pub async fn start_training_job(
         },
     };
 
-    // 使用真实的 candle-based LoRA 训练
     let output_dir = FINE_TUNE_DIR.join("adapters");
-    match axagent_agent::fine_tune::candle_trainer::train_lora(
-        &ft_dataset,
-        &config,
-        &output_dir,
-        None::<fn(f32, f64)>,
-    ) {
-        Ok(safetensors_path) => {
-            tracing::info!("[fine_tune] Training completed: {}", safetensors_path.display());
-            let mut s = state().lock().map_err(|e| format!("Lock error: {e}"))?;
-            s.trainer
-                .complete_job(&job_id, safetensors_path.to_string_lossy().to_string())
-                .map_err(|e| format!("complete_job: {e:?}"))?;
-            Ok(())
-        },
-        Err(e) => {
-            let mut s = state().lock().map_err(|e| format!("Lock error: {e}"))?;
-            let _ = s.trainer.fail_job(&job_id);
-            Err(format!("Training failed: {e}"))
-        },
-    }
+    let _dataset_id = ds_id.clone();
+
+    // 尝试获取真实 embedding
+    let embed_result = try_compute_embeddings_internal(db, &app_state, &samples).await;
+
+    // 准备后台训练
+    let jid = job_id.clone();
+    let jid2 = job_id.clone();
+
+    tokio::task::spawn(async move {
+        // 进度回调：更新 trainer 中的 job progress
+        let progress_cb = move |progress: f32, loss: f64| {
+            if cancel_flag.load(Ordering::SeqCst) {
+                return;
+            }
+            if let Ok(mut guard) = state().lock() {
+                let _ =
+                    guard.trainer.update_progress(&jid, (progress * 10.0) as u32, 0, loss as f32);
+            }
+        };
+
+        let result = match embed_result {
+            Ok(Some((input_emb, target_emb, dim))) => {
+                tracing::info!(
+                    "[fine_tune] Background training with real embeddings (dim={})",
+                    dim
+                );
+                train_with_embeddings(
+                    input_emb,
+                    target_emb,
+                    &config,
+                    &output_dir,
+                    dim,
+                    Some(progress_cb),
+                )
+            },
+            _ => {
+                tracing::info!("[fine_tune] Background char-level training");
+                axagent_agent::fine_tune::candle_trainer::train_lora(
+                    &ft_dataset,
+                    &config,
+                    &output_dir,
+                    None::<fn(f32, f64)>,
+                )
+            },
+        };
+
+        match result {
+            Ok(path) => {
+                tracing::info!("[fine_tune] Background training done: {}", path.display());
+                if let Ok(mut guard) = state().lock() {
+                    let _ = guard.trainer.complete_job(&jid2, path.to_string_lossy().to_string());
+                    guard.job_cancel_flags.remove(&jid2);
+                }
+            },
+            Err(e) => {
+                tracing::warn!("[fine_tune] Background training failed: {e}");
+                if let Ok(mut guard) = state().lock() {
+                    let _ = guard.trainer.fail_job(&jid2);
+                    guard.job_cancel_flags.remove(&jid2);
+                }
+            },
+        }
+    });
+
+    Ok(())
+}
+
+/// 尝试从 provider 计算真实 embedding。
+async fn try_compute_embeddings_internal(
+    db: &sea_orm::DatabaseConnection,
+    app_state: &crate::AppState,
+    samples: &[Sample],
+) -> Result<Option<(Vec<Vec<f32>>, Vec<Vec<f32>>, usize)>, String> {
+    let all_providers = axagent_dao::repo::provider::list_providers_merged(db)
+        .await
+        .map_err(|e| format!("list_providers: {e}"))?;
+
+    let embedding_provider = all_providers
+        .iter()
+        .find(|p| p.models.iter().any(|m| m.model_type == ModelType::Embedding));
+
+    let Some(provider) = embedding_provider else {
+        return Ok(None);
+    };
+
+    let embed_model = provider
+        .models
+        .iter()
+        .find(|m| m.model_type == ModelType::Embedding)
+        .ok_or_else(|| "no embedding model".to_string())?;
+
+    let master_key = app_state.harness.master_key();
+    let key = axagent_dao::repo::provider::get_active_key(db, &provider.id)
+        .await
+        .map_err(|e| format!("get_key: {e}"))?;
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, master_key)
+        .map_err(|e| format!("decrypt_key: {e}"))?;
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
+            &provider.proxy_config,
+            &axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default(),
+        ),
+        custom_headers: None,
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let registry = app_state.harness.provider_registry();
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
+    let adapter = registry
+        .get(registry_key)
+        .ok_or_else(|| format!("No adapter for provider type '{registry_key}'"))?;
+
+    let input_texts: Vec<String> = samples.iter().map(|s| s.input.clone()).collect();
+    let input_request =
+        EmbedRequest { model: embed_model.model_id.clone(), input: input_texts, dimensions: None };
+    let input_response =
+        adapter.embed(&ctx, input_request).await.map_err(|e| format!("embed inputs: {e}"))?;
+    let input_dim = input_response.dimensions;
+
+    let target_texts: Vec<String> = samples.iter().map(|s| s.output.clone()).collect();
+    let target_request = EmbedRequest {
+        model: embed_model.model_id.clone(),
+        input: target_texts,
+        dimensions: Some(input_dim),
+    };
+    let target_response =
+        adapter.embed(&ctx, target_request).await.map_err(|e| format!("embed targets: {e}"))?;
+
+    Ok(Some((input_response.embeddings, target_response.embeddings, input_dim)))
 }
 
 #[command]
 pub fn cancel_training_job(job_id: String) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
-    s.trainer.cancel_training(&job_id).map_err(|e| format!("Cancel failed: {:?}", e))?;
+    // 设置取消标志（后台任务会检测并提前退出）
+    if let Some(flag) = s.job_cancel_flags.get(&job_id) {
+        flag.store(true, Ordering::SeqCst);
+        let _ = s.trainer.cancel_training(&job_id);
+    }
     Ok(())
 }
 

@@ -4633,6 +4633,8 @@
     "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)",
     "showDeveloperTools": "डेवलपर टूल दिखाएं",
     "showDeveloperToolsDesc": "साइडबार में डेवलपर टूल अनुभाग (ट्रेस/बेंचमार्क/फ़ाइन-ट्यून/आरएल) दिखाएं",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "सक्रिय",
     "proactiveNudge": "सक्रिय सुझाव",
     "proactiveNudgeDesc": "वार्तालाप के संदर्भ के आधार पर सुझाव या अगले चरण सक्रिय रूप से दें",

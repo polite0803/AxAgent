@@ -1392,6 +1392,7 @@ mod tests {
             routing_strategy: axagent_harness::types::LoadBalanceStrategy::default(),
             latency_tracker: crate::routing::LatencyTracker::new(),
             round_robin_cursor: crate::routing::RoundRobinCursor::new(),
+            acp_enabled: false,
         }
     }
 

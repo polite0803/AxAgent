@@ -4633,6 +4633,8 @@
     "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)",
     "showDeveloperTools": "개발자 도구 표시",
     "showDeveloperToolsDesc": "사이드바에 개발자 도구 섹션(트레이스/벤치마크/파인튜닝/RL)을 표시",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "능동 기능",
     "proactiveNudge": "능동 제안",
     "proactiveNudgeDesc": "대화 맥락에 따라 힌트·제안·다음 단계를 능동적으로 제공합니다",

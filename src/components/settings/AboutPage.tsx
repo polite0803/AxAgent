@@ -132,6 +132,9 @@ export function AboutPage() {
   const showDeveloperTools = useSettingsStore(
     (s) => s.settings.show_developer_tools ?? true,
   );
+  const loraFinetuneEnabled = useSettingsStore(
+    (s) => s.settings.lora_finetune_enabled ?? false,
+  );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const navigate = useNavigate();
   const startTutorial = useOnboardingStore((s) => s.startTutorial);
@@ -245,6 +248,19 @@ export function AboutPage() {
           <Switch
             checked={showDeveloperTools}
             onChange={(next) => saveSettings({ show_developer_tools: next })}
+          />
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:loraFinetune">
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span>{t("settings.loraFinetuneEnabled")}</span>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("settings.loraFinetuneEnabledDesc")}
+            </Text>
+          </div>
+          <Switch
+            checked={loraFinetuneEnabled}
+            onChange={(next) => saveSettings({ lora_finetune_enabled: next })}
           />
         </div>
         {isTauri() && (

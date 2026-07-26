@@ -36,11 +36,19 @@ use crate::server::GatewayAppState;
 
 // ── Session 模型 ──────────────────────────────────────────────────────────
 
+/// ACP 会话最大上下文消息数（超过时截断最早的非系统消息）
+const ACP_MAX_CONTEXT_MESSAGES: usize = 40;
+
+/// ACP 会话最大上下文 token 估算（字符数，超过时触发压缩）
+const ACP_MAX_CONTEXT_CHARS: usize = 32_000;
+
 #[derive(Debug, Clone, Serialize)]
 struct AcpSessionMeta {
     id: String,
     work_dir: String,
     default_model: Option<String>,
+    /// 会话累积的消息历史（用于多轮对话）
+    messages: Vec<ChatMessage>,
     created_at: i64,
     closed: bool,
 }
@@ -118,6 +126,7 @@ pub async fn create_session(
         id: session_id.clone(),
         work_dir,
         default_model: req.model,
+        messages: vec![],
         created_at: now,
         closed: false,
     };
@@ -229,18 +238,21 @@ pub async fn send_prompt(
     Json(req): Json<PromptRequest>,
 ) -> impl IntoResponse {
     let start = Instant::now();
-    let default_model = {
+
+    // 1. 获取会话 + 历史消息
+    let (default_model, history) = {
         let s = SESSIONS.read().await;
         match s.get(&session_id) {
             None => return (StatusCode::NOT_FOUND, Json(AcpResponse::err("Session not found"))),
             Some(m) if m.closed => {
                 return (StatusCode::GONE, Json(AcpResponse::err("Session is closed")));
             },
-            Some(m) => m.default_model.clone(),
+            Some(m) => (m.default_model.clone(), m.messages.clone()),
         }
     };
     let model = req.model.or(default_model).unwrap_or_else(|| "gpt-4o".to_string());
 
+    // 2. 解析 provider + 构建上下文
     let (provider, type_str) = match resolve_provider(&state, &model).await {
         Ok(p) => p,
         Err(e) => return (StatusCode::BAD_REQUEST, Json(AcpResponse::err(&e))),
@@ -259,24 +271,31 @@ pub async fn send_prompt(
         },
     };
 
+    // 3. 构造请求消息列表（历史 + 新 prompt）
+    let system_msg = ChatMessage {
+        role: "system".to_string(),
+        content: ChatContent::Text("You are a helpful assistant.".into()),
+        tool_calls: None,
+        tool_call_id: None,
+        thinking: None,
+    };
+    let user_msg = ChatMessage {
+        role: "user".to_string(),
+        content: ChatContent::Text(req.prompt.clone()),
+        tool_calls: None,
+        tool_call_id: None,
+        thinking: None,
+    };
+
+    // 从历史中重建消息列表，应用上下文压缩
+    let mut messages = vec![system_msg.clone()];
+    messages.extend(history);
+    messages.push(user_msg);
+    messages = compress_context(messages);
+
     let req_msg = ChatRequest {
         model: model.clone(),
-        messages: vec![
-            ChatMessage {
-                role: "system".to_string(),
-                content: ChatContent::Text("You are a helpful assistant.".into()),
-                tool_calls: None,
-                tool_call_id: None,
-                thinking: None,
-            },
-            ChatMessage {
-                role: "user".to_string(),
-                content: ChatContent::Text(req.prompt.clone()),
-                tool_calls: None,
-                tool_call_id: None,
-                thinking: None,
-            },
-        ],
+        messages: messages.clone(),
         temperature: None,
         top_p: None,
         stream: false,
@@ -284,13 +303,42 @@ pub async fn send_prompt(
         ..Default::default()
     };
 
+    // 4. 调用 LLM
     match adapter.chat(&ctx, Arc::new(req_msg)).await {
         Ok(resp) => {
+            // 提取助手回复
+            let assistant_content = resp.content.clone();
+            let assistant_msg = ChatMessage {
+                role: "assistant".to_string(),
+                content: ChatContent::Text(assistant_content),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            };
+
+            // 写入会话历史（系统消息 + 用户 prompt + 助手回复）
+            let mut s = SESSIONS.write().await;
+            if let Some(session) = s.get_mut(&session_id) {
+                session.messages.push(ChatMessage {
+                    role: "user".to_string(),
+                    content: ChatContent::Text(req.prompt),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                });
+                session.messages.push(assistant_msg);
+                // 压缩历史防止无限膨胀
+                if session.messages.len() > ACP_MAX_CONTEXT_MESSAGES {
+                    let keep = ACP_MAX_CONTEXT_MESSAGES;
+                    session.messages = session.messages.split_off(session.messages.len() - keep);
+                }
+            }
+
             let (it, ot) = (resp.usage.input_tokens as u64, resp.usage.output_tokens as u64);
             info!(
-                "[ACP] LLM OK: session={}, chars={}, tok={}+{}, elapsed={:?}",
+                "[ACP] LLM OK: session={}, msgs={}, tok={}+{}, elapsed={:?}",
                 session_id,
-                resp.content.len(),
+                messages.len(),
                 it,
                 ot,
                 start.elapsed()
@@ -304,6 +352,7 @@ pub async fn send_prompt(
                         "model": resp.model,
                         "usage": { "input_tokens": it, "output_tokens": ot },
                         "elapsed_ms": start.elapsed().as_millis() as u64,
+                        "history_message_count": messages.len(),
                     }),
                 )),
             )
@@ -313,6 +362,60 @@ pub async fn send_prompt(
             Json(AcpResponse::err(format!("LLM call failed: {e}"))),
         ),
     }
+}
+
+/// 压缩上下文：估算总字符数，超过限制时从最早的非系统消息开始丢弃。
+fn compress_context(mut messages: Vec<ChatMessage>) -> Vec<ChatMessage> {
+    let total_chars: usize = messages
+        .iter()
+        .map(|m| match &m.content {
+            ChatContent::Text(t) => t.len(),
+            ChatContent::Multipart(parts) => {
+                parts.iter().map(|p| p.text.as_deref().unwrap_or("").len()).sum()
+            },
+        })
+        .sum();
+
+    if total_chars <= ACP_MAX_CONTEXT_CHARS || messages.len() <= 2 {
+        return messages;
+    }
+
+    // 保留 system 消息 + 最近的 N 条消息
+    let system_msgs: Vec<ChatMessage> = messages.drain(..).filter(|m| m.role == "system").collect();
+    let user_assistant_msgs: Vec<ChatMessage> = messages;
+
+    // 从最早的消息开始丢弃，直到总字符数低于限制
+    let mut compressed = system_msgs;
+    let mut chars = compressed
+        .iter()
+        .map(|m| match &m.content {
+            ChatContent::Text(t) => t.len(),
+            _ => 0,
+        })
+        .sum::<usize>();
+
+    for msg in user_assistant_msgs.into_iter().rev() {
+        let msg_chars = match &msg.content {
+            ChatContent::Text(t) => t.len(),
+            _ => 0,
+        };
+        if chars + msg_chars <= ACP_MAX_CONTEXT_CHARS || compressed.len() < 2 {
+            compressed.push(msg);
+            chars += msg_chars;
+        } else {
+            // 放一条摘要占位
+            compressed.push(ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text("[earlier context truncated]".into()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            });
+            break;
+        }
+    }
+
+    compressed
 }
 
 /// POST /acp/v1/sessions/{id}/interrupt
