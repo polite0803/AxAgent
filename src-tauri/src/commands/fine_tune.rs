@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_agent::fine_tune::dataset::{DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata};
+use axagent_agent::fine_tune::dataset::{
+    DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata,
+};
 use axagent_agent::fine_tune::lora::{LoRAAdapterInfo, LoRAConfigBuilder};
 use axagent_agent::fine_tune::trainer::TrainingStats;
 use axagent_agent::fine_tune::{
@@ -223,7 +225,10 @@ pub fn create_training_job(
 }
 
 #[command]
-pub async fn start_training_job(app_state: tauri::State<'_, crate::AppState>, job_id: String) -> Result<(), String> {
+pub async fn start_training_job(
+    app_state: tauri::State<'_, crate::AppState>,
+    job_id: String,
+) -> Result<(), String> {
     // 检查 lora_finetune_enabled 门控
     let settings = axagent_dao::repo::settings::get_settings(app_state.harness.db())
         .await
@@ -238,14 +243,14 @@ pub async fn start_training_job(app_state: tauri::State<'_, crate::AppState>, jo
     let config;
     let ds_id;
     {
-        let job = s.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{}' not found", job_id))?;
+        let job =
+            s.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{}' not found", job_id))?;
         config = job.config.clone();
         ds_id = job.dataset_id.clone();
     }
 
     // 获取数据集
-    let dataset = s.datasets.get(&ds_id)
-        .ok_or_else(|| format!("Dataset '{}' not found", ds_id))?;
+    let dataset = s.datasets.get(&ds_id).ok_or_else(|| format!("Dataset '{}' not found", ds_id))?;
     let samples = s.samples.get(&ds_id).cloned().unwrap_or_default();
     let num_samples = samples.len();
     let dataset_id = dataset.id.clone();
@@ -257,8 +262,9 @@ pub async fn start_training_job(app_state: tauri::State<'_, crate::AppState>, jo
         id: dataset_id.clone(),
         name: dataset_name,
         description: String::new(),
-        samples: samples.into_iter().map(|s| {
-            FineTuneSample {
+        samples: samples
+            .into_iter()
+            .map(|s| FineTuneSample {
                 id: uuid::Uuid::new_v4().to_string(),
                 input: s.input,
                 output: s.output,
@@ -269,8 +275,8 @@ pub async fn start_training_job(app_state: tauri::State<'_, crate::AppState>, jo
                     difficulty: None,
                     tags: vec![],
                 },
-            }
-        }).collect(),
+            })
+            .collect(),
         format: axagent_agent::fine_tune::dataset::DataFormat::Jsonl,
         metadata: DatasetMetadata {
             source: "manual".to_string(),
@@ -292,7 +298,8 @@ pub async fn start_training_job(app_state: tauri::State<'_, crate::AppState>, jo
         Ok(safetensors_path) => {
             tracing::info!("[fine_tune] Training completed: {}", safetensors_path.display());
             let mut s = state().lock().map_err(|e| format!("Lock error: {e}"))?;
-            s.trainer.complete_job(&job_id, safetensors_path.to_string_lossy().to_string())
+            s.trainer
+                .complete_job(&job_id, safetensors_path.to_string_lossy().to_string())
                 .map_err(|e| format!("complete_job: {e:?}"))?;
             Ok(())
         },

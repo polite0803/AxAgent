@@ -184,9 +184,8 @@ pub fn create_router(state: GatewayAppState) -> Router {
         protected
     };
 
-    let protected = protected
-        .layer(Extension(state.ticket_store.clone()))
-        .layer(middleware::from_fn_with_state(
+    let protected = protected.layer(Extension(state.ticket_store.clone())).layer(
+        middleware::from_fn_with_state(
             AuthState {
                 db: state.db.clone(),
                 adapter: state.adapter.clone(),
@@ -194,7 +193,8 @@ pub fn create_router(state: GatewayAppState) -> Router {
                 client_ip_policy: state.client_ip_policy.clone(),
             },
             auth_middleware,
-        ));
+        ),
+    );
 
     // Public routes
     let public = Router::new()

@@ -58,14 +58,24 @@ impl CandleLoraLayer {
         device: &Device,
     ) -> Self {
         // LoRA A: kaiming uniform init (常用于 LoRA A)
-        let lora_a = Tensor::randn(0.0, 0.02, (rank, in_features), device)
-            .expect("lora_a init failed");
+        let lora_a =
+            Tensor::randn(0.0, 0.02, (rank, in_features), device).expect("lora_a init failed");
         // LoRA B: 零初始化（训练开始时 LoRA 不改变输出）
-        let lora_b = Tensor::zeros((out_features, rank), DType::F32, device)
-            .expect("lora_b init failed");
+        let lora_b =
+            Tensor::zeros((out_features, rank), DType::F32, device).expect("lora_b init failed");
         let scaling = alpha as f64 / rank as f64;
 
-        Self { weight, lora_a, lora_b, scaling, bias, device: device.clone(), _in_features: in_features, _out_features: out_features, _rank: rank }
+        Self {
+            weight,
+            lora_a,
+            lora_b,
+            scaling,
+            bias,
+            device: device.clone(),
+            _in_features: in_features,
+            _out_features: out_features,
+            _rank: rank,
+        }
     }
 
     /// 前向传播：`y = x @ W^T + x @ (A @ B)^T * scaling + bias`
@@ -75,7 +85,8 @@ impl CandleLoraLayer {
 
         // lora_delta = x @ A^T → [batch, rank] → @ B^T → [batch, out_features]
         let lora_delta = input.matmul(&self.lora_a.t()?)?.matmul(&self.lora_b.t()?)?;
-        let lora_delta = lora_delta.broadcast_mul(&Tensor::new(&[self.scaling as f32], &self.device)?)?;
+        let lora_delta =
+            lora_delta.broadcast_mul(&Tensor::new(&[self.scaling as f32], &self.device)?)?;
 
         let mut output = base.add(&lora_delta)?;
         if let Some(ref b) = self.bias {
@@ -122,7 +133,8 @@ impl SimpleLoraEngine {
         // 反向：对 MSE 损失手工求导
         // dL/doutput = 2 * (output - target) / n
         let n = output.elem_count() as f64;
-        let d_output = output.sub(target)?.broadcast_mul(&Tensor::new(&[2.0 / n], output.device())?)?;
+        let d_output =
+            output.sub(target)?.broadcast_mul(&Tensor::new(&[2.0 / n], output.device())?)?;
 
         // dL/dB = (x @ A^T)^T @ d_output （简化梯度估计）
         // 注：真正的 auto-grad 需要完整计算图。
@@ -256,8 +268,13 @@ pub fn train_lora(
     let batch_size = config.batch_size as usize;
     let epochs = config.epochs as usize;
 
-    info!("[CandleLoRA] Starting training: {} samples, {} epochs, lr={}, rank={}",
-        samples.len(), epochs, lr, config.rank);
+    info!(
+        "[CandleLoRA] Starting training: {} samples, {} epochs, lr={}, rank={}",
+        samples.len(),
+        epochs,
+        lr,
+        config.rank
+    );
 
     for epoch in 0..epochs {
         let mut epoch_loss = 0.0_f64;
@@ -268,25 +285,35 @@ pub fn train_lora(
             let batch = &samples[batch_start..batch_end];
 
             // 拼合 batch
-            let inputs = stack_tensors(&batch.iter().map(|(i, _)| i).cloned().collect::<Vec<_>>(), &device)
-                .map_err(|e| format!("stack inputs: {e}"))?;
-            let targets = stack_tensors(&batch.iter().map(|(_, t)| t).cloned().collect::<Vec<_>>(), &device)
-                .map_err(|e| format!("stack targets: {e}"))?;
+            let inputs =
+                stack_tensors(&batch.iter().map(|(i, _)| i).cloned().collect::<Vec<_>>(), &device)
+                    .map_err(|e| format!("stack inputs: {e}"))?;
+            let targets =
+                stack_tensors(&batch.iter().map(|(_, t)| t).cloned().collect::<Vec<_>>(), &device)
+                    .map_err(|e| format!("stack targets: {e}"))?;
 
-            let loss = engine.train_step(&inputs, &targets)
-                .map_err(|e| format!("train step: {e}"))?;
-            engine.apply_gradients()
-                .map_err(|e| format!("apply grads: {e}"))?;
+            let loss =
+                engine.train_step(&inputs, &targets).map_err(|e| format!("train step: {e}"))?;
+            engine.apply_gradients().map_err(|e| format!("apply grads: {e}"))?;
 
             epoch_loss += loss;
             batch_count += 1;
         }
 
-        let avg_loss = if batch_count > 0 { epoch_loss / batch_count as f64 } else { 0.0 };
+        let avg_loss = if batch_count > 0 {
+            epoch_loss / batch_count as f64
+        } else {
+            0.0
+        };
         let progress = (epoch + 1) as f32 / epochs as f32;
 
-        info!("[CandleLoRA] Epoch {}/{}: loss={:.6}, progress={:.1}%",
-            epoch + 1, epochs, avg_loss, progress * 100.0);
+        info!(
+            "[CandleLoRA] Epoch {}/{}: loss={:.6}, progress={:.1}%",
+            epoch + 1,
+            epochs,
+            avg_loss,
+            progress * 100.0
+        );
 
         if let Some(ref cb) = progress_callback {
             cb(progress, avg_loss);
@@ -296,17 +323,11 @@ pub fn train_lora(
     // 4. 导出 safetensors
     let adapter_id = uuid::Uuid::new_v4().to_string();
     let adapter_dir = output_dir.join(&adapter_id);
-    std::fs::create_dir_all(&adapter_dir)
-        .map_err(|e| format!("create output dir: {e}"))?;
+    std::fs::create_dir_all(&adapter_dir).map_err(|e| format!("create output dir: {e}"))?;
 
     // 用 safetensors 格式保存 LoRA 权重
     let safetensors_path = adapter_dir.join("adapter_model.safetensors");
-    export_lora_safetensors(
-        &engine.layer.lora_a,
-        &engine.layer.lora_b,
-        config,
-        &safetensors_path,
-    )?;
+    export_lora_safetensors(&engine.layer.lora_a, &engine.layer.lora_b, config, &safetensors_path)?;
 
     // 同时写入配置 JSON 供加载时使用
     let config_json = serde_json::json!({
@@ -324,8 +345,11 @@ pub fn train_lora(
     std::fs::write(&config_path, serde_json::to_string_pretty(&config_json).unwrap())
         .map_err(|e| format!("write config: {e}"))?;
 
-    info!("[CandleLoRA] Training complete: adapter={}, safetensors={}",
-        adapter_id, safetensors_path.display());
+    info!(
+        "[CandleLoRA] Training complete: adapter={}, safetensors={}",
+        adapter_id,
+        safetensors_path.display()
+    );
 
     Ok(safetensors_path)
 }
@@ -338,7 +362,9 @@ fn text_to_features(text: &str, size: usize, device: &Device) -> candle_core::Re
     for (i, ch) in text.chars().enumerate() {
         let idx = (ch as usize) % size;
         features[idx] += 1.0;
-        if i >= 1000 { break; } // 截断过长的文本
+        if i >= 1000 {
+            break;
+        } // 截断过长的文本
     }
     // 归一化
     let sum: f32 = features.iter().sum();
@@ -374,15 +400,12 @@ fn export_lora_safetensors(
     _config: &LoRAConfig,
     path: &Path,
 ) -> Result<(), String> {
-
     let a_shape: Vec<usize> = lora_a.dims().to_vec();
     let b_shape: Vec<usize> = lora_b.dims().to_vec();
 
     // 使用标准 safetensors 格式
-    let a_raw = lora_a.flatten_all()
-        .map_err(|e| format!("lora_a flatten: {e}"))?;
-    let b_raw = lora_b.flatten_all()
-        .map_err(|e| format!("lora_b flatten: {e}"))?;
+    let a_raw = lora_a.flatten_all().map_err(|e| format!("lora_a flatten: {e}"))?;
+    let b_raw = lora_b.flatten_all().map_err(|e| format!("lora_b flatten: {e}"))?;
 
     let header = serde_json::json!({
         "lora_a.weight": {
@@ -397,8 +420,7 @@ fn export_lora_safetensors(
         }
     });
 
-    let header_bytes = serde_json::to_vec(&header)
-        .map_err(|e| format!("header json: {e}"))?;
+    let header_bytes = serde_json::to_vec(&header).map_err(|e| format!("header json: {e}"))?;
     let header_len = header_bytes.len() as u64;
 
     let mut output: Vec<u8> = Vec::new();
@@ -407,7 +429,8 @@ fn export_lora_safetensors(
     output.extend_from_slice(&header_bytes);
 
     // 附加原始 float32 数据
-    let a_storage: Vec<u8> = a_raw.to_dtype(DType::F32)
+    let a_storage: Vec<u8> = a_raw
+        .to_dtype(DType::F32)
         .map_err(|e| format!("a dtype: {e}"))?
         .to_vec1::<f32>()
         .map_err(|e| format!("a vec: {e}"))?
@@ -416,7 +439,8 @@ fn export_lora_safetensors(
         .collect();
     output.extend_from_slice(&a_storage);
 
-    let b_storage: Vec<u8> = b_raw.to_dtype(DType::F32)
+    let b_storage: Vec<u8> = b_raw
+        .to_dtype(DType::F32)
         .map_err(|e| format!("b dtype: {e}"))?
         .to_vec1::<f32>()
         .map_err(|e| format!("b vec: {e}"))?
@@ -425,10 +449,8 @@ fn export_lora_safetensors(
         .collect();
     output.extend_from_slice(&b_storage);
 
-    std::fs::write(path, &output)
-        .map_err(|e| format!("write safetensors: {e}"))?;
+    std::fs::write(path, &output).map_err(|e| format!("write safetensors: {e}"))?;
 
-    info!("[CandleLoRA] Exported safetensors: {} ({} bytes)",
-        path.display(), output.len());
+    info!("[CandleLoRA] Exported safetensors: {} ({} bytes)", path.display(), output.len());
     Ok(())
 }

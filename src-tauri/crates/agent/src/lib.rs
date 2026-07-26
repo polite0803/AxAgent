@@ -191,7 +191,9 @@ pub use reasoning_router::{
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
 
 // tree_of_thoughts — 外部引用：commands/agent（ToT 求解器）
-pub use tree_of_thoughts::{DefaultToTReasoningProvider, LlmReasoningProvider, TreeOfThoughtsEngine};
+pub use tree_of_thoughts::{
+    DefaultToTReasoningProvider, LlmReasoningProvider, TreeOfThoughtsEngine,
+};
 
 // runtime-core 类型透传 — 外部引用：commands/agent
 

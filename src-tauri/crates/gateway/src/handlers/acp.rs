@@ -19,15 +19,15 @@ use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};
 use std::time::Instant;
 
+use axagent_harness::ProviderRequestContext;
+use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ProviderConfig};
+use axagent_harness::url_utils::resolve_base_url_for_type;
 use axum::{
     Json,
     extract::{Path, State, WebSocketUpgrade, ws},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ProviderConfig};
-use axagent_harness::url_utils::resolve_base_url_for_type;
-use axagent_harness::ProviderRequestContext;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
@@ -114,7 +114,13 @@ pub async fn create_session(
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64;
-    let meta = AcpSessionMeta { id: session_id.clone(), work_dir, default_model: req.model, created_at: now, closed: false };
+    let meta = AcpSessionMeta {
+        id: session_id.clone(),
+        work_dir,
+        default_model: req.model,
+        created_at: now,
+        closed: false,
+    };
     SESSIONS.write().await.insert(session_id.clone(), meta);
     info!("[ACP] Session created: {} ({:?})", session_id, start.elapsed());
     (StatusCode::CREATED, Json(AcpResponse::ok_with_session("Session created", session_id)))
@@ -123,30 +129,58 @@ pub async fn create_session(
 /// GET /acp/v1/sessions
 pub async fn list_sessions(State(_state): State<GatewayAppState>) -> impl IntoResponse {
     let s = SESSIONS.read().await;
-    let items: Vec<SessionListItem> = s.iter().map(|(id, m)| SessionListItem {
-        id: id.clone(), work_dir: m.work_dir.clone(), default_model: m.default_model.clone(),
-        created_at: m.created_at, closed: m.closed,
-    }).collect();
-    Json(AcpResponse::ok_with_data(format!("{} session(s)", items.len()), serde_json::json!({"sessions": items})))
+    let items: Vec<SessionListItem> = s
+        .iter()
+        .map(|(id, m)| SessionListItem {
+            id: id.clone(),
+            work_dir: m.work_dir.clone(),
+            default_model: m.default_model.clone(),
+            created_at: m.created_at,
+            closed: m.closed,
+        })
+        .collect();
+    Json(AcpResponse::ok_with_data(
+        format!("{} session(s)", items.len()),
+        serde_json::json!({"sessions": items}),
+    ))
 }
 
 /// GET /acp/v1/sessions/{id}
-pub async fn get_session(State(_state): State<GatewayAppState>, Path(sid): Path<String>) -> impl IntoResponse {
+pub async fn get_session(
+    State(_state): State<GatewayAppState>,
+    Path(sid): Path<String>,
+) -> impl IntoResponse {
     let s = SESSIONS.read().await;
     match s.get(&sid) {
-        Some(m) => (StatusCode::OK, Json(AcpResponse::ok_with_data("OK", serde_json::json!({
-            "session": { "id": m.id, "work_dir": m.work_dir, "default_model": m.default_model, "created_at": m.created_at, "closed": m.closed }
-        })))),
+        Some(m) => (
+            StatusCode::OK,
+            Json(AcpResponse::ok_with_data(
+                "OK",
+                serde_json::json!({
+                    "session": { "id": m.id, "work_dir": m.work_dir, "default_model": m.default_model, "created_at": m.created_at, "closed": m.closed }
+                }),
+            )),
+        ),
         None => (StatusCode::NOT_FOUND, Json(AcpResponse::err("Session not found"))),
     }
 }
 
 // ── LLM 辅助 ──────────────────────────────────────────────────────────────
 
-async fn resolve_provider(state: &GatewayAppState, model: &str) -> Result<(ProviderConfig, String), String> {
-    let providers = state.adapter.providers().list_providers().await.map_err(|e| format!("list providers: {e}"))?;
+async fn resolve_provider(
+    state: &GatewayAppState,
+    model: &str,
+) -> Result<(ProviderConfig, String), String> {
+    let providers = state
+        .adapter
+        .providers()
+        .list_providers()
+        .await
+        .map_err(|e| format!("list providers: {e}"))?;
     for p in &providers {
-        if !p.enabled { continue; }
+        if !p.enabled {
+            continue;
+        }
         if p.models.iter().any(|m| m.enabled && m.model_id == model) {
             let t = format!("{:?}", p.provider_type).to_lowercase();
             return Ok((p.clone(), t));
@@ -155,15 +189,34 @@ async fn resolve_provider(state: &GatewayAppState, model: &str) -> Result<(Provi
     Err(format!("no enabled provider for model '{model}'"))
 }
 
-async fn build_ctx(state: &GatewayAppState, provider: &ProviderConfig) -> Result<ProviderRequestContext, String> {
-    let key = state.adapter.providers().get_active_key(&provider.id).await.map_err(|e| format!("key: {e}"))?;
-    let api_key = state.adapter.crypto().decrypt_key(&key.key_encrypted).map_err(|e| format!("decrypt: {e}"))?;
+async fn build_ctx(
+    state: &GatewayAppState,
+    provider: &ProviderConfig,
+) -> Result<ProviderRequestContext, String> {
+    let key = state
+        .adapter
+        .providers()
+        .get_active_key(&provider.id)
+        .await
+        .map_err(|e| format!("key: {e}"))?;
+    let api_key = state
+        .adapter
+        .crypto()
+        .decrypt_key(&key.key_encrypted)
+        .map_err(|e| format!("decrypt: {e}"))?;
     let base = resolve_base_url_for_type(&provider.api_host, &provider.provider_type);
     Ok(ProviderRequestContext {
-        api_key, key_id: key.id, provider_id: provider.id.clone(),
-        base_url: Some(base), api_path: provider.api_path.clone(),
-        proxy_config: None, custom_headers: None,
-        api_mode: None, conversation: None, previous_response_id: None, store_response: None,
+        api_key,
+        key_id: key.id,
+        provider_id: provider.id.clone(),
+        base_url: Some(base),
+        api_path: provider.api_path.clone(),
+        proxy_config: None,
+        custom_headers: None,
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
     })
 }
 
@@ -180,7 +233,9 @@ pub async fn send_prompt(
         let s = SESSIONS.read().await;
         match s.get(&session_id) {
             None => return (StatusCode::NOT_FOUND, Json(AcpResponse::err("Session not found"))),
-            Some(m) if m.closed => return (StatusCode::GONE, Json(AcpResponse::err("Session is closed"))),
+            Some(m) if m.closed => {
+                return (StatusCode::GONE, Json(AcpResponse::err("Session is closed")));
+            },
             Some(m) => m.default_model.clone(),
         }
     };
@@ -196,48 +251,99 @@ pub async fn send_prompt(
     };
     let adapter = match state.provider_registry.get(&type_str) {
         Some(a) => a,
-        None => return (StatusCode::BAD_GATEWAY, Json(AcpResponse::err(format!("no adapter for '{type_str}'")))),
+        None => {
+            return (
+                StatusCode::BAD_GATEWAY,
+                Json(AcpResponse::err(format!("no adapter for '{type_str}'"))),
+            );
+        },
     };
 
     let req_msg = ChatRequest {
         model: model.clone(),
         messages: vec![
-            ChatMessage { role: "system".to_string(), content: ChatContent::Text("You are a helpful assistant.".into()), tool_calls: None, tool_call_id: None, thinking: None },
-            ChatMessage { role: "user".to_string(), content: ChatContent::Text(req.prompt.clone()), tool_calls: None, tool_call_id: None, thinking: None },
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text("You are a helpful assistant.".into()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(req.prompt.clone()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
         ],
-        temperature: None, top_p: None, stream: false, max_tokens: Some(4096),
+        temperature: None,
+        top_p: None,
+        stream: false,
+        max_tokens: Some(4096),
         ..Default::default()
     };
 
     match adapter.chat(&ctx, Arc::new(req_msg)).await {
         Ok(resp) => {
             let (it, ot) = (resp.usage.input_tokens as u64, resp.usage.output_tokens as u64);
-            info!("[ACP] LLM OK: session={}, chars={}, tok={}+{}, elapsed={:?}", session_id, resp.content.len(), it, ot, start.elapsed());
-            (StatusCode::OK, Json(AcpResponse::ok_with_data("OK", serde_json::json!({
-                "content": resp.content,
-                "model": resp.model,
-                "usage": { "input_tokens": it, "output_tokens": ot },
-                "elapsed_ms": start.elapsed().as_millis() as u64,
-            }))))
+            info!(
+                "[ACP] LLM OK: session={}, chars={}, tok={}+{}, elapsed={:?}",
+                session_id,
+                resp.content.len(),
+                it,
+                ot,
+                start.elapsed()
+            );
+            (
+                StatusCode::OK,
+                Json(AcpResponse::ok_with_data(
+                    "OK",
+                    serde_json::json!({
+                        "content": resp.content,
+                        "model": resp.model,
+                        "usage": { "input_tokens": it, "output_tokens": ot },
+                        "elapsed_ms": start.elapsed().as_millis() as u64,
+                    }),
+                )),
+            )
         },
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(AcpResponse::err(format!("LLM call failed: {e}")))),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(AcpResponse::err(format!("LLM call failed: {e}"))),
+        ),
     }
 }
 
 /// POST /acp/v1/sessions/{id}/interrupt
-pub async fn interrupt_session(State(_state): State<GatewayAppState>, Path(sid): Path<String>) -> impl IntoResponse {
+pub async fn interrupt_session(
+    State(_state): State<GatewayAppState>,
+    Path(sid): Path<String>,
+) -> impl IntoResponse {
     let s = SESSIONS.read().await;
-    if !s.contains_key(&sid) { return (StatusCode::NOT_FOUND, Json(AcpResponse::err("Session not found"))); }
-    if s.get(&sid).is_some_and(|m| m.closed) { return (StatusCode::GONE, Json(AcpResponse::err("Session is closed"))); }
+    if !s.contains_key(&sid) {
+        return (StatusCode::NOT_FOUND, Json(AcpResponse::err("Session not found")));
+    }
+    if s.get(&sid).is_some_and(|m| m.closed) {
+        return (StatusCode::GONE, Json(AcpResponse::err("Session is closed")));
+    }
     (StatusCode::OK, Json(AcpResponse::ok("Interrupt acknowledged")))
 }
 
 /// POST /acp/v1/sessions/{id}/close
-pub async fn close_session(State(_state): State<GatewayAppState>, Path(sid): Path<String>) -> impl IntoResponse {
+pub async fn close_session(
+    State(_state): State<GatewayAppState>,
+    Path(sid): Path<String>,
+) -> impl IntoResponse {
     let mut s = SESSIONS.write().await;
     match s.get_mut(&sid) {
-        Some(m) if m.closed => (StatusCode::CONFLICT, Json(AcpResponse::err("Session already closed"))),
-        Some(m) => { m.closed = true; (StatusCode::OK, Json(AcpResponse::ok("Session closed"))) },
+        Some(m) if m.closed => {
+            (StatusCode::CONFLICT, Json(AcpResponse::err("Session already closed")))
+        },
+        Some(m) => {
+            m.closed = true;
+            (StatusCode::OK, Json(AcpResponse::ok("Session closed")))
+        },
         None => (StatusCode::NOT_FOUND, Json(AcpResponse::err("Session not found"))),
     }
 }
@@ -309,16 +415,32 @@ async fn stream_acp_ws_inner(
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let (provider, type_str) = resolve_provider(state, model).await?;
     let ctx = build_ctx(state, &provider).await?;
-    let adapter = state.provider_registry.get(&type_str).ok_or_else(|| format!("no adapter '{type_str}'"))?;
+    let adapter =
+        state.provider_registry.get(&type_str).ok_or_else(|| format!("no adapter '{type_str}'"))?;
 
     use std::sync::atomic::AtomicBool;
     let req = ChatRequest {
         model: model.to_string(),
         messages: vec![
-            ChatMessage { role: "system".to_string(), content: ChatContent::Text("You are a helpful assistant.".into()), tool_calls: None, tool_call_id: None, thinking: None },
-            ChatMessage { role: "user".to_string(), content: ChatContent::Text(prompt.to_string()), tool_calls: None, tool_call_id: None, thinking: None },
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text("You are a helpful assistant.".into()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(prompt.to_string()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
         ],
-        temperature: None, top_p: None, stream: true, max_tokens: Some(4096),
+        temperature: None,
+        top_p: None,
+        stream: true,
+        max_tokens: Some(4096),
         ..Default::default()
     };
 
@@ -332,12 +454,16 @@ async fn stream_acp_ws_inner(
                         let _ = tx.send(serde_json::json!({"type":"acp.text_delta","delta":text}));
                     }
                     if let Some(ref thinking) = chunk.thinking {
-                        let _ = tx.send(serde_json::json!({"type":"acp.thinking_delta","delta":thinking}));
+                        let _ = tx.send(
+                            serde_json::json!({"type":"acp.thinking_delta","delta":thinking}),
+                        );
                     }
                     if let Some(ref usage) = chunk.usage {
                         let _ = tx.send(serde_json::json!({"type":"acp.usage","input_tokens":usage.input_tokens,"output_tokens":usage.output_tokens}));
                     }
-                    if chunk.done { break; }
+                    if chunk.done {
+                        break;
+                    }
                 },
                 Err(e) => {
                     let _ = tx.send(serde_json::json!({"type":"acp.error","message":format!("stream error: {e}")}));

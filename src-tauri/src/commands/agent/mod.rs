@@ -6,7 +6,9 @@ use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use axagent_agent::{AxAgentApiClient, DefaultToTReasoningProvider, FallbackProviderAdapter, TreeOfThoughtsEngine};
+use axagent_agent::{
+    AxAgentApiClient, DefaultToTReasoningProvider, FallbackProviderAdapter, TreeOfThoughtsEngine,
+};
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
@@ -1727,13 +1729,12 @@ pub async fn agent_query(
     // 将精选分析注入 augmented_input 的 <tot_analysis> 块，供 LLM 在回答时参考。
     // 开销：~4-6 次额外 LLM 调用（branching=2, depth=2, threshold=0.3）。
     if settings.tot_enabled {
-        let tot_provider: Arc<dyn axagent_agent::LlmReasoningProvider> = Arc::new(
-            DefaultToTReasoningProvider::from_provider_adapter(
+        let tot_provider: Arc<dyn axagent_agent::LlmReasoningProvider> =
+            Arc::new(DefaultToTReasoningProvider::from_provider_adapter(
                 tot_adapter,
                 tot_ctx,
                 request.model_id.clone(),
-            ),
-        );
+            ));
         let mut tot_engine = TreeOfThoughtsEngine::new(2, 2, 0.3);
         match tot_engine.solve(&augmented_input, &tot_provider).await {
             Ok(tot_analysis) if !tot_analysis.is_empty() => {
