@@ -66,6 +66,11 @@ pub fn start_background_services(
     start_realtime_monitor(app, state);
     // P1-2: 启动实时行情推送（替代前端 15s 轮询，2s Active / 10s Background 自适应）
     start_realtime_quote_watcher(app, state);
+
+    // G14: 注册 DojoSdkExecutor — 让 dojo_* / sector_precomputed_* MCP 工具
+    // 能路由到 quant / stock-analysis / tools 等具体 crate。
+    // 必须在 start_background_services 末尾注册，确保 astock_client 已就绪。
+    register_dojo_sdk_executor(state);
 }
 
 /// P1-D10: 注册 portfolio-mgr.rhai 依赖的 pm_* 函数到共享 Rhai Engine。
@@ -1713,14 +1718,23 @@ fn start_cron_scheduler(state: &AppState) {
         let work_engine = state.work_engine.clone();
         // P0-1: 注入 astock_client 用于接通 32 个 stock_mcp_tools 到工作流执行路径
         let astock_client = state.astock_client.clone();
-        // P0-1: 缓存 stock_mcp_tools 工具名集合，避免每次 resolve 都重新生成 Vec
+        // P0-1: 缓存 stock_mcp_tools 工具名集合，避免每次 resolve 都重新生成 Vec。
+        // P2-8: 合并 G3 产业链工具（来自 axagent_stock_analysis::mcp_tools）。
         static STOCK_TOOL_NAMES: std::sync::OnceLock<std::collections::HashSet<String>> =
             std::sync::OnceLock::new();
         let stock_tools = STOCK_TOOL_NAMES.get_or_init(|| {
-            axagent_astock_data::mcp_tools::stock_mcp_tools()
-                .into_iter()
-                .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
-                .collect()
+            let mut set: std::collections::HashSet<String> =
+                axagent_astock_data::mcp_tools::stock_mcp_tools()
+                    .into_iter()
+                    .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                    .collect();
+            // G3 产业链工具（P2-8 从 astock-data 迁回 stock-analysis）
+            for tool in axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools() {
+                if let Some(name) = tool.get("name").and_then(|v| v.as_str()) {
+                    set.insert(name.to_string());
+                }
+            }
+            set
         });
         let resolver: axagent_runtime::work_engine::ToolResolver = std::sync::Arc::new(
             move |tool_name: String| {
@@ -1728,20 +1742,24 @@ fn start_cron_scheduler(state: &AppState) {
                 let work_engine = work_engine.clone();
                 let astock_client = astock_client.clone();
                 let in_stock_tools = stock_tools.contains(&tool_name);
+                let in_industry_chain =
+                    axagent_stock_analysis::mcp_tools::is_industry_chain_tool(&tool_name);
                 tracing::info!(
-                    "[ToolResolver] 被调用: tool_name={}, in_stock_tools={}",
+                    "[ToolResolver] 被调用: tool_name={}, in_stock_tools={}, in_industry_chain={}",
                     tool_name,
-                    in_stock_tools
+                    in_stock_tools,
+                    in_industry_chain
                 );
                 Box::pin(async move {
                     let reg = registry.lock().await;
                     let known = reg.list_all_tool_names().contains(&tool_name)
                         || reg.mcp.mcp_tools.contains_key(&tool_name);
                     tracing::info!(
-                        "[ToolResolver] 解析 tool_name={}, known={}, in_stock_tools={}",
+                        "[ToolResolver] 解析 tool_name={}, known={}, in_stock_tools={}, in_industry_chain={}",
                         tool_name,
                         known,
-                        in_stock_tools
+                        in_stock_tools,
+                        in_industry_chain
                     );
                     if known {
                         let registry = registry.clone();
@@ -1788,6 +1806,26 @@ fn start_cron_scheduler(state: &AppState) {
                                     }
                                 })
                             });
+                        Some(cb)
+                    } else if in_industry_chain {
+                        // P2-8: G3 产业链工具由 axagent_stock_analysis::mcp_tools 提供，
+                        // 不依赖 astock_client，直接同步执行（纯计算，无网络/DB 调用）。
+                        let cb: axagent_runtime::work_engine::ToolCallback = std::sync::Arc::new(
+                            move |tn: String, args: serde_json::Value| {
+                                Box::pin(async move {
+                                    match axagent_stock_analysis::mcp_tools::execute_industry_chain_tool(&tn, &args)
+                                    {
+                                        Ok(content) => {
+                                            Ok(serde_json::json!({ "content": content }))
+                                        },
+                                        Err(e) => Err(format!(
+                                            "industry chain tool '{}' failed: {}",
+                                            tn, e
+                                        )),
+                                    }
+                                })
+                            },
+                        );
                         Some(cb)
                     } else if in_stock_tools {
                         // P0-1: stock_mcp_tools 接通——32 个股票工具之前从未接通工作流执行路径，
@@ -2475,4 +2513,43 @@ fn start_realtime_quote_watcher(app: &tauri::AppHandle, state: &AppState) {
     }
 
     tracing::info!("[quote_watcher] 已启动（2s Active / 10s Background 自适应轮询）");
+}
+
+/// G14: 注册 DojoSdkExecutor — 让 MCP 协议中的 dojo_* / sector_precomputed_* 工具
+/// 能路由到 quant / stock-analysis / tools 等具体 crate。
+///
+/// 执行器实例持有 astock_client 与可选 db 连接，db 通过 `set_db` 在异步任务中注入。
+/// 注册后所有通过 MCP 协议调用的 DojoSDK 工具都会走 `DojoSdkExecutorImpl::execute`。
+fn register_dojo_sdk_executor(state: &AppState) {
+    use crate::commands::dojo_sdk::DojoSdkExecutorImpl;
+
+    let executor = DojoSdkExecutorImpl::new(state.astock_client.clone());
+    // 同步注入数据库连接（set_db 是同步函数，不会阻塞）
+    executor.set_db(state.harness.db().clone());
+
+    let executor_box: Box<dyn axagent_astock_data::mcp_tools::DojoSdkExecutor> = Box::new(executor);
+    axagent_astock_data::mcp_tools::register_dojo_sdk_executor(executor_box);
+    tracing::info!("[DojoSDK] DojoSdkExecutor 已注册（6 个 DojoSDK 工具可用）");
+
+    // P2-9: 启动 G19 PLANS_REGISTRY 的 TTL 清理后台任务
+    // 默认 TTL=24h，每 1h 清理一次过期 plan，避免长期运行内存膨胀
+    // 接受 shutdown_token 以便应用关闭时优雅退出
+    crate::commands::dojo_sdk::spawn_plan_ttl_cleanup(state.shutdown_token.clone());
+    tracing::info!("[G19 TTL] PLANS_REGISTRY TTL 清理后台任务已启动（TTL=24h，间隔=1h）");
+}
+
+/// G17: 创建 CronDeliverySink 适配器，把 MessageGateway 包装成 CronDeliverySink。
+///
+/// 此函数在 `start_background_services` 中调用，让 cron 调度器通过 sink 投递
+/// 执行结果到配置的渠道（Gateway / Webhook / Notification / File）。
+///
+/// 使用独立的 MessageGateway 实例（与 AppState.platform_manager 解耦）：
+/// - Cron 投递是 fire-and-forget，gateway.send_message 失败仅记录 error 不阻塞调度
+/// - Gateway 投递需要 endpoint 已注册（前端 IM 平台启动后注册），未注册时该次投递失败
+/// - Webhook / File 渠道不依赖 gateway，始终可用
+pub fn create_cron_delivery_sink(
+    _state: &AppState,
+) -> Arc<dyn axagent_harness::cron_delivery::CronDeliverySink> {
+    let gateway = Arc::new(axagent_rt_messaging::message_gateway::MessageGateway::new());
+    Arc::new(crate::init::cron_delivery_sink::GatewayDeliverySink::new(gateway))
 }

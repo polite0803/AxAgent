@@ -10,6 +10,7 @@ import {
   exportAsMarkdown,
   exportAsPNG,
   exportAsText,
+  exportSessionViaBackend,
 } from "@/lib/exportChat";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
@@ -48,6 +49,7 @@ import {
   Bot,
   ChevronRight,
   Copy,
+  Database,
   FileCode,
   FileImage,
   FileText,
@@ -1220,6 +1222,25 @@ export function ChatSidebar({
             }
           } catch (e) {
             logIpcError("Export HTML")(e);
+            messageApi.error(t("chat.exportFailed"));
+          }
+        },
+      },
+      {
+        key: "export-openai-dataset",
+        label: t("chat.exportTrainingData"),
+        icon: <Database size={14} />,
+        onClick: async () => {
+          try {
+            const ok = await exportSessionViaBackend(
+              convId,
+              "openai_dataset_jsonl",
+            );
+            if (ok) {
+              messageApi.success(t("chat.exportSuccess"));
+            }
+          } catch (e) {
+            logIpcError("Export OpenAI Dataset")(e);
             messageApi.error(t("chat.exportFailed"));
           }
         },

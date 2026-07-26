@@ -23,7 +23,7 @@ pub async fn build_seed_pool(client: &AStockClient) -> Vec<SeedItem> {
     // 1. 热门个股
     let hot_succeeded = match client.get_hot_stocks().await {
         Ok(hot) => {
-            for h in hot.iter().take(30) {
+            for h in hot.iter().take(50) {
                 if seen.insert(h.stock_code.clone()) {
                     out.push((h.stock_code.clone(), h.stock_name.clone(), h.sector.clone()));
                 }
@@ -39,7 +39,7 @@ pub async fn build_seed_pool(client: &AStockClient) -> Vec<SeedItem> {
     // 2. 行业排名龙头（扩大到20个行业）
     let industry_succeeded = match client.get_industry_ranking().await {
         Ok(industries) => {
-            for ind in industries.iter().take(20) {
+            for ind in industries.iter().take(30) {
                 if let (Some(code), Some(name)) = (&ind.leader_code, &ind.leader_name) {
                     if seen.insert(code.clone()) {
                         out.push((code.clone(), name.clone(), Some(ind.industry_name.clone())));
@@ -281,8 +281,13 @@ pub fn required_vendors_for_style(
         Reversion => &["eastmoney", "tencent", "ths", "akshare"],
         // 候选池兜底：只依赖实时 quote
         Watchlist => &["tencent", "eastmoney", "mootdx"],
-        // Serenity：依赖财务数据做确定性验证
-        Serenity => &["eastmoney", "ths", "akshare"],
+        // 趋势智选策略：依赖财务数据做确定性验证
+        Bottleneck => &["eastmoney", "ths", "akshare"],
+        Policy => &["eastmoney", "ths", "akshare"],
+        Earnings => &["eastmoney", "ths", "akshare"],
+        CapitalFlow => &["eastmoney", "ths", "akshare"],
+        Event => &["eastmoney", "ths", "akshare"],
+        Technical => &["eastmoney", "ths", "akshare"],
     }
 }
 
@@ -373,7 +378,12 @@ mod tests {
             Style::Capital,
             Style::Reversion,
             Style::Watchlist,
-            Style::Serenity,
+            Style::Bottleneck,
+            Style::Policy,
+            Style::Earnings,
+            Style::CapitalFlow,
+            Style::Event,
+            Style::Technical,
         ] {
             let v = required_vendors_for_style(s);
             assert!(!v.is_empty(), "{:?} missing vendors", s);

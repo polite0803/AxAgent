@@ -3781,12 +3781,10 @@
     "watchlist": "قائمة المراقبة",
     "pipeline": "Stock Pipeline",
     "workspace": "Stock Workspace",
-    "marketplace": "市场",
+    "marketplace": "السوق",
     "prompts": "提示词",
     "recommend": "推荐",
     "skills": "技能",
-    "marketplace": "السوق",
-    "dynamicUI": "صفحات ديناميكية",
     "marketMainline": "الاتجاه السوقي الرئيسي",
     "screenshotDiagnosis": "تشخيص لقطة الشاشة",
     "multiAgent": "متعدد الوكلاء"
@@ -3807,6 +3805,7 @@
     "createSuccess": "تم إنشاء المحفظة",
     "createTitle": "إنشاء محفظة محاكاة",
     "currentPrice": "الحالي",
+    "entryDate": "تاريخ الدخول",
     "entryDateLabel": "تاريخ الدخول",
     "entryDateRequired": "يرجى اختيار تاريخ الدخول",
     "entryPrice": "دخول",
@@ -3903,20 +3902,20 @@
   },
   "multiAgent": {
     "title": "تعاون متعدد الوكلاء",
-    "subtitle": "G5 تجمع الأدوار الثابتة: محلل / منفذ / مراجع",
+    "subtitle": "G5 مجموعة أدوار ثابتة: محلل / منفذ / مراجع",
     "rolesTitle": "الأدوار",
-    "noRoles": "لا توجد أدوار ثابتة. يرجى التحقق من اكتمال بذور الأدوار.",
+    "noRoles": "لا توجد أدوار ثابتة، يرجى التحقق من اكتمال تهيئة الأدوار",
     "refreshRoles": "تحديث الأدوار",
-    "delegateTitle": "تفويض المهمة",
+    "delegateTitle": "تفويض مهمة",
     "selectRole": "اختر الدور المستهدف",
     "taskDescription": "وصف المهمة",
-    "taskPlaceholder": "أدخل المهمة الفرعية المطلوب تفويضها، مثال: تحليل تدفق رأس المال القطاعي، مراجعة كود الاستراتيجية، تدقيق استنتاجات التشخيص",
+    "taskPlaceholder": "أدخل المهمة الفرعية لتفويضها لهذا الدور، مثل: تحليل تدفق أموال القطاع، فحص كود الاستراتيجية، مراجعة استنتاجات التشخيص",
     "contextJsonOptional": "سياق JSON (اختياري)",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
-    "contextJsonInvalid": "سياق JSON غير صالح",
+    "contextJsonInvalid": "تنسيق سياق JSON غير صالح",
     "provider": "مزود LLM",
     "model": "النموذج",
-    "temperature": "الحرارة",
+    "temperature": "درجة الحرارة",
     "maxTokens": "الحد الأقصى للرموز",
     "delegateBtn": "تفويض المهمة",
     "fillRequired": "يرجى ملء جميع الحقول المطلوبة",
@@ -3928,10 +3927,10 @@
     "tokens": "رموز",
     "taskLabel": "المهمة",
     "responseLabel": "الاستجابة",
-    "delegateSuccess": "تم التفويض بنجاح",
-    "delegateFailed": "فشل التفويض",
+    "delegateSuccess": "تم تفويض المهمة بنجاح",
+    "delegateFailed": "فشل تفويض المهمة",
     "maxConcurrent": "الحد الأقصى للتزامن",
-    "timeoutSec": "المهلة (ث)"
+    "timeoutSec": "المهلة (ثواني)"
   },
   "notification": {
     "clear": "مسح",
@@ -6887,6 +6886,33 @@
     "error": {
       "title": "Error rendering property panel",
       "reset": "Reset"
+    }
+  },
+  "viz": {
+    "invalidBlock": "بيانات VizBlock غير صالحة",
+    "unsupportedKind": "نوع تصور غير مدعوم: {{kind}}",
+    "noBlocks": "لا توجد كتل تصور",
+    "noData": "لا توجد بيانات",
+    "scene": {
+      "market-mainline": "الاتجاه الرئيسي للسوق",
+      "paper-portfolio": "محفظة محاكاة",
+      "screenshot-diagnosis": "تشخيص بلقطة الشاشة",
+      "industry-chain": "سلسلة الصناعة",
+      "cross-market-news": "أخبار السوق المتقاطع",
+      "quant-backtest": "اختبار كمي"
+    },
+    "kind": {
+      "line_chart": "مخطط خطي",
+      "bar_chart": "مخطط شريطي",
+      "area_chart": "مخطط مساحي",
+      "pie_chart": "مخطط دائري",
+      "scatter_chart": "مخطط انتشار",
+      "heatmap": "خريطة حرارية",
+      "candlestick": "مخطط الشموع",
+      "treemap": "خريطة شجرية",
+      "sankey": "مخطط سانكي",
+      "gauge": "مقياس",
+      "table": "جدول"
     }
   },
   "voice": {
@@ -12360,28 +12386,6 @@
       }
     }
   },
-  "multiAgent": {
-    "title": "多智能体状态",
-    "tabs": {
-      "agents": "智能体",
-      "messages": "消息",
-      "memory": "内存"
-    },
-    "status": {
-      "running": "运行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 运行中 / {{completed}} 已完成",
-    "noAgents": "暂无注册的智能体",
-    "noMessages": "暂无消息",
-    "selectAgent": "选择一个智能体以查看消息",
-    "noMemory": "暂无共享内存条目",
-    "by": "由",
-    "ttl": "TTL"
-  },
   "notificationCenter": {
     "title": "通知"
   },
@@ -12446,5 +12450,33 @@
     "strategyOverwrite": "Overwrite（覆盖）",
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
+  },
+  "marketMainline": {
+    "title": "الخط الرئيسي للسوق",
+    "archive": "أرشيف",
+    "strength": "القوة",
+    "representativeSymbols": "الرموز التمثيلية",
+    "evidence": "دليل",
+    "archiveSuccess": "تمت الأرشفة",
+    "createRequired": "الموضوع والسرد مطلوبان",
+    "createSuccess": "تم الإنشاء",
+    "create": "إنشاء خط رئيسي يدويًا",
+    "refresh": "تحديث آخر 7 أيام",
+    "statusFilter": "تصفية الحالة",
+    "categoryFilter": "تصفية الفئة",
+    "selectDate": "اختر التاريخ",
+    "dateTitle": "التاريخ",
+    "noDataForDate": "لا يوجد خط رئيسي لهذا التاريخ",
+    "noData": "لا توجد بيانات خط رئيسي",
+    "createTitle": "إنشاء خط سوق رئيسي يدويًا",
+    "form": {
+      "date": "التاريخ",
+      "category": "الفئة",
+      "theme": "الموضوع",
+      "narrative": "السرد",
+      "symbols": "الرموز (مفصولة بفواصل)",
+      "score": "القوة 0-100",
+      "persistence": "الاستمرارية"
+    }
   }
 }

@@ -4,7 +4,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::plugin_hooks::{
-    HookDecision, LlmCallContext, LlmCallResult, SharedHook, ToolCallContext, ToolCallResult,
+    ApiCallContext, ApiCallResult, HookDecision, LlmCallContext, LlmCallResult, SharedHook,
+    ToolCallContext, ToolCallResult,
 };
 
 pub struct HookChain {
@@ -111,6 +112,52 @@ impl HookChain {
 
         for hook in sorted {
             hook.post_llm_call(ctx, result).await;
+        }
+    }
+
+    // ── G20: 通用 HTTP API 请求钩子链 ──
+
+    pub async fn execute_pre_api_request(&self, ctx: &ApiCallContext) -> Option<HookDecision> {
+        let hooks = self.hooks.read().await;
+        let mut sorted: Vec<_> = hooks.iter().collect();
+        sorted.sort_by_key(|h| h.priority());
+
+        for hook in sorted {
+            if let Some(decision) = hook.pre_api_request(ctx).await {
+                match decision {
+                    HookDecision::Veto { ref reason } => {
+                        tracing::warn!(
+                            "Hook '{}' vetoed API {} {} to {}: {}",
+                            hook.name(),
+                            ctx.method,
+                            ctx.category,
+                            ctx.url,
+                            reason
+                        );
+                        return Some(decision);
+                    },
+                    HookDecision::Modify { .. } => {
+                        tracing::debug!(
+                            "Hook '{}' modified API {} {} context",
+                            hook.name(),
+                            ctx.method,
+                            ctx.url
+                        );
+                    },
+                    HookDecision::Allow => {},
+                }
+            }
+        }
+        None
+    }
+
+    pub async fn execute_post_api_request(&self, ctx: &ApiCallContext, result: &ApiCallResult) {
+        let hooks = self.hooks.read().await;
+        let mut sorted: Vec<_> = hooks.iter().collect();
+        sorted.sort_by_key(|h| h.priority());
+
+        for hook in sorted {
+            hook.post_api_request(ctx, result).await;
         }
     }
 

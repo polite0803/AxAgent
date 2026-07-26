@@ -78,6 +78,34 @@ function exitUrgencyLabel(t: (k: string) => string, urgency?: string): string {
   return t("serenityPanel.exitNone");
 }
 
+/// 策略类型颜色映射
+function strategyColor(strategy?: string): string {
+  if (strategy === "bottleneck") { return "volcano"; }
+  if (strategy === "policy") { return "blue"; }
+  if (strategy === "earnings") { return "green"; }
+  if (strategy === "capital") { return "purple"; }
+  if (strategy === "event") { return "orange"; }
+  if (strategy === "technical") { return "cyan"; }
+  return "default";
+}
+
+/// 策略类型标签
+function strategyLabel(t: (k: string) => string, strategy?: string): string {
+  if (strategy === "bottleneck") { return t("serenityPanel.strategyBottleneck"); }
+  if (strategy === "policy") { return t("serenityPanel.strategyPolicy"); }
+  if (strategy === "earnings") { return t("serenityPanel.strategyEarnings"); }
+  if (strategy === "capital") { return t("serenityPanel.strategyCapital"); }
+  if (strategy === "event") { return t("serenityPanel.strategyEvent"); }
+  if (strategy === "technical") { return t("serenityPanel.strategyTechnical"); }
+  return strategy ?? t("serenityPanel.strategyUnknown");
+}
+
+/// 渲染策略标签
+function renderStrategyTag(t: (k: string) => string, strategy?: string) {
+  if (!strategy) { return null; }
+  return <Tag color={strategyColor(strategy)} className="text-xs ml-1">{strategyLabel(t, strategy)}</Tag>;
+}
+
 interface Props {
   candidate: SerenityCandidate;
 }
@@ -120,6 +148,7 @@ export function SerenityCandidateCard({ candidate }: Props) {
               {relevanceLabel(t, candidate.relevance)}
             </Tag>
           )}
+          {renderStrategyTag(t, candidate.strategy_type ?? candidate.strategyType)}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-baseline gap-1">

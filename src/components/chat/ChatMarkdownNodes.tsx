@@ -43,6 +43,7 @@ import { MemoryRetrievalNode } from "./MemoryRetrievalNode";
 import { MermaidBlockHeaderActions } from "./MermaidBlockHeaderActions";
 import { MermaidZoomControls } from "./MermaidZoomControls";
 import { StructuredThinking } from "./StructuredThinking";
+import { VizBlockNode } from "./VizBlockNode";
 import { WebSearchNode } from "./WebSearchNode";
 import { WikiRetrievalNode } from "./WikiRetrievalNode";
 
@@ -1205,6 +1206,7 @@ setCustomComponents("chat", {
   "wiki-retrieval": WikiRetrievalNode,
   "tool-call": ToolCallNode,
   "cron-result": CronResultNode,
+  "viz-block": VizBlockNode,
   d2: ChatD2Node,
   vmr_container: McpContainerNode,
 });

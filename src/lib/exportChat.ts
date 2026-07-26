@@ -2,7 +2,7 @@
 
 import i18n from "@/i18n";
 import { stripAxAgentTags } from "@/lib/chatMarkdown";
-import { isTauri, logIpcError } from "@/lib/invoke";
+import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { formatExportAsync } from "@/lib/workers";
 import type { Message } from "@/types";
 
@@ -458,4 +458,104 @@ export async function exportAsTextAsync(
       extensions: ["txt"],
     },
   ]);
+}
+
+// ── G18: 通过后端 sessions_export 命令导出 ──────────────────────────────
+//
+// 后端支持 4 种格式：messages_jsonl / openai_dataset_jsonl / markdown / manifest_json
+// 后端会写入临时文件并返回 ExportResult（含 file_path），前端通过 save 对话框下载。
+
+/** 后端 `export_session` 命令的返回类型（camelCase） */
+export interface BackendExportResult {
+  /** 导出文件路径 */
+  filePath: string;
+  /** 导出格式 */
+  format: string;
+  /** 导出的会话数量 */
+  conversationCount: number;
+  /** 导出的消息总数 */
+  messageCount: number;
+  /** 文件大小（字节） */
+  fileSize: number;
+}
+
+/** 后端支持的导出格式 */
+export type BackendExportFormat =
+  | "messages_jsonl"
+  | "openai_dataset_jsonl"
+  | "markdown"
+  | "manifest_json";
+
+/**
+ * 调用后端 `export_session` 命令导出会话。
+ *
+ * 与前端纯导出函数（exportAsJSON/exportAsMarkdown 等）的区别：
+ * - 后端支持 OpenAI 微调数据集 JSONL 格式（前端无法生成）
+ * - 后端支持 manifest_json 元数据导出
+ * - 后端写入临时文件后由前端 save 对话框下载，避免大文件内存占用
+ *
+ * @param conversationId 会话 ID
+ * @param format 导出格式
+ * @returns 成功返回 true，失败抛出异常
+ */
+export async function exportSessionViaBackend(
+  conversationId: string,
+  format: BackendExportFormat,
+): Promise<boolean> {
+  // 浏览器模式下后端命令不可用，回退到前端实现
+  if (!isTauri()) {
+    throw new Error("Backend export_session requires Tauri environment");
+  }
+
+  const result = await invoke<BackendExportResult>("export_session", {
+    conversationId,
+    format,
+    outputDir: null,
+  });
+
+  // 后端已写入临时文件，前端通过 save 对话框让用户选择保存位置
+  const [{ save }, { copyFile, remove }] = await Promise.all([
+    import("@tauri-apps/plugin-dialog"),
+    import("@tauri-apps/plugin-fs"),
+  ]);
+
+  const extension = format === "messages_jsonl"
+    ? "jsonl"
+    : format === "openai_dataset_jsonl"
+    ? "jsonl"
+    : format === "markdown"
+    ? "md"
+    : "json";
+  const defaultName = `${conversationId.substring(0, 8)}_${format}.${extension}`;
+
+  const destPath = await save({
+    defaultPath: defaultName,
+    filters: [{ name: format, extensions: [extension] }],
+  });
+
+  if (!destPath) {
+    // 用户取消，清理临时文件
+    try {
+      await remove(result.filePath);
+    } catch {
+      // 忽略清理失败
+    }
+    return false;
+  }
+
+  try {
+    await copyFile(result.filePath, destPath);
+  } catch (e) {
+    logIpcError("exportSessionViaBackend.copyFile")(e);
+    throw e;
+  } finally {
+    // 清理后端临时文件
+    try {
+      await remove(result.filePath);
+    } catch {
+      // 忽略清理失败
+    }
+  }
+
+  return true;
 }

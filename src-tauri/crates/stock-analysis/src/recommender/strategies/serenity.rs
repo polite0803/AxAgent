@@ -295,7 +295,7 @@ impl SerenityStrategy {
             stock_code: code.into(),
             stock_name: name.into(),
             sector,
-            style: Style::Serenity,
+            style: Style::Bottleneck,
             period: self.period,
             price,
             entry_low,
@@ -323,7 +323,7 @@ impl RecommendStrategy for SerenityStrategy {
         }
     }
     fn style(&self) -> Style {
-        Style::Serenity
+        Style::Bottleneck
     }
     fn period(&self) -> Period {
         self.period

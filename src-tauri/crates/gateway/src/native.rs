@@ -1392,6 +1392,8 @@ mod tests {
             routing_strategy: axagent_harness::types::LoadBalanceStrategy::default(),
             latency_tracker: crate::routing::LatencyTracker::new(),
             round_robin_cursor: crate::routing::RoundRobinCursor::new(),
+            market_data_streamer: None,
+            run_store: std::sync::Arc::new(crate::handlers::runs::RunStore::new()),
         }
     }
 

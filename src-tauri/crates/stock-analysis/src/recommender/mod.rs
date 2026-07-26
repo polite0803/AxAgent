@@ -203,7 +203,12 @@ pub(crate) fn parse_strategy_weights(
                 Some("capital") => Style::Capital,
                 Some("reversion") => Style::Reversion,
                 Some("watchlist") => Style::Watchlist,
-                Some("serenity") => Style::Serenity,
+                Some("serenity") | Some("bottleneck") => Style::Bottleneck,
+                Some("policy") => Style::Policy,
+                Some("earnings") => Style::Earnings,
+                Some("capital_flow") => Style::CapitalFlow,
+                Some("event") => Style::Event,
+                Some("technical") => Style::Technical,
                 _ => continue,
             };
             let period = match parts.next() {
@@ -557,7 +562,12 @@ pub async fn recommend_stocks(
                 Style::Capital => reco_cfg.capital_enabled,
                 Style::Reversion => reco_cfg.reversion_enabled,
                 Style::Watchlist => reco_cfg.watchlist_enabled,
-                Style::Serenity => reco_cfg.serenity_enabled,
+                Style::Bottleneck => reco_cfg.serenity_enabled,
+                Style::Policy => reco_cfg.serenity_enabled,
+                Style::Earnings => reco_cfg.serenity_enabled,
+                Style::CapitalFlow => reco_cfg.serenity_enabled,
+                Style::Event => reco_cfg.serenity_enabled,
+                Style::Technical => reco_cfg.serenity_enabled,
             };
             if !ok {
                 disabled_styles_set.insert(s.style());
@@ -619,11 +629,11 @@ pub async fn recommend_stocks(
                     base, // 还原出的真实 base
                     new_conf, period_val,
                 );
-                // 信号质量校准（贝叶斯收缩 + 反身性）：
-                //   三层框架 — 统计学(开仓勇气) × 反身性(持仓理性) × 贝叶斯(空仓定力)
+                // 信号质量校准（加权平滑 + 反身性）：
+                //   三层框架 — 统计学(开仓勇气) × 反身性(持仓理性) × 加权平滑(空仓定力)
                 let quality_id = format!("{}_{}", p.style.as_str(), p.period.as_str());
                 let (posterior_win_rate, sample_count, _prior) =
-                    crate::backtest_strategy::bayesian_signal_quality(&quality_id, "neutral");
+                    crate::backtest_strategy::weighted_signal_calibration(&quality_id, "neutral");
                 let quality_factor = if sample_count >= 5 {
                     // 贝叶斯后验映射到 [0.7, 1.3]
                     ((posterior_win_rate / 0.50) - 0.20).clamp(0.7, 1.3)
@@ -730,7 +740,12 @@ pub async fn recommend_stocks(
             Style::Capital,
             Style::Reversion,
             Style::Watchlist,
-            Style::Serenity,
+            Style::Bottleneck,
+            Style::Policy,
+            Style::Earnings,
+            Style::CapitalFlow,
+            Style::Event,
+            Style::Technical,
         ] {
             // 用户已禁用的风格不补充合成 picks
             if disabled_styles_set.contains(&style) {

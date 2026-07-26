@@ -55,6 +55,30 @@ impl HookService for NoopHookService {
         _result: &axagent_harness::plugin_hook::ToolCallResult,
     ) {
     }
+    async fn execute_pre_api_request(
+        &self,
+        _ctx: &axagent_harness::plugin_hook::ApiCallContext,
+    ) -> Option<axagent_harness::plugin_hook::HookDecision> {
+        None
+    }
+    async fn execute_post_api_request(
+        &self,
+        _ctx: &axagent_harness::plugin_hook::ApiCallContext,
+        _result: &axagent_harness::plugin_hook::ApiCallResult,
+    ) {
+    }
+    async fn execute_pre_llm_call(
+        &self,
+        _ctx: &axagent_harness::plugin_hook::LlmCallContext,
+    ) -> Option<axagent_harness::plugin_hook::HookDecision> {
+        None
+    }
+    async fn execute_post_llm_call(
+        &self,
+        _ctx: &axagent_harness::plugin_hook::LlmCallContext,
+        _result: &axagent_harness::plugin_hook::LlmCallResult,
+    ) {
+    }
 }
 
 struct MockAgent {

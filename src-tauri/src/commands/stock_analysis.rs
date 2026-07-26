@@ -1637,18 +1637,32 @@ async fn load_value_config(
 // ── MCP Stock Data Tools ──
 
 /// 返回 stock data MCP 工具定义列表（供前端 MCP 管理页面注册）
+///
+/// P2-8: 合并 `axagent_astock_data::mcp_tools::stock_mcp_tools()` 与
+/// `axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools()`。
+/// G3 产业链工具已从 astock-data 迁回 stock-analysis，需在此合并返回。
 #[tauri::command]
 pub async fn get_stock_mcp_tools() -> Result<Vec<serde_json::Value>, String> {
-    Ok(axagent_astock_data::mcp_tools::stock_mcp_tools())
+    let mut tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
+    tools.extend(axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools());
+    Ok(tools)
 }
 
 /// 执行 stock data MCP 工具调用
+///
+/// P2-8: 先尝试 G3 产业链工具（位于 stock-analysis crate），未匹配则回退到 astock-data。
 #[tauri::command]
 pub async fn execute_stock_mcp_tool(
     state: State<'_, AppState>,
     tool_name: String,
     arguments: serde_json::Value,
 ) -> Result<String, String> {
+    // P2-8: G3 产业链工具优先（纯计算，不依赖 astock_client）
+    if axagent_stock_analysis::mcp_tools::is_industry_chain_tool(&tool_name) {
+        return axagent_stock_analysis::mcp_tools::execute_industry_chain_tool(
+            &tool_name, &arguments,
+        );
+    }
     axagent_astock_data::mcp_tools::execute_mcp_tool(&state.astock_client, &tool_name, &arguments)
         .await
 }
@@ -5175,9 +5189,12 @@ pub async fn quick_backtest(
 // ── 以下为插件探测发现的阻断性缺失命令修复 ──
 
 /// 列出所有可用的股票分析工具名称（用于 Agent 配置页工具选择列表）
+///
+/// P2-8: 合并 G3 产业链工具（来自 axagent_stock_analysis::mcp_tools）。
 #[tauri::command]
 pub async fn list_stock_tools() -> Result<Vec<String>, String> {
-    let tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
+    let mut tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
+    tools.extend(axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools());
     let names: Vec<String> = tools
         .into_iter()
         .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))

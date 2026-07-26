@@ -3439,8 +3439,6 @@
     "watchlist": "自選",
     "workspace": "股票工作区",
     "pipeline": "股票管道",
-    "marketplace": "市場",
-    "dynamicUI": "動態頁面",
     "marketMainline": "市場主線",
     "screenshotDiagnosis": "截圖診斷",
     "multiAgent": "多智能體協作"
@@ -3461,6 +3459,7 @@
     "createSuccess": "組合創建成功",
     "createTitle": "創建模擬組合",
     "currentPrice": "最新價",
+    "entryDate": "建倉日",
     "entryDateLabel": "建倉日",
     "entryDateRequired": "請選擇建倉日",
     "entryPrice": "建倉價",
@@ -6543,6 +6542,33 @@
       "reset": "Reset"
     }
   },
+  "viz": {
+    "invalidBlock": "VizBlock 資料非法",
+    "unsupportedKind": "未支援的視覺化類型: {{kind}}",
+    "noBlocks": "暫無視覺化區塊",
+    "noData": "無資料",
+    "scene": {
+      "market-mainline": "市場主線",
+      "paper-portfolio": "模擬觀察組合",
+      "screenshot-diagnosis": "截圖診斷",
+      "industry-chain": "產業鏈分析",
+      "cross-market-news": "跨市場新聞",
+      "quant-backtest": "量化回測"
+    },
+    "kind": {
+      "line_chart": "折線圖",
+      "bar_chart": "柱狀圖",
+      "area_chart": "面積圖",
+      "pie_chart": "圓餅圖",
+      "scatter_chart": "散佈圖",
+      "heatmap": "熱力圖",
+      "candlestick": "K 線圖",
+      "treemap": "矩形樹圖",
+      "sankey": "桑基圖",
+      "gauge": "儀表盤",
+      "table": "表格"
+    }
+  },
   "voice": {
     "connected": "已連線",
     "connecting": "連線中...",
@@ -9049,28 +9075,6 @@
         "generationUser": "基於以下描述生成工作流：{0}"
       }
     }
-  },
-  "multiAgent": {
-    "title": "多智能體狀態",
-    "tabs": {
-      "agents": "智能體",
-      "messages": "訊息",
-      "memory": "記憶體"
-    },
-    "status": {
-      "running": "執行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 執行中 / {{completed}} 已完成",
-    "noAgents": "暫無註冊的智能體",
-    "noMessages": "暫無訊息",
-    "selectAgent": "選擇一個智能體以查看訊息",
-    "noMemory": "暫無共享記憶體條目",
-    "by": "由",
-    "ttl": "TTL"
   },
   "notificationCenter": {
     "title": "通知"
@@ -12191,6 +12195,34 @@
       "expectedUpside": "預期漲幅",
       "asOf": "截至",
       "live": "即時"
+    }
+  },
+  "marketMainline": {
+    "title": "市場主線",
+    "archive": "歸檔",
+    "strength": "強度",
+    "representativeSymbols": "代表標的",
+    "evidence": "證據",
+    "archiveSuccess": "已歸檔",
+    "createRequired": "主題和敘述不能為空",
+    "createSuccess": "創建成功",
+    "create": "手動創建主線",
+    "refresh": "刷新最近 7 天",
+    "statusFilter": "狀態過濾",
+    "categoryFilter": "大類過濾",
+    "selectDate": "按日期查看",
+    "dateTitle": "日期",
+    "noDataForDate": "該日無主線",
+    "noData": "暫無主線數據",
+    "createTitle": "手動創建市場主線",
+    "form": {
+      "date": "日期",
+      "category": "主題大類",
+      "theme": "主題名",
+      "narrative": "敘述",
+      "symbols": "代表標的（逗號分隔）",
+      "score": "強度 0-100",
+      "persistence": "持續性"
     }
   }
 }

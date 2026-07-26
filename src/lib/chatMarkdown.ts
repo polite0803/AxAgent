@@ -12,6 +12,7 @@ export const CHAT_CUSTOM_HTML_TAGS = [
   "wiki-retrieval",
   "tool-call",
   "cron-result",
+  "viz-block",
 ] as const;
 
 /**
@@ -44,6 +45,10 @@ export function stripAxAgentTags(content: string): string {
     )
     .replace(
       /<cron-result [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/cron-result>\s*/g,
+      "",
+    )
+    .replace(
+      /<viz-block [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/viz-block>\s*/g,
       "",
     )
     .replace(/\n*:::mcp [^\n]*\n[\s\S]*?:::\n*/g, "\n")

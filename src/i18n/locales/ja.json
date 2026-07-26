@@ -3781,12 +3781,10 @@
     "watchlist": "お気に入り",
     "pipeline": "Stock Pipeline",
     "workspace": "Stock Workspace",
-    "marketplace": "市场",
+    "marketplace": "マーケットプレース",
     "prompts": "提示词",
     "recommend": "推荐",
     "skills": "技能",
-    "marketplace": "マーケットプレース",
-    "dynamicUI": "ダイナミックページ",
     "marketMainline": "市場メインライン",
     "screenshotDiagnosis": "スクリーンショット診断",
     "multiAgent": "マルチエージェント"
@@ -3807,6 +3805,7 @@
     "createSuccess": "ポートフォリオ作成成功",
     "createTitle": "模擬ポートフォリオ作成",
     "currentPrice": "現在値",
+    "entryDate": "建倉日",
     "entryDateLabel": "建値日",
     "entryDateRequired": "建値日を選択してください",
     "entryPrice": "建値",
@@ -3902,35 +3901,35 @@
     "portfolioSourceEventPlaceholder": "例：スクリーンショット診断から 2026-01-01"
   },
   "multiAgent": {
-    "title": "マルチエージェント協作",
-    "subtitle": "G5 固定ロールプール：アナリスト / 実装者 / レビューア",
+    "title": "マルチエージェント協調",
+    "subtitle": "G5 固定ロールプール：アナリスト / 実装者 / レビューアー",
     "rolesTitle": "ロール一覧",
-    "noRoles": "固定ロールがありません。ロールのシード化が完了しているか確認してください。",
+    "noRoles": "固定ロールがありません。ロールのシード化が完了しているか確認してください",
     "refreshRoles": "ロール更新",
     "delegateTitle": "タスク委譲",
     "selectRole": "対象ロールを選択",
-    "taskDescription": "タスク内容",
-    "taskPlaceholder": "委譲するサブタスクを入力してください。例：セクター資金流向の分析、戦略コードの確認、診断結論の審査",
+    "taskDescription": "タスク説明",
+    "taskPlaceholder": "このロールに委譲するサブタスクを入力、例：セクター資金フローの分析、戦略コードの検査、診断結論のレビュー",
     "contextJsonOptional": "コンテキスト JSON（任意）",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
-    "contextJsonInvalid": "コンテキスト JSON の形式が無効です",
+    "contextJsonInvalid": "コンテキスト JSON 形式が無効",
     "provider": "LLM プロバイダー",
     "model": "モデル",
     "temperature": "温度",
     "maxTokens": "最大トークン",
     "delegateBtn": "タスク委譲",
-    "fillRequired": "すべての必須項目を入力してください",
+    "fillRequired": "必須項目をすべて入力してください",
     "historyTitle": "委譲履歴",
-    "noHistory": "委譲記録がありません",
+    "noHistory": "委譲記録なし",
     "clearHistory": "履歴クリア",
     "success": "成功",
     "failed": "失敗",
     "tokens": "トークン",
     "taskLabel": "タスク",
     "responseLabel": "応答",
-    "delegateSuccess": "タスク委譲が正常に完了しました",
-    "delegateFailed": "タスク委譲に失敗しました",
-    "maxConcurrent": "最大同時実行",
+    "delegateSuccess": "委譲タスクが正常に完了",
+    "delegateFailed": "委譲タスクが失敗",
+    "maxConcurrent": "最大並行",
     "timeoutSec": "タイムアウト（秒）"
   },
   "notification": {
@@ -6887,6 +6886,33 @@
     "error": {
       "title": "Error rendering property panel",
       "reset": "Reset"
+    }
+  },
+  "viz": {
+    "invalidBlock": "VizBlock データが無効です",
+    "unsupportedKind": "サポートされていない可視化タイプ: {{kind}}",
+    "noBlocks": "可視化ブロックがありません",
+    "noData": "データなし",
+    "scene": {
+      "market-mainline": "市場メインライン",
+      "paper-portfolio": "模擬ポートフォリオ",
+      "screenshot-diagnosis": "スクリーンショット診断",
+      "industry-chain": "サプライチェーン分析",
+      "cross-market-news": "クロス市場ニュース",
+      "quant-backtest": "クオントバックテスト"
+    },
+    "kind": {
+      "line_chart": "折れ線グラフ",
+      "bar_chart": "棒グラフ",
+      "area_chart": "面グラフ",
+      "pie_chart": "円グラフ",
+      "scatter_chart": "散布図",
+      "heatmap": "ヒートマップ",
+      "candlestick": "ローソク足チャート",
+      "treemap": "ツリーマップ",
+      "sankey": "サンキーダイアグラム",
+      "gauge": "ゲージ",
+      "table": "テーブル"
     }
   },
   "voice": {
@@ -12360,28 +12386,6 @@
       }
     }
   },
-  "multiAgent": {
-    "title": "多智能体状态",
-    "tabs": {
-      "agents": "智能体",
-      "messages": "消息",
-      "memory": "内存"
-    },
-    "status": {
-      "running": "运行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 运行中 / {{completed}} 已完成",
-    "noAgents": "暂无注册的智能体",
-    "noMessages": "暂无消息",
-    "selectAgent": "选择一个智能体以查看消息",
-    "noMemory": "暂无共享内存条目",
-    "by": "由",
-    "ttl": "TTL"
-  },
   "notificationCenter": {
     "title": "通知"
   },
@@ -12446,5 +12450,33 @@
     "strategyOverwrite": "Overwrite（覆盖）",
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
+  },
+  "marketMainline": {
+    "title": "市場メインライン",
+    "archive": "アーカイブ",
+    "strength": "強度",
+    "representativeSymbols": "代表銘柄",
+    "evidence": "エビデンス",
+    "archiveSuccess": "アーカイブ済み",
+    "createRequired": "テーマと叙述は必須です",
+    "createSuccess": "作成成功",
+    "create": "手動でメインライン作成",
+    "refresh": "過去7日間を更新",
+    "statusFilter": "ステータス絞り込み",
+    "categoryFilter": "カテゴリ絞り込み",
+    "selectDate": "日付を選択",
+    "dateTitle": "日付",
+    "noDataForDate": "この日のメインラインはありません",
+    "noData": "メインラインデータなし",
+    "createTitle": "市場メインラインを手動作成",
+    "form": {
+      "date": "日付",
+      "category": "カテゴリ",
+      "theme": "テーマ",
+      "narrative": "叙述",
+      "symbols": "銘柄（カンマ区切り）",
+      "score": "強度 0-100",
+      "persistence": "持続性"
+    }
   }
 }

@@ -1,4 +1,5 @@
-// consistency-check.rhai — 瓶颈掘金：跨节点一致性检查 v3
+// consistency-check.rhai v2 — strategy-agnostic: 如果无 chain_nodes 数据直接返回空
+// 支持 bottleneck/event/technical 3种有 chain_nodes 的策略类型
 // 比较 chain-decomposer 与 bottleneck-calc 的分析结果是否存在矛盾。
 //
 // 比较维度：
@@ -75,10 +76,29 @@ let chain_vars = [
     safe_parse(chain_node_trend1), safe_parse(chain_node_trend2),
     safe_parse(chain_node_trend3), safe_parse(chain_node_trend4), safe_parse(chain_node_trend5),
 ];
-let bottleneck_vars = [
-    safe_parse(bottleneck_trend1), safe_parse(bottleneck_trend2),
-    safe_parse(bottleneck_trend3), safe_parse(bottleneck_trend4), safe_parse(bottleneck_trend5),
+// 注意：bottleneck_trend* 在 v2 中已改为 strategy_trend*
+// 策略评分结果现在以 strategy_trend* 变量名注入
+let strategy_vars = [
+    safe_parse(strategy_trend1), safe_parse(strategy_trend2),
+    safe_parse(strategy_trend3), safe_parse(strategy_trend4), safe_parse(strategy_trend5),
 ];
+
+// 快速检查：如果第一个有数据的 chain_var 不含 chain_nodes，说明不是 bottleneck 策略，跳过
+for i in range(0, 5) {
+    let cv = chain_vars[i];
+    if !is_unit(cv) {
+        if cv["chain_nodes"] == () {
+            // 非 bottleneck 策略 —— 跳过一致性检查
+            return #{
+                "status": "skipped",
+                "summary": "非 bottleneck 策略，跳过一致性检查",
+                "consistency_score": -1,
+                "all_consistent": true
+            };
+        };
+        break;
+    };
+};
 
 let trend_names = [];
 let sources_checked = [];
@@ -92,7 +112,7 @@ let conflict_count = 0;
 for i in range(0, 5) {
     let slot_name = trend_slots[i];
     let chain_raw = chain_vars[i];
-    let btl_raw = bottleneck_vars[i];
+    let btl_raw = strategy_vars[i];
 
     let chain_nodes = extract_chain_nodes(chain_raw);
     let btl_nodes = extract_computed_nodes(btl_raw);

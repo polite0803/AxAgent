@@ -14,9 +14,9 @@ export interface MultiAgentRoleInfo {
   name: string;
   /** 角色描述 */
   description: string;
-  /** 最大并发数 */
+  /** 最大并发数（i32） */
   maxConcurrent: number;
-  /** 超时秒数 */
+  /** 超时秒数（i64） */
   timeoutSeconds: number;
 }
 

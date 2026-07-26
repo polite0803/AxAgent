@@ -3781,12 +3781,10 @@
     "watchlist": "Список наблюдения",
     "pipeline": "Stock Pipeline",
     "workspace": "Stock Workspace",
-    "marketplace": "市场",
+    "marketplace": "Маркетплейс",
     "prompts": "提示词",
     "recommend": "推荐",
     "skills": "技能",
-    "marketplace": "Маркетплейс",
-    "dynamicUI": "Динамические страницы",
     "marketMainline": "Основная линия рынка",
     "screenshotDiagnosis": "Диагностика скриншота",
     "multiAgent": "Мульти-агент"
@@ -3807,6 +3805,7 @@
     "createSuccess": "Портфель создан",
     "createTitle": "Создать бумажный портфель",
     "currentPrice": "Тек.",
+    "entryDate": "Дата входа",
     "entryDateLabel": "Дата входа",
     "entryDateRequired": "Выберите дату входа",
     "entryPrice": "Вход",
@@ -3902,36 +3901,36 @@
     "portfolioSourceEventPlaceholder": "напр. Из диагностики скриншота 2026-01-01"
   },
   "multiAgent": {
-    "title": "Мульти-агентное сотрудничество",
-    "subtitle": "G5 пул фиксированных ролей: Аналитик / Исполнитель / Рецензент",
+    "title": "Мультиагентное сотрудничество",
+    "subtitle": "G5 Пул фиксированных ролей: Аналитик / Исполнитель / Рецензент",
     "rolesTitle": "Роли",
-    "noRoles": "Нет фиксированных ролей. Проверьте, завершено ли начальное заполнение ролей.",
+    "noRoles": "Нет фиксированных ролей, проверьте завершение сидирования ролей",
     "refreshRoles": "Обновить роли",
     "delegateTitle": "Делегировать задачу",
     "selectRole": "Выберите целевую роль",
     "taskDescription": "Описание задачи",
-    "taskPlaceholder": "Введите подзадачу для делегирования, например: проанализировать движение капитала в секторе, проверить код стратегии, провести аудит выводов диагностики",
-    "contextJsonOptional": "Контекст JSON (необязательно)",
+    "taskPlaceholder": "Введите подзадачу для делегирования этой роли, напр.: проанализировать движение средств сектора, проверить код стратегии, проверить выводы диагностики",
+    "contextJsonOptional": "Контекст JSON (опционально)",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
-    "contextJsonInvalid": "Контекст JSON недействителен",
-    "provider": "LLM-провайдер",
+    "contextJsonInvalid": "Неверный формат контекста JSON",
+    "provider": "LLM провайдер",
     "model": "Модель",
     "temperature": "Температура",
-    "maxTokens": "Макс. токены",
+    "maxTokens": "Макс. токенов",
     "delegateBtn": "Делегировать задачу",
     "fillRequired": "Пожалуйста, заполните все обязательные поля",
     "historyTitle": "История делегирования",
-    "noHistory": "Нет записей о делегировании",
+    "noHistory": "Нет записей делегирования",
     "clearHistory": "Очистить историю",
     "success": "Успех",
     "failed": "Ошибка",
     "tokens": "токены",
     "taskLabel": "Задача",
     "responseLabel": "Ответ",
-    "delegateSuccess": "Делегирование успешно завершено",
-    "delegateFailed": "Ошибка делегирования",
+    "delegateSuccess": "Задача делегирования успешно завершена",
+    "delegateFailed": "Задача делегирования не удалась",
     "maxConcurrent": "Макс. параллельность",
-    "timeoutSec": "Тайм-аут (с)"
+    "timeoutSec": "Тайм-аут (сек)"
   },
   "notification": {
     "clear": "Очистить",
@@ -6887,6 +6886,33 @@
     "error": {
       "title": "Error rendering property panel",
       "reset": "Reset"
+    }
+  },
+  "viz": {
+    "invalidBlock": "Некорректные данные VizBlock",
+    "unsupportedKind": "Неподдерживаемый тип визуализации: {{kind}}",
+    "noBlocks": "Нет блоков визуализации",
+    "noData": "Нет данных",
+    "scene": {
+      "market-mainline": "Основной тренд рынка",
+      "paper-portfolio": "Симулированный портфель",
+      "screenshot-diagnosis": "Диагностика по скриншоту",
+      "industry-chain": "Цепочка поставок",
+      "cross-market-news": "Межрыночные новости",
+      "quant-backtest": "Квантовый бэктест"
+    },
+    "kind": {
+      "line_chart": "Линейный график",
+      "bar_chart": "Столбчатая диаграмма",
+      "area_chart": "Площадная диаграмма",
+      "pie_chart": "Круговая диаграмма",
+      "scatter_chart": "Диаграмма рассеяния",
+      "heatmap": "Тепловая карта",
+      "candlestick": "Свечной график",
+      "treemap": "Treemap",
+      "sankey": "Диаграмма Санкей",
+      "gauge": "Датчик",
+      "table": "Таблица"
     }
   },
   "voice": {
@@ -12360,28 +12386,6 @@
       }
     }
   },
-  "multiAgent": {
-    "title": "多智能体状态",
-    "tabs": {
-      "agents": "智能体",
-      "messages": "消息",
-      "memory": "内存"
-    },
-    "status": {
-      "running": "运行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 运行中 / {{completed}} 已完成",
-    "noAgents": "暂无注册的智能体",
-    "noMessages": "暂无消息",
-    "selectAgent": "选择一个智能体以查看消息",
-    "noMemory": "暂无共享内存条目",
-    "by": "由",
-    "ttl": "TTL"
-  },
   "notificationCenter": {
     "title": "通知"
   },
@@ -12446,5 +12450,33 @@
     "strategyOverwrite": "Overwrite（覆盖）",
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
+  },
+  "marketMainline": {
+    "title": "Главная линия рынка",
+    "archive": "Архив",
+    "strength": "Сила",
+    "representativeSymbols": "Представительные символы",
+    "evidence": "Доказательство",
+    "archiveSuccess": "Архивировано",
+    "createRequired": "Тема и описание обязательны",
+    "createSuccess": "Создано",
+    "create": "Создать главную линию вручную",
+    "refresh": "Обновить последние 7 дней",
+    "statusFilter": "Фильтр статуса",
+    "categoryFilter": "Фильтр категории",
+    "selectDate": "Выбрать дату",
+    "dateTitle": "Дата",
+    "noDataForDate": "Нет главной линии для этой даты",
+    "noData": "Нет данных главной линии",
+    "createTitle": "Создать главную линию рынка вручную",
+    "form": {
+      "date": "Дата",
+      "category": "Категория",
+      "theme": "Тема",
+      "narrative": "Описание",
+      "symbols": "Символы (через запятую)",
+      "score": "Сила 0-100",
+      "persistence": "Постоянство"
+    }
   }
 }

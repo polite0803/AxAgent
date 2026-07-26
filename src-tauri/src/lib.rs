@@ -446,6 +446,8 @@ pub fn run() {
                 if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&seed_db).await {
                     tracing::error!("[startup] 股票业务种子化失败: {e}");
                 }
+                // G13: 同步内置 SKILL.md 到用户目录（同步操作，快速完成）
+                crate::commands::skills::seed_builtin_skills();
             });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 

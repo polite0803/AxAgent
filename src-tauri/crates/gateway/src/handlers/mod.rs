@@ -22,6 +22,7 @@
 
 pub mod audio;
 pub mod chat;
+pub mod dojo_event;
 pub mod embeddings;
 pub mod error;
 pub mod files;
@@ -33,6 +34,7 @@ pub mod mcp_proxy;
 pub mod models;
 pub mod platform_bridge;
 pub mod responses;
+pub mod runs;
 pub mod streaming;
 pub mod usage;
 
@@ -54,6 +56,10 @@ pub use jobs::{
 };
 pub use models::list_models;
 pub use responses::{delete_response, get_response};
+pub use runs::{
+    cancel_chat_run, create_chat_run, delete_chat_run, get_chat_run, get_chat_run_events,
+    list_chat_runs,
+};
 pub use usage::usage_handler;
 // These items are `pub(crate)` in their submodules; re-export them at the
 // same crate-private level so other modules in the gateway crate can keep

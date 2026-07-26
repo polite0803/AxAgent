@@ -434,6 +434,10 @@ pub(crate) async fn handle_stream(
         let mut total_cache_creation = 0u32;
         let mut stream_error: Option<String> = None;
 
+        // G7 dojo.v2 Typed Event：为本次 stream 维护事件序列器
+        let run_id = crate::handlers::dojo_event::DojoEventSequencer::generate_run_id();
+        let mut sequencer = crate::handlers::dojo_event::DojoEventSequencer::new(&run_id);
+
         while let Some(chunk_result) = stream.next().await {
             // P2-22: 显式监听客户端断开 —— tx.closed() 触发时立即跳出，
             // 避免 provider 继续耗 token 推给已断开的客户端。
@@ -456,12 +460,20 @@ pub(crate) async fn handle_stream(
                     }
 
                     if chunk.done {
+                        // 流结束前关闭推理段（如果存在）
+                        let mut final_events = Vec::new();
+                        if let Some(think_end) = sequencer.close_thinking_if_open() {
+                            final_events.push(think_end);
+                        }
+                        final_events.push(sequencer.done_event());
+
                         let data = build_stream_final_response_body(
                             &model_str,
                             total_prompt,
                             total_completion,
                             total_cached,
                             total_cache_creation,
+                            &final_events,
                         );
                         if tx.send(Ok(Event::default().data(data.to_string()))).await.is_err() {
                             break;
@@ -470,7 +482,10 @@ pub(crate) async fn handle_stream(
                         break;
                     }
 
-                    if let Some(data) = build_stream_chunk_response_body(&model_str, &chunk)
+                    // 根据 chunk 内容生成 dojo_event 列表
+                    let dojo_events = sequencer.events_for_chunk(&chunk);
+                    if let Some(data) =
+                        build_stream_chunk_response_body(&model_str, &chunk, &dojo_events)
                         && tx.send(Ok(Event::default().data(data.to_string()))).await.is_err()
                     {
                         // Client disconnected after checking is_closed() but before sending
@@ -481,8 +496,11 @@ pub(crate) async fn handle_stream(
                 Err(e) => {
                     stream_error = Some(e.to_string());
                     tracing::error!(error = %e, "Stream processing error in chat completion");
+                    // 发送 dojo error 事件 + OpenAI 兼容错误
+                    let err_event = sequencer.error_event("Stream processing error");
                     let data = json!({
-                        "error": { "message": "Stream processing error" }
+                        "error": { "message": "Stream processing error" },
+                        "dojo_event": [err_event],
                     });
                     let _ = tx.send(Ok(Event::default().data(data.to_string()))).await;
                     break;
@@ -578,6 +596,7 @@ fn build_non_stream_response_body(response: &ChatResponse) -> serde_json::Value 
 pub(crate) fn build_stream_chunk_response_body(
     model: &str,
     chunk: &ChatStreamChunk,
+    dojo_events: &[crate::handlers::dojo_event::DojoEvent],
 ) -> Option<serde_json::Value> {
     let mut delta = serde_json::Map::new();
 
@@ -588,10 +607,10 @@ pub(crate) fn build_stream_chunk_response_body(
         delta.insert("reasoning_content".to_string(), json!(reasoning));
     }
 
-    if delta.is_empty() {
+    if delta.is_empty() && dojo_events.is_empty() {
         None
     } else {
-        Some(json!({
+        let mut body = json!({
             "id": "chatcmpl-gateway",
             "object": "chat.completion.chunk",
             "model": model,
@@ -600,7 +619,11 @@ pub(crate) fn build_stream_chunk_response_body(
                 "delta": delta,
                 "finish_reason": null,
             }]
-        }))
+        });
+        if !dojo_events.is_empty() {
+            body["dojo_event"] = json!(dojo_events);
+        }
+        Some(body)
     }
 }
 
@@ -610,6 +633,7 @@ pub(crate) fn build_stream_final_response_body(
     completion_tokens: u32,
     cached_tokens: u32,
     cache_creation_tokens: u32,
+    dojo_events: &[crate::handlers::dojo_event::DojoEvent],
 ) -> serde_json::Value {
     let mut usage = serde_json::Map::from_iter([
         ("prompt_tokens".to_string(), json!(prompt_tokens)),
@@ -626,7 +650,7 @@ pub(crate) fn build_stream_final_response_body(
         usage.insert("cache_creation_input_tokens".to_string(), json!(cache_creation_tokens));
     }
 
-    json!({
+    let mut body = json!({
         "id": "chatcmpl-gateway",
         "object": "chat.completion.chunk",
         "model": model,
@@ -636,5 +660,9 @@ pub(crate) fn build_stream_final_response_body(
             "finish_reason": "stop",
         }],
         "usage": usage,
-    })
+    });
+    if !dojo_events.is_empty() {
+        body["dojo_event"] = json!(dojo_events);
+    }
+    body
 }

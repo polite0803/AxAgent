@@ -41,6 +41,7 @@ pub mod fine_tune;
 pub mod frontend_adapter;
 pub mod goal_evaluator;
 pub mod graph_insights;
+pub mod guardrails;
 pub mod health_checker;
 pub mod hierarchical_planner;
 pub mod ingest_pipeline;
@@ -87,6 +88,7 @@ pub mod steer_manager;
 pub mod task;
 pub mod task_decomposer;
 pub mod task_executor;
+pub mod think_scrubber;
 pub mod thought_chain;
 pub mod tool_recommender;
 pub mod trajectory_recorder;
@@ -125,8 +127,10 @@ pub use recovery_strategies::{
     RecoveryResult, RecoveryStrategy,
 };
 
-// hierarchical_planner — 外部引用：commands/plan
-pub use hierarchical_planner::{Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus};
+// hierarchical_planner — 外部引用：commands/plan, commands/dojo_sdk (G19 Plan 三件套)
+pub use hierarchical_planner::{
+    HierarchicalPlanner, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
+};
 
 // insight_generator — 外部引用：commands/reflection
 pub use insight_generator::{Insight, InsightCategory, InsightStats};
@@ -194,6 +198,14 @@ pub use multi_agent_hook::{
     MultiAgentTriggerConfig, MultiAgentTriggerHook, create_multi_agent_trigger_hook,
     create_multi_agent_trigger_hook_with_config,
 };
+
+// guardrails — 外部引用：agent_runtime / runtime-core 调用护栏
+pub use guardrails::{
+    GuardrailDecision, GuardrailThresholds, ToolCallGuardrailController, ToolStatsSnapshot,
+};
+
+// think_scrubber — 外部引用：gateway / agent_runtime 清理思考链
+pub use think_scrubber::{ScrubberConfig, ThinkScrubber};
 
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
 

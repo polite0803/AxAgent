@@ -41,6 +41,7 @@ pub mod cron_job;
 pub mod execution_progress;
 pub mod feature_flags;
 pub mod fork_bridge;
+pub mod guard_traits;
 pub mod hook_chain;
 pub mod hooks;
 pub mod interceptor_chain;
@@ -63,6 +64,7 @@ pub mod sandbox;
 pub mod session;
 pub mod session_control;
 pub mod session_memory_compact;
+pub mod session_token_ledger;
 pub mod snip;
 pub mod usage;
 
@@ -94,6 +96,18 @@ pub use compact_thresholds::{
 pub use compact_warning::{
     CompactWarning, CompactWarningState, DEFAULT_SUPPRESSION_TTL_SECS, MIN_WARNING_INTERVAL_SECS,
     WarningLevel, compute_warning_level,
+};
+
+// G11: SessionTokenLedger + ContextCompactedEvent
+pub use session_token_ledger::{
+    CompactionStrategy, ContextCompactedEvent, ProviderModelStats, SessionLedgerRegistry,
+    SessionTokenLedger, TokenRecord,
+};
+
+// G9/G10/G11 接入 trait — 让 ConversationRuntime 通过 setter 注入实现
+pub use guard_traits::{
+    GuardrailVerdict, NoopThinkScrubber, NoopTokenUsageSink, NoopToolCallGuardrail, ThinkScrubber,
+    TokenUsageSink, ToolCallGuardrail,
 };
 
 pub use config::{
@@ -176,6 +190,6 @@ pub use message_importance::{score_message, select_top_messages};
 pub use hook_chain::HookChain;
 
 pub use plugin_hooks::{
-    HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
-    ToolCallContext, ToolCallResult,
+    ApiCallContext, ApiCallResult, HookContext, HookDecision, LlmCallContext, LlmCallResult,
+    PluginHook, SharedHook, ToolCallContext, ToolCallResult,
 };

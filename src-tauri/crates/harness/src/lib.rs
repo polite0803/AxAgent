@@ -172,8 +172,20 @@ pub mod persistence;
 pub mod planner;
 pub mod plugin_hook;
 pub use plugin_hook::{
-    HookContext, HookDecision, LlmCallContext, LlmCallResult, PluginHook, SharedHook,
-    ToolCallContext, ToolCallResult,
+    ApiCallContext, ApiCallResult, HookContext, HookDecision, LlmCallContext, LlmCallResult,
+    PluginHook, SharedHook, ToolCallContext, ToolCallResult,
+};
+// G16: DojoExtension Protocol — 扩展接入契约（health/tool_specs/execute_command/dashboard_cards/prompt_context）
+pub mod dojo_extension;
+pub use dojo_extension::{
+    DojoCommandSpec, DojoDashboardCard, DojoDashboardCardType, DojoExtension, DojoExtensionHealth,
+    DojoExtensionRegistry, DojoPromptContext, DojoToolSpec,
+};
+// G17: Cron delivery → gateway 闭环 — 投递配置 DTO + Sink trait
+pub mod cron_delivery;
+pub use cron_delivery::{
+    CronDeliveryChannel, CronDeliveryConfig, CronDeliveryPayload, CronDeliverySink,
+    NoopDeliverySink,
 };
 pub mod prompt_guard;
 pub mod provider;

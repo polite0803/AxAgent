@@ -3439,8 +3439,6 @@
     "portfolio": "Portfolio",
     "paperPortfolio": "Paper Portfolio",
     "scheduledAnalysis": "Scheduled",
-    "marketplace": "Marketplace",
-    "dynamicUI": "Dynamic Pages",
     "marketMainline": "Market Mainline",
     "screenshotDiagnosis": "Screenshot Diagnosis",
     "multiAgent": "Multi-Agent"
@@ -3461,6 +3459,7 @@
     "createSuccess": "Portfolio created",
     "createTitle": "Create Paper Portfolio",
     "currentPrice": "Current",
+    "entryDate": "Entry Date",
     "entryDateLabel": "Entry Date",
     "entryDateRequired": "Please select entry date",
     "entryPrice": "Entry",
@@ -3557,35 +3556,35 @@
   },
   "multiAgent": {
     "title": "Multi-Agent Collaboration",
-    "subtitle": "G5 fixed role pool: Analyst / Implementer / Reviewer",
+    "subtitle": "G5 Fixed Role Pool: Analyst / Implementer / Reviewer",
     "rolesTitle": "Roles",
-    "noRoles": "No fixed roles seeded. Please verify role seeding completed.",
+    "noRoles": "No fixed roles available, please verify role seeding completed",
     "refreshRoles": "Refresh Roles",
     "delegateTitle": "Delegate Task",
-    "selectRole": "Select Target Role",
-    "taskDescription": "Task Description",
-    "taskPlaceholder": "Enter the sub-task to delegate, e.g.: analyze sector capital flow, review strategy code, audit diagnosis conclusions",
+    "selectRole": "Select target role",
+    "taskDescription": "Task description",
+    "taskPlaceholder": "Enter the sub-task to delegate to this role, e.g.: analyze sector fund flow, inspect strategy code, review diagnosis conclusions",
     "contextJsonOptional": "Context JSON (optional)",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
-    "contextJsonInvalid": "Context JSON is invalid",
+    "contextJsonInvalid": "Context JSON format is invalid",
     "provider": "LLM Provider",
     "model": "Model",
     "temperature": "Temperature",
-    "maxTokens": "Max Tokens",
+    "maxTokens": "Max tokens",
     "delegateBtn": "Delegate Task",
     "fillRequired": "Please fill in all required fields",
     "historyTitle": "Delegation History",
-    "noHistory": "No delegation records",
+    "noHistory": "No delegation records yet",
     "clearHistory": "Clear History",
     "success": "Success",
     "failed": "Failed",
     "tokens": "tokens",
     "taskLabel": "Task",
     "responseLabel": "Response",
-    "delegateSuccess": "Delegation completed successfully",
-    "delegateFailed": "Delegation failed",
-    "maxConcurrent": "Max Concurrent",
-    "timeoutSec": "Timeout (s)"
+    "delegateSuccess": "Delegation task completed successfully",
+    "delegateFailed": "Delegation task failed",
+    "maxConcurrent": "Max Concurrency",
+    "timeoutSec": "Timeout (seconds)"
   },
   "notification": {
     "clear": "Clear",
@@ -6545,6 +6544,33 @@
     },
     "field": "字段"
   },
+  "viz": {
+    "invalidBlock": "Invalid VizBlock data",
+    "unsupportedKind": "Unsupported visualization kind: {{kind}}",
+    "noBlocks": "No visualization blocks",
+    "noData": "No data",
+    "scene": {
+      "market-mainline": "Market Mainline",
+      "paper-portfolio": "Paper Portfolio",
+      "screenshot-diagnosis": "Screenshot Diagnosis",
+      "industry-chain": "Industry Chain",
+      "cross-market-news": "Cross-Market News",
+      "quant-backtest": "Quant Backtest"
+    },
+    "kind": {
+      "line_chart": "Line Chart",
+      "bar_chart": "Bar Chart",
+      "area_chart": "Area Chart",
+      "pie_chart": "Pie Chart",
+      "scatter_chart": "Scatter Chart",
+      "heatmap": "Heatmap",
+      "candlestick": "Candlestick",
+      "treemap": "Treemap",
+      "sankey": "Sankey",
+      "gauge": "Gauge",
+      "table": "Table"
+    }
+  },
   "voice": {
     "connected": "Connected",
     "connecting": "Connecting...",
@@ -8913,28 +8939,6 @@
     "execute": "Execute",
     "readonly": "Readonly",
     "write": "Write"
-  },
-  "multiAgent": {
-    "title": "Multi-Agent Status",
-    "tabs": {
-      "agents": "Agents",
-      "messages": "Messages",
-      "memory": "Memory"
-    },
-    "status": {
-      "running": "Running",
-      "completed": "Completed",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} running / {{completed}} completed",
-    "noAgents": "No agents registered",
-    "noMessages": "No messages",
-    "selectAgent": "Select an agent to view messages",
-    "noMemory": "No shared memory entries",
-    "by": "by",
-    "ttl": "TTL"
   },
   "agentStats": {
     "running": "Running",
@@ -12090,6 +12094,34 @@
       "expectedUpside": "Expected upside",
       "asOf": "As of",
       "live": "Live"
+    }
+  },
+  "marketMainline": {
+    "title": "Market Mainline",
+    "archive": "Archive",
+    "strength": "Strength",
+    "representativeSymbols": "Representative Symbols",
+    "evidence": "Evidence",
+    "archiveSuccess": "Archived",
+    "createRequired": "Theme and narrative are required",
+    "createSuccess": "Created",
+    "create": "Manually Create Mainline",
+    "refresh": "Refresh last 7 days",
+    "statusFilter": "Status filter",
+    "categoryFilter": "Category filter",
+    "selectDate": "Select date",
+    "dateTitle": "Date",
+    "noDataForDate": "No mainline for this date",
+    "noData": "No mainline data",
+    "createTitle": "Manually Create Market Mainline",
+    "form": {
+      "date": "Date",
+      "category": "Category",
+      "theme": "Theme",
+      "narrative": "Narrative",
+      "symbols": "Symbols (comma-separated)",
+      "score": "Strength 0-100",
+      "persistence": "Persistence"
     }
   }
 }

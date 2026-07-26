@@ -14,13 +14,22 @@ pub enum Style {
     Capital,
     /// 超跌反弹
     Reversion,
-    /// 候选池兜底：仅依赖 quote 数据的"系统初筛"列表，
-    /// 当 4 个主风格都拿不到数据时充当 fallback，确保面板始终有内容
+    /// 候选池兜底
     Watchlist,
-    /// Serenity 瓶颈分析：基于产业链供应链拆解的选股策略，
-    /// 种子池由 serenity-screening workflow 生成，
-    /// 确定性扫描验证财务/估值/扩产周期信号
-    Serenity,
+    /// Serenity 趋势智选 - 供给瓶颈分析
+    #[serde(alias = "serenity")]
+    Bottleneck,
+    /// 趋势智选 - 政策驱动分析
+    Policy,
+    /// 趋势智选 - 业绩驱动分析
+    Earnings,
+    /// 趋势智选 - 资金驱动分析
+    #[serde(alias = "capital_flow")]
+    CapitalFlow,
+    /// 趋势智选 - 事件驱动分析
+    Event,
+    /// 趋势智选 - 技术面驱动分析
+    Technical,
 }
 
 impl Style {
@@ -31,7 +40,12 @@ impl Style {
             Style::Capital => "capital",
             Style::Reversion => "reversion",
             Style::Watchlist => "watchlist",
-            Style::Serenity => "serenity",
+            Style::Bottleneck => "bottleneck",
+            Style::Policy => "policy",
+            Style::Earnings => "earnings",
+            Style::CapitalFlow => "capital_flow",
+            Style::Event => "event",
+            Style::Technical => "technical",
         }
     }
 }

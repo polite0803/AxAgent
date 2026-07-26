@@ -14,6 +14,8 @@ pub mod evolution_drift;
 pub mod exit_recommend;
 pub mod factor_analysis;
 pub mod hit_rate_backtest;
+// G3 产业链传导映射（P2-8 从 astock-data 迁回）
+pub mod industry_chain;
 pub mod intent_parser;
 pub mod knowledge_loader;
 // Phase 2: fundamentals_report 迁移到 astock-data 层(被 tools crate 依赖),
@@ -30,6 +32,8 @@ pub mod cross_stock_aggregator;
 pub mod key_levels;
 pub mod market_mainline;
 pub mod market_regime;
+// G3 产业链 MCP 工具集（P2-8 从 astock-data 迁回）
+pub mod mcp_tools;
 pub mod monitor;
 pub mod monthly_report;
 pub mod paper_portfolio;

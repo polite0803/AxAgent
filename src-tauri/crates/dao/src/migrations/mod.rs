@@ -45,9 +45,10 @@ pub mod v203_price_alerts_align_monitor;
 pub mod v204_paper_portfolio;
 pub mod v205_market_mainline;
 pub mod v206_screenshot_diagnosis;
+pub mod v207_chat_run;
 
 /// 当前 schema 版本号。
-pub const CURRENT_VERSION: i32 = 206;
+pub const CURRENT_VERSION: i32 = 207;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -118,6 +119,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 206,
         description: "v206_screenshot_diagnosis: G6 截图持仓诊断完整闭环 —— screenshot_diagnoses 表，承接 screenshot-portfolio-diagnosis 工作流，含 OCR 文本 / 结构化持仓 / 风险诊断 schema / 建议动作",
         up: |db| Box::pin(v206_screenshot_diagnosis::up(db)),
+    },
+    Migration {
+        version: 207,
+        description: "v207_chat_run: G8 /api/chat/runs 后台 Run Lifecycle 持久化归档 —— chat_runs 主表 + chat_run_events 事件流表，支持多实例网关共享和历史 run 回放",
+        up: |db| Box::pin(v207_chat_run::up(db)),
     },
 ];
 

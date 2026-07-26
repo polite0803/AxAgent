@@ -2,6 +2,7 @@
 
 pub mod axinvest_decorators;
 pub mod browser_fetcher;
+pub mod cron_delivery_sink;
 pub mod database;
 pub mod llm_providers;
 pub mod monitor_emitter;

@@ -199,6 +199,12 @@ pub struct ConversationRuntime<C, T> {
     context_contributors: Vec<Box<dyn ContextContributor>>,
     /// Nudge 上下文行（从 NudgeService 提取，每次 run_turn 前设置）。
     nudge_lines: Vec<String>,
+    /// G9 工具调用护栏（可选，None = 不启用护栏检查）
+    tool_call_guardrail: Option<Box<dyn crate::guard_traits::ToolCallGuardrail>>,
+    /// G10 思考链清理器（可选，None = 不清理 thinking 内容）
+    think_scrubber: Option<Box<dyn crate::guard_traits::ThinkScrubber>>,
+    /// G11 token 用量 sink（可选，None = 不记录用量到外部 ledger）
+    token_usage_sink: Option<Arc<dyn crate::guard_traits::TokenUsageSink>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -254,6 +260,9 @@ where
             progress: None,
             context_contributors: Vec::new(),
             nudge_lines: Vec::new(),
+            tool_call_guardrail: None,
+            think_scrubber: None,
+            token_usage_sink: None,
         }
     }
 
@@ -326,6 +335,36 @@ where
     #[must_use]
     pub fn with_context_contributor(mut self, contributor: Box<dyn ContextContributor>) -> Self {
         self.context_contributors.push(contributor);
+        self
+    }
+
+    /// G9: 注入工具调用护栏。每次工具调用前会检查是否允许，调用后记录结果。
+    #[must_use]
+    pub fn with_tool_call_guardrail(
+        mut self,
+        guardrail: Box<dyn crate::guard_traits::ToolCallGuardrail>,
+    ) -> Self {
+        self.tool_call_guardrail = Some(guardrail);
+        self
+    }
+
+    /// G10: 注入思考链清理器。LLM 响应的 thinking 内容会被清理后再注入到 blocks。
+    #[must_use]
+    pub fn with_think_scrubber(
+        mut self,
+        scrubber: Box<dyn crate::guard_traits::ThinkScrubber>,
+    ) -> Self {
+        self.think_scrubber = Some(scrubber);
+        self
+    }
+
+    /// G11: 注入 token 用量 sink。每次 LLM 调用和压缩事件会通知外部 ledger。
+    #[must_use]
+    pub fn with_token_usage_sink(
+        mut self,
+        sink: Arc<dyn crate::guard_traits::TokenUsageSink>,
+    ) -> Self {
+        self.token_usage_sink = Some(sink);
         self
     }
 
@@ -718,7 +757,7 @@ where
                     }
                 },
             };
-            let (assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
+            let (mut assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
                 match build_assistant_message(events) {
                     Ok(result) => result,
                     Err(error) => {
@@ -726,6 +765,36 @@ where
                         return Err(error);
                     },
                 };
+            // G10: 清理 thinking 内容中的敏感信息（API key / IP / prompt leak / 重复行）
+            let turn_thinking = if !turn_thinking.is_empty() {
+                if let Some(ref scrubber) = self.think_scrubber {
+                    let scrubbed = scrubber.scrub(&turn_thinking);
+                    if scrubbed != turn_thinking {
+                        // 同步更新 assistant_message.blocks 中的 thinking 块
+                        let new_thinking_block =
+                            format!("<think data-axagent=\"1\">\n{}\n</think>", scrubbed);
+                        for block in &mut assistant_message.blocks {
+                            if let ContentBlock::Text { text } = block
+                                && text.starts_with("<think data-axagent=\"1\">")
+                            {
+                                // 替换 thinking 块，保留后续正文（如果有）
+                                if let Some(rest_start) = text.find("</think>") {
+                                    let rest = &text[rest_start + "</think>".len()..];
+                                    *text = format!("{}{}", new_thinking_block, rest);
+                                } else {
+                                    *text = new_thinking_block;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    scrubbed
+                } else {
+                    turn_thinking
+                }
+            } else {
+                turn_thinking
+            };
             if !turn_thinking.is_empty() {
                 if !thinking.is_empty() {
                     thinking.push('\n');
@@ -734,6 +803,13 @@ where
             }
             if let Some(usage) = usage {
                 self.usage_tracker.record(usage);
+                // G11: 通知外部 token usage sink（SessionTokenLedger）
+                // TokenUsage 是 Copy，usage 在 record 后仍可用
+                if let Some(ref sink) = self.token_usage_sink {
+                    // provider_id / model_id 在 ConversationRuntime 层不可知，
+                    // 由 sink 侧按需填充或留空。cost_usd 暂不估算（由 sink 侧查定价表）。
+                    sink.record("", "", usage, 0.0);
+                }
             }
             prompt_cache_events.extend(turn_prompt_cache_events);
             let pending_tool_uses = assistant_message
@@ -762,6 +838,60 @@ where
             }
 
             for (tool_use_id, tool_name, input) in pending_tool_uses {
+                // G9: 工具调用护栏检查 — 在 pre_tool_use_hook 之前拦截重复失败循环
+                if let Some(ref guardrail) = self.tool_call_guardrail {
+                    let verdict = guardrail.check_allowed(&tool_name, &input);
+                    match verdict {
+                        crate::guard_traits::GuardrailVerdict::Allow => {},
+                        crate::guard_traits::GuardrailVerdict::Warn(reason) => {
+                            tracing::warn!(
+                                tool = %tool_name,
+                                reason = %reason,
+                                "[G9 Guardrail] 工具调用警告（允许执行）"
+                            );
+                        },
+                        crate::guard_traits::GuardrailVerdict::Block(reason) => {
+                            tracing::warn!(
+                                tool = %tool_name,
+                                reason = %reason,
+                                "[G9 Guardrail] 工具调用被阻止"
+                            );
+                            guardrail.record_call(&tool_name, &input, false);
+                            let err_msg =
+                                format!("Tool `{}` blocked by guardrail: {}", tool_name, reason);
+                            let result_msg = ConversationMessageExt::tool_result(
+                                tool_use_id.clone(),
+                                tool_name.clone(),
+                                err_msg.clone(),
+                                true,
+                            );
+                            tool_results.push(result_msg);
+                            self.session
+                                .push_message(ConversationMessageExt::tool_result(
+                                    tool_use_id,
+                                    tool_name,
+                                    err_msg,
+                                    true,
+                                ))
+                                .map_err(|error| RuntimeError::new(error.to_string()))?;
+                            continue;
+                        },
+                        crate::guard_traits::GuardrailVerdict::Halt(reason) => {
+                            tracing::error!(
+                                tool = %tool_name,
+                                reason = %reason,
+                                "[G9 Guardrail] 工具调用触发 Halt，停止 Agent Loop"
+                            );
+                            guardrail.record_call(&tool_name, &input, false);
+                            let error = RuntimeError::new(format!(
+                                "Agent loop halted by guardrail: {reason}"
+                            ));
+                            self.record_turn_failed(iterations, &error);
+                            return Err(error);
+                        },
+                    }
+                }
+
                 // Detect repeated identical tool calls to prevent infinite loops.
                 let input_hash = {
                     use std::hash::Hasher;
@@ -1022,6 +1152,16 @@ where
                     .push_message(result_message.clone())
                     .map_err(|error| RuntimeError::new(error.to_string()))?;
                 self.record_tool_finished(iterations, &result_message);
+                // G9: 记录工具调用结果到护栏（用于后续重复失败检测）
+                if let Some(ref guardrail) = self.tool_call_guardrail
+                    && let Some(ContentBlock::ToolResult { tool_name, is_error, .. }) =
+                        result_message.blocks.iter().find_map(|b| match b {
+                            block @ ContentBlock::ToolResult { .. } => Some(block),
+                            _ => None,
+                        })
+                {
+                    guardrail.record_call(tool_name, &input, !*is_error);
+                }
                 tool_results.push(result_message);
             }
 

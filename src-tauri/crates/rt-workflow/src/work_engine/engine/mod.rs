@@ -37,6 +37,7 @@ use rhai_runtime::{LocalRhaiToolFn, RhaiScriptCache, rhai_map_to_json};
 use dag_store::skip_disabled_branch_nodes;
 use node_state::{NodeCircuitBreaker, NodeResult, compute_backoff};
 
+use crate::task_contract::TaskContract;
 use crate::workflow_engine::{
     NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus, current_epoch_ms,
     current_timestamp,
@@ -112,6 +113,10 @@ pub struct RunOptions {
     pub parent_execution_id: Option<String>,
     pub execution_id: Option<String>,
     pub parent_cancel_token: Option<CancellationToken>,
+    /// G12: 任务契约（可选）。设置后 run_workflow 会在开始时 mark_started、
+    /// 完成时 mark_completed 自动验收输出，超时时 mark_timeout，失败时 mark_failed。
+    /// 验收结果写入 `Workflow.output` 同级的 `contract_result` 字段（通过 tracing 输出）。
+    pub task_contract: Option<TaskContract>,
 }
 
 // 步骤进度事件 / 活跃执行摘要 已上移到 harness(阶段 2)
@@ -139,6 +144,7 @@ impl std::fmt::Debug for RunOptions {
             .field("output_schema", &self.output_schema.is_some())
             .field("variables", &self.variables.as_ref().map(|v| v.len()))
             .field("plan_callbacks", &self.plan_callbacks.is_some())
+            .field("task_contract", &self.task_contract.is_some())
             .finish()
     }
 }
@@ -168,6 +174,7 @@ impl Default for RunOptions {
             parent_execution_id: None,
             execution_id: None,
             parent_cancel_token: None,
+            task_contract: None,
         }
     }
 }
@@ -199,6 +206,11 @@ impl RunOptions {
     /// 注入模板级变量列表，运行时写入 ExecutionState.variables
     pub fn with_variables(mut self, variables: Vec<Variable>) -> Self {
         self.variables = Some(variables);
+        self
+    }
+    /// G12: 注入任务契约，启用 SLA/验收/状态机
+    pub fn with_task_contract(mut self, contract: TaskContract) -> Self {
+        self.task_contract = Some(contract);
         self
     }
 }
@@ -1340,6 +1352,20 @@ impl WorkEngine {
             tokens.insert(execution_id.clone(), cancel_token.clone());
         }
 
+        // G12: 取出任务契约（若配置），在执行开始时 mark_started。
+        // 提前 take 是为了避免 options 在后续被 move 后无法再访问 task_contract。
+        let mut task_contract = options.task_contract.clone();
+        if let Some(ref mut contract) = task_contract {
+            contract.mark_started();
+            tracing::info!(
+                workflow_id = %workflow_id,
+                execution_id = %execution_id,
+                contract_id = %contract.task_id,
+                profile = %contract.profile.as_str(),
+                "[G12 TaskContract] 任务契约已启动"
+            );
+        }
+
         // 构建执行输入：优先使用调用方传入的 input，否则用空对象
         let mut input = options.input.clone().unwrap_or_else(|| serde_json::json!({}));
         // 将 model_id / provider_id 写入上下文，供执行器读取
@@ -1377,6 +1403,15 @@ impl WorkEngine {
             {
                 tracing::error!(
                     "[rt-workflow] 持久化校验失败状态失败: {e} (execution_id={execution_id})"
+                );
+            }
+            // G12: 输入校验失败 → 契约标记失败
+            if let Some(ref mut contract) = task_contract {
+                contract.mark_failed(detail.clone());
+                tracing::warn!(
+                    contract_id = %contract.task_id,
+                    status = ?contract.status,
+                    "[G12 TaskContract] 输入校验失败，契约标记为 Failed"
                 );
             }
             return Err(WorkflowError::InputValidationFailed { errors });
@@ -3172,6 +3207,61 @@ impl WorkEngine {
                     exec_wf.output = wf.output.clone();
                     exec_wf.status = wf.status;
                     exec_wf.completed_at = wf.completed_at;
+                }
+            }
+
+            // G12: 任务契约生命周期收尾
+            if let Some(ref mut contract) = task_contract {
+                // 先检查 SLA 超时
+                if contract.is_timed_out() {
+                    contract.mark_timeout();
+                    tracing::warn!(
+                        contract_id = %contract.task_id,
+                        sla_seconds = ?contract.sla_max_seconds,
+                        elapsed = ?contract.elapsed_seconds(),
+                        "[G12 TaskContract] 任务超时，标记为 Timeout"
+                    );
+                } else {
+                    let workflow_output = wf.output.clone().unwrap_or_else(|| {
+                        serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))
+                    });
+                    // 根据工作流状态决定契约收尾方式
+                    match wf.status {
+                        WorkflowStatus::Completed | WorkflowStatus::PartiallyCompleted => {
+                            contract.mark_completed(workflow_output);
+                            tracing::info!(
+                                contract_id = %contract.task_id,
+                                status = ?contract.status,
+                                "[G12 TaskContract] 任务完成，已自动验收"
+                            );
+                        },
+                        WorkflowStatus::Failed => {
+                            contract.mark_failed("工作流执行失败".to_string());
+                            tracing::warn!(
+                                contract_id = %contract.task_id,
+                                "[G12 TaskContract] 工作流失败，契约标记为 Failed"
+                            );
+                        },
+                        WorkflowStatus::Cancelled => {
+                            contract.mark_failed("工作流被取消".to_string());
+                            tracing::warn!(
+                                contract_id = %contract.task_id,
+                                "[G12 TaskContract] 工作流取消，契约标记为 Failed"
+                            );
+                        },
+                        _ => {},
+                    }
+                    // 验收失败时输出详细 failures
+                    if let Some(result) = &contract.acceptance_result {
+                        if !result.passed {
+                            tracing::warn!(
+                                contract_id = %contract.task_id,
+                                failures = ?result.failures,
+                                metrics = ?result.metrics,
+                                "[G12 TaskContract] 验收未通过"
+                            );
+                        }
+                    }
                 }
             }
         }

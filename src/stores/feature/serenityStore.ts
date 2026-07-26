@@ -45,6 +45,8 @@ export interface SerenityCandidate {
   serenityScore?: number;
   serenity_score?: number;
   confidence?: number;
+  strategy_type?: string;
+  strategyType?: string;
   bottleneckProduct?: string;
   bottleneck_product?: string;
   primaryRisk?: string;

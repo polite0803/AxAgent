@@ -184,8 +184,8 @@ pub async fn list_multi_agent_roles(
                 id: role.id,
                 name: role.name,
                 description: role.description.unwrap_or_default(),
-                max_concurrent: role.max_concurrent as u32,
-                timeout_seconds: role.timeout_seconds as u64,
+                max_concurrent: role.max_concurrent as i32,
+                timeout_seconds: role.timeout_seconds as i64,
             });
         }
     }
@@ -199,8 +199,8 @@ pub struct MultiAgentRoleInfo {
     pub id: String,
     pub name: String,
     pub description: String,
-    pub max_concurrent: u32,
-    pub timeout_seconds: u64,
+    pub max_concurrent: i32,
+    pub timeout_seconds: i64,
 }
 
 /// 让 resolve_provider_adapter 在本模块可见（screen_vision 已 pub(crate)）

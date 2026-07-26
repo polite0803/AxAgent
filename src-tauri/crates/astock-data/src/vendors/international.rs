@@ -17,14 +17,175 @@
 
 use async_trait::async_trait;
 use serde_json::Value;
+use std::sync::Arc;
+use std::time::Instant;
+
+use axagent_harness::plugin_hook::{
+    ApiCallContext, ApiCallResult, HttpHookExecutor, PreApiHookOutcome,
+};
 
 use crate::error::DataError;
 use crate::types::*;
 use crate::vendors::StockVendor;
 
 /// 国际股票 vendor（港股 + 美股 + ETF + 国际指数 + 外汇）
+///
+/// G20: 可选注入 `HttpHookExecutor`，在每次 HTTP 调用前后触发
+/// `pre_api_request` / `post_api_request` hook，用于限流/审计/SSRF 防护。
 pub struct InternationalVendor {
     pub http: reqwest::Client,
+    /// G20 API hook 执行器（None = 不启用 hook，零开销）
+    pub hook_executor: Option<Arc<HttpHookExecutor>>,
+}
+
+impl InternationalVendor {
+    /// 创建不带 hook 的 vendor（向后兼容）
+    pub fn new() -> Self {
+        Self { http: reqwest::Client::new(), hook_executor: None }
+    }
+
+    /// 创建带 hook 的 vendor（G20 接入点）
+    pub fn with_hooks(
+        http: reqwest::Client,
+        hooks: Vec<axagent_harness::plugin_hook::SharedHook>,
+    ) -> Self {
+        if hooks.is_empty() {
+            return Self { http, hook_executor: None };
+        }
+        Self { http, hook_executor: Some(Arc::new(HttpHookExecutor::new(hooks))) }
+    }
+
+    /// G20: 在 HTTP GET 调用前后包裹 hook。
+    /// 返回 (响应文本, ApiCallResult) 以便调用方记录额外信息。
+    async fn http_get_with_hooks(&self, url: &str, category: &str) -> Result<String, DataError> {
+        // 无 hook 时走原始路径
+        let Some(ref executor) = self.hook_executor else {
+            let resp = self.http.get(url).send().await.map_err(|e| DataError::VendorError {
+                vendor: "international".into(),
+                message: format!("HTTP 请求失败: {e}"),
+            })?;
+            crate::check_response_429(&resp, "international")?;
+            return resp.text().await.map_err(|e| DataError::VendorError {
+                vendor: "international".into(),
+                message: format!("读取响应失败: {e}"),
+            });
+        };
+
+        // 有 hook：构建上下文 → pre → 执行 → post
+        let ctx = ApiCallContext::new(url, "GET", category).with_service("eastmoney_international");
+        let started = Instant::now();
+
+        // pre_api_request
+        match executor.pre_request(&ctx).await {
+            PreApiHookOutcome::Allow => {},
+            PreApiHookOutcome::Veto { reason, hook_name } => {
+                tracing::warn!(
+                    vendor = "international",
+                    hook = %hook_name,
+                    reason = %reason,
+                    url = %url,
+                    "[G20] 请求被 hook 否决"
+                );
+                return Err(DataError::VendorError {
+                    vendor: "international".into(),
+                    message: format!("请求被 hook '{hook_name}' 否决: {reason}"),
+                });
+            },
+            PreApiHookOutcome::Modify { changes, hook_name } => {
+                tracing::debug!(
+                    hook = %hook_name,
+                    ?changes,
+                    "[G20] 请求被 hook 修改（ InternationalVendor 暂不应用 changes，仅记录）"
+                );
+                // 此处可按 changes 调整 headers/url/timeout，当前实现仅记录
+            },
+        }
+
+        // 实际 HTTP 调用
+        let resp_result = self.http.get(url).send().await;
+        let duration_ms = started.elapsed().as_millis() as u64;
+
+        let result = match resp_result {
+            Ok(resp) => {
+                let status = resp.status().as_u16();
+                let success = resp.status().is_success();
+                // 429 限流特殊处理（与无 hook 路径保持一致）
+                if resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                    let api_result = ApiCallResult {
+                        url: url.to_string(),
+                        status,
+                        success: false,
+                        headers: serde_json::json!({}),
+                        body: Value::Null,
+                        duration_ms,
+                        error: Some("Rate limited (429)".to_string()),
+                        retry_count: 0,
+                    };
+                    executor.post_request(&ctx, &api_result).await;
+                    return Err(DataError::RateLimited { vendor: "international".to_string() });
+                }
+                if !success {
+                    let text = resp.text().await.unwrap_or_default();
+                    let api_result = ApiCallResult {
+                        url: url.to_string(),
+                        status,
+                        success: false,
+                        headers: serde_json::json!({}),
+                        body: Value::String(text.clone()),
+                        duration_ms,
+                        error: Some(format!("HTTP {status}")),
+                        retry_count: 0,
+                    };
+                    executor.post_request(&ctx, &api_result).await;
+                    return Err(DataError::VendorError {
+                        vendor: "international".into(),
+                        message: format!("HTTP {status}: {text}"),
+                    });
+                }
+                let text = resp.text().await.map_err(|e| DataError::VendorError {
+                    vendor: "international".into(),
+                    message: format!("读取响应失败: {e}"),
+                })?;
+                let api_result = ApiCallResult {
+                    url: url.to_string(),
+                    status,
+                    success: true,
+                    headers: serde_json::json!({}),
+                    body: Value::String(text.clone()),
+                    duration_ms,
+                    error: None,
+                    retry_count: 0,
+                };
+                executor.post_request(&ctx, &api_result).await;
+                text
+            },
+            Err(e) => {
+                let api_result = ApiCallResult {
+                    url: url.to_string(),
+                    status: 0,
+                    success: false,
+                    headers: serde_json::json!({}),
+                    body: Value::Null,
+                    duration_ms,
+                    error: Some(e.to_string()),
+                    retry_count: 0,
+                };
+                executor.post_request(&ctx, &api_result).await;
+                return Err(DataError::VendorError {
+                    vendor: "international".into(),
+                    message: format!("HTTP 请求失败: {e}"),
+                });
+            },
+        };
+
+        Ok(result)
+    }
+}
+
+impl Default for InternationalVendor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// eastmoney secid 市场前缀
@@ -82,16 +243,7 @@ impl StockVendor for InternationalVendor {
             "https://push2.eastmoney.com/api/qt/stock/get?secid={secid}&fields=f43,f44,f45,f46,f47,f48,f50,f51,f52,f57,f58,f60,f116,f117,f162,f168,f170"
         );
 
-        let resp = self.http.get(&url).send().await.map_err(|e| DataError::VendorError {
-            vendor: "international".into(),
-            message: format!("HTTP 请求失败: {e}"),
-        })?;
-
-        crate::check_response_429(&resp, "international")?;
-        let text = resp.text().await.map_err(|e| DataError::VendorError {
-            vendor: "international".into(),
-            message: format!("读取响应失败: {e}"),
-        })?;
+        let text = self.http_get_with_hooks(&url, "data_source").await?;
 
         Self::parse_quote_json(&text, stock_code)
     }
@@ -116,15 +268,7 @@ impl StockVendor for InternationalVendor {
             period_code, if matches!(adj, Some(AdjType::Forward) | None) { "1" } else { "0" }, limit.min(1000)
         );
 
-        let resp = self.http.get(&url).send().await.map_err(|e| DataError::VendorError {
-            vendor: "international".into(),
-            message: format!("HTTP 请求失败: {e}"),
-        })?;
-
-        let text = resp.text().await.map_err(|e| DataError::VendorError {
-            vendor: "international".into(),
-            message: format!("读取响应失败: {e}"),
-        })?;
+        let text = self.http_get_with_hooks(&url, "data_source").await?;
 
         Self::parse_klines_json(&text, stock_code)
     }
@@ -135,15 +279,7 @@ impl StockVendor for InternationalVendor {
             urlencoding(keyword)
         );
 
-        let resp = self.http.get(&url).send().await.map_err(|e| DataError::VendorError {
-            vendor: "international".into(),
-            message: format!("HTTP 请求失败: {e}"),
-        })?;
-
-        let text = resp.text().await.map_err(|e| DataError::VendorError {
-            vendor: "international".into(),
-            message: format!("读取响应失败: {e}"),
-        })?;
+        let text = self.http_get_with_hooks(&url, "data_source").await?;
 
         let json: Value =
             serde_json::from_str(&text).map_err(|e| DataError::ParseError(e.to_string()))?;

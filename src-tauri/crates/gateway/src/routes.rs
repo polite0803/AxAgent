@@ -20,13 +20,14 @@ use crate::handlers::platform_bridge::{
     Platform, direct_message, platform_health, receive_webhook,
 };
 use crate::handlers::{
-    cancel_fine_tuning_job, cancel_run, chat_completions, create_embedding, create_fine_tuning_job,
-    create_image, create_job, create_speech, create_transcription, delete_file, delete_job,
-    delete_response, detailed_health_check, disable_job, enable_job, get_job, get_job_schedule,
-    get_response, get_run, get_run_logs, health_check, list_files, list_fine_tuning_jobs,
-    list_jobs, list_models, list_runs, pause_job, resume_job, retrieve_file,
-    retrieve_fine_tuning_job, retry_run, trigger_job, trigger_run, update_job, update_job_schedule,
-    upload_file, usage_handler,
+    cancel_chat_run, cancel_fine_tuning_job, cancel_run, chat_completions, create_chat_run,
+    create_embedding, create_fine_tuning_job, create_image, create_job, create_speech,
+    create_transcription, delete_chat_run, delete_file, delete_job, delete_response,
+    detailed_health_check, disable_job, enable_job, get_chat_run, get_chat_run_events, get_job,
+    get_job_schedule, get_response, get_run, get_run_logs, health_check, list_chat_runs,
+    list_files, list_fine_tuning_jobs, list_jobs, list_models, list_runs, pause_job, resume_job,
+    retrieve_file, retrieve_fine_tuning_job, retry_run, trigger_job, trigger_run, update_job,
+    update_job_schedule, upload_file, usage_handler,
 };
 
 /// Wrapper that extracts the `{platform}` path parameter, converts it to a
@@ -123,6 +124,13 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route("/api/jobs/{job_id}/runs/{run_id}/cancel", post(cancel_run))
         .route("/api/jobs/{job_id}/runs/{run_id}/retry", post(retry_run))
         .route("/api/jobs/{job_id}/runs/{run_id}/logs", get(get_run_logs))
+        // G8: 后台 Chat Run Lifecycle（/api/chat/runs）
+        .route("/api/chat/runs", post(create_chat_run))
+        .route("/api/chat/runs", get(list_chat_runs))
+        .route("/api/chat/runs/{run_id}", get(get_chat_run))
+        .route("/api/chat/runs/{run_id}", delete(delete_chat_run))
+        .route("/api/chat/runs/{run_id}/events", get(get_chat_run_events))
+        .route("/api/chat/runs/{run_id}/cancel", post(cancel_chat_run))
         // Marketplace reviews
         .route(
             "/api/marketplace/{marketplace_id}/reviews",
@@ -338,6 +346,7 @@ mod tests {
             latency_tracker: crate::routing::LatencyTracker::new(),
             round_robin_cursor: crate::routing::RoundRobinCursor::new(),
             market_data_streamer: None,
+            run_store: std::sync::Arc::new(crate::handlers::runs::RunStore::new()),
         }
     }
 

@@ -6,9 +6,11 @@
 //! - seed_daily_market_events: G4 每日市场主线提炼工作流模板种子
 //! - seed_screenshot_portfolio_diagnosis: G6 截图持仓诊断工作流模板种子
 //! - seed_multi_agent_roles: G5 Multi-Agent 固定角色（analyst/implementer/reviewer）种子
+//! - seed_news_cross_market: G3.3 新闻→跨市场传导分析工作流模板种子
 
 pub mod seed_daily_market_events;
 pub mod seed_multi_agent_roles;
+pub mod seed_news_cross_market;
 pub mod seed_screenshot_portfolio_diagnosis;
 pub mod seed_serenity;
 pub mod seed_stock_analysis;
@@ -527,6 +529,15 @@ pub async fn ensure_stock_analysis_experts_seeded(
         tracing::error!("[stock_analysis_setup] Multi-Agent 固定角色种子失败 (非致命): {e}");
     }
     tracing::warn!("[stock_analysis_setup] === G5 Multi-Agent 固定角色种子完成 ===");
+
+    // G3.3: news-to-cross-market-analysis 新闻→跨市场传导分析模板 — 失败不阻塞主流程
+    tracing::warn!("[stock_analysis_setup] === 开始种子 G3.3 跨市场传导分析模板 ===");
+    if let Err(e) = seed_news_cross_market::seed_news_cross_market_template(db).await {
+        tracing::error!(
+            "[stock_analysis_setup] news-to-cross-market-analysis 模板种子失败 (非致命): {e}"
+        );
+    }
+    tracing::warn!("[stock_analysis_setup] === G3.3 跨市场传导分析模板种子完成 ===");
     Ok(())
 }
 

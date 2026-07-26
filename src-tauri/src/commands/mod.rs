@@ -33,6 +33,7 @@ pub mod dashboard;
 pub mod db_config;
 #[cfg(not(mobile))]
 pub mod desktop;
+pub mod dojo_sdk;
 pub mod dream;
 pub mod dynamic_ui;
 pub mod error;
@@ -98,6 +99,8 @@ pub mod screen_vision;
 pub mod screenshot_diagnosis;
 pub mod search;
 pub mod session_share;
+// G18: 会话多格式导出（messages.jsonl / openai_dataset_jsonl / markdown / manifest_json）
+pub mod sessions_export;
 pub mod settings;
 pub mod simple_completion;
 pub mod skill_decomposition;

@@ -58,7 +58,7 @@ lazy_static = "1"
 libsqlite3-sys = { version = "0.37", features = ["bundled"] }
 moka = { version = "0.12", features = ["future"] }
 redb = "2"
-reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "http2", "gzip", "system-proxy"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls", "rustls", "http2", "gzip", "system-proxy"] }
 # P1-3: rhai 下沉 harness 后需在 workspace 层声明统一版本+特性
 # features：sync（Send+ Sync）+ serde（Dynamic ↔ Value 转换）
 rhai = { version = "1", features = ["sync", "serde"] }

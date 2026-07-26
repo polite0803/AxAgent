@@ -113,19 +113,50 @@ pub fn calc_confidence(
 /// 标准 Kelly: f* = (p·b − q) / b
 ///   其中 p=胜率, q=1−p, b=盈亏比(target/stop)
 ///
-/// 本实现：base × confidence/100 × period_factor
+/// 本实现：base × confidence/100 × period_factor × consistency_penalty
 ///   - confidence/100 近似 p（置信度 ∝ 预期胜率）
 ///   - base 由各策略按 target/stop 比预先设定（近似 Kelly f*）
 ///   - period_factor 按持有期缩放（超短线 0.4 → 长线 1.0）
+///   - consistency 多因子一致性（0-1），低一致性 → 降仓惩罚
 ///
 /// 简化原因：p 和 b 无法在子策略内精确估计（依赖 K 线外数据），
 /// 故用信度代理概率、用参数化的 base 代理赔率调整。
+///
+/// 惩罚曲线：
+///   consistency ≥ 0.6 → 无惩罚 (×1.0)
+///   consistency 0.3 → ×0.85
+///   consistency 0.0 → ×0.60
 pub fn calc_position(base: f64, confidence: u8, period: Period) -> f64 {
+    calc_position_with_consistency(base, confidence, 1.0, period)
+}
+
+/// 带一致性惩罚的仓位计算
+///
+/// `consistency` (0-1)：同一策略内多因子方向一致率，
+///   例如 4 个因子中 3 个方向一致 → 0.75。
+///   低一致性时应用线性惩罚降仓。
+pub fn calc_position_with_consistency(
+    base: f64,
+    confidence: u8,
+    consistency: f64,
+    period: Period,
+) -> f64 {
     if base.is_nan() {
         return 0.0;
     }
     let c = confidence as f64 / 100.0;
-    (base * c * period.factor() * 100.0).round() / 100.0
+    let raw = base * c * period.factor();
+    // 一致性惩罚：consistency 0.0→0.60, 0.3→0.85, 0.6→1.0
+    let penalty = if consistency >= 0.6 {
+        1.0
+    } else if consistency >= 0.3 {
+        // 0.3~0.6 线性插值: 0.85 → 1.0
+        0.85 + (consistency - 0.3) / 0.3 * 0.15
+    } else {
+        // 0.0~0.3 线性插值: 0.60 → 0.85
+        0.60 + consistency / 0.3 * 0.25
+    };
+    (raw * penalty * 100.0).round() / 100.0
 }
 
 /// 同票去重：保留 confidence 最高，标注次选风格
@@ -161,7 +192,7 @@ pub fn dedup_and_merge(picks: &mut Vec<RecoPick>) {
     picks.extend(by_code.into_values());
 }
 
-/// 按风格分组 + 每组 top N
+/// 按风格分组 + 每组 top N + 同组置信度归一化
 pub fn group_by_style_and_trim(
     picks: &mut Vec<RecoPick>,
     per_style_limit: usize,
@@ -171,6 +202,20 @@ pub fn group_by_style_and_trim(
         by_style.entry(p.style).or_default().push(p);
     }
     for v in by_style.values_mut() {
+        // 同一风格内的置信度 min-max 归一化，解决不同策略置信度不可比问题
+        let min_conf = v.iter().map(|p| p.confidence).min().unwrap_or(0);
+        let max_conf = v.iter().map(|p| p.confidence).max().unwrap_or(100);
+        let range = if max_conf > min_conf {
+            (max_conf - min_conf) as f64
+        } else {
+            100.0
+        };
+        for p in v.iter_mut() {
+            let original = p.confidence;
+            let normalized = ((original as f64 - min_conf as f64) / range * 100.0).round() as u8;
+            p.confidence = normalized.clamp(1, 100);
+            p.reasons.push(format!("置信度归一化: {}→{}", original, p.confidence));
+        }
         v.sort_by_key(|b| std::cmp::Reverse(b.confidence));
         v.truncate(per_style_limit);
     }

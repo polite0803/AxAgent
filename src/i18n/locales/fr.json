@@ -3781,12 +3781,10 @@
     "watchlist": "Liste de suivi",
     "pipeline": "Stock Pipeline",
     "workspace": "Stock Workspace",
-    "marketplace": "市场",
+    "marketplace": "Marché",
     "prompts": "提示词",
     "recommend": "推荐",
     "skills": "技能",
-    "marketplace": "Marché",
-    "dynamicUI": "Pages dynamiques",
     "marketMainline": "Tendance du marché",
     "screenshotDiagnosis": "Diagnostic de capture",
     "multiAgent": "Multi-Agent"
@@ -3807,6 +3805,7 @@
     "createSuccess": "Portefeuille créé",
     "createTitle": "Créer portefeuille papier",
     "currentPrice": "Actuel",
+    "entryDate": "Date d'entrée",
     "entryDateLabel": "Date d'entrée",
     "entryDateRequired": "Veuillez sélectionner la date d'entrée",
     "entryPrice": "Entrée",
@@ -3903,17 +3902,17 @@
   },
   "multiAgent": {
     "title": "Collaboration Multi-Agent",
-    "subtitle": "G5 pool de rôles fixes : Analyste / Implémenteur / Réviseur",
+    "subtitle": "G5 Pool de rôles fixes : Analyste / Implémenteur / Réviseur",
     "rolesTitle": "Rôles",
-    "noRoles": "Aucun rôle fixe amorcé. Vérifiez que l'amorçage des rôles est terminé.",
+    "noRoles": "Aucun rôle fixe disponible, veuillez vérifier que l'initialisation des rôles est terminée",
     "refreshRoles": "Actualiser les rôles",
-    "delegateTitle": "Déléguer la tâche",
+    "delegateTitle": "Déléguer une tâche",
     "selectRole": "Sélectionner le rôle cible",
     "taskDescription": "Description de la tâche",
-    "taskPlaceholder": "Saisissez la sous-tâche à déléguer, ex : analyser les flux de capitaux sectoriels, vérifier le code de stratégie, auditer les conclusions de diagnostic",
+    "taskPlaceholder": "Saisissez la sous-tâche à déléguer à ce rôle, ex. : analyser les flux financiers sectoriels, inspecter le code de stratégie, réviser les conclusions de diagnostic",
     "contextJsonOptional": "Contexte JSON (optionnel)",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
-    "contextJsonInvalid": "Le contexte JSON est invalide",
+    "contextJsonInvalid": "Format de contexte JSON invalide",
     "provider": "Fournisseur LLM",
     "model": "Modèle",
     "temperature": "Température",
@@ -3928,10 +3927,10 @@
     "tokens": "tokens",
     "taskLabel": "Tâche",
     "responseLabel": "Réponse",
-    "delegateSuccess": "Délégation terminée avec succès",
-    "delegateFailed": "Échec de la délégation",
-    "maxConcurrent": "Concurrence max",
-    "timeoutSec": "Délai d'attente (s)"
+    "delegateSuccess": "Tâche déléguée terminée avec succès",
+    "delegateFailed": "Tâche déléguée échouée",
+    "maxConcurrent": "Concurrence maximale",
+    "timeoutSec": "Délai d'attente (secondes)"
   },
   "notification": {
     "clear": "Effacer",
@@ -6887,6 +6886,33 @@
     "error": {
       "title": "Error rendering property panel",
       "reset": "Reset"
+    }
+  },
+  "viz": {
+    "invalidBlock": "Données VizBlock invalides",
+    "unsupportedKind": "Type de visualisation non supporté: {{kind}}",
+    "noBlocks": "Aucun bloc de visualisation",
+    "noData": "Aucune donnée",
+    "scene": {
+      "market-mainline": "Tendance du marché",
+      "paper-portfolio": "Portefeuille simulé",
+      "screenshot-diagnosis": "Diagnostic par capture",
+      "industry-chain": "Chaîne industrielle",
+      "cross-market-news": "Actualités inter-marchés",
+      "quant-backtest": "Backtest quantitatif"
+    },
+    "kind": {
+      "line_chart": "Graphique en lignes",
+      "bar_chart": "Graphique en barres",
+      "area_chart": "Graphique en aires",
+      "pie_chart": "Graphique circulaire",
+      "scatter_chart": "Nuage de points",
+      "heatmap": "Carte de chaleur",
+      "candlestick": "Graphique en chandeliers",
+      "treemap": "Treemap",
+      "sankey": "Diagramme de Sankey",
+      "gauge": "Jauge",
+      "table": "Tableau"
     }
   },
   "voice": {
@@ -12360,28 +12386,6 @@
       }
     }
   },
-  "multiAgent": {
-    "title": "多智能体状态",
-    "tabs": {
-      "agents": "智能体",
-      "messages": "消息",
-      "memory": "内存"
-    },
-    "status": {
-      "running": "运行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 运行中 / {{completed}} 已完成",
-    "noAgents": "暂无注册的智能体",
-    "noMessages": "暂无消息",
-    "selectAgent": "选择一个智能体以查看消息",
-    "noMemory": "暂无共享内存条目",
-    "by": "由",
-    "ttl": "TTL"
-  },
   "notificationCenter": {
     "title": "通知"
   },
@@ -12446,5 +12450,33 @@
     "strategyOverwrite": "Overwrite（覆盖）",
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
+  },
+  "marketMainline": {
+    "title": "Ligne Principale du Marché",
+    "archive": "Archiver",
+    "strength": "Force",
+    "representativeSymbols": "Symboles Représentatifs",
+    "evidence": "Preuve",
+    "archiveSuccess": "Archivé",
+    "createRequired": "Le thème et le récit sont requis",
+    "createSuccess": "Créé",
+    "create": "Créer Ligne Principale Manuellement",
+    "refresh": "Actualiser les 7 derniers jours",
+    "statusFilter": "Filtre de statut",
+    "categoryFilter": "Filtre de catégorie",
+    "selectDate": "Sélectionner la date",
+    "dateTitle": "Date",
+    "noDataForDate": "Pas de ligne principale pour cette date",
+    "noData": "Pas de données de ligne principale",
+    "createTitle": "Créer Ligne Principale du Marché Manuellement",
+    "form": {
+      "date": "Date",
+      "category": "Catégorie",
+      "theme": "Thème",
+      "narrative": "Récit",
+      "symbols": "Symboles (séparés par des virgules)",
+      "score": "Force 0-100",
+      "persistence": "Persistance"
+    }
   }
 }

@@ -1,5 +1,75 @@
 use serde_json::json;
 
+// ── G14 DojoSDK 工具执行器（trait + 全局注册器） ─────────────────────────
+//
+// astock-data 是 implementor 层级，不能依赖 quant（consumer）/
+// stock-analysis（implementor，但反向依赖会循环）/ tools（hybrid）。
+// 因此 DojoSDK 工具的执行逻辑通过 trait 抽象，由 main crate 实现并注册。
+//
+// 调用顺序：
+// 1. main crate 启动时调用 `register_dojo_sdk_executor(impl)` 注册实现
+// 2. LLM 通过 MCP 协议调用 `dojo_*` / `sector_precomputed_*` 工具
+// 3. `execute_mcp_tool` 命中 DojoSDK 工具时调用 `with_dojo_sdk_executor`
+// 4. 实现内部路由到 quant / stock-analysis / tools 等具体 crate
+
+/// DojoSDK 工具执行器 trait
+///
+/// 实现方需在 `execute` 中根据 `tool_name` 路由到具体的 SDK 功能。
+/// 返回 JSON 字符串（与 `execute_mcp_tool` 一致）。
+#[async_trait::async_trait]
+pub trait DojoSdkExecutor: Send + Sync {
+    async fn execute(
+        &self,
+        tool_name: &str,
+        arguments: &serde_json::Value,
+    ) -> Result<String, String>;
+}
+
+/// 全局 DojoSdkExecutor 注册器（OnceLock 保证一次性注册）
+static DOJO_SDK_EXECUTOR: std::sync::OnceLock<Box<dyn DojoSdkExecutor>> =
+    std::sync::OnceLock::new();
+
+/// 注册全局 DojoSdkExecutor（启动时调用一次）
+///
+/// 重复调用会被忽略（OnceLock 语义）。建议在 `init::services` 中注册。
+pub fn register_dojo_sdk_executor(executor: Box<dyn DojoSdkExecutor>) {
+    let _ = DOJO_SDK_EXECUTOR.set(executor);
+}
+
+/// 检查 DojoSdkExecutor 是否已注册
+pub fn has_dojo_sdk_executor() -> bool {
+    DOJO_SDK_EXECUTOR.get().is_some()
+}
+
+/// 判断工具名是否属于 DojoSDK 工具集
+pub fn is_dojo_sdk_tool(tool_name: &str) -> bool {
+    matches!(
+        tool_name,
+        "sector_precomputed_sector_alpha_factors_daily"
+            | "dojo_run_quant_backtest"
+            | "dojo_get_skill_content"
+            | "dojo_list_skills"
+            | "dojo_get_paper_portfolio"
+            | "dojo_list_market_mainlines"
+            | "dojo_create_plan"
+            | "dojo_execute_plan"
+            | "dojo_revise_plan"
+    )
+}
+
+/// 委托 DojoSDK 工具到已注册的执行器
+async fn with_dojo_sdk_executor(
+    tool_name: &str,
+    arguments: &serde_json::Value,
+) -> Result<String, String> {
+    match DOJO_SDK_EXECUTOR.get() {
+        Some(executor) => executor.execute(tool_name, arguments).await,
+        None => Err(format!(
+            "DojoSDK 工具 '{tool_name}' 需要注册 DojoSdkExecutor 才能执行（启动时调用 register_dojo_sdk_executor）"
+        )),
+    }
+}
+
 pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
     vec![
         json!({
@@ -557,6 +627,204 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
                 "required": ["samples"]
             }
         }),
+        // G3 产业链相关 MCP 工具（get_industry_chain_propagation /
+        // map_news_to_cross_market_stocks）已于 P2-8 阶段迁至
+        // `axagent_stock_analysis::mcp_tools`。本 crate 不再注册这两个工具，
+        // 调用方需通过 `axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools()`
+        // 获取并合并到工具列表中。
+        // ── G14 DojoSDK 工具集 ──────────────────────────────────────────
+        json!({
+            "name": "sector_precomputed_sector_alpha_factors_daily",
+            "description": "DojoSDK: 行业 alpha 因子日频数据。返回一级行业（申万）alpha 因子序列，含 size/value/momentum/reversal/volatility/liquidity 6 类因子值。可选 date 范围与行业过滤。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "start_date": { "type": "string", "description": "起始日期 YYYY-MM-DD（默认近 30 日）" },
+                    "end_date": { "type": "string", "description": "结束日期 YYYY-MM-DD（默认今日）" },
+                    "industry": { "type": "string", "description": "可选行业过滤（如 '银行'、'半导体'）；不传 = 全行业" },
+                    "factors": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "需要返回的因子列表，可选: size/value/momentum/reversal/volatility/liquidity；默认全部"
+                    }
+                }
+            }
+        }),
+        json!({
+            "name": "dojo_run_quant_backtest",
+            "description": "DojoSDK: 运行量化策略回测。内置 5 套策略 (ma_cross/macd/rsi/boll/turtle)，返回完整 BacktestResult 含交易记录、净值曲线、Sharpe/MaxDD 等指标。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "stock_code": { "type": "string", "description": "6 位股票代码" },
+                    "strategy": { "type": "string", "enum": ["ma_cross","macd","rsi","boll","turtle"], "description": "内置策略名" },
+                    "start_date": { "type": "string", "description": "回测起始日期 YYYY-MM-DD" },
+                    "end_date": { "type": "string", "description": "回测结束日期 YYYY-MM-DD" },
+                    "initial_capital": { "type": "number", "description": "初始资金（默认 100000）" },
+                    "params": { "type": "object", "description": "策略参数（如 {fast:5, slow:20}），可选" }
+                },
+                "required": ["stock_code", "strategy", "start_date", "end_date"]
+            }
+        }),
+        json!({
+            "name": "dojo_get_skill_content",
+            "description": "DojoSDK: 获取指定 SKILL 的完整内容（含 frontmatter + 正文）。优先走 SkillPromptCache 缓存；缓存未命中则扫描 skill_dirs。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "skill_name": { "type": "string", "description": "skill 名称（目录名，如 stock-pick / industry-chain-analysis / risk-management / market-mainline）" }
+                },
+                "required": ["skill_name"]
+            }
+        }),
+        json!({
+            "name": "dojo_list_skills",
+            "description": "DojoSDK: 列出当前所有可用 SKILL（含内置 4 个 + 用户自定义），返回 [{name, description, version, source_kind}]。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "include_external": { "type": "boolean", "description": "是否包含外部目录（claude/trae/codebuddy 等），默认 true" }
+                }
+            }
+        }),
+        json!({
+            "name": "dojo_get_paper_portfolio",
+            "description": "DojoSDK: 获取模拟观察组合详情（含持仓 + 实时盈亏）。组合状态 active/closed/archived。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "portfolio_id": { "type": "string", "description": "组合 ID" }
+                },
+                "required": ["portfolio_id"]
+            }
+        }),
+        json!({
+            "name": "dojo_list_market_mainlines",
+            "description": "DojoSDK: 列出最近 N 天市场主线（按强度降序）。可选 category 过滤。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "days": { "type": "integer", "description": "最近天数（默认 7）" },
+                    "category": { "type": "string", "description": "主题大类过滤（可选）" }
+                }
+            }
+        }),
+        json!({
+            "name": "dojo_create_plan",
+            "description": "DojoSDK G19: 创建分层执行计划。基于目标拆分为多阶段（Phase）+ 多任务（Task），支持任务间依赖与角色分配。复用 HierarchicalPlanner。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "goal": { "type": "string", "description": "计划目标描述（如'分析半导体产业链投资机会'）" },
+                    "phases": {
+                        "type": "array",
+                        "description": "阶段数组，每个阶段包含多个任务",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string", "description": "阶段名称" },
+                                "description": { "type": "string", "description": "阶段描述" },
+                                "dependencies": {
+                                    "type": "array",
+                                    "items": { "type": "string" },
+                                    "description": "依赖的阶段 ID（可空，从 1 开始计数：1=第一Phase）"
+                                },
+                                "tasks": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "description": { "type": "string", "description": "任务描述" },
+                                            "action_type": {
+                                                "type": "string",
+                                                "description": "动作类型：agent/llm/tool/shell",
+                                                "default": "agent"
+                                            },
+                                            "parameters": { "type": "object", "description": "任务参数（JSON）" },
+                                            "dependencies": {
+                                                "type": "array",
+                                                "items": { "type": "string" },
+                                                "description": "依赖任务 ID（同阶段内）"
+                                            },
+                                            "max_retries": { "type": "integer", "default": 3 },
+                                            "assigned_role": {
+                                                "type": "string",
+                                                "description": "分配角色（analyst/implementer/reviewer）"
+                                            }
+                                        },
+                                        "required": ["description", "action_type"]
+                                    }
+                                }
+                            },
+                            "required": ["name", "description", "tasks"]
+                        }
+                    }
+                },
+                "required": ["goal", "phases"]
+            }
+        }),
+        json!({
+            "name": "dojo_execute_plan",
+            "description": "DojoSDK G19: 启动/继续执行已创建的计划。返回当前进度与下一批可执行任务。复用 HierarchicalPlanner。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "plan_id": { "type": "string", "description": "计划 ID（由 create_plan 返回）" },
+                    "action": {
+                        "type": "string",
+                        "enum": ["start", "pause", "resume", "cancel", "progress", "next_tasks", "complete_task", "fail_task"],
+                        "default": "start",
+                        "description": "执行动作：start=开始执行, pause=暂停, resume=继续, cancel=取消, progress=查询进度, next_tasks=获取下一批可执行任务, complete_task=标记任务完成, fail_task=标记任务失败"
+                    },
+                    "task_id": { "type": "string", "description": "complete_task/fail_task 必填" },
+                    "result": { "type": "object", "description": "complete_task 时附带的任务结果" },
+                    "error": { "type": "string", "description": "fail_task 时的错误信息" }
+                },
+                "required": ["plan_id", "action"]
+            }
+        }),
+        json!({
+            "name": "dojo_revise_plan",
+            "description": "DojoSDK G19: 修订计划（重规划）。支持 Retry/Skip/Insert/Remove/Reorder/AddPhase/ModifyTask 七种动作。复用 HierarchicalPlanner.replan。",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "plan_id": { "type": "string", "description": "计划 ID" },
+                    "reason": {
+                        "type": "string",
+                        "description": "重规划原因（StepFailed/ResourceConstraint/GoalChanged/NewDependencyDiscovered/ManualIntervention）"
+                    },
+                    "actions": {
+                        "type": "array",
+                        "description": "重规划动作数组",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["Retry", "Skip", "Insert", "Remove", "Reorder", "AddPhase", "ModifyTask"]
+                                },
+                                "task_id": { "type": "string", "description": "Retry/Skip/Remove/Reorder/ModifyTask 必填" },
+                                "phase_id": { "type": "string", "description": "Insert 必填" },
+                                "modified_parameters": { "type": "object", "description": "Retry 时修改参数" },
+                                "reason": { "type": "string", "description": "Skip/Remove 原因" },
+                                "task": { "type": "object", "description": "Insert 时新任务定义" },
+                                "position": { "type": "integer", "description": "Insert/Reorder/AddPhase 位置" },
+                                "new_position": { "type": "integer", "description": "Reorder 新位置" },
+                                "phase": { "type": "object", "description": "AddPhase 新阶段" },
+                                "modifications": { "type": "object", "description": "ModifyTask 修改字段" }
+                            },
+                            "required": ["type"]
+                        }
+                    },
+                    "rollback_to_version": {
+                        "type": "integer",
+                        "description": "可选：回滚到指定版本（不传则执行 actions）"
+                    }
+                },
+                "required": ["plan_id", "reason"]
+            }
+        }),
     ]
 }
 
@@ -584,6 +852,12 @@ pub async fn execute_mcp_tool(
         }
     };
 
+    // G14: DojoSDK 工具集优先委托给已注册的 DojoSdkExecutor
+    // （astock-data 不能直接依赖 quant/stock-analysis/tools，故走 trait 注入）
+    if is_dojo_sdk_tool(tool_name) {
+        return with_dojo_sdk_executor(tool_name, arguments).await;
+    }
+
     // P0 修复(2026-07-22): 对需要 stock_code 的工具统一做空值预检，
     // 避免空字符串传给 vendor 后触发 6 vendor × 2 轮无效重试（浪费 ~3 分钟）。
     // 根因：Agent 节点 LLM 流式 tool_call arguments 反序列化失败时 stock_code 为空，
@@ -603,6 +877,16 @@ pub async fn execute_mcp_tool(
             | "optimize_attention_weights"
             | "get_forex_kline"
             | "get_benchmark_kline"
+            // G3 industry_chain 工具已迁至 axagent_stock_analysis::mcp_tools
+            | "dojo_run_quant_backtest"
+            | "dojo_get_skill_content"
+            | "dojo_list_skills"
+            | "dojo_get_paper_portfolio"
+            | "dojo_list_market_mainlines"
+            | "dojo_create_plan"
+            | "dojo_execute_plan"
+            | "dojo_revise_plan"
+            | "sector_precomputed_sector_alpha_factors_daily"
     ) {
         let code = parse_code(arguments);
         if code.is_empty() {
@@ -1238,6 +1522,11 @@ pub async fn execute_mcp_tool(
             let result = optimize_attention_weights_impl(&samples);
             serde_json::to_string(&result).map_err(|e| e.to_string())
         },
+        // G3 产业链相关工具（get_industry_chain_propagation /
+        // map_news_to_cross_market_stocks）已于 P2-8 阶段迁至
+        // `axagent_stock_analysis::mcp_tools::execute_industry_chain_tool`。
+        // 调用方需在调用 astock-data::mcp_tools::execute_mcp_tool 之前，
+        // 先尝试 axagent_stock_analysis::mcp_tools::execute_industry_chain_tool。
         _ => Err(format!("Unknown MCP tool: {tool_name}")),
     }
 }

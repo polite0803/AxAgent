@@ -134,6 +134,11 @@ impl WatchlistStrategy {
             read_f64(vars, "wl_conf_market", 0.0),
             read_f64(vars, "wl_conf_base", 1.0),
         );
+        // P1-12: Watchlist 兜底也不是永远输出——当置信度低于阈值时跳过
+        let min_conf = read_f64(vars, "wl_min_confidence", 30.0) as u8;
+        if conf < min_conf {
+            return None;
+        }
         let position = calc_position(base_position, conf, self.period);
 
         Some(RecoPick {
@@ -251,7 +256,12 @@ async fn scan_synthetic_one(
         Style::Capital => "资金驱动",
         Style::Reversion => "超跌反弹",
         Style::Watchlist => "系统初筛",
-        Style::Serenity => "瓶颈掘金（Serenity 合成）",
+        Style::Bottleneck => "供给瓶颈",
+        Style::Policy => "政策驱动",
+        Style::Earnings => "业绩驱动",
+        Style::CapitalFlow => "资金驱动",
+        Style::Event => "事件驱动",
+        Style::Technical => "技术驱动",
     };
 
     let (entry_low, entry_high, stop_loss, target_price, base_position, holding_days, reason) =
@@ -334,6 +344,11 @@ async fn scan_synthetic_one(
         read_f64(vars, "syn_conf_market", 0.0),
         read_f64(vars, "syn_conf_base", 1.0),
     );
+    // P1-12: 兜底也不永远输出——置信度不足时跳过
+    let min_conf = read_f64(vars, "syn_min_confidence", 25.0) as u8;
+    if conf < min_conf {
+        return None;
+    }
     let position = calc_position(base_position, conf, period);
 
     Some(RecoPick {

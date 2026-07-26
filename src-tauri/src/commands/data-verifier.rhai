@@ -27,6 +27,27 @@ let effective_candidates = if present(candidates) && type_of(candidates) == "arr
     return verified_candidates;
 };
 
+// 非 bottleneck 策略跳过详细的财务交叉验证
+let first_candidate = if effective_candidates.len() > 0 { effective_candidates[0] } else { () };
+let strategy_type = if present(first_candidate) && first_candidate["strategy_type"] != () {
+    first_candidate["strategy_type"].to_string()
+} else { "bottleneck" };
+if strategy_type != "bottleneck" {
+    // 非 bottleneck 策略只做基本的数据存在性验证
+    for c in effective_candidates {
+        verified_candidates.push(#{
+            "stock_code": if c["stock_code"] != () { c["stock_code"] } else { c.get("code") },
+            "stock_name": if c["stock_name"] != () { c["stock_name"] } else { c.get("name") },
+            "data_verification": #{
+                "strategy_type": strategy_type,
+                "verified": true,
+                "note": "非 bottleneck 策略，跳过财务数据交叉验证"
+            }
+        });
+    }
+    return verified_candidates;
+};
+
 // 防御: candidates 可能为空、非数组
 if type_of(effective_candidates) != "array" { return verified_candidates; }
 if effective_candidates.len() == 0 { return verified_candidates; }

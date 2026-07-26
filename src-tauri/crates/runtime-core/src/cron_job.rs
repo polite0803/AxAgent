@@ -12,6 +12,11 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
 
+// G17: 引入 Cron delivery 配置（来自 harness）
+pub use axagent_harness::cron_delivery::{
+    CronDeliveryChannel, CronDeliveryConfig, CronDeliveryPayload, CronDeliverySink,
+};
+
 pub fn now_millis() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -80,6 +85,9 @@ pub struct CronJob {
     pub next_run_at: Option<i64>,
     /// 重试/超时配置
     pub config: TaskConfig,
+    /// G17: 执行结果投递配置（可选，None 表示不投递）
+    #[serde(default)]
+    pub delivery: Option<CronDeliveryConfig>,
     /// 创建/更新时间
     pub created_at: i64,
     pub updated_at: i64,
@@ -145,6 +153,7 @@ impl CronJob {
             last_result: None,
             next_run_at: None,
             config: TaskConfig::default(),
+            delivery: None,
             created_at: now,
             updated_at: now,
         }
@@ -167,6 +176,12 @@ impl CronJob {
 
     pub fn with_task_type(mut self, task_type: &str) -> Self {
         self.task_type = Some(task_type.to_string());
+        self
+    }
+
+    /// G17: 设置 delivery 配置（链式调用）
+    pub fn with_delivery(mut self, delivery: CronDeliveryConfig) -> Self {
+        self.delivery = Some(delivery);
         self
     }
 
@@ -403,6 +418,58 @@ impl CronJobStore {
         updated
     }
 
+    /// G17: 记录执行结果并按 delivery 配置投递（如果配置了 sink）
+    ///
+    /// 与 `record_run` 区别：此方法会在记录完成后，如果 job 配置了 `delivery`
+    /// 且传入了 sink，会调用 `sink.deliver_all` 把结果推送到配置的渠道。
+    /// 单渠道失败不影响其他渠道，仅记录日志。
+    pub async fn record_run_with_delivery(
+        &self,
+        id: &str,
+        result: TaskRunResult,
+        sink: Option<&dyn CronDeliverySink>,
+    ) -> bool {
+        let updated = self.record_run(id, result.clone()).await;
+
+        if updated && let Some(sink) = sink {
+            // 读取 job 信息构造 payload
+            let (job_name, run_count, delivery) = {
+                let jobs = self.jobs.read().await;
+                let job = jobs.iter().find(|j| j.id == id);
+                match job {
+                    Some(j) => (j.name.clone(), j.run_count, j.delivery.clone()),
+                    None => return updated,
+                }
+            };
+
+            if let Some(delivery_config) = delivery {
+                let payload = CronDeliveryPayload {
+                    job_id: id.to_string(),
+                    job_name: job_name.clone(),
+                    success: result.success,
+                    output: result.output.clone(),
+                    error: result.error.clone(),
+                    duration_ms: result.duration_ms,
+                    executed_at: result.executed_at,
+                    run_count,
+                };
+
+                if let Err(errors) = sink.deliver_all(&delivery_config, &payload).await {
+                    tracing::warn!(
+                        "[CronDelivery] 任务 {id}({job_name}) 部分渠道投递失败: {errors:?}"
+                    );
+                } else {
+                    tracing::info!(
+                        "[CronDelivery] 任务 {id}({job_name}) 投递成功（{} 个渠道）",
+                        delivery_config.channels.len()
+                    );
+                }
+            }
+        }
+
+        updated
+    }
+
     pub async fn count(&self) -> usize {
         self.jobs.read().await.len()
     }
@@ -490,6 +557,7 @@ impl From<axagent_harness::tool_service::CronJobData> for CronJob {
             last_result: None,
             next_run_at: None,
             config: TaskConfig::default(),
+            delivery: None,
             created_at: now,
             updated_at: now,
         }

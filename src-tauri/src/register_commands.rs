@@ -932,6 +932,10 @@ macro_rules! register_all_commands {
             commands::session_share::create_share_session,
             commands::session_share::join_share_session,
             commands::session_share::list_share_participants,
+            // G18 Sessions Export 多格式
+            commands::sessions_export::export_session,
+            commands::sessions_export::export_sessions_batch,
+            commands::sessions_export::export_sessions_manifest,
             // Crash diagnostics
             commands::crash_report::get_crash_log,
             // Service health check
@@ -1109,6 +1113,10 @@ macro_rules! register_all_commands {
             // G5 Multi-Agent 固定角色 pool
             commands::multi_agent::delegate_task,
             commands::multi_agent::list_multi_agent_roles,
+            // G14 DojoSDK 工具集（前端 IPC 入口）
+            commands::dojo_sdk::dojo_sdk_execute_tool,
+            commands::dojo_sdk::dojo_sdk_list_tools,
+            commands::dojo_sdk::dojo_sdk_is_ready,
             commands::stock_analysis::check_position_limits,
             commands::stock_analysis::get_value_assessment,
             commands::stock_analysis::compute_value_metrics,

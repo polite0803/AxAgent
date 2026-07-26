@@ -9,6 +9,7 @@
 pub mod agent_roles;
 pub mod business_rules;
 pub mod expression_engine;
+pub mod task_contract;
 pub mod trigger;
 pub mod work_engine;
 pub mod workflow_engine;
@@ -16,6 +17,10 @@ pub mod yaml_io;
 
 pub use agent_roles::{
     FileRoleRegistry, ResolvedRole, RoleConfig, RoleRegistry, resolve, resolve_with_file_registry,
+};
+// G12: Task/Pipeline 契约系统
+pub use task_contract::{
+    AcceptanceCriteria, AcceptanceResult, ContractStatus, HarnessProfile, TaskContract,
 };
 pub use workflow_engine::{NodeRuntimeState, NodeStatus, Workflow, WorkflowError, WorkflowStatus};
 pub use yaml_io::{

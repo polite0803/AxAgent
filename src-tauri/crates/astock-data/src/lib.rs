@@ -18,6 +18,9 @@ pub mod fallback;
 pub mod fundamentals_report;
 pub mod gate;
 pub mod indicators;
+// G3 industry_chain 已于 P2-8 阶段迁回 axagent-stock-analysis crate（架构归属：
+// 产业链定义/传导算法/新闻映射均为分析逻辑而非数据获取）。
+// 调用方应使用 `axagent_stock_analysis::industry_chain::*`。
 pub mod macro_data;
 pub mod mcp_tools;
 pub mod realtime_quote;
@@ -533,7 +536,10 @@ impl AStockClient {
         self.register_vendor("mootdx", Box::new(MootdxVendor::new()));
         self.register_vendor("browser_eastmoney", Box::new(BrowserEastMoneyVendor::new()));
         // 国际股票（港股/美股/ETF）
-        self.register_vendor("international", Box::new(InternationalVendor { http: http.clone() }));
+        self.register_vendor(
+            "international",
+            Box::new(InternationalVendor { http: http.clone(), hook_executor: None }),
+        );
         // NeoData Financial Search — 末位 fallback vendor
         let neodata_token = Arc::new(RwLock::new(String::new()));
         self.neodata_token = Some(neodata_token.clone());

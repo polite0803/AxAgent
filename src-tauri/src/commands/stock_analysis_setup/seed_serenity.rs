@@ -19,7 +19,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
 
     const TEMPLATE_ID: &str = "serenity-screening";
     // 每次修改 Rhai 脚本或节点拓扑后+1，强制模板重新写入
-    const TEMPLATE_VERSION: i32 = 1;
+    // v2: 重构趋势智选，6策略枚举，多策略评分，策略标记
+    const TEMPLATE_VERSION: i32 = 2;
     // 检查模板版本，只有需要更新时才会重种子
     if let Some(existing) =
         workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
@@ -576,7 +577,10 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         if *id == "t-policy-news" {
             // search_news 需要固定搜索关键词
             let mut im = std::collections::HashMap::new();
-            im.insert("query".to_string(), "政策 利好 促进 扶持 振兴 补贴 实施方案 专项 消费 产业 投资".to_string());
+            im.insert(
+                "query".to_string(),
+                "政策 利好 促进 扶持 振兴 补贴 实施方案 专项 消费 产业 投资".to_string(),
+            );
             nodes.push(WorkflowNode::Tool(ToolNode {
                 base: WorkflowNodeBase {
                     id: id.to_string(),
@@ -621,7 +625,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          2. 排除已过度上涨的赛道：排名中 1 月涨幅 > 30% 的板块直接排除。\n\
          3. 每个趋势必须有可验证的 CapEx/订单/政策证据支撑——纯 LLM 推测不可接受。\n\
          4. 每个趋势必须给出明确的上下游因果链。\n\
-         5. **策略分类**：每个趋势必须标注 strategy_type（bottleneck/policy/earnings/capital）。\n\
+         5. **策略分类**：每个趋势必须标注 strategy_type（bottleneck/policy/earnings/capital/event/technical）。\n\
             bottleneck=产业链供给瓶颈（首选），policy=政策驱动，earnings=业绩驱动，capital=资金面驱动。\n\
          6. 必须输出至少一个 bottleneck_candidate（初步判断的瓶颈环节）。\n\
          \n\
@@ -638,7 +642,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          <数据> 结构：\n\
          {\"trends\": [{\"trend_name\": \"...\", \"confidence\": 75, \"phase\": \"accelerating\",\
          \"core_logic\": \"...\", \"causal_chain\": \"...\",\
-         \"strategy_type\": \"bottleneck | policy | earnings | capital\",\
+         \"strategy_type\": \"bottleneck | policy | earnings | capital | event | technical\",\
          \"bottleneck_candidate\": \"...\", \"bottleneck_rationale\": \"...\",\
          \"demand_evidence\": {\"type\": \"capex | policy_mandate | order_backlog\",\
          \"source\": \"具体证据来源\", \"confidence\": 75, \"detail\": \"...\"},\
@@ -711,7 +715,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         edges.push(edge(&format!("e-trigger-{id}"), "trigger", id));
     }
 
-    // ── Phase 0c: 瓶颈信号数据（并行拉取，供 CodeNode 的财务维度打分）──
+    // ── Phase 0c: 策略评分数据（并行拉取，供 CodeNode 的财务维度打分）──
     // 对每个基线代表股调用 compute_bottleneck_signals，获取存货周转、毛利率趋势、
     // 资本开支/折旧比、固定资产周转率等瓶颈信号。
     let signal_stocks = [
@@ -752,15 +756,15 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     // 使用 5 个并行的 chain-decomposer + 5 个 chokepoint-identifier
     // 每个槽位对应一个趋势索引（0-4）。trend-scanner 通常输出 2-5 个趋势，
     // prompt 已处理"趋势不存在"的情况（返回空 chain_nodes）。
-    // 收集所有 bottleneck-calc 的 output_var 供 candidate-mapper 消费
+    // 收集所有 scorer 的 output_var 供 candidate-mapper 消费
     let trend_names = ["trend1", "trend2", "trend3", "trend4", "trend5"];
     let trend_x_positions = [60.0, 220.0, 380.0, 540.0, 700.0];
 
     for (i, tn) in trend_names.iter().enumerate() {
         let decomposer_id = format!("a-chain-{tn}");
-        let code_node_id = format!("c-bottleneck-{tn}");
+        let code_node_id = format!("c-scorer-{tn}");
 
-        // ── chain-decomposer: Agent 产业链拆解（更新 prompt 要求获取财务数据）──
+        // ── trend-analyzer: 多策略趋势分析 Agent（根据 strategy_type 分支）──
         let decomposer_prompt = format!(
             "你的任务：对上游 a-trend-scanner 输出的趋势 #{i} 进行产业链拆解。\
              将产业从上到下拆解为 5-8 个关键环节，标注每个环节的供应商数量、技术壁垒、扩产周期。\
@@ -812,7 +816,31 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
              \"demand_validation\": {{\"direct_downstream\": \"直接下游厂商\",\
              \"final_demand_driver\": \"最终需求驱动方\", \"demand_certainty\": \"high | medium | low\",\
              \"evidence\": \"关键证据，如英伟达 FY2025 CapEx $80B\",\
-             \"order_visibility\": \"有已公开长协/订单 | 合同负债增长 | 产能预订 | 无公开证据\"}}}}]}}"
+             \"order_visibility\": \"有已公开长协/订单 | 合同负债增长 | 产能预订 | 无公开证据\"}}}}]}}\n\n\
+             如果 trend_strategy 不是 bottleneck (policy/earnings/capital/event/technical)：\n\
+             输出格式见下方，**禁止**输出上述 chain_nodes 结构。\n\n\
+             policy 策略输出：{{\"trend_name\": \"消费振兴\", \"policy_impact_score\": 75,\
+             \"beneficiaries\": [{{\"sector\": \"食品饮料\",\
+             \"stocks\": [{{\"code\": \"600887\", \"name\": \"伊利股份\"}}]}}],\
+             \"chain_nodes\": []}}\n\n\
+             earnings 策略输出：{{\"trend_name\": \"Q3 业绩超预期\",\
+             \"candidates\": [{{\"code\": \"000858\", \"name\": \"五粮液\",\
+             \"expected_beat_pct\": 15, \"reason\": \"动销超预期\"}}],\
+             \"chain_nodes\": []}}\n\n\
+             capital 策略输出：{{\"trend_name\": \"北向流入电力设备\",\
+             \"sectors\": [{{\"name\": \"电力设备\", \"net_inflow\": 12.5, \"days\": 3,\
+             \"volume_surge\": 1.3, \"stocks\": [{{\"code\": \"300750\"}}]}}],\
+             \"chain_nodes\": []}}\n\n\
+             event 策略输出：{{\"trend_name\": \"事件驱动\",\
+             \"events\": [{{\"code\": \"002371\", \"name\": \"北方华创\",\
+             \"event_type\": \"订单\", \"description\": \"获大单\",\
+             \"timeframe\": \"short_term\", \"price_position\": \"not_run\"}}],\
+             \"chain_nodes\": []}}\n\n\
+             technical 策略输出：{{\"trend_name\": \"技术形态突破\",\
+             \"signals\": [{{\"code\": \"300750\", \"name\": \"宁德时代\",\
+             \"pattern\": \"突破\", \"volume_surge\": 1.5,\
+             \"sector_aligned\": true, \"reason\": \"放量突破\"}}],\
+             \"chain_nodes\": []}}"
         );
         // 注入 7 个行业基线数据，供 chain-decomposer 做财务参考
         let mut cd_input_mapping = std::collections::HashMap::new();
@@ -848,43 +876,28 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             &decomposer_id,
         ));
 
-        // ── bottleneck-calc: CodeNode 客观指标计算（接收产业链分析 + 行业排名 + 行业基线数据）──
-        let bottleneck_code = include_str!("../bottleneck-calc.rhai").to_string();
-        let mut bc_input_mapping = std::collections::HashMap::new();
-        bc_input_mapping.insert("chain_analysis".to_string(), format!("{decomposer_id}.content"));
-        // 注入 t-industry-rank 的真实行业排名数据（含各行业涨跌幅/资金流向/领涨股）
-        bc_input_mapping
+        // ── c-scorer: 统一多策略评分 CodeNode ──
+        // 根据 trend_strategy 路由到 bottleneck/policy/earnings/capital/event/technical 评分逻辑
+        let scorer_code = include_str!("../strategy-scorer.rhai").to_string();
+        let mut sc_input_mapping = std::collections::HashMap::new();
+        sc_input_mapping.insert("chain_analysis".to_string(), format!("{decomposer_id}.content"));
+        sc_input_mapping
             .insert("industry_ranking".to_string(), "t-industry-rank.result".to_string());
-        // 注入 7 个行业基线 ToolNode 的结果（compute_industry_position 数据）
-        // 让 CodeNode 能对 chain_node 做行业财务对比
-        bc_input_mapping.insert("baseline_semi".to_string(), "t-baseline-semi.result".to_string());
-        bc_input_mapping
-            .insert("baseline_battery".to_string(), "t-baseline-battery.result".to_string());
-        bc_input_mapping.insert("baseline_chem".to_string(), "t-baseline-chem.result".to_string());
-        bc_input_mapping.insert("baseline_med".to_string(), "t-baseline-med.result".to_string());
-        bc_input_mapping.insert("baseline_aero".to_string(), "t-baseline-aero.result".to_string());
-        bc_input_mapping.insert(
-            "baseline_consumer_elec".to_string(),
-            "t-baseline-consumer-elec.result".to_string(),
+        sc_input_mapping.insert(
+            "trend_strategy".to_string(),
+            format!("a-trend-scanner.content.trends[{i}].strategy_type"),
         );
-        bc_input_mapping.insert("baseline_auto".to_string(), "t-baseline-auto.result".to_string());
-        // V55: 注入 7 个瓶颈信号数据（compute_bottleneck_signals — 存货周转/毛利率趋势/Capex）
-        bc_input_mapping.insert("signal_semi".to_string(), "t-signal-semi.result".to_string());
-        bc_input_mapping
-            .insert("signal_battery".to_string(), "t-signal-battery.result".to_string());
-        bc_input_mapping.insert("signal_chem".to_string(), "t-signal-chem.result".to_string());
-        bc_input_mapping.insert("signal_med".to_string(), "t-signal-med.result".to_string());
-        bc_input_mapping.insert("signal_aero".to_string(), "t-signal-aero.result".to_string());
-        bc_input_mapping.insert(
-            "signal_consumer_elec".to_string(),
-            "t-signal-consumer-elec.result".to_string(),
-        );
-        bc_input_mapping.insert("signal_auto".to_string(), "t-signal-auto.result".to_string());
+        // 评分权重（来自模板变量，兜底 0.35/0.35/0.30）
+        sc_input_mapping.insert("w_supply".to_string(), "w_supply".to_string());
+        sc_input_mapping.insert("w_demand".to_string(), "w_demand".to_string());
+        sc_input_mapping.insert("w_irreplace".to_string(), "w_irreplace".to_string());
         nodes.push(WorkflowNode::Code(CodeNode {
             base: WorkflowNodeBase {
                 id: code_node_id.clone(),
-                title: format!("瓶颈指标计算 #{i}"),
-                description: Some("基于产业链数据和财务数据计算客观瓶颈指标".into()),
+                title: format!("策略评分 #{i}"),
+                description: Some(
+                    "多策略评分：bottleneck/policy/earnings/capital/event/technical".into(),
+                ),
                 position: Position { x: trend_x_positions[i] + 20.0, y: 360.0 },
                 retry: RetryConfig::default(),
                 timeout: Some(30),
@@ -895,11 +908,11 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             },
             config: CodeNodeConfig {
                 language: "rhai".into(),
-                code: bottleneck_code,
+                code: scorer_code,
                 output_var: code_node_id.clone(),
                 tool_name: None,
                 execute_directly: true,
-                input_mapping: bc_input_mapping,
+                input_mapping: sc_input_mapping,
             },
         }));
         edges.push(edge(
@@ -907,19 +920,18 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             &decomposer_id,
             &code_node_id,
         ));
-        // 直接接候选映射阶段（跳过 chokepoint-identifier，合并到 candidate-mapper）
     }
 
     // ── FIX-04: 跨节点一致性检查 CodeNode ──
-    // 检查各 chain-decomposer 输出的供应商数量/市占率/技术壁垒是否一致
+    // 检查各趋势分析 Agent 输出的数据是否一致
     // 输出: consistency_report 供 downstream 参考
     let consistency_code = include_str!("../consistency-check.rhai");
     let mut consistency_input_mapping = std::collections::HashMap::new();
     for tn in &trend_names {
-        let did = format!("a-chain-{tn}");
-        let cid = format!("c-bottleneck-{tn}");
+        let did = format!("a-analyzer-{tn}");
+        let cid = format!("c-scorer-{tn}");
         consistency_input_mapping.insert(format!("chain_node_{tn}"), format!("{did}.content"));
-        consistency_input_mapping.insert(format!("bottleneck_{tn}"), format!("{cid}.result"));
+        consistency_input_mapping.insert(format!("strategy_{tn}"), format!("{cid}.result"));
     }
     // 注意：不再注入 trend_names/chain_node_keys 字面量
     // resolve_var_path 不支持非变量路径的字面量值，None→() 导致 json_parse(()) 失败
@@ -948,12 +960,12 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     }));
     // bottleneck-calc → consistency-check
     for tn in &trend_names {
-        let cid = format!("c-bottleneck-{tn}");
+        let cid = format!("c-scorer-{tn}");
         edges.push(edge(&format!("e-{cid}-c-consistency-check"), &cid, "c-consistency-check"));
     }
     // chain-decomposers → consistency-check
     for tn in &trend_names {
-        let did = format!("a-chain-{tn}");
+        let did = format!("a-analyzer-{tn}");
         edges.push(edge(&format!("e-{did}-c-consistency-check"), &did, "c-consistency-check"));
     }
     // consistency-check → candidate-mapper (注入一致性报告到 context)
@@ -969,8 +981,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let mapper_prompt = "你的任务：综合所有瓶颈鉴定客观指标，对候选公司进行筛选和打分。\
          \n\n\
          你收到的输入：\n\
-         - `bottleneck_trend1`~`bottleneck_trend5` 变量中包含 5 个趋势的瓶颈指标计算结果\
-         （`computed_nodes` 数组，每个环节的三力评分和综合分、数据可信度标签）。\n\
+         - `strategy_trend1`~`strategy_trend5` 变量中包含 5 个趋势的策略评分结果\
+         （`computed_nodes` 数组，每项含策略评分和标签）。\n\
          - `a-chain-trend*` 的 context 中包含产业链拆解详情（环节名称、供应商数量、技术壁垒等）。\n\
          - `a-trend-scanner` 的 context 中包含原始趋势描述。\n\
          \n\
@@ -992,12 +1004,12 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          exit_now 的候选直接排除。\n\
          7. **低关注度量化**：评估机构覆盖变化、搜索热度、相对交易量、市场预期差。\
          关注度越低弹性越大，attention_score > 70 扣分。\n\
-         8. **瓶颈客观评分优先**：下游 `c-bottleneck-*` 节点已基于可用数据计算出三力评分。\
+         8. **瓶颈客观评分优先**：下游 `c-scorer-*` 节点已按策略类型完成评分。\
          每个瓶颈环节的 `bottleneck_composite`、`supply_rigidity_score`、`demand_elasticity_score`、\
          `irreplaceability_score` 和 `data_reliability` 标签在 `result.computed_nodes` 中。\
          你的候选认定必须以这些客观评分为基准，而非从零编造。\
          评分低于 55 的环节标记为 \"weak_signal\"，候选优先级降低。\n\
-         9. **瓶颈信号数据**：`bottleneck_trend1~5.bottleneck_signals` 中包含 7 个代表股的瓶颈信号：\
+         9. **策略评分数据**：`bottleneck_trend1~5.bottleneck_signals` 中包含 7 个代表股的瓶颈信号：\
          存货周转天数变化（`inventory_turnover` — 存货堆积=供给过剩风险）、\
          毛利率同比趋势（`gross_margin_trend` — 扩张=议价权提升）、\
          Capex/折旧比（`capex` — >3=积极扩产，可能预示未来产能瓶颈）。\
@@ -1045,7 +1057,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          \"search_heat\": \"冷门 | 正常 | 热门\",\
          \"relative_volume\": \"低于均值 N% | 正常 | 高于均值 N%\",\
          \"consensus_gap\": \"明显低估 | 合理 | 高估\", \"attention_score\": 30}}], \"summary\": \"...\"}";
-    // context_sources: 提供趋势上下文 + 完整产业链拆解 + 瓶颈指标计算结果
+    // context_sources: 提供趋势上下文 + 完整产业链拆解 + 策略评分结果
     let mapper_ctx: Vec<&str> = vec![
         "a-trend-scanner",
         "a-chain-trend1",
@@ -1053,18 +1065,17 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         "a-chain-trend3",
         "a-chain-trend4",
         "a-chain-trend5",
-        "c-bottleneck-trend1",
-        "c-bottleneck-trend2",
-        "c-bottleneck-trend3",
-        "c-bottleneck-trend4",
-        "c-bottleneck-trend5",
+        "c-scorer-trend1",
+        "c-scorer-trend2",
+        "c-scorer-trend3",
+        "c-scorer-trend4",
+        "c-scorer-trend5",
         "c-consistency-check", // FIX-04: 一致性检查报告注入 context
     ];
     // 注入 bottleneck-calc 计算结果作为结构化变量
     let mut mapper_input_mapping = std::collections::HashMap::new();
     for tn in &trend_names {
-        mapper_input_mapping
-            .insert(format!("bottleneck_{tn}"), format!("c-bottleneck-{tn}.result"));
+        mapper_input_mapping.insert(format!("strategy_{tn}"), format!("c-scorer-{tn}.result"));
     }
     nodes.push(agent_node(
         "a-candidate-mapper",
@@ -1078,7 +1089,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     ));
     // 为所有 bottleneck-calc 节点添加直接边到 candidate-mapper
     for tn in &trend_names {
-        let cid = format!("c-bottleneck-{tn}");
+        let cid = format!("c-scorer-{tn}");
         edges.push(edge(&format!("e-{cid}-a-candidate-mapper"), &cid, "a-candidate-mapper"));
     }
     // trend-scanner → candidate-mapper
@@ -1089,7 +1100,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     ));
     // chain-decomposers → candidate-mapper
     for tn in &trend_names {
-        let did = format!("a-chain-{tn}");
+        let did = format!("a-analyzer-{tn}");
         edges.push(edge(&format!("e-{did}-a-candidate-mapper"), &did, "a-candidate-mapper"));
     }
 
@@ -1359,9 +1370,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),
-        name: Set("Serenity 瓶颈筛选".to_string()),
+        name: Set("趋势智选".to_string()),
         description: Set(Some(
-            "自动扫描市场数据，识别产业瓶颈环节，输出候选股清单（Serenity 投资方法论）".to_string(),
+            "多策略趋势分析引擎：从市场数据中识别产业链瓶颈/政策驱动/业绩驱动/资金面驱动信号，自动筛选候选标的".to_string(),
         )),
         icon: Set("search".into()),
         tags: Set(Some(tags_json)),

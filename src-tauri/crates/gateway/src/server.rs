@@ -65,6 +65,8 @@ pub struct GatewayAppState {
     /// `None` = 未注入（网关启动时缺少行情数据源，/v1/stock/quote/stream 会返回 503）。
     /// 由 wiring 层在构造时注入 `HttpPollingStreamer`，未来可替换为 `WebSocketStreamer`。
     pub market_data_streamer: Option<Arc<dyn MarketDataStreamer>>,
+    /// G8: 后台 Chat Run 存储（进程内内存），用于 `/api/chat/runs` 生命周期管理。
+    pub run_store: Arc<crate::handlers::runs::RunStore>,
 }
 
 /// TLS certificate material.
@@ -232,6 +234,7 @@ impl GatewayServer {
             latency_tracker: LatencyTracker::new(),
             round_robin_cursor: RoundRobinCursor::new(),
             market_data_streamer,
+            run_store: Arc::new(crate::handlers::runs::RunStore::new()),
         };
         Self::start_inner(app_state, config).await
     }

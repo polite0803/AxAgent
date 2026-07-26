@@ -86,10 +86,7 @@ impl Default for MemoryProviderRegistry {
 
 impl MemoryProviderRegistry {
     pub fn new() -> Self {
-        Self {
-            providers: HashMap::new(),
-            active_provider: "internal".to_string(),
-        }
+        Self { providers: HashMap::new(), active_provider: "internal".to_string() }
     }
 
     pub fn register(&mut self, name: String, provider: Box<dyn MemoryProvider>) {

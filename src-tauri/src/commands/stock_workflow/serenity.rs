@@ -1070,6 +1070,7 @@ pub async fn run_serenity_screening(
                         "stockCode": code,
                         "stockName": name,
                         "style": "serenity",
+                        "strategy_type": c.get("strategy_type").and_then(|v| v.as_str()).unwrap_or("bottleneck"),
                         "period": "mid",
                         "price": c.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0),
                         "entryLow": c.get("entryLow").and_then(|v| v.as_f64()).unwrap_or(0.0),
@@ -1094,7 +1095,20 @@ pub async fn run_serenity_screening(
                         period: Set("mid".to_string()),
                         stock_code: Set(code.to_string()),
                         stock_name: Set(name.to_string()),
-                        style: Set("serenity".to_string()),
+                        style: Set(c
+                            .get("strategy_type")
+                            .and_then(|v| v.as_str())
+                            .map(|s| match s {
+                                "bottleneck" => "bottleneck",
+                                "policy" => "policy",
+                                "earnings" => "earnings",
+                                "capital" => "capital_flow",
+                                "event" => "event",
+                                "technical" => "technical",
+                                _ => "bottleneck",
+                            })
+                            .unwrap_or("bottleneck")
+                            .to_string()),
                         confidence: Set(conf),
                         synthetic: Set(0),
                         seed_pool_json: Set(Some(serde_json::to_string(c).unwrap_or_default())),
@@ -1114,6 +1128,7 @@ pub async fn run_serenity_screening(
                         code.to_string(),
                         serde_json::json!({
                             "serenity_score": c["serenity_score"],
+                            "strategy_type": c.get("strategy_type").and_then(|v| v.as_str()).unwrap_or("bottleneck"),
                             "catalysts": c["catalysts"],
                             "exit_signals": c["exit_signals"],
                             "attention_metrics": c["attention_metrics"],

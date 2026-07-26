@@ -46,6 +46,8 @@ mod insight;
 mod intrinsic_reward;
 mod learning_graph;
 mod memory;
+#[allow(dead_code)]
+mod memory_provider;
 mod memory_providers;
 #[allow(dead_code)]
 mod nudge;
@@ -150,6 +152,10 @@ pub use memory_providers::entity::{Entity, EntityType, Relationship, Relationshi
 pub use memory_providers::service::{
     AddMemoryRequest, MemoryNature, MemoryProvenance, MemoryService, MemoryTier,
 };
+// G21: Skill 摘要 MemoryProvider
+pub use memory_providers::skill_summary_provider::SkillSummaryProvider;
+// G21: MemoryHookProvider — 会话生命周期记忆同步 Hook
+pub use memory_providers::memory_hook_provider::{MemoryHookConfig, MemoryHookProvider};
 
 pub use nudge::{NudgeAction, NudgeCandidate, NudgeContext, NudgeEntity, NudgeService, Urgency};
 

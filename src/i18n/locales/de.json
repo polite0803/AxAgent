@@ -3781,12 +3781,10 @@
     "watchlist": "Watchlist",
     "pipeline": "Stock Pipeline",
     "workspace": "Stock Workspace",
-    "marketplace": "市场",
+    "marketplace": "Marktplatz",
     "prompts": "提示词",
     "recommend": "推荐",
     "skills": "技能",
-    "marketplace": "Marktplatz",
-    "dynamicUI": "Dynamische Seiten",
     "marketMainline": "Markt-Hauptlinie",
     "screenshotDiagnosis": "Screenshot-Diagnose",
     "multiAgent": "Multi-Agent"
@@ -3807,6 +3805,7 @@
     "createSuccess": "Portfolio erstellt",
     "createTitle": "Paper-Portfolio erstellen",
     "currentPrice": "Aktuell",
+    "entryDate": "Einstiegsdatum",
     "entryDateLabel": "Einstiegsdatum",
     "entryDateRequired": "Bitte Einstiegsdatum wählen",
     "entryPrice": "Einstieg",
@@ -3902,18 +3901,18 @@
     "portfolioSourceEventPlaceholder": "z.B. Von Screenshot-Diagnose 2026-01-01"
   },
   "multiAgent": {
-    "title": "Multi-Agent-Kollaboration",
-    "subtitle": "G5 fester Rollen-Pool: Analyst / Implementierer / Prüfer",
+    "title": "Multi-Agent-Zusammenarbeit",
+    "subtitle": "G5 Feste Rollen-Pool: Analyst / Implementierer / Prüfer",
     "rolesTitle": "Rollen",
-    "noRoles": "Keine festen Rollen vorhanden. Bitte überprüfen, ob das Rollen-Seeding abgeschlossen ist.",
+    "noRoles": "Keine festen Rollen verfügbar, bitte Rollen-Seeding prüfen",
     "refreshRoles": "Rollen aktualisieren",
     "delegateTitle": "Aufgabe delegieren",
     "selectRole": "Zielrolle auswählen",
     "taskDescription": "Aufgabenbeschreibung",
-    "taskPlaceholder": "Geben Sie die zu delegierende Teilaufgabe ein, z.B.: Sektor-Kapitalfluss analysieren, Strategie-Code prüfen, Diagnose-Ergebnisse auditieren",
+    "taskPlaceholder": "Geben Sie die zu delegierende Teilaufgabe ein, z.B.: Sektor-Geldfluss analysieren, Strategie-Code prüfen, Diagnose-Fazit prüfen",
     "contextJsonOptional": "Kontext JSON (optional)",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
-    "contextJsonInvalid": "Kontext JSON ist ungültig",
+    "contextJsonInvalid": "Kontext JSON-Format ungültig",
     "provider": "LLM-Anbieter",
     "model": "Modell",
     "temperature": "Temperatur",
@@ -3921,17 +3920,17 @@
     "delegateBtn": "Aufgabe delegieren",
     "fillRequired": "Bitte alle Pflichtfelder ausfüllen",
     "historyTitle": "Delegationsverlauf",
-    "noHistory": "Keine Delegationsaufzeichnungen",
+    "noHistory": "Keine Delegationsdatensätze",
     "clearHistory": "Verlauf löschen",
     "success": "Erfolg",
     "failed": "Fehlgeschlagen",
     "tokens": "Tokens",
     "taskLabel": "Aufgabe",
     "responseLabel": "Antwort",
-    "delegateSuccess": "Delegation erfolgreich abgeschlossen",
-    "delegateFailed": "Delegation fehlgeschlagen",
+    "delegateSuccess": "Delegationsaufgabe erfolgreich abgeschlossen",
+    "delegateFailed": "Delegationsaufgabe fehlgeschlagen",
     "maxConcurrent": "Max. Nebenläufigkeit",
-    "timeoutSec": "Zeitüberschreitung (s)"
+    "timeoutSec": "Zeitüberschreitung (Sekunden)"
   },
   "notification": {
     "clear": "Löschen",
@@ -6887,6 +6886,33 @@
     "error": {
       "title": "Error rendering property panel",
       "reset": "Reset"
+    }
+  },
+  "viz": {
+    "invalidBlock": "Ungültige VizBlock-Daten",
+    "unsupportedKind": "Nicht unterstützter Visualisierungstyp: {{kind}}",
+    "noBlocks": "Keine Visualisierungsblöcke",
+    "noData": "Keine Daten",
+    "scene": {
+      "market-mainline": "Markt-Haupttrend",
+      "paper-portfolio": "Simuliertes Portfolio",
+      "screenshot-diagnosis": "Screenshot-Diagnose",
+      "industry-chain": "Wertschöpfungskette",
+      "cross-market-news": "Marktübergreifende Nachrichten",
+      "quant-backtest": "Quant-Backtest"
+    },
+    "kind": {
+      "line_chart": "Liniendiagramm",
+      "bar_chart": "Balkendiagramm",
+      "area_chart": "Flächendiagramm",
+      "pie_chart": "Tortendiagramm",
+      "scatter_chart": "Streudiagramm",
+      "heatmap": "Heatmap",
+      "candlestick": "Kerzendiagramm",
+      "treemap": "Treemap",
+      "sankey": "Sankey-Diagramm",
+      "gauge": "Messuhr",
+      "table": "Tabelle"
     }
   },
   "voice": {
@@ -12360,28 +12386,6 @@
       }
     }
   },
-  "multiAgent": {
-    "title": "多智能体状态",
-    "tabs": {
-      "agents": "智能体",
-      "messages": "消息",
-      "memory": "内存"
-    },
-    "status": {
-      "running": "运行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 运行中 / {{completed}} 已完成",
-    "noAgents": "暂无注册的智能体",
-    "noMessages": "暂无消息",
-    "selectAgent": "选择一个智能体以查看消息",
-    "noMemory": "暂无共享内存条目",
-    "by": "由",
-    "ttl": "TTL"
-  },
   "notificationCenter": {
     "title": "通知"
   },
@@ -12446,5 +12450,33 @@
     "strategyOverwrite": "Overwrite（覆盖）",
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
+  },
+  "marketMainline": {
+    "title": "Markt-Hauptlinie",
+    "archive": "Archivieren",
+    "strength": "Stärke",
+    "representativeSymbols": "Repräsentative Symbole",
+    "evidence": "Beweis",
+    "archiveSuccess": "Archiviert",
+    "createRequired": "Thema und Erzählung sind erforderlich",
+    "createSuccess": "Erstellt",
+    "create": "Hauptlinie manuell erstellen",
+    "refresh": "Letzte 7 Tage aktualisieren",
+    "statusFilter": "Status filtern",
+    "categoryFilter": "Kategorie filtern",
+    "selectDate": "Datum auswählen",
+    "dateTitle": "Datum",
+    "noDataForDate": "Keine Hauptlinie für dieses Datum",
+    "noData": "Keine Hauptlinien-Daten",
+    "createTitle": "Markt-Hauptlinie manuell erstellen",
+    "form": {
+      "date": "Datum",
+      "category": "Kategorie",
+      "theme": "Thema",
+      "narrative": "Erzählung",
+      "symbols": "Symbole (kommagetrennt)",
+      "score": "Stärke 0-100",
+      "persistence": "Beständigkeit"
+    }
   }
 }

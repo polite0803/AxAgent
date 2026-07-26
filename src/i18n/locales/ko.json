@@ -3781,12 +3781,10 @@
     "watchlist": "관심종목",
     "pipeline": "Stock Pipeline",
     "workspace": "Stock Workspace",
-    "marketplace": "市场",
+    "marketplace": "마켓플레이스",
     "prompts": "提示词",
     "recommend": "推荐",
     "skills": "技能",
-    "marketplace": "마켓플레이스",
-    "dynamicUI": "동적 페이지",
     "marketMainline": "시장 메인라인",
     "screenshotDiagnosis": "스크린샷 진단",
     "multiAgent": "멀티 에이전트"
@@ -3807,6 +3805,7 @@
     "createSuccess": "포트폴리오 생성 성공",
     "createTitle": "모의 포트폴리오 생성",
     "currentPrice": "현재가",
+    "entryDate": "진입 날짜",
     "entryDateLabel": "진입일",
     "entryDateRequired": "진입일을 선택하세요",
     "entryPrice": "진입가",
@@ -3905,32 +3904,32 @@
     "title": "멀티 에이전트 협업",
     "subtitle": "G5 고정 역할 풀: 분석가 / 구현자 / 검토자",
     "rolesTitle": "역할 목록",
-    "noRoles": "고정 역할이 없습니다. 역할 시드가 완료되었는지 확인하세요.",
+    "noRoles": "고정 역할이 없습니다. 역할 시딩이 완료되었는지 확인하세요",
     "refreshRoles": "역할 새로고침",
     "delegateTitle": "작업 위임",
     "selectRole": "대상 역할 선택",
     "taskDescription": "작업 설명",
-    "taskPlaceholder": "위임할 하위 작업을 입력하세요. 예: 섹터 자금 흐름 분석, 전략 코드 검토, 진단 결론 심사",
+    "taskPlaceholder": "이 역할에 위임할 하위 작업을 입력하세요, 예: 섹터 자금 흐름 분석, 전략 코드 검사, 진단 결론 검토",
     "contextJsonOptional": "컨텍스트 JSON (선택)",
     "contextJsonPlaceholder": "{\n  \"symbol\": \"600519\",\n  \"date\": \"2026-01-01\"\n}",
     "contextJsonInvalid": "컨텍스트 JSON 형식이 잘못되었습니다",
-    "provider": "LLM 제공자",
+    "provider": "LLM 공급자",
     "model": "모델",
     "temperature": "온도",
     "maxTokens": "최대 토큰",
     "delegateBtn": "작업 위임",
     "fillRequired": "모든 필수 필드를 입력하세요",
     "historyTitle": "위임 기록",
-    "noHistory": "위임 기록이 없습니다",
-    "clearHistory": "기록 비우기",
+    "noHistory": "위임 기록 없음",
+    "clearHistory": "기록 삭제",
     "success": "성공",
     "failed": "실패",
     "tokens": "토큰",
     "taskLabel": "작업",
     "responseLabel": "응답",
-    "delegateSuccess": "작업 위임이 완료되었습니다",
-    "delegateFailed": "작업 위임 실패",
-    "maxConcurrent": "최대 동시 실행",
+    "delegateSuccess": "위임 작업이 성공적으로 완료됨",
+    "delegateFailed": "위임 작업 실패",
+    "maxConcurrent": "최대 동시성",
     "timeoutSec": "시간 초과 (초)"
   },
   "notification": {
@@ -6887,6 +6886,33 @@
     "error": {
       "title": "Error rendering property panel",
       "reset": "Reset"
+    }
+  },
+  "viz": {
+    "invalidBlock": "VizBlock 데이터가 잘못되었습니다",
+    "unsupportedKind": "지원되지 않는 시각화 유형: {{kind}}",
+    "noBlocks": "시각화 블록이 없습니다",
+    "noData": "데이터 없음",
+    "scene": {
+      "market-mainline": "시장 메인라인",
+      "paper-portfolio": "모의 포트폴리오",
+      "screenshot-diagnosis": "스크린샷 진단",
+      "industry-chain": "산업 체인",
+      "cross-market-news": "크로스 마켓 뉴스",
+      "quant-backtest": "퀀트 백테스트"
+    },
+    "kind": {
+      "line_chart": "선형 차트",
+      "bar_chart": "막대 차트",
+      "area_chart": "영역 차트",
+      "pie_chart": "파이 차트",
+      "scatter_chart": "산점도 차트",
+      "heatmap": "히트맵",
+      "candlestick": "캔들스틱",
+      "treemap": "트리맵",
+      "sankey": "산키 다이어그램",
+      "gauge": "게이지",
+      "table": "테이블"
     }
   },
   "voice": {
@@ -12360,28 +12386,6 @@
       }
     }
   },
-  "multiAgent": {
-    "title": "多智能体状态",
-    "tabs": {
-      "agents": "智能体",
-      "messages": "消息",
-      "memory": "内存"
-    },
-    "status": {
-      "running": "运行中",
-      "completed": "已完成",
-      "strategyOverwrite": "Overwrite (replace all)",
-      "strategyMerge": "Merge (keep existing)",
-      "strategyDryRun": "Dry run (validate only)"
-    },
-    "count": "{{running}} 运行中 / {{completed}} 已完成",
-    "noAgents": "暂无注册的智能体",
-    "noMessages": "暂无消息",
-    "selectAgent": "选择一个智能体以查看消息",
-    "noMemory": "暂无共享内存条目",
-    "by": "由",
-    "ttl": "TTL"
-  },
   "notificationCenter": {
     "title": "通知"
   },
@@ -12446,5 +12450,33 @@
     "strategyOverwrite": "Overwrite（覆盖）",
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
+  },
+  "marketMainline": {
+    "title": "시장 메인라인",
+    "archive": "보관",
+    "strength": "강도",
+    "representativeSymbols": "대표 심볼",
+    "evidence": "증거",
+    "archiveSuccess": "보관됨",
+    "createRequired": "테마와 서술이 필요합니다",
+    "createSuccess": "생성됨",
+    "create": "수동으로 메인라인 생성",
+    "refresh": "최근 7일 새로고침",
+    "statusFilter": "상태 필터",
+    "categoryFilter": "카테고리 필터",
+    "selectDate": "날짜 선택",
+    "dateTitle": "날짜",
+    "noDataForDate": "이 날짜의 메인라인 없음",
+    "noData": "메인라인 데이터 없음",
+    "createTitle": "시장 메인라인 수동 생성",
+    "form": {
+      "date": "날짜",
+      "category": "카테고리",
+      "theme": "테마",
+      "narrative": "서술",
+      "symbols": "심볼 (쉼표로 구분)",
+      "score": "강도 0-100",
+      "persistence": "지속성"
+    }
   }
 }

@@ -1370,6 +1370,30 @@ mod test_agent_coordinator_lifecycle {
             None
         }
         async fn execute_post_tool_call(&self, _ctx: &ToolCallContext, _result: &ToolCallResult) {}
+        async fn execute_pre_api_request(
+            &self,
+            _ctx: &axagent_harness::plugin_hook::ApiCallContext,
+        ) -> Option<HookDecision> {
+            None
+        }
+        async fn execute_post_api_request(
+            &self,
+            _ctx: &axagent_harness::plugin_hook::ApiCallContext,
+            _result: &axagent_harness::plugin_hook::ApiCallResult,
+        ) {
+        }
+        async fn execute_pre_llm_call(
+            &self,
+            _ctx: &axagent_harness::plugin_hook::LlmCallContext,
+        ) -> Option<HookDecision> {
+            None
+        }
+        async fn execute_post_llm_call(
+            &self,
+            _ctx: &axagent_harness::plugin_hook::LlmCallContext,
+            _result: &axagent_harness::plugin_hook::LlmCallResult,
+        ) {
+        }
     }
 
     fn noop_cache() -> SharedCacheService {
