@@ -149,6 +149,7 @@ mod tests {
         ActiveModelTrait, ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend,
         EntityTrait, Set, Statement,
     };
+    use serial_test::serial;
     use std::fs;
 
     #[cfg(test)]
@@ -285,6 +286,7 @@ mod tests {
         am.insert(db).await.unwrap();
     }
 
+    #[serial]
     #[tokio::test]
     async fn empty_db_is_noop() {
         let _db = test_db().await;
@@ -293,6 +295,7 @@ mod tests {
         assert_eq!(r, MigrationReport::default());
     }
 
+    #[serial]
     #[tokio::test]
     async fn already_migrated_paths_are_skipped() {
         let db = test_db().await;
@@ -316,6 +319,7 @@ mod tests {
         assert_eq!(r.db_records_updated, 0);
     }
 
+    #[serial]
     #[tokio::test]
     async fn migrates_image_file() {
         let db = test_db().await;
@@ -353,6 +357,7 @@ mod tests {
         assert_eq!(f.storage_path, "images/abcdef123456_photo.png");
     }
 
+    #[serial]
     #[tokio::test]
     async fn migrates_non_image_file() {
         let db = test_db().await;
@@ -383,6 +388,7 @@ mod tests {
         assert_eq!(f.storage_path, "files/fedcba654321_report.pdf");
     }
 
+    #[serial]
     #[tokio::test]
     async fn missing_source_still_updates_db() {
         let db = test_db().await;
@@ -409,6 +415,7 @@ mod tests {
         assert_eq!(f.storage_path, "images/abcdef123456_photo.png");
     }
 
+    #[serial]
     #[tokio::test]
     async fn idempotent_second_run_skips() {
         let db = test_db().await;
@@ -439,6 +446,7 @@ mod tests {
         assert_eq!(r2.db_records_updated, 0);
     }
 
+    #[serial]
     #[tokio::test]
     async fn updates_message_attachments() {
         let db = test_db().await;

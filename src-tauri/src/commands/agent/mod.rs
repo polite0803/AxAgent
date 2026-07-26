@@ -1826,6 +1826,24 @@ pub async fn agent_query(
                 resolved_model.as_ref().and_then(|m| m.input_price_per_mtok),
                 resolved_model.as_ref().and_then(|m| m.output_price_per_mtok),
             );
+
+            // Persist cost to agent_sessions table for dashboard display.
+            // run_turn_with_tools saves tokens but hardcodes cost_delta=0.0;
+            // we persist the real cost here now that we have pricing info.
+            if let (Some(axagent_session_id), Some(real_cost)) =
+                (session.axagent_session_id(), cost_usd)
+            {
+                let _ = axagent_dao::repo::agent_session::update_agent_session_after_query(
+                    app_state.harness.db(),
+                    axagent_session_id,
+                    "idle",
+                    None,
+                    0,         // tokens already saved by session_manager
+                    real_cost, // real cost delta
+                )
+                .await;
+            }
+
             let blocks: Vec<AgentContentBlock> = summary
                 .assistant_messages
                 .iter()

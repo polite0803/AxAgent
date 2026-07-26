@@ -83,7 +83,7 @@ impl MermaidGraph {
 /// 解析 Mermaid flowchart 文本
 ///
 /// 示例：
-/// ```
+/// ```text
 /// graph TD
 ///     A[开始] --> B{是否成功?}
 ///     B -->|是| C[处理结果]

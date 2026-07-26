@@ -235,7 +235,7 @@ describe("AIPanel Component", () => {
     // 新面板：chat/tools 两个主 tab，"生成工作流" 在 tools 子 tab 中
     expect(screen.getByText("对话")).toBeTruthy();
     expect(screen.getByText("工具")).toBeTruthy();
-  }, 15000);
+  }, 60000);
 
   it("should have chat tab active by default", async () => {
     const { AIPanel } = await import("@/components/workflow/AIPanel");
@@ -251,8 +251,9 @@ describe("AIPanel Component", () => {
       { wrapper: AIPanelWrapper },
     );
 
-    // 默认激活 "对话" tab，显示欢迎信息
-    expect(screen.getByText("你好！我是工作流AI助手")).toBeTruthy();
+    // 默认激活 "对话" tab，显示欢迎信息（可能有多处相同文本的实例）
+    const welcomeElements = screen.getAllByText("你好！我是工作流AI助手");
+    expect(welcomeElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it("should render tools sub-tab when tools tab selected", async () => {

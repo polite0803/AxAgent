@@ -1,9 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { LatexRenderer, splitContentWithLatex } from "../LatexRenderer";
+
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+  initReactI18next: {
+    type: "3rdParty",
+    init: () => {},
+  },
+}));
 
 describe("splitContentWithLatex", () => {
   it("无 $ 时返回单段文本（快速路径）", () => {
@@ -88,10 +98,10 @@ describe("LatexRenderer", () => {
   });
 
   it("无效 LaTeX 回退显示原始文本（红色边框）", () => {
-    // \frac{1 未闭合，katex 会抛 ParseError
-    const content = "\\frac{1";
+    // \begin{matrix} 未配对 \end{matrix}，KaTeX 会抛 ParseError
+    const content = "\\begin{matrix} a & b";
     const { container } = render(<LatexRenderer content={content} />);
-    const errorSpan = container.querySelector("span[title='LaTeX 解析失败']");
+    const errorSpan = container.querySelector("span[title='chat.latex.parseError']");
     expect(errorSpan).not.toBeNull();
     // 调试：确认 textContent 与 content 一致（React 不会转义反斜杠）
     expect(errorSpan?.textContent).toBe(content);
