@@ -4853,8 +4853,14 @@
   "sourceManager": {
     "backToList": "返回列表",
     "config": {
+      "changeEmbeddingTitle": "確認修改向量模型",
+      "changeWarning": "修改向量模型會清空現有向量索引並觸發重建，期間檢索可能不可用。",
+      "confirmRebuild": "確認重建",
       "dimensions": "維度",
-      "provider": "嵌入提供者",
+      "editEmbedding": "修改向量模型",
+      "provider": "嵌入模型",
+      "rebuildStarted": "已開始重建索引",
+      "saveSuccess": "已儲存",
       "threshold": "檢索閾值",
       "topK": "檢索 Top K"
     },
@@ -4906,8 +4912,12 @@
     },
     "typeLabel": "類型",
     "view": "進入",
-    "viewAll": "檢視全部",
+    "viewAll": "查看全部",
     "viewConfig": "設定",
+    "confirmDelete": "刪除資料源",
+    "confirmDeleteOk": "刪除",
+    "deleteSuccess": "已刪除",
+    "deleteWarning": "該操作不可復原，將清空所有向量資料與資料庫記錄。",
     "wiki": {
       "title": "Wiki 來源",
       "wikiList": "維基列表"

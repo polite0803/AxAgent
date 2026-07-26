@@ -4853,8 +4853,14 @@
   "sourceManager": {
     "backToList": "목록으로 돌아가기",
     "config": {
+      "changeEmbeddingTitle": "임베딩 모델 변경 확인",
+      "changeWarning": "임베딩 모델을 변경하면 기존 벡터 인덱스가 지워지고 재구축이 트리거됩니다. 이 과정 중에는 검색을 사용할 수 없을 수 있습니다.",
+      "confirmRebuild": "재구축 확인",
       "dimensions": "차원",
+      "editEmbedding": "임베딩 모델 편집",
       "provider": "임베딩 제공자",
+      "rebuildStarted": "인덱스 재구축이 시작되었습니다",
+      "saveSuccess": "저장됨",
       "threshold": "검색 임계값",
       "topK": "검색 상위 K"
     },
@@ -4908,6 +4914,10 @@
     "view": "보기",
     "viewAll": "모두 보기",
     "viewConfig": "구성",
+    "confirmDelete": "소스 삭제",
+    "confirmDeleteOk": "삭제",
+    "deleteSuccess": "삭제됨",
+    "deleteWarning": "이 작업은 되돌릴 수 없습니다. 모든 벡터 데이터와 데이터베이스 레코드가 지워집니다.",
     "wiki": {
       "title": "위키 소스",
       "wikiList": "위키 목록"

@@ -4853,8 +4853,14 @@
   "sourceManager": {
     "backToList": "العودة إلى القائمة",
     "config": {
+      "changeEmbeddingTitle": "تأكيد تغيير نموذج التضمين",
+      "changeWarning": "سيؤدي تغيير نموذج التضمين إلى مسح الفهرس المتجه الحالي وتشغيل إعادة بناء. قد يكون الاسترجاع غير متاح أثناء هذه العملية.",
+      "confirmRebuild": "تأكيد إعادة البناء",
       "dimensions": "الأبعاد",
+      "editEmbedding": "تعديل نموذج التضمين",
       "provider": "مزود التضمين",
+      "rebuildStarted": "بدأت إعادة بناء الفهرس",
+      "saveSuccess": "تم الحفظ",
       "threshold": "عتبة الاسترجاع",
       "topK": "أعلى K للاسترجاع"
     },
@@ -4908,6 +4914,10 @@
     "view": "عرض",
     "viewAll": "عرض الكل",
     "viewConfig": "تكوين",
+    "confirmDelete": "حذف المصدر",
+    "confirmDeleteOk": "حذف",
+    "deleteSuccess": "تم الحذف",
+    "deleteWarning": "هذا الإجراء لا يمكن التراجع عنه. سيتم مسح جميع البيانات المتجهة وسجلات قاعدة البيانات.",
     "wiki": {
       "title": "مصادر الويكي",
       "wikiList": "قائمة الويكي"

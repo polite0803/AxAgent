@@ -831,6 +831,8 @@ macro_rules! register_all_commands {
             commands::wiki::wiki_notes_update,
             commands::wiki::wiki_notes_delete,
             commands::wiki::rebuild_wiki_index,
+            commands::wiki::update_wiki,
+            commands::wiki::delete_wiki,
             commands::wiki::wiki_notes_get_links,
             commands::wiki::wiki_notes_get_backlinks,
             commands::wiki::wiki_notes_sync_links,

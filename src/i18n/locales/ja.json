@@ -4853,8 +4853,14 @@
   "sourceManager": {
     "backToList": "リストに戻る",
     "config": {
+      "changeEmbeddingTitle": "埋め込みモデルの変更を確認",
+      "changeWarning": "埋め込みモデルを変更すると、既存のベクトルインデックスがクリアされ、再構築がトリガーされます。この間、検索は利用できない場合があります。",
+      "confirmRebuild": "再構築を確認",
       "dimensions": "ディメンション",
+      "editEmbedding": "埋め込みモデルを編集",
       "provider": "埋め込みモデル",
+      "rebuildStarted": "インデックスの再構築を開始しました",
+      "saveSuccess": "保存しました",
       "threshold": "検索しきい値",
       "topK": "検索 Top K"
     },
@@ -4908,6 +4914,10 @@
     "view": "表示",
     "viewAll": "全て表示",
     "viewConfig": "設定",
+    "confirmDelete": "ソースを削除",
+    "confirmDeleteOk": "削除",
+    "deleteSuccess": "削除しました",
+    "deleteWarning": "この操作は元に戻せません。すべてのベクトルデータとデータベースレコードが消去されます。",
     "wiki": {
       "title": "Wiki ソース",
       "wikiList": "Wiki リスト"

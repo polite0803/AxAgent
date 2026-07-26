@@ -4853,8 +4853,14 @@
   "sourceManager": {
     "backToList": "Retour à la liste",
     "config": {
+      "changeEmbeddingTitle": "Confirmer le changement de modèle d'embedding",
+      "changeWarning": "Changer le modèle d'embedding effacera l'index vectoriel existant et déclenchera une reconstruction. La récupération peut être indisponible pendant ce processus.",
+      "confirmRebuild": "Confirmer la reconstruction",
       "dimensions": "Dimensions",
+      "editEmbedding": "Modifier le modèle d'embedding",
       "provider": "Fournisseur d'embedding",
+      "rebuildStarted": "Reconstruction de l'index démarrée",
+      "saveSuccess": "Enregistré",
       "threshold": "Seuil de récupération",
       "topK": "Top K de récupération"
     },
@@ -4908,6 +4914,10 @@
     "view": "Afficher",
     "viewAll": "Voir tout",
     "viewConfig": "Configuration",
+    "confirmDelete": "Supprimer la source",
+    "confirmDeleteOk": "Supprimer",
+    "deleteSuccess": "Supprimé",
+    "deleteWarning": "Cette action est irréversible. Toutes les données vectorielles et les enregistrements de base de données seront effacés.",
     "wiki": {
       "title": "Sources Wiki",
       "wikiList": "Liste Wiki"

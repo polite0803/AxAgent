@@ -73,6 +73,73 @@ pub async fn wiki_notes_list(
     })
 }
 
+/// 更新 Wiki 元数据，目前主要用于修改 embedding_provider。
+/// 仅当字段非空时才更新对应列。
+#[tauri::command]
+pub async fn update_wiki(
+    state: State<'_, AppState>,
+    id: String,
+    name: Option<String>,
+    description: Option<String>,
+    embedding_provider: Option<String>,
+) -> Result<WikiUpdateResult, String> {
+    let db = state.harness.db();
+
+    // 取出原始 embedding_provider，便于前端判断是否需要重建索引
+    let before = wiki::get_wiki(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let updated = wiki::update_wiki(db, &id, name, description, embedding_provider.clone())
+        .await
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(WikiUpdateResult {
+        id: updated.id.clone(),
+        name: updated.name.clone(),
+        description: updated.description.clone(),
+        embedding_provider: updated.embedding_provider.clone(),
+        embedding_changed: before.embedding_provider != updated.embedding_provider,
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WikiUpdateResult {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub embedding_provider: Option<String>,
+    /// 旧 provider 与新 provider 是否不同；前端据此决定是否触发重建索引
+    pub embedding_changed: bool,
+}
+
+/// 删除 Wiki 容器：清理向量集合 + 删除数据库记录。
+/// 与 `delete_knowledge_base` / `delete_memory_namespace` 行为对齐。
+#[tauri::command]
+pub async fn delete_wiki(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    // 与 llm_wiki_delete 保持一致的 collection_id 命名规则
+    let collection_id = format!("wiki_{}", id);
+    if let Err(e) = state.vector_store.delete_collection(&collection_id).await {
+        tracing::warn!("Failed to delete vector collection {}: {}", collection_id, e);
+    }
+
+    wiki::delete_wiki(state.harness.db(), &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
 #[tauri::command]
 pub async fn wiki_notes_get(state: State<'_, AppState>, id: String) -> Result<Note, String> {
     axagent_dao::repo::note::get_note(state.harness.db(), &id).await.map_err(|e| {

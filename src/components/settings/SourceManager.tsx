@@ -115,20 +115,81 @@ function SourceConfigModal({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const getSourceConfig = useSourceStore((s) => s.getSourceConfig);
+  const updateSourceEmbedding = useSourceStore((s) => s.updateSourceEmbedding);
+  const rebuildSourceIndex = useSourceStore((s) => s.rebuildSourceIndex);
+  const fetchSources = useSourceStore((s) => s.fetchSources);
   const [config, setConfig] = useState<SourceConfig | null>(null);
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftProvider, setDraftProvider] = useState<string | undefined>(
+    undefined,
+  );
+  const [saving, setSaving] = useState(false);
+  const [rebuildConfirmOpen, setRebuildConfirmOpen] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
     if (!open || !source) {
       setTimeout(() => setConfig(null), 0);
+      setEditing(false);
+      setDraftProvider(undefined);
       return;
     }
     setTimeout(() => setLoading(true), 0);
     getSourceConfig(source.containerType, source.id)
-      .then(setConfig)
+      .then((cfg) => {
+        setConfig(cfg);
+        setDraftProvider(cfg.embeddingProvider ?? undefined);
+      })
       .catch(() => setConfig(null))
       .finally(() => setLoading(false));
   }, [open, source, getSourceConfig]);
+
+  const providerChanged = (draftProvider ?? "") !== (config?.embeddingProvider ?? "");
+
+  const handleSave = async () => {
+    if (!source) {
+      return;
+    }
+    // 当 provider 真正变化时，弹出重建确认框
+    if (providerChanged) {
+      setRebuildConfirmOpen(true);
+      return;
+    }
+    setEditing(false);
+  };
+
+  const handleConfirmRebuild = async () => {
+    if (!source) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const { embeddingChanged } = await updateSourceEmbedding(
+        source,
+        draftProvider,
+      );
+      await fetchSources();
+      setRebuildConfirmOpen(false);
+      setEditing(false);
+      setConfig((prev) => prev ? { ...prev, embeddingProvider: draftProvider } : prev);
+      if (embeddingChanged) {
+        // 触发后端重建索引（异步任务，不阻塞 UI）
+        setRebuilding(true);
+        rebuildSourceIndex(source.containerType, source.id)
+          .then(() => messageApi.success(t("sourceManager.config.rebuildStarted")))
+          .catch((e) => messageApi.error(String(e)))
+          .finally(() => setRebuilding(false));
+      } else {
+        messageApi.success(t("sourceManager.config.saveSuccess"));
+      }
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Modal
@@ -146,28 +207,87 @@ function SourceConfigModal({
         </span>
       }
     >
-      <Spin spinning={loading}>
+      {contextHolder}
+      <Spin spinning={loading || saving || rebuilding}>
         {config
           ? (
-            <Descriptions column={1} size="small" bordered>
-              <Descriptions.Item label={t("sourceManager.config.provider")}>
-                {config.embeddingProvider ?? "—"}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("sourceManager.config.dimensions")}>
-                {config.embeddingDimensions ?? "—"}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("sourceManager.config.threshold")}>
-                {config.retrievalThreshold ?? "—"}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("sourceManager.config.topK")}>
-                {config.retrievalTopK ?? "—"}
-              </Descriptions.Item>
-            </Descriptions>
+            <div className="flex flex-col gap-3">
+              <Descriptions column={1} size="small" bordered>
+                <Descriptions.Item label={t("sourceManager.config.provider")}>
+                  {editing
+                    ? (
+                      <EmbeddingModelSelect
+                        value={draftProvider}
+                        onChange={(val) => setDraftProvider(val || undefined)}
+                        placeholder={t("settings.knowledge.embeddingModelPlaceholder")}
+                        style={{ width: "100%" }}
+                      />
+                    )
+                    : <span>{config.embeddingProvider ?? "—"}</span>}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("sourceManager.config.dimensions")}>
+                  {config.embeddingDimensions ?? "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("sourceManager.config.threshold")}>
+                  {config.retrievalThreshold ?? "—"}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("sourceManager.config.topK")}>
+                  {config.retrievalTopK ?? "—"}
+                </Descriptions.Item>
+              </Descriptions>
+              <div className="flex justify-end gap-2">
+                {editing
+                  ? (
+                    <>
+                      <Button size="small" onClick={() => setEditing(false)} disabled={saving}>
+                        {t("common.cancel")}
+                      </Button>
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={handleSave}
+                        loading={saving}
+                      >
+                        {t("common.save")}
+                      </Button>
+                    </>
+                  )
+                  : (
+                    <Button
+                      size="small"
+                      type="primary"
+                      ghost
+                      icon={<Settings size={12} />}
+                      onClick={() => setEditing(true)}
+                    >
+                      {t("sourceManager.config.editEmbedding")}
+                    </Button>
+                  )}
+              </div>
+              {editing && providerChanged && (
+                <Text type="warning" style={{ fontSize: 12 }}>
+                  {t("sourceManager.config.changeWarning")}
+                </Text>
+              )}
+            </div>
           )
           : (
             !loading && <Empty description={t("sourceManager.noConfig")} />
           )}
       </Spin>
+
+      <Modal
+        open={rebuildConfirmOpen}
+        onCancel={() => setRebuildConfirmOpen(false)}
+        onOk={handleConfirmRebuild}
+        okButtonProps={{ danger: true, loading: saving }}
+        okText={t("sourceManager.config.confirmRebuild")}
+        cancelText={t("common.cancel")}
+        title={t("sourceManager.config.changeEmbeddingTitle")}
+        mask={{ enabled: true, blur: true }}
+      >
+        <p>{t("sourceManager.config.changeWarning")}</p>
+      </Modal>
     </Modal>
   );
 }
@@ -279,6 +399,10 @@ function SourceCard({
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const meta = TYPE_META[source.containerType];
+  const deleteSource = useSourceStore((s) => s.deleteSource);
+  const fetchSources = useSourceStore((s) => s.fetchSources);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [deleting, setDeleting] = useState(false);
 
   const handleView = useCallback(() => {
     if (onViewDocument && source.containerType === "knowledge") {
@@ -298,6 +422,27 @@ function SourceCard({
     }
   }, [navigate, onViewDocument, source]);
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteSource(source);
+      // 刷新所有来源列表（knowledge / memory store 内部列表也需重载）
+      await Promise.all([
+        fetchSources(),
+        // 让 knowledge / memory 自身 store 重新拉取
+        useKnowledgeStore.getState().loadBases?.(),
+        useMemoryStore.getState().loadNamespaces?.(),
+      ]).catch(() => {
+        // 单个 store 失败不阻塞
+      });
+      messageApi.success(t("sourceManager.deleteSuccess"));
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Card
       hoverable
@@ -307,6 +452,7 @@ function SourceCard({
         body: { padding: `${token.paddingSM}px ${token.padding}px` },
       }}
     >
+      {contextHolder}
       <div className="flex items-start gap-3">
         <div
           className="shrink-0 flex items-center justify-center"
@@ -373,6 +519,22 @@ function SourceCard({
             >
               {t("sourceManager.viewConfig")}
             </Button>
+            <Popconfirm
+              title={t("sourceManager.confirmDelete")}
+              description={t("sourceManager.deleteWarning")}
+              onConfirm={handleDelete}
+              okText={t("sourceManager.confirmDeleteOk")}
+              cancelText={t("common.cancel")}
+              okButtonProps={{ danger: true, loading: deleting }}
+            >
+              <Button
+                size="small"
+                type="text"
+                danger
+                icon={<Trash2 size={12} />}
+                loading={deleting}
+              />
+            </Popconfirm>
           </div>
         </div>
       </div>
