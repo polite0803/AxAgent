@@ -39,10 +39,11 @@ use serde::{Deserialize, Serialize};
 // ============================================================================
 
 /// 舰队（办公室）状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FleetStatus {
     /// 活跃 — 成员可接收任务
+    #[default]
     Active,
     /// 暂停 — 整个舰队停止接收新任务，运行中任务继续
     Paused,
@@ -50,17 +51,12 @@ pub enum FleetStatus {
     Stopped,
 }
 
-impl Default for FleetStatus {
-    fn default() -> Self {
-        Self::Active
-    }
-}
-
 /// 舰队成员状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FleetMemberStatus {
     /// 空闲 — 可接收任务
+    #[default]
     Idle,
     /// 忙碌 — 正在执行任务
     Busy,
@@ -70,12 +66,6 @@ pub enum FleetMemberStatus {
     Error,
     /// 离线 — 成员已离开舰队
     Offline,
-}
-
-impl Default for FleetMemberStatus {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 /// 舰队元数据 — 业务层可扩展信息
