@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "Importer / Mettre à jour les sources de connaissances du projet",
+      "directory": "Répertoire source",
+      "directoryPlaceholder": "Cliquez sur le bouton à droite pour sélectionner un répertoire",
+      "directoryRequired": "Veuillez sélectionner un répertoire source",
+      "selectDirectory": "Sélectionner un répertoire",
+      "sourceName": "Nom de la source",
+      "sourceNamePlaceholder": "ex : Sources de connaissances du projet",
+      "sourceNameRequired": "Veuillez saisir un nom de source",
+      "sourceNameHint": "Nom Wiki = le nom ; Nom RAG KB = {nom} Graph",
+      "mode": "Mode",
+      "modeCreate": "Créer",
+      "modeCreateDesc": "Premier import du répertoire ; les KB de même nom sans embedding seront nettoyés puis reconstruits",
+      "modeUpdate": "Mettre à jour",
+      "modeUpdateDesc": "Supprime (soft) les notes existantes du Wiki de même nom, puis réimporte le contenu le plus récent du disque ; le graphe est idempotent par id",
+      "updateWarning": "Le mode mise à jour supprime (soft) les notes Wiki existantes et les réimporte ; l'index vectoriel peut nécessiter une reconstruction",
+      "embeddingModel": "Modèle d'embedding",
+      "embeddingModelPlaceholder": "Sélectionner un modèle d'embedding (facultatif)",
+      "embeddingModelHint": "Facultatif ; sera appliqué aux nouveaux Wiki/KB réutilisés (mis à jour si la configuration existante diffère)",
+      "embeddingChanged": "Modèle d'embedding modifié ou nouvellement configuré — ouvrez la fiche source pour déclencher la reconstruction de l'index",
+      "confirm": "Démarrer l'import"
+    }
   },
   "sshConfig": {
     "connect": "Se connecter",

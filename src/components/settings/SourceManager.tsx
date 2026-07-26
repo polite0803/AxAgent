@@ -21,6 +21,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Radio,
   Row,
   Select,
   Spin,
@@ -383,6 +384,180 @@ function CreateSourceModal({
             onChange={(val) => form.setFieldValue("embeddingProvider", val)}
           />
         </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+/// 导入/更新项目知识源的 Modal：支持自定义目录、知识源名称、模式（新增/更新）。
+function ImportProjectSourcesModal({
+  open,
+  initialMode,
+  onClose,
+}: {
+  open: boolean;
+  initialMode: "create" | "update";
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { fetchSources } = useSourceStore();
+  const [form] = Form.useForm();
+  const [importing, setImporting] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const mode: "create" | "update" = Form.useWatch("mode", form) ?? initialMode;
+
+  // 打开时同步初始 mode 与默认名称
+  useEffect(() => {
+    if (open) {
+      form.setFieldsValue({
+        mode: initialMode,
+        sourceName: "项目知识源",
+        sourcePath: "",
+      });
+    }
+  }, [open, initialMode, form]);
+
+  const handleSelectDirectory = useCallback(async () => {
+    try {
+      const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
+      const selected = await openDialog({ directory: true, multiple: false });
+      if (typeof selected === "string") {
+        form.setFieldValue("sourcePath", selected);
+      }
+    } catch {
+      // 用户取消或环境不支持
+    }
+  }, [form]);
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setImporting(true);
+      const result = await invoke<{
+        wikiId: string;
+        wikiName: string;
+        wikiImported: number;
+        wikiFailed: number;
+        wikiSkipped: number;
+        kbId: string;
+        kbName: string;
+        entityCount: number;
+        relationCount: number;
+        embeddingProvider: string | null;
+        embeddingChanged: boolean;
+      }>("import_project_knowledge_sources", {
+        sourcePath: values.sourcePath,
+        sourceName: values.sourceName || undefined,
+        mode: values.mode,
+        embeddingProvider: values.embeddingProvider || undefined,
+      });
+      messageApi.success(t("sourceManager.importSuccess", {
+        imported: result.wikiImported,
+        skipped: result.wikiFailed + result.wikiSkipped,
+        entities: result.entityCount,
+        relations: result.relationCount,
+        wikiName: result.wikiName,
+        kbName: result.kbName,
+      }));
+      // 向量模型变更或新配置时提示用户重建索引
+      if (result.embeddingChanged) {
+        messageApi.warning(t("sourceManager.importProjectModal.embeddingChanged"));
+      } else if (!result.embeddingProvider) {
+        messageApi.info(t("sourceManager.importNoEmbedding"));
+      }
+      await fetchSources();
+      form.resetFields();
+      onClose();
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={t("sourceManager.importProjectModal.title")}
+      open={open}
+      onOk={handleSubmit}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
+      okText={t("sourceManager.importProjectModal.confirm")}
+      confirmLoading={importing}
+      width={520}
+    >
+      {contextHolder}
+      <Form form={form} layout="vertical">
+        <Form.Item
+          name="sourcePath"
+          label={t("sourceManager.importProjectModal.directory")}
+          rules={[{ required: true, message: t("sourceManager.importProjectModal.directoryRequired") }]}
+        >
+          <Input
+            placeholder={t("sourceManager.importProjectModal.directoryPlaceholder")}
+            readOnly
+            addonAfter={
+              <Button
+                size="small"
+                type="link"
+                icon={<FolderPlus size={12} />}
+                onClick={handleSelectDirectory}
+                style={{ padding: 0 }}
+              >
+                {t("sourceManager.importProjectModal.selectDirectory")}
+              </Button>
+            }
+          />
+        </Form.Item>
+        <Form.Item
+          name="sourceName"
+          label={t("sourceManager.importProjectModal.sourceName")}
+          rules={[{ required: true, message: t("sourceManager.importProjectModal.sourceNameRequired") }]}
+          extra={t("sourceManager.importProjectModal.sourceNameHint")}
+        >
+          <Input placeholder={t("sourceManager.importProjectModal.sourceNamePlaceholder")} />
+        </Form.Item>
+        <Form.Item
+          name="mode"
+          label={t("sourceManager.importProjectModal.mode")}
+          rules={[{ required: true }]}
+        >
+          <Radio.Group>
+            <Radio value="create">
+              <Text strong>{t("sourceManager.importProjectModal.modeCreate")}</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("sourceManager.importProjectModal.modeCreateDesc")}
+              </Text>
+            </Radio>
+            <Radio value="update" style={{ display: "block", marginLeft: 0, marginTop: 8 }}>
+              <Text strong>{t("sourceManager.importProjectModal.modeUpdate")}</Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {t("sourceManager.importProjectModal.modeUpdateDesc")}
+              </Text>
+            </Radio>
+          </Radio.Group>
+        </Form.Item>
+        <Form.Item
+          name="embeddingProvider"
+          label={t("sourceManager.importProjectModal.embeddingModel")}
+          extra={t("sourceManager.importProjectModal.embeddingModelHint")}
+        >
+          <EmbeddingModelSelect
+            value={form.getFieldValue("embeddingProvider")}
+            onChange={(val) => form.setFieldValue("embeddingProvider", val)}
+            placeholder={t("sourceManager.importProjectModal.embeddingModelPlaceholder")}
+            style={{ width: "100%" }}
+          />
+        </Form.Item>
+        {mode === "update" && (
+          <Text type="warning" style={{ fontSize: 12 }}>
+            {t("sourceManager.importProjectModal.updateWarning")}
+          </Text>
+        )}
       </Form>
     </Modal>
   );
@@ -1169,18 +1344,18 @@ function AllSourcesTab({
   onViewConfig,
   onNavigateToTab,
   onCreateClick,
+  onOpenImportModal,
 }: {
   onViewConfig: (s: UnifiedSource) => void;
   onNavigateToTab: (tab: string) => void;
   onCreateClick: () => void;
+  onOpenImportModal: (mode: "create" | "update") => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { sources, loading, searchAllSources, fetchSources } = useSourceStore();
+  const { sources, loading, searchAllSources } = useSourceStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [searchResults, setSearchResults] = useState<UnifiedSource[] | null>(
     null,
   );
@@ -1201,74 +1376,6 @@ function AllSourcesTab({
       setSearching(false);
     }
   }, [searchQuery, searchAllSources, sources]);
-
-  const handleImportProjectSources = useCallback(async () => {
-    setImporting(true);
-    try {
-      const result = await invoke<{
-        wikiId: string;
-        wikiName: string;
-        wikiImported: number;
-        wikiFailed: number;
-        wikiSkipped: number;
-        kbId: string;
-        kbName: string;
-        entityCount: number;
-        relationCount: number;
-        embeddingProvider: string | null;
-      }>("import_project_knowledge_sources", {
-        sourcePath: "D:/OneManager/AxInvest/knowledge-sources",
-      });
-      message.success(t("sourceManager.importSuccess", {
-        imported: result.wikiImported,
-        skipped: result.wikiFailed + result.wikiSkipped,
-        entities: result.entityCount,
-        relations: result.relationCount,
-        wikiName: result.wikiName,
-        kbName: result.kbName,
-      }));
-      message.info(t("sourceManager.importNoEmbedding"));
-      await fetchSources();
-    } catch (e) {
-      message.error(String(e));
-    } finally {
-      setImporting(false);
-    }
-  }, [fetchSources, t]);
-
-  const handleSyncProjectSources = useCallback(async () => {
-    const targetSource = sources.find(
-      (s) => s.containerType === "knowledge" && s.name === "项目知识源图谱",
-    );
-    if (!targetSource) {
-      message.warning(t("sourceManager.syncNoTarget"));
-      return;
-    }
-    setSyncing(true);
-    try {
-      const result = await invoke<{
-        addedCount: number;
-        updatedCount: number;
-        deletedCount: number;
-        skippedCount: number;
-        errorCount: number;
-      }>("sync_project_knowledge_sources", {
-        baseId: targetSource.id,
-        sourcePath: "D:/OneManager/AxInvest/knowledge-sources",
-      });
-      message.success(t("sourceManager.syncSuccess", {
-        added: result.addedCount,
-        updated: result.updatedCount,
-        deleted: result.deletedCount,
-        skipped: result.skippedCount + result.errorCount,
-      }));
-      await fetchSources();
-    } catch (e) {
-      message.error(String(e));
-    } finally {
-      setSyncing(false);
-    }
-  }, [sources, fetchSources, t]);
 
   const displaySources = searchResults ?? sources;
 
@@ -1430,8 +1537,7 @@ function AllSourcesTab({
         <Col>
           <Button
             icon={<FolderPlus size={14} />}
-            onClick={handleImportProjectSources}
-            loading={importing}
+            onClick={() => onOpenImportModal("create")}
           >
             {t("sourceManager.importProjectSources")}
           </Button>
@@ -1439,8 +1545,7 @@ function AllSourcesTab({
         <Col>
           <Button
             icon={<RefreshCw size={14} />}
-            onClick={handleSyncProjectSources}
-            loading={syncing}
+            onClick={() => onOpenImportModal("update")}
           >
             {t("sourceManager.syncProjectSources")}
           </Button>
@@ -1476,10 +1581,17 @@ function SourceManager() {
   const [activeTab, setActiveTab] = useState("all");
   const [configSource, setConfigSource] = useState<UnifiedSource | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importMode, setImportMode] = useState<"create" | "update">("create");
 
   useEffect(() => {
     fetchSources();
   }, [fetchSources]);
+
+  const openImportModal = useCallback((mode: "create" | "update") => {
+    setImportMode(mode);
+    setImportOpen(true);
+  }, []);
 
   const tabItems = [
     {
@@ -1534,6 +1646,7 @@ function SourceManager() {
                   onViewConfig={setConfigSource}
                   onNavigateToTab={setActiveTab}
                   onCreateClick={() => setCreateOpen(true)}
+                  onOpenImportModal={openImportModal}
                 />
               )}
               {tab.key === "knowledge" && (
@@ -1563,6 +1676,12 @@ function SourceManager() {
       <CreateSourceModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+      />
+
+      <ImportProjectSourcesModal
+        open={importOpen}
+        initialMode={importMode}
+        onClose={() => setImportOpen(false)}
       />
     </div>
   );

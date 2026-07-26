@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "Projekt-Wissensquellen importieren / aktualisieren",
+      "directory": "Quellverzeichnis",
+      "directoryPlaceholder": "Klicken Sie auf die Schaltfläche rechts, um ein Verzeichnis auszuwählen",
+      "directoryRequired": "Bitte wählen Sie ein Quellverzeichnis",
+      "selectDirectory": "Verzeichnis auswählen",
+      "sourceName": "Quellname",
+      "sourceNamePlaceholder": "z. B. Projekt-Wissensquelle",
+      "sourceNameRequired": "Bitte geben Sie einen Quellnamen ein",
+      "sourceNameHint": "Wiki-Name = der Name; RAG-KB-Name = {Name} Graph",
+      "mode": "Modus",
+      "modeCreate": "Erstellen",
+      "modeCreateDesc": "Erstmaliger Import des Verzeichnisses; gleichnamige KBs ohne Embedding werden bereinigt und neu aufgebaut",
+      "modeUpdate": "Aktualisieren",
+      "modeUpdateDesc": "Soft-löscht vorhandene Notizen im gleichnamigen Wiki und importiert den neuesten Festplatteninhalt erneut; der Graph ist idempotent nach id",
+      "updateWarning": "Der Aktualisierungsmodus soft-löscht vorhandene Wiki-Notizen und importiert sie erneut; der Vektorindex muss möglicherweise neu aufgebaut werden",
+      "embeddingModel": "Embedding-Modell",
+      "embeddingModelPlaceholder": "Embedding-Modell auswählen (optional)",
+      "embeddingModelHint": "Optional; wird auf neu erstellte/wiederverwendete Wiki und KB angewendet (bei abweichender Konfiguration aktualisiert)",
+      "embeddingChanged": "Embedding-Modell geändert oder neu konfiguriert — öffnen Sie die Source-Karte, um den Index neu aufzubauen",
+      "confirm": "Import starten"
+    }
   },
   "sshConfig": {
     "connect": "Verbinden",

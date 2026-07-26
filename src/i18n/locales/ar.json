@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "استيراد / تحديث مصادر معرفة المشروع",
+      "directory": "الدليل المصدر",
+      "directoryPlaceholder": "انقر على الزر الموجود على اليمين لتحديد دليل",
+      "directoryRequired": "يرجى تحديد دليل مصدر",
+      "selectDirectory": "تحديد الدليل",
+      "sourceName": "اسم المصدر",
+      "sourceNamePlaceholder": "مثال: مصادر معرفة المشروع",
+      "sourceNameRequired": "يرجى إدخال اسم المصدر",
+      "sourceNameHint": "اسم Wiki = الاسم; اسم RAG KB = {الاسم} Graph",
+      "mode": "الوضع",
+      "modeCreate": "إنشاء",
+      "modeCreateDesc": "أول استيراد للدليل؛ سيتم تنظيف وإعادة بناء قواعد المعرفة (KBs) التي تحمل نفس الاسم بدون تضمين (embedding)",
+      "modeUpdate": "تحديث",
+      "modeUpdateDesc": "حذف مبدئي للملاحظات الموجودة في Wiki الذي يحمل نفس الاسم، ثم إعادة استيراد أحدث محتوى من القرص؛ الرسم البياني متطابق (idempotent) حسب id",
+      "updateWarning": "وضع التحديث سيحذف مبدئيًا ملاحظات Wiki الموجودة ويعيد استيرادها؛ قد تحتاج إلى إعادة بناء فهرس المتجهات",
+      "embeddingModel": "نموذج التضمين",
+      "embeddingModelPlaceholder": "اختر نموذج التضمين (اختياري)",
+      "embeddingModelHint": "اختياري؛ سيتم تطبيقه على Wiki و KB الجديدة/المعاد استخدامها (سيتم تحديثه إذا اختلف التكوين الحالي)",
+      "embeddingChanged": "تم تغيير نموذج التضمين أو تكوينه حديثًا — افتح بطاقة المصدر لإعادة بناء الفهرس",
+      "confirm": "بدء الاستيراد"
+    }
   },
   "sshConfig": {
     "connect": "اتصال",

@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "Importar / Actualizar fuentes de conocimiento del proyecto",
+      "directory": "Directorio de origen",
+      "directoryPlaceholder": "Haga clic en el botón de la derecha para seleccionar un directorio",
+      "directoryRequired": "Seleccione un directorio de origen",
+      "selectDirectory": "Seleccionar directorio",
+      "sourceName": "Nombre del origen",
+      "sourceNamePlaceholder": "ej.: Fuentes de conocimiento del proyecto",
+      "sourceNameRequired": "Ingrese un nombre de origen",
+      "sourceNameHint": "Nombre Wiki = el nombre; Nombre RAG KB = {nombre} Graph",
+      "mode": "Modo",
+      "modeCreate": "Crear",
+      "modeCreateDesc": "Primera importación del directorio; los KB de mismo nombre sin embedding se limpiarán y reconstruirán",
+      "modeUpdate": "Actualizar",
+      "modeUpdateDesc": "Elimina (soft) las notas existentes del Wiki de mismo nombre, luego reimporta el contenido más reciente del disco; el grafo es idempotente por id",
+      "updateWarning": "El modo actualización eliminará (soft) las notas Wiki existentes y las reimportará; puede que sea necesario reconstruir el índice vectorial",
+      "embeddingModel": "Modelo de embedding",
+      "embeddingModelPlaceholder": "Seleccionar modelo de embedding (opcional)",
+      "embeddingModelHint": "Opcional; se aplicará a los Wiki/KB nuevos o reutilizados (se actualiza si la configuración existente difiere)",
+      "embeddingChanged": "Modelo de embedding modificado o configurado recientemente — abra la tarjeta de origen para reconstruir el índice",
+      "confirm": "Iniciar importación"
+    }
   },
   "sshConfig": {
     "connect": "Conectar",

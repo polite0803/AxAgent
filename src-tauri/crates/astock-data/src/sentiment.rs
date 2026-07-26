@@ -455,7 +455,7 @@ mod tests {
         // 构造超长文本命中很多关键词,确保结果不超出 [-1.0, 1.0]
         let text = "退市 立案调查 造假 欺诈 重大违法 暂停上市 终止上市";
         let score = compute_text_sentiment(text).unwrap();
-        assert!(score >= -1.0 && score <= 1.0, "score out of range: {score}");
+        assert!((-1.0..=1.0).contains(&score), "score out of range: {score}");
         assert!(score < 0.0);
     }
 
@@ -486,11 +486,11 @@ mod tests {
             let score = compute_text_sentiment(title);
             match expected_dir {
                 -1 => {
-                    let s = score.expect(&format!("'{title}' 应有负面评分"));
+                    let s = score.unwrap_or_else(|| panic!("'{title}' 应有负面评分"));
                     assert!(s < 0.0, "'{title}' 应负面, got {s}");
                 },
                 1 => {
-                    let s = score.expect(&format!("'{title}' 应有正面评分"));
+                    let s = score.unwrap_or_else(|| panic!("'{title}' 应有正面评分"));
                     assert!(s > 0.0, "'{title}' 应正面, got {s}");
                 },
                 0 => {

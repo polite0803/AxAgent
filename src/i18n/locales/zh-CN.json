@@ -5886,7 +5886,29 @@
     "syncProjectSources": "同步更新项目知识源",
     "syncSuccess": "同步完成: +{{added}} 新增, ~{{updated}} 更新, -{{deleted}} 删除, ={{skipped}} 跳过",
     "syncNoTarget": "未找到知识库 \"项目知识源图谱\"，请先导入",
-    "deleteConfirm": "确定删除知识源 {{name}}？"
+    "deleteConfirm": "确定删除知识源 {{name}}？",
+    "importProjectModal": {
+      "title": "导入 / 更新项目知识源",
+      "directory": "知识源目录",
+      "directoryPlaceholder": "点击右侧按钮选择目录",
+      "directoryRequired": "请选择知识源目录",
+      "selectDirectory": "选择目录",
+      "sourceName": "知识源名称",
+      "sourceNamePlaceholder": "如：项目知识源",
+      "sourceNameRequired": "请输入知识源名称",
+      "sourceNameHint": "Wiki 名 = 该名称；RAG 知识库名 = {该名称}图谱",
+      "mode": "模式",
+      "modeCreate": "新增",
+      "modeCreateDesc": "首次导入指定目录；同名无嵌入的旧 KB 会被清理后重建",
+      "modeUpdate": "更新",
+      "modeUpdateDesc": "软删除同名 Wiki 的现有笔记后，重新导入磁盘最新内容；图谱按 id 幂等",
+      "updateWarning": "更新模式会软删除 Wiki 现有笔记并重新导入，可能需要重建向量索引",
+      "embeddingModel": "向量模型",
+      "embeddingModelPlaceholder": "选择向量模型（可选）",
+      "embeddingModelHint": "可选；选择后将自动应用到新建/复用的 Wiki 与 KB（如已存在但配置不同会更新）",
+      "embeddingChanged": "向量模型已变更或新配置，请在知识源卡片中点击「配置」触发重建索引",
+      "confirm": "开始导入"
+    }
   },
   "sshConfig": {
     "connect": "连接",

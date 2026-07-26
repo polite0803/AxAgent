@@ -6491,7 +6491,25 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "プロジェクト知識ソースのインポート / 更新",
+      "directory": "ソースディレクトリ",
+      "directoryPlaceholder": "右のボタンをクリックしてディレクトリを選択",
+      "directoryRequired": "ソースディレクトリを選択してください",
+      "selectDirectory": "ディレクトリを選択",
+      "sourceName": "ソース名",
+      "sourceNamePlaceholder": "例: プロジェクト知識ソース",
+      "sourceNameRequired": "ソース名を入力してください",
+      "sourceNameHint": "Wiki 名 = その名前; RAG KB 名 = {その名前} グラフ",
+      "mode": "モード",
+      "modeCreate": "新規作成",
+      "modeCreateDesc": "ディレクトリの初回インポート; 同名の埋め込み無し KB はクリーンアップ後に再構築されます",
+      "modeUpdate": "更新",
+      "modeUpdateDesc": "同名 Wiki の既存ノートをソフト削除した後、ディスクの最新内容を再インポートします; グラフは id で冪等",
+      "updateWarning": "更新モードは Wiki の既存ノートをソフト削除して再インポートするため、ベクトルインデックスの再構築が必要な場合があります",
+      "confirm": "インポート開始"
+    }
   },
   "sshConfig": {
     "connect": "接続",

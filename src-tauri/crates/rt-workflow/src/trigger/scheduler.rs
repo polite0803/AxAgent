@@ -18,7 +18,14 @@ pub(crate) async fn spawn_schedule(
     timezone: &str,
     input_params: Option<serde_json::Value>,
 ) -> Result<tokio::task::JoinHandle<()>, String> {
-    let schedule = cron::Schedule::from_str(cron_expr)
+    // cron 0.17 的 Schedule::from_str 要求 6 字段（含秒）。兼容旧的 5 字段表达式
+    // （min hour dom month dow，如 '0 18 * * *'），自动补秒=0，避免解析失败。
+    let cron_expr_normalized = if cron_expr.split_whitespace().count() == 5 {
+        format!("0 {cron_expr}")
+    } else {
+        cron_expr.to_string()
+    };
+    let schedule = cron::Schedule::from_str(&cron_expr_normalized)
         .map_err(|e| format!("无效的 cron 表达式 '{cron_expr}': {e}"))?;
 
     // 解析时区（纯 chrono_tz，无 powershell 依赖）

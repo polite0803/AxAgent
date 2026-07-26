@@ -11,9 +11,11 @@ fn validate_collection_name(name: &str) -> Result<()> {
     if name.is_empty() {
         return Err(AxAgentError::Validation("Collection name cannot be empty".to_string()));
     }
-    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    // 允许连字符：实际落库表名由 `validated_collection_name` 统一清洗为下划线，
+    // 此处仅做字符集校验，需与下游清洗逻辑保持一致（否则 wiki/kb/mem 的 UUID 含连字符会误拒）。
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
         return Err(AxAgentError::Validation(format!(
-            "Invalid collection name '{}': only alphanumeric characters and underscores are allowed",
+            "Invalid collection name '{}': only alphanumeric characters, hyphens and underscores are allowed",
             name
         )));
     }

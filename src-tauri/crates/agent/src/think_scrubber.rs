@@ -137,8 +137,14 @@ fn api_key_regex() -> &'static Regex {
 fn internal_ip_regex() -> &'static Regex {
     static R: OnceLock<Regex> = OnceLock::new();
     R.get_or_init(|| {
-        Regex::new(r"(?:(?:127|10|192\.168|172\.(?:1[6-9]|2[0-9]|3[01]))\.)(?:\d{1,3}\.){2}\d{1,3}(?::\d{2,5})?")
-            .expect("invalid internal_ip regex")
+        // 匹配私网/回环 IPv4（4 段八位组）：
+        // - 10.0.0.0/8、127.0.0.0/8
+        // - 172.16.0.0/12（16-31）
+        // - 192.168.0.0/16
+        Regex::new(
+            r"(?:(?:10|127)\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})(?::\d{2,5})?",
+        )
+        .expect("invalid internal_ip regex")
     })
 }
 

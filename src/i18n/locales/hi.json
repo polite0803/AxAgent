@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "प्रोजेक्ट नॉलेज स्रोत आयात / अपडेट करें",
+      "directory": "स्रोत डायरेक्टरी",
+      "directoryPlaceholder": "डायरेक्टरी चुनने के लिए दाईं बटन पर क्लिक करें",
+      "directoryRequired": "कृपया एक स्रोत डायरेक्टरी चुनें",
+      "selectDirectory": "डायरेक्टरी चुनें",
+      "sourceName": "स्रोत का नाम",
+      "sourceNamePlaceholder": "जैसे: प्रोजेक्ट नॉलेज स्रोत",
+      "sourceNameRequired": "कृपया स्रोत का नाम दर्ज करें",
+      "sourceNameHint": "Wiki नाम = वह नाम; RAG KB नाम = {नाम} ग्राफ़",
+      "mode": "मोड",
+      "modeCreate": "बनाएं",
+      "modeCreateDesc": "डायरेक्टरी का पहला आयात; एम्बेडिंग रहित समान नाम वाले KB साफ़ करके पुनर्निर्मित होंगे",
+      "modeUpdate": "अपडेट करें",
+      "modeUpdateDesc": "समान नाम वाले Wiki के मौजूदा नोट्स को सॉफ्ट-डिलीट करके डिस्क की नवीनतम सामग्री फिर से आयात करता है; ग्राफ़ id द्वारा आइडेम्पोटेंट है",
+      "updateWarning": "अपडेट मोड Wiki के मौजूदा नोट्स को सॉफ्ट-डिलीट करके उन्हें फिर से आयात करेगा; वेक्टर इंडेक्स को पुनर्निर्माण करने की आवश्यकता हो सकती है",
+      "embeddingModel": "एम्बेडिंग मॉडल",
+      "embeddingModelPlaceholder": "एम्बेडिंग मॉडल चुनें (वैकल्पिक)",
+      "embeddingModelHint": "वैकल्पिक; नए/पुनः उपयोग किए गए Wiki और KB पर स्वचालित लागू होगा (यदि मौजूदा कॉन्फ़िग भिन्न है तो अपडेट होगा)",
+      "embeddingChanged": "एम्बेडिंग मॉडल बदला गया या नया कॉन्फ़िगर किया गया — इंडेक्स पुनर्निर्माण ट्रिगर करने के लिए सोर्स कार्ड का「कॉन्फ़िगर」खोलें",
+      "confirm": "आयात शुरू करें"
+    }
   },
   "sshConfig": {
     "connect": "कनेक्ट",

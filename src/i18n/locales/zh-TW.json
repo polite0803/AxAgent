@@ -6145,7 +6145,29 @@
     "importSuccess": "匯入完成: {{imported}} 個文件匯入, {{skipped}} 個跳過",
     "syncProjectSources": "同步更新專案知識源",
     "syncSuccess": "同步完成: +{{added}} 新增, ~{{updated}} 更新, -{{deleted}} 刪除, ={{skipped}} 跳過",
-    "syncNoTarget": "未找到知識庫 \"項目知識源\"，請先匯入"
+    "syncNoTarget": "未找到知識庫 \"項目知識源\"，請先匯入",
+    "importProjectModal": {
+      "title": "匯入 / 更新專案知識源",
+      "directory": "知識源目錄",
+      "directoryPlaceholder": "點擊右側按鈕選擇目錄",
+      "directoryRequired": "請選擇知識源目錄",
+      "selectDirectory": "選擇目錄",
+      "sourceName": "知識源名稱",
+      "sourceNamePlaceholder": "如：專案知識源",
+      "sourceNameRequired": "請輸入知識源名稱",
+      "sourceNameHint": "Wiki 名 = 該名稱；RAG 知識庫名 = {該名稱}圖譜",
+      "mode": "模式",
+      "modeCreate": "新增",
+      "modeCreateDesc": "首次匯入指定目錄；同名無嵌入的舊 KB 會被清理後重建",
+      "modeUpdate": "更新",
+      "modeUpdateDesc": "軟刪除同名 Wiki 的現有筆記後，重新匯入磁碟最新內容；圖譜按 id 冪等",
+      "updateWarning": "更新模式會軟刪除 Wiki 現有筆記並重新匯入，可能需要重建向量索引",
+      "embeddingModel": "向量模型",
+      "embeddingModelPlaceholder": "選擇向量模型（可選）",
+      "embeddingModelHint": "可選；選擇後將自動套用至新建/復用的 Wiki 與 KB（如已存在但設定不同會更新）",
+      "embeddingChanged": "向量模型已變更或新設定，請在知識源卡片中點擊「設定」觸發重建索引",
+      "confirm": "開始匯入"
+    }
   },
   "sshConfig": {
     "connect": "連接",

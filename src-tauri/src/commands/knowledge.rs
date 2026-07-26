@@ -1297,7 +1297,7 @@ pub async fn import_lemonhu_knowledge(
     }
 
     let (entity_count, rel_count, doc_count) =
-        import_lemonhu_graph(db, kb_id, &knowledge_dir).await;
+        import_lemonhu_graph(db, kb_id, &knowledge_dir, false).await;
 
     tracing::info!(
         "[lemonhu] 导入完成: {entity_count} 节点 + {rel_count} 关系 + {doc_count} 文档 (kb={kb_id})"
@@ -1315,10 +1315,14 @@ pub async fn import_lemonhu_knowledge(
 ///
 /// 由 [`import_lemonhu_knowledge`] 和 [`import_project_knowledge_sources`] 共用。
 /// 读取 `{lemonhu_dir}/raw/*.csv` 解析 entity/relation，读取 `{lemonhu_dir}/wiki_pages/*.md` 导入文档。
+///
+/// - `force_reimport_wiki_pages`：true 时即使 KB 已有文档也重新导入 wiki_pages（用于 update 模式）。
+///   实体/关系始终按 id 幂等（已存在则跳过）。
 async fn import_lemonhu_graph(
     db: &sea_orm::DatabaseConnection,
     kb_id: &str,
     lemonhu_dir: &std::path::Path,
+    force_reimport_wiki_pages: bool,
 ) -> (usize, usize, usize) {
     let now_ms = chrono::Utc::now().timestamp_millis();
     let raw_dir = lemonhu_dir.join("raw");
@@ -1527,7 +1531,19 @@ async fn import_lemonhu_graph(
             .count(db)
             .await
             .unwrap_or(0);
-        if existing_docs == 0 {
+        // update 模式（force_reimport_wiki_pages=true）或 KB 为空时执行导入
+        if existing_docs == 0 || force_reimport_wiki_pages {
+            if force_reimport_wiki_pages && existing_docs > 0 {
+                tracing::info!(
+                    "[graph_import] update 模式：删除 KB={} 下 {} 条现有文档以重新导入 wiki_pages",
+                    kb_id,
+                    existing_docs
+                );
+                let _ = knowledge_documents::Entity::delete_many()
+                    .filter(knowledge_documents::Column::KnowledgeBaseId.eq(kb_id))
+                    .exec(db)
+                    .await;
+            }
             if let Ok(mut reader) = std::fs::read_dir(&wiki_dir) {
                 while let Ok(Some(entry)) = reader.next().transpose() {
                     let path = entry.path();
@@ -1821,24 +1837,64 @@ pub struct ProjectKnowledgeImportResult {
     pub entity_count: usize,
     pub relation_count: usize,
     pub embedding_provider: Option<String>,
+    /// 本次操作是否变更了 embedding_provider（前端据此提示用户重建索引）
+    pub embedding_changed: bool,
 }
 
 /// 一键导入项目知识源：创建 Wiki 知识库 + 导入知识图谱。
 ///
-/// 1. 清理旧的 "项目知识源" RAG 知识库（无 embedding 的残次品）
-/// 2. 创建 **Wiki vault** "项目知识源"，root_path 指向 `knowledge-sources/`
-/// 3. 调用 `wiki_import_obsidian_vault` 批量导入所有 .md 文件为 wiki notes
-/// 4. 创建/复用 **RAG 知识库** "项目知识源图谱"，导入 lemonhu 实体 + 关系
+/// 参数：
+/// - `source_path`：要导入的目录绝对路径（如 `/path/to/knowledge-sources`）
+/// - `source_name`：知识源名称（默认 `项目知识源`）。
+///   - Wiki vault 名 = `source_name`
+///   - RAG KB 名 = `{source_name}图谱`
+/// - `mode`：模式（默认 `create`）
+///   - `create`：清理同名无 embedding 残次 KB → 创建/复用 Wiki + KB → 全量导入
+///   - `update`：找到/创建同名 Wiki + KB → 软删除 Wiki 现有 notes → 重新导入笔记和 wiki_pages
+///     （图谱实体/关系按 id 幂等，已存在则跳过）
+/// - `embedding_provider`：可选向量模型，格式 `providerId::modelId`。
+///   - 创建模式：新 Wiki/KB 直接写入该字段；复用已有 Wiki/KB 时若与现有不同则更新。
+///   - 更新模式：传入时与现有不同则更新；不传则保持现状。
+///   - 返回 `embedding_changed=true` 时前端应提示用户重建索引。
 #[tauri::command]
 pub async fn import_project_knowledge_sources(
     app: AppHandle,
     state: State<'_, AppState>,
     source_path: String,
+    source_name: Option<String>,
+    mode: Option<String>,
+    embedding_provider: Option<String>,
 ) -> Result<ProjectKnowledgeImportResult, String> {
     let dir = PathBuf::from(&source_path);
     if !dir.exists() || !dir.is_dir() {
         return Err(format!("路径不存在或不是目录: {source_path}"));
     }
+
+    let source_name = source_name.unwrap_or_else(|| "项目知识源".to_string());
+    let mode = mode.unwrap_or_else(|| "create".to_string());
+    let is_update = match mode.as_str() {
+        "create" => false,
+        "update" => true,
+        other => return Err(format!("不支持的模式: {other}（仅支持 create / update）")),
+    };
+
+    // 校验 embedding_provider 格式：必须为 `providerId::modelId` 或 None
+    let embedding_provider = match embedding_provider.as_deref() {
+        None => None,
+        Some("") => None,
+        Some(ep) => {
+            let parts: Vec<&str> = ep.splitn(2, "::").collect();
+            if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+                return Err(format!(
+                    "embedding_provider 格式非法：'{ep}'（应为 providerId::modelId）"
+                ));
+            }
+            Some(ep.to_string())
+        },
+    };
+
+    let wiki_name = source_name.clone();
+    let kb_name = format!("{source_name}图谱");
 
     // ── 所有 DB 操作一次性完成（释放 state 的借用）──
     let (
@@ -1847,30 +1903,34 @@ pub async fn import_project_knowledge_sources(
         kb_id,
         kb_name,
         (entity_count, relation_count, _doc_count),
-        embedding_provider,
+        final_embedding_provider,
+        embedding_changed,
     ) = {
         let db = state.harness.db();
 
-        // 1) 清理旧的无 embedding 的 KB
-        let existing_bases =
-            axagent_dao::repo::knowledge::list_knowledge_bases(db).await.map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
-        for kb in &existing_bases {
-            if kb.name == "项目知识源" && kb.embedding_provider.is_none() {
-                tracing::info!("[import_project] 清理旧的残次 KB: {} ({})", kb.name, kb.id);
-                let collection_id = format!("kb_{}", kb.id);
-                let _ = state.vector_store.delete_collection(&collection_id).await;
-                let _ = axagent_dao::repo::knowledge::delete_knowledge_base(db, &kb.id).await;
+        // 1) create 模式：清理同名无 embedding 的残次 KB（update 模式不动）
+        if !is_update {
+            let existing_bases =
+                axagent_dao::repo::knowledge::list_knowledge_bases(db).await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+            for kb in &existing_bases {
+                if kb.name == kb_name && kb.embedding_provider.is_none() {
+                    tracing::info!("[import_project] 清理旧的残次 KB: {} ({})", kb.name, kb.id);
+                    let collection_id = format!("kb_{}", kb.id);
+                    let _ = state.vector_store.delete_collection(&collection_id).await;
+                    let _ = axagent_dao::repo::knowledge::delete_knowledge_base(db, &kb.id).await;
+                }
             }
         }
 
-        // 2) 创建/复用 Wiki vault（embedding_provider 留空，用户可在配置中手动选择）
-        let wiki_name = "项目知识源".to_string();
-        let wiki_id = {
+        // 2) 创建/复用 Wiki vault
+        //    - 新建：直接写入 embedding_provider
+        //    - 复用：若传入的 embedding_provider 与现有不同，调用 update_wiki 同步字段
+        let (wiki_id, wiki_embedding_changed) = {
             let existing_wikis = axagent_dao::repo::wiki::list_wikis(db).await.map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
                     e,
@@ -1879,7 +1939,33 @@ pub async fn import_project_knowledge_sources(
             })?;
             if let Some(w) = existing_wikis.into_iter().find(|w| w.name == wiki_name) {
                 tracing::info!("[import_project] 复用已有 Wiki: {} ({})", wiki_name, w.id);
-                w.id
+                let changed = match &embedding_provider {
+                    Some(ep) if w.embedding_provider.as_deref() != Some(ep.as_str()) => {
+                        tracing::info!(
+                            "[import_project] Wiki {} embedding_provider 变更：{:?} => {:?}",
+                            w.id,
+                            w.embedding_provider,
+                            embedding_provider
+                        );
+                        let _ = axagent_dao::repo::wiki::update_wiki(
+                            db,
+                            &w.id,
+                            None,
+                            None,
+                            embedding_provider.clone(),
+                        )
+                        .await
+                        .map_err(|e| {
+                            String::from(crate::commands::error::ErrorResponse::from_error(
+                                e,
+                                crate::commands::error::ErrorCategory::Unrecoverable,
+                            ))
+                        })?;
+                        true
+                    },
+                    _ => false,
+                };
+                (w.id, changed)
             } else {
                 tracing::info!("[import_project] 创建新 Wiki: {}", wiki_name);
                 let wiki = axagent_dao::repo::wiki::create_wiki(
@@ -1888,7 +1974,7 @@ pub async fn import_project_knowledge_sources(
                         name: wiki_name.clone(),
                         description: Some(format!("从 {} 自动导入的项目知识源", source_path)),
                         root_path: source_path.clone(),
-                        embedding_provider: None,
+                        embedding_provider: embedding_provider.clone(),
                     },
                 )
                 .await
@@ -1898,13 +1984,35 @@ pub async fn import_project_knowledge_sources(
                         crate::commands::error::ErrorCategory::Unrecoverable,
                     ))
                 })?;
-                wiki.id
+                // 新建时若指定了 embedding_provider，视为「变更」（前端提示需要建索引）
+                (wiki.id, embedding_provider.is_some())
             }
         };
 
-        // 3) 创建/复用 KB + 导入图谱（embedding 同样留空）
-        let kb_name = "项目知识源图谱".to_string();
-        let (kb_id, embedding_provider) = {
+        // 2.5) update 模式：软删除 Wiki 下现有 notes，让 wiki_import_obsidian_vault 重新导入磁盘最新内容
+        if is_update {
+            let existing_notes =
+                axagent_dao::repo::note::list_notes(db, &wiki_id).await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+            let note_count = existing_notes.len();
+            for note in &existing_notes {
+                let _ = axagent_dao::repo::note::delete_note(db, &note.id).await;
+            }
+            if note_count > 0 {
+                tracing::info!(
+                    "[import_project] update 模式：软删除 Wiki {} 下 {} 条现有 notes",
+                    wiki_id,
+                    note_count
+                );
+            }
+        }
+
+        // 3) 创建/复用 KB + 同步 embedding_provider
+        let (kb_id, kb_embedding_provider, kb_embedding_changed) = {
             let existing_bases =
                 axagent_dao::repo::knowledge::list_knowledge_bases(db).await.map_err(|e| {
                     String::from(crate::commands::error::ErrorResponse::from_error(
@@ -1913,14 +2021,70 @@ pub async fn import_project_knowledge_sources(
                     ))
                 })?;
             if let Some(kb) = existing_bases.into_iter().find(|b| b.name == kb_name) {
-                (kb.id, kb.embedding_provider)
+                let changed = match &embedding_provider {
+                    Some(ep) if kb.embedding_provider.as_deref() != Some(ep.as_str()) => {
+                        tracing::info!(
+                            "[import_project] KB {} embedding_provider 变更：{:?} => {:?}",
+                            kb.id,
+                            kb.embedding_provider,
+                            embedding_provider
+                        );
+                        let _ = axagent_dao::repo::knowledge::update_knowledge_base(
+                            db,
+                            &kb.id,
+                            axagent_harness::types::UpdateKnowledgeBaseInput {
+                                name: None,
+                                description: None,
+                                embedding_provider: embedding_provider.clone(),
+                                enabled: None,
+                                icon_type: None,
+                                icon_value: None,
+                                update_icon: false,
+                                embedding_dimensions: None,
+                                update_embedding_dimensions: false,
+                                retrieval_threshold: None,
+                                update_retrieval_threshold: false,
+                                retrieval_top_k: None,
+                                update_retrieval_top_k: false,
+                                chunk_size: None,
+                                update_chunk_size: false,
+                                chunk_overlap: None,
+                                update_chunk_overlap: false,
+                                separator: None,
+                                update_separator: false,
+                            },
+                        )
+                        .await
+                        .map_err(|e| {
+                            String::from(crate::commands::error::ErrorResponse::from_error(
+                                e,
+                                crate::commands::error::ErrorCategory::Unrecoverable,
+                            ))
+                        })?;
+                        true
+                    },
+                    _ => false,
+                };
+                let updated = if changed {
+                    axagent_dao::repo::knowledge::get_knowledge_base(db, &kb.id).await.map_err(
+                        |e| {
+                            String::from(crate::commands::error::ErrorResponse::from_error(
+                                e,
+                                crate::commands::error::ErrorCategory::Unrecoverable,
+                            ))
+                        },
+                    )?
+                } else {
+                    kb
+                };
+                (updated.id, updated.embedding_provider, changed)
             } else {
                 let new_kb = axagent_dao::repo::knowledge::create_knowledge_base(
                     db,
                     axagent_harness::types::CreateKnowledgeBaseInput {
                         name: kb_name.clone(),
                         description: Some("lemonhu A 股知识图谱（实体 + 关系）".into()),
-                        embedding_provider: None,
+                        embedding_provider: embedding_provider.clone(),
                         enabled: Some(true),
                     },
                 )
@@ -1931,19 +2095,21 @@ pub async fn import_project_knowledge_sources(
                         crate::commands::error::ErrorCategory::Unrecoverable,
                     ))
                 })?;
-                (new_kb.id, new_kb.embedding_provider)
+                (new_kb.id, new_kb.embedding_provider, embedding_provider.is_some())
             }
         };
 
-        // 4) 导入 lemonhu 图谱
+        // 4) 导入 lemonhu 图谱（update 模式下强制重新导入 wiki_pages；实体/关系按 id 幂等）
         let lemonhu_dir = dir.join("lemonhu");
         let graph_result = if lemonhu_dir.exists() {
-            import_lemonhu_graph(db, &kb_id, &lemonhu_dir).await
+            import_lemonhu_graph(db, &kb_id, &lemonhu_dir, is_update).await
         } else {
             (0, 0, 0)
         };
 
-        (wiki_id, wiki_name, kb_id, kb_name, graph_result, embedding_provider)
+        // Wiki 与 KB 任一发生变更，则整体视为 embedding_changed
+        let embedding_changed = wiki_embedding_changed || kb_embedding_changed;
+        (wiki_id, wiki_name, kb_id, kb_name, graph_result, kb_embedding_provider, embedding_changed)
     }; // ← db 引用在此释放，state 恢复可移动状态
 
     // ── Wiki markdown 导入（state 被移入但不需再使用）──
@@ -1966,11 +2132,13 @@ pub async fn import_project_knowledge_sources(
         kb_name,
         entity_count,
         relation_count,
-        embedding_provider,
+        embedding_provider: final_embedding_provider,
+        embedding_changed,
     };
 
     tracing::info!(
-        "[import_project] 导入完成: Wiki +{}/-{}/={} notes, KB {} 实体 + {} 关系",
+        "[import_project] {} 完成: Wiki +{}/-{}/={} notes, KB {} 实体 + {} 关系",
+        if is_update { "更新" } else { "导入" },
         result.wiki_imported,
         result.wiki_failed,
         result.wiki_skipped,

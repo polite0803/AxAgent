@@ -135,15 +135,46 @@ pub async fn normalize_embedding_provider(
             models.iter().find(|m| m.model_type == axagent_harness::types::ModelType::Embedding)
         });
 
-    let model_id = embedding_model.map(|m| m.model_id.clone()).ok_or_else(|| {
-        AxAgentError::Provider(format!(
-            "Provider '{}' 下未找到 Embedding 类型模型，无法归一化 embedding_provider='{}'.\
-                 请在设置页面为该容器配置有效的嵌入模型",
-            provider_id, embedding_provider,
-        ))
-    })?;
+    if let Some(m) = embedding_model {
+        return Ok(format!("{}::{}", provider_id, m.model_id));
+    }
 
-    Ok(format!("{}::{}", provider_id, model_id))
+    // 跨 provider 兜底：本 provider 下无 Embedding 模型时，扫描全库所有 provider，
+    // 找第一个可用的 Embedding 模型。避免容器指向了不含嵌入模型的 provider（如纯聊天
+    // provider）时，index 队列因无法归一化而无限重试、刷屏日志。
+    tracing::warn!(
+        provider_id = %provider_id,
+        "[indexing] provider '{provider_id}' 下未找到 Embedding 类型模型，尝试跨 provider 兜底扫描",
+    );
+    let providers = axagent_dao::repo::provider::list_providers(db).await?;
+    for p in &providers {
+        if p.id == provider_id {
+            continue;
+        }
+        let pm = axagent_dao::repo::provider::list_models_for_provider(db, &p.id).await?;
+        let fallback = pm
+            .iter()
+            .find(|m| m.enabled && m.model_type == axagent_harness::types::ModelType::Embedding)
+            .or_else(|| {
+                pm.iter().find(|m| m.model_type == axagent_harness::types::ModelType::Embedding)
+            });
+        if let Some(m) = fallback {
+            tracing::warn!(
+                container_provider = %provider_id,
+                fallback_provider = %p.id,
+                fallback_model = %m.model_id,
+                "[indexing] 使用跨 provider 兜底嵌入模型（{} => {}::{}），请尽快在设置页为该容器配置正确的嵌入模型",
+                provider_id, p.id, m.model_id,
+            );
+            return Ok(format!("{}::{}", p.id, m.model_id));
+        }
+    }
+
+    Err(AxAgentError::Provider(format!(
+        "Provider '{}' 下未找到 Embedding 类型模型，且全库无其他可用的 Embedding 模型，无法归一化 embedding_provider='{}'.\
+             请在设置页面为该容器配置有效的嵌入模型",
+        provider_id, embedding_provider,
+    )))
 }
 
 /// Build a ProviderRequestContext for an embedding provider.

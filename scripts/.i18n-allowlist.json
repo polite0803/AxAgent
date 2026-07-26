@@ -120,7 +120,7 @@
     },
     {
       "file": "src/components/settings/SourceManager.tsx",
-      "lines": "1107",
+      "lines": "1107,1244",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },

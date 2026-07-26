@@ -6147,7 +6147,29 @@
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
     "syncNoTarget": "Knowledge base \"项目知识源图谱\" not found, please import first",
-    "deleteConfirm": "Delete knowledge source {{name}}?"
+    "deleteConfirm": "Delete knowledge source {{name}}?",
+    "importProjectModal": {
+      "title": "Import / Update Project Knowledge Sources",
+      "directory": "Source Directory",
+      "directoryPlaceholder": "Click the button on the right to select a directory",
+      "directoryRequired": "Please select a source directory",
+      "selectDirectory": "Select Directory",
+      "sourceName": "Source Name",
+      "sourceNamePlaceholder": "e.g. Project Knowledge",
+      "sourceNameRequired": "Please enter a source name",
+      "sourceNameHint": "Wiki name = the name; RAG KB name = {name} Graph",
+      "mode": "Mode",
+      "modeCreate": "Create",
+      "modeCreateDesc": "First import of the directory; same-name KBs without embedding will be cleaned up and rebuilt",
+      "modeUpdate": "Update",
+      "modeUpdateDesc": "Soft-deletes existing notes in the same-name Wiki, then re-imports the latest disk content; graph is idempotent by id",
+      "updateWarning": "Update mode will soft-delete existing Wiki notes and re-import them; vector index may need to be rebuilt",
+      "embeddingModel": "Embedding model",
+      "embeddingModelPlaceholder": "Select embedding model (optional)",
+      "embeddingModelHint": "Optional; will be applied to newly created/reused Wiki and KB (updated if existing config differs)",
+      "embeddingChanged": "Embedding model changed or newly configured — please open the source card's \"Config\" to trigger index rebuild",
+      "confirm": "Start Import"
+    }
   },
   "sshConfig": {
     "connect": "Connect",

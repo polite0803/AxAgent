@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "Импорт / Обновление источников знаний проекта",
+      "directory": "Каталог-источник",
+      "directoryPlaceholder": "Нажмите кнопку справа для выбора каталога",
+      "directoryRequired": "Выберите каталог-источник",
+      "selectDirectory": "Выбрать каталог",
+      "sourceName": "Имя источника",
+      "sourceNamePlaceholder": "например, Источник знаний проекта",
+      "sourceNameRequired": "Введите имя источника",
+      "sourceNameHint": "Имя Wiki = имя; Имя RAG KB = {имя} Graph",
+      "mode": "Режим",
+      "modeCreate": "Создать",
+      "modeCreateDesc": "Первый импорт каталога; одноимённые KB без эмбеддинга будут очищены и пересозданы",
+      "modeUpdate": "Обновить",
+      "modeUpdateDesc": "Мягко удаляет существующие заметки в одноимённой Wiki, затем повторно импортирует актуальное содержимое; граф идемпотентен по id",
+      "updateWarning": "Режим обновления мягко удалит существующие заметки Wiki и повторно импортирует их; может потребоваться перестройка векторного индекса",
+      "embeddingModel": "Модель эмбеддинга",
+      "embeddingModelPlaceholder": "Выбрать модель эмбеддинга (необязательно)",
+      "embeddingModelHint": "Необязательно; будет применена к новым/существующим Wiki и KB (обновляется при отличии от текущей)",
+      "embeddingChanged": "Модель эмбеддинга изменена или настроена впервые — откройте «Настройки» карточки источника для перестройки индекса",
+      "confirm": "Начать импорт"
+    }
   },
   "sshConfig": {
     "connect": "Подключить",

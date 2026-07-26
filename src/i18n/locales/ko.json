@@ -6491,7 +6491,29 @@
     "importSuccess": "Import complete: {{imported}} files imported, {{skipped}} skipped",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
-    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first"
+    "syncNoTarget": "Knowledge base \"项目知识源\" not found, please import first",
+    "importProjectModal": {
+      "title": "프로젝트 지식 소스 가져오기 / 업데이트",
+      "directory": "소스 디렉토리",
+      "directoryPlaceholder": "오른쪽 버튼을 클릭하여 디렉토리 선택",
+      "directoryRequired": "소스 디렉토리를 선택하세요",
+      "selectDirectory": "디렉토리 선택",
+      "sourceName": "소스 이름",
+      "sourceNamePlaceholder": "예: 프로젝트 지식 소스",
+      "sourceNameRequired": "소스 이름을 입력하세요",
+      "sourceNameHint": "Wiki 이름 = 해당 이름; RAG KB 이름 = {해당 이름} 그래프",
+      "mode": "모드",
+      "modeCreate": "생성",
+      "modeCreateDesc": "디렉토리를 처음 가져오기; 임베딩이 없는 동일 이름 KB는 정리 후 재구축됩니다",
+      "modeUpdate": "업데이트",
+      "modeUpdateDesc": "동일 이름 Wiki의 기존 노트를 소프트 삭제한 후 디스크의 최신 콘텐츠를 다시 가져옵니다; 그래프는 id 기준 멱등",
+      "updateWarning": "업데이트 모드는 Wiki의 기존 노트를 소프트 삭제하고 다시 가져오므로 벡터 인덱스를 재구축해야 할 수 있습니다",
+      "embeddingModel": "임베딩 모델",
+      "embeddingModelPlaceholder": "임베딩 모델 선택 (선택 사항)",
+      "embeddingModelHint": "선택 사항; 새로 생성/재사용되는 Wiki와 KB에 자동 적용됩니다 (기존과 다르면 업데이트)",
+      "embeddingChanged": "임베딩 모델이 변경되었거나 새로 설정됨 — 소스 카드의「설정」을 클릭하여 인덱스 재구축을 실행하세요",
+      "confirm": "가져오기 시작"
+    }
   },
   "sshConfig": {
     "connect": "연결",
