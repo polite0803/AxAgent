@@ -1560,8 +1560,12 @@
     "totalModels": "モデル数",
     "totalProviders": "プロバイダー数",
     "totalRequests": "リクエスト総数",
-    "totalTokens": "トークヵ合計",
-    "usageTrend": "日次使用量トレンド"
+    "totalTokens": "合計トークン",
+    "usageTrend": "日次使用量トレンド",
+    "tabs": {
+      "overview": "概要",
+      "office": "ピクセルオフィス"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "エージェント生成データ \"{{generationId}}\" が実行ストアに見つかりません",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "マルチモデル対応、エージェント自律実行、ナレッジベース検索を備えたスマートAIデスクトップクライアント",
     "downloadOllama": "Ollama をダウンロード",
     "applying": "適用中…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "オフィス作成",
+      "promptName": "オフィス名を入力："
+    },
+    "emptyFleet": "オフィスが未作成です。右上のボタンから最初のオフィスを作成してください。",
+    "memberCount": "{{count}} メンバー",
+    "membersTitle": "メンバーリスト",
+    "noMembers": "このオフィスにはメンバーがいません。Agent リストから追加してください。",
+    "selectFleet": "オフィスを選択",
+    "tabs": {
+      "chat": "グループチャット",
+      "dm": "DM",
+      "trajectory": "軌跡",
+      "token": "Token"
+    },
+    "memberStatus": {
+      "idle": "アイドル",
+      "busy": "ビジー",
+      "paused": "一時停止",
+      "error": "エラー",
+      "offline": "オフライン"
+    },
+    "fleetStatus": {
+      "active": "実行中",
+      "paused": "一時停止",
+      "stopped": "停止"
+    },
+    "chat": {
+      "emptyHint": "下にメッセージを入力 — Dispatcher が適切な agent に自動ルーティングします。",
+      "inputPlaceholder": "グループチャット メッセージ…",
+      "send": "送信",
+      "routingHint": "ルーティング中…",
+      "tagRouting": "ルーティング",
+      "routingMessage": "→ {{slug}}：{{summary}}",
+      "tagProcess": "処理",
+      "tokenUsage": "{{slug}}：+{{input}}↑ / +{{output}}↓",
+      "completed": "完了"
+    },
+    "dm": {
+      "selectTarget": "左のメンバーリストから agent を選んで DM を開始。",
+      "backToList": "メンバーリストに戻る",
+      "emptyHint": "{{slug}} との DM は空です。",
+      "inputPlaceholder": "{{slug}} にメッセージ…",
+      "send": "送信"
+    },
+    "trajectory": {
+      "empty": "軌跡イベントはありません。",
+      "tagRouting": "ルーティング",
+      "routing": "→ {{slug}}：{{summary}}",
+      "tagProcess": "処理",
+      "tagStatus": "ステータス",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "Token 使用量データはありません。",
+      "todayTotal": "今日の合計",
+      "allTotal": "累計合計",
+      "resetDaily": "今日分をリセット",
+      "colMember": "メンバー",
+      "colStatus": "ステータス",
+      "colToday": "今日の Token",
+      "colTotal": "累計 Token"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "長押しで手動貼り付け",

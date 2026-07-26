@@ -1561,7 +1561,11 @@
     "totalProviders": "Провайдеры",
     "totalRequests": "Всего запросов",
     "totalTokens": "Всего токенов",
-    "usageTrend": "Ежедневная тенденция использования"
+    "usageTrend": "Ежедневная тенденция использования",
+    "tabs": {
+      "overview": "Обзор",
+      "office": "Пиксельный офис"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "Данные агента \"{{generationId}}\" не найдены в хранилище выполнения",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "Интеллектуальный настольный клиент ИИ с поддержкой нескольких моделей, автономным выполнением агентов и поиском по базе знаний",
     "downloadOllama": "Скачать Ollama",
     "applying": "Применение…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "Создать офис",
+      "promptName": "Введите название офиса:"
+    },
+    "emptyFleet": "Офисов пока нет. Нажмите кнопку в правом верхнем углу, чтобы создать первый.",
+    "memberCount": "{{count}} участников",
+    "membersTitle": "Участники",
+    "noMembers": "В этом офисе нет участников. Добавьте из списка агентов.",
+    "selectFleet": "Выберите офис",
+    "tabs": {
+      "chat": "Групповой чат",
+      "dm": "Личное сообщение",
+      "trajectory": "Траектория",
+      "token": "Токены"
+    },
+    "memberStatus": {
+      "idle": "Простой",
+      "busy": "Занят",
+      "paused": "Приостановлен",
+      "error": "Ошибка",
+      "offline": "Не в сети"
+    },
+    "fleetStatus": {
+      "active": "Запущен",
+      "paused": "Приостановлен",
+      "stopped": "Остановлен"
+    },
+    "chat": {
+      "emptyHint": "Введите сообщение ниже — диспетчер направит его нужному агенту.",
+      "inputPlaceholder": "Введите групповое сообщение…",
+      "send": "Отправить",
+      "routingHint": "Маршрутизация…",
+      "tagRouting": "Маршрут",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Обработка",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "Готово"
+    },
+    "dm": {
+      "selectTarget": "Выберите агента из списка участников, чтобы начать личное сообщение.",
+      "backToList": "Назад к участникам",
+      "emptyHint": "Нет сообщений с {{slug}}.",
+      "inputPlaceholder": "Сообщение для {{slug}}…",
+      "send": "Отправить"
+    },
+    "trajectory": {
+      "empty": "Пока нет событий траектории.",
+      "tagRouting": "Маршрут",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Обработка",
+      "tagStatus": "Статус",
+      "tagToken": "Токен"
+    },
+    "token": {
+      "empty": "Нет данных об использовании токенов.",
+      "todayTotal": "Сегодня",
+      "allTotal": "За всё время",
+      "resetDaily": "Сбросить сегодня",
+      "colMember": "Участник",
+      "colStatus": "Статус",
+      "colToday": "Сегодня токенов",
+      "colTotal": "Всего токенов"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "Удерживайте для вставки вручную",

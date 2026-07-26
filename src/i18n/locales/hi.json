@@ -1561,7 +1561,11 @@
     "totalProviders": "प्रदाता",
     "totalRequests": "कुल अनुरोध",
     "totalTokens": "कुल टोकन",
-    "usageTrend": "दैनिक उपयोग प्रवृत्ति"
+    "usageTrend": "दैनिक उपयोग प्रवृत्ति",
+    "tabs": {
+      "overview": "अवलोकन",
+      "office": "पिक्सेल ऑफिस"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "एजेंट द्वारा उत्पन्न डेटा \"{{generationId}}\" निष्पादन स्टोर में नहीं मिला",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "स्मार्ट AI डेस्कटॉप क्लाइंट, बहु-मॉडल समर्थन, स्वायत्त एजेंट निष्पादन और ज्ञानकोष खोज के साथ",
     "downloadOllama": "Ollama डाउनलोड करें",
     "applying": "लागू हो रहा है…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "ऑफिस बनाएं",
+      "promptName": "ऑफिस का नाम दर्ज करें:"
+    },
+    "emptyFleet": "कोई ऑफिस अभी तक नहीं बनाई गई। ऊपर दाईं ओर बटन पर क्लिक करके पहली ऑफिस बनाएं।",
+    "memberCount": "{{count}} सदस्य",
+    "membersTitle": "सदस्य",
+    "noMembers": "इस ऑफिस में कोई सदस्य नहीं है। एजेंट सूची से जोड़ें।",
+    "selectFleet": "ऑफिस चुनें",
+    "tabs": {
+      "chat": "समूह चैट",
+      "dm": "सीधा संदेश",
+      "trajectory": "प्रक्षेपण",
+      "token": "टोकन"
+    },
+    "memberStatus": {
+      "idle": "निष्क्रिय",
+      "busy": "व्यस्त",
+      "paused": "रुका हुआ",
+      "error": "त्रुटि",
+      "offline": "ऑफ़लाइन"
+    },
+    "fleetStatus": {
+      "active": "चल रहा है",
+      "paused": "रुका हुआ",
+      "stopped": "रुक गया"
+    },
+    "chat": {
+      "emptyHint": "नीचे एक संदेश टाइप करें — डिस्पैचर इसे सही एजेंट को रूट करेगा।",
+      "inputPlaceholder": "समूह संदेश टाइप करें…",
+      "send": "भेजें",
+      "routingHint": "रूटिंग…",
+      "tagRouting": "रूटिंग",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "प्रोसेस",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "पूर्ण"
+    },
+    "dm": {
+      "selectTarget": "सदस्य सूची से एक एजेंट चुनें और DM शुरू करें।",
+      "backToList": "सदस्य सूची पर वापस",
+      "emptyHint": "{{slug}} के साथ कोई संदेश नहीं।",
+      "inputPlaceholder": "{{slug}} को संदेश…",
+      "send": "भेजें"
+    },
+    "trajectory": {
+      "empty": "कोई प्रक्षेपण घटनाएं नहीं।",
+      "tagRouting": "रूटिंग",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "प्रोसेस",
+      "tagStatus": "स्थिति",
+      "tagToken": "टोकन"
+    },
+    "token": {
+      "empty": "कोई टोकन उपयोग डेटा नहीं।",
+      "todayTotal": "आज का कुल",
+      "allTotal": "कुल कुल",
+      "resetDaily": "आज रीसेट करें",
+      "colMember": "सदस्य",
+      "colStatus": "स्थिति",
+      "colToday": "आज के टोकन",
+      "colTotal": "कुल टोकन"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "मैन्युअल पेस्ट के लिए लॉन्ग-प्रेस करें",

@@ -1561,7 +1561,11 @@
     "totalProviders": "提供商数",
     "totalRequests": "总请求数",
     "totalTokens": "Token 总量",
-    "usageTrend": "每日用量趋势"
+    "usageTrend": "每日用量趋势",
+    "tabs": {
+      "overview": "概览",
+      "office": "像素办公室"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "Agent 生成数据 \"{{generationId}}\" 在执行存储中未找到",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "智能 AI 桌面客户端，支持多模型、Agent 自主执行、知识库检索",
     "downloadOllama": "下载 Ollama",
     "applying": "应用中…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "创建办公室",
+      "promptName": "请输入办公室名称："
+    },
+    "emptyFleet": "尚未创建办公室。点击右上角按钮创建第一个办公室。",
+    "memberCount": "{{count}} 个成员",
+    "membersTitle": "成员列表",
+    "noMembers": "该办公室暂无成员。请从 Agent 列表中添加。",
+    "selectFleet": "请选择办公室",
+    "tabs": {
+      "chat": "群聊",
+      "dm": "私信",
+      "trajectory": "轨迹",
+      "token": "Token"
+    },
+    "memberStatus": {
+      "idle": "空闲",
+      "busy": "忙碌",
+      "paused": "已暂停",
+      "error": "错误",
+      "offline": "离线"
+    },
+    "fleetStatus": {
+      "active": "运行中",
+      "paused": "已暂停",
+      "stopped": "已停止"
+    },
+    "chat": {
+      "emptyHint": "在下方输入消息，Dispatcher 将自动路由到合适的 agent。",
+      "inputPlaceholder": "输入群聊消息…",
+      "send": "发送",
+      "routingHint": "智能路由中…",
+      "tagRouting": "路由",
+      "routingMessage": "→ {{slug}}：{{summary}}",
+      "tagProcess": "处理",
+      "tokenUsage": "{{slug}}：+{{input}}↑ / +{{output}}↓",
+      "completed": "完成"
+    },
+    "dm": {
+      "selectTarget": "从左侧成员列表中选择一个 agent 发起私信。",
+      "backToList": "返回成员列表",
+      "emptyHint": "与 {{slug}} 的私信会话为空。",
+      "inputPlaceholder": "给 {{slug}} 发消息…",
+      "send": "发送"
+    },
+    "trajectory": {
+      "empty": "暂无轨迹事件。",
+      "tagRouting": "路由",
+      "routing": "→ {{slug}}：{{summary}}",
+      "tagProcess": "处理",
+      "tagStatus": "状态",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "暂无 token 用量数据。",
+      "todayTotal": "今日总用量",
+      "allTotal": "累计总用量",
+      "resetDaily": "重置今日用量",
+      "colMember": "成员",
+      "colStatus": "状态",
+      "colToday": "今日 Token",
+      "colTotal": "累计 Token"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "请长按输入框手动粘贴",

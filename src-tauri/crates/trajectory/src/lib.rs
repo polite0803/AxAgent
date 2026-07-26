@@ -63,10 +63,6 @@ mod skill_decomposition;
 #[allow(dead_code)]
 mod skill_evolution;
 #[allow(dead_code)]
-mod skill_manager;
-#[allow(dead_code)]
-mod skill_matcher;
-#[allow(dead_code)]
 mod skill_proposal;
 mod skills_hub_adapter;
 mod storage;
@@ -82,7 +78,6 @@ mod task_prefetcher;
 mod text_grad;
 mod trajectory;
 #[allow(dead_code)]
-mod trajectory_compressor;
 mod trajectory_impl;
 mod user_profile;
 mod workflow_adapters;
@@ -179,8 +174,6 @@ pub use skill_decomposition::{
 };
 
 pub use skill_evolution::SkillEvolutionEngine;
-
-pub use skill_matcher::{Complexity, estimate_complexity_public};
 
 pub use skill_proposal::SkillProposalService;
 

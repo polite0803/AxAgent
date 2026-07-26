@@ -1561,7 +1561,11 @@
     "totalProviders": "提供商數",
     "totalRequests": "總請求數",
     "totalTokens": "Token 總量",
-    "usageTrend": "每日用量趨勢"
+    "usageTrend": "每日用量趨勢",
+    "tabs": {
+      "overview": "概覽",
+      "office": "像素辦公室"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "在執行儲存區中找不到代理產生的資料「{{generationId}}」",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "智慧 AI 桌面用戶端，支援多模型、Agent 自主執行、知識庫檢索",
     "downloadOllama": "下載 Ollama",
     "applying": "套用中…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "建立辦公室",
+      "promptName": "請輸入辦公室名稱："
+    },
+    "emptyFleet": "尚未建立辦公室。點擊右上角按鈕建立第一個辦公室。",
+    "memberCount": "{{count}} 個成員",
+    "membersTitle": "成員列表",
+    "noMembers": "該辦公室尚無成員。請從 Agent 列表中新增。",
+    "selectFleet": "請選擇辦公室",
+    "tabs": {
+      "chat": "群聊",
+      "dm": "私訊",
+      "trajectory": "軌跡",
+      "token": "Token"
+    },
+    "memberStatus": {
+      "idle": "空閒",
+      "busy": "忙碌",
+      "paused": "已暫停",
+      "error": "錯誤",
+      "offline": "離線"
+    },
+    "fleetStatus": {
+      "active": "運行中",
+      "paused": "已暫停",
+      "stopped": "已停止"
+    },
+    "chat": {
+      "emptyHint": "在下方輸入訊息，Dispatcher 將自動路由到合適的 agent。",
+      "inputPlaceholder": "輸入群聊訊息…",
+      "send": "傳送",
+      "routingHint": "智慧路由中…",
+      "tagRouting": "路由",
+      "routingMessage": "→ {{slug}}：{{summary}}",
+      "tagProcess": "處理",
+      "tokenUsage": "{{slug}}：+{{input}}↑ / +{{output}}↓",
+      "completed": "完成"
+    },
+    "dm": {
+      "selectTarget": "從左側成員列表中選擇一個 agent 發起私訊。",
+      "backToList": "返回成員列表",
+      "emptyHint": "與 {{slug}} 的私訊會話為空。",
+      "inputPlaceholder": "給 {{slug}} 發訊息…",
+      "send": "傳送"
+    },
+    "trajectory": {
+      "empty": "尚無軌跡事件。",
+      "tagRouting": "路由",
+      "routing": "→ {{slug}}：{{summary}}",
+      "tagProcess": "處理",
+      "tagStatus": "狀態",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "尚無 token 用量資料。",
+      "todayTotal": "今日總用量",
+      "allTotal": "累計總用量",
+      "resetDaily": "重置今日用量",
+      "colMember": "成員",
+      "colStatus": "狀態",
+      "colToday": "今日 Token",
+      "colTotal": "累計 Token"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "請長按輸入框手動貼上",

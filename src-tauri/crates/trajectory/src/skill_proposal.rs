@@ -9,10 +9,20 @@
 //! - Skill template generation from successful trajectories
 
 use crate::skill::SkillProposal;
-use crate::skill_manager::SkillCreationParams;
 use crate::storage::TrajectoryStorage;
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use axagent_harness::util_fns::truncate_to_char_boundary;
+
+/// 从提案创建技能的参数（原 skill_manager.rs 移入）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct SkillCreationParams {
+    pub name: String,
+    pub description: String,
+    pub content: String,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub platforms: Option<Vec<String>>,
+}
 use std::collections::HashMap;
 use std::sync::Arc;
 

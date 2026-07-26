@@ -1560,8 +1560,12 @@
     "totalModels": "Modelos",
     "totalProviders": "Proveedores",
     "totalRequests": "Solicitudes totales",
-    "totalTokens": "Tokens totales",
-    "usageTrend": "Tendencia de uso diario"
+    "totalTokens": "Tokens Totales",
+    "usageTrend": "Tendencia de uso diario",
+    "tabs": {
+      "overview": "Resumen",
+      "office": "Oficina de Píxeles"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "Datos generados por el agente \"{{generationId}}\" no encontrados en el almacén de ejecución",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "Cliente de escritorio IA inteligente con soporte multimodelo, ejecución autónoma de agentes y búsqueda en base de conocimientos",
     "downloadOllama": "Descargar Ollama",
     "applying": "Aplicando…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "Crear oficina",
+      "promptName": "Introduce el nombre de la oficina:"
+    },
+    "emptyFleet": "No hay oficinas creadas. Haz clic en el botón superior derecho para crear la primera.",
+    "memberCount": "{{count}} miembros",
+    "membersTitle": "Miembros",
+    "noMembers": "Esta oficina no tiene miembros. Añade uno desde la lista de agentes.",
+    "selectFleet": "Selecciona una oficina",
+    "tabs": {
+      "chat": "Chat grupal",
+      "dm": "Mensaje directo",
+      "trajectory": "Trayectoria",
+      "token": "Tokens"
+    },
+    "memberStatus": {
+      "idle": "Inactivo",
+      "busy": "Ocupado",
+      "paused": "Pausado",
+      "error": "Error",
+      "offline": "Desconectado"
+    },
+    "fleetStatus": {
+      "active": "En ejecución",
+      "paused": "Pausado",
+      "stopped": "Detenido"
+    },
+    "chat": {
+      "emptyHint": "Escribe un mensaje abajo — el dispatcher lo enruta al agente adecuado.",
+      "inputPlaceholder": "Escribe un mensaje grupal…",
+      "send": "Enviar",
+      "routingHint": "Enrutando…",
+      "tagRouting": "Enrutado",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Proceso",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "Hecho"
+    },
+    "dm": {
+      "selectTarget": "Elige un agente de la lista de miembros para iniciar un DM.",
+      "backToList": "Volver a miembros",
+      "emptyHint": "No hay mensajes con {{slug}}.",
+      "inputPlaceholder": "Mensaje a {{slug}}…",
+      "send": "Enviar"
+    },
+    "trajectory": {
+      "empty": "No hay eventos de trayectoria.",
+      "tagRouting": "Enrutado",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Proceso",
+      "tagStatus": "Estado",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "No hay datos de uso de tokens.",
+      "todayTotal": "Total de hoy",
+      "allTotal": "Total acumulado",
+      "resetDaily": "Reiniciar hoy",
+      "colMember": "Miembro",
+      "colStatus": "Estado",
+      "colToday": "Tokens de hoy",
+      "colTotal": "Tokens totales"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "Mantenga pulsado para pegar manualmente",

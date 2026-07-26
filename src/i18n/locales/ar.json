@@ -1561,7 +1561,11 @@
     "totalProviders": "المزودون",
     "totalRequests": "إجمالي الطلبات",
     "totalTokens": "إجمالي الرموز",
-    "usageTrend": "اتجاه الاستخدام اليومي"
+    "usageTrend": "اتجاه الاستخدام اليومي",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "office": "مكتب البكسل"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "البيانات التي أنشأها الوكيل \"{{generationId}}\" غير موجودة في مخزن التنفيذ",
@@ -2841,6 +2845,71 @@
     "welcomeDesc": "عميل سطح مكتب ذكي مدعوم بالذكاء الاصطناعي، يدعم تعدد النماذج والتنفيذ المستقل للوكلاء والبحث في قاعدة المعرفة",
     "downloadOllama": "تنزيل Ollama",
     "applying": "جارٍ التطبيق…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "إنشاء مكتب",
+      "promptName": "أدخل اسم المكتب:"
+    },
+    "emptyFleet": "لم يتم إنشاء أي مكتب بعد. انقر على الزر أعلى اليمين لإنشاء أول مكتب.",
+    "memberCount": "{{count}} أعضاء",
+    "membersTitle": "الأعضاء",
+    "noMembers": "لا يوجد أعضاء في هذا المكتب. أضف واحداً من قائمة الوكلاء.",
+    "selectFleet": "اختر مكتباً",
+    "tabs": {
+      "chat": "دردشة جماعية",
+      "dm": "رسالة مباشرة",
+      "trajectory": "المسار",
+      "token": "الرموز"
+    },
+    "memberStatus": {
+      "idle": "خامل",
+      "busy": "مشغول",
+      "paused": "متوقف مؤقتاً",
+      "error": "خطأ",
+      "offline": "غير متصل"
+    },
+    "fleetStatus": {
+      "active": "قيد التشغيل",
+      "paused": "متوقف مؤقتاً",
+      "stopped": "متوقف"
+    },
+    "chat": {
+      "emptyHint": "اكتب رسالة أدناه — سيقوم الموزع بتوجيهها إلى الوكيل المناسب.",
+      "inputPlaceholder": "اكتب رسالة جماعية…",
+      "send": "إرسال",
+      "routingHint": "جارٍ التوجيه…",
+      "tagRouting": "التوجيه",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "المعالجة",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "تم"
+    },
+    "dm": {
+      "selectTarget": "اختر وكيلاً من قائمة الأعضاء لبدء رسالة مباشرة.",
+      "backToList": "العودة إلى الأعضاء",
+      "emptyHint": "لا توجد رسائل مع {{slug}}.",
+      "inputPlaceholder": "مراسلة {{slug}}…",
+      "send": "إرسال"
+    },
+    "trajectory": {
+      "empty": "لا توجد أحداث مسار.",
+      "tagRouting": "التوجيه",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "المعالجة",
+      "tagStatus": "الحالة",
+      "tagToken": "الرمز"
+    },
+    "token": {
+      "empty": "لا توجد بيانات استخدام الرموز.",
+      "todayTotal": "إجمالي اليوم",
+      "allTotal": "الإجمالي التراكمي",
+      "resetDaily": "إعادة تعيين اليوم",
+      "colMember": "العضو",
+      "colStatus": "الحالة",
+      "colToday": "رموز اليوم",
+      "colTotal": "إجمالي الرموز"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "اضغط مطولاً للصق يدوياً",

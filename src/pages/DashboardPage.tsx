@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Icon } from "@/components/common/Icon";
+import { OfficeTab } from "@/components/office/OfficeTab";
 import { invoke } from "@/lib/invoke";
 import {
   initGatewayStatusListener,
@@ -10,8 +11,8 @@ import {
   useProviderStore,
 } from "@/stores";
 import { CostByProvider, DailyUsage, DashboardStats } from "@/types";
-import { Card, Col, Flex, Row, Spin, Statistic, theme } from "antd";
-import { Bot, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
+import { Card, Col, Flex, Row, Spin, Statistic, Tabs, theme } from "antd";
+import { Bot, Building2, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -219,6 +220,79 @@ function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: 
 export function DashboardPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [activeTab, setActiveTab] = useState<"overview" | "office">("overview");
+
+  return (
+    <div
+      style={{
+        padding: 24,
+        height: "100%",
+        overflow: "auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+      }}
+    >
+      {/* ── Page Title ── */}
+      <div>
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 700,
+            color: token.colorText,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Icon icon="fluent:grid-20-filled" size={22} />
+          {t("nav.dashboard")}
+        </div>
+        <div style={{ fontSize: 12, color: token.colorTextQuaternary, marginTop: 4 }}>
+          {t("appHeader.dashboardContext")}
+        </div>
+      </div>
+
+      <Tabs
+        activeKey={activeTab}
+        onChange={(k) => setActiveTab(k as "overview" | "office")}
+        size="large"
+        items={[
+          {
+            key: "overview",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Database size={14} />
+                {t("dashboard.tabs.overview")}
+              </span>
+            ),
+            children: <OverviewTab />,
+          },
+          {
+            key: "office",
+            label: (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Building2 size={14} />
+                {t("dashboard.tabs.office")}
+              </span>
+            ),
+            children: (
+              <div style={{ height: "calc(100vh - 200px)", minHeight: 600 }}>
+                <OfficeTab />
+              </div>
+            ),
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+// ── OverviewTab：原 DashboardPage 主体 ──
+
+function OverviewTab() {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
   // 成本以人民币展示：后端返回 USD，按偏好汇率换算为 CNY
   const formatCny = useFormatCny();
 
@@ -322,34 +396,11 @@ export function DashboardPage() {
   return (
     <div
       style={{
-        padding: 24,
-        height: "100%",
-        overflow: "auto",
         display: "flex",
         flexDirection: "column",
         gap: 24,
       }}
     >
-      {/* ── Page Title ── */}
-      <div>
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: token.colorText,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <Icon icon="fluent:grid-20-filled" size={22} />
-          {t("nav.dashboard")}
-        </div>
-        <div style={{ fontSize: 12, color: token.colorTextQuaternary, marginTop: 4 }}>
-          {t("appHeader.dashboardContext")}
-        </div>
-      </div>
-
       {/* ── Overview Cards ── */}
       <SectionHeader
         title={t("dashboard.overview")}
