@@ -309,8 +309,12 @@ pub async fn cleanup_expired_plans(ttl_secs: u64) -> Vec<String> {
 /// 启动 plan TTL 清理后台任务（在 init::services 中调用一次）
 ///
 /// 接受 shutdown_token 以便应用关闭时优雅退出，与项目其它后台任务保持一致。
+///
+/// 使用 `tauri::async_runtime::spawn` 而非 `tokio::spawn`，因为本函数在
+/// `start_background_services`（setup hook 同步上下文）中调用，此时可能没有
+/// tokio runtime。`tauri::async_runtime::spawn` 会自动选择合适的运行时。
 pub fn spawn_plan_ttl_cleanup(shutdown_token: tokio_util::sync::CancellationToken) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         let interval = std::time::Duration::from_secs(PLAN_CLEANUP_INTERVAL_SECS);
         loop {
             tokio::select! {
