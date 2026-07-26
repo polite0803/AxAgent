@@ -25,9 +25,10 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 pub mod pg_ddl;
 pub mod v100_consolidated;
 pub mod v101_consolidate_knowledge_memory;
+pub mod v102_create_fleets;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 101;
+pub const CURRENT_VERSION: i32 = 102;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -63,6 +64,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 101,
         description: "v101_consolidate_knowledge_memory: 合并轨迹实体/关系到知识图谱知识实体/关系表，合并轨迹记忆到记忆条目表，删除 trajectory_entities/relationships/memories 旧表",
         up: |db| Box::pin(v101_consolidate_knowledge_memory::up(db)),
+    },
+    Migration {
+        version: 102,
+        description: "v102_create_fleets: 创建 fleets / fleet_members 表与索引，承载多办公室 AI 团队的持久化（AgentFleet 集成）",
+        up: |db| Box::pin(v102_create_fleets::up(db)),
     },
 ];
 
@@ -205,7 +211,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 2 行（v100 + v101）
+        // schema_version 表应有 3 行（v100 + v101 + v102）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -215,7 +221,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 2, "schema_version should have 2 rows (v100 + v101)");
+        assert_eq!(cnt, 3, "schema_version should have 3 rows (v100 + v101 + v102)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。
@@ -254,5 +260,55 @@ mod tests {
         // 不走 run_migrations，直接跑 v100
         v100_consolidated::up(db.clone()).await.unwrap();
         v100_consolidated::up(db).await.expect("v100 must be re-runnable in isolation");
+    }
+
+    /// 防回归：v102 创建的 fleets / fleet_members 表与索引必须真实存在。
+    ///
+    /// 此测试在 SQLite 内存库上验证迁移效果。PostgreSQL 侧由 DDL 的
+    /// PG 语法原生支持（BIGINT/TEXT/REFERENCES ON DELETE CASCADE），
+    /// CI 集成测试环境会覆盖 PG 路径。
+    #[tokio::test]
+    async fn v102_fleets_tables_and_indices_exist() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        run_migrations(&db).await.unwrap();
+
+        // 表存在
+        for table in &["fleets", "fleet_members"] {
+            let row = db
+                .query_one_raw(Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    [(*table).into()],
+                ))
+                .await
+                .unwrap();
+            assert!(row.is_some(), "table {} should exist after v102", table);
+        }
+
+        // 索引存在
+        for idx in &[
+            "idx_fleet_members_fleet_id",
+            "idx_fleet_members_agent_slug",
+            "idx_fleet_members_status",
+            "idx_fleets_status",
+        ] {
+            let row = db
+                .query_one_raw(Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                    [(*idx).into()],
+                ))
+                .await
+                .unwrap();
+            assert!(row.is_some(), "index {} should exist after v102", idx);
+        }
+    }
+
+    /// v102 单独 idempotent：重复跑不报错（所有 CREATE 都用 IF NOT EXISTS）。
+    #[tokio::test]
+    async fn v102_is_self_idempotent() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        v102_create_fleets::up(db.clone()).await.unwrap();
+        v102_create_fleets::up(db).await.expect("v102 must be re-runnable in isolation");
     }
 }

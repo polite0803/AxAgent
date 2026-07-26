@@ -13,7 +13,7 @@
 //
 // dead_code 策略(2026-07-24 更新):
 //   trajectory 是研究性 crate,许多模块(auto_memory / auto_tool / batch /
-//   dream_consolidation / nudge / pattern_analyzer / process_reward 等)预留为未来
+//   dream_consolidation / nudge / process_reward 等)预留为未来
 //   接入点,其内部部分字段/方法/常量/枚举变体当前未被 wiring 层引用。彻底删除会
 //   丢失研究成果,逐文件加 inner attribute 工作量过大且易遗漏。保留 crate 级
 //   `#![allow(dead_code)]` 统一压制;同时按模块加 `#[allow(dead_code)]` 标注哪些
@@ -32,7 +32,6 @@ mod auto_memory;
 mod auto_tool;
 #[allow(dead_code)]
 mod batch;
-mod behavior_tracker;
 mod coevolution;
 mod compactor;
 mod constitution;
@@ -51,9 +50,6 @@ mod memory_providers;
 mod nudge;
 mod parallel_execution;
 mod pattern;
-#[allow(dead_code)]
-mod pattern_analyzer;
-mod preference_learner;
 mod proactive_assistant;
 #[allow(dead_code)]
 mod process_reward;
@@ -159,13 +155,6 @@ pub use parallel_execution::{
 };
 
 pub use pattern::{CrossSessionLearner, PatternConfig, PatternLearner, PatternType};
-
-pub use pattern_analyzer::{
-    CodingPatternSummary, PatternAnalysisSummary, TemporalPatternSummary, ToolPreferenceSummary,
-    TopicPatternSummary, analyze_trajectories,
-};
-
-pub use preference_learner::{LearningMetrics, PreferenceLearner};
 
 pub use process_reward::ProcessRewardModel;
 
