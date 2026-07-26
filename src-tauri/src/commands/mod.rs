@@ -44,6 +44,7 @@ pub(crate) mod file_cleanup;
 pub mod files;
 pub mod files_page;
 pub mod fine_tune;
+pub mod fleet;
 pub mod gateway;
 pub mod gateway_link;
 pub mod generated_tool;
