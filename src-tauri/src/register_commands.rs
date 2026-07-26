@@ -975,6 +975,20 @@ macro_rules! register_all_commands {
             commands::dynamic_ui::generate_dynamic_ui_schema_nl,
             commands::orchestrator::orchestrate_mission,
             commands::orchestrator::subscribe_orchestrator_stream,
+            // Fleet（多办公室 AI 团队）
+            commands::fleet::fleet_add_member,
+            commands::fleet::fleet_create,
+            commands::fleet::fleet_delete,
+            commands::fleet::fleet_direct_message,
+            commands::fleet::fleet_dispatch,
+            commands::fleet::fleet_get,
+            commands::fleet::fleet_get_member,
+            commands::fleet::fleet_list,
+            commands::fleet::fleet_list_members,
+            commands::fleet::fleet_remove_member,
+            commands::fleet::fleet_reset_daily_tokens,
+            commands::fleet::fleet_update_member_status,
+            commands::fleet::fleet_update_status,
         ]
     };
 }
