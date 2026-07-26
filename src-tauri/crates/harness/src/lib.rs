@@ -490,3 +490,6 @@ pub use compact_session::{
 // 保留各自原有 event_bus,统一总线作为额外发布通道。
 pub mod event_bus;
 pub use event_bus::{DomainEvent, EventBus, EventBusSubscription, EventCategory};
+
+// ── Fleet 多办公室 AI 团队契约 ──
+pub mod fleet;

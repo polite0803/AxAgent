@@ -81,6 +81,8 @@ mod trajectory;
 mod trajectory_impl;
 mod user_profile;
 mod workflow_adapters;
+// ── Fleet 持久化实现 ──
+mod fleet_repository;
 
 // ── Explicit re-exports (only types used externally) ──────────────────
 
@@ -183,6 +185,9 @@ pub use storage::{
     TrajectoryCleanupConfig, TrajectoryCleanupTask, TrajectorySession, TrajectoryStatistics,
     TrajectoryStorage,
 };
+
+// ── Fleet 持久化实现 ──
+pub use fleet_repository::SeaOrmFleetRepository;
 
 // ── ReplayExecutor 实现 ──
 pub use replay::TrajectoryReplayer;

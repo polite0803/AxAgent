@@ -26,7 +26,7 @@
 use crate::AppState;
 use axagent_harness::fleet::{
     DispatchChatMessage, DispatchEvent, Fleet, FleetIntentLlm, FleetMember, FleetMemberStatus,
-    FleetMetadata, FleetRepository, FleetStatus, IntentDispatcher,
+    FleetMetadata, FleetRepository, FleetStatus, IntentDispatcher, NoopFleetIntentLlm,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -292,6 +292,6 @@ fn build_dispatcher(app_state: &AppState) -> axagent_agent::LlmDispatcher {
     let fleet_repo: Arc<dyn FleetRepository> = Arc::clone(&app_state.fleet_repository);
     // TODO(P1): 注入真实的 FleetIntentLlm 实现（wiring 层包装 ProviderLlmBridge）
     // 当前用 NoopFleetIntentLlm 兜底,dispatch_stream 会回退到首个可用成员
-    let intent_llm: Arc<dyn FleetIntentLlm> = Arc::new(axagent_harness::NoopFleetIntentLlm);
+    let intent_llm: Arc<dyn FleetIntentLlm> = Arc::new(NoopFleetIntentLlm);
     axagent_agent::LlmDispatcher::new(fleet_repo, intent_llm)
 }

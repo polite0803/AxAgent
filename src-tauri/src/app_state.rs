@@ -7,6 +7,7 @@ use crate::state::{
     ToolState,
 };
 use axagent_credential::CredentialManager;
+use axagent_harness::fleet::FleetRepository;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
 use axagent_runtime::webhook_subscription::WebhookSubscriptionManager;
@@ -280,6 +281,8 @@ pub struct AppState {
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
     pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>>,
     pub prompt_cache: Arc<PromptCache>,
+    /// Fleet 持久化仓库
+    pub fleet_repository: Arc<dyn FleetRepository>,
     /// Harness 容器（统一管理核心基础设施注入）
     pub harness: axagent_runtime::harness::RuntimeHarness,
     // Tree of Thoughts state

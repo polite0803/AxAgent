@@ -534,6 +534,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }))
     };
     let prompt_cache = Arc::new(PromptCache::new());
+    // ── Fleet 持久化仓库 ──
+    let fleet_repository: Arc<dyn axagent_harness::fleet::FleetRepository> =
+        Arc::new(axagent_trajectory::SeaOrmFleetRepository::new(sea_db.clone()));
     let tot_sessions: Arc<
         tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
     > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
@@ -860,6 +863,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         webhook_subscription_manager,
         semantic_cache,
         prompt_cache,
+        fleet_repository,
         tot_sessions,
         planner_sessions,
         browser_client,

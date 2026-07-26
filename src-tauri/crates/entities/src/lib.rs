@@ -114,4 +114,8 @@ pub mod index_jobs;
 // Vector store entities
 pub mod vec_collections;
 
+// Fleet entities
+pub mod fleet_members;
+pub mod fleets;
+
 pub use sea_orm;

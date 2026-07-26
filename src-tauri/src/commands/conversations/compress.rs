@@ -898,6 +898,7 @@ mod tests_conversation {
             persistent_runner: None,
             semantic_cache: semantic_cache.clone(),
             prompt_cache: Arc::new(PromptCache::new()),
+            fleet_repository: Arc::new(axagent_harness::fleet::NoopFleetRepository) as Arc<dyn axagent_harness::fleet::FleetRepository>,
             harness: axagent_runtime::harness::RuntimeHarness::new(
                 axagent_runtime::harness::HarnessDeps {
                     persistence: Arc::new(axagent_dao::db::DbHandle {
