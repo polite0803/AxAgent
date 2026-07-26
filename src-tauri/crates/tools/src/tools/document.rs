@@ -1783,7 +1783,6 @@ fn pdf_escape_string(s: &str) -> String {
     out
 }
 
-
 /// 测量字符串宽度（pt）。CJK 字符走真实度量，拉丁字符按 0.5em 估算。
 fn measure_text(text: &str, size_pt: f64, cjk: Option<&crate::cjk_font::CjkFont>) -> f64 {
     if let Some(cjk) = cjk {

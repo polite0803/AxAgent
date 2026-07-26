@@ -23,7 +23,6 @@ use crate::trajectory::{
 };
 use std::collections::HashMap;
 
-
 /// 默认 LLM 评判器占位实现（未配置 LLM）。
 ///
 /// **注意**：这是规则化占位实现，所有 trait 方法返回 `Err(NotConfigured)`。

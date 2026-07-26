@@ -121,7 +121,6 @@ impl DefaultReasoningProvider {
     pub fn new() -> Self {
         Self
     }
-
 }
 
 impl Default for DefaultReasoningProvider {
