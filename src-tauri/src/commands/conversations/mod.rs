@@ -3133,7 +3133,13 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
                 Arc::new(axagent_astock_data::AStockClient::new()),
             ),
         )),
-        stock_monitor: None,
+        stock_monitor: std::sync::OnceLock::new(),
+        cross_stock_aggregator: std::sync::OnceLock::new(),
+        quote_watcher: std::sync::OnceLock::new(),
+        stock_workflow_t0_semaphore: Arc::new(tokio::sync::Semaphore::new(5)),
+        stock_workflow_t0_per_stock_locks: Arc::new(tokio::sync::Mutex::new(
+            std::collections::HashMap::new(),
+        )),
         // ── Phase 3 P1 Task 3.1: domain sub-states ──
         infra: crate::state::InfraState::new(
             axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
