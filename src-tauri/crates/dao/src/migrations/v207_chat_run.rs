@@ -85,14 +85,15 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     // ========================================================================
 
     for sql in &["CREATE TABLE IF NOT EXISTS chat_run_events (\
-            id INTEGER PRIMARY KEY AUTOINCREMENT, \
+            id BIGSERIAL PRIMARY KEY, \
             run_id TEXT NOT NULL, \
             seq INTEGER NOT NULL, \
             event_type TEXT NOT NULL, \
             data TEXT NOT NULL DEFAULT '{}', \
             ts BIGINT NOT NULL)"]
     {
-        // 注意：AUTOINCREMENT 是 SQLite 语法。PG 侧由 sqlite_ddl 自动转换为 SERIAL/IDENTITY。
+        // DDL 写 PG 语法（BIGSERIAL），SQLite 侧由 sqlite_ddl 自动转换为
+        // INTEGER PRIMARY KEY AUTOINCREMENT。与 v100_consolidated 风格一致。
         exec_ddl(&db, is_pg, sql).await?;
     }
 
