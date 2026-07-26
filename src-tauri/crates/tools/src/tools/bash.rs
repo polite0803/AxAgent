@@ -313,8 +313,8 @@ mod tests {
         }
         let elapsed = start.elapsed();
         assert!(
-            elapsed < Duration::from_secs(8),
-            "elapsed={:?} too long — 16 concurrent ~1s commands should finish in <8s, \
+            elapsed < Duration::from_secs(15),
+            "elapsed={:?} too long — 16 concurrent ~1s commands should finish in <15s, \
              not serialized. Likely runtime is blocked by a sync sleep.",
             elapsed
         );

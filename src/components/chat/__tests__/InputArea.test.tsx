@@ -132,8 +132,12 @@ const {
     loadServers: loadMcpServers,
   };
 
+  const setQuotedMessageId = vi.fn();
+
   const uiState = {
     setSettingsSection,
+    quotedMessageId: null,
+    setQuotedMessageId,
   };
 
   const streamState = {
