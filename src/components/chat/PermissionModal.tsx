@@ -232,7 +232,7 @@ export const PermissionModal: React.FC = () => {
       }
       open={visible}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       width={520}
       aria-labelledby="permission-modal-title"
       footer={
@@ -284,7 +284,7 @@ export const PermissionModal: React.FC = () => {
       onCancel={() => handleDecision("deny")}
       destroyOnHidden
     >
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
         {/* 工具名称和风险等级 */}
         <div
           style={{

@@ -69,7 +69,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
       </Text>
 
       {isAutoInstallable && (
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             {t("decomposition.autoInstallDesc")}
           </Paragraph>
@@ -86,7 +86,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
       )}
 
       {isManualInstallable && (
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             {t("decomposition.manualInstallDesc")}
           </Paragraph>
@@ -118,7 +118,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
       )}
 
       {needsGeneration && (
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             {t("decomposition.generateDesc")}
           </Paragraph>

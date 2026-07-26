@@ -158,7 +158,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
               ))}
             </div>
 
-            <Space direction="vertical" size={4} className="w-full">
+            <Space orientation="vertical" size={4} className="w-full">
               <Text type="secondary" className="text-xs">
                 {t("workflow.diagnostic.severity.error")}/{t("workflow.diagnostic.severity.warning")}/{t(
                   "workflow.diagnostic.severity.info",

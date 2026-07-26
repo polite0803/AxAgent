@@ -146,7 +146,7 @@ export function BrowserAutomationPanel() {
       style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
     >
       <Card size="small" title={t("browser.control")}>
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Space>
             <Input
               id="browser-automation-panel-input-1"
@@ -195,7 +195,7 @@ export function BrowserAutomationPanel() {
       )}
 
       <Card size="small" title={t("browser.elementOperations")}>
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Space>
             <Input
               id="browser-automation-panel-input-2"

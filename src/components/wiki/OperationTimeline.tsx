@@ -125,7 +125,7 @@ export function OperationTimeline({ operations }: OperationTimelineProps) {
         ),
         children: (
           <Card size="small" style={{ marginBottom: 8 }}>
-            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="small" style={{ width: "100%" }}>
               <Space>
                 <Tooltip title={formatDate(op.createdAt)}>
                   {getOperationIcon(op)}

@@ -148,7 +148,7 @@ export function CredibilityIndicator({ factors }: CredibilityIndicatorProps) {
   const { authority, consistency, recency, objectivity } = factors;
 
   return (
-    <Space direction="vertical" size="small" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="small" style={{ width: "100%" }}>
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-sm">
           {t("credibility.authority")}

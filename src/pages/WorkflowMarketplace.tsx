@@ -618,7 +618,7 @@ export function WorkflowMarketplace() {
                   key: "details",
                   label: t("marketplace.details"),
                   children: (
-                    <Space direction="vertical" className="w-full" size="large">
+                    <Space orientation="vertical" className="w-full" size="large">
                       <div>
                         <Text type="secondary">{t("common.description")}</Text>
                         <div>{selectedTemplate.description ?? t("marketplace.noDescription")}</div>

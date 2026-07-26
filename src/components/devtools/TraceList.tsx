@@ -95,7 +95,7 @@ export function TraceList() {
 
   return (
     <div className="p-3">
-      <Space direction="vertical" className="w-full mb-4">
+      <Space orientation="vertical" className="w-full mb-4">
         <Input.Search
           placeholder={t("devtools.searchTraceId")}
           onSearch={(value) => {

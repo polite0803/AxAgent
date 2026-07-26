@@ -107,7 +107,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   };
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Form form={form} layout="vertical" onFinish={handleIngest}>
         <Form.Item label={t("wiki.ingest.type")} required>
           <Select
