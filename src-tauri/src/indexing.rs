@@ -96,6 +96,56 @@ pub fn parse_embedding_provider(embedding_provider: &str) -> Result<(String, Str
     Ok((parts[0].to_string(), parts[1].to_string()))
 }
 
+/// 归一化 `embedding_provider` 字符串。
+///
+/// 期望格式为 `providerId::model_id`。但 DB 中存在历史脏数据，只存了纯 `provider_id`
+/// （缺少 `::model_id` 部分），会导致 `parse_embedding_provider` 直接报错、索引任务无限重试。
+///
+/// 此函数对不含 `::` 的输入做容错：查 DB 找该 provider 下第一个 enabled 的 `Embedding` 类型
+/// model，拼成 `providerId::model_id` 返回；并 log warning 提示用户重新配置以彻底修复。
+///
+/// 调用方拿到归一化后的字符串后，仍走原有的 `parse_embedding_provider` 路径。
+pub async fn normalize_embedding_provider(
+    db: &DatabaseConnection,
+    embedding_provider: &str,
+) -> Result<String> {
+    // 已是正确格式：直接返回
+    if embedding_provider.splitn(2, "::").count() == 2 {
+        return Ok(embedding_provider.to_string());
+    }
+
+    // 兼容历史脏数据：纯 UUID（provider_id）格式
+    let provider_id = embedding_provider.trim();
+    if provider_id.is_empty() {
+        return Err(AxAgentError::Provider("embedding_provider 为空，无法归一化".to_string()));
+    }
+
+    tracing::warn!(
+        embedding_provider = %embedding_provider,
+        "[indexing] 检测到旧格式 embedding_provider（仅 provider_id），尝试自动补全 model_id。\
+         请尽快在设置页面重新选择嵌入模型以彻底修复",
+    );
+
+    let models = axagent_dao::repo::provider::list_models_for_provider(db, provider_id).await?;
+    // 优先选 enabled 的 Embedding 模型；若无 enabled，再 fallback 到任意 Embedding 模型
+    let embedding_model = models
+        .iter()
+        .find(|m| m.enabled && m.model_type == axagent_harness::types::ModelType::Embedding)
+        .or_else(|| {
+            models.iter().find(|m| m.model_type == axagent_harness::types::ModelType::Embedding)
+        });
+
+    let model_id = embedding_model.map(|m| m.model_id.clone()).ok_or_else(|| {
+        AxAgentError::Provider(format!(
+            "Provider '{}' 下未找到 Embedding 类型模型，无法归一化 embedding_provider='{}'.\
+                 请在设置页面为该容器配置有效的嵌入模型",
+            provider_id, embedding_provider,
+        ))
+    })?;
+
+    Ok(format!("{}::{}", provider_id, model_id))
+}
+
 /// Build a ProviderRequestContext for an embedding provider.
 pub async fn build_embed_context(
     db: &DatabaseConnection,
@@ -155,7 +205,9 @@ pub async fn generate_embeddings(
     texts: Vec<String>,
     dimensions: Option<usize>,
 ) -> Result<EmbedResponse> {
-    let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
+    // 兼容历史脏数据（纯 provider_id 格式），先归一化再解析
+    let normalized = normalize_embedding_provider(db, embedding_provider).await?;
+    let (provider_id, model_id) = parse_embedding_provider(&normalized)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
     let registry_key = axagent_harness::types::provider_model::provider_registry_key(

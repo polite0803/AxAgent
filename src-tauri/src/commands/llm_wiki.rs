@@ -470,7 +470,11 @@ async fn build_llm_adapter(
     master_key: &[u8; 32],
     embedding_provider: &str,
 ) -> Result<(Arc<dyn ProviderAdapter>, ProviderRequestContext, String), String> {
-    let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
+    // 兼容历史脏数据（纯 provider_id 格式），先归一化再解析
+    let normalized = crate::indexing::normalize_embedding_provider(db, embedding_provider)
+        .await
+        .map_err(|e| e.to_string())?;
+    let (provider_id, model_id) = parse_embedding_provider(&normalized)?;
 
     let provider =
         axagent_dao::repo::provider::get_provider(db, &provider_id).await.map_err(|e| {
