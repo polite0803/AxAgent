@@ -2912,12 +2912,14 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
     let trajectory_storage =
         Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone())));
     let semantic_cache = Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
-        cache: crate::semantic_cache::SemanticCache::new(
-            db.clone(),
-            crate::semantic_cache::CacheConfig::default(),
-        )
-        .await
-        .expect("Failed to create semantic cache"),
+        cache: Arc::new(
+            crate::semantic_cache::SemanticCache::new(
+                db.clone(),
+                crate::semantic_cache::CacheConfig::default(),
+            )
+            .await
+            .expect("Failed to create semantic cache"),
+        ),
         enabled: true,
         in_memory_entries: Vec::new(),
         similarity_threshold: 0.85,

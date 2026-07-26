@@ -120,6 +120,16 @@
     "resourceControl": "资源管控 & 环保策略",
     "retryDelay": "重试延迟（秒）",
     "shellConfirm": "Shell 执行需确认",
+    "smartRouter": {
+      "enableLabel": "启用智能路由",
+      "hint": "开启后，会按任务复杂度自动为每条消息选择模型档位（经济/均衡/高级），并映射到下方配置的供应商与模型。未配置或关闭时保持你手动选择的模型。",
+      "modelPlaceholder": "选择模型",
+      "providerPlaceholder": "选择供应商",
+      "tierBalanced": "均衡档",
+      "tierBudget": "经济档",
+      "tierPremium": "高级档",
+      "title": "智能路由"
+    },
     "telemetryLevel": {
       "full": "完整",
       "minimal": "最小化",
@@ -2754,7 +2764,14 @@
     "wiki": "知识库",
     "workflow": "工作流",
     "marketplace": "市场",
-    "dynamicUI": "动态页面"
+    "dynamicUI": "动态页面",
+    "devtools": {
+      "traceExplorer": "追踪浏览器",
+      "benchmark": "基准测试",
+      "toolRecommender": "工具推荐",
+      "fineTune": "模型微调",
+      "rlTraining": "强化学习训练"
+    }
   },
   "notification": {
     "clear": "清除",
@@ -4613,7 +4630,16 @@
       "title": "高级"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "标记前缀（默认 CHAT2API，通常无需修改）"
+    "markerPrefixDesc": "标记前缀（默认 CHAT2API，通常无需修改）",
+    "showDeveloperTools": "显示开发者工具",
+    "showDeveloperToolsDesc": "在侧边栏显示开发者工具分组（追踪/基准测试/微调/强化学习）",
+    "proactiveBehavior": "主动能力",
+    "proactiveNudge": "主动建议",
+    "proactiveNudgeDesc": "根据对话上下文主动给出提示、建议或下一步操作",
+    "closedLoopEnabled": "闭环执行",
+    "closedLoopEnabledDesc": "允许 Agent 在获得授权后自动执行闭环任务",
+    "closedLoopInterval": "闭环轮询间隔",
+    "closedLoopIntervalDesc": "闭环任务状态检查间隔（分钟）"
   },
   "settingsPage": {
     "refreshPage": "刷新页面"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "基础设施",
     "sectionOverview": "概览",
     "sectionTools": "工具",
-    "agentPanel": "Agent 面板"
+    "agentPanel": "Agent 面板",
+    "sectionDeveloper": "开发者工具"
   },
   "skill": {
     "abTest": {

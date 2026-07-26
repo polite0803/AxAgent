@@ -107,6 +107,10 @@ const LazyCronManager = lazy(() =>
 const LazyDynamicPagesSettings = lazy(() =>
   import("@/components/settings/DynamicPagesSettings").then((m) => ({ default: m.DynamicPagesSettings }))
 );
+const LazyPersonaPage = lazy(() => import("@/pages/PersonaPage").then((m) => ({ default: m.PersonaPage })));
+const LazyProactiveSettings = lazy(() =>
+  import("@/components/settings/ProactiveSettings").then((m) => ({ default: m.ProactiveSettings }))
+);
 
 function SectionFallback() {
   return (
@@ -280,6 +284,16 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   dynamicPages: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyDynamicPagesSettings />
+    </Suspense>
+  ),
+  persona: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyPersonaPage />
+    </Suspense>
+  ),
+  proactiveBehavior: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyProactiveSettings />
     </Suspense>
   ),
 };

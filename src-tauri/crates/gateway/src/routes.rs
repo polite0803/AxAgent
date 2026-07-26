@@ -64,6 +64,12 @@ use crate::qr_bind_handlers::{consume_qr_token, generate_qr_token};
 use crate::realtime::{issue_realtime_ticket, realtime_handler};
 use crate::server::GatewayAppState;
 
+// ACP handler imports
+use crate::handlers::acp::{
+    acp_websocket_handler, close_session, create_session, get_session, interrupt_session,
+    list_sessions, send_prompt,
+};
+
 pub fn create_router(state: GatewayAppState) -> Router {
     let cors = build_cors_layer();
 
@@ -159,7 +165,26 @@ pub fn create_router(state: GatewayAppState) -> Router {
         .route(
             "/v1/mcp/servers/{server_id}/tools/call",
             post(call_mcp_tool),
-        )
+        );
+
+    // ACP (Agent Communication Protocol) 路由 — 受 acp_enabled 门控。
+    // 启用时注册会话管理 / prompt / WebSocket 端点，供外部工具/IDE 调用。
+    let protected = if state.acp_enabled {
+        tracing::info!("[Routes] ACP protocol enabled — registering ACP endpoints");
+        protected
+            .route("/acp/v1/sessions", post(create_session))
+            .route("/acp/v1/sessions", get(list_sessions))
+            .route("/acp/v1/sessions/{id}", get(get_session))
+            .route("/acp/v1/sessions/{id}/prompts", post(send_prompt))
+            .route("/acp/v1/sessions/{id}/interrupt", post(interrupt_session))
+            .route("/acp/v1/sessions/{id}/close", post(close_session))
+            .route("/acp/v1/ws", get(acp_websocket_handler))
+    } else {
+        tracing::debug!("[Routes] ACP protocol disabled — skipping endpoint registration");
+        protected
+    };
+
+    let protected = protected
         .layer(Extension(state.ticket_store.clone()))
         .layer(middleware::from_fn_with_state(
             AuthState {

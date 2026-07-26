@@ -113,6 +113,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   proactive_nudge_enabled: true,
   thought_chain_enabled: true,
   error_recovery_enabled: true,
+  tot_enabled: false,
+  show_developer_tools: true,
   // Cloud workspace settings
   workspace_uri: null,
   cloud_backend: null,
@@ -148,6 +150,9 @@ const DEFAULT_SETTINGS: AppSettings = {
       maxRetryRounds: 2,
     },
   },
+  // Smart Router 智能路由
+  smart_router_enabled: false,
+  smart_router_tier_mappings: {},
 };
 
 export interface GlobalShortcutDiagnostic {

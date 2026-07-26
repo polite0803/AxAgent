@@ -13,6 +13,8 @@
 //! - code: 24 hours
 //! - complex: 1 hour
 
+use async_trait::async_trait;
+use axagent_harness::cache_interceptor::{HarnessCache, LlmCacheKey};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use sha2::{Digest, Sha256};
 
@@ -155,8 +157,17 @@ impl SemanticCache {
         prompt: &str,
         model_id: Option<&str>,
     ) -> Result<Option<CacheEntry>, String> {
-        let normalized = Self::normalize_prompt(prompt);
-        let hash = Self::hash_prompt(&normalized);
+        let hash = Self::hash_prompt(&Self::normalize_prompt(prompt));
+        self.lookup_by_hash(&hash, model_id).await
+    }
+
+    /// 按预先算好的哈希键查表（不做 prompt 归一化）。
+    /// 供 `HarnessCache` 等以「非原文键」（如消息哈希）复用同一份缓存表。
+    pub async fn lookup_by_hash(
+        &self,
+        hash: &str,
+        model_id: Option<&str>,
+    ) -> Result<Option<CacheEntry>, String> {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -178,7 +189,7 @@ impl SemanticCache {
                      WHERE prompt_hash = ?1 AND model_id IS NOT DISTINCT FROM ?2 AND (created_at + ttl_secs) > ?3 \
                      LIMIT 1"
                 },
-                vec![hash.clone().into(), model_id.map(|s| s.to_string()).into(), now.into()],
+                vec![hash.to_string().into(), model_id.map(|s| s.to_string()).into(), now.into()],
             ))
             .await
             .map_err(|e| format!("Query error: {}", e))?;
@@ -202,10 +213,10 @@ impl SemanticCache {
                 ))
                 .await;
 
-            tracing::debug!("Semantic cache HIT for hash={}", &hash[..12]);
+            tracing::debug!("Semantic cache HIT for hash={}", &hash[..hash.len().min(12)]);
             Ok(Some(entry))
         } else {
-            tracing::debug!("Semantic cache MISS for hash={}", &hash[..12]);
+            tracing::debug!("Semantic cache MISS for hash={}", &hash[..hash.len().min(12)]);
             Ok(None)
         }
     }
@@ -220,8 +231,21 @@ impl SemanticCache {
         task_type: &str,
         ttl_secs: Option<u64>,
     ) -> Result<(), String> {
-        let normalized = Self::normalize_prompt(prompt);
-        let hash = Self::hash_prompt(&normalized);
+        let hash = Self::hash_prompt(&Self::normalize_prompt(prompt));
+        self.store_by_hash(&hash, response, model_id, token_count, task_type, ttl_secs).await
+    }
+
+    /// 按预先算好的哈希键写表（不做 prompt 归一化）。
+    /// 供 `HarnessCache` 等以「非原文键」（如消息哈希）写入同一份缓存表。
+    pub async fn store_by_hash(
+        &self,
+        hash: &str,
+        response: &str,
+        model_id: Option<&str>,
+        token_count: i64,
+        task_type: &str,
+        ttl_secs: Option<u64>,
+    ) -> Result<(), String> {
         let ttl = ttl_secs.unwrap_or(self.config.default_ttl_secs) as i64;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -241,8 +265,8 @@ impl SemanticCache {
                      task_type = EXCLUDED.task_type, ttl_secs = EXCLUDED.ttl_secs, \
                      created_at = EXCLUDED.created_at",
                     vec![
-                        hash.clone().into(),
-                        hash.clone().into(),
+                        hash.to_string().into(),
+                        hash.to_string().into(),
                         response.to_string().into(),
                         model_id.map(|s| s.to_string()).into(),
                         token_count.into(),
@@ -261,8 +285,8 @@ impl SemanticCache {
                      (id, prompt_hash, response, model_id, token_count, task_type, ttl_secs, created_at, hit_count) \
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)",
                     vec![
-                        hash.clone().into(),
-                        hash.clone().into(),
+                        hash.to_string().into(),
+                        hash.to_string().into(),
                         response.to_string().into(),
                         model_id.map(|s| s.to_string()).into(),
                         token_count.into(),
@@ -300,7 +324,25 @@ impl SemanticCache {
             }
         }
 
-        tracing::debug!("Semantic cache STORED hash={}", &hash[..12]);
+        tracing::debug!("Semantic cache STORED hash={}", &hash[..hash.len().min(12)]);
+        Ok(())
+    }
+
+    /// 按预先算好的哈希键删除条目（供 `HarnessCache::invalidate` 使用）。
+    pub async fn delete_by_hash(&self, hash: &str) -> Result<(), String> {
+        let be = backend_tag(&self.db);
+        self.db
+            .execute_raw(Statement::from_sql_and_values(
+                be,
+                if be == DbBackend::Postgres {
+                    "DELETE FROM semantic_cache WHERE prompt_hash = $1"
+                } else {
+                    "DELETE FROM semantic_cache WHERE prompt_hash = ?1"
+                },
+                vec![hash.to_string().into()],
+            ))
+            .await
+            .map_err(|e| format!("Delete error: {}", e))?;
         Ok(())
     }
 
@@ -368,6 +410,52 @@ impl SemanticCache {
             expired_entries: (total - active) as usize,
             total_hits: total_hits as usize,
         })
+    }
+}
+
+// ─── HarnessCache 适配 ───
+//
+// 让 SemanticCache 作为 harness 中心化 LLM 入口（execute_llm / execute_llm_stream）
+// 的缓存拦截器。LlmCacheKey 只携带 model + messages_hash + temperature（无原文），
+// 因此这里把三者组合后再 SHA-256，作为缓存表的 prompt_hash 键，走 *_by_hash 接口。
+
+/// 将 LlmCacheKey 折叠为 64 位十六进制哈希键（含 model / 消息哈希 / 温度）。
+fn key_to_hash(key: &LlmCacheKey) -> String {
+    let combined = format!(
+        "{}\u{1f}{}\u{1f}{}",
+        key.model,
+        key.messages_hash,
+        key.temperature.map(|t| t.to_string()).unwrap_or_default(),
+    );
+    SemanticCache::hash_prompt(&combined)
+}
+
+#[async_trait]
+impl HarnessCache for SemanticCache {
+    async fn get(&self, key: &LlmCacheKey) -> Option<serde_json::Value> {
+        let hash = key_to_hash(key);
+        match self.lookup_by_hash(&hash, Some(&key.model)).await {
+            Ok(Some(entry)) => serde_json::from_str(&entry.response).ok(),
+            _ => None,
+        }
+    }
+
+    async fn set(&self, key: LlmCacheKey, value: serde_json::Value, ttl_secs: u64) {
+        let hash = key_to_hash(&key);
+        let response = value.to_string();
+        if let Err(e) = self
+            .store_by_hash(&hash, &response, Some(&key.model), 0, "moderate", Some(ttl_secs))
+            .await
+        {
+            tracing::warn!("[SemanticCache] HarnessCache set 失败: {e}");
+        }
+    }
+
+    async fn invalidate(&self, key: &LlmCacheKey) {
+        let hash = key_to_hash(key);
+        if let Err(e) = self.delete_by_hash(&hash).await {
+            tracing::warn!("[SemanticCache] HarnessCache invalidate 失败: {e}");
+        }
     }
 }
 

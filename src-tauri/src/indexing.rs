@@ -129,10 +129,13 @@ pub async fn build_embed_context(
     Ok((ctx, provider))
 }
 
-/// Maximum number of texts per embedding API call batch.
-/// OpenAI embed API limits to 2048 inputs per request; 256 is a conservative
-/// default that works across all providers and keeps request sizes manageable.
-const EMBED_BATCH_SIZE: usize = 256;
+/// Maximum single-item token threshold: items exceeding this estimate are pre-split
+/// into sub-pieces before embedding.
+const EMBED_MAX_TOKENS_PER_ITEM: usize = 384;
+
+/// Per-batch token budget: accumulated estimated tokens across items in a batch
+/// must not exceed this value (conservatively under a 512-token server limit).
+const EMBED_BATCH_TOKEN_BUDGET: usize = 450;
 
 /// Maximum number of retry attempts for a single embedding API call.
 const EMBED_MAX_RETRIES: u32 = 3;
@@ -140,10 +143,261 @@ const EMBED_MAX_RETRIES: u32 = 3;
 /// Base delay in milliseconds for exponential backoff on retry.
 const EMBED_RETRY_BASE_DELAY_MS: u64 = 500;
 
+/// Roughly estimate the number of tokens in a text string.
+///
+/// CJK characters count as 1 token each; other characters average ~0.33 token/char
+/// (i.e., ~1 token per 3 non-CJK characters). The estimate is deliberately
+/// conservative (over-estimate slightly) to stay safely under server limits.
+fn estimate_tokens(text: &str) -> usize {
+    let mut cjk = 0usize;
+    let mut other = 0usize;
+    for ch in text.chars() {
+        if is_cjk(ch) {
+            cjk += 1;
+        } else {
+            other += 1;
+        }
+    }
+    cjk + other.div_ceil(3)
+}
+
+/// Returns true for characters in CJK / fullwidth ranges where 1 char ≈ 1 token.
+fn is_cjk(c: char) -> bool {
+    matches!(
+        c as u32,
+        0x3000..=0x30FF      // CJK symbols/punctuation, Japanese kana
+        | 0x3400..=0x4DBF    // Extension A
+        | 0x4E00..=0x9FFF    // CJK Unified Ideographs
+        | 0xAC00..=0xD7AF    // Hangul Syllables
+        | 0xF900..=0xFAFF    // CJK Compatibility Ideographs
+        | 0xFF00..=0xFFEF    // Fullwidth forms
+    )
+}
+
+/// Split a text into substrings each estimated to be at most `limit` tokens.
+///
+/// Uses linear scaling by character ratio and splits on char boundaries.
+/// Falls back recursively if a piece still exceeds the limit (handles estimation
+/// errors), with a depth cap to prevent infinite loops.
+fn split_by_tokens(text: &str, limit: usize) -> Vec<String> {
+    let est = estimate_tokens(text);
+    if est <= limit {
+        return vec![text.to_string()];
+    }
+    let total_chars = text.chars().count();
+    let target_chars = ((total_chars as f64) * (limit as f64) / (est as f64)).max(1.0) as usize;
+
+    let bytes = text.len();
+    let mut pieces: Vec<String> = Vec::new();
+    let mut start = 0usize;
+    while start < bytes {
+        let mut end = (start + target_chars).min(bytes);
+        while end < bytes && !text.is_char_boundary(end) {
+            end += 1;
+        }
+        let piece = &text[start..end];
+        if !piece.trim().is_empty() {
+            pieces.push(piece.to_string());
+        }
+        if end >= bytes {
+            break;
+        }
+        start = end;
+    }
+
+    // Recursive re-split: handle estimation errors where pieces still exceed limit
+    let mut result: Vec<String> = Vec::new();
+    for (depth, p) in pieces.into_iter().enumerate() {
+        if estimate_tokens(&p) > limit && p.chars().count() > 1 && depth < 8 {
+            result.extend(split_by_tokens(&p, limit));
+        } else {
+            result.push(p);
+        }
+    }
+    if result.is_empty() {
+        vec![text.to_string()]
+    } else {
+        result
+    }
+}
+
+/// Average multiple vectors of the same dimension into one.
+/// Used to merge sub-piece embeddings back into a single vector for the original text.
+fn average_vectors(vecs: &[Vec<f32>]) -> Vec<f32> {
+    if vecs.is_empty() {
+        return Vec::new();
+    }
+    let dim = vecs[0].len();
+    let mut acc = vec![0f32; dim];
+    for v in vecs {
+        for (i, x) in v.iter().enumerate() {
+            if i < dim {
+                acc[i] += x;
+            }
+        }
+    }
+    let n = vecs.len() as f32;
+    for x in acc.iter_mut() {
+        *x /= n;
+    }
+    acc
+}
+
+/// Detect whether an embedding error is caused by "input too large" (server-side
+/// physical batch size / token limit). These errors cannot be resolved by retry
+/// and must be handled by splitting the input.
+fn is_too_large_error(msg: &str) -> bool {
+    let m = msg.to_lowercase();
+    m.contains("too large")
+        || m.contains("input is too long")
+        || (m.contains("token") && m.contains("exceed"))
+}
+
+/// Split text into two roughly equal halves at a character boundary.
+/// Returns the original text as a single-element vec if it cannot be divided further.
+fn bisect_text(text: &str) -> Vec<String> {
+    let chars: Vec<char> = text.chars().collect();
+    if chars.len() <= 1 {
+        return vec![text.to_string()];
+    }
+    let mid = chars.len() / 2;
+    let left: String = chars[..mid].iter().collect();
+    let right: String = chars[mid..].iter().collect();
+    vec![left, right]
+}
+
+/// Embed a single text item, guaranteeing exactly one output vector.
+///
+/// If the server rejects it as too large, recursively bisect the text, embed each
+/// half, and average the resulting vectors. This is the leaf-level fallback for
+/// all over-limit cases.
+async fn embed_one_safe(
+    text: &str,
+    adapter: &dyn ProviderAdapter,
+    ctx: &ProviderRequestContext,
+    model: &str,
+    dimensions: Option<usize>,
+) -> Result<Vec<f32>> {
+    let request =
+        EmbedRequest { model: model.to_string(), input: vec![text.to_string()], dimensions };
+    match embed_with_retry(adapter, ctx, request).await {
+        Ok(resp) => Ok(resp.embeddings.into_iter().next().unwrap_or_default()),
+        Err(e) => {
+            if is_too_large_error(&e.to_string()) {
+                let halves = bisect_text(text);
+                if halves.len() <= 1 {
+                    return Err(e);
+                }
+                let mut vecs = Vec::with_capacity(halves.len());
+                for h in &halves {
+                    vecs.push(Box::pin(embed_one_safe(h, adapter, ctx, model, dimensions)).await?);
+                }
+                Ok(average_vectors(&vecs))
+            } else {
+                Err(e)
+            }
+        },
+    }
+}
+
+/// Embed a batch of text items, guaranteeing output length equals input length.
+///
+/// If the entire batch is rejected as too large, recursively bisect the batch.
+/// Single-item overflow is delegated to `embed_one_safe`.
+async fn embed_batch_safe(
+    batch: &[String],
+    adapter: &dyn ProviderAdapter,
+    ctx: &ProviderRequestContext,
+    model: &str,
+    dimensions: Option<usize>,
+) -> Result<Vec<Vec<f32>>> {
+    if batch.is_empty() {
+        return Ok(Vec::new());
+    }
+    let request = EmbedRequest { model: model.to_string(), input: batch.to_vec(), dimensions };
+    match embed_with_retry(adapter, ctx, request).await {
+        Ok(resp) => Ok(resp.embeddings),
+        Err(e) => {
+            if is_too_large_error(&e.to_string()) {
+                if batch.len() == 1 {
+                    // Single item still over limit: delegate to embed_one_safe for recursive bisection
+                    Ok(vec![
+                        Box::pin(embed_one_safe(&batch[0], adapter, ctx, model, dimensions))
+                            .await?,
+                    ])
+                } else {
+                    let mid = batch.len() / 2;
+                    let mut left =
+                        Box::pin(embed_batch_safe(&batch[..mid], adapter, ctx, model, dimensions))
+                            .await?;
+                    let right =
+                        Box::pin(embed_batch_safe(&batch[mid..], adapter, ctx, model, dimensions))
+                            .await?;
+                    left.extend(right);
+                    Ok(left)
+                }
+            } else {
+                Err(e)
+            }
+        },
+    }
+}
+
+/// Embed a flat list of sub-piece texts, batching them by token budget.
+///
+/// Returns `(vectors, dimensions)` where vectors are 1:1 with the input pieces.
+/// Items are accumulated into batches up to `EMBED_BATCH_TOKEN_BUDGET` to
+/// minimize API calls while staying under the per-call token limit.
+/// Over-limit batches are handled recursively by `embed_batch_safe`.
+async fn embed_flat_pieces(
+    pieces: &[String],
+    adapter: &dyn ProviderAdapter,
+    ctx: &ProviderRequestContext,
+    model: &str,
+    dimensions: Option<usize>,
+) -> Result<(Vec<Vec<f32>>, usize)> {
+    if pieces.is_empty() {
+        return Ok((Vec::new(), 0));
+    }
+
+    // Budget-based batching: accumulate estimated tokens, flush at budget boundary
+    let mut batches: Vec<Vec<usize>> = Vec::new();
+    let mut cur: Vec<usize> = Vec::new();
+    let mut sum = 0usize;
+    for (i, p) in pieces.iter().enumerate() {
+        let est = estimate_tokens(p);
+        if !cur.is_empty() && sum + est > EMBED_BATCH_TOKEN_BUDGET {
+            batches.push(std::mem::take(&mut cur));
+            sum = 0;
+        }
+        cur.push(i);
+        sum += est;
+    }
+    if !cur.is_empty() {
+        batches.push(cur);
+    }
+
+    let mut out: Vec<Vec<f32>> = Vec::with_capacity(pieces.len());
+    let mut dims = 0usize;
+    for idxs in &batches {
+        let batch: Vec<String> = idxs.iter().map(|&i| pieces[i].clone()).collect();
+        let vecs = embed_batch_safe(&batch, adapter, ctx, model, dimensions).await?;
+        if dims == 0 && !vecs.is_empty() {
+            dims = vecs[0].len();
+        }
+        out.extend(vecs);
+    }
+    Ok((out, dims))
+}
+
 /// Generate embeddings for a list of texts using the specified provider.
 ///
-/// Texts are sent in batches of `EMBED_BATCH_SIZE` to avoid exceeding API limits.
+/// Texts are embedded with a per-call token budget and automatic over-size bisection.
 /// Each batch is retried up to `EMBED_MAX_RETRIES` times with exponential backoff.
+///
+/// 单条 token 上限保护：若某条文本估算 token 数超过 `EMBED_MAX_TOKENS_PER_ITEM`，
+/// 会在内部先子分片、分别嵌入，再对子向量取均值，从而兼容单条上限较低的
+/// embedding 服务端（避免 `500 input too large` 被无限重试）。
 ///
 /// `provider_registry` 由调用方传入（通常来自 `state.harness.provider_registry()`），
 /// 不再内部 `RuntimeHarness::new` 重复创建（之前会丢弃 adapter cache）。
@@ -165,30 +419,53 @@ pub async fn generate_embeddings(
         AxAgentError::Provider(format!("Unsupported provider type: {}", registry_key))
     })?;
 
-    // If texts fit in a single batch, use the simple path
-    if texts.len() <= EMBED_BATCH_SIZE {
-        let request = EmbedRequest { model: model_id, input: texts, dimensions };
-        return embed_with_retry(&*adapter, &ctx, request).await;
-    }
-
-    // Batch path: split texts into chunks and embed each batch
-    let mut all_embeddings: Vec<Vec<f32>> = Vec::with_capacity(texts.len());
-    let mut first_dimensions: Option<usize> = None;
-
-    for batch in texts.chunks(EMBED_BATCH_SIZE) {
-        let request = EmbedRequest { model: model_id.clone(), input: batch.to_vec(), dimensions };
-        let response = embed_with_retry(&*adapter, &ctx, request).await?;
-
-        if first_dimensions.is_none() {
-            first_dimensions = Some(response.dimensions);
+    // ── Single-item token limit protection ─────────────────────────────────
+    // Expand texts that exceed EMBED_MAX_TOKENS_PER_ITEM into sub-pieces,
+    // tracking which original text each group of sub-pieces belongs to.
+    // After embedding, sub-piece vectors for the same original text are
+    // averaged back to a single vector, preserving the output contract
+    // of N texts → N vectors.
+    let mut groups: Vec<Vec<String>> = Vec::with_capacity(texts.len());
+    let mut flat: Vec<String> = Vec::new();
+    for t in &texts {
+        if estimate_tokens(t) <= EMBED_MAX_TOKENS_PER_ITEM {
+            groups.push(vec![t.clone()]);
+            flat.push(t.clone());
+        } else {
+            let subs = split_by_tokens(t, EMBED_MAX_TOKENS_PER_ITEM);
+            groups.push(subs.clone());
+            flat.extend(subs);
         }
-        all_embeddings.extend(response.embeddings);
     }
 
-    Ok(EmbedResponse { embeddings: all_embeddings, dimensions: first_dimensions.unwrap_or(0) })
+    // ── Batch embed (token-budget batching + automatic bisection) ─────────
+    // embed_flat_pieces handles both "batch too large" and "single item too large"
+    // cases, guaranteeing that arbitrary input lengths are successfully embedded
+    // with output vectors 1:1 to `flat`.
+    let (all_flat, dims) = embed_flat_pieces(&flat, &*adapter, &ctx, &model_id, dimensions).await?;
+    let first_dimensions = if dims > 0 { Some(dims) } else { None };
+
+    // ── Reconstruct per-original-text vectors via averaging ───────────────
+    let mut embeddings: Vec<Vec<f32>> = Vec::with_capacity(texts.len());
+    let mut cursor = 0usize;
+    for group in &groups {
+        if group.len() == 1 {
+            embeddings.push(all_flat[cursor].clone());
+            cursor += 1;
+        } else {
+            let avg = average_vectors(&all_flat[cursor..cursor + group.len()]);
+            embeddings.push(avg);
+            cursor += group.len();
+        }
+    }
+
+    Ok(EmbedResponse { embeddings, dimensions: first_dimensions.unwrap_or(0) })
 }
 
 /// Execute a single embedding request with retry and exponential backoff.
+///
+/// 输入过大（`is_too_large_error`）属不可重试错误，立即上抛交由二分兜底处理，
+/// 避免空耗重试次数。
 async fn embed_with_retry(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
@@ -201,6 +478,10 @@ async fn embed_with_retry(
             Ok(response) => return Ok(response),
             Err(e) => {
                 last_err_msg = e.to_string();
+                // 输入过大属不可重试错误，立即上抛交由二分兜底处理
+                if is_too_large_error(&last_err_msg) {
+                    return Err(AxAgentError::Provider(last_err_msg));
+                }
                 if attempt + 1 < EMBED_MAX_RETRIES {
                     let delay = EMBED_RETRY_BASE_DELAY_MS
                         .saturating_mul(2u64.checked_pow(attempt).unwrap_or(u64::MAX / 2))

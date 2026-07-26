@@ -60,6 +60,8 @@ pub struct GatewayAppState {
     pub latency_tracker: LatencyTracker,
     /// `RoundRobin` 策略的 per-model 游标。
     pub round_robin_cursor: RoundRobinCursor,
+    /// ACP (Agent Communication Protocol) 协议开关。由 wiring 层在启动时设置。
+    pub acp_enabled: bool,
 }
 
 /// TLS certificate material.
@@ -199,6 +201,7 @@ impl GatewayServer {
         marketplace_service: Arc<dyn axagent_harness::marketplace::MarketplaceService>,
         mcp_store: Arc<dyn axagent_harness::mcp_service::McpServerStore>,
         mcp_client: Arc<dyn axagent_harness::mcp_service::McpClientService>,
+        acp_enabled: bool,
     ) -> Result<Self> {
         let started_at = axagent_harness::util_fns::now_ts();
         let routing_strategy = routing_strategy_from_env();
@@ -225,6 +228,7 @@ impl GatewayServer {
             routing_strategy,
             latency_tracker: LatencyTracker::new(),
             round_robin_cursor: RoundRobinCursor::new(),
+            acp_enabled,
         };
         Self::start_inner(app_state, config).await
     }

@@ -218,7 +218,10 @@ function AppInner() {
       message.info({
         content: t("app.newSkillProposal", { name: proposal.suggested_name }),
         duration: 8,
-        onClick: () => navigate("/skills"),
+        onClick: () => {
+          navigate("/settings");
+          useUIStore.getState().setSettingsSection("skillsHub");
+        },
       });
     });
     return () => {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+pub mod candle_trainer;
 pub mod dataset;
 pub mod lora;
 pub mod trainer;

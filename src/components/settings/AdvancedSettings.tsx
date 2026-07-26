@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useSettingsStore } from "@/stores";
+import { useProviderStore, useSettingsStore } from "@/stores";
+import type { SmartRouterTierMapping } from "@/types";
 import { Divider, InputNumber, Radio, Select, Slider, Switch } from "antd";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CacheConfigPanel } from "./CacheConfigPanel";
 import { SettingsGroup } from "./SettingsGroup";
@@ -663,6 +665,112 @@ function PrivacyControlSection() {
 }
 
 // ---------------------------------------------------------------------------
+// Smart Router 智能路由 — tier → provider/model 映射配置
+// ---------------------------------------------------------------------------
+
+function SmartRouterSection() {
+  const { t } = useTranslation();
+  const settings = useSettingsStore((s) => s.settings);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const providers = useProviderStore((s) => s.providers);
+  const fetchProviders = useProviderStore((s) => s.fetchProviders);
+
+  // 确保 provider 列表已加载（用户可能未访问过 provider 设置页）。
+  useEffect(() => {
+    if (providers.length === 0) {
+      void fetchProviders();
+    }
+  }, [providers.length, fetchProviders]);
+
+  const enabled = settings.smart_router_enabled ?? false;
+  const mappings = settings.smart_router_tier_mappings ?? {};
+
+  const updateTier = (tier: string, patch: Partial<SmartRouterTierMapping>) => {
+    const next: Record<string, SmartRouterTierMapping> = { ...mappings };
+    next[tier] = { ...(next[tier] ?? {}), ...patch };
+    saveSettings({ smart_router_tier_mappings: next });
+  };
+
+  const tiers: Array<{ key: string; label: string }> = [
+    { key: "budget", label: t("advancedSettings.smartRouter.tierBudget") },
+    { key: "balanced", label: t("advancedSettings.smartRouter.tierBalanced") },
+    { key: "premium", label: t("advancedSettings.smartRouter.tierPremium") },
+  ];
+
+  return (
+    <SettingsGroup title={t("advancedSettings.smartRouter.title")}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+        data-search-key="advanced:smartRouterEnabled"
+      >
+        <span>{t("advancedSettings.smartRouter.enableLabel")}</span>
+        <Switch
+          checked={enabled}
+          onChange={(v) => saveSettings({ smart_router_enabled: v })}
+        />
+      </div>
+      <div
+        className="text-xs"
+        style={{
+          padding: "4px 0",
+          color: "var(--ant-color-text-tertiary)",
+          lineHeight: 1.6,
+        }}
+      >
+        {t("advancedSettings.smartRouter.hint")}
+      </div>
+      {tiers.map((tier) => {
+        const m = mappings[tier.key] ?? {};
+        const selectedProvider = providers.find((p) => p.id === m.provider_id);
+        return (
+          <div key={tier.key}>
+            <Divider style={{ margin: "4px 0" }} />
+            <div
+              className="flex items-center justify-between gap-2"
+              style={{ padding: "4px 0" }}
+              data-search-key={`advanced:smartRouterTier:${tier.key}`}
+            >
+              <span style={{ minWidth: 72 }}>{tier.label}</span>
+              <div
+                className="flex gap-2"
+                style={{ flex: 1, justifyContent: "flex-end" }}
+              >
+                <Select
+                  disabled={!enabled}
+                  value={m.provider_id || undefined}
+                  placeholder={t("advancedSettings.smartRouter.providerPlaceholder")}
+                  style={{ width: 160 }}
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                  onChange={(v) => updateTier(tier.key, { provider_id: v ?? "", model_id: "" })}
+                  options={providers.map((p) => ({ value: p.id, label: p.name }))}
+                />
+                <Select
+                  disabled={!enabled || !selectedProvider}
+                  value={m.model_id || undefined}
+                  placeholder={t("advancedSettings.smartRouter.modelPlaceholder")}
+                  style={{ width: 180 }}
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                  onChange={(v) => updateTier(tier.key, { model_id: v ?? "" })}
+                  options={(selectedProvider?.models ?? []).map((md) => ({
+                    value: md.model_id,
+                    label: md.name || md.model_id,
+                  }))}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </SettingsGroup>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 主面板
 // ---------------------------------------------------------------------------
 
@@ -677,6 +785,7 @@ export function AdvancedSettings() {
       <GreenContractSection />
       <DreamConsolidationSection />
       <LspDiagnosticsSection />
+      <SmartRouterSection />
       <PrivacyControlSection />
       <CacheBreakpointSection />
     </div>

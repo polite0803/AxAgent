@@ -116,11 +116,20 @@
       "fullAccess": "Vollzugriff"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "Datenschutzkontrolle",
     "resourceControl": "Ressourcensteuerung & Öko-Strategie",
     "retryDelay": "Wiederholungsverzögerung (Sekunden)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "Token-Budgetlimit",
-    "warningBuffer": "Warnungspuffer (Token)",
+    "smartRouter": {
+      "enableLabel": "Smart Router aktivieren",
+      "hint": "Wenn aktiviert, wird jede Nachricht je nach Aufgabenkomplexität automatisch einer Modellstufe (Budget/Ausgewogen/Premium) zugeordnet und dann dem unten konfigurierten Anbieter und Modell zugewiesen. Bei Deaktivierung oder fehlender Konfiguration bleibt Ihr manuell gewähltes Modell erhalten.",
+      "modelPlaceholder": "Modell auswählen",
+      "providerPlaceholder": "Anbieter auswählen",
+      "tierBalanced": "Ausgewogen",
+      "tierBudget": "Budget",
+      "tierPremium": "Premium",
+      "title": "Smart Router"
+    },
     "telemetryLevel": {
       "full": "Voll",
       "minimal": "Minimal",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent erfasst standardmäßig keine Telemetriedaten. „Minimal“ zeichnet nur Benutzerinteraktionsereignisse auf (zur Sitzungsverfolgung); „Voll“ protokolliert zusätzlich HTTP-Anfragedetails (URL, Status usw.). Änderungen werden sofort wirksam.",
     "telemetryLevelLabel": "Telemetriestufe",
-    "privacyControl": "Datenschutzkontrolle"
+    "tokenBudgetLimit": "Token-Budgetlimit",
+    "warningBuffer": "Warnungspuffer (Token)"
   },
   "agent": {
     "answerSubmitted": "Antwort eingereicht",
@@ -2754,7 +2764,14 @@
     "wiki": "Wiki",
     "workflow": "Workflow",
     "marketplace": "Marktplatz",
-    "dynamicUI": "Dynamische Seiten"
+    "dynamicUI": "Dynamische Seiten",
+    "devtools": {
+      "traceExplorer": "Trace-Explorer",
+      "benchmark": "Benchmark",
+      "toolRecommender": "Werkzeug-Empfehlung",
+      "fineTune": "Feinabstimmung",
+      "rlTraining": "RL-Training"
+    }
   },
   "notification": {
     "clear": "Löschen",
@@ -4613,7 +4630,16 @@
       "title": "Erweitert"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker-Präfix (Standard CHAT2API, normalerweise keine Änderung erforderlich)"
+    "markerPrefixDesc": "Marker-Präfix (Standard CHAT2API, normalerweise keine Änderung erforderlich)",
+    "showDeveloperTools": "Entwicklerwerkzeuge anzeigen",
+    "showDeveloperToolsDesc": "Den Bereich Entwicklerwerkzeuge (Trace/Benchmark/Fine-Tune/RL) in der Seitenleiste anzeigen",
+    "proactiveBehavior": "Proaktiv",
+    "proactiveNudge": "Proaktive Vorschläge",
+    "proactiveNudgeDesc": "Basierend auf dem Gesprächskontext proaktiv Hinweise, Vorschläge oder nächste Schritte anbieten",
+    "closedLoopEnabled": "Geschlossener Regelkreis",
+    "closedLoopEnabledDesc": "Erlaubt dem Agenten, geschlossene Aufgaben nach Freigabe automatisch auszuführen",
+    "closedLoopInterval": "Intervall (Regelkreis)",
+    "closedLoopIntervalDesc": "Statusabfrage-Intervall für geschlossene Aufgaben (Minuten)"
   },
   "settingsPage": {
     "refreshPage": "Seite aktualisieren"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "Infrastruktur",
     "sectionOverview": "Übersicht",
     "sectionTools": "Werkzeuge",
-    "agentPanel": "Agent-Panel"
+    "agentPanel": "Agent-Panel",
+    "sectionDeveloper": "Entwicklerwerkzeuge"
   },
   "skill": {
     "abTest": {

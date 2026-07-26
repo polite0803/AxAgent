@@ -116,11 +116,20 @@
       "fullAccess": "Full Access"
     },
     "permissionStrategy": "Permission Strategy",
+    "privacyControl": "Privacy Control",
     "resourceControl": "Resource Control & Eco Strategy",
     "retryDelay": "Retry Delay (seconds)",
     "shellConfirm": "Shell Confirm",
-    "tokenBudgetLimit": "Token Budget Limit",
-    "warningBuffer": "Warning Buffer (token)",
+    "smartRouter": {
+      "enableLabel": "Enable Smart Router",
+      "hint": "When enabled, each message is automatically routed to a model tier (budget/balanced/premium) based on task complexity, then mapped to the provider and model configured below. When off or unconfigured, your manually selected model is kept.",
+      "modelPlaceholder": "Select model",
+      "providerPlaceholder": "Select provider",
+      "tierBalanced": "Balanced",
+      "tierBudget": "Budget",
+      "tierPremium": "Premium",
+      "title": "Smart Router"
+    },
     "telemetryLevel": {
       "full": "Full",
       "minimal": "Minimal",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent collects no telemetry by default. \"Minimal\" records only user-behavior events (for session tracing); \"Full\" additionally logs HTTP request details (URL, status, etc.). Changes take effect immediately.",
     "telemetryLevelLabel": "Telemetry Level",
-    "privacyControl": "Privacy Control"
+    "tokenBudgetLimit": "Token Budget Limit",
+    "warningBuffer": "Warning Buffer (token)"
   },
   "agent": {
     "answerSubmitted": "Answer submitted",
@@ -2754,7 +2764,14 @@
     "wiki": "Wiki",
     "workflow": "Workflow",
     "marketplace": "Marketplace",
-    "dynamicUI": "Dynamic Pages"
+    "dynamicUI": "Dynamic Pages",
+    "devtools": {
+      "traceExplorer": "Trace Explorer",
+      "benchmark": "Benchmark",
+      "toolRecommender": "Tool Recommender",
+      "fineTune": "Fine-Tune",
+      "rlTraining": "RL Training"
+    }
   },
   "notification": {
     "clear": "Clear",
@@ -4613,7 +4630,16 @@
       "title": "Advanced"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)"
+    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)",
+    "showDeveloperTools": "Show developer tools",
+    "showDeveloperToolsDesc": "Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar",
+    "proactiveBehavior": "Proactive",
+    "proactiveNudge": "Proactive Suggestions",
+    "proactiveNudgeDesc": "Proactively offer hints, suggestions, or next steps based on conversation context",
+    "closedLoopEnabled": "Closed-Loop Execution",
+    "closedLoopEnabledDesc": "Allow the agent to run closed-loop tasks automatically once authorized",
+    "closedLoopInterval": "Closed-Loop Interval",
+    "closedLoopIntervalDesc": "Status check interval for closed-loop tasks (minutes)"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionOverview": "Overview",
     "sectionTools": "Tools",
-    "agentPanel": "Agent Panel"
+    "agentPanel": "Agent Panel",
+    "sectionDeveloper": "Developer Tools"
   },
   "skill": {
     "abTest": {

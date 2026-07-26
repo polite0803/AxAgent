@@ -577,6 +577,8 @@ pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result
         std::sync::Arc::new(axagent_dao::marketplace_service::MarketplaceServiceImpl),
         axagent_dao::platform_adapter_impl::build_mcp_server_store(state.harness.db().clone()),
         axagent_mcp::client_service_impl::build_mcp_client_service(),
+        // ACP 协议默认启用（前端已集成契约），如需禁用可通过 `ACP_PROTOCOL=false` 环境变量
+        std::env::var("ACP_PROTOCOL").ok().as_deref() != Some("false"),
     )
     .await
     .map_err(|e| {

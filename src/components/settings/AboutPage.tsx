@@ -4,7 +4,7 @@ import logoUrl from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useOnboardingStore, useSettingsStore } from "@/stores";
-import { Button, Divider, InputNumber, Tag, Typography } from "antd";
+import { Button, Divider, InputNumber, Switch, Tag, Typography } from "antd";
 import { Activity, GraduationCap, RefreshCw, Terminal } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -129,6 +129,9 @@ export function AboutPage() {
   const updateCheckInterval = useSettingsStore(
     (s) => s.settings.update_check_interval ?? 60,
   );
+  const showDeveloperTools = useSettingsStore(
+    (s) => s.settings.show_developer_tools ?? true,
+  );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const navigate = useNavigate();
   const startTutorial = useOnboardingStore((s) => s.startTutorial);
@@ -229,6 +232,19 @@ export function AboutPage() {
             onChange={(val) => val != null && saveSettings({ update_check_interval: val })}
             style={{ width: 100 }}
             addonAfter={t("settings.minutes")}
+          />
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+        <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:showDeveloperTools">
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span>{t("settings.showDeveloperTools")}</span>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("settings.showDeveloperToolsDesc")}
+            </Text>
+          </div>
+          <Switch
+            checked={showDeveloperTools}
+            onChange={(next) => saveSettings({ show_developer_tools: next })}
           />
         </div>
         {isTauri() && (

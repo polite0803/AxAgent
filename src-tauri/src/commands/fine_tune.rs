@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use axagent_agent::fine_tune::dataset::{DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata};
 use axagent_agent::fine_tune::lora::{LoRAAdapterInfo, LoRAConfigBuilder};
 use axagent_agent::fine_tune::trainer::TrainingStats;
 use axagent_agent::fine_tune::{
@@ -222,10 +223,85 @@ pub fn create_training_job(
 }
 
 #[command]
-pub fn start_training_job(job_id: String) -> Result<(), String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
-    s.trainer.start_training(&job_id).map_err(|e| format!("Start training failed: {:?}", e))?;
-    Ok(())
+pub async fn start_training_job(app_state: tauri::State<'_, crate::AppState>, job_id: String) -> Result<(), String> {
+    // 检查 lora_finetune_enabled 门控
+    let settings = axagent_dao::repo::settings::get_settings(app_state.harness.db())
+        .await
+        .map_err(|e| format!("Failed to read settings: {e}"))?;
+    if !settings.lora_finetune_enabled {
+        return Err("LoRA fine-tuning is disabled. Enable 'lora_finetune_enabled' in settings to use this feature.".to_string());
+    }
+
+    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+
+    // 获取训练任务配置
+    let config;
+    let ds_id;
+    {
+        let job = s.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{}' not found", job_id))?;
+        config = job.config.clone();
+        ds_id = job.dataset_id.clone();
+    }
+
+    // 获取数据集
+    let dataset = s.datasets.get(&ds_id)
+        .ok_or_else(|| format!("Dataset '{}' not found", ds_id))?;
+    let samples = s.samples.get(&ds_id).cloned().unwrap_or_default();
+    let num_samples = samples.len();
+    let dataset_id = dataset.id.clone();
+    let dataset_name = dataset.name.clone();
+    drop(s); // 释放锁（训练可能耗时）
+
+    // 构建 FineTuneDataset（使用显式字段，SampleMetadata/DatasetMetadata 无 Default）
+    let ft_dataset = FineTuneDataset {
+        id: dataset_id.clone(),
+        name: dataset_name,
+        description: String::new(),
+        samples: samples.into_iter().map(|s| {
+            FineTuneSample {
+                id: uuid::Uuid::new_v4().to_string(),
+                input: s.input,
+                output: s.output,
+                system_prompt: s.system_prompt,
+                metadata: SampleMetadata {
+                    source: "manual".to_string(),
+                    category: None,
+                    difficulty: None,
+                    tags: vec![],
+                },
+            }
+        }).collect(),
+        format: axagent_agent::fine_tune::dataset::DataFormat::Jsonl,
+        metadata: DatasetMetadata {
+            source: "manual".to_string(),
+            license: "custom".to_string(),
+            tags: vec![],
+            num_samples,
+            created_at: chrono::Utc::now(),
+        },
+    };
+
+    // 使用真实的 candle-based LoRA 训练
+    let output_dir = FINE_TUNE_DIR.join("adapters");
+    match axagent_agent::fine_tune::candle_trainer::train_lora(
+        &ft_dataset,
+        &config,
+        &output_dir,
+        None::<fn(f32, f64)>,
+    ) {
+        Ok(safetensors_path) => {
+            tracing::info!("[fine_tune] Training completed: {}", safetensors_path.display());
+            let mut s = state().lock().map_err(|e| format!("Lock error: {e}"))?;
+            s.trainer.complete_job(&job_id, safetensors_path.to_string_lossy().to_string())
+                .map_err(|e| format!("complete_job: {e:?}"))?;
+            Ok(())
+        },
+        Err(e) => {
+            let mut s = state().lock().map_err(|e| format!("Lock error: {e}"))?;
+            let _ = s.trainer.fail_job(&job_id);
+            Err(format!("Training failed: {e}"))
+        },
+    }
 }
 
 #[command]

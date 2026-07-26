@@ -150,6 +150,10 @@ pub struct AppSettings {
     pub thought_chain_enabled: bool,
     /// Enable automatic error recovery suggestions.
     pub error_recovery_enabled: bool,
+    /// Enable Tree of Thoughts multi-path reasoning (expensive: multiple LLM calls per query).
+    pub tot_enabled: bool,
+    /// Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar.
+    pub show_developer_tools: bool,
     /// Cloud workspace URI (supports s3://, webdav://, local://)
     pub workspace_uri: Option<String>,
     /// RAG 高级管线配置（查询增强、重排序、自省式质检）
@@ -176,6 +180,20 @@ pub struct AppSettings {
     /// 默认 `off`,遵循"最小化采集"原则,用户未明确选择时不记录任何遥测。
     /// 后端 `FilteringSink` 在初始化时读取此值并包装内部 sink。
     pub telemetry_level: String,
+    /// Smart Router 智能路由总开关。
+    ///
+    /// 开启后 `agent_query` 会先用 `CostAwareRouter` 对本次 prompt 分类（trivial/
+    /// moderate/complex → budget/balanced/premium tier），再按
+    /// `smart_router_tier_mappings` 把请求改写到对应 provider/model。
+    /// 关闭时（默认）完全不介入，保持用户手选的 provider/model，零回归。
+    pub smart_router_enabled: bool,
+    /// tier(budget/balanced/premium) → provider/model 映射表。
+    ///
+    /// 键为 tier 字符串，值为 `TierModelMapping`（provider_id + model_id +
+    /// 可选 base_url_override）。空表示未配置，此时即便开关打开也不改写请求。
+    #[serde(default)]
+    pub smart_router_tier_mappings:
+        std::collections::HashMap<String, crate::route_bridge::TierModelMapping>,
 }
 
 impl Default for AppSettings {
@@ -298,8 +316,10 @@ impl Default for AppSettings {
             rl_optimizer_enabled: false,
             lora_finetune_enabled: false,
             proactive_nudge_enabled: true,
-            thought_chain_enabled: false,
+            thought_chain_enabled: true,
             error_recovery_enabled: true,
+            tot_enabled: false,
+            show_developer_tools: true,
             workspace_uri: None,
             rag_pipeline_config: serde_json::Value::Null,
             agent_panel_enabled: true,
@@ -309,6 +329,8 @@ impl Default for AppSettings {
             onboarding_tutorial_completed: false,
             onboarding_selected_preset: None,
             telemetry_level: "off".to_string(),
+            smart_router_enabled: false,
+            smart_router_tier_mappings: std::collections::HashMap::new(),
         }
     }
 }

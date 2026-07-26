@@ -20,6 +20,7 @@ import {
   PaintBucket,
   Palette,
   Puzzle,
+  Radio,
   Search,
   Send,
   Server,
@@ -27,6 +28,7 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Timer,
+  User,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -74,6 +76,8 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   dynamicPages: <LayoutDashboard size={14} />,
   localTools: <Wrench size={14} />,
   mcpServers: <Network size={14} />,
+  persona: <User size={14} />,
+  proactiveBehavior: <Radio size={14} />,
 };
 
 /**
@@ -132,7 +136,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "cron",
     "notificationCenter",
   ],
-  system: ["advanced", "evolution", "about"],
+  system: ["advanced", "evolution", "persona", "proactiveBehavior", "about"],
 };
 
 export function SettingsSidebar() {

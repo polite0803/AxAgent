@@ -654,13 +654,18 @@ async fn execute_step_with_agent(
     // Build fresh api_client + tool_registry for this step
     let (api_client, tool_registry) = build_step_tools(agent_ctx, state.harness.db()).await;
 
-    // Build runtime via factory
+    // Build runtime via factory。计划步骤沿用全局错误恢复默认（开启），
+    // 思维链在计划步骤中关闭（步骤执行不需要展开思维链）。
+    let runtime_feature_config = axagent_runtime_core::RuntimeFeatureConfig::default()
+        .with_error_recovery(true)
+        .with_thought_chain(false);
     let runtime = create_conversation_runtime(
         session.session().clone(),
         Box::new(api_client),
         Box::new(tool_registry),
         PermissionPolicy::new(axagent_runtime::PermissionMode::Prompt),
         system_prompt,
+        runtime_feature_config,
     );
 
     let result = session_manager

@@ -116,11 +116,20 @@
       "fullAccess": "完全訪問"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "隱私控制",
     "resourceControl": "資源管控 & 環保策略",
     "retryDelay": "重試延遲（秒）",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "Token 預算上限",
-    "warningBuffer": "警告閾值緩衝（token）",
+    "smartRouter": {
+      "enableLabel": "啟用智慧路由",
+      "hint": "開啟後，會依任務複雜度自動為每則訊息選擇模型檔位（經濟/均衡/進階），並對應到下方設定的供應商與模型。未設定或關閉時維持你手動選擇的模型。",
+      "modelPlaceholder": "選擇模型",
+      "providerPlaceholder": "選擇供應商",
+      "tierBalanced": "均衡檔",
+      "tierBudget": "經濟檔",
+      "tierPremium": "進階檔",
+      "title": "智慧路由"
+    },
     "telemetryLevel": {
       "full": "完整",
       "minimal": "最小",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent 預設不收集任何遙測資料。選擇「最小化」僅記錄使用者行為事件（用於工作階段追蹤），「完整」會額外記錄 HTTP 請求細節（URL、狀態碼等）。修改後立即生效。",
     "telemetryLevelLabel": "遙測級別",
-    "privacyControl": "隱私控制"
+    "tokenBudgetLimit": "Token 預算上限",
+    "warningBuffer": "警告閾值緩衝（token）"
   },
   "agent": {
     "answerSubmitted": "答案已提交",
@@ -2754,7 +2764,14 @@
     "wiki": "知識庫",
     "workflow": "工作流程",
     "marketplace": "市場",
-    "dynamicUI": "動態頁面"
+    "dynamicUI": "動態頁面",
+    "devtools": {
+      "traceExplorer": "追蹤瀏覽器",
+      "benchmark": "基準測試",
+      "toolRecommender": "工具推薦",
+      "fineTune": "模型微調",
+      "rlTraining": "強化學習訓練"
+    }
   },
   "notification": {
     "clear": "清除",
@@ -4613,7 +4630,16 @@
       "title": "高級"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）"
+    "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）",
+    "showDeveloperTools": "顯示開發者工具",
+    "showDeveloperToolsDesc": "在側邊欄顯示開發者工具分組（追蹤/基準測試/微調/強化學習）",
+    "proactiveBehavior": "主動能力",
+    "proactiveNudge": "主動建議",
+    "proactiveNudgeDesc": "根據對話上下文主動給出提示、建議或下一步操作",
+    "closedLoopEnabled": "閉環執行",
+    "closedLoopEnabledDesc": "允許 Agent 在獲得授權後自動執行閉環任務",
+    "closedLoopInterval": "閉環輪詢間隔",
+    "closedLoopIntervalDesc": "閉環任務狀態檢查間隔（分鐘）"
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "基礎設施",
     "sectionOverview": "概覽",
     "sectionTools": "工具",
-    "agentPanel": "代理面板"
+    "agentPanel": "代理面板",
+    "sectionDeveloper": "開發者工具"
   },
   "skill": {
     "abTest": {

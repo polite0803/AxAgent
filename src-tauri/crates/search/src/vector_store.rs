@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex as StdMutex};
+
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, QueryResult,
     Statement, TransactionTrait, Value,
@@ -148,12 +151,19 @@ impl Default for HnswConfig {
 #[derive(Debug, Clone)]
 pub struct VectorStore {
     db: DatabaseConnection,
+    /// Per-collection serialization locks for upsert operations.
+    ///
+    /// Prevents primary key conflicts on PostgreSQL (where `rowid` is not auto-increment)
+    /// when concurrent index jobs try to `MAX(rowid)+1` on the same collection table.
+    /// The outer `StdMutex` guards the HashMap lookup; each collection has its own
+    /// `tokio::sync::Mutex<()>` for the actual critical section (cross-await safe).
+    upsert_locks: Arc<StdMutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>,
 }
 
 impl VectorStore {
     /// Create a VectorStore that uses an existing sea-orm connection.
     pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+        Self { db, upsert_locks: Arc::new(StdMutex::new(HashMap::new())) }
     }
 
     /// True when the underlying connection is PostgreSQL (pgvector path).
@@ -187,6 +197,17 @@ impl VectorStore {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0)
+    }
+
+    /// Get or create a per-collection serialization mutex for upsert operations.
+    ///
+    /// All upsert threads for the same `collection_id` will share one mutex,
+    /// ensuring `MAX(rowid)+1` is safe. Different collections remain fully concurrent.
+    fn collection_upsert_mutex(&self, collection_id: &str) -> Arc<tokio::sync::Mutex<()>> {
+        let mut map = self.upsert_locks.lock().unwrap();
+        map.entry(collection_id.to_string())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
     }
 
     // ── DDL builders (backend-specific) ──────────────────────────────────
@@ -641,6 +662,10 @@ impl VectorStore {
             }
         }
 
+        // Serialize upserts per collection to prevent pk conflicts on PostgreSQL
+        let upsert_mutex = self.collection_upsert_mutex(collection_id);
+        let _upsert_guard = upsert_mutex.lock().await;
+
         self.prepare_collection_for_indexing(collection_id, dimensions).await?;
 
         let name = Self::validated_collection_name(collection_id)?;
@@ -738,6 +763,10 @@ impl VectorStore {
         if !self.table_exists(&meta_table).await? {
             return Err(AxAgentError::NotFound("Collection not found".into()));
         }
+
+        // Serialize upserts per collection to prevent pk conflicts on PostgreSQL
+        let upsert_mutex = self.collection_upsert_mutex(collection_id);
+        let _upsert_guard = upsert_mutex.lock().await;
 
         let max_index = self
             .db
@@ -1050,6 +1079,10 @@ impl VectorStore {
         if self.is_pg() {
             let _ = self.exec("CREATE EXTENSION IF NOT EXISTS vector").await;
         }
+
+        // Serialize upserts per collection to prevent pk conflicts on PostgreSQL
+        let upsert_mutex = self.collection_upsert_mutex(collection_id);
+        let _upsert_guard = upsert_mutex.lock().await;
 
         self.db
             .execute_raw(Statement::from_string(

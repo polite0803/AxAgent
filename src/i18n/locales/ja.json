@@ -116,11 +116,20 @@
       "fullAccess": "フルアクセス"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "プライバシーコントロール",
     "resourceControl": "リソース制御＆エコ戦略",
     "retryDelay": "リトライ遅延（秒）",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "トークンバジェット制限",
-    "warningBuffer": "警告バッファ（トークン）",
+    "smartRouter": {
+      "enableLabel": "スマートルーターを有効化",
+      "hint": "有効にすると、タスクの複雑さに応じて各メッセージを自動的にモデル階層（バジェット/バランス/プレミアム）に振り分け、以下で設定したプロバイダーとモデルにマッピングします。無効または未設定の場合は、手動で選択したモデルを維持します。",
+      "modelPlaceholder": "モデルを選択",
+      "providerPlaceholder": "プロバイダーを選択",
+      "tierBalanced": "バランス",
+      "tierBudget": "バジェット",
+      "tierPremium": "プレミアム",
+      "title": "スマートルーター"
+    },
     "telemetryLevel": {
       "full": "フル",
       "minimal": "最小",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent はデフォルトでテレメトリを収集しません。「最小」はユーザー行動イベントのみを記録し（セッション追跡用）、「フル」は HTTP リクエストの詳細（URL、ステータスコードなど）も記録します。変更は即座に有効になります。",
     "telemetryLevelLabel": "テレメトリレベル",
-    "privacyControl": "プライバシーコントロール"
+    "tokenBudgetLimit": "トークンバジェット制限",
+    "warningBuffer": "警告バッファ（トークン）"
   },
   "agent": {
     "answerSubmitted": "回答が送信されました",
@@ -2754,7 +2764,14 @@
     "wiki": "Wiki",
     "workflow": "ワークフロー",
     "marketplace": "マーケットプレース",
-    "dynamicUI": "ダイナミックページ"
+    "dynamicUI": "ダイナミックページ",
+    "devtools": {
+      "traceExplorer": "トレースエクスプローラー",
+      "benchmark": "ベンチマーク",
+      "toolRecommender": "ツールレコメンダー",
+      "fineTune": "ファインチューニング",
+      "rlTraining": "強化学習トレーニング"
+    }
   },
   "notification": {
     "clear": "クリア",
@@ -4613,7 +4630,16 @@
       "title": "詳細設定"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常変更不要）"
+    "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常変更不要）",
+    "showDeveloperTools": "開発者ツールを表示",
+    "showDeveloperToolsDesc": "サイドバーに開発者ツールセクション（トレース/ベンチマーク/ファインチューニング/強化学習）を表示",
+    "proactiveBehavior": "プロアクティブ",
+    "proactiveNudge": "プロアクティブ提案",
+    "proactiveNudgeDesc": "会話の文脈に基づいて、ヒント・提案・次のステップを能動的に提示します",
+    "closedLoopEnabled": "クローズドループ実行",
+    "closedLoopEnabledDesc": "許可後にエージェントがクローズドループタスクを自動実行できるようにします",
+    "closedLoopInterval": "クローズドループ間隔",
+    "closedLoopIntervalDesc": "クローズドループタスクの状態確認間隔（分）"
   },
   "settingsPage": {
     "refreshPage": "ページを更新"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "インフラ",
     "sectionOverview": "概要",
     "sectionTools": "ツール",
-    "agentPanel": "エージェントパネル"
+    "agentPanel": "エージェントパネル",
+    "sectionDeveloper": "開発者ツール"
   },
   "skill": {
     "abTest": {

@@ -116,11 +116,20 @@
       "fullAccess": "पूर्ण पहुँच"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "गोपनीयता नियंत्रण",
     "resourceControl": "संसाधन नियंत्रण और इको रणनीति",
     "retryDelay": "पुनः प्रयास विलंब (सेकंड)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "टोकन बजट सीमा",
-    "warningBuffer": "चेतावनी बफर (टोकन)",
+    "smartRouter": {
+      "enableLabel": "स्मार्ट राउटर सक्षम करें",
+      "hint": "सक्षम होने पर, प्रत्येक संदेश को कार्य की जटिलता के आधार पर स्वचालित रूप से एक मॉडल श्रेणी (बजट/संतुलित/प्रीमियम) पर रूट किया जाता है, फिर नीचे कॉन्फ़िगर किए गए प्रदाता और मॉडल से मैप किया जाता है। बंद या अकॉन्फ़िगर होने पर आपका मैन्युअल रूप से चयनित मॉडल बना रहता है।",
+      "modelPlaceholder": "मॉडल चुनें",
+      "providerPlaceholder": "प्रदाता चुनें",
+      "tierBalanced": "संतुलित",
+      "tierBudget": "बजट",
+      "tierPremium": "प्रीमियम",
+      "title": "स्मार्ट राउटर"
+    },
     "telemetryLevel": {
       "full": "पूर्ण",
       "minimal": "न्यूनतम",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent डिफ़ॉल्ट रूप से कोई टेलीमेट्री डेटा एकत्र नहीं करता है। 'न्यूनतम' चुनने पर केवल उपयोगकर्ता व्यवहार घटनाएँ (सत्र ट्रैकिंग के लिए) रिकॉर्ड होती हैं, 'पूर्ण' अतिरिक्त HTTP अनुरोध विवरण (URL, स्थिति कोड आदि) रिकॉर्ड करता है। परिवर्तन तुरंत प्रभावी होते हैं।",
     "telemetryLevelLabel": "टेलीमेट्री स्तर",
-    "privacyControl": "गोपनीयता नियंत्रण"
+    "tokenBudgetLimit": "टोकन बजट सीमा",
+    "warningBuffer": "चेतावनी बफर (टोकन)"
   },
   "agent": {
     "answerSubmitted": "उत्तर सबमिट किया गया",
@@ -2754,7 +2764,14 @@
     "wiki": "विकी",
     "workflow": "वर्कफ़्लो",
     "marketplace": "मार्केटप्लेस",
-    "dynamicUI": "डायनामिक पृष्ठ"
+    "dynamicUI": "डायनामिक पृष्ठ",
+    "devtools": {
+      "traceExplorer": "ट्रेस एक्सप्लोरर",
+      "benchmark": "बेंचमार्क",
+      "toolRecommender": "टूल अनुशंसक",
+      "fineTune": "फ़ाइन-ट्यून",
+      "rlTraining": "आरएल प्रशिक्षण"
+    }
   },
   "notification": {
     "clear": "साफ़ करें",
@@ -4613,7 +4630,16 @@
       "title": "उन्नत"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)"
+    "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)",
+    "showDeveloperTools": "डेवलपर टूल दिखाएं",
+    "showDeveloperToolsDesc": "साइडबार में डेवलपर टूल अनुभाग (ट्रेस/बेंचमार्क/फ़ाइन-ट्यून/आरएल) दिखाएं",
+    "proactiveBehavior": "सक्रिय",
+    "proactiveNudge": "सक्रिय सुझाव",
+    "proactiveNudgeDesc": "वार्तालाप के संदर्भ के आधार पर सुझाव या अगले चरण सक्रिय रूप से दें",
+    "closedLoopEnabled": "बंद-लूप निष्पादन",
+    "closedLoopEnabledDesc": "अनुमति मिलने पर एजेंट को बंद-लूप कार्य स्वचालित चलाने दें",
+    "closedLoopInterval": "बंद-लूप अंतराल",
+    "closedLoopIntervalDesc": "बंद-लूप कार्यों की स्थिति जाँच अंतराल (मिनट)"
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "बुनियादी ढांचा",
     "sectionOverview": "अवलोकन",
     "sectionTools": "उपकरण",
-    "agentPanel": "एजेंट पैनल"
+    "agentPanel": "एजेंट पैनल",
+    "sectionDeveloper": "डेवलपर टूल"
   },
   "skill": {
     "abTest": {

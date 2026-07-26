@@ -123,7 +123,9 @@ pub struct PlannerSession {
 
 // Semantic cache (add enabled flag)
 pub struct SemanticCacheState {
-    pub cache: SemanticCache,
+    /// 共享的语义缓存实例。用 `Arc` 便于同一实例既供缓存管理命令使用，
+    /// 又能作为 `Arc<dyn HarnessCache>` 注入主聊天路径的 `LlmCallConfig`。
+    pub cache: Arc<SemanticCache>,
     pub enabled: bool,
     pub in_memory_entries: Vec<InMemoryCacheEntry>,
     pub similarity_threshold: f32,

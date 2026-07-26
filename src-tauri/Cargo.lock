@@ -867,6 +867,8 @@ dependencies = [
  "axagent-harness",
  "backon",
  "base64 0.22.1",
+ "candle-core",
+ "candle-nn",
  "chrono",
  "dirs 6.0.0",
  "docx-rs",

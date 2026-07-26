@@ -116,11 +116,20 @@
       "fullAccess": "Acceso completo"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "control de privacidad",
     "resourceControl": "Control de recursos y estrategia ecológica",
     "retryDelay": "Retardo entre reintentos (segundos)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "Límite de presupuesto de tokens",
-    "warningBuffer": "Búfer de advertencia (token)",
+    "smartRouter": {
+      "enableLabel": "Activar enrutador inteligente",
+      "hint": "Cuando está activado, cada mensaje se enruta automáticamente a un nivel de modelo (económico/equilibrado/premium) según la complejidad de la tarea, y luego se asigna al proveedor y modelo configurados a continuación. Si está desactivado o sin configurar, se mantiene el modelo seleccionado manualmente.",
+      "modelPlaceholder": "Seleccionar modelo",
+      "providerPlaceholder": "Seleccionar proveedor",
+      "tierBalanced": "Equilibrado",
+      "tierBudget": "Económico",
+      "tierPremium": "Premium",
+      "title": "Enrutador inteligente"
+    },
     "telemetryLevel": {
       "full": "Completo",
       "minimal": "Mínimo",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent no recopila telemetría de forma predeterminada. \"Mínimo\" registra solo eventos de comportamiento del usuario (para seguimiento de sesiones); \"Completo\" también registra detalles de solicitudes HTTP (URL, estado, etc.). Los cambios se aplican inmediatamente.",
     "telemetryLevelLabel": "Nivel de telemetría",
-    "privacyControl": "control de privacidad"
+    "tokenBudgetLimit": "Límite de presupuesto de tokens",
+    "warningBuffer": "Búfer de advertencia (token)"
   },
   "agent": {
     "answerSubmitted": "Respuesta enviada",
@@ -2754,7 +2764,14 @@
     "wiki": "Wiki",
     "workflow": "Flujo de trabajo",
     "marketplace": "Mercado",
-    "dynamicUI": "Páginas dinámicas"
+    "dynamicUI": "Páginas dinámicas",
+    "devtools": {
+      "traceExplorer": "Explorador de trazas",
+      "benchmark": "Benchmark",
+      "toolRecommender": "Recomendador de herramientas",
+      "fineTune": "Ajuste fino",
+      "rlTraining": "Entrenamiento RL"
+    }
   },
   "notification": {
     "clear": "Limpiar",
@@ -4613,7 +4630,16 @@
       "title": "Avanzado"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Prefijo de marcador (predeterminado: CHAT2API, generalmente no es necesario modificar)"
+    "markerPrefixDesc": "Prefijo de marcador (predeterminado: CHAT2API, generalmente no es necesario modificar)",
+    "showDeveloperTools": "Mostrar herramientas de desarrollador",
+    "showDeveloperToolsDesc": "Mostrar la seccion de herramientas de desarrollador (Trazas/Benchmark/Ajuste/RL) en la barra lateral",
+    "proactiveBehavior": "Proactivo",
+    "proactiveNudge": "Sugerencias proactivas",
+    "proactiveNudgeDesc": "Ofrece proactivamente sugerencias o siguientes pasos según el contexto de la conversación",
+    "closedLoopEnabled": "Ejecución en bucle cerrado",
+    "closedLoopEnabledDesc": "Permite al agente ejecutar tareas en bucle cerrado automáticamente tras la autorización",
+    "closedLoopInterval": "Intervalo de bucle cerrado",
+    "closedLoopIntervalDesc": "Intervalo de comprobación de estado para tareas en bucle cerrado (minutos)"
   },
   "settingsPage": {
     "refreshPage": "Actualizar página"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "Infraestructura",
     "sectionOverview": "Resumen",
     "sectionTools": "Herramientas",
-    "agentPanel": "Panel de Agente"
+    "agentPanel": "Panel de Agente",
+    "sectionDeveloper": "Herramientas de desarrollador"
   },
   "skill": {
     "abTest": {

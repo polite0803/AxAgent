@@ -116,11 +116,20 @@
       "fullAccess": "전체 접근"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "개인정보 통제",
     "resourceControl": "리소스 제어 및 에코 전략",
     "retryDelay": "재시도 지연 (초)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "토큰 예산 한도",
-    "warningBuffer": "경고 버퍼 (토큰)",
+    "smartRouter": {
+      "enableLabel": "스마트 라우터 사용",
+      "hint": "활성화하면 작업 복잡도에 따라 각 메시지를 모델 등급(경제/균형/프리미엄)으로 자동 라우팅한 후 아래에 구성한 공급자와 모델에 매핑합니다. 꺼져 있거나 미구성 시 수동으로 선택한 모델을 유지합니다.",
+      "modelPlaceholder": "모델 선택",
+      "providerPlaceholder": "공급자 선택",
+      "tierBalanced": "균형",
+      "tierBudget": "경제",
+      "tierPremium": "프리미엄",
+      "title": "스마트 라우터"
+    },
     "telemetryLevel": {
       "full": "전체",
       "minimal": "최소",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent는 기본적으로 어떤 원격 측정 데이터도 수집하지 않습니다. \"최소\"는 사용자 행동 이벤트만 기록하고(세션 추적용), \"전체\"는 HTTP 요청 세부 정보(URL, 상태 코드 등)도 추가로 기록합니다. 변경 사항은 즉시 적용됩니다.",
     "telemetryLevelLabel": "원격 측정 수준",
-    "privacyControl": "개인정보 통제"
+    "tokenBudgetLimit": "토큰 예산 한도",
+    "warningBuffer": "경고 버퍼 (토큰)"
   },
   "agent": {
     "answerSubmitted": "답변이 제출되었습니다",
@@ -2754,7 +2764,14 @@
     "wiki": "위키",
     "workflow": "워크플로우",
     "marketplace": "마켓플레이스",
-    "dynamicUI": "동적 페이지"
+    "dynamicUI": "동적 페이지",
+    "devtools": {
+      "traceExplorer": "트레이스 탐색기",
+      "benchmark": "벤치마크",
+      "toolRecommender": "도구 추천",
+      "fineTune": "파인튜닝",
+      "rlTraining": "강화 학습 훈련"
+    }
   },
   "notification": {
     "clear": "지우기",
@@ -4613,7 +4630,16 @@
       "title": "고급"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)"
+    "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)",
+    "showDeveloperTools": "개발자 도구 표시",
+    "showDeveloperToolsDesc": "사이드바에 개발자 도구 섹션(트레이스/벤치마크/파인튜닝/RL)을 표시",
+    "proactiveBehavior": "능동 기능",
+    "proactiveNudge": "능동 제안",
+    "proactiveNudgeDesc": "대화 맥락에 따라 힌트·제안·다음 단계를 능동적으로 제공합니다",
+    "closedLoopEnabled": "폐루프 실행",
+    "closedLoopEnabledDesc": "승인 후 에이전트가 폐루프 작업을 자동 실행하도록 허용",
+    "closedLoopInterval": "폐루프 간격",
+    "closedLoopIntervalDesc": "폐루프 작업 상태 확인 간격(분)"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "인프라",
     "sectionOverview": "개요",
     "sectionTools": "도구",
-    "agentPanel": "에이전트 패널"
+    "agentPanel": "에이전트 패널",
+    "sectionDeveloper": "개발자 도구"
   },
   "skill": {
     "abTest": {

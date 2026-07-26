@@ -116,11 +116,20 @@
       "fullAccess": "وصول كامل"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "التحكم في الخصوصية",
     "resourceControl": "التحكم في الموارد والاستراتيجية الاقتصادية",
     "retryDelay": "تأخير إعادة المحاولة (ثوانٍ)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "حد ميزانية الرموز",
-    "warningBuffer": "مخزن التحذير (رمز)",
+    "smartRouter": {
+      "enableLabel": "تفعيل الموجّه الذكي",
+      "hint": "عند التفعيل، تتم توجيه كل رسالة تلقائيًا إلى فئة نموذج (اقتصادية/متوازنة/متميزة) حسب تعقيد المهمة، ثم تُربط بالمزوّد والنموذج المُعدّين أدناه. عند الإيقاف أو عدم الإعداد يبقى النموذج الذي اخترته يدويًا.",
+      "modelPlaceholder": "اختر النموذج",
+      "providerPlaceholder": "اختر المزوّد",
+      "tierBalanced": "متوازنة",
+      "tierBudget": "اقتصادية",
+      "tierPremium": "متميزة",
+      "title": "الموجّه الذكي"
+    },
     "telemetryLevel": {
       "full": "كامل",
       "minimal": "تصغير",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "لا يجمع AxAgent أي بيانات تتبع عن بُعد افتراضيًا. اختيار 'تصغير' يسجل فقط أحداث سلوك المستخدم (لتتبع الجلسات)، بينما 'كامل' يسجل أيضًا تفاصيل طلبات HTTP (URL، رموز الحالة، إلخ). التغييرات تسري فورًا.",
     "telemetryLevelLabel": "مستوى التتبع عن بُعد",
-    "privacyControl": "التحكم في الخصوصية"
+    "tokenBudgetLimit": "حد ميزانية الرموز",
+    "warningBuffer": "مخزن التحذير (رمز)"
   },
   "agent": {
     "answerSubmitted": "تم إرسال الإجابة",
@@ -2754,7 +2764,14 @@
     "wiki": "ويكي",
     "workflow": "سير العمل",
     "marketplace": "السوق",
-    "dynamicUI": "صفحات ديناميكية"
+    "dynamicUI": "صفحات ديناميكية",
+    "devtools": {
+      "traceExplorer": "مستكشف التتبع",
+      "benchmark": "قياس الأداء",
+      "toolRecommender": "موصي الأدوات",
+      "fineTune": "الضبط الدقيق",
+      "rlTraining": "تدريب التعلم المعزز"
+    }
   },
   "notification": {
     "clear": "مسح",
@@ -4613,7 +4630,16 @@
       "title": "متقدم"
     },
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "بادئة العلامة (الافتراضية CHAT2API، عادةً لا حاجة للتعديل)"
+    "markerPrefixDesc": "بادئة العلامة (الافتراضية CHAT2API، عادةً لا حاجة للتعديل)",
+    "showDeveloperTools": "إظهار أدوات المطوّر",
+    "showDeveloperToolsDesc": "إظهار قسم أدوات المطوّر (التتبع/قياس الأداء/الضبط/التعلم المعزز) في الشريط الجانبي",
+    "proactiveBehavior": "استباقي",
+    "proactiveNudge": "اقتراحات استباقية",
+    "proactiveNudgeDesc": "قدّم تلميحات واقتراحات أو الخطوات التالية بشكل استباقي بناءً على سياق المحادثة",
+    "closedLoopEnabled": "تنفيذ مغلق الحلقة",
+    "closedLoopEnabledDesc": "السماح للوكيل بتنفيذ المهام المغلقة الحلقة تلقائيًا بعد التصريح",
+    "closedLoopInterval": "فاصل الحلقة المغلقة",
+    "closedLoopIntervalDesc": "فاصل فحص حالة المهام المغلقة الحلقة (دقائق)"
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"
@@ -4634,7 +4660,8 @@
     "sectionInfrastructure": "البنية التحتية",
     "sectionOverview": "نظرة عامة",
     "sectionTools": "الأدوات",
-    "agentPanel": "لوحة الوكيل"
+    "agentPanel": "لوحة الوكيل",
+    "sectionDeveloper": "أدوات المطوّر"
   },
   "skill": {
     "abTest": {
