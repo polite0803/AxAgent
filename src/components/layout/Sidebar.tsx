@@ -124,7 +124,6 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
-<<<<<<< HEAD
     key: "workspace",
     icon: <Icon icon="fluent:target-20-filled" size={17} />,
     labelKey: "nav.workspace",
@@ -188,12 +187,6 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
 ];
-    icon: <Icon icon="fluent:book-globe-20-filled" size={17} />,
-    labelKey: "nav.wiki",
-    path: BUILTIN_PAGE_PATH.wiki,
-    isPlugin: false,
-  },
-];
 
 /** 开发者工具导航项 — 由 settings.show_developer_tools 门控 */
 const devtoolsNavItems: NavItem[] = [
@@ -230,7 +223,6 @@ const devtoolsNavItems: NavItem[] = [
     icon: <Icon icon="fluent:trophy-20-filled" size={17} />,
     labelKey: "nav.devtools.rlTraining",
     path: BUILTIN_PAGE_PATH.devtoolsRlTraining,
->>>>>>> upstream-master
     isPlugin: false,
   },
 ];
@@ -513,7 +505,6 @@ export function Sidebar() {
         items: devtoolsNavItems,
       });
     }
->>>>>>> upstream-master
 
     return sections.filter((s) => s.items.length > 0);
   }, [settings.show_developer_tools]);

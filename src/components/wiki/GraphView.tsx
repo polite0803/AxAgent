@@ -381,7 +381,7 @@ const CustomNode = ({
   const isSelected = data.isSelected || selected;
   const entranceVisible = data.entranceVisible !== false;
 
-  const linkSum = data.linkCount + data.backlinkCount;
+  const linkSum = (data.linkCount || 0) + (data.backlinkCount || 0);
   const size = Math.max(120, Math.min(200, 100 + linkSum * 4));
 
   return (
@@ -546,8 +546,8 @@ function GraphViewInner({
 }: GraphViewProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const nodeColors = getNodeColorMap(token);
-  const edgeTypeStyles = getEdgeTypeStylesMap(token);
+  const nodeColors = useMemo(() => getNodeColorMap(token), [token]);
+  const edgeTypeStyles = useMemo(() => getEdgeTypeStylesMap(token), [token]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(

@@ -272,7 +272,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 12 行（v100 + v101 + v102 + v200~v207）
+        // schema_version 表应有 11 行（v100 + v101 + v102 + v200~v207）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -283,8 +283,8 @@ mod tests {
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
-            cnt, 12,
-            "schema_version should have exactly 12 rows (v100 + v101 + v102 + v200~v207)"
+            cnt, 11,
+            "schema_version should have exactly 11 rows (v100 + v101 + v102 + v200~v207)"
         );
     }
 

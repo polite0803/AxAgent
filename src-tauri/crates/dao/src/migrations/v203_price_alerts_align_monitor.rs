@@ -101,8 +101,9 @@ mod tests {
     #[tokio::test]
     async fn v203_is_self_idempotent() {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        // 依赖 v100 已建好 price_alerts 表
+        // price_alerts 表由 v200_axinvest_stock_tables 创建，非 v100
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v200_axinvest_stock_tables::up(db.clone()).await.unwrap();
         up(db.clone()).await.unwrap();
         // 第二次跑：列已存在错误被忽略，UPDATE 命中 0 行，索引 IF NOT EXISTS 幂等
         up(db).await.expect("v203 must be re-runnable in isolation");
@@ -112,6 +113,7 @@ mod tests {
     async fn v203_backfills_legacy_above_below_correctly() {
         let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v200_axinvest_stock_tables::up(db.clone()).await.unwrap();
         up(db.clone()).await.unwrap();
 
         // 插入老格式数据（模拟升级前快照）

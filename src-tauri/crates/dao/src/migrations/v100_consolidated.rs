@@ -50,6 +50,8 @@ const MISSING_COLUMN_TARGETS: &[(&str, &str, &str)] = &[
     ("agency_experts", "recommended_workflows", "TEXT"),
     ("agency_experts", "recommended_tools", "TEXT"),
     ("agency_experts", "active_domains", "TEXT"),
+    ("wiki_sync_queue", "created_at", "BIGINT NOT NULL DEFAULT 0"),
+    ("wiki_sync_queue", "processed_at", "BIGINT"),
 ];
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {

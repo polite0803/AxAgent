@@ -8,11 +8,14 @@
 //! 两组分别计算各策略的信号历史表现，并给出差异分析。
 //!
 //! ## 覆盖
-//! - **Trend** (short/mid/long): 纯 K 线依赖 ✅
+//! - **Trend** (ultra_short/short/mid/long): 纯 K 线依赖 ✅
 //! - **Reversion** (short/mid): 纯 K 线依赖 ✅
-//! - **Value** (short/mid/long): K 线代理（低波幅+均线附近+温和量能） ✅
-//! - **Capital** (short/mid/long): K 线代理（放量上涨+量价配合） ✅
+//! - **Value** (ultra_short/short/mid/long): K 线代理（低波幅+均线附近+温和量能） ✅
+//! - **Capital** (ultra_short/short/mid/long): K 线代理（量比+动量，匹配 scan_from_klines） ✅
+//! - **CapitalFlow** (short/mid/long): 复用 Capital proxy ✅
+//! - **Technical** (short/mid/long): 纯 K 线形态（MACD 金叉/多周期共振/年线向上） ✅
 //! - Watchlist: 兜底策略无信号逻辑，不计入回测 ⏭️
+//! - Bottleneck/Policy/Earnings/Event: 依赖 LLM 工作流/财务/基本面，不可 K 线回测 ⏭️
 
 use crate::recommender::indicators;
 use crate::recommender::types::Period;

@@ -28,13 +28,24 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 use crate::memory_provider::{
     MemoryEntry, MemoryProvider, MemoryQuery, MemoryQueryResult, MemoryType,
 };
 use crate::memory_providers::service::{MemoryNature, MemoryTier};
-use crate::skill_manager::SkillSummary;
+
+/// 技能摘要快照（原 skill_manager.rs 移入，因 skill_manager 已被上游清理）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct SkillSummary {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub version: String,
+    pub tags: Vec<String>,
+}
 
 /// 技能摘要 MemoryProvider —— 把 SkillManager 缓存中的技能摘要暴露为 MemoryEntry。
 ///
