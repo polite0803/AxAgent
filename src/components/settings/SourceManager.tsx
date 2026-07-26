@@ -402,7 +402,6 @@ function SourceCard({
   const deleteSource = useSourceStore((s) => s.deleteSource);
   const fetchSources = useSourceStore((s) => s.fetchSources);
   const [messageApi, contextHolder] = message.useMessage();
-  const [deleting, setDeleting] = useState(false);
 
   const handleView = useCallback(() => {
     if (onViewDocument && source.containerType === "knowledge") {
@@ -422,25 +421,32 @@ function SourceCard({
     }
   }, [navigate, onViewDocument, source]);
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await deleteSource(source);
-      // 刷新所有来源列表（knowledge / memory store 内部列表也需重载）
-      await Promise.all([
-        fetchSources(),
-        // 让 knowledge / memory 自身 store 重新拉取
-        useKnowledgeStore.getState().loadBases?.(),
-        useMemoryStore.getState().loadNamespaces?.(),
-      ]).catch(() => {
-        // 单个 store 失败不阻塞
-      });
-      messageApi.success(t("sourceManager.deleteSuccess"));
-    } catch (e) {
-      messageApi.error(String(e));
-    } finally {
-      setDeleting(false);
-    }
+  const handleDeleteClick = () => {
+    Modal.confirm({
+      title: t("sourceManager.confirmDelete"),
+      content: t("sourceManager.deleteWarning"),
+      okText: t("sourceManager.confirmDeleteOk"),
+      cancelText: t("common.cancel"),
+      okButtonProps: { danger: true },
+      okCancel: true,
+      onOk: async () => {
+        try {
+          await deleteSource(source);
+          // 刷新所有来源列表（knowledge / memory store 内部列表也需重载）
+          await Promise.all([
+            fetchSources(),
+            useKnowledgeStore.getState().loadBases?.(),
+            useMemoryStore.getState().loadNamespaces?.(),
+          ]).catch(() => {
+            // 单个 store 失败不阻塞
+          });
+          messageApi.success(t("sourceManager.deleteSuccess"));
+        } catch (e) {
+          messageApi.error(String(e));
+          throw e;
+        }
+      },
+    });
   };
 
   return (
@@ -519,22 +525,13 @@ function SourceCard({
             >
               {t("sourceManager.viewConfig")}
             </Button>
-            <Popconfirm
-              title={t("sourceManager.confirmDelete")}
-              description={t("sourceManager.deleteWarning")}
-              onConfirm={handleDelete}
-              okText={t("sourceManager.confirmDeleteOk")}
-              cancelText={t("common.cancel")}
-              okButtonProps={{ danger: true, loading: deleting }}
-            >
-              <Button
-                size="small"
-                type="text"
-                danger
-                icon={<Trash2 size={12} />}
-                loading={deleting}
-              />
-            </Popconfirm>
+            <Button
+              size="small"
+              type="text"
+              danger
+              icon={<Trash2 size={12} />}
+              onClick={handleDeleteClick}
+            />
           </div>
         </div>
       </div>
