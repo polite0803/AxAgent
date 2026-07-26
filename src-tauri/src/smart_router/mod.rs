@@ -1307,6 +1307,37 @@ fn is_trivial_task(lower: &str, prompt_len: usize) -> bool {
     false
 }
 
+// ─── tier → model 映射器（生产实现） ───
+
+/// `ModelTierResolver` 的应用层生产实现。
+///
+/// 持有一份从 `AppSettings::smart_router_tier_mappings` 克隆来的
+/// tier → `TierModelMapping` 表，`resolve` 直接查表返回。
+/// 这是 harness `route_bridge::ModelTierResolver` 契约在生产环境的唯一实现，
+/// 取代此前仅存在于测试中的 `MockResolver`。
+pub struct AppModelTierResolver {
+    mappings: HashMap<String, axagent_harness::route_bridge::TierModelMapping>,
+}
+
+impl AppModelTierResolver {
+    /// 从设置中的映射表构造 resolver。
+    pub fn new(mappings: HashMap<String, axagent_harness::route_bridge::TierModelMapping>) -> Self {
+        Self { mappings }
+    }
+
+    /// 映射表是否为空（无任何 tier 配置）。
+    pub fn is_empty(&self) -> bool {
+        self.mappings.is_empty()
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::route_bridge::ModelTierResolver for AppModelTierResolver {
+    async fn resolve(&self, tier: &str) -> Option<axagent_harness::route_bridge::TierModelMapping> {
+        self.mappings.get(tier).cloned()
+    }
+}
+
 // ─── Tests ───
 
 #[cfg(test)]

@@ -66,6 +66,12 @@ use crate::realtime::{issue_realtime_ticket, realtime_handler};
 use crate::server::GatewayAppState;
 use crate::stock_ws_handler::stock_quote_stream_handler;
 
+// ACP handler imports
+use crate::handlers::acp::{
+    acp_websocket_handler, close_session, create_session, get_session, interrupt_session,
+    list_sessions, send_prompt,
+};
+
 pub fn create_router(state: GatewayAppState) -> Router {
     let cors = build_cors_layer();
 
@@ -170,9 +176,27 @@ pub fn create_router(state: GatewayAppState) -> Router {
             post(call_mcp_tool),
         )
         // P3: WebSocket 行情推送（受 auth_middleware 保护）
-        .route("/v1/stock/quote/stream", get(stock_quote_stream_handler))
-        .layer(Extension(state.ticket_store.clone()))
-        .layer(middleware::from_fn_with_state(
+        .route("/v1/stock/quote/stream", get(stock_quote_stream_handler));
+
+    // ACP (Agent Communication Protocol) 路由 — 受 acp_enabled 门控。
+    // 启用时注册会话管理 / prompt / WebSocket 端点，供外部工具/IDE 调用。
+    let protected = if state.acp_enabled {
+        tracing::info!("[Routes] ACP protocol enabled — registering ACP endpoints");
+        protected
+            .route("/acp/v1/sessions", post(create_session))
+            .route("/acp/v1/sessions", get(list_sessions))
+            .route("/acp/v1/sessions/{id}", get(get_session))
+            .route("/acp/v1/sessions/{id}/prompts", post(send_prompt))
+            .route("/acp/v1/sessions/{id}/interrupt", post(interrupt_session))
+            .route("/acp/v1/sessions/{id}/close", post(close_session))
+            .route("/acp/v1/ws", get(acp_websocket_handler))
+    } else {
+        tracing::debug!("[Routes] ACP protocol disabled — skipping endpoint registration");
+        protected
+    };
+
+    let protected = protected.layer(Extension(state.ticket_store.clone())).layer(
+        middleware::from_fn_with_state(
             AuthState {
                 db: state.db.clone(),
                 adapter: state.adapter.clone(),
@@ -180,7 +204,8 @@ pub fn create_router(state: GatewayAppState) -> Router {
                 client_ip_policy: state.client_ip_policy.clone(),
             },
             auth_middleware,
-        ));
+        ),
+    );
 
     // Public routes
     let public = Router::new()
@@ -347,6 +372,7 @@ mod tests {
             round_robin_cursor: crate::routing::RoundRobinCursor::new(),
             market_data_streamer: None,
             run_store: std::sync::Arc::new(crate::handlers::runs::RunStore::new()),
+            acp_enabled: false,
         }
     }
 

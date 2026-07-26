@@ -412,7 +412,7 @@ function ImportProjectSourcesModal({
     if (open) {
       form.setFieldsValue({
         mode: initialMode,
-        sourceName: "项目知识源",
+        sourceName: t("sourceManager.importProjectModal.defaultSourceName"),
         sourcePath: "",
       });
     }

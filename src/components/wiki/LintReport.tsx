@@ -201,7 +201,7 @@ export function LintReport({ wikiId }: LintReportProps) {
   const totalIssues = lintResults.reduce((sum, r) => sum + r.issues.length, 0);
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Card>
         <Space style={{ marginBottom: 16 }}>
           <Select
@@ -266,7 +266,7 @@ export function LintReport({ wikiId }: LintReportProps) {
         width={700}
       >
         {currentResult && (
-          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
             <Card size="small">
               <Space>
                 <Text strong>{t("wiki.lint.note")}:</Text>

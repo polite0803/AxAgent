@@ -210,7 +210,7 @@ export function SessionSearchPanel({
       style={{ top: 20 }}
     >
       <div style={{ padding: "8px 0" }}>
-        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
           <Space style={{ width: "100%" }}>
             <Input.Search
               placeholder={t("search.placeholder")}

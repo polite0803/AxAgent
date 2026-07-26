@@ -476,7 +476,7 @@ const PermissionCard: React.FC<PermissionCardProps> = ({
         cancelText={t("common.cancel")}
         okButtonProps={{ danger: true }}
       >
-        <Space direction="vertical" size={12}>
+        <Space orientation="vertical" size={12}>
           <Text>
             {t(
               "common.dangerousOperationWarning",

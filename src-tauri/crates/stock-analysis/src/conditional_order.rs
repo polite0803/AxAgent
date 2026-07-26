@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_cool_down() {
-        let mut order = ConditionalOrder {
+        let order = ConditionalOrder {
             id: "test2".into(),
             stock_code: "600519".into(),
             stock_name: "贵州茅台".into(),

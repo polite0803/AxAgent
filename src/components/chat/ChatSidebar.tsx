@@ -2382,7 +2382,7 @@ export function ChatSidebar({
           onChange={(e) => setSelectedKbId(e.target.value)}
           style={{ width: "100%" }}
         >
-          <Space direction="vertical" style={{ width: "100%" }}>
+          <Space orientation="vertical" style={{ width: "100%" }}>
             {knowledgeBases.length === 0 && (
               <span style={{ color: token.colorTextSecondary }}>
                 {t("chat.noKnowledgeBases")}

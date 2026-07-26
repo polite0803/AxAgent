@@ -1029,7 +1029,7 @@ mod tests {
 
     #[test]
     fn covariance_decay_f1_f9() {
-        let (f9, f11) = apply_covariance_decay(0.15, 0.0, 0.08, 0.0);
+        let (f9, _f11) = apply_covariance_decay(0.15, 0.0, 0.08, 0.0);
         assert!((f9 - 0.08 * 0.75).abs() < 0.001, "f9 decay: got {f9}");
     }
 
@@ -1405,7 +1405,7 @@ mod tests {
     fn bayes_neutral() {
         // prior=0.5, posterior=0.53 → BF≈1.13 → ~53%
         let conf = compute_bayes_confidence(0.5, 0.53);
-        assert!(conf >= 50.0 && conf < 65.0, "预期 ~53%, 实际 {conf}%");
+        assert!((50.0..65.0).contains(&conf), "预期 ~53%, 实际 {conf}%");
     }
 
     #[test]

@@ -676,6 +676,33 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ["进化", "evolution", "技能进化", "遗传", "genetic", "学习", "learning", "自适应"],
   },
   {
+    section: "persona",
+    group: "system",
+    keywords: ["人格", "persona", "身份", "画像", "identity", "profile", "风格迁移"],
+  },
+  {
+    section: "proactiveBehavior",
+    group: "system",
+    keywords: ["主动", "proactive", "建议", "闭环", "closed loop", "预测", "nudge", "self-learning"],
+    items: [
+      {
+        itemKey: "proactive:nudge",
+        labelKey: "settings.proactiveNudge",
+        keywords: ["主动建议", "nudge", "proactive", "提示"],
+      },
+      {
+        itemKey: "proactive:closedLoop",
+        labelKey: "settings.closedLoopEnabled",
+        keywords: ["闭环", "closed loop", "自动执行"],
+      },
+      {
+        itemKey: "proactive:interval",
+        labelKey: "settings.closedLoopInterval",
+        keywords: ["间隔", "interval", "分钟", "轮询"],
+      },
+    ],
+  },
+  {
     section: "about",
     group: "system",
     keywords: ["关于", "about", "版本", "version", "许可证", "license", "更新日志", "changelog"],
@@ -709,6 +736,11 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
         itemKey: "about:developerTools",
         labelKey: "settings.developerTools",
         keywords: ["开发者工具", "devtools", "开发工具"],
+      },
+      {
+        itemKey: "about:loraFinetune",
+        labelKey: "settings.loraFinetuneEnabled",
+        keywords: ["LoRA", "微调", "fine-tune", "finetune", "lora"],
       },
       {
         itemKey: "about:replayTutorial",

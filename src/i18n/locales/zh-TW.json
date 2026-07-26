@@ -116,11 +116,20 @@
       "fullAccess": "完全訪問"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "隱私控制",
     "resourceControl": "資源管控 & 環保策略",
     "retryDelay": "重試延遲（秒）",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "Token 預算上限",
-    "warningBuffer": "警告閾值緩衝（token）",
+    "smartRouter": {
+      "enableLabel": "啟用智慧路由",
+      "hint": "開啟後，會依任務複雜度自動為每則訊息選擇模型檔位（經濟/均衡/進階），並對應到下方設定的供應商與模型。未設定或關閉時維持你手動選擇的模型。",
+      "modelPlaceholder": "選擇模型",
+      "providerPlaceholder": "選擇供應商",
+      "tierBalanced": "均衡檔",
+      "tierBudget": "經濟檔",
+      "tierPremium": "進階檔",
+      "title": "智慧路由"
+    },
     "telemetryLevel": {
       "full": "完整",
       "minimal": "最小",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent 預設不收集任何遙測資料。選擇「最小化」僅記錄使用者行為事件（用於工作階段追蹤），「完整」會額外記錄 HTTP 請求細節（URL、狀態碼等）。修改後立即生效。",
     "telemetryLevelLabel": "遙測級別",
-    "privacyControl": "隱私控制"
+    "tokenBudgetLimit": "Token 預算上限",
+    "warningBuffer": "警告閾值緩衝（token）"
   },
   "agent": {
     "answerSubmitted": "答案已提交",
@@ -1889,7 +1899,11 @@
     "totalRequests": "總請求數",
     "totalTokens": "Token 總量",
     "usageTrend": "每日用量趨勢",
-    "dailyAvgCost": "日均費用"
+    "dailyAvgCost": "日均費用",
+    "tabs": {
+      "overview": "概覽",
+      "office": "像素辦公室"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "在執行儲存區中找不到代理產生的資料「{{generationId}}」",
@@ -3584,7 +3598,15 @@
     "delegateSuccess": "委派任務已成功完成",
     "delegateFailed": "委派任務失敗",
     "maxConcurrent": "最大並發",
-    "timeoutSec": "超時（秒）"
+    "timeoutSec": "超時（秒）",
+    "dynamicUI": "動態頁面",
+    "devtools": {
+      "traceExplorer": "追蹤瀏覽器",
+      "benchmark": "基準測試",
+      "toolRecommender": "工具推薦",
+      "fineTune": "模型微調",
+      "rlTraining": "強化學習訓練"
+    }
   },
   "notification": {
     "clear": "清除",
@@ -3654,6 +3676,71 @@
     "welcomeDesc": "智慧 AI 桌面用戶端，支援多模型、Agent 自主執行、知識庫檢索",
     "downloadOllama": "下載 Ollama",
     "applying": "套用中…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "建立辦公室",
+      "promptName": "請輸入辦公室名稱："
+    },
+    "emptyFleet": "尚未建立辦公室。點擊右上角按鈕建立第一個辦公室。",
+    "memberCount": "{{count}} 個成員",
+    "membersTitle": "成員列表",
+    "noMembers": "該辦公室尚無成員。請從 Agent 列表中新增。",
+    "selectFleet": "請選擇辦公室",
+    "tabs": {
+      "chat": "群聊",
+      "dm": "私訊",
+      "trajectory": "軌跡",
+      "token": "Token"
+    },
+    "memberStatus": {
+      "idle": "空閒",
+      "busy": "忙碌",
+      "paused": "已暫停",
+      "error": "錯誤",
+      "offline": "離線"
+    },
+    "fleetStatus": {
+      "active": "運行中",
+      "paused": "已暫停",
+      "stopped": "已停止"
+    },
+    "chat": {
+      "emptyHint": "在下方輸入訊息，Dispatcher 將自動路由到合適的 agent。",
+      "inputPlaceholder": "輸入群聊訊息…",
+      "send": "傳送",
+      "routingHint": "智慧路由中…",
+      "tagRouting": "路由",
+      "routingMessage": "→ {{slug}}：{{summary}}",
+      "tagProcess": "處理",
+      "tokenUsage": "{{slug}}：+{{input}}↑ / +{{output}}↓",
+      "completed": "完成"
+    },
+    "dm": {
+      "selectTarget": "從左側成員列表中選擇一個 agent 發起私訊。",
+      "backToList": "返回成員列表",
+      "emptyHint": "與 {{slug}} 的私訊會話為空。",
+      "inputPlaceholder": "給 {{slug}} 發訊息…",
+      "send": "傳送"
+    },
+    "trajectory": {
+      "empty": "尚無軌跡事件。",
+      "tagRouting": "路由",
+      "routing": "→ {{slug}}：{{summary}}",
+      "tagProcess": "處理",
+      "tagStatus": "狀態",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "尚無 token 用量資料。",
+      "todayTotal": "今日總用量",
+      "allTotal": "累計總用量",
+      "resetDaily": "重置今日用量",
+      "colMember": "成員",
+      "colStatus": "狀態",
+      "colToday": "今日 Token",
+      "colTotal": "累計 Token"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "請長按輸入框手動貼上",
@@ -5780,7 +5867,18 @@
     },
     "stockAnalysis": "股票分析",
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）"
+    "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）",
+    "showDeveloperTools": "顯示開發者工具",
+    "showDeveloperToolsDesc": "在側邊欄顯示開發者工具分組（追蹤/基準測試/微調/強化學習）",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
+    "proactiveBehavior": "主動能力",
+    "proactiveNudge": "主動建議",
+    "proactiveNudgeDesc": "根據對話上下文主動給出提示、建議或下一步操作",
+    "closedLoopEnabled": "閉環執行",
+    "closedLoopEnabledDesc": "允許 Agent 在獲得授權後自動執行閉環任務",
+    "closedLoopInterval": "閉環輪詢間隔",
+    "closedLoopIntervalDesc": "閉環任務狀態檢查間隔（分鐘）"
   },
   "settingsPage": {
     "refreshPage": "刷新頁面"
@@ -5816,7 +5914,8 @@
     "sectionInvestWorkspace": "工作區",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
-    "sectionInvestReview": "Review"
+    "sectionInvestReview": "Review",
+    "sectionDeveloper": "開發者工具"
   },
   "skill": {
     "abTest": {
@@ -6156,6 +6255,7 @@
       "sourceNamePlaceholder": "如：專案知識源",
       "sourceNameRequired": "請輸入知識源名稱",
       "sourceNameHint": "Wiki 名 = 該名稱；RAG 知識庫名 = {該名稱}圖譜",
+      "defaultSourceName": "專案知識源",
       "mode": "模式",
       "modeCreate": "新增",
       "modeCreateDesc": "首次匯入指定目錄；同名無嵌入的舊 KB 會被清理後重建",

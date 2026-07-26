@@ -13,7 +13,7 @@
 // 见 AGENTS.md「后端错误码 i18n 规范（强制）」。
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -27,8 +27,8 @@ function walk(dir, out) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     const st = statSync(p);
-    if (st.isDirectory()) walk(p, out);
-    else if (/\.rs$/.test(name)) out.push(p);
+    if (st.isDirectory()) { walk(p, out); }
+    else if (/\.rs$/.test(name)) { out.push(p); }
   }
 }
 
@@ -50,7 +50,9 @@ for (const f of files) {
 
 if (violations > 0) {
   console.error(`\n发现 ${violations} 处裸 map_err(|x| x.to_string())。`);
-  console.error("正确写法：map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))");
+  console.error(
+    "正确写法：map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))",
+  );
   process.exit(1);
 }
 console.log("OK: src-tauri/src/commands 未发现裸 map_err(|x| x.to_string())");

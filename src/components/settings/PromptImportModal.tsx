@@ -294,7 +294,7 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
 
       {result && (
         <div className="py-2">
-          <Space direction="vertical" className="w-full">
+          <Space orientation="vertical" className="w-full">
             <Alert
               type={totalErrors > 0 ? "warning" : "success"}
               title={

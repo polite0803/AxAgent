@@ -340,8 +340,13 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>> = {
         let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
         registry.load_enabled_state(&sea_db).await;
-        // 挂载 RL 策略工具排名器，每次 get_chat_tools() 实时读取最新权重
-        registry.tool_ranker = Some(crate::commands::_shared_state::SHARED_TOOL_RANKER.clone());
+        // 挂载 RL 策略工具排名器，每次 get_chat_tools() 实时读取最新权重。
+        // 受 settings.rl_optimizer_enabled 门控：关闭时回退到默认工具顺序。
+        registry.tool_ranker = if app_settings.rl_optimizer_enabled {
+            Some(crate::commands::_shared_state::SHARED_TOOL_RANKER.clone())
+        } else {
+            None
+        };
         Arc::new(tokio::sync::Mutex::new(registry))
     };
     // ── 阶段 5:工作流反思 / 进化 / 优化三层 trait 实现 ──
@@ -536,13 +541,16 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             },
         };
         Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
-            cache,
+            cache: Arc::new(cache),
             enabled: true,
             in_memory_entries: Vec::new(),
             similarity_threshold: 0.85,
         }))
     };
     let prompt_cache = Arc::new(PromptCache::new());
+    // ── Fleet 持久化仓库 ──
+    let fleet_repository: Arc<dyn axagent_harness::fleet::FleetRepository> =
+        Arc::new(axagent_trajectory::SeaOrmFleetRepository::new(sea_db.clone()));
     let tot_sessions: Arc<
         tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
     > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
@@ -923,6 +931,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         webhook_subscription_manager,
         semantic_cache,
         prompt_cache,
+        fleet_repository,
         tot_sessions,
         planner_sessions,
         browser_client,

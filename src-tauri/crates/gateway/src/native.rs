@@ -1394,6 +1394,7 @@ mod tests {
             round_robin_cursor: crate::routing::RoundRobinCursor::new(),
             market_data_streamer: None,
             run_store: std::sync::Arc::new(crate::handlers::runs::RunStore::new()),
+            acp_enabled: false,
         }
     }
 

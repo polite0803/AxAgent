@@ -116,11 +116,20 @@
       "fullAccess": "Full Access"
     },
     "permissionStrategy": "Permission Strategy",
+    "privacyControl": "Privacy Control",
     "resourceControl": "Resource Control & Eco Strategy",
     "retryDelay": "Retry Delay (seconds)",
     "shellConfirm": "Shell Confirm",
-    "tokenBudgetLimit": "Token Budget Limit",
-    "warningBuffer": "Warning Buffer (token)",
+    "smartRouter": {
+      "enableLabel": "Enable Smart Router",
+      "hint": "When enabled, each message is automatically routed to a model tier (budget/balanced/premium) based on task complexity, then mapped to the provider and model configured below. When off or unconfigured, your manually selected model is kept.",
+      "modelPlaceholder": "Select model",
+      "providerPlaceholder": "Select provider",
+      "tierBalanced": "Balanced",
+      "tierBudget": "Budget",
+      "tierPremium": "Premium",
+      "title": "Smart Router"
+    },
     "telemetryLevel": {
       "full": "Full",
       "minimal": "Minimal",
@@ -128,7 +137,8 @@
     },
     "telemetryLevelHint": "AxAgent collects no telemetry by default. \"Minimal\" records only user-behavior events (for session tracing); \"Full\" additionally logs HTTP request details (URL, status, etc.). Changes take effect immediately.",
     "telemetryLevelLabel": "Telemetry Level",
-    "privacyControl": "Privacy Control"
+    "tokenBudgetLimit": "Token Budget Limit",
+    "warningBuffer": "Warning Buffer (token)"
   },
   "agent": {
     "answerSubmitted": "Answer submitted",
@@ -1889,7 +1899,11 @@
     "totalRequests": "Total Requests",
     "totalTokens": "Total Tokens",
     "usageTrend": "Daily Usage Trend",
-    "dailyAvgCost": "Daily Avg Cost"
+    "dailyAvgCost": "Daily Avg Cost",
+    "tabs": {
+      "overview": "Overview",
+      "office": "Pixel Office"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
@@ -3584,7 +3598,15 @@
     "delegateSuccess": "Delegation task completed successfully",
     "delegateFailed": "Delegation task failed",
     "maxConcurrent": "Max Concurrency",
-    "timeoutSec": "Timeout (seconds)"
+    "timeoutSec": "Timeout (seconds)",
+    "dynamicUI": "Dynamic Pages",
+    "devtools": {
+      "traceExplorer": "Trace Explorer",
+      "benchmark": "Benchmark",
+      "toolRecommender": "Tool Recommender",
+      "fineTune": "Fine-Tune",
+      "rlTraining": "RL Training"
+    }
   },
   "notification": {
     "clear": "Clear",
@@ -3654,6 +3676,71 @@
     "welcomeDesc": "Smart AI desktop client with multi-model support, autonomous Agent execution, and knowledge base retrieval",
     "downloadOllama": "Download Ollama",
     "applying": "Applying..."
+  },
+  "office": {
+    "createFleet": {
+      "button": "Create Office",
+      "promptName": "Enter office name:"
+    },
+    "emptyFleet": "No office created yet. Click the button in the top right to create your first office.",
+    "memberCount": "{{count}} members",
+    "membersTitle": "Members",
+    "noMembers": "No members in this office. Add one from the agent list.",
+    "selectFleet": "Select an office",
+    "tabs": {
+      "chat": "Group Chat",
+      "dm": "Direct Message",
+      "trajectory": "Trajectory",
+      "token": "Tokens"
+    },
+    "memberStatus": {
+      "idle": "Idle",
+      "busy": "Busy",
+      "paused": "Paused",
+      "error": "Error",
+      "offline": "Offline"
+    },
+    "fleetStatus": {
+      "active": "Running",
+      "paused": "Paused",
+      "stopped": "Stopped"
+    },
+    "chat": {
+      "emptyHint": "Type a message below — the dispatcher will route it to the right agent.",
+      "inputPlaceholder": "Type a group message…",
+      "send": "Send",
+      "routingHint": "Routing…",
+      "tagRouting": "Routing",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Process",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "Done"
+    },
+    "dm": {
+      "selectTarget": "Pick an agent from the members list to start a direct message.",
+      "backToList": "Back to members",
+      "emptyHint": "No messages with {{slug}} yet.",
+      "inputPlaceholder": "Message {{slug}}…",
+      "send": "Send"
+    },
+    "trajectory": {
+      "empty": "No trajectory events yet.",
+      "tagRouting": "Routing",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Process",
+      "tagStatus": "Status",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "No token usage data yet.",
+      "todayTotal": "Today Total",
+      "allTotal": "All-time Total",
+      "resetDaily": "Reset Today",
+      "colMember": "Member",
+      "colStatus": "Status",
+      "colToday": "Today Tokens",
+      "colTotal": "Total Tokens"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "Long-press to paste manually",
@@ -5780,7 +5867,18 @@
     },
     "stockAnalysis": "Stock Analysis",
     "markerPrefixPlaceholder": "CHAT2API",
-    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)"
+    "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)",
+    "showDeveloperTools": "Show developer tools",
+    "showDeveloperToolsDesc": "Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
+    "proactiveBehavior": "Proactive",
+    "proactiveNudge": "Proactive Suggestions",
+    "proactiveNudgeDesc": "Proactively offer hints, suggestions, or next steps based on conversation context",
+    "closedLoopEnabled": "Closed-Loop Execution",
+    "closedLoopEnabledDesc": "Allow the agent to run closed-loop tasks automatically once authorized",
+    "closedLoopInterval": "Closed-Loop Interval",
+    "closedLoopIntervalDesc": "Status check interval for closed-loop tasks (minutes)"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"
@@ -5816,7 +5914,8 @@
     "sectionInvestWorkspace": "Workspace",
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
-    "sectionInvestReview": "Review"
+    "sectionInvestReview": "Review",
+    "sectionDeveloper": "Developer Tools"
   },
   "skill": {
     "abTest": {
@@ -6158,6 +6257,7 @@
       "sourceNamePlaceholder": "e.g. Project Knowledge",
       "sourceNameRequired": "Please enter a source name",
       "sourceNameHint": "Wiki name = the name; RAG KB name = {name} Graph",
+      "defaultSourceName": "Project Knowledge",
       "mode": "Mode",
       "modeCreate": "Create",
       "modeCreateDesc": "First import of the directory; same-name KBs without embedding will be cleaned up and rebuilt",

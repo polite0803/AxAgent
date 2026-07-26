@@ -68,6 +68,10 @@ pub struct RuntimeFeatureConfig {
     pub(crate) provider_fallbacks: ProviderFallbackConfig,
     pub(crate) trusted_roots: Vec<String>,
     pub(crate) features: BTreeMap<String, bool>,
+    /// 错误恢复协调器（RecoveryCoordinator）开关，对应 AppSettings.error_recovery_enabled。
+    pub(crate) error_recovery_enabled: bool,
+    /// 思维链（ThoughtChain）开关，对应 AppSettings.thought_chain_enabled。
+    pub(crate) thought_chain_enabled: bool,
 }
 
 /// Ordered chain of fallback model identifiers used when the primary

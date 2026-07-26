@@ -30,9 +30,18 @@ import { UserProfileModal } from "./UserProfileModal";
 /** 单一路径来源：直接复用 pageRegistry 的权威映射。 */
 const pageKeyToPath = BUILTIN_PAGE_PATH as Record<PageKey, string>;
 
+/** path→key 反查表：用于识别多段路径（如 /devtools/trace-explorer）对应的 PageKey。 */
+const pathToPageKeyMap: Record<string, PageKey> = Object.fromEntries(
+  Object.entries(BUILTIN_PAGE_PATH).map(([key, path]) => [path, key as PageKey]),
+) as Record<string, PageKey>;
+
 function pathToPageKey(path: string): PageKey {
   if (path === "/" || path === "") {
     return "dashboard";
+  }
+  // 优先按完整路径反查（覆盖 /devtools/xxx 这类多段路径）
+  if (path in pathToPageKeyMap) {
+    return pathToPageKeyMap[path];
   }
   const key = path.slice(1);
   if (key in pageKeyToPath) {
@@ -115,6 +124,7 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
+<<<<<<< HEAD
     key: "workspace",
     icon: <Icon icon="fluent:target-20-filled" size={17} />,
     labelKey: "nav.workspace",
@@ -168,6 +178,59 @@ const builtinNavItems: NavItem[] = [
     icon: <GitBranch size={17} />,
     labelKey: "nav.pipeline",
     path: BUILTIN_PAGE_PATH.pipeline,
+    isPlugin: false,
+  },
+  {
+    key: "wiki",
+    icon: <Icon icon="fluent:book-globe-20-filled" size={17} />,
+    labelKey: "nav.wiki",
+    path: BUILTIN_PAGE_PATH.wiki,
+    isPlugin: false,
+  },
+];
+    icon: <Icon icon="fluent:book-globe-20-filled" size={17} />,
+    labelKey: "nav.wiki",
+    path: BUILTIN_PAGE_PATH.wiki,
+    isPlugin: false,
+  },
+];
+
+/** 开发者工具导航项 — 由 settings.show_developer_tools 门控 */
+const devtoolsNavItems: NavItem[] = [
+  {
+    key: "devtoolsTraceExplorer",
+    icon: <Icon icon="fluent:search-info-20-filled" size={17} />,
+    labelKey: "nav.devtools.traceExplorer",
+    path: BUILTIN_PAGE_PATH.devtoolsTraceExplorer,
+    isPlugin: false,
+  },
+  {
+    key: "devtoolsBenchmark",
+    icon: <Icon icon="fluent:gauge-20-filled" size={17} />,
+    labelKey: "nav.devtools.benchmark",
+    path: BUILTIN_PAGE_PATH.devtoolsBenchmark,
+    isPlugin: false,
+  },
+  {
+    key: "devtoolsToolRecommender",
+    icon: <Icon icon="fluent:wand-20-filled" size={17} />,
+    labelKey: "nav.devtools.toolRecommender",
+    path: BUILTIN_PAGE_PATH.devtoolsToolRecommender,
+    isPlugin: false,
+  },
+  {
+    key: "devtoolsFineTune",
+    icon: <Icon icon="fluent:brain-circuit-20-filled" size={17} />,
+    labelKey: "nav.devtools.fineTune",
+    path: BUILTIN_PAGE_PATH.devtoolsFineTune,
+    isPlugin: false,
+  },
+  {
+    key: "devtoolsRlTraining",
+    icon: <Icon icon="fluent:trophy-20-filled" size={17} />,
+    labelKey: "nav.devtools.rlTraining",
+    path: BUILTIN_PAGE_PATH.devtoolsRlTraining,
+>>>>>>> upstream-master
     isPlugin: false,
   },
 ];
@@ -414,7 +477,7 @@ export function Sidebar() {
     sections.push({
       key: "tools",
       labelKey: "sidebar.sectionTools",
-      items: builtinNavItems.filter((n) => n.key === "knowledge"),
+      items: builtinNavItems.filter((n) => n.key === "knowledge" || n.key === "wiki"),
     });
 
     sections.push({
@@ -442,8 +505,18 @@ export function Sidebar() {
       items: builtinNavItems.filter((n) => n.key === "quant" || n.key === "pipeline"),
     });
 
+    // 开发者工具分组 — 仅在设置开启时显示（默认 true）
+    if (settings.show_developer_tools !== false) {
+      sections.push({
+        key: "developer",
+        labelKey: "sidebar.sectionDeveloper",
+        items: devtoolsNavItems,
+      });
+    }
+>>>>>>> upstream-master
+
     return sections.filter((s) => s.items.length > 0);
-  }, []);
+  }, [settings.show_developer_tools]);
 
   // ── 固定在导航的动态页面 ──
   const dynamicSchemas = useDynamicUIStore((s) => s.schemas);

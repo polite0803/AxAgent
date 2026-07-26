@@ -147,7 +147,7 @@ export function SyncStatus({
   const failedCount = queueItems.filter((i) => i.status === "failed").length;
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Card
         size="small"
         title={

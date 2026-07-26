@@ -11,7 +11,7 @@ use axagent_harness::types::{
     TokenUsage as AxAgentTokenUsage, ToolCall, ToolCallFunction,
 };
 use axagent_harness::{ContentBlock, ConversationMessage, TokenUsage as RuntimeTokenUsage};
-use axagent_harness::{ProviderAdapter, ProviderRequestContext};
+use axagent_harness::{LlmCallConfig, ProviderAdapter, ProviderRequestContext, execute_llm_stream};
 use futures::StreamExt;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -61,6 +61,10 @@ pub struct AxAgentApiClient {
     /// the cache is invalidated and the next request will not include breakpoint
     /// annotations until a new baseline is established.
     pub system_prompt_cache_hash: Option<String>,
+    /// 中心化 LLM 调用配置：承载缓存拦截器 / PromptGuard / 审计 / 置信度等钩子。
+    /// 每次 `stream()` 经 `execute_llm_stream` 应用此配置，使主聊天路径统一受约束。
+    /// 默认全 None，等价于直通 provider（最小开销，向后兼容）。
+    llm_config: LlmCallConfig,
 }
 
 impl AxAgentApiClient {
@@ -83,6 +87,7 @@ impl AxAgentApiClient {
             cancel_token: None,
             enable_cache_breakpoints: false,
             system_prompt_cache_hash: None,
+            llm_config: LlmCallConfig::default(),
         }
     }
 
@@ -109,6 +114,7 @@ impl AxAgentApiClient {
             cancel_token: None,
             enable_cache_breakpoints: false,
             system_prompt_cache_hash: None,
+            llm_config: LlmCallConfig::default(),
         }
     }
 
@@ -182,6 +188,13 @@ impl AxAgentApiClient {
     /// When the token is flipped to `true`, the stream should terminate promptly.
     pub fn with_cancel_token(mut self, token: Option<Arc<AtomicBool>>) -> Self {
         self.cancel_token = token;
+        self
+    }
+
+    /// 注入中心化 LLM 调用配置（缓存拦截器 / PromptGuard / 审计 / 置信度）。
+    /// 由应用层（agent_query）按 settings 门控构造后传入；不设置时走默认直通配置。
+    pub fn with_llm_config(mut self, config: LlmCallConfig) -> Self {
+        self.llm_config = config;
         self
     }
 }
@@ -428,13 +441,21 @@ impl ApiClient for AxAgentApiClient {
             response_format: None,
         };
 
-        // Call AxAgent's provider stream
-        let mut stream =
-            self.adapter.chat_stream(&self.ctx, chat_request, self.cancel_token.clone());
-        let mut events = Vec::new();
+        // 经中心化入口 execute_llm_stream 调用 provider，使缓存 / PromptGuard /
+        // 审计 / 置信度钩子在主聊天路径生效（此前直连 chat_stream 会整体绕过这些约束）。
+        // llm_config 全 None 时 execute_llm_stream 等价于直通，无额外开销。
+        let adapter = self.adapter.clone();
+        let ctx = self.ctx.clone();
+        let cancel = self.cancel_token.clone();
+        let llm_config = self.llm_config.clone();
         let on_event = self.on_event.clone();
 
         let process_stream = async move {
+            let mut stream =
+                execute_llm_stream(adapter.as_ref(), &ctx, chat_request, &llm_config, cancel)
+                    .await
+                    .map_err(RuntimeError::new)?;
+            let mut events = Vec::new();
             while let Some(result) = stream.next().await {
                 match result {
                     Ok(chunk) => {
@@ -505,7 +526,7 @@ impl ApiClient for AxAgentApiClient {
                         }
                     },
                     Err(e) => {
-                        return Err(RuntimeError::new(e.to_string()));
+                        return Err(RuntimeError::new(e));
                     },
                 }
             }

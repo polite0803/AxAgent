@@ -20,6 +20,7 @@
 //! External callers should keep importing via `crate::handlers::xxx` — the
 //! `pub use` re-exports below preserve the original module surface.
 
+pub mod acp;
 pub mod audio;
 pub mod chat;
 pub mod dojo_event;

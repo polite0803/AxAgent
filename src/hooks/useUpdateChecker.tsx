@@ -96,7 +96,7 @@ export function useUpdateChecker() {
               content: renderContent(0, "active"),
               closable: false,
               footer: null,
-              maskClosable: false,
+              mask: { closable: false },
               keyboard: false,
             });
             try {

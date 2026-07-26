@@ -251,7 +251,7 @@ export function ComputerControlPanel() {
 
       {clickCoords && (
         <Card size="small" title={t("computerControl.coordOps")}>
-          <Space direction="vertical">
+          <Space orientation="vertical">
             <Typography.Text>
               {t("computerControl.coordinates")}: ({clickCoords.x}, {clickCoords.y})
             </Typography.Text>

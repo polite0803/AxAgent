@@ -13,7 +13,9 @@
     "public/**/*",
     "output/**/*",
     "**/CHANGELOG.md",
-    "src-tauri/schema-gen/**/*"
+    "src-tauri/schema-gen/**/*",
+    "scripts/**/*",
+    "src-tauri/scripts/**/*"
   ],
   "typescript": {
     "quoteStyle": "preferDouble",

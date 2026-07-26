@@ -913,7 +913,7 @@ function GraphViewInner({
               border: `1px solid ${token.colorBorderSecondary}40`,
             }}
           >
-            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="small" style={{ width: "100%" }}>
               <div
                 style={{
                   display: "flex",
@@ -1000,7 +1000,7 @@ function GraphViewInner({
               border: `1px solid ${token.colorBorderSecondary}40`,
             }}
           >
-            <Space direction="vertical" size="small">
+            <Space orientation="vertical" size="small">
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {t("wiki.graph.stats")}
               </Text>

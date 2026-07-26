@@ -205,6 +205,10 @@ pub struct ConversationRuntime<C, T> {
     think_scrubber: Option<Box<dyn crate::guard_traits::ThinkScrubber>>,
     /// G11 token 用量 sink（可选，None = 不记录用量到外部 ledger）
     token_usage_sink: Option<Arc<dyn crate::guard_traits::TokenUsageSink>>,
+    /// 错误恢复协调器开关（对应 RuntimeFeatureConfig.error_recovery_enabled）。
+    error_recovery_enabled: bool,
+    /// 思维链开关（对应 RuntimeFeatureConfig.thought_chain_enabled）。
+    thought_chain_enabled: bool,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -263,6 +267,8 @@ where
             tool_call_guardrail: None,
             think_scrubber: None,
             token_usage_sink: None,
+            error_recovery_enabled: feature_config.error_recovery_enabled,
+            thought_chain_enabled: feature_config.thought_chain_enabled,
         }
     }
 
@@ -698,7 +704,12 @@ where
                         // 替代原局部 MAX_RETRIES=3 + 线性退避逻辑,
                         // 采用错误分类 → 策略选择 → 指数退避的统一模式。
                         let error_type = classify_recovery_error(&err_msg);
-                        match get_recovery_action(error_type) {
+                        let recovery_action = if self.error_recovery_enabled {
+                            get_recovery_action(error_type)
+                        } else {
+                            RecoveryAction::Fail
+                        };
+                        match recovery_action {
                             RecoveryAction::Fail => {
                                 tracing::warn!(
                                     error_type = ?error_type,
@@ -758,7 +769,7 @@ where
                 },
             };
             let (mut assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
-                match build_assistant_message(events) {
+                match build_assistant_message(events, self.thought_chain_enabled) {
                     Ok(result) => result,
                     Err(error) => {
                         self.record_turn_failed(iterations, &error);
@@ -1014,7 +1025,12 @@ where
                                     // 替代原局部 MAX_TOOL_RETRIES=3 + 线性退避逻辑,
                                     // 采用错误分类 → 策略选择 → 指数退避的统一模式。
                                     let error_type = classify_recovery_error(&err_str);
-                                    match get_recovery_action(error_type) {
+                                    let recovery_action = if self.error_recovery_enabled {
+                                        get_recovery_action(error_type)
+                                    } else {
+                                        RecoveryAction::Fail
+                                    };
+                                    match recovery_action {
                                         RecoveryAction::Fail => {
                                             tracing::warn!(
                                                 error_type = ?error_type,
@@ -1507,6 +1523,7 @@ fn parse_auto_compaction_threshold(value: Option<&str>) -> u32 {
 
 fn build_assistant_message(
     events: Vec<AssistantEvent>,
+    show_thought_chain: bool,
 ) -> Result<(ConversationMessage, Option<TokenUsage>, Vec<PromptCacheEvent>, String), RuntimeError>
 {
     let mut text = String::new();
@@ -1534,7 +1551,11 @@ fn build_assistant_message(
 
     flush_text_block(&mut text, &mut blocks);
 
-    if !thinking.is_empty() {
+    // 思维链可视化：仅当 thought_chain_enabled 开启时，才把推理内容包成
+    // `<think>` 块前置到正文（前端据此渲染可折叠的"思考过程"）。关闭时
+    // 推理内容仍被捕获并作为第 4 个返回值透出（用于 trajectory / 日志），
+    // 只是不在对话正文里做可视化，避免污染最终答案。
+    if show_thought_chain && !thinking.is_empty() {
         let thinking_text = format!("<think data-axagent=\"1\">\n{}\n</think>", thinking);
         if let Some(ContentBlock::Text { text }) = blocks.first_mut() {
             *text = format!("{}\n\n{}", thinking_text, text);
@@ -1819,13 +1840,15 @@ pub fn create_conversation_runtime(
     >,
     permission_policy: crate::permissions::PermissionPolicy,
     system_prompt: Vec<String>,
+    feature_config: RuntimeFeatureConfig,
 ) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
-    let rt = ConversationRuntime::new(
+    let rt = ConversationRuntime::new_with_features(
         session,
         api_client,
         tool_executor,
         permission_policy,
         system_prompt,
+        &feature_config,
     );
     Box::new(rt)
 }
@@ -2731,7 +2754,7 @@ mod tests {
         let events = vec![AssistantEvent::TextDelta("partial".to_string())];
 
         // when: stream recovery returns partial content instead of error
-        let result = build_assistant_message(events)
+        let result = build_assistant_message(events, true)
             .expect("stream recovery should return partial result with content");
 
         // then: partial content is preserved
@@ -2754,7 +2777,7 @@ mod tests {
         let events: Vec<AssistantEvent> = vec![];
 
         // when
-        let error = build_assistant_message(events)
+        let error = build_assistant_message(events, true)
             .expect_err("empty stream without stop event should error");
 
         // then
@@ -2767,11 +2790,66 @@ mod tests {
         let events = vec![AssistantEvent::MessageStop];
 
         // when
-        let error =
-            build_assistant_message(events).expect_err("assistant messages should require content");
+        let error = build_assistant_message(events, true)
+            .expect_err("assistant messages should require content");
 
         // then
         assert!(error.to_string().contains("assistant stream produced no content"));
+    }
+
+    #[test]
+    fn build_assistant_message_emits_think_block_when_thought_chain_enabled() {
+        // given: 一轮包含推理内容 + 正文的完整流
+        let events = vec![
+            AssistantEvent::ThinkingDelta("weighing options".to_string()),
+            AssistantEvent::TextDelta("final answer".to_string()),
+            AssistantEvent::MessageStop,
+        ];
+
+        // when: thought_chain 开启
+        let (msg, _usage, _cache, thinking) =
+            build_assistant_message(events, true).expect("should build message");
+
+        // then: 推理被包成 <think> 块前置到正文，且原始 thinking 仍被透出
+        let text = msg
+            .blocks
+            .iter()
+            .find_map(|b| match b {
+                ContentBlock::Text { text } => Some(text.clone()),
+                _ => None,
+            })
+            .unwrap();
+        assert!(text.contains("<think data-axagent=\"1\">"), "开启时应注入 <think> 可视化块");
+        assert!(text.contains("weighing options"), "<think> 块应包含推理内容");
+        assert!(text.contains("final answer"), "正文应保留");
+        assert_eq!(thinking, "weighing options", "推理内容始终透出（供 trajectory 使用）");
+    }
+
+    #[test]
+    fn build_assistant_message_hides_think_block_when_thought_chain_disabled() {
+        // given: 同样一轮包含推理内容 + 正文的流
+        let events = vec![
+            AssistantEvent::ThinkingDelta("weighing options".to_string()),
+            AssistantEvent::TextDelta("final answer".to_string()),
+            AssistantEvent::MessageStop,
+        ];
+
+        // when: thought_chain 关闭
+        let (msg, _usage, _cache, thinking) =
+            build_assistant_message(events, false).expect("should build message");
+
+        // then: 正文里不出现 <think> 可视化块，但推理内容仍通过返回值透出
+        let text = msg
+            .blocks
+            .iter()
+            .find_map(|b| match b {
+                ContentBlock::Text { text } => Some(text.clone()),
+                _ => None,
+            })
+            .unwrap();
+        assert!(!text.contains("<think"), "关闭时不应注入 <think> 可视化块");
+        assert!(text.contains("final answer"), "正文应保留");
+        assert_eq!(thinking, "weighing options", "关闭可视化不影响推理内容捕获");
     }
 
     #[test]

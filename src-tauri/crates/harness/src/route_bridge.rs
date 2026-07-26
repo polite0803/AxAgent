@@ -23,19 +23,27 @@
 //!
 //! 符合 AGENTS.md 铁律：`组件 → harness ← 实现`
 
+use serde::{Deserialize, Serialize};
+
 use crate::provider::ProviderRequestContext;
 use crate::types::ChatRequest;
 
 /// tier → 具体 model + provider 的映射结果
 ///
 /// 由 `ModelTierResolver::resolve` 返回，应用层据此构建或调整 `ProviderRequestContext`。
-#[derive(Debug, Clone)]
+///
+/// 同时作为 `AppSettings::smart_router_tier_mappings` 的持久化值类型（tier 字符串 →
+/// 本结构），前端设置界面据此收发 JSON，因此派生 `Serialize`/`Deserialize`。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TierModelMapping {
     /// 解析出的模型 ID（如 "gpt-4o-mini" / "claude-3-sonnet"）
+    #[serde(default)]
     pub model_id: String,
     /// 解析出的 provider ID（如 "openai" / "anthropic"）
+    #[serde(default)]
     pub provider_id: String,
     /// 可选的 base URL 覆盖（用于自建端点 / 代理）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub base_url_override: Option<String>,
 }
 

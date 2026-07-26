@@ -269,7 +269,7 @@ export function CitationStats({
 
   return (
     <div className="citation-stats">
-      <Space direction="vertical" size="small" style={{ width: "100%" }}>
+      <Space orientation="vertical" size="small" style={{ width: "100%" }}>
         <div className="flex justify-between">
           <Text type="secondary">{t("citationManager.totalCitations")}</Text>
           <Text strong>{stats.total}</Text>

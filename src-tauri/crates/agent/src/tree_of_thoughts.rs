@@ -540,6 +540,86 @@ Respond with only a number between 0.0 and 1.0.",
             .map(|n| n.id.clone())
             .collect()
     }
+
+    /// 一次完整的 ToT 求解：从根节点生成分支 → 评估得分 → 剪枝 → 选出最佳路径。
+    ///
+    /// 返回最佳路径上各节点的串联推理摘要（按 root→leaf 顺序拼接 content）。
+    ///
+    /// ## 参数
+    /// - `context`：原始用户输入/问题描述
+    /// - `llm_client`：实现了 `LlmReasoningProvider` 的 LLM 客户端
+    ///
+    /// ## 开销
+    /// 本方法会发起 `branching_factor * (1 + max_depth)` 次 LLM 调用（生成 + 评估）。
+    /// 请在上层通过 `tot_enabled` 特征门控控制是否启用。
+    pub async fn solve(
+        &mut self,
+        context: &str,
+        llm_client: &Arc<dyn LlmReasoningProvider>,
+    ) -> Result<String, AxAgentError> {
+        use tracing::info;
+
+        // 1. 从根节点生成初始分支
+        let root_id = self.root_id.clone();
+        info!(
+            "[ToT] Generating {} initial branches from root (max_depth={})",
+            self.branching_factor, self.max_depth
+        );
+        let mut current_frontier =
+            self.generate_branching_options(root_id.clone(), context, llm_client).await?;
+
+        // 2. 逐层扩展（最多 max_depth 层）
+        for depth in 1..=self.max_depth {
+            if current_frontier.is_empty() {
+                break;
+            }
+
+            info!("[ToT] Depth {depth}: evaluating {} node(s)", current_frontier.len());
+
+            // 评估当前层所有节点
+            for node_id in &current_frontier {
+                let _ = self.evaluate_and_score_node(node_id, context, llm_client).await?;
+            }
+
+            // 剪枝
+            let pruned = self.prune_below_threshold(self.evaluation_threshold);
+            if !pruned.is_empty() {
+                info!("[ToT] Depth {depth}: pruned {} node(s)", pruned.len());
+            }
+
+            // 如果已达最大深度，停止扩展
+            if depth >= self.max_depth {
+                break;
+            }
+
+            // 在存活节点上继续生成子分支
+            let surviving = self.get_leaves();
+            let mut next_frontier = Vec::new();
+            for node_id in &surviving {
+                let children =
+                    self.generate_branching_options(node_id.clone(), context, llm_client).await?;
+                next_frontier.extend(children);
+            }
+            current_frontier = next_frontier;
+        }
+
+        // 3. 选出最佳路径
+        let best_path = self.select_best_path();
+        info!("[ToT] Best path: {} nodes", best_path.len());
+
+        // 4. 拼接推理摘要
+        let mut summary = String::new();
+        for node_id in &best_path {
+            if let Some(node) = self.get_node(node_id) {
+                if !summary.is_empty() {
+                    summary.push('\n');
+                }
+                summary.push_str(&node.content);
+            }
+        }
+
+        Ok(summary)
+    }
 }
 
 #[async_trait::async_trait]

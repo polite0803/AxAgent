@@ -23,25 +23,6 @@ use crate::trajectory::{
 };
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
-pub(crate) struct RLState {
-    pub values: Vec<f64>,
-    pub advantages: Vec<f64>,
-    pub returns: Vec<f64>,
-    pub policy_logits: Vec<f64>,
-}
-
-impl RLState {
-    pub(crate) fn new(steps: usize) -> Self {
-        Self {
-            values: vec![0.0; steps],
-            advantages: vec![0.0; steps],
-            returns: vec![0.0; steps],
-            policy_logits: vec![0.0; steps],
-        }
-    }
-}
-
 /// 默认 LLM 评判器占位实现（未配置 LLM）。
 ///
 /// **注意**：这是规则化占位实现，所有 trait 方法返回 `Err(NotConfigured)`。

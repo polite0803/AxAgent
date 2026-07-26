@@ -1070,7 +1070,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               </div>
             )
             : (
-              <Space direction="vertical" className="w-full">
+              <Space orientation="vertical" className="w-full">
                 {validationResult.errors.length > 0 && (
                   <div>
                     <div className="py-2">
@@ -1080,7 +1080,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                     </div>
                     {validationResult.errors.map((err, i) => (
                       <div key={i} className="py-2">
-                        <Space direction="vertical" size={0} className="w-full">
+                        <Space orientation="vertical" size={0} className="w-full">
                           <Space>
                             <CloseCircleOutlined style={{ color: token.colorError }} />
                             <Text>{err.message}</Text>
@@ -1101,7 +1101,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                     </div>
                     {validationResult.warnings.map((warn, i) => (
                       <div key={i} className="py-2">
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                           <Space>
                             <WarningOutlined style={{ color: token.colorWarning }} />
                             <Text>{warn.message}</Text>
@@ -1560,7 +1560,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                     <Empty
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                       description={
-                        <Space direction="vertical" size={4}>
+                        <Space orientation="vertical" size={4}>
                           <Text type="secondary">{t("workflow.debug.noTraceData")}</Text>
                           <Button
                             size="small"

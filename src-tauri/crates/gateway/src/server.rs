@@ -67,6 +67,8 @@ pub struct GatewayAppState {
     pub market_data_streamer: Option<Arc<dyn MarketDataStreamer>>,
     /// G8: 后台 Chat Run 存储（进程内内存），用于 `/api/chat/runs` 生命周期管理。
     pub run_store: Arc<crate::handlers::runs::RunStore>,
+    /// ACP (Agent Communication Protocol) 协议开关。由 wiring 层在启动时设置。
+    pub acp_enabled: bool,
 }
 
 /// TLS certificate material.
@@ -207,6 +209,7 @@ impl GatewayServer {
         mcp_store: Arc<dyn axagent_harness::mcp_service::McpServerStore>,
         mcp_client: Arc<dyn axagent_harness::mcp_service::McpClientService>,
         market_data_streamer: Option<Arc<dyn MarketDataStreamer>>,
+        acp_enabled: bool,
     ) -> Result<Self> {
         let started_at = axagent_harness::util_fns::now_ts();
         let routing_strategy = routing_strategy_from_env();
@@ -235,6 +238,7 @@ impl GatewayServer {
             round_robin_cursor: RoundRobinCursor::new(),
             market_data_streamer,
             run_store: Arc::new(crate::handlers::runs::RunStore::new()),
+            acp_enabled,
         };
         Self::start_inner(app_state, config).await
     }

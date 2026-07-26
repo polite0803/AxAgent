@@ -136,7 +136,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
           {result.suggestions.length > 0 && (
             <div style={{ marginBottom: 12 }}>
               <Text strong style={{ display: "block", marginBottom: 4 }}>{t("workflow.nlParser.aiSuggestion")}</Text>
-              <Space direction="vertical" size={4}>
+              <Space orientation="vertical" size={4}>
                 {result.suggestions.map((s, i) => (
                   // FIXME: suggestions 是字符串数组，无稳定唯一标识
                   <Tag key={`suggestion-${i}`} color="processing">{s}</Tag>

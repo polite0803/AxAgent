@@ -124,6 +124,18 @@ impl ConfigLoader {
             provider_fallbacks: parse_optional_provider_fallbacks(&merged_value)?,
             trusted_roots: parse_optional_trusted_roots(&merged_value)?,
             features: parse_optional_features(&merged_value)?,
+            // 与 AppSettings 默认保持一致：error_recovery 默认开、thought_chain 默认开。
+            // 从合并后的 settings JSON 读取（缺省时回退到默认值）。
+            error_recovery_enabled: merged_value
+                .as_object()
+                .and_then(|obj| obj.get("error_recovery_enabled"))
+                .and_then(JsonValue::as_bool)
+                .unwrap_or(true),
+            thought_chain_enabled: merged_value
+                .as_object()
+                .and_then(|obj| obj.get("thought_chain_enabled"))
+                .and_then(JsonValue::as_bool)
+                .unwrap_or(true),
         };
 
         Ok(RuntimeConfig {

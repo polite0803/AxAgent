@@ -276,11 +276,20 @@
       "fullAccess": "Acceso completo"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "control de privacidad",
     "resourceControl": "Control de recursos y estrategia ecológica",
     "retryDelay": "Retardo entre reintentos (segundos)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "Límite de presupuesto de tokens",
-    "warningBuffer": "Búfer de advertencia (token)",
+    "smartRouter": {
+      "enableLabel": "Activar enrutador inteligente",
+      "hint": "Cuando está activado, cada mensaje se enruta automáticamente a un nivel de modelo (económico/equilibrado/premium) según la complejidad de la tarea, y luego se asigna al proveedor y modelo configurados a continuación. Si está desactivado o sin configurar, se mantiene el modelo seleccionado manualmente.",
+      "modelPlaceholder": "Seleccionar modelo",
+      "providerPlaceholder": "Seleccionar proveedor",
+      "tierBalanced": "Equilibrado",
+      "tierBudget": "Económico",
+      "tierPremium": "Premium",
+      "title": "Enrutador inteligente"
+    },
     "telemetryLevel": {
       "full": "Completo",
       "minimal": "Mínimo",
@@ -288,7 +297,8 @@
     },
     "telemetryLevelHint": "AxAgent no recopila telemetría de forma predeterminada. \"Mínimo\" registra solo eventos de comportamiento del usuario (para seguimiento de sesiones); \"Completo\" también registra detalles de solicitudes HTTP (URL, estado, etc.). Los cambios se aplican inmediatamente.",
     "telemetryLevelLabel": "Nivel de telemetría",
-    "privacyControl": "control de privacidad"
+    "tokenBudgetLimit": "Límite de presupuesto de tokens",
+    "warningBuffer": "Búfer de advertencia (token)"
   },
   "agent": {
     "answerSubmitted": "Respuesta enviada",
@@ -2049,9 +2059,13 @@
     "totalModels": "Modelos",
     "totalProviders": "Proveedores",
     "totalRequests": "Solicitudes totales",
-    "totalTokens": "Tokens totales",
+    "totalTokens": "Tokens Totales",
     "usageTrend": "Tendencia de uso diario",
-    "dailyAvgCost": "Coste medio diario"
+    "dailyAvgCost": "Coste medio diario",
+    "tabs": {
+      "overview": "Resumen",
+      "office": "Oficina de Píxeles"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "Datos generados por el agente \"{{generationId}}\" no encontrados en el almacén de ejecución",
@@ -3930,7 +3944,15 @@
     "delegateSuccess": "Tarea delegada completada exitosamente",
     "delegateFailed": "Tarea delegada fallida",
     "maxConcurrent": "Concurrencia máxima",
-    "timeoutSec": "Tiempo de espera (segundos)"
+    "timeoutSec": "Tiempo de espera (segundos)",
+    "dynamicUI": "Páginas dinámicas",
+    "devtools": {
+      "traceExplorer": "Explorador de trazas",
+      "benchmark": "Benchmark",
+      "toolRecommender": "Recomendador de herramientas",
+      "fineTune": "Ajuste fino",
+      "rlTraining": "Entrenamiento RL"
+    }
   },
   "notification": {
     "clear": "Limpiar",
@@ -4000,6 +4022,71 @@
     "welcomeDesc": "Cliente de escritorio IA inteligente con soporte multimodelo, ejecución autónoma de agentes y búsqueda en base de conocimientos",
     "downloadOllama": "Descargar Ollama",
     "applying": "Aplicando…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "Crear oficina",
+      "promptName": "Introduce el nombre de la oficina:"
+    },
+    "emptyFleet": "No hay oficinas creadas. Haz clic en el botón superior derecho para crear la primera.",
+    "memberCount": "{{count}} miembros",
+    "membersTitle": "Miembros",
+    "noMembers": "Esta oficina no tiene miembros. Añade uno desde la lista de agentes.",
+    "selectFleet": "Selecciona una oficina",
+    "tabs": {
+      "chat": "Chat grupal",
+      "dm": "Mensaje directo",
+      "trajectory": "Trayectoria",
+      "token": "Tokens"
+    },
+    "memberStatus": {
+      "idle": "Inactivo",
+      "busy": "Ocupado",
+      "paused": "Pausado",
+      "error": "Error",
+      "offline": "Desconectado"
+    },
+    "fleetStatus": {
+      "active": "En ejecución",
+      "paused": "Pausado",
+      "stopped": "Detenido"
+    },
+    "chat": {
+      "emptyHint": "Escribe un mensaje abajo — el dispatcher lo enruta al agente adecuado.",
+      "inputPlaceholder": "Escribe un mensaje grupal…",
+      "send": "Enviar",
+      "routingHint": "Enrutando…",
+      "tagRouting": "Enrutado",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Proceso",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "Hecho"
+    },
+    "dm": {
+      "selectTarget": "Elige un agente de la lista de miembros para iniciar un DM.",
+      "backToList": "Volver a miembros",
+      "emptyHint": "No hay mensajes con {{slug}}.",
+      "inputPlaceholder": "Mensaje a {{slug}}…",
+      "send": "Enviar"
+    },
+    "trajectory": {
+      "empty": "No hay eventos de trayectoria.",
+      "tagRouting": "Enrutado",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Proceso",
+      "tagStatus": "Estado",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "No hay datos de uso de tokens.",
+      "todayTotal": "Total de hoy",
+      "allTotal": "Total acumulado",
+      "resetDaily": "Reiniciar hoy",
+      "colMember": "Miembro",
+      "colStatus": "Estado",
+      "colToday": "Tokens de hoy",
+      "colTotal": "Tokens totales"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "Mantenga pulsado para pegar manualmente",
@@ -6126,7 +6213,18 @@
     },
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "Prefijo de marcador (predeterminado: CHAT2API, generalmente no es necesario modificar)",
-    "title": "设置"
+    "title": "设置",
+    "showDeveloperTools": "Mostrar herramientas de desarrollador",
+    "showDeveloperToolsDesc": "Mostrar la seccion de herramientas de desarrollador (Trazas/Benchmark/Ajuste/RL) en la barra lateral",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
+    "proactiveBehavior": "Proactivo",
+    "proactiveNudge": "Sugerencias proactivas",
+    "proactiveNudgeDesc": "Ofrece proactivamente sugerencias o siguientes pasos según el contexto de la conversación",
+    "closedLoopEnabled": "Ejecución en bucle cerrado",
+    "closedLoopEnabledDesc": "Permite al agente ejecutar tareas en bucle cerrado automáticamente tras la autorización",
+    "closedLoopInterval": "Intervalo de bucle cerrado",
+    "closedLoopIntervalDesc": "Intervalo de comprobación de estado para tareas en bucle cerrado (minutos)"
   },
   "settingsPage": {
     "refreshPage": "Actualizar página"
@@ -6162,7 +6260,8 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
-    "sectionWork": "工作"
+    "sectionWork": "工作",
+    "sectionDeveloper": "Herramientas de desarrollador"
   },
   "skill": {
     "abTest": {
@@ -6502,6 +6601,7 @@
       "sourceNamePlaceholder": "ej.: Fuentes de conocimiento del proyecto",
       "sourceNameRequired": "Ingrese un nombre de origen",
       "sourceNameHint": "Nombre Wiki = el nombre; Nombre RAG KB = {nombre} Graph",
+      "defaultSourceName": "Fuente de conocimiento del proyecto",
       "mode": "Modo",
       "modeCreate": "Crear",
       "modeCreateDesc": "Primera importación del directorio; los KB de mismo nombre sin embedding se limpiarán y reconstruirán",

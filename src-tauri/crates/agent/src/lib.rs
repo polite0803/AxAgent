@@ -49,6 +49,7 @@ pub mod ingest_queue;
 pub mod insight_generator;
 pub mod interrupt;
 pub mod lint_checker;
+pub mod llm_dispatcher;
 pub mod llm_bridge;
 pub mod metrics;
 pub mod multi_agent_hook;
@@ -117,6 +118,9 @@ pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
 
 // fallback_adapter — 外部引用：commands/agent
 pub use fallback_adapter::FallbackProviderAdapter;
+
+// llm_dispatcher — 外部引用：commands/fleet
+pub use llm_dispatcher::LlmDispatcher;
 
 // llm_bridge — 外部引用：runtime/llm_bridge
 pub use llm_bridge::ProviderLlmBridge;
@@ -208,6 +212,11 @@ pub use guardrails::{
 pub use think_scrubber::{ScrubberConfig, ThinkScrubber};
 
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
+
+// tree_of_thoughts — 外部引用：commands/agent（ToT 求解器）
+pub use tree_of_thoughts::{
+    DefaultToTReasoningProvider, LlmReasoningProvider, TreeOfThoughtsEngine,
+};
 
 // runtime-core 类型透传 — 外部引用：commands/agent
 

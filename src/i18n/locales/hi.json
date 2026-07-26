@@ -276,11 +276,20 @@
       "fullAccess": "पूर्ण पहुँच"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "गोपनीयता नियंत्रण",
     "resourceControl": "संसाधन नियंत्रण और इको रणनीति",
     "retryDelay": "पुनः प्रयास विलंब (सेकंड)",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "टोकन बजट सीमा",
-    "warningBuffer": "चेतावनी बफर (टोकन)",
+    "smartRouter": {
+      "enableLabel": "स्मार्ट राउटर सक्षम करें",
+      "hint": "सक्षम होने पर, प्रत्येक संदेश को कार्य की जटिलता के आधार पर स्वचालित रूप से एक मॉडल श्रेणी (बजट/संतुलित/प्रीमियम) पर रूट किया जाता है, फिर नीचे कॉन्फ़िगर किए गए प्रदाता और मॉडल से मैप किया जाता है। बंद या अकॉन्फ़िगर होने पर आपका मैन्युअल रूप से चयनित मॉडल बना रहता है।",
+      "modelPlaceholder": "मॉडल चुनें",
+      "providerPlaceholder": "प्रदाता चुनें",
+      "tierBalanced": "संतुलित",
+      "tierBudget": "बजट",
+      "tierPremium": "प्रीमियम",
+      "title": "स्मार्ट राउटर"
+    },
     "telemetryLevel": {
       "full": "पूर्ण",
       "minimal": "न्यूनतम",
@@ -288,7 +297,8 @@
     },
     "telemetryLevelHint": "AxAgent डिफ़ॉल्ट रूप से कोई टेलीमेट्री डेटा एकत्र नहीं करता है। 'न्यूनतम' चुनने पर केवल उपयोगकर्ता व्यवहार घटनाएँ (सत्र ट्रैकिंग के लिए) रिकॉर्ड होती हैं, 'पूर्ण' अतिरिक्त HTTP अनुरोध विवरण (URL, स्थिति कोड आदि) रिकॉर्ड करता है। परिवर्तन तुरंत प्रभावी होते हैं।",
     "telemetryLevelLabel": "टेलीमेट्री स्तर",
-    "privacyControl": "गोपनीयता नियंत्रण"
+    "tokenBudgetLimit": "टोकन बजट सीमा",
+    "warningBuffer": "चेतावनी बफर (टोकन)"
   },
   "agent": {
     "answerSubmitted": "उत्तर सबमिट किया गया",
@@ -2051,7 +2061,11 @@
     "totalRequests": "कुल अनुरोध",
     "totalTokens": "कुल टोकन",
     "usageTrend": "दैनिक उपयोग प्रवृत्ति",
-    "dailyAvgCost": "दैनिक औसत लागत"
+    "dailyAvgCost": "दैनिक औसत लागत",
+    "tabs": {
+      "overview": "अवलोकन",
+      "office": "पिक्सेल ऑफिस"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "एजेंट द्वारा उत्पन्न डेटा \"{{generationId}}\" निष्पादन स्टोर में नहीं मिला",
@@ -3930,7 +3944,15 @@
     "delegateSuccess": "प्रतिनिधि कार्य सफलतापूर्वक पूर्ण",
     "delegateFailed": "प्रतिनिधि कार्य विफल",
     "maxConcurrent": "अधिकतम समवर्ती",
-    "timeoutSec": "समय समाप्ति (सेकंड)"
+    "timeoutSec": "समय समाप्ति (सेकंड)",
+    "dynamicUI": "डायनामिक पृष्ठ",
+    "devtools": {
+      "traceExplorer": "ट्रेस एक्सप्लोरर",
+      "benchmark": "बेंचमार्क",
+      "toolRecommender": "टूल अनुशंसक",
+      "fineTune": "फ़ाइन-ट्यून",
+      "rlTraining": "आरएल प्रशिक्षण"
+    }
   },
   "notification": {
     "clear": "साफ़ करें",
@@ -4000,6 +4022,71 @@
     "welcomeDesc": "स्मार्ट AI डेस्कटॉप क्लाइंट, बहु-मॉडल समर्थन, स्वायत्त एजेंट निष्पादन और ज्ञानकोष खोज के साथ",
     "downloadOllama": "Ollama डाउनलोड करें",
     "applying": "लागू हो रहा है…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "ऑफिस बनाएं",
+      "promptName": "ऑफिस का नाम दर्ज करें:"
+    },
+    "emptyFleet": "कोई ऑफिस अभी तक नहीं बनाई गई। ऊपर दाईं ओर बटन पर क्लिक करके पहली ऑफिस बनाएं।",
+    "memberCount": "{{count}} सदस्य",
+    "membersTitle": "सदस्य",
+    "noMembers": "इस ऑफिस में कोई सदस्य नहीं है। एजेंट सूची से जोड़ें।",
+    "selectFleet": "ऑफिस चुनें",
+    "tabs": {
+      "chat": "समूह चैट",
+      "dm": "सीधा संदेश",
+      "trajectory": "प्रक्षेपण",
+      "token": "टोकन"
+    },
+    "memberStatus": {
+      "idle": "निष्क्रिय",
+      "busy": "व्यस्त",
+      "paused": "रुका हुआ",
+      "error": "त्रुटि",
+      "offline": "ऑफ़लाइन"
+    },
+    "fleetStatus": {
+      "active": "चल रहा है",
+      "paused": "रुका हुआ",
+      "stopped": "रुक गया"
+    },
+    "chat": {
+      "emptyHint": "नीचे एक संदेश टाइप करें — डिस्पैचर इसे सही एजेंट को रूट करेगा।",
+      "inputPlaceholder": "समूह संदेश टाइप करें…",
+      "send": "भेजें",
+      "routingHint": "रूटिंग…",
+      "tagRouting": "रूटिंग",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "प्रोसेस",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "पूर्ण"
+    },
+    "dm": {
+      "selectTarget": "सदस्य सूची से एक एजेंट चुनें और DM शुरू करें।",
+      "backToList": "सदस्य सूची पर वापस",
+      "emptyHint": "{{slug}} के साथ कोई संदेश नहीं।",
+      "inputPlaceholder": "{{slug}} को संदेश…",
+      "send": "भेजें"
+    },
+    "trajectory": {
+      "empty": "कोई प्रक्षेपण घटनाएं नहीं।",
+      "tagRouting": "रूटिंग",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "प्रोसेस",
+      "tagStatus": "स्थिति",
+      "tagToken": "टोकन"
+    },
+    "token": {
+      "empty": "कोई टोकन उपयोग डेटा नहीं।",
+      "todayTotal": "आज का कुल",
+      "allTotal": "कुल कुल",
+      "resetDaily": "आज रीसेट करें",
+      "colMember": "सदस्य",
+      "colStatus": "स्थिति",
+      "colToday": "आज के टोकन",
+      "colTotal": "कुल टोकन"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "मैन्युअल पेस्ट के लिए लॉन्ग-प्रेस करें",
@@ -6126,7 +6213,18 @@
     },
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)",
-    "title": "设置"
+    "title": "设置",
+    "showDeveloperTools": "डेवलपर टूल दिखाएं",
+    "showDeveloperToolsDesc": "साइडबार में डेवलपर टूल अनुभाग (ट्रेस/बेंचमार्क/फ़ाइन-ट्यून/आरएल) दिखाएं",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
+    "proactiveBehavior": "सक्रिय",
+    "proactiveNudge": "सक्रिय सुझाव",
+    "proactiveNudgeDesc": "वार्तालाप के संदर्भ के आधार पर सुझाव या अगले चरण सक्रिय रूप से दें",
+    "closedLoopEnabled": "बंद-लूप निष्पादन",
+    "closedLoopEnabledDesc": "अनुमति मिलने पर एजेंट को बंद-लूप कार्य स्वचालित चलाने दें",
+    "closedLoopInterval": "बंद-लूप अंतराल",
+    "closedLoopIntervalDesc": "बंद-लूप कार्यों की स्थिति जाँच अंतराल (मिनट)"
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"
@@ -6162,7 +6260,8 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
-    "sectionWork": "工作"
+    "sectionWork": "工作",
+    "sectionDeveloper": "डेवलपर टूल"
   },
   "skill": {
     "abTest": {
@@ -6502,6 +6601,7 @@
       "sourceNamePlaceholder": "जैसे: प्रोजेक्ट नॉलेज स्रोत",
       "sourceNameRequired": "कृपया स्रोत का नाम दर्ज करें",
       "sourceNameHint": "Wiki नाम = वह नाम; RAG KB नाम = {नाम} ग्राफ़",
+      "defaultSourceName": "प्रोजेक्ट ज्ञान स्रोत",
       "mode": "मोड",
       "modeCreate": "बनाएं",
       "modeCreateDesc": "डायरेक्टरी का पहला आयात; एम्बेडिंग रहित समान नाम वाले KB साफ़ करके पुनर्निर्मित होंगे",

@@ -400,7 +400,6 @@ macro_rules! register_all_commands {
             commands::workflows::workflow_cancel,
             commands::workflows::workflow_list,
             commands::workflows::workflow_list_active_executions,
-            commands::agent_advanced::agent_estimate_complexity,
             commands::sub_agent::sub_agent_list,
             commands::sub_agent::sub_agent_get,
             commands::sub_agent::sub_agent_get_children,
@@ -1246,6 +1245,20 @@ macro_rules! register_all_commands {
             commands::strategy_pack::count_builtin_strategy_packs,
             // ── 轻量级一次性对话补全（stub，供 AgentGeneratorModal 使用）──
             commands::simple_completion::simple_chat_completion,
+            // Fleet（多办公室 AI 团队）
+            commands::fleet::fleet_add_member,
+            commands::fleet::fleet_create,
+            commands::fleet::fleet_delete,
+            commands::fleet::fleet_direct_message,
+            commands::fleet::fleet_dispatch,
+            commands::fleet::fleet_get,
+            commands::fleet::fleet_get_member,
+            commands::fleet::fleet_list,
+            commands::fleet::fleet_list_members,
+            commands::fleet::fleet_remove_member,
+            commands::fleet::fleet_reset_daily_tokens,
+            commands::fleet::fleet_update_member_status,
+            commands::fleet::fleet_update_status,
         ]
     };
 }

@@ -6,7 +6,9 @@ use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use axagent_agent::{AxAgentApiClient, FallbackProviderAdapter};
+use axagent_agent::{
+    AxAgentApiClient, DefaultToTReasoningProvider, FallbackProviderAdapter, TreeOfThoughtsEngine,
+};
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
@@ -399,6 +401,7 @@ fn build_streaming_api_client(
     use_max_completion_tokens: Option<bool>,
     thinking_param_style: Option<String>,
     request_delay_ms: Option<u64>,
+    llm_cache: Option<Arc<dyn axagent_harness::cache_interceptor::HarnessCache>>,
     stream_conv_id: String,
     stream_msg_id: String,
     stream_app: AppHandle,
@@ -422,6 +425,17 @@ fn build_streaming_api_client(
         .with_use_max_completion_tokens(use_max_completion_tokens)
         .with_thinking_param_style(thinking_param_style)
         .with_request_delay_ms(request_delay_ms);
+
+    // 2.5 语义缓存拦截器（可选）：注入后主聊天路径经 execute_llm_stream 走中心化入口，
+    // 相同请求命中缓存即合成流短路，省去真实 LLM 调用。缓存开关关闭时 llm_cache 为 None，
+    // llm_config 保持全 None，等价于直通 provider（零额外开销）。
+    if let Some(cache) = llm_cache {
+        client = client.with_llm_config(axagent_harness::LlmCallConfig {
+            cache: Some(cache),
+            cache_ttl_secs: 3600,
+            ..Default::default()
+        });
+    }
 
     // 3. streaming 事件回调（4 类事件 + 兜底）
     client.with_on_event(Box::new(move |event: &AssistantEvent| match event {
@@ -479,7 +493,7 @@ fn build_streaming_api_client(
 pub async fn agent_query(
     app: AppHandle,
     app_state: State<'_, AppState>,
-    request: AgentQueryRequest,
+    mut request: AgentQueryRequest,
 ) -> Result<AgentQueryResponse, String> {
     let conversation_id = request.conversation_id.clone();
     info!("[agent_query] Starting for conversation: {}", conversation_id);
@@ -637,6 +651,41 @@ pub async fn agent_query(
         .await;
     }
 
+    // Get settings from database（提前加载，供 Smart Router 门控 + 后续 proxy 解析复用）
+    let settings =
+        axagent_dao::repo::settings::get_settings(app_state.harness.db()).await.unwrap_or_default();
+
+    // Smart Router：按任务复杂度自动改写 provider/model。
+    //
+    // 在 `get_provider` 之前改写 `request.provider_id` / `request.model_id`，
+    // 后续凭据（get_active_key/decrypt）与 adapter 解析链会自动用新 provider 重跑，
+    // 天然完成"切换 provider 时凭据/adapter 重解析"，无需额外处理。
+    // 关闭开关或映射表为空时完全不介入，保持用户手选的 provider/model。
+    if settings.smart_router_enabled {
+        use axagent_harness::route_bridge::ModelTierResolver;
+        let resolver = crate::smart_router::AppModelTierResolver::new(
+            settings.smart_router_tier_mappings.clone(),
+        );
+        if !resolver.is_empty() {
+            let decision = app_state.cost_aware_router.route(&request.input);
+            let tier = decision.tier.as_str();
+            if let Some(mapping) = resolver.resolve(tier).await {
+                info!(
+                    "[agent_query] SmartRouter: tier='{}' ({}) → provider='{}' model='{}'",
+                    tier, decision.reason, mapping.provider_id, mapping.model_id
+                );
+                if !mapping.provider_id.is_empty() {
+                    request.provider_id = mapping.provider_id;
+                }
+                if !mapping.model_id.is_empty() {
+                    request.model_id = mapping.model_id;
+                }
+            } else {
+                info!("[agent_query] SmartRouter: tier='{}' 无映射，保持原 provider/model", tier);
+            }
+        }
+    }
+
     info!("[agent_query] Got provider: {}", request.provider_id);
 
     // Get provider
@@ -670,10 +719,6 @@ pub async fn agent_query(
         ))
     })?;
     info!("[agent_query] Decrypted API key");
-
-    // Get settings from database
-    let settings =
-        axagent_dao::repo::settings::get_settings(app_state.harness.db()).await.unwrap_or_default();
 
     // Create provider context
     let ctx = ProviderRequestContext {
@@ -1101,6 +1146,23 @@ pub async fn agent_query(
 
     // Create API client with tool definitions, model ID and parameters
     // Also attach a streaming callback to emit text/thinking deltas in real-time
+    // 语义缓存注入：仅当运行时开关开启时，把共享的 SemanticCache 作为 HarnessCache
+    // 拦截器注入主聊天路径。命中相同请求即短路省一次 LLM 调用；关闭则完全直通。
+    let llm_cache: Option<Arc<dyn axagent_harness::cache_interceptor::HarnessCache>> = {
+        let cache_state = app_state.semantic_cache.lock().await;
+        if cache_state.enabled {
+            let arc: Arc<dyn axagent_harness::cache_interceptor::HarnessCache> =
+                cache_state.cache.clone();
+            Some(arc)
+        } else {
+            None
+        }
+    };
+
+    // Clone adapter & ctx for ToT pre-processing (build_streaming_api_client consumes originals)
+    let tot_adapter = adapter.clone();
+    let tot_ctx = ctx.clone();
+
     let api_client = build_streaming_api_client(
         adapter,
         ctx,
@@ -1113,6 +1175,7 @@ pub async fn agent_query(
         use_max_completion_tokens,
         thinking_param_style,
         request_delay_ms,
+        llm_cache,
         conversation_id.clone(),
         streaming_message_id.clone(),
         app.clone(),
@@ -1608,7 +1671,7 @@ pub async fn agent_query(
     app_state.agent_cancel_tokens.insert(conversation_id.clone(), cancel_token.clone());
 
     // Drain steer queue and inject instructions into the prompt
-    let augmented_input = {
+    let mut augmented_input = {
         let mut queue = app_state.steer_queue.lock().await;
         if let Some(instructions) = queue.remove(&conversation_id) {
             if instructions.is_empty() {
@@ -1653,19 +1716,62 @@ pub async fn agent_query(
         assistant_message_id: streaming_message_id.clone(),
     }));
 
+    // 屏幕感知（computer_use 工具）受 settings.screen_perception_enabled 门控。
+    // 关闭时禁用该工具，用户无法触发桌面控制 / 截图能力。
+    // 注意：UnifiedToolRegistry::clone 不复制 disabled 集合，故必须在最终传入
+    // runtime 之前（create_conversation_runtime 之前）禁用，避免被后续 clone 清空。
+    if !settings.screen_perception_enabled {
+        tool_registry.tools.disable("ComputerUse");
+    }
+
+    // Tree of Thoughts 多路径推理预处理：仅当用户开启时生效。
+    // ToT 对用户输入生成多条推理路径 → 评估 → 剪枝 → 选最佳路径，
+    // 将精选分析注入 augmented_input 的 <tot_analysis> 块，供 LLM 在回答时参考。
+    // 开销：~4-6 次额外 LLM 调用（branching=2, depth=2, threshold=0.3）。
+    if settings.tot_enabled {
+        let tot_provider: Arc<dyn axagent_agent::LlmReasoningProvider> =
+            Arc::new(DefaultToTReasoningProvider::from_provider_adapter(
+                tot_adapter,
+                tot_ctx,
+                request.model_id.clone(),
+            ));
+        let mut tot_engine = TreeOfThoughtsEngine::new(2, 2, 0.3);
+        match tot_engine.solve(&augmented_input, &tot_provider).await {
+            Ok(tot_analysis) if !tot_analysis.is_empty() => {
+                tracing::info!(
+                    "[agent_query] ToT analysis complete: {} chars injected",
+                    tot_analysis.len()
+                );
+                augmented_input = format!(
+                    "<tot_analysis>\n{}\n</tot_analysis>\n\n{}",
+                    tot_analysis, augmented_input,
+                );
+            },
+            Ok(_) => tracing::debug!("[agent_query] ToT returned empty analysis — skipping"),
+            Err(e) => tracing::warn!("[agent_query] ToT solve failed: {} — falling through", e),
+        }
+    }
+
     // Build runtime via factory, then delegate to session_manager.
     // This keeps axagent-runtime-core out of the agent crate's dependencies.
+    // RuntimeFeatureConfig 承载 error_recovery / thought_chain 等开关，
+    // 由 AppSettings 驱动（幽灵开关真正生效的接入口）。
+    let runtime_feature_config = axagent_runtime_core::RuntimeFeatureConfig::default()
+        .with_error_recovery(settings.error_recovery_enabled)
+        .with_thought_chain(settings.thought_chain_enabled);
     let mut runtime = create_conversation_runtime(
         session.session().clone(),
         Box::new(api_client),
         Box::new(tool_registry),
         PermissionPolicy::new(runtime_permission_mode),
         system_prompt,
+        runtime_feature_config,
     );
 
     // 将 nudge 注入到运行时级 system_prompt（通过 <memory_context> 块在每次 LLM 调用前注入）
     // 此路径替代了静态 build_agent_system_prompt 中的 <nudge-suggestions> 注入，避免重复
-    if !nudge_ref.is_empty() {
+    // 受 settings.proactive_nudge_enabled 门控（此前该幽灵开关从未被后端读取）
+    if settings.proactive_nudge_enabled && !nudge_ref.is_empty() {
         runtime.set_nudge_lines(nudge_ref);
     }
 

@@ -281,6 +281,16 @@
     "shellConfirm": "Shell Execution Requires Confirmation",
     "tokenBudgetLimit": "Лимит бюджета токенов",
     "warningBuffer": "Буфер предупреждения (токенов)",
+    "smartRouter": {
+      "enableLabel": "Включить умный маршрутизатор",
+      "hint": "При включении каждое сообщение автоматически направляется на уровень модели (бюджетный/сбалансированный/премиум) в зависимости от сложности задачи, а затем сопоставляется с провайдером и моделью, настроенными ниже. При отключении или отсутствии настройки сохраняется выбранная вручную модель.",
+      "modelPlaceholder": "Выберите модель",
+      "providerPlaceholder": "Выберите провайдера",
+      "tierBalanced": "Сбалансированный",
+      "tierBudget": "Бюджетный",
+      "tierPremium": "Премиум",
+      "title": "Умный маршрутизатор"
+    },
     "telemetryLevel": {
       "full": "Полный",
       "minimal": "Минимальный",
@@ -2051,7 +2061,11 @@
     "totalRequests": "Всего запросов",
     "totalTokens": "Всего токенов",
     "usageTrend": "Ежедневная тенденция использования",
-    "dailyAvgCost": "Среднедневная стоимость"
+    "dailyAvgCost": "Среднедневная стоимость",
+    "tabs": {
+      "overview": "Обзор",
+      "office": "Пиксельный офис"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "Данные агента \"{{generationId}}\" не найдены в хранилище выполнения",
@@ -3930,7 +3944,15 @@
     "delegateSuccess": "Задача делегирования успешно завершена",
     "delegateFailed": "Задача делегирования не удалась",
     "maxConcurrent": "Макс. параллельность",
-    "timeoutSec": "Тайм-аут (сек)"
+    "timeoutSec": "Тайм-аут (сек)",
+    "dynamicUI": "Динамические страницы",
+    "devtools": {
+      "traceExplorer": "Обозреватель трассировки",
+      "benchmark": "Бенчмарк",
+      "toolRecommender": "Рекомендатель инструментов",
+      "fineTune": "Тонкая настройка",
+      "rlTraining": "Обучение с подкреплением"
+    }
   },
   "notification": {
     "clear": "Очистить",
@@ -4000,6 +4022,71 @@
     "welcomeDesc": "Интеллектуальный настольный клиент ИИ с поддержкой нескольких моделей, автономным выполнением агентов и поиском по базе знаний",
     "downloadOllama": "Скачать Ollama",
     "applying": "Применение…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "Создать офис",
+      "promptName": "Введите название офиса:"
+    },
+    "emptyFleet": "Офисов пока нет. Нажмите кнопку в правом верхнем углу, чтобы создать первый.",
+    "memberCount": "{{count}} участников",
+    "membersTitle": "Участники",
+    "noMembers": "В этом офисе нет участников. Добавьте из списка агентов.",
+    "selectFleet": "Выберите офис",
+    "tabs": {
+      "chat": "Групповой чат",
+      "dm": "Личное сообщение",
+      "trajectory": "Траектория",
+      "token": "Токены"
+    },
+    "memberStatus": {
+      "idle": "Простой",
+      "busy": "Занят",
+      "paused": "Приостановлен",
+      "error": "Ошибка",
+      "offline": "Не в сети"
+    },
+    "fleetStatus": {
+      "active": "Запущен",
+      "paused": "Приостановлен",
+      "stopped": "Остановлен"
+    },
+    "chat": {
+      "emptyHint": "Введите сообщение ниже — диспетчер направит его нужному агенту.",
+      "inputPlaceholder": "Введите групповое сообщение…",
+      "send": "Отправить",
+      "routingHint": "Маршрутизация…",
+      "tagRouting": "Маршрут",
+      "routingMessage": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Обработка",
+      "tokenUsage": "{{slug}}: +{{input}}↑ / +{{output}}↓",
+      "completed": "Готово"
+    },
+    "dm": {
+      "selectTarget": "Выберите агента из списка участников, чтобы начать личное сообщение.",
+      "backToList": "Назад к участникам",
+      "emptyHint": "Нет сообщений с {{slug}}.",
+      "inputPlaceholder": "Сообщение для {{slug}}…",
+      "send": "Отправить"
+    },
+    "trajectory": {
+      "empty": "Пока нет событий траектории.",
+      "tagRouting": "Маршрут",
+      "routing": "→ {{slug}}: {{summary}}",
+      "tagProcess": "Обработка",
+      "tagStatus": "Статус",
+      "tagToken": "Токен"
+    },
+    "token": {
+      "empty": "Нет данных об использовании токенов.",
+      "todayTotal": "Сегодня",
+      "allTotal": "За всё время",
+      "resetDaily": "Сбросить сегодня",
+      "colMember": "Участник",
+      "colStatus": "Статус",
+      "colToday": "Сегодня токенов",
+      "colTotal": "Всего токенов"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "Удерживайте для вставки вручную",
@@ -6126,7 +6213,18 @@
     },
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно изменять)",
-    "title": "设置"
+    "title": "设置",
+    "showDeveloperTools": "Показывать инструменты разработчика",
+    "showDeveloperToolsDesc": "Показывать раздел инструментов разработчика (Трассировка/Бенчмарк/Настройка/RL) на боковой панели",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
+    "proactiveBehavior": "Проактивность",
+    "proactiveNudge": "Проактивные подсказки",
+    "proactiveNudgeDesc": "Активно предлагать подсказки, рекомендации или следующие шаги на основе контекста беседы",
+    "closedLoopEnabled": "Замкнутый цикл",
+    "closedLoopEnabledDesc": "Разрешить агенту автоматически выполнять задачи в замкнутом цикле после авторизации",
+    "closedLoopInterval": "Интервал цикла",
+    "closedLoopIntervalDesc": "Интервал проверки состояния задач в замкнутом цикле (минуты)"
   },
   "settingsPage": {
     "refreshPage": "Обновить страницу"
@@ -6162,7 +6260,8 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
-    "sectionWork": "工作"
+    "sectionWork": "工作",
+    "sectionDeveloper": "Инструменты разработчика"
   },
   "skill": {
     "abTest": {
@@ -6502,6 +6601,7 @@
       "sourceNamePlaceholder": "например, Источник знаний проекта",
       "sourceNameRequired": "Введите имя источника",
       "sourceNameHint": "Имя Wiki = имя; Имя RAG KB = {имя} Graph",
+      "defaultSourceName": "Источник знаний проекта",
       "mode": "Режим",
       "modeCreate": "Создать",
       "modeCreateDesc": "Первый импорт каталога; одноимённые KB без эмбеддинга будут очищены и пересозданы",

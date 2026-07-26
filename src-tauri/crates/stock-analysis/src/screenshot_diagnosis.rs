@@ -660,7 +660,7 @@ mod tests {
         assert!(is_defense_name("招商银行"));
         assert!(is_defense_name("工商银行"));
         assert!(is_defense_name("长江电力"));
-        assert!(is_defense_name("贵州茅台") == false);
+        assert!(!is_defense_name("贵州茅台"));
     }
 
     #[test]

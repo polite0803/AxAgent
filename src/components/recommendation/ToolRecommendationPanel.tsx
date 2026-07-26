@@ -55,7 +55,7 @@ export function ToolRecommendationPanel() {
   return (
     <div style={{ padding: "24px" }}>
       <Card title={t("recommendation.title")}>
-        <Space direction="vertical" style={{ width: "100%" }} size="large">
+        <Space orientation="vertical" style={{ width: "100%" }} size="large">
           <div>
             <Title level={5}>{t("recommendation.taskDescription")}</Title>
             <TextArea

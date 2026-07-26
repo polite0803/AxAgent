@@ -276,11 +276,20 @@
       "fullAccess": "フルアクセス"
     },
     "permissionStrategy": "Permission Execution Strategy",
+    "privacyControl": "プライバシーコントロール",
     "resourceControl": "リソース制御＆エコ戦略",
     "retryDelay": "リトライ遅延（秒）",
     "shellConfirm": "Shell Execution Requires Confirmation",
-    "tokenBudgetLimit": "トークンバジェット制限",
-    "warningBuffer": "警告バッファ（トークン）",
+    "smartRouter": {
+      "enableLabel": "スマートルーターを有効化",
+      "hint": "有効にすると、タスクの複雑さに応じて各メッセージを自動的にモデル階層（バジェット/バランス/プレミアム）に振り分け、以下で設定したプロバイダーとモデルにマッピングします。無効または未設定の場合は、手動で選択したモデルを維持します。",
+      "modelPlaceholder": "モデルを選択",
+      "providerPlaceholder": "プロバイダーを選択",
+      "tierBalanced": "バランス",
+      "tierBudget": "バジェット",
+      "tierPremium": "プレミアム",
+      "title": "スマートルーター"
+    },
     "telemetryLevel": {
       "full": "フル",
       "minimal": "最小",
@@ -288,7 +297,8 @@
     },
     "telemetryLevelHint": "AxAgent はデフォルトでテレメトリを収集しません。「最小」はユーザー行動イベントのみを記録し（セッション追跡用）、「フル」は HTTP リクエストの詳細（URL、ステータスコードなど）も記録します。変更は即座に有効になります。",
     "telemetryLevelLabel": "テレメトリレベル",
-    "privacyControl": "プライバシーコントロール"
+    "tokenBudgetLimit": "トークンバジェット制限",
+    "warningBuffer": "警告バッファ（トークン）"
   },
   "agent": {
     "answerSubmitted": "回答が送信されました",
@@ -2049,9 +2059,13 @@
     "totalModels": "モデル数",
     "totalProviders": "プロバイダー数",
     "totalRequests": "リクエスト総数",
-    "totalTokens": "トークヵ合計",
+    "totalTokens": "合計トークン",
     "usageTrend": "日次使用量トレンド",
-    "dailyAvgCost": "日次平均コスト"
+    "dailyAvgCost": "日次平均コスト",
+    "tabs": {
+      "overview": "概要",
+      "office": "ピクセルオフィス"
+    }
   },
   "dataBinding": {
     "agentDataNotFound": "エージェント生成データ \"{{generationId}}\" が実行ストアに見つかりません",
@@ -3930,7 +3944,15 @@
     "delegateSuccess": "委譲タスクが正常に完了",
     "delegateFailed": "委譲タスクが失敗",
     "maxConcurrent": "最大並行",
-    "timeoutSec": "タイムアウト（秒）"
+    "timeoutSec": "タイムアウト（秒）",
+    "dynamicUI": "ダイナミックページ",
+    "devtools": {
+      "traceExplorer": "トレースエクスプローラー",
+      "benchmark": "ベンチマーク",
+      "toolRecommender": "ツールレコメンダー",
+      "fineTune": "ファインチューニング",
+      "rlTraining": "強化学習トレーニング"
+    }
   },
   "notification": {
     "clear": "クリア",
@@ -4000,6 +4022,71 @@
     "welcomeDesc": "マルチモデル対応、エージェント自律実行、ナレッジベース検索を備えたスマートAIデスクトップクライアント",
     "downloadOllama": "Ollama をダウンロード",
     "applying": "適用中…"
+  },
+  "office": {
+    "createFleet": {
+      "button": "オフィス作成",
+      "promptName": "オフィス名を入力："
+    },
+    "emptyFleet": "オフィスが未作成です。右上のボタンから最初のオフィスを作成してください。",
+    "memberCount": "{{count}} メンバー",
+    "membersTitle": "メンバーリスト",
+    "noMembers": "このオフィスにはメンバーがいません。Agent リストから追加してください。",
+    "selectFleet": "オフィスを選択",
+    "tabs": {
+      "chat": "グループチャット",
+      "dm": "DM",
+      "trajectory": "軌跡",
+      "token": "Token"
+    },
+    "memberStatus": {
+      "idle": "アイドル",
+      "busy": "ビジー",
+      "paused": "一時停止",
+      "error": "エラー",
+      "offline": "オフライン"
+    },
+    "fleetStatus": {
+      "active": "実行中",
+      "paused": "一時停止",
+      "stopped": "停止"
+    },
+    "chat": {
+      "emptyHint": "下にメッセージを入力 — Dispatcher が適切な agent に自動ルーティングします。",
+      "inputPlaceholder": "グループチャット メッセージ…",
+      "send": "送信",
+      "routingHint": "ルーティング中…",
+      "tagRouting": "ルーティング",
+      "routingMessage": "→ {{slug}}：{{summary}}",
+      "tagProcess": "処理",
+      "tokenUsage": "{{slug}}：+{{input}}↑ / +{{output}}↓",
+      "completed": "完了"
+    },
+    "dm": {
+      "selectTarget": "左のメンバーリストから agent を選んで DM を開始。",
+      "backToList": "メンバーリストに戻る",
+      "emptyHint": "{{slug}} との DM は空です。",
+      "inputPlaceholder": "{{slug}} にメッセージ…",
+      "send": "送信"
+    },
+    "trajectory": {
+      "empty": "軌跡イベントはありません。",
+      "tagRouting": "ルーティング",
+      "routing": "→ {{slug}}：{{summary}}",
+      "tagProcess": "処理",
+      "tagStatus": "ステータス",
+      "tagToken": "Token"
+    },
+    "token": {
+      "empty": "Token 使用量データはありません。",
+      "todayTotal": "今日の合計",
+      "allTotal": "累計合計",
+      "resetDaily": "今日分をリセット",
+      "colMember": "メンバー",
+      "colStatus": "ステータス",
+      "colToday": "今日の Token",
+      "colTotal": "累計 Token"
+    }
   },
   "pasteButton": {
     "clipboardUnavailable": "長押しで手動貼り付け",
@@ -6126,7 +6213,18 @@
     },
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常変更不要）",
-    "title": "设置"
+    "title": "设置",
+    "showDeveloperTools": "開発者ツールを表示",
+    "showDeveloperToolsDesc": "サイドバーに開発者ツールセクション（トレース/ベンチマーク/ファインチューニング/強化学習）を表示",
+    "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
+    "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
+    "proactiveBehavior": "プロアクティブ",
+    "proactiveNudge": "プロアクティブ提案",
+    "proactiveNudgeDesc": "会話の文脈に基づいて、ヒント・提案・次のステップを能動的に提示します",
+    "closedLoopEnabled": "クローズドループ実行",
+    "closedLoopEnabledDesc": "許可後にエージェントがクローズドループタスクを自動実行できるようにします",
+    "closedLoopInterval": "クローズドループ間隔",
+    "closedLoopIntervalDesc": "クローズドループタスクの状態確認間隔（分）"
   },
   "settingsPage": {
     "refreshPage": "ページを更新"
@@ -6162,7 +6260,8 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
-    "sectionWork": "工作"
+    "sectionWork": "工作",
+    "sectionDeveloper": "開発者ツール"
   },
   "skill": {
     "abTest": {
@@ -6502,6 +6601,7 @@
       "sourceNamePlaceholder": "例: プロジェクト知識ソース",
       "sourceNameRequired": "ソース名を入力してください",
       "sourceNameHint": "Wiki 名 = その名前; RAG KB 名 = {その名前} グラフ",
+      "defaultSourceName": "プロジェクト知識ソース",
       "mode": "モード",
       "modeCreate": "新規作成",
       "modeCreateDesc": "ディレクトリの初回インポート; 同名の埋め込み無し KB はクリーンアップ後に再構築されます",

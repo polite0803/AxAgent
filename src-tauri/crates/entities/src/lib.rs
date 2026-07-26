@@ -119,6 +119,8 @@ pub mod decision_validations;
 pub mod divergence_logs;
 pub mod earnings_events;
 pub mod financial_snapshots;
+pub mod fleet_members;
+pub mod fleets;
 pub mod fund_transfers;
 pub mod lesson_applications;
 pub mod market_mainlines;

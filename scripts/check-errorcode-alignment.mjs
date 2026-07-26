@@ -12,8 +12,8 @@
 //
 // 见 AGENTS.md「后端错误码 i18n 规范（强制）」。
 
-import { readdirSync, readFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -48,7 +48,7 @@ for (const lf of langs) {
   const errSeg = data.error ?? {};
   const codes = new Set();
   for (const k of Object.keys(errSeg)) {
-    if (CODE_RE.test(k)) codes.add(k);
+    if (CODE_RE.test(k)) { codes.add(k); }
   }
   frontByLang[lf] = codes;
 }
@@ -88,7 +88,9 @@ for (const lf of langs) {
     const refSet = new Set(source ?? []);
     const missing = [...refSet].filter((c) => !frontByLang[lf].has(c));
     const extra = [...frontByLang[lf]].filter((c) => !refSet.has(c));
-    console.error(`::error::${lf} 与 zh-CN 错误码不一致（缺：${missing.join(",") || "无"}；多：${extra.join(",") || "无"}）`);
+    console.error(
+      `::error::${lf} 与 zh-CN 错误码不一致（缺：${missing.join(",") || "无"}；多：${extra.join(",") || "无"}）`,
+    );
   }
 }
 

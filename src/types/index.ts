@@ -568,6 +568,10 @@ export interface AppSettings {
   thought_chain_enabled?: boolean;
   /** Enable automatic error recovery suggestions */
   error_recovery_enabled?: boolean;
+  /** Enable Tree of Thoughts multi-path reasoning (expensive) */
+  tot_enabled?: boolean;
+  /** Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar */
+  show_developer_tools?: boolean;
   /** Cloud workspace URI (supports s3://, webdav://, local://) */
   workspace_uri?: string | null;
   /** Cloud backend type: "s3" | "webdav" | null */
@@ -593,6 +597,20 @@ export interface AppSettings {
    * 引用此设置,`save_settings` 命令保存后立即生效。
    */
   telemetry_level?: "off" | "minimal" | "full";
+  /** Smart Router 智能路由总开关。开启后按任务复杂度自动选择模型 tier。 */
+  smart_router_enabled?: boolean;
+  /** tier(budget/balanced/premium) → provider/model 映射表。 */
+  smart_router_tier_mappings?: Record<string, SmartRouterTierMapping>;
+}
+
+/** Smart Router tier → provider/model 映射项（对应后端 harness TierModelMapping）。 */
+export interface SmartRouterTierMapping {
+  /** 目标模型 ID（如 "gpt-4o-mini"） */
+  model_id?: string;
+  /** 目标 provider ID（如 "openai"） */
+  provider_id?: string;
+  /** 可选的 base URL 覆盖（自建端点 / 代理） */
+  base_url_override?: string | null;
 }
 
 // === Streaming ===
@@ -781,6 +799,8 @@ export type SettingsSection =
   | "promptTemplates"
   | "acp"
   | "evolution"
+  | "persona"
+  | "proactiveBehavior"
   | "cloudWorkspace"
   | "plugins"
   | "notificationCenter"
@@ -1187,6 +1207,8 @@ export * from "./mcp";
 export * from "./memory";
 export * from "./multi-agent";
 export * from "./nudge";
+// Fleet（多办公室 AI 团队）— 与后端 axagent_harness::fleet 一一对应
+export * from "./office";
 export * from "./paper-portfolio";
 export * from "./permission";
 export * from "./persona";

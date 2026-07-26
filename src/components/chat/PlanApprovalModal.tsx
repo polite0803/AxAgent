@@ -74,7 +74,7 @@ export const PlanApprovalModal: React.FC = () => {
       }
       open={!!pendingPlan}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       width={560}
       aria-labelledby="plan-approval-modal-title"
       footer={
@@ -109,7 +109,7 @@ export const PlanApprovalModal: React.FC = () => {
       }
       destroyOnHidden
     >
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
         {/* 任务预览 */}
         {parsed?.task_preview && (
           <div

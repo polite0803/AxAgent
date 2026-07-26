@@ -126,6 +126,18 @@ impl RuntimeFeatureConfig {
     }
 
     #[must_use]
+    pub fn with_error_recovery(mut self, enabled: bool) -> Self {
+        self.error_recovery_enabled = enabled;
+        self
+    }
+
+    #[must_use]
+    pub fn with_thought_chain(mut self, enabled: bool) -> Self {
+        self.thought_chain_enabled = enabled;
+        self
+    }
+
+    #[must_use]
     pub fn hooks(&self) -> &RuntimeHookConfig {
         &self.hooks
     }

@@ -142,18 +142,18 @@ export function FilePermissionDialog({
       footer={null}
       width={500}
       destroyOnHidden
-      maskClosable={!loading}
+      mask={{ closable: !loading }}
     >
       {!result
         ? (
-          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <Space orientation="vertical" style={{ width: "100%" }} size="middle">
             <Alert
               type="warning"
               showIcon
               icon={<AlertTriangle size={14} />}
               title={t("filePermission.authRequest")}
               description={
-                <Space direction="vertical" size={4}>
+                <Space orientation="vertical" size={4}>
                   <Typography.Text>
                     {t("filePermission.accessRequestDesc")}
                   </Typography.Text>
@@ -266,7 +266,7 @@ export function FilePermissionDialog({
           </Space>
         )
         : (
-          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <Space orientation="vertical" style={{ width: "100%" }} size="middle">
             {isAuthorized
               ? (
                 <>
@@ -275,7 +275,7 @@ export function FilePermissionDialog({
                     showIcon
                     title={t("filePermission.authSuccess")}
                     description={
-                      <Space direction="vertical" size={4}>
+                      <Space orientation="vertical" size={4}>
                         <Typography.Text>{result.message}</Typography.Text>
                         {result.expires_at && (
                           <Tag icon={<Clock size={12} />}>

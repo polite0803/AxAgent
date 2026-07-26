@@ -63,7 +63,7 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
               {t("workflow.version.compareHint", { v1: selectedVersions[0], v2: selectedVersions[1] })}
             </Text>
             <div style={{ marginTop: 16 }}>
-              <Space direction="vertical" style={{ width: "100%" }}>
+              <Space orientation="vertical" style={{ width: "100%" }}>
                 <div style={{ padding: 8, backgroundColor: "#f6ffed", borderRadius: 4 }}>
                   <Text type="success">+ {t("workflow.version.newNode", { id: "output-2", desc: "发送摘要" })}</Text>
                 </div>
