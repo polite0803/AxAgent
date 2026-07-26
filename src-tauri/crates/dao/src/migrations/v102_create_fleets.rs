@@ -83,8 +83,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE INDEX IF NOT EXISTS idx_fleet_members_agent_slug ON fleet_members(agent_slug)",
     )
     .await?;
-    db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_fleet_members_status ON fleet_members(status)")
-        .await?;
+    db.execute_unprepared(
+        "CREATE INDEX IF NOT EXISTS idx_fleet_members_status ON fleet_members(status)",
+    )
+    .await?;
     db.execute_unprepared("CREATE INDEX IF NOT EXISTS idx_fleets_status ON fleets(status)").await?;
 
     Ok(())

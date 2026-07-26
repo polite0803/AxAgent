@@ -1783,26 +1783,6 @@ fn pdf_escape_string(s: &str) -> String {
     out
 }
 
-#[allow(dead_code)]
-fn wrap_lines(text: &str, max_w_pt: f64, font_pt: f64) -> Vec<String> {
-    let max_chars = (max_w_pt / (font_pt * 0.5)) as usize;
-    let mut lines = Vec::new();
-    let mut cur = String::new();
-    for word in text.split_inclusive(|c: char| c.is_whitespace()) {
-        if cur.chars().count() + word.chars().count() > max_chars && !cur.is_empty() {
-            lines.push(cur.trim_end().to_string());
-            cur = String::new();
-        }
-        cur.push_str(word);
-    }
-    if !cur.is_empty() {
-        lines.push(cur.trim_end().to_string());
-    }
-    if lines.is_empty() {
-        lines.push(text.to_string());
-    }
-    lines
-}
 
 /// 测量字符串宽度（pt）。CJK 字符走真实度量，拉丁字符按 0.5em 估算。
 fn measure_text(text: &str, size_pt: f64, cjk: Option<&crate::cjk_font::CjkFont>) -> f64 {
