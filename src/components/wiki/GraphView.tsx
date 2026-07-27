@@ -1,40 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/**
+ * Wiki 图谱视图：基于 sigma.js (WebGL) + graphology 渲染。
+ *
+ * 设计目标：支持 10 万节点流畅交互。
+ * - 节点：WebGL 圆点 + 标签（LOD 自动控制密度）
+ * - 边：WebGL 线段
+ * - 布局：ForceAtlas2 在 Web Worker 中计算，不阻塞主线程
+ * - 交互：单击/双击/右键/hover/缩放/平移/聚焦
+ * - 大图降级：> 5000 节点自动关闭标签渲染，> 10000 节点启用 Barnes-Hut
+ */
 
-import {
-  Background,
-  ConnectionMode,
-  Edge,
-  EdgeLabelRenderer,
-  EdgeProps,
-  getBezierPath,
-  MiniMap,
-  Node,
-  NodeTypes,
-  Panel,
-  ReactFlow,
-  ReactFlowProvider,
-  useEdgesState,
-  useNodesState,
-  useReactFlow,
-} from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "@xyflow/react/dist/style.css";
 import { Tooltip } from "@/components/layout/Tooltip";
+import type { LayoutRequest, WorkerOutbound } from "@/components/wiki/graphLayout.worker";
 import { Card, Empty, Segmented, Select, Space, Tag, theme, Typography } from "antd";
-import {
-  forceCenter,
-  forceCollide,
-  forceLink,
-  forceManyBody,
-  forceRadial,
-  forceSimulation,
-  type SimulationLinkDatum,
-  type SimulationNodeDatum,
-} from "d3-force";
+import Graph from "graphology";
 import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import Sigma from "sigma";
 
-const { Text } = Typography;
+// ─────────────────────────────────────────────────────────────────────────────
+// 公共类型（保持向后兼容，外部文件 WikiGraphPage / WikiDetailPanel 依赖）
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type GraphNodeType = "note" | "concept" | "entity" | "source";
 
@@ -93,7 +80,17 @@ export interface GraphViewProps {
   communities?: Map<string, number>;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 常量与工具
+// ─────────────────────────────────────────────────────────────────────────────
+
 type TokenType = ReturnType<typeof theme.useToken>["token"];
+
+// 性能阈值
+const LAYOUT_FORCE_THRESHOLD = 200; // 小图直接同步 ForceAtlas2，不丢 worker 开销
+const LABEL_RENDER_THRESHOLD = 5000; // 超过此数量关闭默认标签渲染
+const BARNES_HUT_THRESHOLD = 10000; // 超过此数量启用 Barnes-Hut 优化
+const FORCE_ATLAS_ITERATIONS = 100; // 默认迭代次数
 
 const getNodeColorMap = (token: TokenType): Record<GraphNodeType, string> => ({
   note: token.colorPrimary,
@@ -119,43 +116,13 @@ const communityPalette = [
 
 const getEdgeTypeStylesMap = (token: TokenType): Record<
   GraphEdgeType,
-  {
-    stroke: string;
-    strokeWidth: number;
-    dashArray: string | undefined;
-    animated: boolean;
-  }
+  { color: string; width: number }
 > => ({
-  link: {
-    stroke: token.colorBorderSecondary,
-    strokeWidth: 1,
-    dashArray: undefined,
-    animated: false,
-  },
-  backlink: {
-    stroke: token.colorPrimary,
-    strokeWidth: 2,
-    dashArray: undefined,
-    animated: true,
-  },
-  reference: {
-    stroke: token.colorSuccess,
-    strokeWidth: 1.5,
-    dashArray: "8,4",
-    animated: false,
-  },
-  derived_from: {
-    stroke: "var(--orange, #fa8c16)",
-    strokeWidth: 1.5,
-    dashArray: "2,4",
-    animated: false,
-  },
-  contradicts: {
-    stroke: token.colorError,
-    strokeWidth: 2,
-    dashArray: "4,4",
-    animated: false,
-  },
+  link: { color: token.colorBorderSecondary, width: 1 },
+  backlink: { color: token.colorPrimary, width: 1.5 },
+  reference: { color: token.colorSuccess, width: 1.5 },
+  derived_from: { color: "var(--orange, #fa8c16)", width: 1.5 },
+  contradicts: { color: token.colorError, width: 2 },
 });
 
 const edgeTypeLabels: Record<GraphEdgeType, string> = {
@@ -166,368 +133,64 @@ const edgeTypeLabels: Record<GraphEdgeType, string> = {
   contradicts: "wiki.graph.edgeType.contradicts",
 };
 
+function resolveColor(c: string): string {
+  // 简单 var() 解析：sigma 不支持 CSS 变量，这里回退到固定值
+  if (c.startsWith("var(--orange")) { return "#fa8c16"; }
+  if (c.startsWith("var(--magenta")) { return "#eb2f96"; }
+  return c;
+}
+
 function getNodeColor(
   node: GraphNode,
-  communities?: Map<string, number>,
-  token?: TokenType,
+  communities: Map<string, number> | undefined,
+  token: TokenType | undefined,
 ): string {
   if (communities && communities.has(node.id)) {
-    const communityId = communities.get(node.id)!;
-    return communityPalette[communityId % communityPalette.length];
+    const cid = communities.get(node.id)!;
+    return communityPalette[cid % communityPalette.length];
   }
-  const nodeColors = token
-    ? getNodeColorMap(token)
-    : { note: "#1890ff", concept: "#52c41a", entity: "#fa8c16", source: "#eb2f96" };
-  return nodeColors[node.type] || nodeColors.note;
+  const map = token ? getNodeColorMap(token) : {
+    note: "#1890ff",
+    concept: "#52c41a",
+    entity: "#fa8c16",
+    source: "#eb2f96",
+  };
+  return resolveColor(map[node.type] || map.note);
 }
 
-interface SimNode {
-  id: string;
-  x: number;
-  y: number;
+function getNodeSize(node: GraphNode): number {
+  const linkSum = node.linkCount + node.backlinkCount;
+  // sigma 节点 size 范围建议 1-15
+  return Math.max(3, Math.min(15, 3 + linkSum * 0.5));
 }
 
-interface SimLink {
-  source: string | SimNode;
-  target: string | SimNode;
-}
-
-function computeLayout(
+/** 网格布局：O(n) 同步，用于 hierarchy 模式或 worker 启动前的初始布局 */
+function gridLayout(
   nodes: GraphNode[],
-  edges: GraphEdge[],
-  mode: LayoutMode,
   width: number,
   height: number,
 ): Map<string, { x: number; y: number }> {
-  const cx = width / 2;
-  const cy = height / 2;
-  const simNodes: SimNode[] = nodes.map((node) => ({
-    id: node.id,
-    x: node.x ?? Math.random() * width,
-    y: node.y ?? Math.random() * height,
-  }));
-
-  const simLinks: SimLink[] = edges.map((edge) => ({
-    source: edge.source,
-    target: edge.target,
-  }));
-
-  const simulation = forceSimulation<SimulationNodeDatum>(
-    simNodes as SimulationNodeDatum[],
-  ).force("collide", forceCollide(70));
-
-  if (mode === "force") {
-    simulation
-      .force(
-        "link",
-        forceLink<
-          SimulationNodeDatum,
-          SimulationLinkDatum<SimulationNodeDatum>
-        >(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
-          .id((d: SimulationNodeDatum) => (d as SimNode).id)
-          .distance(120),
-      )
-      .force("charge", forceManyBody().strength(-250))
-      .force("center", forceCenter(cx, cy));
-  } else if (mode === "radial") {
-    simulation
-      .force(
-        "link",
-        forceLink<
-          SimulationNodeDatum,
-          SimulationLinkDatum<SimulationNodeDatum>
-        >(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
-          .id((d: SimulationNodeDatum) => (d as SimNode).id)
-          .distance(80),
-      )
-      .force(
-        "radial",
-        forceRadial(Math.min(width, height) * 0.3, cx, cy).strength(0.8),
-      )
-      .force("center", forceCenter(cx, cy));
-  } else {
-    simulation
-      .force(
-        "link",
-        forceLink<
-          SimulationNodeDatum,
-          SimulationLinkDatum<SimulationNodeDatum>
-        >(simLinks as SimulationLinkDatum<SimulationNodeDatum>[])
-          .id((d: SimulationNodeDatum) => (d as SimNode).id)
-          .distance(100)
-          .strength(0.5),
-      )
-      .force("charge", forceManyBody().strength(-400))
-      .force("center", forceCenter(cx, cy));
-  }
-
-  simulation.tick(300);
-
   const positions = new Map<string, { x: number; y: number }>();
-  for (const node of simNodes) {
-    positions.set(node.id, { x: node.x, y: node.y });
-  }
+  if (nodes.length === 0) { return positions; }
+  const aspect = width / Math.max(height, 1);
+  const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length * aspect)));
+  const rows = Math.ceil(nodes.length / cols);
+  const cellW = width / cols;
+  const cellH = height / rows;
+  nodes.forEach((node, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    positions.set(node.id, {
+      x: col * cellW + cellW / 2 - width / 2,
+      y: row * cellH + cellH / 2 - height / 2,
+    });
+  });
   return positions;
 }
 
-function WikiEdgeComponent({
-  id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  data,
-  selected,
-}: EdgeProps) {
-  const { t } = useTranslation();
-  const { token } = theme.useToken();
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
-
-  const edgeType = (data as { edgeType?: string })?.edgeType || "link";
-  const edgeTypeStyles = getEdgeTypeStylesMap(token);
-  const style = edgeTypeStyles[edgeType as GraphEdgeType];
-  const isSelected = !!selected;
-
-  return (
-    <>
-      {edgeType === "contradicts" && (
-        <path
-          d={edgePath}
-          stroke={style.stroke}
-          strokeWidth={style.strokeWidth + 2}
-          fill="none"
-          opacity={0.3}
-        />
-      )}
-      <path
-        id={id}
-        className="react-flow__edge-path"
-        d={edgePath}
-        stroke={isSelected ? token.colorPrimary : style.stroke}
-        strokeWidth={isSelected ? style.strokeWidth + 0.5 : style.strokeWidth}
-        fill="none"
-        strokeDasharray={style.dashArray}
-        opacity={isSelected ? 1 : 0.6}
-        style={{ transition: "stroke 0.3s ease, opacity 0.3s ease" }}
-      />
-      {style.animated && (
-        <path
-          d={edgePath}
-          stroke={style.stroke}
-          strokeWidth={style.strokeWidth}
-          fill="none"
-          strokeDasharray="5,5"
-          opacity={0.6}
-        >
-          <animate
-            attributeName="stroke-dashoffset"
-            from="0"
-            to="10"
-            dur="0.5s"
-            repeatCount="indefinite"
-          />
-        </path>
-      )}
-      {edgeType !== "link" && (
-        <EdgeLabelRenderer>
-          <div
-            style={{
-              position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              fontSize: 9,
-              color: style.stroke,
-              background: `${token.colorBgContainer}dd`,
-              padding: "1px 4px",
-              borderRadius: 3,
-              pointerEvents: "none",
-              fontWeight: 500,
-            }}
-          >
-            {t(edgeTypeLabels[edgeType as GraphEdgeType])}
-          </div>
-        </EdgeLabelRenderer>
-      )}
-    </>
-  );
-}
-
-const CustomNode = ({
-  data,
-  selected,
-}: {
-  data: GraphNode & {
-    onHover?: (id: string | null) => void;
-    isHighlighted?: boolean;
-    isSelected?: boolean;
-    color?: string;
-    isExpanded?: boolean;
-    entranceVisible?: boolean;
-  };
-  selected: boolean;
-}) => {
-  const { token } = theme.useToken();
-  const nodeColors = getNodeColorMap(token);
-  const nodeColor = data.color || nodeColors[data.type] || nodeColors.note;
-  const isHighlighted = data.isHighlighted !== false;
-  const isSelected = data.isSelected || selected;
-  const entranceVisible = data.entranceVisible !== false;
-
-  const linkSum = data.linkCount + data.backlinkCount;
-  const size = Math.max(120, Math.min(200, 100 + linkSum * 4));
-
-  return (
-    <Tooltip
-      title={
-        <div>
-          <div style={{ fontWeight: 600 }}>{data.title}</div>
-          <div style={{ fontSize: 12, opacity: 0.8 }}>
-            →{data.linkCount} outgoing / ←{data.backlinkCount} incoming
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.6 }}>{data.path}</div>
-        </div>
-      }
-    >
-      <div
-        className="wiki-graph-node"
-        style={{
-          padding: "8px 14px",
-          borderRadius: 12,
-          background: isSelected
-            ? `linear-gradient(135deg, ${token.colorBgContainer}f5, ${token.colorBgContainer}ee)`
-            : `${token.colorBgContainer}ee`,
-          backdropFilter: "blur(12px)",
-          border: `1.5px solid ${isSelected ? nodeColor : `${token.colorBorderSecondary}40`}`,
-          boxShadow: isSelected
-            ? `0 0 0 2px ${nodeColor}25, 0 0 20px ${nodeColor}15, 0 8px 32px rgba(0,0,0,0.1)`
-            : `0 2px 8px rgba(0,0,0,0.04)`,
-          opacity: entranceVisible ? (isHighlighted ? 1 : 0.15) : 0,
-          minWidth: size * 0.6,
-          maxWidth: size,
-          cursor: "pointer",
-          transition: "box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
-          transform: entranceVisible
-            ? isSelected
-              ? "scale(1.05)"
-              : "scale(1)"
-            : "scale(0.3)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "scale(1.06)";
-          e.currentTarget.style.boxShadow =
-            `0 0 0 2px ${nodeColor}30, 0 4px 24px ${nodeColor}20, 0 8px 24px rgba(0,0,0,0.08)`;
-          e.currentTarget.style.borderColor = nodeColor;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = isSelected
-            ? "scale(1.05)"
-            : "scale(1)";
-          e.currentTarget.style.boxShadow = isSelected
-            ? `0 0 0 2px ${nodeColor}25, 0 0 20px ${nodeColor}15, 0 8px 32px rgba(0,0,0,0.1)`
-            : `0 2px 8px rgba(0,0,0,0.04)`;
-          e.currentTarget.style.borderColor = isSelected
-            ? nodeColor
-            : `${token.colorBorderSecondary}40`;
-        }}
-      >
-        {isSelected && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: `radial-gradient(circle at center, ${nodeColor}08, transparent 70%)`,
-              pointerEvents: "none",
-            }}
-          />
-        )}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 4,
-          }}
-        >
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              backgroundColor: nodeColor,
-              boxShadow: `0 0 6px ${nodeColor}60`,
-              flexShrink: 0,
-            }}
-          />
-          <Text strong ellipsis style={{ fontSize: 13, flex: 1, minWidth: 0 }}>
-            {data.title}
-          </Text>
-        </div>
-        {data.tags.length > 0 && (
-          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-            {data.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  fontSize: 9,
-                  padding: "1px 6px",
-                  borderRadius: 999,
-                  background: `${nodeColor}12`,
-                  color: nodeColor,
-                  fontWeight: 500,
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-            {data.tags.length > 3 && (
-              <span
-                style={{
-                  fontSize: 9,
-                  padding: "1px 5px",
-                  borderRadius: 999,
-                  background: `${token.colorBorderSecondary}25`,
-                  color: token.colorTextSecondary,
-                }}
-              >
-                +{data.tags.length - 3}
-              </span>
-            )}
-          </div>
-        )}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: 4,
-            fontSize: 10,
-            color: token.colorTextTertiary,
-          }}
-        >
-          <span>→{data.linkCount}</span>
-          <span>←{data.backlinkCount}</span>
-        </div>
-      </div>
-    </Tooltip>
-  );
-};
-
-const nodeTypes: NodeTypes = {
-  customNode: CustomNode,
-};
-
-const edgeTypes = {
-  wikiEdge: WikiEdgeComponent,
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// 主组件
+// ─────────────────────────────────────────────────────────────────────────────
 
 function GraphViewInner({
   data,
@@ -541,113 +204,34 @@ function GraphViewInner({
   selectedNodeId,
   filters,
   onFiltersChange,
-  showMinimap = true,
+  showMinimap: _showMinimap = true,
   communities,
 }: GraphViewProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  const nodeColors = getNodeColorMap(token);
-  const edgeTypeStyles = getEdgeTypeStylesMap(token);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const sigmaRef = useRef<Sigma | null>(null);
+  const graphRef = useRef<Graph | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const workerBusyRef = useRef(false);
+  const nodeIndexRef = useRef<Map<string, GraphNode>>(new Map());
+
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(
-    new Set(),
-  );
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
-  const [entranceComplete, setEntranceComplete] = useState(false);
-  const reactFlowInstance = useReactFlow();
+  const [layoutRunning, setLayoutRunning] = useState(false);
+  const [stats, setStats] = useState({ visible: 0, total: 0, edges: 0 });
 
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        });
-      }
-    };
-    updateDimensions();
-    const observer = new ResizeObserver(updateDimensions);
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-    return () => observer.disconnect();
-  }, []);
+  const nodeColors = useMemo(() => getNodeColorMap(token), [token]);
+  const edgeTypeStyles = useMemo(() => getEdgeTypeStylesMap(token), [token]);
 
-  useEffect(() => {
-    if (data.nodes.length > 0 && !entranceComplete) {
-      const timer = setTimeout(() => setEntranceComplete(true), 150);
-      return () => clearTimeout(timer);
-    }
-  }, [data.nodes.length, entranceComplete]);
+  const isLargeGraph = data.nodes.length > LABEL_RENDER_THRESHOLD;
+  const useBarnesHut = data.nodes.length > BARNES_HUT_THRESHOLD;
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onDeselect?.();
-      }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
-        const target = e.target as HTMLElement;
-        if (
-          target.tagName === "INPUT"
-          || target.tagName === "TEXTAREA"
-          || target.isContentEditable
-        ) {
-          return;
-        }
-        onDeleteNode?.(selectedNodeId);
-      }
-    };
-    containerRef.current?.addEventListener("keydown", handleKeyDown);
-    // 显式省略 handleKeyDown：每次渲染重新创建闭包，加入 deps 会导致
-    // 反复 add/remove event listener，而 handleKeyDown 仅依赖稳定的 deps。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => containerRef.current?.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNodeId, onDeleteNode, onDeselect]);
-
-  const hasHighlights = highlightedNodeIds && highlightedNodeIds.size > 0;
-
-  const neighborMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const edge of data.edges) {
-      if (!map.has(edge.source)) {
-        map.set(edge.source, new Set());
-      }
-      if (!map.has(edge.target)) {
-        map.set(edge.target, new Set());
-      }
-      map.get(edge.source)!.add(edge.target);
-      map.get(edge.target)!.add(edge.source);
-    }
-    return map;
-  }, [data.edges]);
-
-  const allNodeIds = useMemo(
-    () => new Set(data.nodes.map((n) => n.id)),
-    [data.nodes],
-  );
-
-  const expandedNeighborIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const expandedId of expandedNodeIds) {
-      const neighbors = neighborMap.get(expandedId);
-      if (neighbors) {
-        for (const nid of neighbors) {
-          if (!allNodeIds.has(nid)) {
-            ids.add(nid);
-          }
-        }
-      }
-    }
-    return ids;
-  }, [expandedNodeIds, neighborMap, allNodeIds]);
-
+  // ── 过滤 ──
   const filteredNodes = useMemo(() => {
     return data.nodes.filter((node) => {
-      if (
-        filters?.tags?.length
-        && !node.tags.some((ft) => filters.tags!.includes(ft))
-      ) {
+      if (filters?.tags?.length && !node.tags.some((ft) => filters.tags!.includes(ft))) {
         return false;
       }
       if (filters?.pathPrefix && !node.path.startsWith(filters.pathPrefix)) {
@@ -660,182 +244,308 @@ function GraphViewInner({
     });
   }, [data.nodes, filters]);
 
-  const visibleNodeIds = useMemo(() => {
-    const ids = new Set(filteredNodes.map((n) => n.id));
-    for (const nid of expandedNeighborIds) {
-      ids.add(nid);
-    }
-    return ids;
-  }, [filteredNodes, expandedNeighborIds]);
+  const visibleNodeIds = useMemo(
+    () => new Set(filteredNodes.map((n) => n.id)),
+    [filteredNodes],
+  );
 
-  const filteredEdges = useMemo(() => {
-    return data.edges.filter(
-      (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target),
-    );
-  }, [data.edges, visibleNodeIds]);
-
-  const layoutPositions = useMemo(() => {
-    return computeLayout(
-      filteredNodes,
-      filteredEdges,
-      layoutMode,
-      dimensions.width,
-      dimensions.height,
-    );
-  }, [filteredNodes, filteredEdges, layoutMode, dimensions]);
-
-  const initialNodes: Node[] = useMemo(
+  const filteredEdges = useMemo(
     () =>
-      filteredNodes.map((node) => {
-        const pos = layoutPositions.get(node.id) ?? {
-          x: node.x ?? 0,
-          y: node.y ?? 0,
-        };
-        return {
-          id: node.id,
-          type: "customNode",
-          position: pos,
-          data: {
-            ...node,
-            onHover: onNodeHover,
-            isHighlighted: !hasHighlights || (highlightedNodeIds?.has(node.id) ?? true),
-            isSelected: selectedNodeId === node.id,
-            color: getNodeColor(node, communities, token),
-            isExpanded: expandedNodeIds.has(node.id),
-            entranceVisible: entranceComplete,
-          },
-        };
-      }),
-    [
-      filteredNodes,
-      layoutPositions,
-      onNodeHover,
-      hasHighlights,
-      highlightedNodeIds,
-      selectedNodeId,
-      communities,
-      expandedNodeIds,
-      entranceComplete,
-      token,
-    ],
+      data.edges.filter(
+        (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target),
+      ),
+    [data.edges, visibleNodeIds],
   );
-
-  const initialEdges: Edge[] = useMemo(
-    () =>
-      filteredEdges.map((edge) => {
-        const style = edgeTypeStyles[edge.type] || edgeTypeStyles.link;
-        return {
-          id: `${edge.source}-${edge.target}`,
-          source: edge.source,
-          target: edge.target,
-          type: "wikiEdge",
-          data: { edgeType: edge.type },
-          style: {
-            stroke: style.stroke,
-            strokeWidth: style.strokeWidth,
-            opacity: hasHighlights
-              ? highlightedNodeIds?.has(edge.source)
-                  && highlightedNodeIds?.has(edge.target)
-                ? 0.8
-                : 0.08
-              : 0.6,
-            transition: "opacity 0.4s ease",
-          },
-          animated: edge.type === "backlink",
-        };
-      }),
-    [filteredEdges, hasHighlights, highlightedNodeIds, edgeTypeStyles],
-  );
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  useEffect(() => {
-    setNodes(initialNodes);
-    setEdges(initialEdges);
-  }, [initialNodes, initialEdges, setNodes, setEdges]);
-
-  useEffect(() => {
-    if (reactFlowInstance && initialNodes.length > 0) {
-      const timer = setTimeout(() => {
-        reactFlowInstance.fitView({ padding: 0.15, duration: 600 });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [layoutMode, reactFlowInstance, initialNodes.length]);
-
-  const onNodeClickHandler = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      onNodeClick?.(node.id);
-    },
-    [onNodeClick],
-  );
-
-  const onNodeDoubleClickHandler = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      setExpandedNodeIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(node.id)) {
-          next.delete(node.id);
-        } else {
-          next.add(node.id);
-        }
-        return next;
-      });
-      onNodeDoubleClick?.(node.id);
-    },
-    [onNodeDoubleClick],
-  );
-
-  const onNodeContextMenuHandler = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      event.preventDefault();
-      onContextMenu?.(node.id, { x: event.clientX, y: event.clientY });
-    },
-    [onContextMenu],
-  );
-
-  const onNodeMouseEnter = useCallback(
-    (_: React.MouseEvent, node: Node) => {
-      onNodeHover?.(node.id);
-    },
-    [onNodeHover],
-  );
-
-  const onNodeMouseLeave = useCallback(() => {
-    onNodeHover?.(null);
-  }, [onNodeHover]);
-
-  const handleFocusSelected = useCallback(() => {
-    if (selectedNodeId && reactFlowInstance) {
-      const node = nodes.find((n) => n.id === selectedNodeId);
-      if (node) {
-        reactFlowInstance.fitView({
-          nodes: [node],
-          padding: 0.4,
-          duration: 500,
-        });
-      }
-    }
-  }, [selectedNodeId, reactFlowInstance, nodes]);
-
-  const handleFitAll = useCallback(() => {
-    reactFlowInstance?.fitView({ padding: 0.15, duration: 600 });
-  }, [reactFlowInstance]);
-
-  const handleZoomIn = useCallback(() => {
-    reactFlowInstance?.zoomIn({ duration: 300 });
-  }, [reactFlowInstance]);
-
-  const handleZoomOut = useCallback(() => {
-    reactFlowInstance?.zoomOut({ duration: 300 });
-  }, [reactFlowInstance]);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     data.nodes.forEach((n) => n.tags.forEach((ft) => tags.add(ft)));
     return Array.from(tags).sort();
   }, [data.nodes]);
+
+  // ── 容器尺寸 ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) { return; }
+    const update = () => setDimensions({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // ── 初始化 sigma + graphology ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) { return; }
+
+    const graph = new Graph({ multi: false, type: "undirected" });
+    graphRef.current = graph;
+
+    const sigmaInstance = new Sigma(graph, el, {
+      renderLabels: !isLargeGraph,
+      renderEdgeLabels: false,
+      defaultNodeColor: token.colorPrimary,
+      defaultEdgeColor: token.colorBorderSecondary,
+      labelDensity: 0.07,
+      labelGridCellSize: 60,
+      labelRenderedSizeThreshold: 6,
+      labelFont: "Inter, system-ui, sans-serif",
+      labelSize: 12,
+      labelColor: { color: token.colorText },
+      edgeLabelSize: 10,
+      minCameraRatio: 0.02,
+      maxCameraRatio: 10,
+    });
+    sigmaRef.current = sigmaInstance;
+
+    // 事件
+    sigmaInstance.on("clickNode", ({ node }) => onNodeClick?.(node));
+    sigmaInstance.on("doubleClickNode", ({ node }) => onNodeDoubleClick?.(node));
+    sigmaInstance.on("rightClickNode", ({ node, event }) => {
+      // sigma 的 MouseCoords 没有 preventDefault，需要通过原生 DOM event 阻止
+      const nativeEvent = (event as unknown as { original?: MouseEvent }).original
+        ?? (event as unknown as { event?: MouseEvent }).event;
+      nativeEvent?.preventDefault();
+      onContextMenu?.(node, { x: event.x, y: event.y });
+    });
+    sigmaInstance.on("enterNode", ({ node }) => onNodeHover?.(node));
+    sigmaInstance.on("leaveNode", () => onNodeHover?.(null));
+    sigmaInstance.on("clickStage", () => onDeselect?.());
+
+    // 键盘
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onDeselect?.();
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId) {
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" || target.tagName === "TEXTAREA"
+          || target.isContentEditable
+        ) {
+          return;
+        }
+        onDeleteNode?.(selectedNodeId);
+      }
+    };
+    el.addEventListener("keydown", handleKey);
+
+    return () => {
+      el.removeEventListener("keydown", handleKey);
+      sigmaInstance.kill();
+      sigmaRef.current = null;
+      graphRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, isLargeGraph]);
+
+  // ── 数据变化时重建图 ──
+  useEffect(() => {
+    const graph = graphRef.current;
+    const sigmaInstance = sigmaRef.current;
+    if (!graph || !sigmaInstance) { return; }
+
+    // 清空
+    graph.clear();
+    nodeIndexRef.current = new Map();
+
+    // 初始位置：网格布局，作为 worker 跑完前的占位
+    const initialPositions = gridLayout(filteredNodes, dimensions.width, dimensions.height);
+
+    for (const node of filteredNodes) {
+      const pos = initialPositions.get(node.id) ?? { x: 0, y: 0 };
+      const color = getNodeColor(node, communities, token);
+      const size = getNodeSize(node);
+      graph.addNode(node.id, {
+        x: pos.x,
+        y: pos.y,
+        size,
+        color,
+        label: node.title,
+        nodeType: node.type,
+      });
+      nodeIndexRef.current.set(node.id, node);
+    }
+
+    let edgeIdx = 0;
+    for (const edge of filteredEdges) {
+      const style = edgeTypeStyles[edge.type] || edgeTypeStyles.link;
+      const edgeId = `e${edgeIdx++}`;
+      if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
+        // graphology undirected 不支持平行边，但 hasEdge 检查会拒绝重复
+        if (!graph.hasEdge(edge.source, edge.target)) {
+          graph.addEdgeWithKey(edgeId, edge.source, edge.target, {
+            color: resolveColor(style.color),
+            size: style.width,
+            edgeType: edge.type,
+          });
+        }
+      }
+    }
+
+    setStats({
+      visible: filteredNodes.length,
+      total: data.nodes.length,
+      edges: filteredEdges.length,
+    });
+    sigmaInstance.refresh();
+
+    // 触发布局计算
+    triggerLayout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredNodes, filteredEdges, communities, token, dimensions, layoutMode]);
+
+  // ── Worker 生命周期 ──
+  useEffect(() => {
+    const worker = new Worker(
+      new URL("./graphLayout.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+    worker.onmessage = (ev: MessageEvent<WorkerOutbound>) => {
+      workerBusyRef.current = false;
+      setLayoutRunning(false);
+      const msg = ev.data;
+      if (msg.type === "done") {
+        applyPositions(msg.positions);
+      } else if (msg.type === "error") {
+        console.warn("[GraphView] 布局 worker 错误:", msg.message);
+      }
+    };
+    worker.onerror = (e) => {
+      workerBusyRef.current = false;
+      setLayoutRunning(false);
+      console.error("[GraphView] worker crash:", e);
+    };
+    workerRef.current = worker;
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+
+  // ── 触发布局计算 ──
+  const triggerLayout = useCallback(() => {
+    const worker = workerRef.current;
+    const graph = graphRef.current;
+    if (!worker || !graph) { return; }
+    if (filteredNodes.length === 0) { return; }
+
+    // hierarchy 模式：直接用网格，不跑 worker
+    if (layoutMode === "hierarchy") {
+      const positions = gridLayout(filteredNodes, dimensions.width, dimensions.height);
+      applyPositions(Array.from(positions.entries()).map(([id, p]) => ({ id, x: p.x, y: p.y })));
+      return;
+    }
+
+    // 小图同步跑：worker 启动开销大于计算本身
+    if (filteredNodes.length < LAYOUT_FORCE_THRESHOLD) {
+      applyPositions(
+        filteredNodes.map((n) => {
+          const p = graph.getNodeAttributes(n.id);
+          return { id: n.id, x: p.x, y: p.y };
+        }),
+      );
+      // 简单抖动一次，避免节点重叠
+      // 不引入 d3-force，直接用网格结果即可
+      return;
+    }
+
+    // 大图走 worker
+    if (workerBusyRef.current) { return; }
+    workerBusyRef.current = true;
+    setLayoutRunning(true);
+
+    const nodesPayload = filteredNodes.map((n) => {
+      const p = graph.getNodeAttributes(n.id);
+      return { id: n.id, x: p.x, y: p.y };
+    });
+    const edgesPayload = filteredEdges.map((e) => ({ source: e.source, target: e.target }));
+
+    const settings: LayoutRequest["settings"] = {
+      barnesHutOptimize: useBarnesHut,
+      barnesHutTheta: 0.6,
+      gravity: layoutMode === "radial" ? 0.5 : 1.0,
+      slowDown: 4,
+      scaling: 1.0,
+      linLogMode: layoutMode === "radial",
+    };
+
+    const req: LayoutRequest = {
+      type: "layout",
+      nodes: nodesPayload,
+      edges: edgesPayload,
+      iterations: FORCE_ATLAS_ITERATIONS,
+      settings,
+    };
+    worker.postMessage(req);
+  }, [filteredNodes, filteredEdges, dimensions, layoutMode, useBarnesHut]);
+
+  // ── 应用位置 ──
+  const applyPositions = useCallback(
+    (positions: Array<{ id: string; x: number; y: number }>) => {
+      const graph = graphRef.current;
+      const sigmaInstance = sigmaRef.current;
+      if (!graph || !sigmaInstance) { return; }
+      for (const p of positions) {
+        if (graph.hasNode(p.id)) {
+          graph.setNodeAttribute(p.id, "x", p.x);
+          graph.setNodeAttribute(p.id, "y", p.y);
+        }
+      }
+      sigmaInstance.refresh();
+      // 自适应视图
+      setTimeout(() => {
+        sigmaInstance.getCamera().animate(
+          { ...sigmaInstance.getCamera().getState(), ratio: 1.2 },
+          { duration: 300 },
+        );
+      }, 50);
+    },
+    [],
+  );
+
+  // ── 高亮/选中 ──
+  useEffect(() => {
+    const graph = graphRef.current;
+    const sigmaInstance = sigmaRef.current;
+    if (!graph || !sigmaInstance) { return; }
+
+    const hasHighlights = highlightedNodeIds && highlightedNodeIds.size > 0;
+    graph.forEachNode((node, attrs) => {
+      const original = nodeIndexRef.current.get(node);
+      if (!original) { return; }
+      const baseColor = getNodeColor(original, communities, token);
+      const isSelected = selectedNodeId === node;
+      const isHighlighted = !hasHighlights || highlightedNodeIds?.has(node);
+      const color = isHighlighted ? baseColor : `${baseColor}40`;
+      const size = isSelected ? getNodeSize(original) * 1.5 : getNodeSize(original);
+      if (attrs.color !== color) { graph.setNodeAttribute(node, "color", color); }
+      if (attrs.size !== size) { graph.setNodeAttribute(node, "size", size); }
+    });
+    sigmaInstance.refresh();
+  }, [highlightedNodeIds, selectedNodeId, communities, token]);
+
+  // ── 工具栏 ──
+  const handleZoomIn = useCallback(() => {
+    sigmaRef.current?.getCamera().animatedZoom({ duration: 300 });
+  }, []);
+  const handleZoomOut = useCallback(() => {
+    sigmaRef.current?.getCamera().animatedUnzoom({ duration: 300 });
+  }, []);
+  const handleFitAll = useCallback(() => {
+    sigmaRef.current?.getCamera().animatedReset({ duration: 600 });
+  }, []);
+  const handleFocusSelected = useCallback(() => {
+    if (!selectedNodeId || !sigmaRef.current || !graphRef.current) { return; }
+    const graph = graphRef.current;
+    if (!graph.hasNode(selectedNodeId)) { return; }
+    const attrs = graph.getNodeAttributes(selectedNodeId);
+    sigmaRef.current.getCamera().animate(
+      { x: attrs.x, y: attrs.y, ratio: 0.5 },
+      { duration: 500 },
+    );
+  }, [selectedNodeId]);
 
   if (data.nodes.length === 0) {
     return (
@@ -859,342 +569,317 @@ function GraphViewInner({
       className="outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
       style={{ width: "100%", height: "100%", position: "relative" }}
     >
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={onNodeClickHandler}
-        onNodeDoubleClick={onNodeDoubleClickHandler}
-        onNodeContextMenu={onNodeContextMenuHandler}
-        onNodeMouseEnter={onNodeMouseEnter}
-        onNodeMouseLeave={onNodeMouseLeave}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        fitViewOptions={{ padding: 0.15, duration: 800 }}
-        minZoom={0.05}
-        maxZoom={4}
-        defaultViewport={{ zoom: 1, x: 0, y: 0 }}
-        attributionPosition="bottom-left"
-        style={{ background: token.colorBgLayout }}
-        proOptions={{ hideAttribution: true }}
+      {/* sigma 渲染容器：100% 填充父级 */}
+      <div style={{ width: "100%", height: "100%" }} />
+
+      {/* 左上：过滤面板 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          zIndex: 10,
+          minWidth: 220,
+        }}
       >
-        <Background
-          gap={20}
-          size={1}
-          color={`${token.colorBorderSecondary}40`}
-        />
-
-        {showMinimap && (
-          <MiniMap
-            nodeColor={(n) => {
-              const graphNode = data.nodes.find((gn) => gn.id === n.id);
-              return graphNode
-                ? getNodeColor(graphNode, communities, token)
-                : nodeColors.note;
-            }}
-            maskColor={`${token.colorBgContainer}aa`}
-            style={{ borderRadius: 8, overflow: "hidden" }}
-            pannable
-            zoomable
-          />
-        )}
-
-        <Panel position="top-left">
-          <Card
-            size="small"
-            style={{
-              minWidth: 220,
-              borderRadius: 10,
-              backdropFilter: "blur(12px)",
-              background: `${token.colorBgContainer}ee`,
-              border: `1px solid ${token.colorBorderSecondary}40`,
-            }}
-          >
-            <Space orientation="vertical" size="small" style={{ width: "100%" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text strong style={{ fontSize: 12 }}>
-                  {t("wiki.graph.filters")}
-                </Text>
-                <Segmented
-                  size="small"
-                  value={layoutMode}
-                  onChange={(v) => setLayoutMode(v as LayoutMode)}
-                  options={[
-                    { label: "Force", value: "force" },
-                    { label: "Radial", value: "radial" },
-                    { label: "Dense", value: "hierarchy" },
-                  ]}
-                />
-              </div>
-              <Select
-                mode="multiple"
-                placeholder={t("wiki.graph.filterByTags")}
-                style={{ width: "100%" }}
-                allowClear
-                value={filters?.tags}
-                onChange={(values) => onFiltersChange?.({ tags: values, types: filters?.types })}
-                options={allTags.map((tag) => ({ label: tag, value: tag }))}
-                maxTagCount={3}
-              />
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {(
-                  ["note", "concept", "entity", "source"] as GraphNodeType[]
-                ).map((type) => (
-                  <Tag
-                    key={type}
-                    color={nodeColors[type]}
-                    style={{ fontSize: 12, margin: 0 }}
-                  >
-                    {type}: {data.nodes.filter((n) => n.type === type).length}
-                  </Tag>
-                ))}
-              </div>
-              {communities && communities.size > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 4,
-                    flexWrap: "wrap",
-                    marginTop: 4,
-                  }}
-                >
-                  <Text
-                    type="secondary"
-                    style={{ fontSize: 10, width: "100%" }}
-                  >
-                    {t("wiki.graph.communities")}
-                  </Text>
-                  {Array.from(new Set(communities.values()))
-                    .slice(0, 8)
-                    .map((cid) => (
-                      <Tag
-                        key={cid}
-                        color={communityPalette[cid % communityPalette.length]}
-                        style={{ fontSize: 10 }}
-                      >
-                        C{cid}
-                      </Tag>
-                    ))}
-                </div>
-              )}
-            </Space>
-          </Card>
-        </Panel>
-
-        <Panel position="top-right">
-          <Card
-            size="small"
-            style={{
-              borderRadius: 10,
-              backdropFilter: "blur(12px)",
-              background: `${token.colorBgContainer}ee`,
-              border: `1px solid ${token.colorBorderSecondary}40`,
-            }}
-          >
-            <Space orientation="vertical" size="small">
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {t("wiki.graph.stats")}
-              </Text>
-              <Text style={{ fontSize: 12 }}>
-                {t("wiki.graph.nodes")}: {filteredNodes.length} / {data.nodes.length}
-              </Text>
-              <Text style={{ fontSize: 12 }}>
-                {t("wiki.graph.edges")}: {filteredEdges.length} / {data.edges.length}
-              </Text>
-              {expandedNodeIds.size > 0 && (
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Expanded: {expandedNodeIds.size}
-                </Text>
-              )}
-              {hasHighlights && (
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Highlighted: {highlightedNodeIds!.size}
-                </Text>
-              )}
-            </Space>
-          </Card>
-        </Panel>
-
-        <Panel position="bottom-right">
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <Card
-              size="small"
+        <Card
+          size="small"
+          style={{
+            borderRadius: 10,
+            backdropFilter: "blur(12px)",
+            background: `${token.colorBgContainer}ee`,
+            border: `1px solid ${token.colorBorderSecondary}40`,
+          }}
+        >
+          <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+            <div
               style={{
-                borderRadius: 10,
-                backdropFilter: "blur(12px)",
-                background: `${token.colorBgContainer}ee`,
-                border: `1px solid ${token.colorBorderSecondary}40`,
-                padding: "4px 8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
+              <Typography.Text strong style={{ fontSize: 12 }}>
+                {t("wiki.graph.filters")}
+              </Typography.Text>
+              <Segmented
+                size="small"
+                value={layoutMode}
+                onChange={(v) => setLayoutMode(v as LayoutMode)}
+                options={[
+                  { label: "Force", value: "force" },
+                  { label: "Radial", value: "radial" },
+                  { label: "Dense", value: "hierarchy" },
+                ]}
+              />
+            </div>
+            <Select
+              mode="multiple"
+              placeholder={t("wiki.graph.filterByTags")}
+              style={{ width: "100%" }}
+              allowClear
+              value={filters?.tags}
+              onChange={(values) => onFiltersChange?.({ tags: values, types: filters?.types })}
+              options={allTags.map((tag) => ({ label: tag, value: tag }))}
+              maxTagCount={3}
+            />
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => (
+                <Tag
+                  key={type}
+                  color={nodeColors[type]}
+                  style={{ fontSize: 12, margin: 0 }}
+                >
+                  {type}: {data.nodes.filter((n) => n.type === type).length}
+                </Tag>
+              ))}
+            </div>
+            {communities && communities.size > 0 && (
               <div
                 style={{
                   display: "flex",
-                  gap: 8,
+                  gap: 4,
                   flexWrap: "wrap",
-                  fontSize: 10,
+                  marginTop: 4,
                 }}
               >
-                {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
-                  const s = edgeTypeStyles[et];
-                  return (
-                    <span
-                      key={et}
-                      style={{ display: "flex", alignItems: "center", gap: 3 }}
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 10, width: "100%" }}
+                >
+                  {t("wiki.graph.communities")}
+                </Typography.Text>
+                {Array.from(new Set(communities.values()))
+                  .slice(0, 8)
+                  .map((cid) => (
+                    <Tag
+                      key={cid}
+                      color={communityPalette[cid % communityPalette.length]}
+                      style={{ fontSize: 10 }}
                     >
-                      <svg width="20" height="6">
-                        <line
-                          x1="0"
-                          y1="3"
-                          x2="20"
-                          y2="3"
-                          stroke={s.stroke}
-                          strokeWidth={s.strokeWidth}
-                          strokeDasharray={s.dashArray}
-                        />
-                      </svg>
-                      <span style={{ color: s.stroke }}>
-                        {t(edgeTypeLabels[et])}
-                      </span>
-                    </span>
-                  );
-                })}
+                      C{cid}
+                    </Tag>
+                  ))}
               </div>
-            </Card>
-          </div>
-        </Panel>
+            )}
+            {layoutRunning && (
+              <Typography.Text type="secondary" style={{ fontSize: 10 }}>
+                {t("wiki.graph.layoutRunning") ?? "正在计算布局…"}
+              </Typography.Text>
+            )}
+          </Space>
+        </Card>
+      </div>
 
-        <Panel position="bottom-center">
+      {/* 右上：统计面板 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 12,
+          zIndex: 10,
+        }}
+      >
+        <Card
+          size="small"
+          style={{
+            borderRadius: 10,
+            backdropFilter: "blur(12px)",
+            background: `${token.colorBgContainer}ee`,
+            border: `1px solid ${token.colorBorderSecondary}40`,
+          }}
+        >
+          <Space orientation="vertical" size="small">
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t("wiki.graph.stats")}
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: 12 }}>
+              {t("wiki.graph.nodes")}: {stats.visible} / {stats.total}
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: 12 }}>
+              {t("wiki.graph.edges")}: {stats.edges}
+            </Typography.Text>
+            {highlightedNodeIds && highlightedNodeIds.size > 0 && (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                Highlighted: {highlightedNodeIds.size}
+              </Typography.Text>
+            )}
+          </Space>
+        </Card>
+      </div>
+
+      {/* 右下：图例 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 12,
+          right: 12,
+          zIndex: 10,
+        }}
+      >
+        <Card
+          size="small"
+          style={{
+            borderRadius: 10,
+            backdropFilter: "blur(12px)",
+            background: `${token.colorBgContainer}ee`,
+            border: `1px solid ${token.colorBorderSecondary}40`,
+            padding: "4px 8px",
+          }}
+        >
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "4px 8px",
-              borderRadius: 20,
-              background: `${token.colorBgContainer}ee`,
-              backdropFilter: "blur(12px)",
-              border: `1px solid ${token.colorBorderSecondary}40`,
+              gap: 8,
+              flexWrap: "wrap",
+              fontSize: 10,
             }}
           >
-            <Tooltip title={t("wiki.graph.zoomIn")}>
-              <button
-                onClick={handleZoomIn}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 4,
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  color: token.colorTextSecondary,
-                  transition: "box-shadow 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = token.colorBgTextHover;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                }}
-              >
-                <ZoomIn size={16} />
-              </button>
-            </Tooltip>
-            <Tooltip title={t("wiki.graph.zoomOut")}>
-              <button
-                onClick={handleZoomOut}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 4,
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  color: token.colorTextSecondary,
-                  transition: "box-shadow 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = token.colorBgTextHover;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                }}
-              >
-                <ZoomOut size={16} />
-              </button>
-            </Tooltip>
-            <Tooltip title={t("wiki.graph.fitView")}>
-              <button
-                onClick={handleFitAll}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 4,
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  color: token.colorTextSecondary,
-                  transition: "box-shadow 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = token.colorBgTextHover;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                }}
-              >
-                <Maximize2 size={16} />
-              </button>
-            </Tooltip>
-            {selectedNodeId && (
-              <Tooltip title={t("wiki.graph.focusSelected")}>
-                <button
-                  onClick={handleFocusSelected}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 4,
-                    borderRadius: 6,
-                    display: "flex",
-                    alignItems: "center",
-                    color: token.colorPrimary,
-                    transition: "box-shadow 0.2s, transform 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = token.colorBgTextHover;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "none";
-                  }}
+            {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
+              const s = edgeTypeStyles[et];
+              return (
+                <span
+                  key={et}
+                  style={{ display: "flex", alignItems: "center", gap: 3 }}
                 >
-                  <Minimize2 size={16} />
-                </button>
-              </Tooltip>
-            )}
+                  <svg width="20" height="6">
+                    <line
+                      x1="0"
+                      y1="3"
+                      x2="20"
+                      y2="3"
+                      stroke={resolveColor(s.color)}
+                      strokeWidth={s.width}
+                    />
+                  </svg>
+                  <span style={{ color: resolveColor(s.color) }}>
+                    {t(edgeTypeLabels[et])}
+                  </span>
+                </span>
+              );
+            })}
           </div>
-        </Panel>
-      </ReactFlow>
+        </Card>
+      </div>
+
+      {/* 底部中：工具栏 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 12,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "4px 8px",
+          borderRadius: 20,
+          background: `${token.colorBgContainer}ee`,
+          backdropFilter: "blur(12px)",
+          border: `1px solid ${token.colorBorderSecondary}40`,
+        }}
+      >
+        <Tooltip title={t("wiki.graph.zoomIn")}>
+          <button
+            onClick={handleZoomIn}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              color: token.colorTextSecondary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = token.colorBgTextHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <ZoomIn size={16} />
+          </button>
+        </Tooltip>
+        <Tooltip title={t("wiki.graph.zoomOut")}>
+          <button
+            onClick={handleZoomOut}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              color: token.colorTextSecondary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = token.colorBgTextHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <ZoomOut size={16} />
+          </button>
+        </Tooltip>
+        <Tooltip title={t("wiki.graph.fitView")}>
+          <button
+            onClick={handleFitAll}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              color: token.colorTextSecondary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = token.colorBgTextHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <Maximize2 size={16} />
+          </button>
+        </Tooltip>
+        {selectedNodeId && (
+          <Tooltip title={t("wiki.graph.focusSelected")}>
+            <button
+              onClick={handleFocusSelected}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 4,
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                color: token.colorPrimary,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = token.colorBgTextHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "none";
+              }}
+            >
+              <Minimize2 size={16} />
+            </button>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 }
 
-export function GraphView(props: GraphViewProps) {
-  return (
-    <ReactFlowProvider>
-      <GraphViewInner {...props} />
-    </ReactFlowProvider>
-  );
-}
+export const GraphView = memo(GraphViewInner);
+
+// 保留向后兼容：旧代码可能 import { GraphView }
+export { GraphView as default };

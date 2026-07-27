@@ -1919,6 +1919,8 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         loading={loading}
         size="small"
         bordered
+        virtual
+        scroll={{ y: 600, x: "max-content" }}
       />
 
       {/* Add / Edit Modal */}

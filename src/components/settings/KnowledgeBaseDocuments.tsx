@@ -1581,6 +1581,8 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
         loading={loading}
         size="small"
         bordered
+        virtual
+        scroll={{ y: 600, x: "max-content" }}
       />
 
       {/* Chunks Modal */}

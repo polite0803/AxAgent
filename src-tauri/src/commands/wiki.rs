@@ -11,6 +11,7 @@ use axagent_harness::louvain_dtos::LouvainResult;
 use axagent_harness::types::NoteSearchResult;
 use axagent_search::hybrid_search::{FusionAlgorithm, HybridSearchOptions, HybridSearcher};
 use axagent_search::rag::{RAGSource, WikiVaultRAG, collection_id};
+use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
@@ -180,6 +181,11 @@ pub async fn wiki_notes_create(
             ))
         })?;
 
+    // 失效图谱缓存（notes 表有写入）
+    let _ =
+        axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), &note.vault_id)
+            .await;
+
     enqueue_wiki_note_indexing(&state, &app, &note.vault_id, &note.id);
 
     Ok(note)
@@ -217,6 +223,13 @@ pub async fn wiki_notes_update(
 
     let _ = wiki::delete_old_versions(state.harness.db(), &id, 20).await;
 
+    // 失效图谱缓存（notes 表有更新）
+    let _ = axagent_dao::repo::wiki_graph_cache::invalidate_cache(
+        state.harness.db(),
+        &updated.vault_id,
+    )
+    .await;
+
     enqueue_wiki_note_indexing(&state, &app, &updated.vault_id, &updated.id);
 
     Ok(updated)
@@ -224,27 +237,39 @@ pub async fn wiki_notes_update(
 
 #[tauri::command]
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    if let Ok(existing) = axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
-        let collection_id = format!("wiki_{}", existing.vault_id);
-        let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
+    let vault_id =
+        if let Ok(existing) = axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
+            let collection_id = format!("wiki_{}", existing.vault_id);
+            let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
 
-        let _ = wiki::create_version(
-            state.harness.db(),
-            &existing.vault_id,
-            &existing.id,
-            &existing.title,
-            &existing.content,
-            &existing.author,
-        )
-        .await;
-    }
+            let _ = wiki::create_version(
+                state.harness.db(),
+                &existing.vault_id,
+                &existing.id,
+                &existing.title,
+                &existing.content,
+                &existing.author,
+            )
+            .await;
+            Some(existing.vault_id)
+        } else {
+            None
+        };
 
     axagent_dao::repo::note::delete_note(state.harness.db(), &id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
-    })
+    })?;
+
+    // 失效图谱缓存（notes 表有删除）
+    if let Some(vid) = vault_id {
+        let _ =
+            axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), &vid).await;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -347,15 +372,36 @@ pub async fn wiki_notes_get_backlinks(
     let target_note = axagent_dao::repo::note::get_note(state.harness.db(), &note_id).await.ok();
     let target_title = target_note.as_ref().map(|n| n.title.as_str()).unwrap_or("");
 
+    // 优化：批量查询所有 source_notes，避免 N+1（原实现每个 backlink 单独查一次）
+    let source_ids: Vec<String> = links.iter().map(|l| l.source_note_id.clone()).collect();
+    let source_notes_map: std::collections::HashMap<String, axagent_dao::repo::note::Note> =
+        if source_ids.is_empty() {
+            std::collections::HashMap::new()
+        } else {
+            use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+            let models = axagent_entities::notes::Entity::find()
+                .filter(axagent_entities::notes::Column::Id.is_in(source_ids))
+                .all(state.harness.db())
+                .await
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+            models
+                .into_iter()
+                .map(|m| (m.id.clone(), axagent_dao::repo::note::model_to_note(m)))
+                .collect()
+        };
+
     let mut map: std::collections::HashMap<String, BacklinkInfo> = std::collections::HashMap::new();
 
     for link in &links {
-        let source_note =
-            match axagent_dao::repo::note::get_note(state.harness.db(), &link.source_note_id).await
-            {
-                Ok(n) => n,
-                Err(_) => continue,
-            };
+        let source_note = match source_notes_map.get(&link.source_note_id) {
+            Some(n) => n,
+            None => continue,
+        };
 
         let snippets = extract_link_context_snippets(&source_note.content, target_title, 80);
 
@@ -550,99 +596,141 @@ async fn wiki_notes_search_keyword(
     query: &str,
     top_k: usize,
 ) -> Result<Vec<NoteSearchResult>, String> {
-    let notes =
-        axagent_dao::repo::note::list_notes(state.harness.db(), vault_id).await.map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+    // 走数据库全文索引（v104_notes_fts 迁移建立），避免把 10 万节点灌进内存做 BM25。
+    // - SQLite: notes_fts 虚拟表 + MATCH 操作符，bm25() 函数返回相关性得分
+    // - PostgreSQL: tsv @@ plainto_tsquery + ts_rank
+    //
+    // 任意一种后端都通过参数化查询绑定 vault_id / query / top_k，避免 SQL 注入。
+    let db = state.harness.db();
+    let backend = db.get_database_backend();
 
-    let query_lower = query.to_lowercase();
-    let query_words: Vec<&str> = query_lower.split_whitespace().collect();
-
-    let num_docs = notes.len() as f64;
-    let avg_dl = if !notes.is_empty() {
-        notes.iter().map(|n| n.content.len() as f64).sum::<f64>() / num_docs
-    } else {
-        1.0
-    };
-
-    let mut df: std::collections::HashMap<&str, f64> = std::collections::HashMap::new();
-    for word in &query_words {
-        let count = notes
-            .iter()
-            .filter(|n| {
-                n.content.to_lowercase().contains(word) || n.title.to_lowercase().contains(word)
-            })
-            .count() as f64;
-        df.insert(word, count);
+    // 空 query 直接返回，避免 MATCH ' ' 报错
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
     }
 
-    let mut results: Vec<NoteSearchResult> = Vec::new();
+    // 转义 SQLite FTS5 的特殊字符（双引号），用 "..." 包裹做短语查询
+    // 多个 token 用 OR 连接以提升召回
+    let sqlite_match_query = build_fts5_match_query(trimmed);
 
-    for note in notes {
-        let score =
-            compute_note_bm25_score(&note, &query_lower, &query_words, &df, num_docs, avg_dl);
-        if score <= 0.0 {
-            continue;
-        }
+    let rows = if backend == sea_orm::DbBackend::Postgres {
+        db.query_all_raw(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DbBackend::Postgres,
+            "SELECT n.id, n.vault_id, n.title, n.file_path, n.content, n.content_hash, \
+                    n.author, n.page_type, n.source_refs, n.related_pages, n.quality_score, \
+                    n.last_linted_at, n.last_compiled_at, n.compiled_source_hash, \
+                    n.user_edited, n.user_edited_at, n.created_at, n.updated_at, n.is_deleted, \
+                    ts_rank(n.tsv, plainto_tsquery('simple', $1)) AS rank \
+             FROM notes n \
+             WHERE n.vault_id = $2 AND n.is_deleted = 0 \
+               AND n.tsv @@ plainto_tsquery('simple', $1) \
+             ORDER BY rank DESC \
+             LIMIT $3",
+            [trimmed.into(), vault_id.into(), (top_k as i64).into()],
+        ))
+        .await
+    } else {
+        db.query_all_raw(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DbBackend::Sqlite,
+            "SELECT n.id, n.vault_id, n.title, n.file_path, n.content, n.content_hash, \
+                    n.author, n.page_type, n.source_refs, n.related_pages, n.quality_score, \
+                    n.last_linted_at, n.last_compiled_at, n.compiled_source_hash, \
+                    n.user_edited, n.user_edited_at, n.created_at, n.updated_at, n.is_deleted, \
+                    bm25(notes_fts) AS rank \
+             FROM notes_fts f \
+             JOIN notes n ON n.rowid = f.rowid \
+             WHERE n.vault_id = ? AND n.is_deleted = 0 \
+               AND notes_fts MATCH ? \
+             ORDER BY rank ASC \
+             LIMIT ?",
+            [vault_id.into(), sqlite_match_query.into(), (top_k as i64).into()],
+        ))
+        .await
+    };
+
+    let rows = rows.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let mut results: Vec<NoteSearchResult> = Vec::with_capacity(rows.len());
+    for row in rows {
+        // bm25() 在 SQLite 中返回负数（越小越相关），统一转成正数排序
+        // ts_rank 在 PG 中返回正数（越大越相关）
+        let raw_rank: f64 = row.try_get_by("rank").unwrap_or(0.0);
+        let rank = if backend == sea_orm::DbBackend::Postgres {
+            raw_rank
+        } else {
+            // SQLite bm25 返回负值，取绝对值并取反得到正的相关性分数
+            -raw_rank
+        };
+
+        let note = Note {
+            id: row.try_get_by("id").unwrap_or_default(),
+            vault_id: row.try_get_by("vault_id").unwrap_or_default(),
+            title: row.try_get_by("title").unwrap_or_default(),
+            file_path: row.try_get_by("file_path").unwrap_or_default(),
+            content: row.try_get_by("content").unwrap_or_default(),
+            content_hash: row.try_get_by("content_hash").unwrap_or_default(),
+            author: row.try_get_by("author").unwrap_or_default(),
+            page_type: row.try_get_by("page_type").ok(),
+            source_refs: row
+                .try_get_by::<sea_orm::JsonValue, _>("source_refs")
+                .ok()
+                .and_then(|j| serde_json::from_value(j).ok()),
+            related_pages: row
+                .try_get_by::<sea_orm::JsonValue, _>("related_pages")
+                .ok()
+                .and_then(|j| serde_json::from_value(j).ok()),
+            quality_score: row.try_get_by("quality_score").ok(),
+            last_linted_at: row.try_get_by("last_linted_at").ok(),
+            last_compiled_at: row.try_get_by("last_compiled_at").ok(),
+            compiled_source_hash: row.try_get_by("compiled_source_hash").ok(),
+            user_edited: row.try_get_by::<i32, _>("user_edited").unwrap_or(0) != 0,
+            user_edited_at: row.try_get_by("user_edited_at").ok(),
+            created_at: row.try_get_by("created_at").unwrap_or(0),
+            updated_at: row.try_get_by("updated_at").unwrap_or(0),
+            is_deleted: row.try_get_by::<i32, _>("is_deleted").unwrap_or(0) != 0,
+        };
 
         let snippet = extract_highlight_snippet(&note.content, query, 50, 150);
+
+        // 综合 score = rank + quality_score * 0.3（保留原有质量分加权）
+        let score = rank + note.quality_score.unwrap_or(0.0) * 0.3;
 
         results.push(NoteSearchResult { note, snippet, score });
     }
 
+    // PG 已在 SQL 内排序，SQLite 的 bm25 排序也已生效，但综合 quality_score 后需要重新排
     results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
     results.truncate(top_k);
 
     Ok(results)
 }
 
-const BM25_K1: f64 = 1.2;
-const BM25_B: f64 = 0.75;
+/// 把用户输入转为 SQLite FTS5 MATCH 表达式。
+///
+/// FTS5 中双引号是特殊字符，需要转义；多个 token 之间默认 OR 不行（FTS5 默认 AND），
+/// 这里显式用 OR 连接提升召回率。空 query 返回空串（调用方应已 trim 检查）。
+fn build_fts5_match_query(query: &str) -> String {
+    let tokens: Vec<String> = query
+        .split_whitespace()
+        .filter(|s| !s.is_empty())
+        .map(|tok| {
+            // 转义双引号：FTS5 字符串字面量用 "..." 包裹
+            let escaped = tok.replace('"', "\"\"");
+            format!("\"{}\"", escaped)
+        })
+        .collect();
 
-fn compute_note_bm25_score(
-    note: &Note,
-    query_lower: &str,
-    query_words: &[&str],
-    df: &std::collections::HashMap<&str, f64>,
-    num_docs: f64,
-    avg_dl: f64,
-) -> f64 {
-    let content_lower = note.content.to_lowercase();
-    let title_lower = note.title.to_lowercase();
-    let dl = note.content.len() as f64;
-
-    let mut score = 0.0_f64;
-
-    if title_lower.contains(query_lower) {
-        score += 2.0;
-    } else {
-        for word in query_words {
-            if title_lower.contains(word) {
-                score += 0.8;
-            }
-        }
+    if tokens.is_empty() {
+        return String::new();
     }
 
-    for word in query_words {
-        let tf = content_lower.matches(word).count() as f64;
-        if tf == 0.0 {
-            continue;
-        }
-        let df_val = df.get(word).copied().unwrap_or(0.0);
-        let idf = ((num_docs - df_val + 0.5) / (df_val + 0.5) + 1.0).ln();
-        let tf_norm =
-            (tf * (BM25_K1 + 1.0)) / (tf + BM25_K1 * (1.0 - BM25_B + BM25_B * (dl / avg_dl)));
-        score += idf * tf_norm;
-    }
-
-    if let Some(qs) = note.quality_score {
-        score += qs * 0.3;
-    }
-
-    score
+    tokens.join(" OR ")
 }
 
 fn extract_highlight_snippet(
@@ -717,6 +805,127 @@ pub async fn wiki_graph_communities(
     let link_graph = LinkGraph::from_graph_data(graph_data);
     let result = louvain::detect_communities(link_graph);
     Ok(result)
+}
+
+/// 带缓存的图谱查询：优先读 `wiki_graph_cache` 表，未命中则实时计算并写缓存。
+///
+/// 10 万节点规模下，实时计算单次数秒；命中缓存 < 10ms。
+/// 缓存在 notes 写入/更新/删除时自动失效。
+#[tauri::command]
+pub async fn get_wiki_graph_cached(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<GraphData, String> {
+    let db = state.harness.db();
+
+    // 1. 尝试命中缓存
+    if let Some(entry) =
+        axagent_dao::repo::wiki_graph_cache::get_cached_graph(db, &wiki_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+    {
+        return Ok(entry.graph_data);
+    }
+
+    // 2. 未命中：实时计算并写缓存
+    let graph_data = axagent_dao::repo::note::get_vault_graph(db, &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    axagent_dao::repo::wiki_graph_cache::save_cached_graph(db, &wiki_id, &graph_data, None)
+        .await
+        .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(graph_data)
+}
+
+/// 带缓存的社区检测：优先读缓存，未命中则跑 Louvain 并写缓存。
+#[tauri::command]
+pub async fn wiki_graph_communities_cached(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<LouvainResult, String> {
+    let db = state.harness.db();
+
+    // 1. 尝试命中缓存（含 communities）
+    if let Some(entry) =
+        axagent_dao::repo::wiki_graph_cache::get_cached_graph(db, &wiki_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+    {
+        if let Some(communities) = entry.communities {
+            return Ok(communities);
+        }
+        // graph_data 已缓存但 communities 未算：用缓存 graph_data 跑 Louvain
+        let link_graph = LinkGraph::from_graph_data(entry.graph_data);
+        let result = louvain::detect_communities(link_graph);
+        axagent_dao::repo::wiki_graph_cache::save_cached_communities(db, &wiki_id, &result)
+            .await
+            .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        return Ok(result);
+    }
+
+    // 2. 未命中：实时计算 graph + communities 并写缓存
+    let graph_data = axagent_dao::repo::note::get_vault_graph(db, &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let link_graph = LinkGraph::from_graph_data(graph_data.clone());
+    let result = louvain::detect_communities(link_graph);
+
+    axagent_dao::repo::wiki_graph_cache::save_cached_graph(
+        db,
+        &wiki_id,
+        &graph_data,
+        Some(&result),
+    )
+    .await
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(result)
+}
+
+/// 手动失效缓存（前端在导入/批量编辑后可调用）。
+#[tauri::command]
+pub async fn invalidate_wiki_graph_cache(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<(), String> {
+    axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), &wiki_id)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 #[tauri::command]

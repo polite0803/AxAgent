@@ -51,6 +51,7 @@ pub mod note_backlink_repository;
 pub mod note_graph;
 pub mod note_repository;
 pub mod wiki;
+pub mod wiki_graph_cache;
 pub mod wiki_operation_repository;
 pub mod wiki_page_repository;
 pub mod wiki_repository;

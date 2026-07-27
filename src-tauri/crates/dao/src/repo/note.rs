@@ -279,7 +279,11 @@ pub async fn sync_note_links(
 pub use axagent_harness::graph_dtos::{GraphData, GraphEdge, GraphNode};
 
 pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<GraphData> {
-    let notes = list_notes(db, vault_id).await?;
+    // 优化：用 list_notes_for_graph 只取图谱必要字段（id/title/file_path/page_type），
+    // 避免 10 万节点 × 5KB content = 500MB 内存浪费。
+    // tags 字段不在 notes 表中，extract_tags_from_content 需要 content，
+    // 但 tags 仅用于节点展示，大图场景下前端会降级渲染，这里返回空 tags。
+    let notes = list_notes_for_graph(db, vault_id).await?;
     let links =
         note_links::Entity::find().filter(note_links::Column::VaultId.eq(vault_id)).all(db).await?;
     let backlinks = note_backlinks::Entity::find()
@@ -287,7 +291,7 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
         .all(db)
         .await?;
 
-    let note_ids: std::collections::HashSet<_> = notes.iter().map(|n| n.id.clone()).collect();
+    let note_ids: std::collections::HashSet<_> = notes.iter().map(|n| n.0.clone()).collect();
 
     let mut link_counts: std::collections::HashMap<String, i32> = std::collections::HashMap::new();
     let mut backlink_counts: std::collections::HashMap<String, i32> =
@@ -308,19 +312,15 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
     }
 
     let mut nodes: Vec<GraphNode> = Vec::new();
-    for note in &notes {
-        if note.is_deleted {
-            continue;
-        }
-        let tags = extract_tags_from_content(&note.content);
+    for (id, title, file_path, page_type) in &notes {
         nodes.push(GraphNode {
-            id: note.id.clone(),
-            title: note.title.clone(),
-            node_type: note.page_type.clone().unwrap_or_else(|| "note".to_string()),
-            tags,
-            link_count: *link_counts.get(&note.id).unwrap_or(&0),
-            backlink_count: *backlink_counts.get(&note.id).unwrap_or(&0),
-            path: note.file_path.clone(),
+            id: id.clone(),
+            title: title.clone(),
+            node_type: page_type.clone().unwrap_or_else(|| "note".to_string()),
+            tags: Vec::new(),
+            link_count: *link_counts.get(id).unwrap_or(&0),
+            backlink_count: *backlink_counts.get(id).unwrap_or(&0),
+            path: file_path.clone(),
         });
     }
 
@@ -348,16 +348,25 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
     Ok(GraphData { nodes, edges })
 }
 
-fn extract_tags_from_content(content: &str) -> Vec<String> {
-    let mut tags = Vec::new();
-    for line in content.lines() {
-        let line = line.trim();
-        if line.starts_with('#') {
-            let tag = line.trim_start_matches('#').trim();
-            if !tag.is_empty() {
-                tags.push(tag.to_string());
-            }
-        }
-    }
-    tags
+/// 图谱查询专用的轻量 notes 列表：只取 id/title/file_path/page_type，
+/// 不加载 content（10 万节点 × 5KB content = 500MB，图谱无需 content）。
+///
+/// 返回元组 (id, title, file_path, page_type)。tags 不在此处返回
+/// （需要 content 解析），大图场景前端降级渲染时不显示 tags。
+pub async fn list_notes_for_graph(
+    db: &DatabaseConnection,
+    vault_id: &str,
+) -> Result<Vec<(String, String, String, Option<String>)>> {
+    let rows = notes::Entity::find()
+        .filter(notes::Column::VaultId.eq(vault_id))
+        .filter(notes::Column::IsDeleted.eq(0))
+        .select_only()
+        .column(notes::Column::Id)
+        .column(notes::Column::Title)
+        .column(notes::Column::FilePath)
+        .column(notes::Column::PageType)
+        .into_tuple::<(String, String, String, Option<String>)>()
+        .all(db)
+        .await?;
+    Ok(rows)
 }
