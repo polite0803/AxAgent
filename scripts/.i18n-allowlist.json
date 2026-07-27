@@ -843,6 +843,48 @@
       "lines": "154,158,161,163,165,170,174,179",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
+    },
+    {
+      "file": "src/components/office/AgentCard.tsx",
+      "lines": "113,116,117,120,123,124",
+      "reason": "fleet 角色中文匹配业务逻辑（投研/数据/策略/交易/风控/经理）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/office/panels/ChatPanel.tsx",
+      "lines": "54,56,59,60",
+      "reason": "fleet 调试上下文模板（股票代码/名称/价格/涨跌幅）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/office/panels/MeetingRoomMiniBar.tsx",
+      "lines": "47,49,51,53,55,57",
+      "reason": "fleet 行业分类中文匹配（科技/消费/周期/金融/医药/政策）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/office/panels/RiskRoomMiniBar.tsx",
+      "lines": "57,58",
+      "reason": "fleet 中文数值格式化（亿/万）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/office/panels/TokenPanel.tsx",
+      "lines": "32,33,34",
+      "reason": "fleet 中文数值格式化（亿/万/千）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/office/panels/TradingRoomMiniBar.tsx",
+      "lines": "46,47,48",
+      "reason": "fleet 中文数值格式化（元/股/亿/万）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/office/phaser/sprites.ts",
+      "lines": "108,109,110,111,112,113",
+      "reason": "fleet Phaser 角色颜色中文匹配（与 AgentCard.tsx 对齐）",
+      "phase": 3
     }
   ]
 }
