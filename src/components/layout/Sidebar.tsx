@@ -75,13 +75,6 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
-    key: "knowledge",
-    icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
-    labelKey: "nav.knowledge",
-    path: BUILTIN_PAGE_PATH.knowledge,
-    isPlugin: false,
-  },
-  {
     key: "gateway",
     icon: <Icon icon="fluent:globe-20-filled" size={17} />,
     labelKey: "nav.gateway",
