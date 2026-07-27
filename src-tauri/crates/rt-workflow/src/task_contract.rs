@@ -482,7 +482,7 @@ mod tests {
 
         // 短文本应被拒绝（少于 200 字）
         contract.mark_started();
-        contract.mark_completed(json!("short text"));
+        contract.mark_completed(json!({"summary": "short text"}));
         assert_eq!(contract.status, ContractStatus::Rejected);
 
         // 长文本应通过
@@ -490,7 +490,7 @@ mod tests {
         let mut contract2 =
             TaskContract::new("test").with_profile(HarnessProfile::ArtifactSynthesis);
         contract2.mark_started();
-        contract2.mark_completed(json!(long_text.trim()));
+        contract2.mark_completed(json!({"summary": long_text.trim()}));
         assert_eq!(contract2.status, ContractStatus::Accepted);
     }
 
