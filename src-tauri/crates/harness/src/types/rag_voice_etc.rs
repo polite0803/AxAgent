@@ -551,6 +551,14 @@ pub struct MemoryItem {
     pub tags: Vec<String>,
     pub source_conversation_id: Option<String>,
     pub source_message_id: Option<String>,
+    // v108: 自进化闭环 — 记忆适用范围边界 + 人工确认门
+    /// 记忆的适用范围标签（如 `["rust","frontend"]`）。
+    /// RAG 检索时可按当前任务上下文标签过滤，降低无关记忆干扰。
+    /// 空数组表示不限制。
+    pub applicability_tags: Vec<String>,
+    /// 0=未确认（Reflector 自动沉淀的默认状态），1=已人工确认。
+    /// 晋升到 core 层（promote_memory_entry）需要 confirmed=1 门槛。
+    pub confirmed: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1030,6 +1038,13 @@ pub struct CreateMemoryItemInput {
     pub decay_rate: Option<f64>,
     #[serde(default)]
     pub expires_at: Option<i64>,
+    // v108: 自进化闭环 — 创建时可选指定适用范围标签与确认状态
+    /// 记忆的适用范围标签。None 或空 Vec 表示不限制。
+    #[serde(default)]
+    pub applicability_tags: Option<Vec<String>>,
+    /// 0=未确认（默认），1=已确认。Reflector 沉淀时默认 0，需前端确认后才晋升。
+    #[serde(default)]
+    pub confirmed: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1046,6 +1061,9 @@ pub struct UpdateMemoryItemInput {
     pub memory_nature: Option<String>,
     #[serde(default)]
     pub tags: Option<Vec<String>>,
+    // v108: 自进化闭环 — 更新时可选调整适用范围标签
+    #[serde(default)]
+    pub applicability_tags: Option<Vec<String>>,
 }
 
 // ── Skills ────────────────────────────────────────────────────────────

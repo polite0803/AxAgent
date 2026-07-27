@@ -473,6 +473,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let event_bus: Arc<dyn axagent_harness::EventBus> =
         Arc::new(axagent_runtime_core::BroadcastEventBus::new(1024));
     agent_session_manager.set_event_bus(Arc::clone(&event_bus)).await;
+    // 自进化闭环:注入 Reflector,启用每个 turn 完成时自动复盘
+    // (解决 experience_pipeline.rs:243 注释的 "Reflector::reflect() 目前零调用" 问题)
+    agent_session_manager.set_reflector(reflector.clone()).await;
     work_engine.set_event_bus(Arc::clone(&event_bus));
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
         Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new()));
@@ -733,6 +736,49 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     axagent_harness::repositories::set_memory_repository(Arc::new(
         axagent_dao::memory_repository::DaoMemoryRepository::new(Arc::new(sea_db.clone())),
     ));
+
+    // 自进化闭环:启动时确保 "Reflector Insights" namespace 存在。
+    //
+    // Reflector::reflect 完成高价值任务复盘后,会通过 harness trait 把经验
+    // 沉淀到名为 "Reflector Insights" 的 global namespace。
+    // 这里启动时幂等创建(scope=global,使其自动被 RAG fallback 检索)。
+    //
+    // 失败仅日志,不阻塞启动(沉淀是辅助,失败不影响业务)。
+    const REFLECTOR_INSIGHTS_NS_NAME: &str = "Reflector Insights";
+    match axagent_dao::repo::memory::list_namespaces(&sea_db).await {
+        Ok(list) => {
+            let exists = list.iter().any(|ns| ns.name == REFLECTOR_INSIGHTS_NS_NAME);
+            if !exists {
+                match axagent_dao::repo::memory::create_namespace(
+                    &sea_db,
+                    axagent_harness::types::CreateMemoryNamespaceInput {
+                        name: REFLECTOR_INSIGHTS_NS_NAME.to_string(),
+                        scope: "global".to_string(),
+                        embedding_provider: None,
+                        embedding_dimensions: None,
+                        retrieval_threshold: None,
+                        retrieval_top_k: None,
+                        icon_type: Some("bulb".to_string()),
+                        icon_value: None,
+                    },
+                )
+                .await
+                {
+                    Ok(ns) => {
+                        tracing::info!("[init] created Reflector Insights namespace: id={}", ns.id)
+                    },
+                    Err(e) => tracing::warn!(
+                        "[init] failed to create Reflector Insights namespace: {} (Reflector will skip persisting)",
+                        e
+                    ),
+                }
+            }
+        },
+        Err(e) => tracing::warn!(
+            "[init] list_memory_namespaces failed, skip Reflector Insights setup: {}",
+            e
+        ),
+    }
 
     // 启动时加载历史反思(P0-3 修复:进程重启后历史不丢失)。
     // reflect() 落盘由 Reflector::persist_reflection 自动处理,

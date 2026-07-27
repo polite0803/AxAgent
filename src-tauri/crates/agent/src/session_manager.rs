@@ -251,6 +251,12 @@ pub struct SessionManager {
     /// 未注入时保持原有行为,不影响现有功能。
     /// 用 RwLock 包裹以支持在 `Arc<SessionManager>` 上运行时注入。
     event_bus: tokio::sync::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>,
+    /// 可选反思器。注入后每个 turn 完成时自动 spawn 复盘任务(不阻塞主流程)。
+    ///
+    /// 未注入时保持原行为(零调用 Reflector::reflect())。
+    /// 通常由 wiring 层(src/init/state.rs)在构造 AppState 时调用
+    /// `set_reflector()` 注入。
+    reflector: tokio::sync::RwLock<Option<Arc<crate::reflector::Reflector>>>,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -270,6 +276,7 @@ impl SessionManager {
             trajectory: None,
             agent_session_repo,
             event_bus: tokio::sync::RwLock::new(None),
+            reflector: tokio::sync::RwLock::new(None),
         }
     }
 
@@ -281,6 +288,15 @@ impl SessionManager {
     pub async fn set_event_bus(&self, bus: Arc<dyn axagent_harness::EventBus>) {
         let mut guard = self.event_bus.write().await;
         *guard = Some(bus);
+    }
+
+    /// 注入反思器。启用后每个 turn 完成时自动 spawn 复盘任务(不阻塞主流程)。
+    ///
+    /// 未注入时保持原行为(`Reflector::reflect()` 零调用)。
+    /// 通常由 wiring 层(src/init/state.rs)在构造 AppState 时调用。
+    pub async fn set_reflector(&self, reflector: Arc<crate::reflector::Reflector>) {
+        let mut guard = self.reflector.write().await;
+        *guard = Some(reflector);
     }
 
     /// 发布一个 agent 领域事件到统一总线(若已注入)。
@@ -742,6 +758,8 @@ impl SessionManager {
         // look up the prompter and deliver decisions during the run.
         let conv_id_for_prompter = conversation_id.clone();
         let mut prompter_opt = prompters.lock().await.get(&conv_id_for_prompter).cloned();
+        // 保留 user_input 副本供复盘使用(原 user_input 会被 move 进 spawn_blocking)
+        let user_input_for_reflect = user_input.clone();
         // run_turn 是同步的,通过 spawn_blocking + oneshot 在专用阻塞线程执行,
         // 避免 block_in_place 在多线程 runtime 中产生调度隐患。
         // 同时把 `updated_session` 一并从闭包中传出（runtime 已被 move 进去，
@@ -795,6 +813,87 @@ impl SessionManager {
         {
             let mut trackers = self.progress_trackers.write().await;
             trackers.remove(&conversation_id);
+        }
+
+        // ── 自动复盘(best-effort,不阻塞主流程) ──
+        //
+        // 若注入了 Reflector,任务完成后异步 spawn 复盘任务:
+        // - 从 summary.assistant_messages.blocks 提取 ToolUse 工具名序列
+        // - 从 summary.tool_results.blocks 检查 ToolResult.is_error 判断成功
+        // - 30s 超时保护,失败仅日志
+        //
+        // 解决 `Reflector::reflect()` 零调用问题(experience_pipeline.rs:243 注释)。
+        // 复盘产物落 reflections.jsonl + InsightGenerator.store_insight,
+        // 由 Reflector 内部逻辑处理,这里仅触发。
+        let reflector_opt = self.reflector.read().await.clone();
+        if let Some(reflector) = reflector_opt {
+            use axagent_harness::conversation_model::ContentBlock;
+
+            // 从 assistant_messages 的 blocks 中提取所有 ToolUse 工具名
+            let tools_used: Vec<String> = summary
+                .assistant_messages
+                .iter()
+                .flat_map(|m| m.blocks.iter())
+                .filter_map(|b| match b {
+                    ContentBlock::ToolUse { name, .. } => Some(name.clone()),
+                    _ => None,
+                })
+                .collect();
+
+            // 从 tool_results 的 blocks 中检查是否有错误
+            let has_error = summary
+                .tool_results
+                .iter()
+                .flat_map(|m| m.blocks.iter())
+                .any(|b| matches!(b, ContentBlock::ToolResult { is_error: true, .. }));
+
+            let iterations = summary.iterations;
+            // 估算执行时长:input+output token 折算(粗略,用于反思效率评分)
+            let duration_ms = (summary.usage.input_tokens as u64
+                + summary.usage.output_tokens as u64)
+                .saturating_mul(50);
+            let task_id = format!("{}-{}", conversation_id, chrono::Utc::now().timestamp_millis());
+
+            let mut record = axagent_harness::reflection_types::TaskExecutionRecord::new(
+                task_id.clone(),
+                user_input_for_reflect.clone(),
+                chrono::Utc::now() - chrono::Duration::milliseconds(duration_ms as i64),
+                chrono::Utc::now(),
+            )
+            .with_tools(tools_used)
+            .with_iterations(iterations)
+            .with_success(!has_error);
+
+            record.duration_ms = duration_ms;
+            if has_error {
+                record = record.with_error("tool_execution_error".to_string());
+            }
+
+            // 异步 spawn,与主流程解耦(反思失败不影响 turn 结果)
+            let reflector_clone = reflector.clone();
+            tokio::spawn(async move {
+                let reflect_result = tokio::time::timeout(
+                    std::time::Duration::from_secs(30),
+                    reflector_clone.reflect(&record),
+                )
+                .await;
+                match reflect_result {
+                    Ok(reflection) => {
+                        tracing::info!(
+                            "[session_manager] auto-reflect completed for task {}: quality_score={}",
+                            task_id,
+                            reflection.quality_score
+                        );
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            "[session_manager] auto-reflect timeout or failed for task {}: {}",
+                            task_id,
+                            e
+                        );
+                    },
+                }
+            });
         }
 
         Ok((summary, updated_session))

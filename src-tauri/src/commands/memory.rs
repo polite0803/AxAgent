@@ -609,6 +609,8 @@ pub async fn auto_extract_incremental_memories(
             tags: None,
             decay_rate: None,
             expires_at: None,
+            applicability_tags: None,
+            confirmed: None,
         };
         if let Ok(mem_item) = axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
@@ -794,6 +796,8 @@ pub async fn sync_working_memory_to_namespace(
             tags: None,
             decay_rate: None,
             expires_at: None,
+            applicability_tags: None,
+            confirmed: None,
         };
         match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
@@ -1367,6 +1371,8 @@ pub async fn extract_conversation_memories(
             tags: None,
             decay_rate: None,
             expires_at: None,
+            applicability_tags: None,
+            confirmed: None,
         };
         match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
@@ -1644,6 +1650,23 @@ pub async fn record_user_memory_access(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })
+}
+
+/// v108: 自进化闭环 — 确认记忆项（设置 confirmed=1）。
+///
+/// Reflector 自动沉淀的经验默认未确认（confirmed=0），
+/// 用户审核后调用此命令标记为已确认，之后才能晋升到 core 层。
+#[tauri::command]
+pub async fn confirm_memory_item(
+    state: State<'_, AppState>,
+    item_id: String,
+) -> Result<MemoryItem, String> {
+    axagent_dao::repo::memory::confirm_item(state.harness.db(), &item_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 三层记忆系统：手动触发一次全表衰减 tick（通常由定时器调用，此命令供管理员/调试用）。

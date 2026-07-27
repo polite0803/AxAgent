@@ -225,6 +225,8 @@ impl Tool for MemoryFlushTool {
             tags: None,
             decay_rate: None,
             expires_at: None,
+            applicability_tags: None,
+            confirmed: None,
         };
 
         match axagent_harness::repositories::memory_repository().add_item(input).await {
@@ -375,4 +377,157 @@ impl Tool for AgentRememberTool {
             .insert(key.to_string(), value.to_string());
         Ok(ToolResult::success(format!("已记住: {} = {}", key, truncate_text(value, 200))))
     }
+}
+
+// ── MemoryRecall ──
+
+/// Agent 主动按任务语义检索文件级长期记忆的工具。
+///
+/// 与 SessionSearch(FTS5 关键词匹配)互补:
+/// - SessionSearch 检索 `messages` 表(历史会话片段)
+/// - MemoryRecall 检索 `.axagent/memory/{user,feedback,project,reference}/` 下的主题文件
+///
+/// 实现内联(不依赖 axagent-agent crate,避免 hybrid→consumer 违规依赖)。
+/// 关键词 TF 匹配算法与 axagent_agent::ProjectMemory::scan_relevant_files 一致。
+pub struct MemoryRecallTool;
+
+const MEMORY_RECALL_DEFAULT_LIMIT: usize = 5;
+const MEMORY_RECALL_CONTENT_TRUNCATE: usize = 500;
+
+#[async_trait]
+impl Tool for MemoryRecallTool {
+    fn name(&self) -> &str {
+        "MemoryRecall"
+    }
+    fn description(&self) -> &str {
+        "按任务语义检索文件级长期记忆(.axagent/memory/ 下的主题文件)。\
+         输入 query 描述当前任务上下文,返回最相关 N 条记忆片段。\
+         用于主动取回历史经验、避免重复犯错。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "任务上下文描述,用于语义匹配"
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "返回结果数上限"
+                }
+            },
+            "required": ["query"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Agent
+    }
+
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::General
+    }
+
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        let query = input.get("query").and_then(|v| v.as_str()).unwrap_or_default();
+        let limit = input.get("limit").and_then(|v| v.as_u64()).unwrap_or(5) as usize;
+        let limit = if limit == 0 {
+            MEMORY_RECALL_DEFAULT_LIMIT
+        } else {
+            limit
+        };
+        if query.is_empty() {
+            return Ok(ToolResult::error("Error: query 是必需的"));
+        }
+
+        // 从工具上下文获取 workspace 目录(working_dir 即 agent session 的 cwd)
+        let workspace_dir = std::path::PathBuf::from(&ctx.working_dir);
+        let memory_dir = workspace_dir.join(".axagent").join("memory");
+
+        // 四类分目录: user / feedback / project / reference
+        let categories = ["user", "feedback", "project", "reference"];
+        let keywords = tokenize_query(query);
+
+        let mut results: Vec<(std::path::PathBuf, f64, String)> = Vec::new();
+        for cat in categories {
+            let cat_dir = memory_dir.join(cat);
+            if !cat_dir.exists() {
+                continue;
+            }
+            let mut entries = match tokio::fs::read_dir(&cat_dir).await {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("md") {
+                    continue;
+                }
+                let content = match tokio::fs::read_to_string(&path).await {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+                let score = compute_relevance_score(&content, &keywords);
+                results.push((path, score, content));
+            }
+        }
+
+        // 按得分降序排序,取前 N 个
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        results.truncate(limit);
+
+        if results.is_empty() {
+            return Ok(ToolResult::success(format!("未找到与 '{}' 相关的记忆", query)));
+        }
+
+        let formatted: Vec<String> = results
+            .iter()
+            .map(|(path, score, content)| {
+                format!(
+                    "[{}] (score={:.3})\n{}",
+                    path.display(),
+                    score,
+                    truncate_text(content, MEMORY_RECALL_CONTENT_TRUNCATE)
+                )
+            })
+            .collect();
+
+        Ok(ToolResult::success(format!(
+            "记忆检索 '{}' ({} 条):\n{}",
+            query,
+            formatted.len(),
+            formatted.join("\n---\n")
+        )))
+    }
+}
+
+/// 简单分词:按空格/标点切分,转小写,过滤空词
+fn tokenize_query(query: &str) -> Vec<String> {
+    query
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_lowercase())
+        .collect()
+}
+
+/// 计算关键词在内容中的匹配得分(与 project_memory.rs 同算法)
+fn compute_relevance_score(content: &str, keywords: &[String]) -> f64 {
+    if keywords.is_empty() {
+        return 0.0;
+    }
+    let lower = content.to_lowercase();
+    let mut total_hits: usize = 0;
+    for kw in keywords {
+        if kw.is_empty() {
+            continue;
+        }
+        total_hits += lower.matches(kw.as_str()).count();
+    }
+    let content_len = lower.len().max(1);
+    (total_hits as f64) / (content_len as f64) * 1000.0
 }

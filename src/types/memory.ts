@@ -38,6 +38,9 @@ export type MemoryItem = {
   sourceConversationId?: string;
   sourceMessageId?: string;
   updatedAt: string;
+  // v108: 自进化闭环 — 记忆适用范围边界 + 人工确认门
+  applicabilityTags: string[];
+  confirmed: number;
 };
 
 export type CreateMemoryNamespaceInput = {
@@ -61,6 +64,9 @@ export type CreateMemoryItemInput = {
   tags?: string[];
   decayRate?: number;
   expiresAt?: number;
+  // v108: 自进化闭环 — 创建时可选指定适用范围与确认状态
+  applicabilityTags?: string[];
+  confirmed?: number;
 };
 
 export type UpdateMemoryItemInput = {
@@ -71,6 +77,8 @@ export type UpdateMemoryItemInput = {
   importance?: number;
   memoryNature?: MemoryNature;
   tags?: string[];
+  // v108: 自进化闭环 — 更新时可选调整适用范围
+  applicabilityTags?: string[];
 };
 
 export type UpdateMemoryNamespaceInput = {

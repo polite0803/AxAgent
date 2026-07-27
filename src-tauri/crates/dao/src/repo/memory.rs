@@ -31,6 +31,9 @@ fn model_to_namespace(m: memory_namespaces::Model) -> MemoryNamespace {
 fn model_to_item(m: memory_items::Model) -> MemoryItem {
     // tags 存储为 JSON 数组字符串，反序列化为 Vec<String>；失败时降级为空数组
     let tags = serde_json::from_str::<Vec<String>>(&m.tags).unwrap_or_default();
+    // v108: applicability_tags 同样以 JSON 数组字符串存储
+    let applicability_tags =
+        serde_json::from_str::<Vec<String>>(&m.applicability_tags).unwrap_or_default();
     MemoryItem {
         id: m.id,
         namespace_id: m.namespace_id,
@@ -50,6 +53,8 @@ fn model_to_item(m: memory_items::Model) -> MemoryItem {
         tags,
         source_conversation_id: m.source_conversation_id,
         source_message_id: m.source_message_id,
+        applicability_tags,
+        confirmed: m.confirmed,
     }
 }
 
@@ -220,6 +225,12 @@ pub async fn add_item(db: &DatabaseConnection, input: CreateMemoryItemInput) -> 
         source_message_id: Set(None),
         memory_nature: Set(memory_nature),
         tags: Set(tags_json),
+        // v108: 自进化闭环 — applicability_tags + confirmed
+        applicability_tags: Set(serde_json::to_string(
+            &input.applicability_tags.unwrap_or_default(),
+        )
+        .unwrap_or_else(|_| "[]".to_string())),
+        confirmed: Set(input.confirmed.unwrap_or(0)),
     };
 
     am.insert(db).await?;
@@ -285,6 +296,12 @@ pub async fn update_item(
     if let Some(tags) = input.tags {
         let tags_json = serde_json::to_string(&tags).unwrap_or_else(|_| "[]".to_string());
         am.tags = Set(tags_json);
+    }
+    // v108: 自进化闭环 — 支持更新 applicability_tags
+    if let Some(applicability_tags) = input.applicability_tags {
+        let tags_json =
+            serde_json::to_string(&applicability_tags).unwrap_or_else(|_| "[]".to_string());
+        am.applicability_tags = Set(tags_json);
     }
     am.updated_at = Set(current_rfc3339());
     am.update(db).await?;
@@ -365,6 +382,9 @@ fn promotion_threshold(tier: &str) -> i32 {
 }
 
 /// 三层记忆系统：晋升 memory item 到下一 tier。已在 core 则无操作。
+///
+/// v108 确认门：晋升到 core 层需要 `confirmed=1`（人工确认）。
+/// Reflector 自动沉淀的经验默认未确认，必须经过人工审核才能进入 core 层。
 pub async fn promote_item(db: &DatabaseConnection, id: &str) -> Result<MemoryItem> {
     let model = memory_items::Entity::find_by_id(id)
         .one(db)
@@ -374,9 +394,38 @@ pub async fn promote_item(db: &DatabaseConnection, id: &str) -> Result<MemoryIte
     let new_tier = next_tier(&model.tier)
         .ok_or_else(|| AxAgentError::Validation("已在最高 tier，无法晋升".to_string()))?;
 
+    // v108: 确认门 — 晋升到 core 层需要人工确认
+    if new_tier == "core" && model.confirmed != 1 {
+        return Err(AxAgentError::Validation(
+            "晋升到 core 层需要先人工确认该记忆（confirmed=1）".to_string(),
+        ));
+    }
+
     let mut am: memory_items::ActiveModel = model.into();
     am.tier = Set(new_tier.to_string());
     am.decay_rate = Set(default_decay_rate_for_tier(new_tier));
+    am.updated_at = Set(current_rfc3339());
+    am.update(db).await?;
+
+    let updated = memory_items::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("MemoryItem {}", id)))?;
+    Ok(model_to_item(updated))
+}
+
+/// v108: 自进化闭环 — 确认记忆项（设置 confirmed=1）。
+///
+/// Reflector 自动沉淀的经验默认未确认（confirmed=0）。
+/// 用户审核后调用此函数标记为已确认，之后才能晋升到 core 层。
+pub async fn confirm_item(db: &DatabaseConnection, id: &str) -> Result<MemoryItem> {
+    let model = memory_items::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("MemoryItem {}", id)))?;
+
+    let mut am: memory_items::ActiveModel = model.into();
+    am.confirmed = Set(1);
     am.updated_at = Set(current_rfc3339());
     am.update(db).await?;
 
@@ -424,13 +473,18 @@ pub async fn record_access_and_maybe_promote(
     let now_ms = chrono::Utc::now().timestamp_millis();
     let threshold = promotion_threshold(&model.tier);
     let current_tier = model.tier.clone();
+    // v108: 确认门 — 自动晋升到 core 层同样需要 confirmed=1
+    // 未确认的记忆即使达到阈值也不会自动晋升到 core，需人工确认后再触发
+    let confirmed = model.confirmed == 1;
 
     let mut am: memory_items::ActiveModel = model.into();
     am.access_count = Set(new_count);
     am.last_accessed = Set(Some(now_ms));
     // 达到晋升阈值且未在最高 tier → 自动晋升
+    // v108: 但晋升目标为 core 时，需额外检查 confirmed=1
     if new_count >= threshold
         && let Some(new_tier) = next_tier(&current_tier)
+        && (new_tier != "core" || confirmed)
     {
         am.tier = Set(new_tier.to_string());
         am.decay_rate = Set(default_decay_rate_for_tier(new_tier));

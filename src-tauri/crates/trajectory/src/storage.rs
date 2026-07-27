@@ -1067,6 +1067,9 @@ impl TrajectoryStorage {
             source_message_id: Set(source_msg_id),
             memory_nature: Set(mem.nature.as_str().to_string()),
             tags: Set(serde_json::to_string(&mem.tags).unwrap_or_else(|_| "[]".to_string())),
+            // v108: 自进化闭环 — trajectory 存储默认未确认 + 空适用范围
+            applicability_tags: Set("[]".to_string()),
+            confirmed: Set(0),
         })
         .on_conflict(
             OnConflict::column(memory_items::Column::Id)

@@ -110,6 +110,11 @@ pub use shared_blackboard::BlackboardHandle;
 // reflector — 外部引用：commands/reflection, init/state
 pub use reflector::{Reflection, Reflector, TaskExecutionRecord};
 
+// project_memory — 外部引用：commands/conversations/streaming(文件级记忆按任务相关性检索)
+pub use project_memory::{
+    MemoryCategory, MemoryFileEntry, MemoryIndex, MemorySearchResult, ProjectMemory,
+};
+
 // provider_adapter — 外部引用：commands/agent, commands/plan
 pub use provider_adapter::{AxAgentApiClient, StreamEventCallback};
 

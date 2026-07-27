@@ -196,6 +196,8 @@ macro_rules! register_all_commands {
             commands::memory::demote_user_memory_item,
             commands::memory::record_user_memory_access,
             commands::memory::apply_user_memory_decay_tick,
+            // v108: 自进化闭环 — 确认记忆项（晋升 core 层的确认门）
+            commands::memory::confirm_memory_item,
             commands::memory::auto_extract_incremental_memories,
             commands::memory::extract_conversation_entities,
             commands::memory::graph_search_memories,
@@ -466,6 +468,7 @@ macro_rules! register_all_commands {
             commands::memory::demote_user_memory_item,
             commands::memory::record_user_memory_access,
             commands::memory::apply_user_memory_decay_tick,
+            commands::memory::confirm_memory_item,
             commands::agent_analytics::record_feedback,
             // Proactive commands
             commands::proactive::proactive_list_suggestions,

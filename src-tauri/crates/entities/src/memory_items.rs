@@ -25,6 +25,14 @@ pub struct Model {
     pub source_message_id: Option<String>,
     pub memory_nature: String,
     pub tags: String,
+    // v108: 自进化闭环 — 记忆适用范围边界 + 人工确认门
+    /// JSON 数组字符串，如 `["rust","frontend"]`，标记记忆的适用范围边界。
+    /// RAG 检索时可按当前任务上下文标签过滤，降低无关记忆干扰。
+    /// 默认 '[]' 表示不限制。
+    pub applicability_tags: String,
+    /// 0=未确认（Reflector 自动沉淀的默认状态），1=已人工确认。
+    /// 晋升到 core 层（promote_memory_entry）需要 confirmed=1 门槛。
+    pub confirmed: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

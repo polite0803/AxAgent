@@ -176,9 +176,149 @@ impl Reflector {
             if let Some(insights) = self.insight_generator.generate_from_reflection(&reflection) {
                 self.insight_generator.store_insight(insights).await;
             }
+
+            // 自进化闭环:把高价值经验沉淀到 DB memory_items。
+            //
+            // 阈值:
+            // - 成功经验: quality_score >= 7 且有 reusable_patterns
+            // - 失败教训: 有 error_patterns(无论分数,失败都值得记忆以避免重蹈覆辙)
+            //
+            // 写入到名为 `REFLECTOR_INSIGHTS_NS_NAME` 的 global namespace,
+            // 由 wiring 层(init/state.rs)启动时确保存在。
+            // 默认 confirmed=0(未确认),需用户审核后才能晋升到 core 层(v108 确认门)。
+            //
+            // 失败仅日志,不阻塞 reflect 主流程(沉淀是辅助,失败不影响业务)。
+            let should_persist = (reflection.quality_score >= 7
+                && !reflection.reusable_patterns.is_empty())
+                || !reflection.error_patterns.is_empty();
+            if should_persist {
+                self.persist_insight_to_memory_repository(&reflection).await;
+            }
         }
 
         reflection
+    }
+
+    /// 将高价值经验沉淀到 DB memory_items。
+    ///
+    /// 通过 harness 全局 `memory_repository()` trait 获取实现(wiring 层注入),
+    /// 不依赖任何 implementor crate,符合分层铁律。
+    ///
+    /// namespace 选择:按 name 查找 `REFLECTOR_INSIGHTS_NS_NAME`,
+    /// 找不到则跳过(wiring 层应确保存在;跳过仅日志,不强制创建,
+    /// 因为 trait 未提供 create_namespace 能力)。
+    async fn persist_insight_to_memory_repository(&self, reflection: &Reflection) {
+        const REFLECTOR_INSIGHTS_NS_NAME: &str = "Reflector Insights";
+        const REFLECTOR_INSIGHTS_MIN_QUALITY_FOR_PROMOTE: u8 = 7;
+
+        let repo = axagent_harness::repositories::memory_repository();
+
+        // 1. 查找 Reflector Insights namespace
+        let ns_id = match repo.list_namespaces().await {
+            Ok(list) => {
+                list.iter().find(|ns| ns.name == REFLECTOR_INSIGHTS_NS_NAME).map(|ns| ns.id.clone())
+            },
+            Err(e) => {
+                tracing::warn!("[reflector] persist_insight: list_namespaces failed: {} (skip)", e);
+                return;
+            },
+        };
+        let Some(namespace_id) = ns_id else {
+            // namespace 不存在,wiring 层未配置,跳过
+            return;
+        };
+
+        // 2. 构造经验内容:总结 + 可复用模式 + 错误模式 + 改进建议
+        let mut content = String::new();
+        content.push_str("# 任务反思\n\n");
+        content.push_str(&reflection.overall_summary);
+        content.push_str("\n\n");
+
+        if !reflection.reusable_patterns.is_empty() {
+            content.push_str("## 可复用经验\n");
+            for p in &reflection.reusable_patterns {
+                content.push_str("- ");
+                content.push_str(p);
+                content.push('\n');
+            }
+            content.push('\n');
+        }
+
+        if !reflection.error_patterns.is_empty() {
+            content.push_str("## 错误模式(避免重蹈覆辙)\n");
+            for p in &reflection.error_patterns {
+                content.push_str("- ");
+                content.push_str(p);
+                content.push('\n');
+            }
+            content.push('\n');
+        }
+
+        if !reflection.improvement_suggestions.is_empty() {
+            content.push_str("## 改进建议\n");
+            for s in &reflection.improvement_suggestions {
+                content.push_str("- ");
+                content.push_str(s);
+                content.push('\n');
+            }
+        }
+
+        let title = format!(
+            "[{}] {}",
+            reflection.quality_score,
+            reflection
+                .overall_summary
+                .split('\n')
+                .next()
+                .unwrap_or(&reflection.task_id)
+                .chars()
+                .take(80)
+                .collect::<String>()
+        );
+
+        // 3. 重要度:quality_score / 10.0;成功任务略加权,失败任务降权
+        let importance = (reflection.quality_score as f64 / 10.0).clamp(0.0, 1.0);
+
+        // 4. tags: 标记来源 + 是否高质量(供前端筛选)
+        let tags: Vec<String> = vec![
+            "auto_reflect".to_string(),
+            if reflection.quality_score >= REFLECTOR_INSIGHTS_MIN_QUALITY_FOR_PROMOTE {
+                "high_quality".to_string()
+            } else {
+                "needs_review".to_string()
+            },
+        ];
+
+        let input = axagent_harness::types::CreateMemoryItemInput {
+            namespace_id: namespace_id.clone(),
+            title,
+            content,
+            source: Some("reflector".to_string()),
+            tier: Some("long_term".to_string()),
+            importance: Some(importance),
+            memory_nature: Some("semantic".to_string()),
+            tags: Some(tags),
+            decay_rate: None,
+            expires_at: None,
+            // 适用范围不限制(默认空数组)
+            applicability_tags: None,
+            // 默认未确认,需人工审核才能晋升 core 层(v108 确认门)
+            confirmed: None,
+        };
+
+        match repo.add_item(input).await {
+            Ok(item) => {
+                tracing::info!(
+                    "[reflector] persist_insight: saved item {} to namespace {} (quality={})",
+                    item.id,
+                    namespace_id,
+                    reflection.quality_score
+                );
+            },
+            Err(e) => {
+                tracing::warn!("[reflector] persist_insight: add_item failed: {} (skip)", e);
+            },
+        }
     }
 
     fn calculate_quality_metrics(&self, record: &TaskExecutionRecord) -> QualityMetrics {
