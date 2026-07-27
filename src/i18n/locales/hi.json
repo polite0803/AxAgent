@@ -5453,6 +5453,7 @@
       "filters": "फ़िल्टर",
       "fitView": "फिट व्यू",
       "focusSelected": "चयनित पर फ़ोकस करें",
+      "layoutRunning": "लेआउट की गणना हो रही है…",
       "loadError": "लोड करना विफल",
       "loading": "लोड हो रहा है...",
       "noConnectedNodes": "कोई कनेक्टेड नोड नहीं",

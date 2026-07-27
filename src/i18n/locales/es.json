@@ -5453,6 +5453,7 @@
       "filters": "Filtros",
       "fitView": "Ajustar vista",
       "focusSelected": "Enfocar selección",
+      "layoutRunning": "Calculando diseño…",
       "loadError": "Error al cargar",
       "loading": "Cargando...",
       "noConnectedNodes": "Sin nodos conectados",

@@ -5453,6 +5453,7 @@
       "filters": "筛选器",
       "fitView": "适应画布",
       "focusSelected": "聚焦选中",
+      "layoutRunning": "正在计算布局…",
       "loadError": "加载失败",
       "loading": "加载中...",
       "noConnectedNodes": "无连接节点",

@@ -5453,6 +5453,7 @@
       "filters": "篩選器",
       "fitView": "適應畫布",
       "focusSelected": "聚焦選中",
+      "layoutRunning": "正在計算佈局…",
       "loadError": "加載失敗",
       "loading": "加載中...",
       "noConnectedNodes": "無連接節點",

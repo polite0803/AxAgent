@@ -5453,6 +5453,7 @@
       "filters": "Фильтры",
       "fitView": "По размеру",
       "focusSelected": "Фокус на выбранном",
+      "layoutRunning": "Расчёт компоновки…",
       "loadError": "Не удалось загрузить",
       "loading": "Загрузка...",
       "noConnectedNodes": "Нет подключённых узлов",

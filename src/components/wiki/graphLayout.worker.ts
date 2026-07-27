@@ -130,7 +130,7 @@ self.onmessage = (ev: MessageEvent<LayoutRequest>) => {
   if (!req || req.type !== "layout") {
     (self as unknown as { postMessage: (m: WorkerOutbound) => void }).postMessage({
       type: "error",
-      message: "未知请求类型",
+      message: "unknown request type",
     });
     return;
   }

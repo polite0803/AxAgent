@@ -409,7 +409,7 @@ function GraphViewInner({
       if (msg.type === "done") {
         applyPositions(msg.positions);
       } else if (msg.type === "error") {
-        console.warn("[GraphView] 布局 worker 错误:", msg.message);
+        console.warn("[GraphView] layout worker error:", msg.message);
       }
     };
     worker.onerror = (e) => {
@@ -664,7 +664,7 @@ function GraphViewInner({
             )}
             {layoutRunning && (
               <Typography.Text type="secondary" style={{ fontSize: 10 }}>
-                {t("wiki.graph.layoutRunning") ?? "正在计算布局…"}
+                {t("wiki.graph.layoutRunning")}
               </Typography.Text>
             )}
           </Space>

@@ -5453,6 +5453,7 @@
       "filters": "フィルター",
       "fitView": "キャンバスに合わせる",
       "focusSelected": "選択にフォーカス",
+      "layoutRunning": "レイアウトを計算中…",
       "loadError": "読み込み失敗",
       "loading": "読み込み中...",
       "noConnectedNodes": "接続ノードなし",
