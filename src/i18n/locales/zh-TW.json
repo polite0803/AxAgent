@@ -7817,5 +7817,8 @@
     "extractConfirm": "將從選定文件抽取實體與關係並寫入知識圖譜。是否繼續？",
     "extractSuccess": "抽取完成：新增 {{newEntities}} 實體，{{newRelations}} 關係",
     "extractFailed": "抽取失敗"
+  },
+  "paperOverview": {
+    "title": "論文概覽"
   }
 }

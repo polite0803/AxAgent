@@ -7817,5 +7817,8 @@
     "extractConfirm": "चयनित दस्तावेज़ों से इकाइयाँ और संबंध निकालकर ज्ञान ग्राफ में लिखे जाएँगे। जारी रखें?",
     "extractSuccess": "निष्कर्षण पूर्ण: {{newEntities}} नई इकाइयाँ, {{newRelations}} नए संबंध",
     "extractFailed": "निष्कर्षण विफल"
+  },
+  "paperOverview": {
+    "title": "पेपर अवलोकन"
   }
 }

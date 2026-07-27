@@ -7817,5 +7817,8 @@
     "extractConfirm": "Les entités et relations seront extraites des documents sélectionnés et écrites dans le graphe de connaissances. Continuer ?",
     "extractSuccess": "Extraction terminée : {{newEntities}} nouvelles entités, {{newRelations}} nouvelles relations",
     "extractFailed": "Échec de l'extraction"
+  },
+  "paperOverview": {
+    "title": "Aperçu de l'article"
   }
 }

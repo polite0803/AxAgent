@@ -7817,5 +7817,8 @@
     "extractConfirm": "Entitäten und Beziehungen werden aus den ausgewählten Dokumenten extrahiert und in den Wissensgraph geschrieben. Fortfahren?",
     "extractSuccess": "Extraktion abgeschlossen: {{newEntities}} neue Entitäten, {{newRelations}} neue Beziehungen",
     "extractFailed": "Extraktion fehlgeschlagen"
+  },
+  "paperOverview": {
+    "title": "Paper-Übersicht"
   }
 }
