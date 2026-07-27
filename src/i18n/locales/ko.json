@@ -2108,7 +2108,10 @@
     "VOICE_STT_FAILED": "음성 인식 실패",
     "VOICE_TTS_FAILED": "음성 합성 실패",
     "VOICE_INVALID_MESSAGE": "잘못된 음성 메시지 형식",
-    "VOICE_SESSION_CREATE_REQUIRED": "먼저 session.create를 보내주세요"
+    "VOICE_SESSION_CREATE_REQUIRED": "먼저 session.create를 보내주세요",
+    "PAPER_OVERVIEW_NOT_FOUND": "논문 개요를 찾을 수 없습니다",
+    "READING_LIST_NOT_FOUND": "읽기 목록을 찾을 수 없습니다",
+    "READING_LIST_ITEM_NOT_FOUND": "읽기 목록 항목을 찾을 수 없습니다"
   },
   "errorBoundary": {
     "copied": "복사됨",

@@ -2108,7 +2108,10 @@
     "VOICE_STT_FAILED": "音声認識に失敗しました",
     "VOICE_TTS_FAILED": "音声合成に失敗しました",
     "VOICE_INVALID_MESSAGE": "無効な音声メッセージ形式です",
-    "VOICE_SESSION_CREATE_REQUIRED": "先に session.create を送信してください"
+    "VOICE_SESSION_CREATE_REQUIRED": "先に session.create を送信してください",
+    "PAPER_OVERVIEW_NOT_FOUND": "論文の概要が見つかりません",
+    "READING_LIST_NOT_FOUND": "読書リストが見つかりません",
+    "READING_LIST_ITEM_NOT_FOUND": "読書リストの項目が見つかりません"
   },
   "errorBoundary": {
     "copied": "コピーしました",

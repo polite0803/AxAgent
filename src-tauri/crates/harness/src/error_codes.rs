@@ -284,3 +284,17 @@ pub mod voice {
     /// 未先发送 session.create 消息
     pub const SESSION_CREATE_REQUIRED: &str = "VOICE_SESSION_CREATE_REQUIRED";
 }
+
+/// 论文/文献相关错误码
+pub mod paper {
+    /// 论文概览未找到
+    pub const OVERVIEW_NOT_FOUND: &str = "PAPER_OVERVIEW_NOT_FOUND";
+}
+
+/// 阅读列表相关错误码
+pub mod reading_list {
+    /// 阅读列表未找到
+    pub const NOT_FOUND: &str = "READING_LIST_NOT_FOUND";
+    /// 阅读条目未找到
+    pub const ITEM_NOT_FOUND: &str = "READING_LIST_ITEM_NOT_FOUND";
+}
