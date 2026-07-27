@@ -2630,7 +2630,10 @@
     "providerNotConfigured": "请先配置服务提供商",
     "noModelSelected": "请选择模型",
     "proxyTestFailed": "代理测试失败",
-    "message": "错误"
+    "message": "错误",
+    "PAPER_OVERVIEW_NOT_FOUND": "पेपर अवलोकन नहीं मिला",
+    "READING_LIST_NOT_FOUND": "पढ़ने की सूची नहीं मिली",
+    "READING_LIST_ITEM_NOT_FOUND": "पढ़ने की सूची आइटम नहीं मिला"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",
@@ -7263,6 +7266,8 @@
     "confirmDelete": "क्या आप वाकई इस नोट को हटाना चाहते हैं?",
     "confirmRestore": "पुनर्स्थापना की पुष्टि?",
     "contentPlaceholder": "सामग्री दर्ज करें...",
+    "copied": "कॉपी किया गया",
+    "copyTitle": "शीर्षक कॉपी करें",
     "create": "बनाएं",
     "createFirstNote": "पहला नोट बनाएं",
     "createLinkedNote": "लिंक्ड नोट बनाएँ",
@@ -7279,6 +7284,7 @@
     "focusLocal": "स्थानीय पर ध्यान केंद्रित करें",
     "graph": {
       "communities": "समुदाय",
+      "components": "घटक",
       "edgeType": {
         "backlink": "बैकलिंक",
         "contradicts": "विरोधाभास",
@@ -7288,19 +7294,25 @@
       },
       "edges": "किनारे",
       "empty": "ग्राफ़ डेटा नहीं",
+      "exportPNG": "PNG निर्यात करें",
       "filterByTags": "टैग से फ़िल्टर करें",
       "filters": "फ़िल्टर",
       "fitView": "फिट व्यू",
       "focusSelected": "चयनित पर फ़ोकस करें",
+      "fullscreen": "पूर्ण स्क्रीन",
       "layoutRunning": "लेआउट की गणना हो रही है…",
       "loadError": "लोड करना विफल",
       "loading": "लोड हो रहा है...",
       "noConnectedNodes": "कोई कनेक्टेड नोड नहीं",
       "nodes": "नोड",
+      "relayout": "पुनर्लेआउट",
       "stats": "आँकड़े",
       "title": "ज्ञान ग्राफ",
       "zoomIn": "ज़ूम इन",
-      "zoomOut": "ज़ूम आउट"
+      "zoomOut": "ज़ूम आउट",
+      "largestComponent": "Largest Component",
+      "avgDegree": "Avg Degree",
+      "highlighted": "Highlighted"
     },
     "hidePanel": "पैनल छिपाएं",
     "history": "इतिहास",

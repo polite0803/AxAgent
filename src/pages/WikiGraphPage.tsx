@@ -29,7 +29,7 @@ export function WikiGraphPage() {
   const navigate = useNavigate();
   const { wikiId } = useParams<{ wikiId: string }>();
   const [searchParams] = useSearchParams();
-  const urlWikiId = searchParams.get("wikiId") || wikiId;
+  const urlWikiId = searchParams.get("wikiId") || wikiId || null;
 
   const { wikis, loading: wikisLoading, loadWikis } = useLlmWikiStore();
   const {
@@ -81,32 +81,32 @@ export function WikiGraphPage() {
   // 搜索
   const [globalSearch, setGlobalSearch] = useState("");
 
-  // 加载 Wiki 列表
-  useEffect(() => {
-    loadWikis();
-  }, [loadWikis]);
-
-  // 当 wikis 加载完成后，确定有效的 wikiIdFromUrl
+  // wikiIdFromUrl — 在 wiki 列表加载完成后验证有效性，避免硬编码 fallback
   const [wikiIdFromUrl, setWikiIdFromUrl] = useState<string | null>(null);
   const [wikisLoaded, setWikisLoaded] = useState(false);
 
+  // 加载 Wiki 列表
   useEffect(() => {
+    loadWikis().then(() => setWikisLoaded(true));
+  }, [loadWikis]);
+
+  // wiki 列表加载完成后：验证 urlWikiId 是否有效；无效或不存在时导航到首个可用 wiki
+  useEffect(() => {
+    if (!wikisLoaded) {
+      return;
+    }
     if (wikis.length > 0) {
-      setWikisLoaded(true);
-      const valid = wikis.find((w) => w.id === urlWikiId);
+      const valid = urlWikiId && wikis.some((w) => w.id === urlWikiId);
       if (valid) {
-        setWikiIdFromUrl(valid.id);
-      } else if (urlWikiId) {
-        // URL 中的 wikiId 不存在，跳转到第一个可用 wiki
-        navigate(`/wiki/${wikis[0].id}`, { replace: true });
+        setWikiIdFromUrl(urlWikiId);
       } else {
-        setWikiIdFromUrl(wikis[0].id);
+        navigate(`/wiki/${wikis[0].id}`, { replace: true });
       }
-    } else if (!wikisLoading) {
-      setWikisLoaded(true);
+    } else {
+      // wikis 为空列表且已加载完毕 → 无可用 wiki
       setWikiIdFromUrl(null);
     }
-  }, [wikis, urlWikiId, navigate]);
+  }, [wikisLoaded, wikis, urlWikiId, navigate]);
 
   const loadGraphData = useCallback(async () => {
     if (!wikiIdFromUrl) {
@@ -396,9 +396,9 @@ export function WikiGraphPage() {
       className="h-full flex flex-col"
       style={{ overflow: "hidden", backgroundColor: token.colorBgLayout }}
     >
-      {/* 工具栏 — 玻璃态 */}
+      {/* 工具栏 — 玻璃态（紧凑布局） */}
       <div
-        className="flex items-center gap-2 px-4 py-2 shrink-0 backdrop-blur-lg z-10"
+        className="flex items-center gap-1.5 px-3 py-1.5 shrink-0 backdrop-blur-lg z-10"
         style={{
           borderBottom: `1px solid ${token.colorBorderSecondary}20`,
           backgroundColor: `${token.colorBgContainer}cc`,
@@ -406,44 +406,54 @@ export function WikiGraphPage() {
         }}
       >
         <NodeIndexOutlined
-          style={{ color: token.colorPrimary, fontSize: 18 }}
+          style={{ color: token.colorPrimary, fontSize: 16 }}
         />
-        <Title level={5} style={{ margin: 0 }}>
+        <Title level={5} style={{ margin: 0, fontSize: 14 }}>
           {t("wiki.graph.title")}
         </Title>
 
         {wikis.length > 0 && (
           <Select
             size="small"
-            value={wikiIdFromUrl!}
+            value={wikiIdFromUrl ?? undefined}
             onChange={(val) => navigate(`/wiki/${val}`)}
-            style={{ minWidth: 160, marginLeft: 8 }}
+            style={{ minWidth: 130 }}
             options={wikis.map((w) => ({ label: w.name, value: w.id }))}
             placeholder={t("wiki.selectWiki")}
           />
         )}
 
-        <div className="flex-1" />
-
         <Input
-          id="wiki-graph-page-input-133"
           size="small"
           prefix={<SearchOutlined />}
           placeholder={t("wiki.searchGraph")}
           value={globalSearch}
           onChange={(e) => handleGlobalSearch(e.target.value)}
           allowClear
-          style={{ width: 200 }}
+          style={{ width: 160 }}
         />
 
-        <Space size={4}>
-          <Tag style={{ margin: 0 }}>
-            {stats.nodes} {t("wiki.nodes")}
+        <Space size={2}>
+          <Tag style={{ margin: 0, fontSize: 11, lineHeight: "18px" }}>
+            {stats.nodes}N
           </Tag>
-          <Tag style={{ margin: 0 }}>
-            {stats.edges} {t("wiki.edges")}
+          <Tag style={{ margin: 0, fontSize: 11, lineHeight: "18px" }}>
+            {stats.edges}E
           </Tag>
         </Space>
+
+        {/* 选中节点信息行内展示 */}
+        {selectedNodeId && selectedNode && (
+          <span
+            className="text-xs truncate max-w-[160px]"
+            style={{ color: token.colorTextSecondary }}
+            title={`${selectedNode.title} (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
+          >
+            | {selectedNode.title}
+          </span>
+        )}
+
+        <div className="flex-1" />
 
         <Tooltip
           title={leftPanelVisible ? t("wiki.hidePanel") : t("wiki.showPanel")}
@@ -451,7 +461,7 @@ export function WikiGraphPage() {
           <Button
             size="small"
             type="text"
-            icon={leftPanelVisible ? <PanelLeft size={14} /> : <PanelRight size={14} />}
+            icon={leftPanelVisible ? <PanelLeft size={13} /> : <PanelRight size={13} />}
             onClick={() => setLeftPanelVisible(!leftPanelVisible)}
           />
         </Tooltip>
@@ -460,11 +470,9 @@ export function WikiGraphPage() {
           <Button
             size="small"
             type="text"
-            icon={<Eye size={14} />}
+            icon={<Eye size={13} />}
             onClick={() => setDetailPanelOpen(true)}
-          >
-            {t("wiki.showDetail")}
-          </Button>
+          />
         )}
 
         <Tooltip title={t("wiki.newNote")}>
@@ -550,22 +558,22 @@ export function WikiGraphPage() {
 
         {/* 中央图谱 */}
         <div className="flex-1" style={{ minWidth: 0 }}>
-          {!wikisLoaded || wikisLoading
+          {wikisLoading
             ? (
               <div className="h-full flex items-center justify-center">
                 <Spin size="large" />
               </div>
             )
-            : !wikiIdFromUrl
+            : wikiIdFromUrl === null
             ? (
               <div className="h-full flex items-center justify-center">
-                <Empty description={t("wiki.selectWiki")} />
+                <Empty description={t("wiki.selectWikiPrompt")} />
               </div>
             )
             : graphLoading
             ? (
               <div className="h-full flex items-center justify-center">
-                <Spin size="large" description={t("wiki.graph.loading")} />
+                <Spin size="large" />
               </div>
             )
             : !graphData || graphData.nodes.length === 0
@@ -642,29 +650,21 @@ export function WikiGraphPage() {
         )}
       </div>
 
-      {/* 底部状态栏 — 玻璃态 */}
+      {/* 底部提示条 — 极简 */}
       <div
-        className="flex items-center gap-3 px-4 py-1.5 shrink-0 backdrop-blur-lg z-10"
+        className="flex items-center gap-2 px-3 py-1 shrink-0 z-10"
         style={{
-          borderTop: `1px solid ${token.colorBorderSecondary}20`,
-          backgroundColor: `${token.colorBgContainer}dd`,
-          fontSize: 12,
+          borderTop: `1px solid ${token.colorBorderSecondary}10`,
+          backgroundColor: `${token.colorBgContainer}99`,
+          fontSize: 11,
         }}
       >
-        <Text type="secondary">
-          {t("wiki.wiki")}: {wikiIdFromUrl ?? "—"}
+        <Text type="secondary" style={{ fontSize: 11 }}>
+          {t("wiki.tips.doubleClick")} · {t("wiki.tips.dragPanel")} · {t("wiki.tips.rightClick")}
         </Text>
-        {selectedNodeId && (
-          <Text type="secondary">
-            {t("wiki.selected")}: {selectedNode?.title || selectedNodeId}
-            {selectedNode
-              && ` (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
-          </Text>
-        )}
         <div className="flex-1" />
-        <Text type="secondary">
-          {t("wiki.tips.doubleClick")} · {t("wiki.tips.dragPanel")} · {t("wiki.tips.rightClick")} ·{" "}
-          {t("wiki.tips.keyboard")}
+        <Text type="secondary" style={{ fontSize: 10 }}>
+          {wikiIdFromUrl ?? "—"}
         </Text>
       </div>
 

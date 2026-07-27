@@ -13,9 +13,17 @@ import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { Note } from "@/types";
-import { DeleteOutlined, DownloadOutlined, EyeOutlined, HistoryOutlined, SaveOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  DownloadOutlined,
+  EllipsisOutlined,
+  EyeOutlined,
+  HistoryOutlined,
+  SaveOutlined,
+} from "@ant-design/icons";
 import { save } from "@tauri-apps/plugin-dialog";
-import { Button, Modal, Popconfirm, Select, Spin, theme } from "antd";
+import { Button, Divider, Dropdown, Modal, Popconfirm, Select, Spin, theme } from "antd";
+import type { MenuProps } from "antd";
 import DOMPurify from "dompurify";
 import {
   ArrowLeft,
@@ -28,6 +36,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 interface WikiEditorPageProps {
   noteId: string;
@@ -52,6 +61,7 @@ function markdownToHtml(md: string): string {
 export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { getNote, updateNote, deleteNote, notes, loadNotes, exportNoteHtml } = useWikiStore();
   const { operations, loadOperations } = useLlmWikiStore();
 
@@ -269,32 +279,45 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
       className="h-full flex flex-col"
       style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}
     >
+      {/* 标题栏 — 紧凑 */}
       <div
-        className="flex items-center gap-2 p-3 border-b"
+        className="flex items-center gap-1.5 px-3 py-1.5 border-b shrink-0"
         style={{ borderColor: token.colorBorderSecondary }}
       >
-        <Button
-          icon={<ArrowLeft />}
-          onClick={handleBackWithConfirm}
-          type="text"
-        />
+        <Button icon={<ArrowLeft size={15} />} onClick={handleBackWithConfirm} type="text" size="small" />
         <input
           type="text"
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
-          className="flex-1 text-lg font-medium bg-transparent border-none outline-none"
+          className="flex-1 text-base font-medium bg-transparent border-none outline-none min-w-0"
           style={{ color: token.colorText }}
           placeholder={t("wiki.titlePlaceholder")}
         />
+        <Select
+          showSearch
+          size="small"
+          value={wikilinkSelectValue}
+          placeholder={t("wiki.insertLink")}
+          style={{ width: 160 }}
+          filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
+          options={noteOptions}
+          onChange={handleWikilinkInsert}
+        />
+        <Divider type="vertical" style={{ height: 16 }} />
         <Button
+          size="small"
+          icon={<EyeOutlined />}
+          type={previewMode ? "primary" : "default"}
+          onClick={() => setPreviewMode(!previewMode)}
+        />
+        <Button
+          size="small"
           icon={<SaveOutlined />}
-          type="primary"
+          type={hasChanges ? "primary" : "default"}
           onClick={handleSave}
           loading={saving}
           disabled={!hasChanges}
-        >
-          {t("wiki.save")}
-        </Button>
+        />
         <Popconfirm
           title={t("wiki.confirmDelete")}
           onConfirm={async () => {
@@ -303,75 +326,55 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
             onBack();
           }}
         >
-          <Button icon={<DeleteOutlined />} danger type="text" />
+          <Button size="small" icon={<DeleteOutlined />} danger type="text" />
         </Popconfirm>
-      </div>
-
-      <div className="flex-1 overflow-hidden flex">
-        {leftSidebarOpen && (
-          <div className="w-56 shrink-0 overflow-auto border-r" style={{ borderColor: token.colorBorderSecondary }}>
-            <TagAggregationPanel notes={notes} onTagClick={() => {}} activeTag={null} />
-            <WikiSidebar notes={notes} selectedNoteId={noteId} onSelectNote={() => {}} loading={false} />
-          </div>
-        )}
-        <div className="flex-1 overflow-hidden p-4">
-          <div className="h-full flex flex-col">
-            <div className="mb-2 flex items-center gap-2">
-              <Select
-                showSearch
-                value={wikilinkSelectValue}
-                placeholder={t("wiki.insertLink")}
-                style={{ width: 200 }}
-                filterOption={(input, option) =>
-                  (option?.label as string)
-                    ?.toLowerCase()
-                    .includes(input.toLowerCase())}
-                options={noteOptions}
-                onChange={handleWikilinkInsert}
-              />
-              <Button
-                size="small"
-                icon={<EyeOutlined />}
-                onClick={() => setPreviewMode(!previewMode)}
-              >
-                {previewMode ? t("wiki.source") : t("wiki.preview")}
-              </Button>
-              <Button
-                size="small"
-                icon={<HistoryOutlined />}
-                onClick={() => setVersionHistoryOpen(true)}
-              >
-                {t("wiki.history")}
-              </Button>
-              <Button
-                size="small"
-                type="text"
-                icon={leftSidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
-                onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
-              />
-              <Button
-                size="small"
-                icon={<CheckSquare size={14} />}
-                onClick={() => setLintOpen(true)}
-              >
-                {t("wiki.lint.runLint")}
-              </Button>
-              <Button
-                size="small"
-                icon={<History size={14} />}
-                onClick={async () => {
+        <Divider type="vertical" style={{ height: 16 }} />
+        <Button
+          size="small"
+          type="text"
+          icon={leftSidebarOpen ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
+          onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+          title={t("wiki.toggleSidebar")}
+        />
+        <Button
+          size="small"
+          type="text"
+          icon={backlinkPanelOpen ? <PanelRightClose size={13} /> : <PanelRightOpen size={13} />}
+          onClick={() => setBacklinkPanelOpen(!backlinkPanelOpen)}
+          title={t("wiki.backlinks")}
+        />
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "history",
+                icon: <HistoryOutlined />,
+                label: t("wiki.history"),
+                onClick: () => setVersionHistoryOpen(true),
+              },
+              {
+                key: "lint",
+                icon: <CheckSquare size={14} />,
+                label: t("wiki.lint"),
+                onClick: () => setLintOpen(true),
+              },
+              {
+                key: "timeline",
+                icon: <History size={14} />,
+                label: t("wiki.timeline"),
+                onClick: async () => {
                   if (note?.vaultId) {
                     await loadOperations(note.vaultId);
                   }
                   setTimelineOpen(true);
-                }}
-              >
-                {t("wiki.timeline")}
-              </Button>
-              <Button
-                size="small"
-                icon={<DownloadOutlined />}
-                onClick={async () => {
+                },
+              },
+              { type: "divider" },
+              {
+                key: "export",
+                icon: <DownloadOutlined />,
+                label: t("wiki.exportPdf"),
+                onClick: async () => {
                   try {
                     const filePath = await save({
                       defaultPath: `${title || "note"}.html`,
@@ -380,34 +383,47 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
                     if (filePath) {
                       const result = await exportNoteHtml(noteId, filePath);
                       if (result) {
-                        message.success(
-                          t("wiki.exportedPdf", { path: result }),
-                        );
+                        message.success(t("wiki.exportedPdf", { path: result }));
                       }
                     }
-                  } catch {
-                    // User cancelled
-                  }
-                }}
-              >
-                {t("wiki.exportPdf")}
-              </Button>
-              <Button
-                size="small"
-                type="text"
-                icon={backlinkPanelOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
-                onClick={() => setBacklinkPanelOpen(!backlinkPanelOpen)}
-                title={t("wiki.backlinks")}
-              />
-              {note.author === "llm" && (
-                <span
-                  className="text-xs px-2 py-1 rounded"
-                  style={{ backgroundColor: token.colorPrimaryBg }}
-                >
-                  {t("wiki.llmNote")}
-                </span>
-              )}
-            </div>
+                  } catch { /* user cancelled */ }
+                },
+              },
+            ] as MenuProps["items"],
+          }}
+          trigger={["click"]}
+        >
+          <Button size="small" type="text" icon={<EllipsisOutlined />} />
+        </Dropdown>
+        {note.author === "llm" && (
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded shrink-0"
+            style={{ backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}
+          >
+            LLM
+          </span>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-hidden flex">
+        {leftSidebarOpen && (
+          <div className="w-52 shrink-0 overflow-auto border-r" style={{ borderColor: token.colorBorderSecondary }}>
+            <TagAggregationPanel notes={notes} onTagClick={() => {}} activeTag={null} />
+            <WikiSidebar
+              notes={notes}
+              selectedNoteId={noteId}
+              onSelectNote={(id) => {
+                if (id !== noteId && note?.vaultId) {
+                  onBack();
+                  navigate(`/llm-wiki/${note.vaultId}/edit/${id}`);
+                }
+              }}
+              loading={false}
+            />
+          </div>
+        )}
+        <div className="flex-1 overflow-hidden p-3">
+          <div className="h-full flex flex-col">
             {previewMode
               ? (
                 <div

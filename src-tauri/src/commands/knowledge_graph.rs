@@ -312,7 +312,7 @@ struct EntityExtractionPayload {
 #[derive(Debug, serde::Deserialize)]
 struct EntityPayload {
     name: String,
-    #[serde(default)]
+    #[serde(default, alias = "type")]
     entity_type: Option<String>,
     #[serde(default)]
     aliases: Option<Vec<String>>,

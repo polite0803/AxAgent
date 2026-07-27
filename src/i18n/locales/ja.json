@@ -2630,7 +2630,10 @@
     "providerNotConfigured": "请先配置服务提供商",
     "noModelSelected": "请选择模型",
     "proxyTestFailed": "代理测试失败",
-    "message": "错误"
+    "message": "错误",
+    "PAPER_OVERVIEW_NOT_FOUND": "論文の概要が見つかりません",
+    "READING_LIST_NOT_FOUND": "読書リストが見つかりません",
+    "READING_LIST_ITEM_NOT_FOUND": "読書リストの項目が見つかりません"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -7263,6 +7266,8 @@
     "confirmDelete": "このノートを削除しますか？",
     "confirmRestore": "復元しますか？",
     "contentPlaceholder": "書き始め...",
+    "copied": "コピーしました",
+    "copyTitle": "タイトルをコピー",
     "create": "作成",
     "createFirstNote": "最初のノートを作成",
     "createLinkedNote": "リンクノートを作成",
@@ -7279,6 +7284,7 @@
     "focusLocal": "ローカルにフォーカス",
     "graph": {
       "communities": "コミュニティ",
+      "components": "コンポーネント",
       "edgeType": {
         "backlink": "バックリンク",
         "contradicts": "矛盾する",
@@ -7288,19 +7294,25 @@
       },
       "edges": "エッジ",
       "empty": "グラフデータがありません",
+      "exportPNG": "PNG にエクスポート",
       "filterByTags": "タグで絞り込み",
       "filters": "フィルター",
       "fitView": "キャンバスに合わせる",
       "focusSelected": "選択にフォーカス",
+      "fullscreen": "全画面",
       "layoutRunning": "レイアウトを計算中…",
       "loadError": "読み込み失敗",
       "loading": "読み込み中...",
       "noConnectedNodes": "接続ノードなし",
       "nodes": "ノード",
+      "relayout": "再レイアウト",
       "stats": "統計",
       "title": "ナレッジグラフ",
       "zoomIn": "拡大",
-      "zoomOut": "縮小"
+      "zoomOut": "縮小",
+      "largestComponent": "Largest Component",
+      "avgDegree": "Avg Degree",
+      "highlighted": "Highlighted"
     },
     "hidePanel": "パネルを非表示",
     "history": "履歴",

@@ -137,3 +137,5 @@ output/
 knowledge-sources/lemonhu/
 !knowledge-sources/sample/
 .codebuddy
+# Local test data
+data/

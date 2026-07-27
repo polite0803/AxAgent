@@ -385,6 +385,24 @@ pub async fn cancel_jobs_by_container(
     Ok(result.rows_affected)
 }
 
+/// 物理删除指定容器下的所有索引任务。
+/// 用于删除知识容器（wiki / knowledge_base / memory namespace）时彻底清理残留 job 数据。
+pub async fn delete_jobs_by_container(
+    db: &DatabaseConnection,
+    container_type: &str,
+    container_id: &str,
+) -> Result<u64> {
+    let result = index_jobs::Entity::delete_many()
+        .filter(
+            index_jobs::Column::ContainerType
+                .eq(container_type)
+                .and(index_jobs::Column::ContainerId.eq(container_id)),
+        )
+        .exec(db)
+        .await?;
+    Ok(result.rows_affected)
+}
+
 pub async fn count_jobs_by_status(db: &DatabaseConnection, status: &str) -> Result<u64> {
     let count =
         index_jobs::Entity::find().filter(index_jobs::Column::Status.eq(status)).count(db).await?;

@@ -85,15 +85,22 @@ impl FsVaultSource {
         let joined = self.root.join(&with_ext);
         // canonicalize 父目录后拼接文件名，避免文件不存在时 canonicalize 失败
         let parent = joined.parent().unwrap_or(&self.root);
-        let canonical_parent = parent.canonicalize().map_err(|e| {
-            VaultError::Io(std::io::Error::new(
-                e.kind(),
-                format!("canonicalize parent failed: {} (note={})", e, note),
-            ))
-        })?;
-        let canonical = canonical_parent.join(joined.file_name().ok_or_else(|| {
-            VaultError::InvalidRef(format!("invalid file name in note: {}", note))
-        })?);
+        let canonical = match parent.canonicalize() {
+            Ok(canonical_parent) => {
+                let file_name = joined.file_name().ok_or_else(|| {
+                    VaultError::InvalidRef(format!("invalid file name in note: {}", note))
+                })?;
+                canonical_parent.join(file_name)
+            },
+            Err(_) => {
+                // 父目录尚不存在（如新子目录），回退到直接路径拼接；
+                // 前面已校验过 .. 和绝对路径，此处安全
+                if !joined.starts_with(&self.root) {
+                    return Err(VaultError::PathEscapes(note.to_string()));
+                }
+                joined
+            },
+        };
 
         if !canonical.starts_with(&self.root) {
             return Err(VaultError::PathEscapes(note.to_string()));
