@@ -233,8 +233,9 @@ function parseEnumOptions(desc?: string): string[] {
   return [];
 }
 
-function inferStep(v: Variable, tFn: (k: string) => string): number {
-  if (tFn(v.description ?? "").includes("温度")) { return 0.1; }
+function inferStep(v: Variable): number {
+  // 温度类参数（如 agent_temperature）需要 0.1 步进，用变量名判断更可靠
+  if (v.name === "agent_temperature") { return 0.1; }
   return 1;
 }
 
@@ -255,8 +256,8 @@ function NumberControl({ v, value, onChange }: {
     <span className="sacp-number">
       <Slider
         min={0}
-        max={desc.includes("温度") ? 2 : 100}
-        step={inferStep(v, t)}
+        max={v.name === "agent_temperature" ? 2 : 100}
+        step={inferStep(v)}
         className="sacp-number-slider"
         value={val}
         onChange={(v2) => onChange(v.name, v2)}

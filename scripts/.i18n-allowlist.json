@@ -450,7 +450,7 @@
     },
     {
       "file": "src/components/stock-analysis/WatchlistPanel.tsx",
-      "lines": "189,219,228",
+      "lines": "190,220,229",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
