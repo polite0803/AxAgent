@@ -350,9 +350,9 @@ export function WikiGraphPage() {
       className="h-full flex flex-col"
       style={{ overflow: "hidden", backgroundColor: token.colorBgLayout }}
     >
-      {/* 工具栏 — 玻璃态 */}
+      {/* 工具栏 — 玻璃态（紧凑布局） */}
       <div
-        className="flex items-center gap-2 px-4 py-2 shrink-0 backdrop-blur-lg z-10"
+        className="flex items-center gap-1.5 px-3 py-1.5 shrink-0 backdrop-blur-lg z-10"
         style={{
           borderBottom: `1px solid ${token.colorBorderSecondary}20`,
           backgroundColor: `${token.colorBgContainer}cc`,
@@ -360,9 +360,9 @@ export function WikiGraphPage() {
         }}
       >
         <NodeIndexOutlined
-          style={{ color: token.colorPrimary, fontSize: 18 }}
+          style={{ color: token.colorPrimary, fontSize: 16 }}
         />
-        <Title level={5} style={{ margin: 0 }}>
+        <Title level={5} style={{ margin: 0, fontSize: 14 }}>
           {t("wiki.graph.title")}
         </Title>
 
@@ -370,32 +370,42 @@ export function WikiGraphPage() {
           size="small"
           value={wikiIdFromUrl}
           onChange={(val) => navigate(`/wiki/${val}`)}
-          style={{ minWidth: 160, marginLeft: 8 }}
+          style={{ minWidth: 130 }}
           options={wikis.map((w) => ({ label: w.name, value: w.id }))}
           placeholder={t("wiki.selectWiki")}
         />
 
-        <div className="flex-1" />
-
         <Input
-          id="wiki-graph-page-input-133"
           size="small"
           prefix={<SearchOutlined />}
           placeholder={t("wiki.searchGraph")}
           value={globalSearch}
           onChange={(e) => handleGlobalSearch(e.target.value)}
           allowClear
-          style={{ width: 200 }}
+          style={{ width: 160 }}
         />
 
-        <Space size={4}>
-          <Tag style={{ margin: 0 }}>
-            {stats.nodes} {t("wiki.nodes")}
+        <Space size={2}>
+          <Tag style={{ margin: 0, fontSize: 11, lineHeight: "18px" }}>
+            {stats.nodes}N
           </Tag>
-          <Tag style={{ margin: 0 }}>
-            {stats.edges} {t("wiki.edges")}
+          <Tag style={{ margin: 0, fontSize: 11, lineHeight: "18px" }}>
+            {stats.edges}E
           </Tag>
         </Space>
+
+        {/* 选中节点信息行内展示 */}
+        {selectedNodeId && selectedNode && (
+          <span
+            className="text-xs truncate max-w-[160px]"
+            style={{ color: token.colorTextSecondary }}
+            title={`${selectedNode.title} (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
+          >
+            | {selectedNode.title}
+          </span>
+        )}
+
+        <div className="flex-1" />
 
         <Tooltip
           title={leftPanelVisible ? t("wiki.hidePanel") : t("wiki.showPanel")}
@@ -403,7 +413,7 @@ export function WikiGraphPage() {
           <Button
             size="small"
             type="text"
-            icon={leftPanelVisible ? <PanelLeft size={14} /> : <PanelRight size={14} />}
+            icon={leftPanelVisible ? <PanelLeft size={13} /> : <PanelRight size={13} />}
             onClick={() => setLeftPanelVisible(!leftPanelVisible)}
           />
         </Tooltip>
@@ -412,11 +422,9 @@ export function WikiGraphPage() {
           <Button
             size="small"
             type="text"
-            icon={<Eye size={14} />}
+            icon={<Eye size={13} />}
             onClick={() => setDetailPanelOpen(true)}
-          >
-            {t("wiki.showDetail")}
-          </Button>
+          />
         )}
 
         <Tooltip title={t("wiki.newNote")}>
@@ -582,29 +590,21 @@ export function WikiGraphPage() {
         )}
       </div>
 
-      {/* 底部状态栏 — 玻璃态 */}
+      {/* 底部提示条 — 极简 */}
       <div
-        className="flex items-center gap-3 px-4 py-1.5 shrink-0 backdrop-blur-lg z-10"
+        className="flex items-center gap-2 px-3 py-1 shrink-0 z-10"
         style={{
-          borderTop: `1px solid ${token.colorBorderSecondary}20`,
-          backgroundColor: `${token.colorBgContainer}dd`,
-          fontSize: 12,
+          borderTop: `1px solid ${token.colorBorderSecondary}10`,
+          backgroundColor: `${token.colorBgContainer}99`,
+          fontSize: 11,
         }}
       >
-        <Text type="secondary">
-          {t("wiki.wiki")}: {wikiIdFromUrl}
+        <Text type="secondary" style={{ fontSize: 11 }}>
+          {t("wiki.tips.doubleClick")} · {t("wiki.tips.dragPanel")} · {t("wiki.tips.rightClick")}
         </Text>
-        {selectedNodeId && (
-          <Text type="secondary">
-            {t("wiki.selected")}: {selectedNode?.title || selectedNodeId}
-            {selectedNode
-              && ` (→${selectedNode.linkCount} / ←${selectedNode.backlinkCount})`}
-          </Text>
-        )}
         <div className="flex-1" />
-        <Text type="secondary">
-          {t("wiki.tips.doubleClick")} · {t("wiki.tips.dragPanel")} · {t("wiki.tips.rightClick")} ·{" "}
-          {t("wiki.tips.keyboard")}
+        <Text type="secondary" style={{ fontSize: 10 }}>
+          {wikiIdFromUrl}
         </Text>
       </div>
 

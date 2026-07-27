@@ -310,34 +310,21 @@ export function WikiFilePanel({
           )}
       </div>
 
-      {/* 底部：标签云 + 类型统计 */}
+      {/* 底部：标签云 + 类型统计（紧凑） */}
       <div
-        className="shrink-0 p-3"
+        className="shrink-0 px-3 py-2"
         style={{ borderTop: `1px solid ${token.colorBorderSecondary}10` }}
       >
-        <div className="flex items-center gap-1.5 mb-2.5">
-          <Hash size={10} style={{ color: token.colorTextQuaternary }} />
-          <Text
-            type="secondary"
-            className="text-[11px] font-medium tracking-wide uppercase"
-          >
-            {t("wiki.tags")}
-          </Text>
-        </div>
-        {allTags.length === 0
-          ? (
-            <Text type="secondary" className="text-[11px]">
-              {t("wiki.noTags")}
-            </Text>
-          )
-          : (
-            <div className="flex flex-wrap gap-1 mb-3">
-              {allTags.slice(0, 20).map((tag) => (
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Hash size={10} style={{ color: token.colorTextQuaternary }} />
+            <div className="flex flex-wrap gap-1 flex-1">
+              {allTags.slice(0, 10).map((tag) => (
                 <span
                   key={tag}
                   role="button"
                   tabIndex={0}
-                  className="text-[11px] px-2 py-0.5 rounded-full cursor-pointer transition-all duration-200 hover:scale-105"
+                  className="text-[10px] px-1.5 py-0.5 rounded-full cursor-pointer hover:opacity-80"
                   style={{
                     backgroundColor: `${token.colorPrimary}10`,
                     color: token.colorPrimary,
@@ -353,27 +340,33 @@ export function WikiFilePanel({
                   {tag}
                 </span>
               ))}
-              {allTags.length > 20 && (
-                <Text type="secondary" className="text-[10px] self-center">
-                  +{allTags.length - 20}
+              {allTags.length > 10 && (
+                <Text type="secondary" className="text-[9px] self-center">
+                  +{allTags.length - 10}
                 </Text>
               )}
             </div>
-          )}
+          </div>
+        )}
 
         {Object.keys(nodeTypes).length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(nodeTypes).map(([type, count]) => (
-              <div key={type} className="flex items-center gap-1 text-[10px]">
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(nodeTypes).slice(0, 5).map(([type, count]) => (
+              <span key={type} className="flex items-center gap-1 text-[10px]">
                 <span
-                  className="size-2 rounded-full inline-block"
+                  className="size-1.5 rounded-full inline-block"
                   style={{ backgroundColor: getTypeColor(type, token) }}
                 />
-                <span style={{ color: token.colorTextSecondary }}>
-                  {type}: {count}
+                <span style={{ color: token.colorTextTertiary }}>
+                  {type} {count}
                 </span>
-              </div>
+              </span>
             ))}
+            {Object.keys(nodeTypes).length > 5 && (
+              <Text type="secondary" className="text-[9px]">
+                +{Object.keys(nodeTypes).length - 5}
+              </Text>
+            )}
           </div>
         )}
       </div>

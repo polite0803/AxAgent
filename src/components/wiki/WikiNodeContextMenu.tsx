@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { DeleteOutlined } from "@ant-design/icons";
-import { Divider, Popconfirm, theme, Typography } from "antd";
+import { CopyOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Divider, message, Popconfirm, theme, Typography } from "antd";
 import { Focus, GitGraph, Link2, PenLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -172,6 +172,29 @@ export function WikiNodeContextMenu({
         </div>
 
         <Divider style={{ margin: "2px 0" }} />
+
+        <div
+          role="menuitem"
+          tabIndex={0}
+          style={menuItemStyle}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = token.colorPrimaryBg)}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+          onClick={() => {
+            navigator.clipboard.writeText(nodeTitle).catch(() => {});
+            message.success(t("wiki.copied"));
+            onClose();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              navigator.clipboard.writeText(nodeTitle).catch(() => {});
+              message.success(t("wiki.copied"));
+              onClose();
+            }
+          }}
+        >
+          <CopyOutlined />
+          <span>{t("wiki.copyTitle")}</span>
+        </div>
 
         <Popconfirm
           title={t("wiki.confirmDelete")}

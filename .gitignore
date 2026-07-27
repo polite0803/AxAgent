@@ -131,3 +131,6 @@ __pycache__/
 
 # Generated output files
 output/
+
+# Local test data
+data/

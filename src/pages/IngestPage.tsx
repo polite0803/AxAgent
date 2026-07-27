@@ -13,7 +13,7 @@ import {
   LeftOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Modal, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
+import { Button, Modal, Select, Space, Spin, Table, Tabs, Tag, theme, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -169,26 +169,22 @@ export function IngestPage() {
           {error}
         </div>
       )}
-      <div className="flex items-center gap-4 p-4 border-b">
-        <Button icon={<LeftOutlined />} onClick={handleBack} type="text" />
-        <Title level={3} className="m-0 flex-1">
+      <div className="flex items-center gap-2 px-4 py-2 border-b shrink-0">
+        <Button icon={<LeftOutlined />} onClick={handleBack} type="text" size="small" />
+        <Title level={5} className="m-0 flex-1">
           {t("wiki.ingest.title")}
         </Title>
         <Select
+          size="small"
           value={displayWikiId}
           onChange={(value) => {
             setSelectedWikiIdState(value);
             selectWiki(value);
           }}
-          style={{ width: 200 }}
+          style={{ width: 180 }}
           placeholder={t("wiki.selectWiki")}
-        >
-          {wikis.map((wiki) => (
-            <Select.Option key={wiki.id} value={wiki.id}>
-              {wiki.name}
-            </Select.Option>
-          ))}
-        </Select>
+          options={wikis.map((w) => ({ label: w.name, value: w.id }))}
+        />
       </div>
 
       {displayWikiId
@@ -196,7 +192,8 @@ export function IngestPage() {
           <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
-            className="flex-1 px-4 pt-4"
+            className="flex-1 px-3 pt-2"
+            size="small"
             items={[
               {
                 key: "upload",
@@ -206,11 +203,7 @@ export function IngestPage() {
                     {t("wiki.ingest.upload")}
                   </span>
                 ),
-                children: (
-                  <Card>
-                    <IngestPanel wikiId={displayWikiId} />
-                  </Card>
-                ),
+                children: <IngestPanel wikiId={displayWikiId} />,
               },
               {
                 key: "history",

@@ -12,9 +12,9 @@
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import type { LayoutRequest, WorkerOutbound } from "@/components/wiki/graphLayout.worker";
-import { Card, Empty, Segmented, Select, Space, Tag, theme, Typography } from "antd";
+import { Card, Empty, Input, Segmented, Select, Space, Tag, theme, Typography } from "antd";
 import Graph from "graphology";
-import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Fullscreen, Maximize2, Minimize2, RefreshCw, Search, ZoomIn, ZoomOut } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Sigma from "sigma";
@@ -188,6 +188,46 @@ function gridLayout(
   return positions;
 }
 
+/** 计算连通分量统计 */
+function computeComponentStats(
+  nodeIds: string[],
+  edges: Array<{ source: string; target: string }>,
+): { components: number; largestSize: number; avgDegree: string } {
+  if (nodeIds.length === 0) {
+    return { components: 0, largestSize: 0, avgDegree: "0" };
+  }
+  const adj = new Map<string, Set<string>>();
+  for (const id of nodeIds) { adj.set(id, new Set()); }
+  for (const e of edges) {
+    adj.get(e.source)?.add(e.target);
+    adj.get(e.target)?.add(e.source);
+  }
+  let components = 0;
+  let largestSize = 0;
+  const visited = new Set<string>();
+  for (const id of nodeIds) {
+    if (visited.has(id)) { continue; }
+    components++;
+    let size = 0;
+    const queue = [id];
+    visited.add(id);
+    for (let i = 0; i < queue.length; i++) {
+      size++;
+      for (const nb of adj.get(queue[i]) || []) {
+        if (!visited.has(nb)) {
+          visited.add(nb);
+          queue.push(nb);
+        }
+      }
+    }
+    if (size > largestSize) { largestSize = size; }
+  }
+  const avgDegree = edges.length > 0
+    ? ((edges.length * 2) / nodeIds.length).toFixed(1)
+    : "0";
+  return { components, largestSize, avgDegree };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 主组件
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,8 +261,16 @@ function GraphViewInner({
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
   const [layoutRunning, setLayoutRunning] = useState(false);
   const [stats, setStats] = useState({ visible: 0, total: 0, edges: 0 });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [hiddenEdgeTypes, setHiddenEdgeTypes] = useState<Set<GraphEdgeType>>(new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const nodeColors = useMemo(() => getNodeColorMap(token), [token]);
+
+  const componentStats = useMemo(
+    () => computeComponentStats(data.nodes.map((n) => n.id), data.edges),
+    [data],
+  );
   const edgeTypeStyles = useMemo(() => getEdgeTypeStylesMap(token), [token]);
 
   const isLargeGraph = data.nodes.length > LABEL_RENDER_THRESHOLD;
@@ -252,9 +300,12 @@ function GraphViewInner({
   const filteredEdges = useMemo(
     () =>
       data.edges.filter(
-        (e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target),
+        (e) =>
+          visibleNodeIds.has(e.source)
+          && visibleNodeIds.has(e.target)
+          && !hiddenEdgeTypes.has(e.type),
       ),
-    [data.edges, visibleNodeIds],
+    [data.edges, visibleNodeIds, hiddenEdgeTypes],
   );
 
   const allTags = useMemo(() => {
@@ -272,6 +323,13 @@ function GraphViewInner({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // ── 全屏 ──
+  useEffect(() => {
+    const handle = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handle);
+    return () => document.removeEventListener("fullscreenchange", handle);
   }, []);
 
   // ── 初始化 sigma + graphology ──
@@ -505,26 +563,48 @@ function GraphViewInner({
     [],
   );
 
+  // ── 内部搜索高亮：合并外部 + 内部 ──
+  const effectiveHighlights = useMemo(() => {
+    if (!searchTerm) {
+      return highlightedNodeIds && highlightedNodeIds.size > 0 ? highlightedNodeIds : undefined;
+    }
+    const q = searchTerm.toLowerCase();
+    const ids = new Set<string>();
+    data.nodes.forEach((n) => {
+      if (
+        n.title.toLowerCase().includes(q)
+        || n.tags.some((t) => t.toLowerCase().includes(q))
+        || n.path.toLowerCase().includes(q)
+      ) {
+        ids.add(n.id);
+      }
+    });
+    if (highlightedNodeIds && highlightedNodeIds.size > 0) {
+      for (const id of highlightedNodeIds) { ids.add(id); }
+    }
+    return ids.size > 0 ? ids : undefined;
+  }, [searchTerm, data.nodes, highlightedNodeIds]);
+
   // ── 高亮/选中 ──
   useEffect(() => {
     const graph = graphRef.current;
     const sigmaInstance = sigmaRef.current;
     if (!graph || !sigmaInstance) { return; }
 
-    const hasHighlights = highlightedNodeIds && highlightedNodeIds.size > 0;
+    const hasHighlights = effectiveHighlights && effectiveHighlights.size > 0;
     graph.forEachNode((node, attrs) => {
       const original = nodeIndexRef.current.get(node);
       if (!original) { return; }
       const baseColor = getNodeColor(original, communities, token);
       const isSelected = selectedNodeId === node;
-      const isHighlighted = !hasHighlights || highlightedNodeIds?.has(node);
+      const isHighlighted = !hasHighlights || effectiveHighlights?.has(node);
       const color = isHighlighted ? baseColor : `${baseColor}40`;
       const size = isSelected ? getNodeSize(original) * 1.5 : getNodeSize(original);
       if (attrs.color !== color) { graph.setNodeAttribute(node, "color", color); }
       if (attrs.size !== size) { graph.setNodeAttribute(node, "size", size); }
     });
     sigmaInstance.refresh();
-  }, [highlightedNodeIds, selectedNodeId, communities, token]);
+  }, [effectiveHighlights, selectedNodeId, communities, token]);
 
   // ── 工具栏 ──
   const handleZoomIn = useCallback(() => {
@@ -546,6 +626,24 @@ function GraphViewInner({
       { duration: 500 },
     );
   }, [selectedNodeId]);
+  const handleFullscreenToggle = useCallback(() => {
+    if (isFullscreen) {
+      document.exitFullscreen();
+    } else {
+      containerRef.current?.requestFullscreen();
+    }
+  }, [isFullscreen]);
+  const handleExportPNG = useCallback(() => {
+    const canvas = containerRef.current?.querySelector("canvas");
+    if (!canvas) { return; }
+    const link = document.createElement("a");
+    link.download = `wiki-graph-${Date.now()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }, []);
+  const handleRelaunchLayout = useCallback(() => {
+    triggerLayout();
+  }, [triggerLayout]);
 
   if (data.nodes.length === 0) {
     return (
@@ -613,6 +711,14 @@ function GraphViewInner({
                 ]}
               />
             </div>
+            <Input
+              size="small"
+              prefix={<Search size={12} />}
+              placeholder={t("wiki.searchGraph")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+            />
             <Select
               mode="multiple"
               placeholder={t("wiki.graph.filterByTags")}
@@ -624,15 +730,37 @@ function GraphViewInner({
               maxTagCount={3}
             />
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => (
-                <Tag
-                  key={type}
-                  color={nodeColors[type]}
-                  style={{ fontSize: 12, margin: 0 }}
-                >
-                  {type}: {data.nodes.filter((n) => n.type === type).length}
-                </Tag>
-              ))}
+              {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => {
+                const activeTypes = filters?.types || [];
+                const isActive = activeTypes.length === 0 || activeTypes.includes(type);
+                return (
+                  <Tag
+                    key={type}
+                    color={isActive ? nodeColors[type] : undefined}
+                    style={{
+                      fontSize: 12,
+                      margin: 0,
+                      cursor: "pointer",
+                      opacity: isActive ? 1 : 0.4,
+                    }}
+                    onClick={() => {
+                      const current = new Set(activeTypes);
+                      if (current.has(type)) {
+                        current.delete(type);
+                      } else {
+                        current.add(type);
+                      }
+                      const arr = Array.from(current);
+                      onFiltersChange?.({
+                        types: arr.length > 0 ? arr : undefined,
+                        tags: filters?.tags,
+                      });
+                    }}
+                  >
+                    {type}: {data.nodes.filter((n) => n.type === type).length}
+                  </Tag>
+                );
+              })}
             </div>
             {communities && communities.size > 0 && (
               <div
@@ -661,11 +789,6 @@ function GraphViewInner({
                     </Tag>
                   ))}
               </div>
-            )}
-            {layoutRunning && (
-              <Typography.Text type="secondary" style={{ fontSize: 10 }}>
-                {t("wiki.graph.layoutRunning")}
-              </Typography.Text>
             )}
           </Space>
         </Card>
@@ -699,9 +822,23 @@ function GraphViewInner({
             <Typography.Text style={{ fontSize: 12 }}>
               {t("wiki.graph.edges")}: {stats.edges}
             </Typography.Text>
-            {highlightedNodeIds && highlightedNodeIds.size > 0 && (
+            <Typography.Text style={{ fontSize: 11 }}>
+              {t("wiki.graph.components")}: {componentStats.components}
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: 11 }}>
+              {t("wiki.graph.largestComponent")}: {componentStats.largestSize}
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: 11 }}>
+              {t("wiki.graph.avgDegree")}: {componentStats.avgDegree}
+            </Typography.Text>
+            {layoutRunning && (
+              <Typography.Text type="warning" style={{ fontSize: 11 }}>
+                ⏳ {t("wiki.graph.layoutRunning")}
+              </Typography.Text>
+            )}
+            {effectiveHighlights && effectiveHighlights.size > 0 && (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Highlighted: {highlightedNodeIds.size}
+                {t("wiki.graph.highlighted")}: {effectiveHighlights.size}
               </Typography.Text>
             )}
           </Space>
@@ -737,10 +874,40 @@ function GraphViewInner({
           >
             {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
               const s = edgeTypeStyles[et];
+              const isHidden = hiddenEdgeTypes.has(et);
               return (
                 <span
                   key={et}
-                  style={{ display: "flex", alignItems: "center", gap: 3 }}
+                  role="checkbox"
+                  aria-checked={!isHidden}
+                  tabIndex={0}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    cursor: "pointer",
+                    opacity: isHidden ? 0.3 : 1,
+                    textDecoration: isHidden ? "line-through" : "none",
+                  }}
+                  onClick={() => {
+                    setHiddenEdgeTypes((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(et)) { next.delete(et); }
+                      else { next.add(et); }
+                      return next;
+                    });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setHiddenEdgeTypes((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(et)) { next.delete(et); }
+                        else { next.add(et); }
+                        return next;
+                      });
+                    }
+                  }}
                 >
                   <svg width="20" height="6">
                     <line
@@ -874,6 +1041,83 @@ function GraphViewInner({
             </button>
           </Tooltip>
         )}
+        <div
+          style={{
+            width: 1,
+            height: 16,
+            background: token.colorBorderSecondary,
+            margin: "0 2px",
+          }}
+        />
+        <Tooltip title={t("wiki.graph.fullscreen") || t("wiki.graph.fitView")}>
+          <button
+            onClick={handleFullscreenToggle}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              color: token.colorTextSecondary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = token.colorBgTextHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <Fullscreen size={16} />
+          </button>
+        </Tooltip>
+        <Tooltip title={t("wiki.graph.exportPNG")}>
+          <button
+            onClick={handleExportPNG}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              color: token.colorTextSecondary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = token.colorBgTextHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <Download size={16} />
+          </button>
+        </Tooltip>
+        <Tooltip title={t("wiki.graph.relayout")}>
+          <button
+            onClick={handleRelaunchLayout}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              color: token.colorTextSecondary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = token.colorBgTextHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <RefreshCw size={16} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
