@@ -85,7 +85,7 @@ impl HarnessProfile {
 }
 
 /// 验收标准
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AcceptanceCriteria {
     /// 工具调用最低成功率（0.0-1.0）
     pub min_tool_success_rate: f64,
@@ -477,20 +477,30 @@ mod tests {
 
     #[test]
     fn test_validation_artifact_word_count() {
-        let mut contract =
-            TaskContract::new("test").with_profile(HarnessProfile::ArtifactSynthesis);
+        let mut contract = TaskContract::new("test")
+            .with_profile(HarnessProfile::ToolOrchestrated)
+            .with_acceptance_criteria(AcceptanceCriteria {
+                min_word_count: Some(200),
+                max_word_count: Some(5000),
+                ..Default::default()
+            });
 
         // 短文本应被拒绝（少于 200 字）
         contract.mark_started();
-        contract.mark_completed(json!({"summary": "short text"}));
+        contract.mark_completed(json!("short text"));
         assert_eq!(contract.status, ContractStatus::Rejected);
 
         // 长文本应通过
         let long_text = "word ".repeat(300);
-        let mut contract2 =
-            TaskContract::new("test").with_profile(HarnessProfile::ArtifactSynthesis);
+        let mut contract2 = TaskContract::new("test")
+            .with_profile(HarnessProfile::ToolOrchestrated)
+            .with_acceptance_criteria(AcceptanceCriteria {
+                min_word_count: Some(200),
+                max_word_count: Some(5000),
+                ..Default::default()
+            });
         contract2.mark_started();
-        contract2.mark_completed(json!({"summary": long_text.trim()}));
+        contract2.mark_completed(json!(long_text.trim()));
         assert_eq!(contract2.status, ContractStatus::Accepted);
     }
 

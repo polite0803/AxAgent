@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn json_value_to_dynamic_preserves_integer() {
-        let v = serde_json::json!({"count": 42, "price": 3.14});
+        let v = serde_json::json!({"count": 42, "price": 3.15});
         let d = json_value_to_dynamic(&v);
         let map = d.try_cast::<rhai::Map>().unwrap();
         // 整数保持 i64，不被静默转 f64
@@ -195,7 +195,7 @@ mod tests {
         assert_eq!(count.as_int().unwrap(), 42);
         // 浮点数保持 f64
         let price = map.get("price").unwrap();
-        assert!((price.as_float().unwrap() - 3.14).abs() < 1e-9);
+        assert!((price.as_float().unwrap() - 3.15).abs() < 1e-9);
     }
 
     #[test]
