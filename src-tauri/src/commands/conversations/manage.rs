@@ -26,7 +26,7 @@ use crate::commands::error::ErrorResponse;
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
     axagent_dao::repo::conversation::list_conversations(state.harness.db())
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 #[tauri::command]
@@ -45,7 +45,7 @@ pub async fn create_conversation(
         system_prompt.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 #[tauri::command]
@@ -61,7 +61,7 @@ pub async fn update_conversation(
     let updated =
         axagent_dao::repo::conversation::update_conversation(state.harness.db(), &id, input)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     if needs_sync {
         if let Err(e) = sync_context_sources(state.harness.db(), &id, &updated).await {
@@ -122,7 +122,7 @@ pub async fn branch_conversation(
         title.as_deref(),
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 async fn delete_conversation_with_attachments(
@@ -141,7 +141,7 @@ pub(super) async fn delete_conversation_with_attachments_using(
     let files =
         axagent_dao::repo::stored_file::list_stored_files_by_conversation(db, conversation_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
     for file in files {
         super::file_cleanup::delete_attachment_reference(db, file_store, &file.id).await?;
     }
@@ -160,7 +160,7 @@ pub(super) async fn delete_conversation_with_attachments_using(
 
     axagent_dao::repo::conversation::delete_conversation(db, conversation_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 #[tauri::command]
@@ -170,7 +170,7 @@ pub async fn search_conversations(
 ) -> Result<Vec<ConversationSearchResult>, String> {
     axagent_dao::repo::conversation::search_conversations(state.harness.db(), &query)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 #[tauri::command]
@@ -180,7 +180,7 @@ pub async fn toggle_pin_conversation(
 ) -> Result<Conversation, String> {
     axagent_dao::repo::conversation::toggle_pin(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 #[tauri::command]
@@ -190,7 +190,7 @@ pub async fn toggle_archive_conversation(
 ) -> Result<Conversation, String> {
     axagent_dao::repo::conversation::toggle_archive(state.harness.db(), &id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 #[tauri::command]
@@ -206,13 +206,13 @@ pub async fn archive_conversation_to_knowledge_base(
         &knowledge_base_id,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     // Trigger async indexing for the newly created document
     let kb =
         axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     if kb.embedding_provider.is_some() {
         let container = axagent_search::rag::KnowledgeContainer::from_knowledge_base(&kb);
@@ -274,7 +274,7 @@ pub async fn list_archived_conversations(
 ) -> Result<Vec<Conversation>, String> {
     axagent_dao::repo::conversation::list_archived_conversations(state.harness.db())
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
 /// 工作流型会话归档：将执行结果写回原始工作流模板
@@ -292,7 +292,7 @@ pub async fn archive_workflow_session(
     let conv = conversations::Entity::find_by_id(&conversation_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?
         .ok_or_else(|| format!("Conversation {} not found", conversation_id))?;
 
     use crate::commands::error::ErrorResponse;
@@ -316,12 +316,12 @@ pub async fn archive_workflow_session(
         if workflow_template::Entity::find_by_id(template_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?
             .is_some()
         {
             let messages = axagent_dao::repo::message::list_messages(db, &conversation_id)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
             let execution = axagent_entities::workflow_executions::ActiveModel {
                 id: Set(uuid::Uuid::new_v4().to_string()),
@@ -343,7 +343,7 @@ pub async fn archive_workflow_session(
                 created_at: Set(axagent_kit::utils::now_ts()),
                 updated_at: Set(axagent_kit::utils::now_ts()),
             };
-            execution.insert(db).await.map_err(|e| e.to_string())?;
+            execution.insert(db).await.map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
         }
     }
 
@@ -352,7 +352,7 @@ pub async fn archive_workflow_session(
     let mut am: conversations::ActiveModel = conv.into();
     am.is_archived = Set(1);
     am.updated_at = Set(now);
-    let updated = am.update(db).await.map_err(|e| e.to_string())?;
+    let updated = am.update(db).await.map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))?;
 
     let conv = axagent_dao::repo::conversation::conversation_from_entity(updated);
     Ok(conv)

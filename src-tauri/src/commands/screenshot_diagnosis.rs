@@ -289,9 +289,14 @@ pub async fn screenshot_diagnosis_create_from_image(
 
     // 2. 查重：若已有同 hash 的诊断，直接返回
     if let Some(existing) =
-        screenshot_diagnosis::find_by_image_hash(state.harness.db(), &image_hash)
-            .await
-            .map_err(|e| e.to_string())?
+        screenshot_diagnosis::find_by_image_hash(state.harness.db(), &image_hash).await.map_err(
+            |e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            },
+        )?
     {
         return Ok(existing);
     }
@@ -333,9 +338,12 @@ pub async fn screenshot_diagnosis_create_from_image(
         status: "active".to_string(),
     };
 
-    screenshot_diagnosis::create_diagnosis(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::create_diagnosis(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 直接传入 positions 创建诊断（前端预填时用，不调 LLM）
@@ -344,9 +352,12 @@ pub async fn screenshot_diagnosis_create(
     state: State<'_, AppState>,
     input: CreateScreenshotDiagnosisInput,
 ) -> Result<axagent_entities::screenshot_diagnoses::Model, String> {
-    screenshot_diagnosis::create_diagnosis(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::create_diagnosis(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 按 ID 获取诊断
@@ -355,9 +366,12 @@ pub async fn screenshot_diagnosis_get(
     state: State<'_, AppState>,
     diagnosis_id: String,
 ) -> Result<Option<axagent_entities::screenshot_diagnoses::Model>, String> {
-    screenshot_diagnosis::get_diagnosis(state.harness.db(), &diagnosis_id)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::get_diagnosis(state.harness.db(), &diagnosis_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 列出最近 N 条诊断（按 created_at 降序）
@@ -367,9 +381,12 @@ pub async fn screenshot_diagnosis_list_recent(
     limit: Option<usize>,
 ) -> Result<Vec<axagent_entities::screenshot_diagnoses::Model>, String> {
     let l = limit.unwrap_or(20);
-    screenshot_diagnosis::list_recent_diagnoses(state.harness.db(), l)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::list_recent_diagnoses(state.harness.db(), l).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 按状态过滤
@@ -378,9 +395,12 @@ pub async fn screenshot_diagnosis_list_by_status(
     state: State<'_, AppState>,
     status: String,
 ) -> Result<Vec<axagent_entities::screenshot_diagnoses::Model>, String> {
-    screenshot_diagnosis::list_diagnoses_by_status(state.harness.db(), &status)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::list_diagnoses_by_status(state.harness.db(), &status).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 归档诊断
@@ -389,9 +409,12 @@ pub async fn screenshot_diagnosis_archive(
     state: State<'_, AppState>,
     diagnosis_id: String,
 ) -> Result<axagent_entities::screenshot_diagnoses::Model, String> {
-    screenshot_diagnosis::archive_diagnosis(state.harness.db(), &diagnosis_id)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::archive_diagnosis(state.harness.db(), &diagnosis_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 更新诊断字段（narrative / recommended_actions / status / error_message）
@@ -400,9 +423,12 @@ pub async fn screenshot_diagnosis_update(
     state: State<'_, AppState>,
     input: UpdateScreenshotDiagnosisInput,
 ) -> Result<axagent_entities::screenshot_diagnoses::Model, String> {
-    screenshot_diagnosis::update_diagnosis(state.harness.db(), input)
-        .await
-        .map_err(|e| e.to_string())
+    screenshot_diagnosis::update_diagnosis(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 一键转为模拟观察组合（调 paper_portfolio::create_portfolio_from_screenshot_diagnosis）
@@ -420,7 +446,12 @@ pub async fn screenshot_diagnosis_to_paper_portfolio(
         &source_event,
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── mobile stub（移动端不支持截图诊断，避免依赖 screen_vision） ──────────

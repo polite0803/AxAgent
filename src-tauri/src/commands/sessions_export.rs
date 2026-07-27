@@ -114,11 +114,20 @@ pub async fn export_session(
     let db = state.harness.db();
     let conversation = axagent_dao::repo::conversation::get_conversation(db, &conversation_id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
-    let messages = axagent_dao::repo::message::list_messages(db, &conversation_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let messages =
+        axagent_dao::repo::message::list_messages(db, &conversation_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     // 决定输出目录
     let out_dir = output_dir.map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
@@ -139,7 +148,12 @@ pub async fn export_session(
         ExportFormat::Markdown => render_markdown(&conversation, &messages),
         ExportFormat::ManifestJson => {
             let manifest = build_manifest(vec![(conversation.clone(), messages.len() as u32)]);
-            serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?
+            serde_json::to_string_pretty(&manifest).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
         },
     };
 
@@ -208,7 +222,12 @@ pub async fn export_sessions_manifest(
         }
         out
     } else {
-        axagent_dao::repo::conversation::list_conversations(db).await.map_err(|e| e.to_string())?
+        axagent_dao::repo::conversation::list_conversations(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
     };
 
     // 构造 manifest
@@ -220,7 +239,12 @@ pub async fn export_sessions_manifest(
             .join(format!("sessions_manifest_{}.json", chrono::Utc::now().timestamp()))
     });
 
-    let content = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
+    let content = serde_json::to_string_pretty(&manifest).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     std::fs::write(&path, content).map_err(|e| format!("写入 manifest 失败: {e}"))?;
 
     let file_size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);

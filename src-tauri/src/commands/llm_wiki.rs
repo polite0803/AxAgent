@@ -473,7 +473,12 @@ async fn build_llm_adapter(
     // 兼容历史脏数据（纯 provider_id 格式），先归一化再解析
     let normalized = crate::indexing::normalize_embedding_provider(db, embedding_provider)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     let (provider_id, model_id) = parse_embedding_provider(&normalized)?;
 
     let provider =

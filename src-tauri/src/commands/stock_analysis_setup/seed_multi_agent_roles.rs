@@ -207,7 +207,12 @@ pub async fn seed_multi_agent_roles(db: &DatabaseConnection) -> Result<(), Strin
             "builtin-multi-agent", // 区别于 stock-analysis / agency / builtin(executor)
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         count += 1;
     }
     tracing::info!("[multi_agent_setup] 已种子化/更新 {count} 个 Multi-Agent 固定角色");

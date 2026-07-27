@@ -97,7 +97,12 @@ pub async fn delegate_task(
     // 1. 从 DB 读取 role 的 system_prompt
     let role = agent_role::get_agent_role(state.harness.db(), &input.role_name)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
         .ok_or_else(|| format!("Role '{}' not found in agent_roles table", input.role_name))?;
 
     // 2. 构造 vision context（含 adapter + ctx + api_key）

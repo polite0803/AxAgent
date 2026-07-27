@@ -10,11 +10,12 @@
 fn clamp_score(v) { if v < 0.0 { 0.0 } else if v > 100.0 { 100.0 } else { v } }
 
 // 从模板变量读取权重（兜底默认值）
-fn read_weight(name, default) {
-    if name == "w_supply" { if w_supply != () { w_supply } else { default } }
-    else if name == "w_demand" { if w_demand != () { w_demand } else { default } }
-    else if name == "w_irreplace" { if w_irreplace != () { w_irreplace } else { default } }
-    else { default }
+// 注意：参数名不能用 default，它是 Rhai 保留关键字
+fn read_weight(name, fallback) {
+    if name == "w_supply" { if w_supply != () { w_supply } else { fallback } }
+    else if name == "w_demand" { if w_demand != () { w_demand } else { fallback } }
+    else if name == "w_irreplace" { if w_irreplace != () { w_irreplace } else { fallback } }
+    else { fallback }
 }
 
 fn readiness_signal(score) {
@@ -88,7 +89,7 @@ fn score_bottleneck() {
             let roes = if roe >= 15.0 { 85.0 } else if roe >= 8.0 { 60.0 } else if roe >= 0.0 { 35.0 } else { -1.0 };
             let rnds = if rnd >= 10.0 { 85.0 } else if rnd >= 5.0 { 60.0 } else if rnd >= 0.0 { 35.0 } else { -1.0 };
             let cdrs = if cdr >= 2.0 { 80.0 } else if cdr >= 1.0 { 55.0 } else if cdr >= 0.0 { 30.0 } else { -1.0 };
-            let mut t = 0.0; let mut c = 0.0;
+            let t = 0.0; let c = 0.0;
             if gms >= 0.0 { t += gms; c += 1.0; };
             if rgs >= 0.0 { t += rgs; c += 1.0; };
             if drs >= 0.0 { t += drs; c += 1.0; };

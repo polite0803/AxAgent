@@ -715,12 +715,27 @@ async fn seed_agency_experts(db: &sea_orm::DatabaseConnection) -> Result<(), Str
         if agency_experts::Entity::find_by_id(&agency_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
             .is_some()
         {
-            active.update(db).await.map_err(|e| e.to_string())?;
+            active.update(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         } else {
-            active.insert(db).await.map_err(|e| e.to_string())?;
+            active.insert(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
         count += 1;
     }
@@ -746,7 +761,12 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
             "stock-analysis",
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         count += 1;
     }
     tracing::info!("[stock_analysis_setup] 已种子化/更新 {count} 个 agent_roles");

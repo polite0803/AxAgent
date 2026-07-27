@@ -1460,7 +1460,12 @@ pub async fn portfolio_backtest_run(
 ) -> Result<serde_json::Value, String> {
     let config: axagent_quant::PortfolioConfig =
         serde_json::from_str(&config_json).map_err(|e| format!("解析组合配置失败: {e}"))?;
-    let _engine = axagent_quant::PortfolioEngine::new(config.clone()).map_err(|e| e.to_string())?;
+    let _engine = axagent_quant::PortfolioEngine::new(config.clone()).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     // 返回配置校验结果（实际执行需要前端传入K线）
     Ok(serde_json::json!({
         "status": "config_valid",

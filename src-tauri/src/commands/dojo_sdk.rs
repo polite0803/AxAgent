@@ -141,8 +141,12 @@ impl DojoSdkExecutorImpl {
                 let period = arguments["params"]["period"].as_u64().unwrap_or(14) as usize;
                 let overbought = arguments["params"]["overbought"].as_f64().unwrap_or(70.0);
                 let oversold = arguments["params"]["oversold"].as_f64().unwrap_or(30.0);
-                let mut strategy =
-                    RsiStrategy::new(period, overbought, oversold).map_err(|e| e.to_string())?;
+                let mut strategy = RsiStrategy::new(period, overbought, oversold).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
                 engine.run(&mut strategy, bars).await
             },
             "boll" => {
@@ -184,7 +188,12 @@ impl DojoSdkExecutorImpl {
                     "trade_count": bt.trades.len(),
                     "equity_curve_points": bt.equity_curve.len(),
                 });
-                serde_json::to_string(&response).map_err(|e| e.to_string())
+                serde_json::to_string(&response).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             Err(e) => Err(format!("回测失败: {e}")),
         }
@@ -205,7 +214,12 @@ impl DojoSdkExecutorImpl {
             &portfolio_id,
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
         match detail {
             Some(d) => {
@@ -215,7 +229,12 @@ impl DojoSdkExecutorImpl {
                     "positions": d.positions,
                     "summary": d.summary,
                 });
-                serde_json::to_string(&response).map_err(|e| e.to_string())
+                serde_json::to_string(&response).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             None => Err(format!("组合 {portfolio_id} 不存在")),
         }
@@ -231,11 +250,21 @@ impl DojoSdkExecutorImpl {
         let mainlines = if let Some(cat) = &category {
             axagent_stock_analysis::market_mainline::list_mainlines_by_category(&db, cat)
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?
         } else {
             axagent_stock_analysis::market_mainline::list_recent_mainlines(&db, days)
                 .await
-                .map_err(|e| e.to_string())?
+                .map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?
         };
 
         let response = json!({
@@ -245,7 +274,12 @@ impl DojoSdkExecutorImpl {
             "category": category,
             "mainlines": mainlines,
         });
-        serde_json::to_string(&response).map_err(|e| e.to_string())
+        serde_json::to_string(&response).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     }
 }
 
@@ -450,7 +484,12 @@ async fn execute_create_plan(arguments: &Value) -> Result<String, String> {
         "plan": plan_snapshot,
         "message": "计划已创建。调用 dojo_execute_plan(action='start') 开始执行。",
     });
-    serde_json::to_string(&response).map_err(|e| e.to_string())
+    serde_json::to_string(&response).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 执行计划控制
@@ -578,7 +617,12 @@ async fn execute_execute_plan(arguments: &Value) -> Result<String, String> {
         },
     };
 
-    serde_json::to_string(&response).map_err(|e| e.to_string())
+    serde_json::to_string(&response).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 重规划（修订计划）
@@ -605,7 +649,12 @@ async fn execute_revise_plan(arguments: &Value) -> Result<String, String> {
             "rollback_to_version": version,
             "plan": restored_plan,
         });
-        return serde_json::to_string(&response).map_err(|e| e.to_string());
+        return serde_json::to_string(&response).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        });
     }
 
     // 重规划模式
@@ -628,7 +677,12 @@ async fn execute_revise_plan(arguments: &Value) -> Result<String, String> {
         "record": record,
         "version_history_count": planner.get_plan_versions().len(),
     });
-    serde_json::to_string(&response).map_err(|e| e.to_string())
+    serde_json::to_string(&response).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 解析 ReplanReason
@@ -865,7 +919,12 @@ async fn execute_sector_alpha_factors(arguments: &Value) -> Result<String, Strin
             }
         ]
     });
-    serde_json::to_string(&response).map_err(|e| e.to_string())
+    serde_json::to_string(&response).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取 SKILL 内容
@@ -881,7 +940,12 @@ fn execute_get_skill_content(arguments: &Value) -> Result<String, String> {
                 "content": content,
                 "content_length": content.len(),
             });
-            serde_json::to_string(&response).map_err(|e| e.to_string())
+            serde_json::to_string(&response).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         None => Err(format!("SKILL '{skill_name}' 不存在或未加载")),
     }
@@ -922,7 +986,12 @@ fn execute_list_skills(arguments: &Value) -> Result<String, String> {
         "skills": skills,
         "include_external": include_external,
     });
-    serde_json::to_string(&response).map_err(|e| e.to_string())
+    serde_json::to_string(&response).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Tauri 命令层（前端可直接调用，不经过 MCP 协议） ───────────────────────

@@ -296,10 +296,13 @@ pub async fn seed_news_cross_market_template(
     }];
 
     // ── 版本检查与快照 ──
-    let existing = workflow_template::Entity::find_by_id(TEMPLATE_ID)
-        .one(db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let existing =
+        workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     if let Some(ref existing) = existing {
         if existing.version >= TEMPLATE_VERSION {
             tracing::info!(
@@ -312,7 +315,12 @@ pub async fn seed_news_cross_market_template(
         let ver_existing = axagent_entities::workflow_template_version::Entity::find_by_id(&ver_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         if ver_existing.is_none() {
             let snapshot = axagent_entities::workflow_template_version::ActiveModel {
                 id: Set(ver_id.clone()),
@@ -334,7 +342,12 @@ pub async fn seed_news_cross_market_template(
                 error_config: Set(existing.error_config.clone()),
                 created_at: Set(now),
             };
-            snapshot.insert(db).await.map_err(|e| e.to_string())?;
+            snapshot.insert(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             tracing::info!("[stock_analysis_setup] {TEMPLATE_ID} 模板旧版本快照已保存: {ver_id}");
         }
     }

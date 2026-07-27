@@ -27,7 +27,12 @@ pub async fn paper_portfolio_create(
     state: State<'_, AppState>,
     input: CreatePortfolioInput,
 ) -> Result<axagent_entities::paper_portfolios::Model, String> {
-    paper_portfolio::create_portfolio(state.harness.db(), input).await.map_err(|e| e.to_string())
+    paper_portfolio::create_portfolio(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 列出所有组合（按状态过滤，None = 全部）
@@ -36,9 +41,12 @@ pub async fn paper_portfolio_list(
     state: State<'_, AppState>,
     status: Option<String>,
 ) -> Result<Vec<axagent_entities::paper_portfolios::Model>, String> {
-    paper_portfolio::list_portfolios(state.harness.db(), status.as_deref())
-        .await
-        .map_err(|e| e.to_string())
+    paper_portfolio::list_portfolios(state.harness.db(), status.as_deref()).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取单个组合详情（含持仓 + 实时盈亏）
@@ -49,7 +57,12 @@ pub async fn paper_portfolio_get(
 ) -> Result<Option<PortfolioDetail>, String> {
     paper_portfolio::get_portfolio_detail(state.harness.db(), &*state.astock_client, &portfolio_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// 关闭组合（status=closed）
@@ -58,9 +71,12 @@ pub async fn paper_portfolio_close(
     state: State<'_, AppState>,
     portfolio_id: String,
 ) -> Result<axagent_entities::paper_portfolios::Model, String> {
-    paper_portfolio::close_portfolio(state.harness.db(), &portfolio_id)
-        .await
-        .map_err(|e| e.to_string())
+    paper_portfolio::close_portfolio(state.harness.db(), &portfolio_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 归档组合（status=archived）
@@ -69,9 +85,12 @@ pub async fn paper_portfolio_archive(
     state: State<'_, AppState>,
     portfolio_id: String,
 ) -> Result<axagent_entities::paper_portfolios::Model, String> {
-    paper_portfolio::archive_portfolio(state.harness.db(), &portfolio_id)
-        .await
-        .map_err(|e| e.to_string())
+    paper_portfolio::archive_portfolio(state.harness.db(), &portfolio_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 添加虚拟持仓
@@ -80,7 +99,12 @@ pub async fn paper_portfolio_add_position(
     state: State<'_, AppState>,
     input: AddPositionInput,
 ) -> Result<axagent_entities::paper_positions::Model, String> {
-    paper_portfolio::add_position(state.harness.db(), input).await.map_err(|e| e.to_string())
+    paper_portfolio::add_position(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 平仓单个持仓
@@ -89,7 +113,12 @@ pub async fn paper_portfolio_close_position(
     state: State<'_, AppState>,
     input: ClosePositionInput,
 ) -> Result<axagent_entities::paper_positions::Model, String> {
-    paper_portfolio::close_position(state.harness.db(), input).await.map_err(|e| e.to_string())
+    paper_portfolio::close_position(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 批量平仓（按 portfolio_id 平仓所有 open 持仓）
@@ -102,7 +131,12 @@ pub async fn paper_portfolio_close_all_positions(
 ) -> Result<u64, String> {
     paper_portfolio::close_all_positions(state.harness.db(), &portfolio_id, exit_price, &exit_date)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
 
 /// 列出所有 active 组合的详情（前端 Dashboard 用）
@@ -112,5 +146,10 @@ pub async fn paper_portfolio_list_active_details(
 ) -> Result<Vec<PortfolioDetail>, String> {
     paper_portfolio::list_active_portfolios_detail(state.harness.db(), &*state.astock_client)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
 }
