@@ -2391,7 +2391,10 @@
     "VOICE_STT_FAILED": "语音识别失败",
     "VOICE_TTS_FAILED": "语音合成失败",
     "VOICE_INVALID_MESSAGE": "无效的语音消息格式",
-    "VOICE_SESSION_CREATE_REQUIRED": "请先发送 session.create 消息"
+    "VOICE_SESSION_CREATE_REQUIRED": "请先发送 session.create 消息",
+    "PAPER_OVERVIEW_NOT_FOUND": "论文概览不存在",
+    "READING_LIST_NOT_FOUND": "阅读列表不存在",
+    "READING_LIST_ITEM_NOT_FOUND": "阅读条目不存在"
   },
   "errorBoundary": {
     "copied": "已复制",
@@ -3194,7 +3197,14 @@
     "pipeline": "股票管道",
     "marketMainline": "市场主线",
     "screenshotDiagnosis": "截图诊断",
-    "multiAgent": "多智能体协作"
+    "multiAgent": "多智能体协作",
+    "devtools": {
+      "traceExplorer": "追踪浏览器",
+      "benchmark": "基准测试",
+      "toolRecommender": "工具推荐",
+      "fineTune": "模型微调",
+      "rlTraining": "强化学习训练"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "活跃组合数",
@@ -3432,7 +3442,10 @@
       "strategyTooltip": "策略会注入 Dispatcher prompt，影响消息路由偏好。投研办公室建议选「投研策略」。",
       "descriptionLabel": "业务描述",
       "descriptionPlaceholder": "团队定位 / 主要职责（可选）",
-      "success": "已创建办公室：{{name}}"
+      "success": "已创建办公室：{{name}}",
+      "templateLabel": "场景模板",
+      "roomsUnit": "个房间",
+      "createFailed": "创建办公室失败，请查看控制台日志"
     },
     "strategy": {
       "investment_research": "投研策略",
@@ -3487,7 +3500,8 @@
       "stopped": "已停止"
     },
     "scene": {
-      "default_office": "标准办公室",
+      "default_office": "默认办公室",
+      "investment_office": "投研办公室",
       "default_office_desc": "4 房间布局：工位 / 会议室 / 休息区 / 经理室，适合 5-8 人团队",
       "workspace": "工位区",
       "meeting": "会议室",
@@ -3541,10 +3555,6 @@
       "colStatus": "状态",
       "colToday": "今日 Token",
       "colTotal": "累计 Token"
-    },
-    "scene": {
-      "default_office": "默认办公室",
-      "investment_office": "投研办公室"
     },
     "room": {
       "workspace": "工位区",
@@ -5099,7 +5109,8 @@
         "qualityThreshold": "质量阈值",
         "relevanceThreshold": "相关性阈值",
         "title": "自省式质检"
-      }
+      },
+      "autoLoadModels": "下载后自动加载到内存"
     },
     "recheckHealth": "重新检查",
     "recordShortcut": "录制快捷键",
@@ -6118,12 +6129,14 @@
     "type": {
       "knowledge": "RAG 知识库",
       "memory": "记忆",
-      "wiki": "知识库"
+      "wiki": "知识库",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "RAG 向量知识库，支持文档导入与语义检索",
       "memory": "AI 长期记忆，自动存储与召回对话关键信息",
-      "wiki": "结构化知识图谱，支持笔记关联与可视化"
+      "wiki": "结构化知识图谱，支持笔记关联与可视化",
+      "obsidianVault": "指向外部 Obsidian vault 的指针型知识库，不索引，Agent 通过 9 个 obsidian_* 工具直接读写 live 文件"
     },
     "typeLabel": "类型",
     "view": "进入",
@@ -6167,7 +6180,10 @@
       "embeddingModelHint": "可选；选择后将自动应用到新建/复用的 Wiki 与 KB（如已存在但配置不同会更新）",
       "embeddingChanged": "向量模型已变更或新配置，请在知识源卡片中点击「配置」触发重建索引",
       "confirm": "开始导入"
-    }
+    },
+    "vaultPath": "Vault 路径",
+    "vaultPathRequired": "请输入 Vault 路径",
+    "vaultPathHint": "Vault 的绝对路径（含 .obsidian 配置目录的文件夹）"
   },
   "sshConfig": {
     "connect": "连接",
@@ -12077,5 +12093,113 @@
       "score": "强度 0-100",
       "persistence": "持续性"
     }
+  },
+  "cite": {
+    "chunkLabel": "区块 #{{n}}",
+    "sourceType": {
+      "knowledge": "知识库",
+      "memory": "记忆",
+      "unknown": "未知",
+      "wiki": "Wiki"
+    }
+  },
+  "paper": {
+    "title": "论文概览",
+    "overview": "概览",
+    "abstract": "摘要",
+    "keyConcepts": "核心概念",
+    "methods": "方法",
+    "contributions": "贡献",
+    "limitations": "局限",
+    "tlDr": "一句话总结",
+    "sections": "章节结构",
+    "metadata": "元数据",
+    "generatedBy": "生成模型",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "generate": "生成概览",
+    "regenerate": "重新生成",
+    "delete": "删除概览",
+    "view": "查看概览",
+    "empty": "暂无论文概览",
+    "generatePrompt": "生成概览 Prompt",
+    "generatePromptConfirm": "将调用 LLM 生成结构化概览，结果会自动保存。是否继续？",
+    "generateSuccess": "论文概览已生成",
+    "generateFailed": "生成失败",
+    "deleteConfirm": "确定删除此论文概览？此操作不可撤销。",
+    "deleteSuccess": "已删除",
+    "paperQa": "论文问答",
+    "paperQaTitle": "论文 QA",
+    "paperQaQuestion": "问题",
+    "paperQaPrepare": "准备上下文",
+    "paperQaPrepareSuccess": "已准备论文 QA 上下文，可发送给 LLM",
+    "paperQaPrepareFailed": "准备上下文失败",
+    "paperQaSendToChat": "发送到聊天",
+    "overviewType": "概览类型",
+    "overviewTypePaper": "论文",
+    "overviewTypeLongDocument": "长文档",
+    "overviewTypeAuto": "自动"
+  },
+  "readingList": {
+    "title": "阅读列表",
+    "create": "新建列表",
+    "edit": "编辑列表",
+    "delete": "删除列表",
+    "deleteConfirm": "确定删除此阅读列表？列表下的所有条目将一并删除。",
+    "name": "列表名称",
+    "description": "描述",
+    "status": "状态",
+    "statusActive": "活跃",
+    "statusArchived": "已归档",
+    "empty": "暂无阅读列表",
+    "items": "条目",
+    "addItem": "添加条目",
+    "editItem": "编辑条目",
+    "deleteItem": "删除条目",
+    "itemTitle": "标题",
+    "itemNotes": "备注",
+    "itemStatus": "阅读状态",
+    "itemPriority": "优先级",
+    "itemPosition": "位置",
+    "itemExternalUrl": "外部链接",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "关联文档",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "未读",
+    "statusReading": "阅读中",
+    "statusRead": "已读",
+    "statusSkipped": "已跳过",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "reorderSuccess": "顺序已更新",
+    "emptyItems": "此列表暂无条目",
+    "required": "必填"
+  },
+  "knowledgeGraph": {
+    "title": "知识图谱",
+    "search": "图查询增强",
+    "searchPlaceholder": "输入查询关键词",
+    "searchButton": "搜索",
+    "includeNeighbors": "包含邻居关系",
+    "topK": "返回数量",
+    "results": "检索结果",
+    "entities": "实体",
+    "relations": "关系",
+    "entityName": "实体名称",
+    "entityType": "实体类型",
+    "description": "描述",
+    "targetEntity": "目标实体",
+    "relationType": "关系类型",
+    "weight": "权重",
+    "contextText": "可注入上下文",
+    "copyContext": "复制上下文",
+    "copySuccess": "已复制到剪贴板",
+    "totalHits": "命中 {{count}} 个实体",
+    "empty": "暂无结果，请输入查询关键词",
+    "extract": "跨文档抽取",
+    "extractFromDocuments": "从文档抽取实体",
+    "extractConfirm": "将从选定文档抽取实体与关系并写入知识图谱。是否继续？",
+    "extractSuccess": "抽取完成：新增 {{newEntities}} 实体，{{newRelations}} 关系",
+    "extractFailed": "抽取失败"
   }
 }

@@ -41,6 +41,9 @@ pub mod v101_consolidate_knowledge_memory;
 pub mod v102_create_fleets;
 pub mod v103_wiki_graph_perf;
 pub mod v104_notes_fts;
+pub mod v105_kb_vault_kind;
+pub mod v106_context_source_doc_ids;
+pub mod v107_paper_reading_list;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -102,6 +105,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 104,
         description: "v104_notes_fts: 为 notes 表添加全文检索索引（SQLite FTS5 + PostgreSQL tsvector+GIN），解决 wiki_notes_search_keyword 内存 BM25 在 10 万节点下的性能问题",
         up: |db| Box::pin(v104_notes_fts::up(db)),
+    },
+    Migration {
+        version: 105,
+        description: "v105_kb_vault_kind: 为 knowledge_bases 表添加 kind/vault_path 字段，支持 ConnectedVault 类型 KB（Obsidian vault 集成）",
+        up: |db| Box::pin(v105_kb_vault_kind::up(db)),
+    },
+    Migration {
+        version: 106,
+        description: "v106_context_source_doc_ids: 为 context_sources 表添加 doc_ids_json 字段，支持多文档协同（按 doc_id 过滤 RAG 检索）",
+        up: |db| Box::pin(v106_context_source_doc_ids::up(db)),
+    },
+    Migration {
+        version: 107,
+        description: "v107_paper_reading_list: 新增 paper_overviews / reading_lists / reading_list_items 三张表，支持论文结构化概览与阅读列表管理",
+        up: |db| Box::pin(v107_paper_reading_list::up(db)),
     },
     Migration {
         version: 200,
@@ -284,7 +302,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 13 行（v100 + v101 + v102 + v103 + v104 + v200~v207）
+        // schema_version 表应有 13 行（v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v200~v207）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -296,7 +314,7 @@ mod tests {
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
             cnt, 13,
-            "schema_version should have 13 rows (v100 + v101 + v102 + v103 + v104 + v200~v207)"
+            "schema_version should have 13 rows (v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v200~v207)"
         );
     }
 

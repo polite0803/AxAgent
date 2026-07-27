@@ -555,6 +555,7 @@ async fn wiki_notes_search_hybrid(
     let options = HybridSearchOptions {
         vector_weight: 0.7,
         bm25_weight: 0.3,
+        sparse_weight: 0.0,
         top_k,
         min_score: None,
         fusion: FusionAlgorithm::Rrf,

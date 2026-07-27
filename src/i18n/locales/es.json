@@ -2630,7 +2630,10 @@
     "providerNotConfigured": "请先配置服务提供商",
     "noModelSelected": "请选择模型",
     "proxyTestFailed": "代理测试失败",
-    "message": "错误"
+    "message": "错误",
+    "PAPER_OVERVIEW_NOT_FOUND": "Resumen del artículo no encontrado",
+    "READING_LIST_NOT_FOUND": "Lista de lectura no encontrada",
+    "READING_LIST_ITEM_NOT_FOUND": "Elemento de lista de lectura no encontrado"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -3801,7 +3804,14 @@
     "skills": "技能",
     "marketMainline": "Tendencia del mercado",
     "screenshotDiagnosis": "Diagnóstico de captura",
-    "multiAgent": "Multi-Agent"
+    "multiAgent": "Multi-Agent",
+    "devtools": {
+      "traceExplorer": "Explorador de trazas",
+      "benchmark": "Benchmark",
+      "toolRecommender": "Recomendador de herramientas",
+      "fineTune": "Ajuste fino",
+      "rlTraining": "Entrenamiento RL"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "Portafolios activos",
@@ -4039,7 +4049,10 @@
       "strategyTooltip": "La estrategia se inyecta en el prompt del Dispatcher y afecta el enrutamiento. Las oficinas de inversión deben elegir Investigación de Inversión.",
       "descriptionLabel": "Descripción del negocio",
       "descriptionPlaceholder": "Posicionamiento del equipo / responsabilidades principales (opcional)",
-      "success": "Oficina creada: {{name}}"
+      "success": "Oficina creada: {{name}}",
+      "templateLabel": "Plantilla de escena",
+      "roomsUnit": "rooms",
+      "createFailed": "Failed to create office. Check console for details."
     },
     "strategy": {
       "investment_research": "Investigación de inversión",
@@ -4094,7 +4107,8 @@
       "stopped": "Detenido"
     },
     "scene": {
-      "default_office": "Oficina estándar",
+      "default_office": "Oficina predeterminada",
+      "investment_office": "Oficina de inversión",
       "default_office_desc": "4 salas: área de trabajo / reunión / descanso / gerente. Para 5-8 miembros.",
       "workspace": "Área de trabajo",
       "meeting": "Sala de reuniones",
@@ -4148,10 +4162,6 @@
       "colStatus": "Estado",
       "colToday": "Tokens de hoy",
       "colTotal": "Tokens totales"
-    },
-    "scene": {
-      "default_office": "Oficina predeterminada",
-      "investment_office": "Oficina de inversión"
     },
     "room": {
       "workspace": "Espacio de trabajo",
@@ -5706,7 +5716,8 @@
         "qualityThreshold": "Umbral de calidad",
         "relevanceThreshold": "Umbral de relevancia",
         "title": "Puerta de calidad Self-RAG"
-      }
+      },
+      "autoLoadModels": "Cargar automáticamente en memoria tras descarga"
     },
     "recheckHealth": "Reverificar",
     "recordShortcut": "Grabar atajo",
@@ -6725,12 +6736,14 @@
     "type": {
       "knowledge": "Conocimiento",
       "memory": "Memoria",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "Base de conocimientos vectorial RAG con importación de documentos y búsqueda semántica",
       "memory": "Memoria a largo plazo de IA para almacenamiento y recuperación automática de información clave de conversación",
-      "wiki": "Grafo de conocimiento estructurado con vinculación de notas y visualización"
+      "wiki": "Grafo de conocimiento estructurado con vinculación de notas y visualización",
+      "obsidianVault": "KB tipo puntero a un Obsidian vault externo; sin indexación, el agente lee/escribe archivos en vivo vía 9 herramientas obsidian_*"
     },
     "typeLabel": "Tipo",
     "view": "Ver",
@@ -6774,7 +6787,10 @@
       "confirm": "Iniciar importación"
     },
     "importNoEmbedding": "嵌入模型未设置，内容已入库但无法向量检索。请在知识源卡片底部点击「配置」选择嵌入模型后重建索引。",
-    "deleteConfirm": "确定删除知识源 {{name}}？"
+    "deleteConfirm": "确定删除知识源 {{name}}？",
+    "vaultPath": "Ruta del Vault",
+    "vaultPathRequired": "Ingrese la ruta del vault",
+    "vaultPathHint": "Ruta absoluta al vault (carpeta que contiene el directorio de configuración .obsidian)"
   },
   "sshConfig": {
     "connect": "Conectar",
@@ -12835,5 +12851,113 @@
       "score": "Fuerza 0-100",
       "persistence": "Persistencia"
     }
+  },
+  "cite": {
+    "chunkLabel": "Fragmento #{{n}}",
+    "sourceType": {
+      "knowledge": "Base de conocimiento",
+      "memory": "Memoria",
+      "unknown": "Desconocido",
+      "wiki": "Wiki"
+    }
+  },
+  "paper": {
+    "title": "Resumen del artículo",
+    "overview": "Resumen",
+    "abstract": "Abstracto",
+    "keyConcepts": "Conceptos clave",
+    "methods": "Métodos",
+    "contributions": "Contribuciones",
+    "limitations": "Limitaciones",
+    "tlDr": "Resumen breve",
+    "sections": "Secciones",
+    "metadata": "Metadatos",
+    "generatedBy": "Generado por",
+    "createdAt": "Fecha de creación",
+    "updatedAt": "Fecha de actualización",
+    "generate": "Generar resumen",
+    "regenerate": "Regenerar",
+    "delete": "Eliminar resumen",
+    "view": "Ver resumen",
+    "empty": "Aún no hay resumen del artículo",
+    "generatePrompt": "Generar prompt de resumen",
+    "generatePromptConfirm": "Se llamará al LLM para generar un resumen estructurado; el resultado se guardará automáticamente. ¿Continuar?",
+    "generateSuccess": "Resumen del artículo generado",
+    "generateFailed": "Generación fallida",
+    "deleteConfirm": "¿Eliminar este resumen del artículo? Esta acción no se puede deshacer.",
+    "deleteSuccess": "Eliminado",
+    "paperQa": "QA del artículo",
+    "paperQaTitle": "QA del artículo",
+    "paperQaQuestion": "Pregunta",
+    "paperQaPrepare": "Preparar contexto",
+    "paperQaPrepareSuccess": "Contexto de QA del artículo listo para enviar al LLM",
+    "paperQaPrepareFailed": "Error al preparar el contexto",
+    "paperQaSendToChat": "Enviar al chat",
+    "overviewType": "Tipo de resumen",
+    "overviewTypePaper": "Artículo",
+    "overviewTypeLongDocument": "Documento largo",
+    "overviewTypeAuto": "Automático"
+  },
+  "readingList": {
+    "title": "Lista de lectura",
+    "create": "Nueva lista",
+    "edit": "Editar lista",
+    "delete": "Eliminar lista",
+    "deleteConfirm": "¿Eliminar esta lista de lectura? Todos los elementos de esta lista también se eliminarán.",
+    "name": "Nombre de la lista",
+    "description": "Descripción",
+    "status": "Estado",
+    "statusActive": "Activo",
+    "statusArchived": "Archivado",
+    "empty": "Sin listas de lectura",
+    "items": "Elementos",
+    "addItem": "Añadir elemento",
+    "editItem": "Editar elemento",
+    "deleteItem": "Eliminar elemento",
+    "itemTitle": "Título",
+    "itemNotes": "Notas",
+    "itemStatus": "Estado de lectura",
+    "itemPriority": "Prioridad",
+    "itemPosition": "Posición",
+    "itemExternalUrl": "URL externa",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "Documento vinculado",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "No leído",
+    "statusReading": "Leyendo",
+    "statusRead": "Leído",
+    "statusSkipped": "Omitido",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "reorderSuccess": "Orden actualizado",
+    "emptyItems": "Sin elementos en esta lista",
+    "required": "Requerido"
+  },
+  "knowledgeGraph": {
+    "title": "Grafo de conocimiento",
+    "search": "Búsqueda mejorada por grafo",
+    "searchPlaceholder": "Ingrese palabras clave de búsqueda",
+    "searchButton": "Buscar",
+    "includeNeighbors": "Incluir relaciones vecinas",
+    "topK": "Top K",
+    "results": "Resultados",
+    "entities": "Entidades",
+    "relations": "Relaciones",
+    "entityName": "Nombre de entidad",
+    "entityType": "Tipo de entidad",
+    "description": "Descripción",
+    "targetEntity": "Entidad objetivo",
+    "relationType": "Tipo de relación",
+    "weight": "Peso",
+    "contextText": "Contexto inyectable",
+    "copyContext": "Copiar contexto",
+    "copySuccess": "Copiado al portapapeles",
+    "totalHits": "{{count}} entidades coincidentes",
+    "empty": "Sin resultados aún, ingrese palabras clave de búsqueda",
+    "extract": "Extracción entre documentos",
+    "extractFromDocuments": "Extraer entidades de documentos",
+    "extractConfirm": "Se extraerán entidades y relaciones de los documentos seleccionados y se escribirán en el grafo de conocimiento. ¿Continuar?",
+    "extractSuccess": "Extracción completada: {{newEntities}} entidades nuevas, {{newRelations}} relaciones nuevas",
+    "extractFailed": "Extracción fallida"
   }
 }

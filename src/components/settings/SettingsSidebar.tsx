@@ -15,6 +15,7 @@ import {
   Image,
   Info,
   LayoutDashboard,
+  ListChecks,
   MessageSquare,
   Network,
   PaintBucket,
@@ -29,6 +30,7 @@ import {
   SlidersHorizontal,
   Timer,
   User,
+  Workflow,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -78,6 +80,9 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   mcpServers: <Network size={14} />,
   persona: <User size={14} />,
   proactiveBehavior: <Radio size={14} />,
+  readingList: <ListChecks size={14} />,
+  paperOverview: <FileText size={14} />,
+  knowledgeGraph: <Workflow size={14} />,
 };
 
 /**
@@ -135,6 +140,9 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "scheduler",
     "cron",
     "notificationCenter",
+    "readingList",
+    "paperOverview",
+    "knowledgeGraph",
   ],
   system: ["advanced", "evolution", "persona", "proactiveBehavior", "about"],
 };
@@ -184,7 +192,13 @@ export function SettingsSidebar() {
       > = sections.map((sec) => ({
         key: sec,
         icon: MENU_ICONS[sec],
-        label: t([`settings.${sec}.title`, `settings.${sec}`]),
+        // readingList / paperOverview / knowledgeGraph 等新增板块在 settings.* 段未定义时
+        // 回退到顶层的 readingList.title / paper.title / knowledgeGraph.title
+        label: t([
+          `settings.${sec}.title`,
+          `settings.${sec}`,
+          `${sec}.title`,
+        ]),
       }));
       if (key === "extensions") {
         items.push(...skillItems);
@@ -226,7 +240,11 @@ export function SettingsSidebar() {
         kind: "section",
         key: entry.section,
         icon: MENU_ICONS[entry.section],
-        label: t([`settings.${entry.section}.title`, `settings.${entry.section}`]),
+        label: t([
+          `settings.${entry.section}.title`,
+          `settings.${entry.section}`,
+          `${entry.section}.title`,
+        ]),
         keywords: entry.keywords,
         targetSection: entry.section,
       });
@@ -239,6 +257,7 @@ export function SettingsSidebar() {
           label: resolveSettingsLabel(t, item.labelKey),
           subLabel: resolveSettingsLabel(t, `settings.${entry.section}.title`, [
             `settings.${entry.section}`,
+            `${entry.section}.title`,
           ]),
           keywords: item.keywords,
           targetSection: entry.section,

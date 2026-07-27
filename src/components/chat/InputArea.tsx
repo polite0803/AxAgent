@@ -3,9 +3,7 @@
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import type { DropdownItem } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
-import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
-import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
 import { useVoiceWakeup } from "@/hooks/useVoiceWakeup";
@@ -48,28 +46,11 @@ import {
 import { AudioOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import {
-  App,
-  Badge,
-  Button,
-  Checkbox,
-  Form,
-  Image,
-  Input,
-  Modal,
-  Popover,
-  Radio,
-  Select,
-  Tag,
-  theme,
-  Typography,
-} from "antd";
+import { App, Badge, Button, Checkbox, Form, Image, Input, Modal, Popover, Select, Tag, theme, Typography } from "antd";
 import {
   ArrowUp,
   Atom,
-  BookOpen,
   Bot,
-  Brain,
   Check,
   CircleOff,
   ClipboardList,
@@ -84,7 +65,6 @@ import {
   Globe,
   GripHorizontal,
   Image as ImageIcon,
-  Library,
   MessageSquare,
   Mic,
   Music,
@@ -116,6 +96,7 @@ import { ConversationSettingsModal } from "./ConversationSettingsModal";
 import { ModelSelector } from "./ModelSelector";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
+import { SourcePickerPanel } from "./SourcePickerPanel";
 import { VoiceCall } from "./VoiceCall";
 
 async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
@@ -1348,140 +1329,22 @@ export function InputArea() {
       );
     }
     return (
-      <div style={{ minWidth: 220, maxHeight: 400, overflowY: "auto" }}>
-        {safeKb.length > 0 && (
-          <div
-            style={{
-              marginBottom: safeKb.length > 0
-                  && (safeMem.length > 0 || safeWikis.length > 0)
-                ? 8
-                : 0,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: token.colorTextSecondary,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 4,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <BookOpen size={11} />
-              {t("chat.knowledge.title")}
-            </div>
-            {safeKb.map((kb) => (
-              <div key={kb.id} style={{ padding: "2px 0" }}>
-                <Checkbox
-                  checked={enabledKnowledgeBaseIds.includes(kb.id)}
-                  onChange={() => toggleKnowledgeBase(kb.id)}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 13,
-                    }}
-                  >
-                    <KnowledgeBaseIcon kb={kb} size={14} />
-                    {kb.name}
-                  </span>
-                </Checkbox>
-              </div>
-            ))}
-          </div>
-        )}
-        {safeMem.length > 0 && (
-          <div
-            style={{
-              marginBottom: safeMem.length > 0 && safeWikis.length > 0 ? 8 : 0,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: token.colorTextSecondary,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 4,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Brain size={11} />
-              {t("chat.memory.title")}
-            </div>
-            <Radio.Group
-              value={activeMemoryNamespaceId}
-              onChange={(e) => setActiveMemoryNamespace(e.target.value || null)}
-              style={{ display: "flex", flexDirection: "column", gap: 2 }}
-            >
-              {safeMem.map((ns) => (
-                <Radio key={ns.id} value={ns.id}>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <NamespaceIcon ns={ns} size={16} />
-                    {ns.name}
-                  </span>
-                </Radio>
-              ))}
-            </Radio.Group>
-          </div>
-        )}
-        {safeWikis.length > 0 && (
-          <div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: token.colorTextSecondary,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 4,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}
-            >
-              <Library size={11} />
-              {t("chat.wiki.title")}
-            </div>
-            {safeWikis.map((wiki) => (
-              <div key={wiki.id} style={{ padding: "2px 0" }}>
-                <Checkbox
-                  checked={enabledWikiIds.includes(wiki.id)}
-                  onChange={() => toggleWiki(wiki.id)}
-                >
-                  <span
-                    style={{
-                      fontSize: 13,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <Library size={14} />
-                    {wiki.name}
-                  </span>
-                </Checkbox>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SourcePickerPanel
+        conversationId={activeConversationId}
+        knowledgeBases={safeKb}
+        memoryNamespaces={safeMem}
+        wikis={safeWikis}
+        enabledKnowledgeBaseIds={enabledKnowledgeBaseIds}
+        activeMemoryNamespaceId={activeMemoryNamespaceId}
+        enabledWikiIds={enabledWikiIds}
+        onToggleKb={toggleKnowledgeBase}
+        onSetActiveMemory={setActiveMemoryNamespace}
+        onToggleWiki={toggleWiki}
+        onGoConfig={() => {
+          setSourceModalOpen(false);
+          navigate("/knowledge");
+        }}
+      />
     );
   }, [
     knowledgeBases,
@@ -1496,6 +1359,7 @@ export function InputArea() {
     token,
     t,
     navigate,
+    activeConversationId,
   ]);
 
   const incrementUsage = usePromptTemplateStore((s) => s.incrementUsage);

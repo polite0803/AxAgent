@@ -603,6 +603,12 @@ pub async fn auto_extract_incremental_memories(
             title,
             content: item.content.clone(),
             source: Some("auto_extract".to_string()),
+            tier: None,
+            importance: None,
+            memory_nature: None,
+            tags: None,
+            decay_rate: None,
+            expires_at: None,
         };
         if let Ok(mem_item) = axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
@@ -782,6 +788,12 @@ pub async fn sync_working_memory_to_namespace(
             title,
             content: content.clone(),
             source: Some("auto_extract".to_string()),
+            tier: None,
+            importance: None,
+            memory_nature: None,
+            tags: None,
+            decay_rate: None,
+            expires_at: None,
         };
         match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
@@ -1349,6 +1361,12 @@ pub async fn extract_conversation_memories(
             title,
             content: item.content.clone(),
             source: Some("auto_extract".to_string()),
+            tier: None,
+            importance: None,
+            memory_nature: None,
+            tags: None,
+            decay_rate: None,
+            expires_at: None,
         };
         match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
@@ -1579,4 +1597,71 @@ pub async fn memory_flush(
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })
+}
+
+// ── 三层记忆系统：用户 namespace item 的晋升/降级/衰减 ────────────────────
+
+/// 三层记忆系统：晋升用户 namespace 中的 memory item 到下一 tier。
+/// 与 trajectory 的 promote_memory_entry 区别：本命令操作 memory_items 表，覆盖所有 namespace。
+#[tauri::command]
+pub async fn promote_user_memory_item(
+    state: State<'_, AppState>,
+    item_id: String,
+) -> Result<MemoryItem, String> {
+    axagent_dao::repo::memory::promote_item(state.harness.db(), &item_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 三层记忆系统：降级用户 namespace 中的 memory item 到下一 tier。
+#[tauri::command]
+pub async fn demote_user_memory_item(
+    state: State<'_, AppState>,
+    item_id: String,
+) -> Result<MemoryItem, String> {
+    axagent_dao::repo::memory::demote_item(state.harness.db(), &item_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 三层记忆系统：记录访问并可能触发自动晋升。
+#[tauri::command]
+pub async fn record_user_memory_access(
+    state: State<'_, AppState>,
+    item_id: String,
+) -> Result<MemoryItem, String> {
+    axagent_dao::repo::memory::record_access_and_maybe_promote(state.harness.db(), &item_id)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
+}
+
+/// 三层记忆系统：手动触发一次全表衰减 tick（通常由定时器调用，此命令供管理员/调试用）。
+/// 返回 { expiredDeleted, lowScoreDeleted, capacityEvicted }
+#[tauri::command]
+pub async fn apply_user_memory_decay_tick(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let (expired, low_score, capacity) =
+        axagent_dao::repo::memory::apply_decay_tick(state.harness.db()).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    Ok(serde_json::json!({
+        "expiredDeleted": expired,
+        "lowScoreDeleted": low_score,
+        "capacityEvicted": capacity,
+    }))
 }

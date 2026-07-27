@@ -219,6 +219,12 @@ impl Tool for MemoryFlushTool {
             title,
             content: content.to_string(),
             source: Some(format!("agent_flush:{}", category)),
+            tier: None,
+            importance: None,
+            memory_nature: None,
+            tags: None,
+            decay_rate: None,
+            expires_at: None,
         };
 
         match axagent_harness::repositories::memory_repository().add_item(input).await {

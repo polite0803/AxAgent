@@ -82,7 +82,9 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
       set((s) => ({ fleets: [...s.fleets, fleet] }));
       return fleet;
     } catch (e) {
-      set({ error: String(e) });
+      const msg = String(e);
+      set({ error: msg });
+      console.warn(`[officeStore] createFleet failed: ${msg}`);
       return null;
     }
   },

@@ -912,6 +912,32 @@ pub async fn search_knowledge(
     .await
 }
 
+/// Search knowledge base with optional document ID filter (multi-document collaboration).
+/// Paper QA Pipeline 用此函数把检索范围限制在单篇论文内。
+pub async fn search_knowledge_with_doc_filter(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    knowledge_base_id: &str,
+    query: &str,
+    top_k: usize,
+    doc_ids: Option<&[String]>,
+) -> Result<Vec<VectorSearchResult>> {
+    rag::search_with_filter(
+        &KnowledgeRAG,
+        db,
+        master_key,
+        vector_store,
+        knowledge_base_id,
+        query,
+        top_k,
+        None,
+        ProviderEmbedFn,
+        doc_ids,
+    )
+    .await
+}
+
 /// Search memory namespace vectors for relevant content.
 pub async fn search_memory(
     db: &DatabaseConnection,
@@ -1104,6 +1130,115 @@ pub async fn collect_rag_context(
         &pipeline_cfg,
         llm_fn,
         rerank_api_key,
+    )
+    .await
+}
+
+/// 多文档协同版本的 `collect_rag_context`。
+///
+/// 接受结构化的 `RAGSourceRef` 列表，每个 source 可独立带 `doc_ids` 过滤。
+/// 内部根据 pipeline 配置自动路由到 `collect_rag_context_with_filters`
+/// 或 `collect_rag_context_with_pipeline_from_refs`。
+///
+/// `kb_ids` / `wiki_ids` 仅用于知识图谱回链上下文（不参与过滤），
+/// 由调用方从 `sources` 中提取后传入；为空则跳过 KG 上下文。
+#[allow(clippy::too_many_arguments)]
+pub async fn collect_rag_context_with_sources(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    sources: Vec<axagent_search::rag::RAGSourceRef>,
+    query: &str,
+    top_k: usize,
+    credential_manager: &Arc<CredentialManager>,
+) -> RagContextResult {
+    use axagent_search::rag::RAGSourceType;
+
+    if sources.is_empty() {
+        return RagContextResult { context_parts: vec![], source_results: vec![] };
+    }
+
+    // 提取 kb_ids / wiki_ids 用于知识图谱回链
+    let kb_ids: Vec<String> = sources
+        .iter()
+        .filter(|s| s.source_type == RAGSourceType::Knowledge)
+        .map(|s| s.container_id.clone())
+        .collect();
+    let wiki_ids: Vec<String> = sources
+        .iter()
+        .filter(|s| s.source_type == RAGSourceType::Wiki)
+        .map(|s| s.container_id.clone())
+        .collect();
+
+    // 读取 pipeline 配置
+    let pipeline_config = axagent_dao::repo::settings::get_settings(db)
+        .await
+        .map(|s| s.rag_pipeline_config)
+        .unwrap_or_default();
+
+    let use_pipeline = pipeline_config
+        .get("query_enhancement")
+        .and_then(|v| v.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+        || pipeline_config
+            .get("rerank")
+            .and_then(|v| v.get("enabled"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        || pipeline_config
+            .get("self_rag")
+            .and_then(|v| v.get("enabled"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+    if !use_pipeline {
+        // 快速路径：不缓存（sources 可能带 doc_ids 过滤，缓存键复杂）
+        return axagent_search::rag::collect_rag_context_with_filters(
+            db,
+            master_key,
+            vector_store,
+            sources,
+            query,
+            top_k,
+            ProviderEmbedFn,
+            &kb_ids,
+            &wiki_ids,
+        )
+        .await;
+    }
+
+    // Pipeline 路径
+    let qe_enabled = pipeline_config
+        .get("query_enhancement")
+        .and_then(|v| v.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    let llm_fn = if qe_enabled {
+        build_rag_llm_fn(db, master_key).await
+    } else {
+        None
+    };
+
+    let pipeline_cfg: axagent_harness::types::RAGPipelineConfig =
+        serde_json::from_value(pipeline_config.clone()).unwrap_or_default();
+
+    let rerank_api_key = resolve_rerank_api_key(credential_manager, &pipeline_cfg.rerank).await;
+
+    axagent_search::rag::collect_rag_context_with_pipeline_from_refs(
+        db,
+        master_key,
+        vector_store,
+        sources,
+        query,
+        top_k,
+        ProviderEmbedFn,
+        &pipeline_cfg,
+        llm_fn,
+        rerank_api_key,
+        &kb_ids,
+        &wiki_ids,
     )
     .await
 }

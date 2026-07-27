@@ -34,6 +34,10 @@ interface MemoryState {
     itemId: string,
     input: UpdateMemoryItemInput,
   ) => Promise<void>;
+  // 三层记忆系统：晋升 / 降级 / 记录访问（可能触发自动晋升）
+  promoteItem: (namespaceId: string, itemId: string) => Promise<void>;
+  demoteItem: (namespaceId: string, itemId: string) => Promise<void>;
+  recordItemAccess: (namespaceId: string, itemId: string) => Promise<void>;
   setSelectedNamespaceId: (id: string | null) => void;
   reorderNamespaces: (namespaceIds: string[]) => Promise<void>;
 }
@@ -145,6 +149,37 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         id: itemId,
         input,
       });
+      await get().loadItems(namespaceId);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  // 三层记忆系统：晋升 / 降级 / 记录访问（可能触发自动晋升）
+  promoteItem: async (namespaceId, itemId) => {
+    try {
+      await invoke<MemoryItem>("promote_user_memory_item", { itemId });
+      await get().loadItems(namespaceId);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  demoteItem: async (namespaceId, itemId) => {
+    try {
+      await invoke<MemoryItem>("demote_user_memory_item", { itemId });
+      await get().loadItems(namespaceId);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  recordItemAccess: async (namespaceId, itemId) => {
+    try {
+      await invoke<MemoryItem>("record_user_memory_access", { itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
       set({ error: String(e) });

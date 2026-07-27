@@ -3801,7 +3801,14 @@
     "skills": "技能",
     "marketMainline": "市場メインライン",
     "screenshotDiagnosis": "スクリーンショット診断",
-    "multiAgent": "マルチエージェント"
+    "multiAgent": "マルチエージェント",
+    "devtools": {
+      "traceExplorer": "トレースエクスプローラー",
+      "benchmark": "ベンチマーク",
+      "toolRecommender": "ツールレコメンダー",
+      "fineTune": "ファインチューニング",
+      "rlTraining": "強化学習トレーニング"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "アクティブポートフォリオ数",
@@ -4039,7 +4046,10 @@
       "strategyTooltip": "戦略は Dispatcher プロンプトに注入され、ルーティングに影響します。投資オフィスは投資リサーチを選択することを推奨します。",
       "descriptionLabel": "業務説明",
       "descriptionPlaceholder": "チームの位置づけ / 主な担当（任意）",
-      "success": "オフィスを作成しました：{{name}}"
+      "success": "オフィスを作成しました：{{name}}",
+      "templateLabel": "シーンテンプレート",
+      "roomsUnit": "rooms",
+      "createFailed": "Failed to create office. Check console for details."
     },
     "strategy": {
       "investment_research": "投資リサーチ",
@@ -4094,7 +4104,8 @@
       "stopped": "停止"
     },
     "scene": {
-      "default_office": "標準オフィス",
+      "default_office": "デフォルトオフィス",
+      "investment_office": "投資オフィス",
       "default_office_desc": "4 部屋: ワークスペース / 会議室 / ラウンジ / マネージャー。5-8 名向け。",
       "workspace": "ワークスペース",
       "meeting": "会議室",
@@ -4148,10 +4159,6 @@
       "colStatus": "ステータス",
       "colToday": "今日の Token",
       "colTotal": "累計 Token"
-    },
-    "scene": {
-      "default_office": "デフォルトオフィス",
-      "investment_office": "投資オフィス"
     },
     "room": {
       "workspace": "ワークスペース",
@@ -5706,7 +5713,8 @@
         "qualityThreshold": "品質しきい値",
         "relevanceThreshold": "関連性しきい値",
         "title": "Self-RAG 品質ゲート"
-      }
+      },
+      "autoLoadModels": "ダウンロード後に自動的にメモリにロード"
     },
     "recheckHealth": "再チェック",
     "recordShortcut": "ショートカットを記録",
@@ -6725,12 +6733,14 @@
     "type": {
       "knowledge": "ナレッジ",
       "memory": "メモリ",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "RAG ベクトルナレッジベース、ドキュメントインポートとセマンティック検索をサポート",
       "memory": "AI 長期メモリ、会話の重要情報を自動保存・想起",
-      "wiki": "構造化ナレッジグラフ、ノート関連付けと可視化をサポート"
+      "wiki": "構造化ナレッジグラフ、ノート関連付けと可視化をサポート",
+      "obsidianVault": "外部 Obsidian vault へのポインター型 KB。インデックスなし、エージェントは 9 つの obsidian_* ツールでライブファイルを直接読み書き"
     },
     "typeLabel": "タイプ",
     "view": "表示",
@@ -6774,7 +6784,10 @@
       "embeddingChanged": "向量模型已变更或新配置，请在知识源卡片中点击「配置」触发重建索引"
     },
     "importNoEmbedding": "嵌入模型未设置，内容已入库但无法向量检索。请在知识源卡片底部点击「配置」选择嵌入模型后重建索引。",
-    "deleteConfirm": "确定删除知识源 {{name}}？"
+    "deleteConfirm": "确定删除知识源 {{name}}？",
+    "vaultPath": "Vault パス",
+    "vaultPathRequired": "Vault パスを入力してください",
+    "vaultPathHint": "Vault の絶対パス（.obsidian 設定ディレクトリを含むフォルダ）"
   },
   "sshConfig": {
     "connect": "接続",
@@ -12835,5 +12848,113 @@
       "score": "強度 0-100",
       "persistence": "持続性"
     }
+  },
+  "cite": {
+    "chunkLabel": "チャンク #{{n}}",
+    "sourceType": {
+      "knowledge": "ナレッジベース",
+      "memory": "メモリ",
+      "unknown": "不明",
+      "wiki": "Wiki"
+    }
+  },
+  "paper": {
+    "title": "論文概要",
+    "overview": "概要",
+    "abstract": "要旨",
+    "keyConcepts": "主要概念",
+    "methods": "手法",
+    "contributions": "貢献",
+    "limitations": "限界",
+    "tlDr": "一言まとめ",
+    "sections": "セクション構成",
+    "metadata": "メタデータ",
+    "generatedBy": "生成モデル",
+    "createdAt": "作成日時",
+    "updatedAt": "更新日時",
+    "generate": "概要を生成",
+    "regenerate": "再生成",
+    "delete": "概要を削除",
+    "view": "概要を表示",
+    "empty": "論文概要がありません",
+    "generatePrompt": "概要プロンプトを生成",
+    "generatePromptConfirm": "LLM を呼び出して構造化概要を生成し、結果を自動保存します。続行しますか？",
+    "generateSuccess": "論文概要を生成しました",
+    "generateFailed": "生成に失敗しました",
+    "deleteConfirm": "この論文概要を削除しますか？この操作は取り消せません。",
+    "deleteSuccess": "削除しました",
+    "paperQa": "論文QA",
+    "paperQaTitle": "論文 QA",
+    "paperQaQuestion": "質問",
+    "paperQaPrepare": "コンテキストを準備",
+    "paperQaPrepareSuccess": "論文QAコンテキストを準備しました、LLM に送信できます",
+    "paperQaPrepareFailed": "コンテキストの準備に失敗しました",
+    "paperQaSendToChat": "チャットに送信",
+    "overviewType": "概要タイプ",
+    "overviewTypePaper": "論文",
+    "overviewTypeLongDocument": "長文書",
+    "overviewTypeAuto": "自動"
+  },
+  "readingList": {
+    "title": "読書リスト",
+    "create": "新規リスト",
+    "edit": "リストを編集",
+    "delete": "リストを削除",
+    "deleteConfirm": "この読書リストを削除しますか？リスト内のすべてのアイテムも削除されます。",
+    "name": "リスト名",
+    "description": "説明",
+    "status": "ステータス",
+    "statusActive": "アクティブ",
+    "statusArchived": "アーカイブ済み",
+    "empty": "読書リストがありません",
+    "items": "アイテム",
+    "addItem": "アイテムを追加",
+    "editItem": "アイテムを編集",
+    "deleteItem": "アイテムを削除",
+    "itemTitle": "タイトル",
+    "itemNotes": "メモ",
+    "itemStatus": "読書ステータス",
+    "itemPriority": "優先度",
+    "itemPosition": "位置",
+    "itemExternalUrl": "外部リンク",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "関連ドキュメント",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "未読",
+    "statusReading": "読書中",
+    "statusRead": "読了",
+    "statusSkipped": "スキップ",
+    "moveUp": "上に移動",
+    "moveDown": "下に移動",
+    "reorderSuccess": "順序を更新しました",
+    "emptyItems": "このリストにはアイテムがありません",
+    "required": "必須"
+  },
+  "knowledgeGraph": {
+    "title": "知識グラフ",
+    "search": "グラフクエリ拡張",
+    "searchPlaceholder": "検索キーワードを入力",
+    "searchButton": "検索",
+    "includeNeighbors": "近隣関係を含む",
+    "topK": "返却数",
+    "results": "検索結果",
+    "entities": "エンティティ",
+    "relations": "関係",
+    "entityName": "エンティティ名",
+    "entityType": "エンティティ型",
+    "description": "説明",
+    "targetEntity": "対象エンティティ",
+    "relationType": "関係タイプ",
+    "weight": "重み",
+    "contextText": "注入可能なコンテキスト",
+    "copyContext": "コンテキストをコピー",
+    "copySuccess": "クリップボードにコピーしました",
+    "totalHits": "{{count}} 個のエンティティが見つかりました",
+    "empty": "結果がありません、検索キーワードを入力してください",
+    "extract": "クロスドキュメント抽出",
+    "extractFromDocuments": "ドキュメントからエンティティを抽出",
+    "extractConfirm": "選択したドキュメントからエンティティと関係を抽出し、知識グラフに書き込みます。続行しますか？",
+    "extractSuccess": "抽出完了: 新規 {{newEntities}} エンティティ、{{newRelations}} 関係",
+    "extractFailed": "抽出に失敗しました"
   }
 }

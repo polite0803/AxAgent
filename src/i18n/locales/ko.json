@@ -3801,7 +3801,14 @@
     "skills": "技能",
     "marketMainline": "시장 메인라인",
     "screenshotDiagnosis": "스크린샷 진단",
-    "multiAgent": "멀티 에이전트"
+    "multiAgent": "멀티 에이전트",
+    "devtools": {
+      "traceExplorer": "트레이스 탐색기",
+      "benchmark": "벤치마크",
+      "toolRecommender": "도구 추천",
+      "fineTune": "파인튜닝",
+      "rlTraining": "강화 학습 훈련"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "활성 포트폴리오 수",
@@ -4039,7 +4046,10 @@
       "strategyTooltip": "전략은 Dispatcher 프롬프트에 주입되어 라우팅에 영향을 줍니다. 투자 오피스는 투자 리서치를 선택하는 것을 권장합니다.",
       "descriptionLabel": "비즈니스 설명",
       "descriptionPlaceholder": "팀 포지셔닝 / 주요 책임 (선택)",
-      "success": "오피스 생성됨: {{name}}"
+      "success": "오피스 생성됨: {{name}}",
+      "templateLabel": "씬 템플릿",
+      "roomsUnit": "rooms",
+      "createFailed": "Failed to create office. Check console for details."
     },
     "strategy": {
       "investment_research": "투자 리서치",
@@ -4094,7 +4104,8 @@
       "stopped": "중지됨"
     },
     "scene": {
-      "default_office": "표준 오피스",
+      "default_office": "기본 오피스",
+      "investment_office": "투자 오피스",
       "default_office_desc": "4개 방: 워크스페이스 / 회의실 / 라운지 / 매니저. 5-8명용.",
       "workspace": "워크스페이스",
       "meeting": "회의실",
@@ -4148,10 +4159,6 @@
       "colStatus": "상태",
       "colToday": "오늘 Token",
       "colTotal": "누적 Token"
-    },
-    "scene": {
-      "default_office": "기본 오피스",
-      "investment_office": "투자 오피스"
     },
     "room": {
       "workspace": "작업 공간",
@@ -5706,7 +5713,8 @@
         "qualityThreshold": "품질 임계값",
         "relevanceThreshold": "관련성 임계값",
         "title": "Self-RAG 품질 게이트"
-      }
+      },
+      "autoLoadModels": "다운로드 후 자동으로 메모리에 로드"
     },
     "recheckHealth": "다시 확인",
     "recordShortcut": "단축키 녹화",
@@ -6725,12 +6733,14 @@
     "type": {
       "knowledge": "지식",
       "memory": "메모리",
-      "wiki": "위키"
+      "wiki": "위키",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "문서 가져오기 및 의미 검색이 포함된 RAG 벡터 지식 베이스",
       "memory": "핵심 대화 정보를 자동 저장 및 회수하는 AI 장기 메모리",
-      "wiki": "노트 연결 및 시각화가 포함된 구조화된 지식 그래프"
+      "wiki": "노트 연결 및 시각화가 포함된 구조화된 지식 그래프",
+      "obsidianVault": "외부 Obsidian vault에 대한 포인터형 KB. 인덱싱 없음, 에이전트가 9개의 obsidian_* 도구로 라이브 파일을 직접 읽고 씀"
     },
     "typeLabel": "유형",
     "view": "보기",
@@ -6774,7 +6784,10 @@
       "confirm": "가져오기 시작"
     },
     "importNoEmbedding": "嵌入模型未设置，内容已入库但无法向量检索。请在知识源卡片底部点击「配置」选择嵌入模型后重建索引。",
-    "deleteConfirm": "确定删除知识源 {{name}}？"
+    "deleteConfirm": "确定删除知识源 {{name}}？",
+    "vaultPath": "Vault 경로",
+    "vaultPathRequired": "Vault 경로를 입력하세요",
+    "vaultPathHint": "Vault의 절대 경로 (.obsidian 구성 디렉토리가 포함된 폴더)"
   },
   "sshConfig": {
     "connect": "연결",
@@ -12835,5 +12848,113 @@
       "score": "강도 0-100",
       "persistence": "지속성"
     }
+  },
+  "cite": {
+    "chunkLabel": "청크 #{{n}}",
+    "sourceType": {
+      "knowledge": "지식 베이스",
+      "memory": "메모리",
+      "unknown": "알 수 없음",
+      "wiki": "위키"
+    }
+  },
+  "paper": {
+    "title": "논문 개요",
+    "overview": "개요",
+    "abstract": "초록",
+    "keyConcepts": "핵심 개념",
+    "methods": "방법",
+    "contributions": "기여",
+    "limitations": "한계",
+    "tlDr": "한 줄 요약",
+    "sections": "섹션 구조",
+    "metadata": "메타데이터",
+    "generatedBy": "생성 모델",
+    "createdAt": "생성 시간",
+    "updatedAt": "업데이트 시간",
+    "generate": "개요 생성",
+    "regenerate": "재생성",
+    "delete": "개요 삭제",
+    "view": "개요 보기",
+    "empty": "논문 개요가 없습니다",
+    "generatePrompt": "개요 프롬프트 생성",
+    "generatePromptConfirm": "LLM을 호출하여 구조화된 개요를 생성하고 결과를 자동 저장합니다. 계속하시겠습니까?",
+    "generateSuccess": "논문 개요가 생성되었습니다",
+    "generateFailed": "생성 실패",
+    "deleteConfirm": "이 논문 개요를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "deleteSuccess": "삭제되었습니다",
+    "paperQa": "논문 QA",
+    "paperQaTitle": "논문 QA",
+    "paperQaQuestion": "질문",
+    "paperQaPrepare": "컨텍스트 준비",
+    "paperQaPrepareSuccess": "논문 QA 컨텍스트가 준비되었습니다, LLM에 전송할 수 있습니다",
+    "paperQaPrepareFailed": "컨텍스트 준비 실패",
+    "paperQaSendToChat": "채팅으로 전송",
+    "overviewType": "개요 유형",
+    "overviewTypePaper": "논문",
+    "overviewTypeLongDocument": "긴 문서",
+    "overviewTypeAuto": "자동"
+  },
+  "readingList": {
+    "title": "읽기 목록",
+    "create": "새 목록",
+    "edit": "목록 편집",
+    "delete": "목록 삭제",
+    "deleteConfirm": "이 읽기 목록을 삭제하시겠습니까? 목록의 모든 항목도 삭제됩니다.",
+    "name": "목록 이름",
+    "description": "설명",
+    "status": "상태",
+    "statusActive": "활성",
+    "statusArchived": "보관됨",
+    "empty": "읽기 목록이 없습니다",
+    "items": "항목",
+    "addItem": "항목 추가",
+    "editItem": "항목 편집",
+    "deleteItem": "항목 삭제",
+    "itemTitle": "제목",
+    "itemNotes": "메모",
+    "itemStatus": "읽기 상태",
+    "itemPriority": "우선순위",
+    "itemPosition": "위치",
+    "itemExternalUrl": "외부 링크",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "관련 문서",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "읽지 않음",
+    "statusReading": "읽는 중",
+    "statusRead": "읽음",
+    "statusSkipped": "건너뜀",
+    "moveUp": "위로 이동",
+    "moveDown": "아래로 이동",
+    "reorderSuccess": "순서가 업데이트되었습니다",
+    "emptyItems": "이 목록에 항목이 없습니다",
+    "required": "필수"
+  },
+  "knowledgeGraph": {
+    "title": "지식 그래프",
+    "search": "그래프 쿼리 강화",
+    "searchPlaceholder": "검색 키워드 입력",
+    "searchButton": "검색",
+    "includeNeighbors": "이웃 관계 포함",
+    "topK": "반환 수",
+    "results": "검색 결과",
+    "entities": "엔티티",
+    "relations": "관계",
+    "entityName": "엔티티 이름",
+    "entityType": "엔티티 유형",
+    "description": "설명",
+    "targetEntity": "대상 엔티티",
+    "relationType": "관계 유형",
+    "weight": "가중치",
+    "contextText": "주입 가능한 컨텍스트",
+    "copyContext": "컨텍스트 복사",
+    "copySuccess": "클립보드에 복사되었습니다",
+    "totalHits": "{{count}}개의 엔티티를 찾았습니다",
+    "empty": "결과가 없습니다, 검색 키워드를 입력하세요",
+    "extract": "교차 문서 추출",
+    "extractFromDocuments": "문서에서 엔티티 추출",
+    "extractConfirm": "선택한 문서에서 엔티티와 관계를 추출하여 지식 그래프에 기록합니다. 계속하시겠습니까?",
+    "extractSuccess": "추출 완료: 새 엔티티 {{newEntities}}개, 새 관계 {{newRelations}}개",
+    "extractFailed": "추출 실패"
   }
 }

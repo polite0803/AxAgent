@@ -146,4 +146,9 @@ pub mod strategy_weight_history;
 pub mod trades;
 pub mod watchlist_items;
 
+// Paper Overview Engine + Reading List & Queue
+pub mod paper_overviews;
+pub mod reading_list_items;
+pub mod reading_lists;
+
 pub use sea_orm;

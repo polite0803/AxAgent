@@ -6,6 +6,8 @@
 //! memory namespaces, etc.) to share indexing, searching, and context-collection
 //! logic without code duplication.
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
@@ -15,6 +17,7 @@ use crate::self_rag::RetrievalQuality;
 use crate::sources;
 use crate::text_chunker;
 use crate::vector_store::{EmbeddingRecord, VectorSearchResult, VectorStore};
+use axagent_harness::InferenceEngine;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::{RagContextResult, RagRetrievedItem, RagSourceResult};
 
@@ -285,8 +288,40 @@ pub async fn search<S: RAGSource + ?Sized>(
     dimensions: Option<usize>,
     embed_fn: impl AsyncEmbedFn,
 ) -> Result<Vec<VectorSearchResult>> {
+    search_with_filter(
+        source,
+        db,
+        master_key,
+        vector_store,
+        container_id,
+        query,
+        top_k,
+        dimensions,
+        embed_fn,
+        None,
+    )
+    .await
+}
+
+/// `search` with optional `doc_ids` filter (multi-document collaboration).
+/// When `doc_ids` is `Some` and non-empty, results are restricted to chunks
+/// belonging to one of the listed documents.
+#[allow(clippy::too_many_arguments)]
+pub async fn search_with_filter<S: RAGSource + ?Sized>(
+    source: &S,
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    container_id: &str,
+    query: &str,
+    top_k: usize,
+    dimensions: Option<usize>,
+    embed_fn: impl AsyncEmbedFn,
+    doc_ids: Option<&[String]>,
+) -> Result<Vec<VectorSearchResult>> {
     let hybrid_opts = HybridSearchOptions { top_k, ..Default::default() };
-    let hybrid_results = search_hybrid(
+    // 多引擎 RAG：保留原始 bm25_score 明细，避免下游 rerank 丢失分数信息
+    let hybrid_results = search_hybrid_with_filter(
         source,
         db,
         master_key,
@@ -296,6 +331,7 @@ pub async fn search<S: RAGSource + ?Sized>(
         dimensions,
         embed_fn,
         hybrid_opts,
+        doc_ids,
     )
     .await?;
 
@@ -327,6 +363,35 @@ pub async fn search_hybrid<S: RAGSource + ?Sized>(
     embed_fn: impl AsyncEmbedFn,
     options: HybridSearchOptions,
 ) -> Result<Vec<HybridSearchResult>> {
+    search_hybrid_with_filter(
+        source,
+        db,
+        master_key,
+        _vector_store,
+        container_id,
+        query,
+        dimensions,
+        embed_fn,
+        options,
+        None,
+    )
+    .await
+}
+
+/// `search_hybrid` with optional `doc_ids` filter (multi-document collaboration).
+#[allow(clippy::too_many_arguments)]
+pub async fn search_hybrid_with_filter<S: RAGSource + ?Sized>(
+    source: &S,
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    _vector_store: &VectorStore,
+    container_id: &str,
+    query: &str,
+    dimensions: Option<usize>,
+    embed_fn: impl AsyncEmbedFn,
+    options: HybridSearchOptions,
+    doc_ids: Option<&[String]>,
+) -> Result<Vec<HybridSearchResult>> {
     let embedding_provider = source.resolve_embedding_provider(db, container_id).await?;
     let cid = collection_id(source.collection_prefix(), container_id);
 
@@ -343,7 +408,8 @@ pub async fn search_hybrid<S: RAGSource + ?Sized>(
     let searcher = HybridSearcher::new(db.clone());
     let _ = searcher.ensure_fts5_index(&cid).await;
 
-    let results = searcher.hybrid_search(&cid, query, query_embedding, options).await?;
+    let results =
+        searcher.hybrid_search_with_filter(&cid, query, query_embedding, options, doc_ids).await?;
 
     Ok(results)
 }
@@ -551,6 +617,9 @@ pub async fn collect_cross_source_graph_context(
 pub struct RAGSourceRef {
     pub source_type: RAGSourceType,
     pub container_id: String,
+    /// 多文档协同：限制检索范围到这些文档 ID；
+    /// 空数组表示检索整个容器。
+    pub doc_ids: Vec<String>,
 }
 
 /// The type of RAG source.
@@ -617,21 +686,155 @@ pub async fn collect_rag_context(
     top_k: usize,
     embed_fn: impl AsyncEmbedFn,
 ) -> RagContextResult {
-    if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+    let sources = build_source_refs(kb_ids, mem_ids, wiki_ids);
+    collect_rag_context_from_refs(
+        db,
+        master_key,
+        vector_store,
+        sources,
+        query,
+        top_k,
+        embed_fn,
+        kb_ids,
+        wiki_ids,
+    )
+    .await
+}
+
+/// `collect_rag_context` 的多文档协同变体：每个 source 可带 `doc_ids` 过滤。
+/// `kb_ids` / `wiki_ids` 仅用于知识图谱回链上下文（不参与过滤），可为空。
+#[allow(clippy::too_many_arguments)]
+pub async fn collect_rag_context_with_filters(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    sources: Vec<RAGSourceRef>,
+    query: &str,
+    top_k: usize,
+    embed_fn: impl AsyncEmbedFn,
+    kb_ids: &[String],
+    wiki_ids: &[String],
+) -> RagContextResult {
+    collect_rag_context_from_refs(
+        db,
+        master_key,
+        vector_store,
+        sources,
+        query,
+        top_k,
+        embed_fn,
+        kb_ids,
+        wiki_ids,
+    )
+    .await
+}
+
+/// 三层记忆系统：根据 memory_items.tier / importance 对 Memory 知识源的检索结果
+/// 进行二次加权与重排序，让 core / long_term 记忆在 RAG 检索中真正发挥作用。
+///
+/// 算法：
+/// - tier 优先级 bonus：core=2.0, long_term=1.5, working=1.0, short_term=0.5
+/// - adjusted_score = original_score - tier_bonus * importance
+///   （original_score 是 L2 distance，越小越相关；减去 bonus 让高 tier 记忆排前）
+/// - 按 adjusted_score 升序重排序
+///
+/// 未命中 memory_items 表的 id（理论上不会发生）原样保留 score 不调整。
+async fn apply_memory_tier_weight(db: &DatabaseConnection, items: &mut [RagRetrievedItem]) {
+    if items.is_empty() {
+        return;
     }
 
-    let mut sources: Vec<RAGSourceRef> = Vec::new();
+    // 收集所有 id，批量查询 tier / importance
+    let ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
+    let placeholders =
+        ids.iter().enumerate().map(|(i, _)| format!("?{}", i + 1)).collect::<Vec<_>>().join(", ");
+    let sql = format!("SELECT id, tier, importance FROM memory_items WHERE id IN ({placeholders})");
 
+    let values: Vec<sea_orm::Value> = ids.into_iter().map(sea_orm::Value::from).collect();
+    let rows = match db
+        .query_all_raw(Statement::from_sql_and_values(db.get_database_backend(), &sql, values))
+        .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::warn!("[memory_tier_weight] 查询 memory_items 失败，跳过加权: {}", e);
+            return;
+        },
+    };
+
+    // id → (tier_bonus, importance)
+    use std::collections::HashMap;
+    let mut weight_map: HashMap<String, (f32, f32)> = HashMap::with_capacity(rows.len());
+    for row in rows {
+        let id: String = match row.try_get("", "id") {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let tier: String = row.try_get("", "tier").unwrap_or_else(|_| "working".to_string());
+        let importance: f64 = row.try_get("", "importance").unwrap_or(0.5);
+        let tier_bonus = match tier.as_str() {
+            "core" => 2.0_f32,
+            "long_term" => 1.5,
+            "working" => 1.0,
+            "short_term" => 0.5,
+            _ => 1.0,
+        };
+        weight_map.insert(id, (tier_bonus, importance as f32));
+    }
+
+    // 调整 score 并按升序重排序（L2 distance 越小越相关）
+    for it in items.iter_mut() {
+        if let Some((tier_bonus, importance)) = weight_map.get(&it.id) {
+            it.score -= tier_bonus * importance;
+        }
+    }
+    items.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal));
+}
+
+fn build_source_refs(
+    kb_ids: &[String],
+    mem_ids: &[String],
+    wiki_ids: &[String],
+) -> Vec<RAGSourceRef> {
+    let mut sources: Vec<RAGSourceRef> = Vec::new();
     for id in kb_ids {
-        sources
-            .push(RAGSourceRef { source_type: RAGSourceType::Knowledge, container_id: id.clone() });
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Knowledge,
+            container_id: id.clone(),
+            doc_ids: Vec::new(),
+        });
     }
     for id in mem_ids {
-        sources.push(RAGSourceRef { source_type: RAGSourceType::Memory, container_id: id.clone() });
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Memory,
+            container_id: id.clone(),
+            doc_ids: Vec::new(),
+        });
     }
     for id in wiki_ids {
-        sources.push(RAGSourceRef { source_type: RAGSourceType::Wiki, container_id: id.clone() });
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Wiki,
+            container_id: id.clone(),
+            doc_ids: Vec::new(),
+        });
+    }
+    sources
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn collect_rag_context_from_refs(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    sources: Vec<RAGSourceRef>,
+    query: &str,
+    top_k: usize,
+    embed_fn: impl AsyncEmbedFn,
+    kb_ids: &[String],
+    wiki_ids: &[String],
+) -> RagContextResult {
+    if sources.is_empty() {
+        return RagContextResult { context_parts: vec![], source_results: vec![] };
     }
 
     let mut context_parts = Vec::new();
@@ -647,7 +850,14 @@ pub async fn collect_rag_context(
             (if sk > 0 { sk } else { top_k }, th, d)
         };
 
-        let result = search(
+        // 多文档协同：当 doc_ids 非空时透传给底层 search
+        let doc_ids_opt = if src_ref.doc_ids.is_empty() {
+            None
+        } else {
+            Some(src_ref.doc_ids.as_slice())
+        };
+
+        let result = search_with_filter(
             source.as_ref(),
             db,
             master_key,
@@ -657,6 +867,7 @@ pub async fn collect_rag_context(
             source_top_k,
             dims,
             embed_fn.clone(),
+            doc_ids_opt,
         )
         .await;
 
@@ -679,7 +890,7 @@ pub async fn collect_rag_context(
                     continue;
                 }
 
-                let items: Vec<RagRetrievedItem> = results
+                let mut items: Vec<RagRetrievedItem> = results
                     .iter()
                     .map(|r| RagRetrievedItem {
                         content: r.content.clone(),
@@ -687,10 +898,17 @@ pub async fn collect_rag_context(
                         document_id: r.document_id.clone(),
                         id: r.id.clone(),
                         document_name: None,
+                        chunk_index: Some(r.chunk_index),
                     })
                     .collect();
 
-                let snippets: Vec<String> = results.iter().map(|r| r.content.clone()).collect();
+                // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
+                if matches!(src_ref.source_type, RAGSourceType::Memory) {
+                    apply_memory_tier_weight(db, &mut items).await;
+                }
+
+                // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
+                let snippets: Vec<String> = items.iter().map(|it| it.content.clone()).collect();
                 context_parts.push(format!(
                     "[{}]\n{}",
                     source.context_label(),
@@ -706,6 +924,7 @@ pub async fn collect_rag_context(
                     source_type: source_type_str.to_string(),
                     container_id: src_ref.container_id.clone(),
                     items,
+                    container_name: None,
                 });
             },
             Ok(_) => {
@@ -725,6 +944,9 @@ pub async fn collect_rag_context(
             },
         }
     }
+
+    // 填充 container_name（KB / memory namespace / wiki 名称）
+    fill_container_names(db, &mut source_results).await;
 
     // Batch-lookup document titles for knowledge sources
     {
@@ -753,12 +975,76 @@ pub async fn collect_rag_context(
     }
 
     let kg_context = collect_cross_source_graph_context(db, kb_ids, wiki_ids, query, top_k).await;
-    context_parts.extend(kg_context);
 
-    let (deduped_results, deduped_context) =
+    let (deduped_results, _deduped_context) =
         deduplicate_cross_source(source_results, context_parts);
 
-    RagContextResult { context_parts: deduped_context, source_results: deduped_results }
+    // 引用追溯：在 dedup 之后重建 context_parts，为每个 item 的 snippet 前注入 [cite:N] token。
+    // N 是 source_results 扁平化后的全局序号，前端据此渲染可点击 chip 并跳转高亮对应 item。
+    let final_context = rebuild_context_with_citations(&deduped_results, kg_context);
+
+    RagContextResult { context_parts: final_context, source_results: deduped_results }
+}
+
+/// 引用追溯：根据 `source_results` 重建 context_parts，为每个 item 的 snippet 前注入
+/// `[cite:N]` token（N 为全局扁平化序号，从 0 开始）。`extra_context`（如知识图谱上下文）
+/// 原样追加到末尾，不参与引用编号。
+fn rebuild_context_with_citations(
+    source_results: &[RagSourceResult],
+    extra_context: Vec<String>,
+) -> Vec<String> {
+    let mut context = Vec::new();
+    let mut cite_idx = 0usize;
+    for src in source_results {
+        let label = match src.source_type.as_str() {
+            "knowledge" => {
+                format!("Knowledge: {}", src.container_name.as_deref().unwrap_or(&src.container_id))
+            },
+            "memory" => {
+                format!("Memory: {}", src.container_name.as_deref().unwrap_or(&src.container_id))
+            },
+            "wiki" => {
+                format!("Wiki: {}", src.container_name.as_deref().unwrap_or(&src.container_id))
+            },
+            other => format!("{}: {}", other, src.container_id),
+        };
+        let snippets: Vec<String> = src
+            .items
+            .iter()
+            .map(|item| {
+                let i = cite_idx;
+                cite_idx += 1;
+                format!("[cite:{}] {}", i, item.content)
+            })
+            .collect();
+        if !snippets.is_empty() {
+            context.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
+        }
+    }
+    context.extend(extra_context);
+    context
+}
+
+/// 为每个 `RagSourceResult` 填充 `container_name`（KB / memory / wiki 容器显示名）。
+async fn fill_container_names(db: &DatabaseConnection, source_results: &mut [RagSourceResult]) {
+    for src in source_results.iter_mut() {
+        let name: Option<String> = match src.source_type.as_str() {
+            "knowledge" => sources::knowledge()
+                .get_knowledge_base(&src.container_id)
+                .await
+                .ok()
+                .map(|kb| kb.name),
+            "memory" => {
+                sources::memory().get_namespace(&src.container_id).await.ok().map(|ns| ns.name)
+            },
+            "wiki" => sources::wiki().get_wiki(&src.container_id).await.ok().map(|w| w.name),
+            _ => {
+                let _ = db;
+                None
+            },
+        };
+        src.container_name = name;
+    }
 }
 
 // ── Cross-source deduplication ───────────────────────────────────────────────
@@ -964,9 +1250,15 @@ pub async fn check_vault_rag_capacity(
 ) -> Result<CapacityCheckResult> {
     let wiki = sources::wiki().get_wiki(vault_id).await?;
 
-    let collection_name = collection_id("wiki", vault_id);
-    validate_collection_name(&collection_name)?;
-    let current_count = count_collection_items(db, &collection_name).await?;
+    // 前置判断：未配置 embedding_provider 时，vec_wiki_*_meta 表不会被创建，
+    // 直接返回 0 避免查询不存在的表导致错误。
+    let current_count = if wiki.embedding_provider.is_none() {
+        0
+    } else {
+        let collection_name = collection_id("wiki", vault_id);
+        validate_collection_name(&collection_name)?;
+        count_collection_items(db, &collection_name).await?
+    };
 
     let is_over_limit = current_count >= VAULT_SOFT_LIMIT;
 
@@ -1026,7 +1318,20 @@ pub async fn get_vault_capacity_info(
     db: &DatabaseConnection,
     vault_id: &str,
 ) -> Result<VaultCapacityInfo> {
-    let _wiki = sources::wiki().get_wiki(vault_id).await?;
+    let wiki = sources::wiki().get_wiki(vault_id).await?;
+
+    // 前置判断：未配置 embedding_provider 时，vec_wiki_*_meta 表不会被创建，
+    // 直接返回 current_count: 0 / oldest_item_timestamp: None，避免查询不存在的表。
+    if wiki.embedding_provider.is_none() {
+        return Ok(VaultCapacityInfo {
+            vault_id: vault_id.to_string(),
+            current_count: 0,
+            soft_limit: VAULT_SOFT_LIMIT,
+            is_over_limit: false,
+            oldest_item_timestamp: None,
+        });
+    }
+
     let collection_name = collection_id("wiki", vault_id);
     validate_collection_name(&collection_name)?;
     let current_count = count_collection_items(db, &collection_name).await?;
@@ -1199,6 +1504,40 @@ pub async fn collect_rag_context_with_pipeline(
     llm_fn: Option<LlmCallFn>,
     api_key: Option<String>,
 ) -> RagContextResult {
+    let sources = build_source_refs(kb_ids, mem_ids, wiki_ids);
+    collect_rag_context_with_pipeline_from_refs(
+        db,
+        master_key,
+        vector_store,
+        sources,
+        query,
+        top_k,
+        embed_fn,
+        pipeline_config,
+        llm_fn,
+        api_key,
+        kb_ids,
+        wiki_ids,
+    )
+    .await
+}
+
+/// `collect_rag_context_with_pipeline` 的多文档协同变体。
+#[allow(clippy::too_many_arguments)]
+pub async fn collect_rag_context_with_pipeline_from_refs(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    vector_store: &VectorStore,
+    sources: Vec<RAGSourceRef>,
+    query: &str,
+    top_k: usize,
+    embed_fn: impl AsyncEmbedFn,
+    pipeline_config: &axagent_harness::types::RAGPipelineConfig,
+    llm_fn: Option<LlmCallFn>,
+    api_key: Option<String>,
+    kb_ids: &[String],
+    wiki_ids: &[String],
+) -> RagContextResult {
     // 阶段 0：查询增强
     let queries: Vec<String> = if pipeline_config.query_enhancement.enabled {
         if let Some(ref llm) = llm_fn {
@@ -1226,36 +1565,25 @@ pub async fn collect_rag_context_with_pipeline(
 
     // 如果没有启用 pipeline，直接走原有逻辑
     if !pipeline_config.rerank.enabled && !pipeline_config.self_rag.enabled {
-        return collect_rag_context(
+        return collect_rag_context_with_filters(
             db,
             master_key,
             vector_store,
-            kb_ids,
-            mem_ids,
-            wiki_ids,
+            sources,
             effective_query,
             top_k,
             embed_fn,
+            kb_ids,
+            wiki_ids,
         )
         .await;
     }
 
-    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, None, api_key);
+    let engine: Arc<dyn InferenceEngine> = crate::inference::global_engine();
+    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, Some(engine), api_key);
 
-    if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
+    if sources.is_empty() {
         return RagContextResult { context_parts: vec![], source_results: vec![] };
-    }
-
-    let mut sources: Vec<RAGSourceRef> = Vec::new();
-    for id in kb_ids {
-        sources
-            .push(RAGSourceRef { source_type: RAGSourceType::Knowledge, container_id: id.clone() });
-    }
-    for id in mem_ids {
-        sources.push(RAGSourceRef { source_type: RAGSourceType::Memory, container_id: id.clone() });
-    }
-    for id in wiki_ids {
-        sources.push(RAGSourceRef { source_type: RAGSourceType::Wiki, container_id: id.clone() });
     }
 
     let mut context_parts = Vec::new();
@@ -1269,8 +1597,15 @@ pub async fn collect_rag_context_with_pipeline(
             (if sk > 0 { sk } else { top_k }, sk, d)
         };
 
+        // 多文档协同：当 doc_ids 非空时透传给底层 search
+        let doc_ids_opt = if src_ref.doc_ids.is_empty() {
+            None
+        } else {
+            Some(src_ref.doc_ids.as_slice())
+        };
+
         let result = pipeline
-            .execute(
+            .execute_with_filter(
                 source.as_ref(),
                 db,
                 master_key,
@@ -1281,23 +1616,19 @@ pub async fn collect_rag_context_with_pipeline(
                 dims,
                 embed_fn.clone(),
                 &pipeline_config.rerank,
+                doc_ids_opt,
             )
             .await;
 
         match result {
             Ok(output) if !output.results.is_empty() => {
-                let label = source.context_label();
-                let snippets: Vec<String> =
-                    output.results.iter().map(|r| r.content.clone()).collect();
-                context_parts.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
-
                 let source_type_str = match src_ref.source_type {
                     RAGSourceType::Knowledge => "knowledge",
                     RAGSourceType::Memory => "memory",
                     RAGSourceType::Wiki => "wiki",
                 };
 
-                let items: Vec<RagRetrievedItem> = output
+                let mut items: Vec<RagRetrievedItem> = output
                     .results
                     .iter()
                     .map(|r| RagRetrievedItem {
@@ -1306,8 +1637,19 @@ pub async fn collect_rag_context_with_pipeline(
                         document_id: r.document_id.clone(),
                         id: r.id.clone(),
                         document_name: None,
+                        chunk_index: Some(r.chunk_index),
                     })
                     .collect();
+
+                // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
+                if matches!(src_ref.source_type, RAGSourceType::Memory) {
+                    apply_memory_tier_weight(db, &mut items).await;
+                }
+
+                let label = source.context_label();
+                // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
+                let snippets: Vec<String> = items.iter().map(|it| it.content.clone()).collect();
+                context_parts.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
 
                 if let RetrievalQuality::Poor(ref diag) = output.quality {
                     tracing::warn!(
@@ -1322,6 +1664,7 @@ pub async fn collect_rag_context_with_pipeline(
                     source_type: source_type_str.to_string(),
                     container_id: src_ref.container_id.clone(),
                     items,
+                    container_name: None,
                 });
             },
             Ok(_) => {
@@ -1341,6 +1684,9 @@ pub async fn collect_rag_context_with_pipeline(
             },
         }
     }
+
+    // 引用追溯：填充 container_name（KB / memory namespace / wiki 名称）
+    fill_container_names(db, &mut source_results).await;
 
     // Batch-lookup document titles for knowledge sources
     {
@@ -1370,12 +1716,14 @@ pub async fn collect_rag_context_with_pipeline(
 
     let kg_context =
         collect_cross_source_graph_context(db, kb_ids, wiki_ids, effective_query, top_k).await;
-    context_parts.extend(kg_context);
 
-    let (deduped_results, deduped_context) =
+    let (deduped_results, _deduped_context) =
         deduplicate_cross_source(source_results, context_parts);
 
-    RagContextResult { context_parts: deduped_context, source_results: deduped_results }
+    // 引用追溯：在 dedup 之后重建 context_parts，为每个 item 的 snippet 前注入 [cite:N] token。
+    let final_context = rebuild_context_with_citations(&deduped_results, kg_context);
+
+    RagContextResult { context_parts: final_context, source_results: deduped_results }
 }
 
 #[cfg(test)]

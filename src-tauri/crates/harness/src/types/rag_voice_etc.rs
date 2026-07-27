@@ -15,6 +15,9 @@ pub struct RagRetrievedItem {
     /// Human-readable document name (populated for knowledge items).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub document_name: Option<String>,
+    /// Chunk 在文档内的顺序索引（从 0 开始），用于引用追溯定位
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chunk_index: Option<i32>,
 }
 
 /// Results from a single RAG source (knowledge base or memory namespace).
@@ -24,6 +27,10 @@ pub struct RagSourceResult {
     pub source_type: String,
     pub container_id: String,
     pub items: Vec<RagRetrievedItem>,
+    /// 容器显示名（KB 名称 / memory namespace 名称 / wiki 名称），
+    /// 用于前端引用追溯展示
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub container_name: Option<String>,
 }
 
 /// Combined results of RAG context collection.
@@ -215,6 +222,14 @@ pub struct KnowledgeBase {
     pub chunk_size: Option<i32>,
     pub chunk_overlap: Option<i32>,
     pub separator: Option<String>,
+    /// 知识库类型：默认 `indexed`（走 RAG），`connected_vault` 指向 Obsidian vault
+    /// （不走 RAG，agent 通过 9 个 obsidian_* 工具直接读写 live 文件）
+    #[serde(default)]
+    pub kind: crate::KbKind,
+    /// ConnectedVault 类型 KB 的 vault 根路径（绝对路径）
+    /// 其他类型为 None
+    #[serde(default)]
+    pub vault_path: Option<String>,
 }
 
 impl KnowledgeBase {
@@ -525,6 +540,17 @@ pub struct MemoryItem {
     pub index_status: String, // pending | indexing | ready | failed | skipped
     pub index_error: Option<String>,
     pub updated_at: String,
+    // 三层记忆系统：v101 已持久化，DTO 同步暴露
+    pub tier: String,    // short_term | working | long_term | core
+    pub importance: f64, // 0.0 ~ 1.0
+    pub access_count: i32,
+    pub last_accessed: Option<i64>, // unix millis
+    pub decay_rate: f64,            // 每小时衰减系数
+    pub expires_at: Option<i64>,    // unix millis，None 表示不过期
+    pub memory_nature: String,      // episodic | semantic
+    pub tags: Vec<String>,
+    pub source_conversation_id: Option<String>,
+    pub source_message_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -594,6 +620,10 @@ pub struct ContextSource {
     pub title: String,
     pub enabled: bool,
     pub summary: Option<String>,
+    /// 多文档协同：限制 RAG 检索范围到这些文档 ID；
+    /// 空数组或 None 表示检索整个容器
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub doc_ids: Vec<String>,
 }
 
 // Conversation Branches
@@ -830,6 +860,10 @@ pub struct CreateContextSourceInput {
     pub ref_id: String,
     pub title: String,
     pub summary: Option<String>,
+    /// 多文档协同：限制 RAG 检索范围到这些文档 ID；
+    /// 空数组或 None 表示检索整个容器
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub doc_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -878,6 +912,12 @@ pub struct CreateKnowledgeBaseInput {
     pub description: Option<String>,
     pub embedding_provider: Option<String>,
     pub enabled: Option<bool>,
+    /// KB 类型，默认 `indexed`。设为 `connected_vault` 时需提供 `vault_path`
+    #[serde(default)]
+    pub kind: crate::KbKind,
+    /// ConnectedVault 类型时的 vault 根路径（绝对路径）
+    #[serde(default)]
+    pub vault_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -924,12 +964,18 @@ pub struct CreateMemoryNamespaceInput {
     pub icon_value: Option<String>,
 }
 
-/// 统一知识源创建输入（通过 sourceType 区分 knowledge/memory/wiki）
+/// 统一知识源创建输入（通过 sourceType 区分 knowledge/memory/wiki/obsidian_vault）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSourceInput {
     pub name: String,
-    /// "knowledge" | "memory" | "wiki"
+    /// "knowledge" | "memory" | "wiki" | "obsidian_vault"
+    ///
+    /// - `knowledge`: 走 RAG 索引的默认 KB
+    /// - `memory`: AI 长期记忆 namespace
+    /// - `wiki`: 结构化笔记 + 文件夹根路径
+    /// - `obsidian_vault`: ConnectedVault KB，指针指向外部 Obsidian vault，
+    ///   不索引、不向量化，agent 通过 9 个 `obsidian_*` 工具直接读写 live 文件
     pub source_type: String,
     pub description: Option<String>,
     pub embedding_provider: Option<String>,
@@ -937,6 +983,8 @@ pub struct CreateSourceInput {
     pub scope: Option<String>,
     /// wiki 独有
     pub root_path: Option<String>,
+    /// obsidian_vault 独有：Obsidian vault 的绝对路径
+    pub vault_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -969,6 +1017,19 @@ pub struct CreateMemoryItemInput {
     pub title: String,
     pub content: String,
     pub source: Option<String>,
+    // 三层记忆系统：创建时可选指定 tier/importance/nature/tags/decay_rate/expires_at
+    #[serde(default)]
+    pub tier: Option<String>,
+    #[serde(default)]
+    pub importance: Option<f64>,
+    #[serde(default)]
+    pub memory_nature: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub decay_rate: Option<f64>,
+    #[serde(default)]
+    pub expires_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -976,6 +1037,15 @@ pub struct CreateMemoryItemInput {
 pub struct UpdateMemoryItemInput {
     pub title: Option<String>,
     pub content: Option<String>,
+    // 三层记忆系统：更新时可选调整 tier/importance/nature/tags
+    #[serde(default)]
+    pub tier: Option<String>,
+    #[serde(default)]
+    pub importance: Option<f64>,
+    #[serde(default)]
+    pub memory_nature: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
 }
 
 // ── Skills ────────────────────────────────────────────────────────────

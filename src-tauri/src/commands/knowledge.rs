@@ -148,6 +148,9 @@ pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Re
     let collection_id = format!("kb_{}", id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
 
+    // 若为 ConnectedVault 类型，注销全局 VaultRegistry 中的绑定
+    axagent_tools::tools::obsidian::unregister_vault(&id);
+
     axagent_dao::repo::knowledge::delete_knowledge_base(state.harness.db(), &id).await.map_err(
         |e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
@@ -156,6 +159,83 @@ pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Re
             ))
         },
     )
+}
+
+/// 将已有 KB 转换为 ConnectedVault 类型，并绑定 Obsidian vault 路径
+///
+/// 用法场景：用户先创建了一个普通 KB，后来决定让它指向 Obsidian vault。
+/// 转换后该 KB 不再走 RAG 索引，agent 通过 9 个 `obsidian_*` 工具直接读写。
+#[tauri::command]
+pub async fn kb_connect_vault(
+    state: State<'_, AppState>,
+    id: String,
+    vault_path: String,
+) -> Result<KnowledgeBase, String> {
+    let path = std::path::Path::new(&vault_path);
+    if !path.is_absolute() {
+        return Err("vault_path must be an absolute path".to_string());
+    }
+    if !path.is_dir() {
+        return Err(format!("vault_path is not a directory: {}", vault_path));
+    }
+
+    let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &id)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+    // 直接更新 kind/vault_path 字段（通过 update_knowledge_base 走 DAO）
+    let updated = axagent_dao::repo::knowledge::set_vault_binding(
+        state.harness.db(),
+        &id,
+        axagent_harness::KbKind::ConnectedVault,
+        Some(vault_path.clone()),
+    )
+    .await
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    // 注册到全局 VaultRegistry
+    if let Err(e) =
+        axagent_tools::tools::obsidian::register_vault(&id, std::path::PathBuf::from(&vault_path))
+    {
+        tracing::warn!(kb_id = %id, error = %e, "Failed to register Obsidian vault after connect");
+    }
+
+    let _ = kb; // 保留原始 KB 引用便于未来审计
+    Ok(updated)
+}
+
+/// 解除 KB 的 Obsidian vault 绑定，转换回默认 Indexed 类型
+#[tauri::command]
+pub async fn kb_disconnect_vault(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<KnowledgeBase, String> {
+    let updated = axagent_dao::repo::knowledge::set_vault_binding(
+        state.harness.db(),
+        &id,
+        axagent_harness::KbKind::Indexed,
+        None,
+    )
+    .await
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    axagent_tools::tools::obsidian::unregister_vault(&id);
+    Ok(updated)
 }
 
 #[tauri::command]

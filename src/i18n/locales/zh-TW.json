@@ -2468,7 +2468,10 @@
     "VOICE_STT_FAILED": "語音辨識失敗",
     "VOICE_TTS_FAILED": "語音合成失敗",
     "VOICE_INVALID_MESSAGE": "無效的語音訊息格式",
-    "VOICE_SESSION_CREATE_REQUIRED": "請先發送 session.create 訊息"
+    "VOICE_SESSION_CREATE_REQUIRED": "請先發送 session.create 訊息",
+    "PAPER_OVERVIEW_NOT_FOUND": "論文概覽不存在",
+    "READING_LIST_NOT_FOUND": "閱讀列表不存在",
+    "READING_LIST_ITEM_NOT_FOUND": "閱讀條目不存在"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -3455,7 +3458,14 @@
     "pipeline": "股票管道",
     "marketMainline": "市場主線",
     "screenshotDiagnosis": "截圖診斷",
-    "multiAgent": "多智能體協作"
+    "multiAgent": "多智能體協作",
+    "devtools": {
+      "traceExplorer": "追蹤瀏覽器",
+      "benchmark": "基準測試",
+      "toolRecommender": "工具推薦",
+      "fineTune": "模型微調",
+      "rlTraining": "強化學習訓練"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "活躍組合數",
@@ -3693,7 +3703,10 @@
       "strategyTooltip": "策略會注入 Dispatcher prompt，影響訊息路由偏好。投研辦公室建議選「投研策略」。",
       "descriptionLabel": "業務描述",
       "descriptionPlaceholder": "團隊定位 / 主要職責（可選）",
-      "success": "已建立辦公室：{{name}}"
+      "success": "已建立辦公室：{{name}}",
+      "templateLabel": "場景模板",
+      "roomsUnit": "個房間",
+      "createFailed": "創建辦公室失敗，請查看主控台日誌"
     },
     "strategy": {
       "investment_research": "投研策略",
@@ -3748,7 +3761,8 @@
       "stopped": "已停止"
     },
     "scene": {
-      "default_office": "標準辦公室",
+      "default_office": "預設辦公室",
+      "investment_office": "投研辦公室",
       "default_office_desc": "4 房間布局：工位 / 會議室 / 休息區 / 經理室，適合 5-8 人團隊",
       "workspace": "工位區",
       "meeting": "會議室",
@@ -3802,10 +3816,6 @@
       "colStatus": "狀態",
       "colToday": "今日 Token",
       "colTotal": "累計 Token"
-    },
-    "scene": {
-      "default_office": "預設辦公室",
-      "investment_office": "投研辦公室"
     },
     "room": {
       "workspace": "工位區",
@@ -5360,7 +5370,8 @@
         "qualityThreshold": "質量閾值",
         "relevanceThreshold": "相關性閾值",
         "title": "自省式質檢"
-      }
+      },
+      "autoLoadModels": "下載後自動載入記憶體"
     },
     "recheckHealth": "重新檢查",
     "recordShortcut": "錄製快捷鍵",
@@ -6379,12 +6390,14 @@
     "type": {
       "knowledge": "RAG 知識庫",
       "memory": "記憶",
-      "wiki": "Wiki 知識庫"
+      "wiki": "Wiki 知識庫",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "RAG 向量知識庫，支持文檔導入與語義檢索",
       "memory": "AI 長期記憶，自動存儲與召回對話關鍵信息",
-      "wiki": "結構化知識圖譜，支持筆記關聯與可視化"
+      "wiki": "結構化知識圖譜，支持筆記關聯與可視化",
+      "obsidianVault": "指向外部 Obsidian vault 的指標型知識庫，不索引，Agent 透過 9 個 obsidian_* 工具直接讀寫 live 檔案"
     },
     "typeLabel": "類型",
     "view": "進入",
@@ -6428,7 +6441,10 @@
       "confirm": "開始匯入"
     },
     "importNoEmbedding": "嵌入模型未設置，內容已入庫但無法向量檢索。請在知識源卡片底部點擊「配置」選擇嵌入模型後重建索引。",
-    "deleteConfirm": "確定刪除知識源 {{name}}？"
+    "deleteConfirm": "確定刪除知識源 {{name}}？",
+    "vaultPath": "Vault 路徑",
+    "vaultPathRequired": "請輸入 Vault 路徑",
+    "vaultPathHint": "Vault 的絕對路徑（含 .obsidian 設定目錄的資料夾）"
   },
   "sshConfig": {
     "connect": "連接",
@@ -12581,5 +12597,113 @@
       "score": "強度 0-100",
       "persistence": "持續性"
     }
+  },
+  "cite": {
+    "chunkLabel": "區塊 #{{n}}",
+    "sourceType": {
+      "knowledge": "知識庫",
+      "memory": "記憶",
+      "unknown": "未知",
+      "wiki": "Wiki"
+    }
+  },
+  "paper": {
+    "title": "論文概覽",
+    "overview": "概覽",
+    "abstract": "摘要",
+    "keyConcepts": "核心概念",
+    "methods": "方法",
+    "contributions": "貢獻",
+    "limitations": "局限",
+    "tlDr": "一句話總結",
+    "sections": "章節結構",
+    "metadata": "元資料",
+    "generatedBy": "生成模型",
+    "createdAt": "建立時間",
+    "updatedAt": "更新時間",
+    "generate": "生成概覽",
+    "regenerate": "重新生成",
+    "delete": "刪除概覽",
+    "view": "檢視概覽",
+    "empty": "暫無論文概覽",
+    "generatePrompt": "生成概覽 Prompt",
+    "generatePromptConfirm": "將呼叫 LLM 生成結構化概覽，結果會自動儲存。是否繼續？",
+    "generateSuccess": "論文概覽已生成",
+    "generateFailed": "生成失敗",
+    "deleteConfirm": "確定刪除此論文概覽？此操作不可撤銷。",
+    "deleteSuccess": "已刪除",
+    "paperQa": "論文問答",
+    "paperQaTitle": "論文 QA",
+    "paperQaQuestion": "問題",
+    "paperQaPrepare": "準備上下文",
+    "paperQaPrepareSuccess": "已準備論文 QA 上下文，可傳送給 LLM",
+    "paperQaPrepareFailed": "準備上下文失敗",
+    "paperQaSendToChat": "傳送到聊天",
+    "overviewType": "概覽類型",
+    "overviewTypePaper": "論文",
+    "overviewTypeLongDocument": "長文件",
+    "overviewTypeAuto": "自動"
+  },
+  "readingList": {
+    "title": "閱讀列表",
+    "create": "新建列表",
+    "edit": "編輯列表",
+    "delete": "刪除列表",
+    "deleteConfirm": "確定刪除此閱讀列表？列表下的所有條目將一併刪除。",
+    "name": "列表名稱",
+    "description": "描述",
+    "status": "狀態",
+    "statusActive": "活躍",
+    "statusArchived": "已封存",
+    "empty": "暫無閱讀列表",
+    "items": "條目",
+    "addItem": "新增條目",
+    "editItem": "編輯條目",
+    "deleteItem": "刪除條目",
+    "itemTitle": "標題",
+    "itemNotes": "備註",
+    "itemStatus": "閱讀狀態",
+    "itemPriority": "優先級",
+    "itemPosition": "位置",
+    "itemExternalUrl": "外部連結",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "關聯文件",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "未讀",
+    "statusReading": "閱讀中",
+    "statusRead": "已讀",
+    "statusSkipped": "已跳過",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "reorderSuccess": "順序已更新",
+    "emptyItems": "此列表暫無條目",
+    "required": "必填"
+  },
+  "knowledgeGraph": {
+    "title": "知識圖譜",
+    "search": "圖查詢增強",
+    "searchPlaceholder": "輸入查詢關鍵字",
+    "searchButton": "搜尋",
+    "includeNeighbors": "包含鄰居關係",
+    "topK": "回傳數量",
+    "results": "檢索結果",
+    "entities": "實體",
+    "relations": "關係",
+    "entityName": "實體名稱",
+    "entityType": "實體類型",
+    "description": "描述",
+    "targetEntity": "目標實體",
+    "relationType": "關係類型",
+    "weight": "權重",
+    "contextText": "可注入上下文",
+    "copyContext": "複製上下文",
+    "copySuccess": "已複製到剪貼簿",
+    "totalHits": "命中 {{count}} 個實體",
+    "empty": "暫無結果，請輸入查詢關鍵字",
+    "extract": "跨文件抽取",
+    "extractFromDocuments": "從文件抽取實體",
+    "extractConfirm": "將從選定文件抽取實體與關係並寫入知識圖譜。是否繼續？",
+    "extractSuccess": "抽取完成：新增 {{newEntities}} 實體，{{newRelations}} 關係",
+    "extractFailed": "抽取失敗"
   }
 }

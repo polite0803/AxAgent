@@ -188,10 +188,17 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         // ── OCR ──
         std::sync::Arc::new(ocr::OcrImageTool),
         std::sync::Arc::new(ocr::OcrDetectLangsTool),
-        // ── Obsidian ──
-        std::sync::Arc::new(obsidian::ObsidianGetVaultsTool),
-        std::sync::Arc::new(obsidian::ObsidianListFilesTool),
-        std::sync::Arc::new(obsidian::ObsidianReadFileTool),
+        // ── Obsidian Vault 集成（9 个语义化工具，参考 DeepTutor） ──
+        // 通过 ToolContext.extra["vault_kb_id"] 注入已绑定的 ConnectedVault KB
+        std::sync::Arc::new(obsidian::ObsidianSearchTool),
+        std::sync::Arc::new(obsidian::ObsidianReadTool),
+        std::sync::Arc::new(obsidian::ObsidianListTool),
+        std::sync::Arc::new(obsidian::ObsidianBacklinksTool),
+        std::sync::Arc::new(obsidian::ObsidianLinksTool),
+        std::sync::Arc::new(obsidian::ObsidianTagsTool),
+        std::sync::Arc::new(obsidian::ObsidianCreateNoteTool),
+        std::sync::Arc::new(obsidian::ObsidianAppendTool),
+        std::sync::Arc::new(obsidian::ObsidianSetPropertyTool),
         // ── 导出与格式 ──
         std::sync::Arc::new(document::ExportWordTool),
         std::sync::Arc::new(document::RenderMarkdownTool),

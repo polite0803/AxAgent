@@ -23,6 +23,13 @@ pub struct Model {
     pub chunk_overlap: Option<i32>,
     #[sea_orm(column_type = "Text", nullable)]
     pub separator: Option<String>,
+    /// 知识库类型：indexed（默认，走 RAG）/ connected_vault（Obsidian vault 指针）
+    /// / connected_linked / connected_subagent
+    #[sea_orm(default_value = "indexed")]
+    pub kind: String,
+    /// ConnectedVault 类型时的 vault 根路径（绝对路径），其他类型为 None
+    #[sea_orm(column_type = "Text", nullable)]
+    pub vault_path: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

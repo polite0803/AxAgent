@@ -1365,15 +1365,33 @@ fn start_dream_consolidation(state: &AppState) {
 
 fn start_memory_decay_tick(state: &AppState) {
     let memory_service = state.memory_service.clone();
+    let harness_state = state.harness.clone();
     tauri::async_runtime::spawn(async move {
         let interval = std::time::Duration::from_secs(3600);
         loop {
             tokio::time::sleep(interval).await;
+            // 1. trajectory working memory 衰减（sentinel namespace）
             let ms = memory_service.read().await;
             let evicted = ms.apply_decay_tick().await;
             drop(ms);
             if evicted > 0 {
-                tracing::info!("[memory_decay] Evicted {} expired/decayed memories", evicted);
+                tracing::info!("[memory_decay] trajectory evicted {} entries", evicted);
+            }
+            // 2. 用户 namespace 全表衰减（三层记忆系统）
+            match axagent_dao::repo::memory::apply_decay_tick(harness_state.db()).await {
+                Ok((expired, low_score, capacity)) => {
+                    if expired + low_score + capacity > 0 {
+                        tracing::info!(
+                            "[memory_decay] user ns: expired={}, low_score={}, capacity={}",
+                            expired,
+                            low_score,
+                            capacity
+                        );
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("[memory_decay] user ns tick failed: {}", e);
+                },
             }
         }
     });

@@ -58,6 +58,7 @@ pub async fn fleet_get(
 
 /// 创建舰队的输入参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateFleetInput {
     /// 显示名称
     pub name: String,
@@ -128,6 +129,7 @@ pub async fn fleet_list_members(
 
 /// 添加成员的输入参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AddMemberInput {
     /// 所属舰队 ID
     pub fleet_id: String,
@@ -228,6 +230,7 @@ pub async fn fleet_reset_daily_tokens(
 
 /// 群聊智能路由的输入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DispatchInput {
     /// 舰队 ID
     pub fleet_id: String,
@@ -258,6 +261,7 @@ pub async fn fleet_dispatch(
 
 /// 直接 DM 指定 agent（绕过 LLM 路由）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DirectMessageInput {
     /// 舰队 ID
     pub fleet_id: String,

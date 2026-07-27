@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { SyncOutlined } from "@ant-design/icons";
-import { theme, Typography } from "antd";
+import { Popover, theme, Typography } from "antd";
 import DOMPurify from "dompurify";
 import {
   Brain,
@@ -16,7 +16,7 @@ import {
   FileType,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import NodeRenderer, {
   type InfographicBlockActionContext,
@@ -27,7 +27,8 @@ import NodeRenderer, {
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { CHAT_CUSTOM_HTML_TAGS, type ChatMarkdownNode, parseChatMarkdown } from "@/lib/chatMarkdown";
+import { CHAT_CUSTOM_HTML_TAGS, type ChatMarkdownNode, injectCiteRefTags, parseChatMarkdown } from "@/lib/chatMarkdown";
+import type { MemorySourceResult } from "@/lib/memoryUtils";
 import { useSettingsStore } from "@/stores";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import { useTranslation } from "react-i18next";
@@ -1198,6 +1199,156 @@ function ToolCallNode(
     </div>
   );
 }
+// ── 引用追溯：[cite:N] chip 渲染 ──────────────────────────────────────────
+// CiteItemsContext / CiteFlatEntry / CITE_JUMP_EVENT 定义在 citeContext.ts，
+// 此处仅消费（useContext）和生产（Provider value）。
+
+import { CITE_JUMP_EVENT, type CiteFlatEntry, CiteItemsContext, type CiteJumpDetail } from "./citeContext";
+export type { CiteFlatEntry, CiteJumpDetail } from "./citeContext";
+export { CITE_JUMP_EVENT } from "./citeContext";
+
+type CiteRefNodeData = {
+  type: string;
+  content?: string;
+  attrs?: Record<string, string> | [string, string][];
+  loading?: boolean;
+};
+
+function getCiteAttr(
+  attrs: CiteRefNodeData["attrs"],
+  key: string,
+): string | undefined {
+  if (!attrs) { return undefined; }
+  if (Array.isArray(attrs)) {
+    return attrs.find(([name]) => name === key)?.[1];
+  }
+  return attrs[key];
+}
+
+function truncateForPopover(text: string, maxLen = 240): string {
+  if (text.length <= maxLen) { return text; }
+  return text.slice(0, maxLen) + "…";
+}
+
+function CiteRefNode(props: NodeComponentProps<CiteRefNodeData>) {
+  const { node } = props;
+  const { token } = theme.useToken();
+  const { t } = useTranslation();
+  const entries = useContext(CiteItemsContext);
+
+  if (!node) { return null; }
+
+  const nStr = getCiteAttr(node.attrs, "n");
+  const n = nStr ? parseInt(nStr, 10) : -1;
+  const entry: CiteFlatEntry | undefined = n >= 0 ? entries[n] : undefined;
+
+  // 没有对应条目时，渲染一个中性的上标标记（不报错，避免阻塞流式渲染）
+  if (!entry) {
+    return (
+      <sup
+        style={{
+          fontSize: "0.7em",
+          color: token.colorTextQuaternary,
+          margin: "0 1px",
+          cursor: "default",
+        }}
+      >
+        [{n >= 0 ? n : "?"}]
+      </sup>
+    );
+  }
+
+  const { item, sourceType, containerName } = entry;
+  const sourceLabelKey = sourceType === "knowledge"
+    ? "cite.sourceType.knowledge"
+    : sourceType === "memory"
+    ? "cite.sourceType.memory"
+    : sourceType === "wiki"
+    ? "cite.sourceType.wiki"
+    : "cite.sourceType.unknown";
+  const docName = item.document_name || item.document_id?.slice(0, 8) || "—";
+
+  const popoverContent = (
+    <div style={{ maxWidth: 360, fontSize: 12, lineHeight: 1.5 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+        <span
+          style={{
+            padding: "1px 6px",
+            borderRadius: 3,
+            backgroundColor: token.colorFillSecondary,
+            color: token.colorTextSecondary,
+            fontSize: 11,
+          }}
+        >
+          {t(sourceLabelKey)}
+        </span>
+        {containerName && (
+          <span
+            style={{
+              padding: "1px 6px",
+              borderRadius: 3,
+              backgroundColor: token.colorPrimaryBg,
+              color: token.colorPrimary,
+              fontSize: 11,
+              maxWidth: 200,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+            title={containerName}
+          >
+            {containerName}
+          </span>
+        )}
+      </div>
+      <div style={{ fontWeight: 500, marginBottom: 2, color: token.colorText }}>
+        {docName}
+        {typeof item.chunk_index === "number" && (
+          <span style={{ marginLeft: 6, color: token.colorTextTertiary, fontSize: 11 }}>
+            #{t("cite.chunkLabel", { n: item.chunk_index })}
+          </span>
+        )}
+      </div>
+      <p
+        style={{
+          margin: 0,
+          color: token.colorTextSecondary,
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {truncateForPopover(item.content)}
+      </p>
+    </div>
+  );
+
+  const handleJump = useCallback(() => {
+    if (n < 0) { return; }
+    window.dispatchEvent(new CustomEvent(CITE_JUMP_EVENT, { detail: { idx: n } satisfies CiteJumpDetail }));
+  }, [n]);
+
+  return (
+    <Popover content={popoverContent} placement="top" trigger="hover" mouseEnterDelay={0.2}>
+      <sup
+        onClick={handleJump}
+        style={{
+          fontSize: "0.7em",
+          margin: "0 1px",
+          padding: "0 4px",
+          borderRadius: 3,
+          backgroundColor: token.colorPrimaryBg,
+          color: token.colorPrimary,
+          cursor: "pointer",
+          userSelect: "none",
+          fontWeight: 500,
+        }}
+      >
+        [{n}]
+      </sup>
+    </Popover>
+  );
+}
+
 setCustomComponents("chat", {
   think: ThinkNode,
   "web-search": WebSearchNode,
@@ -1206,6 +1357,7 @@ setCustomComponents("chat", {
   "wiki-retrieval": WikiRetrievalNode,
   "tool-call": ToolCallNode,
   "cron-result": CronResultNode,
+  "cite-ref": CiteRefNode,
   "viz-block": VizBlockNode,
   d2: ChatD2Node,
   vmr_container: McpContainerNode,
@@ -1234,6 +1386,47 @@ const AssistantMarkdown = React.memo(
     const { token } = theme.useToken();
     const { t } = useTranslation();
     const containerRef = useRef<HTMLDivElement | null>(null);
+    // 引用追溯：把 [cite:N] token 替换为 <cite-ref> 自定义标签，供 NodeRenderer 渲染为 chip。
+    // 对 content 模式和 nodes 模式统一生效（nodes 模式下 parseChatMarkdown 已处理，此处幂等）。
+    const processedContent = useMemo(() => injectCiteRefTags(content), [content]);
+    // 引用追溯：从 content 中解析所有 retrieval 标签（按出现顺序），扁平化为 CiteFlatEntry[]。
+    // 顺序与后端 rebuild_context_with_citations 的 cite_idx 一致，CiteRefNode 按 n 索引取条目。
+    const citeEntries = useMemo<CiteFlatEntry[]>(() => {
+      const re =
+        /<(knowledge-retrieval|memory-retrieval|wiki-retrieval)[^>]*data-axagent="1"[^>]*>\s*([\s\S]*?)\s*<\/\1>/g;
+      const entries: CiteFlatEntry[] = [];
+      let m: RegExpExecArray | null;
+      let idx = 0;
+      while ((m = re.exec(content)) !== null) {
+        const tag = m[1];
+        const json = m[2];
+        const sourceType = tag === "knowledge-retrieval"
+          ? "knowledge"
+          : tag === "memory-retrieval"
+          ? "memory"
+          : "wiki";
+        let sources: MemorySourceResult[] = [];
+        try {
+          const parsed = JSON.parse(json);
+          if (Array.isArray(parsed)) {
+            sources = parsed;
+          }
+        } catch {
+          // invalid JSON, skip
+        }
+        for (const src of sources) {
+          for (const item of src.items) {
+            entries.push({
+              item,
+              sourceType,
+              containerName: src.container_name,
+              globalIdx: idx++,
+            });
+          }
+        }
+      }
+      return entries;
+    }, [content]);
     const codeBlockProps = useMemo(
       () => getChatCodeBlockProps(codeBlockDarkTheme, codeBlockLightTheme),
       [codeBlockDarkTheme, codeBlockLightTheme],
@@ -1244,8 +1437,8 @@ const AssistantMarkdown = React.memo(
     );
     // LaTeX 公式分割：仅当内容含 $ 时才走分割渲染路径，多数消息命中快速路径无开销
     const latexSegments = useMemo(
-      () => splitContentWithLatex(content),
-      [content],
+      () => splitContentWithLatex(processedContent),
+      [processedContent],
     );
     const hasLatex = useMemo(
       () => latexSegments.some((s) => s.type !== "text"),
@@ -1258,8 +1451,8 @@ const AssistantMarkdown = React.memo(
     const hasDeferredHeavyNodes = useMemo(
       () =>
         !isStreaming
-        && (containsDeferredHeavyNode(nodes) || content.includes("```")),
-      [content, nodes, isStreaming],
+        && (containsDeferredHeavyNode(nodes) || processedContent.includes("```")),
+      [processedContent, nodes, isStreaming],
     );
     const [readyToRenderHeavyNodes, setReadyToRenderHeavyNodes] = useState(
       !hasDeferredHeavyNodes,
@@ -1333,7 +1526,7 @@ const AssistantMarkdown = React.memo(
     }, [content, hasDeferredHeavyNodes]);
 
     return (
-      <>
+      <CiteItemsContext.Provider value={citeEntries}>
         {singleD2Node
           ? (
             <ChatD2BlockNode
@@ -1436,7 +1629,7 @@ const AssistantMarkdown = React.memo(
                 : (
                   <NodeRenderer
                     key={nodeRendererReseedKey}
-                    content={content}
+                    content={processedContent}
                     isDark={isDarkMode}
                     customId="chat"
                     customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
@@ -1454,7 +1647,7 @@ const AssistantMarkdown = React.memo(
                 )}
             </div>
           )}
-      </>
+      </CiteItemsContext.Provider>
     );
   },
   (prev, next) =>

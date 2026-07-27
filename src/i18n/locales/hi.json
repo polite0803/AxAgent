@@ -3801,7 +3801,14 @@
     "skills": "技能",
     "marketMainline": "बाज़ार मुख्य लाइन",
     "screenshotDiagnosis": "स्क्रीनशॉट निदान",
-    "multiAgent": "मल्टी-एजेंट"
+    "multiAgent": "मल्टी-एजेंट",
+    "devtools": {
+      "traceExplorer": "ट्रेस एक्सप्लोरर",
+      "benchmark": "बेंचमार्क",
+      "toolRecommender": "टूल अनुशंसक",
+      "fineTune": "फ़ाइन-ट्यून",
+      "rlTraining": "आरएल प्रशिक्षण"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "सक्रिय पोर्टफोलियो",
@@ -4039,7 +4046,10 @@
       "strategyTooltip": "रणनीति Dispatcher prompt में इंजेक्ट होती है और राउटिंग को प्रभावित करती है। निवेश ऑफिसों को Investment Research चुनना चाहिए।",
       "descriptionLabel": "व्यवसाय विवरण",
       "descriptionPlaceholder": "टीम स्थिति / मुख्य जिम्मेदारियां (वैकल्पिक)",
-      "success": "ऑफिस बनाया गया: {{name}}"
+      "success": "ऑफिस बनाया गया: {{name}}",
+      "templateLabel": "दृश्य टेम्पलेट",
+      "roomsUnit": "rooms",
+      "createFailed": "Failed to create office. Check console for details."
     },
     "strategy": {
       "investment_research": "निवेश शोध",
@@ -4094,7 +4104,8 @@
       "stopped": "रुक गया"
     },
     "scene": {
-      "default_office": "मानक कार्यालय",
+      "default_office": "डिफ़ॉल्ट ऑफिस",
+      "investment_office": "निवेश ऑफिस",
       "default_office_desc": "4 कमरे: कार्यस्थल / बैठक / आराम / प्रबंधक। 5-8 सदस्यों के लिए।",
       "workspace": "कार्यस्थल",
       "meeting": "बैठक कक्ष",
@@ -4148,10 +4159,6 @@
       "colStatus": "स्थिति",
       "colToday": "आज के टोकन",
       "colTotal": "कुल टोकन"
-    },
-    "scene": {
-      "default_office": "डिफ़ॉल्ट ऑफिस",
-      "investment_office": "निवेश ऑफिस"
     },
     "room": {
       "workspace": "कार्यस्थल",
@@ -5706,7 +5713,8 @@
         "qualityThreshold": "गुणवत्ता दहलीज",
         "relevanceThreshold": "प्रासंगिकता सीमा",
         "title": "Self-RAG गुणवत्ता गेट"
-      }
+      },
+      "autoLoadModels": "डाउनलोड के बाद स्वचालित रूप से मेमोरी में लोड करें"
     },
     "recheckHealth": "पुनः जाँचें",
     "recordShortcut": "शॉर्टकट रिकॉर्ड करें",
@@ -6725,12 +6733,14 @@
     "type": {
       "knowledge": "ज्ञान",
       "memory": "स्मृति",
-      "wiki": "विकी"
+      "wiki": "विकी",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "दस्तावेज़ आयात और सिमेंटिक खोज के साथ RAG वेक्टर ज्ञानकोष",
       "memory": "मुख्य वार्तालाप जानकारी के स्वचालित भंडारण और रिकॉल के लिए AI दीर्घकालिक स्मृति",
-      "wiki": "नोट लिंकिंग और विज़ुअलाइज़ेशन के साथ संरचित ज्ञान ग्राफ"
+      "wiki": "नोट लिंकिंग और विज़ुअलाइज़ेशन के साथ संरचित ज्ञान ग्राफ",
+      "obsidianVault": "बाहरी Obsidian vault के लिए पॉइंटर-प्रकार KB; कोई अनुक्रमण नहीं, एजेंट 9 obsidian_* टूल के माध्यम से लाइव फ़ाइलें पढ़ता/लिखता है"
     },
     "typeLabel": "प्रकार",
     "view": "देखें",
@@ -6774,7 +6784,10 @@
       "confirm": "आयात शुरू करें"
     },
     "importNoEmbedding": "嵌入模型未设置，内容已入库但无法向量检索。请在知识源卡片底部点击「配置」选择嵌入模型后重建索引。",
-    "deleteConfirm": "确定删除知识源 {{name}}？"
+    "deleteConfirm": "确定删除知识源 {{name}}？",
+    "vaultPath": "Vault पथ",
+    "vaultPathRequired": "कृपया vault पथ दर्ज करें",
+    "vaultPathHint": "Vault का निरपेक्ष पथ (.obsidian कॉन्फ़िगरेशन निर्देशिका वाला फ़ोल्डर)"
   },
   "sshConfig": {
     "connect": "कनेक्ट",
@@ -12835,5 +12848,113 @@
       "score": "शक्ति 0-100",
       "persistence": "दृढ़ता"
     }
+  },
+  "cite": {
+    "chunkLabel": "खंड #{{n}}",
+    "sourceType": {
+      "knowledge": "ज्ञान आधार",
+      "memory": "स्मृति",
+      "unknown": "अज्ञात",
+      "wiki": "विकि"
+    }
+  },
+  "paper": {
+    "title": "पेपर अवलोकन",
+    "overview": "अवलोकन",
+    "abstract": "सारांश",
+    "keyConcepts": "मुख्य अवधारणाएँ",
+    "methods": "विधियाँ",
+    "contributions": "योगदान",
+    "limitations": "सीमाएँ",
+    "tlDr": "एक पंक्ति सारांश",
+    "sections": "अनुभाग संरचना",
+    "metadata": "मेटाडेटा",
+    "generatedBy": "उत्पादन मॉडल",
+    "createdAt": "बनाया गया",
+    "updatedAt": "अपडेट किया गया",
+    "generate": "अवलोकन उत्पन्न करें",
+    "regenerate": "पुनः उत्पन्न करें",
+    "delete": "अवलोकन हटाएँ",
+    "view": "अवलोकन देखें",
+    "empty": "कोई पेपर अवलोकन नहीं",
+    "generatePrompt": "अवलोकन प्रॉम्प्ट उत्पन्न करें",
+    "generatePromptConfirm": "LLM को कॉल करके संरचित अवलोकन उत्पन्न किया जाएगा, परिणाम स्वतः सहेजा जाएगा। जारी रखें?",
+    "generateSuccess": "पेपर अवलोकन उत्पन्न हो गया",
+    "generateFailed": "उत्पन्न करने में विफल",
+    "deleteConfirm": "इस पेपर अवलोकन को हटाने की पुष्टि करें? यह क्रिया पूर्ववत नहीं हो सकती।",
+    "deleteSuccess": "हटाया गया",
+    "paperQa": "पेपर प्रश्नोत्तर",
+    "paperQaTitle": "पेपर QA",
+    "paperQaQuestion": "प्रश्न",
+    "paperQaPrepare": "संदर्भ तैयार करें",
+    "paperQaPrepareSuccess": "पेपर QA संदर्भ तैयार है, LLM को भेजा जा सकता है",
+    "paperQaPrepareFailed": "संदर्भ तैयार करने में विफल",
+    "paperQaSendToChat": "चैट में भेजें",
+    "overviewType": "अवलोकन प्रकार",
+    "overviewTypePaper": "पेपर",
+    "overviewTypeLongDocument": "लंबा दस्तावेज़",
+    "overviewTypeAuto": "स्वतः"
+  },
+  "readingList": {
+    "title": "पठन सूची",
+    "create": "नई सूची",
+    "edit": "सूची संपादित करें",
+    "delete": "सूची हटाएँ",
+    "deleteConfirm": "इस पठन सूची को हटाएँ? सूची के सभी आइटम भी हटा दिए जाएँगे।",
+    "name": "सूची नाम",
+    "description": "विवरण",
+    "status": "स्थिति",
+    "statusActive": "सक्रिय",
+    "statusArchived": "संग्रहीत",
+    "empty": "कोई पठन सूची नहीं",
+    "items": "आइटम",
+    "addItem": "आइटम जोड़ें",
+    "editItem": "आइटम संपादित करें",
+    "deleteItem": "आइटम हटाएँ",
+    "itemTitle": "शीर्षक",
+    "itemNotes": "टिप्पणियाँ",
+    "itemStatus": "पठन स्थिति",
+    "itemPriority": "प्राथमिकता",
+    "itemPosition": "स्थिति",
+    "itemExternalUrl": "बाहरी लिंक",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "संबद्ध दस्तावेज़",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "अपठित",
+    "statusReading": "पढ़ रहे हैं",
+    "statusRead": "पढ़ा गया",
+    "statusSkipped": "छोड़ा गया",
+    "moveUp": "ऊपर ले जाएँ",
+    "moveDown": "नीचे ले जाएँ",
+    "reorderSuccess": "क्रम अपडेट हो गया",
+    "emptyItems": "इस सूची में कोई आइटम नहीं",
+    "required": "आवश्यक"
+  },
+  "knowledgeGraph": {
+    "title": "ज्ञान ग्राफ",
+    "search": "ग्राफ क्वेरी संवर्धन",
+    "searchPlaceholder": "खोज कीवर्ड दर्ज करें",
+    "searchButton": "खोज",
+    "includeNeighbors": "पड़ोसी संबंध शामिल करें",
+    "topK": "वापसी संख्या",
+    "results": "खोज परिणाम",
+    "entities": "इकाइयाँ",
+    "relations": "संबंध",
+    "entityName": "इकाई नाम",
+    "entityType": "इकाई प्रकार",
+    "description": "विवरण",
+    "targetEntity": "लक्ष्य इकाई",
+    "relationType": "संबंध प्रकार",
+    "weight": "भार",
+    "contextText": "इंजेक्ट करने योग्य संदर्भ",
+    "copyContext": "संदर्भ कॉपी करें",
+    "copySuccess": "क्लिपबोर्ड पर कॉपी हो गया",
+    "totalHits": "{{count}} इकाइयाँ मिलीं",
+    "empty": "कोई परिणाम नहीं, कृपया खोज कीवर्ड दर्ज करें",
+    "extract": "क्रॉस-दस्तावेज़ निष्कर्षण",
+    "extractFromDocuments": "दस्तावेज़ों से इकाइयाँ निकालें",
+    "extractConfirm": "चयनित दस्तावेज़ों से इकाइयाँ और संबंध निकालकर ज्ञान ग्राफ में लिखे जाएँगे। जारी रखें?",
+    "extractSuccess": "निष्कर्षण पूर्ण: {{newEntities}} नई इकाइयाँ, {{newRelations}} नए संबंध",
+    "extractFailed": "निष्कर्षण विफल"
   }
 }

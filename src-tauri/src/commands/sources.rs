@@ -126,6 +126,8 @@ pub async fn create_source(
                     description: input.description,
                     embedding_provider,
                     enabled: Some(true),
+                    kind: axagent_harness::KbKind::Indexed,
+                    vault_path: None,
                 },
             )
             .await
@@ -181,6 +183,53 @@ pub async fn create_source(
                 ))
             })?;
             Ok(UnifiedSource::from(KnowledgeContainer::from_wiki(&wiki)))
+        },
+        "obsidian_vault" => {
+            // ConnectedVault 类型 KB：指针指向外部 Obsidian vault，不走 RAG 索引
+            let vault_path = input
+                .vault_path
+                .clone()
+                .ok_or_else(|| "obsidian_vault requires vault_path".to_string())?;
+
+            // 验证 vault 路径存在且是目录（必须包含 .obsidian 子目录或为合法 vault 根）
+            let path = std::path::Path::new(&vault_path);
+            if !path.is_absolute() {
+                return Err("vault_path must be an absolute path".to_string());
+            }
+            if !path.is_dir() {
+                return Err(format!("vault_path is not a directory: {}", vault_path));
+            }
+
+            let kb = axagent_dao::repo::knowledge::create_knowledge_base(
+                db,
+                axagent_harness::types::CreateKnowledgeBaseInput {
+                    name: input.name,
+                    description: input.description,
+                    embedding_provider: None, // ConnectedVault 不需要 embedding
+                    enabled: Some(true),
+                    kind: axagent_harness::KbKind::ConnectedVault,
+                    vault_path: Some(vault_path),
+                },
+            )
+            .await
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+
+            // 立即注册到全局 VaultRegistry，供 obsidian_* 工具使用
+            if let Some(root) = kb.vault_path.clone() {
+                if let Err(e) = axagent_tools::tools::obsidian::register_vault(
+                    &kb.id,
+                    std::path::PathBuf::from(root),
+                ) {
+                    tracing::warn!(kb_id = %kb.id, error = %e, "Failed to register Obsidian vault");
+                }
+            }
+
+            Ok(UnifiedSource::from(KnowledgeContainer::from_knowledge_base(&kb)))
         },
         _ => Err(format!("unknown source_type: {}", input.source_type)),
     }

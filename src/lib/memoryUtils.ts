@@ -8,12 +8,16 @@ export interface MemoryRetrievedItem {
   document_id: string;
   id: string;
   document_name?: string;
+  /** 引用追溯：chunk 在文档内的顺序索引（从 0 开始） */
+  chunk_index?: number;
 }
 
 export interface MemorySourceResult {
   source_type: "knowledge" | "memory" | "wiki";
   container_id: string;
   items: MemoryRetrievedItem[];
+  /** 引用追溯：容器显示名（KB / memory namespace / wiki 名称） */
+  container_name?: string;
 }
 
 export interface RagContextRetrievedEvent {

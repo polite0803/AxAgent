@@ -3801,7 +3801,14 @@
     "skills": "技能",
     "marketMainline": "Основная линия рынка",
     "screenshotDiagnosis": "Диагностика скриншота",
-    "multiAgent": "Мульти-агент"
+    "multiAgent": "Мульти-агент",
+    "devtools": {
+      "traceExplorer": "Обозреватель трассировки",
+      "benchmark": "Бенчмарк",
+      "toolRecommender": "Рекомендатель инструментов",
+      "fineTune": "Тонкая настройка",
+      "rlTraining": "Обучение с подкреплением"
+    }
   },
   "paperPortfolio": {
     "activePortfolios": "Активных портфелей",
@@ -4039,7 +4046,10 @@
       "strategyTooltip": "Стратегия внедряется в prompt диспетчера и влияет на маршрутизацию. Инвестиционным офисам следует выбирать Investment Research.",
       "descriptionLabel": "Описание бизнеса",
       "descriptionPlaceholder": "Позиционирование команды / основные обязанности (опционально)",
-      "success": "Офис создан: {{name}}"
+      "success": "Офис создан: {{name}}",
+      "templateLabel": "Шаблон сцены",
+      "roomsUnit": "rooms",
+      "createFailed": "Failed to create office. Check console for details."
     },
     "strategy": {
       "investment_research": "Investment Research",
@@ -4095,6 +4105,7 @@
     },
     "scene": {
       "default_office": "Стандартный офис",
+      "investment_office": "Инвестиционный офис",
       "default_office_desc": "4 комнаты: рабочая зона / переговорная / отдых / менеджер. Для 5-8 участников.",
       "workspace": "Рабочая зона",
       "meeting": "Переговорная",
@@ -4148,10 +4159,6 @@
       "colStatus": "Статус",
       "colToday": "Сегодня токенов",
       "colTotal": "Всего токенов"
-    },
-    "scene": {
-      "default_office": "Стандартный офис",
-      "investment_office": "Инвестиционный офис"
     },
     "room": {
       "workspace": "Рабочая зона",
@@ -5706,7 +5713,8 @@
         "qualityThreshold": "Порог качества",
         "relevanceThreshold": "Порог релевантности",
         "title": "Шлюз качества Self-RAG"
-      }
+      },
+      "autoLoadModels": "Автоматически загружать в память после скачивания"
     },
     "recheckHealth": "Проверить снова",
     "recordShortcut": "Записать сочетание",
@@ -6725,12 +6733,14 @@
     "type": {
       "knowledge": "Знания",
       "memory": "Память",
-      "wiki": "Вики"
+      "wiki": "Вики",
+      "obsidianVault": "Obsidian Vault"
     },
     "typeDesc": {
       "knowledge": "Векторная база знаний RAG с импортом документов и семантическим поиском",
       "memory": "Долгосрочная память ИИ для автоматического хранения и вызова ключевой информации из разговоров",
-      "wiki": "Структурированный граф знаний со связыванием заметок и визуализацией"
+      "wiki": "Структурированный граф знаний со связыванием заметок и визуализацией",
+      "obsidianVault": "Указатель на внешний Obsidian vault; без индексации, агент читает/пишет live-файлы через 9 инструментов obsidian_*"
     },
     "typeLabel": "Тип",
     "view": "Просмотр",
@@ -6774,7 +6784,10 @@
       "confirm": "Начать импорт"
     },
     "importNoEmbedding": "嵌入模型未设置，内容已入库但无法向量检索。请在知识源卡片底部点击「配置」选择嵌入模型后重建索引。",
-    "deleteConfirm": "确定删除知识源 {{name}}？"
+    "deleteConfirm": "确定删除知识源 {{name}}？",
+    "vaultPath": "Путь к Vault",
+    "vaultPathRequired": "Введите путь к vault",
+    "vaultPathHint": "Абсолютный путь к vault (папка, содержащая каталог конфигурации .obsidian)"
   },
   "sshConfig": {
     "connect": "Подключить",
@@ -12835,5 +12848,113 @@
       "score": "Сила 0-100",
       "persistence": "Постоянство"
     }
+  },
+  "cite": {
+    "chunkLabel": "Фрагмент #{{n}}",
+    "sourceType": {
+      "knowledge": "База знаний",
+      "memory": "Память",
+      "unknown": "Неизвестно",
+      "wiki": "Wiki"
+    }
+  },
+  "paper": {
+    "title": "Обзор статьи",
+    "overview": "Обзор",
+    "abstract": "Аннотация",
+    "keyConcepts": "Ключевые концепции",
+    "methods": "Методы",
+    "contributions": "Вклад",
+    "limitations": "Ограничения",
+    "tlDr": "Краткий вывод",
+    "sections": "Структура разделов",
+    "metadata": "Метаданные",
+    "generatedBy": "Модель генерации",
+    "createdAt": "Создано",
+    "updatedAt": "Обновлено",
+    "generate": "Сгенерировать обзор",
+    "regenerate": "Перегенерировать",
+    "delete": "Удалить обзор",
+    "view": "Просмотреть обзор",
+    "empty": "Нет обзоров статей",
+    "generatePrompt": "Сгенерировать промпт обзора",
+    "generatePromptConfirm": "Будет вызван LLM для генерации структурированного обзора, результат будет автоматически сохранён. Продолжить?",
+    "generateSuccess": "Обзор статьи сгенерирован",
+    "generateFailed": "Ошибка генерации",
+    "deleteConfirm": "Удалить этот обзор статьи? Действие необратимо.",
+    "deleteSuccess": "Удалено",
+    "paperQa": "QA по статье",
+    "paperQaTitle": "QA по статье",
+    "paperQaQuestion": "Вопрос",
+    "paperQaPrepare": "Подготовить контекст",
+    "paperQaPrepareSuccess": "Контекст QA по статье подготовлен, можно отправить LLM",
+    "paperQaPrepareFailed": "Ошибка подготовки контекста",
+    "paperQaSendToChat": "Отправить в чат",
+    "overviewType": "Тип обзора",
+    "overviewTypePaper": "Статья",
+    "overviewTypeLongDocument": "Длинный документ",
+    "overviewTypeAuto": "Авто"
+  },
+  "readingList": {
+    "title": "Список чтения",
+    "create": "Новый список",
+    "edit": "Редактировать список",
+    "delete": "Удалить список",
+    "deleteConfirm": "Удалить этот список чтения? Все элементы списка также будут удалены.",
+    "name": "Название списка",
+    "description": "Описание",
+    "status": "Статус",
+    "statusActive": "Активен",
+    "statusArchived": "В архиве",
+    "empty": "Нет списков чтения",
+    "items": "Элементы",
+    "addItem": "Добавить элемент",
+    "editItem": "Редактировать элемент",
+    "deleteItem": "Удалить элемент",
+    "itemTitle": "Заголовок",
+    "itemNotes": "Заметки",
+    "itemStatus": "Статус чтения",
+    "itemPriority": "Приоритет",
+    "itemPosition": "Позиция",
+    "itemExternalUrl": "Внешняя ссылка",
+    "itemExternalUrlPlaceholder": "https://",
+    "itemDocumentId": "Связанный документ",
+    "itemDocumentIdPlaceholder": "UUID",
+    "statusUnread": "Не прочитано",
+    "statusReading": "Читаю",
+    "statusRead": "Прочитано",
+    "statusSkipped": "Пропущено",
+    "moveUp": "Переместить вверх",
+    "moveDown": "Переместить вниз",
+    "reorderSuccess": "Порядок обновлён",
+    "emptyItems": "В этом списке нет элементов",
+    "required": "Обязательно"
+  },
+  "knowledgeGraph": {
+    "title": "Граф знаний",
+    "search": "Усиленный графовый запрос",
+    "searchPlaceholder": "Введите ключевое слово для поиска",
+    "searchButton": "Поиск",
+    "includeNeighbors": "Включая соседние отношения",
+    "topK": "Количество результатов",
+    "results": "Результаты поиска",
+    "entities": "Сущности",
+    "relations": "Отношения",
+    "entityName": "Имя сущности",
+    "entityType": "Тип сущности",
+    "description": "Описание",
+    "targetEntity": "Целевая сущность",
+    "relationType": "Тип отношения",
+    "weight": "Вес",
+    "contextText": "Внедряемый контекст",
+    "copyContext": "Копировать контекст",
+    "copySuccess": "Скопировано в буфер обмена",
+    "totalHits": "Найдено {{count}} сущностей",
+    "empty": "Нет результатов, введите ключевое слово для поиска",
+    "extract": "Извлечение по документам",
+    "extractFromDocuments": "Извлечь сущности из документов",
+    "extractConfirm": "Из выбранных документов будут извлечены сущности и отношения и записаны в граф знаний. Продолжить?",
+    "extractSuccess": "Извлечение завершено: новых сущностей {{newEntities}}, новых отношений {{newRelations}}",
+    "extractFailed": "Ошибка извлечения"
   }
 }

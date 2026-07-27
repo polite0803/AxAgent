@@ -70,6 +70,7 @@ pub enum FleetMemberStatus {
 
 /// 舰队元数据 — 业务层可扩展信息
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FleetMetadata {
     /// 业务描述
     pub description: String,
@@ -83,6 +84,7 @@ pub struct FleetMetadata {
 
 /// 舰队（办公室）— 一个正在运行的 AI 团队
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Fleet {
     /// 唯一 ID（UUID）
     pub id: String,
@@ -102,6 +104,7 @@ pub struct Fleet {
 
 /// 舰队成员 — 办公室里的一个 agent
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FleetMember {
     /// 唯一 ID（UUID）
     pub id: String,
@@ -194,6 +197,7 @@ pub trait FleetRepository: Send + Sync {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum DispatchEvent {
     /// 路由决策 — 调度员决定路由到某个 agent
+    #[serde(rename_all = "camelCase")]
     Routing {
         /// 目标 agent slug
         agent_slug: String,
@@ -205,6 +209,7 @@ pub enum DispatchEvent {
         task_summary: String,
     },
     /// Agent 处理中的中间状态
+    #[serde(rename_all = "camelCase")]
     Process {
         /// agent slug
         agent_slug: String,
@@ -212,6 +217,7 @@ pub enum DispatchEvent {
         status: String,
     },
     /// Agent 回复消息
+    #[serde(rename_all = "camelCase")]
     AgentMessage {
         /// agent slug
         agent_slug: String,
@@ -221,6 +227,7 @@ pub enum DispatchEvent {
         content: String,
     },
     /// Agent 状态变更
+    #[serde(rename_all = "camelCase")]
     AgentStatus {
         /// agent slug
         agent_slug: String,
@@ -228,6 +235,7 @@ pub enum DispatchEvent {
         status: FleetMemberStatus,
     },
     /// Token 用量上报
+    #[serde(rename_all = "camelCase")]
     TokenUsage {
         /// agent slug
         agent_slug: String,
@@ -247,6 +255,7 @@ pub enum DispatchEvent {
 
 /// 聊天消息（Dispatcher 输入）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DispatchChatMessage {
     /// 角色：user / assistant / system
     pub role: String,
@@ -412,7 +421,7 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("\"type\":\"routing\""));
-        assert!(json.contains("\"agent_slug\":\"copywriter\""));
+        assert!(json.contains("\"agentSlug\":\"copywriter\""));
     }
 
     #[test]

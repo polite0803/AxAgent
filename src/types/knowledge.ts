@@ -4,6 +4,18 @@ export type IndexingStatus = "pending" | "indexing" | "ready" | "failed";
 export type MemoryScope = "global" | "project";
 export type MemorySource = "manual" | "auto_extract";
 
+/**
+ * 知识库类型：
+ * - `indexed`: 默认，KB 内容存于本地 data 目录，走 RAG 索引
+ * - `connected_vault`: 指针型，指向外部 Obsidian vault，agent 通过 9 个 obsidian_* 工具直接读写 live 文件
+ * - `connected_linked` / `connected_subagent`: 保留枚举位，本期不实现
+ */
+export type KbKind =
+  | "indexed"
+  | "connected_vault"
+  | "connected_linked"
+  | "connected_subagent";
+
 export type KnowledgeBase = {
   id: string;
   name: string;
@@ -19,6 +31,10 @@ export type KnowledgeBase = {
   chunkSize?: number;
   chunkOverlap?: number;
   separator?: string;
+  /** 知识库类型，默认 `indexed`；`connected_vault` 时通过 obsidian_* 工具直接读写 vault */
+  kind?: KbKind;
+  /** ConnectedVault 类型时的 vault 根路径（绝对路径），其他类型为 undefined */
+  vaultPath?: string;
 };
 
 export type KnowledgeDocument = {
@@ -68,6 +84,10 @@ export type CreateKnowledgeBaseInput = {
   description?: string;
   embeddingProvider?: string;
   enabled?: boolean;
+  /** KB 类型，默认 `indexed` */
+  kind?: KbKind;
+  /** ConnectedVault 类型时的 vault 根路径（绝对路径） */
+  vaultPath?: string;
 };
 
 export type UpdateKnowledgeBaseInput = Partial<CreateKnowledgeBaseInput> & {

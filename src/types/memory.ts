@@ -26,14 +26,17 @@ export type MemoryItem = {
   source: MemorySource;
   indexStatus: string;
   indexError?: string;
-  // 以下字段后端 memory_items 表当前未持久化，可能不返回（见 memory_items 实体）。
-  // 标记为可选以如实反映契约，UI 需对 undefined 做降级渲染。
-  tier?: MemoryTier;
-  importance?: number;
-  nature?: MemoryNature;
-  tags?: string[];
-  accessCount?: number;
-  expiresAt?: string;
+  // 三层记忆系统：v101 已持久化，DTO 同步暴露（必填，后端总有默认值）
+  tier: MemoryTier;
+  importance: number;
+  accessCount: number;
+  lastAccessed?: number;
+  decayRate: number;
+  expiresAt?: number;
+  memoryNature: MemoryNature;
+  tags: string[];
+  sourceConversationId?: string;
+  sourceMessageId?: string;
   updatedAt: string;
 };
 
@@ -51,11 +54,23 @@ export type CreateMemoryItemInput = {
   title: string;
   content: string;
   source?: MemorySource;
+  // 三层记忆系统：创建时可选指定
+  tier?: MemoryTier;
+  importance?: number;
+  memoryNature?: MemoryNature;
+  tags?: string[];
+  decayRate?: number;
+  expiresAt?: number;
 };
 
 export type UpdateMemoryItemInput = {
   title?: string;
   content?: string;
+  // 三层记忆系统：更新时可选调整
+  tier?: MemoryTier;
+  importance?: number;
+  memoryNature?: MemoryNature;
+  tags?: string[];
 };
 
 export type UpdateMemoryNamespaceInput = {

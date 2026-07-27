@@ -49,6 +49,7 @@ import {
   Settings,
   Sparkles,
   Trash2,
+  Vault as VaultIcon,
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -92,6 +93,14 @@ const TYPE_META: Record<
     descKey: "sourceManager.typeDesc.wiki",
     bgColor: "#f6ffed",
     fgColor: "#52c41a",
+  },
+  obsidian_vault: {
+    color: "geekblue",
+    icon: <VaultIcon size={16} />,
+    labelKey: "sourceManager.type.obsidianVault",
+    descKey: "sourceManager.typeDesc.obsidianVault",
+    bgColor: "#f0f5ff",
+    fgColor: "#2f54eb",
   },
 };
 
@@ -321,14 +330,16 @@ function CreateSourceModal({
     try {
       const values = await form.validateFields();
       setCreating(true);
+      const st = values.sourceType ?? "knowledge";
       await invoke("create_source", {
         input: {
           name: values.name,
-          sourceType: values.sourceType ?? "knowledge",
+          sourceType: st,
           description: values.description ?? null,
-          embeddingProvider: values.embeddingProvider ?? null,
-          scope: values.sourceType === "memory" ? "global" : undefined,
-          rootPath: values.sourceType === "wiki" ? values.rootPath : undefined,
+          embeddingProvider: st === "obsidian_vault" ? null : (values.embeddingProvider ?? null),
+          scope: st === "memory" ? "global" : undefined,
+          rootPath: st === "wiki" ? values.rootPath : undefined,
+          vaultPath: st === "obsidian_vault" ? values.vaultPath : undefined,
         },
       });
       form.resetFields();
@@ -340,6 +351,9 @@ function CreateSourceModal({
       setCreating(false);
     }
   };
+
+  // obsidian_vault 与 wiki 类似，不需要 embedding
+  const needsEmbedding = sourceType !== "wiki" && sourceType !== "obsidian_vault";
 
   return (
     <Modal
@@ -370,6 +384,9 @@ function CreateSourceModal({
             <Select.Option value="wiki">
               <Network size={14} /> {t("sourceManager.type.wiki")}
             </Select.Option>
+            <Select.Option value="obsidian_vault">
+              <VaultIcon size={14} /> {t("sourceManager.type.obsidianVault")}
+            </Select.Option>
           </Select>
         </Form.Item>
         <Form.Item name="name" label={t("sourceManager.sourceName")} rules={[{ required: true }]}>
@@ -383,16 +400,28 @@ function CreateSourceModal({
             <Input placeholder="/path/to/vault" />
           </Form.Item>
         )}
-        <Form.Item
-          name="embeddingProvider"
-          label={t("sourceManager.embeddingModel")}
-          rules={sourceType !== "wiki" ? [{ required: true, message: t("sourceManager.embeddingRequired") }] : []}
-        >
-          <EmbeddingModelSelect
-            value={form.getFieldValue("embeddingProvider")}
-            onChange={(val) => form.setFieldValue("embeddingProvider", val)}
-          />
-        </Form.Item>
+        {sourceType === "obsidian_vault" && (
+          <Form.Item
+            name="vaultPath"
+            label={t("sourceManager.vaultPath")}
+            rules={[{ required: true, message: t("sourceManager.vaultPathRequired") }]}
+            extra={t("sourceManager.vaultPathHint")}
+          >
+            <Input placeholder="/absolute/path/to/your/obsidian/vault" />
+          </Form.Item>
+        )}
+        {needsEmbedding && (
+          <Form.Item
+            name="embeddingProvider"
+            label={t("sourceManager.embeddingModel")}
+            rules={[{ required: true, message: t("sourceManager.embeddingRequired") }]}
+          >
+            <EmbeddingModelSelect
+              value={form.getFieldValue("embeddingProvider")}
+              onChange={(val) => form.setFieldValue("embeddingProvider", val)}
+            />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );

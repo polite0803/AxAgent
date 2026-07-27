@@ -7,11 +7,33 @@ use axagent_entities::{
     knowledge_attributes, knowledge_bases, knowledge_documents, knowledge_entities,
     knowledge_flows, knowledge_interfaces, knowledge_relations,
 };
+use axagent_harness::KbKind;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::{
     CreateKnowledgeBaseInput, KnowledgeBase, KnowledgeDocument, UpdateKnowledgeBaseInput,
 };
 use axagent_harness::util_fns::gen_id;
+
+/// 把数据库 entity 的 `kind` 字符串解析为 `KbKind` 枚举。
+/// 未识别值（包括历史遗留的 NULL/空串）回退为 `Indexed`，保持向后兼容。
+fn parse_kb_kind(raw: &str) -> KbKind {
+    match raw {
+        "connected_vault" => KbKind::ConnectedVault,
+        "connected_linked" => KbKind::ConnectedLinked,
+        "connected_subagent" => KbKind::ConnectedSubagent,
+        _ => KbKind::Indexed,
+    }
+}
+
+/// `KbKind` 序列化为数据库列存的字符串
+fn kb_kind_to_str(k: KbKind) -> &'static str {
+    match k {
+        KbKind::Indexed => "indexed",
+        KbKind::ConnectedVault => "connected_vault",
+        KbKind::ConnectedLinked => "connected_linked",
+        KbKind::ConnectedSubagent => "connected_subagent",
+    }
+}
 
 fn model_to_kb(m: knowledge_bases::Model) -> KnowledgeBase {
     KnowledgeBase {
@@ -29,6 +51,8 @@ fn model_to_kb(m: knowledge_bases::Model) -> KnowledgeBase {
         chunk_size: m.chunk_size,
         chunk_overlap: m.chunk_overlap,
         separator: m.separator,
+        kind: parse_kb_kind(&m.kind),
+        vault_path: m.vault_path,
     }
 }
 
@@ -72,6 +96,16 @@ pub async fn create_knowledge_base(
 ) -> Result<KnowledgeBase> {
     let id = gen_id();
 
+    // ConnectedVault 类型必须提供 vault_path
+    if matches!(input.kind, KbKind::ConnectedVault)
+        && input.vault_path.as_deref().unwrap_or("").trim().is_empty()
+    {
+        return Err(AxAgentError::Validation(format!(
+            "ConnectedVault KB '{}' 必须提供 vault_path",
+            input.name
+        )));
+    }
+
     let am = knowledge_bases::ActiveModel {
         id: Set(id.clone()),
         name: Set(input.name),
@@ -87,6 +121,8 @@ pub async fn create_knowledge_base(
         chunk_size: Set(None),
         chunk_overlap: Set(None),
         separator: Set(None),
+        kind: Set(kb_kind_to_str(input.kind).to_string()),
+        vault_path: Set(input.vault_path),
     };
 
     am.insert(db).await?;
@@ -151,6 +187,40 @@ pub async fn reorder_knowledge_bases(db: &DatabaseConnection, base_ids: &[String
             .await?;
     }
     Ok(())
+}
+
+/// 直接更新 KB 的 kind / vault_path 字段
+///
+/// 用途：将已有 KB 在 Indexed ↔ ConnectedVault 之间切换。
+/// - 切到 `ConnectedVault` 时，`vault_path` 必须为 `Some`
+/// - 切回 `Indexed` 时，`vault_path` 应为 `None`（清空绑定）
+pub async fn set_vault_binding(
+    db: &DatabaseConnection,
+    id: &str,
+    kind: KbKind,
+    vault_path: Option<String>,
+) -> Result<KnowledgeBase> {
+    // ConnectedVault 必须有 vault_path
+    if matches!(kind, KbKind::ConnectedVault)
+        && vault_path.as_deref().unwrap_or("").trim().is_empty()
+    {
+        return Err(AxAgentError::Validation(format!(
+            "ConnectedVault KB '{}' 必须提供 vault_path",
+            id
+        )));
+    }
+
+    let model = knowledge_bases::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("KnowledgeBase {}", id)))?;
+
+    let mut am: knowledge_bases::ActiveModel = model.into();
+    am.kind = Set(kb_kind_to_str(kind).to_string());
+    am.vault_path = Set(vault_path);
+    am.update(db).await?;
+
+    get_knowledge_base(db, id).await
 }
 
 pub async fn delete_knowledge_base(db: &DatabaseConnection, id: &str) -> Result<()> {
