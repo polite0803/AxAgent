@@ -43,6 +43,7 @@ describe("ComparePage", () => {
     const { container } = renderWithRouter();
     const body = container.querySelector(".space-y-4");
     expect(body).toBeTruthy();
-    expect(body?.children.length).toBe(2);
+    // CompareView + PeersPanel + SimulationVsBacktestCompare
+    expect(body?.children.length).toBe(3);
   });
 });

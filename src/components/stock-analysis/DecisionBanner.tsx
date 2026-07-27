@@ -35,9 +35,9 @@ export function DecisionBanner() {
   const debateRounds = useStockAnalysisStore((s) => s.debateRounds);
   const riskAssessments = useStockAnalysisStore((s) => s.riskAssessments);
   const valueAssessments = useStockAnalysisStore((s) => s.valueAssessments);
-  const dataQualitySummary = useStockAnalysisStore((s) => s.dataQualitySummary);
+  const dataQualitySummary = useStockAnalysisStore((s) => s.dataQualitySummary) ?? "";
   // 决策输入诊断：portfolio-mgr 16 个上游节点的数据符合度（纯前端，不持久化）
-  const decisionInputsReport = useStockAnalysisStore((s) => s.decisionInputsReport);
+  const decisionInputsReport = useStockAnalysisStore((s) => s.decisionInputsReport) ?? [];
   const failedNodes = useStockAnalysisStore((s) => s.failedNodes);
   const dataWarnings = useStockAnalysisStore((s) => s.dataWarnings);
   const ruleCheckResults = useStockAnalysisStore((s) => s.ruleCheckResults);

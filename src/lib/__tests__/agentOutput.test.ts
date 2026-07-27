@@ -14,9 +14,13 @@ describe("agentOutput decision parsing", () => {
     reasoning: "Test decision",
     riskLevel: "MID",
     confidence: 85,
+    decisionConfidence: null,
+    signalStrength: null,
     timeHorizon: null,
     expectedHoldingDays: null,
     targetTimeframe: null,
+    adjustedConfidence: undefined,
+    agreementBreakdown: undefined,
   };
 
   it("parses plain JSON string into StockDecision", () => {

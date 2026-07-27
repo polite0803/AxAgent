@@ -56,7 +56,8 @@ export function WatchlistPanel() {
   const loadGroups = useCallback(async () => {
     try {
       const g = await invoke<string[]>("watchlist_list_groups");
-      groupsRef.current = g;
+      // 防御：后端可能返回 null（测试 mock 或异常路径），确保始终为数组
+      groupsRef.current = Array.isArray(g) ? g : [];
       setGroupsVersion((v) => v + 1);
     } catch {
       groupsRef.current = [];
@@ -68,7 +69,7 @@ export function WatchlistPanel() {
     loadGroups();
   }, [loadGroups]);
 
-  const groups = useMemo(() => groupsRef.current, [groupsVersion]);
+  const groups = useMemo(() => groupsRef.current ?? [], [groupsVersion]);
 
   const removeGroupAndReassign = async (g: string) => {
     try {

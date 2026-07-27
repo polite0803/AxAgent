@@ -103,7 +103,8 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
     [allViolations, node.id],
   );
   const violationCount = nodeViolations.length;
-  const markClass = t("stockAnalysis.timeline.markClass");
+  // CSS 类名固定，不通过 i18n 翻译
+  const markClass = "ax-violation-mark";
   const summaryNodes = useMemo(
     () =>
       highlightViolations(
@@ -159,7 +160,7 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
           >
             <span
               data-testid="violation-chip"
-              aria-label={t("stockAnalysis.timeline.chipAria", { n: violationCount })}
+              aria-label={t("timeTravel.violations.violations.chipAria", { n: violationCount })}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -173,7 +174,7 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
                 flexShrink: 0,
               }}
             >
-              {t("stockAnalysis.timeline.chip", { n: violationCount })}
+              {t("timeTravel.violations.violations.chip", { n: violationCount })}
             </span>
           </Tooltip>
         )}
