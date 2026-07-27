@@ -74,6 +74,13 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
+    key: "knowledge",
+    icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
+    labelKey: "nav.knowledge",
+    path: BUILTIN_PAGE_PATH.knowledge,
+    isPlugin: false,
+  },
+  {
     key: "gateway",
     icon: <Icon icon="fluent:globe-20-filled" size={17} />,
     labelKey: "nav.gateway",
@@ -113,13 +120,6 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:apps-20-filled" size={17} />,
     labelKey: "nav.dynamicUI",
     path: BUILTIN_PAGE_PATH["dynamic-ui"],
-    isPlugin: false,
-  },
-  {
-    key: "wiki",
-    icon: <Icon icon="fluent:book-globe-20-filled" size={17} />,
-    labelKey: "nav.wiki",
-    path: BUILTIN_PAGE_PATH.wiki,
     isPlugin: false,
   },
 ];

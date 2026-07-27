@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const PAGE_LABELS: Record<string, string> = {
   "/": "nav.chat",
   "/chat": "nav.chat",
+  "/knowledge": "nav.knowledge",
   "/memory": "nav.memory",
   "/gateway": "nav.gateway",
   "/link": "nav.link",
