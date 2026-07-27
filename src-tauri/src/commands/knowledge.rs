@@ -1325,108 +1325,132 @@ async fn import_lemonhu_graph(
     force_reimport_wiki_pages: bool,
 ) -> (usize, usize, usize) {
     let now_ms = chrono::Utc::now().timestamp_millis();
-    let raw_dir = lemonhu_dir.join("raw");
     let mut entity_count = 0usize;
     let mut rel_count = 0usize;
     let mut doc_count = 0usize;
+    let mut skipped_entities = 0usize;
+    let mut skipped_relations = 0usize;
 
-    if !raw_dir.exists() {
-        tracing::info!("[graph_import] raw/ 目录不存在，跳过图谱导入: {}", raw_dir.display());
-        return (0, 0, 0);
+    // 实体/关系 id 加 KB 前缀，保证全局唯一，支持跨 KB 复用
+    // （旧实现用全局 id，导致同名 KB 重导时实体被错误跳过且 knowledge_base_id 仍指向旧 KB）
+    let prefix = format!("{}_", kb_id);
+
+    // ── 收集 entities：优先标准格式 nodes.csv，回退到历史 raw/*.csv ──
+    let raw_dir = lemonhu_dir.join("raw");
+    let nodes_path = lemonhu_dir.join("nodes.csv");
+    let mut entity_data: Vec<(String, String, String)> = Vec::new();
+
+    if nodes_path.exists() {
+        // 标准格式：id,title,type,tags
+        if let Ok(csv) = std::fs::read_to_string(&nodes_path) {
+            let mut lines = 0usize;
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                lines += 1;
+                let fields: Vec<&str> = line.splitn(4, ',').collect();
+                if fields.len() < 3 {
+                    continue;
+                }
+                let id = fields[0].trim_matches('"').to_string();
+                let title = fields[1].trim_matches('"').to_string();
+                let etype = fields[2].trim_matches('"').to_string();
+                if id.is_empty() || title.is_empty() {
+                    continue;
+                }
+                entity_data.push((id, title, etype));
+            }
+            tracing::info!(
+                "[graph_import] nodes.csv 读取 {lines} 行 → {} 条实体 (path={})",
+                entity_data.len(),
+                nodes_path.display()
+            );
+        } else {
+            tracing::warn!("[graph_import] nodes.csv 读取失败: {}", nodes_path.display());
+        }
+    } else if raw_dir.exists() {
+        // 历史兼容：Neo4j 风格 raw/*.csv
+        tracing::info!("[graph_import] nodes.csv 不存在，回退到 raw/*.csv 路径");
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(4, ',').collect();
+                if fields.len() < 3 {
+                    continue;
+                }
+                entity_data.push((fields[0].to_string(), fields[1].to_string(), "company".into()));
+            }
+        }
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("concept.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(3, ',').collect();
+                if fields.len() < 2 {
+                    continue;
+                }
+                entity_data.push((fields[0].to_string(), fields[1].to_string(), "concept".into()));
+            }
+        }
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("industry.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(3, ',').collect();
+                if fields.len() < 2 {
+                    continue;
+                }
+                entity_data.push((fields[0].to_string(), fields[1].to_string(), "industry".into()));
+            }
+        }
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("executive.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(5, ',').collect();
+                if fields.len() < 2 {
+                    continue;
+                }
+                entity_data.push((fields[0].to_string(), fields[1].to_string(), "person".into()));
+            }
+        }
+        tracing::info!("[graph_import] raw/*.csv 读取完成 → {} 条实体", entity_data.len());
+    } else {
+        tracing::warn!(
+            "[graph_import] 未找到 nodes.csv 或 raw/*.csv，实体跳过 (lemonhu_dir={})",
+            lemonhu_dir.display()
+        );
     }
 
-    // ── 收集 entities ──
-    let mut entity_data: Vec<(String, String, &str, &str)> = Vec::new();
-
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            let fields: Vec<&str> = line.splitn(4, ',').collect();
-            if fields.len() < 3 {
-                continue;
-            }
-            entity_data.push((
-                fields[0].to_string(),
-                fields[1].to_string(),
-                "company",
-                "raw/stock.csv",
-            ));
-        }
-    }
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("concept.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            let fields: Vec<&str> = line.splitn(3, ',').collect();
-            if fields.len() < 2 {
-                continue;
-            }
-            entity_data.push((
-                fields[0].to_string(),
-                fields[1].to_string(),
-                "concept",
-                "raw/concept.csv",
-            ));
-        }
-    }
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("industry.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            let fields: Vec<&str> = line.splitn(3, ',').collect();
-            if fields.len() < 2 {
-                continue;
-            }
-            entity_data.push((
-                fields[0].to_string(),
-                fields[1].to_string(),
-                "industry",
-                "raw/industry.csv",
-            ));
-        }
-    }
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("executive.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            let fields: Vec<&str> = line.splitn(5, ',').collect();
-            if fields.len() < 2 {
-                continue;
-            }
-            entity_data.push((
-                fields[0].to_string(),
-                fields[1].to_string(),
-                "person",
-                "raw/executive.csv",
-            ));
-        }
-    }
-
-    for (id, name, etype, source) in entity_data {
-        let exists = knowledge_entities::Entity::find_by_id(&id)
+    for (id, name, etype) in entity_data {
+        let prefixed_id = format!("{}{}", prefix, id);
+        let exists = knowledge_entities::Entity::find_by_id(&prefixed_id)
             .one(db)
             .await
             .map(|o| o.is_some())
             .unwrap_or(false);
         if exists {
+            skipped_entities += 1;
             continue;
         }
         let active = knowledge_entities::ActiveModel {
-            id: Set(id),
+            id: Set(prefixed_id),
             knowledge_base_id: Set(kb_id.to_string()),
             name: Set(name),
-            entity_type: Set(etype.into()),
+            entity_type: Set(etype),
             description: Set(None),
-            source_path: Set(source.into()),
+            source_path: Set("nodes.csv".into()),
             source_language: Set(None),
             properties: Set(serde_json::json!({})),
             lifecycle: Set(None),
@@ -1445,71 +1469,116 @@ async fn import_lemonhu_graph(
         }
     }
 
-    // ── 收集 relations ──
+    // ── 收集 relations：优先标准 edges.csv，回退到历史 raw/*.csv ──
+    let edges_path = lemonhu_dir.join("edges.csv");
     let mut rel_data: Vec<(String, String, String, String)> = Vec::new();
 
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_concept.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
+    if edges_path.exists() {
+        // 标准格式：source,target,type
+        if let Ok(csv) = std::fs::read_to_string(&edges_path) {
+            let mut lines = 0usize;
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                lines += 1;
+                let fields: Vec<&str> = line.splitn(3, ',').collect();
+                if fields.len() < 3 {
+                    continue;
+                }
+                let src = fields[0].trim_matches('"').to_string();
+                let tgt = fields[1].trim_matches('"').to_string();
+                let rtype = fields[2].trim_matches('"').to_string();
+                if src.is_empty() || tgt.is_empty() || rtype.is_empty() {
+                    continue;
+                }
+                rel_data.push((format!("{src}_{rtype}_{tgt}"), src, tgt, rtype));
             }
-            let fields: Vec<&str> = line.splitn(3, ',').collect();
-            if fields.len() < 3 {
-                continue;
-            }
-            let src = fields[0].to_string();
-            let tgt = fields[1].to_string();
-            rel_data.push((format!("{src}_has_concept_{tgt}"), src, tgt, "has_concept".into()));
+            tracing::info!(
+                "[graph_import] edges.csv 读取 {lines} 行 → {} 条关系 (path={})",
+                rel_data.len(),
+                edges_path.display()
+            );
+        } else {
+            tracing::warn!("[graph_import] edges.csv 读取失败: {}", edges_path.display());
         }
-    }
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_industry.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
+    } else if raw_dir.exists() {
+        // 历史兼容：raw/stock_concept.csv 等
+        tracing::info!("[graph_import] edges.csv 不存在，回退到 raw/*.csv 路径");
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_concept.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(3, ',').collect();
+                if fields.len() < 3 {
+                    continue;
+                }
+                let src = fields[0].to_string();
+                let tgt = fields[1].to_string();
+                rel_data.push((format!("{src}_has_concept_{tgt}"), src, tgt, "has_concept".into()));
             }
-            let fields: Vec<&str> = line.splitn(3, ',').collect();
-            if fields.len() < 3 {
-                continue;
-            }
-            let src = fields[0].to_string();
-            let tgt = fields[1].to_string();
-            rel_data.push((format!("{src}_in_industry_{tgt}"), src, tgt, "in_industry".into()));
         }
-    }
-    if let Ok(csv) = std::fs::read_to_string(raw_dir.join("executive_stock.csv")) {
-        for line in csv.lines().skip(1) {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock_industry.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(3, ',').collect();
+                if fields.len() < 3 {
+                    continue;
+                }
+                let src = fields[0].to_string();
+                let tgt = fields[1].to_string();
+                rel_data.push((format!("{src}_in_industry_{tgt}"), src, tgt, "in_industry".into()));
             }
-            let fields: Vec<&str> = line.splitn(4, ',').collect();
-            if fields.len() < 4 {
-                continue;
-            }
-            let src = fields[0].to_string();
-            let position = fields[1].replace('/', "_");
-            let tgt = fields[2].to_string();
-            let rel_type = format!("employ_{position}");
-            rel_data.push((format!("{src}_{rel_type}_{tgt}"), src, tgt, rel_type));
         }
+        if let Ok(csv) = std::fs::read_to_string(raw_dir.join("executive_stock.csv")) {
+            for line in csv.lines().skip(1) {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                let fields: Vec<&str> = line.splitn(4, ',').collect();
+                if fields.len() < 4 {
+                    continue;
+                }
+                let src = fields[0].to_string();
+                let position = fields[1].replace('/', "_");
+                let tgt = fields[2].to_string();
+                let rel_type = format!("employ_{position}");
+                rel_data.push((format!("{src}_{rel_type}_{tgt}"), src, tgt, rel_type));
+            }
+        }
+        tracing::info!("[graph_import] raw/*.csv 关系文件读取完成 → {} 条关系", rel_data.len());
+    } else {
+        tracing::warn!(
+            "[graph_import] 未找到 edges.csv 或 raw/*.csv，关系跳过 (lemonhu_dir={})",
+            lemonhu_dir.display()
+        );
     }
 
     for (id, src, tgt, rtype) in rel_data {
-        let exists = knowledge_relations::Entity::find_by_id(&id)
+        let prefixed_id = format!("{}{}", prefix, id);
+        let prefixed_src = format!("{}{}", prefix, src);
+        let prefixed_tgt = format!("{}{}", prefix, tgt);
+        let exists = knowledge_relations::Entity::find_by_id(&prefixed_id)
             .one(db)
             .await
             .map(|o| o.is_some())
             .unwrap_or(false);
         if exists {
+            skipped_relations += 1;
             continue;
         }
         let active = knowledge_relations::ActiveModel {
-            id: Set(id),
+            id: Set(prefixed_id),
             knowledge_base_id: Set(kb_id.to_string()),
-            source_entity_id: Set(src),
-            target_entity_id: Set(tgt),
+            source_entity_id: Set(prefixed_src),
+            target_entity_id: Set(prefixed_tgt),
             relation_type: Set(rtype),
             description: Set(None),
             properties: Set(None),
@@ -1554,13 +1623,21 @@ async fn import_lemonhu_graph(
                         Ok(c) => c,
                         Err(_) => continue,
                     };
-                    let file_name =
+                    let file_stem =
                         path.file_stem().and_then(|s| s.to_str()).unwrap_or("unknown").to_string();
-                    let title = content
-                        .lines()
-                        .find(|l| !l.trim().is_empty())
-                        .map(|l| l.trim().chars().take(80).collect::<String>())
-                        .unwrap_or_else(|| file_name.clone());
+                    // 标题优先取 frontmatter title 字段，回退到首行非空行（去掉 # 前缀）
+                    let title = extract_frontmatter_title(&content)
+                        .or_else(|| {
+                            content.lines().find(|l| !l.trim().is_empty()).map(|l| {
+                                l.trim()
+                                    .trim_start_matches('#')
+                                    .trim()
+                                    .chars()
+                                    .take(80)
+                                    .collect::<String>()
+                            })
+                        })
+                        .unwrap_or_else(|| file_stem.clone());
                     let active = knowledge_documents::ActiveModel {
                         id: Set(uuid::Uuid::new_v4().to_string()),
                         knowledge_base_id: Set(kb_id.to_string()),
@@ -1586,10 +1663,32 @@ async fn import_lemonhu_graph(
     }
 
     tracing::info!(
-        "[graph_import] 导入知识图谱: {entity_count} 节点 + {rel_count} 关系 + {doc_count} 文档 (kb={kb_id})"
+        "[graph_import] 导入知识图谱: {entity_count} 节点 (+{skipped_entities} 跳过) + {rel_count} 关系 (+{skipped_relations} 跳过) + {doc_count} 文档 (kb={kb_id})"
     );
 
     (entity_count, rel_count, doc_count)
+}
+
+/// 从 markdown frontmatter 中提取 `title:` 字段值。
+/// 仅处理 YAML frontmatter（首行 `---` 开头的块），简单按行扫描避免引入 yaml 解析依赖。
+fn extract_frontmatter_title(content: &str) -> Option<String> {
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.is_empty() || lines[0].trim() != "---" {
+        return None;
+    }
+    for line in &lines[1..] {
+        let trimmed = line.trim();
+        if trimmed == "---" {
+            break;
+        }
+        if let Some(rest) = trimmed.strip_prefix("title:") {
+            let v = rest.trim().trim_matches('"').trim_matches('\'').trim();
+            if !v.is_empty() {
+                return Some(v.chars().take(80).collect());
+            }
+        }
+    }
+    None
 }
 
 /// 目录同步结果（与 [`ImportDirectoryResult`] 的区别：含 added/updated/deleted 三类计数）。
@@ -2111,6 +2210,44 @@ pub async fn import_project_knowledge_sources(
         let embedding_changed = wiki_embedding_changed || kb_embedding_changed;
         (wiki_id, wiki_name, kb_id, kb_name, graph_result, kb_embedding_provider, embedding_changed)
     }; // ← db 引用在此释放，state 恢复可移动状态
+
+    // 5) 入队 KB 文档索引任务
+    // import_lemonhu_graph 创建文档时仅写入 DB（indexing_status="pending"），未入队 index_queue。
+    // 此处统一补齐：查询 KB 下所有 pending 文档，循环入队 JOB_TYPE_INDEX_DOCUMENT，
+    // 否则 RAG 检索永远查不到这些文档（vector_store 中无对应 embedding）。
+    let kb_has_embedding = final_embedding_provider.is_some();
+    if kb_has_embedding {
+        let pending_docs: Vec<String> = {
+            let db = state.harness.db();
+            knowledge_documents::Entity::find()
+                .filter(knowledge_documents::Column::KnowledgeBaseId.eq(&kb_id))
+                .filter(knowledge_documents::Column::IndexingStatus.eq("pending"))
+                .all(db)
+                .await
+                .map(|docs| docs.into_iter().map(|d| d.id).collect())
+                .unwrap_or_default()
+        };
+        if !pending_docs.is_empty() {
+            let count = pending_docs.len();
+            for doc_id in &pending_docs {
+                let _ = crate::index_queue::enqueue_job_sync(
+                    &state,
+                    &app,
+                    jobs::JOB_TYPE_INDEX_DOCUMENT,
+                    "kb",
+                    &kb_id,
+                    doc_id,
+                    None,
+                    None,
+                );
+            }
+            tracing::info!("[import_project] 入队 {count} 个 KB 文档索引任务 (kb={kb_id})");
+        }
+    } else {
+        tracing::info!(
+            "[import_project] KB 未配置 embedding_provider，跳过文档索引入队 (kb={kb_id})"
+        );
+    }
 
     // ── Wiki markdown 导入（state 被移入但不需再使用）──
     let wiki_result = crate::commands::wiki::wiki_import_obsidian_vault(

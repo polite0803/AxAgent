@@ -177,7 +177,9 @@ impl Tool for SearchKnowledgeTool {
         let conn = rusqlite::Connection::open(db_file)
             .map_err(|e| ToolError::execution_failed(format!("打开数据库失败: {}", e)))?;
 
-        let meta_table = format!("vec_kb_{}_meta", base_id);
+        // sanitize：与 vector_store::validated_collection_name 一致，把 UUID 中的 '-' 替换为 '_'
+        let sanitized = base_id.replace('-', "_");
+        let meta_table = format!("vec_kb_{}_meta", sanitized);
         let sql = format!("SELECT content FROM {} WHERE content LIKE ? LIMIT ?1", meta_table);
         let like_pattern = format!("%{}%", query);
         let mut stmt = conn.prepare(&sql).map_err(|e| {
