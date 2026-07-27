@@ -19,7 +19,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 const { Title, Text } = Typography;
-const DEFAULT_VAULT_ID = "default";
 const MIN_PANEL_WIDTH = 180;
 const MAX_LEFT_PANEL = 400;
 const MAX_RIGHT_PANEL = 600;
@@ -30,9 +29,9 @@ export function WikiGraphPage() {
   const navigate = useNavigate();
   const { wikiId } = useParams<{ wikiId: string }>();
   const [searchParams] = useSearchParams();
-  const wikiIdFromUrl = searchParams.get("wikiId") || wikiId || DEFAULT_VAULT_ID;
+  const urlWikiId = searchParams.get("wikiId") || wikiId;
 
-  const { wikis, loadWikis } = useLlmWikiStore();
+  const { wikis, loading: wikisLoading, loadWikis } = useLlmWikiStore();
   const {
     notes,
     loading: notesLoading,
@@ -82,15 +81,41 @@ export function WikiGraphPage() {
   // 搜索
   const [globalSearch, setGlobalSearch] = useState("");
 
-  // 加载 Wiki 列表和图谱
+  // 加载 Wiki 列表
   useEffect(() => {
     loadWikis();
   }, [loadWikis]);
 
+  // 当 wikis 加载完成后，确定有效的 wikiIdFromUrl
+  const [wikiIdFromUrl, setWikiIdFromUrl] = useState<string | null>(null);
+  const [wikisLoaded, setWikisLoaded] = useState(false);
+
+  useEffect(() => {
+    if (wikis.length > 0) {
+      setWikisLoaded(true);
+      const valid = wikis.find((w) => w.id === urlWikiId);
+      if (valid) {
+        setWikiIdFromUrl(valid.id);
+      } else if (urlWikiId) {
+        // URL 中的 wikiId 不存在，跳转到第一个可用 wiki
+        navigate(`/wiki/${wikis[0].id}`, { replace: true });
+      } else {
+        setWikiIdFromUrl(wikis[0].id);
+      }
+    } else if (!wikisLoading) {
+      setWikisLoaded(true);
+      setWikiIdFromUrl(null);
+    }
+  }, [wikis, urlWikiId, navigate]);
+
   const loadGraphData = useCallback(async () => {
+    if (!wikiIdFromUrl) {
+      setGraphData(null);
+      setGraphLoading(false);
+      return;
+    }
     setGraphLoading(true);
     try {
-      // 走缓存版命令：10万节点命中缓存 < 10ms，未命中自动计算并写缓存
       const [data, communityResult] = await Promise.all([
         invoke<GraphData>("get_wiki_graph_cached", { wikiId: wikiIdFromUrl }),
         invoke<{ communities: Record<string, number> }>(
@@ -111,12 +136,18 @@ export function WikiGraphPage() {
   }, [wikiIdFromUrl, t]);
 
   useEffect(() => {
+    if (!wikiIdFromUrl) {
+      return;
+    }
     setSelectedVaultId(wikiIdFromUrl);
     loadNotes(wikiIdFromUrl);
     setTimeout(() => loadGraphData(), 0);
   }, [wikiIdFromUrl, setSelectedVaultId, loadNotes, loadGraphData]);
 
   const handleReload = () => {
+    if (!wikiIdFromUrl) {
+      return;
+    }
     loadNotes(wikiIdFromUrl);
     loadGraphData();
   };
@@ -209,6 +240,9 @@ export function WikiGraphPage() {
   }, []);
 
   const handleCreateNote = useCallback(async () => {
+    if (!wikiIdFromUrl) {
+      return;
+    }
     const now = Date.now();
     const note = await createNote({
       vaultId: wikiIdFromUrl,
@@ -229,6 +263,9 @@ export function WikiGraphPage() {
   const [importingMd, setImportingMd] = useState(false);
 
   const handleImportKnowledgeMd = useCallback(async () => {
+    if (!wikiIdFromUrl) {
+      return;
+    }
     setImportingMd(true);
     try {
       const stats = await importKnowledgeMd(wikiIdFromUrl);
@@ -251,6 +288,9 @@ export function WikiGraphPage() {
 
   const handleCreateLinkedNote = useCallback(
     async (sourceNodeId: string) => {
+      if (!wikiIdFromUrl) {
+        return;
+      }
       const sourceNode = graphData?.nodes.find((n) => n.id === sourceNodeId);
       const title = sourceNode
         ? `${t("wiki.linkedPrefix")}: ${sourceNode.title}`
@@ -277,6 +317,9 @@ export function WikiGraphPage() {
 
   const handleDeleteNote = useCallback(
     async (nodeId: string) => {
+      if (!wikiIdFromUrl) {
+        return;
+      }
       try {
         await deleteNote(nodeId);
         message.success(t("wiki.deleted"));
@@ -366,14 +409,16 @@ export function WikiGraphPage() {
           {t("wiki.graph.title")}
         </Title>
 
-        <Select
-          size="small"
-          value={wikiIdFromUrl}
-          onChange={(val) => navigate(`/wiki/${val}`)}
-          style={{ minWidth: 160, marginLeft: 8 }}
-          options={wikis.map((w) => ({ label: w.name, value: w.id }))}
-          placeholder={t("wiki.selectWiki")}
-        />
+        {wikis.length > 0 && (
+          <Select
+            size="small"
+            value={wikiIdFromUrl!}
+            onChange={(val) => navigate(`/wiki/${val}`)}
+            style={{ minWidth: 160, marginLeft: 8 }}
+            options={wikis.map((w) => ({ label: w.name, value: w.id }))}
+            placeholder={t("wiki.selectWiki")}
+          />
+        )}
 
         <div className="flex-1" />
 
@@ -445,8 +490,8 @@ export function WikiGraphPage() {
           />
         </Tooltip>
 
-        <SyncStatus wikiId={wikiIdFromUrl} />
-        <QualityScore wikiId={wikiIdFromUrl} />
+        {wikiIdFromUrl && <SyncStatus wikiId={wikiIdFromUrl} />}
+        {wikiIdFromUrl && <QualityScore wikiId={wikiIdFromUrl} />}
       </div>
 
       {/* 主工作区 */}
@@ -502,7 +547,19 @@ export function WikiGraphPage() {
 
         {/* 中央图谱 */}
         <div className="flex-1" style={{ minWidth: 0 }}>
-          {graphLoading
+          {!wikisLoaded || wikisLoading
+            ? (
+              <div className="h-full flex items-center justify-center">
+                <Spin size="large" />
+              </div>
+            )
+            : !wikiIdFromUrl
+            ? (
+              <div className="h-full flex items-center justify-center">
+                <Empty description={t("wiki.selectWiki")} />
+              </div>
+            )
+            : graphLoading
             ? (
               <div className="h-full flex items-center justify-center">
                 <Spin size="large" description={t("wiki.graph.loading")} />
@@ -592,7 +649,7 @@ export function WikiGraphPage() {
         }}
       >
         <Text type="secondary">
-          {t("wiki.wiki")}: {wikiIdFromUrl}
+          {t("wiki.wiki")}: {wikiIdFromUrl ?? "—"}
         </Text>
         {selectedNodeId && (
           <Text type="secondary">

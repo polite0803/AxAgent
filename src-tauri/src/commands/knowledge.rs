@@ -1370,6 +1370,8 @@ pub async fn import_lemonhu_knowledge(
             chunk_size: Set(None),
             chunk_overlap: Set(None),
             separator: Set(None),
+            kind: Set("indexed".into()),
+            vault_path: Set(None),
         }
         .insert(db)
         .await
@@ -2265,6 +2267,8 @@ pub async fn import_project_knowledge_sources(
                         description: Some("lemonhu A 股知识图谱（实体 + 关系）".into()),
                         embedding_provider: embedding_provider.clone(),
                         enabled: Some(true),
+                        kind: Default::default(),
+                        vault_path: None,
                     },
                 )
                 .await
