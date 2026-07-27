@@ -12,7 +12,17 @@ export const CHAT_CUSTOM_HTML_TAGS = [
   "wiki-retrieval",
   "tool-call",
   "cron-result",
+  "cite-ref",
 ] as const;
+
+/**
+ * 引用追溯：把 LLM 回复中的 `[cite:N]` token 替换为自定义标签
+ * `<cite-ref n="N" data-axagent="1"></cite-ref>`，由 markstream-react 渲染为可点击 chip。
+ * 必须在 `parseChatMarkdown` 之前调用，且仅在 assistant 内容上生效。
+ */
+export function injectCiteRefTags(content: string): string {
+  return content.replace(/\[cite:(\d+)\]/g, '<cite-ref n="$1" data-axagent="1"></cite-ref>');
+}
 
 /**
  * Strip all axagent-injected custom tags (with `data-axagent="1"` attribute) and
@@ -46,6 +56,7 @@ export function stripAxAgentTags(content: string): string {
       /<cron-result [^>]*data-axagent="1"[^>]*>[\s\S]*?<\/cron-result>\s*/g,
       "",
     )
+    .replace(/<cite-ref [^>]*data-axagent="1"[^>]*>\s*<\/cite-ref>\s*/g, "")
     .replace(/\n*:::mcp [^\n]*\n[\s\S]*?:::\n*/g, "\n")
     .trim();
 }
@@ -55,7 +66,7 @@ const chatMarkdown = getMarkdown("axagent-chat", {
 });
 
 export function parseChatMarkdown(content: string): ChatMarkdownNode[] {
-  return parseMarkdownToStructure(content, chatMarkdown, {
+  return parseMarkdownToStructure(injectCiteRefTags(content), chatMarkdown, {
     customHtmlTags: [...CHAT_CUSTOM_HTML_TAGS],
   });
 }

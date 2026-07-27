@@ -194,6 +194,9 @@ pub struct AppSettings {
     #[serde(default)]
     pub smart_router_tier_mappings:
         std::collections::HashMap<String, crate::route_bridge::TierModelMapping>,
+    /// Auto-load downloaded GGUF models into memory when RAG pipeline is active.
+    /// When disabled, models are downloaded but not loaded into candle workers.
+    pub auto_load_models: bool,
 }
 
 impl Default for AppSettings {
@@ -331,6 +334,7 @@ impl Default for AppSettings {
             telemetry_level: "off".to_string(),
             smart_router_enabled: false,
             smart_router_tier_mappings: std::collections::HashMap::new(),
+            auto_load_models: true,
         }
     }
 }

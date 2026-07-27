@@ -80,6 +80,19 @@ pub struct CreateIndexJobInput {
 }
 
 pub async fn enqueue_job(db: &DatabaseConnection, input: CreateIndexJobInput) -> Result<IndexJob> {
+    // 去重检查：同一 container_type + item_id 已有活跃 job（pending / processing / retrying）则跳过
+    if let Some(existing) =
+        get_active_job_for_item(db, &input.container_type, &input.item_id).await?
+    {
+        tracing::debug!(
+            container_type = %existing.container_type,
+            item_id = %existing.item_id,
+            existing_job_id = %existing.id,
+            "[index_queue] 跳过重复入队，已有活跃 job"
+        );
+        return Ok(existing);
+    }
+
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)

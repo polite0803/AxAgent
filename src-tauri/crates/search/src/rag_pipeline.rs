@@ -57,8 +57,40 @@ impl RAGPipeline {
         embed_fn: impl AsyncEmbedFn,
         rerank_config: &reranker::RerankConfig,
     ) -> Result<PipelineOutput> {
-        // 阶段 1：检索（使用现有 rag::search）
-        let raw_results = rag::search(
+        self.execute_with_filter(
+            source,
+            db,
+            master_key,
+            vector_store,
+            container_id,
+            query,
+            top_k,
+            dimensions,
+            embed_fn,
+            rerank_config,
+            None,
+        )
+        .await
+    }
+
+    /// `execute` 的多文档协同变体：透传 `doc_ids` 过滤到底层检索。
+    #[allow(clippy::too_many_arguments)]
+    pub async fn execute_with_filter<S: rag::RAGSource + ?Sized>(
+        &self,
+        source: &S,
+        db: &DatabaseConnection,
+        master_key: &[u8; 32],
+        vector_store: &VectorStore,
+        container_id: &str,
+        query: &str,
+        top_k: usize,
+        dimensions: Option<usize>,
+        embed_fn: impl AsyncEmbedFn,
+        rerank_config: &reranker::RerankConfig,
+        doc_ids: Option<&[String]>,
+    ) -> Result<PipelineOutput> {
+        // 阶段 1：检索（使用 rag::search_with_filter 透传 doc_ids）
+        let raw_results = rag::search_with_filter(
             source,
             db,
             master_key,
@@ -68,6 +100,7 @@ impl RAGPipeline {
             top_k.max(rerank_config.candidate_k),
             dimensions,
             embed_fn,
+            doc_ids,
         )
         .await?;
 
@@ -89,6 +122,7 @@ impl RAGPipeline {
                 content: r.content.clone(),
                 vector_score: Some(1.0 - (r.score / 20.0).min(1.0)),
                 bm25_score: None,
+                sparse_score: None,
                 combined_score: 1.0 - (r.score / 20.0).min(1.0),
             })
             .collect();
@@ -103,7 +137,7 @@ impl RAGPipeline {
         let judgments = self.self_rag_gate.judge_chunks(query, &chunks).await?;
         let quality = self.self_rag_gate.evaluate_quality(&judgments);
 
-        // 过滤不相关 chunk
+        // 过滤不相关 chunk（引用追溯：保留 chunk_index 字段）
         let filtered: Vec<RerankedChunk> = reranked
             .iter()
             .zip(judgments.iter())
@@ -111,6 +145,7 @@ impl RAGPipeline {
             .map(|(r, j)| RerankedChunk {
                 id: r.id.clone(),
                 document_id: r.document_id.clone(),
+                chunk_index: r.chunk_index,
                 content: r.content.clone(),
                 score: r.rerank_score,
                 relevance: j.score,
@@ -126,6 +161,8 @@ impl RAGPipeline {
 pub struct RerankedChunk {
     pub id: String,
     pub document_id: String,
+    /// 引用追溯：chunk 在文档内的顺序索引（从 0 开始）
+    pub chunk_index: i32,
     pub content: String,
     pub score: f32,
     pub relevance: f32,

@@ -2530,76 +2530,68 @@ pub(crate) async fn sync_context_sources(
     conversation_id: &str,
     conversation: &Conversation,
 ) -> Result<(), String> {
-    axagent_dao::repo::context_source::delete_context_sources_by_conversation(db, conversation_id)
-        .await
-        .map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+    // 多文档协同：diff 同步，保留仍启用容器行已设置的 doc_ids。
+    // 之前实现是「先全删再重建」，会把用户手动勾选的 doc_ids 全部清空。
+    use std::collections::HashSet;
 
+    let to_err = |e: axagent_harness::core_error::AxAgentError| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    };
+
+    // 1. 构造当前 conversation 偏好下的完整 (source_type, ref_id) 集合 + 标题
+    let mut desired: Vec<(String, String, String)> = Vec::new(); // (source_type, ref_id, title)
     for kb_id in &conversation.enabled_knowledge_base_ids {
         let title = axagent_dao::repo::knowledge::get_knowledge_base(db, kb_id)
             .await
             .map(|kb| kb.name)
             .unwrap_or_else(|_| kb_id.clone());
-        let input = CreateContextSourceInput {
-            conversation_id: conversation_id.to_string(),
-            message_id: None,
-            source_type: "knowledge".to_string(),
-            ref_id: kb_id.clone(),
-            title,
-            summary: None,
-        };
-        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+        desired.push(("knowledge".to_string(), kb_id.clone(), title));
     }
-
     for mem_id in &conversation.enabled_memory_namespace_ids {
         let title = axagent_dao::repo::memory::get_namespace(db, mem_id)
             .await
             .map(|ns| ns.name)
             .unwrap_or_else(|_| mem_id.clone());
-        let input = CreateContextSourceInput {
-            conversation_id: conversation_id.to_string(),
-            message_id: None,
-            source_type: "memory".to_string(),
-            ref_id: mem_id.clone(),
-            title,
-            summary: None,
-        };
-        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+        desired.push(("memory".to_string(), mem_id.clone(), title));
     }
-
     for wiki_id in &conversation.enabled_wiki_ids {
         let title = axagent_dao::repo::wiki::get_wiki(db, wiki_id)
             .await
             .map(|w| w.name)
             .unwrap_or_else(|_| wiki_id.clone());
+        desired.push(("wiki".to_string(), wiki_id.clone(), title));
+    }
+
+    // 2. 删除不再启用的容器行（保留行的 doc_ids 不动）
+    let keep: Vec<(String, String)> =
+        desired.iter().map(|(t, r, _)| (t.clone(), r.clone())).collect();
+    axagent_dao::repo::context_source::prune_context_sources(db, conversation_id, &keep)
+        .await
+        .map_err(to_err)?;
+
+    // 3. 为尚不存在的容器行插入新记录（doc_ids=[]）；已存在的行不动
+    let existing = axagent_dao::repo::context_source::list_context_sources(db, conversation_id)
+        .await
+        .map_err(to_err)?;
+    let existing_keys: HashSet<(String, String)> =
+        existing.into_iter().map(|cs| (cs.source_type, cs.ref_id)).collect();
+    for (source_type, ref_id, title) in &desired {
+        if existing_keys.contains(&(source_type.clone(), ref_id.clone())) {
+            continue;
+        }
         let input = CreateContextSourceInput {
             conversation_id: conversation_id.to_string(),
             message_id: None,
-            source_type: "wiki".to_string(),
-            ref_id: wiki_id.clone(),
-            title,
+            source_type: source_type.clone(),
+            ref_id: ref_id.clone(),
+            title: title.clone(),
             summary: None,
+            doc_ids: Vec::new(),
         };
-        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+        axagent_dao::repo::context_source::add_context_source(db, &input).await.map_err(to_err)?;
     }
 
     Ok(())
@@ -2611,23 +2603,29 @@ pub(crate) async fn resolve_rag_ids(
     enabled_knowledge_base_ids: Option<Vec<String>>,
     enabled_memory_namespace_ids: Option<Vec<String>>,
     enabled_wiki_ids: Option<Vec<String>>,
-) -> (Vec<String>, Vec<String>, Vec<String>) {
-    let mut kb = Vec::new();
-    let mut mem = Vec::new();
-    let mut wiki = Vec::new();
+) -> Vec<axagent_search::rag::RAGSourceRef> {
+    use axagent_search::rag::{RAGSourceRef, RAGSourceType};
+
+    let mut sources: Vec<RAGSourceRef> = Vec::new();
 
     match axagent_dao::repo::context_source::list_context_sources(db, conversation_id).await {
-        Ok(sources) => {
-            for src in sources {
+        Ok(rows) => {
+            for src in rows {
                 if !src.enabled {
                     continue;
                 }
-                match src.source_type.as_str() {
-                    "knowledge" => kb.push(src.ref_id),
-                    "memory" => mem.push(src.ref_id),
-                    "wiki" => wiki.push(src.ref_id),
-                    _ => {},
-                }
+                let source_type = match src.source_type.as_str() {
+                    "knowledge" => RAGSourceType::Knowledge,
+                    "memory" => RAGSourceType::Memory,
+                    "wiki" => RAGSourceType::Wiki,
+                    _ => continue,
+                };
+                // 多文档协同：直接复用 dao 反序列化后的 doc_ids（空 Vec 表示不限制）
+                sources.push(RAGSourceRef {
+                    source_type,
+                    container_id: src.ref_id,
+                    doc_ids: src.doc_ids,
+                });
             }
         },
         Err(e) => {
@@ -2635,14 +2633,36 @@ pub(crate) async fn resolve_rag_ids(
         },
     }
 
-    if !kb.is_empty() || !mem.is_empty() || !wiki.is_empty() {
-        return (kb, mem, wiki);
+    if !sources.is_empty() {
+        return sources;
     }
 
+    // 回退到显式 IDs（无 doc_ids 过滤）
     let explicit_kb = enabled_knowledge_base_ids.unwrap_or_default();
     let explicit_mem = enabled_memory_namespace_ids.unwrap_or_default();
     let explicit_wiki = enabled_wiki_ids.unwrap_or_default();
-    (explicit_kb, explicit_mem, explicit_wiki)
+    for id in explicit_kb {
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Knowledge,
+            container_id: id,
+            doc_ids: Vec::new(),
+        });
+    }
+    for id in explicit_mem {
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Memory,
+            container_id: id,
+            doc_ids: Vec::new(),
+        });
+    }
+    for id in explicit_wiki {
+        sources.push(RAGSourceRef {
+            source_type: RAGSourceType::Wiki,
+            container_id: id,
+            doc_ids: Vec::new(),
+        });
+    }
+    sources
 }
 
 pub(crate) fn build_rag_chat_message(rag_items: &[String]) -> Option<ChatMessage> {

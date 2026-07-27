@@ -1996,9 +1996,10 @@ export async function handleCommand<T>(
           indexStatus: "pending",
           tier: "working",
           importance: 0.5,
-          nature: "semantic",
+          memoryNature: "semantic",
           tags: [],
           accessCount: 0,
+          decayRate: 0.02,
           updatedAt: new Date().toISOString(),
         };
         mns3[mni].items = [...(mns3[mni].items || []), item];

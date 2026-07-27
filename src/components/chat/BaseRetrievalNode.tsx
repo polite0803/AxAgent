@@ -7,12 +7,13 @@
  * around this component, differing only in the icon and i18n prefix.
  */
 
+import { CITE_JUMP_EVENT, CiteItemsContext } from "@/components/chat/citeContext";
 import type { MemoryRetrievedItem, MemorySourceResult } from "@/lib/memoryUtils";
 import { theme } from "antd";
 import { AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
 import type { NodeComponentProps } from "markstream-react";
 import type { ComponentType, CSSProperties } from "react";
-import { useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export type BaseRetrievalNodeData = {
@@ -56,6 +57,9 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
     const { token } = theme.useToken();
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
+    const [highlightedIdx, setHighlightedIdx] = useState<number | null>(null);
+    const allEntries = useContext(CiteItemsContext);
+    const highlightTimerRef = useRef<number | null>(null);
 
     if (!node) {
       return null;
@@ -76,6 +80,56 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
     }
 
     const totalItems = sources.reduce((sum, s) => sum + s.items.length, 0);
+
+    // 引用追溯：计算本节点内每个 item 对应的全局 cite idx（用于 data-cite-idx 标记 + 跳转高亮匹配）
+    // 匹配键：(item.id, item.document_id)，与 AssistantMarkdown 中 citeEntries 的扁平化顺序一致
+    const itemCiteIndices = useMemo<number[]>(() => {
+      const result: number[] = [];
+      for (const src of sources) {
+        for (const item of src.items) {
+          const found = allEntries.find(
+            (e) => e.item.id === item.id && e.item.document_id === item.document_id,
+          );
+          result.push(found?.globalIdx ?? -1);
+        }
+      }
+      return result;
+    }, [sources, allEntries]);
+
+    // 引用追溯：监听 chip 点击事件，匹配本节点 item 则展开 + 高亮
+    useEffect(() => {
+      const handler = (e: Event) => {
+        const detail = (e as CustomEvent).detail as { idx: number } | undefined;
+        if (!detail) { return; }
+        const localIdx = itemCiteIndices.indexOf(detail.idx);
+        if (localIdx < 0) { return; }
+        setExpanded(true);
+        setHighlightedIdx(localIdx);
+        // 滚动到对应 item
+        requestAnimationFrame(() => {
+          const el = document.querySelector(`[data-cite-idx="${detail.idx}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        });
+        // 2.5s 后清除高亮
+        if (highlightTimerRef.current !== null) {
+          window.clearTimeout(highlightTimerRef.current);
+        }
+        highlightTimerRef.current = window.setTimeout(() => {
+          setHighlightedIdx(null);
+          highlightTimerRef.current = null;
+        }, 2500);
+      };
+      window.addEventListener(CITE_JUMP_EVENT, handler);
+      return () => {
+        window.removeEventListener(CITE_JUMP_EVENT, handler);
+        if (highlightTimerRef.current !== null) {
+          window.clearTimeout(highlightTimerRef.current);
+          highlightTimerRef.current = null;
+        }
+      };
+    }, [itemCiteIndices]);
 
     // Searching state
     if (status === "searching") {
@@ -229,61 +283,88 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
             }}
           >
             {sources.map((src, si) =>
-              src.items.map((item: MemoryRetrievedItem, ii: number) => (
-                <div
-                  key={`${si}-${ii}`}
-                  style={{
-                    marginBottom: ii < src.items.length - 1 || si < sources.length - 1 ? 8 : 0,
-                    fontSize: 12,
-                  }}
-                >
+              src.items.map((item: MemoryRetrievedItem, ii: number) => {
+                // 扁平化 local idx（与 itemCiteIndices 对齐）
+                let localIdx = 0;
+                for (let s = 0; s < si; s++) {
+                  localIdx += sources[s].items.length;
+                }
+                localIdx += ii;
+                const citeIdx = itemCiteIndices[localIdx] ?? -1;
+                const isHighlighted = highlightedIdx === localIdx;
+                return (
                   <div
+                    key={`${si}-${ii}`}
+                    data-cite-idx={citeIdx >= 0 ? citeIdx : undefined}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      marginBottom: 2,
+                      marginBottom: ii < src.items.length - 1 || si < sources.length - 1 ? 8 : 0,
+                      fontSize: 12,
+                      padding: "4px 6px",
+                      borderRadius: 4,
+                      transition: "background-color 200ms ease",
+                      backgroundColor: isHighlighted ? token.colorPrimaryBg : undefined,
+                      outline: isHighlighted ? `2px solid ${token.colorPrimary}` : undefined,
                     }}
                   >
-                    <Icon
-                      size={12}
-                      style={{ color: token.colorPrimary, flexShrink: 0 }}
-                    />
-                    <span style={{ fontWeight: 500, color: token.colorText }}>
-                      {item.document_name || item.document_id?.slice(0, 8) || "—"}
-                    </span>
-                    {item.id && (
-                      <span
-                        style={{ fontSize: 10, color: token.colorTextQuaternary }}
-                      >
-                        #{item.id.slice(0, 8)}
-                      </span>
-                    )}
-                    <span
+                    <div
                       style={{
-                        marginLeft: "auto",
-                        fontSize: 10,
-                        color: token.colorTextQuaternary,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        marginBottom: 2,
                       }}
                     >
-                      {(1 / (1 + item.score)).toFixed(4)}
-                    </span>
+                      <Icon
+                        size={12}
+                        style={{ color: token.colorPrimary, flexShrink: 0 }}
+                      />
+                      <span style={{ fontWeight: 500, color: token.colorText }}>
+                        {item.document_name || item.document_id?.slice(0, 8) || "—"}
+                      </span>
+                      {item.id && (
+                        <span
+                          style={{ fontSize: 10, color: token.colorTextQuaternary }}
+                        >
+                          #{item.id.slice(0, 8)}
+                        </span>
+                      )}
+                      {citeIdx >= 0 && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: token.colorPrimary,
+                            fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                          }}
+                        >
+                          [cite:{citeIdx}]
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: 10,
+                          color: token.colorTextQuaternary,
+                        }}
+                      >
+                        {(1 / (1 + item.score)).toFixed(4)}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: "2px 0 0 0",
+                        color: token.colorTextSecondary,
+                        lineHeight: 1.5,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {truncateContent(item.content, 200)}
+                    </p>
                   </div>
-                  <p
-                    style={{
-                      margin: "2px 0 0 0",
-                      color: token.colorTextSecondary,
-                      lineHeight: 1.5,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {truncateContent(item.content, 200)}
-                  </p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

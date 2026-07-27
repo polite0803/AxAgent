@@ -289,7 +289,7 @@ pub use consistency_check::{
 pub use hallucination_guard::{AnchorResult, HallucinationGuardConfig, check_anchor};
 
 // ── InferenceEngine 契约 ──
-pub use inference_engine::InferenceEngine;
+pub use inference_engine::{InferenceEngine, SparseVectorEntry};
 
 // ── Error 重导出 ──
 pub use error::{ToolError, ToolErrorKind};
@@ -427,7 +427,9 @@ pub use rag_provider::{
 };
 pub mod knowledge_graph;
 pub use knowledge_graph::{
-    EntityExtractor, EntityGraphProvider, ExtractedEntity, ExtractedRelation,
+    EntityExtractor, EntityGraphProvider, ExtractEntitiesFromDocumentsInput, ExtractEntitiesResult,
+    ExtractedEntity, ExtractedRelation, GraphEnhancedContextChunk, GraphEnhancedSearchInput,
+    GraphEnhancedSearchResult, GraphRelationEdge,
 };
 pub mod indexer;
 pub use indexer::{ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, IndexJobStatus};
@@ -493,3 +495,13 @@ pub use event_bus::{DomainEvent, EventBus, EventBusSubscription, EventCategory};
 
 // ── Fleet 多办公室 AI 团队契约 ──
 pub mod fleet;
+
+// ── Obsidian Vault 集成契约 ──
+// 参考 DeepTutor `deeptutor/capabilities/obsidian/`：
+// KB 类型 = ConnectedVault 时，agent 通过 9 个 obsidian_* 工具直接读写 live vault，
+// 不走 RAG 索引。VaultSource trait 由 tools crate 实现，agent capability 注入。
+pub mod vault;
+pub use vault::{
+    KbKind, LinkHit, NoteContent, NoteHit, NoteRef, OBSIDIAN_TOOL_NAMES, TagCount, VaultBinding,
+    VaultError, VaultSource,
+};

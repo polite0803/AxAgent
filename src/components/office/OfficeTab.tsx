@@ -114,6 +114,8 @@ export function OfficeTab() {
         setCreateOpen(false);
         setCreateName("");
         setCreateTemplateSlug(SCENE_TEMPLATES[0].slug);
+      } else {
+        messageApi.error(t("office.createFleet.createFailed"));
       }
     } finally {
       setCreating(false);

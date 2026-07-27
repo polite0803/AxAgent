@@ -878,7 +878,7 @@ pub async fn send_message(
     }
 
     // RAG retrieval: resolve from context_sources when explicit IDs are not provided
-    let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
+    let sources = resolve_rag_ids(
         state.harness.db(),
         &conversation_id,
         enabled_knowledge_base_ids,
@@ -886,13 +886,11 @@ pub async fn send_message(
         enabled_wiki_ids,
     )
     .await;
-    let mut rag_result = crate::indexing::collect_rag_context(
+    let mut rag_result = crate::indexing::collect_rag_context_with_sources(
         state.harness.db(),
         state.harness.master_key(),
         &state.vector_store,
-        &kb_ids,
-        &mem_ids,
-        &wiki_ids,
+        sources,
         &content,
         5,
         &state.credential_manager,
@@ -1445,7 +1443,7 @@ pub async fn regenerate_message(
 
     // RAG retrieval for regeneration: resolve from context_sources when explicit IDs are not provided
     let memory_tag = {
-        let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
+        let sources = resolve_rag_ids(
             state.harness.db(),
             &conversation_id,
             enabled_knowledge_base_ids,
@@ -1453,13 +1451,11 @@ pub async fn regenerate_message(
             enabled_wiki_ids,
         )
         .await;
-        let mut rag_result = crate::indexing::collect_rag_context(
+        let mut rag_result = crate::indexing::collect_rag_context_with_sources(
             state.harness.db(),
             state.harness.master_key(),
             &state.vector_store,
-            &kb_ids,
-            &mem_ids,
-            &wiki_ids,
+            sources,
             &last_user_msg.content,
             5,
             &state.credential_manager,
@@ -1898,7 +1894,7 @@ pub async fn regenerate_with_model(
 
     // RAG retrieval: resolve from context_sources when explicit IDs are not provided
     let memory_tag = {
-        let (kb_ids, mem_ids, wiki_ids) = resolve_rag_ids(
+        let sources = resolve_rag_ids(
             state.harness.db(),
             &conversation_id,
             enabled_knowledge_base_ids,
@@ -1906,13 +1902,11 @@ pub async fn regenerate_with_model(
             enabled_wiki_ids,
         )
         .await;
-        let mut rag_result = crate::indexing::collect_rag_context(
+        let mut rag_result = crate::indexing::collect_rag_context_with_sources(
             state.harness.db(),
             state.harness.master_key(),
             &state.vector_store,
-            &kb_ids,
-            &mem_ids,
-            &wiki_ids,
+            sources,
             &user_msg.content,
             5,
             &state.credential_manager,

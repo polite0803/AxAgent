@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, Value};
 use serde::{Deserialize, Serialize};
 
 use crate::vector_store::{VectorSearchResult, VectorStore};
@@ -14,6 +14,10 @@ pub struct HybridSearchResult {
     pub content: String,
     pub vector_score: Option<f32>,
     pub bm25_score: Option<f32>,
+    /// 多引擎 RAG：sparse neural 检索分数（SPLADE/BGE-M3 sparse 等）。
+    /// 当前实现暂未接入 sparse encoder，该字段始终为 None，留作扩展位。
+    #[serde(default)]
+    pub sparse_score: Option<f32>,
     pub combined_score: f32,
 }
 
@@ -30,6 +34,9 @@ pub enum FusionAlgorithm {
 pub struct HybridSearchOptions {
     pub vector_weight: f32,
     pub bm25_weight: f32,
+    /// 多引擎 RAG：sparse neural 路径权重（默认 0，表示不启用 sparse 路径）。
+    /// 当 sparse_weight > 0 且 sparse encoder 可用时，会走三路融合。
+    pub sparse_weight: f32,
     pub top_k: usize,
     pub min_score: Option<f32>,
     pub fusion: FusionAlgorithm,
@@ -41,6 +48,7 @@ impl Default for HybridSearchOptions {
         Self {
             vector_weight: 0.7,
             bm25_weight: 0.3,
+            sparse_weight: 0.0,
             top_k: 10,
             min_score: None,
             fusion: FusionAlgorithm::Rrf,
@@ -138,11 +146,30 @@ impl HybridSearcher {
         query_embedding: Vec<f32>,
         options: HybridSearchOptions,
     ) -> Result<Vec<HybridSearchResult>> {
+        self.hybrid_search_with_filter(collection_id, query, query_embedding, options, None).await
+    }
+
+    /// Hybrid search with optional `document_id` list filter
+    /// (multi-document collaboration).
+    ///
+    /// When `doc_ids` is `Some` and non-empty, both the vector path
+    /// (`vector_store::search_with_filter`) and the BM25 path apply the same
+    /// `document_id IN (...)` predicate so the fused result set is scoped to
+    /// the requested subset of documents.
+    pub async fn hybrid_search_with_filter(
+        &self,
+        collection_id: &str,
+        query: &str,
+        query_embedding: Vec<f32>,
+        options: HybridSearchOptions,
+        doc_ids: Option<&[String]>,
+    ) -> Result<Vec<HybridSearchResult>> {
         let vector_results = self
             .vector_store
-            .search(collection_id, query_embedding.clone(), options.top_k * 3)
+            .search_with_filter(collection_id, query_embedding.clone(), options.top_k * 3, doc_ids)
             .await?;
-        let bm25_results = self.bm25_search(collection_id, query, options.top_k * 3).await?;
+        let bm25_results =
+            self.bm25_search_with_filter(collection_id, query, options.top_k * 3, doc_ids).await?;
 
         let combined = match options.fusion {
             FusionAlgorithm::Weighted => self.merge_results_weighted(
@@ -175,14 +202,17 @@ impl HybridSearcher {
         Ok(filtered)
     }
 
-    async fn bm25_search(
+    /// BM25 keyword search with optional `document_id` list filter.
+    /// Filters apply identically to the FTS5 (SQLite) and tsvector (PG) paths.
+    async fn bm25_search_with_filter(
         &self,
         collection_id: &str,
         query: &str,
         top_k: usize,
+        doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
         if self.db.get_database_backend() == DbBackend::Postgres {
-            return self.bm25_search_pg(collection_id, query, top_k).await;
+            return self.bm25_search_pg_with_filter(collection_id, query, top_k, doc_ids).await;
         }
 
         let sanitized = sanitize_fts5_query(query);
@@ -194,22 +224,50 @@ impl HybridSearcher {
         let meta_table = format!("vec_{safe_name}_meta");
         let fts_table = format!("{meta_table}_fts");
 
-        let fts_sql = format!(
-            "SELECT m.id, m.document_id, m.chunk_index, m.content, bm25({fts_table}) as bm25_score \
-             FROM {fts_table} f \
-             JOIN {meta_table} m ON m.rowid = f.rowid \
-             WHERE {fts_table} MATCH ?1 \
-             ORDER BY bm25_score \
-             LIMIT ?2"
-        );
+        let (fts_sql, mut params) = match doc_ids {
+            Some(ids) if !ids.is_empty() => {
+                // SQLite 占位符全部用显式编号避免歧义：
+                //   ?1 = query, ?2..?(N+1) = doc_ids, ?(N+2) = top_k
+                let placeholders = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format!("?{}", i + 2))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let limit_ph = format!("?{}", ids.len() + 2);
+                let in_clause = format!(" AND m.document_id IN ({placeholders})");
+                let sql = format!(
+                    "SELECT m.id, m.document_id, m.chunk_index, m.content, bm25({fts_table}) as bm25_score \
+                     FROM {fts_table} f \
+                     JOIN {meta_table} m ON m.rowid = f.rowid \
+                     WHERE {fts_table} MATCH ?1{in_clause} \
+                     ORDER BY bm25_score \
+                     LIMIT {limit_ph}"
+                );
+                (sql, ids.iter().cloned().map(Value::from).collect::<Vec<_>>())
+            },
+            _ => {
+                let sql = format!(
+                    "SELECT m.id, m.document_id, m.chunk_index, m.content, bm25({fts_table}) as bm25_score \
+                     FROM {fts_table} f \
+                     JOIN {meta_table} m ON m.rowid = f.rowid \
+                     WHERE {fts_table} MATCH ?1 \
+                     ORDER BY bm25_score \
+                     LIMIT ?2"
+                );
+                (sql, Vec::new())
+            },
+        };
+
+        // SQLite 参数顺序: [query, doc_ids..., top_k]
+        let mut values = Vec::with_capacity(params.len() + 2);
+        values.push(sanitized.clone().into());
+        values.append(&mut params);
+        values.push((top_k as i64).into());
 
         let rows = self
             .db
-            .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                &fts_sql,
-                vec![sanitized.clone().into(), (top_k as i64).into()],
-            ))
+            .query_all_raw(Statement::from_sql_and_values(DbBackend::Sqlite, &fts_sql, values))
             .await;
 
         match rows {
@@ -232,20 +290,21 @@ impl HybridSearcher {
                     return Ok(results);
                 }
 
-                self.bm25_search_fallback(&meta_table, &sanitized, top_k).await
+                self.bm25_search_fallback_with_filter(&meta_table, &sanitized, top_k, doc_ids).await
             },
-            _ => self.bm25_search_fallback(&meta_table, &sanitized, top_k).await,
+            _ => {
+                self.bm25_search_fallback_with_filter(&meta_table, &sanitized, top_k, doc_ids).await
+            },
         }
     }
 
-    /// PostgreSQL keyword search: match against the `content_tsv` generated
-    /// column (`tsvector`) and rank with `ts_rank`. Falls back to substring
-    /// (`ILIKE`) matching when no tsvector hit is found.
-    async fn bm25_search_pg(
+    /// PostgreSQL keyword search with optional `document_id` list filter.
+    async fn bm25_search_pg_with_filter(
         &self,
         collection_id: &str,
         query: &str,
         top_k: usize,
+        doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
         let trimmed = query.trim();
         if trimmed.is_empty() {
@@ -255,22 +314,38 @@ impl HybridSearcher {
         let safe_name = sanitize_name_for_table(collection_id);
         let meta_table = format!("vec_{safe_name}_meta");
 
+        // Build optional IN clause; PG placeholders are positional ($n).
+        let (in_clause, mut params) = match doc_ids {
+            Some(ids) if !ids.is_empty() => {
+                let placeholders = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format!("${}", i + 3))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let clause = format!(" AND m.document_id IN ({placeholders})");
+                (clause, ids.iter().cloned().map(Value::from).collect::<Vec<_>>())
+            },
+            _ => (String::new(), Vec::new()),
+        };
+
         let sql = format!(
             "SELECT m.id, m.document_id, m.chunk_index, m.content, \
              ts_rank(m.content_tsv, query) AS bm25_score \
              FROM {meta_table} m, plainto_tsquery('simple', $1) query \
-             WHERE m.content_tsv @@ query \
+             WHERE m.content_tsv @@ query{in_clause} \
              ORDER BY bm25_score DESC \
              LIMIT $2"
         );
 
+        let mut values = Vec::with_capacity(params.len() + 2);
+        values.push(trimmed.to_string().into());
+        values.push((top_k as i64).into());
+        values.append(&mut params);
+
         let rows = self
             .db
-            .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                &sql,
-                vec![trimmed.to_string().into(), (top_k as i64).into()],
-            ))
+            .query_all_raw(Statement::from_sql_and_values(DbBackend::Postgres, &sql, values))
             .await;
 
         match rows {
@@ -291,20 +366,25 @@ impl HybridSearcher {
                 if !results.is_empty() {
                     return Ok(results);
                 }
-                self.bm25_search_fallback_pg(&meta_table, trimmed, top_k).await
+                self.bm25_search_fallback_pg_with_filter(&meta_table, trimmed, top_k, doc_ids).await
             },
-            _ => self.bm25_search_fallback_pg(&meta_table, trimmed, top_k).await,
+            _ => {
+                self.bm25_search_fallback_pg_with_filter(&meta_table, trimmed, top_k, doc_ids).await
+            },
         }
     }
 
-    async fn bm25_search_fallback(
+    async fn bm25_search_fallback_with_filter(
         &self,
         meta_table: &str,
         query: &str,
         top_k: usize,
+        doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
         if self.db.get_database_backend() == DbBackend::Postgres {
-            return self.bm25_search_fallback_pg(meta_table, query, top_k).await;
+            return self
+                .bm25_search_fallback_pg_with_filter(meta_table, query, top_k, doc_ids)
+                .await;
         }
 
         let words: Vec<&str> = query.split_whitespace().take(8).collect();
@@ -316,22 +396,40 @@ impl HybridSearcher {
             words.iter().map(|w| format!("content LIKE '%{}%'", w.replace('\'', "''"))).collect();
         let where_clause = conditions.join(" OR ");
 
+        // SQLite 路径：占位符全部用显式编号避免歧义。
+        //   无 doc_ids: VALUES=[top_k], LIMIT ?1
+        //   有 doc_ids: VALUES=[doc_ids..., top_k], IN(?1..?N), LIMIT ?(N+1)
+        let (where_with_filter, mut params, limit_placeholder) = match doc_ids {
+            Some(ids) if !ids.is_empty() => {
+                let placeholders = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format!("?{}", i + 1))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let limit_ph = format!("?{}", ids.len() + 1);
+                let where_with_in = format!("({where_clause}) AND document_id IN ({placeholders})");
+                (where_with_in, ids.iter().cloned().map(Value::from).collect::<Vec<_>>(), limit_ph)
+            },
+            _ => (where_clause, Vec::new(), "?1".to_string()),
+        };
+
         let sql = format!(
             "SELECT id, document_id, chunk_index, content, \
              (CASE WHEN content LIKE '%{}%' THEN 1.0 ELSE 0.3 END) as bm25_score \
              FROM {meta_table} \
-             WHERE {where_clause} \
-             LIMIT ?1",
+             WHERE {where_with_filter} \
+             LIMIT {limit_placeholder}",
             words.first().unwrap_or(&"").replace('\'', "''")
         );
 
+        let mut values: Vec<Value> = Vec::with_capacity(params.len() + 1);
+        values.append(&mut params);
+        values.push((top_k as i64).into());
+
         let rows = self
             .db
-            .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                &sql,
-                vec![(top_k as i64).into()],
-            ))
+            .query_all_raw(Statement::from_sql_and_values(DbBackend::Sqlite, &sql, values))
             .await
             .map_err(|e| AxAgentError::Provider(format!("BM25 fallback search failed: {}", e)))?;
 
@@ -353,11 +451,12 @@ impl HybridSearcher {
 
     /// PostgreSQL keyword fallback: substring (`ILIKE`) match when the tsvector
     /// path yields nothing. Mirrors the SQLite `LIKE` fallback semantics.
-    async fn bm25_search_fallback_pg(
+    async fn bm25_search_fallback_pg_with_filter(
         &self,
         meta_table: &str,
         query: &str,
         top_k: usize,
+        doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
         let words: Vec<&str> = query.split_whitespace().take(8).collect();
         if words.is_empty() {
@@ -366,24 +465,43 @@ impl HybridSearcher {
 
         let conditions: Vec<String> =
             words.iter().map(|w| format!("content ILIKE '%{}%'", w.replace('\'', "''"))).collect();
-        let where_clause = conditions.join(" OR ");
+        let mut where_clause = conditions.join(" OR ");
+
+        let (in_clause, mut params, next_ph) = match doc_ids {
+            Some(ids) if !ids.is_empty() => {
+                // $1 = top_k, $2.. = doc_ids
+                let placeholders = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format!("${}", i + 2))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let clause = format!(" AND document_id IN ({placeholders})");
+                (clause, ids.iter().cloned().map(Value::from).collect::<Vec<_>>(), ids.len() + 2)
+            },
+            _ => (String::new(), Vec::new(), 2),
+        };
+
+        where_clause = format!("({where_clause}){in_clause}");
+
+        let limit_ph = format!("${next_ph}");
 
         let sql = format!(
             "SELECT id, document_id, chunk_index, content, \
              (CASE WHEN content ILIKE '%{}%' THEN 1.0 ELSE 0.3 END) as bm25_score \
              FROM {meta_table} \
              WHERE {where_clause} \
-             LIMIT $1",
+             LIMIT {limit_ph}",
             words.first().unwrap_or(&"").replace('\'', "''")
         );
 
+        let mut values: Vec<Value> = Vec::with_capacity(params.len() + 1);
+        values.push((top_k as i64).into());
+        values.append(&mut params);
+
         let rows = self
             .db
-            .query_all_raw(Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                &sql,
-                vec![(top_k as i64).into()],
-            ))
+            .query_all_raw(Statement::from_sql_and_values(DbBackend::Postgres, &sql, values))
             .await
             .map_err(|e| AxAgentError::Provider(format!("BM25 fallback search failed: {}", e)))?;
 
@@ -423,6 +541,7 @@ impl HybridSearcher {
                     content: vr.content.clone(),
                     vector_score: Some(1.0 - vr.score),
                     bm25_score: None,
+                    sparse_score: None,
                     combined_score: rrf_score,
                 },
             );
@@ -443,6 +562,7 @@ impl HybridSearcher {
                         content: br.content.clone(),
                         vector_score: None,
                         bm25_score: Some(br.bm25_score),
+                        sparse_score: None,
                         combined_score: rrf_score,
                     },
                 );
@@ -491,6 +611,7 @@ impl HybridSearcher {
                     content: vr.content,
                     vector_score: Some(normalized_vector),
                     bm25_score: bm25_raw,
+                    sparse_score: None,
                     combined_score: combined,
                 },
             );
@@ -516,6 +637,7 @@ impl HybridSearcher {
                     content: br.content,
                     vector_score: None,
                     bm25_score: Some(br.bm25_score),
+                    sparse_score: None,
                     combined_score: combined,
                 },
             );
@@ -604,6 +726,7 @@ mod tests {
             content: "test content".to_string(),
             vector_score: Some(0.85),
             bm25_score: Some(0.42),
+            sparse_score: None,
             combined_score: 0.65,
         };
         let json = serde_json::to_value(&result).unwrap();
@@ -639,6 +762,7 @@ mod tests {
             content: "".into(),
             vector_score: None,
             bm25_score: None,
+            sparse_score: None,
             combined_score: 0.0,
         };
         assert_eq!(result.combined_score, 0.0);

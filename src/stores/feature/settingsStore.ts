@@ -153,6 +153,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   // Smart Router 智能路由
   smart_router_enabled: false,
   smart_router_tier_mappings: {},
+  // RAG 模型自动加载
+  auto_load_models: true,
 };
 
 export interface GlobalShortcutDiagnostic {

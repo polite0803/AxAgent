@@ -26,6 +26,9 @@ pub struct PresetModel {
 pub enum PresetModelType {
     Reranker,
     Judge,
+    /// 稀疏神经编码器（BGE-M3 等），输出 (token_id, weight) 列表。
+    /// 用于多引擎 RAG 的 sparse 检索路径。
+    SparseEncoder,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -78,7 +81,28 @@ impl ModelDownloader {
                 display_name: "Qwen2.5 0.5B (Q4_K_M)".to_string(),
                 size_bytes: 400_000_000,
             },
+            // BGE-M3 sparse encoder（与 bge-reranker-v2-m3 同源 BERT 架构）。
+            // 输出 token 级激活权重，用于 sparse neural 检索路径。
+            // tokenizer 复用 bge-m3 tokenizer.json（需单独下载）。
+            PresetModel {
+                filename: "bge-m3-sparse.Q4_K_M.gguf".to_string(),
+                hf_repo: Some("gpustack/bge-m3-GGUF".to_string()),
+                direct_url: None,
+                sha256: String::new(),
+                model_type: PresetModelType::SparseEncoder,
+                display_name: "BGE-M3 Sparse Encoder (Q4_K_M)".to_string(),
+                size_bytes: 280_000_000,
+            },
         ]
+    }
+
+    /// 按 filename 查找预设模型。
+    ///
+    /// 调用方传入 `model_filename`（如 `"bge-m3-sparse.Q4_K_M.gguf"`），
+    /// 命中则返回 `PresetModel` 引用，否则 `None`。
+    /// 用于注册/加载 sparse encoder 等可选模型，避免硬编码模型路径。
+    pub fn find_preset(filename: &str) -> Option<PresetModel> {
+        Self::preset_models().into_iter().find(|m| m.filename == filename)
     }
 
     /// 确保指定模型已下载，返回模型文件的路径
@@ -368,9 +392,10 @@ mod tests {
     #[test]
     fn test_preset_models_not_empty() {
         let models = ModelDownloader::preset_models();
-        assert_eq!(models.len(), 2);
+        assert_eq!(models.len(), 3);
         assert_eq!(models[0].model_type, PresetModelType::Reranker);
         assert_eq!(models[1].model_type, PresetModelType::Judge);
+        assert_eq!(models[2].model_type, PresetModelType::SparseEncoder);
     }
 
     #[test]
@@ -378,9 +403,23 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let dl = ModelDownloader::with_cache_dir(tmp.path().to_path_buf());
         let models = dl.list_all_models();
-        assert_eq!(models.len(), 2);
+        assert_eq!(models.len(), 3);
         assert!(!models[0].is_downloaded);
         assert!(!models[1].is_downloaded);
+        assert!(!models[2].is_downloaded);
+    }
+
+    #[test]
+    fn test_find_preset_sparse_encoder() {
+        // 按文件名查找 sparse encoder 预设（注册式查找，非硬编码路径）
+        let m = ModelDownloader::find_preset("bge-m3-sparse.Q4_K_M.gguf");
+        assert!(m.is_some());
+        assert_eq!(m.unwrap().model_type, PresetModelType::SparseEncoder);
+    }
+
+    #[test]
+    fn test_find_preset_unknown_returns_none() {
+        assert!(ModelDownloader::find_preset("nonexistent.gguf").is_none());
     }
 
     #[test]

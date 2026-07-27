@@ -111,6 +111,15 @@ const LazyPersonaPage = lazy(() => import("@/pages/PersonaPage").then((m) => ({ 
 const LazyProactiveSettings = lazy(() =>
   import("@/components/settings/ProactiveSettings").then((m) => ({ default: m.ProactiveSettings }))
 );
+const LazyPaperOverviewPanel = lazy(() =>
+  import("@/components/settings/PaperOverviewPanel").then((m) => ({ default: m.PaperOverviewPanel }))
+);
+const LazyReadingListSettings = lazy(() =>
+  import("@/components/settings/ReadingListSettings").then((m) => ({ default: m.ReadingListSettings }))
+);
+const LazyKnowledgeGraphSearchPanel = lazy(() =>
+  import("@/components/settings/KnowledgeGraphSearchPanel").then((m) => ({ default: m.KnowledgeGraphSearchPanel }))
+);
 
 function SectionFallback() {
   return (
@@ -294,6 +303,21 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   proactiveBehavior: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyProactiveSettings />
+    </Suspense>
+  ),
+  readingList: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyReadingListSettings />
+    </Suspense>
+  ),
+  paperOverview: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyPaperOverviewPanel />
+    </Suspense>
+  ),
+  knowledgeGraph: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyKnowledgeGraphSearchPanel />
     </Suspense>
   ),
 };

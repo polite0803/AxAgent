@@ -28,9 +28,12 @@ pub mod v101_consolidate_knowledge_memory;
 pub mod v102_create_fleets;
 pub mod v103_wiki_graph_perf;
 pub mod v104_notes_fts;
+pub mod v105_kb_vault_kind;
+pub mod v106_context_source_doc_ids;
+pub mod v107_paper_reading_list;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 104;
+pub const CURRENT_VERSION: i32 = 107;
 
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
@@ -81,6 +84,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 104,
         description: "v104_notes_fts: 为 notes 表添加全文检索索引（SQLite FTS5 + PostgreSQL tsvector+GIN），解决 wiki_notes_search_keyword 内存 BM25 在 10 万节点下的性能问题",
         up: |db| Box::pin(v104_notes_fts::up(db)),
+    },
+    Migration {
+        version: 105,
+        description: "v105_kb_vault_kind: 为 knowledge_bases 表添加 kind/vault_path 字段，支持 ConnectedVault 类型 KB（Obsidian vault 集成）",
+        up: |db| Box::pin(v105_kb_vault_kind::up(db)),
+    },
+    Migration {
+        version: 106,
+        description: "v106_context_source_doc_ids: 为 context_sources 表添加 doc_ids_json 字段，支持多文档协同（按 doc_id 过滤 RAG 检索）",
+        up: |db| Box::pin(v106_context_source_doc_ids::up(db)),
+    },
+    Migration {
+        version: 107,
+        description: "v107_paper_reading_list: 新增 paper_overviews / reading_lists / reading_list_items 三张表，支持论文结构化概览与阅读列表管理",
+        up: |db| Box::pin(v107_paper_reading_list::up(db)),
     },
 ];
 
@@ -223,7 +241,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 5 行（v100 + v101 + v102 + v103 + v104）
+        // schema_version 表应有 8 行（v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -233,7 +251,10 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 5, "schema_version should have 5 rows (v100 + v101 + v102 + v103 + v104)");
+        assert_eq!(
+            cnt, 8,
+            "schema_version should have 8 rows (v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107)"
+        );
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

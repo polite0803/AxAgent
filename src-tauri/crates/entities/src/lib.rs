@@ -118,4 +118,9 @@ pub mod vec_collections;
 pub mod fleet_members;
 pub mod fleets;
 
+// Paper Overview Engine + Reading List & Queue
+pub mod paper_overviews;
+pub mod reading_list_items;
+pub mod reading_lists;
+
 pub use sea_orm;

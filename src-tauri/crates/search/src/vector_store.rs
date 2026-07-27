@@ -323,35 +323,41 @@ impl VectorStore {
             None => (None, None, None),
         };
 
-        let sql = match self.registry_get_collection(collection_id).await {
-            Some(_) => {
-                format!(
-                    "UPDATE vec_collections SET updated_at={now}, index_type='{index_type}', \
-                     vector_count=COALESCE((SELECT COUNT(*) FROM vec_{sanitized}_meta), 0) \
-                     WHERE collection_id='{cid}'",
-                    sanitized = Self::sanitize_collection_id(collection_id),
-                    cid = collection_id.replace('\'', "''"),
-                )
-            },
-            None => {
-                format!(
-                    "INSERT OR IGNORE INTO vec_collections \
-                     (collection_id, dimensions, index_type, hnsw_ef_construction, hnsw_m, hnsw_ef_search, \
-                      vector_count, created_at, updated_at) \
-                     VALUES ('{cid}', {dim_i32}, '{index_type}', {ef_c_val}, {m_val}, {ef_s_val}, \
-                     COALESCE((SELECT COUNT(*) FROM vec_{sanitized}_meta), 0), {now}, {now})",
-                    cid = collection_id.replace('\'', "''"),
-                    sanitized = Self::sanitize_collection_id(collection_id),
-                    ef_c_val = ef_c.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-                    m_val = m.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-                    ef_s_val = ef_s.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string()),
-                )
-            },
-        };
+        // sanitize_collection_id 已确保只含字母数字和下划线，表名拼接安全
+        let sanitized = Self::sanitize_collection_id(collection_id);
+        let meta_table = format!("vec_{sanitized}_meta");
 
-        if let Err(e) = self.exec(&sql).await {
-            tracing::debug!(
-                "Failed to update vec_collections registry for {}: {} (non-critical, table may not exist yet)",
+        // 使用 ON CONFLICT (collection_id) DO UPDATE 语法（PG 和 SQLite 3.24+ 都支持），
+        // 替代原来的 `INSERT OR IGNORE`（SQLite 专有语法，PG 上会语法错误）。
+        // 修复关键 bug：原实现在 PG 上 INSERT 失败导致 registry 永远没有记录，
+        // 后续每次 upsert_embeddings 都会走 `None` 分支重新执行 ensure_collection 的全部 DDL，
+        // 产生大量 PG notice 日志噪声，且每次索引都重复执行无用的 DDL。
+        let sql = format!(
+            "INSERT INTO vec_collections \
+             (collection_id, dimensions, index_type, hnsw_ef_construction, hnsw_m, hnsw_ef_search, \
+              vector_count, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, \
+                     COALESCE((SELECT COUNT(*) FROM {meta_table}), 0), $7, $7) \
+             ON CONFLICT (collection_id) DO UPDATE SET \
+              updated_at = EXCLUDED.updated_at, \
+              index_type = EXCLUDED.index_type, \
+              vector_count = COALESCE((SELECT COUNT(*) FROM {meta_table}), 0)",
+            meta_table = meta_table,
+        );
+
+        let params: Vec<Value> = vec![
+            collection_id.into(),
+            dim_i32.into(),
+            index_type.into(),
+            ef_c.into(),
+            m.into(),
+            ef_s.into(),
+            now.into(),
+        ];
+
+        if let Err(e) = self.exec_with_params(&sql, params).await {
+            tracing::warn!(
+                "Failed to upsert vec_collections registry for {}: {} (non-critical, table may not exist yet)",
                 collection_id,
                 e
             );
@@ -860,6 +866,21 @@ impl VectorStore {
         query_embedding: Vec<f32>,
         top_k: usize,
     ) -> Result<Vec<VectorSearchResult>> {
+        self.search_with_filter(knowledge_base_id, query_embedding, top_k, None).await
+    }
+
+    /// Vector similarity search with optional `document_id` list filter
+    /// (multi-document collaboration: restrict retrieval to a subset of docs).
+    ///
+    /// When `doc_ids` is `Some` and non-empty, an extra `m.document_id IN (...)`
+    /// predicate is added to the SQL; `None` or empty means no filtering.
+    pub async fn search_with_filter(
+        &self,
+        knowledge_base_id: &str,
+        query_embedding: Vec<f32>,
+        top_k: usize,
+        doc_ids: Option<&[String]>,
+    ) -> Result<Vec<VectorSearchResult>> {
         validate_collection_name(knowledge_base_id)?;
         let name = Self::validated_collection_name(knowledge_base_id)?;
 
@@ -870,13 +891,59 @@ impl VectorStore {
 
         let vec_json = Self::embedding_to_json(&query_embedding);
 
+        // Build the optional document_id IN clause.
+        // Empty filter → no constraint; non-empty → parameterised placeholders.
+        let (sql, mut params) = match doc_ids {
+            Some(ids) if !ids.is_empty() => {
+                let base_sql = if self.is_pg() {
+                    // PG: $1=embedding, $2=top_k, $3..=doc_ids
+                    let placeholders = ids
+                        .iter()
+                        .enumerate()
+                        .map(|(i, _)| format!("${}", i + 3))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let in_clause = format!(" AND m.document_id IN ({placeholders})");
+                    format!(
+                        "SELECT m.id, m.document_id, m.chunk_index, m.content, v.embedding <=> $1::vector AS distance \
+                         FROM {name} v \
+                         JOIN {name}_meta m ON m.rowid = v.rowid \
+                         WHERE TRUE{in_clause} \
+                         ORDER BY distance LIMIT $2"
+                    )
+                } else {
+                    // SQLite: $1=embedding, $2=top_k, $3..=doc_ids
+                    let placeholders = ids
+                        .iter()
+                        .enumerate()
+                        .map(|(i, _)| format!("${}", i + 3))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    let in_clause = format!(" AND m.document_id IN ({placeholders})");
+                    format!(
+                        "SELECT m.id, m.document_id, m.chunk_index, m.content, v.distance \
+                         FROM {name} v \
+                         JOIN {name}_meta m ON m.rowid = v.rowid \
+                         WHERE v.embedding MATCH $1 AND k = $2{in_clause} \
+                         ORDER BY v.distance"
+                    )
+                };
+                (base_sql, ids.iter().cloned().map(Value::from).collect::<Vec<_>>())
+            },
+            _ => (self.search_sql(&name), Vec::new()),
+        };
+
+        // Compose final parameter list in correct order:
+        //   SQLite: [embedding, k, doc_ids...]
+        //   PG:     [embedding, k, doc_ids...]
+        let mut values = Vec::with_capacity(params.len() + 2);
+        values.push(vec_json.into());
+        values.push((top_k as i64).into());
+        values.append(&mut params);
+
         let rows = match self
             .db
-            .query_all_raw(Statement::from_sql_and_values(
-                self.be(),
-                self.search_sql(&name),
-                vec![vec_json.into(), (top_k as i64).into()],
-            ))
+            .query_all_raw(Statement::from_sql_and_values(self.be(), &sql, values))
             .await
         {
             Ok(r) => r,

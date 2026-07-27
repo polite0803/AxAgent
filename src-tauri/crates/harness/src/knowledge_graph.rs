@@ -27,14 +27,14 @@ pub trait EntityGraphProvider: Send + Sync {
     async fn delete_relation(&self, relation_id: &str) -> Result<(), String>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExtractedEntity {
     pub name: String,
     pub entity_type: String,
     pub aliases: Vec<String>,
     pub description: String,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExtractedRelation {
     pub source: String,
     pub target: String,
@@ -48,4 +48,85 @@ pub trait EntityExtractor: Send + Sync {
         text: &str,
         entities: &[ExtractedEntity],
     ) -> Result<Vec<ExtractedRelation>, String>;
+}
+
+// ── LightRAG 跨文档实体抽取与图查询增强 DTO ──────────────────────────────
+
+/// 跨文档实体抽取请求（调用方组装后传入）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractEntitiesFromDocumentsInput {
+    pub knowledge_base_id: String,
+    /// 待抽取的文档 ID 列表（最多 20 个，超出由调用方分批）
+    pub document_ids: Vec<String>,
+    /// 已抽取的 chunk 内容映射 document_id → Vec<chunk_content>
+    /// 由调用方从 vector_store 加载后传入
+    pub chunks_by_document: std::collections::HashMap<String, Vec<String>>,
+    /// 已存在的实体列表（用于去重/合并判断），由调用方从 DAO 加载
+    pub existing_entities: Vec<crate::types::KnowledgeEntity>,
+}
+
+/// 跨文档实体抽取结果
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractEntitiesResult {
+    /// 新增的实体（已写入 DB，含最终 id）
+    pub new_entities: Vec<crate::types::KnowledgeEntity>,
+    /// 更新的实体（mention_count 累加 / properties 合并）
+    pub updated_entities: Vec<crate::types::KnowledgeEntity>,
+    /// 新增的关系
+    pub new_relations: Vec<crate::types::KnowledgeRelation>,
+    /// 跳过的 chunk 数（LLM 判定无实体）
+    pub skipped_chunks: u32,
+    /// 总耗时（毫秒）
+    pub elapsed_ms: u64,
+}
+
+/// 图查询增强上下文片段
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphEnhancedContextChunk {
+    /// 实体名称
+    pub entity_name: String,
+    /// 实体类型
+    pub entity_type: String,
+    /// 实体描述
+    pub description: Option<String>,
+    /// 命中的关系列表
+    pub relations: Vec<GraphRelationEdge>,
+    /// 来源（哪个 KB 抽取的）
+    pub knowledge_base_id: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphRelationEdge {
+    pub target_entity_name: String,
+    pub relation_type: String,
+    pub description: Option<String>,
+    pub weight: f64,
+}
+
+/// 图查询增强请求
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphEnhancedSearchInput {
+    pub knowledge_base_id: String,
+    pub query: String,
+    /// 最多返回的实体数（默认 10）
+    pub top_k: Option<usize>,
+    /// 是否包含 1-hop 邻居关系（默认 true）
+    pub include_neighbors: Option<bool>,
+}
+
+/// 图查询增强结果
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphEnhancedSearchResult {
+    /// 命中的实体及其邻居关系
+    pub entities: Vec<GraphEnhancedContextChunk>,
+    /// 拼接好的上下文文本（可直接注入到 RAG context）
+    pub context_text: String,
+    /// 命中实体总数
+    pub total_hits: usize,
 }

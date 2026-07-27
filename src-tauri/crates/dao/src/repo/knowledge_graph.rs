@@ -559,3 +559,329 @@ pub async fn upsert_relation(
 
     Ok(model_to_relation(model))
 }
+
+// ── LightRAG 图查询增强 ────────────────────────────────────────────────
+
+/// 根据查询关键词在 knowledge_entities 表中检索实体，并扩展 1-hop 邻居关系。
+///
+/// 算法：
+/// 1. 复用 `search_entities` 的关键词打分逻辑拿到 seed 实体（限制 top_k）
+/// 2. 收集 seed 实体 id 集合
+/// 3. 查询 knowledge_relations 中所有 source_entity_id 或 target_entity_id 命中的关系
+/// 4. 反查邻居实体的 name/entity_type，组装 [`GraphEnhancedContextChunk`]
+/// 5. 去重：同一实体可能被多个 seed 命中
+pub async fn graph_enhanced_search(
+    db: &DatabaseConnection,
+    kb_id: &str,
+    query: &str,
+    top_k: usize,
+    include_neighbors: bool,
+) -> Result<Vec<axagent_harness::GraphEnhancedContextChunk>> {
+    // 1. 关键词打分拿到 seed 实体
+    let seeds = search_entities(db, kb_id, query, top_k).await?;
+    if seeds.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // 2. 收集 seed id → entity 映射（用于最终输出实体信息）
+    let mut seed_map: std::collections::HashMap<String, KnowledgeEntity> =
+        std::collections::HashMap::with_capacity(seeds.len());
+    let mut seed_ids: Vec<String> = Vec::with_capacity(seeds.len());
+    for e in seeds {
+        seed_ids.push(e.id.clone());
+        seed_map.insert(e.id.clone(), e);
+    }
+
+    // 3. 不需要邻居关系时，直接组装无 relations 的 chunk
+    if !include_neighbors {
+        let mut chunks: Vec<axagent_harness::GraphEnhancedContextChunk> =
+            Vec::with_capacity(seed_map.len());
+        for e in seed_map.values() {
+            chunks.push(axagent_harness::GraphEnhancedContextChunk {
+                entity_name: e.name.clone(),
+                entity_type: e.entity_type.clone(),
+                description: e.description.clone(),
+                relations: Vec::new(),
+                knowledge_base_id: e.knowledge_base_id.clone(),
+            });
+        }
+        return Ok(chunks);
+    }
+
+    // 4. 查询所有命中 seed 的关系（双向）
+    let relations = knowledge_relations::Entity::find()
+        .filter(
+            knowledge_relations::Column::KnowledgeBaseId
+                .eq(kb_id)
+                .and(knowledge_relations::Column::SourceEntityId.is_in(seed_ids.clone()))
+                .or(knowledge_relations::Column::TargetEntityId.is_in(seed_ids.clone())),
+        )
+        .all(db)
+        .await?;
+
+    // 5. 收集所有邻居实体 id（去重）
+    let mut neighbor_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for r in &relations {
+        if seed_map.contains_key(&r.source_entity_id) {
+            // source 是 seed，target 是邻居
+            neighbor_ids.insert(r.target_entity_id.clone());
+        } else {
+            // target 是 seed，source 是邻居
+            neighbor_ids.insert(r.source_entity_id.clone());
+        }
+    }
+
+    // 6. 批量反查邻居实体（用 IN 查询，参数化）
+    let neighbor_ids_vec: Vec<String> = neighbor_ids.into_iter().collect();
+    let neighbors: Vec<knowledge_entities::Model> = if neighbor_ids_vec.is_empty() {
+        Vec::new()
+    } else {
+        knowledge_entities::Entity::find()
+            .filter(knowledge_entities::Column::Id.is_in(neighbor_ids_vec))
+            .all(db)
+            .await?
+    };
+    let mut neighbor_map: std::collections::HashMap<String, knowledge_entities::Model> =
+        std::collections::HashMap::with_capacity(neighbors.len());
+    for m in neighbors {
+        neighbor_map.insert(m.id.clone(), m);
+    }
+
+    // 7. 按 seed id 分组关系，组装 GraphRelationEdge
+    // 对每个 seed，遍历所有关系：若 source == seed，则是出边（target 为邻居）；
+    // 若 target == seed，则是入边（source 为邻居）。
+    // 由于 GraphRelationEdge 字段名为 target_entity_name，对入边也按"另一端"语义填充。
+    let mut rels_by_seed: std::collections::HashMap<
+        String,
+        Vec<axagent_harness::GraphRelationEdge>,
+    > = std::collections::HashMap::new();
+    for r in &relations {
+        let (seed_id, other_id) = if seed_map.contains_key(&r.source_entity_id) {
+            (r.source_entity_id.clone(), r.target_entity_id.clone())
+        } else if seed_map.contains_key(&r.target_entity_id) {
+            (r.target_entity_id.clone(), r.source_entity_id.clone())
+        } else {
+            continue;
+        };
+        let other_name =
+            neighbor_map.get(&other_id).map(|m| m.name.clone()).unwrap_or_else(|| other_id.clone());
+        let edge = axagent_harness::GraphRelationEdge {
+            target_entity_name: other_name,
+            relation_type: r.relation_type.clone(),
+            description: r.description.clone(),
+            weight: r.weight,
+        };
+        rels_by_seed.entry(seed_id).or_default().push(edge);
+    }
+
+    // 8. 组装最终 chunks（按 seed 原始顺序输出）
+    let mut chunks: Vec<axagent_harness::GraphEnhancedContextChunk> =
+        Vec::with_capacity(seed_map.len());
+    for id in &seed_ids {
+        let e = match seed_map.get(id) {
+            Some(e) => e,
+            None => continue,
+        };
+        let rels = rels_by_seed.remove(id).unwrap_or_default();
+        chunks.push(axagent_harness::GraphEnhancedContextChunk {
+            entity_name: e.name.clone(),
+            entity_type: e.entity_type.clone(),
+            description: e.description.clone(),
+            relations: rels,
+            knowledge_base_id: e.knowledge_base_id.clone(),
+        });
+    }
+
+    Ok(chunks)
+}
+
+/// 构造图查询增强的可注入上下文文本
+pub fn build_graph_context_text(
+    kb_id: &str,
+    chunks: &[axagent_harness::GraphEnhancedContextChunk],
+) -> String {
+    if chunks.is_empty() {
+        return String::new();
+    }
+    let mut text = format!("[Knowledge Graph - {}]\n", kb_id);
+    for chunk in chunks {
+        let desc = chunk.description.as_deref().unwrap_or("");
+        text.push_str(&format!("- {} ({}): {}\n", chunk.entity_name, chunk.entity_type, desc));
+        for rel in &chunk.relations {
+            let rel_desc = rel.description.as_deref().unwrap_or("");
+            text.push_str(&format!(
+                "  → {} [{}]: {}\n",
+                rel.target_entity_name, rel.relation_type, rel_desc
+            ));
+        }
+    }
+    text
+}
+
+/// 合并 aliases：将已有 JSON 数组字符串与新 aliases 去重后合并，返回新的 JSON 数组字符串。
+fn merge_aliases(existing: &str, new_aliases: &[String]) -> String {
+    let mut set: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    if let Ok(arr) = serde_json::from_str::<Vec<String>>(existing) {
+        for a in arr {
+            set.insert(a);
+        }
+    }
+    for a in new_aliases {
+        if !a.is_empty() {
+            set.insert(a.clone());
+        }
+    }
+    serde_json::to_string(&set.into_iter().collect::<Vec<_>>()).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// 跨文档批量 upsert 实体与关系
+///
+/// 用于 LLM 抽取后的写入：对每个 [`ExtractedEntity`]，先按 (kb_id, name) 查询，
+/// 存在则 mention_count += 1 并合并 aliases；不存在则新建。
+/// 关系同理：按 (kb_id, source_entity_id, target_entity_id, relation_type) 去重。
+pub async fn batch_upsert_entities_and_relations(
+    db: &DatabaseConnection,
+    kb_id: &str,
+    entities: Vec<axagent_harness::ExtractedEntity>,
+    relations: Vec<axagent_harness::ExtractedRelation>,
+) -> Result<axagent_harness::ExtractEntitiesResult> {
+    use axagent_harness::util_fns::gen_id;
+    let started_at = std::time::Instant::now();
+    let mut new_entities: Vec<KnowledgeEntity> = Vec::new();
+    let mut updated_entities: Vec<KnowledgeEntity> = Vec::new();
+    let mut new_relations: Vec<KnowledgeRelation> = Vec::new();
+    let skipped_chunks = 0u32;
+
+    // 用事务保证原子性
+    let txn = db.begin().await?;
+    let now = chrono::Utc::now().timestamp();
+
+    // 1. 实体 upsert：按 (kb_id, name) 去重
+    // name → 最终 entity id（用于后续关系写入）
+    let mut name_to_id: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+
+    for ent in entities {
+        if ent.name.is_empty() {
+            continue;
+        }
+        // 按 (kb_id, name) 查询（参数化）
+        let existing = knowledge_entities::Entity::find()
+            .filter(
+                knowledge_entities::Column::KnowledgeBaseId
+                    .eq(kb_id)
+                    .and(knowledge_entities::Column::Name.eq(&ent.name)),
+            )
+            .one(&txn)
+            .await?;
+
+        if let Some(m) = existing {
+            // 存在：mention_count += 1，合并 aliases
+            let existing_desc_is_none = m.description.is_none();
+            let merged_aliases = merge_aliases(&m.aliases, &ent.aliases);
+            let new_mention_count = m.mention_count + 1;
+            let mut am: knowledge_entities::ActiveModel = m.into();
+            am.aliases = Set(merged_aliases);
+            am.mention_count = Set(new_mention_count);
+            am.updated_at = Set(now);
+            // 若新抽取提供了 description 且原描述为空，则补上
+            if existing_desc_is_none && !ent.description.is_empty() {
+                am.description = Set(Some(ent.description.clone()));
+            }
+            let updated_model = am.update(&txn).await?;
+            let entity = model_to_entity(updated_model);
+            name_to_id.insert(entity.name.clone(), entity.id.clone());
+            updated_entities.push(entity);
+        } else {
+            // 不存在：新建
+            let id = gen_id();
+            let aliases_str =
+                serde_json::to_string(&ent.aliases).unwrap_or_else(|_| "[]".to_string());
+            let description = if ent.description.is_empty() {
+                None
+            } else {
+                Some(ent.description.clone())
+            };
+            let am = knowledge_entities::ActiveModel {
+                id: Set(id.clone()),
+                knowledge_base_id: Set(kb_id.to_string()),
+                name: Set(ent.name.clone()),
+                entity_type: Set(ent.entity_type),
+                description: Set(description),
+                source_path: Set(String::new()),
+                source_language: Set(None),
+                properties: Set(serde_json::Value::Object(Default::default())),
+                lifecycle: Set(None),
+                behaviors: Set(None),
+                metadata: Set(None),
+                created_at: Set(now),
+                updated_at: Set(now),
+                aliases: Set(aliases_str),
+                mention_count: Set(1),
+                confidence: Set(0.5),
+                first_seen_at: Set(None),
+                last_seen_at: Set(None),
+            };
+            let model = am.insert(&txn).await?;
+            let entity = model_to_entity(model);
+            name_to_id.insert(entity.name.clone(), entity.id.clone());
+            new_entities.push(entity);
+        }
+    }
+
+    // 2. 关系 upsert：按 (kb_id, source_entity_id, target_entity_id, relation_type) 去重
+    for rel in relations {
+        let source_id = match name_to_id.get(&rel.source) {
+            Some(id) => id.clone(),
+            None => continue,
+        };
+        let target_id = match name_to_id.get(&rel.target) {
+            Some(id) => id.clone(),
+            None => continue,
+        };
+        if source_id == target_id {
+            continue;
+        }
+        // 查询是否已存在相同关系
+        let existing_rel = knowledge_relations::Entity::find()
+            .filter(
+                knowledge_relations::Column::KnowledgeBaseId
+                    .eq(kb_id)
+                    .and(knowledge_relations::Column::SourceEntityId.eq(&source_id))
+                    .and(knowledge_relations::Column::TargetEntityId.eq(&target_id))
+                    .and(knowledge_relations::Column::RelationType.eq(&rel.relation_type)),
+            )
+            .one(&txn)
+            .await?;
+        if existing_rel.is_some() {
+            continue;
+        }
+        let rel_id = format!("rel_{}", gen_id());
+        let am = knowledge_relations::ActiveModel {
+            id: Set(rel_id.clone()),
+            knowledge_base_id: Set(kb_id.to_string()),
+            source_entity_id: Set(source_id),
+            target_entity_id: Set(target_id),
+            relation_type: Set(rel.relation_type),
+            description: Set(None),
+            properties: Set(None),
+            metadata: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+            weight: Set(1.0),
+        };
+        let model = am.insert(&txn).await?;
+        new_relations.push(model_to_relation(model));
+    }
+
+    txn.commit().await?;
+
+    let elapsed_ms = started_at.elapsed().as_millis() as u64;
+    Ok(axagent_harness::ExtractEntitiesResult {
+        new_entities,
+        updated_entities,
+        new_relations,
+        skipped_chunks,
+        elapsed_ms,
+    })
+}

@@ -36,6 +36,12 @@ function makeItem(overrides?: Partial<MemoryItem>): MemoryItem {
     source: "manual",
     indexStatus: "indexed",
     updatedAt: "2025-01-01T00:00:00Z",
+    tier: "working",
+    importance: 0.5,
+    accessCount: 0,
+    decayRate: 0.02,
+    memoryNature: "semantic",
+    tags: [],
     ...overrides,
   };
 }

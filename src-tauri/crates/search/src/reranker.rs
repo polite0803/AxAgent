@@ -583,6 +583,7 @@ mod tests {
             content: content.to_string(),
             vector_score: Some(score),
             bm25_score: None,
+            sparse_score: None,
             combined_score: score,
         }
     }

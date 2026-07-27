@@ -4,7 +4,7 @@ import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { invoke, listen, logIpcError } from "@/lib/invoke";
-import { useKnowledgeStore, useSettingsStore } from "@/stores";
+import { useKnowledgeStore, useSettingsStore, useUIStore } from "@/stores";
 import type { ImportDirectoryResult, IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
 import {
   CheckCircleOutlined,
@@ -35,7 +35,19 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import { BookOpen, FileText, FolderOpen, Pencil, Plus, Search, Settings, Trash, Trash2, Zap } from "lucide-react";
+import {
+  BookOpen,
+  FileText,
+  FolderOpen,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Trash,
+  Trash2,
+  Workflow,
+  Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -183,7 +195,11 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   const ragPipelineConfig = useSettingsStore(
     (s) => s.settings.rag_pipeline_config,
   );
+  const autoLoadModels = useSettingsStore(
+    (s) => s.settings.auto_load_models,
+  );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
+  const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   const [ragAdvancedConfig, setRagAdvancedConfig] = useState({
     rerankEnabled: ragPipelineConfig?.rerank?.enabled ?? false,
     rerankBackend: (ragPipelineConfig?.rerank?.backend ?? "rule") as
@@ -608,6 +624,14 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
               icon={<FileText size={14} />}
               disabled={record.indexingStatus === "indexing"}
               onClick={() => handleViewChunks(record)}
+            />
+          </Tooltip>
+          <Tooltip title={t("paper.title")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<Workflow size={14} />}
+              onClick={() => setSettingsSection("paperOverview")}
             />
           </Tooltip>
           <Popconfirm
@@ -1341,10 +1365,25 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                 {t("settings.rag.models")}
               </Space>
             ),
-            children: modelList.length === 0
-              ? <Empty description={t("settings.rag.modelNotDownloaded")} />
-              : (
-                <div className="divide-y divide-gray-100">
+            children: (
+              <div>
+                <div className="flex items-center justify-between py-2 px-1 mb-2 rounded bg-gray-50 dark:bg-gray-800/50">
+                  <span className="text-sm">{t("settings.rag.autoLoadModels")}</span>
+                  <Switch
+                    size="small"
+                    checked={!!autoLoadModels}
+                    onChange={(checked) => {
+                      saveSettings({ auto_load_models: checked });
+                      invoke("set_auto_load_models", { enabled: checked }).catch(
+                        logIpcError("set_auto_load_models"),
+                      );
+                    }}
+                  />
+                </div>
+                {modelList.length === 0
+                  ? <Empty description={t("settings.rag.modelNotDownloaded")} />
+                  : (
+                    <div className="divide-y divide-gray-100">
                   {modelList.map((model: LocalModelInfo) => (
                     <div key={model.name} className="py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1409,6 +1448,8 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
                 </div>
               ),
           },

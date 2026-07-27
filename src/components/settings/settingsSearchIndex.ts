@@ -457,6 +457,84 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ["存储", "storage", "空间", "磁盘", "缓存", "cache", "占用", "清理"],
   },
   {
+    section: "readingList",
+    group: "data",
+    keywords: [
+      "阅读列表",
+      "reading list",
+      "待读",
+      "队列",
+      "queue",
+      "papers",
+      "论文队列",
+      "阅读队列",
+    ],
+    items: [
+      {
+        itemKey: "readingList:create",
+        labelKey: "readingList.create",
+        keywords: ["新建列表", "create list", "新建阅读列表"],
+      },
+      {
+        itemKey: "readingList:items",
+        labelKey: "readingList.items",
+        keywords: ["条目", "items", "阅读条目"],
+      },
+    ],
+  },
+  {
+    section: "paperOverview",
+    group: "data",
+    keywords: [
+      "论文概览",
+      "paper overview",
+      "论文摘要",
+      "结构化概览",
+      "TLDR",
+      "key concepts",
+      "核心概念",
+    ],
+    items: [
+      {
+        itemKey: "paperOverview:generatePrompt",
+        labelKey: "paper.generatePrompt",
+        keywords: ["生成 prompt", "generate prompt", "概览 prompt"],
+      },
+      {
+        itemKey: "paperOverview:regenerate",
+        labelKey: "paper.regenerate",
+        keywords: ["重新生成", "regenerate", "重新生成概览"],
+      },
+    ],
+  },
+  {
+    section: "knowledgeGraph",
+    group: "data",
+    keywords: [
+      "知识图谱",
+      "knowledge graph",
+      "lightrag",
+      "实体",
+      "关系",
+      "entity",
+      "relation",
+      "图查询",
+      "graph search",
+    ],
+    items: [
+      {
+        itemKey: "knowledgeGraph:search",
+        labelKey: "knowledgeGraph.search",
+        keywords: ["图查询增强", "graph enhanced search", "搜索"],
+      },
+      {
+        itemKey: "knowledgeGraph:extract",
+        labelKey: "knowledgeGraph.extract",
+        keywords: ["跨文档抽取", "extract entities", "实体抽取"],
+      },
+    ],
+  },
+  {
     section: "cloudWorkspace",
     group: "data",
     keywords: ["云端工作区", "cloud workspace", "同步", "sync", "云工作区"],

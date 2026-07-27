@@ -80,6 +80,63 @@ impl Default for SelfRagConfig {
     }
 }
 
+/// 多引擎 RAG 混合检索配置
+///
+/// 控制三路融合（dense + sparse + BM25）的权重与算法。
+/// 权重会被归一化（总和不要求为 1，按比例分配）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HybridConfig {
+    /// 是否启用混合检索（false 时仅走 dense vector）
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// dense vector 检索权重（0.0~1.0，默认 0.7）
+    #[serde(default = "default_vector_weight")]
+    pub vector_weight: f32,
+    /// BM25 关键词检索权重（0.0~1.0，默认 0.3）
+    #[serde(default = "default_bm25_weight")]
+    pub bm25_weight: f32,
+    /// sparse neural 检索权重（0.0~1.0，默认 0.0）。
+    /// 当前未接入 sparse encoder，保持 0 即可；后续接入 SPLADE/BGE-M3 时可调高。
+    #[serde(default)]
+    pub sparse_weight: f32,
+    /// 融合算法：`rrf`（默认）或 `weighted`
+    #[serde(default = "default_fusion")]
+    pub fusion: String,
+    /// RRF 算法的 k 参数（默认 60.0）
+    #[serde(default = "default_rrf_k")]
+    pub rrf_k: f32,
+}
+
+fn default_true() -> bool {
+    true
+}
+fn default_vector_weight() -> f32 {
+    0.7
+}
+fn default_bm25_weight() -> f32 {
+    0.3
+}
+fn default_fusion() -> String {
+    "rrf".to_string()
+}
+fn default_rrf_k() -> f32 {
+    60.0
+}
+
+impl Default for HybridConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            vector_weight: 0.7,
+            bm25_weight: 0.3,
+            sparse_weight: 0.0,
+            fusion: "rrf".to_string(),
+            rrf_k: 60.0,
+        }
+    }
+}
+
 /// 全局 RAG 管线配置
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,6 +147,9 @@ pub struct RAGPipelineConfig {
     pub rerank: RerankConfig,
     #[serde(default)]
     pub self_rag: SelfRagConfig,
+    /// 多引擎 RAG：混合检索权重与融合算法配置
+    #[serde(default)]
+    pub hybrid: HybridConfig,
 }
 
 /// 笔记检索结果（含完整 Note 对象）

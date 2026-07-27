@@ -599,6 +599,8 @@ export interface AppSettings {
   smart_router_enabled?: boolean;
   /** tier(budget/balanced/premium) → provider/model 映射表。 */
   smart_router_tier_mappings?: Record<string, SmartRouterTierMapping>;
+  /** Auto-load downloaded GGUF models into memory when RAG pipeline is active. */
+  auto_load_models?: boolean;
 }
 
 /** Smart Router tier → provider/model 映射项（对应后端 harness TierModelMapping）。 */
@@ -789,6 +791,9 @@ export type SettingsSection =
   | "theme"
   | "cron"
   | "dynamicPages"
+  | "readingList"
+  | "paperOverview"
+  | "knowledgeGraph"
   | string;
 
 // === Generated Tool ===
@@ -1188,6 +1193,7 @@ export * from "./memory";
 export * from "./nudge";
 // Fleet（多办公室 AI 团队）— 与后端 axagent_harness::fleet 一一对应
 export * from "./office";
+export * from "./paper";
 export * from "./permission";
 export * from "./persona";
 export * from "./platform";
@@ -1204,6 +1210,7 @@ export type ContextSourceType =
   | "search"
   | "knowledge"
   | "memory"
+  | "wiki"
   | "tool";
 
 export type ContextSource = {
@@ -1215,6 +1222,8 @@ export type ContextSource = {
   title: string;
   enabled: boolean;
   summary?: string;
+  /** 多文档协同：限制 RAG 检索范围到这些文档 ID；空数组表示不限制 */
+  docIds?: string[];
 };
 
 export type ConversationBranch = {
