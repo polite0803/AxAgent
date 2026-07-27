@@ -4,6 +4,11 @@
  * AgentCard — 办公室成员卡片（展示状态 + token + 角色）。
  *
  * 在右侧操作面板的「成员列表」中使用，点击触发 DM 面板切换。
+ *
+ * 角色 Tag 显示策略：
+ * - 通过 agent_slug + role 推断业务角色（投研 / 数据 / 策略 / 交易 / 风控 / 管理 / 通用）
+ * - 角色 Tag 颜色与 sprites.ts 中的 ROLE_COLORS 保持一致（Ant Design 色板）
+ * - 与状态 Tag 正交：角色反映"是谁"，状态反映"在干什么"
  */
 
 import type { FleetMember, FleetMemberStatus } from "@/types";
@@ -18,6 +23,110 @@ const STATUS_COLOR: Record<FleetMemberStatus, string> = {
   error: "#ff4d4f",
   offline: "#8c8c8c",
 };
+
+/**
+ * 业务角色 → Ant Design Tag color 映射。
+ *
+ * 颜色与 sprites.ts 的 ROLE_COLORS 保持一致（Ant Design 6 色板），
+ * 但用 Ant Design Tag 接受的字符串色名而非数字 hex。
+ */
+const ROLE_TAG_COLOR: Record<string, string> = {
+  research: "blue",
+  analyst: "blue",
+  researcher: "blue",
+  data: "cyan",
+  data_room: "cyan",
+  strategy: "magenta",
+  strategist: "magenta",
+  trading: "red",
+  trader: "red",
+  risk: "orange",
+  risk_manager: "orange",
+  meeting: "purple",
+  manager: "purple",
+  ceo: "purple",
+  default: "green",
+};
+
+/** Ant Design Tag color 名称 → hex 值（用于头像背景色 alpha 混合） */
+const TAG_COLOR_HEX: Record<string, string> = {
+  blue: "#1677ff",
+  cyan: "#13c2c2",
+  magenta: "#eb2f96",
+  red: "#f5222d",
+  orange: "#fa8c16",
+  purple: "#722ed1",
+  green: "#52c41a",
+};
+
+/**
+ * 业务角色 i18n key 后缀（对应 office.roleTag.* 翻译）。
+ *
+ * 与 ROLE_TAG_COLOR 的键一致，取首选项作为 i18n key。
+ */
+const ROLE_I18N_KEY: Record<string, string> = {
+  research: "research",
+  analyst: "research",
+  researcher: "research",
+  data: "data",
+  data_room: "data",
+  strategy: "strategy",
+  strategist: "strategy",
+  trading: "trading",
+  trader: "trading",
+  risk: "risk",
+  risk_manager: "risk",
+  meeting: "manager",
+  manager: "manager",
+  ceo: "manager",
+};
+
+/**
+ * 根据 agent_slug + role 推断业务角色 Tag 信息。
+ *
+ * 返回 `{ color, labelKey }`，labelKey 对应 `office.roleTag.${key}` i18n。
+ * 都不匹配时返回 default 绿色通用助手。
+ */
+function resolveRoleTag(agentSlug?: string, role?: string): { color: string; labelKey: string } {
+  const slug = (agentSlug ?? "").toLowerCase();
+  // 1. slug 直接命中
+  if (slug && ROLE_TAG_COLOR[slug]) {
+    return { color: ROLE_TAG_COLOR[slug], labelKey: ROLE_I18N_KEY[slug] };
+  }
+  // 2. slug 包含角色关键词
+  if (slug) {
+    for (const key of Object.keys(ROLE_TAG_COLOR)) {
+      if (key !== "default" && slug.includes(key)) {
+        return { color: ROLE_TAG_COLOR[key], labelKey: ROLE_I18N_KEY[key] };
+      }
+    }
+  }
+  // 3. role 关键词匹配
+  const roleLower = (role ?? "").toLowerCase();
+  if (roleLower) {
+    for (const key of Object.keys(ROLE_TAG_COLOR)) {
+      if (key !== "default" && roleLower.includes(key)) {
+        return { color: ROLE_TAG_COLOR[key], labelKey: ROLE_I18N_KEY[key] };
+      }
+    }
+    // 中文角色名匹配
+    if (roleLower.includes("投研") || roleLower.includes("研究员")) {
+      return { color: ROLE_TAG_COLOR.research, labelKey: "research" };
+    }
+    if (roleLower.includes("数据")) { return { color: ROLE_TAG_COLOR.data, labelKey: "data" }; }
+    if (roleLower.includes("策略")) {
+      return { color: ROLE_TAG_COLOR.strategy, labelKey: "strategy" };
+    }
+    if (roleLower.includes("交易") || roleLower.includes("交易员")) {
+      return { color: ROLE_TAG_COLOR.trading, labelKey: "trading" };
+    }
+    if (roleLower.includes("风控")) { return { color: ROLE_TAG_COLOR.risk, labelKey: "risk" }; }
+    if (roleLower.includes("经理") || roleLower.includes("管理")) {
+      return { color: ROLE_TAG_COLOR.manager, labelKey: "manager" };
+    }
+  }
+  return { color: ROLE_TAG_COLOR.default, labelKey: "default" };
+}
 
 export interface AgentCardProps {
   member: FleetMember;
@@ -36,6 +145,9 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
     if (n >= 1_000) { return `${(n / 1_000).toFixed(1)}K`; }
     return String(n);
   };
+
+  // 推断角色 Tag（基于 agent_slug + role）
+  const roleTag = resolveRoleTag(member.agentSlug, member.role);
 
   return (
     <div
@@ -76,13 +188,13 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
           flexShrink: 0,
         }}
       />
-      {/* 头像 */}
+      {/* 头像 — 背景色用角色色，图标色用状态色（双映射） */}
       <div
         style={{
           width: 32,
           height: 32,
           borderRadius: 6,
-          background: `${STATUS_COLOR[member.status]}18`,
+          background: `${TAG_COLOR_HEX[roleTag.color] ?? TAG_COLOR_HEX.green}18`,
           color: STATUS_COLOR[member.status],
           display: "flex",
           alignItems: "center",
@@ -96,15 +208,32 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
             fontSize: 13,
             fontWeight: 600,
             color: token.colorText,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
           }}
         >
-          {member.displayName}
+          <span
+            style={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            {member.displayName}
+          </span>
+          {/* 角色 Tag — 颜色由角色决定 */}
+          <Tag
+            color={roleTag.color}
+            style={{ margin: 0, fontSize: 10, lineHeight: "16px", padding: "0 6px", flexShrink: 0 }}
+          >
+            {t(`office.roleTag.${roleTag.labelKey}`)}
+          </Tag>
         </div>
         <div
           style={{
@@ -117,7 +246,11 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
           }}
         >
           <User size={10} />
-          <span style={{ fontFamily: "monospace" }}>{member.agentSlug}</span>
+          <span
+            style={{ fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          >
+            {member.agentSlug}
+          </span>
         </div>
       </div>
       {/* 状态标签 */}

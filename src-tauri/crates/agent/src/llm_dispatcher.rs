@@ -84,8 +84,17 @@ impl IntentDispatcher for LlmDispatcher {
             return Ok(events);
         }
 
-        // 3. 构造 LLM prompt
-        let system_prompt = build_system_prompt(&routable);
+        // 3. 加载 fleet metadata，根据 strategy 选择 dispatcher prompt 分支
+        let strategy = self
+            .fleet_repo
+            .get_fleet(fleet_id)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|f| f.metadata.strategy);
+
+        // 4. 构造 LLM prompt
+        let system_prompt = build_system_prompt(&routable, strategy.as_deref());
         let user_prompt = build_user_prompt(user_message, &history);
 
         // 4. 调用 LLM 路由
@@ -155,7 +164,10 @@ impl IntentDispatcher for LlmDispatcher {
 
 // ── Prompt 构造 ──────────────────────────────────────────────────────
 
-fn build_system_prompt(members: &[&axagent_harness::fleet::FleetMember]) -> String {
+fn build_system_prompt(
+    members: &[&axagent_harness::fleet::FleetMember],
+    strategy: Option<&str>,
+) -> String {
     let member_list: Vec<String> = members
         .iter()
         .map(|m| {
@@ -166,18 +178,70 @@ fn build_system_prompt(members: &[&axagent_harness::fleet::FleetMember]) -> Stri
         })
         .collect();
 
-    format!(
+    // 根据 strategy 选择不同的业务上下文与路由偏好
+    let business_context = match strategy.unwrap_or("") {
+        "investment_research" | "investment" => INVESTMENT_RESEARCH_CONTEXT,
+        "trading" => TRADING_CONTEXT,
+        "risk_management" | "risk" => RISK_CONTEXT,
+        "data_analysis" | "data" => DATA_ANALYSIS_CONTEXT,
+        _ => "",
+    };
+
+    let base = format!(
         "你是一个智能调度员,负责将用户消息路由到最合适的 AI agent。\n\n\
          ## 可用成员\n{}\n\n\
          ## 路由规则\n\
          1. 仔细分析用户消息的意图\n\
          2. 根据成员的角色描述选择最合适的一个\n\
-         3. 仅返回 JSON,不要任何额外文本\n\n\
-         ## 返回格式\n\
-         {{\"agent_slug\": \"<成员 slug>\", \"reason\": \"<选择原因,简短>\"}}",
+         3. 仅返回 JSON,不要任何额外文本\n\n",
         member_list.join("\n")
-    )
+    );
+
+    let context_block = if business_context.is_empty() {
+        String::new()
+    } else {
+        format!("## 业务上下文\n{business_context}\n\n")
+    };
+
+    let footer = "## 返回格式\n\
+         {\"agent_slug\": \"<成员 slug>\", \"reason\": \"<选择原因,简短>\"}";
+
+    format!("{base}{context_block}{footer}")
 }
+
+/// 投研策略：偏向将新闻 / 财报 / 公告类问题路由给 research 角色
+const INVESTMENT_RESEARCH_CONTEXT: &str = "\
+本舰队专注于股票投研。\n\
+- 用户消息可能涉及股票代码、行业新闻、研报、财报等关键词\n\
+- 优先路由给 research / analyst 类成员处理分析任务\n\
+- 数据查询类问题路由给 data 成员（如查行情、K线、基本面）\n\
+- 决策建议 / 仓位路由给 portfolio-mgr 或 trader 成员\n\
+- 多空辩论或同行评估路由给 debate 类成员";
+
+/// 交易策略：偏向下单 / 持仓 / 平仓类问题路由给 trader
+const TRADING_CONTEXT: &str = "\
+本舰队专注于交易执行。\n\
+- 用户消息常涉及下单、改单、撤单、止损止盈等执行类指令\n\
+- 优先路由给 trader 成员处理执行类问题\n\
+- 仓位调整建议路由给 portfolio-mgr 成员\n\
+- 行情查询路由给 data 成员\n\
+- 涉及风控限制时同时触发 risk 成员评估";
+
+/// 风控策略：偏向止损 / 压测 / 集中度类问题路由给 risk
+const RISK_CONTEXT: &str = "\
+本舰队专注于风险管理。\n\
+- 用户消息涉及回撤、压力测试、行业暴露、相关性等风控指标\n\
+- 优先路由给 risk / risk_manager 成员\n\
+- 极端行情或系统性风险时建议同时通知 portfolio-mgr 调整仓位\n\
+- 合规规则检查路由给 compliance 类成员（若存在）";
+
+/// 数据分析策略：偏向数据查询 / 报表 / 指标类问题路由给 data
+const DATA_ANALYSIS_CONTEXT: &str = "\
+本舰队专注于数据采集与分析。\n\
+- 用户消息涉及行情、财务、新闻、舆情、宏观数据的查询与统计\n\
+- 优先路由给 data / analyst 类成员\n\
+- 复杂策略回测或量化分析路由给 quant 类成员（若存在）\n\
+- 数据异常或质量校验路由给 data-quality 类成员";
 
 fn build_user_prompt(user_message: &str, history: &[DispatchChatMessage]) -> String {
     if history.is_empty() {
@@ -255,10 +319,32 @@ mod tests {
             total_tokens: 0,
         };
         let members: Vec<_> = vec![&member];
-        let prompt = build_system_prompt(&members);
+        let prompt = build_system_prompt(&members, None);
         assert!(prompt.contains("copywriter"));
         assert!(prompt.contains("撰写产品文案"));
         assert!(prompt.contains("agent_slug"));
+        // strategy=None 时不包含业务上下文块
+        assert!(!prompt.contains("## 业务上下文"));
+    }
+
+    #[test]
+    fn test_build_system_prompt_with_investment_strategy() {
+        let member = axagent_harness::fleet::FleetMember {
+            id: "1".to_string(),
+            fleet_id: "f1".to_string(),
+            agent_id: "a1".to_string(),
+            agent_slug: "research".to_string(),
+            display_name: "研究员".to_string(),
+            role: "投研".to_string(),
+            room_id: "research".to_string(),
+            status: FleetMemberStatus::Idle,
+            joined_at: 0,
+            today_tokens: 0,
+            total_tokens: 0,
+        };
+        let prompt = build_system_prompt(&[&member], Some("investment_research"));
+        assert!(prompt.contains("## 业务上下文"));
+        assert!(prompt.contains("股票投研"));
     }
 
     #[test]

@@ -7,9 +7,9 @@
  * （routing / agent_message / complete / error）。
  */
 
-import { useOfficeStore } from "@/stores";
+import { useOfficeStore, useStockAnalysisStore } from "@/stores";
 import type { DispatchEvent } from "@/types";
-import { Button, Input, Space, Spin, Tag, theme, Typography } from "antd";
+import { Button, Input, Space, Spin, Tag, theme, Tooltip, Typography } from "antd";
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,11 @@ export function ChatPanel({ fleetId }: { fleetId: string }) {
   const events = useOfficeStore((s) => s.dispatchEvents);
   const loading = useOfficeStore((s) => s.loading);
   const clearEvents = useOfficeStore((s) => s.clearDispatchEvents);
+
+  // 注入股票业务上下文：用户在 stock-analysis 页选中的当前股票
+  const stockCode = useStockAnalysisStore((s) => s.stockCode);
+  const stockName = useStockAnalysisStore((s) => s.stockName);
+  const quote = useStockAnalysisStore((s) => s.quote);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -40,19 +45,47 @@ export function ChatPanel({ fleetId }: { fleetId: string }) {
     }
   }, [events]);
 
+  // 构造业务上下文后缀：若当前选中有股票，自动追加到 user_message 末尾
+  // 让 dispatcher LLM 能感知"用户正在看哪只股票"
+  const buildBusinessContextSuffix = (): string => {
+    if (!stockCode) {
+      return "";
+    }
+    const parts: string[] = [`[当前股票上下文] 代码=${stockCode}`];
+    if (stockName) {
+      parts.push(`名称=${stockName}`);
+    }
+    if (quote) {
+      parts.push(`现价=${quote.price}`);
+      parts.push(`涨跌幅=${quote.changePct}%`);
+      if (quote.pe != null) {
+        parts.push(`PE=${quote.pe}`);
+      }
+      if (quote.pb != null) {
+        parts.push(`PB=${quote.pb}`);
+      }
+    }
+    return `\n${parts.join(" ")}`;
+  };
+
   const handleSend = async () => {
     const msg = input.trim();
     if (!msg || sending) {
       return;
     }
+    const ctxSuffix = buildBusinessContextSuffix();
+    const finalMsg = ctxSuffix ? `${msg}\n${ctxSuffix}` : msg;
     setSending(true);
     setInput("");
     try {
-      await dispatch({ fleetId, userMessage: msg });
+      await dispatch({ fleetId, userMessage: finalMsg });
     } finally {
       setSending(false);
     }
   };
+
+  // 显示当前注入的股票上下文提示
+  const hasContext = Boolean(stockCode);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 8 }}>
@@ -77,6 +110,32 @@ export function ChatPanel({ fleetId }: { fleetId: string }) {
           )
           : <EventList events={events} />}
       </div>
+
+      {/* 股票上下文提示条 */}
+      {hasContext && (
+        <Tooltip title={t("office.chat.contextInjectedHint")}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 8px",
+              background: token.colorPrimaryBg,
+              borderRadius: 4,
+              fontSize: 11,
+              color: token.colorPrimary,
+            }}
+          >
+            <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>
+              {stockCode}
+            </Tag>
+            <span>
+              {stockName}
+              {quote ? ` · ${quote.price} (${quote.changePct}%)` : ""}
+            </span>
+          </div>
+        </Tooltip>
+      )}
 
       {/* 输入栏 */}
       <Space.Compact style={{ width: "100%" }}>

@@ -378,7 +378,7 @@ fn now_ms() -> i64 {
 /// 清理名称用于生成 task_id
 fn sanitize_name(name: &str) -> String {
     name.chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
         .take(32)
         .collect::<String>()
         .to_lowercase()

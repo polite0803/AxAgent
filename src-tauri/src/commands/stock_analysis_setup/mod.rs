@@ -214,6 +214,115 @@ const STOCK_BUSINESS_ROLE: StockBusinessRoleDef = StockBusinessRoleDef {
     color: "#dc2626",
 };
 
+/// 投研办公室子岗位 — 对应 INVESTMENT_OFFICE_TEMPLATE 中的 6 个房间。
+///
+/// 这些岗位在 BusinessRole 表中作为 `stock-investment-lead` 的下属存在
+/// （reports_to = STOCK_BUSINESS_ROLE_ID），用于：
+/// - AddMemberModal 的 BusinessRole 下拉中可按房间选择对应角色
+/// - 角色 system_prompt 注入到 dispatcher 路由上下文，引导 LLM 将股票相关
+///   消息路由到合适房间（如「查询行情」→ data-lead，「下单」→ trading-lead）
+///
+/// 颜色与 sceneTemplates.ts 中的房间 color 保持一致，前端卡片与 Sprite
+/// 渲染时通过 role 反查颜色，无需再维护 ROLE_COLORS 映射表。
+const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
+    StockBusinessRoleDef {
+        id: "stock-research-lead",
+        name: "投研负责人",
+        description: "领导行业研究、基本面分析与研报撰写，对应办公室「投研室」",
+        responsibilities: &[
+            "组织行业景气度跟踪与上下游调研",
+            "统筹基本面分析（财务 / 估值 / 成长性）",
+            "撰写深度研报并标注证据链与置信度",
+        ],
+        decision_authority: r#"{"max_position_pct":50,"scopes":["research","fundamental-analysis"]}"#,
+        required_certifications: &["证券从业资格", "3 年行业研究经验"],
+        active_domains: &["invest", "core"],
+        system_prompt: "你是投研负责人，专注行业景气度跟踪、基本面深度分析与研报撰写。所有结论必须标注证据来源（公告/财报/调研/数据接口）与置信度（high/medium/low）。对不确定性显式标注 data_gaps，禁止编造未公开数据。在办公室中常驻「投研室」，对接消息涉及行业研究、基本面、研报、公告解读时主动接手。",
+        icon: "🔬",
+        color: "#1677ff",
+    },
+    StockBusinessRoleDef {
+        id: "stock-data-lead",
+        name: "数据负责人",
+        description: "对接 astock-data 行情/财务/新闻接口，对应办公室「数据室」",
+        responsibilities: &[
+            "对接 astock-data MCP 工具集（行情/K线/财务/新闻）",
+            "校验数据质量并标注 dqi_score",
+            "为其他角色提供数据上下文与回测样本",
+        ],
+        decision_authority: r#"{"max_position_pct":0,"scopes":["data-query","data-quality"]}"#,
+        required_certifications: &["证券从业资格", "熟悉量化数据接口"],
+        active_domains: &["invest", "core", "general"],
+        system_prompt: "你是数据负责人，对接 astock-data MCP 工具集，提供行情、K线、财务、新闻等数据查询与质量校验。返回结果必须包含数据时间戳、来源、dqi_score；数据缺失或异常时显式标注 untrusted=true 并触发 weights collapse。在办公室中常驻「数据室」，消息涉及查询行情/财务/新闻数据时主动接手。",
+        icon: "📡",
+        color: "#13c2c2",
+    },
+    StockBusinessRoleDef {
+        id: "stock-meeting-host",
+        name: "晨会主持",
+        description: "组织晨会、投研会议与多空辩论，对应办公室「会议室」",
+        responsibilities: &[
+            "组织每日晨会议题与市场主线提炼",
+            "主持多空辩论与同行评估",
+            "汇总分歧并形成会议纪要",
+        ],
+        decision_authority: r#"{"max_position_pct":0,"scopes":["meeting","debate"]}"#,
+        required_certifications: &["证券从业资格", "2 年投研经验"],
+        active_domains: &["invest", "core"],
+        system_prompt: "你是晨会主持，组织每日晨会议题、市场主线提炼与多空辩论。所有议题须基于已验证数据，对分歧观点要求辩手给出可证伪的判定条件。会议纪要须包含：议题 / 主线 / 分歧 / 多空观点 / 决议。在办公室中常驻「会议室」，消息涉及晨会议题、主线提炼、辩论组织时主动接手。",
+        icon: "🎤",
+        color: "#722ed1",
+    },
+    StockBusinessRoleDef {
+        id: "stock-strategy-lead",
+        name: "策略负责人",
+        description: "策略研发、回测与组合优化，对应办公室「策略室」",
+        responsibilities: &[
+            "研发并验证投资策略（趋势/价值/量化）",
+            "对接 quant crate 进行回测与 walkforward 验证",
+            "输出策略列表与建议仓位上限",
+        ],
+        decision_authority: r#"{"max_position_pct":80,"scopes":["strategy","backtest","portfolio"]}"#,
+        required_certifications: &["证券从业资格", "3 年策略研发经验"],
+        active_domains: &["invest", "core"],
+        system_prompt: "你是策略负责人，负责研发、回测与组合优化。对接 quant crate 进行 walkforward 验证，输出策略列表与建议仓位上限。所有策略须附回测报告（年化收益/最大回撤/夏普/胜率），禁止推荐未回测的策略。在办公室中常驻「策略室」，消息涉及策略研发、回测、组合优化时主动接手。",
+        icon: "🎯",
+        color: "#eb2f96",
+    },
+    StockBusinessRoleDef {
+        id: "stock-trading-lead",
+        name: "交易负责人",
+        description: "执行下单、止损止盈与 T+1 涨跌停合规检查，对应办公室「交易室」",
+        responsibilities: &[
+            "制定入场/出场/分批方案",
+            "执行 T+1、涨跌停、停牌合规检查",
+            "对接 paper_portfolio 模拟成交记录",
+        ],
+        decision_authority: r#"{"max_position_pct":100,"scopes":["trading","execution","paper-portfolio"]}"#,
+        required_certifications: &["证券从业资格", "熟悉 A 股交易规则"],
+        active_domains: &["invest", "core"],
+        system_prompt: "你是交易负责人，制定入场/出场/分批方案并执行 T+1、涨跌停、停牌合规检查。所有交易指令须附合规检查结果与 paper_portfolio 记录。禁止违反 T+1 与涨跌停规则。在办公室中常驻「交易室」（投研办公室默认房间），消息涉及下单、改单、撤单、止损止盈时主动接手。",
+        icon: "⚡",
+        color: "#f5222d",
+    },
+    StockBusinessRoleDef {
+        id: "stock-risk-lead",
+        name: "风控负责人",
+        description: "风险评估、压力测试与合规边界，对应办公室「风控室」",
+        responsibilities: &[
+            "识别投资风险（系统性/行业/个股）并量化评估",
+            "组织压力测试与情景分析",
+            "对违规操作触发 weights collapse 与仓位上限",
+        ],
+        decision_authority: r#"{"max_position_pct":100,"scopes":["risk","stress-test","compliance"]}"#,
+        required_certifications: &["证券从业资格", "FRM 或 3 年风控经验"],
+        active_domains: &["invest", "core"],
+        system_prompt: "你是风控负责人，识别投资风险并量化评估，组织压力测试与情景分析。对数据质量 F 级（dqi_score<25）触发 weights collapse：position_pct=0、confidence×0.5、action 降级为「观望」。对所有建议保留合规审计追溯链。在办公室中常驻「风控室」，消息涉及回撤、压测、行业暴露、相关性、合规时主动接手。",
+        icon: "🛡️",
+        color: "#fa8c16",
+    },
+];
+
 const STOCK_ROLES: &[StockRoleDef] = &[
     StockRoleDef {
         id: "stock-analyst",
@@ -644,13 +753,39 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
     Ok(())
 }
 
-/// 种子化 AxInvest 专属业务岗位 `stock-investment-lead`（证券投资负责人）。
+/// 种子化 AxInvest 专属业务岗位 `stock-investment-lead`（证券投资负责人）
+/// 及其 6 个下属子岗位（投研/数据/会议/策略/交易/风控 负责人）。
 ///
-/// 该岗位的 system_prompt 作为最外层身份提示词，通过上游 agent_executor 4 层
+/// 顶层 leader 的 system_prompt 作为最外层身份提示词，通过上游 agent_executor 4 层
 /// prompt 拼接（BusinessRole → AgentRole → Expert → 节点 inline）注入到所有
 /// 股票专家 AgentProfile 的运行时上下文中。详见 STOCK_BUSINESS_ROLE 注释。
+///
+/// 6 个子岗位对应 INVESTMENT_OFFICE_TEMPLATE 中的 6 个房间，作为 AddMemberModal
+/// 的 BusinessRole 下拉候选项，让投研办公室成员添加时可按房间选角色。
 async fn seed_business_role(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
-    let r = STOCK_BUSINESS_ROLE;
+    // 顶层 leader
+    upsert_stock_business_role(db, &STOCK_BUSINESS_ROLE, None, 100).await?;
+    // 6 个子岗位（投研办公室房间负责人），全部 reports_to = leader
+    let mut count = 1u32;
+    for sub in STOCK_BUSINESS_SUB_ROLES {
+        upsert_stock_business_role(db, sub, Some(STOCK_BUSINESS_ROLE_ID), 200 + count as i32)
+            .await?;
+        count += 1;
+    }
+    tracing::info!(
+        "[stock_analysis_setup] 已种子化/更新 {} 个业务岗位（1 leader + 6 子岗位）",
+        count
+    );
+    Ok(())
+}
+
+/// 单个 StockBusinessRoleDef 的 upsert 包装，避免重复样板代码。
+async fn upsert_stock_business_role(
+    db: &sea_orm::DatabaseConnection,
+    r: &StockBusinessRoleDef,
+    reports_to: Option<&str>,
+    sort_order: i32,
+) -> Result<(), String> {
     let responsibilities: Vec<String> = r.responsibilities.iter().map(|s| s.to_string()).collect();
     let certifications: Vec<String> =
         r.required_certifications.iter().map(|s| s.to_string()).collect();
@@ -663,7 +798,7 @@ async fn seed_business_role(db: &sea_orm::DatabaseConnection) -> Result<(), Stri
         Some(r.description),
         Some(&responsibilities),
         Some(r.decision_authority),
-        None,
+        reports_to,
         None,
         Some(&certifications),
         Some(&domains),
@@ -671,7 +806,7 @@ async fn seed_business_role(db: &sea_orm::DatabaseConnection) -> Result<(), Stri
         Some(r.icon),
         Some(r.color),
         "stock-analysis",
-        100,
+        sort_order,
     )
     .await
     .map_err(|e| {

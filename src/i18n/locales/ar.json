@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "إنشاء مكتب",
-      "promptName": "أدخل اسم المكتب:"
+      "promptName": "أدخل اسم المكتب:",
+      "modalTitle": "إنشاء مكتب",
+      "cancel": "إلغاء",
+      "confirm": "إنشاء",
+      "nameLabel": "اسم المكتب",
+      "namePlaceholder": "مثال: فريق بحث أسهم A",
+      "nameRequired": "الرجاء إدخال اسم المكتب",
+      "sceneLabel": "قالب المشهد",
+      "strategyLabel": "استراتيجية الاستثمار",
+      "strategyPlaceholder": "اختر استراتيجية (اختياري)",
+      "strategyTooltip": "تُحقن الاستراتيجية في توجيه Dispatcher وتؤثر على توجيه الرسائل. يجب على مكاتب الاستثمار اختيار بحث الاستثمار.",
+      "descriptionLabel": "وصف الأعمال",
+      "descriptionPlaceholder": "تموضع الفريق / المهام الرئيسية (اختياري)",
+      "success": "تم إنشاء المكتب: {{name}}"
+    },
+    "strategy": {
+      "investment_research": "بحث الاستثمار",
+      "trading": "التداول",
+      "risk_management": "إدارة المخاطر",
+      "data_analysis": "تحليل البيانات"
     },
     "emptyFleet": "لم يتم إنشاء أي مكتب بعد. انقر على الزر أعلى اليمين لإنشاء أول مكتب.",
     "memberCount": "{{count}} أعضاء",
     "membersTitle": "الأعضاء",
     "noMembers": "لا يوجد أعضاء في هذا المكتب. أضف واحداً من قائمة الوكلاء.",
+    "addMember": {
+      "title": "إضافة عضو",
+      "button": "إضافة عضو",
+      "selectAgent": "اختيار من SubAgents المسجلة",
+      "selectAgentPlaceholder": "اختر SubAgent للتعبئة التلقائية",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (مثل sub_agent_id أو session id خارجي)",
+      "agentIdRequired": "يرجى ملء Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "معرّف العمل، مثل research_analyst",
+      "agentSlugRequired": "يرجى ملء Agent Slug",
+      "displayName": "اسم العرض",
+      "displayNamePlaceholder": "الاسم المعروض على البطاقة",
+      "displayNameRequired": "يرجى ملء اسم العرض",
+      "fillFromRole": "تعبئة الدور تلقائياً من BusinessRole",
+      "fillFromRolePlaceholder": "اختر BusinessRole لتعبئة role تلقائياً",
+      "role": "وصف الدور",
+      "rolePlaceholder": "وصف الدور المُحقن في prompt المُوجِّه",
+      "roomId": "الغرفة",
+      "cancel": "إلغاء",
+      "confirm": "إضافة",
+      "success": "تمت إضافة العضو: {{name}}"
+    },
     "selectFleet": "اختر مكتباً",
     "tabs": {
       "chat": "دردشة جماعية",
@@ -4056,6 +4098,7 @@
       "inputPlaceholder": "اكتب رسالة جماعية…",
       "send": "إرسال",
       "routingHint": "جارٍ التوجيه…",
+      "contextInjectedHint": "يتم حقن السهم المحدد حالياً تلقائياً كسياق عمل؛ يقوم المُوجِّه بالتوجيه إلى وكلاء البحث/التداول/المخاطر وفقاً لذلك",
       "tagRouting": "التوجيه",
       "routingMessage": "→ {{slug}}: {{summary}}",
       "tagProcess": "المعالجة",
@@ -4067,7 +4110,12 @@
       "backToList": "العودة إلى الأعضاء",
       "emptyHint": "لا توجد رسائل مع {{slug}}.",
       "inputPlaceholder": "مراسلة {{slug}}…",
-      "send": "إرسال"
+      "send": "إرسال",
+      "analyzeStock": "تحليل السهم الحالي",
+      "analyzeStockHint": "إرسال رمز السهم الحالي كرسالة محددة مسبقًا إلى الوكيل",
+      "analyzeStockRunningHint": "سير العمل قيد التشغيل، يمكن إرسال استشارة واحدة",
+      "analyzeStockPrompt": "بناءً على البيانات الحالية، حلل بإيجاز {{stockName}} ({{stockCode}}) وقدم حكمك",
+      "analyzeStockPromptCodeOnly": "بناءً على البيانات الحالية، حلل بإيجاز {{stockCode}} وقدم حكمك"
     },
     "trajectory": {
       "empty": "لا توجد أحداث مسار.",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}}: {{summary}}",
       "tagProcess": "المعالجة",
       "tagStatus": "الحالة",
-      "tagToken": "الرمز"
+      "tagToken": "الرمز",
+      "businessCount": "أعمال {{count}}",
+      "dispatchCount": "إرسال {{count}}",
+      "analysisRunning": "التحليل قيد التشغيل",
+      "showDispatch": "إظهار أحداث الإرسال",
+      "hideDispatch": "إخفاء أحداث الإرسال",
+      "jumpToEvidence": "الانتقال إلى لوحة الأدلة"
     },
     "token": {
       "empty": "لا توجد بيانات استخدام الرموز.",
@@ -4086,6 +4140,103 @@
       "colStatus": "الحالة",
       "colToday": "رموز اليوم",
       "colTotal": "إجمالي الرموز"
+    },
+    "scene": {
+      "default_office": "المكتب الافتراضي",
+      "investment_office": "مكتب الاستثمار"
+    },
+    "room": {
+      "workspace": "مساحة العمل",
+      "meeting": "غرفة الاجتماعات",
+      "lounge": "صالة الاستراحة",
+      "manager": "مدير",
+      "research": "البحث",
+      "data_room": "غرفة البيانات",
+      "strategy": "الاستراتيجية",
+      "trading": "التداول",
+      "risk": "مراقبة المخاطر"
+    },
+    "roleTag": {
+      "research": "بحث",
+      "data": "بيانات",
+      "strategy": "استراتيجية",
+      "trading": "تداول",
+      "risk": "مخاطرة",
+      "manager": "إدارة",
+      "default": "عام"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "الرمز",
+        "switchStock": "تبديل السهم",
+        "price": "السعر",
+        "changePct": "التغير %",
+        "changeAbs": "التغير",
+        "open": "الافتتاح",
+        "high": "الأعلى",
+        "low": "الأدنى",
+        "preClose": "الإغلاق السابق",
+        "volume": "الحجم",
+        "amount": "القيمة",
+        "pe": "م/أ",
+        "pb": "م/د",
+        "totalMv": "القيمة السوقية",
+        "circulatingMv": "القيمة المتداولة",
+        "limitUp": "الحد الأعلى",
+        "limitDown": "الحد الأدنى",
+        "turnoverRate": "معدل التداول",
+        "timestamp": "الوقت",
+        "refresh": "تحديث",
+        "autoRefresh": "تلقائي",
+        "autoRefreshHint": "تحديث تلقائي كل 30 ثانية",
+        "loading": "جاري تحميل السعر…",
+        "noQuote": "لا توجد بيانات أسعار",
+        "noStockSelected": "لم يتم اختيار سهم. اختر سهمًا من صفحة التحليل أو استخدم البحث.",
+        "pickerTitle": "تبديل السهم",
+        "pickerPlaceholder": "أدخل الرمز أو الاسم (≥2 حرف)",
+        "pickerHint": "اكتب حرفين على الأقل للبحث",
+        "pickerEmpty": "لا يوجد سهم مطابق"
+      },
+      "meeting": {
+        "title": "إحاطة الصباح · محاور السوق",
+        "today": "اليوم",
+        "activeCount": "نشط {{count}}",
+        "strength": "القوة",
+        "representative": "ممثل",
+        "prevDay": "اليوم السابق",
+        "nextDay": "اليوم التالي",
+        "refresh": "تحديث المحاور",
+        "collapse": "طي",
+        "expand": "توسيع",
+        "empty": "لا توجد بيانات محاور. شغّل سير عمل «استخراج محاور السوق»."
+      },
+      "strategy": {
+        "title": "قائمة الاستراتيجيات",
+        "total": "الإجمالي {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "الانتقال إلى صفحة Quant",
+        "refresh": "تحديث الاستراتيجيات",
+        "collapse": "طي القائمة",
+        "expand": "توسيع القائمة",
+        "empty": "لا توجد بيانات استراتيجية. سجّل الاستراتيجيات في صفحة Quant.",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}} استراتيجيات إضافية غير معروضة"
+      },
+      "risk": {
+        "title": "اختبارات الضغط",
+        "refresh": "تحديث اختبارات الضغط",
+        "collapse": "طي السيناريوهات",
+        "expand": "توسيع السيناريوهات",
+        "empty": "لا توجد بيانات اختبار. افتح مراكز أولاً ثم حدّث.",
+        "snapshotAt": "لقطة {{time}}",
+        "topHit": "أقوى تأثير",
+        "highRiskHint": "تنبيه مخاطر عالية: فكر في تقليل المراكز أو التحوط",
+        "level": {
+          "low": "مخاطر منخفضة",
+          "medium": "مخاطر متوسطة",
+          "high": "مخاطر عالية"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "قيد الانتظار",
+        "running": "قيد التشغيل",
+        "done": "مكتمل",
+        "failed": "فشل"
+      }
     },
     "alert.date": "Date",
     "recommendation": {

@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "오피스 만들기",
-      "promptName": "오피스 이름을 입력하세요:"
+      "promptName": "오피스 이름을 입력하세요:",
+      "modalTitle": "오피스 만들기",
+      "cancel": "취소",
+      "confirm": "만들기",
+      "nameLabel": "오피스 이름",
+      "namePlaceholder": "예: A주 리서치 팀",
+      "nameRequired": "오피스 이름을 입력해 주세요",
+      "sceneLabel": "장면 템플릿",
+      "strategyLabel": "투자 전략",
+      "strategyPlaceholder": "전략 선택(선택)",
+      "strategyTooltip": "전략은 Dispatcher 프롬프트에 주입되어 라우팅에 영향을 줍니다. 투자 오피스는 투자 리서치를 선택하는 것을 권장합니다.",
+      "descriptionLabel": "비즈니스 설명",
+      "descriptionPlaceholder": "팀 포지셔닝 / 주요 책임 (선택)",
+      "success": "오피스 생성됨: {{name}}"
+    },
+    "strategy": {
+      "investment_research": "투자 리서치",
+      "trading": "트레이딩",
+      "risk_management": "리스크 관리",
+      "data_analysis": "데이터 분석"
     },
     "emptyFleet": "생성된 오피스가 없습니다. 우측 상단 버튼을 눌러 첫 오피스를 만들어 보세요.",
     "memberCount": "{{count}}명",
     "membersTitle": "멤버 목록",
     "noMembers": "이 오피스에는 멤버가 없습니다. Agent 목록에서 추가하세요.",
+    "addMember": {
+      "title": "오피스 멤버 추가",
+      "button": "멤버 추가",
+      "selectAgent": "등록된 SubAgent에서 선택",
+      "selectAgentPlaceholder": "SubAgent를 선택하여 자동 채우기",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (예: sub_agent_id 또는 외부 session id)",
+      "agentIdRequired": "Agent ID를 입력하세요",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "비즈니스 식별자, 예: research_analyst",
+      "agentSlugRequired": "Agent Slug를 입력하세요",
+      "displayName": "표시 이름",
+      "displayNamePlaceholder": "카드에 표시할 이름",
+      "displayNameRequired": "표시 이름을 입력하세요",
+      "fillFromRole": "BusinessRole에서 역할 자동 채우기",
+      "fillFromRolePlaceholder": "BusinessRole을 선택하여 role 자동 채우기",
+      "role": "역할 설명",
+      "rolePlaceholder": "Dispatcher prompt에 주입할 역할 설명",
+      "roomId": "방",
+      "cancel": "취소",
+      "confirm": "추가",
+      "success": "멤버 추가됨: {{name}}"
+    },
     "selectFleet": "오피스 선택",
     "tabs": {
       "chat": "그룹 채팅",
@@ -4052,10 +4094,11 @@
       "stopped": "중지됨"
     },
     "chat": {
-      "emptyHint": "아래에 메시지를 입력하면 Dispatcher가 적절한 agent로 라우팅합니다.",
+      "emptyHint": "아래에 메시지를 입력하면 디스패처가 적절한 에이전트로 라우팅합니다.",
       "inputPlaceholder": "그룹 메시지 입력…",
       "send": "전송",
-      "routingHint": "라우팅 중…",
+      "routingHint": "스마트 라우팅 중…",
+      "contextInjectedHint": "현재 선택된 주식이 비즈니스 컨텍스트로 자동 주입됩니다; 디스패처는 이를 기반으로 리서치/트레이딩/리스크 에이전트로 라우팅합니다",
       "tagRouting": "라우팅",
       "routingMessage": "→ {{slug}}: {{summary}}",
       "tagProcess": "처리",
@@ -4067,7 +4110,12 @@
       "backToList": "멤버 목록으로",
       "emptyHint": "{{slug}}와(과)의 DM이 비어 있습니다.",
       "inputPlaceholder": "{{slug}}에게 메시지…",
-      "send": "전송"
+      "send": "전송",
+      "analyzeStock": "현재 주식 분석",
+      "analyzeStockHint": "현재 주식 코드를 사전 설정 메시지로 에이전트에게 전송",
+      "analyzeStockRunningHint": "워크플로우 실행 중, 단일 상담 가능",
+      "analyzeStockPrompt": "현재 데이터를 바탕으로 {{stockName}}({{stockCode}})을 간략히 분석하고 판단을 내리세요",
+      "analyzeStockPromptCodeOnly": "현재 데이터를 바탕으로 {{stockCode}}를 간략히 분석하고 판단을 내리세요"
     },
     "trajectory": {
       "empty": "궤적 이벤트가 없습니다.",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}}: {{summary}}",
       "tagProcess": "처리",
       "tagStatus": "상태",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "비즈니스 {{count}}",
+      "dispatchCount": "디스패치 {{count}}",
+      "analysisRunning": "분석 진행 중",
+      "showDispatch": "디스패치 이벤트 표시",
+      "hideDispatch": "디스패치 이벤트 숨기기",
+      "jumpToEvidence": "증거 패널로 이동"
     },
     "token": {
       "empty": "Token 사용량 데이터가 없습니다.",
@@ -4086,6 +4140,103 @@
       "colStatus": "상태",
       "colToday": "오늘 Token",
       "colTotal": "누적 Token"
+    },
+    "scene": {
+      "default_office": "기본 오피스",
+      "investment_office": "투자 오피스"
+    },
+    "room": {
+      "workspace": "작업 공간",
+      "meeting": "회의실",
+      "lounge": "라운지",
+      "manager": "매니저실",
+      "research": "리서치실",
+      "data_room": "데이터실",
+      "strategy": "전략실",
+      "trading": "트레이딩실",
+      "risk": "리스크관리실"
+    },
+    "roleTag": {
+      "research": "리서치",
+      "data": "데이터",
+      "strategy": "전략",
+      "trading": "트레이딩",
+      "risk": "리스크",
+      "manager": "관리",
+      "default": "일반"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "종목",
+        "switchStock": "종목 전환",
+        "price": "현재가",
+        "changePct": "등락률",
+        "changeAbs": "등락액",
+        "open": "시가",
+        "high": "고가",
+        "low": "저가",
+        "preClose": "전일 종가",
+        "volume": "거래량",
+        "amount": "거래대금",
+        "pe": "PER",
+        "pb": "PBR",
+        "totalMv": "시가총액",
+        "circulatingMv": "유통 시가총액",
+        "limitUp": "상한가",
+        "limitDown": "하한가",
+        "turnoverRate": "회전율",
+        "timestamp": "시각",
+        "refresh": "새로고침",
+        "autoRefresh": "자동",
+        "autoRefreshHint": "30초마다 자동 새로고침",
+        "loading": "호가 불러오는 중…",
+        "noQuote": "호가 데이터 없음",
+        "noStockSelected": "종목 미선택. 분석 페이지에서 선택하거나 검색을 사용하세요.",
+        "pickerTitle": "종목 전환",
+        "pickerPlaceholder": "코드 또는 이름 (≥2자)",
+        "pickerHint": "검색하려면 최소 2자 입력",
+        "pickerEmpty": "일치하는 종목이 없습니다"
+      },
+      "meeting": {
+        "title": "아침 브리핑 · 시장 메인 테마",
+        "today": "오늘",
+        "activeCount": "활성 {{count}}",
+        "strength": "강도",
+        "representative": "대표 종목",
+        "prevDay": "전일",
+        "nextDay": "익일",
+        "refresh": "메인 테마 새로고침",
+        "collapse": "접기",
+        "expand": "펼치기",
+        "empty": "메인 테마 데이터 없음. «시장 메인 테마 추출» 워크플로우를 실행하세요."
+      },
+      "strategy": {
+        "title": "전략 목록",
+        "total": "총 {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Quant 페이지로 이동",
+        "refresh": "전략 새로고침",
+        "collapse": "목록 접기",
+        "expand": "목록 펼치기",
+        "empty": "전략 데이터 없음. Quant 페이지에서 전략을 등록하세요.",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}}개 전략이 더 표시되지 않음"
+      },
+      "risk": {
+        "title": "리스크 스트레스 테스트",
+        "refresh": "스트레스 테스트 새로고침",
+        "collapse": "시나리오 접기",
+        "expand": "시나리오 펼치기",
+        "empty": "스트레스 테스트 데이터 없음. 먼저 트레이딩룸에서 포지션을 열고 새로고침하세요.",
+        "snapshotAt": "스냅샷 {{time}}",
+        "topHit": "최대 영향",
+        "highRiskHint": "고위험 경고: 포지션 축소 또는 헤지를 고려하세요",
+        "level": {
+          "low": "저위험",
+          "medium": "중위험",
+          "high": "고위험"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "대기 중",
+        "running": "진행 중",
+        "done": "완료",
+        "failed": "실패"
+      }
     },
     "alert.date": "Date",
     "recommendation": {

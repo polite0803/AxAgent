@@ -80,7 +80,12 @@ export { useWorkflowStore } from "./feature/workflowStore";
 
 // ── AxInvest stock analysis ──
 export { useStockAnalysisStore } from "./feature/stockAnalysisStore";
-export type { ExperimentRecord } from "./feature/stockAnalysisStore";
+export type {
+  ExperimentRecord,
+  PortfolioDashboard,
+  PortfolioStressBundle,
+  PortfolioStressResult,
+} from "./feature/stockAnalysisStore";
 // ── G2 模拟观察组合（Paper Trading Portfolio） ──
 export { usePaperPortfolioStore } from "./feature/paperPortfolioStore";
 

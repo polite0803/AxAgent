@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "Crear oficina",
-      "promptName": "Introduce el nombre de la oficina:"
+      "promptName": "Introduce el nombre de la oficina:",
+      "modalTitle": "Crear oficina",
+      "cancel": "Cancelar",
+      "confirm": "Crear",
+      "nameLabel": "Nombre de la oficina",
+      "namePlaceholder": "p. ej. Equipo de investigación A-share",
+      "nameRequired": "Introduce un nombre de oficina",
+      "sceneLabel": "Plantilla de escena",
+      "strategyLabel": "Estrategia de inversión",
+      "strategyPlaceholder": "Elegir estrategia (opcional)",
+      "strategyTooltip": "La estrategia se inyecta en el prompt del Dispatcher y afecta el enrutamiento. Las oficinas de inversión deben elegir Investigación de Inversión.",
+      "descriptionLabel": "Descripción del negocio",
+      "descriptionPlaceholder": "Posicionamiento del equipo / responsabilidades principales (opcional)",
+      "success": "Oficina creada: {{name}}"
+    },
+    "strategy": {
+      "investment_research": "Investigación de inversión",
+      "trading": "Trading",
+      "risk_management": "Gestión de riesgos",
+      "data_analysis": "Análisis de datos"
     },
     "emptyFleet": "No hay oficinas creadas. Haz clic en el botón superior derecho para crear la primera.",
     "memberCount": "{{count}} miembros",
     "membersTitle": "Miembros",
     "noMembers": "Esta oficina no tiene miembros. Añade uno desde la lista de agentes.",
+    "addMember": {
+      "title": "Añadir miembro",
+      "button": "Añadir miembro",
+      "selectAgent": "Elegir de SubAgents registrados",
+      "selectAgentPlaceholder": "Elige un SubAgent para autocompletar",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (ej. sub_agent_id o session id externo)",
+      "agentIdRequired": "Por favor, completa el Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "Identificador de negocio, ej. research_analyst",
+      "agentSlugRequired": "Por favor, completa el Agent Slug",
+      "displayName": "Nombre para mostrar",
+      "displayNamePlaceholder": "Nombre mostrado en la tarjeta",
+      "displayNameRequired": "Por favor, completa el nombre para mostrar",
+      "fillFromRole": "Autocompletar rol desde BusinessRole",
+      "fillFromRolePlaceholder": "Elige un BusinessRole para autocompletar role",
+      "role": "Descripción del rol",
+      "rolePlaceholder": "Descripción del rol inyectada en el prompt del dispatcher",
+      "roomId": "Sala",
+      "cancel": "Cancelar",
+      "confirm": "Añadir",
+      "success": "Miembro añadido: {{name}}"
+    },
     "selectFleet": "Selecciona una oficina",
     "tabs": {
       "chat": "Chat grupal",
@@ -4056,6 +4098,7 @@
       "inputPlaceholder": "Escribe un mensaje grupal…",
       "send": "Enviar",
       "routingHint": "Enrutando…",
+      "contextInjectedHint": "La acción seleccionada actualmente se inyecta automáticamente como contexto de negocio; el despachador enruta a agentes de investigación/trading/riesgo en consecuencia",
       "tagRouting": "Enrutado",
       "routingMessage": "→ {{slug}}: {{summary}}",
       "tagProcess": "Proceso",
@@ -4067,7 +4110,12 @@
       "backToList": "Volver a miembros",
       "emptyHint": "No hay mensajes con {{slug}}.",
       "inputPlaceholder": "Mensaje a {{slug}}…",
-      "send": "Enviar"
+      "send": "Enviar",
+      "analyzeStock": "Analizar acción actual",
+      "analyzeStockHint": "Enviar código de acción actual como mensaje preestablecido al agente",
+      "analyzeStockRunningHint": "Flujo de trabajo en ejecución, aún se puede enviar consulta única",
+      "analyzeStockPrompt": "Según los datos actuales, analice brevemente {{stockName}} ({{stockCode}}) y dé su juicio",
+      "analyzeStockPromptCodeOnly": "Según los datos actuales, analice brevemente {{stockCode}} y dé su juicio"
     },
     "trajectory": {
       "empty": "No hay eventos de trayectoria.",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}}: {{summary}}",
       "tagProcess": "Proceso",
       "tagStatus": "Estado",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "Negocio {{count}}",
+      "dispatchCount": "Dispatch {{count}}",
+      "analysisRunning": "Análisis en progreso",
+      "showDispatch": "Mostrar eventos dispatch",
+      "hideDispatch": "Ocultar eventos dispatch",
+      "jumpToEvidence": "Ir al panel de evidencia"
     },
     "token": {
       "empty": "No hay datos de uso de tokens.",
@@ -4086,6 +4140,103 @@
       "colStatus": "Estado",
       "colToday": "Tokens de hoy",
       "colTotal": "Tokens totales"
+    },
+    "scene": {
+      "default_office": "Oficina predeterminada",
+      "investment_office": "Oficina de inversión"
+    },
+    "room": {
+      "workspace": "Espacio de trabajo",
+      "meeting": "Sala de reuniones",
+      "lounge": "Sala de descanso",
+      "manager": "Gerente",
+      "research": "Investigación",
+      "data_room": "Datos",
+      "strategy": "Estrategia",
+      "trading": "Trading",
+      "risk": "Control de riesgos"
+    },
+    "roleTag": {
+      "research": "Investigación",
+      "data": "Datos",
+      "strategy": "Estrategia",
+      "trading": "Trading",
+      "risk": "Riesgo",
+      "manager": "Gerente",
+      "default": "General"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "Símbolo",
+        "switchStock": "Cambiar valor",
+        "price": "Precio",
+        "changePct": "Var. %",
+        "changeAbs": "Var.",
+        "open": "Apert.",
+        "high": "Máx.",
+        "low": "Mín.",
+        "preClose": "Cierre ant.",
+        "volume": "Volumen",
+        "amount": "Importe",
+        "pe": "PER",
+        "pb": "P/B",
+        "totalMv": "Cap. total",
+        "circulatingMv": "Cap. flot.",
+        "limitUp": "Límite sup.",
+        "limitDown": "Límite inf.",
+        "turnoverRate": "Rotación",
+        "timestamp": "Hora",
+        "refresh": "Actualizar",
+        "autoRefresh": "Auto",
+        "autoRefreshHint": "Actualización automática cada 30 s",
+        "loading": "Cargando cotización…",
+        "noQuote": "Sin datos de cotización",
+        "noStockSelected": "Ninguna acción seleccionada. Elija una en la página de análisis o use la búsqueda.",
+        "pickerTitle": "Cambiar valor",
+        "pickerPlaceholder": "Código o nombre (≥2 caracteres)",
+        "pickerHint": "Escriba al menos 2 caracteres para buscar",
+        "pickerEmpty": "No se encontró ninguna acción"
+      },
+      "meeting": {
+        "title": "Briefing matutino · Temas de mercado",
+        "today": "Hoy",
+        "activeCount": "Activos {{count}}",
+        "strength": "Fuerza",
+        "representative": "Representativo",
+        "prevDay": "Día anterior",
+        "nextDay": "Día siguiente",
+        "refresh": "Actualizar temas",
+        "collapse": "Contraer",
+        "expand": "Expandir",
+        "empty": "Sin datos de temas. Ejecute el workflow «Extracción de temas de mercado»."
+      },
+      "strategy": {
+        "title": "Lista de estrategias",
+        "total": "Total {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Ir a la página Quant",
+        "refresh": "Actualizar estrategias",
+        "collapse": "Contraer lista",
+        "expand": "Expandir lista",
+        "empty": "Sin datos de estrategias. Registre estrategias en la página Quant.",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}} estrategias más no mostradas"
+      },
+      "risk": {
+        "title": "Pruebas de estrés",
+        "refresh": "Actualizar pruebas",
+        "collapse": "Contraer escenarios",
+        "expand": "Expandir escenarios",
+        "empty": "Sin datos de prueba. Abra posiciones primero y luego actualice.",
+        "snapshotAt": "Instantánea {{time}}",
+        "topHit": "Mayor impacto",
+        "highRiskHint": "Alerta de alto riesgo: considere reducir posiciones o cubrirse",
+        "level": {
+          "low": "Riesgo bajo",
+          "medium": "Riesgo medio",
+          "high": "Riesgo alto"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "Pendiente",
+        "running": "En progreso",
+        "done": "Completado",
+        "failed": "Fallido"
+      }
     },
     "alert.date": "Date",
     "recommendation": {

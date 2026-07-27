@@ -114,3 +114,48 @@ fn default_registry() -> Arc<dyn ProviderRegistry> {
         })
         .clone()
 }
+
+// ── FleetIntentLlm 适配器 ────────────────────────────────────────────────
+//
+// `axagent_agent::ProviderLlmBridge` 已具备 `call_llm(system, user)` 能力，
+// 但它没有实现 `axagent_harness::fleet::FleetIntentLlm` trait（agent crate 不能
+// 依赖 providers，但 runtime 是 wiring 层，可以同时依赖两者）。
+//
+// 本适配器在 wiring 层桥接二者，使 `LlmDispatcher` 能用真实 LLM 做意图分类，
+// 替换 P0 阶段的 `NoopFleetIntentLlm` 兜底实现。
+
+/// 用 `ProviderLlmBridge` 包装出的 `FleetIntentLlm` 实现。
+///
+/// - `route(system_prompt, user_prompt)` 调用 `ProviderLlmBridge::call_llm`
+///   完成 LLM 意图分类，返回 LLM 原始响应文本（期望 JSON：
+///   `{"agent_slug": "...", "reason": "..."}`）。
+/// - 解析失败由 `LlmDispatcher` 兜底为第一个可用成员。
+pub struct BridgeFleetIntentLlm {
+    bridge: axagent_agent::ProviderLlmBridge,
+}
+
+impl BridgeFleetIntentLlm {
+    pub fn new(bridge: axagent_agent::ProviderLlmBridge) -> Self {
+        Self { bridge }
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::fleet::FleetIntentLlm for BridgeFleetIntentLlm {
+    async fn route(&self, system_prompt: &str, user_prompt: &str) -> Result<String, String> {
+        // 调用 ProviderLlmBridge 的 call_llm（默认 temp=0.7, max_tokens=2048）
+        // 意图分类属轻量调用，单轮对话足够。
+        self.bridge.call_llm(system_prompt, user_prompt).await
+    }
+}
+
+/// 从数据库构建 `BridgeFleetIntentLlm` 实例（自动选择首个启用的 provider）。
+///
+/// 返回 `Arc<dyn FleetIntentLlm>`，可直接注入到 `LlmDispatcher::new`。
+/// 若数据库无可用 provider，返回 `None`，调用方应回退到 `NoopFleetIntentLlm`。
+pub async fn build_fleet_intent_llm_from_db(
+    master_key: &[u8; 32],
+) -> Option<std::sync::Arc<dyn axagent_harness::fleet::FleetIntentLlm>> {
+    let bridge = build_llm_bridge_from_db(master_key).await?;
+    Some(std::sync::Arc::new(BridgeFleetIntentLlm::new(bridge)))
+}

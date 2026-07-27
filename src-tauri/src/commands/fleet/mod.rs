@@ -246,10 +246,10 @@ pub async fn fleet_dispatch(
     app_state: State<'_, AppState>,
     input: DispatchInput,
 ) -> Result<Vec<DispatchEvent>, String> {
-    // 懒加载 dispatcher（避免 AppState 持有 dispatcher 字段，每次调用都重建轻量级实例）
-    // 注意：FleetIntentLlm 实例通过 AppState 获取，此处用 Noop 兜底
-    // 真正的 LLM 路由需要在 wiring 层注入 FleetIntentLlm 到 AppState（P1 任务）
-    let dispatcher = build_dispatcher(&app_state);
+    // 每次调用都从数据库重新构建 dispatcher（内部仅持有 Arc 引用，开销极低）。
+    // LLM 桥接器会自动从数据库加载首个启用的 provider；若无可用的 provider
+    // 则回退到 NoopFleetIntentLlm（dispatch_stream 会兜底到第一个可用成员）。
+    let dispatcher = build_dispatcher(&app_state).await;
     dispatcher
         .dispatch_stream(&input.fleet_id, &input.user_message, input.history)
         .await
@@ -275,7 +275,7 @@ pub async fn fleet_direct_message(
     app_state: State<'_, AppState>,
     input: DirectMessageInput,
 ) -> Result<Vec<DispatchEvent>, String> {
-    let dispatcher = build_dispatcher(&app_state);
+    let dispatcher = build_dispatcher(&app_state).await;
     dispatcher
         .direct_message_stream(
             &input.fleet_id,
@@ -287,11 +287,24 @@ pub async fn fleet_direct_message(
         .map_err(|e| format!("直接消息失败: {e}"))
 }
 
-/// 构建 LlmDispatcher（每次调用都新建，内部仅持有 Arc 引用，开销极低）
-fn build_dispatcher(app_state: &AppState) -> axagent_agent::LlmDispatcher {
+/// 构建 LlmDispatcher（每次调用都新建，内部仅持有 Arc 引用，开销极低）。
+///
+/// 意图分类 LLM 的注入策略：
+/// 1. 优先用 `build_fleet_intent_llm_from_db` 从数据库构建真实 LLM 桥接器；
+/// 2. 若数据库无可用 provider（如离线模式 / 未配置 provider），回退到
+///    `NoopFleetIntentLlm`，dispatch_stream 会兜底到首个可用成员。
+async fn build_dispatcher(app_state: &AppState) -> axagent_agent::LlmDispatcher {
     let fleet_repo: Arc<dyn FleetRepository> = Arc::clone(&app_state.fleet_repository);
-    // TODO(P1): 注入真实的 FleetIntentLlm 实现（wiring 层包装 ProviderLlmBridge）
-    // 当前用 NoopFleetIntentLlm 兜底,dispatch_stream 会回退到首个可用成员
-    let intent_llm: Arc<dyn FleetIntentLlm> = Arc::new(NoopFleetIntentLlm);
+    let master_key = app_state.harness.master_key();
+    let intent_llm: Arc<dyn FleetIntentLlm> =
+        match axagent_runtime::llm_bridge::build_fleet_intent_llm_from_db(master_key).await {
+            Some(llm) => llm,
+            None => {
+                tracing::warn!(
+                    "未配置可用 provider，Fleet Dispatcher 回退到 NoopFleetIntentLlm（路由将兜底到首个成员）"
+                );
+                Arc::new(NoopFleetIntentLlm)
+            },
+        };
     axagent_agent::LlmDispatcher::new(fleet_repo, intent_llm)
 }

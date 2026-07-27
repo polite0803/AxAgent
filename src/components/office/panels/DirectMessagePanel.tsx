@@ -5,12 +5,16 @@
  *
  * 用户在 AgentCard 上点击 → 切换到此面板 → 输入消息 →
  * store.directMessage → 展示该 agent 的回复。
+ *
+ * 顶部快捷区提供「分析当前股票」按钮，把 stockAnalysisStore 中的当前
+ * 股票代码作为预设消息直接发给 agent，方便投研团队对单个 agent
+ * 做定向咨询（例如让 risk agent 评估当前股票的风控建议）。
  */
 
-import { useOfficeStore } from "@/stores";
+import { useOfficeStore, useStockAnalysisStore } from "@/stores";
 import type { DispatchEvent, FleetMember } from "@/types";
-import { Button, Input, Space, Tag, theme, Typography } from "antd";
-import { Send } from "lucide-react";
+import { Button, Input, Space, Tag, theme, Tooltip, Typography } from "antd";
+import { LineChart, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -29,6 +33,10 @@ export function DirectMessagePanel({ fleetId, target, onBack }: DirectMessagePan
   const directMessage = useOfficeStore((s) => s.directMessage);
   const events = useOfficeStore((s) => s.dispatchEvents);
   const clearEvents = useOfficeStore((s) => s.clearDispatchEvents);
+  // 从 stockAnalysisStore 拉取当前股票代码/名称
+  const stockCode = useStockAnalysisStore((s) => s.stockCode);
+  const stockName = useStockAnalysisStore((s) => s.stockName);
+  const analysisStatus = useStockAnalysisStore((s) => s.status);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -45,19 +53,33 @@ export function DirectMessagePanel({ fleetId, target, onBack }: DirectMessagePan
     }
   }, [events]);
 
-  const handleSend = async () => {
+  const handleSend = async (msgOverride?: string) => {
     if (!target) { return; }
-    const msg = input.trim();
+    const msg = (msgOverride ?? input).trim();
     if (!msg || sending) {
       return;
     }
     setSending(true);
-    setInput("");
+    if (msgOverride) {
+      setInput(""); // 不污染用户当前草稿，仅清空残留
+    } else {
+      setInput("");
+    }
     try {
       await directMessage({ fleetId, agentSlug: target.agentSlug, userMessage: msg });
     } finally {
       setSending(false);
     }
+  };
+
+  /** 「分析当前股票」快捷消息：当前 store 中的股票代码作为预设 prompt */
+  const handleAnalyzeStock = () => {
+    if (!stockCode) { return; }
+    const name = stockName && stockName !== stockCode ? stockName : "";
+    const prompt = name
+      ? t("office.dm.analyzeStockPrompt", { stockCode, stockName: name })
+      : t("office.dm.analyzeStockPromptCodeOnly", { stockCode });
+    void handleSend(prompt);
   };
 
   if (!target) {
@@ -89,6 +111,47 @@ export function DirectMessagePanel({ fleetId, target, onBack }: DirectMessagePan
           {target.displayName}
         </Text>
       </div>
+
+      {/* 快捷按钮区：分析当前股票（仅当 stockAnalysisStore 有 stockCode 时可用） */}
+      {stockCode && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 8px",
+            background: token.colorBgLayout,
+            borderRadius: 4,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            fontSize: 11,
+          }}
+        >
+          <Tooltip
+            title={analysisStatus === "running" || analysisStatus === "loading"
+              ? t("office.dm.analyzeStockRunningHint")
+              : t("office.dm.analyzeStockHint")}
+          >
+            <Button
+              size="small"
+              type="primary"
+              ghost
+              icon={<LineChart size={12} />}
+              loading={sending}
+              disabled={!stockCode}
+              onClick={handleAnalyzeStock}
+              style={{ fontSize: 11 }}
+            >
+              {t("office.dm.analyzeStock")}
+            </Button>
+          </Tooltip>
+          <span style={{ color: token.colorTextSecondary }}>
+            {stockName && stockName !== stockCode
+              ? `${stockName} · `
+              : ""}
+            <code style={{ fontFamily: "monospace" }}>{stockCode}</code>
+          </span>
+        </div>
+      )}
 
       {/* 事件流 */}
       <div
@@ -131,7 +194,7 @@ export function DirectMessagePanel({ fleetId, target, onBack }: DirectMessagePan
           type="primary"
           icon={<Send size={14} />}
           loading={sending}
-          onClick={handleSend}
+          onClick={() => handleSend()}
           disabled={!input.trim()}
         >
           {t("office.dm.send")}

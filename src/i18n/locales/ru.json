@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "Создать офис",
-      "promptName": "Введите название офиса:"
+      "promptName": "Введите название офиса:",
+      "modalTitle": "Создать офис",
+      "cancel": "Отмена",
+      "confirm": "Создать",
+      "nameLabel": "Название офиса",
+      "namePlaceholder": "напр. Команда исследования A-акций",
+      "nameRequired": "Пожалуйста, введите название офиса",
+      "sceneLabel": "Шаблон сцены",
+      "strategyLabel": "Инвестиционная стратегия",
+      "strategyPlaceholder": "Выбрать стратегию (опционально)",
+      "strategyTooltip": "Стратегия внедряется в prompt диспетчера и влияет на маршрутизацию. Инвестиционным офисам следует выбирать Investment Research.",
+      "descriptionLabel": "Описание бизнеса",
+      "descriptionPlaceholder": "Позиционирование команды / основные обязанности (опционально)",
+      "success": "Офис создан: {{name}}"
+    },
+    "strategy": {
+      "investment_research": "Investment Research",
+      "trading": "Трейдинг",
+      "risk_management": "Управление рисками",
+      "data_analysis": "Анализ данных"
     },
     "emptyFleet": "Офисов пока нет. Нажмите кнопку в правом верхнем углу, чтобы создать первый.",
     "memberCount": "{{count}} участников",
     "membersTitle": "Участники",
     "noMembers": "В этом офисе нет участников. Добавьте из списка агентов.",
+    "addMember": {
+      "title": "Добавить участника",
+      "button": "Добавить участника",
+      "selectAgent": "Выбрать из зарегистрированных SubAgent",
+      "selectAgentPlaceholder": "Выберите SubAgent для автозаполнения",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (например, sub_agent_id или внешний session id)",
+      "agentIdRequired": "Заполните Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "Бизнес-идентификатор, например research_analyst",
+      "agentSlugRequired": "Заполните Agent Slug",
+      "displayName": "Отображаемое имя",
+      "displayNamePlaceholder": "Имя на карточке",
+      "displayNameRequired": "Заполните отображаемое имя",
+      "fillFromRole": "Автозаполнение роли из BusinessRole",
+      "fillFromRolePlaceholder": "Выберите BusinessRole для автозаполнения role",
+      "role": "Описание роли",
+      "rolePlaceholder": "Описание роли для dispatcher prompt",
+      "roomId": "Комната",
+      "cancel": "Отмена",
+      "confirm": "Добавить",
+      "success": "Участник добавлен: {{name}}"
+    },
     "selectFleet": "Выберите офис",
     "tabs": {
       "chat": "Групповой чат",
@@ -4056,6 +4098,7 @@
       "inputPlaceholder": "Введите групповое сообщение…",
       "send": "Отправить",
       "routingHint": "Маршрутизация…",
+      "contextInjectedHint": "Текущая выбранная акция автоматически добавлена как бизнес-контекст; диспетчер маршрутизирует к исследователь/трейдер/риск-агентам",
       "tagRouting": "Маршрут",
       "routingMessage": "→ {{slug}}: {{summary}}",
       "tagProcess": "Обработка",
@@ -4067,7 +4110,12 @@
       "backToList": "Назад к участникам",
       "emptyHint": "Нет сообщений с {{slug}}.",
       "inputPlaceholder": "Сообщение для {{slug}}…",
-      "send": "Отправить"
+      "send": "Отправить",
+      "analyzeStock": "Анализировать текущую акцию",
+      "analyzeStockHint": "Отправить код текущей акции как предустановленное сообщение агенту",
+      "analyzeStockRunningHint": "Рабочий процесс выполняется, можно отправить разовую консультацию",
+      "analyzeStockPrompt": "На основе текущих данных кратко проанализируйте {{stockName}} ({{stockCode}}) и дайте ваше заключение",
+      "analyzeStockPromptCodeOnly": "На основе текущих данных кратко проанализируйте {{stockCode}} и дайте ваше заключение"
     },
     "trajectory": {
       "empty": "Пока нет событий траектории.",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}}: {{summary}}",
       "tagProcess": "Обработка",
       "tagStatus": "Статус",
-      "tagToken": "Токен"
+      "tagToken": "Токен",
+      "businessCount": "Бизнес {{count}}",
+      "dispatchCount": "Dispatch {{count}}",
+      "analysisRunning": "Анализ выполняется",
+      "showDispatch": "Показать события dispatch",
+      "hideDispatch": "Скрыть события dispatch",
+      "jumpToEvidence": "Перейти к панели доказательств"
     },
     "token": {
       "empty": "Нет данных об использовании токенов.",
@@ -4086,6 +4140,103 @@
       "colStatus": "Статус",
       "colToday": "Сегодня токенов",
       "colTotal": "Всего токенов"
+    },
+    "scene": {
+      "default_office": "Стандартный офис",
+      "investment_office": "Инвестиционный офис"
+    },
+    "room": {
+      "workspace": "Рабочая зона",
+      "meeting": "Переговорная",
+      "lounge": "Зона отдыха",
+      "manager": "Кабинет руководителя",
+      "research": "Исследования",
+      "data_room": "Данные",
+      "strategy": "Стратегии",
+      "trading": "Торговля",
+      "risk": "Контроль рисков"
+    },
+    "roleTag": {
+      "research": "Аналитика",
+      "data": "Данные",
+      "strategy": "Стратегия",
+      "trading": "Трейдинг",
+      "risk": "Риск",
+      "manager": "Управление",
+      "default": "Общее"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "Тикер",
+        "switchStock": "Сменить акцию",
+        "price": "Цена",
+        "changePct": "Изм. %",
+        "changeAbs": "Изм.",
+        "open": "Откр.",
+        "high": "Макс.",
+        "low": "Мин.",
+        "preClose": "Пред. закр.",
+        "volume": "Объём",
+        "amount": "Оборот",
+        "pe": "P/E",
+        "pb": "P/B",
+        "totalMv": "Капитализ.",
+        "circulatingMv": "Свободн. кап.",
+        "limitUp": "Верхн. лимит",
+        "limitDown": "Нижн. лимит",
+        "turnoverRate": "Оборач.",
+        "timestamp": "Время",
+        "refresh": "Обновить",
+        "autoRefresh": "Авто",
+        "autoRefreshHint": "Автообновление каждые 30 с",
+        "loading": "Загрузка котировки…",
+        "noQuote": "Нет данных котировки",
+        "noStockSelected": "Акция не выбрана. Выберите на странице анализа или через поиск.",
+        "pickerTitle": "Сменить акцию",
+        "pickerPlaceholder": "Код или название (≥2 симв.)",
+        "pickerHint": "Введите минимум 2 символа для поиска",
+        "pickerEmpty": "Совпадений не найдено"
+      },
+      "meeting": {
+        "title": "Утренний брифинг · Темы рынка",
+        "today": "Сегодня",
+        "activeCount": "Активно {{count}}",
+        "strength": "Сила",
+        "representative": "Представитель",
+        "prevDay": "Пред. день",
+        "nextDay": "След. день",
+        "refresh": "Обновить темы",
+        "collapse": "Свернуть",
+        "expand": "Развернуть",
+        "empty": "Нет данных о темах. Запустите воркфлоу «Извлечение тем рынка»."
+      },
+      "strategy": {
+        "title": "Список стратегий",
+        "total": "Всего {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Перейти на страницу Quant",
+        "refresh": "Обновить стратегии",
+        "collapse": "Свернуть список",
+        "expand": "Развернуть список",
+        "empty": "Нет данных о стратегиях. Зарегистрируйте стратегии на странице Quant.",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}} стратегий не показано"
+      },
+      "risk": {
+        "title": "Стресс-тесты",
+        "refresh": "Обновить стресс-тесты",
+        "collapse": "Свернуть сценарии",
+        "expand": "Развернуть сценарии",
+        "empty": "Нет данных стресс-теста. Сначала откройте позиции, затем обновите.",
+        "snapshotAt": "Снимок {{time}}",
+        "topHit": "Наибольшее влияние",
+        "highRiskHint": "Высокий риск: рассмотрите снижение позиций или хеджирование",
+        "level": {
+          "low": "Низкий риск",
+          "medium": "Средний риск",
+          "high": "Высокий риск"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "Ожидает",
+        "running": "Выполняется",
+        "done": "Завершено",
+        "failed": "Ошибка"
+      }
     },
     "alert.date": "Date",
     "recommendation": {

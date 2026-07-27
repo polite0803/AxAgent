@@ -1707,6 +1707,7 @@ export type {
   QuantRun,
   RegisterRhaiRequest,
   StrategyMeta,
+  StrategyType,
   TradeSide,
 } from "./quant";
 export { BUILTIN_STRATEGY_IDS, DEFAULT_RHAI_TEMPLATE, DEFAULT_STRATEGY_PARAMS } from "./quant";

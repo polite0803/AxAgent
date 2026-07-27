@@ -20,13 +20,19 @@
 import { useOfficeStore } from "@/stores";
 import type { Fleet, FleetMember } from "@/types";
 import { Button, Dropdown, Empty, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
-import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, Users, Zap } from "lucide-react";
+import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, UserPlus, Users, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AddMemberModal } from "./AddMemberModal";
 import { AgentCard } from "./AgentCard";
+import { CreateFleetModal } from "./CreateFleetModal";
 import { ChatPanel } from "./panels/ChatPanel";
 import { DirectMessagePanel } from "./panels/DirectMessagePanel";
+import { MeetingRoomMiniBar } from "./panels/MeetingRoomMiniBar";
+import { RiskRoomMiniBar } from "./panels/RiskRoomMiniBar";
+import { StrategyRoomMiniBar } from "./panels/StrategyRoomMiniBar";
 import { TokenPanel } from "./panels/TokenPanel";
+import { TradingRoomMiniBar } from "./panels/TradingRoomMiniBar";
 import { TrajectoryPanel } from "./panels/TrajectoryPanel";
 import { OfficeGame } from "./phaser/OfficeGame";
 import { fleetMemberToSceneMember } from "./phaser/OfficeScene";
@@ -44,11 +50,12 @@ export function OfficeTab() {
   const loadFleets = useOfficeStore((s) => s.loadFleets);
   const selectFleet = useOfficeStore((s) => s.selectFleet);
   const loadMembers = useOfficeStore((s) => s.loadMembers);
-  const createFleet = useOfficeStore((s) => s.createFleet);
   const updateMemberStatus = useOfficeStore((s) => s.updateMemberStatus);
 
   const [rightTab, setRightTab] = useState<"chat" | "dm" | "trajectory" | "token">("chat");
   const [dmTarget, setDmTarget] = useState<FleetMember | null>(null);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [createFleetOpen, setCreateFleetOpen] = useState(false);
 
   // 初次加载舰队列表
   useEffect(() => {
@@ -90,13 +97,8 @@ export function OfficeTab() {
     void agentSlug;
   };
 
-  const handleCreateFleet = async () => {
-    const name = prompt(t("office.createFleet.promptName"));
-    if (!name) { return; }
-    const fleet = await createFleet({ name });
-    if (fleet) {
-      selectFleet(fleet.id);
-    }
+  const handleCreateFleet = () => {
+    setCreateFleetOpen(true);
   };
 
   // Fleet 下拉菜单项
@@ -166,11 +168,20 @@ export function OfficeTab() {
         <Text type="secondary" style={{ fontSize: 12 }}>
           {t("office.memberCount", { count: members.length })}
         </Text>
+        {activeFleetId && (
+          <Tooltip title={t("office.addMember.button")}>
+            <Button
+              size="small"
+              icon={<UserPlus size={14} />}
+              onClick={() => setAddMemberOpen(true)}
+            />
+          </Tooltip>
+        )}
       </div>
 
       {/* ── 主内容区：左 Phaser + 右操作面板 ── */}
       <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
-        {/* 左侧：Phaser 画布 */}
+        {/* 左侧：Phaser 画布 + 顶部房间 mini 条 */}
         <div
           style={{
             flex: "1 1 auto",
@@ -181,17 +192,27 @@ export function OfficeTab() {
             padding: 8,
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
+            gap: 8,
           }}
         >
+          {/* Trading 房间实时行情 mini 条（仅 investment_office 场景渲染） */}
+          <TradingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+          {/* Meeting 房间晨会议题 mini 条（仅 investment_office 场景渲染） */}
+          <MeetingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+          {/* Strategy 房间策略列表 mini 条（仅 investment_office 场景渲染） */}
+          <StrategyRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+          {/* Risk 房间压测结果 mini 条（仅 investment_office 场景渲染） */}
+          <RiskRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
           {activeFleetId && (
-            <OfficeGame
-              sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
-              members={sceneMembers}
-              onAgentClick={handleAgentClick}
-              width={800}
-              height={500}
-            />
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, minHeight: 0 }}>
+              <OfficeGame
+                sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
+                members={sceneMembers}
+                onAgentClick={handleAgentClick}
+                width={800}
+                height={500}
+              />
+            </div>
           )}
         </div>
 
@@ -314,6 +335,22 @@ export function OfficeTab() {
             </div>
           )}
       </div>
+
+      {/* 添加成员弹窗 */}
+      {activeFleetId && (
+        <AddMemberModal
+          open={addMemberOpen}
+          fleetId={activeFleetId}
+          sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
+          onClose={() => setAddMemberOpen(false)}
+        />
+      )}
+
+      {/* 创建办公室弹窗 */}
+      <CreateFleetModal
+        open={createFleetOpen}
+        onClose={() => setCreateFleetOpen(false)}
+      />
     </div>
   );
 }

@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "オフィス作成",
-      "promptName": "オフィス名を入力："
+      "promptName": "オフィス名を入力：",
+      "modalTitle": "オフィス作成",
+      "cancel": "キャンセル",
+      "confirm": "作成",
+      "nameLabel": "オフィス名",
+      "namePlaceholder": "例：A 株調査チーム",
+      "nameRequired": "オフィス名を入力してください",
+      "sceneLabel": "シーンテンプレート",
+      "strategyLabel": "投資戦略",
+      "strategyPlaceholder": "戦略を選択（任意）",
+      "strategyTooltip": "戦略は Dispatcher プロンプトに注入され、ルーティングに影響します。投資オフィスは投資リサーチを選択することを推奨します。",
+      "descriptionLabel": "業務説明",
+      "descriptionPlaceholder": "チームの位置づけ / 主な担当（任意）",
+      "success": "オフィスを作成しました：{{name}}"
+    },
+    "strategy": {
+      "investment_research": "投資リサーチ",
+      "trading": "トレーディング",
+      "risk_management": "リスク管理",
+      "data_analysis": "データ分析"
     },
     "emptyFleet": "オフィスが未作成です。右上のボタンから最初のオフィスを作成してください。",
     "memberCount": "{{count}} メンバー",
     "membersTitle": "メンバーリスト",
     "noMembers": "このオフィスにはメンバーがいません。Agent リストから追加してください。",
+    "addMember": {
+      "title": "オフィスメンバー追加",
+      "button": "メンバー追加",
+      "selectAgent": "登録済み SubAgent から選択",
+      "selectAgentPlaceholder": "SubAgent を選択して自動入力",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID（例: sub_agent_id または外部 session id）",
+      "agentIdRequired": "Agent ID を入力してください",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "業務識別子、例: research_analyst",
+      "agentSlugRequired": "Agent Slug を入力してください",
+      "displayName": "表示名",
+      "displayNamePlaceholder": "カードに表示する名前",
+      "displayNameRequired": "表示名を入力してください",
+      "fillFromRole": "BusinessRole から役割を自動入力",
+      "fillFromRolePlaceholder": "BusinessRole を選択して role を自動入力",
+      "role": "役割説明",
+      "rolePlaceholder": "Dispatcher prompt に注入する役割説明",
+      "roomId": "部屋",
+      "cancel": "キャンセル",
+      "confirm": "追加",
+      "success": "メンバーを追加しました: {{name}}"
+    },
     "selectFleet": "オフィスを選択",
     "tabs": {
       "chat": "グループチャット",
@@ -4056,6 +4098,7 @@
       "inputPlaceholder": "グループチャット メッセージ…",
       "send": "送信",
       "routingHint": "ルーティング中…",
+      "contextInjectedHint": "現在選択中の銘柄がビジネスコンテキストとして自動注入されます。ディスパッチャーはこれに基づきリサーチ/トレード/リスクエージェントへルーティングします",
       "tagRouting": "ルーティング",
       "routingMessage": "→ {{slug}}：{{summary}}",
       "tagProcess": "処理",
@@ -4067,7 +4110,12 @@
       "backToList": "メンバーリストに戻る",
       "emptyHint": "{{slug}} との DM は空です。",
       "inputPlaceholder": "{{slug}} にメッセージ…",
-      "send": "送信"
+      "send": "送信",
+      "analyzeStock": "現在の株式を分析",
+      "analyzeStockHint": "現在の株式コードをエージェントへの事前設定メッセージとして送信",
+      "analyzeStockRunningHint": "ワークフロー実行中、単一相談可能",
+      "analyzeStockPrompt": "現在のデータに基づいて{{stockName}}（{{stockCode}}）を簡潔に分析し、あなたの判断を述べてください",
+      "analyzeStockPromptCodeOnly": "現在のデータに基づいて{{stockCode}}を簡潔に分析し、あなたの判断を述べてください"
     },
     "trajectory": {
       "empty": "軌跡イベントはありません。",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}}：{{summary}}",
       "tagProcess": "処理",
       "tagStatus": "ステータス",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "ビジネス {{count}}",
+      "dispatchCount": "ディスパッチ {{count}}",
+      "analysisRunning": "分析実行中",
+      "showDispatch": "ディスパッチイベントを表示",
+      "hideDispatch": "ディスパッチイベントを非表示",
+      "jumpToEvidence": "証拠パネルへジャンプ"
     },
     "token": {
       "empty": "Token 使用量データはありません。",
@@ -4086,6 +4140,103 @@
       "colStatus": "ステータス",
       "colToday": "今日の Token",
       "colTotal": "累計 Token"
+    },
+    "scene": {
+      "default_office": "デフォルトオフィス",
+      "investment_office": "投資オフィス"
+    },
+    "room": {
+      "workspace": "ワークスペース",
+      "meeting": "会議室",
+      "lounge": "ラウンジ",
+      "manager": "マネージャー室",
+      "research": "調査室",
+      "data_room": "データ室",
+      "strategy": "戦略室",
+      "trading": "トレード室",
+      "risk": "リスク管理室"
+    },
+    "roleTag": {
+      "research": "調査",
+      "data": "データ",
+      "strategy": "戦略",
+      "trading": "トレード",
+      "risk": "リスク",
+      "manager": "管理",
+      "default": "一般"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "銘柄",
+        "switchStock": "銘柄切替",
+        "price": "現在値",
+        "changePct": "騰落率",
+        "changeAbs": "騰落額",
+        "open": "始値",
+        "high": "高値",
+        "low": "安値",
+        "preClose": "前日終値",
+        "volume": "出来高",
+        "amount": "売買代金",
+        "pe": "PER",
+        "pb": "PBR",
+        "totalMv": "時価総額",
+        "circulatingMv": "流通時価総額",
+        "limitUp": "ストップ高",
+        "limitDown": "ストップ安",
+        "turnoverRate": "回転率",
+        "timestamp": "時刻",
+        "refresh": "更新",
+        "autoRefresh": "自動",
+        "autoRefreshHint": "30 秒ごとに自動更新",
+        "loading": "行情取得中…",
+        "noQuote": "行情データなし",
+        "noStockSelected": "銘柄未選択。分析ページで選択または検索してください。",
+        "pickerTitle": "銘柄切替",
+        "pickerPlaceholder": "コードまたは名称（≥2 文字）",
+        "pickerHint": "2 文字以上入力で検索",
+        "pickerEmpty": "一致する銘柄が見つかりません"
+      },
+      "meeting": {
+        "title": "朝会アジェンダ · 市場メインテーマ",
+        "today": "本日",
+        "activeCount": "アクティブ {{count}}",
+        "strength": "強度",
+        "representative": "代表銘柄",
+        "prevDay": "前日",
+        "nextDay": "翌日",
+        "refresh": "メインテーマ更新",
+        "collapse": "折りたたむ",
+        "expand": "展開",
+        "empty": "メインテーマなし。「市場メインテーマ抽出」ワークフローを実行してください。"
+      },
+      "strategy": {
+        "title": "戦略リスト",
+        "total": "合計 {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Quant ページへ",
+        "refresh": "戦略を更新",
+        "collapse": "リストを折りたたむ",
+        "expand": "リストを展開",
+        "empty": "戦略データなし。Quant ページで戦略を登録してください。",
+        "wfEnabled": "WF",
+        "moreCount": "さらに {{count}} 件の戦略が非表示"
+      },
+      "risk": {
+        "title": "リスクストレステスト",
+        "refresh": "ストレステストを更新",
+        "collapse": "シナリオを折りたたむ",
+        "expand": "シナリオを展開",
+        "empty": "ストレステストデータなし。先にトレードルームで建玉を開いてから更新してください。",
+        "snapshotAt": "スナップショット {{time}}",
+        "topHit": "最大影響",
+        "highRiskHint": "高リスク警報：建玉の削減またはヘッジを検討してください",
+        "level": {
+          "low": "低リスク",
+          "medium": "中リスク",
+          "high": "高リスク"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "待機中",
+        "running": "実行中",
+        "done": "完了",
+        "failed": "失敗"
+      }
     },
     "alert.date": "Date",
     "recommendation": {

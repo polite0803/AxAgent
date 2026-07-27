@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * TokenPanel — Token 用量统计面板。
+ * TokenPanel — Token 用量统计面板 + 模拟组合总览卡。
  *
- * 展示当前 fleet 的成员 token 用量（today / total），按今日用量降序。
- * 提供「重置今日用量」按钮，调用 store.resetDailyTokens。
+ * 顶部展示「模拟组合总览」（portfolioDashboard）：
+ * - 聚合所有 active paper portfolio 的 summary
+ * - 显示持仓数、总市值、总浮动盈亏、总收益率
+ * - 投研团队可直接看到当前观察组合的整体表现
+ *
+ * 下方展示当前 fleet 的成员 token 用量（today / total），按今日用量降序。
  */
 
-import { useOfficeStore } from "@/stores";
+import { useOfficeStore, usePaperPortfolioStore } from "@/stores";
 import type { FleetMember } from "@/types";
 import { Button, Empty, Spin, Table, Tag, theme, Typography } from "antd";
-import { RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { Briefcase, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -22,6 +26,20 @@ function formatTokens(n: number) {
   return String(n);
 }
 
+function formatMoney(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n >= 0 ? "" : "-";
+  if (abs >= 100_000_000) { return `${sign}${(abs / 100_000_000).toFixed(2)}亿`; }
+  if (abs >= 10_000) { return `${sign}${(abs / 10_000).toFixed(2)}万`; }
+  if (abs >= 1_000) { return `${sign}${(abs / 1_000).toFixed(1)}千`; }
+  return `${sign}${abs.toFixed(2)}`;
+}
+
+function formatPct(n: number): string {
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}%`;
+}
+
 export function TokenPanel({ fleetId }: { fleetId: string }) {
   const { t } = useTranslation();
   const { token: themeToken } = theme.useToken();
@@ -29,6 +47,46 @@ export function TokenPanel({ fleetId }: { fleetId: string }) {
   const loading = useOfficeStore((s) => s.loading);
   const resetDaily = useOfficeStore((s) => s.resetDailyTokens);
   const [resetting, setResetting] = useState(false);
+
+  // 组合总览数据（聚合所有 active 组合）
+  const activeDetails = usePaperPortfolioStore((s) => s.activeDetails);
+  const fetchActiveDetails = usePaperPortfolioStore((s) => s.fetchActiveDetails);
+  const loadingPortfolio = usePaperPortfolioStore((s) => s.loadingList);
+
+  // 进入 Token tab 时拉取一次 active 组合详情（用于顶部总览卡）
+  useEffect(() => {
+    void fetchActiveDetails();
+  }, [fetchActiveDetails]);
+
+  // 聚合所有 active 组合的 summary（多组合时累加）
+  const portfolioSummary = (() => {
+    if (activeDetails.length === 0) { return null; }
+    const aggregated = activeDetails.reduce(
+      (acc, p) => {
+        acc.positionCount += p.summary.positionCount;
+        acc.openCount += p.summary.openCount;
+        acc.closedCount += p.summary.closedCount;
+        acc.totalCost += p.summary.totalCost;
+        acc.totalMarketValue += p.summary.totalMarketValue;
+        acc.totalUnrealizedPnl += p.summary.totalUnrealizedPnl;
+        acc.totalRealizedPnl += p.summary.totalRealizedPnl;
+        return acc;
+      },
+      {
+        positionCount: 0,
+        openCount: 0,
+        closedCount: 0,
+        totalCost: 0,
+        totalMarketValue: 0,
+        totalUnrealizedPnl: 0,
+        totalRealizedPnl: 0,
+      },
+    );
+    const totalReturnPct = aggregated.totalCost > 0
+      ? ((aggregated.totalMarketValue - aggregated.totalCost) / aggregated.totalCost) * 100
+      : 0;
+    return { ...aggregated, totalReturnPct };
+  })();
 
   const sorted = [...members].sort((a, b) => b.todayTokens - a.todayTokens);
   const totalToday = sorted.reduce((s, m) => s + m.todayTokens, 0);
@@ -65,7 +123,77 @@ export function TokenPanel({ fleetId }: { fleetId: string }) {
 
   return (
     <div style={{ padding: 12, height: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
-      {/* 总览统计 */}
+      {/* 模拟组合总览卡（portfolioDashboard） */}
+      {portfolioSummary && (
+        <div
+          style={{
+            padding: "10px 12px",
+            background: themeToken.colorBgLayout,
+            borderRadius: 6,
+            border: `1px solid ${themeToken.colorBorderSecondary}`,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 8,
+              fontSize: 12,
+              color: themeToken.colorTextSecondary,
+              fontWeight: 600,
+            }}
+          >
+            <Briefcase size={12} />
+            <span>{t("office.token.portfolioDashboardTitle")}</span>
+            <Text type="secondary" style={{ fontSize: 10, fontWeight: 400 }}>
+              {t("office.token.portfolioCount", { count: activeDetails.length })}
+            </Text>
+          </div>
+          {/* 四宫格指标 */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <PortfolioMetric
+              label={t("office.token.positionCount")}
+              value={`${portfolioSummary.openCount}/${portfolioSummary.positionCount}`}
+              hint={t("office.token.openClosedHint", {
+                open: portfolioSummary.openCount,
+                closed: portfolioSummary.closedCount,
+              })}
+            />
+            <PortfolioMetric
+              label={t("office.token.totalMarketValue")}
+              value={formatMoney(portfolioSummary.totalMarketValue)}
+              hint={`${t("office.token.totalCost")}：${formatMoney(portfolioSummary.totalCost)}`}
+            />
+            <PortfolioMetric
+              label={t("office.token.unrealizedPnl")}
+              value={formatMoney(portfolioSummary.totalUnrealizedPnl)}
+              valueColor={portfolioSummary.totalUnrealizedPnl > 0
+                ? "#52c41a"
+                : portfolioSummary.totalUnrealizedPnl < 0
+                ? "#ff4d4f"
+                : themeToken.colorText}
+            />
+            <PortfolioMetric
+              label={t("office.token.totalReturn")}
+              value={formatPct(portfolioSummary.totalReturnPct)}
+              valueColor={portfolioSummary.totalReturnPct > 0
+                ? "#52c41a"
+                : portfolioSummary.totalReturnPct < 0
+                ? "#ff4d4f"
+                : themeToken.colorText}
+              hint={`${t("office.token.realizedPnl")}：${formatMoney(portfolioSummary.totalRealizedPnl)}`}
+            />
+          </div>
+        </div>
+      )}
+      {loadingPortfolio && !portfolioSummary && (
+        <div style={{ padding: 12, textAlign: "center" }}>
+          <Spin size="small" />
+        </div>
+      )}
+
+      {/* Token 总览统计 */}
       <div style={{ display: "flex", gap: 8 }}>
         <div
           style={{
@@ -171,6 +299,41 @@ export function TokenPanel({ fleetId }: { fleetId: string }) {
           ]}
         />
       </div>
+    </div>
+  );
+}
+
+/** 组合指标单元 */
+function PortfolioMetric({
+  label,
+  value,
+  hint,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  valueColor?: string;
+}) {
+  const { token: themeToken } = theme.useToken();
+  return (
+    <div
+      style={{
+        padding: "6px 8px",
+        background: themeToken.colorBgContainer,
+        borderRadius: 4,
+        border: `1px solid ${themeToken.colorBorderSecondary}`,
+      }}
+    >
+      <div style={{ fontSize: 10, color: themeToken.colorTextTertiary }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: valueColor ?? themeToken.colorText }}>
+        {value}
+      </div>
+      {hint && (
+        <div style={{ fontSize: 10, color: themeToken.colorTextQuaternary, marginTop: 2 }}>
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

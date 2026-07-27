@@ -3419,12 +3419,54 @@
   "office": {
     "createFleet": {
       "button": "创建办公室",
-      "promptName": "请输入办公室名称："
+      "promptName": "请输入办公室名称：",
+      "modalTitle": "创建办公室",
+      "cancel": "取消",
+      "confirm": "创建",
+      "nameLabel": "办公室名称",
+      "namePlaceholder": "如：A 股投研团队",
+      "nameRequired": "请填写办公室名称",
+      "sceneLabel": "场景模板",
+      "strategyLabel": "投资策略",
+      "strategyPlaceholder": "选择策略（可选）",
+      "strategyTooltip": "策略会注入 Dispatcher prompt，影响消息路由偏好。投研办公室建议选「投研策略」。",
+      "descriptionLabel": "业务描述",
+      "descriptionPlaceholder": "团队定位 / 主要职责（可选）",
+      "success": "已创建办公室：{{name}}"
+    },
+    "strategy": {
+      "investment_research": "投研策略",
+      "trading": "交易策略",
+      "risk_management": "风控策略",
+      "data_analysis": "数据分析策略"
     },
     "emptyFleet": "尚未创建办公室。点击右上角按钮创建第一个办公室。",
     "memberCount": "{{count}} 个成员",
     "membersTitle": "成员列表",
     "noMembers": "该办公室暂无成员。请从 Agent 列表中添加。",
+    "addMember": {
+      "title": "添加办公室成员",
+      "button": "添加成员",
+      "selectAgent": "从已注册 SubAgent 选择",
+      "selectAgentPlaceholder": "选择一个 SubAgent 自动填充",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID（如 sub_agent_id 或外部 session id）",
+      "agentIdRequired": "请填写 Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "业务标识，如 research_analyst",
+      "agentSlugRequired": "请填写 Agent Slug",
+      "displayName": "显示名称",
+      "displayNamePlaceholder": "在卡片上展示的名字",
+      "displayNameRequired": "请填写显示名称",
+      "fillFromRole": "从业务岗位填充角色描述",
+      "fillFromRolePlaceholder": "选择 BusinessRole 自动填入 role",
+      "role": "角色描述",
+      "rolePlaceholder": "注入到 Dispatcher prompt 的角色描述",
+      "roomId": "所在房间",
+      "cancel": "取消",
+      "confirm": "添加",
+      "success": "已添加成员：{{name}}"
+    },
     "selectFleet": "请选择办公室",
     "tabs": {
       "chat": "群聊",
@@ -3449,6 +3491,7 @@
       "inputPlaceholder": "输入群聊消息…",
       "send": "发送",
       "routingHint": "智能路由中…",
+      "contextInjectedHint": "已自动注入当前选中股票作为业务上下文，dispatcher 据此路由到投研员/交易员/风控员",
       "tagRouting": "路由",
       "routingMessage": "→ {{slug}}：{{summary}}",
       "tagProcess": "处理",
@@ -3460,7 +3503,12 @@
       "backToList": "返回成员列表",
       "emptyHint": "与 {{slug}} 的私信会话为空。",
       "inputPlaceholder": "给 {{slug}} 发消息…",
-      "send": "发送"
+      "send": "发送",
+      "analyzeStock": "分析当前股票",
+      "analyzeStockHint": "把当前股票代码作为预设消息发给 agent",
+      "analyzeStockRunningHint": "工作流运行中，仍可发送单次咨询",
+      "analyzeStockPrompt": "请基于现有数据简要分析 {{stockName}}（{{stockCode}}）的最新情况，给出你的判断",
+      "analyzeStockPromptCodeOnly": "请基于现有数据简要分析 {{stockCode}} 的最新情况，给出你的判断"
     },
     "trajectory": {
       "empty": "暂无轨迹事件。",
@@ -3468,7 +3516,13 @@
       "routing": "→ {{slug}}：{{summary}}",
       "tagProcess": "处理",
       "tagStatus": "状态",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "业务节点 {{count}}",
+      "dispatchCount": "协作事件 {{count}}",
+      "analysisRunning": "分析进行中",
+      "showDispatch": "显示协作事件",
+      "hideDispatch": "隐藏协作事件",
+      "jumpToEvidence": "跳转到证据面板"
     },
     "token": {
       "empty": "暂无 token 用量数据。",
@@ -3479,6 +3533,103 @@
       "colStatus": "状态",
       "colToday": "今日 Token",
       "colTotal": "累计 Token"
+    },
+    "scene": {
+      "default_office": "默认办公室",
+      "investment_office": "投研办公室"
+    },
+    "room": {
+      "workspace": "工位区",
+      "meeting": "会议室",
+      "lounge": "休息区",
+      "manager": "经理室",
+      "research": "投研室",
+      "data_room": "数据室",
+      "strategy": "策略室",
+      "trading": "交易室",
+      "risk": "风控室"
+    },
+    "roleTag": {
+      "research": "投研",
+      "data": "数据",
+      "strategy": "策略",
+      "trading": "交易",
+      "risk": "风控",
+      "manager": "管理",
+      "default": "通用"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "标的",
+        "switchStock": "切换股票",
+        "price": "现价",
+        "changePct": "涨跌幅",
+        "changeAbs": "涨跌额",
+        "open": "开盘",
+        "high": "最高",
+        "low": "最低",
+        "preClose": "昨收",
+        "volume": "成交量",
+        "amount": "成交额",
+        "pe": "PE",
+        "pb": "PB",
+        "totalMv": "总市值",
+        "circulatingMv": "流通市值",
+        "limitUp": "涨停",
+        "limitDown": "跌停",
+        "turnoverRate": "换手率",
+        "timestamp": "时间",
+        "refresh": "刷新",
+        "autoRefresh": "自动",
+        "autoRefreshHint": "30 秒自动刷新",
+        "loading": "加载行情中…",
+        "noQuote": "暂无行情数据",
+        "noStockSelected": "未选中股票，请先在股票分析页选择或点击搜索切换",
+        "pickerTitle": "切换股票",
+        "pickerPlaceholder": "输入股票代码或名称（≥2 字）",
+        "pickerHint": "输入至少 2 个字符开始搜索",
+        "pickerEmpty": "未找到匹配的股票"
+      },
+      "meeting": {
+        "title": "晨会议题 · 市场主线",
+        "today": "今日",
+        "activeCount": "活跃 {{count}}",
+        "strength": "强度",
+        "representative": "代表标的",
+        "prevDay": "前一日",
+        "nextDay": "后一日",
+        "refresh": "刷新主线",
+        "collapse": "收起议题",
+        "expand": "展开议题",
+        "empty": "暂无主线数据。可运行「每日市场主线提炼」工作流生成。"
+      },
+      "strategy": {
+        "title": "策略列表",
+        "total": "共 {{count}} 个",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "前往量化页面",
+        "refresh": "刷新策略",
+        "collapse": "收起列表",
+        "expand": "展开列表",
+        "empty": "暂无策略数据。可在量化页面注册策略。",
+        "wfEnabled": "WF",
+        "moreCount": "还有 {{count}} 个策略未显示"
+      },
+      "risk": {
+        "title": "风控压测",
+        "refresh": "刷新压测",
+        "collapse": "收起场景",
+        "expand": "展开场景",
+        "empty": "暂无压测数据。可先在交易室建立持仓后刷新。",
+        "snapshotAt": "快照 {{time}}",
+        "topHit": "最大冲击",
+        "highRiskHint": "高风险预警：建议减仓或对冲",
+        "level": {
+          "low": "低风险",
+          "medium": "中风险",
+          "high": "高风险"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -9799,7 +9950,13 @@
       "idleHint": "开始分析后,這裡会展示完整的决策时间线",
       "emptyHint": "等待工作流推送节点…",
       "sendToChat": "发送到对话",
-      "overviewTitle": "决策链路"
+      "overviewTitle": "决策链路",
+      "nodeStatus": {
+        "pending": "待运行",
+        "running": "进行中",
+        "done": "已完成",
+        "failed": "失败"
+      }
     },
     "settings": {
       "title": "股票分析设置",

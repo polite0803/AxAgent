@@ -3680,12 +3680,54 @@
   "office": {
     "createFleet": {
       "button": "Create Office",
-      "promptName": "Enter office name:"
+      "promptName": "Enter office name:",
+      "modalTitle": "Create Office",
+      "cancel": "Cancel",
+      "confirm": "Create",
+      "nameLabel": "Office Name",
+      "namePlaceholder": "e.g. A-share Research Team",
+      "nameRequired": "Please enter an office name",
+      "sceneLabel": "Scene Template",
+      "strategyLabel": "Investment Strategy",
+      "strategyPlaceholder": "Select strategy (optional)",
+      "strategyTooltip": "Strategy is injected into the Dispatcher prompt and affects message routing. Investment offices should pick Investment Research.",
+      "descriptionLabel": "Business Description",
+      "descriptionPlaceholder": "Team positioning / main duties (optional)",
+      "success": "Office created: {{name}}"
+    },
+    "strategy": {
+      "investment_research": "Investment Research",
+      "trading": "Trading",
+      "risk_management": "Risk Management",
+      "data_analysis": "Data Analysis"
     },
     "emptyFleet": "No office created yet. Click the button in the top right to create your first office.",
     "memberCount": "{{count}} members",
     "membersTitle": "Members",
-    "noMembers": "No members in this office. Add one from the agent list.",
+    "noMembers": "No members in this office yet. Add one from the agent list.",
+    "addMember": {
+      "title": "Add Office Member",
+      "button": "Add Member",
+      "selectAgent": "Pick from registered SubAgents",
+      "selectAgentPlaceholder": "Pick a SubAgent to autofill",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (e.g. sub_agent_id or external session id)",
+      "agentIdRequired": "Please fill the Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "Business identifier, e.g. research_analyst",
+      "agentSlugRequired": "Please fill the Agent Slug",
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "Name shown on the card",
+      "displayNameRequired": "Please fill the display name",
+      "fillFromRole": "Autofill role from business role",
+      "fillFromRolePlaceholder": "Pick a BusinessRole to autofill role",
+      "role": "Role Description",
+      "rolePlaceholder": "Role description injected into the dispatcher prompt",
+      "roomId": "Room",
+      "cancel": "Cancel",
+      "confirm": "Add",
+      "success": "Member added: {{name}}"
+    },
     "selectFleet": "Select an office",
     "tabs": {
       "chat": "Group Chat",
@@ -3710,6 +3752,7 @@
       "inputPlaceholder": "Type a group message…",
       "send": "Send",
       "routingHint": "Routing…",
+      "contextInjectedHint": "Currently selected stock is auto-injected as business context; dispatcher routes to research/trading/risk agents accordingly",
       "tagRouting": "Routing",
       "routingMessage": "→ {{slug}}: {{summary}}",
       "tagProcess": "Process",
@@ -3721,7 +3764,12 @@
       "backToList": "Back to members",
       "emptyHint": "No messages with {{slug}} yet.",
       "inputPlaceholder": "Message {{slug}}…",
-      "send": "Send"
+      "send": "Send",
+      "analyzeStock": "Analyze current stock",
+      "analyzeStockHint": "Send current stock code as preset message to agent",
+      "analyzeStockRunningHint": "Workflow running, can still send single consultation",
+      "analyzeStockPrompt": "Based on current data, briefly analyze {{stockName}} ({{stockCode}}) and give your judgment",
+      "analyzeStockPromptCodeOnly": "Based on current data, briefly analyze {{stockCode}} and give your judgment"
     },
     "trajectory": {
       "empty": "No trajectory events yet.",
@@ -3729,7 +3777,13 @@
       "routing": "→ {{slug}}: {{summary}}",
       "tagProcess": "Process",
       "tagStatus": "Status",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "Business {{count}}",
+      "dispatchCount": "Dispatch {{count}}",
+      "analysisRunning": "Analysis running",
+      "showDispatch": "Show dispatch events",
+      "hideDispatch": "Hide dispatch events",
+      "jumpToEvidence": "Jump to evidence"
     },
     "token": {
       "empty": "No token usage data yet.",
@@ -3740,6 +3794,103 @@
       "colStatus": "Status",
       "colToday": "Today Tokens",
       "colTotal": "Total Tokens"
+    },
+    "scene": {
+      "default_office": "Default Office",
+      "investment_office": "Investment Office"
+    },
+    "room": {
+      "workspace": "Workspace",
+      "meeting": "Meeting",
+      "lounge": "Lounge",
+      "manager": "Manager",
+      "research": "Research",
+      "data_room": "Data Room",
+      "strategy": "Strategy",
+      "trading": "Trading",
+      "risk": "Risk Control"
+    },
+    "roleTag": {
+      "research": "Research",
+      "data": "Data",
+      "strategy": "Strategy",
+      "trading": "Trading",
+      "risk": "Risk",
+      "manager": "Manager",
+      "default": "General"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "Symbol",
+        "switchStock": "Switch stock",
+        "price": "Price",
+        "changePct": "Change %",
+        "changeAbs": "Change",
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "preClose": "Prev Close",
+        "volume": "Volume",
+        "amount": "Amount",
+        "pe": "PE",
+        "pb": "PB",
+        "totalMv": "Total Mv",
+        "circulatingMv": "Circ. Mv",
+        "limitUp": "Limit Up",
+        "limitDown": "Limit Down",
+        "turnoverRate": "Turnover",
+        "timestamp": "Time",
+        "refresh": "Refresh",
+        "autoRefresh": "Auto",
+        "autoRefreshHint": "Auto refresh every 30s",
+        "loading": "Loading quote…",
+        "noQuote": "No quote data",
+        "noStockSelected": "No stock selected. Pick one on the stock analysis page or use search.",
+        "pickerTitle": "Switch stock",
+        "pickerPlaceholder": "Enter code or name (≥2 chars)",
+        "pickerHint": "Type at least 2 characters to search",
+        "pickerEmpty": "No matching stock found"
+      },
+      "meeting": {
+        "title": "Morning Briefing · Market Mainlines",
+        "today": "Today",
+        "activeCount": "Active {{count}}",
+        "strength": "Strength",
+        "representative": "Representative",
+        "prevDay": "Previous day",
+        "nextDay": "Next day",
+        "refresh": "Refresh mainlines",
+        "collapse": "Collapse",
+        "expand": "Expand",
+        "empty": "No mainline data. Run the \"Daily Market Mainline Extraction\" workflow to generate."
+      },
+      "strategy": {
+        "title": "Strategy List",
+        "total": "Total {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Go to Quant page",
+        "refresh": "Refresh strategies",
+        "collapse": "Collapse list",
+        "expand": "Expand list",
+        "empty": "No strategy data. Register strategies on the Quant page.",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}} more strategies not shown"
+      },
+      "risk": {
+        "title": "Risk Stress Test",
+        "refresh": "Refresh stress test",
+        "collapse": "Collapse scenarios",
+        "expand": "Expand scenarios",
+        "empty": "No stress test data. Open positions in the trading room first, then refresh.",
+        "snapshotAt": "Snapshot {{time}}",
+        "topHit": "Top hit",
+        "highRiskHint": "High risk alert: consider reducing positions or hedging",
+        "level": {
+          "low": "Low risk",
+          "medium": "Medium risk",
+          "high": "High risk"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11079,7 +11230,13 @@
       "phase.diagnose": "診断",
       "phase.debate": "辩论",
       "phase.decide": "决策",
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "Pending",
+        "running": "Running",
+        "done": "Done",
+        "failed": "Failed"
+      }
     },
     "title": "Stock Analysis",
     "strength": "Strength",

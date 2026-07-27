@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "Créer un bureau",
-      "promptName": "Entrez le nom du bureau :"
+      "promptName": "Entrez le nom du bureau :",
+      "modalTitle": "Créer un bureau",
+      "cancel": "Annuler",
+      "confirm": "Créer",
+      "nameLabel": "Nom du bureau",
+      "namePlaceholder": "ex. Équipe de recherche A-share",
+      "nameRequired": "Veuillez saisir un nom de bureau",
+      "sceneLabel": "Modèle de scène",
+      "strategyLabel": "Stratégie d'investissement",
+      "strategyPlaceholder": "Choisir une stratégie (optionnel)",
+      "strategyTooltip": "La stratégie est injectée dans le prompt du Dispatcher et affecte le routage. Les bureaux de recherche devraient choisir Recherche Investissement.",
+      "descriptionLabel": "Description métier",
+      "descriptionPlaceholder": "Positionnement de l'équipe / responsabilités principales (optionnel)",
+      "success": "Bureau créé : {{name}}"
+    },
+    "strategy": {
+      "investment_research": "Recherche investissement",
+      "trading": "Trading",
+      "risk_management": "Gestion des risques",
+      "data_analysis": "Analyse de données"
     },
     "emptyFleet": "Aucun bureau créé. Cliquez sur le bouton en haut à droite pour créer votre premier bureau.",
     "memberCount": "{{count}} membres",
     "membersTitle": "Membres",
     "noMembers": "Aucun membre dans ce bureau. Ajoutez-en un depuis la liste d'agents.",
+    "addMember": {
+      "title": "Ajouter un membre",
+      "button": "Ajouter un membre",
+      "selectAgent": "Choisir parmi les SubAgents enregistrés",
+      "selectAgentPlaceholder": "Choisir un SubAgent pour remplir automatiquement",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (ex. sub_agent_id ou session id externe)",
+      "agentIdRequired": "Veuillez remplir l'Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "Identifiant métier, ex. research_analyst",
+      "agentSlugRequired": "Veuillez remplir l'Agent Slug",
+      "displayName": "Nom affiché",
+      "displayNamePlaceholder": "Nom affiché sur la carte",
+      "displayNameRequired": "Veuillez remplir le nom affiché",
+      "fillFromRole": "Remplir le rôle depuis BusinessRole",
+      "fillFromRolePlaceholder": "Choisir un BusinessRole pour remplir role",
+      "role": "Description du rôle",
+      "rolePlaceholder": "Description du rôle injectée dans le prompt du dispatcher",
+      "roomId": "Salle",
+      "cancel": "Annuler",
+      "confirm": "Ajouter",
+      "success": "Membre ajouté : {{name}}"
+    },
     "selectFleet": "Sélectionnez un bureau",
     "tabs": {
       "chat": "Chat de groupe",
@@ -4056,6 +4098,7 @@
       "inputPlaceholder": "Saisissez un message de groupe…",
       "send": "Envoyer",
       "routingHint": "Routage…",
+      "contextInjectedHint": "L'action actuellement sélectionnée est injectée automatiquement comme contexte métier ; le dispatcher route vers les agents recherche/trading/risque en conséquence",
       "tagRouting": "Routage",
       "routingMessage": "→ {{slug}} : {{summary}}",
       "tagProcess": "Traitement",
@@ -4067,7 +4110,12 @@
       "backToList": "Retour aux membres",
       "emptyHint": "Pas de messages avec {{slug}}.",
       "inputPlaceholder": "Message à {{slug}}…",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "analyzeStock": "Analyser l'action actuelle",
+      "analyzeStockHint": "Envoyer le code de l'action actuelle comme message prédéfini à l'agent",
+      "analyzeStockRunningHint": "Workflow en cours, consultation unique toujours possible",
+      "analyzeStockPrompt": "Sur la base des données actuelles, analysez brièvement {{stockName}} ({{stockCode}}) et donnez votre jugement",
+      "analyzeStockPromptCodeOnly": "Sur la base des données actuelles, analysez brièvement {{stockCode}} et donnez votre jugement"
     },
     "trajectory": {
       "empty": "Aucun événement de trajectoire.",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}} : {{summary}}",
       "tagProcess": "Traitement",
       "tagStatus": "Statut",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "Business {{count}}",
+      "dispatchCount": "Dispatch {{count}}",
+      "analysisRunning": "Analyse en cours",
+      "showDispatch": "Afficher les événements dispatch",
+      "hideDispatch": "Masquer les événements dispatch",
+      "jumpToEvidence": "Aller au panneau de preuve"
     },
     "token": {
       "empty": "Pas de données d'utilisation de tokens.",
@@ -4086,6 +4140,103 @@
       "colStatus": "Statut",
       "colToday": "Tokens du jour",
       "colTotal": "Tokens totaux"
+    },
+    "scene": {
+      "default_office": "Bureau par défaut",
+      "investment_office": "Bureau Investissement"
+    },
+    "room": {
+      "workspace": "Espace de travail",
+      "meeting": "Salle de réunion",
+      "lounge": "Salon",
+      "manager": "Manager",
+      "research": "Recherche",
+      "data_room": "Données",
+      "strategy": "Stratégie",
+      "trading": "Trading",
+      "risk": "Contrôle des risques"
+    },
+    "roleTag": {
+      "research": "Recherche",
+      "data": "Données",
+      "strategy": "Stratégie",
+      "trading": "Trading",
+      "risk": "Risque",
+      "manager": "Direction",
+      "default": "Général"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "Symbole",
+        "switchStock": "Changer de valeur",
+        "price": "Prix",
+        "changePct": "Variation %",
+        "changeAbs": "Variation",
+        "open": "Ouv.",
+        "high": "Haut",
+        "low": "Bas",
+        "preClose": "Clôture préc.",
+        "volume": "Volume",
+        "amount": "Montant",
+        "pe": "PE",
+        "pb": "PB",
+        "totalMv": "Cap. tot.",
+        "circulatingMv": "Cap. flott.",
+        "limitUp": "Limit haut",
+        "limitDown": "Limit bas",
+        "turnoverRate": "Rotation",
+        "timestamp": "Heure",
+        "refresh": "Rafraîchir",
+        "autoRefresh": "Auto",
+        "autoRefreshHint": "Rafraîchissement automatique toutes les 30 s",
+        "loading": "Chargement de la cotation…",
+        "noQuote": "Pas de cotation disponible",
+        "noStockSelected": "Aucune valeur sélectionnée. Choisissez-en une sur la page d'analyse ou via la recherche.",
+        "pickerTitle": "Changer de valeur",
+        "pickerPlaceholder": "Code ou nom (≥2 caractères)",
+        "pickerHint": "Saisir au moins 2 caractères pour lancer la recherche",
+        "pickerEmpty": "Aucune valeur correspondante"
+      },
+      "meeting": {
+        "title": "Briefing du matin · Thèmes de marché",
+        "today": "Aujourd'hui",
+        "activeCount": "Actifs {{count}}",
+        "strength": "Force",
+        "representative": "Représentatif",
+        "prevDay": "Jour précédent",
+        "nextDay": "Jour suivant",
+        "refresh": "Rafraîchir les thèmes",
+        "collapse": "Réduire",
+        "expand": "Développer",
+        "empty": "Pas de thème. Lancez le workflow « Extraction des thèmes de marché »."
+      },
+      "strategy": {
+        "title": "Liste des stratégies",
+        "total": "Total {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Aller à la page Quant",
+        "refresh": "Rafraîchir les stratégies",
+        "collapse": "Réduire la liste",
+        "expand": "Développer la liste",
+        "empty": "Aucune stratégie. Inscrivez des stratégies sur la page Quant.",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}} stratégies supplémentaires non affichées"
+      },
+      "risk": {
+        "title": "Tests de résistance",
+        "refresh": "Rafraîchir les tests",
+        "collapse": "Réduire les scénarios",
+        "expand": "Développer les scénarios",
+        "empty": "Aucune donnée de test. Ouvrez d'abord des positions puis rafraîchissez.",
+        "snapshotAt": "Instantané {{time}}",
+        "topHit": "Impact max",
+        "highRiskHint": "Alerte risque élevé : envisagez de réduire les positions ou de couvrir",
+        "level": {
+          "low": "Risque faible",
+          "medium": "Risque moyen",
+          "high": "Risque élevé"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "En attente",
+        "running": "En cours",
+        "done": "Terminé",
+        "failed": "Échoué"
+      }
     },
     "alert.date": "Date",
     "recommendation": {

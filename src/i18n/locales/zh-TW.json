@@ -3680,12 +3680,54 @@
   "office": {
     "createFleet": {
       "button": "建立辦公室",
-      "promptName": "請輸入辦公室名稱："
+      "promptName": "請輸入辦公室名稱：",
+      "modalTitle": "建立辦公室",
+      "cancel": "取消",
+      "confirm": "建立",
+      "nameLabel": "辦公室名稱",
+      "namePlaceholder": "如：A 股投研團隊",
+      "nameRequired": "請填寫辦公室名稱",
+      "sceneLabel": "場景模板",
+      "strategyLabel": "投資策略",
+      "strategyPlaceholder": "選擇策略（可選）",
+      "strategyTooltip": "策略會注入 Dispatcher prompt，影響訊息路由偏好。投研辦公室建議選「投研策略」。",
+      "descriptionLabel": "業務描述",
+      "descriptionPlaceholder": "團隊定位 / 主要職責（可選）",
+      "success": "已建立辦公室：{{name}}"
+    },
+    "strategy": {
+      "investment_research": "投研策略",
+      "trading": "交易策略",
+      "risk_management": "風控策略",
+      "data_analysis": "資料分析策略"
     },
     "emptyFleet": "尚未建立辦公室。點擊右上角按鈕建立第一個辦公室。",
     "memberCount": "{{count}} 個成員",
     "membersTitle": "成員列表",
     "noMembers": "該辦公室尚無成員。請從 Agent 列表中新增。",
+    "addMember": {
+      "title": "新增辦公室成員",
+      "button": "新增成員",
+      "selectAgent": "從已註冊 SubAgent 選擇",
+      "selectAgentPlaceholder": "選擇一個 SubAgent 自動填充",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID（如 sub_agent_id 或外部 session id）",
+      "agentIdRequired": "請填寫 Agent ID",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "業務標識，如 research_analyst",
+      "agentSlugRequired": "請填寫 Agent Slug",
+      "displayName": "顯示名稱",
+      "displayNamePlaceholder": "在卡片上展示的名字",
+      "displayNameRequired": "請填寫顯示名稱",
+      "fillFromRole": "從業務崗位填充角色描述",
+      "fillFromRolePlaceholder": "選擇 BusinessRole 自動填入 role",
+      "role": "角色描述",
+      "rolePlaceholder": "注入到 Dispatcher prompt 的角色描述",
+      "roomId": "所在房間",
+      "cancel": "取消",
+      "confirm": "新增",
+      "success": "已新增成員：{{name}}"
+    },
     "selectFleet": "請選擇辦公室",
     "tabs": {
       "chat": "群聊",
@@ -3710,6 +3752,7 @@
       "inputPlaceholder": "輸入群聊訊息…",
       "send": "傳送",
       "routingHint": "智慧路由中…",
+      "contextInjectedHint": "已自動注入當前選中股票作為業務上下文，dispatcher 據此路由到投研員/交易員/風控員",
       "tagRouting": "路由",
       "routingMessage": "→ {{slug}}：{{summary}}",
       "tagProcess": "處理",
@@ -3721,7 +3764,12 @@
       "backToList": "返回成員列表",
       "emptyHint": "與 {{slug}} 的私訊會話為空。",
       "inputPlaceholder": "給 {{slug}} 發訊息…",
-      "send": "傳送"
+      "send": "傳送",
+      "analyzeStock": "分析目前股票",
+      "analyzeStockHint": "把目前股票代碼作為預設訊息發給 agent",
+      "analyzeStockRunningHint": "工作流程執行中，仍可發送單次諮詢",
+      "analyzeStockPrompt": "請基於現有資料簡要分析 {{stockName}}（{{stockCode}}）的最新情況，給出你的判斷",
+      "analyzeStockPromptCodeOnly": "請基於現有資料簡要分析 {{stockCode}} 的最新情況，給出你的判斷"
     },
     "trajectory": {
       "empty": "尚無軌跡事件。",
@@ -3729,7 +3777,13 @@
       "routing": "→ {{slug}}：{{summary}}",
       "tagProcess": "處理",
       "tagStatus": "狀態",
-      "tagToken": "Token"
+      "tagToken": "Token",
+      "businessCount": "業務節點 {{count}}",
+      "dispatchCount": "協作事件 {{count}}",
+      "analysisRunning": "分析進行中",
+      "showDispatch": "顯示協作事件",
+      "hideDispatch": "隱藏協作事件",
+      "jumpToEvidence": "跳轉到證據面板"
     },
     "token": {
       "empty": "尚無 token 用量資料。",
@@ -3740,6 +3794,103 @@
       "colStatus": "狀態",
       "colToday": "今日 Token",
       "colTotal": "累計 Token"
+    },
+    "scene": {
+      "default_office": "預設辦公室",
+      "investment_office": "投研辦公室"
+    },
+    "room": {
+      "workspace": "工位區",
+      "meeting": "會議室",
+      "lounge": "休息區",
+      "manager": "經理室",
+      "research": "投研室",
+      "data_room": "數據室",
+      "strategy": "策略室",
+      "trading": "交易室",
+      "risk": "風控室"
+    },
+    "roleTag": {
+      "research": "投研",
+      "data": "數據",
+      "strategy": "策略",
+      "trading": "交易",
+      "risk": "風控",
+      "manager": "管理",
+      "default": "通用"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "標的",
+        "switchStock": "切換股票",
+        "price": "現價",
+        "changePct": "漲跌幅",
+        "changeAbs": "漲跌額",
+        "open": "開盤",
+        "high": "最高",
+        "low": "最低",
+        "preClose": "昨收",
+        "volume": "成交量",
+        "amount": "成交額",
+        "pe": "PE",
+        "pb": "PB",
+        "totalMv": "總市值",
+        "circulatingMv": "流通市值",
+        "limitUp": "漲停",
+        "limitDown": "跌停",
+        "turnoverRate": "換手率",
+        "timestamp": "時間",
+        "refresh": "重新整理",
+        "autoRefresh": "自動",
+        "autoRefreshHint": "30 秒自動重新整理",
+        "loading": "載入行情中…",
+        "noQuote": "暫無行情資料",
+        "noStockSelected": "未選中股票，請先在股票分析頁選擇或點擊搜尋切換",
+        "pickerTitle": "切換股票",
+        "pickerPlaceholder": "輸入股票代碼或名稱（≥2 字）",
+        "pickerHint": "輸入至少 2 個字元開始搜尋",
+        "pickerEmpty": "未找到符合的股票"
+      },
+      "meeting": {
+        "title": "晨會議題 · 市場主線",
+        "today": "今日",
+        "activeCount": "活躍 {{count}}",
+        "strength": "強度",
+        "representative": "代表標的",
+        "prevDay": "前一日",
+        "nextDay": "後一日",
+        "refresh": "重新整理主線",
+        "collapse": "收起議題",
+        "expand": "展開議題",
+        "empty": "暫無主線資料。可執行「每日市場主線提煉」工作流生成。"
+      },
+      "strategy": {
+        "title": "策略列表",
+        "total": "共 {{count}} 個",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "前往量化頁面",
+        "refresh": "重新整理策略",
+        "collapse": "收起列表",
+        "expand": "展開列表",
+        "empty": "暫無策略資料。可在量化頁面註冊策略。",
+        "wfEnabled": "WF",
+        "moreCount": "還有 {{count}} 個策略未顯示"
+      },
+      "risk": {
+        "title": "風控壓測",
+        "refresh": "重新整理壓測",
+        "collapse": "收起情境",
+        "expand": "展開情境",
+        "empty": "暫無壓測資料。可先在交易室建立持倉後重新整理。",
+        "snapshotAt": "快照 {{time}}",
+        "topHit": "最大衝擊",
+        "highRiskHint": "高風險預警：建議減倉或避險",
+        "level": {
+          "low": "低風險",
+          "medium": "中風險",
+          "high": "高風險"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11136,7 +11287,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "待執行",
+        "running": "進行中",
+        "done": "已完成",
+        "failed": "失敗"
+      }
     },
     "alert.date": "日期",
     "recommendation": {

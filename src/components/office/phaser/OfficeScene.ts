@@ -12,6 +12,7 @@
  * - 处理精灵点击事件 → 通过 EventEmitter 上抛到 React
  */
 
+import i18n from "@/i18n";
 import type { FleetMember, FleetMemberStatus } from "@/types";
 import Phaser from "phaser";
 import {
@@ -37,6 +38,8 @@ export interface SceneMember {
   displayName: string;
   roomId: string;
   status: FleetMemberStatus;
+  /** 角色描述（用于角色色推断，注入到 Phaser 精灵） */
+  role: string;
 }
 
 export interface OfficeSceneOptions {
@@ -121,6 +124,7 @@ export class OfficeScene extends Phaser.Scene {
       member.agentSlug,
       member.memberId,
       member.status,
+      member.role,
     );
     sprite.roomId = member.roomId;
     this.setupSpriteInteraction(sprite);
@@ -230,8 +234,9 @@ export class OfficeScene extends Phaser.Scene {
         undefined,
         0,
       ).setStrokeStyle(2, room.color, 0.6);
-      // 房间名称（顶部居中）
-      this.add.text(room.x + room.width / 2, room.y + 12, room.id, {
+      // 房间名称（顶部居中，走 i18n）
+      const roomLabel = i18n.t(`office.room.${room.nameKey}`) || room.id;
+      this.add.text(room.x + room.width / 2, room.y + 12, roomLabel, {
         fontFamily: "monospace",
         fontSize: "11px",
         color: `#${room.color.toString(16).padStart(6, "0")}`,
@@ -282,5 +287,6 @@ export function fleetMemberToSceneMember(m: FleetMember): SceneMember {
     displayName: m.displayName,
     roomId: m.roomId,
     status: m.status,
+    role: m.role,
   };
 }

@@ -4026,12 +4026,54 @@
   "office": {
     "createFleet": {
       "button": "ऑफिस बनाएं",
-      "promptName": "ऑफिस का नाम दर्ज करें:"
+      "promptName": "ऑफिस का नाम दर्ज करें:",
+      "modalTitle": "ऑफिस बनाएं",
+      "cancel": "रद्द करें",
+      "confirm": "बनाएं",
+      "nameLabel": "ऑफिस का नाम",
+      "namePlaceholder": "जैसे: A-share रिसर्च टीम",
+      "nameRequired": "कृपया ऑफिस का नाम दर्ज करें",
+      "sceneLabel": "दृश्य टेम्पलेट",
+      "strategyLabel": "निवेश रणनीति",
+      "strategyPlaceholder": "रणनीति चुनें (वैकल्पिक)",
+      "strategyTooltip": "रणनीति Dispatcher prompt में इंजेक्ट होती है और राउटिंग को प्रभावित करती है। निवेश ऑफिसों को Investment Research चुनना चाहिए।",
+      "descriptionLabel": "व्यवसाय विवरण",
+      "descriptionPlaceholder": "टीम स्थिति / मुख्य जिम्मेदारियां (वैकल्पिक)",
+      "success": "ऑफिस बनाया गया: {{name}}"
+    },
+    "strategy": {
+      "investment_research": "निवेश शोध",
+      "trading": "ट्रेडिंग",
+      "risk_management": "जोखिम प्रबंधन",
+      "data_analysis": "डेटा विश्लेषण"
     },
     "emptyFleet": "कोई ऑफिस अभी तक नहीं बनाई गई। ऊपर दाईं ओर बटन पर क्लिक करके पहली ऑफिस बनाएं।",
     "memberCount": "{{count}} सदस्य",
     "membersTitle": "सदस्य",
     "noMembers": "इस ऑफिस में कोई सदस्य नहीं है। एजेंट सूची से जोड़ें।",
+    "addMember": {
+      "title": "ऑफिस सदस्य जोड़ें",
+      "button": "सदस्य जोड़ें",
+      "selectAgent": "पंजीकृत SubAgent से चुनें",
+      "selectAgentPlaceholder": "स्वतः भरने के लिए SubAgent चुनें",
+      "agentId": "Agent ID",
+      "agentIdPlaceholder": "AgentSession ID (जैसे sub_agent_id या बाहरी session id)",
+      "agentIdRequired": "कृपया Agent ID भरें",
+      "agentSlug": "Agent Slug",
+      "agentSlugPlaceholder": "बिज़नेस पहचानकर्ता, जैसे research_analyst",
+      "agentSlugRequired": "कृपया Agent Slug भरें",
+      "displayName": "प्रदर्शन नाम",
+      "displayNamePlaceholder": "कार्ड पर दिखाने का नाम",
+      "displayNameRequired": "कृपया प्रदर्शन नाम भरें",
+      "fillFromRole": "BusinessRole से भूमिका स्वतः भरें",
+      "fillFromRolePlaceholder": "role स्वतः भरने के लिए BusinessRole चुनें",
+      "role": "भूमिका विवरण",
+      "rolePlaceholder": "Dispatcher prompt में इंजेक्ट करने के लिए भूमिका विवरण",
+      "roomId": "कमरा",
+      "cancel": "रद्द करें",
+      "confirm": "जोड़ें",
+      "success": "सदस्य जोड़ा गया: {{name}}"
+    },
     "selectFleet": "ऑफिस चुनें",
     "tabs": {
       "chat": "समूह चैट",
@@ -4056,6 +4098,7 @@
       "inputPlaceholder": "समूह संदेश टाइप करें…",
       "send": "भेजें",
       "routingHint": "रूटिंग…",
+      "contextInjectedHint": "वर्तमान चयनित स्टॉक व्यवसाय संदर्भ के रूप में स्वतः इंजेक्ट किया गया है; डिस्पैचर इसके आधार पर रिसर्च/ट्रेडिंग/रिस्क एजेंट को रूट करता है",
       "tagRouting": "रूटिंग",
       "routingMessage": "→ {{slug}}: {{summary}}",
       "tagProcess": "प्रोसेस",
@@ -4067,7 +4110,12 @@
       "backToList": "सदस्य सूची पर वापस",
       "emptyHint": "{{slug}} के साथ कोई संदेश नहीं।",
       "inputPlaceholder": "{{slug}} को संदेश…",
-      "send": "भेजें"
+      "send": "भेजें",
+      "analyzeStock": "वर्तमान स्टॉक का विश्लेषण करें",
+      "analyzeStockHint": "वर्तमान स्टॉक कोड को एजेंट को पूर्व-सेट संदेश के रूप में भेजें",
+      "analyzeStockRunningHint": "वर्कफ़्लो चल रहा है, एकल परामर्श भेजने योग्य",
+      "analyzeStockPrompt": "वर्तमान डेटा के आधार पर {{stockName}} ({{stockCode}}) का संक्षेप में विश्लेषण करें और अपना निर्णय दें",
+      "analyzeStockPromptCodeOnly": "वर्तमान डेटा के आधार पर {{stockCode}} का संक्षेप में विश्लेषण करें और अपना निर्णय दें"
     },
     "trajectory": {
       "empty": "कोई प्रक्षेपण घटनाएं नहीं।",
@@ -4075,7 +4123,13 @@
       "routing": "→ {{slug}}: {{summary}}",
       "tagProcess": "प्रोसेस",
       "tagStatus": "स्थिति",
-      "tagToken": "टोकन"
+      "tagToken": "टोकन",
+      "businessCount": "व्यवसाय {{count}}",
+      "dispatchCount": "डिस्पैच {{count}}",
+      "analysisRunning": "विश्लेषण चल रहा है",
+      "showDispatch": "डिस्पैच घटनाएं दिखाएं",
+      "hideDispatch": "डिस्पैच घटनाएं छुपाएं",
+      "jumpToEvidence": "साक्ष्य पैनल पर जाएं"
     },
     "token": {
       "empty": "कोई टोकन उपयोग डेटा नहीं।",
@@ -4086,6 +4140,103 @@
       "colStatus": "स्थिति",
       "colToday": "आज के टोकन",
       "colTotal": "कुल टोकन"
+    },
+    "scene": {
+      "default_office": "डिफ़ॉल्ट ऑफिस",
+      "investment_office": "निवेश ऑफिस"
+    },
+    "room": {
+      "workspace": "कार्यस्थल",
+      "meeting": "बैठक",
+      "lounge": "विश्राम कक्ष",
+      "manager": "प्रबंधक कक्ष",
+      "research": "शोध कक्ष",
+      "data_room": "डेटा कक्ष",
+      "strategy": "रणनीति कक्ष",
+      "trading": "ट्रेडिंग कक्ष",
+      "risk": "जोखिम नियंत्रण"
+    },
+    "roleTag": {
+      "research": "अनुसंधान",
+      "data": "डेटा",
+      "strategy": "रणनीति",
+      "trading": "ट्रेडिंग",
+      "risk": "जोखिम",
+      "manager": "प्रबंधन",
+      "default": "सामान्य"
+    },
+    "roomMiniBar": {
+      "trading": {
+        "stock": "प्रतीक",
+        "switchStock": "स्टॉक बदलें",
+        "price": "मूल्य",
+        "changePct": "परिवर्तन %",
+        "changeAbs": "परिवर्तन",
+        "open": "खुला",
+        "high": "उच्च",
+        "low": "निम्न",
+        "preClose": "पिछला बंद",
+        "volume": "वॉल्यूम",
+        "amount": "राशि",
+        "pe": "पी/ई",
+        "pb": "पी/बी",
+        "totalMv": "कुल मूल्य",
+        "circulatingMv": "परिचालित मूल्य",
+        "limitUp": "ऊपरी सीमा",
+        "limitDown": "निचली सीमा",
+        "turnoverRate": "टर्नओवर दर",
+        "timestamp": "समय",
+        "refresh": "रिफ्रेश",
+        "autoRefresh": "ऑटो",
+        "autoRefreshHint": "हर 30 सेकंड में ऑटो रिफ्रेश",
+        "loading": "कोटेशन लोड हो रहा है…",
+        "noQuote": "कोटेशन डेटा नहीं",
+        "noStockSelected": "कोई स्टॉक चयनित नहीं। विश्लेषण पृष्ठ पर चुनें या खोज का उपयोग करें।",
+        "pickerTitle": "स्टॉक बदलें",
+        "pickerPlaceholder": "कोड या नाम (≥2 अक्षर)",
+        "pickerHint": "खोजने के लिए कम से कम 2 अक्षर दर्ज करें",
+        "pickerEmpty": "कोई मेल खाता स्टॉक नहीं मिला"
+      },
+      "meeting": {
+        "title": "मॉर्निंग ब्रीफिंग · बाज़ार मुख्य विषय",
+        "today": "आज",
+        "activeCount": "सक्रिय {{count}}",
+        "strength": "ताकत",
+        "representative": "प्रतिनिधि",
+        "prevDay": "पिछला दिन",
+        "nextDay": "अगला दिन",
+        "refresh": "मुख्य विषय रिफ्रेश करें",
+        "collapse": "संक्षिप्त करें",
+        "expand": "विस्तार करें",
+        "empty": "मुख्य विषय डेटा नहीं। «बाज़ार मुख्य विषय निष्कर्ष» वर्कफ़्लो चलाएँ।"
+      },
+      "strategy": {
+        "title": "रणनीति सूची",
+        "total": "कुल {{count}}",
+        "wfCount": "WF {{count}}",
+        "jumpQuant": "Quant पृष्ठ पर जाएँ",
+        "refresh": "रणनीतियाँ रिफ्रेश करें",
+        "collapse": "सूची संक्षिप्त करें",
+        "expand": "सूची विस्तार करें",
+        "empty": "रणनीति डेटा नहीं। Quant पृष्ठ पर रणनीतियाँ पंजीकृत करें।",
+        "wfEnabled": "WF",
+        "moreCount": "{{count}} और रणनीतियाँ नहीं दिखाई गईं"
+      },
+      "risk": {
+        "title": "जोखिम तनाव परीक्षण",
+        "refresh": "तनाव परीक्षण रिफ्रेश करें",
+        "collapse": "परिदृश्य संक्षिप्त करें",
+        "expand": "परिदृश्य विस्तार करें",
+        "empty": "तनाव परीक्षण डेटा नहीं। पहले ट्रेडिंग रूम में स्थितियाँ खोलें, फिर रिफ्रेश करें।",
+        "snapshotAt": "स्नैपशॉट {{time}}",
+        "topHit": "सबसे बड़ा प्रभाव",
+        "highRiskHint": "उच्च जोखिम चेतावनी: स्थितियाँ घटाने या हेज करने पर विचार करें",
+        "level": {
+          "low": "निम्न जोखिम",
+          "medium": "मध्यम जोखिम",
+          "high": "उच्च जोखिम"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -11039,7 +11190,13 @@
         "diagnose": "Diagnosis",
         "scan": "Scan"
       },
-      "overviewTitle": "Decision Chain"
+      "overviewTitle": "Decision Chain",
+      "nodeStatus": {
+        "pending": "लंबित",
+        "running": "चल रहा है",
+        "done": "पूर्ण",
+        "failed": "विफल"
+      }
     },
     "alert.date": "Date",
     "recommendation": {
