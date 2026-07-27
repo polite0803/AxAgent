@@ -39,6 +39,8 @@ pub mod pg_ddl;
 pub mod v100_consolidated;
 pub mod v101_consolidate_knowledge_memory;
 pub mod v102_create_fleets;
+pub mod v103_wiki_graph_perf;
+pub mod v104_notes_fts;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -90,6 +92,16 @@ const MIGRATIONS: &[Migration] = &[
         version: 102,
         description: "v102_create_fleets: 创建 fleets / fleet_members 表与索引，承载多办公室 AI 团队的持久化（AgentFleet 集成）",
         up: |db| Box::pin(v102_create_fleets::up(db)),
+    },
+    Migration {
+        version: 103,
+        description: "v103_wiki_graph_perf: 给 notes/note_links/note_backlinks 加复合索引（10 万节点查询优化），新增 wiki_graph_cache 表缓存 GraphData+LouvainResult",
+        up: |db| Box::pin(v103_wiki_graph_perf::up(db)),
+    },
+    Migration {
+        version: 104,
+        description: "v104_notes_fts: 为 notes 表添加全文检索索引（SQLite FTS5 + PostgreSQL tsvector+GIN），解决 wiki_notes_search_keyword 内存 BM25 在 10 万节点下的性能问题",
+        up: |db| Box::pin(v104_notes_fts::up(db)),
     },
     Migration {
         version: 200,
@@ -272,7 +284,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 11 行（v100 + v101 + v102 + v200~v207）
+        // schema_version 表应有 13 行（v100 + v101 + v102 + v103 + v104 + v200~v207）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -283,8 +295,8 @@ mod tests {
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
-            cnt, 11,
-            "schema_version should have exactly 11 rows (v100 + v101 + v102 + v200~v207)"
+            cnt, 13,
+            "schema_version should have 13 rows (v100 + v101 + v102 + v103 + v104 + v200~v207)"
         );
     }
 
@@ -374,5 +386,94 @@ mod tests {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         v102_create_fleets::up(db.clone()).await.unwrap();
         v102_create_fleets::up(db).await.expect("v102 must be re-runnable in isolation");
+    }
+
+    /// 防回归：v103 创建的索引和 wiki_graph_cache 表必须真实存在。
+    #[tokio::test]
+    async fn v103_wiki_graph_perf_indices_and_cache_exist() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        run_migrations(&db).await.unwrap();
+
+        // 索引存在
+        for idx in &[
+            "idx_notes_vault_deleted",
+            "idx_note_links_vault_source",
+            "idx_note_links_vault_target",
+            "idx_note_backlinks_vault_source",
+            "idx_note_backlinks_vault_target",
+        ] {
+            let row = db
+                .query_one_raw(Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                    [(*idx).into()],
+                ))
+                .await
+                .unwrap();
+            assert!(row.is_some(), "index {} should exist after v103", idx);
+        }
+
+        // wiki_graph_cache 表存在
+        let row = db
+            .query_one_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                ["wiki_graph_cache".into()],
+            ))
+            .await
+            .unwrap();
+        assert!(row.is_some(), "table wiki_graph_cache should exist after v103");
+    }
+
+    /// v103 单独 idempotent：先建表（v100）再重复跑 v103 两次，验证幂等。
+    /// v103 依赖 notes/note_links/note_backlinks 表存在，必须先跑 v100。
+    #[tokio::test]
+    async fn v103_is_self_idempotent() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        // 先跑 v100 建 notes/note_links/note_backlinks
+        v100_consolidated::up(db.clone()).await.unwrap();
+        v103_wiki_graph_perf::up(db.clone()).await.unwrap();
+        v103_wiki_graph_perf::up(db).await.expect("v103 must be re-runnable in isolation");
+    }
+
+    /// 防回归：v104 创建的 FTS5 虚拟表/触发器必须真实存在（SQLite 路径）。
+    #[tokio::test]
+    async fn v104_notes_fts_objects_exist() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        run_migrations(&db).await.unwrap();
+
+        // notes_fts 虚拟表存在
+        let row = db
+            .query_one_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                ["notes_fts".into()],
+            ))
+            .await
+            .unwrap();
+        assert!(row.is_some(), "virtual table notes_fts should exist after v104");
+
+        // 触发器存在
+        for trig in &["notes_fts_ai", "notes_fts_ad", "notes_fts_au"] {
+            let row = db
+                .query_one_raw(Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    "SELECT name FROM sqlite_master WHERE type='trigger' AND name=?",
+                    [(*trig).into()],
+                ))
+                .await
+                .unwrap();
+            assert!(row.is_some(), "trigger {} should exist after v104", trig);
+        }
+    }
+
+    /// v104 单独 idempotent：先建 notes 表（v100）再重复跑 v104 两次，验证幂等。
+    /// v104 的 FTS5 触发器依赖 notes 表存在。
+    #[tokio::test]
+    async fn v104_is_self_idempotent() {
+        let db = Database::connect("sqlite::memory:").await.unwrap();
+        v100_consolidated::up(db.clone()).await.unwrap();
+        v104_notes_fts::up(db.clone()).await.unwrap();
+        v104_notes_fts::up(db).await.expect("v104 must be re-runnable in isolation");
     }
 }

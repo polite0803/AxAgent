@@ -3747,6 +3747,14 @@
       "paused": "Paused",
       "stopped": "Stopped"
     },
+    "scene": {
+      "default_office": "Standard Office",
+      "default_office_desc": "4 rooms: workspace / meeting / lounge / manager. Best for 5-8 members.",
+      "workspace": "Workspace",
+      "meeting": "Meeting Room",
+      "lounge": "Lounge",
+      "manager": "Manager Room"
+    },
     "chat": {
       "emptyHint": "Type a message below — the dispatcher will route it to the right agent.",
       "inputPlaceholder": "Type a group message…",
@@ -6925,6 +6933,7 @@
       "filters": "Filters",
       "fitView": "Fit View",
       "focusSelected": "Focus Selected",
+      "layoutRunning": "Calculating layout…",
       "loadError": "Load failed",
       "loading": "Loading...",
       "noConnectedNodes": "No connected nodes",

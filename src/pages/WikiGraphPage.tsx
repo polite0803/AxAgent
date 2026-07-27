@@ -90,10 +90,11 @@ export function WikiGraphPage() {
   const loadGraphData = useCallback(async () => {
     setGraphLoading(true);
     try {
+      // 走缓存版命令：10万节点命中缓存 < 10ms，未命中自动计算并写缓存
       const [data, communityResult] = await Promise.all([
-        invoke<GraphData>("get_wiki_graph", { wikiId: wikiIdFromUrl }),
+        invoke<GraphData>("get_wiki_graph_cached", { wikiId: wikiIdFromUrl }),
         invoke<{ communities: Record<string, number> }>(
-          "wiki_graph_communities",
+          "wiki_graph_communities_cached",
           { wikiId: wikiIdFromUrl },
         ).catch(() => null),
       ]);
@@ -196,6 +197,12 @@ export function WikiGraphPage() {
     setHighlightedNodeIds(nodeIds);
   }, []);
 
+  const handleDeselect = useCallback(() => {
+    setSelectedNodeId(null);
+    setHighlightedNodeIds(new Set());
+    setDetailPanelOpen(false);
+  }, []);
+
   const handleNavigateToNote = useCallback((noteId: string) => {
     setSelectedNodeId(noteId);
     setDetailPanelOpen(true);
@@ -291,30 +298,37 @@ export function WikiGraphPage() {
     loadGraphData();
   };
 
-  const handleGlobalSearch = (value: string) => {
-    setGlobalSearch(value);
-    if (!value.trim() || !graphData) {
-      setHighlightedNodeIds(new Set());
-      return;
-    }
-    const q = value.toLowerCase();
-    const ids = new Set<string>();
-    graphData.nodes.forEach((n) => {
-      if (
-        n.title.toLowerCase().includes(q)
-        || n.tags.some((t) => t.toLowerCase().includes(q))
-        || n.path.toLowerCase().includes(q)
-      ) {
-        ids.add(n.id);
+  const handleGlobalSearch = useCallback(
+    (value: string) => {
+      setGlobalSearch(value);
+      if (!value.trim() || !graphData) {
+        setHighlightedNodeIds(new Set());
+        return;
       }
-    });
-    setHighlightedNodeIds(ids);
-  };
+      const q = value.toLowerCase();
+      const ids = new Set<string>();
+      graphData.nodes.forEach((n) => {
+        if (
+          n.title.toLowerCase().includes(q)
+          || n.tags.some((t) => t.toLowerCase().includes(q))
+          || n.path.toLowerCase().includes(q)
+        ) {
+          ids.add(n.id);
+        }
+      });
+      setHighlightedNodeIds(ids);
+    },
+    [graphData],
+  );
 
-  const selectedNode = graphData?.nodes.find((n) => n.id === selectedNodeId);
+  const selectedNode = useMemo(
+    () => graphData?.nodes.find((n) => n.id === selectedNodeId),
+    [graphData, selectedNodeId],
+  );
 
-  const contextMenuNode = graphData?.nodes.find(
-    (n) => n.id === contextMenu.nodeId,
+  const contextMenuNode = useMemo(
+    () => graphData?.nodes.find((n) => n.id === contextMenu.nodeId),
+    [graphData, contextMenu.nodeId],
   );
 
   // 统计
@@ -511,11 +525,7 @@ export function WikiGraphPage() {
                 onNodeDoubleClick={handleNodeDoubleClick}
                 onContextMenu={handleContextMenu}
                 onDeleteNode={handleDeleteNote}
-                onDeselect={() => {
-                  setSelectedNodeId(null);
-                  setHighlightedNodeIds(new Set());
-                  setDetailPanelOpen(false);
-                }}
+                onDeselect={handleDeselect}
                 selectedNodeId={selectedNodeId}
                 highlightedNodeIds={highlightedNodeIds}
                 communities={communities ?? undefined}

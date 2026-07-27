@@ -4093,6 +4093,14 @@
       "paused": "일시정지",
       "stopped": "중지됨"
     },
+    "scene": {
+      "default_office": "표준 오피스",
+      "default_office_desc": "4개 방: 워크스페이스 / 회의실 / 라운지 / 매니저. 5-8명용.",
+      "workspace": "워크스페이스",
+      "meeting": "회의실",
+      "lounge": "라운지",
+      "manager": "매니저실"
+    },
     "chat": {
       "emptyHint": "아래에 메시지를 입력하면 디스패처가 적절한 에이전트로 라우팅합니다.",
       "inputPlaceholder": "그룹 메시지 입력…",
@@ -7271,6 +7279,7 @@
       "filters": "필터",
       "fitView": "화면 맞춤",
       "focusSelected": "선택 항목 포커스",
+      "layoutRunning": "레이아웃 계산 중…",
       "loadError": "로딩 실패",
       "loading": "로딩 중...",
       "noConnectedNodes": "연결된 노드 없음",

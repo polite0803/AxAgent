@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 // ============================================================================
 
 /// 舰队（办公室）状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FleetStatus {
     /// 活跃 — 成员可接收任务
@@ -52,7 +52,7 @@ pub enum FleetStatus {
 }
 
 /// 舰队成员状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FleetMemberStatus {
     /// 空闲 — 可接收任务

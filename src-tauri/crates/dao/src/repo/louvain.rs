@@ -204,37 +204,60 @@ impl LouvainDetector {
         (intra_edges as f64) / (possible as f64)
     }
 
+    /// 计算模块度（modularity）。
+    ///
+    /// 原实现是 O(N²) 双层 for 循环遍历所有节点对，10 万节点 = 10^10 次操作。
+    /// 重写为 O(N + E)：
+    /// - 遍历所有边一次，累加同社区的边贡献 `Σ A_ij`（intra-edge 总和）
+    /// - 遍历所有社区一次，累加度数平方贡献 `Σ (Σ ki)²`
+    ///
+    /// 公式：Q = (1/2m) * [ Σ_intra A_ij - Σ_c (Σ_tot_c)² / (2m) ]
+    /// 其中 Σ_intra A_ij = 同社区内的边数（每条边算两次，因为是无向图），
+    /// Σ_tot_c = 社区 c 内所有节点的度数之和。
     fn compute_modularity(&self) -> f64 {
         if self.total_edges == 0.0 {
             return 1.0;
         }
 
-        let mut q = 0.0;
         let m = self.total_edges;
+        let two_m = 2.0 * m;
+
+        // Phase 1: 累加同社区内的边贡献（O(E)）
+        // 每条无向边 (u,v) 若 u,v 同社区，贡献 A_uv = 1（无向图每条边算两次）
+        let mut intra_edge_sum: f64 = 0.0;
+        let mut community_degree_sum: HashMap<i32, f64> = HashMap::new();
 
         let nodes = self.graph.get_node_ids();
-        for i in 0..nodes.len() {
-            for j in 0..nodes.len() {
-                let ci = self.node_to_community.get(&nodes[i]);
-                let cj = self.node_to_community.get(&nodes[j]);
+        for node_id in &nodes {
+            let node_comm = match self.node_to_community.get(node_id) {
+                Some(&c) => c,
+                None => continue,
+            };
+            let ki = self.graph.get_degree(node_id) as f64;
 
-                if ci != cj || ci.is_none() {
-                    continue;
+            // 累加该节点对社区度数总和的贡献
+            *community_degree_sum.entry(node_comm).or_insert(0.0) += ki;
+
+            // 遍历邻居，统计同社区的边
+            for neighbor in self.graph.get_neighbors(node_id) {
+                if let Some(&neighbor_comm) = self.node_to_community.get(&neighbor)
+                    && neighbor_comm == node_comm
+                {
+                    intra_edge_sum += 1.0;
                 }
-
-                let ki = self.graph.get_degree(&nodes[i]) as f64;
-                let kj = self.graph.get_degree(&nodes[j]) as f64;
-                let aij = if self.graph.has_direct_link(&nodes[i], &nodes[j]) {
-                    1.0
-                } else {
-                    0.0
-                };
-
-                q += aij - (ki * kj) / (2.0 * m);
             }
         }
+        // 无向图每条边被 (u,v) 和 (v,u) 各算一次，intra_edge_sum 已经是双倍
 
-        q / (2.0 * m)
+        // Phase 2: 累加社区度数平方贡献（O(C)，C = 社区数 ≤ N）
+        let mut degree_sq_sum: f64 = 0.0;
+        for deg_sum in community_degree_sum.values() {
+            degree_sq_sum += deg_sum * deg_sum;
+        }
+
+        // Q = (intra_edge_sum - degree_sq_sum / (2m)) / (2m)
+        // intra_edge_sum 已经是双倍边数，对应公式中的 2 * Σ A_ij
+        (intra_edge_sum - degree_sq_sum / two_m) / two_m
     }
 }
 

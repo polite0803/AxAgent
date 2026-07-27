@@ -3747,6 +3747,14 @@
       "paused": "已暫停",
       "stopped": "已停止"
     },
+    "scene": {
+      "default_office": "標準辦公室",
+      "default_office_desc": "4 房間布局：工位 / 會議室 / 休息區 / 經理室，適合 5-8 人團隊",
+      "workspace": "工位區",
+      "meeting": "會議室",
+      "lounge": "休息區",
+      "manager": "經理室"
+    },
     "chat": {
       "emptyHint": "在下方輸入訊息，Dispatcher 將自動路由到合適的 agent。",
       "inputPlaceholder": "輸入群聊訊息…",
@@ -6925,6 +6933,7 @@
       "filters": "篩選器",
       "fitView": "適應畫布",
       "focusSelected": "聚焦選中",
+      "layoutRunning": "正在計算佈局…",
       "loadError": "加載失敗",
       "loading": "加載中...",
       "noConnectedNodes": "無連接節點",

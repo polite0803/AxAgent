@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
-import { parseModelValue, useProviderNameMap } from "@/components/shared/ModelSelect";
+import { useEmbeddingProviderLabel } from "@/components/shared/ModelSelect";
 import { invoke } from "@/lib/invoke";
 import { useKnowledgeStore } from "@/stores";
-import { useSourceStore } from "@/stores";
+import { useProviderStore, useSourceStore } from "@/stores";
 import { useLlmWikiStore, type Wiki } from "@/stores/feature/llmWikiStore";
 import { useMemoryStore } from "@/stores/feature/memoryStore";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
@@ -122,6 +122,7 @@ function SourceConfigModal({
   const updateSourceEmbedding = useSourceStore((s) => s.updateSourceEmbedding);
   const rebuildSourceIndex = useSourceStore((s) => s.rebuildSourceIndex);
   const fetchSources = useSourceStore((s) => s.fetchSources);
+  const formatProviderLabel = useEmbeddingProviderLabel();
   const [config, setConfig] = useState<SourceConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -227,7 +228,13 @@ function SourceConfigModal({
                         style={{ width: "100%" }}
                       />
                     )
-                    : <span>{config.embeddingProvider ?? "—"}</span>}
+                    : (
+                      <span>
+                        {config.embeddingProvider
+                          ? formatProviderLabel(config.embeddingProvider)
+                          : "—"}
+                      </span>
+                    )}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("sourceManager.config.dimensions")}>
                   {config.embeddingDimensions ?? "—"}
@@ -577,22 +584,11 @@ function SourceCard({
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const meta = TYPE_META[source.containerType];
-  const providerNameMap = useProviderNameMap();
-
-  const providerDisplay = useMemo(() => {
-    if (!source.embeddingProvider) { return null; }
-    const parsed = parseModelValue(source.embeddingProvider);
-    if (!parsed) { return source.embeddingProvider; }
-    const providerName = providerNameMap.get(parsed.providerId);
-    return providerName
-      ? `${providerName} · ${parsed.model_id}`
-      : parsed.model_id;
-  }, [source.embeddingProvider, providerNameMap]);
-
   const deleteSource = useSourceStore((s) => s.deleteSource);
   const fetchSources = useSourceStore((s) => s.fetchSources);
   const [messageApi, contextHolder] = message.useMessage();
   const { modal } = AntdApp.useApp();
+  const formatProviderLabel = useEmbeddingProviderLabel();
 
   const handleView = useCallback(() => {
     if (onViewDocument && source.containerType === "knowledge") {
@@ -680,9 +676,9 @@ function SourceCard({
           </div>
           <div className="flex items-center gap-2 mb-2">
             <TypeBadge containerType={source.containerType} />
-            {providerDisplay && (
+            {source.embeddingProvider && (
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {providerDisplay}
+                {formatProviderLabel(source.embeddingProvider)}
                 {source.embeddingDimensions
                   ? ` · ${source.embeddingDimensions}d`
                   : ""}
@@ -1580,6 +1576,8 @@ function SourceManager() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const { fetchSources } = useSourceStore();
+  const providers = useProviderStore((s) => s.providers);
+  const fetchProviders = useProviderStore((s) => s.fetchProviders);
   const [activeTab, setActiveTab] = useState("all");
   const [configSource, setConfigSource] = useState<UnifiedSource | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -1588,7 +1586,11 @@ function SourceManager() {
 
   useEffect(() => {
     fetchSources();
-  }, [fetchSources]);
+    // 确保 provider 列表已加载，供 EmbeddingModelSelect / useEmbeddingProviderLabel 解析名称
+    if (providers.length === 0) {
+      void fetchProviders();
+    }
+  }, [fetchSources, fetchProviders, providers.length]);
 
   const openImportModal = useCallback((mode: "create" | "update") => {
     setImportMode(mode);

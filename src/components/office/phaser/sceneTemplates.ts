@@ -161,13 +161,37 @@ export const INVESTMENT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
   ],
 };
 
-/** 内置办公室模板列表（供 UI 选择器渲染） */
+/**
+ * 全部内置场景模板（按 slug 索引）。
+ *
+ * AxAgent 默认提供 DEFAULT_OFFICE_TEMPLATE；AxInvest fork 追加
+ * INVESTMENT_OFFICE_TEMPLATE 用于投研团队场景。下游业务方可
+ * 通过 registerSceneTemplate 向此数组追加自定义模板来扩展布局。
+ *
+ * 同时通过 `BUILTIN_OFFICE_TEMPLATES` 暴露给本地 AxInvest 组件
+ * （如 CreateFleetModal）使用。
+ */
 export const BUILTIN_OFFICE_TEMPLATES: OfficeSceneTemplate[] = [
   DEFAULT_OFFICE_TEMPLATE,
   INVESTMENT_OFFICE_TEMPLATE,
 ];
 
-/** slug → 模板查找表 */
+/** 上游兼容别名 — 与 BUILTIN_OFFICE_TEMPLATES 同源 */
+export const SCENE_TEMPLATES: OfficeSceneTemplate[] = BUILTIN_OFFICE_TEMPLATES;
+
+/**
+ * 注册下游自定义场景模板（可选）。
+ *
+ * 下游业务方在初始化阶段调用此函数即可追加模板，
+ * AxAgent 自身不调用 —— 只提供扩展点。
+ */
+export function registerSceneTemplate(template: OfficeSceneTemplate): void {
+  if (!SCENE_TEMPLATES.some((t) => t.slug === template.slug)) {
+    SCENE_TEMPLATES.push(template);
+  }
+}
+
+/** slug → 模板查找表（用于快速查找） */
 const OFFICE_TEMPLATE_MAP: Record<string, OfficeSceneTemplate> = {
   [DEFAULT_OFFICE_TEMPLATE.slug]: DEFAULT_OFFICE_TEMPLATE,
   [INVESTMENT_OFFICE_TEMPLATE.slug]: INVESTMENT_OFFICE_TEMPLATE,
@@ -175,11 +199,15 @@ const OFFICE_TEMPLATE_MAP: Record<string, OfficeSceneTemplate> = {
 
 /** 按场景 slug 查找模板（前端 fallback 到 default） */
 export function resolveSceneTemplate(slug?: string): OfficeSceneTemplate {
-  if (slug && OFFICE_TEMPLATE_MAP[slug]) {
+  if (!slug) {
+    return DEFAULT_OFFICE_TEMPLATE;
+  }
+  // 优先走静态 map（O(1)），未命中再走动态数组（包含 registerSceneTemplate 注册的）
+  if (OFFICE_TEMPLATE_MAP[slug]) {
     return OFFICE_TEMPLATE_MAP[slug];
   }
-  // 未知 slug 也降级到默认，避免渲染崩溃
-  return DEFAULT_OFFICE_TEMPLATE;
+  const found = SCENE_TEMPLATES.find((t) => t.slug === slug);
+  return found ?? DEFAULT_OFFICE_TEMPLATE;
 }
 
 /** 给定场景模板 slug，返回其所有房间的 id 列表（供 UI 选择器使用） */

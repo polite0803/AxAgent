@@ -97,10 +97,6 @@ export function OfficeTab() {
     void agentSlug;
   };
 
-  const handleCreateFleet = () => {
-    setCreateFleetOpen(true);
-  };
-
   // Fleet 下拉菜单项
   const fleetMenuItems = fleets.map((f) => ({
     key: f.id,
@@ -134,7 +130,7 @@ export function OfficeTab() {
           description={t("office.emptyFleet")}
           styles={{ description: { fontSize: 13, color: token.colorTextQuaternary } }}
         >
-          <Button type="primary" icon={<CirclePlus size={14} />} onClick={handleCreateFleet}>
+          <Button type="primary" icon={<CirclePlus size={14} />} onClick={() => setCreateFleetOpen(true)}>
             {t("office.createFleet.button")}
           </Button>
         </Empty>
@@ -163,7 +159,7 @@ export function OfficeTab() {
           </Button>
         </Dropdown>
         <Tooltip title={t("office.createFleet.button")}>
-          <Button icon={<CirclePlus size={14} />} onClick={handleCreateFleet} />
+          <Button icon={<CirclePlus size={14} />} onClick={() => setCreateFleetOpen(true)} />
         </Tooltip>
         <Text type="secondary" style={{ fontSize: 12 }}>
           {t("office.memberCount", { count: members.length })}
@@ -335,7 +331,6 @@ export function OfficeTab() {
             </div>
           )}
       </div>
-
       {/* 添加成员弹窗 */}
       {activeFleetId && (
         <AddMemberModal

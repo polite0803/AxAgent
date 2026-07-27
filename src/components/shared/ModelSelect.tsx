@@ -72,6 +72,44 @@ export function useProviderNameMap() {
 }
 
 /**
+ * Hook: 返回一个把 `${providerId}::${model_id}` 复合 ID 解析为
+ * "供应商名 / 模型名" 友好展示的函数。
+ *
+ * 后端 `embeddingProvider` 字段统一存的是 `providerId::model_id` 复合值，
+ * 直接渲染会暴露内部 ID。本 hook 复用 `useProviderNameMap` +
+ * `useProviderStore` 把它转成人类可读的标签。
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useEmbeddingProviderLabel(): (
+  value: string | undefined | null,
+) => string {
+  const providerNameMap = useProviderNameMap();
+  const providers = useProviderStore((s) => s.providers);
+
+  return useMemo(() => {
+    return (value: string | undefined | null): string => {
+      if (!value) {
+        return "";
+      }
+      const parsed = parseModelValue(value ?? undefined);
+      if (!parsed) {
+        // 不带 `::` 分隔符的旧数据，直接返回原值
+        return value;
+      }
+      const providerName = providerNameMap.get(parsed.providerId)
+        ?? providers.find((p) => p.id === parsed.providerId)?.name
+        ?? parsed.providerId;
+      // 模型名优先用 provider.models 里的 name（友好名），找不到就用 model_id
+      const model = providers
+        .find((p) => p.id === parsed.providerId)
+        ?.models.find((m) => m.model_id === parsed.model_id);
+      const modelLabel = model?.name ?? parsed.model_id;
+      return `${providerName} / ${modelLabel}`;
+    };
+  }, [providerNameMap, providers]);
+}
+
+/**
  * Reusable model selector with provider-grouped options, ModelIcon rendering,
  * and search support. Value format: `providerId::model_id`.
  */
