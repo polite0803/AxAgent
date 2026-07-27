@@ -1384,74 +1384,74 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                   ? <Empty description={t("settings.rag.modelNotDownloaded")} />
                   : (
                     <div className="divide-y divide-gray-100">
-                  {modelList.map((model: LocalModelInfo) => (
-                    <div key={model.name} className="py-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {model.is_downloaded
-                          ? (
-                            <CheckCircleOutlined
-                              style={{
-                                color: "var(--ant-color-success)",
-                                fontSize: 16,
-                              }}
-                            />
-                          )
-                          : (
-                            <ClockCircleOutlined
-                              style={{
-                                color: "var(--ant-color-text-secondary)",
-                                fontSize: 16,
-                              }}
-                            />
-                          )}
-                        <div className="flex flex-col gap-1">
-                          <span>{model.name}</span>
-                          <Space size={4}>
-                            <Tag>
-                              {model.model_type === "Reranker"
-                                ? t("settings.rag.rerankerModel")
-                                : t("settings.rag.judgeModel")}
-                            </Tag>
-                            <Typography.Text type="secondary">
-                              {formatBytes(model.size_bytes)}
-                            </Typography.Text>
-                          </Space>
+                      {modelList.map((model: LocalModelInfo) => (
+                        <div key={model.name} className="py-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {model.is_downloaded
+                              ? (
+                                <CheckCircleOutlined
+                                  style={{
+                                    color: "var(--ant-color-success)",
+                                    fontSize: 16,
+                                  }}
+                                />
+                              )
+                              : (
+                                <ClockCircleOutlined
+                                  style={{
+                                    color: "var(--ant-color-text-secondary)",
+                                    fontSize: 16,
+                                  }}
+                                />
+                              )}
+                            <div className="flex flex-col gap-1">
+                              <span>{model.name}</span>
+                              <Space size={4}>
+                                <Tag>
+                                  {model.model_type === "Reranker"
+                                    ? t("settings.rag.rerankerModel")
+                                    : t("settings.rag.judgeModel")}
+                                </Tag>
+                                <Typography.Text type="secondary">
+                                  {formatBytes(model.size_bytes)}
+                                </Typography.Text>
+                              </Space>
+                            </div>
+                          </div>
+                          <div>
+                            {model.is_downloaded
+                              ? (
+                                <Popconfirm
+                                  title={t("settings.rag.modelDelete")}
+                                  onConfirm={() => handleDeleteModel(model.name)}
+                                  okText={t("common.yes")}
+                                  cancelText={t("common.no")}
+                                >
+                                  <Button size="small" danger icon={<DeleteOutlined />}>
+                                    {t("settings.rag.modelDelete")}
+                                  </Button>
+                                </Popconfirm>
+                              )
+                              : (
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  loading={downloading === model.name}
+                                  icon={<DownloadOutlined />}
+                                  onClick={() => handleDownloadModel(model.name)}
+                                >
+                                  {downloading === model.name
+                                    ? t("settings.rag.modelDownloading")
+                                    : t("settings.rag.modelDownload")}
+                                </Button>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        {model.is_downloaded
-                          ? (
-                            <Popconfirm
-                              title={t("settings.rag.modelDelete")}
-                              onConfirm={() => handleDeleteModel(model.name)}
-                              okText={t("common.yes")}
-                              cancelText={t("common.no")}
-                            >
-                              <Button size="small" danger icon={<DeleteOutlined />}>
-                                {t("settings.rag.modelDelete")}
-                              </Button>
-                            </Popconfirm>
-                          )
-                          : (
-                            <Button
-                              size="small"
-                              type="primary"
-                              loading={downloading === model.name}
-                              icon={<DownloadOutlined />}
-                              onClick={() => handleDownloadModel(model.name)}
-                            >
-                              {downloading === model.name
-                                ? t("settings.rag.modelDownloading")
-                                : t("settings.rag.modelDownload")}
-                            </Button>
-                          )}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-                </div>
-              ),
+                  )}
+              </div>
+            ),
           },
         ]}
       />
