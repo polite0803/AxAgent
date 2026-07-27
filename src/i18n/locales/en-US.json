@@ -12611,5 +12611,8 @@
     "extractConfirm": "This will extract entities and relations from the selected documents and write them to the knowledge graph. Continue?",
     "extractSuccess": "Extraction complete: {{newEntities}} new entities, {{newRelations}} new relations",
     "extractFailed": "Extraction failed"
+  },
+  "paperOverview": {
+    "title": "Paper Overview"
   }
 }

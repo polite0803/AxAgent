@@ -12968,5 +12968,8 @@
     "extractConfirm": "Se extraerán entidades y relaciones de los documentos seleccionados y se escribirán en el grafo de conocimiento. ¿Continuar?",
     "extractSuccess": "Extracción completada: {{newEntities}} entidades nuevas, {{newRelations}} relaciones nuevas",
     "extractFailed": "Extracción fallida"
+  },
+  "paperOverview": {
+    "title": "Resumen del artículo"
   }
 }

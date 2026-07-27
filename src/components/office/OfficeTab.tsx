@@ -114,16 +114,17 @@ export function OfficeTab() {
     onClick: () => selectFleet(f.id),
   }));
 
-  if (loading && fleets.length === 0) {
-    return (
+  // ── 内容区（loading 态显示 spinner，空态显示 Empty，正常显示 UI）──
+  // 采用三元表达式而非早返回，使 CreateFleetModal/AddMemberModal 在所有分支都能渲染，
+  // 修复空态点击「创建办公室」按钮无法打开弹窗的问题（上游 f427a0c4 修复）。
+  const contentArea = loading && fleets.length === 0
+    ? (
       <div style={{ padding: 48, textAlign: "center" }}>
         <Spin />
       </div>
-    );
-  }
-
-  if (fleets.length === 0) {
-    return (
+    )
+    : fleets.length === 0
+    ? (
       <div style={{ padding: 48, height: "100%" }}>
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -135,203 +136,206 @@ export function OfficeTab() {
           </Button>
         </Empty>
       </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 12 }}>
-      {/* ── 顶部工具栏 ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <Building2 size={16} color={token.colorTextSecondary} />
-        <Dropdown menu={{ items: fleetMenuItems }} trigger={["click"]}>
-          <Button>
-            <span style={{ fontWeight: 500 }}>
-              {activeFleet?.name ?? t("office.selectFleet")}
-            </span>
-            {activeFleet && (
-              <Tag
-                color={activeFleet.status === "active" ? "green" : "orange"}
-                style={{ marginLeft: 8, fontSize: 10 }}
-              >
-                {t(`office.fleetStatus.${activeFleet.status}`)}
-              </Tag>
-            )}
-          </Button>
-        </Dropdown>
-        <Tooltip title={t("office.createFleet.button")}>
-          <Button icon={<CirclePlus size={14} />} onClick={() => setCreateFleetOpen(true)} />
-        </Tooltip>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {t("office.memberCount", { count: members.length })}
-        </Text>
-        {activeFleetId && (
-          <Tooltip title={t("office.addMember.button")}>
-            <Button
-              size="small"
-              icon={<UserPlus size={14} />}
-              onClick={() => setAddMemberOpen(true)}
-            />
+    )
+    : (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 12 }}>
+        {/* ── 顶部工具栏 ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Building2 size={16} color={token.colorTextSecondary} />
+          <Dropdown menu={{ items: fleetMenuItems }} trigger={["click"]}>
+            <Button>
+              <span style={{ fontWeight: 500 }}>
+                {activeFleet?.name ?? t("office.selectFleet")}
+              </span>
+              {activeFleet && (
+                <Tag
+                  color={activeFleet.status === "active" ? "green" : "orange"}
+                  style={{ marginLeft: 8, fontSize: 10 }}
+                >
+                  {t(`office.fleetStatus.${activeFleet.status}`)}
+                </Tag>
+              )}
+            </Button>
+          </Dropdown>
+          <Tooltip title={t("office.createFleet.button")}>
+            <Button icon={<CirclePlus size={14} />} onClick={() => setCreateFleetOpen(true)} />
           </Tooltip>
-        )}
-      </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {t("office.memberCount", { count: members.length })}
+          </Text>
+          {activeFleetId && (
+            <Tooltip title={t("office.addMember.button")}>
+              <Button
+                size="small"
+                icon={<UserPlus size={14} />}
+                onClick={() => setAddMemberOpen(true)}
+              />
+            </Tooltip>
+          )}
+        </div>
 
-      {/* ── 主内容区：左 Phaser + 右操作面板 ── */}
-      <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
-        {/* 左侧：Phaser 画布 + 顶部房间 mini 条 */}
+        {/* ── 主内容区：左 Phaser + 右操作面板 ── */}
+        <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
+          {/* 左侧：Phaser 画布 + 顶部房间 mini 条 */}
+          <div
+            style={{
+              flex: "1 1 auto",
+              minWidth: 0,
+              background: token.colorBgContainer,
+              borderRadius: 8,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              padding: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {/* Trading 房间实时行情 mini 条（仅 investment_office 场景渲染） */}
+            <TradingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+            {/* Meeting 房间晨会议题 mini 条（仅 investment_office 场景渲染） */}
+            <MeetingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+            {/* Strategy 房间策略列表 mini 条（仅 investment_office 场景渲染） */}
+            <StrategyRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+            {/* Risk 房间压测结果 mini 条（仅 investment_office 场景渲染） */}
+            <RiskRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
+            {activeFleetId && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, minHeight: 0 }}>
+                <OfficeGame
+                  sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
+                  members={sceneMembers}
+                  onAgentClick={handleAgentClick}
+                  width={800}
+                  height={500}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 右侧：操作面板 Tabs */}
+          <div
+            style={{
+              flex: "0 0 360px",
+              background: token.colorBgContainer,
+              borderRadius: 8,
+              border: `1px solid ${token.colorBorderSecondary}`,
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
+            <Tabs
+              activeKey={rightTab}
+              onChange={(k) => setRightTab(k as typeof rightTab)}
+              size="small"
+              style={{ padding: "0 8px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+              items={[
+                {
+                  key: "chat",
+                  label: (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <MessageSquare size={12} /> {t("office.tabs.chat")}
+                    </span>
+                  ),
+                  children: activeFleetId
+                    ? (
+                      <div style={{ height: "100%", padding: "0 4px" }}>
+                        <ChatPanel fleetId={activeFleetId} />
+                      </div>
+                    )
+                    : null,
+                },
+                {
+                  key: "dm",
+                  label: (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Send size={12} /> {t("office.tabs.dm")}
+                    </span>
+                  ),
+                  children: activeFleetId
+                    ? (
+                      <div style={{ height: "100%", padding: "0 4px" }}>
+                        <DirectMessagePanel
+                          fleetId={activeFleetId}
+                          target={dmTarget}
+                          onBack={() => setRightTab("chat")}
+                        />
+                      </div>
+                    )
+                    : null,
+                },
+                {
+                  key: "trajectory",
+                  label: (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <TrendingUp size={12} /> {t("office.tabs.trajectory")}
+                    </span>
+                  ),
+                  children: <TrajectoryPanel />,
+                },
+                {
+                  key: "token",
+                  label: (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <Zap size={12} /> {t("office.tabs.token")}
+                    </span>
+                  ),
+                  children: activeFleetId
+                    ? <TokenPanel fleetId={activeFleetId} />
+                    : null,
+                },
+              ]}
+              tabBarStyle={{ marginBottom: 8 }}
+            />
+          </div>
+        </div>
+
+        {/* ── 底部成员列表 ── */}
         <div
           style={{
-            flex: "1 1 auto",
-            minWidth: 0,
             background: token.colorBgContainer,
             borderRadius: 8,
             border: `1px solid ${token.colorBorderSecondary}`,
             padding: 8,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
           }}
         >
-          {/* Trading 房间实时行情 mini 条（仅 investment_office 场景渲染） */}
-          <TradingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-          {/* Meeting 房间晨会议题 mini 条（仅 investment_office 场景渲染） */}
-          <MeetingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-          {/* Strategy 房间策略列表 mini 条（仅 investment_office 场景渲染） */}
-          <StrategyRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-          {/* Risk 房间压测结果 mini 条（仅 investment_office 场景渲染） */}
-          <RiskRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-          {activeFleetId && (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, minHeight: 0 }}>
-              <OfficeGame
-                sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
-                members={sceneMembers}
-                onAgentClick={handleAgentClick}
-                width={800}
-                height={500}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* 右侧：操作面板 Tabs */}
-        <div
-          style={{
-            flex: "0 0 360px",
-            background: token.colorBgContainer,
-            borderRadius: 8,
-            border: `1px solid ${token.colorBorderSecondary}`,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
-          <Tabs
-            activeKey={rightTab}
-            onChange={(k) => setRightTab(k as typeof rightTab)}
-            size="small"
-            style={{ padding: "0 8px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
-            items={[
-              {
-                key: "chat",
-                label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <MessageSquare size={12} /> {t("office.tabs.chat")}
-                  </span>
-                ),
-                children: activeFleetId
-                  ? (
-                    <div style={{ height: "100%", padding: "0 4px" }}>
-                      <ChatPanel fleetId={activeFleetId} />
-                    </div>
-                  )
-                  : null,
-              },
-              {
-                key: "dm",
-                label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <Send size={12} /> {t("office.tabs.dm")}
-                  </span>
-                ),
-                children: activeFleetId
-                  ? (
-                    <div style={{ height: "100%", padding: "0 4px" }}>
-                      <DirectMessagePanel
-                        fleetId={activeFleetId}
-                        target={dmTarget}
-                        onBack={() => setRightTab("chat")}
-                      />
-                    </div>
-                  )
-                  : null,
-              },
-              {
-                key: "trajectory",
-                label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <TrendingUp size={12} /> {t("office.tabs.trajectory")}
-                  </span>
-                ),
-                children: <TrajectoryPanel />,
-              },
-              {
-                key: "token",
-                label: (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <Zap size={12} /> {t("office.tabs.token")}
-                  </span>
-                ),
-                children: activeFleetId
-                  ? <TokenPanel fleetId={activeFleetId} />
-                  : null,
-              },
-            ]}
-            // 让 tab 内容充满剩余空间
-            tabBarStyle={{ marginBottom: 8 }}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <Users size={12} color={token.colorTextSecondary} />
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
+              {t("office.membersTitle")}
+            </Text>
+          </div>
+          {members.length === 0
+            ? (
+              <div style={{ textAlign: "center", color: token.colorTextQuaternary, fontSize: 12, padding: 16 }}>
+                {t("office.noMembers")}
+              </div>
+            )
+            : (
+              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                {members.map((m) => (
+                  <div key={m.id} style={{ minWidth: 240, flex: "0 0 240px" }}>
+                    <AgentCard
+                      member={m}
+                      highlighted={dmTarget?.id === m.id}
+                      onClick={(member) => {
+                        setDmTarget(member);
+                        setRightTab("dm");
+                        // 同时调用 store 更新状态（用于演示交互链路）
+                        void updateMemberStatus(member.id, member.status);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
       </div>
+    );
 
-      {/* ── 底部成员列表 ── */}
-      <div
-        style={{
-          background: token.colorBgContainer,
-          borderRadius: 8,
-          border: `1px solid ${token.colorBorderSecondary}`,
-          padding: 8,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <Users size={12} color={token.colorTextSecondary} />
-          <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
-            {t("office.membersTitle")}
-          </Text>
-        </div>
-        {members.length === 0
-          ? (
-            <div style={{ textAlign: "center", color: token.colorTextQuaternary, fontSize: 12, padding: 16 }}>
-              {t("office.noMembers")}
-            </div>
-          )
-          : (
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-              {members.map((m) => (
-                <div key={m.id} style={{ minWidth: 240, flex: "0 0 240px" }}>
-                  <AgentCard
-                    member={m}
-                    highlighted={dmTarget?.id === m.id}
-                    onClick={(member) => {
-                      setDmTarget(member);
-                      setRightTab("dm");
-                      // 同时调用 store 更新状态（用于演示交互链路）
-                      void updateMemberStatus(member.id, member.status);
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-      </div>
-      {/* 添加成员弹窗 */}
+  return (
+    <>
+      {contentArea}
+      {/* 添加成员弹窗（仅在选中 fleet 时可用） */}
       {activeFleetId && (
         <AddMemberModal
           open={addMemberOpen}
@@ -341,11 +345,11 @@ export function OfficeTab() {
         />
       )}
 
-      {/* 创建办公室弹窗 */}
+      {/* 创建办公室弹窗（在所有分支都渲染，确保空态也能打开） */}
       <CreateFleetModal
         open={createFleetOpen}
         onClose={() => setCreateFleetOpen(false)}
       />
-    </div>
+    </>
   );
 }

@@ -30,6 +30,16 @@ import type { CreateKnowledgeBaseInput } from "@/types";
 import type { CreateMemoryItemInput, CreateMemoryNamespaceInput } from "@/types";
 import { emitBrowserEvent } from "./browserEvents";
 
+interface Fleet {
+  id: string;
+  name: string;
+  sceneTemplateSlug?: string;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+  metadata: Record<string, unknown>;
+}
+
 interface WorkflowTemplate {
   id: string;
   name: string;
@@ -2042,6 +2052,27 @@ export async function handleCommand<T>(
     case "rebuild_memory_index":
     case "clear_memory_index":
       return undefined as T;
+
+    // ── Fleet (办公室) ─────────────────────────────────────────────────
+    case "fleet_list": {
+      return getStore<Fleet[]>("fleets", []) as T;
+    }
+    case "fleet_create": {
+      const input = (args as { input?: Partial<Fleet> }).input ?? {};
+      const fleets = getStore<Fleet[]>("fleets", []);
+      const fleet: Fleet = {
+        id: genId(),
+        name: input.name ?? "New Fleet",
+        sceneTemplateSlug: (input as Record<string, unknown>).sceneTemplateSlug as string ?? "default",
+        status: "active",
+        createdAt: nowTs(),
+        updatedAt: nowTs(),
+        metadata: {},
+      };
+      fleets.push(fleet);
+      setStore("fleets", fleets);
+      return fleet as T;
+    }
 
     // ── Phase 2: Artifacts ────────────────────────────────────────────
     case "list_artifacts": {

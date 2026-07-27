@@ -12968,5 +12968,8 @@
     "extractConfirm": "선택한 문서에서 엔티티와 관계를 추출하여 지식 그래프에 기록합니다. 계속하시겠습니까?",
     "extractSuccess": "추출 완료: 새 엔티티 {{newEntities}}개, 새 관계 {{newRelations}}개",
     "extractFailed": "추출 실패"
+  },
+  "paperOverview": {
+    "title": "논문 개요"
   }
 }

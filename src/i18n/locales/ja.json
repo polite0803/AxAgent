@@ -12968,5 +12968,8 @@
     "extractConfirm": "選択したドキュメントからエンティティと関係を抽出し、知識グラフに書き込みます。続行しますか？",
     "extractSuccess": "抽出完了: 新規 {{newEntities}} エンティティ、{{newRelations}} 関係",
     "extractFailed": "抽出に失敗しました"
+  },
+  "paperOverview": {
+    "title": "論文概要"
   }
 }
