@@ -1,9 +1,11 @@
 import { timeAnchorHelpers, useTimeAnchorStore } from "@/stores/feature/timeAnchorStore";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { isValidPastDate, todayIso, DATE_RE } = timeAnchorHelpers;
 
 beforeEach(() => {
+  // 静默 console.warn，避免 vitest RPC teardown 时序竞争
+  vi.spyOn(console, "warn").mockImplementation(() => {});
   // 重置 store + 清除 localStorage 持久化
   useTimeAnchorStore.setState({
     asOfDate: null,
@@ -17,6 +19,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem("axagent-time-anchor");
   }
