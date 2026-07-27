@@ -261,9 +261,8 @@ pub fn global_engine() -> Arc<InferenceEngine> {
             let engine = Arc::new(InferenceEngine::new());
             if AUTO_LOAD_MODELS.load(Ordering::Acquire) {
                 // 后台 auto-load 已下载的模型
-                let cache_dir = crate::model_downloader::ModelDownloader::new()
-                    .cache_dir()
-                    .to_path_buf();
+                let cache_dir =
+                    crate::model_downloader::ModelDownloader::new().cache_dir().to_path_buf();
                 let eng = engine.clone();
                 if let Ok(handle) = tokio::runtime::Handle::try_current() {
                     handle.spawn(async move {
@@ -286,17 +285,14 @@ pub fn global_engine() -> Arc<InferenceEngine> {
 /// 若 `AUTO_LOAD_MODELS` 为 false，仅下载不加载。
 pub async fn download_and_load_model(filename: &str) -> Result<()> {
     let dl = crate::model_downloader::ModelDownloader::new();
-    let preset = crate::model_downloader::ModelDownloader::find_preset(filename)
-        .ok_or_else(|| {
+    let preset =
+        crate::model_downloader::ModelDownloader::find_preset(filename).ok_or_else(|| {
             AxAgentError::ModelDownload(format!("Unknown preset model: {}", filename))
         })?;
     dl.ensure_model(&preset).await?;
 
     if !AUTO_LOAD_MODELS.load(Ordering::Acquire) {
-        tracing::info!(
-            "Auto-load disabled: model {} downloaded but not loaded",
-            filename
-        );
+        tracing::info!("Auto-load disabled: model {} downloaded but not loaded", filename);
         return Ok(());
     }
 
@@ -306,9 +302,7 @@ pub async fn download_and_load_model(filename: &str) -> Result<()> {
         crate::model_downloader::PresetModelType::Reranker => {
             engine.load_reranker_model(&path).await
         },
-        crate::model_downloader::PresetModelType::Judge => {
-            engine.load_judge_model(&path).await
-        },
+        crate::model_downloader::PresetModelType::Judge => engine.load_judge_model(&path).await,
         crate::model_downloader::PresetModelType::SparseEncoder => {
             engine.load_sparse_encoder_model(&path).await
         },
@@ -347,18 +341,10 @@ async fn auto_load_downloaded_models(engine: Arc<InferenceEngine>, cache_dir: &P
         };
         match result {
             Ok(()) => {
-                tracing::info!(
-                    "Auto-loaded model {} from {}",
-                    preset.filename,
-                    path.display()
-                )
+                tracing::info!("Auto-loaded model {} from {}", preset.filename, path.display())
             },
             Err(e) => {
-                tracing::warn!(
-                    "Failed to auto-load model {}: {}",
-                    preset.filename,
-                    e
-                )
+                tracing::warn!("Failed to auto-load model {}: {}", preset.filename, e)
             },
         }
     }

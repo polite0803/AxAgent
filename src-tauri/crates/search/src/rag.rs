@@ -1578,11 +1578,7 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     }
 
     let engine: Arc<dyn InferenceEngine> = crate::inference::global_engine();
-    let pipeline = crate::rag_pipeline::RAGPipeline::new(
-        pipeline_config,
-        Some(engine),
-        api_key,
-    );
+    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, Some(engine), api_key);
 
     if sources.is_empty() {
         return RagContextResult { context_parts: vec![], source_results: vec![] };
