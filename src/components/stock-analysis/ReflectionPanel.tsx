@@ -484,16 +484,18 @@ export function ReflectionPanel() {
               style={{ width: 110 }}
               disabled={isEnabled}
             />
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-              style={{ width: 100 }}
-              disabled={isEnabled}
-              addonAfter={t("stockAnalysis.reflection.confidence")}
-            />
+            <Space.Compact style={{ width: 100 }}>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={threshold}
+                onChange={(e) => setThreshold(Number(e.target.value))}
+                style={{ width: "100%" }}
+                disabled={isEnabled}
+              />
+              <Button disabled>{t("stockAnalysis.reflection.confidence")}</Button>
+            </Space.Compact>
             {activeCron && (
               // P0-1 修复: 删除 cron 是高危操作(永久丢失调度),必须 Popconfirm 二次确认,
               // 与 deleteReflection (line 340) 的 UX 保持一致。

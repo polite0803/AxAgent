@@ -208,7 +208,7 @@ export function QuickBacktestPanel() {
       {/* 结果 */}
       {loading && (
         <div className="flex justify-center py-8">
-          <Spin tip={t("stockAnalysis.backtest.running")}>
+          <Spin description={t("stockAnalysis.backtest.running")}>
             <div style={{ padding: 50 }} />
           </Spin>
         </div>

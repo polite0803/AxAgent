@@ -404,30 +404,34 @@ export function BackupCenter() {
           </Form.Item>
           <Divider />
           <Form.Item name="intervalHours" label={t("backup.intervalHours")}>
-            <InputNumber
-              name="intervalHours"
-              min={1}
-              max={720}
-              addonAfter={
+            <Space.Compact style={{ width: 200 }}>
+              <InputNumber
+                name="intervalHours"
+                min={1}
+                max={720}
+                style={{ width: "100%" }}
+              />
+              <Button disabled>
                 <span style={{ whiteSpace: "nowrap" }}>
                   {t("backup.hours")}
                 </span>
-              }
-              style={{ width: 200 }}
-            />
+              </Button>
+            </Space.Compact>
           </Form.Item>
           <Form.Item name="maxCount" label={t("backup.maxCount")}>
-            <InputNumber
-              name="maxCount"
-              min={1}
-              max={100}
-              addonAfter={
+            <Space.Compact style={{ width: 200 }}>
+              <InputNumber
+                name="maxCount"
+                min={1}
+                max={100}
+                style={{ width: "100%" }}
+              />
+              <Button disabled>
                 <span style={{ whiteSpace: "nowrap" }}>
                   {t("backup.copies")}
                 </span>
-              }
-              style={{ width: 200 }}
-            />
+              </Button>
+            </Space.Compact>
           </Form.Item>
           <Form.Item
             name="backupDir"
@@ -442,18 +446,18 @@ export function BackupCenter() {
               </Text>
             }
           >
-            <Input
-              name="backupDir"
-              readOnly
-              placeholder={effectiveBackupDir}
-              addonAfter={
-                <FolderOpen
-                  size={14}
-                  style={{ cursor: "pointer" }}
-                  onClick={handleChooseDir}
-                />
-              }
-            />
+            <Space.Compact style={{ width: "100%" }}>
+              <Input
+                name="backupDir"
+                readOnly
+                placeholder={effectiveBackupDir}
+                style={{ width: "100%" }}
+              />
+              <Button
+                onClick={handleChooseDir}
+                icon={<FolderOpen size={14} />}
+              />
+            </Space.Compact>
           </Form.Item>
         </Form>
       </Modal>

@@ -515,13 +515,15 @@ export function WebDavSync() {
               name="maxRemoteBackups"
               label={t("backup.webdav.maxBackups")}
             >
-              <InputNumber
-                name="maxRemoteBackups"
-                min={1}
-                max={100}
-                style={{ width: 120 }}
-                addonAfter={t("backup.webdav.perDevice")}
-              />
+              <Space.Compact style={{ width: 120 }}>
+                <InputNumber
+                  name="maxRemoteBackups"
+                  min={1}
+                  max={100}
+                  style={{ width: "100%" }}
+                />
+                <Button disabled>{t("backup.webdav.perDevice")}</Button>
+              </Space.Compact>
             </Form.Item>
           </div>
           <Form.Item name="includeDocuments" valuePropName="checked">

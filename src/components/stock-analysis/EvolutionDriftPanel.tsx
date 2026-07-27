@@ -170,7 +170,7 @@ export function EvolutionDriftPanel() {
   if (!dashboard) {
     return (
       <div style={{ padding: 16, textAlign: "center" }}>
-        <Spin tip={t("stockAnalysis.evolutionDrift.loading")} />
+        <Spin description={t("stockAnalysis.evolutionDrift.loading")} />
         {lastError && (
           <div style={{ marginTop: 12, color: "#cf1322" }}>
             {t("stockAnalysis.evolutionDrift.error", { msg: lastError })}

@@ -25,6 +25,7 @@ import {
   Radio,
   Row,
   Select,
+  Space,
   Spin,
   Statistic,
   Tabs,
@@ -503,21 +504,19 @@ function ImportProjectSourcesModal({
           label={t("sourceManager.importProjectModal.directory")}
           rules={[{ required: true, message: t("sourceManager.importProjectModal.directoryRequired") }]}
         >
-          <Input
-            placeholder={t("sourceManager.importProjectModal.directoryPlaceholder")}
-            readOnly
-            addonAfter={
-              <Button
-                size="small"
-                type="link"
-                icon={<FolderPlus size={12} />}
-                onClick={handleSelectDirectory}
-                style={{ padding: 0 }}
-              >
-                {t("sourceManager.importProjectModal.selectDirectory")}
-              </Button>
-            }
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input
+              placeholder={t("sourceManager.importProjectModal.directoryPlaceholder")}
+              readOnly
+              style={{ width: "100%" }}
+            />
+            <Button
+              onClick={handleSelectDirectory}
+              icon={<FolderPlus size={12} />}
+            >
+              {t("sourceManager.importProjectModal.selectDirectory")}
+            </Button>
+          </Space.Compact>
         </Form.Item>
         <Form.Item
           name="sourceName"

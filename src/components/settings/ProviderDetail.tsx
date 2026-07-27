@@ -2681,17 +2681,19 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     >
                       {t("settings.requestDelayMs")}
                     </span>
-                    <InputNumber
-                      id="provider-detail-inputnumber-133"
-                      size="small"
-                      style={{ width: 120 }}
-                      min={0}
-                      max={60000}
-                      step={100}
-                      value={editRequestDelayMs}
-                      onChange={(v) => setEditRequestDelayMs(v)}
-                      addonAfter="ms"
-                    />
+                    <Space.Compact style={{ width: 120 }}>
+                      <InputNumber
+                        id="provider-detail-inputnumber-133"
+                        size="small"
+                        style={{ width: "100%" }}
+                        min={0}
+                        max={60000}
+                        step={100}
+                        value={editRequestDelayMs}
+                        onChange={(v) => setEditRequestDelayMs(v)}
+                      />
+                      <Button disabled>ms</Button>
+                    </Space.Compact>
                   </div>
                   {editRequestDelayMs != null && editRequestDelayMs > 0 && (
                     <div

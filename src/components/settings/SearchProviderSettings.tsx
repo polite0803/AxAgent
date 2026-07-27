@@ -373,16 +373,18 @@ function SearchProviderDetail({
       <Divider style={{ margin: "4px 0" }} />
       <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:timeout">
         <span>{t("settings.searchProviders.timeout")}</span>
-        <InputNumber
-          id="search-provider-settings-inputnumber-164"
-          value={provider.timeoutMs ?? 5000}
-          onChange={(val) => handleFieldChange("timeoutMs", val)}
-          min={1000}
-          max={30000}
-          step={1000}
-          style={{ width: 150 }}
-          addonAfter="ms"
-        />
+        <Space.Compact style={{ width: 150 }}>
+          <InputNumber
+            id="search-provider-settings-inputnumber-164"
+            value={provider.timeoutMs ?? 5000}
+            onChange={(val) => handleFieldChange("timeoutMs", val)}
+            min={1000}
+            max={30000}
+            step={1000}
+            style={{ width: "100%" }}
+          />
+          <Button disabled>ms</Button>
+        </Space.Compact>
       </div>
       <Divider style={{ margin: "4px 0" }} />
       <div style={rowStyle} className="flex items-center justify-between" data-search-key="searchProviders:enabled">

@@ -171,7 +171,7 @@ export function AgentGeneratorModal({
             </div>
             {generating && (
               <div className="flex justify-center py-4">
-                <Spin tip={t("agentGenerator.generating")} />
+                <Spin description={t("agentGenerator.generating")} />
               </div>
             )}
           </div>

@@ -78,7 +78,7 @@ export function BenchmarkRunner() {
 
       {isLoading && !currentResult && (
         <div className="flex items-center justify-center py-20">
-          <Spin size="large" tip={t("common.loading")} />
+          <Spin size="large" description={t("common.loading")} />
         </div>
       )}
 

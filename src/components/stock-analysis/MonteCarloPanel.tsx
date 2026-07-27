@@ -169,7 +169,10 @@ export function MonteCarloPanel() {
       {loading && (
         <Card size="small">
           <div className="flex items-center justify-center py-8">
-            <Spin size="large" tip={t("stockAnalysis.monte-carlo-panel.running-simulation-tip", { totalPaths })} />
+            <Spin
+              size="large"
+              description={t("stockAnalysis.monte-carlo-panel.running-simulation-tip", { totalPaths })}
+            />
           </div>
         </Card>
       )}

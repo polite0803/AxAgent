@@ -111,7 +111,7 @@ export function QuantSimPanel() {
       {loading && (
         <Card size="small">
           <div className="flex items-center justify-center py-6">
-            <Spin tip={t("stockAnalysis.quantSim.spinTip")} />
+            <Spin description={t("stockAnalysis.quantSim.spinTip")} />
           </div>
         </Card>
       )}

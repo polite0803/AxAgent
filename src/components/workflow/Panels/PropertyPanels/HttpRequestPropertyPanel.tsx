@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { message } from "@/lib/toast";
-import { Button, Divider, Input, InputNumber, Select, theme } from "antd";
+import { Button, Divider, Input, InputNumber, Select, Space, theme } from "antd";
 import { Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -104,15 +104,17 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
           <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
             {t("workflow.props.timeout")}
           </label>
-          <InputNumber
-            value={config.timeout_secs}
-            onChange={(v) => handleConfigChange("timeout_secs", v ?? 30)}
-            size="small"
-            style={{ width: "100%" }}
-            min={5}
-            max={300}
-            addonAfter="s"
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <InputNumber
+              value={config.timeout_secs}
+              onChange={(v) => handleConfigChange("timeout_secs", v ?? 30)}
+              size="small"
+              style={{ width: "100%" }}
+              min={5}
+              max={300}
+            />
+            <Button disabled>s</Button>
+          </Space.Compact>
         </div>
       </div>
 

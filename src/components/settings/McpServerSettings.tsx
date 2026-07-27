@@ -17,6 +17,7 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Space,
   Switch,
   Tabs,
   Tag,
@@ -605,16 +606,18 @@ function McpServerDetail({
             data-search-key="mcpServers:discoverTimeout"
           >
             <span>{t("settings.mcpServers.discoverTimeout")}</span>
-            <InputNumber
-              id="mcp-server-settings-inputnumber-100"
-              value={server.discoverTimeoutSecs}
-              onChange={(val) => handleFieldChange("discoverTimeoutSecs", val)}
-              placeholder="30"
-              min={5}
-              max={300}
-              addonAfter="s"
-              style={{ width: 160 }}
-            />
+            <Space.Compact style={{ width: 160 }}>
+              <InputNumber
+                id="mcp-server-settings-inputnumber-100"
+                value={server.discoverTimeoutSecs}
+                onChange={(val) => handleFieldChange("discoverTimeoutSecs", val)}
+                placeholder="30"
+                min={5}
+                max={300}
+                style={{ width: "100%" }}
+              />
+              <Button disabled>s</Button>
+            </Space.Compact>
           </div>
           <Divider style={{ margin: "4px 0" }} />
         </>
@@ -622,16 +625,18 @@ function McpServerDetail({
 
       <div style={rowStyle} className="flex items-center justify-between" data-search-key="mcpServers:executeTimeout">
         <span>{t("settings.mcpServers.executeTimeout")}</span>
-        <InputNumber
-          id="mcp-server-settings-inputnumber-101"
-          value={server.executeTimeoutSecs}
-          onChange={(val) => handleFieldChange("executeTimeoutSecs", val)}
-          placeholder="30"
-          min={5}
-          max={600}
-          addonAfter="s"
-          style={{ width: 160 }}
-        />
+        <Space.Compact style={{ width: 160 }}>
+          <InputNumber
+            id="mcp-server-settings-inputnumber-101"
+            value={server.executeTimeoutSecs}
+            onChange={(val) => handleFieldChange("executeTimeoutSecs", val)}
+            placeholder="30"
+            min={5}
+            max={600}
+            style={{ width: "100%" }}
+          />
+          <Button disabled>s</Button>
+        </Space.Compact>
       </div>
       <Divider style={{ margin: "4px 0" }} />
 

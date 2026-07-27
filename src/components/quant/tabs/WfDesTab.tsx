@@ -323,18 +323,20 @@ export function WfDesTab() {
                   {t("quant.wfDes.autoReferencePrice")}
                 </Checkbox>
                 {!draft.autoReferencePrice && (
-                  <InputNumber
-                    min={0.01}
-                    step={1}
-                    addonAfter={t("quant.wfDes.yuan")}
-                    style={{ width: "100%" }}
-                    value={draft.manualReferencePrice}
-                    onChange={(v) =>
-                      setField(
-                        "manualReferencePrice",
-                        typeof v === "number" ? v : 1000,
-                      )}
-                  />
+                  <Space.Compact style={{ width: "100%" }}>
+                    <InputNumber
+                      min={0.01}
+                      step={1}
+                      style={{ width: "100%" }}
+                      value={draft.manualReferencePrice}
+                      onChange={(v) =>
+                        setField(
+                          "manualReferencePrice",
+                          typeof v === "number" ? v : 1000,
+                        )}
+                    />
+                    <Button disabled>{t("quant.wfDes.yuan")}</Button>
+                  </Space.Compact>
                 )}
               </Space>
             </Form.Item>
