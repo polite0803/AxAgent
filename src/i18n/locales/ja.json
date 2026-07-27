@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "オフィス作成",
-      "promptName": "オフィス名を入力："
+      "promptName": "オフィス名を入力：",
+      "nameRequired": "オフィス名は空にできません",
+      "nameLabel": "オフィス名",
+      "templateLabel": "シーンテンプレート",
+      "roomsUnit": "部屋"
     },
     "emptyFleet": "オフィスが未作成です。右上のボタンから最初のオフィスを作成してください。",
     "memberCount": "{{count}} メンバー",
@@ -2873,6 +2877,14 @@
       "active": "実行中",
       "paused": "一時停止",
       "stopped": "停止"
+    },
+    "scene": {
+      "default_office": "標準オフィス",
+      "default_office_desc": "4 部屋: ワークスペース / 会議室 / ラウンジ / マネージャー。5-8 名向け。",
+      "workspace": "ワークスペース",
+      "meeting": "会議室",
+      "lounge": "ラウンジ",
+      "manager": "マネージャー室"
     },
     "chat": {
       "emptyHint": "下にメッセージを入力 — Dispatcher が適切な agent に自動ルーティングします。",

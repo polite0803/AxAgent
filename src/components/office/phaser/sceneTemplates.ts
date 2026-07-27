@@ -83,14 +83,35 @@ export const DEFAULT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
   ],
 };
 
-/** 按场景 slug 查找模板（前端 fallback 到 default） */
+/**
+ * 全部内置场景模板（按 slug 索引）。
+ *
+ * AxAgent 仅提供默认模板作为基础能力；下游业务方可通过向此数组
+ * 追加自定义模板（或调用 registerSceneTemplate）来扩展办公室布局。
+ */
+export const SCENE_TEMPLATES: OfficeSceneTemplate[] = [
+  DEFAULT_OFFICE_TEMPLATE,
+];
+
+/**
+ * 注册下游自定义场景模板（可选）。
+ *
+ * 下游业务方在初始化阶段调用此函数即可追加模板，
+ * AxAgent 自身不调用 —— 只提供扩展点。
+ */
+export function registerSceneTemplate(template: OfficeSceneTemplate): void {
+  if (!SCENE_TEMPLATES.some((t) => t.slug === template.slug)) {
+    SCENE_TEMPLATES.push(template);
+  }
+}
+
+/** 按 slug 查找模板（前端 fallback 到 default） */
 export function resolveSceneTemplate(slug?: string): OfficeSceneTemplate {
-  // 当前只有一个内置模板；后续扩展可在 map 中追加
-  if (slug && slug !== "default_office") {
-    // 未知 slug 也降级到默认，避免渲染崩溃
+  if (!slug) {
     return DEFAULT_OFFICE_TEMPLATE;
   }
-  return DEFAULT_OFFICE_TEMPLATE;
+  const found = SCENE_TEMPLATES.find((t) => t.slug === slug);
+  return found ?? DEFAULT_OFFICE_TEMPLATE;
 }
 
 /** 给定房间与成员数，计算房间内均匀分布的初始坐标 */

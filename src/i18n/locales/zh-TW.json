@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "建立辦公室",
-      "promptName": "請輸入辦公室名稱："
+      "promptName": "請輸入辦公室名稱：",
+      "nameRequired": "辦公室名稱不能為空",
+      "nameLabel": "辦公室名稱",
+      "templateLabel": "場景模板",
+      "roomsUnit": "個房間"
     },
     "emptyFleet": "尚未建立辦公室。點擊右上角按鈕建立第一個辦公室。",
     "memberCount": "{{count}} 個成員",
@@ -2873,6 +2877,14 @@
       "active": "運行中",
       "paused": "已暫停",
       "stopped": "已停止"
+    },
+    "scene": {
+      "default_office": "標準辦公室",
+      "default_office_desc": "4 房間布局：工位 / 會議室 / 休息區 / 經理室，適合 5-8 人團隊",
+      "workspace": "工位區",
+      "meeting": "會議室",
+      "lounge": "休息區",
+      "manager": "經理室"
     },
     "chat": {
       "emptyHint": "在下方輸入訊息，Dispatcher 將自動路由到合適的 agent。",

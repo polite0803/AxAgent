@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "Büro erstellen",
-      "promptName": "Büroname eingeben:"
+      "promptName": "Büroname eingeben:",
+      "nameRequired": "Büroname darf nicht leer sein",
+      "nameLabel": "Büroname",
+      "templateLabel": "Szenvorlage",
+      "roomsUnit": "Räume"
     },
     "emptyFleet": "Noch kein Büro erstellt. Klicke oben rechts auf den Button, um dein erstes Büro zu erstellen.",
     "memberCount": "{{count}} Mitglieder",
@@ -2873,6 +2877,14 @@
       "active": "Läuft",
       "paused": "Pausiert",
       "stopped": "Gestoppt"
+    },
+    "scene": {
+      "default_office": "Standardbüro",
+      "default_office_desc": "4 Räume: Arbeitsplatz / Besprechung / Lounge / Manager. Für 5-8 Mitglieder.",
+      "workspace": "Arbeitsbereich",
+      "meeting": "Besprechungsraum",
+      "lounge": "Lounge",
+      "manager": "Managerbüro"
     },
     "chat": {
       "emptyHint": "Gib unten eine Nachricht ein — der Dispatcher leitet sie an den richtigen Agenten weiter.",

@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "Créer un bureau",
-      "promptName": "Entrez le nom du bureau :"
+      "promptName": "Entrez le nom du bureau :",
+      "nameRequired": "Le nom du bureau ne peut pas être vide",
+      "nameLabel": "Nom du bureau",
+      "templateLabel": "Modèle de scène",
+      "roomsUnit": "salles"
     },
     "emptyFleet": "Aucun bureau créé. Cliquez sur le bouton en haut à droite pour créer votre premier bureau.",
     "memberCount": "{{count}} membres",
@@ -2873,6 +2877,14 @@
       "active": "En cours",
       "paused": "En pause",
       "stopped": "Arrêté"
+    },
+    "scene": {
+      "default_office": "Bureau standard",
+      "default_office_desc": "4 salles : espace de travail / réunion / repos / manager. Pour 5-8 membres.",
+      "workspace": "Espace de travail",
+      "meeting": "Salle de réunion",
+      "lounge": "Repos",
+      "manager": "Bureau du manager"
     },
     "chat": {
       "emptyHint": "Saisissez un message ci-dessous — le dispatcher le routera vers le bon agent.",

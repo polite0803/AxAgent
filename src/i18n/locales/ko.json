@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "오피스 만들기",
-      "promptName": "오피스 이름을 입력하세요:"
+      "promptName": "오피스 이름을 입력하세요:",
+      "nameRequired": "오피스 이름은 비워둘 수 없습니다",
+      "nameLabel": "오피스 이름",
+      "templateLabel": "씬 템플릿",
+      "roomsUnit": "개 방"
     },
     "emptyFleet": "생성된 오피스가 없습니다. 우측 상단 버튼을 눌러 첫 오피스를 만들어 보세요.",
     "memberCount": "{{count}}명",
@@ -2873,6 +2877,14 @@
       "active": "실행 중",
       "paused": "일시정지",
       "stopped": "중지됨"
+    },
+    "scene": {
+      "default_office": "표준 오피스",
+      "default_office_desc": "4개 방: 워크스페이스 / 회의실 / 라운지 / 매니저. 5-8명용.",
+      "workspace": "워크스페이스",
+      "meeting": "회의실",
+      "lounge": "라운지",
+      "manager": "매니저실"
     },
     "chat": {
       "emptyHint": "아래에 메시지를 입력하면 Dispatcher가 적절한 agent로 라우팅합니다.",

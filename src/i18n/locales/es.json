@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "Crear oficina",
-      "promptName": "Introduce el nombre de la oficina:"
+      "promptName": "Introduce el nombre de la oficina:",
+      "nameRequired": "El nombre de la oficina no puede estar vacío",
+      "nameLabel": "Nombre de la oficina",
+      "templateLabel": "Plantilla de escena",
+      "roomsUnit": "salas"
     },
     "emptyFleet": "No hay oficinas creadas. Haz clic en el botón superior derecho para crear la primera.",
     "memberCount": "{{count}} miembros",
@@ -2873,6 +2877,14 @@
       "active": "En ejecución",
       "paused": "Pausado",
       "stopped": "Detenido"
+    },
+    "scene": {
+      "default_office": "Oficina estándar",
+      "default_office_desc": "4 salas: área de trabajo / reunión / descanso / gerente. Para 5-8 miembros.",
+      "workspace": "Área de trabajo",
+      "meeting": "Sala de reuniones",
+      "lounge": "Descanso",
+      "manager": "Oficina del gerente"
     },
     "chat": {
       "emptyHint": "Escribe un mensaje abajo — el dispatcher lo enruta al agente adecuado.",

@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "Create Office",
-      "promptName": "Enter office name:"
+      "promptName": "Enter office name:",
+      "nameRequired": "Office name cannot be empty",
+      "nameLabel": "Office Name",
+      "templateLabel": "Scene Template",
+      "roomsUnit": "rooms"
     },
     "emptyFleet": "No office created yet. Click the button in the top right to create your first office.",
     "memberCount": "{{count}} members",
@@ -2873,6 +2877,14 @@
       "active": "Running",
       "paused": "Paused",
       "stopped": "Stopped"
+    },
+    "scene": {
+      "default_office": "Standard Office",
+      "default_office_desc": "4 rooms: workspace / meeting / lounge / manager. Best for 5-8 members.",
+      "workspace": "Workspace",
+      "meeting": "Meeting Room",
+      "lounge": "Lounge",
+      "manager": "Manager Room"
     },
     "chat": {
       "emptyHint": "Type a message below — the dispatcher will route it to the right agent.",

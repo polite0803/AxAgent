@@ -19,7 +19,7 @@
 
 import { useOfficeStore } from "@/stores";
 import type { Fleet, FleetMember } from "@/types";
-import { Button, Dropdown, Empty, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
+import { App, Button, Dropdown, Empty, Input, Modal, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
 import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, Users, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +30,7 @@ import { TokenPanel } from "./panels/TokenPanel";
 import { TrajectoryPanel } from "./panels/TrajectoryPanel";
 import { OfficeGame } from "./phaser/OfficeGame";
 import { fleetMemberToSceneMember } from "./phaser/OfficeScene";
+import { SCENE_TEMPLATES } from "./phaser/sceneTemplates";
 
 const { Text } = Typography;
 
@@ -47,8 +48,14 @@ export function OfficeTab() {
   const createFleet = useOfficeStore((s) => s.createFleet);
   const updateMemberStatus = useOfficeStore((s) => s.updateMemberStatus);
 
+  const { message: messageApi } = App.useApp();
+
   const [rightTab, setRightTab] = useState<"chat" | "dm" | "trajectory" | "token">("chat");
   const [dmTarget, setDmTarget] = useState<FleetMember | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createTemplateSlug, setCreateTemplateSlug] = useState<string>(SCENE_TEMPLATES[0].slug);
+  const [creating, setCreating] = useState(false);
 
   // 初次加载舰队列表
   useEffect(() => {
@@ -91,13 +98,80 @@ export function OfficeTab() {
   };
 
   const handleCreateFleet = async () => {
-    const name = prompt(t("office.createFleet.promptName"));
-    if (!name) { return; }
-    const fleet = await createFleet({ name });
-    if (fleet) {
-      selectFleet(fleet.id);
+    const name = createName.trim();
+    if (!name) {
+      messageApi.warning(t("office.createFleet.nameRequired"));
+      return;
+    }
+    setCreating(true);
+    try {
+      const fleet = await createFleet({
+        name,
+        sceneTemplateSlug: createTemplateSlug,
+      });
+      if (fleet) {
+        selectFleet(fleet.id);
+        setCreateOpen(false);
+        setCreateName("");
+        setCreateTemplateSlug(SCENE_TEMPLATES[0].slug);
+      }
+    } finally {
+      setCreating(false);
     }
   };
+
+  const renderCreateModal = () => (
+    <Modal
+      title={t("office.createFleet.button")}
+      open={createOpen}
+      onCancel={() => {
+        setCreateOpen(false);
+        setCreateName("");
+        setCreateTemplateSlug(SCENE_TEMPLATES[0].slug);
+      }}
+      onOk={handleCreateFleet}
+      okButtonProps={{ loading: creating }}
+      destroyOnClose
+      maskClosable={false}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div>
+          <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+            {t("office.createFleet.nameLabel")}
+          </div>
+          <Input
+            autoFocus
+            placeholder={t("office.createFleet.promptName")}
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+            onPressEnter={handleCreateFleet}
+            maxLength={64}
+          />
+        </div>
+        <div>
+          <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+            {t("office.createFleet.templateLabel")}
+          </div>
+          <Select
+            value={createTemplateSlug}
+            onChange={setCreateTemplateSlug}
+            options={SCENE_TEMPLATES.map((tpl) => ({
+              value: tpl.slug,
+              label: `${t(`office.scene.${tpl.displayNameKey}`)} · ${tpl.rooms.length} ${
+                t("office.createFleet.roomsUnit")
+              }`,
+            }))}
+            style={{ width: "100%" }}
+          />
+          <div style={{ marginTop: 4, fontSize: 11, color: token.colorTextQuaternary }}>
+            {t(`office.scene.${
+              SCENE_TEMPLATES.find((tpl) => tpl.slug === createTemplateSlug)?.displayNameKey ?? "default_office"
+            }_desc`)}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
 
   // Fleet 下拉菜单项
   const fleetMenuItems = fleets.map((f) => ({
@@ -132,10 +206,11 @@ export function OfficeTab() {
           description={t("office.emptyFleet")}
           styles={{ description: { fontSize: 13, color: token.colorTextQuaternary } }}
         >
-          <Button type="primary" icon={<CirclePlus size={14} />} onClick={handleCreateFleet}>
+          <Button type="primary" icon={<CirclePlus size={14} />} onClick={() => setCreateOpen(true)}>
             {t("office.createFleet.button")}
           </Button>
         </Empty>
+        {renderCreateModal()}
       </div>
     );
   }
@@ -161,7 +236,7 @@ export function OfficeTab() {
           </Button>
         </Dropdown>
         <Tooltip title={t("office.createFleet.button")}>
-          <Button icon={<CirclePlus size={14} />} onClick={handleCreateFleet} />
+          <Button icon={<CirclePlus size={14} />} onClick={() => setCreateOpen(true)} />
         </Tooltip>
         <Text type="secondary" style={{ fontSize: 12 }}>
           {t("office.memberCount", { count: members.length })}
@@ -314,6 +389,7 @@ export function OfficeTab() {
             </div>
           )}
       </div>
+      {renderCreateModal()}
     </div>
   );
 }

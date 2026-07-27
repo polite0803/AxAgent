@@ -2849,7 +2849,11 @@
   "office": {
     "createFleet": {
       "button": "创建办公室",
-      "promptName": "请输入办公室名称："
+      "promptName": "请输入办公室名称：",
+      "nameRequired": "办公室名称不能为空",
+      "nameLabel": "办公室名称",
+      "templateLabel": "场景模板",
+      "roomsUnit": "个房间"
     },
     "emptyFleet": "尚未创建办公室。点击右上角按钮创建第一个办公室。",
     "memberCount": "{{count}} 个成员",
@@ -2873,6 +2877,14 @@
       "active": "运行中",
       "paused": "已暂停",
       "stopped": "已停止"
+    },
+    "scene": {
+      "default_office": "标准办公室",
+      "default_office_desc": "4 房间布局：工位 / 会议室 / 休息区 / 经理室，适合 5-8 人团队",
+      "workspace": "工位区",
+      "meeting": "会议室",
+      "lounge": "休息区",
+      "manager": "经理室"
     },
     "chat": {
       "emptyHint": "在下方输入消息，Dispatcher 将自动路由到合适的 agent。",
