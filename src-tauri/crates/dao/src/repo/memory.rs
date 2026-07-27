@@ -97,13 +97,12 @@ pub async fn create_namespace(
 }
 
 pub async fn delete_namespace(db: &DatabaseConnection, id: &str) -> Result<()> {
-    // 取消该命名空间下所有未完成的索引任务，避免队列继续轮询已删除容器
-    // 导致 NotFound 错误刷屏（container_type 与 rag::ContainerType 对齐）
-    if let Err(e) = crate::repo::index_jobs::cancel_jobs_by_container(db, "memory", id).await {
+    // 物理删除该命名空间下的所有索引任务，容器已不存在，保留 CANCELLED job 无意义
+    if let Err(e) = crate::repo::index_jobs::delete_jobs_by_container(db, "memory", id).await {
         tracing::warn!(
             ns_id = id,
             error = %e,
-            "[dao::memory] 取消相关索引任务失败，继续级联删除"
+            "[dao::memory] 删除相关索引任务失败，继续级联删除"
         );
     }
 
