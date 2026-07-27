@@ -28,6 +28,13 @@ queueMicrotask(() => {
   import("./lib/dynamicUI/registerBuiltins")
     .then(({ registerAllBuiltins }) => registerAllBuiltins())
     .catch(logIpcError("DynamicUI builtin registration failed"));
+
+  // ── 注册 AxInvest 投研办公室场景模板（同步，无副作用）──
+  // 将 INVESTMENT_OFFICE_TEMPLATE 注入上游 SCENE_TEMPLATES 数组，
+  // 不直接修改上游 sceneTemplates.ts，便于后续合并上游时保持零冲突。
+  import("./components/office/phaser/investSceneTemplates")
+    .then(({ registerInvestSceneTemplates }) => registerInvestSceneTemplates())
+    .catch(logIpcError("Invest scene template registration failed"));
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

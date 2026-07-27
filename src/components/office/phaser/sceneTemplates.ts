@@ -84,100 +84,14 @@ export const DEFAULT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
 };
 
 /**
- * 股票投资办公室模板 — 6 房间布局（适合 AxInvest 投研团队）。
- *
- * 房间按典型投研业务流划分：研究 → 数据 → 会议（上排），
- * 策略 → 交易 → 风控（下排），覆盖从投研到风控的完整链路。
- * 画布 800×500，2 行 3 列规整布局，单房间 240×210。
- */
-export const INVESTMENT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
-  slug: "investment_office",
-  displayNameKey: "investment_office",
-  canvasWidth: 800,
-  canvasHeight: 500,
-  // 交易室作为默认房间，符合投资团队以交易为核心的工作流
-  defaultRoomId: "trading",
-  rooms: [
-    {
-      // 投研室 — 行业研究、基本面分析
-      id: "research",
-      nameKey: "research",
-      x: 20,
-      y: 20,
-      width: 240,
-      height: 210,
-      color: 0x1677ff,
-    },
-    {
-      // 数据室 — 行情数据、量化数据接入
-      id: "data_room",
-      nameKey: "data_room",
-      x: 280,
-      y: 20,
-      width: 240,
-      height: 210,
-      color: 0x13c2c2,
-    },
-    {
-      // 会议室 — 晨会、投研会议
-      id: "meeting",
-      nameKey: "meeting",
-      x: 540,
-      y: 20,
-      width: 240,
-      height: 210,
-      color: 0x722ed1,
-    },
-    {
-      // 策略室 — 策略研发、回测
-      id: "strategy",
-      nameKey: "strategy",
-      x: 20,
-      y: 250,
-      width: 240,
-      height: 210,
-      color: 0xeb2f96,
-    },
-    {
-      // 交易室 — 下单、实时盯盘（默认房间）
-      id: "trading",
-      nameKey: "trading",
-      x: 280,
-      y: 250,
-      width: 240,
-      height: 210,
-      color: 0xf5222d,
-    },
-    {
-      // 风控室 — 风险监控、合规
-      id: "risk",
-      nameKey: "risk",
-      x: 540,
-      y: 250,
-      width: 240,
-      height: 210,
-      color: 0xfa8c16,
-    },
-  ],
-};
-
-/**
  * 全部内置场景模板（按 slug 索引）。
  *
- * AxAgent 默认提供 DEFAULT_OFFICE_TEMPLATE；AxInvest fork 追加
- * INVESTMENT_OFFICE_TEMPLATE 用于投研团队场景。下游业务方可
- * 通过 registerSceneTemplate 向此数组追加自定义模板来扩展布局。
- *
- * 同时通过 `BUILTIN_OFFICE_TEMPLATES` 暴露给本地 AxInvest 组件
- * （如 CreateFleetModal）使用。
+ * AxAgent 仅提供默认模板作为基础能力；下游业务方可通过向此数组
+ * 追加自定义模板（或调用 registerSceneTemplate）来扩展办公室布局。
  */
-export const BUILTIN_OFFICE_TEMPLATES: OfficeSceneTemplate[] = [
+export const SCENE_TEMPLATES: OfficeSceneTemplate[] = [
   DEFAULT_OFFICE_TEMPLATE,
-  INVESTMENT_OFFICE_TEMPLATE,
 ];
-
-/** 上游兼容别名 — 与 BUILTIN_OFFICE_TEMPLATES 同源 */
-export const SCENE_TEMPLATES: OfficeSceneTemplate[] = BUILTIN_OFFICE_TEMPLATES;
 
 /**
  * 注册下游自定义场景模板（可选）。
@@ -191,28 +105,13 @@ export function registerSceneTemplate(template: OfficeSceneTemplate): void {
   }
 }
 
-/** slug → 模板查找表（用于快速查找） */
-const OFFICE_TEMPLATE_MAP: Record<string, OfficeSceneTemplate> = {
-  [DEFAULT_OFFICE_TEMPLATE.slug]: DEFAULT_OFFICE_TEMPLATE,
-  [INVESTMENT_OFFICE_TEMPLATE.slug]: INVESTMENT_OFFICE_TEMPLATE,
-};
-
-/** 按场景 slug 查找模板（前端 fallback 到 default） */
+/** 按 slug 查找模板（前端 fallback 到 default） */
 export function resolveSceneTemplate(slug?: string): OfficeSceneTemplate {
   if (!slug) {
     return DEFAULT_OFFICE_TEMPLATE;
   }
-  // 优先走静态 map（O(1)），未命中再走动态数组（包含 registerSceneTemplate 注册的）
-  if (OFFICE_TEMPLATE_MAP[slug]) {
-    return OFFICE_TEMPLATE_MAP[slug];
-  }
   const found = SCENE_TEMPLATES.find((t) => t.slug === slug);
   return found ?? DEFAULT_OFFICE_TEMPLATE;
-}
-
-/** 给定场景模板 slug，返回其所有房间的 id 列表（供 UI 选择器使用） */
-export function getBuiltinTemplateRooms(slug?: string): string[] {
-  return resolveSceneTemplate(slug).rooms.map((r) => r.id);
 }
 
 /** 给定房间与成员数，计算房间内均匀分布的初始坐标 */
