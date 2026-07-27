@@ -337,6 +337,9 @@ export function WikiGraphPage() {
   );
 
   const handleNoteUpdated = () => {
+    if (!wikiIdFromUrl) {
+      return;
+    }
     loadNotes(wikiIdFromUrl);
     loadGraphData();
   };
