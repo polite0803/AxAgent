@@ -528,37 +528,10 @@ function GraphViewInner({
     });
     sigmaInstance.on("clickStage", () => onDeselect?.());
 
-    // ── 自定义滚轮缩放：跟随鼠标位置（sigma 默认缩放视口中心，不跟手）──
-    const minRatio = (sigmaInstance.getSetting("minCameraRatio") as number | undefined) ?? 0.02;
-    const maxRatio = (sigmaInstance.getSetting("maxCameraRatio") as number | undefined) ?? 10;
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const sigma = sigmaRef.current;
-      if (!sigma) { return; }
-      const camera = sigma.getCamera();
-      const state = camera.getState();
-      // 滚轮向上 → 放大（ratio 减小）；向下 → 缩小（ratio 增大）
-      const factor = e.deltaY < 0 ? 0.82 : 1.22;
-      const newRatio = Math.max(minRatio, Math.min(maxRatio, state.ratio * factor));
-      if (newRatio === state.ratio) { return; }
-      // 鼠标在视口中的位置
-      const rect = el.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      // 鼠标对应的世界坐标
-      const world = sigma.viewportToGraph({ x: mouseX, y: mouseY });
-      // 缩放后让鼠标位置仍对应同一世界坐标：
-      // newCamera = world + (oldCamera - world) * (newRatio / oldRatio)
-      const newX = world.x + (state.x - world.x) * (newRatio / state.ratio);
-      const newY = world.y + (state.y - world.y) * (newRatio / state.ratio);
-      camera.animate(
-        { x: newX, y: newY, ratio: newRatio },
-        { duration: 180, easing: (k) => k },
-      );
-    };
-    // capture: true → 在 sigma 默认 wheel 处理之前拦截
-    el.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+    // 滚轮缩放交给 sigma 默认行为处理：sigma v3 默认 zoomOnMouse=true，
+    // 会对准鼠标位置缩放，且做了正确的频率控制。
+    // 之前自定义 wheel + camera.animate 在高频事件下会互相打断导致视图乱跑，
+    // 这里不覆盖默认行为。
 
     // 键盘
     const handleKey = (e: KeyboardEvent) => {
@@ -579,7 +552,6 @@ function GraphViewInner({
     el.addEventListener("keydown", handleKey);
 
     return () => {
-      el.removeEventListener("wheel", handleWheel, { capture: true });
       el.removeEventListener("keydown", handleKey);
       // 清理进行中的动画，避免 sigma kill 后继续 refresh 导致报错
       if (positionAnimRef.current !== null) {
@@ -613,17 +585,21 @@ function GraphViewInner({
     graph.clear();
     nodeIndexRef.current = new Map();
 
-    // 目标位置：网格布局
-    const initialPositions = gridLayout(filteredNodes, dimensions.width, dimensions.height);
+    // 初始位置：按当前布局模式选择，避免"先矩形再跳圆形"的视觉跳变
+    const initialPositions = layoutMode === "radial"
+      ? circularLayout(filteredNodes, dimensions.width, dimensions.height)
+      : gridLayout(filteredNodes, dimensions.width, dimensions.height);
 
-    // 节点入场：先全部放到视口中心 (0,0)，再展开到网格位置
+    // 节点直接放到目标位置，但 size 从 0 开始增长（避免从中心爆开的眩晕感）
     for (const node of filteredNodes) {
+      const pos = initialPositions.get(node.id) ?? { x: 0, y: 0 };
       const color = getNodeColor(node, communities, token);
-      const size = getNodeSize(node);
+      const targetSize = getNodeSize(node);
       graph.addNode(node.id, {
-        x: 0,
-        y: 0,
-        size,
+        x: pos.x,
+        y: pos.y,
+        size: 0, // 入场动画从 0 增长到 targetSize
+        targetSize, // 自定义属性，动画读取
         color,
         label: node.title,
         nodeType: node.type,
@@ -654,37 +630,57 @@ function GraphViewInner({
     });
     sigmaInstance.refresh();
 
-    // ── 入场动画：从中心 (0,0) 展开到网格位置 ──
-    const endPositions = new Map<string, { x: number; y: number }>();
-    for (const node of filteredNodes) {
-      const target = initialPositions.get(node.id) ?? { x: 0, y: 0 };
-      endPositions.set(node.id, target);
-    }
-    // 用 enterAnimRef 单独管理入场动画，避免被 applyPositions 的取消逻辑打断
+    // ── 入场动画：节点 size 从 0 弹性增长到目标值 ──
+    // 用 ease-out back（带轻微过冲），有"弹出"的活力感
     const startTime = performance.now();
-    const enterDuration = 600;
+    const enterDuration = 500;
+    // 收集入场后的目标位置，用于动画结束后首次居中
+    const initialPositionsArr = Array.from(initialPositions.values());
     const enterTick = (now: number) => {
       const t = Math.min(1, (now - startTime) / enterDuration);
-      // ease-out quint：更明显的"落地"感
-      const eased = 1 - Math.pow(1 - t, 5);
-      for (const [id, end] of endPositions) {
-        if (!graph.hasNode(id)) { continue; }
-        graph.setNodeAttribute(id, "x", end.x * eased);
-        graph.setNodeAttribute(id, "y", end.y * eased);
-      }
+      // ease-out back：c1=1.7018，过冲量适中
+      const c1 = 1.7018;
+      const c3 = c1 + 1;
+      const eased = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      graph.forEachNode((id, attrs) => {
+        const target = attrs.targetSize;
+        if (typeof target === "number") {
+          graph.setNodeAttribute(id, "size", Math.max(0, target * eased));
+        }
+      });
       sigmaInstance.refresh({ skipIndexation: true });
       if (t < 1) {
         enterAnimRef.current = requestAnimationFrame(enterTick);
       } else {
         enterAnimRef.current = null;
+        // 首次入场完成后居中视图（后续 worker 完成不再自动居中，避免打断用户交互）
+        centerCameraOnGraph(initialPositionsArr, 600);
       }
     };
     enterAnimRef.current = requestAnimationFrame(enterTick);
 
     // 触发布局计算（worker 算完后会通过 applyPositions 做二次位置动画）
     triggerLayout();
+    // 注意：dimensions 不在依赖里——尺寸变化由独立的 effect 处理位置重算，
+    // 不触发图重建（避免清空图 + 重跑入场动画导致的视觉跳变）
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredNodes, filteredEdges, communities, token, dimensions, layoutMode]);
+  }, [filteredNodes, filteredEdges, communities, token, layoutMode]);
+
+  // ── 尺寸变化时只重算位置，不重建图 ──
+  // 容器 resize（如侧栏开合）时，radial/hierarchy 需要按新尺寸重新分布节点。
+  // 用 applyPositions 做位置插值动画，视觉上是节点平滑移动到新位置，不会闪烁。
+  useEffect(() => {
+    if (filteredNodes.length === 0) { return; }
+    // 只对纯几何布局生效（force 模式由 worker 接管，尺寸变化不需要重算）
+    if (layoutMode === "force") { return; }
+    const positions = layoutMode === "radial"
+      ? circularLayout(filteredNodes, dimensions.width, dimensions.height)
+      : gridLayout(filteredNodes, dimensions.width, dimensions.height);
+    applyPositions(
+      Array.from(positions.entries()).map(([id, p]) => ({ id, x: p.x, y: p.y })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dimensions, layoutMode]);
 
   // ── Worker 生命周期 ──
   useEffect(() => {
@@ -814,7 +810,36 @@ function GraphViewInner({
     [],
   );
 
-  // ── 应用位置：从当前位置插值到目标位置，完成后强制视觉居中 ──
+  // ── 居中相机到节点群包围盒 ──
+  const centerCameraOnGraph = useCallback(
+    (positions: Array<{ x: number; y: number }>, duration = 450) => {
+      const sigma = sigmaRef.current;
+      if (!sigma) { return; }
+      const bbox = computeBoundingBox(positions);
+      if (!bbox) { return; }
+      const viewportWidth = sigma.getDimensions().width;
+      const viewportHeight = sigma.getDimensions().height;
+      const bboxMaxDim = Math.max(bbox.width, bbox.height, 1);
+      const viewportMinDim = Math.min(viewportWidth, viewportHeight, 1);
+      // ratio = 包围盒最大边 / 视口短边 * 1.2（留 20% 边距）
+      const targetRatio = Math.max(
+        (sigma.getSetting("minCameraRatio") as number | undefined) ?? 0.02,
+        Math.min(
+          (sigma.getSetting("maxCameraRatio") as number | undefined) ?? 10,
+          (bboxMaxDim / viewportMinDim) * 1.2,
+        ),
+      );
+      sigma.getCamera().animate(
+        { x: bbox.centerX, y: bbox.centerY, ratio: targetRatio },
+        { duration },
+      );
+    },
+    [],
+  );
+
+  // ── 应用位置：从当前位置插值到目标位置 ──
+  // 注意：不在这里自动居中相机，避免打断用户的缩放/平移交互。
+  // 居中只发生在首次入场和用户点击"适应视图"按钮时。
   const applyPositions = useCallback(
     (positions: Array<{ id: string; x: number; y: number }>) => {
       const graph = graphRef.current;
@@ -828,31 +853,7 @@ function GraphViewInner({
           endPositions.set(p.id, { x: p.x, y: p.y });
         }
       }
-      animatePositions(startPositions, endPositions, 550, () => {
-        // 布局完成后：计算节点群包围盒，把相机对准包围盒中心（强制视觉居中）
-        const sigma = sigmaRef.current;
-        if (!sigma) { return; }
-        const bbox = computeBoundingBox(positions);
-        if (!bbox) { return; }
-        // ratio 根据包围盒大小自适应：保证整个图能放进视口，留 20% 边距
-        // sigma 的 camera ratio 是"视口短边 / 世界短边"的反比，越大越缩小
-        const viewportWidth = sigma.getDimensions().width;
-        const viewportHeight = sigma.getDimensions().height;
-        const bboxMaxDim = Math.max(bbox.width, bbox.height, 1);
-        const viewportMinDim = Math.min(viewportWidth, viewportHeight, 1);
-        // ratio = bboxMaxDim / viewportMinDim * 1.2（1.2 是边距系数）
-        const targetRatio = Math.max(
-          (sigma.getSetting("minCameraRatio") as number | undefined) ?? 0.02,
-          Math.min(
-            (sigma.getSetting("maxCameraRatio") as number | undefined) ?? 10,
-            (bboxMaxDim / viewportMinDim) * 1.2,
-          ),
-        );
-        sigma.getCamera().animate(
-          { x: bbox.centerX, y: bbox.centerY, ratio: targetRatio },
-          { duration: 450 },
-        );
-      });
+      animatePositions(startPositions, endPositions, 550);
     },
     [animatePositions],
   );
@@ -895,35 +896,15 @@ function GraphViewInner({
     sigmaRef.current?.getCamera().animatedUnzoom({ duration: 300 });
   }, []);
   const handleFitAll = useCallback(() => {
-    const sigma = sigmaRef.current;
     const graph = graphRef.current;
-    if (!sigma || !graph) { return; }
-    // 收集所有节点的当前位置，计算包围盒后居中
+    if (!graph) { return; }
+    // 收集所有节点当前位置，居中到包围盒
     const positions: Array<{ x: number; y: number }> = [];
     graph.forEachNode((_, attrs) => {
       positions.push({ x: attrs.x, y: attrs.y });
     });
-    const bbox = computeBoundingBox(positions);
-    if (!bbox) {
-      sigma.getCamera().animatedReset({ duration: 600 });
-      return;
-    }
-    const viewportWidth = sigma.getDimensions().width;
-    const viewportHeight = sigma.getDimensions().height;
-    const bboxMaxDim = Math.max(bbox.width, bbox.height, 1);
-    const viewportMinDim = Math.min(viewportWidth, viewportHeight, 1);
-    const targetRatio = Math.max(
-      (sigma.getSetting("minCameraRatio") as number | undefined) ?? 0.02,
-      Math.min(
-        (sigma.getSetting("maxCameraRatio") as number | undefined) ?? 10,
-        (bboxMaxDim / viewportMinDim) * 1.2,
-      ),
-    );
-    sigma.getCamera().animate(
-      { x: bbox.centerX, y: bbox.centerY, ratio: targetRatio },
-      { duration: 600 },
-    );
-  }, []);
+    centerCameraOnGraph(positions, 600);
+  }, [centerCameraOnGraph]);
   const handleFocusSelected = useCallback(() => {
     if (!selectedNodeId || !sigmaRef.current || !graphRef.current) { return; }
     const graph = graphRef.current;

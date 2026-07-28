@@ -6444,6 +6444,7 @@
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
     "syncNoTarget": "Knowledge base \"项目知识源图谱\" not found, please import first",
     "deleteConfirm": "Delete knowledge source {{name}}?",
+    "enterFailed": "Could not find the corresponding knowledge base record, please try refreshing",
     "importProjectModal": {
       "title": "Import / Update Project Knowledge Sources",
       "directory": "Source Directory",
@@ -6459,13 +6460,15 @@
       "modeCreate": "Create",
       "modeCreateDesc": "First import of the directory; same-name KBs without embedding will be cleaned up and rebuilt",
       "modeUpdate": "Update",
-      "modeUpdateDesc": "Soft-deletes existing notes in the same-name Wiki, then re-imports the latest disk content; graph is idempotent by id",
+      "modeUpdateDesc": "Soft-deletes existing notes in the selected Wiki, then re-imports the latest disk content; graph is idempotent by id",
       "updateWarning": "Update mode will soft-delete existing Wiki notes and re-import them; vector index may need to be rebuilt",
       "embeddingModel": "Embedding model",
       "embeddingModelPlaceholder": "Select embedding model (optional)",
       "embeddingModelHint": "Optional; will be applied to newly created/reused Wiki and KB (updated if existing config differs)",
       "embeddingChanged": "Embedding model changed or newly configured — please open the source card's \"Config\" to trigger index rebuild",
-      "confirm": "Start Import"
+      "confirm": "Start Import",
+      "existingSources": "Existing Sources",
+      "selectExisting": "Select an existing Wiki source…"
     },
     "vaultPath": "Vault Path",
     "vaultPathRequired": "Please enter the vault path",

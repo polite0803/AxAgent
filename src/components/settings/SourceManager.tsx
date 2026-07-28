@@ -438,14 +438,18 @@ function ImportProjectSourcesModal({
 }) {
   const { t } = useTranslation();
   const { fetchSources } = useSourceStore();
+  const allSources = useSourceStore((s) => s.sources);
+  const wikiSources = allSources.filter((s) => s.containerType === "wiki" && s.name);
   const [form] = Form.useForm();
   const [importing, setImporting] = useState(false);
+  const [dirPath, setDirPath] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
   const mode: "create" | "update" = Form.useWatch("mode", form) ?? initialMode;
 
   // 打开时同步初始 mode 与默认名称
   useEffect(() => {
     if (open) {
+      setDirPath("");
       form.setFieldsValue({
         mode: initialMode,
         sourceName: t("sourceManager.importProjectModal.defaultSourceName"),
@@ -459,6 +463,7 @@ function ImportProjectSourcesModal({
       const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
       const selected = await openDialog({ directory: true, multiple: false });
       if (typeof selected === "string") {
+        setDirPath(selected);
         form.setFieldValue("sourcePath", selected);
       }
     } catch {
@@ -468,6 +473,10 @@ function ImportProjectSourcesModal({
 
   const handleSubmit = async () => {
     try {
+      if (!dirPath) {
+        messageApi.error(t("sourceManager.importProjectModal.directoryRequired"));
+        return;
+      }
       const values = await form.validateFields();
       setImporting(true);
       const result = await invoke<{
@@ -485,7 +494,7 @@ function ImportProjectSourcesModal({
         embeddingProvider: string | null;
         embeddingChanged: boolean;
       }>("import_project_knowledge_sources", {
-        sourcePath: values.sourcePath,
+        sourcePath: dirPath,
         sourceName: values.sourceName || undefined,
         mode: values.mode,
         embeddingProvider: values.embeddingProvider || undefined,
@@ -531,13 +540,12 @@ function ImportProjectSourcesModal({
       {contextHolder}
       <Form form={form} layout="vertical">
         <Form.Item
-          name="sourcePath"
           label={t("sourceManager.importProjectModal.directory")}
-          rules={[{ required: true, message: t("sourceManager.importProjectModal.directoryRequired") }]}
         >
           <Space.Compact style={{ width: "100%" }}>
             <Input
               placeholder={t("sourceManager.importProjectModal.directoryPlaceholder")}
+              value={dirPath}
               readOnly
               style={{ width: "100%" }}
             />
@@ -551,11 +559,21 @@ function ImportProjectSourcesModal({
         </Form.Item>
         <Form.Item
           name="sourceName"
-          label={t("sourceManager.importProjectModal.sourceName")}
+          label={mode === "update"
+            ? t("sourceManager.importProjectModal.existingSources")
+            : t("sourceManager.importProjectModal.sourceName")}
           rules={[{ required: true, message: t("sourceManager.importProjectModal.sourceNameRequired") }]}
-          extra={t("sourceManager.importProjectModal.sourceNameHint")}
+          extra={mode === "create" ? t("sourceManager.importProjectModal.sourceNameHint") : undefined}
         >
-          <Input placeholder={t("sourceManager.importProjectModal.sourceNamePlaceholder")} />
+          {mode === "update"
+            ? (
+              <Select
+                allowClear
+                placeholder={t("sourceManager.importProjectModal.selectExisting")}
+                options={wikiSources.map((s) => ({ label: s.name, value: s.name }))}
+              />
+            )
+            : <Input placeholder={t("sourceManager.importProjectModal.sourceNamePlaceholder")} />}
         </Form.Item>
         <Form.Item
           name="mode"
@@ -782,9 +800,19 @@ function KnowledgeTab({
   );
 
   const handleViewDocument = useCallback((source: UnifiedSource) => {
-    const base = bases.find((b) => b.name === source.name);
-    if (base) { setSelectedBase(base); }
-  }, [bases]);
+    const base = bases.find((b) => b.id === source.id);
+    if (base) {
+      setSelectedBase(base);
+    } else {
+      console.error("handleViewDocument: no matching base for source", {
+        sourceId: source.id,
+        sourceName: source.name,
+        basesCount: bases.length,
+        baseIds: bases.map(b => b.id),
+      });
+      message.error(t("sourceManager.enterFailed"));
+    }
+  }, [bases, t]);
 
   const configuredCount = useMemo(
     () => knowledgeSources.filter((s) => s.embeddingProvider).length,
