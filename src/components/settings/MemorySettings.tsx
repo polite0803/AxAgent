@@ -4,6 +4,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { NamespaceIcon } from "@/components/shared/NamespaceIcon";
+import { showBackendError, translateBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import { listen } from "@/lib/invoke";
 import { formatImportance, getNatureLabel, getTierColor, getTierLabel, TIER_COLORS } from "@/lib/memoryUtils";
@@ -13,6 +14,7 @@ import { closestCenter, DndContext, PointerSensor, useSensor, useSensors } from 
 import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { App as AntdApp } from "antd";
 import {
   Badge,
   Button,
@@ -66,22 +68,29 @@ interface VectorSearchResult {
   chunk_index: number;
   content: string;
   score: number;
+  has_embedding: boolean;
 }
 
 interface WorkingMemoryEntry {
   id: string;
   content: string;
+  memory_type: string;
   tier: MemoryTierType;
   importance: number;
   access_count: number;
-  nature: MemoryNature;
-  tags: string[];
+  last_accessed: number;
+  decay_rate: number;
   created_at: number;
+  updated_at: number;
+  expires_at: number | null;
+  nature: MemoryNature;
   provenance: {
     conversation_id: string | null;
     message_id: string | null;
     extraction_method: string;
   } | null;
+  tags: string[];
+  namespace_id: string | null;
 }
 
 interface MemoryCluster {
@@ -95,9 +104,14 @@ interface KnowledgeEntity {
   id: string;
   name: string;
   entity_type: string;
+  properties: Record<string, unknown>;
   aliases: string[];
+  first_seen_at: string;
+  last_seen_at: string;
   mention_count: number;
   confidence: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 interface KnowledgeRelationship {
@@ -105,7 +119,9 @@ interface KnowledgeRelationship {
   source_id: string;
   target_id: string;
   relation_type: string;
+  properties: Record<string, unknown>;
   weight: number;
+  created_at: string;
 }
 
 interface TierStats {
@@ -170,6 +186,7 @@ function SortableNamespaceItem({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { modal } = AntdApp.useApp();
   const {
     attributes,
     listeners,
@@ -195,7 +212,7 @@ function SortableNamespaceItem({
       danger: true,
       onClick: (e) => {
         e.domEvent.stopPropagation();
-        Modal.confirm({
+        modal.confirm({
           title: t("settings.memory.deleteConfirm"),
           okButtonProps: { danger: true },
           onOk: onDelete,
@@ -224,9 +241,7 @@ function SortableNamespaceItem({
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.backgroundColor = isSelected
-            ? token.colorPrimaryBg
-            : "";
+          e.currentTarget.style.backgroundColor = "";
         }
       }}
     >
@@ -442,8 +457,10 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
   );
 
   useEffect(() => {
-    loadItems(namespace.id);
-  }, [namespace.id, loadItems]);
+    loadItems(namespace.id).catch((e) => {
+      showBackendError(messageApi, e);
+    });
+  }, [namespace.id, loadItems, messageApi]);
 
   const loadWorkingMemories = async () => {
     setWorkingMemoriesLoading(true);
@@ -454,7 +471,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       );
       setWorkingMemories(result);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     } finally {
       setWorkingMemoriesLoading(false);
     }
@@ -486,7 +503,10 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       error?: string;
       isRebuild?: boolean;
     }>("memory-item-indexed", () => {
-      loadItems(namespace.id);
+      // 事件回调中 fire-and-forget 需捕获错误，避免 unhandled rejection
+      loadItems(namespace.id).catch((e) => {
+        showBackendError(messageApi, e);
+      });
     });
     const unlistenRebuild = listen<{ namespaceId: string }>(
       "memory-rebuild-complete",
@@ -494,7 +514,9 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         if (event.payload.namespaceId === namespace.id) {
           setRebuildingIndex(false);
           rebuildingRef.current = false;
-          loadItems(namespace.id);
+          loadItems(namespace.id).catch((e) => {
+            showBackendError(messageApi, e);
+          });
         }
       },
     );
@@ -502,7 +524,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       unlistenIndexed.then((fn) => fn());
       unlistenRebuild.then((fn) => fn());
     };
-  }, [namespace.id, loadItems]);
+  }, [namespace.id, loadItems, messageApi]);
 
   const handleAddItem = async () => {
     try {
@@ -567,7 +589,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         setExplainedResults([]);
       }
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     } finally {
       setSearching(false);
     }
@@ -583,11 +605,13 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     try {
       await invoke("promote_memory_entry", { memoryId });
       messageApi.success(t("settings.memory.promoteSuccess"));
-      loadItems(namespace.id);
-      loadWorkingMemories();
-      loadTierStats();
+      await Promise.all([
+        loadItems(namespace.id),
+        loadWorkingMemories(),
+        loadTierStats(),
+      ]);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     }
   };
 
@@ -595,11 +619,13 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     try {
       await invoke("demote_memory_entry", { memoryId });
       messageApi.success(t("settings.memory.demoteSuccess"));
-      loadItems(namespace.id);
-      loadWorkingMemories();
-      loadTierStats();
+      await Promise.all([
+        loadItems(namespace.id),
+        loadWorkingMemories(),
+        loadTierStats(),
+      ]);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     }
   };
 
@@ -611,7 +637,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       await invoke("submit_memory_feedback", { memoryId, feedback });
       messageApi.success(t("settings.memory.feedbackSuccess"));
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     }
   };
 
@@ -624,7 +650,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       });
       setClusters(result);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     } finally {
       setDuplicatesLoading(false);
     }
@@ -636,16 +662,18 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     try {
       await invoke("consolidate_memory_cluster", { memoryIds: cluster.ids });
       messageApi.success(t("settings.memory.consolidateSuccess"));
-      loadItems(namespace.id);
-      loadWorkingMemories();
-      loadTierStats();
+      await Promise.all([
+        loadItems(namespace.id),
+        loadWorkingMemories(),
+        loadTierStats(),
+      ]);
       // Refresh duplicates
       const result = await invoke<MemoryCluster[]>("find_memory_clusters", {
         similarityThreshold: 0.7,
       });
       setClusters(result);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     } finally {
       setConsolidatingIds((prev) => {
         const next = new Set(prev);
@@ -666,7 +694,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       setEntities(result.entities);
       setRelationships(result.relationships);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     } finally {
       setKnowledgeGraphLoading(false);
     }
@@ -681,7 +709,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       );
       setTimelineData(result);
     } catch (e) {
-      messageApi.error(String(e));
+      showBackendError(messageApi, e);
     } finally {
       setTimelineLoading(false);
     }
@@ -859,7 +887,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                     messageApi.success(t("settings.memory.confirmSuccess"));
                   } catch (e) {
                     messageApi.error(
-                      t("settings.memory.confirmFailed", { error: String(e) }),
+                      t("settings.memory.confirmFailed", { error: translateBackendError(e) }),
                     );
                   }
                 }}
@@ -887,9 +915,9 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                 namespaceId: namespace.id,
                 itemId: record.id,
               }).catch((e) => {
-                messageApi.error(String(e));
+                showBackendError(messageApi, e);
               });
-              loadItems(namespace.id);
+              await loadItems(namespace.id);
             }}
           >
             <Tooltip title={t("settings.memory.reindexItem")}>
@@ -1276,7 +1304,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
             invoke("rebuild_memory_index", { namespaceId: namespace.id }).catch(
               (e) => {
                 setRebuildingIndex(false);
-                messageApi.error(String(e));
+                showBackendError(messageApi, e);
               },
             );
           }
@@ -1314,11 +1342,11 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                 await invoke("rebuild_memory_index", {
                   namespaceId: namespace.id,
                 });
-                loadItems(namespace.id);
+                await loadItems(namespace.id);
               } catch (e) {
                 setRebuildingIndex(false);
                 rebuildingRef.current = false;
-                messageApi.error(String(e));
+                showBackendError(messageApi, e);
               }
             }}
           >
@@ -1344,11 +1372,11 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                 messageApi.success(
                   t("settings.memory.syncWorkingMemorySuccess", { count }),
                 );
-                loadItems(namespace.id);
+                await loadItems(namespace.id);
               } catch (e) {
                 messageApi.error(
                   t("settings.memory.syncWorkingMemoryError", {
-                    error: String(e),
+                    error: translateBackendError(e),
                   }),
                 );
               }
@@ -1389,7 +1417,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                   messageApi.info(t("settings.memory.exportToProjectEmpty"));
                 }
               } catch (e) {
-                messageApi.error(String(e));
+                showBackendError(messageApi, e);
               }
             }}
           >
@@ -1436,10 +1464,10 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                 await invoke("clear_memory_index", {
                   namespaceId: namespace.id,
                 });
-                loadItems(namespace.id);
+                await loadItems(namespace.id);
                 messageApi.success(t("settings.memory.clearSuccess"));
               } catch (e) {
-                messageApi.error(String(e));
+                showBackendError(messageApi, e);
               }
             }}
           >

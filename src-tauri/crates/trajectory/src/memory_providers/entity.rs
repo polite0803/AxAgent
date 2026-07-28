@@ -101,7 +101,6 @@ impl From<&str> for RelationshipType {
 pub struct Entity {
     pub id: String,
     pub name: String,
-    #[serde(rename = "type")]
     pub entity_type: EntityType,
     pub properties: HashMap<String, serde_json::Value>,
     pub aliases: Vec<String>,
@@ -118,7 +117,6 @@ pub struct Relationship {
     pub id: String,
     pub source_id: String,
     pub target_id: String,
-    #[serde(rename = "type")]
     pub relation_type: RelationshipType,
     pub properties: HashMap<String, serde_json::Value>,
     pub weight: f64,

@@ -223,12 +223,82 @@ pub mod memory {
     pub const CONSOLIDATE_FAILED: &str = "MEMORY_CONSOLIDATE_FAILED";
     pub const NO_NAMESPACE: &str = "MEMORY_NO_NAMESPACE";
     pub const NOT_ENOUGH_MESSAGES: &str = "MEMORY_NOT_ENOUGH_MESSAGES";
+    /// 记忆合并失败（条目数不足）
+    pub const CONSOLIDATION_INSUFFICIENT: &str = "MEMORY_CONSOLIDATION_INSUFFICIENT";
+    /// 记忆命名空间未找到
+    pub const NAMESPACE_NOT_FOUND: &str = "MEMORY_NAMESPACE_NOT_FOUND";
+    /// 记忆索引失败
+    pub const INDEX_FAILED: &str = "MEMORY_INDEX_FAILED";
 }
 
 /// 知识库/Wiki 相关错误码
 pub mod wiki {
     pub const NO_EMBEDDING_PROVIDER: &str = "WIKI_NO_EMBEDDING_PROVIDER";
     pub const PATH_NOT_DIR: &str = "WIKI_PATH_NOT_DIR";
+    /// Wiki 未找到
+    pub const NOT_FOUND: &str = "WIKI_NOT_FOUND";
+    /// Wiki 笔记未找到
+    pub const NOTE_NOT_FOUND: &str = "WIKI_NOTE_NOT_FOUND";
+    /// 创建 Wiki 笔记失败
+    pub const CREATE_NOTE_FAILED: &str = "WIKI_CREATE_NOTE_FAILED";
+    /// 更新 Wiki 笔记失败
+    pub const UPDATE_NOTE_FAILED: &str = "WIKI_UPDATE_NOTE_FAILED";
+    /// 删除 Wiki 笔记失败
+    pub const DELETE_NOTE_FAILED: &str = "WIKI_DELETE_NOTE_FAILED";
+    /// Wiki 索引重建失败
+    pub const REBUILD_FAILED: &str = "WIKI_REBUILD_FAILED";
+    /// Wiki 搜索失败
+    pub const SEARCH_FAILED: &str = "WIKI_SEARCH_FAILED";
+    /// 删除 Wiki 失败
+    pub const DELETE_FAILED: &str = "WIKI_DELETE_FAILED";
+    /// Wiki 导入失败
+    pub const IMPORT_FAILED: &str = "WIKI_IMPORT_FAILED";
+    /// Wiki 导出失败
+    pub const EXPORT_FAILED: &str = "WIKI_EXPORT_FAILED";
+}
+
+/// 知识库（RAG）相关错误码
+pub mod knowledge {
+    /// 知识库未找到
+    pub const NOT_FOUND: &str = "KNOWLEDGE_NOT_FOUND";
+    /// 知识库文档未找到
+    pub const DOCUMENT_NOT_FOUND: &str = "KNOWLEDGE_DOCUMENT_NOT_FOUND";
+    /// 未配置嵌入模型提供商
+    pub const NO_EMBEDDING_PROVIDER: &str = "KNOWLEDGE_NO_EMBEDDING_PROVIDER";
+    /// 索引重建失败
+    pub const REBUILD_FAILED: &str = "KNOWLEDGE_REBUILD_FAILED";
+    /// 索引清理失败
+    pub const CLEAR_FAILED: &str = "KNOWLEDGE_CLEAR_FAILED";
+    /// 文档索引失败
+    pub const INDEX_FAILED: &str = "KNOWLEDGE_INDEX_FAILED";
+    /// 目录导入失败
+    pub const IMPORT_DIR_FAILED: &str = "KNOWLEDGE_IMPORT_DIR_FAILED";
+    /// 添加文档失败
+    pub const ADD_DOCUMENT_FAILED: &str = "KNOWLEDGE_ADD_DOCUMENT_FAILED";
+    /// 删除文档失败
+    pub const DELETE_DOCUMENT_FAILED: &str = "KNOWLEDGE_DELETE_DOCUMENT_FAILED";
+    /// 删除知识库失败
+    pub const DELETE_FAILED: &str = "KNOWLEDGE_DELETE_FAILED";
+    /// 创建知识库失败
+    pub const CREATE_FAILED: &str = "KNOWLEDGE_CREATE_FAILED";
+    /// 更新知识库失败
+    pub const UPDATE_FAILED: &str = "KNOWLEDGE_UPDATE_FAILED";
+    /// 搜索知识库失败
+    pub const SEARCH_FAILED: &str = "KNOWLEDGE_SEARCH_FAILED";
+    /// 向量存储操作失败
+    pub const VECTOR_STORE_FAILED: &str = "KNOWLEDGE_VECTOR_STORE_FAILED";
+    /// 实体抽取失败
+    pub const EXTRACT_ENTITIES_FAILED: &str = "KNOWLEDGE_EXTRACT_ENTITIES_FAILED";
+}
+
+/// 向量存储相关错误码
+pub mod vector {
+    /// 向量存储操作失败
+    pub const STORE_FAILED: &str = "VECTOR_STORE_FAILED";
+    /// 向量嵌入生成失败
+    pub const EMBEDDING_FAILED: &str = "VECTOR_EMBEDDING_FAILED";
+    /// 向量搜索失败
+    pub const SEARCH_FAILED: &str = "VECTOR_SEARCH_FAILED";
 }
 
 /// 安全性相关错误码

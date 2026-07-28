@@ -437,6 +437,24 @@ pub mod reading_list {
     pub const ITEM_NOT_FOUND: &str = "READING_LIST_ITEM_NOT_FOUND";
 }
 
+// 记忆（Memory）相关错误码 - 已迁移至 axagent_harness::error_codes::memory
+// pub mod memory { ... } // 已删除，使用 axagent_harness::error_codes::memory
+
+// 知识库（RAG）相关错误码 - 已迁移至 axagent_harness::error_codes::knowledge
+// pub mod knowledge { ... } // 已删除，使用 axagent_harness::error_codes::knowledge
+
+// 向量存储相关错误码 - 已迁移至 axagent_harness::error_codes::vector
+// pub mod vector { ... } // 已删除，使用 axagent_harness::error_codes::vector
+
+// Wiki 相关错误码 - 已迁移至 axagent_harness::error_codes::wiki
+// pub mod wiki_ext { ... } // 已删除，使用 axagent_harness::error_codes::wiki
+
+// Re-export harness 中的错误码模块，便于命令层统一引用
+pub use axagent_harness::error_codes::knowledge;
+pub use axagent_harness::error_codes::memory;
+pub use axagent_harness::error_codes::vector;
+pub use axagent_harness::error_codes::wiki;
+
 // ── 别名模块：统一子命令内部使用的简写名称 ──
 // 以下 re-export 被具体命令文件通过 `use error_code::<alias>` 直接引用，
 // 属活跃契约别名，删除会导致编译失败（非死代码）：

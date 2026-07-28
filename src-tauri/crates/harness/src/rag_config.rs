@@ -153,6 +153,14 @@ pub struct RAGPipelineConfig {
 }
 
 /// 笔记检索结果（含完整 Note 对象）
+///
+/// # `score` 语义
+/// `score` 是「相关性分数」：**越大越相关**。
+/// - 走 hybrid 检索路径时：值为 `HybridSearcher.combined_score`（归一化后越大越好）
+/// - 走 keyword 检索路径时：值为 `bm25_rank + quality_score * 0.3`（越大越好）
+///
+/// 注意：与 `VectorSearchResult.score`（L2 距离，越小越好）语义**相反**，
+/// 前端展示与排序时需按类型区分方向。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteSearchResult {

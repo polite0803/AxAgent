@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import type { MemoryItem, MemoryNamespace, UpdateMemoryItemInput, UpdateMemoryNamespaceInput } from "@/types";
 import { create } from "zustand";
@@ -61,7 +62,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       );
       set({ namespaces: Array.isArray(namespaces) ? namespaces : [], loading: false, error: null });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -73,7 +74,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       set((s) => ({ namespaces: [...s.namespaces, ns], error: null }));
       return ns;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -91,7 +92,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         };
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -107,7 +108,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         error: null,
       }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -120,7 +121,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       });
       set({ items, loading: false, error: null });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -131,7 +132,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -141,7 +142,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       await invoke("delete_memory_item", { namespaceId, id: itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -155,7 +156,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -166,7 +167,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       await invoke<MemoryItem>("promote_user_memory_item", { itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -176,7 +177,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       await invoke<MemoryItem>("demote_user_memory_item", { itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -186,7 +187,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       await invoke<MemoryItem>("record_user_memory_access", { itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -197,7 +198,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       await invoke<MemoryItem>("confirm_memory_item", { itemId });
       await get().loadItems(namespaceId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
