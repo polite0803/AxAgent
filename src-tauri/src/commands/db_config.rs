@@ -139,3 +139,19 @@ pub async fn get_schema_status(
         ))
     })
 }
+
+/// 修复数据库架构：无条件检查所有已知后加列，缺一补一。
+/// 不影响运行中的会话数据，仅补全缺失的表结构。
+#[command]
+pub async fn repair_schema(
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let db = state.harness.db();
+    let (added, _total) = axagent_dao::migrations::repair_schema(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(format!("{}", added))
+}

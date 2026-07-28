@@ -44,6 +44,7 @@ export function DatabaseSettings() {
   const [schemaStatus, setSchemaStatus] = useState<SchemaMigrationStatus | null>(null);
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
 
   const refreshSchemaStatus = useCallback(() => {
     setSchemaLoading(true);
@@ -59,6 +60,23 @@ export function DatabaseSettings() {
       })
       .finally(() => setSchemaLoading(false));
   }, []);
+
+  const handleRepairSchema = useCallback(async () => {
+    setRepairing(true);
+    setSchemaError(null);
+    try {
+      const addedStr = await invoke<string>("repair_schema");
+      const count = Number(addedStr);
+      message.success(t("settings.database.schemaRepairSuccess", { count }));
+      await refreshSchemaStatus();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setSchemaError(msg);
+      logIpcError("repair_schema")(e);
+    } finally {
+      setRepairing(false);
+    }
+  }, [refreshSchemaStatus, t, message]);
 
   useEffect(() => {
     invoke<DbConfigForm>("get_db_config")
@@ -213,13 +231,24 @@ export function DatabaseSettings() {
         title={t("settings.database.schemaStatusTitle")}
         style={{ marginTop: 16 }}
         extra={
-          <Button
-            size="small"
-            onClick={refreshSchemaStatus}
-            loading={schemaLoading}
-          >
-            {t("settings.database.schemaStatusRefresh")}
-          </Button>
+          <Space>
+            <Button
+              size="small"
+              type="primary"
+              danger
+              loading={repairing}
+              onClick={handleRepairSchema}
+            >
+              {repairing ? t("settings.database.schemaRepairRunning") : t("settings.database.schemaRepairButton")}
+            </Button>
+            <Button
+              size="small"
+              onClick={refreshSchemaStatus}
+              loading={schemaLoading}
+            >
+              {t("settings.database.schemaStatusRefresh")}
+            </Button>
+          </Space>
         }
       >
         {schemaError

@@ -3754,7 +3754,11 @@
       "typeLabel": "資料庫類型",
       "typePostgres": "PostgreSQL（含 pgvector 向量支援）",
       "typeSqlite": "SQLite（本機檔案，預設）",
-      "useSslLabel": "使用 SSL 連線"
+      "useSslLabel": "使用 SSL 連線",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "預設對話模型",
     "defaultConversationModelDesc": "新建對話時預設選擇的模型，未設定時將沿用上個活躍對話的模型",

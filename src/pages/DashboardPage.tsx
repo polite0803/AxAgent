@@ -160,6 +160,8 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
 function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: boolean }) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+  // 防御：mock 默认对 get_* 命令返回 {}，导致 recharts 收到非数组
+  const safeData = Array.isArray(data) ? data : [];
 
   if (loading) {
     return (
@@ -169,7 +171,7 @@ function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: 
     );
   }
 
-  if (data.length === 0) {
+  if (safeData.length === 0) {
     return (
       <div style={{ padding: "24px 0", textAlign: "center", color: token.colorTextQuaternary, fontSize: 13 }}>
         {t("dashboard.noUsageData")}
@@ -179,7 +181,7 @@ function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: 
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+      <BarChart data={safeData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
         <XAxis
           dataKey="date"
@@ -747,7 +749,7 @@ function OverviewTab() {
       </div>
 
       {/* ── Cost by Provider ── */}
-      {costByProvider?.length > 0
+      {Array.isArray(costByProvider) && costByProvider.length > 0
         ? (
           <div>
             <SectionHeader
@@ -765,7 +767,7 @@ function OverviewTab() {
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
-                    data={costByProvider ?? []}
+                    data={Array.isArray(costByProvider) ? costByProvider : []}
                     dataKey="token_count"
                     nameKey="provider_id"
                     cx="50%"
@@ -774,7 +776,7 @@ function OverviewTab() {
                     label={(props) => `${props.payload.provider_id}: ${formatNumber(props.payload.token_count)}`}
                     labelLine
                   >
-                    {costByProvider.map((_, i) => (
+                    {(Array.isArray(costByProvider) ? costByProvider : []).map((_, i) => (
                       <Cell
                         key={i}
                         fill={[

@@ -3754,7 +3754,11 @@
       "typeLabel": "نوع قاعدة البيانات",
       "typePostgres": "PostgreSQL (مع دعم pgvector)",
       "typeSqlite": "SQLite (ملف محلي، افتراضي)",
-      "useSslLabel": "استخدام اتصال SSL"
+      "useSslLabel": "استخدام اتصال SSL",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "نموذج المحادثة الافتراضي",
     "defaultConversationModelDesc": "النموذج الافتراضي للمحادثات الجديدة. يعود إلى النموذج النشط الأخير إن لم يتم التعيين",

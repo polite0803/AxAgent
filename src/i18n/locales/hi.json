@@ -3754,7 +3754,11 @@
       "typeLabel": "डेटाबेस प्रकार",
       "typePostgres": "PostgreSQL (pgvector समर्थन के साथ)",
       "typeSqlite": "SQLite (स्थानीय फ़ाइल, डिफ़ॉल्ट)",
-      "useSslLabel": "SSL कनेक्शन का उपयोग करें"
+      "useSslLabel": "SSL कनेक्शन का उपयोग करें",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "डिफ़ॉल्ट बातचीत मॉडल",
     "defaultConversationModelDesc": "नई बातचीत के लिए डिफ़ॉल्ट मॉडल। सेट नहीं होने पर अंतिम सक्रिय बातचीत मॉडल पर वापस आता है",

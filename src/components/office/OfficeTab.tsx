@@ -101,7 +101,8 @@ export function OfficeTab() {
     const name = createName.trim();
     if (!name) {
       messageApi.warning(t("office.createFleet.nameRequired"));
-      return;
+      // 返回 false：Antd v6 会阻止 Modal 自动关闭，让用户继续输入
+      return false;
     }
     setCreating(true);
     try {
@@ -111,12 +112,18 @@ export function OfficeTab() {
       });
       if (fleet) {
         selectFleet(fleet.id);
-        setCreateOpen(false);
+        // 重置表单状态 + 关闭 Modal
         setCreateName("");
         setCreateTemplateSlug(SCENE_TEMPLATES[0].slug);
-      } else {
-        messageApi.error(t("office.createFleet.createFailed"));
+        setCreateOpen(false);
+        return undefined;
       }
+      messageApi.error(t("office.createFleet.createFailed"));
+      return false;
+    } catch (e) {
+      console.error("[OfficeTab] createFleet 异常:", e);
+      messageApi.error(t("office.createFleet.createFailed"));
+      return false;
     } finally {
       setCreating(false);
     }

@@ -61,41 +61,52 @@ export function OfficeGame({
       return;
     }
 
-    const scene = new OfficeScene();
-    // 在 game 启动前注入初始数据（create() 会读取这些字段）
-    scene.setOptions({
-      sceneTemplateSlug,
-      members: membersRef.current,
-      onAgentClick: (slug: string, memberId: string) => {
-        callbackRef.current?.(slug, memberId);
-      },
-    });
-    sceneRef.current = scene;
+    try {
+      const scene = new OfficeScene();
+      // 在 game 启动前注入初始数据（create() 会读取这些字段）
+      scene.setOptions({
+        sceneTemplateSlug,
+        members: membersRef.current,
+        onAgentClick: (slug: string, memberId: string) => {
+          callbackRef.current?.(slug, memberId);
+        },
+      });
+      sceneRef.current = scene;
 
-    const game = new Phaser.Game({
-      type: Phaser.AUTO,
-      parent: containerRef.current,
-      width,
-      height,
-      backgroundColor: "#f5f5f5",
-      render: {
-        antialias: false, // 像素风
-        pixelArt: true,
-      },
-      // scene 在 game 创建时自动启动并触发 create()
-      scene: [scene],
-      input: {
-        activePointers: 3,
-      },
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-      },
-    });
-    gameRef.current = game;
+      const game = new Phaser.Game({
+        type: Phaser.AUTO,
+        parent: containerRef.current,
+        width,
+        height,
+        backgroundColor: "#f5f5f5",
+        render: {
+          antialias: false, // 像素风
+          pixelArt: true,
+        },
+        // scene 在 game 创建时自动启动并触发 create()
+        scene: [scene],
+        input: {
+          activePointers: 3,
+        },
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+      });
+      gameRef.current = game;
+    } catch (err) {
+      // Phaser 初始化失败（无 WebGL/Canvas 等环境异常）不应阻断 React 树
+      console.error("[OfficeGame] Phaser 初始化失败:", err);
+      sceneRef.current = null;
+      gameRef.current = null;
+    }
 
     return () => {
-      game.destroy(true);
+      try {
+        gameRef.current?.destroy(true);
+      } catch (err) {
+        console.warn("[OfficeGame] Phaser 销毁失败:", err);
+      }
       gameRef.current = null;
       sceneRef.current = null;
     };
@@ -115,18 +126,22 @@ export function OfficeGame({
     if (!scene || !scene.sys.isActive()) {
       return;
     }
-    const current = membersRef.current;
-    const sceneMembers = new Map<string, SceneMember>();
-    for (const m of current) {
-      sceneMembers.set(m.memberId, m);
-    }
+    try {
+      const current = membersRef.current;
+      const sceneMembers = new Map<string, SceneMember>();
+      for (const m of current) {
+        sceneMembers.set(m.memberId, m);
+      }
 
-    // 用 Registry 里的初始成员列表作为对比基线（create 后清空）
-    // 简化处理：调用 scene 暴露的同步方法
-    // 这里用 clearAll + 重建，避免复杂的 diff；成员数通常 <20，性能可接受
-    scene.clearAll();
-    for (const m of current) {
-      scene.addMemberSprite(m);
+      // 用 Registry 里的初始成员列表作为对比基线（create 后清空）
+      // 简化处理：调用 scene 暴露的同步方法
+      // 这里用 clearAll + 重建，避免复杂的 diff；成员数通常 <20，性能可接受
+      scene.clearAll();
+      for (const m of current) {
+        scene.addMemberSprite(m);
+      }
+    } catch (err) {
+      console.warn("[OfficeGame] 成员同步失败:", err);
     }
   }, [members]);
 

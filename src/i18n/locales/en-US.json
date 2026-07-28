@@ -3754,7 +3754,11 @@
       "typeLabel": "Database type",
       "typePostgres": "PostgreSQL (with pgvector support)",
       "typeSqlite": "SQLite (local file, default)",
-      "useSslLabel": "Use SSL connection"
+      "useSslLabel": "Use SSL connection",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "Default Conversation Model",
     "defaultConversationModelDesc": "Default model for new conversations. Falls back to the last active conversation model if not set",

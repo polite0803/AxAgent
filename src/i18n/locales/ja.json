@@ -3754,7 +3754,11 @@
       "typeLabel": "データベースの種類",
       "typePostgres": "PostgreSQL（pgvector 対応）",
       "typeSqlite": "SQLite（ローカルファイル、デフォルト）",
-      "useSslLabel": "SSL 接続を使用"
+      "useSslLabel": "SSL 接続を使用",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "デフォルト会話モデル",
     "defaultConversationModelDesc": "新しい会話のデフォルトモデル。設定されていない場合は最後のアクティブな会話モデルにフォールバック",
