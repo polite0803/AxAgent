@@ -146,7 +146,7 @@ const builtinNavItems: NavItem[] = [
   },
   {
     key: "market-mainline",
-    icon: <Icon icon="fluent:trending-20-filled" size={17} />,
+    icon: <Icon icon="fluent:arrow-trending-lines-20-filled" size={17} />,
     labelKey: "nav.marketMainline",
     path: BUILTIN_PAGE_PATH["market-mainline"],
     isPlugin: false,
@@ -177,13 +177,6 @@ const builtinNavItems: NavItem[] = [
     icon: <GitBranch size={17} />,
     labelKey: "nav.pipeline",
     path: BUILTIN_PAGE_PATH.pipeline,
-    isPlugin: false,
-  },
-  {
-    key: "wiki",
-    icon: <Icon icon="fluent:book-globe-20-filled" size={17} />,
-    labelKey: "nav.wiki",
-    path: BUILTIN_PAGE_PATH.wiki,
     isPlugin: false,
   },
 ];
@@ -469,7 +462,7 @@ export function Sidebar() {
     sections.push({
       key: "tools",
       labelKey: "sidebar.sectionTools",
-      items: builtinNavItems.filter((n) => n.key === "knowledge" || n.key === "wiki"),
+      items: builtinNavItems.filter((n) => n.key === "knowledge"),
     });
 
     sections.push({

@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { addCollection } from "@iconify/react";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { AppRoot } from "./App";
 import "./index.css";
 import { logIpcError } from "@/lib/invoke";
 import { initStoreRegistry } from "./lib/storeRegistry";
+// 预加载 fluent 图标集到内存，避免运行时从 Iconify CDN（api.iconify.design /
+// api.unisvg.com）按需拉取。中国大陆网络环境下这些 CDN 常超时，导致 Sidebar
+// 等处 fluent:* 图标首屏白屏。仅 45KB（26 个用到的图标），Tauri 桌面应用离线优先。
+import fluentBundle from "@/lib/fluent-icons-bundle.json";
+addCollection(fluentBundle);
 
 // Native context menu prevention is handled by GlobalCopyMenu component.
 // It prevents the native menu while providing a custom Copy menu when text is selected.
