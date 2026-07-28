@@ -1452,9 +1452,11 @@ async fn import_lemonhu_graph(
         } else {
             tracing::warn!("[graph_import] nodes.csv 读取失败: {}", nodes_path.display());
         }
-    } else if raw_dir.exists() {
-        // 历史兼容：Neo4j 风格 raw/*.csv
-        tracing::info!("[graph_import] nodes.csv 不存在，回退到 raw/*.csv 路径");
+    }
+    if raw_dir.exists() {
+        // 补充加载 raw/*.csv 中的行业/概念/高管实体（即使 nodes.csv 存在）
+        // edges.csv 中引用的行业 hash ID 来自这些文件，不导入则关系指向"空气"
+        tracing::info!("[graph_import] 从 raw/*.csv 补充实体");
         if let Ok(csv) = std::fs::read_to_string(raw_dir.join("stock.csv")) {
             for line in csv.lines().skip(1) {
                 let line = line.trim();
