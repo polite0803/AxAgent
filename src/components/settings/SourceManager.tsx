@@ -1574,18 +1574,6 @@ function SourceManager() {
     },
   ];
 
-  // tabBar 右侧附加内容：创建按钮，与 Tab 同行节省垂直空间
-  const tabBarExtraContent = (
-    <Button
-      size="small"
-      type="primary"
-      icon={<Plus size={14} />}
-      onClick={() => setCreateOpen(true)}
-    >
-      {t("sourceManager.createSource")}
-    </Button>
-  );
-
   return (
     <div
       className="flex flex-col h-full"
@@ -1602,7 +1590,6 @@ function SourceManager() {
           onChange={setActiveTab}
           items={tabItems}
           size="small"
-          tabBarExtraContent={{ right: tabBarExtraContent }}
           className="source-manager-tabs"
           style={{ marginBottom: 0 }}
         />
