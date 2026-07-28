@@ -121,7 +121,7 @@ export function OfficeTab() {
       messageApi.error(t("office.createFleet.createFailed"));
       return false;
     } catch (e) {
-      console.error("[OfficeTab] createFleet 异常:", e);
+      console.error("[OfficeTab] createFleet error:", e);
       messageApi.error(t("office.createFleet.createFailed"));
       return false;
     } finally {
