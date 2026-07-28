@@ -54,9 +54,10 @@ pub mod v204_paper_portfolio;
 pub mod v205_market_mainline;
 pub mod v206_screenshot_diagnosis;
 pub mod v207_chat_run;
+pub mod v208_backfill_wiki_sync_queue_columns;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 207;
+pub const CURRENT_VERSION: i32 = 208;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -178,6 +179,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 207,
         description: "v207_chat_run: G8 /api/chat/runs 后台 Run Lifecycle 持久化归档 —— chat_runs 主表 + chat_run_events 事件流表，支持多实例网关共享和历史 run 回放",
         up: |db| Box::pin(v207_chat_run::up(db)),
+    },
+    Migration {
+        version: 208,
+        description: "v208_backfill_wiki_sync_queue_columns: 补全 wiki_sync_queue 表缺失的 created_at / processed_at 列（修复存量库 v100 PHASE 3.9 后加列未生效问题）",
+        up: |db| Box::pin(v208_backfill_wiki_sync_queue_columns::up(db)),
     },
 ];
 
@@ -435,7 +441,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 18, "schema_version should have 18 rows (v100~v108 + v109 + v200~v207)");
+        assert_eq!(cnt, 19, "schema_version should have 19 rows (v100~v108 + v109 + v200~v208)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。
