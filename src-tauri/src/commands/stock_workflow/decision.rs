@@ -1609,6 +1609,15 @@ pub async fn rerun_decision(
             )
         },
     );
+    // V66 修复(2026-07-29): 补齐与 init/services.rs 主注册点的对称性。
+    // 当前 portfolio-mgr.rhai 虽用本地词典未实际调用这两个函数，但保持注册
+    // 对称可避免未来启用调用时 rerun 路径 panic。
+    engine.register_fn("pm_compute_news_sentiment", |title: &str, summary: &str| -> f64 {
+        axagent_astock_data::sentiment::compute_news_sentiment(title, summary).unwrap_or(0.0)
+    });
+    engine.register_fn("pm_compute_text_sentiment", |text: &str| -> f64 {
+        axagent_astock_data::sentiment::compute_text_sentiment(text).unwrap_or(0.0)
+    });
     let mut scope = Scope::new();
 
     // ── Gap 2: 注入近期 lessons（reflection_lessons 活跃规则）──

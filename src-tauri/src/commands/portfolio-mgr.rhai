@@ -92,6 +92,8 @@ let RISK_GROWTH_LOW = if present(risk_growth_low) { risk_growth_low } else { 3.0
 let POS_CAP_EXTREME = if present(pos_cap_extreme) { pos_cap_extreme } else { 10.0 };
 let POS_CAP_HIGH = if present(pos_cap_high) { pos_cap_high } else { 35.0 };
 let POS_CAP_MID = if present(pos_cap_mid) { pos_cap_mid } else { 50.0 };
+// 交易成本率（A 股默认 0.3%）
+let COST_PCT = if present(cost_pct) { cost_pct } else { 0.003 };
 
 // 安全解析 JSON：解析失败（非法 JSON / 非字符串 / 空）返回 ()（unit），
 // 避免上游脏数据（如 LLM 返回带 markdown 包裹的 JSON）导致整个工作流崩溃。
@@ -452,9 +454,19 @@ let f5_signal = if f5_weight > 0.0 {
 // ── 因子 6: 数据质量 ──
 // V37 修复: 数据质量信号来自 AgentNode（data-quality.content.score），与技术面回测因子
 // （bias=乖离率）语义无关，直接用默认权重，避免被乖离率回测数据绑架。
+// V66 修复(2026-07-29): F 级（dqi_score<25）时 f6_signal 设为 0（中性），避免自指双重惩罚。
+//   原问题: F 级时 f6_signal=(dqi-50)/50=-1.0（强负信号）拉低 posterior 到 0.3 以下,
+//     导致 base_action="卖出"。但 F 级语义是"数据不足无法判断"（应观望）,
+//     而非"看空"（卖出）。dqi_collapsed 已强制 position_pct=0,
+//     再让 f6_signal 拉低 posterior 到"卖出"区间是双重惩罚且语义矛盾。
+//   修复: F 级时 f6_signal=0,让 posterior 由其他因子自然决定,
+//     再由 position_pct=0 的 action 降级逻辑（L1148）统一收敛为"观望"。
 let f6_default = 0.15;
 let f6_weight = if present(dqi_score) { f6_default } else { 0.0 };
-let f6_signal = if f6_weight > 0.0 { (dqi_score - 50.0) / 50.0 } else { 0.0 };
+let f6_signal = if f6_weight > 0.0 {
+    if dqi_score < 25.0 { 0.0 }  // V66: F 级中性化，避免自指双重惩罚
+    else { (dqi_score - 50.0) / 50.0 }
+} else { 0.0 };
 
 // ── 因子 7: 交易方案方向与质量 ──
 // V65 架构调整: LLM trader 进一步降权至 10%（原 15%/30%）。
@@ -843,8 +855,10 @@ let avg_signal = if total_weight > 0.0 { weighted_signal / total_weight } else {
 
 // 理论最大权重和（10 个活跃因子的默认权重之和）
 // 用于 weights_collapsed 比例阈值和 evidence_pct 计算
-//   f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.15 + f9=0.08 + f10=0.08 + f11=0.08 = 1.44
-let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.15 + 0.08 + 0.08 + 0.08;
+// V66 修复(2026-07-29): f7 已在 V65 降权至 0.10，此处同步更新，避免
+//   total_weight/max_weight 比例偏低约 3.5% 而在边界误触发 weights_collapsed。
+//   f1=0.15 + f2=0.25 + f3=0.20 + f4=0.15 + f5=0.15 + f6=0.15 + f7=0.10 + f9=0.08 + f10=0.08 + f11=0.08 = 1.39
+let max_weight = 0.15 + 0.25 + 0.20 + 0.15 + 0.15 + 0.15 + 0.10 + 0.08 + 0.08 + 0.08;
 // ── P2-1+P3-1: 证据缩放 — 调用 Rust 函数（非线性 sqrt 曲线）──
 let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 	// V49 修复: trader 否决权 — 技术面（滞后指标）不应覆盖 LLM trader 的实时判断
@@ -944,7 +958,7 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 	// ── P3-1: 凯利仓位 — 调用 Rust 函数 ──
 	// 内部处理: 半凯利 + 交易成本扣减 + 风险等级上限
 	// 当 posterior<0.50 或 odds≤0.001 时返回 0.0（凯利不适用）
-	let base_position_pct = pm_kelly_position(posterior, odds, cost_pct, overall_risk);
+	let base_position_pct = pm_kelly_position(posterior, odds, COST_PCT, overall_risk);
 	let position_pct = if !trader_data_valid { 0.0 } else { base_position_pct };
 	// ── 置信度 = P(决策正确 | 证据) = posterior × 100 ──
 	// 权威定义 (Nature Neurosci 2016, "Confidence and certainty: distinct probabilistic quantities"):
@@ -1015,23 +1029,37 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 //   P2 修复: weights_collapsed 改为比例阈值 (total_weight/max_weight<0.3)，
 	//     避免在 regime_factor_weights 缩放权重后误判为坍缩。
 	// V57 修复: 数据质量为 F 级时（dqi_score<25）视为决策基础不成立,
-	//   强制触发 weights_collapsed,即使 total_weight/max_weight≥0.3.
-	// 根因: 10 个分析师全缺失时,dqi_score=0 意味着分析师层完全无信号,
-	//   但 f4(算法风险)/f5(估值)/f7(trader) 等"非分析师"因子仍有数据,
-	//   导致 total_weight 仍可达 0.45+,f6_signal=-1.0 的负信号被稀释,
-	//   posterior 仍可达到 0.5+,confidence 显示为"中等置信"(60%~70%),
-	//   与"数据质量F级"语义完全矛盾。
-	// 数据质量 F 级阈值(data-quality.rhai line 138-142): score<25 → "F".
-	// V58 修复(2026-07-28): 因子完整度纳入数据质量评估
-	//   A/B 级数据(dqi_score≥65)表示分析师输出可靠,因子缺失不应触发全盘降级
-	//   C/D/F 级数据(dqi_score<65)时,因子缺失+分析师不可靠才触发坍缩
-	let dqi_collapsed = present(dqi_score) && dqi_score < 25.0;
-	let dqi_high_quality = present(dqi_score) && dqi_score >= 65.0;  // A/B 级
-	// 因子权重坍缩阈值与数据质量联动:
-	//   A/B 级: 仅当 total_weight/max_weight<0.15 时触发(因子几乎全缺失)
-	//   C/D/F 级: total_weight/max_weight<0.3 时触发(因子+分析师双重不可靠)
-	let weight_collapse_threshold = if dqi_high_quality { 0.15 } else { 0.3 };
-	let weights_collapsed = (total_weight / max_weight) < weight_collapse_threshold || untrusted_count >= 2 || dqi_collapsed;
+//   强制触发 weights_collapsed,即使 total_weight/max_weight≥0.3.
+// 根因: 10 个分析师全缺失时,dqi_score=0 意味着分析师层完全无信号,
+//   但 f4(算法风险)/f5(估值)/f7(trader) 等"非分析师"因子仍有数据,
+//   导致 total_weight 仍可达 0.45+,f6_signal=-1.0 的负信号被稀释,
+//   posterior 仍可达到 0.5+,confidence 显示为"中等置信"(60%~70%),
+//   与"数据质量F级"语义完全矛盾。
+// 数据质量 F 级阈值(data-quality.rhai line 138-142): score<25 → "F".
+// V58 修复(2026-07-28): 因子完整度纳入数据质量评估
+//   A/B 级数据(dqi_score≥65)表示分析师输出可靠,因子缺失不应触发全盘降级
+//   C/D/F 级数据(dqi_score<65)时,因子缺失+分析师不可靠才触发坍缩
+// V66 修复(2026-07-29): A 级数据完全豁免 weights_collapsed
+//   依据: dqi_score 公式(data-quality.rhai:299)已包含 factor_completeness×0.20,
+//         A 级(dqi≥85)意味着报告质量+工具可信度+因子完整度三方面均优秀,
+//         因子缺失已通过 factor_completeness 体现在 dqi_score 中,无需双重惩罚。
+//   注意: 此豁免依赖 dqi_score 包含 factor_completeness 维度。若未来 dqi_score
+//         公式移除 factor_completeness,则需重新评估 A 级豁免的合理性。
+let dqi_collapsed = present(dqi_score) && dqi_score < 25.0;
+let dqi_a_level = present(dqi_score) && dqi_score >= 85.0;  // A 级完全豁免
+let dqi_high_quality = present(dqi_score) && dqi_score >= 65.0;  // A/B 级
+// 因子权重坍缩阈值与数据质量联动:
+//   A 级(dqi≥85): 完全豁免（threshold=0.0 永不触发，且跳过 untrusted/dqi_collapsed）
+//   B 级(65≤dqi<85): 仅当 total_weight/max_weight<0.15 时触发(因子几乎全缺失)
+//   C/D/F 级(dqi<65): total_weight/max_weight<0.3 时触发(因子+分析师双重不可靠)
+let weight_collapse_threshold = if dqi_a_level { 0.0 }
+    else if dqi_high_quality { 0.15 }
+    else { 0.3 };
+let weights_collapsed = !dqi_a_level && (
+    (total_weight / max_weight) < weight_collapse_threshold
+    || untrusted_count >= 2
+    || dqi_collapsed
+);
 	let partial_degraded = untrusted_count == 1;
 	// 三级降级策略（C2.1 修复：原二级退化为单级，现恢复三分支）
 	//   分支 A: weights_collapsed → 0% 仓位 + confidence × 0.5
@@ -1316,7 +1344,7 @@ let gap_note = if data_gaps.len() > 0 {
     ` | 缺口(${data_gaps.len()}) 证据=${evidence_pct}%`
 } else { "" };
 let bayes_note = ` | 先验=${prior}${prior_src} 后验=${(posterior*100.0).round()/100.0}`;
-let kelly_note = ` | 赔率=${(odds*10.0).round()/10.0}(${odds_source}) 凯利=${(kelly_raw*1000.0).round()/1000.0} 成本=${(cost_pct*100.0).to_int()}%`;
+let kelly_note = ` | 赔率=${(odds*10.0).round()/10.0}(${odds_source}) 凯利=${(kelly_raw*1000.0).round()/1000.0} 成本=${(COST_PCT*100.0).to_int()}%`;
 // V50: 分歧度修正标注（仅在 disagreement 显著时标记）
 let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 {
     ` | ⚠️风险分歧(${risk_disagreement})置信修正×${(disagreement_mod*100.0).round().to_int()}%`
@@ -1341,6 +1369,16 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
     "decisionConfidence": (decision_confidence_raw * 10.0).round() / 10.0,
     // V58: 信号强度 — 偏离中性的程度，0=完全中性，100=极端强信号
     "signalStrength": (signal_strength_raw * 10.0).round() / 10.0,
+    // V66 修复(2026-07-29): weights_collapsed 状态结构化输出，供前端 Tag+Tooltip 可见化
+    "weightsCollapsed": weights_collapsed,
+    "collapseReason": if !weights_collapsed { "none" }
+        else if dqi_collapsed && !((total_weight / max_weight) < weight_collapse_threshold) && untrusted_count < 2 {
+            "dqi_collapsed"
+        }
+        else if untrusted_count >= 2 { "multi_untrusted" }
+        else { "low_weight_ratio" },
+    "weightRatio": ((total_weight / max_weight) * 100.0 * 10.0).round() / 10.0,
+    "untrustedCount": untrusted_count,
     "riskLevel": overall_risk,
     "riskSource": risk_source,
     "stopLossPct": if position_pct > 0.0 { switch time_horizon {
@@ -1360,7 +1398,7 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
         "avgSignal": (avg_signal*100.0).round()/100.0,
         "activeFactors": total_weight, "totalWeight": total_weight,
         "oddsSource": odds_source,
-        "tradingCostPct": (cost_pct*100.0).to_int(),
+        "tradingCostPct": (COST_PCT*100.0).to_int(),
         "f9_money_flow_signal": (f9_signal*100.0).round()/100.0,
         "f10_chip_signal": (f10_signal*100.0).round()/100.0,
         "f11_pace_signal": (f11_signal*100.0).round()/100.0,

@@ -934,6 +934,17 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       }
     >("get_stock_analysis", { analysisId });
 
+    // [DQ] 顶层诊断：无任何条件守护，必须打印 — 用于确认 loadAnalysis 路径是否触发
+    console.log("[DQ] loadAnalysis enter", {
+      analysisId,
+      stockCode: record.stockCode,
+      analysisKind: record.analysisKind,
+      hasSnapshot: !!record.blackboardSnapshot,
+      snapshotLen: record.blackboardSnapshot?.length ?? 0,
+      hasDecisionJson: !!record.decisionJson,
+      hasLlmDecisionJson: !!record.llmDecisionJson,
+    });
+
     // 历史数据兼容：旧版在 as-of 模式写入 stock_analyses 时,stock_name 取自
     // quote.name,但 K线合成 quote 时 name 退化为 stock_code(见
     // astock-data/src/lib.rs quote_from_klines),导致历史 stock_name = stock_code。
@@ -973,6 +984,13 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     console.log("[loadAnalysis] timeAnchor after:", {
       mode: useTimeAnchorStore.getState().mode,
       asOfDate: useTimeAnchorStore.getState().asOfDate,
+    });
+    // [DQ] 关键诊断：标记即将进入 decisionJson 处理块
+    console.log("[DQ] loadAnalysis before decisionJson block", {
+      hasDecisionJson: !!record.decisionJson,
+      decisionJsonLen: record.decisionJson?.length ?? 0,
+      hasLlmDecisionJson: !!record.llmDecisionJson,
+      hasSnapshot: !!record.blackboardSnapshot,
     });
     if (record.decisionJson) {
       try {
@@ -1126,6 +1144,11 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       }
     }
     set({ llmDecisionJson, decisionAgreementScore });
+    // [DQ] 关键诊断：标记即将进入 blackboardSnapshot 处理块
+    console.log("[DQ] loadAnalysis before snapshot block", {
+      hasSnapshot: !!record.blackboardSnapshot,
+      snapshotLen: record.blackboardSnapshot?.length ?? 0,
+    });
     if (record.blackboardSnapshot) {
       try {
         if (import.meta.env.DEV) {
@@ -1345,6 +1368,22 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       } catch (e) {
         console.error("[StockAnalysis] Failed to restore blackboard snapshot:", e);
       }
+    } else {
+      // [DQ] 明确告知：snapshot 为空导致 dataQualitySummary 永远不会被填充
+      console.warn(
+        "[DQ] loadAnalysis blackboardSnapshot 为 null/空，跳过 dataQualitySummary 填充",
+        { analysisId, analysisKind: record.analysisKind },
+      );
+      // V66 修复(2026-07-29): 设置 stale_record 标记的占位 JSON，让 UI 能识别并提示用户重跑。
+      // 旧版静默降级导致用户不知道为什么看不到数据质量诊断。
+      set({
+        dataQualitySummary: JSON.stringify({
+          grade: "N/A",
+          score: 0,
+          stale_record: true,
+          summary: "该记录为旧版数据（blackboardSnapshot 缺失），建议重跑分析以补全数据质量诊断",
+        }),
+      });
     }
   },
 

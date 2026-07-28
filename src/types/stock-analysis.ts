@@ -139,6 +139,14 @@ export interface StockDecision {
   decisionConfidence?: number | null;
   /** 信号强度 (0-100) — 偏离中性的程度，0=完全中性，100=极端强信号 */
   signalStrength?: number | null;
+  /** V66: 因子权重坍缩状态 — true 时 positionPct 被强制为 0、decisionConfidence 被减半 */
+  weightsCollapsed?: boolean;
+  /** V66: 坍缩原因代码: "none" | "dqi_collapsed" | "multi_untrusted" | "low_weight_ratio" */
+  collapseReason?: string;
+  /** V66: 因子权重占比 (total_weight/max_weight × 100)，用于 Tooltip 展示 */
+  weightRatio?: number;
+  /** V66: 不可信上游节点数量 */
+  untrustedCount?: number;
   /** 时间维度: "ultra_short" | "short" | "mid" | "long" */
   timeHorizon?: string | null;
   /** 期望持有天数（交易日） */

@@ -2379,6 +2379,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ("risk_roe_low", "risk_roe_low"),
                 ("risk_debt_low", "risk_debt_low"),
                 ("risk_growth_low", "risk_growth_low"),
+                ("cost_pct", "cost_pct"),
             ]
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))

@@ -497,6 +497,13 @@ pub(crate) fn build_template_variables() -> Vec<Variable> {
             description: Some("凯利最低赔率要求".into()),
             is_secret: false,
         },
+        Variable {
+            name: "cost_pct".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(0.003),
+            description: Some("交易成本率 (0.003=0.3%)".into()),
+            is_secret: false,
+        },
         // ── 金融模型补充参数 ──
         Variable {
             name: "risk_sharpe_annualization".into(),

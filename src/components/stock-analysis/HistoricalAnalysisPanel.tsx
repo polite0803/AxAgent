@@ -140,6 +140,28 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
   const reportEntries = Object.entries(snapshot ?? {}).filter(([k]) => k.startsWith("report."));
   const debateEntries = Object.entries(snapshot ?? {}).filter(([k]) => k.startsWith("debate."));
 
+  // V66 修复(2026-07-29): 提取数据质量诊断，与 DecisionBanner 展示能力对齐
+  const dataQualityInfo = useMemo(() => {
+    if (!snapshot) { return null; }
+    const raw = snapshot["data_quality_summary"];
+    if (!raw) { return null; }
+    try {
+      // snapshot 中的 data_quality_summary 可能是 JSON 字符串或对象
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (parsed && typeof parsed === "object" && typeof parsed.grade === "string") {
+        return {
+          grade: parsed.grade as string,
+          score: Number(parsed.score) || 0,
+          missingFactors: Array.isArray(parsed.missing_factors) ? parsed.missing_factors as string[] : [],
+          summary: typeof parsed.summary === "string" ? parsed.summary : "",
+        };
+      }
+    } catch {
+      // 解析失败返回 null
+    }
+    return null;
+  }, [snapshot]);
+
   // 全量回测汇总
   const btStats = btAllResults && btAllResults.length > 0
     ? {
@@ -187,6 +209,38 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
                 : []),
             ]}
           />
+        </Card>
+      )}
+
+      {/* V66 修复(2026-07-29): 数据质量诊断展示，与 DecisionBanner 对齐 */}
+      {dataQualityInfo && (
+        <Card size="small" title="数据质量" styles={{ body: { padding: "4px 8px" } }}>
+          <div className="flex items-center gap-2 flex-wrap text-xs">
+            <Tag
+              color={dataQualityInfo.grade === "A"
+                ? "green"
+                : dataQualityInfo.grade === "B"
+                ? "blue"
+                : dataQualityInfo.grade === "C"
+                ? "gold"
+                : dataQualityInfo.grade === "D"
+                ? "orange"
+                : "red"}
+            >
+              {dataQualityInfo.grade} 级
+            </Tag>
+            <span style={{ color: "var(--muted)" }}>得分: {dataQualityInfo.score}</span>
+            {dataQualityInfo.missingFactors.length > 0 && (
+              <span style={{ color: "var(--sa-amber, #f59e0b)" }}>
+                缺失因子: {dataQualityInfo.missingFactors.join("、")}
+              </span>
+            )}
+          </div>
+          {dataQualityInfo.summary && (
+            <div className="mt-1 text-xs" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+              {dataQualityInfo.summary}
+            </div>
+          )}
         </Card>
       )}
 

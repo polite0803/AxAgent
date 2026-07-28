@@ -184,6 +184,12 @@ export function DecisionBanner() {
     if (!parsed || typeof parsed !== "object" || typeof parsed.grade !== "string") {
       return null;
     }
+    // V66 修复(2026-07-29): stale_record 标记的占位 JSON（snapshot 为空时由
+    // stockAnalysisStore.loadAnalysis else 分支设置），返回 null 触发降级面板,
+    // 降级面板会检测 stale_record 并显示「重跑分析」按钮。
+    if (parsed.stale_record === true) {
+      return null;
+    }
 
     // 1. 新版：含 diagnostics 字段
     if (typeof parsed.diagnostics === "object" && parsed.diagnostics !== null) {
@@ -254,6 +260,21 @@ export function DecisionBanner() {
       summary:
         `数据质量 ${parsed.grade} 级（得分 ${parsed.score}，旧版输出未提供 summary）：${gapCount} 个分析师数据缺失，${goodCount} 个有数据。建议重跑分析以获取完整的诊断信息。`,
     };
+  }, [dataQualitySummary]);
+
+  // V66 修复(2026-07-29): 检测 stale_record 标记（snapshot 为空时 store 设置的占位 JSON）
+  // 用于在降级面板中显示「重跑分析」按钮，而非静默展示空字符串
+  const staleRecordSummary: string | null = useMemo(() => {
+    if (!dataQualitySummary) { return null; }
+    try {
+      const parsed = JSON.parse(dataQualitySummary);
+      if (parsed?.stale_record === true && typeof parsed.summary === "string") {
+        return parsed.summary as string;
+      }
+    } catch {
+      // 忽略解析失败，走默认降级面板
+    }
+    return null;
   }, [dataQualitySummary]);
 
   // Hooks 必须在 early return 之前 — 闭包内部自己处理 null decision
@@ -611,6 +632,25 @@ export function DecisionBanner() {
                   }`)}
                 </Tag>
               )}
+              {decision.weightsCollapsed && (
+                // V66 修复(2026-07-29): weights_collapsed 状态可见化
+                <Tooltip
+                  title={
+                    <div className="text-xs">
+                      <div>
+                        {decision.collapseReason === "dqi_collapsed"
+                          ? `数据质量 F 级（dqi<25），决策基础不成立`
+                          : decision.collapseReason === "multi_untrusted"
+                          ? `不可信上游 ≥2 个（untrusted_count=${decision.untrustedCount ?? "?"}）`
+                          : `因子权重占比 ${decision.weightRatio ?? "?"}% 低于阈值`}
+                      </div>
+                      <div className="mt-1">后果：仓位强制 0%、方向置信度 ×0.5</div>
+                    </div>
+                  }
+                >
+                  <Tag color="red">⚠️ 因子权重坍缩</Tag>
+                </Tooltip>
+              )}
             </div>
           )}
         extra={
@@ -665,6 +705,10 @@ export function DecisionBanner() {
               >
                 {confidenceLabel}
               </span>
+              {/* V66 修复(2026-07-29): 补充 confidence 语义说明，与 decisionConfidence 区分 */}
+              <Tooltip title="置信度 = 贝叶斯证据强度（受数据质量分级 cap），不受权重坍缩影响。与「决策置信度」不同：后者是方向确信度，坍缩时减半。">
+                <span className="text-xs ml-1 cursor-help" style={{ color: "var(--muted)" }}>?</span>
+              </Tooltip>
               {/* V58: 决策方向置信度 — 看空决策 confidence 低但 decision_confidence 高时展示 */}
               {showDecisionConfidence && decisionConfidencePct != null && (
                 <Tooltip title={t("stockAnalysis.decisionConfidenceTooltip")}>
@@ -1690,7 +1734,24 @@ export function DecisionBanner() {
                     </pre>
                   </>
                 )}
-                {dataQualitySummary.length === 0 && (
+                {staleRecordSummary && (
+                  // V66 修复(2026-07-29): snapshot 为空的旧版记录，显示重跑按钮
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span>{staleRecordSummary}</span>
+                    {analysisId && (
+                      <Tooltip title={t("stockAnalysis.rerunDecisionHint")}>
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => useStockAnalysisStore.getState().rerunDecision(analysisId)}
+                        >
+                          {t("stockAnalysis.rerunDecision")}
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </div>
+                )}
+                {dataQualitySummary.length === 0 && !staleRecordSummary && (
                   <div className="mt-1">（空字符串 — store 未填充 dataQualitySummary 字段）</div>
                 )}
               </div>
