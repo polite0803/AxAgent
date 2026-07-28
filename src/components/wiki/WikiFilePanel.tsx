@@ -260,10 +260,10 @@ export function WikiFilePanel({
       className="h-full flex flex-col"
       style={{ backgroundColor: token.colorBgContainer }}
     >
-      {/* 搜索 — 玻璃态 */}
+      {/* 搜索 — 极致紧凑 */}
       <div
-        className="px-3 pt-3 pb-2 shrink-0"
-        style={{ borderBottom: `1px solid ${token.colorBorderSecondary}10` }}
+        className="px-2 pt-2 pb-1 shrink-0"
+        style={{ borderBottom: `1px solid ${token.colorBorderSecondary}20` }}
       >
         <Input
           id="wiki-file-panel-input-69"
@@ -282,7 +282,7 @@ export function WikiFilePanel({
       </div>
 
       {/* 文件树 */}
-      <div className="flex-1 overflow-y-auto px-2 py-1">
+      <div className="flex-1 overflow-y-auto px-1 py-0">
         {loading
           ? (
             <div className="flex justify-center mt-8">
@@ -310,10 +310,10 @@ export function WikiFilePanel({
           )}
       </div>
 
-      {/* 底部：标签云 + 类型统计（紧凑） */}
+      {/* 底部：标签云 + 类型统计（极致紧凑） */}
       <div
-        className="shrink-0 px-3 py-2"
-        style={{ borderTop: `1px solid ${token.colorBorderSecondary}10` }}
+        className="shrink-0 px-2 py-1"
+        style={{ borderTop: `1px solid ${token.colorBorderSecondary}20` }}
       >
         {allTags.length > 0 && (
           <div className="flex items-center gap-1.5 mb-1.5">

@@ -3445,7 +3445,8 @@
       "success": "已创建办公室：{{name}}",
       "templateLabel": "场景模板",
       "roomsUnit": "个房间",
-      "createFailed": "创建办公室失败，请查看控制台日志"
+      "createFailed": "创建办公室失败，请查看控制台日志",
+      "createSuccess": "办公室创建成功"
     },
     "strategy": {
       "investment_research": "投研策略",

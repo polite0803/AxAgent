@@ -4051,8 +4051,9 @@
       "descriptionPlaceholder": "Posicionamiento del equipo / responsabilidades principales (opcional)",
       "success": "Oficina creada: {{name}}",
       "templateLabel": "Plantilla de escena",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "salas",
+      "createFailed": "No se pudo crear la oficina. Revisa la consola para más detalles.",
+      "createSuccess": "Oficina creada"
     },
     "strategy": {
       "investment_research": "Investigación de inversión",

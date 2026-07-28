@@ -4051,8 +4051,9 @@
       "descriptionPlaceholder": "Positionnement de l'équipe / responsabilités principales (optionnel)",
       "success": "Bureau créé : {{name}}",
       "templateLabel": "Modèle de scène",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "salles",
+      "createFailed": "Échec de la création du bureau. Vérifiez la console pour plus de détails.",
+      "createSuccess": "Bureau créé"
     },
     "strategy": {
       "investment_research": "Recherche investissement",

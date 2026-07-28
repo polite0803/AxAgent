@@ -10,9 +10,9 @@ test.describe("Knowledge Hub", () => {
     await expect(page.locator('[data-testid="knowledge-hub"]')).toBeVisible();
   });
 
-  test("should have knowledge header visible", async ({ page }) => {
-    const header = page.locator(".kb-header-title");
-    await expect(header).toBeVisible({ timeout: 5000 });
+  test("should have knowledge tabs visible", async ({ page }) => {
+    const tabs = page.locator('[data-testid="source-manager-tabs"]');
+    await expect(tabs).toBeVisible({ timeout: 5000 });
   });
 
   test("should navigate to settings page via URL", async ({ page }) => {

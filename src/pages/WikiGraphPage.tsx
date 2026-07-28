@@ -18,7 +18,7 @@ import { Eye, PanelLeft, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const MIN_PANEL_WIDTH = 180;
 const MAX_LEFT_PANEL = 400;
 const MAX_RIGHT_PANEL = 600;
@@ -62,9 +62,9 @@ export function WikiGraphPage() {
     position: { x: number; y: number };
   }>({ visible: false, nodeId: "", position: { x: 0, y: 0 } });
 
-  // 面板宽度拖曳
-  const [leftPanelWidth, setLeftPanelWidth] = useState(240);
-  const [rightPanelWidth, setRightPanelWidth] = useState(380);
+  // 面板宽度拖曳（默认更窄，最大化图谱）
+  const [leftPanelWidth, setLeftPanelWidth] = useState(200);
+  const [rightPanelWidth, setRightPanelWidth] = useState(340);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [leftAtBoundary, setLeftAtBoundary] = useState<"min" | "max" | null>(
     null,
@@ -100,7 +100,7 @@ export function WikiGraphPage() {
       if (valid) {
         setWikiIdFromUrl(urlWikiId);
       } else {
-        navigate(`/wiki/${wikis[0].id}`, { replace: true });
+        navigate(`/llm-wiki/${wikis[0].id}/graph`, { replace: true });
       }
     } else {
       // wikis 为空列表且已加载完毕 → 无可用 wiki
@@ -396,13 +396,12 @@ export function WikiGraphPage() {
       className="h-full flex flex-col"
       style={{ overflow: "hidden", backgroundColor: token.colorBgLayout }}
     >
-      {/* 工具栏 — 玻璃态（紧凑布局） */}
+      {/* 工具栏 — 极致紧凑，最大化图谱空间 */}
       <div
-        className="flex items-center gap-1.5 px-3 py-1.5 shrink-0 backdrop-blur-lg z-10"
+        className="flex items-center gap-1 px-2 py-1 shrink-0 backdrop-blur-lg z-10"
         style={{
-          borderBottom: `1px solid ${token.colorBorderSecondary}20`,
-          backgroundColor: `${token.colorBgContainer}cc`,
-          boxShadow: `0 1px 3px ${token.colorBgContainer}40`,
+          borderBottom: `1px solid ${token.colorBorderSecondary}30`,
+          backgroundColor: `${token.colorBgContainer}ee`,
         }}
       >
         <NodeIndexOutlined
@@ -416,7 +415,7 @@ export function WikiGraphPage() {
           <Select
             size="small"
             value={wikiIdFromUrl ?? undefined}
-            onChange={(val) => navigate(`/wiki/${val}`)}
+            onChange={(val) => navigate(`/llm-wiki/${val}/graph`)}
             style={{ minWidth: 130 }}
             options={wikis.map((w) => ({ label: w.name, value: w.id }))}
             placeholder={t("wiki.selectWiki")}
@@ -501,8 +500,8 @@ export function WikiGraphPage() {
           />
         </Tooltip>
 
-        {wikiIdFromUrl && <SyncStatus wikiId={wikiIdFromUrl} />}
-        {wikiIdFromUrl && <QualityScore wikiId={wikiIdFromUrl} />}
+        {wikiIdFromUrl && <SyncStatus wikiId={wikiIdFromUrl} compact />}
+        {wikiIdFromUrl && <QualityScore wikiId={wikiIdFromUrl} compact />}
       </div>
 
       {/* 主工作区 */}
@@ -648,24 +647,6 @@ export function WikiGraphPage() {
             </div>
           </>
         )}
-      </div>
-
-      {/* 底部提示条 — 极简 */}
-      <div
-        className="flex items-center gap-2 px-3 py-1 shrink-0 z-10"
-        style={{
-          borderTop: `1px solid ${token.colorBorderSecondary}10`,
-          backgroundColor: `${token.colorBgContainer}99`,
-          fontSize: 11,
-        }}
-      >
-        <Text type="secondary" style={{ fontSize: 11 }}>
-          {t("wiki.tips.doubleClick")} · {t("wiki.tips.dragPanel")} · {t("wiki.tips.rightClick")}
-        </Text>
-        <div className="flex-1" />
-        <Text type="secondary" style={{ fontSize: 10 }}>
-          {wikiIdFromUrl ?? "—"}
-        </Text>
       </div>
 
       {/* 右键菜单 */}

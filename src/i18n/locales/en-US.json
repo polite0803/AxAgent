@@ -3706,7 +3706,8 @@
       "success": "Office created: {{name}}",
       "templateLabel": "Scene Template",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created"
     },
     "strategy": {
       "investment_research": "Investment Research",

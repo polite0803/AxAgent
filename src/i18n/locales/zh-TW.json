@@ -3706,7 +3706,8 @@
       "success": "已建立辦公室：{{name}}",
       "templateLabel": "場景模板",
       "roomsUnit": "個房間",
-      "createFailed": "創建辦公室失敗，請查看主控台日誌"
+      "createFailed": "創建辦公室失敗，請查看主控台日誌",
+      "createSuccess": "辦公室建立成功"
     },
     "strategy": {
       "investment_research": "投研策略",

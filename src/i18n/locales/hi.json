@@ -4052,7 +4052,8 @@
       "success": "ऑफिस बनाया गया: {{name}}",
       "templateLabel": "दृश्य टेम्पलेट",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "strategy": {
       "investment_research": "निवेश शोध",

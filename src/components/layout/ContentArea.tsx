@@ -176,7 +176,7 @@ export const ContentArea = memo(function ContentArea() {
           {
             /* /knowledge 与 /llm-wiki 共用 KnowledgeHubPage（LLM 知识库）。
                二者仅 page 上下文不同（"knowledge" vs "wiki"），属同组件双入口别名，
-               保留 /llm-wiki 以兼容旧书签。路径已收归 BUILTIN_PAGE_PATH，禁止散写。 */
+               保留 /llm-wiki 作为 wiki 数据源管理入口（含图谱子路由）。路径已收归 BUILTIN_PAGE_PATH，禁止散写。 */
           }
           <Route
             path={BUILTIN_PAGE_PATH.knowledge}
@@ -269,27 +269,6 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="wiki">
                 <SafeLazyPage Page={LazyWikiEditPage} />
-              </PageContextProvider>
-            }
-          />
-          {
-            /* /wiki 与 /llm-wiki 并非别名：/wiki 渲染 WikiGraphPage（知识图谱视图），
-               /llm-wiki 渲染 KnowledgeHubPage（LLM 知识库）。二者 page 上下文均为 "wiki"，
-               但组件不同，属独立功能入口，不可合并。 */
-          }
-          <Route
-            path={BUILTIN_PAGE_PATH.wiki}
-            element={
-              <PageContextProvider page="wiki">
-                <SafeLazyPage Page={LazyWikiGraphPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={`${BUILTIN_PAGE_PATH.wiki}/:wikiId`}
-            element={
-              <PageContextProvider page="wiki">
-                <SafeLazyPage Page={LazyWikiGraphPage} />
               </PageContextProvider>
             }
           />

@@ -4051,8 +4051,9 @@
       "descriptionPlaceholder": "Team-Positionierung / Hauptaufgaben (optional)",
       "success": "Büro erstellt: {{name}}",
       "templateLabel": "Szenvorlage",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "Räume",
+      "createFailed": "Büro konnte nicht erstellt werden. Details in der Konsole.",
+      "createSuccess": "Büro erstellt"
     },
     "strategy": {
       "investment_research": "Investment Research",

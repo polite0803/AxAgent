@@ -4052,7 +4052,8 @@
       "success": "오피스 생성됨: {{name}}",
       "templateLabel": "씬 템플릿",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "strategy": {
       "investment_research": "투자 리서치",

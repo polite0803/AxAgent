@@ -10,13 +10,13 @@ test.describe("Knowledge Base E2E", () => {
     await expect(page.locator('[data-testid="knowledge-hub"]')).toBeVisible();
   });
 
-  test("should display knowledge header", async ({ page }) => {
-    const header = page.locator(".kb-header-title");
-    await expect(header).toBeVisible({ timeout: 10000 });
+  test("should display knowledge tabs", async ({ page }) => {
+    const tabs = page.locator('[data-testid="source-manager-tabs"]');
+    await expect(tabs).toBeVisible({ timeout: 10000 });
   });
 
   test("should display knowledge body section", async ({ page }) => {
-    const body = page.locator(".kb-body");
+    const body = page.locator('[data-testid="source-manager-body"]');
     await expect(body).toBeVisible({ timeout: 10000 });
   });
 

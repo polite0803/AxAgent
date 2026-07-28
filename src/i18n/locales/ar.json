@@ -4051,8 +4051,9 @@
       "descriptionPlaceholder": "تموضع الفريق / المهام الرئيسية (اختياري)",
       "success": "تم إنشاء المكتب: {{name}}",
       "templateLabel": "قالب المشهد",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "غرف",
+      "createFailed": "فشل إنشاء المكتب. تحقق من وحدة التحكم للتفاصيل.",
+      "createSuccess": "تم إنشاء المكتب"
     },
     "strategy": {
       "investment_research": "بحث الاستثمار",

@@ -4052,7 +4052,8 @@
       "success": "オフィスを作成しました：{{name}}",
       "templateLabel": "シーンテンプレート",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "strategy": {
       "investment_research": "投資リサーチ",

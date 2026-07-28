@@ -4052,7 +4052,8 @@
       "success": "Офис создан: {{name}}",
       "templateLabel": "Шаблон сцены",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "strategy": {
       "investment_research": "Investment Research",
