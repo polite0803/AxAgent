@@ -2866,7 +2866,8 @@
       "nameLabel": "オフィス名",
       "templateLabel": "シーンテンプレート",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "emptyFleet": "オフィスが未作成です。右上のボタンから最初のオフィスを作成してください。",
     "memberCount": "{{count}} メンバー",

@@ -1380,6 +1380,7 @@ function SourceManager() {
       {/* Tab 栏（含右侧创建按钮），底部边框分隔 */}
       <div
         className="flex items-center px-4 pt-3 shrink-0"
+        data-testid="source-manager-tabs"
         style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}
       >
         <Tabs
@@ -1396,6 +1397,7 @@ function SourceManager() {
       {/* 内容区：flex:1 撑满剩余空间，内部滚动 */}
       <div
         className="flex-1"
+        data-testid="source-manager-body"
         style={{
           minHeight: 0,
           overflowY: "auto",

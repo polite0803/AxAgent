@@ -2866,7 +2866,8 @@
       "nameLabel": "ऑफिस का नाम",
       "templateLabel": "दृश्य टेम्पलेट",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "emptyFleet": "कोई ऑफिस अभी तक नहीं बनाई गई। ऊपर दाईं ओर बटन पर क्लिक करके पहली ऑफिस बनाएं।",
     "memberCount": "{{count}} सदस्य",

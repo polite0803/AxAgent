@@ -2866,7 +2866,8 @@
       "nameLabel": "Название офиса",
       "templateLabel": "Шаблон сцены",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "emptyFleet": "Офисов пока нет. Нажмите кнопку в правом верхнем углу, чтобы создать первый.",
     "memberCount": "{{count}} участников",

@@ -10,12 +10,12 @@ test.describe("Knowledge Hub (Hard Assertions)", () => {
     await expect(page.locator('[data-testid="knowledge-hub"]')).toBeVisible({ timeout: 10000 });
   });
 
-  test("should have knowledge header visible", async ({ page }) => {
-    await expect(page.locator(".kb-header-title")).toBeVisible({ timeout: 5000 });
+  test("should have knowledge tabs visible", async ({ page }) => {
+    await expect(page.locator('[data-testid="source-manager-tabs"]')).toBeVisible({ timeout: 5000 });
   });
 
-  test("should show source manager section", async ({ page }) => {
-    const sourceManager = page.locator(".kb-body");
-    await expect(sourceManager).toBeVisible({ timeout: 5000 });
+  test("should show source manager body", async ({ page }) => {
+    const body = page.locator('[data-testid="source-manager-body"]');
+    await expect(body).toBeVisible({ timeout: 5000 });
   });
 });

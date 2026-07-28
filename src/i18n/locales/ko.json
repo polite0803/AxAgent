@@ -2866,7 +2866,8 @@
       "nameLabel": "오피스 이름",
       "templateLabel": "씬 템플릿",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created successfully"
     },
     "emptyFleet": "생성된 오피스가 없습니다. 우측 상단 버튼을 눌러 첫 오피스를 만들어 보세요.",
     "memberCount": "{{count}}명",
