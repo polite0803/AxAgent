@@ -42,6 +42,8 @@ function makeItem(overrides?: Partial<MemoryItem>): MemoryItem {
     decayRate: 0.02,
     memoryNature: "semantic",
     tags: [],
+    applicabilityTags: [],
+    confirmed: 0,
     ...overrides,
   };
 }

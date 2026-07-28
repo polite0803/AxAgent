@@ -4,6 +4,7 @@ use crate::action_executor::ActionExecutor;
 use crate::cycle_detector::CycleDetector;
 pub use crate::reasoning_state::ReActConfig;
 use crate::reasoning_state::{ActionType, ReasoningContext, ReasoningState};
+use crate::reflector::{Reflector, task_record_from_chain};
 use crate::self_verifier::{SelfVerifier, VerificationResult};
 use crate::thought_chain::{Action, ChainSummary, ThoughtChain, ThoughtEvent, ThoughtStep};
 use axagent_harness::kit_bridge::{KitTokenBudgetDecision, KitTokenBudgetTracker};
@@ -547,6 +548,13 @@ pub struct ReActEngine {
     checkpoint_session_id: Option<String>,
     checkpoint_interval: usize,
     goal_evaluator: Option<std::sync::Mutex<crate::goal_evaluator::GoalEvaluator>>,
+    /// 结构化反思器：注入后在 Reflecting/Synthesizing 阶段做质量门检查。
+    /// None 时回退到 `LlmReasoningProvider::reflect()` 的内省逻辑。
+    reflector: Option<Arc<Reflector>>,
+    /// 是否启用自改进循环（最终输出质量门）。仅当 config.self_improvement_enabled
+    /// 与本字段同时为 true 时才生效。本字段由 `with_self_improvement()` 设置，
+    /// 配置字段由前端 FeatureFlag 驱动，二者解耦便于单元测试。
+    enable_self_improvement: bool,
 }
 
 impl ReActEngine {
@@ -568,6 +576,8 @@ impl ReActEngine {
             checkpoint_session_id: None,
             checkpoint_interval: 0,
             goal_evaluator: None,
+            reflector: None,
+            enable_self_improvement: false,
         }
     }
 
@@ -615,6 +625,23 @@ impl ReActEngine {
         self.goal_evaluator = Some(std::sync::Mutex::new(
             crate::goal_evaluator::GoalEvaluator::new(max_not_achieved),
         ));
+        self
+    }
+
+    /// 注入结构化反思器。启用后 `Reflecting` / `Synthesizing` 阶段会调用
+    /// `Reflector::reflect()` 进行质量评估，并将改进建议注入到下一轮 Thinking。
+    pub fn with_reflector(mut self, reflector: Arc<Reflector>) -> Self {
+        self.reflector = Some(reflector);
+        self
+    }
+
+    /// 启用自改进循环（最终输出质量门）。
+    ///
+    /// 仅当 `config.self_improvement_enabled` 与本字段同时为 true 时才生效。
+    /// 本字段由 wiring 层根据前端 FeatureFlag 注入，配置字段由 `ReActConfig`
+    /// 持有，二者解耦便于单元测试。
+    pub fn with_self_improvement(mut self) -> Self {
+        self.enable_self_improvement = true;
         self
     }
 
@@ -1116,7 +1143,26 @@ impl ReActEngine {
             },
 
             ReasoningState::Thinking => {
-                let reasoning = self.reasoning_provider.think(user_input, context, chain).await?;
+                // 缺陷3修复：消费 context.reflection_hints，注入到本次 think 调用的
+                // user_input 前，让 LLM 在下一轮推理中看到上轮反思给出的改进建议。
+                // take_reflection_hints() 会清空 hints，避免重复注入。
+                let reflection_hints = context.take_reflection_hints();
+                let effective_input: String = if reflection_hints.is_empty() {
+                    user_input.to_string()
+                } else {
+                    let hints_block = reflection_hints
+                        .iter()
+                        .enumerate()
+                        .map(|(i, h)| format!("{}. {}", i + 1, h))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    format!(
+                        "{user_input}\n\n## 反思改进建议\n请在本轮推理中针对以下建议改进：\n{hints_block}"
+                    )
+                };
+
+                let reasoning =
+                    self.reasoning_provider.think(&effective_input, context, chain).await?;
                 let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
                 chain.add_step(step);
 
@@ -1233,8 +1279,20 @@ impl ReActEngine {
             },
 
             ReasoningState::Reflecting => {
-                let reflection = self.reasoning_provider.reflect(chain, context).await?;
-                let step = ThoughtStep::new(ReasoningState::Reflecting, reflection);
+                // 优先使用结构化 Reflector（若已注入），将改进建议注入到
+                // 下一轮 Thinking 的 context.reflection_hints 中。
+                // 否则回退到 LlmReasoningProvider::reflect() 的内省逻辑。
+                let reflection_text = if let Some(reflector) = &self.reflector {
+                    let record = task_record_from_chain(chain, context);
+                    let r = reflector.reflect(&record).await;
+                    // 把改进建议批量注入到 context，下一轮 Thinking 会消费并清空
+                    context.extend_reflection_hints(&r.improvement_suggestions);
+                    r.overall_summary.clone()
+                } else {
+                    self.reasoning_provider.reflect(chain, context).await?
+                };
+
+                let step = ThoughtStep::new(ReasoningState::Reflecting, reflection_text);
                 chain.add_step(step);
 
                 self.emit(ThoughtEvent::StepCompleted(
@@ -1293,6 +1351,34 @@ impl ReActEngine {
                 self.emit(ThoughtEvent::StepCompleted(
                     chain.latest_step().expect("step just added via add_step").clone(),
                 ));
+
+                // 自改进循环质量门：仅当 self_improvement_enabled 和
+                // final_output_reflection 同时为 true 且已注入 Reflector 时生效。
+                // 质量不达标时回退到 Thinking，注入改进建议供下一轮迭代。
+                if self.config.final_output_reflection
+                    && self.enable_self_improvement
+                    && self.config.self_improvement_enabled
+                    && let Some(reflector) = &self.reflector
+                {
+                    let record = task_record_from_chain(chain, context);
+                    let reflection = reflector.reflect(&record).await;
+                    if reflection.quality_score < self.config.min_quality_threshold {
+                        tracing::info!(
+                            quality_score = reflection.quality_score,
+                            threshold = self.config.min_quality_threshold,
+                            "Quality gate failed, reverting to Thinking for improvement"
+                        );
+                        // 注入改进建议，下一轮 Thinking 会消费并清空
+                        context.extend_reflection_hints(&reflection.improvement_suggestions);
+                        let reasoning = format!(
+                            "质量门未通过 (得分 {}/{}，阈值 {}/10)，根据反思改进后重试",
+                            reflection.quality_score, 10, self.config.min_quality_threshold
+                        );
+                        let step = ThoughtStep::new(ReasoningState::Thinking, reasoning);
+                        chain.add_step(step);
+                        return Ok((ReasoningState::Thinking, true));
+                    }
+                }
 
                 Ok((ReasoningState::Finished, true))
             },

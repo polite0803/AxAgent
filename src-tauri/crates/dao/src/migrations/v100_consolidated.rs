@@ -221,7 +221,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             embedding_provider TEXT, enabled INTEGER NOT NULL DEFAULT 1, \
             icon_type TEXT, icon_value TEXT, sort_order INTEGER NOT NULL DEFAULT 0, \
             embedding_dimensions INTEGER, retrieval_threshold REAL, retrieval_top_k INTEGER, \
-            chunk_size INTEGER, chunk_overlap INTEGER, separator TEXT)",
+            chunk_size INTEGER, chunk_overlap INTEGER, separator TEXT, \
+            kind TEXT NOT NULL DEFAULT 'indexed', vault_path TEXT)",
         // knowledge_documents
         "CREATE TABLE IF NOT EXISTS knowledge_documents (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, title TEXT NOT NULL, \
@@ -912,6 +913,31 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             let _ = db.execute_unprepared(&sql).await;
         }
         tracing::info!("[v100] SQLite: PHASE 3.7 missing columns ADD COLUMN (errors ignored)");
+    }
+
+    // ========================================================================
+    // PHASE 3.8: 为 knowledge_bases 表补 kind / vault_path 列
+    //   这两列由 v105_kb_vault_kind 正式引入，但旧库（v105 之前版本）在
+    //   跑 v100 时需要兜底补上，否则 SeaORM 查询 knowledge_bases.kind 会
+    //   报「字段不存在」错误。kind 有 NOT NULL DEFAULT 'indexed'，不能
+    //   放在 PHASE 3.7 的 MISSING_COLUMN_TARGETS（那里只处理可空列）。
+    // ========================================================================
+
+    if is_pg {
+        for sql in &[
+            "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'indexed'",
+            "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS vault_path TEXT",
+        ] {
+            db.execute_unprepared(sql).await?;
+        }
+    } else {
+        let _ = db
+            .execute_unprepared(
+                "ALTER TABLE knowledge_bases ADD COLUMN kind TEXT NOT NULL DEFAULT 'indexed'",
+            )
+            .await;
+        let _ =
+            db.execute_unprepared("ALTER TABLE knowledge_bases ADD COLUMN vault_path TEXT").await;
     }
 
     // ========================================================================

@@ -2662,6 +2662,38 @@ pub(crate) async fn resolve_rag_ids(
             doc_ids: Vec::new(),
         });
     }
+
+    // ── 自进化闭环:自动 namespace fallback ──
+    //
+    // 当用户既未在 ContextSourcePicker 中勾选 memory namespace,也未通过
+    // SendMessageOptions 显式传入 enabled_memory_namespace_ids 时,
+    // 自动 fallback 到所有 scope='global' 的 memory namespaces,
+    // 让自进化闭环中由 Reflector 沉淀的经验能被自动检索取用。
+    //
+    // 设计权衡:
+    // - 仅当 sources 中完全没有 Memory 类型时才触发(避免覆盖用户显式选择)
+    // - 仅加载 scope='global' 的 namespace(不触碰 'system' / 私有 scope)
+    // - 失败仅日志,不阻塞主流程(RAG 检索是 best-effort 增强而非硬依赖)
+    let has_memory = sources.iter().any(|s| s.source_type == RAGSourceType::Memory);
+    if !has_memory {
+        match axagent_dao::repo::memory::list_namespaces(db).await {
+            Ok(all_ns) => {
+                for ns in all_ns {
+                    if ns.scope == "global" {
+                        sources.push(RAGSourceRef {
+                            source_type: RAGSourceType::Memory,
+                            container_id: ns.id,
+                            doc_ids: Vec::new(),
+                        });
+                    }
+                }
+            },
+            Err(e) => {
+                tracing::warn!("[resolve_rag_ids] auto namespace fallback failed: {}", e);
+            },
+        }
+    }
+
     sources
 }
 

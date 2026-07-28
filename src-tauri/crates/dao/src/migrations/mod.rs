@@ -44,6 +44,7 @@ pub mod v104_notes_fts;
 pub mod v105_kb_vault_kind;
 pub mod v106_context_source_doc_ids;
 pub mod v107_paper_reading_list;
+pub mod v108_memory_applicability;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -120,6 +121,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 107,
         description: "v107_paper_reading_list: 新增 paper_overviews / reading_lists / reading_list_items 三张表，支持论文结构化概览与阅读列表管理",
         up: |db| Box::pin(v107_paper_reading_list::up(db)),
+    },
+    Migration {
+        version: 108,
+        description: "v108_memory_applicability: 为 memory_items 表添加 applicability_tags + confirmed 字段，支持记忆适用范围边界划分与人工确认门（自进化闭环）",
+        up: |db| Box::pin(v108_memory_applicability::up(db)),
     },
     Migration {
         version: 200,
@@ -302,7 +308,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 16 行（v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v200~v207）
+        // schema_version 表应有 17 行（v100~v108 + v200~v207）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -313,8 +319,8 @@ mod tests {
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
-            cnt, 16,
-            "schema_version should have 16 rows (v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v200~v207)"
+            cnt, 17,
+            "schema_version should have 17 rows (v100~v108 + v200~v207)"
         );
     }
 

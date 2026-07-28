@@ -12,20 +12,17 @@
 //! - `kind TEXT NOT NULL DEFAULT 'indexed'`：KB 类型字符串
 //! - `vault_path TEXT`：ConnectedVault 类型时的 vault 根路径
 //!
-//! ## 幂等
+//! ## 幂等策略
 //!
-//! ALTER TABLE ADD COLUMN 在 SQLite 下不支持 IF NOT EXISTS，需先查
-//! PRAGMA table_info；PostgreSQL 用 `ADD COLUMN IF NOT EXISTS`。
+//! - PostgreSQL: `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`，原生幂等
+//! - SQLite: 直接 `ADD COLUMN`，列已存在时会报错，用 `let _ = ...` 忽略错误
 
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
-
-pub use super::pg_ddl::exec_ddl;
+use sea_orm::{ConnectionTrait, DbBackend, DbErr};
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;
 
     if is_pg {
-        // PostgreSQL: 原生支持 IF NOT EXISTS
         for sql in &[
             "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'indexed'",
             "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS vault_path TEXT",
@@ -33,74 +30,45 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             db.execute_unprepared(sql).await?;
         }
     } else {
-        // SQLite: ALTER TABLE 不支持 IF NOT EXISTS，需先查 PRAGMA
-        let existing_cols = existing_columns(&db, "knowledge_bases").await?;
-        if !existing_cols.iter().any(|c| c == "kind") {
-            db.execute_unprepared(
+        let _ = db
+            .execute_unprepared(
                 "ALTER TABLE knowledge_bases ADD COLUMN kind TEXT NOT NULL DEFAULT 'indexed'",
             )
-            .await?;
-        }
-        if !existing_cols.iter().any(|c| c == "vault_path") {
-            db.execute_unprepared("ALTER TABLE knowledge_bases ADD COLUMN vault_path TEXT").await?;
-        }
+            .await;
+        let _ =
+            db.execute_unprepared("ALTER TABLE knowledge_bases ADD COLUMN vault_path TEXT").await;
     }
 
     Ok(())
 }
 
-/// 查询指定表的所有列名（SQLite 走 PRAGMA，PG 走 information_schema）
-async fn existing_columns(
-    db: &sea_orm::DatabaseConnection,
-    table: &str,
-) -> Result<Vec<String>, DbErr> {
-    let backend = db.get_database_backend();
-    let rows = match backend {
-        DbBackend::Sqlite => {
-            let stmt = Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                "SELECT name FROM pragma_table_info(?)",
-                [table.into()],
-            );
-            db.query_all_raw(stmt).await?
-        },
-        DbBackend::Postgres => {
-            let stmt = Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                "SELECT column_name AS name FROM information_schema.columns \
-                 WHERE table_name = $1",
-                [table.into()],
-            );
-            db.query_all_raw(stmt).await?
-        },
-        _ => return Ok(vec![]),
-    };
-
-    let mut cols = Vec::with_capacity(rows.len());
-    for row in rows {
-        if let Ok(name) = row.try_get_by::<String, _>("name") {
-            cols.push(name);
-        }
-    }
-    Ok(cols)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::Database;
+    use sea_orm::{Database, DbBackend, Statement};
 
     #[tokio::test]
     async fn v105_adds_kind_and_vault_path_columns() {
         let db = Database::connect("sqlite::memory:").await.unwrap();
-        // 先跑 v100 建 knowledge_bases 表
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        // 再跑 v105
         up(db.clone()).await.unwrap();
 
-        let cols = existing_columns(&db, "knowledge_bases").await.unwrap();
-        assert!(cols.iter().any(|c| c == "kind"), "kind column should exist");
-        assert!(cols.iter().any(|c| c == "vault_path"), "vault_path column should exist");
+        // 直接查表是否有 kind 列：尝试 SELECT kind，如果列不存在会报错
+        let result = db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                "SELECT kind FROM knowledge_bases LIMIT 0",
+            ))
+            .await;
+        assert!(result.is_ok(), "kind column should exist in knowledge_bases");
+
+        let result = db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                "SELECT vault_path FROM knowledge_bases LIMIT 0",
+            ))
+            .await;
+        assert!(result.is_ok(), "vault_path column should exist in knowledge_bases");
     }
 
     #[tokio::test]
@@ -108,7 +76,6 @@ mod tests {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
         up(db.clone()).await.unwrap();
-        // 第二次跑：列已存在，应跳过 ALTER，不报错
         up(db).await.expect("v105 must be re-runnable in isolation");
     }
 }

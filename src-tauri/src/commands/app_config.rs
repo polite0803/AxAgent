@@ -34,3 +34,52 @@ pub async fn save_app_config(
         .await
         .map_err(|e| format!("保存配置失败: {}", e))
 }
+
+/// 缺陷1修复:从数据库读取前端 FeatureFlag,返回自改进循环相关的两个 flag 值。
+///
+/// 供 wiring 层(`init/state.rs`)在构造 `AppState` 时调用,把前端开关
+/// 桥接到 `SessionManager::set_self_improvement_flags()`:
+/// - `self_improvement_enabled` ← `features.selfImprovingLoop`
+/// - `final_output_reflection` ← `features.finalOutputReflection`
+///
+/// 数据库无配置或解析失败时返回全 false 的默认值,保持向后兼容。
+pub async fn read_self_improvement_flags(
+    db: &axagent_harness::DatabaseConnection,
+) -> axagent_agent::SelfImprovementFlags {
+    let json_str = match axagent_dao::repo::settings::get_setting(db, "app_config").await {
+        Ok(Some(s)) => s,
+        _ => return axagent_agent::SelfImprovementFlags::default(),
+    };
+    let value: serde_json::Value = match serde_json::from_str(&json_str) {
+        Ok(v) => v,
+        Err(_) => return axagent_agent::SelfImprovementFlags::default(),
+    };
+    let features = value.get("features");
+    axagent_agent::SelfImprovementFlags {
+        self_improvement_enabled: features
+            .and_then(|f| f.get("selfImprovingLoop"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+        final_output_reflection: features
+            .and_then(|f| f.get("finalOutputReflection"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
+    }
+}
+
+/// 缺陷1修复:Tauri 命令,前端切换 selfImprovingLoop / finalOutputReflection 后调用,
+/// 即时更新 SessionManager 的 flags(无需重启应用)。
+///
+/// 前端 `appConfigStore.toggleFeature` 在 saveConfig 后调用本命令,
+/// 把最新 flag 值推送到后端 SessionManager。
+#[tauri::command]
+pub async fn set_self_improvement_flags(
+    state: State<'_, AppState>,
+    self_improvement_enabled: bool,
+    final_output_reflection: bool,
+) -> Result<(), String> {
+    let flags =
+        axagent_agent::SelfImprovementFlags { self_improvement_enabled, final_output_reflection };
+    state.agent_session_manager.set_self_improvement_flags(flags).await;
+    Ok(())
+}

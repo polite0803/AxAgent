@@ -133,6 +133,14 @@ pub struct AgentConfig {
     pub enable_self_verification: bool,
     pub enable_error_recovery: bool,
     pub require_plan_approval: bool,
+    /// 是否启用自改进循环（最终输出质量门）。
+    /// 启用后 AgentCoordinator 会用 SelfImprovementExecutor 包装 ReActEngine，
+    /// 在多轮中迭代改进输出，直到达到质量阈值或超过最大轮数。
+    #[serde(default)]
+    pub enable_self_improving_loop: bool,
+    /// 自改进循环配置（None = 使用默认配置）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub self_improvement_loop: Option<crate::self_improvement_executor::SelfImprovementConfig>,
 }
 
 impl Default for AgentConfig {
@@ -143,6 +151,8 @@ impl Default for AgentConfig {
             enable_self_verification: true,
             enable_error_recovery: true,
             require_plan_approval: false,
+            enable_self_improving_loop: false,
+            self_improvement_loop: None,
         }
     }
 }
@@ -231,6 +241,14 @@ pub struct AgentCoordinator<T: AgentImpl> {
     /// 仅当 `require_plan_approval` 开启且任务被判定为复杂、进入
     /// `WaitingForConfirmation` 时暂存，供 `approve_plan()` 取回后执行。
     pending_input: Arc<RwLock<Option<AgentInput>>>,
+    /// 缺陷4修复：可选的自改进循环执行器。
+    /// 当 `AgentConfig.enable_self_improving_loop` 为 true 且本字段为 Some 时，
+    /// `run_impl` 会优先调用 `SelfImprovementExecutor::run` 驱动多轮迭代改进，
+    /// 而非直接调用 `implementation.execute`。
+    /// 由 wiring 层负责构造 `AgentRoundAdapter`（含已配置 Reflector 的 ReActEngine）
+    /// 并包装成 `SelfImprovementExecutor` 后注入。
+    self_improvement_executor:
+        Arc<tokio::sync::Mutex<Option<crate::self_improvement_executor::SelfImprovementExecutor>>>,
 }
 
 /// P0-2 复用入口：模块级纯函数，供生产命令层（`agent_query`）直接调用，
@@ -293,11 +311,26 @@ impl<T: AgentImpl> AgentCoordinator<T> {
             current_task_features: Arc::new(RwLock::new(None)),
             engine_selection_source: Arc::new(AtomicU32::new(ENGINE_SOURCE_DEFAULT)),
             pending_input: Arc::new(RwLock::new(None)),
+            self_improvement_executor: Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
 
     pub fn with_tot_engine(self, engine: TreeOfThoughtsEngine) -> Self {
         *self.tot_engine.blocking_lock() = Some(engine);
+        self
+    }
+
+    /// 缺陷4修复：注入自改进循环执行器。
+    ///
+    /// 注入后，当 `AgentConfig.enable_self_improving_loop` 为 true 时，
+    /// `run_impl` 会优先用 `SelfImprovementExecutor::run` 驱动多轮迭代改进。
+    /// 调用方需自行构造 `AgentRoundAdapter`（含已配置 Reflector + self_improvement
+    /// 的 ReActEngine）并包装成 `SelfImprovementExecutor`。
+    pub fn with_self_improvement_executor(
+        self,
+        executor: crate::self_improvement_executor::SelfImprovementExecutor,
+    ) -> Self {
+        *self.self_improvement_executor.blocking_lock() = Some(executor);
         self
     }
 
@@ -596,7 +629,33 @@ impl<T: AgentImpl> AgentCoordinator<T> {
         .await;
 
         let correlation_id = self.next_correlation_id();
-        let result = {
+
+        // 缺陷4修复：当 enable_self_improving_loop 为 true 且注入了
+        // SelfImprovementExecutor 时，优先用多轮迭代改进驱动执行；
+        // 否则回退到原 implementation.execute 路径。
+        let enable_loop = self.config.read().await.enable_self_improving_loop;
+        let result = if enable_loop {
+            let mut guard = self.self_improvement_executor.lock().await;
+            if let Some(executor) = guard.as_mut() {
+                match executor.run(&input.content).await {
+                    Ok(final_output) => Ok(CoordinatorOutput {
+                        content: final_output.text,
+                        status: AgentStatus::Completed,
+                        iterations: final_output.total_rounds as usize,
+                        metadata: serde_json::json!({
+                            "self_improvement_rounds": final_output.total_rounds,
+                            "final_score": final_output.final_evaluation.score,
+                        }),
+                    }),
+                    Err(e) => Err(AgentError::ExecutionFailed(format!(
+                        "Self-improvement loop failed: {e}"
+                    ))),
+                }
+            } else {
+                let mut impl_guard = self.implementation.lock().await;
+                impl_guard.execute(input).await
+            }
+        } else {
             let mut impl_guard = self.implementation.lock().await;
             impl_guard.execute(input).await
         };

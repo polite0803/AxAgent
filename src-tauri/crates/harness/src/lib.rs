@@ -441,6 +441,14 @@ pub use dream::{
 pub mod reflection_types;
 pub use reflection_types::{QualityMetrics, Reflection, ReflectionConfig, TaskExecutionRecord};
 
+// ── 自改进循环契约(Loop Engineering 基座层) ──
+// trait + DTO 定义在本层,通用执行器 SelfImprovementExecutor 在 agent crate 实现。
+// 业务层(AxInvest/AxOPC/AxSim 等)通过 impl SelfImprovingRound 注入领域评估。
+pub mod self_improving_loop;
+pub use self_improving_loop::{
+    LoopError, NextAction, RoundEvaluation, RoundResult, RoundStep, SelfImprovingRound,
+};
+
 // ── 工作流反思/进化/优化三层 trait 契约 ──
 pub mod workflow_reflection;
 pub use workflow_reflection::{

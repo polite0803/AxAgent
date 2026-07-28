@@ -26,6 +26,7 @@ import {
 import {
   AlertTriangle,
   Bot,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Code,
@@ -33,6 +34,7 @@ import {
   Play,
   Plus,
   Puzzle,
+  RefreshCw,
   ScrollText,
   Shield,
   SlidersHorizontal,
@@ -283,6 +285,18 @@ const FEATURE_FLAG_META: Array<{
     labelKey: "settings.agent.featureFlags.dreamTask",
     descKey: "settings.agent.featureFlags.dreamTaskDesc",
     icon: <Bot size={14} />,
+  },
+  {
+    key: "selfImprovingLoop",
+    labelKey: "settings.agent.featureFlags.selfImprovingLoop",
+    descKey: "settings.agent.featureFlags.selfImprovingLoopDesc",
+    icon: <RefreshCw size={14} />,
+  },
+  {
+    key: "finalOutputReflection",
+    labelKey: "settings.agent.featureFlags.finalOutputReflection",
+    descKey: "settings.agent.featureFlags.finalOutputReflectionDesc",
+    icon: <CheckCircle2 size={14} />,
   },
 ];
 

@@ -166,6 +166,10 @@ async fn memory_namespace_and_item_lifecycle() {
             tags: None,
             decay_rate: None,
             expires_at: None,
+            applicability_tags: None,
+            confirmed: None,
+            source_conversation_id: None,
+            source_message_id: None,
         },
     )
     .await

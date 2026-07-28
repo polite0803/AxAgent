@@ -176,9 +176,157 @@ impl Reflector {
             if let Some(insights) = self.insight_generator.generate_from_reflection(&reflection) {
                 self.insight_generator.store_insight(insights).await;
             }
+
+            // 自进化闭环:把高价值经验沉淀到 DB memory_items。
+            //
+            // 阈值:
+            // - 成功经验: quality_score >= 7 且有 reusable_patterns
+            // - 失败教训: 有 error_patterns(无论分数,失败都值得记忆以避免重蹈覆辙)
+            //
+            // 写入到名为 `REFLECTOR_INSIGHTS_NS_NAME` 的 global namespace,
+            // 由 wiring 层(init/state.rs)启动时确保存在。
+            // 默认 confirmed=0(未确认),需用户审核后才能晋升到 core 层(v108 确认门)。
+            //
+            // 失败仅日志,不阻塞 reflect 主流程(沉淀是辅助,失败不影响业务)。
+            let should_persist = (reflection.quality_score >= 7
+                && !reflection.reusable_patterns.is_empty())
+                || !reflection.error_patterns.is_empty();
+            if should_persist {
+                self.persist_insight_to_memory_repository(&reflection).await;
+            }
         }
 
         reflection
+    }
+
+    /// 将高价值经验沉淀到 DB memory_items。
+    ///
+    /// 通过 harness 全局 `memory_repository()` trait 获取实现(wiring 层注入),
+    /// 不依赖任何 implementor crate,符合分层铁律。
+    ///
+    /// namespace 选择:按 name 查找 `REFLECTOR_INSIGHTS_NS_NAME`,
+    /// 找不到则跳过(wiring 层应确保存在;跳过仅日志,不强制创建,
+    /// 因为 trait 未提供 create_namespace 能力)。
+    async fn persist_insight_to_memory_repository(&self, reflection: &Reflection) {
+        const REFLECTOR_INSIGHTS_NS_NAME: &str = "Reflector Insights";
+        const REFLECTOR_INSIGHTS_MIN_QUALITY_FOR_PROMOTE: u8 = 7;
+
+        let repo = axagent_harness::repositories::memory_repository();
+
+        // v109: 经验溯源 — task_id 格式为 `{conversation_id}-{timestamp_millis}`
+        // (session_manager.rs:855),解析出 conversation_id 设入 source_conversation_id,
+        // 便于前端从经验跳转到原始会话。
+        let source_conversation_id = parse_conversation_id_from_task_id(&reflection.task_id);
+
+        // 1. 查找 Reflector Insights namespace
+        let ns_id = match repo.list_namespaces().await {
+            Ok(list) => {
+                list.iter().find(|ns| ns.name == REFLECTOR_INSIGHTS_NS_NAME).map(|ns| ns.id.clone())
+            },
+            Err(e) => {
+                tracing::warn!("[reflector] persist_insight: list_namespaces failed: {} (skip)", e);
+                return;
+            },
+        };
+        let Some(namespace_id) = ns_id else {
+            // namespace 不存在,wiring 层未配置,跳过
+            return;
+        };
+
+        // 2. 构造经验内容:总结 + 可复用模式 + 错误模式 + 改进建议
+        let mut content = String::new();
+        content.push_str("# 任务反思\n\n");
+        content.push_str(&reflection.overall_summary);
+        content.push_str("\n\n");
+
+        if !reflection.reusable_patterns.is_empty() {
+            content.push_str("## 可复用经验\n");
+            for p in &reflection.reusable_patterns {
+                content.push_str("- ");
+                content.push_str(p);
+                content.push('\n');
+            }
+            content.push('\n');
+        }
+
+        if !reflection.error_patterns.is_empty() {
+            content.push_str("## 错误模式(避免重蹈覆辙)\n");
+            for p in &reflection.error_patterns {
+                content.push_str("- ");
+                content.push_str(p);
+                content.push('\n');
+            }
+            content.push('\n');
+        }
+
+        if !reflection.improvement_suggestions.is_empty() {
+            content.push_str("## 改进建议\n");
+            for s in &reflection.improvement_suggestions {
+                content.push_str("- ");
+                content.push_str(s);
+                content.push('\n');
+            }
+        }
+
+        let title = format!(
+            "[{}] {}",
+            reflection.quality_score,
+            reflection
+                .overall_summary
+                .split('\n')
+                .next()
+                .unwrap_or(&reflection.task_id)
+                .chars()
+                .take(80)
+                .collect::<String>()
+        );
+
+        // 3. 重要度:quality_score / 10.0;成功任务略加权,失败任务降权
+        let importance = (reflection.quality_score as f64 / 10.0).clamp(0.0, 1.0);
+
+        // 4. tags: 标记来源 + 是否高质量(供前端筛选)
+        let tags: Vec<String> = vec![
+            "auto_reflect".to_string(),
+            if reflection.quality_score >= REFLECTOR_INSIGHTS_MIN_QUALITY_FOR_PROMOTE {
+                "high_quality".to_string()
+            } else {
+                "needs_review".to_string()
+            },
+        ];
+
+        let input = axagent_harness::types::CreateMemoryItemInput {
+            namespace_id: namespace_id.clone(),
+            title,
+            content,
+            source: Some("reflector".to_string()),
+            tier: Some("long_term".to_string()),
+            importance: Some(importance),
+            memory_nature: Some("semantic".to_string()),
+            tags: Some(tags),
+            decay_rate: None,
+            expires_at: None,
+            // 适用范围不限制(默认空数组)
+            applicability_tags: None,
+            // 默认未确认,需人工审核才能晋升 core 层(v108 确认门)
+            confirmed: None,
+            // v109: 经验溯源
+            source_conversation_id,
+            source_message_id: None,
+        };
+
+        match repo.add_item(input).await {
+            Ok(item) => {
+                tracing::info!(
+                    "[reflector] persist_insight: saved item {} to namespace {} (quality={})",
+                    item.id,
+                    namespace_id,
+                    reflection.quality_score
+                );
+            },
+            Err(e) => {
+                tracing::warn!("[reflector] persist_insight: add_item failed: {} (skip)", e);
+            },
+        }
     }
 
     fn calculate_quality_metrics(&self, record: &TaskExecutionRecord) -> QualityMetrics {
@@ -609,6 +757,117 @@ impl Reflector {
 
     pub fn get_insight_generator(&self) -> Arc<InsightGenerator> {
         Arc::clone(&self.insight_generator)
+    }
+}
+
+/// 从 task_id 解析出 conversation_id。
+///
+/// task_id 格式由 session_manager.rs:855 定义为 `{conversation_id}-{timestamp_millis}`,
+/// 其中 conversation_id 本身是 UUID(不包含连字符以外的特殊字符),
+/// timestamp 是纯数字。因此最后一个连字符之前的部分即为 conversation_id。
+///
+/// 解析失败时返回 None(不影响沉淀主流程,只是缺少溯源信息)。
+fn parse_conversation_id_from_task_id(task_id: &str) -> Option<String> {
+    let last_dash = task_id.rfind('-')?;
+    let prefix = &task_id[..last_dash];
+    let suffix = &task_id[last_dash + 1..];
+    if !suffix.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    if prefix.is_empty() {
+        return None;
+    }
+    Some(prefix.to_string())
+}
+
+/// 从 ReAct 引擎的 ThoughtChain 派生一个最小化的 [`TaskExecutionRecord`]，
+/// 供 `Reflector::reflect()` 在 Synthesizing/Reflecting 阶段做质量门检查使用。
+///
+/// 派生规则：
+/// - `task_id`：使用 `original_input` 的哈希或固定前缀（ReAct 引擎内嵌调用时无会话级 task_id）
+/// - `task_description`：取 `context.original_input`（用户原始输入）
+/// - `success`：根据 chain 中是否有 result 文本判定（非空视为成功）
+/// - `iterations`：取 `chain.iteration`
+/// - `tools_used`：从 chain.steps 中提取所有 ToolCall 类型的 tool_name
+/// - 时间戳与 duration：以"现在"为终点，duration 按 iterations × 2000ms 估算
+///
+/// 该函数只用于 ReAct 引擎内部的质量门检查；session_manager 在任务完成时
+/// 会用真实的 task_id / 时间戳 / 工具调用记录调用 `Reflector::reflect()`，
+/// 那条路径产出的反思才是会被持久化到 DB 的权威记录。
+pub fn task_record_from_chain(
+    chain: &crate::thought_chain::ThoughtChain,
+    context: &crate::reasoning_state::ReasoningContext,
+) -> TaskExecutionRecord {
+    use crate::reasoning_state::ActionType;
+
+    let now = chrono::Utc::now();
+    // 估算开始时间：以当前为 end，按 iterations × 2s 倒推
+    let duration_ms = (context.iteration.max(1) as u64) * 2000;
+    let start_time = now - chrono::Duration::milliseconds(duration_ms as i64);
+
+    let tools_used: Vec<String> = chain
+        .steps
+        .iter()
+        .filter_map(|s| {
+            s.action.as_ref().and_then(|a| {
+                if matches!(a.action_type, ActionType::ToolCall) {
+                    a.tool_name.clone()
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    let has_result = chain
+        .latest_step()
+        .and_then(|s| s.result.as_ref())
+        .map(|r| !r.trim().is_empty())
+        .unwrap_or(false);
+
+    let task_id = format!("react-inline-{}", context.iteration);
+
+    TaskExecutionRecord::new(task_id, context.original_input.clone(), start_time, now)
+        .with_success(has_result)
+        .with_tools(tools_used)
+        .with_iterations(context.iteration)
+}
+
+#[cfg(test)]
+mod tests_parse_task_id {
+    use super::*;
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_normal() {
+        let task_id = "conv-abc-123-1700000000000";
+        let parsed = parse_conversation_id_from_task_id(task_id);
+        assert_eq!(parsed.as_deref(), Some("conv-abc-123"));
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_uuid_format() {
+        // UUID 形式的 conversation_id + timestamp
+        let task_id = "550e8400-e29b-41d4-a716-446655440000-1700000000000";
+        let parsed = parse_conversation_id_from_task_id(task_id);
+        assert_eq!(parsed.as_deref(), Some("550e8400-e29b-41d4-a716-446655440000"));
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_no_dash() {
+        let parsed = parse_conversation_id_from_task_id("nodash");
+        assert_eq!(parsed, None);
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_suffix_not_numeric() {
+        let parsed = parse_conversation_id_from_task_id("conv-abc");
+        assert_eq!(parsed, None);
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_empty_prefix() {
+        let parsed = parse_conversation_id_from_task_id("-1700000000000");
+        assert_eq!(parsed, None);
     }
 }
 

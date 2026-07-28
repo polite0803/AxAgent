@@ -1219,7 +1219,7 @@ export async function handleCommand<T>(
               has_branches: false,
               has_conditions: false,
             },
-            note: "任务已被判定为复杂任务，请确认后执行。",
+            note: i18n.t("browserMock.complexTaskNote"),
           }),
         });
         const decision = await waitForPlanDecision(conversationId);
@@ -1232,7 +1232,7 @@ export async function handleCommand<T>(
         emitBrowserEvent("agent-done", {
           conversationId,
           assistantMessageId: assistantId,
-          text: "（模拟）计划已批准，执行完成。",
+          text: i18n.t("browserMock.planCompleted"),
           thinking: "",
           usage: { input_tokens: 1, output_tokens: 1 },
         });
@@ -1344,7 +1344,7 @@ export async function handleCommand<T>(
               has_branches: false,
               has_conditions: false,
             },
-            note: "任务已被判定为复杂任务，请确认后执行。",
+            note: i18n.t("browserMock.complexTaskNote"),
           }),
         });
         const decision = await waitForPlanDecision(conversationId);
@@ -1682,7 +1682,7 @@ export async function handleCommand<T>(
           tools: [
             {
               name: "FileRead",
-              description: "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。",
+              description: i18n.t("browserMock.fileReadDesc"),
               category: "file_read",
               isDestructive: false,
               isReadOnly: true,
@@ -1691,7 +1691,7 @@ export async function handleCommand<T>(
             },
             {
               name: "Glob",
-              description: "使用 glob 模式搜索文件。返回匹配的文件路径列表。",
+              description: i18n.t("browserMock.globDesc"),
               category: "file_read",
               isDestructive: false,
               isReadOnly: true,
@@ -1700,7 +1700,7 @@ export async function handleCommand<T>(
             },
             {
               name: "Grep",
-              description: "在文件中搜索匹配正则表达式的内容。",
+              description: i18n.t("browserMock.grepDesc"),
               category: "file_read",
               isDestructive: false,
               isReadOnly: true,
@@ -1717,7 +1717,7 @@ export async function handleCommand<T>(
           tools: [
             {
               name: "FileWrite",
-              description: "创建新文件或完全覆盖已有文件（⚠️ 不可逆）。",
+              description: i18n.t("browserMock.fileWriteDesc"),
               category: "file_write",
               isDestructive: true,
               isReadOnly: false,
@@ -1726,7 +1726,7 @@ export async function handleCommand<T>(
             },
             {
               name: "FileEdit",
-              description: "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。",
+              description: i18n.t("browserMock.fileEditDesc"),
               category: "file_write",
               isDestructive: true,
               isReadOnly: false,
@@ -1735,7 +1735,7 @@ export async function handleCommand<T>(
             },
             {
               name: "DeleteFile",
-              description: "删除指定路径的文件。此操作不可逆。",
+              description: i18n.t("browserMock.deleteFileDesc"),
               category: "file_write",
               isDestructive: true,
               isReadOnly: false,
@@ -1752,7 +1752,7 @@ export async function handleCommand<T>(
           tools: [
             {
               name: "Bash",
-              description: "执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。",
+              description: i18n.t("browserMock.bashDesc"),
               category: "shell",
               isDestructive: true,
               isReadOnly: false,
@@ -2011,6 +2011,8 @@ export async function handleCommand<T>(
           accessCount: 0,
           decayRate: 0.02,
           updatedAt: new Date().toISOString(),
+          applicabilityTags: inputMem.applicabilityTags ?? [],
+          confirmed: inputMem.confirmed ?? 0,
         };
         mns3[mni].items = [...(mns3[mni].items || []), item];
         mns3[mni].updated_at = nowTs();

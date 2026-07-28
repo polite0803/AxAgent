@@ -225,6 +225,8 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(agent_memory::AgentCheckpointTool),
         std::sync::Arc::new(agent_memory::AgentStatusTool),
         std::sync::Arc::new(agent_memory::AgentRememberTool),
+        // MemoryRecall: 主动按任务语义检索文件级长期记忆(.axagent/memory/)
+        std::sync::Arc::new(agent_memory::MemoryRecallTool),
         // ── AI 媒体 ──
         std::sync::Arc::new(media::GenerateImageTool),
         std::sync::Arc::new(media::GenerateChartConfigTool),

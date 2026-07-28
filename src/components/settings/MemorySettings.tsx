@@ -39,7 +39,9 @@ import {
   ArrowRightLeft,
   ArrowUp,
   Brain,
+  Check,
   Clock,
+  Download,
   GitMerge,
   GripVertical,
   MoreHorizontal,
@@ -365,6 +367,8 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     deleteItem,
     updateItem,
     updateNamespace,
+    confirmItem,
+    exportMemoriesToProject,
   } = useMemoryStore();
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemoryItem | null>(null);
@@ -518,9 +522,16 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     }
     try {
       const values = await itemForm.validateFields();
+      // v108: 解析 applicabilityTags 输入（逗号分隔字符串 → 数组）
+      const rawTags: string = values.applicabilityTags ?? "";
+      const applicabilityTags = rawTags
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       await updateItem(namespace.id, editingItem.id, {
         content: values.content,
         title: values.content.slice(0, 50),
+        applicabilityTags,
       });
       setEditingItem(null);
       itemForm.resetFields();
@@ -789,7 +800,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
     },
     {
       key: "actions",
-      width: 200,
+      width: 230,
       render: (_: unknown, record: MemoryItem) => (
         <div className="flex gap-1">
           <Tooltip title={t("settings.memory.promote")}>
@@ -831,10 +842,43 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
               icon={<Pencil size={14} />}
               onClick={() => {
                 setEditingItem(record);
-                itemForm.setFieldsValue({ content: record.content });
+                itemForm.setFieldsValue({
+                  content: record.content,
+                  applicabilityTags: record.applicabilityTags?.join(", ") ?? "",
+                });
               }}
             />
           </Tooltip>
+          {record.confirmed === 0
+            ? (
+              <Popconfirm
+                title={t("settings.memory.confirm")}
+                onConfirm={async () => {
+                  try {
+                    await confirmItem(namespace.id, record.id);
+                    messageApi.success(t("settings.memory.confirmSuccess"));
+                  } catch (e) {
+                    messageApi.error(
+                      t("settings.memory.confirmFailed", { error: String(e) }),
+                    );
+                  }
+                }}
+              >
+                <Tooltip title={t("settings.memory.confirm")}>
+                  <Button size="small" type="text" icon={<Check size={14} />} />
+                </Tooltip>
+              </Popconfirm>
+            )
+            : (
+              <Tooltip title={t("settings.memory.confirmed")}>
+                <Button
+                  size="small"
+                  type="text"
+                  disabled
+                  icon={<Check size={14} style={{ color: token.colorSuccess }} />}
+                />
+              </Tooltip>
+            )}
           <Popconfirm
             title={t("settings.memory.rebuildItemConfirm")}
             placement="bottom"
@@ -1329,6 +1373,30 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
           <Tooltip title={t("settings.memory.timeline")}>
             <Button icon={<Clock size={14} />} onClick={handleTimeline} />
           </Tooltip>
+          <Popconfirm
+            title={t("settings.memory.exportToProjectConfirm")}
+            onConfirm={async () => {
+              try {
+                const result = await exportMemoriesToProject();
+                if (result.exported > 0) {
+                  messageApi.success(
+                    t("settings.memory.exportToProjectSuccess", {
+                      exported: result.exported,
+                      total: result.totalCandidates,
+                    }),
+                  );
+                } else {
+                  messageApi.info(t("settings.memory.exportToProjectEmpty"));
+                }
+              } catch (e) {
+                messageApi.error(String(e));
+              }
+            }}
+          >
+            <Tooltip title={t("settings.memory.exportToProject")}>
+              <Button icon={<Download size={14} />} />
+            </Tooltip>
+          </Popconfirm>
         </div>
         <div className="flex items-center gap-2">
           <Input
@@ -1948,6 +2016,18 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
               autoSize={{ minRows: 3, maxRows: 8 }}
             />
           </Form.Item>
+          {editingItem
+            && (
+              <Form.Item
+                name="applicabilityTags"
+                label={t("settings.memory.applicabilityTags")}
+                tooltip={t("settings.memory.applicabilityTagsPlaceholder")}
+              >
+                <Input
+                  placeholder={t("settings.memory.applicabilityTagsPlaceholder")}
+                />
+              </Form.Item>
+            )}
         </Form>
       </Modal>
     </div>

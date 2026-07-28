@@ -937,6 +937,10 @@ pub async fn send_message(
         }
     }
 
+    // 提前加载全局设置(供 ProjectMemory 检索 workspace_dir 与后续代理配置使用)
+    let global_settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+
     let wm_content: String;
     {
         let ms = state.memory_service.read().await;
@@ -954,6 +958,46 @@ pub async fn send_message(
 
     if let Some(msg) = build_working_memory_chat_message(&wm_content) {
         chat_messages.push(msg);
+    }
+
+    // ── 自进化闭环:文件级 ProjectMemory 按任务语义相关性检索 ──
+    //
+    // 调用 axagent_agent::ProjectMemory::scan_relevant_files
+    // 从 .axagent/memory/{user,feedback,project,reference}/ 下
+    // 按当前 user_input 关键词 TF 匹配,选最相关 N 个文件注入 prompt。
+    //
+    // 与 working memory 全量注入互补:
+    // - working memory = 运行时累积的短期记忆(按 effective_score 排序)
+    // - project memory = 文件级长期记忆(按任务相关性检索)
+    //
+    // 失败仅日志,不影响主流程(原 scan_relevant_files 实现存在但零调用,见
+    // project_memory.rs:328)
+    if let Some(workspace_dir) = global_settings.default_workspace_dir.as_ref() {
+        match axagent_agent::ProjectMemory::new(std::path::PathBuf::from(workspace_dir))
+            .scan_relevant_files(&content, 5)
+            .await
+        {
+            Ok(pm_results) if !pm_results.is_empty() => {
+                let pm_content = pm_results
+                    .iter()
+                    .map(|r| format!("# {}\n{}", r.path.display(), r.content))
+                    .collect::<Vec<_>>()
+                    .join("\n\n---\n\n");
+                chat_messages.push(ChatMessage {
+                    role: "system".to_string(),
+                    content: ChatContent::Text(format!(
+                        "<project-memory-relevant>\n{pm_content}\n</project-memory-relevant>"
+                    )),
+                    tool_calls: None,
+                    tool_call_id: None,
+                    thinking: None,
+                });
+            },
+            Ok(_) => {}, // 无相关文件,跳过
+            Err(e) => {
+                tracing::warn!("[streaming] project memory scan failed: {}", e);
+            },
+        }
     }
 
     // Find last context-clear or context-compressed marker to truncate history
@@ -994,8 +1038,7 @@ pub async fn send_message(
     }
 
     // Resolve proxy config early (needed for both summary generation and main request)
-    let global_settings =
-        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+    // global_settings 已在 wm_content 之前提前加载(供 ProjectMemory 检索使用)
     let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
         &provider.proxy_config,
         &global_settings,

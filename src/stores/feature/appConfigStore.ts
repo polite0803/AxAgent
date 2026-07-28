@@ -12,6 +12,8 @@ export interface FeatureFlags {
   toolConcurrency: boolean;
   verificationAgent: boolean;
   dreamTask: boolean;
+  selfImprovingLoop: boolean;
+  finalOutputReflection: boolean;
 }
 
 export type ModelTier = "opus" | "sonnet" | "haiku";
@@ -25,6 +27,8 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   toolConcurrency: true,
   verificationAgent: false,
   dreamTask: true,
+  selfImprovingLoop: false,
+  finalOutputReflection: false,
 };
 
 interface AppConfigState {
@@ -63,7 +67,7 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
     set({ maxIterations: Math.max(1, Math.min(100, Math.round(n))) });
   },
 
-  toggleFeature: (name) =>
+  toggleFeature: (name) => {
     set((state) => {
       const newValue = !state.features[name];
       if (name === "proactiveMode") {
@@ -72,7 +76,19 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
       return {
         features: { ...state.features, [name]: newValue },
       };
-    }),
+    });
+    // 缺陷1修复:selfImprovingLoop / finalOutputReflection 切换后:
+    // 1. saveConfig 持久化到 DB(供下次启动时 wiring 层读取)
+    // 2. set_self_improvement_flags 即时更新后端 SessionManager(无需重启)
+    if (name === "selfImprovingLoop" || name === "finalOutputReflection") {
+      const { selfImprovingLoop, finalOutputReflection } = get().features;
+      void get().saveConfig();
+      invoke("set_self_improvement_flags", {
+        selfImprovementEnabled: selfImprovingLoop,
+        finalOutputReflection: finalOutputReflection,
+      }).catch(logIpcError("set_self_improvement_flags"));
+    }
+  },
 
   loadConfig: async () => {
     set({ loading: true, error: null });

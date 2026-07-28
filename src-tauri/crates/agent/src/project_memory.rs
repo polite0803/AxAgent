@@ -381,6 +381,120 @@ impl ProjectMemory {
         );
         Ok(true)
     }
+
+    /// v108: 自进化闭环 — 把 DB memory_items 导出到文件级 ProjectMemory。
+    ///
+    /// 仅导出 `tier ∈ {core, long_term}` 的记忆（短期/工作记忆不落盘文件）。
+    /// - core → `user/` 目录（核心偏好，长期有效）
+    /// - long_term → `project/` 目录（项目经验）
+    ///
+    /// 文件名基于 `title` 做 sanitize（仅保留字母数字与下划线）。
+    /// 索引条目的 summary 取 `title`，tags 合并 `tags` 与 `applicability_tags`。
+    /// 已存在的同名文件会被覆盖（幂等导出）。
+    ///
+    /// 返回成功导出的文件数量。
+    pub async fn export_memory_items(
+        &self,
+        items: &[axagent_harness::types::MemoryItem],
+    ) -> Result<usize, String> {
+        if items.is_empty() {
+            return Ok(0);
+        }
+
+        // 加载现有索引（保留已有条目，仅 upsert 导出的）
+        let mut index = self.load_index().await;
+        let mut exported = 0usize;
+
+        for item in items {
+            // tier → category 映射；short_term/working 不导出
+            let category = match item.tier.as_str() {
+                "core" => MemoryCategory::User,
+                "long_term" => MemoryCategory::Project,
+                _ => continue,
+            };
+
+            // 文件名：sanitize title，回退到 id 前 8 字符
+            let base = sanitize_file_name(&item.title);
+            let file_name = if base.is_empty() {
+                format!("{}.md", &item.id[..item.id.len().min(8)])
+            } else {
+                format!("{}.md", base)
+            };
+
+            // 拼接 .md 文件内容：标题 + 元信息 + 正文
+            let mut md = String::new();
+            md.push_str(&format!("# {}\n\n", item.title));
+            md.push_str(&format!(
+                "- tier: {}\n- importance: {:.2}\n- source: {}\n- confirmed: {}\n\n",
+                item.tier, item.importance, item.source, item.confirmed,
+            ));
+            if !item.tags.is_empty() || !item.applicability_tags.is_empty() {
+                md.push_str("## Tags\n\n");
+                if !item.tags.is_empty() {
+                    md.push_str(&format!("- tags: {}\n", item.tags.join(", ")));
+                }
+                if !item.applicability_tags.is_empty() {
+                    md.push_str(&format!(
+                        "- applicability: {}\n",
+                        item.applicability_tags.join(", ")
+                    ));
+                }
+                md.push('\n');
+            }
+            md.push_str("## Content\n\n");
+            md.push_str(&item.content);
+            md.push('\n');
+
+            // 写入文件
+            self.save_topic_file(category, &file_name, &md).await?;
+
+            // upsert 索引条目
+            let relative_path = format!("{}/{}", category.dir_name(), file_name);
+            let mut entry_tags = item.tags.clone();
+            entry_tags.extend(item.applicability_tags.iter().cloned());
+            entry_tags.sort();
+            entry_tags.dedup();
+            index.upsert(MemoryFileEntry {
+                relative_path,
+                category,
+                summary: item.title.clone(),
+                tags: entry_tags,
+            });
+
+            exported += 1;
+        }
+
+        // 保存索引（强制 200 行硬限制）
+        if exported > 0 {
+            self.save_index(&index).await?;
+        }
+
+        tracing::info!(
+            exported,
+            total = items.len(),
+            "[ProjectMemory] DB memory_items 导出到文件级记忆完成"
+        );
+        Ok(exported)
+    }
+}
+
+/// 文件名 sanitize：仅保留字母数字与下划线，空格转下划线，转小写，截断到 50 字符。
+fn sanitize_file_name(s: &str) -> String {
+    let sanitized: String = s
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c
+            } else {
+                // 空白字符和其他非字母数字字符统一替换为下划线
+                '_'
+            }
+        })
+        .collect::<String>()
+        .to_lowercase();
+    // 合并连续下划线
+    let merged = sanitized.split('_').filter(|s| !s.is_empty()).collect::<Vec<_>>().join("_");
+    merged.chars().take(50).collect()
 }
 
 /// 简单分词:按空格/标点切分,转小写,过滤空词
@@ -908,5 +1022,197 @@ mod tests {
         assert!(!migrated);
         // 旧文件应保留(未迁移)
         assert!(axagent_dir.join("memory.md").exists());
+    }
+
+    // ── v108: sanitize_file_name 单元测试 ──────────────────────────
+
+    #[test]
+    fn test_sanitize_file_name_basic() {
+        assert_eq!(sanitize_file_name("Rust Preferences"), "rust_preferences");
+    }
+
+    #[test]
+    fn test_sanitize_file_name_special_chars() {
+        // 特殊字符替换为下划线，连续下划线合并
+        assert_eq!(sanitize_file_name("a@b#c$d"), "a_b_c_d");
+    }
+
+    #[test]
+    fn test_sanitize_file_name_empty() {
+        assert_eq!(sanitize_file_name(""), "");
+        assert_eq!(sanitize_file_name("   "), "");
+    }
+
+    #[test]
+    fn test_sanitize_file_name_leading_trailing_underscores() {
+        // 前后下划线被 filter(|s| !s.is_empty()) 去除
+        assert_eq!(sanitize_file_name("__test__"), "test");
+    }
+
+    #[test]
+    fn test_sanitize_file_name_truncation() {
+        let long = "a".repeat(100);
+        let result = sanitize_file_name(&long);
+        assert_eq!(result.len(), 50);
+    }
+
+    #[test]
+    fn test_sanitize_file_name_unicode() {
+        // 中文字符会被替换为下划线（非 alphanumeric）
+        assert_eq!(sanitize_file_name("用户偏好"), "");
+        // 混合：英文+中文
+        assert_eq!(sanitize_file_name("rust 用户"), "rust");
+    }
+
+    // ── v108: export_memory_items 集成测试 ──────────────────────────
+
+    #[tokio::test]
+    async fn test_export_memory_items_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let exported = pm.export_memory_items(&[]).await.unwrap();
+        assert_eq!(exported, 0);
+    }
+
+    #[tokio::test]
+    async fn test_export_memory_items_core_tier() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let item = axagent_harness::types::MemoryItem {
+            id: "test123".to_string(),
+            namespace_id: "ns1".to_string(),
+            title: "Rust Core Preference".to_string(),
+            content: "Always use cargo clippy".to_string(),
+            source: "reflector".to_string(),
+            index_status: "ready".to_string(),
+            index_error: None,
+            updated_at: "2026-07-28T00:00:00Z".to_string(),
+            tier: "core".to_string(),
+            importance: 0.9,
+            access_count: 5,
+            last_accessed: None,
+            decay_rate: 0.001,
+            expires_at: None,
+            memory_nature: "semantic".to_string(),
+            tags: vec!["rust".to_string()],
+            source_conversation_id: None,
+            source_message_id: None,
+            applicability_tags: vec!["rust".to_string()],
+            confirmed: 1,
+        };
+        let exported = pm.export_memory_items(&[item]).await.unwrap();
+        assert_eq!(exported, 1);
+        // 文件应写入 user/ 目录（core → User）
+        let user_dir = dir.path().join(".axagent/memory/user");
+        assert!(user_dir.exists());
+        let files: Vec<_> = std::fs::read_dir(&user_dir).unwrap().collect();
+        assert_eq!(files.len(), 1);
+        // 索引应更新
+        let index = pm.load_index().await;
+        assert_eq!(index.entries.len(), 1);
+        assert_eq!(index.entries[0].category, MemoryCategory::User);
+    }
+
+    #[tokio::test]
+    async fn test_export_memory_items_long_term_tier() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let item = axagent_harness::types::MemoryItem {
+            id: "lt456".to_string(),
+            namespace_id: "ns1".to_string(),
+            title: "Project Architecture".to_string(),
+            content: "Cargo workspace with 32 crates".to_string(),
+            source: "manual".to_string(),
+            index_status: "ready".to_string(),
+            index_error: None,
+            updated_at: "2026-07-28T00:00:00Z".to_string(),
+            tier: "long_term".to_string(),
+            importance: 0.7,
+            access_count: 3,
+            last_accessed: None,
+            decay_rate: 0.005,
+            expires_at: None,
+            memory_nature: "semantic".to_string(),
+            tags: vec![],
+            source_conversation_id: None,
+            source_message_id: None,
+            applicability_tags: vec![],
+            confirmed: 0,
+        };
+        let exported = pm.export_memory_items(&[item]).await.unwrap();
+        assert_eq!(exported, 1);
+        // 文件应写入 project/ 目录（long_term → Project）
+        let project_dir = dir.path().join(".axagent/memory/project");
+        assert!(project_dir.exists());
+    }
+
+    #[tokio::test]
+    async fn test_export_memory_items_skip_short_term() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let item = axagent_harness::types::MemoryItem {
+            id: "st789".to_string(),
+            namespace_id: "ns1".to_string(),
+            title: "Temp Note".to_string(),
+            content: "Temporary".to_string(),
+            source: "manual".to_string(),
+            index_status: "ready".to_string(),
+            index_error: None,
+            updated_at: "2026-07-28T00:00:00Z".to_string(),
+            tier: "short_term".to_string(),
+            importance: 0.3,
+            access_count: 0,
+            last_accessed: None,
+            decay_rate: 0.1,
+            expires_at: None,
+            memory_nature: "episodic".to_string(),
+            tags: vec![],
+            source_conversation_id: None,
+            source_message_id: None,
+            applicability_tags: vec![],
+            confirmed: 0,
+        };
+        let exported = pm.export_memory_items(&[item]).await.unwrap();
+        assert_eq!(exported, 0);
+        // 不应创建任何目录
+        assert!(!dir.path().join(".axagent/memory/user").exists());
+        assert!(!dir.path().join(".axagent/memory/project").exists());
+    }
+
+    #[tokio::test]
+    async fn test_export_memory_items_idempotent() {
+        let dir = tempfile::tempdir().unwrap();
+        let pm = ProjectMemory::new(dir.path());
+        let item = axagent_harness::types::MemoryItem {
+            id: "idem001".to_string(),
+            namespace_id: "ns1".to_string(),
+            title: "Idempotent Test".to_string(),
+            content: "Content v1".to_string(),
+            source: "manual".to_string(),
+            index_status: "ready".to_string(),
+            index_error: None,
+            updated_at: "2026-07-28T00:00:00Z".to_string(),
+            tier: "core".to_string(),
+            importance: 0.8,
+            access_count: 0,
+            last_accessed: None,
+            decay_rate: 0.001,
+            expires_at: None,
+            memory_nature: "semantic".to_string(),
+            tags: vec![],
+            source_conversation_id: None,
+            source_message_id: None,
+            applicability_tags: vec![],
+            confirmed: 1,
+        };
+        // 第一次导出
+        let exported1 = pm.export_memory_items(std::slice::from_ref(&item)).await.unwrap();
+        assert_eq!(exported1, 1);
+        // 第二次导出（覆盖）
+        let exported2 = pm.export_memory_items(std::slice::from_ref(&item)).await.unwrap();
+        assert_eq!(exported2, 1);
+        // 索引应只有 1 个条目（upsert 覆盖）
+        let index = pm.load_index().await;
+        assert_eq!(index.entries.len(), 1);
     }
 }
