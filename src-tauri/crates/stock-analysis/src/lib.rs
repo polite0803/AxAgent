@@ -57,7 +57,6 @@ pub mod screenshot_diagnosis;
 pub mod sector_coherence;
 pub mod sentiment_analysis;
 pub mod signals;
-pub mod stock_analysis_round;
 pub mod strategy_pack;
 pub mod trade_import;
 pub mod trade_review;
