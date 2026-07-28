@@ -40,7 +40,7 @@ async function showWindow() {
     const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
     await getCurrentWebviewWindow().show();
   } catch (e) {
-    logIpcError("显示窗口")(e);
+    logIpcError("showWindow")(e);
   }
 }
 
@@ -101,7 +101,7 @@ export function AppInitializer({ children }: AppInitializerProps) {
               } catch (e) {
                 const errorStr = String(e);
                 if (!errorStr.includes("os error 2")) {
-                  logIpcError("设置自启动")(e);
+                  logIpcError("setAutoLaunch")(e);
                 }
               }
             })(),
