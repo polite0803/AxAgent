@@ -1,6 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use axagent_agent::{SelfImprovementConfig, SelfImprovementExecutor};
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketBatchQuery};
 use axagent_astock_data::fundamentals_report::{FundamentalsAnalyzer, FundamentalsReport};
@@ -25,6 +26,7 @@ use axagent_stock_analysis::position_limits::PositionLimits;
 use axagent_stock_analysis::recommender::{self, RecoResponse};
 use axagent_stock_analysis::review::{DailyReview, PostCloseReview};
 use axagent_stock_analysis::screener::{ScreenCriteria, ScreenResult, StockScreener};
+use axagent_stock_analysis::stock_analysis_round::StockAnalysisRound;
 use axagent_stock_analysis::trading::{PositionSummary, TradePredictionComparison};
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
@@ -5266,4 +5268,67 @@ pub async fn stock_evolution_recalc(
         "written": written,
         "currentWeights": flat,
     }))
+}
+
+// ── 自改进分析循环（Loop Engineering 股票域闭环）──
+//
+// 对接上游 harness::SelfImprovingRound + agent::SelfImprovementExecutor，
+// 让本地股票业务复用上游"执行 → 自评估 → 识别不足 → 注入改进提示 → 重新生成"
+// 的回合制迭代策略，实现功能性闭环。
+//   - trait + DTO 在 axagent-harness（foundation）
+//   - 通用执行器在 axagent-agent（consumer）
+//   - 领域实现 StockAnalysisRound 在 axagent-stock-analysis（implementor）
+//   - 命令注册在 src/commands（wiring）
+
+/// 运行自改进股票分析循环
+///
+/// 在 Loop Engineering 基础设施上执行多轮股票分析：
+/// 1. `task` — 分析任务，如 "分析 600519.SH"
+/// 2. `max_rounds` — 最大改进轮数（默认 3）
+/// 3. 每轮自动补全薄弱维度，评估质量，决定是否继续改进
+///
+/// 返回最终分析报告 + 评估分数 + 轮次信息。
+/// 即使中途出错也会返回已完成的回合记录（`partial: true`），便于前端展示部分结果。
+#[tauri::command]
+pub async fn run_self_improving_stock_analysis(
+    state: State<'_, AppState>,
+    task: String,
+    max_rounds: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    let client = state.astock_client.clone();
+    let round = StockAnalysisRound::new(client);
+    let config = SelfImprovementConfig::new(
+        max_rounds.unwrap_or(3),
+        0.80, // 收敛阈值：评估分数高于此值直接 Accept
+        3,    // 连续无进展多少次后 Escalate
+    );
+    let mut executor = SelfImprovementExecutor::new(Box::new(round), config);
+
+    match executor.run(&task).await {
+        Ok(output) => Ok(serde_json::json!({
+            "text": output.text,
+            "totalRounds": output.total_rounds,
+            "finalScore": output.final_evaluation.score,
+            "confidence": output.final_evaluation.confidence,
+            "strengths": output.final_evaluation.strengths,
+            "gaps": output.final_evaluation.gaps,
+        })),
+        Err(e) => {
+            // 即使出错也尝试返回已有的 round_history
+            let partial = executor.round_history();
+            if let Some(last) = partial.last() {
+                Ok(serde_json::json!({
+                    "text": last.output.clone(),
+                    "totalRounds": partial.len(),
+                    "finalScore": last.evaluation.as_ref().map(|e| e.score),
+                    "error": e.to_string(),
+                    "partial": true,
+                }))
+            } else {
+                Err(ErrorResponse::new(wf_err::INTERNAL)
+                    .with_detail(format!("自改进分析失败: {e}"))
+                    .to_string())
+            }
+        },
+    }
 }

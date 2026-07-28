@@ -9601,7 +9601,14 @@
     "nlWorkflowExplanation": "Das Obige wird automatisch in einen Workflow konvertiert",
     "doubao": "Doubao",
     "tongyi": "Tongyi",
-    "siliconFlow": "SiliconFlow"
+    "siliconFlow": "SiliconFlow",
+    "complexTaskNote": "The task has been identified as a complex task. Please confirm before execution.",
+    "planCompleted": "(Simulated) Plan approved, execution completed.",
+    "globDesc": "Search files using glob patterns. Returns matching file paths.",
+    "grepDesc": "Search file contents that match a regular expression.",
+    "fileEditDesc": "Edit file via exact string replacement. Uses old_string/new_string to search and replace.",
+    "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
+    "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation."
   },
   "searchUtils": {
     "highCredibility": "Hohe Glaubwürdigkeit",

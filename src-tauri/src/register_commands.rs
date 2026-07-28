@@ -1257,6 +1257,8 @@ macro_rules! register_all_commands {
             commands::stock_analysis::get_dividend_records,
             commands::stock_analysis::get_stock_financials,
             commands::stock_analysis::stock_evolution_recalc,
+            // 自改进分析循环（Loop Engineering 股票域闭环）
+            commands::stock_analysis::run_self_improving_stock_analysis,
             // ── 股票工作流命令（用子模块完整路径，Tauri 宏生成的 __cmd__ 符号在子模块中）──
             commands::stock_workflow::reco_history::batch_delete_reco_history,
             commands::stock_workflow::core::cancel_stock_workflow,

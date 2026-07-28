@@ -1058,10 +1058,10 @@ mod tests {
 
     #[test]
     fn test_sanitize_file_name_unicode() {
-        // 中文字符会被替换为下划线（非 alphanumeric）
-        assert_eq!(sanitize_file_name("用户偏好"), "");
-        // 混合：英文+中文
-        assert_eq!(sanitize_file_name("rust 用户"), "rust");
+        // 中文字符 is_alphanumeric() 为 true，保留原样
+        assert_eq!(sanitize_file_name("用户偏好"), "用户偏好");
+        // 混合：空格变为下划线
+        assert_eq!(sanitize_file_name("rust 用户"), "rust_用户");
     }
 
     // ── v108: export_memory_items 集成测试 ──────────────────────────

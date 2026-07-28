@@ -76,3 +76,9 @@ pub use notification_channel::{
     NotificationDispatchSummary, NotificationPolicy, NotificationRoute, ReportPayload,
     ReportStockSummary, RouteConfig,
 };
+
+// ── 自改进分析循环（Loop Engineering）──
+// 对接上游 harness::SelfImprovingRound trait 的股票领域实现，
+// 在 wiring 层配合 axagent_agent::SelfImprovementExecutor 驱动多轮分析。
+pub mod stock_analysis_round;
+pub use stock_analysis_round::{AnalysisError as StockAnalysisRoundError, StockAnalysisRound};
