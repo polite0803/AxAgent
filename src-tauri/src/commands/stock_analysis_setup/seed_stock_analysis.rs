@@ -1978,6 +1978,18 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     ("res_report", "a-research.content.report"),
                     ("sec_report", "a-sector.content.report"),
                     ("cat_report", "a-catalyst.content.report"),
+                    // ── 因子数据完整度评估（供 pm_compute_factor_completeness 使用）──
+                    // 这些因子数据来自 ToolNode，用于评估因子层数据完整度
+                    ("total_score", "t-scoring.result.totalScore"),
+                    ("consensus_score", "debate-convergence.content.consensus_score"),
+                    ("catalyst_level", "a-catalyst.content.catalyst_level"),
+                    ("risk_volatility", "t-risk.result.stockRiskProfile.annualizedVolatilityPct"),
+                    ("valuation_dcf_upside", "t-valuation.result.dcf.upsidePct"),
+                    ("trader_direction", "trader.content.verdict"),
+                    ("money_flow", "t-hotmoney-data.result"),
+                    ("lockup_bundle", "t-lockup-data.result"),
+                    ("announcements", "t-catalyst-data.result"),
+                    ("pace_signal", "pace-calc.result.pace_signal"),
                 ]
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -1992,6 +2004,16 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         for aid in &a_ids {
             edges.push(edge(&format!("e-{aid}-data-quality"), aid, dq_id));
         }
+        // 因子数据完整度评估：data-quality 需要等待 ToolNode 完成以获取因子数据
+        edges.push(edge("e-t-scoring-data-quality", "t-scoring", dq_id));
+        edges.push(edge("e-t-risk-data-quality", "t-risk", dq_id));
+        edges.push(edge("e-t-valuation-data-quality", "t-valuation", dq_id));
+        edges.push(edge("e-t-hotmoney-data-quality", "t-hotmoney-data", dq_id));
+        edges.push(edge("e-t-lockup-data-quality", "t-lockup-data", dq_id));
+        edges.push(edge("e-t-catalyst-data-quality", "t-catalyst-data", dq_id));
+        edges.push(edge("e-pace-calc-data-quality", "pace-calc", dq_id));
+        edges.push(edge("e-debate-convergence-data-quality", "debate-convergence", dq_id));
+        edges.push(edge("e-trader-data-quality", "trader", dq_id));
     }
 
     // research-mgr → trader → portfolio-mgr
@@ -2655,7 +2677,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 "数据质量评估为 D 或 F，上游分析数据不可靠。你需要在数据不足的情况下做出最保守的投资决策。\
                  所有需要的数据已通过输入上下文注入（t-scoring 的 currentPrice/indicators/totalScore、\
                  t-valuation 的估值、t-risk 的风险评分），禁止调用任何工具重新获取数据。\
-                 输出JSON格式（严格模式）：{\"action\":\"持有/减持/卖出\",\"positionPct\":0-20,\"reasoning\":\"保守决策理由\"}}\
+                 输出JSON格式（严格模式）：{\"action\":\"持有/减持/卖出\",\"positionPct\":0-20,\"confidence\":20-40,\"riskLevel\":\"高风险\",\"reasoning\":\"保守决策理由\"}\
+                 规则：action 只能是'持有'/'减持'/'卖出'（禁止买入/增持）；positionPct 0-20（保守低仓位）；\
+                 confidence 20-40（数据不足时置信度低，D级给30-40，F级给20-30）；riskLevel 固定为'高风险'。\
                  只输出上述JSON对象，前后不要有任何其他文字"
                     .to_string();
             a.config.exposed_tools = vec![];

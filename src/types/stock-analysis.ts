@@ -306,6 +306,10 @@ export interface DataQualityReport {
   report_quality_score?: number;
   /** P1-B3: 工具可信度分（0-100），基于 avg_conf + gap/good_count */
   tool_credibility_score?: number;
+  /** V58: 因子完整度百分比（0-100），10 个因子数据存在性评估 */
+  factor_completeness_pct?: number;
+  /** V58: 缺失因子中文名列表（如 ["技术面评分", "共识评分", ...]） */
+  missing_factors?: string[];
   gap_count: number;
   good_count: number;
   avg_confidence: number;

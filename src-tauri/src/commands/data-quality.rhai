@@ -29,6 +29,21 @@
 //   - 综合 score = report_quality_avg × 0.6 + tool_credibility × 0.4（按设计文档公式）
 //   - t-scoring/t-valuation/t-risk 的 credibility 字段待 P3 接入后再升级 tool_credibility
 
+// ── 辅助函数（供因子完整度评估使用）──
+// present: 检查变量是否存在且非空
+fn present(x) { type_of(x) != "()" }
+
+// safe_parse: 安全解析 JSON 字符串，失败返回 ()
+fn safe_parse(raw) {
+    if !present(raw) { return (); }
+    if type_of(raw) != "string" || raw == "" { return (); }
+    try {
+        json_parse(raw)
+    } catch (err) {
+        ()
+    }
+}
+
 // extract_conf: 从 verdict map 中提取 confidence 数值
 // 支持两种格式：
 //   扁平: {"verdict":"看多", "confidence":70, ...}
@@ -232,7 +247,56 @@ let report_quality_sum = mk_q + sent_q + news_q + fund_q + pol_q + hm_q + lk_q +
 let report_quality_avg = report_quality_sum / n;
 let tool_credibility_score = tool_credibility(avg_conf, good_count, gap_count, n_int);
 
-let score = report_quality_avg * 0.6 + tool_credibility_score * 0.4;
+// ── 因子数据完整度（0.0 ~ 1.0）──
+// 调用 Rust 函数 pm_compute_factor_completeness 评估 10 个因子的数据存在性。
+// 因子缺失也是数据质量问题的一部分，纳入综合评分可避免「分析师报告写得好看但因子数据全缺」的虚高评分。
+// JSON 字符串字段需要先解析再提取数值。
+let mf_main_net_inflow = ();
+if present(money_flow) && type_of(money_flow) == "string" && money_flow != "" {
+    let mf = safe_parse(money_flow);
+    if type_of(mf) == "map" {
+        let v = mf["main_net_inflow"];
+        if type_of(v) == "f64" { mf_main_net_inflow = v; }
+        else if type_of(v) == "i64" || type_of(v) == "int" { mf_main_net_inflow = v.to_float(); }
+    }
+}
+let lb_shareholder_trades_len = ();
+if present(lockup_bundle) && type_of(lockup_bundle) == "string" && lockup_bundle != "" {
+    let lb = safe_parse(lockup_bundle);
+    if type_of(lb) == "map" {
+        let trades = lb["shareholder_trades"];
+        if type_of(trades) == "array" { lb_shareholder_trades_len = trades.len(); }
+    }
+}
+let ann_count = ();
+if present(announcements) && type_of(announcements) == "string" && announcements != "" {
+    let ann = safe_parse(announcements);
+    if type_of(ann) == "array" { ann_count = ann.len(); }
+}
+let factor_completeness = pm_compute_factor_completeness(
+    total_score, consensus_score, catalyst_level,
+    risk_volatility, valuation_dcf_upside, trader_direction,
+    mf_main_net_inflow, lb_shareholder_trades_len,
+    ann_count, pace_signal
+);
+let factor_completeness_pct = (factor_completeness * 100.0 * 10.0).round() / 10.0;
+
+// ── 构建缺失因子列表（供前端 UI 展示）──
+let missing_factors = [];
+if !present(total_score) || total_score <= 0.0 { missing_factors.push("技术面评分"); }
+if !present(consensus_score) || consensus_score <= 0.0 { missing_factors.push("共识评分"); }
+if !present(catalyst_level) || catalyst_level == "" || catalyst_level == "无" { missing_factors.push("催化剂等级"); }
+if !present(risk_volatility) || risk_volatility <= 0.0 { missing_factors.push("风险波动率"); }
+if !present(valuation_dcf_upside) { missing_factors.push("估值上行空间"); }
+if !present(trader_direction) || trader_direction == "" { missing_factors.push("交易方向"); }
+if !present(mf_main_net_inflow) { missing_factors.push("主力净流入"); }
+if !present(lb_shareholder_trades_len) || lb_shareholder_trades_len <= 0 { missing_factors.push("股东增减持"); }
+if !present(ann_count) || ann_count <= 0 { missing_factors.push("公告数据"); }
+if !present(pace_signal) { missing_factors.push("PACE情绪"); }
+
+// 综合评分公式：报告质量 45% + 工具可信度 35% + 因子完整度 20%
+// 因子缺失直接拉低综合分，避免虚高 A 级
+let score = report_quality_avg * 0.45 + tool_credibility_score * 0.35 + factor_completeness * 100.0 * 0.20;
 score = clamp(score, 0.0, 100.0);
 let final_score = (score * 10.0).round() / 10.0;
 let report_quality_score_final = (report_quality_avg * 10.0).round() / 10.0;
@@ -322,12 +386,12 @@ if has_placeholder(mk_r) || has_placeholder(sent_r) || has_placeholder(news_r)
 }
 
 let summary_text = if grade == "F" || grade == "D" {
-    let base = `数据质量 ${grade} 级（综合 ${final_score} = 报告质量 ${report_quality_score_final} × 0.6 + 工具可信度 ${tool_credibility_score_final} × 0.4）：${gap_count} 个缺失，${low_count} 个低置信，${good_count} 个高置信。`;
+    let base = `数据质量 ${grade} 级（综合 ${final_score} = 报告 ${report_quality_score_final} × 0.45 + 工具 ${tool_credibility_score_final} × 0.35 + 因子完整度 ${factor_completeness_pct} × 0.20）：${gap_count} 个缺失，${low_count} 个低置信，${good_count} 个高置信。`;
     let miss_part = if missing_analysts.len() > 0 { `缺失：${join_arr(missing_analysts, "、")}。` } else { "" };
     let low_part = if low_confidence_analysts.len() > 0 { `低置信：${join_arr(low_confidence_analysts, "、")}。` } else { "" };
     `${base}${miss_part}${low_part}平均置信度 ${avg_conf}。建议检查对应分析师的上游工具数据源。`
 } else {
-    `数据质量 ${grade} 级（综合 ${final_score} = 报告质量 ${report_quality_score_final} × 0.6 + 工具可信度 ${tool_credibility_score_final} × 0.4）：${good_count}/10 高置信度，平均置信度 ${avg_conf}。`
+    `数据质量 ${grade} 级（综合 ${final_score} = 报告 ${report_quality_score_final} × 0.45 + 工具 ${tool_credibility_score_final} × 0.35 + 因子完整度 ${factor_completeness_pct} × 0.20）：${good_count}/10 高置信度，平均置信度 ${avg_conf}。`
 };
 
 #{
@@ -335,6 +399,8 @@ let summary_text = if grade == "F" || grade == "D" {
     "score": final_score,
     "report_quality_score": report_quality_score_final,
     "tool_credibility_score": tool_credibility_score_final,
+    "factor_completeness_pct": factor_completeness_pct,
+    "missing_factors": missing_factors,
     "gap_count": gap_count,
     "good_count": good_count,
     "avg_confidence": (avg_conf * 10.0).round() / 10.0,

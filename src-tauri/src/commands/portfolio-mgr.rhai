@@ -998,7 +998,7 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 		1.0 - effective_posterior
 	} * 100.0;
 	let signal_strength_raw = (effective_posterior - 0.5).abs() * 200.0;
-	let final_confidence = clamp(bayes_confidence, 0.0, confidence_quality_cap);
+	let final_confidence = clamp(bayes_confidence * disagreement_mod, 0.0, confidence_quality_cap);
 
 	// ── M2 修复：LLM 失败级联兜底 ──
 	// V55 扩展: 上游 AgentNode 走 strict_mode 兜底时（LLM 输出无法解析为合法 JSON），
@@ -1013,7 +1013,7 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 //   理由: 6 个上游 Agent 中任一失败就全盘降级过于保守，
 //     其余 5 个可信 Agent 的信号仍有价值，不应被单点失败完全否决。
 //   P2 修复: weights_collapsed 改为比例阈值 (total_weight/max_weight<0.3)，
-//     避免在 regime_factor_weights 缩放权重后误判为坍缩。
+	//     避免在 regime_factor_weights 缩放权重后误判为坍缩。
 	// V57 修复: 数据质量为 F 级时（dqi_score<25）视为决策基础不成立,
 	//   强制触发 weights_collapsed,即使 total_weight/max_weight≥0.3.
 	// 根因: 10 个分析师全缺失时,dqi_score=0 意味着分析师层完全无信号,
@@ -1022,8 +1022,16 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 	//   posterior 仍可达到 0.5+,confidence 显示为"中等置信"(60%~70%),
 	//   与"数据质量F级"语义完全矛盾。
 	// 数据质量 F 级阈值(data-quality.rhai line 138-142): score<25 → "F".
+	// V58 修复(2026-07-28): 因子完整度纳入数据质量评估
+	//   A/B 级数据(dqi_score≥65)表示分析师输出可靠,因子缺失不应触发全盘降级
+	//   C/D/F 级数据(dqi_score<65)时,因子缺失+分析师不可靠才触发坍缩
 	let dqi_collapsed = present(dqi_score) && dqi_score < 25.0;
-	let weights_collapsed = (total_weight / max_weight) < 0.3 || untrusted_count >= 2 || dqi_collapsed;
+	let dqi_high_quality = present(dqi_score) && dqi_score >= 65.0;  // A/B 级
+	// 因子权重坍缩阈值与数据质量联动:
+	//   A/B 级: 仅当 total_weight/max_weight<0.15 时触发(因子几乎全缺失)
+	//   C/D/F 级: total_weight/max_weight<0.3 时触发(因子+分析师双重不可靠)
+	let weight_collapse_threshold = if dqi_high_quality { 0.15 } else { 0.3 };
+	let weights_collapsed = (total_weight / max_weight) < weight_collapse_threshold || untrusted_count >= 2 || dqi_collapsed;
 	let partial_degraded = untrusted_count == 1;
 	// 三级降级策略（C2.1 修复：原二级退化为单级，现恢复三分支）
 	//   分支 A: weights_collapsed → 0% 仓位 + confidence × 0.5

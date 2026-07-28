@@ -411,9 +411,23 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
     // content JSON 作为最终决策，确保前端 DB 展示与质量门禁路径一致。
     if let Some(qf) = wf.results.get("quality-fallback") {
         if let Some(content_str) = qf.get("content").and_then(|v| v.as_str()) {
-            // quality-fallback 输出格式: {"action":"持有/减持/卖出","positionPct":0-20,"reasoning":"..."}
-            if serde_json::from_str::<serde_json::Value>(content_str).is_ok() {
-                return Some(content_str.to_string());
+            // quality-fallback 输出格式: {"action":"持有/减持/卖出","positionPct":0-20,"confidence":20-40,"riskLevel":"高风险","reasoning":"..."}
+            // P0 修复: 若 LLM 未严格遵循 prompt 缺失 confidence/riskLevel 字段，补充合理保守默认值
+            if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(content_str) {
+                if let Some(obj) = v.as_object_mut() {
+                    if !obj.contains_key("confidence") {
+                        obj.insert("confidence".to_string(), json!(30.0));
+                    }
+                    if !obj.contains_key("riskLevel") {
+                        obj.insert("riskLevel".to_string(), json!("高风险"));
+                    }
+                    if !obj.contains_key("decisionConfidence") {
+                        if let Some(c) = obj.get("confidence").and_then(|c| c.as_f64()) {
+                            obj.insert("decisionConfidence".to_string(), json!(c));
+                        }
+                    }
+                }
+                return Some(v.to_string());
             }
         }
     }
@@ -437,8 +451,8 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
             let mut fallback = serde_json::Map::new();
             fallback.insert("action".to_string(), json!("观望"));
             fallback.insert("positionPct".to_string(), json!(0));
-            fallback.insert("confidence".to_string(), json!(0.0));
-            fallback.insert("riskLevel".to_string(), json!("低"));
+            fallback.insert("confidence".to_string(), json!(50.0));
+            fallback.insert("riskLevel".to_string(), json!("中风险"));
             fallback.insert("timeHorizon".to_string(), json!("短期"));
             fallback.insert(
                 "reasoning".to_string(),
@@ -494,8 +508,8 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
             let mut fallback = serde_json::Map::new();
             fallback.insert("action".to_string(), json!("观望"));
             fallback.insert("positionPct".to_string(), json!(0));
-            fallback.insert("confidence".to_string(), json!(0.0));
-            fallback.insert("riskLevel".to_string(), json!("低"));
+            fallback.insert("confidence".to_string(), json!(50.0));
+            fallback.insert("riskLevel".to_string(), json!("中风险"));
             fallback.insert("timeHorizon".to_string(), json!("短期"));
             fallback.insert(
                 "reasoning".to_string(),
@@ -1567,6 +1581,34 @@ pub async fn rerun_decision(
     engine.register_fn("pm_compute_bayes_confidence", |prior: f64, posterior: f64| -> f64 {
         portfolio_formula::compute_bayes_confidence(prior, posterior)
     });
+    // 因子数据完整度：供 data-quality.rhai 评估因子层数据完整度
+    engine.register_fn(
+        "pm_compute_factor_completeness",
+        |total_score: Option<f64>,
+         consensus_score: Option<f64>,
+         catalyst_level: Option<&str>,
+         risk_volatility: Option<f64>,
+         valuation_dcf_upside: Option<f64>,
+         trader_direction: Option<&str>,
+         money_flow_main_net_inflow: Option<f64>,
+         lockup_shareholder_trades_len: Option<i64>,
+         announcements_len: Option<i64>,
+         pace_signal: Option<f64>|
+         -> f64 {
+            portfolio_formula::compute_factor_completeness(
+                total_score,
+                consensus_score,
+                catalyst_level,
+                risk_volatility,
+                valuation_dcf_upside,
+                trader_direction,
+                money_flow_main_net_inflow,
+                lockup_shareholder_trades_len,
+                announcements_len,
+                pace_signal,
+            )
+        },
+    );
     let mut scope = Scope::new();
 
     // ── Gap 2: 注入近期 lessons（reflection_lessons 活跃规则）──

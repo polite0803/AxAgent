@@ -174,6 +174,34 @@ fn register_portfolio_mgr_rhai_functions() {
         engine.register_fn("pm_compute_text_sentiment", |text: &str| -> f64 {
             axagent_astock_data::sentiment::compute_text_sentiment(text).unwrap_or(0.0)
         });
+        // 因子数据完整度：供 data-quality.rhai 评估因子层数据完整度
+        engine.register_fn(
+            "pm_compute_factor_completeness",
+            |total_score: Option<f64>,
+             consensus_score: Option<f64>,
+             catalyst_level: Option<&str>,
+             risk_volatility: Option<f64>,
+             valuation_dcf_upside: Option<f64>,
+             trader_direction: Option<&str>,
+             money_flow_main_net_inflow: Option<f64>,
+             lockup_shareholder_trades_len: Option<i64>,
+             announcements_len: Option<i64>,
+             pace_signal: Option<f64>|
+             -> f64 {
+                portfolio_formula::compute_factor_completeness(
+                    total_score,
+                    consensus_score,
+                    catalyst_level,
+                    risk_volatility,
+                    valuation_dcf_upside,
+                    trader_direction,
+                    money_flow_main_net_inflow,
+                    lockup_shareholder_trades_len,
+                    announcements_len,
+                    pace_signal,
+                )
+            },
+        );
     }));
     tracing::info!(
         "[P1-D10/E13 + P2-B4] portfolio-mgr pm_* + risk-gate + sentiment 函数已注册到共享 Rhai Engine 初始化器"

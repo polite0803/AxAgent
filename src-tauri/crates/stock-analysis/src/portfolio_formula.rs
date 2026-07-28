@@ -9,6 +9,110 @@
 
 use serde::{Deserialize, Serialize};
 
+/// 计算因子数据完整度（0.0 ~ 1.0）。
+///
+/// 用于 data-quality.rhai 评估因子层数据完整度，纳入综合评分。
+/// 每个因子有数据 → +1，无数据 → 0，最终返回比例。
+///
+/// # 参数（10 个因子的数据源）
+/// - `total_score`: t-scoring 技术评分
+/// - `consensus_score`: debate-convergence 共识评分
+/// - `catalyst_level`: a-catalyst 催化剂等级
+/// - `risk_volatility`: t-risk 波动率
+/// - `valuation_dcf_upside`: t-valuation DCF 上行空间
+/// - `trader_direction`: trader 交易方向
+/// - `money_flow_main_net_inflow`: t-hotmoney-data 主力净流入
+/// - `lockup_shareholder_trades_len`: t-lockup-data 股东增减持数量
+/// - `announcements_len`: t-catalyst-data 公告数量
+/// - `pace_signal`: pace-calc PACE 情绪信号
+///
+/// # 返回
+/// 因子完整度比例 [0.0, 1.0]
+#[allow(clippy::too_many_arguments)]
+pub fn compute_factor_completeness(
+    total_score: Option<f64>,
+    consensus_score: Option<f64>,
+    catalyst_level: Option<&str>,
+    risk_volatility: Option<f64>,
+    valuation_dcf_upside: Option<f64>,
+    trader_direction: Option<&str>,
+    money_flow_main_net_inflow: Option<f64>,
+    lockup_shareholder_trades_len: Option<i64>,
+    announcements_len: Option<i64>,
+    pace_signal: Option<f64>,
+) -> f64 {
+    let mut present_count = 0.0;
+    let total_factors = 10.0;
+
+    // f1: 技术面 — totalScore 存在且 > 0
+    if let Some(s) = total_score {
+        if s > 0.0 {
+            present_count += 1.0;
+        }
+    }
+
+    // f2: 共识 — consensusScore 存在且 > 0
+    if let Some(s) = consensus_score {
+        if s > 0.0 {
+            present_count += 1.0;
+        }
+    }
+
+    // f3: 催化剂 — catalyst_level 非空且非"无"
+    if let Some(level) = catalyst_level {
+        let trimmed = level.trim();
+        if !trimmed.is_empty() && trimmed != "无" {
+            present_count += 1.0;
+        }
+    }
+
+    // f4: 风险 — volatility 存在且 > 0
+    if let Some(v) = risk_volatility {
+        if v > 0.0 {
+            present_count += 1.0;
+        }
+    }
+
+    // f5: 估值 — dcf_upside 存在
+    if valuation_dcf_upside.is_some() {
+        present_count += 1.0;
+    }
+
+    // f7: 交易方案 — trader_direction 非空
+    if let Some(dir) = trader_direction {
+        let trimmed = dir.trim();
+        if !trimmed.is_empty() {
+            present_count += 1.0;
+        }
+    }
+
+    // f9: 资金面 — main_net_inflow 存在
+    if money_flow_main_net_inflow.is_some() {
+        present_count += 1.0;
+    }
+
+    // f10: 筹码面 — shareholder_trades 数组长度 > 0
+    if let Some(len) = lockup_shareholder_trades_len {
+        if len > 0 {
+            present_count += 1.0;
+        }
+    }
+
+    // f3 补充: 公告关键词 — announcements 数组长度 > 0
+    if let Some(len) = announcements_len {
+        if len > 0 {
+            present_count += 1.0;
+        }
+    }
+
+    // f11: PACE 情绪 — pace_signal 存在
+    if pace_signal.is_some() {
+        present_count += 1.0;
+    }
+
+    present_count / total_factors
+}
+
 // ── 证据缩放 ──
 
 /// 非线性证据缩放系数。

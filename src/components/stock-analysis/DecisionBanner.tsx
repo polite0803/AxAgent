@@ -508,7 +508,11 @@ export function DecisionBanner() {
   })();
   const isContradictory = isBackendContradictory || isConsensusContradictory;
 
-  const confidencePct = Math.round(decision.confidence ?? 0);
+  // V50 修复: 优先使用双视角一致性调制后的 adjustedConfidence（若存在且有效），否则使用原始 confidence
+  const rawConfidence = decision.adjustedConfidence != null && decision.adjustedConfidence >= 0
+    ? decision.adjustedConfidence
+    : decision.confidence;
+  const confidencePct = Math.round(Math.max(0, Math.min(100, rawConfidence ?? 0)));
   const meterColor = confidencePct >= 70
     ? "var(--sa-green)"
     : confidencePct >= 45
@@ -1563,6 +1567,39 @@ export function DecisionBanner() {
               <div className="text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
                 {dataQualityReport.summary}
               </div>
+              {/* 因子完整度面板 */}
+              {dataQualityReport.factor_completeness_pct !== undefined && (
+                <div className="mb-3 p-2 rounded" style={{ background: "var(--surface)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold">📊 因子完整度</span>
+                    <span
+                      className="text-xs font-mono"
+                      style={{
+                        color: dataQualityReport.factor_completeness_pct >= 70
+                          ? "#10b981"
+                          : dataQualityReport.factor_completeness_pct >= 40
+                          ? "#f59e0b"
+                          : "#ef4444",
+                      }}
+                    >
+                      {dataQualityReport.factor_completeness_pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  {dataQualityReport.missing_factors && dataQualityReport.missing_factors.length > 0 && (
+                    <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                      <span className="font-medium">缺失因子：</span>
+                      <span className="ml-1" style={{ color: "#ef4444" }}>
+                        {dataQualityReport.missing_factors.join("、")}
+                      </span>
+                    </div>
+                  )}
+                  {(!dataQualityReport.missing_factors || dataQualityReport.missing_factors.length === 0) && (
+                    <div className="text-xs" style={{ color: "#10b981" }}>
+                      ✓ 所有因子数据完整
+                    </div>
+                  )}
+                </div>
+              )}
               <Collapse
                 ghost
                 defaultActiveKey={dataQualityReport.grade === "F" || dataQualityReport.grade === "D" ? ["diag"] : []}
