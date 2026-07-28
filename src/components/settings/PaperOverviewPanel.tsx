@@ -254,7 +254,7 @@ export function PaperOverviewPanel() {
     <div className="paper-overview-panel">
       <SettingsGroup title={t("paper.title")}>
         <div style={{ padding: 4 }}>
-          <Space direction="vertical" style={{ width: "100%" }}>
+          <Space orientation="vertical" style={{ width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Text style={{ width: 100 }}>{t("knowledgeGraph.title")}</Text>
               <Select
@@ -305,7 +305,7 @@ export function PaperOverviewPanel() {
                         </Space>
                       }
                       description={
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                           {overview.tlDr && (
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               {overview.tlDr}

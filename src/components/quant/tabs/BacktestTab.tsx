@@ -104,7 +104,7 @@ export function BacktestTab() {
   const wf = currentRun?.walkForward;
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Card title={t("quant.backtest.title")} size="small">
         <Form layout="vertical" size="small">
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))" }}>
@@ -156,7 +156,7 @@ export function BacktestTab() {
             </Form.Item>
           </div>
 
-          <Space direction="vertical" size="small" style={{ marginTop: 8 }}>
+          <Space orientation="vertical" size="small" style={{ marginTop: 8 }}>
             <Checkbox
               checked={draft.walkForwardEnabled ?? true}
               onChange={(e) => setDraft({ walkForwardEnabled: e.target.checked })}
@@ -483,7 +483,7 @@ function WalkForwardPanel({
             </Space>
           ),
           children: (
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <Table<WalkForwardFold>
                 size="small"
                 columns={foldColumns}

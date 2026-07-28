@@ -97,7 +97,7 @@ function ReadingItemRow({
           </Space>
         }
         description={
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             {item.notes && (
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {item.notes}
@@ -539,7 +539,7 @@ export function ReadingListSettings() {
                         </Space>
                       }
                       description={
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                           {list.description && (
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               {list.description}

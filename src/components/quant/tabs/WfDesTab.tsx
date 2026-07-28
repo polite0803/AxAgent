@@ -199,7 +199,7 @@ export function WfDesTab() {
   };
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Card title={t("quant.wfDes.title")} size="small">
         <Form layout="vertical" size="small">
           <div
@@ -315,7 +315,7 @@ export function WfDesTab() {
               />
             </Form.Item>
             <Form.Item label={t("quant.wfDes.referencePrice")}>
-              <Space direction="vertical" size="small" style={{ width: "100%" }}>
+              <Space orientation="vertical" size="small" style={{ width: "100%" }}>
                 <Checkbox
                   checked={draft.autoReferencePrice}
                   onChange={(e) => setField("autoReferencePrice", e.target.checked)}
@@ -405,7 +405,7 @@ function WfDesReportView({ report }: { report: WfDesReport }) {
   const dev = report.deviation;
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
       <Card title={t("quant.wfDes.resultTitle")} size="small">
         <Space size="middle" wrap>
           <Tag color="blue">

@@ -147,7 +147,7 @@ function UploadSection({ onSubmit, submitting }: UploadSectionProps) {
 
   return (
     <Card title={t("screenshotDiagnosis.uploadTitle")} style={{ marginBottom: 16 }}>
-      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         <Upload
           accept="image/png,image/jpeg"
           showUploadList={false}
@@ -258,7 +258,7 @@ function RiskMetrics({ diagnosis }: RiskMetricsProps) {
         </Col>
         <Col span={8}>
           <Card size="small" title={t("screenshotDiagnosis.defenseAndExposure")}>
-            <Space direction="vertical" style={{ width: "100%" }}>
+            <Space orientation="vertical" style={{ width: "100%" }}>
               <div>
                 <Text type="secondary">{t("screenshotDiagnosis.defenseRatio")}:</Text>
                 <Text>{formatPct(d.defenseRatio)}</Text>
@@ -543,7 +543,7 @@ export function ScreenshotDiagnosisDashboard() {
         okText={t("screenshotDiagnosis.confirmConvert")}
         cancelText={t("common.cancel")}
       >
-        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
           <div>
             <Text type="secondary">{t("screenshotDiagnosis.portfolioName")}:</Text>
             <Input

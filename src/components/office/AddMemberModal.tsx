@@ -142,7 +142,7 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
         </Space>
       }
       width={560}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}

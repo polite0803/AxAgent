@@ -46,7 +46,7 @@ export function RhaiEditorTab() {
   };
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Card title={t("quant.rhai.title")} size="small">
         <Paragraph type="secondary">{t("quant.rhai.hint")}</Paragraph>
         <Form layout="vertical" size="small">

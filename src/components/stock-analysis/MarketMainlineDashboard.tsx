@@ -353,7 +353,7 @@ export function MarketMainlineDashboard() {
         confirmLoading={submitting}
         width={600}
       >
-        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
           <Row gutter={8}>
             <Col span={12}>
               <Text>{t("marketMainline.form.date", "日期")}</Text>

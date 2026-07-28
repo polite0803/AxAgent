@@ -257,7 +257,12 @@ impl VendorRouting {
                 "baidu_stock".into(),
                 "neodata".into(),
             ],
-            search_news: vec!["eastmoney".into(), "browser_eastmoney".into(), "akshare".into(), "neodata".into()],
+            search_news: vec![
+                "eastmoney".into(),
+                "browser_eastmoney".into(),
+                "akshare".into(),
+                "neodata".into(),
+            ],
             margin: vec!["eastmoney".into(), "browser_eastmoney".into(), "baidu_stock".into()],
             north_bound: vec!["eastmoney".into(), "browser_eastmoney".into(), "baidu_stock".into()],
             sector: vec![

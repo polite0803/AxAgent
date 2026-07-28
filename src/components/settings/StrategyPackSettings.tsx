@@ -208,7 +208,7 @@ strategies:
       dataIndex: "name",
       key: "name",
       render: (text: string, record: StrategyPackInfo) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{text}</Text>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {record.id} · v{record.version}

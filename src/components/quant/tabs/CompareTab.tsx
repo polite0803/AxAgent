@@ -73,7 +73,7 @@ export function CompareTab() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="large" style={{ width: "100%" }}>
       <Card title={t("quant.compare.title")} size="small">
         <Paragraph type="secondary">{t("quant.compare.selectRuns")}</Paragraph>
         <Space wrap size={6} style={{ marginBottom: 12 }}>

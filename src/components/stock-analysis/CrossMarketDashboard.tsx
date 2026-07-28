@@ -145,7 +145,7 @@ export function CrossMarketDashboard() {
 
   return (
     <div style={{ padding: 16 }}>
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Space orientation="vertical" size="large" style={{ width: "100%" }}>
         <div>
           <Title level={4}>{t("crossMarket.title")}</Title>
           <Paragraph type="secondary">{t("crossMarket.subtitle")}</Paragraph>

@@ -58,7 +58,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
       onCancel={handleClose}
       width={700}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Input variables form */}

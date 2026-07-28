@@ -119,7 +119,7 @@ export function MarketSimPanel() {
       {loading && (
         <Card size="small">
           <div className="flex items-center justify-center py-8">
-            <Space direction="vertical" align="center">
+            <Space orientation="vertical" align="center">
               <Spin size="large" />
               <span className="text-secondary text-sm">{t("stockAnalysis.marketSimPanel.desRunning")}</span>
             </Space>

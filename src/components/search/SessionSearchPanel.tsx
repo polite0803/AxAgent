@@ -235,7 +235,7 @@ export function SessionSearchPanel({
           {showFilters && (
             <Card size="small" style={{ marginBottom: 8 }}>
               <Space
-                direction="vertical"
+                orientation="vertical"
                 style={{ width: "100%" }}
                 size="small"
               >

@@ -101,7 +101,7 @@ export function CreateFleetModal({ open, onClose }: CreateFleetModalProps) {
         </Space>
       }
       width={520}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form
         form={form}

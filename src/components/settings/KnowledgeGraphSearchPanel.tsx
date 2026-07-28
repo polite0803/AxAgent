@@ -126,7 +126,7 @@ export function KnowledgeGraphSearchPanel() {
     <div className="knowledge-graph-panel">
       <SettingsGroup title={t("knowledgeGraph.search")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 4 }}>
-          <Space direction="vertical" style={{ width: "100%" }}>
+          <Space orientation="vertical" style={{ width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Text style={{ width: 100 }}>{t("knowledgeGraph.title")}</Text>
               <Select

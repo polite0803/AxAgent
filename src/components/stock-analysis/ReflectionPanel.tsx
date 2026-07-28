@@ -413,7 +413,7 @@ export function ReflectionPanel() {
         size="small"
         style={{ marginBottom: 16 }}
       >
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Space wrap>
             <Input
               placeholder={t("stockAnalysis.reflection.placeholderCode")}
@@ -461,7 +461,7 @@ export function ReflectionPanel() {
 
       {/* 定时校验配置 */}
       <Card title={t("stockAnalysis.reflection.scheduleTitle")} size="small" style={{ marginBottom: 16 }}>
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           <Space>
             <Switch checked={isEnabled} onChange={toggleCron} />
             <Text>{t("stockAnalysis.reflection.scheduleDesc")}</Text>
@@ -1014,7 +1014,7 @@ function ExpandedReflectionRow(
 
   return (
     <div style={{ padding: "8px 0" }}>
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space orientation="vertical" style={{ width: "100%" }}>
         <Space wrap>
           <Tag color="red">{row.actualOutcome}</Tag>
           <Tag>

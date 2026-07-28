@@ -81,7 +81,7 @@ function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
       }
       style={{ marginTop: 12 }}
     >
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space orientation="vertical" style={{ width: "100%" }}>
         {alerts.map((alert, idx) => (
           <div key={idx}>
             <Tag color={severityColor(alert.severity)}>{alert.severity}</Tag>
@@ -114,7 +114,7 @@ function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
       }
       style={{ marginTop: 12 }}
     >
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space orientation="vertical" style={{ width: "100%" }}>
         {catalysts.map((cat, idx) => (
           <div key={idx}>
             <Tag color={cat.direction === "利好" ? "red" : "green"}>{cat.direction}</Tag>
@@ -152,7 +152,7 @@ function ChecklistSection({ items }: { items: ChecklistItem[] }) {
       }
       style={{ marginTop: 12 }}
     >
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space orientation="vertical" style={{ width: "100%" }}>
         {items.map((item, idx) => (
           <Checkbox key={idx} checked={item.checked} disabled>
             <Tag>{item.category}</Tag>
@@ -228,7 +228,7 @@ export function DashboardReportPreview({ report }: { report: DashboardReport }) 
 
       {/* 2. 买卖点位 */}
       <Card size="small" title={t("stockAnalysis.dashboard.buySellPoints")} style={{ marginTop: 12 }}>
-        <Space direction="vertical" style={{ width: "100%" }}>
+        <Space orientation="vertical" style={{ width: "100%" }}>
           {report.buyPointLow !== null && report.buyPointLow !== undefined
             && report.buyPointHigh !== null
             && report.buyPointHigh !== undefined && (

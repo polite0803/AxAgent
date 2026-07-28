@@ -90,7 +90,7 @@ function RoleCard({ role, selected, onSelect }: RoleCardProps) {
         cursor: "pointer",
       }}
     >
-      <Space direction="vertical" style={{ width: "100%" }} size="small">
+      <Space orientation="vertical" style={{ width: "100%" }} size="small">
         <Space style={{ width: "100%", justifyContent: "space-between" }}>
           <Tag color={roleColor(role.id)} style={{ margin: 0 }}>
             {roleInitial(role.name)}
@@ -211,7 +211,7 @@ function DelegateForm({ roles, onSubmit, submitting }: DelegateFormProps) {
 
   return (
     <Card title={t("multiAgent.delegateTitle")} style={{ marginBottom: 16 }}>
-      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      <Space orientation="vertical" style={{ width: "100%" }} size="middle">
         {/* 角色选择 */}
         <div>
           <Text type="secondary">{t("multiAgent.selectRole")}</Text>
@@ -349,7 +349,7 @@ function HistoryItem({ entry }: HistoryItemProps) {
   const { t } = useTranslation();
   return (
     <Card size="small" style={{ marginBottom: 8 }}>
-      <Space direction="vertical" style={{ width: "100%" }} size="small">
+      <Space orientation="vertical" style={{ width: "100%" }} size="small">
         <Space style={{ width: "100%", justifyContent: "space-between" }}>
           <Space>
             <Tag color={roleColor(entry.roleName)}>{entry.roleName}</Tag>

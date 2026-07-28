@@ -516,7 +516,7 @@ export function PaperPortfolioDashboard() {
           </Empty>
         )
         : (
-          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <Space orientation="vertical" size="large" style={{ width: "100%" }}>
             {activeDetails.map((d) => (
               <PortfolioCard
                 key={d.id}

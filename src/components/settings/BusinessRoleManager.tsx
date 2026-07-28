@@ -290,7 +290,7 @@ export function BusinessRoleManager() {
         width={640}
         okText={t("common.save")}
         cancelText={t("common.cancel")}
-        destroyOnClose
+        destroyOnHidden
       >
         <div
           style={{

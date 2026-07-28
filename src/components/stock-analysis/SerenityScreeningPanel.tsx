@@ -839,7 +839,7 @@ export function SerenityScreeningPanel() {
           className="w-full"
           styles={{ body: { maxHeight: 360, overflowY: "auto" } }}
         >
-          <Space direction="vertical" className="w-full" size={4}>
+          <Space orientation="vertical" className="w-full" size={4}>
             {steps.map((s, i) => {
               const isExpanded = expandedSteps.has(i);
               const statusColor = s.status === "completed"
@@ -936,7 +936,7 @@ export function SerenityScreeningPanel() {
       {/* 趋势摘要 */}
       {trends.length > 0 && !running && (
         <Card size="small" title={t("serenityPanel.trendTitle")} className="w-full">
-          <Space direction="vertical" className="w-full">
+          <Space orientation="vertical" className="w-full">
             {trends.map((tr, i) => (
               <div key={i} className="flex items-center gap-2 text-sm">
                 <Tag color="purple">{tr.confidence ?? "?"}%</Tag>
