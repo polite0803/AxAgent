@@ -18,7 +18,6 @@ const PAGE_LABELS: Record<string, string> = {
   "/files": "nav.files",
   "/workflow": "nav.workflow",
   "/dynamic-ui": "nav.dynamicUI",
-  "/wiki": "nav.wiki",
   "/terminal": "nav.terminal",
 };
 
@@ -33,9 +32,6 @@ function resolvePageLabel(pathname: string): string | null {
     return "nav.devTools";
   }
   if (pathname.startsWith("/llm-wiki")) {
-    return "nav.wiki";
-  }
-  if (pathname.startsWith("/wiki/")) {
     return "nav.wiki";
   }
   return null;

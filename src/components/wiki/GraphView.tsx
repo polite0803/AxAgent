@@ -12,9 +12,33 @@
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import type { LayoutRequest, WorkerOutbound } from "@/components/wiki/graphLayout.worker";
-import { Card, Empty, Input, Segmented, Select, Space, Tag, theme, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Empty,
+  Input,
+  Popover,
+  Segmented,
+  Select,
+  Space,
+  Tag,
+  theme,
+  Tooltip as AntTooltip,
+  Typography,
+} from "antd";
 import Graph from "graphology";
-import { Download, Fullscreen, Maximize2, Minimize2, RefreshCw, Search, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Download,
+  Fullscreen,
+  Info,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Sigma from "sigma";
@@ -264,6 +288,9 @@ function GraphViewInner({
   const [searchTerm, setSearchTerm] = useState("");
   const [hiddenEdgeTypes, setHiddenEdgeTypes] = useState<Set<GraphEdgeType>>(new Set());
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const nodeColors = useMemo(() => getNodeColorMap(token), [token]);
 
@@ -670,277 +697,265 @@ function GraphViewInner({
       {/* sigma 渲染容器：100% 填充父级 */}
       <div style={{ width: "100%", height: "100%" }} />
 
-      {/* 左上：过滤面板 */}
+      {/* 左上角小按钮组 */}
       <div
         style={{
           position: "absolute",
-          top: 12,
-          left: 12,
+          top: 8,
+          left: 8,
           zIndex: 10,
-          minWidth: 220,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
         }}
       >
-        <Card
-          size="small"
-          style={{
-            borderRadius: 10,
-            backdropFilter: "blur(12px)",
-            background: `${token.colorBgContainer}ee`,
-            border: `1px solid ${token.colorBorderSecondary}40`,
-          }}
+        {/* 筛选按钮 */}
+        <Popover
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          trigger="click"
+          placement="bottomLeft"
+          arrow={false}
+          overlayInnerStyle={{ padding: "10px 12px" }}
+          overlayStyle={{ width: 260 }}
+          content={
+            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Typography.Text strong style={{ fontSize: 12 }}>{t("wiki.graph.filters")}</Typography.Text>
+                <Segmented
+                  size="small"
+                  value={layoutMode}
+                  onChange={(v) => setLayoutMode(v as LayoutMode)}
+                  options={[
+                    { label: "F", value: "force" },
+                    { label: "R", value: "radial" },
+                    { label: "D", value: "hierarchy" },
+                  ]}
+                />
+              </div>
+              <Input
+                size="small"
+                prefix={<Search size={12} />}
+                placeholder={t("wiki.searchGraph")}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                allowClear
+              />
+              <Select
+                mode="multiple"
+                placeholder={t("wiki.graph.filterByTags")}
+                style={{ width: "100%" }}
+                allowClear
+                size="small"
+                value={filters?.tags}
+                onChange={(values) => onFiltersChange?.({ tags: values, types: filters?.types })}
+                options={allTags.map((tag) => ({ label: tag, value: tag }))}
+                maxTagCount={2}
+              />
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => {
+                  const activeTypes = filters?.types || [];
+                  const isActive = activeTypes.length === 0 || activeTypes.includes(type);
+                  return (
+                    <Tag
+                      key={type}
+                      color={isActive ? nodeColors[type] : undefined}
+                      style={{
+                        fontSize: 10,
+                        margin: 0,
+                        cursor: "pointer",
+                        opacity: isActive ? 1 : 0.4,
+                        padding: "0 4px",
+                        lineHeight: "18px",
+                      }}
+                      onClick={() => {
+                        const current = new Set(activeTypes);
+                        if (current.has(type)) { current.delete(type); }
+                        else { current.add(type); }
+                        const arr = Array.from(current);
+                        onFiltersChange?.({ types: arr.length > 0 ? arr : undefined, tags: filters?.tags });
+                      }}
+                    >
+                      {type[0].toUpperCase()}
+                      {data.nodes.filter((n) => n.type === type).length}
+                    </Tag>
+                  );
+                })}
+              </div>
+            </Space>
+          }
         >
-          <Space orientation="vertical" size="small" style={{ width: "100%" }}>
-            <div
+          <AntTooltip title={t("wiki.graph.filters")}>
+            <Button
+              size="small"
+              type="text"
+              icon={<SlidersHorizontal size={14} />}
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                width: 28,
+                height: 28,
+                minWidth: 28,
+                padding: 0,
+                borderRadius: 8,
+                background: `${token.colorBgContainer}dd`,
+                backdropFilter: "blur(8px)",
+                border: `1px solid ${token.colorBorderSecondary}40`,
+              }}
+            />
+          </AntTooltip>
+        </Popover>
+      </div>
+
+      {/* 右上角小按钮组 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
+        {/* 统计按钮 */}
+        <Popover
+          open={statsOpen}
+          onOpenChange={setStatsOpen}
+          trigger="click"
+          placement="bottomRight"
+          arrow={false}
+          overlayInnerStyle={{ padding: "10px 12px" }}
+          overlayStyle={{ width: 180 }}
+          content={
+            <Space direction="vertical" size={2} style={{ width: "100%" }}>
+              <Typography.Text type="secondary" style={{ fontSize: 11 }}>{t("wiki.graph.stats")}</Typography.Text>
+              <Typography.Text style={{ fontSize: 11 }}>
+                {t("wiki.graph.nodes")}: {stats.visible}/{stats.total}
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: 11 }}>{t("wiki.graph.edges")}: {stats.edges}</Typography.Text>
+              <Typography.Text style={{ fontSize: 11 }}>
+                {t("wiki.graph.components")}: {componentStats.components}
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: 11 }}>
+                {t("wiki.graph.largestComponent")}: {componentStats.largestSize}
+              </Typography.Text>
+              {layoutRunning && (
+                <Typography.Text type="warning" style={{ fontSize: 11 }}>
+                  ⏳ {t("wiki.graph.layoutRunning")}
+                </Typography.Text>
+              )}
+            </Space>
+          }
+        >
+          <AntTooltip title={t("wiki.graph.stats")}>
+            <Button
+              size="small"
+              type="text"
+              style={{
+                width: 28,
+                height: 28,
+                minWidth: 28,
+                padding: 0,
+                borderRadius: 8,
+                background: `${token.colorBgContainer}dd`,
+                backdropFilter: "blur(8px)",
+                border: `1px solid ${token.colorBorderSecondary}40`,
+                fontSize: 10,
+                fontWeight: 600,
               }}
             >
-              <Typography.Text strong style={{ fontSize: 12 }}>
-                {t("wiki.graph.filters")}
-              </Typography.Text>
-              <Segmented
-                size="small"
-                value={layoutMode}
-                onChange={(v) => setLayoutMode(v as LayoutMode)}
-                options={[
-                  { label: "Force", value: "force" },
-                  { label: "Radial", value: "radial" },
-                  { label: "Dense", value: "hierarchy" },
-                ]}
-              />
-            </div>
-            <Input
-              size="small"
-              prefix={<Search size={12} />}
-              placeholder={t("wiki.searchGraph")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              allowClear
-            />
-            <Select
-              mode="multiple"
-              placeholder={t("wiki.graph.filterByTags")}
-              style={{ width: "100%" }}
-              allowClear
-              value={filters?.tags}
-              onChange={(values) => onFiltersChange?.({ tags: values, types: filters?.types })}
-              options={allTags.map((tag) => ({ label: tag, value: tag }))}
-              maxTagCount={3}
-            />
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {(["note", "concept", "entity", "source"] as GraphNodeType[]).map((type) => {
-                const activeTypes = filters?.types || [];
-                const isActive = activeTypes.length === 0 || activeTypes.includes(type);
+              {stats.total}
+            </Button>
+          </AntTooltip>
+        </Popover>
+      </div>
+
+      {/* 右下角小按钮 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 52,
+          right: 8,
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
+        <Popover
+          open={legendOpen}
+          onOpenChange={setLegendOpen}
+          trigger="click"
+          placement="topRight"
+          arrow={false}
+          overlayInnerStyle={{ padding: "8px 10px" }}
+          content={
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10 }}>
+              {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
+                const s = edgeTypeStyles[et];
+                const isHidden = hiddenEdgeTypes.has(et);
                 return (
-                  <Tag
-                    key={type}
-                    color={isActive ? nodeColors[type] : undefined}
+                  <span
+                    key={et}
                     style={{
-                      fontSize: 12,
-                      margin: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
                       cursor: "pointer",
-                      opacity: isActive ? 1 : 0.4,
+                      opacity: isHidden ? 0.3 : 1,
+                      textDecoration: isHidden ? "line-through" : "none",
                     }}
                     onClick={() => {
-                      const current = new Set(activeTypes);
-                      if (current.has(type)) {
-                        current.delete(type);
-                      } else {
-                        current.add(type);
-                      }
-                      const arr = Array.from(current);
-                      onFiltersChange?.({
-                        types: arr.length > 0 ? arr : undefined,
-                        tags: filters?.tags,
-                      });
-                    }}
-                  >
-                    {type}: {data.nodes.filter((n) => n.type === type).length}
-                  </Tag>
-                );
-              })}
-            </div>
-            {communities && communities.size > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 4,
-                  flexWrap: "wrap",
-                  marginTop: 4,
-                }}
-              >
-                <Typography.Text
-                  type="secondary"
-                  style={{ fontSize: 10, width: "100%" }}
-                >
-                  {t("wiki.graph.communities")}
-                </Typography.Text>
-                {Array.from(new Set(communities.values()))
-                  .slice(0, 8)
-                  .map((cid) => (
-                    <Tag
-                      key={cid}
-                      color={communityPalette[cid % communityPalette.length]}
-                      style={{ fontSize: 10 }}
-                    >
-                      C{cid}
-                    </Tag>
-                  ))}
-              </div>
-            )}
-          </Space>
-        </Card>
-      </div>
-
-      {/* 右上：统计面板 */}
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 12,
-          zIndex: 10,
-        }}
-      >
-        <Card
-          size="small"
-          style={{
-            borderRadius: 10,
-            backdropFilter: "blur(12px)",
-            background: `${token.colorBgContainer}ee`,
-            border: `1px solid ${token.colorBorderSecondary}40`,
-          }}
-        >
-          <Space orientation="vertical" size="small">
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {t("wiki.graph.stats")}
-            </Typography.Text>
-            <Typography.Text style={{ fontSize: 12 }}>
-              {t("wiki.graph.nodes")}: {stats.visible} / {stats.total}
-            </Typography.Text>
-            <Typography.Text style={{ fontSize: 12 }}>
-              {t("wiki.graph.edges")}: {stats.edges}
-            </Typography.Text>
-            <Typography.Text style={{ fontSize: 11 }}>
-              {t("wiki.graph.components")}: {componentStats.components}
-            </Typography.Text>
-            <Typography.Text style={{ fontSize: 11 }}>
-              {t("wiki.graph.largestComponent")}: {componentStats.largestSize}
-            </Typography.Text>
-            <Typography.Text style={{ fontSize: 11 }}>
-              {t("wiki.graph.avgDegree")}: {componentStats.avgDegree}
-            </Typography.Text>
-            {layoutRunning && (
-              <Typography.Text type="warning" style={{ fontSize: 11 }}>
-                ⏳ {t("wiki.graph.layoutRunning")}
-              </Typography.Text>
-            )}
-            {effectiveHighlights && effectiveHighlights.size > 0 && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {t("wiki.graph.highlighted")}: {effectiveHighlights.size}
-              </Typography.Text>
-            )}
-          </Space>
-        </Card>
-      </div>
-
-      {/* 右下：图例 */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 12,
-          right: 12,
-          zIndex: 10,
-        }}
-      >
-        <Card
-          size="small"
-          style={{
-            borderRadius: 10,
-            backdropFilter: "blur(12px)",
-            background: `${token.colorBgContainer}ee`,
-            border: `1px solid ${token.colorBorderSecondary}40`,
-            padding: "4px 8px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              fontSize: 10,
-            }}
-          >
-            {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
-              const s = edgeTypeStyles[et];
-              const isHidden = hiddenEdgeTypes.has(et);
-              return (
-                <span
-                  key={et}
-                  role="checkbox"
-                  aria-checked={!isHidden}
-                  tabIndex={0}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 3,
-                    cursor: "pointer",
-                    opacity: isHidden ? 0.3 : 1,
-                    textDecoration: isHidden ? "line-through" : "none",
-                  }}
-                  onClick={() => {
-                    setHiddenEdgeTypes((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(et)) { next.delete(et); }
-                      else { next.add(et); }
-                      return next;
-                    });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
                       setHiddenEdgeTypes((prev) => {
                         const next = new Set(prev);
                         if (next.has(et)) { next.delete(et); }
                         else { next.add(et); }
                         return next;
                       });
-                    }
-                  }}
-                >
-                  <svg width="20" height="6">
-                    <line
-                      x1="0"
-                      y1="3"
-                      x2="20"
-                      y2="3"
-                      stroke={resolveColor(s.color)}
-                      strokeWidth={s.width}
-                    />
-                  </svg>
-                  <span style={{ color: resolveColor(s.color) }}>
-                    {t(edgeTypeLabels[et])}
+                    }}
+                  >
+                    <svg width="18" height="6">
+                      <line x1="0" y1="3" x2="18" y2="3" stroke={resolveColor(s.color)} strokeWidth={s.width} />
+                    </svg>
+                    <span style={{ color: resolveColor(s.color) }}>{t(edgeTypeLabels[et])}</span>
                   </span>
-                </span>
-              );
-            })}
-          </div>
-        </Card>
+                );
+              })}
+            </div>
+          }
+        >
+          <AntTooltip title={t("wiki.graph.legend") || "Legend"}>
+            <Button
+              size="small"
+              type="text"
+              icon={<Info size={14} />}
+              style={{
+                width: 28,
+                height: 28,
+                minWidth: 28,
+                padding: 0,
+                borderRadius: 8,
+                background: `${token.colorBgContainer}dd`,
+                backdropFilter: "blur(8px)",
+                border: `1px solid ${token.colorBorderSecondary}40`,
+              }}
+            />
+          </AntTooltip>
+        </Popover>
       </div>
 
       {/* 底部中：工具栏 */}
       <div
         style={{
           position: "absolute",
-          bottom: 12,
+          bottom: 8,
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 10,
           display: "flex",
           alignItems: "center",
-          gap: 4,
-          padding: "4px 8px",
+          gap: 2,
+          padding: "2px 6px",
           borderRadius: 20,
           background: `${token.colorBgContainer}ee`,
           backdropFilter: "blur(12px)",

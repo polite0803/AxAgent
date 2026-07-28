@@ -15,11 +15,14 @@
  *   ├────────────────────────────┴─────────────────────────┤
  *   │ 底部成员列表（横向滚动 AgentCard）                  │
  *   └──────────────────────────────────────────────────────┘
+ *
+ * 创建办公室：使用 `App.useApp().modal.confirm` 弹出表单，
+ * 由 antd 内部管理 zIndex，避免受父级 overflow/transform 影响。
  */
 
 import { useOfficeStore } from "@/stores";
 import type { Fleet, FleetMember } from "@/types";
-import { App, Button, Dropdown, Empty, Input, Modal, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
+import { App, Button, Dropdown, Empty, Input, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
 import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, Users, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -48,14 +51,10 @@ export function OfficeTab() {
   const createFleet = useOfficeStore((s) => s.createFleet);
   const updateMemberStatus = useOfficeStore((s) => s.updateMemberStatus);
 
-  const { message: messageApi } = App.useApp();
+  const { modal, message: messageApi } = App.useApp();
 
   const [rightTab, setRightTab] = useState<"chat" | "dm" | "trajectory" | "token">("chat");
   const [dmTarget, setDmTarget] = useState<FleetMember | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createName, setCreateName] = useState("");
-  const [createTemplateSlug, setCreateTemplateSlug] = useState<string>(SCENE_TEMPLATES[0].slug);
-  const [creating, setCreating] = useState(false);
 
   // 初次加载舰队列表
   useEffect(() => {
@@ -97,90 +96,55 @@ export function OfficeTab() {
     void agentSlug;
   };
 
-  const handleCreateFleet = async () => {
-    const name = createName.trim();
-    if (!name) {
-      messageApi.warning(t("office.createFleet.nameRequired"));
-      // 返回 false：Antd v6 会阻止 Modal 自动关闭，让用户继续输入
-      return false;
-    }
-    setCreating(true);
-    try {
-      const fleet = await createFleet({
-        name,
-        sceneTemplateSlug: createTemplateSlug,
-      });
-      if (fleet) {
-        selectFleet(fleet.id);
-        // 重置表单状态 + 关闭 Modal
-        setCreateName("");
-        setCreateTemplateSlug(SCENE_TEMPLATES[0].slug);
-        setCreateOpen(false);
-        return undefined;
-      }
-      messageApi.error(t("office.createFleet.createFailed"));
-      return false;
-    } catch (e) {
-      console.error("[OfficeTab] createFleet error:", e);
-      messageApi.error(t("office.createFleet.createFailed"));
-      return false;
-    } finally {
-      setCreating(false);
-    }
-  };
+  /**
+   * 创建办公室：使用 antd 命令式 modal.confirm 弹窗。
+   * - 由 App.useApp() 拿到 modal 实例，主题/zIndex 自动正确
+   * - 表单状态用 ref 暂存（不进入 React 树，避免 modal 重渲染问题）
+   * - onOk 抛错时 Modal 保持打开（antd 6 行为）
+   */
+  const handleCreateFleet = () => {
+    const formState = {
+      name: "",
+      templateSlug: SCENE_TEMPLATES[0].slug,
+    };
 
-  const renderCreateModal = () => (
-    <Modal
-      title={t("office.createFleet.button")}
-      open={createOpen}
-      onCancel={() => {
-        setCreateOpen(false);
-        setCreateName("");
-        setCreateTemplateSlug(SCENE_TEMPLATES[0].slug);
-      }}
-      onOk={handleCreateFleet}
-      okButtonProps={{ loading: creating }}
-      destroyOnClose
-      maskClosable={false}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div>
-          <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
-            {t("office.createFleet.nameLabel")}
-          </div>
-          <Input
-            autoFocus
-            placeholder={t("office.createFleet.promptName")}
-            value={createName}
-            onChange={(e) => setCreateName(e.target.value)}
-            onPressEnter={handleCreateFleet}
-            maxLength={64}
-          />
-        </div>
-        <div>
-          <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
-            {t("office.createFleet.templateLabel")}
-          </div>
-          <Select
-            value={createTemplateSlug}
-            onChange={setCreateTemplateSlug}
-            options={SCENE_TEMPLATES.map((tpl) => ({
-              value: tpl.slug,
-              label: `${t(`office.scene.${tpl.displayNameKey}`)} · ${tpl.rooms.length} ${
-                t("office.createFleet.roomsUnit")
-              }`,
-            }))}
-            style={{ width: "100%" }}
-          />
-          <div style={{ marginTop: 4, fontSize: 11, color: token.colorTextQuaternary }}>
-            {t(`office.scene.${
-              SCENE_TEMPLATES.find((tpl) => tpl.slug === createTemplateSlug)?.displayNameKey ?? "default_office"
-            }_desc`)}
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
+    modal.confirm({
+      title: t("office.createFleet.button"),
+      width: 480,
+      icon: <Building2 size={18} />,
+      content: (
+        <CreateFleetForm
+          onNameChange={(v) => {
+            formState.name = v;
+          }}
+          onTemplateChange={(v) => {
+            formState.templateSlug = v;
+          }}
+        />
+      ),
+      okText: t("office.createFleet.button"),
+      cancelText: t("common.cancel"),
+      okButtonProps: { type: "primary" },
+      onOk: async () => {
+        const name = formState.name.trim();
+        if (!name) {
+          messageApi.warning(t("office.createFleet.nameRequired"));
+          // 抛错阻止 Modal 关闭，让用户继续输入
+          throw new Error("name required");
+        }
+        const fleet = await createFleet({
+          name,
+          sceneTemplateSlug: formState.templateSlug,
+        });
+        if (fleet) {
+          selectFleet(fleet.id);
+          messageApi.success(t("office.createFleet.createSuccess"));
+          return;
+        }
+        throw new Error("create failed");
+      },
+    });
+  };
 
   // Fleet 下拉菜单项
   const fleetMenuItems = fleets.map((f) => ({
@@ -214,7 +178,7 @@ export function OfficeTab() {
           description={t("office.emptyFleet")}
           styles={{ description: { fontSize: 13, color: token.colorTextQuaternary } }}
         >
-          <Button type="primary" icon={<CirclePlus size={14} />} onClick={() => setCreateOpen(true)}>
+          <Button type="primary" size="large" icon={<CirclePlus size={16} />} onClick={handleCreateFleet}>
             {t("office.createFleet.button")}
           </Button>
         </Empty>
@@ -223,8 +187,19 @@ export function OfficeTab() {
     : (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 12 }}>
         {/* ── 顶部工具栏 ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <Building2 size={16} color={token.colorTextSecondary} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            padding: "8px 12px",
+            background: token.colorBgContainer,
+            borderRadius: 8,
+            border: `1px solid ${token.colorBorderSecondary}`,
+          }}
+        >
+          <Building2 size={16} color={token.colorPrimary} />
           <Dropdown menu={{ items: fleetMenuItems }} trigger={["click"]}>
             <Button>
               <span style={{ fontWeight: 500 }}>
@@ -240,8 +215,16 @@ export function OfficeTab() {
               )}
             </Button>
           </Dropdown>
+          {/* 显眼的创建按钮（Primary + 文字 + 圆角） */}
           <Tooltip title={t("office.createFleet.button")}>
-            <Button icon={<CirclePlus size={14} />} onClick={() => setCreateOpen(true)} />
+            <Button
+              type="primary"
+              size="small"
+              icon={<CirclePlus size={14} />}
+              onClick={handleCreateFleet}
+            >
+              {t("office.createFleet.button")}
+            </Button>
           </Tooltip>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {t("office.memberCount", { count: members.length })}
@@ -395,10 +378,68 @@ export function OfficeTab() {
       </div>
     );
 
+  return <>{contentArea}</>;
+}
+
+// ── CreateFleetForm ─────────────────────────────────────────────────
+// modal.confirm 的 content 用 ref 通信，避免 React 树内 state 频繁刷新 Modal
+function CreateFleetForm({
+  onNameChange,
+  onTemplateChange,
+}: {
+  onNameChange: (v: string) => void;
+  onTemplateChange: (v: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const [name, setName] = useState("");
+  const [templateSlug, setTemplateSlug] = useState(SCENE_TEMPLATES[0].slug);
+
   return (
-    <>
-      {contentArea}
-      {renderCreateModal()}
-    </>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.createFleet.nameLabel")}
+        </div>
+        <Input
+          autoFocus
+          placeholder={t("office.createFleet.promptName")}
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            onNameChange(e.target.value);
+          }}
+          onPressEnter={(e) => {
+            // 在 Modal 中按回车不应该触发表单提交以外的行为
+            e.preventDefault();
+          }}
+          maxLength={64}
+        />
+      </div>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.createFleet.templateLabel")}
+        </div>
+        <Select
+          value={templateSlug}
+          onChange={(v) => {
+            setTemplateSlug(v);
+            onTemplateChange(v);
+          }}
+          options={SCENE_TEMPLATES.map((tpl) => ({
+            value: tpl.slug,
+            label: `${t(`office.scene.${tpl.displayNameKey}`)} · ${tpl.rooms.length} ${
+              t("office.createFleet.roomsUnit")
+            }`,
+          }))}
+          style={{ width: "100%" }}
+        />
+        <div style={{ marginTop: 4, fontSize: 11, color: token.colorTextQuaternary }}>
+          {t(`office.scene.${
+            SCENE_TEMPLATES.find((tpl) => tpl.slug === templateSlug)?.displayNameKey ?? "default_office"
+          }_desc`)}
+        </div>
+      </div>
+    </div>
   );
 }

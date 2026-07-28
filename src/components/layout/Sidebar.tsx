@@ -400,7 +400,7 @@ export function Sidebar() {
     sections.push({
       key: "tools",
       labelKey: "sidebar.sectionTools",
-      items: builtinNavItems.filter((n) => n.key === "knowledge" || n.key === "wiki"),
+      items: builtinNavItems.filter((n) => n.key === "knowledge"),
     });
 
     sections.push({

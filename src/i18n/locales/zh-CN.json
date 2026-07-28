@@ -2866,7 +2866,8 @@
       "nameLabel": "办公室名称",
       "templateLabel": "场景模板",
       "roomsUnit": "个房间",
-      "createFailed": "创建办公室失败，请查看控制台日志"
+      "createFailed": "创建办公室失败，请查看控制台日志",
+      "createSuccess": "办公室创建成功"
     },
     "emptyFleet": "尚未创建办公室。点击右上角按钮创建第一个办公室。",
     "memberCount": "{{count}} 个成员",

@@ -2865,8 +2865,9 @@
       "nameRequired": "اسم المكتب لا يمكن أن يكون فارغاً",
       "nameLabel": "اسم المكتب",
       "templateLabel": "قالب المشهد",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "غرف",
+      "createFailed": "فشل إنشاء المكتب. تحقق من وحدة التحكم للتفاصيل.",
+      "createSuccess": "تم إنشاء المكتب"
     },
     "emptyFleet": "لم يتم إنشاء أي مكتب بعد. انقر على الزر أعلى اليمين لإنشاء أول مكتب.",
     "memberCount": "{{count}} أعضاء",

@@ -2865,8 +2865,9 @@
       "nameRequired": "Büroname darf nicht leer sein",
       "nameLabel": "Büroname",
       "templateLabel": "Szenvorlage",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "Räume",
+      "createFailed": "Büro konnte nicht erstellt werden. Details in der Konsole.",
+      "createSuccess": "Büro erstellt"
     },
     "emptyFleet": "Noch kein Büro erstellt. Klicke oben rechts auf den Button, um dein erstes Büro zu erstellen.",
     "memberCount": "{{count}} Mitglieder",

@@ -2866,7 +2866,8 @@
       "nameLabel": "辦公室名稱",
       "templateLabel": "場景模板",
       "roomsUnit": "個房間",
-      "createFailed": "創建辦公室失敗，請查看主控台日誌"
+      "createFailed": "創建辦公室失敗，請查看主控台日誌",
+      "createSuccess": "辦公室建立成功"
     },
     "emptyFleet": "尚未建立辦公室。點擊右上角按鈕建立第一個辦公室。",
     "memberCount": "{{count}} 個成員",

@@ -2865,8 +2865,9 @@
       "nameRequired": "Le nom du bureau ne peut pas être vide",
       "nameLabel": "Nom du bureau",
       "templateLabel": "Modèle de scène",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "salles",
+      "createFailed": "Échec de la création du bureau. Vérifiez la console pour plus de détails.",
+      "createSuccess": "Bureau créé"
     },
     "emptyFleet": "Aucun bureau créé. Cliquez sur le bouton en haut à droite pour créer votre premier bureau.",
     "memberCount": "{{count}} membres",

@@ -2865,8 +2865,9 @@
       "nameRequired": "El nombre de la oficina no puede estar vacío",
       "nameLabel": "Nombre de la oficina",
       "templateLabel": "Plantilla de escena",
-      "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "roomsUnit": "salas",
+      "createFailed": "No se pudo crear la oficina. Revisa la consola para más detalles.",
+      "createSuccess": "Oficina creada"
     },
     "emptyFleet": "No hay oficinas creadas. Haz clic en el botón superior derecho para crear la primera.",
     "memberCount": "{{count}} miembros",

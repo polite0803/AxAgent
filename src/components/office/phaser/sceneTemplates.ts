@@ -3,40 +3,79 @@
 /**
  * Phaser 像素办公室场景模板。
  *
- * 不依赖外部图片资源 — 房间布局通过坐标定义，墙体/家具在 OfficeScene
- * 中用 Phaser Graphics 现场绘制。
+ * 不依赖外部图片资源 — 房间布局/家具/装饰全部用 Phaser Graphics 现场绘制。
  *
  * 坐标系：左上角原点，单位为像素。默认画布 800×500。
+ *
+ * 下游扩展：通过 `registerSceneTemplate()` 追加自定义模板。
+ * AxAgent 自身只提供"基础能力"（默认模板 + 通用家具 + 通用装饰）。
  */
 
+// ── 房间 ──────────────────────────────────────────────
+
 export interface RoomRect {
-  /** 房间 ID（与 FleetMember.roomId 对应） */
   id: string;
-  /** 房间名称的 i18n key 后缀（完整 key 为 `office.room.${suffix}`） */
   nameKey: string;
   x: number;
   y: number;
   width: number;
   height: number;
-  /** 房间主题色（墙体描边），16 进制数字 */
   color: number;
 }
 
-export interface OfficeSceneTemplate {
-  slug: string;
-  /** 显示名称 i18n key 后缀（完整 key 为 `office.scene.${suffix}`） */
-  displayNameKey: string;
-  /** 画布宽度（像素） */
-  canvasWidth: number;
-  /** 画布高度（像素） */
-  canvasHeight: number;
-  /** 房间列表 */
-  rooms: RoomRect[];
-  /** 默认房间 ID（新加入成员的初始位置） */
-  defaultRoomId: string;
+// ── 家具 ──────────────────────────────────────────────
+
+export type FurnitureKind =
+  | "desk"
+  | "chair"
+  | "plant"
+  | "whiteboard"
+  | "shelf"
+  | "sofa"
+  | "rug"
+  | "lamp"
+  | "painting"
+  | "window"
+  | "door";
+
+export interface RoomFurniture {
+  kind: FurnitureKind;
+  x: number;
+  y: number;
+  /** 可选宽度/高度（部分家具有自定义尺寸） */
+  w?: number;
+  h?: number;
+  /** 可选颜色覆盖 */
+  color?: number;
 }
 
-/** 默认办公室模板 — 4 房间布局（适合 5-8 人 AI 团队） */
+// ── 装饰 ──────────────────────────────────────────────
+
+export interface RoomDecoration {
+  kind: "window" | "painting" | "lamp" | "rug" | "door";
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  color?: number;
+}
+
+// ── 模板 ──────────────────────────────────────────────
+
+export interface OfficeSceneTemplate {
+  slug: string;
+  displayNameKey: string;
+  canvasWidth: number;
+  canvasHeight: number;
+  rooms: RoomRect[];
+  defaultRoomId: string;
+  /** 家具（key = roomId） */
+  furniture?: Record<string, RoomFurniture[]>;
+  /** 墙面装饰：窗户/画框/灯（key = roomId） */
+  decorations?: Record<string, RoomDecoration[]>;
+}
+
+/** 默认办公室模板 — 4 房间布局 */
 export const DEFAULT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
   slug: "default_office",
   displayNameKey: "default_office",
@@ -44,74 +83,78 @@ export const DEFAULT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
   canvasHeight: 500,
   defaultRoomId: "workspace",
   rooms: [
-    {
-      id: "workspace",
-      nameKey: "workspace",
-      x: 40,
-      y: 60,
-      width: 360,
-      height: 220,
-      color: 0x1677ff,
-    },
-    {
-      id: "meeting",
-      nameKey: "meeting",
-      x: 440,
-      y: 60,
-      width: 320,
-      height: 180,
-      color: 0x52c41a,
-    },
-    {
-      id: "lounge",
-      nameKey: "lounge",
-      x: 440,
-      y: 280,
-      width: 320,
-      height: 160,
-      color: 0xfa8c16,
-    },
-    {
-      id: "manager",
-      nameKey: "manager",
-      x: 40,
-      y: 320,
-      width: 360,
-      height: 120,
-      color: 0x722ed1,
-    },
+    { id: "workspace", nameKey: "workspace", x: 40, y: 60, width: 360, height: 220, color: 0x1677ff },
+    { id: "meeting", nameKey: "meeting", x: 440, y: 60, width: 320, height: 180, color: 0x52c41a },
+    { id: "lounge", nameKey: "lounge", x: 440, y: 280, width: 320, height: 160, color: 0xfa8c16 },
+    { id: "manager", nameKey: "manager", x: 40, y: 320, width: 360, height: 120, color: 0x722ed1 },
   ],
+  furniture: {
+    workspace: [
+      { kind: "desk", x: 80, y: 130 },
+      { kind: "chair", x: 80, y: 165 },
+      { kind: "desk", x: 220, y: 130 },
+      { kind: "chair", x: 220, y: 165 },
+      { kind: "shelf", x: 310, y: 100 },
+      { kind: "plant", x: 50, y: 80 },
+      { kind: "plant", x: 330, y: 220 },
+    ],
+    meeting: [
+      { kind: "whiteboard", x: 160, y: 80 },
+      { kind: "plant", x: 50, y: 80 },
+      { kind: "plant", x: 280, y: 80 },
+      { kind: "plant", x: 50, y: 150 },
+      { kind: "plant", x: 280, y: 150 },
+      { kind: "rug", x: 160, y: 120, w: 200, h: 80, color: 0x52c41a },
+    ],
+    lounge: [
+      { kind: "sofa", x: 110, y: 80 },
+      { kind: "sofa", x: 240, y: 80 },
+      { kind: "plant", x: 50, y: 130 },
+      { kind: "plant", x: 280, y: 130 },
+      { kind: "rug", x: 160, y: 110, w: 180, h: 60, color: 0xfa8c16 },
+    ],
+    manager: [
+      { kind: "desk", x: 100, y: 70 },
+      { kind: "chair", x: 100, y: 100 },
+      { kind: "shelf", x: 240, y: 60 },
+      { kind: "plant", x: 310, y: 100 },
+    ],
+  },
+  decorations: {
+    workspace: [
+      { kind: "window", x: 320, y: 5, w: 60, h: 40 },
+      { kind: "painting", x: 160, y: 5, w: 40, h: 30 },
+      { kind: "lamp", x: 20, y: 5 },
+    ],
+    meeting: [
+      { kind: "window", x: 120, y: 5, w: 80, h: 35 },
+      { kind: "painting", x: 240, y: 5, w: 40, h: 25 },
+      { kind: "lamp", x: 10, y: 5 },
+    ],
+    lounge: [
+      { kind: "window", x: 120, y: 5, w: 80, h: 30 },
+      { kind: "painting", x: 240, y: 5, w: 50, h: 25 },
+      { kind: "lamp", x: 10, y: 5 },
+    ],
+    manager: [
+      { kind: "window", x: 280, y: 5, w: 50, h: 25 },
+      { kind: "painting", x: 140, y: 5, w: 40, h: 20 },
+      { kind: "lamp", x: 10, y: 5 },
+    ],
+  },
 };
 
-/**
- * 全部内置场景模板（按 slug 索引）。
- *
- * AxAgent 仅提供默认模板作为基础能力；下游业务方可通过向此数组
- * 追加自定义模板（或调用 registerSceneTemplate）来扩展办公室布局。
- */
-export const SCENE_TEMPLATES: OfficeSceneTemplate[] = [
-  DEFAULT_OFFICE_TEMPLATE,
-];
+export const SCENE_TEMPLATES: OfficeSceneTemplate[] = [DEFAULT_OFFICE_TEMPLATE];
 
-/**
- * 注册下游自定义场景模板（可选）。
- *
- * 下游业务方在初始化阶段调用此函数即可追加模板，
- * AxAgent 自身不调用 —— 只提供扩展点。
- */
 export function registerSceneTemplate(template: OfficeSceneTemplate): void {
   if (!SCENE_TEMPLATES.some((t) => t.slug === template.slug)) {
     SCENE_TEMPLATES.push(template);
   }
 }
 
-/** 按 slug 查找模板（前端 fallback 到 default） */
 export function resolveSceneTemplate(slug?: string): OfficeSceneTemplate {
-  if (!slug) {
-    return DEFAULT_OFFICE_TEMPLATE;
-  }
-  const found = SCENE_TEMPLATES.find((t) => t.slug === slug);
-  return found ?? DEFAULT_OFFICE_TEMPLATE;
+  if (!slug) { return DEFAULT_OFFICE_TEMPLATE; }
+  return SCENE_TEMPLATES.find((t) => t.slug === slug) ?? DEFAULT_OFFICE_TEMPLATE;
 }
 
 /** 给定房间与成员数，计算房间内均匀分布的初始坐标 */
@@ -123,14 +166,10 @@ export function distributeMembersInRoom(
   if (memberCount <= 0) {
     return { x: room.x + room.width / 2, y: room.y + room.height / 2 };
   }
-  // 简单网格布局：每行最多 4 个，行间距 50px
   const cols = Math.min(4, memberCount);
   const col = index % cols;
   const row = Math.floor(index / cols);
   const cellW = room.width / (cols + 1);
   const cellH = 50;
-  return {
-    x: room.x + cellW * (col + 1),
-    y: room.y + 40 + row * cellH,
-  };
+  return { x: room.x + cellW * (col + 1), y: room.y + 40 + row * cellH };
 }

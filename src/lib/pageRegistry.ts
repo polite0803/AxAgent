@@ -33,7 +33,6 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   terminal: "/terminal",
   "dynamic-ui": "/dynamic-ui",
   marketplace: "/marketplace",
-  wiki: "/wiki",
   // 以下为历史兼容入口 / devtools 等次要路由，同样收归此处以消除散写硬编码
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",

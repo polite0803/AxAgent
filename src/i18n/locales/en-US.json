@@ -2866,7 +2866,8 @@
       "nameLabel": "Office Name",
       "templateLabel": "Scene Template",
       "roomsUnit": "rooms",
-      "createFailed": "Failed to create office. Check console for details."
+      "createFailed": "Failed to create office. Check console for details.",
+      "createSuccess": "Office created"
     },
     "emptyFleet": "No office created yet. Click the button in the top right to create your first office.",
     "memberCount": "{{count}} members",
