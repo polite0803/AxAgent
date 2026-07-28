@@ -12,103 +12,45 @@
 //! `applicability_tags` 为 JSON 数组字符串(如 `["rust","frontend"]`),
 //! RAG 检索时可按当前任务上下文标签过滤,降低无关记忆干扰。
 //!
-//! 本迁移加两列:
-//! - `applicability_tags TEXT`: JSON 数组字符串,默认 '[]'
-//! - `confirmed INTEGER NOT NULL DEFAULT 0`: 0=未确认, 1=已确认
-//!
-//! ## 幂等
-//!
-//! SQLite: ALTER TABLE 不支持 IF NOT EXISTS,需先查 PRAGMA;
-//! PostgreSQL: 用 `ADD COLUMN IF NOT EXISTS`。
+//! 本迁移曾用 ALTER TABLE 加两列，现在由 v100 PHASE 3.9 全表合规检查统一处理，
+//! 本迁移保留为无操作（兼容历史数据库标记此版本已应用）。
 
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
+use sea_orm::DbErr;
 
-pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    let is_pg = db.get_database_backend() == DbBackend::Postgres;
-
-    if is_pg {
-        db.execute_unprepared(
-            "ALTER TABLE memory_items ADD COLUMN IF NOT EXISTS applicability_tags TEXT DEFAULT '[]'",
-        )
-        .await?;
-        db.execute_unprepared(
-            "ALTER TABLE memory_items ADD COLUMN IF NOT EXISTS confirmed INTEGER NOT NULL DEFAULT 0",
-        )
-        .await?;
-    } else {
-        let existing_cols = existing_columns(&db, "memory_items").await?;
-        if !existing_cols.iter().any(|c| c == "applicability_tags") {
-            db.execute_unprepared(
-                "ALTER TABLE memory_items ADD COLUMN applicability_tags TEXT DEFAULT '[]'",
-            )
-            .await?;
-        }
-        if !existing_cols.iter().any(|c| c == "confirmed") {
-            db.execute_unprepared(
-                "ALTER TABLE memory_items ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0",
-            )
-            .await?;
-        }
-    }
-
+pub async fn up(_db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
+    tracing::info!("[v108] 列定义已由 v100 PHASE 3.9 统一保障，无需 ALTER TABLE");
     Ok(())
-}
-
-/// 查询指定表的所有列名（SQLite 走 PRAGMA，PG 走 information_schema）
-async fn existing_columns(
-    db: &sea_orm::DatabaseConnection,
-    table: &str,
-) -> Result<Vec<String>, DbErr> {
-    let backend = db.get_database_backend();
-    let rows = match backend {
-        DbBackend::Sqlite => {
-            let stmt = Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                "SELECT name FROM pragma_table_info(?)",
-                [table.into()],
-            );
-            db.query_all_raw(stmt).await?
-        },
-        DbBackend::Postgres => {
-            let stmt = Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                "SELECT column_name AS name FROM information_schema.columns \
-                 WHERE table_name = $1",
-                [table.into()],
-            );
-            db.query_all_raw(stmt).await?
-        },
-        _ => return Ok(vec![]),
-    };
-
-    let mut cols = Vec::with_capacity(rows.len());
-    for row in rows {
-        if let Ok(name) = row.try_get_by::<String, _>("name") {
-            cols.push(name);
-        }
-    }
-    Ok(cols)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::Database;
+    use sea_orm::{ConnectionTrait, Database, DbBackend, Statement};
 
     #[tokio::test]
     async fn v108_adds_applicability_and_confirmed_columns() {
         let db = Database::connect("sqlite::memory:").await.unwrap();
-        // 先跑 v100 建 memory_items 表
+        // 先跑 v100（含 PHASE 3.9 合规检查）建 memory_items 表并补全所有列
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        // 再跑 v108
+        // 再跑 v108（现在为 no-op，但应不报错）
         up(db.clone()).await.unwrap();
 
-        let cols = existing_columns(&db, "memory_items").await.unwrap();
-        assert!(
-            cols.iter().any(|c| c == "applicability_tags"),
-            "applicability_tags column should exist"
-        );
-        assert!(cols.iter().any(|c| c == "confirmed"), "confirmed column should exist");
+        // 验证列存在：SELECT 0 行不会报错说明列存在
+        let result = db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                "SELECT applicability_tags FROM memory_items LIMIT 0",
+            ))
+            .await;
+        assert!(result.is_ok(), "applicability_tags column should exist in memory_items");
+
+        let result = db
+            .query_one_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                "SELECT confirmed FROM memory_items LIMIT 0",
+            ))
+            .await;
+        assert!(result.is_ok(), "confirmed column should exist in memory_items");
     }
 
     #[tokio::test]
@@ -116,7 +58,7 @@ mod tests {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
         up(db.clone()).await.unwrap();
-        // 第二次跑：列已存在，应跳过 ALTER，不报错
+        // 第二次跑：v108 现在为 no-op，重复跑不报错
         up(db).await.expect("v108 must be re-runnable in isolation");
     }
 }

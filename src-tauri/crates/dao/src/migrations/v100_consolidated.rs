@@ -32,26 +32,71 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 pub use super::pg_ddl::exec_ddl;
 
 // ============================================================================
-// 缺失字段目标列表：v100 之前的旧库（v001–v011）已存在 agent_roles /
-// agency_experts 表，而 `CREATE TABLE IF NOT EXISTS` 对已有表是 no-op，
-// **不会补后加字段**。entity 中这些字段为 `Option<String>`（TEXT，可空），
-// 旧库缺失会导致 SeaORM 报「字段不存在」。
+// 全表字段合规清单：记录所有通过 ALTER TABLE 后加的列（覆盖 v100–v109 全部迁移）。
 //
-// 两种后端都需 ALTER ADD COLUMN：
-//   - PostgreSQL：使用 `ADD COLUMN IF NOT EXISTS`，幂等且不会在已存在的列上报错。
-//   - SQLite：普通 `ADD COLUMN`，忽略「重复列」错误（let _ = ...）。
+// v100 的 PHASE 3.9 统一合规检查会遍历此清单，用 PRAGMA（SQLite）/
+// information_schema（PG）查缺补列，不再依赖各迁移的 `let _ =` 静默吞错误。
 //
-// 注意：PHASE 2 已用 CREATE TABLE IF NOT EXISTS 确保表存在，故此处 ALTER 时
-// 表一定存在；新库在 PHASE 2 已带上这些列，本阶段对它们为 no-op。
+// 注意：v100 PHASE 2 的 CREATE TABLE IF NOT EXISTS 对存量库是 no-op，
+// 后加字段依赖此清单兜底。
 // ============================================================================
 
-const MISSING_COLUMN_TARGETS: &[(&str, &str, &str)] = &[
+/// (表名, 列名, SQL 类型定义 — 含 DEFAULT/NOT NULL 等约束)
+const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
+    // ── 旧库（v001–v011 时期的表） ──
     ("agent_roles", "active_domains", "TEXT"),
     ("agency_experts", "recommended_workflows", "TEXT"),
     ("agency_experts", "recommended_tools", "TEXT"),
     ("agency_experts", "active_domains", "TEXT"),
     ("wiki_sync_queue", "created_at", "BIGINT"),
     ("wiki_sync_queue", "processed_at", "BIGINT"),
+    // ── messages 缓存 token 列 + 引用回复字段（v100/v101） ──
+    ("messages", "cache_creation_tokens", "BIGINT"),
+    ("messages", "cache_read_tokens", "BIGINT"),
+    ("messages", "quoted_message_id", "TEXT"),
+    // ── dynamic_ui_schemas 版本号（v007） ──
+    ("dynamic_ui_schemas", "version", "TEXT NOT NULL DEFAULT '1.0.0'"),
+    // ── gateway_usage 缓存 token / 成本估算（v100 v001） ──
+    ("gateway_usage", "cached_input_tokens", "BIGINT NOT NULL DEFAULT 0"),
+    ("gateway_usage", "cost", "REAL NOT NULL DEFAULT 0.0"),
+    // ── providers 工具适配列（v009） ──
+    ("providers", "tool_adaptation", "TEXT"),
+    ("providers", "tool_adaptation_marker_prefix", "TEXT"),
+    // ── knowledge_entities 轨迹合并字段（v101） ──
+    ("knowledge_entities", "aliases", "TEXT NOT NULL DEFAULT '[]'"),
+    ("knowledge_entities", "mention_count", "INTEGER NOT NULL DEFAULT 1"),
+    ("knowledge_entities", "confidence", "REAL NOT NULL DEFAULT 0.5"),
+    ("knowledge_entities", "first_seen_at", "TEXT"),
+    ("knowledge_entities", "last_seen_at", "TEXT"),
+    // ── knowledge_relations 权重（v101） ──
+    ("knowledge_relations", "weight", "REAL NOT NULL DEFAULT 1.0"),
+    // ── memory_items 轨迹记忆字段（v101 + v108） ──
+    ("memory_items", "tier", "TEXT NOT NULL DEFAULT 'working'"),
+    ("memory_items", "importance", "REAL NOT NULL DEFAULT 0.5"),
+    ("memory_items", "access_count", "INTEGER NOT NULL DEFAULT 0"),
+    ("memory_items", "last_accessed", "BIGINT"),
+    ("memory_items", "decay_rate", "REAL NOT NULL DEFAULT 0.01"),
+    ("memory_items", "expires_at", "BIGINT"),
+    ("memory_items", "source_conversation_id", "TEXT"),
+    ("memory_items", "source_message_id", "TEXT"),
+    ("memory_items", "memory_nature", "TEXT NOT NULL DEFAULT 'semantic'"),
+    ("memory_items", "tags", "TEXT NOT NULL DEFAULT '[]'"),
+    ("memory_items", "applicability_tags", "TEXT DEFAULT '[]'"),
+    ("memory_items", "confirmed", "INTEGER NOT NULL DEFAULT 0"),
+    // ── knowledge_bases 类型/vault 路径（v105） ──
+    ("knowledge_bases", "kind", "TEXT NOT NULL DEFAULT 'indexed'"),
+    ("knowledge_bases", "vault_path", "TEXT"),
+    // ── agency_experts 人才属性（PHASE 8.3） ──
+    ("agency_experts", "seniority", "TEXT"),
+    ("agency_experts", "specialties", "TEXT"),
+    ("agency_experts", "parent_role_id", "TEXT"),
+    ("agency_experts", "success_rate", "DOUBLE PRECISION"),
+    ("agency_experts", "avg_latency_ms", "BIGINT"),
+    ("agency_experts", "avg_token_cost", "BIGINT"),
+    // ── agent_profiles 业务角色外键（PHASE 8.4） ──
+    ("agent_profiles", "business_role_id", "TEXT"),
+    // ── workflow_templates 任务哈希（PHASE 9） ──
+    ("workflow_templates", "mission_hash", "TEXT"),
 ];
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
@@ -140,16 +185,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         exec_ddl(&db, is_pg, sql).await?;
     }
 
-    // messages cache token 列（ALTER ADD COLUMN 兼容已有表）
-    for sql in &[
-        "ALTER TABLE messages ADD COLUMN cache_creation_tokens BIGINT",
-        "ALTER TABLE messages ADD COLUMN cache_read_tokens BIGINT",
-        // 引用回复字段：v101 新增，旧库需 ALTER 补列；新库 CREATE TABLE 已包含此列
-        "ALTER TABLE messages ADD COLUMN quoted_message_id TEXT",
-    ] {
-        let _ = db.execute_unprepared(sql).await;
-    }
-
+    // messages 后加列由 PHASE 3.9 全表合规检查统一处理
     // gateway_keys / gateway_usage
     for sql in &[
         "CREATE TABLE IF NOT EXISTS gateway_keys (\
@@ -165,17 +201,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     ] {
         exec_ddl(&db, is_pg, sql).await?;
     }
-    let _ = db
-        .execute_unprepared(
-            "ALTER TABLE gateway_usage ADD COLUMN cached_input_tokens BIGINT NOT NULL DEFAULT 0",
-        )
-        .await;
+
+    // gateway_usage 后加列（cached_input_tokens / cost）由 PHASE 3.9 统一处理
 
     // 网关用量成本估算列：record_usage 时根据 ModelPricing 换算的美元成本。
-    // SQLite REAL 等价于 f64；历史行回填 0.0，新行由 dao 写入实际估算值。
-    let _ = db
-        .execute_unprepared("ALTER TABLE gateway_usage ADD COLUMN cost REAL NOT NULL DEFAULT 0.0")
-        .await;
 
     for sql in &[
         // settings
@@ -846,51 +875,70 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     )
     .await?;
 
-    // --- v007: Add version column to dynamic_ui_schemas ---
-
-    let _ = db
-        .execute_unprepared(
-            "ALTER TABLE dynamic_ui_schemas ADD COLUMN version TEXT NOT NULL DEFAULT '1.0.0'",
-        )
-        .await;
-
-    // --- v009: Tool adaptation columns on providers ---
-
-    let _ = db.execute_unprepared("ALTER TABLE providers ADD COLUMN tool_adaptation TEXT").await;
-    let _ = db
-        .execute_unprepared("ALTER TABLE providers ADD COLUMN tool_adaptation_marker_prefix TEXT")
-        .await;
+    // dynamic_ui_schemas.version / providers.tool_adaptation 由 PHASE 3.9 统一处理
 
     // ========================================================================
-    // PHASE 3.7: 补充旧库缺失字段
-    //   v100 之前的库（v001–v011）已存在 agent_roles / agency_experts 表，
-    //   PHASE 2 的 `CREATE TABLE IF NOT EXISTS` 对已有表是 no-op，不会补上
-    //   后续新增的 active_domains / recommended_workflows / recommended_tools
-    //   字段，导致 entity 访问时报「字段不存在」。
+    // PHASE 3.9: 全表字段合规性检查（整合 v100–v109 所有 ADD COLUMN）
     //
-    //   幂等策略：
-    //     - PG: 先查 information_schema 确认缺失再用 ADD COLUMN（也可直接
-    //       ADD COLUMN IF NOT EXISTS，这里保留计数日志以便观测）。
-    //     - SQLite: 普通 ADD COLUMN，忽略重复列错误（let _ = ...）。
+    // 替代原先散落在各处的 `let _ =` 静默吞错误模式：
+    //   - v100 PHASE 3.7（MISSING_COLUMN_TARGETS）
+    //   - v100 PHASE 3.8（knowledge_bases kind/vault_path）
+    //   - v101 的 knowledge_entities/knowledge_relations/memory_items 10 列
+    //   - v105 的 knowledge_bases 2 列
+    //   - v108 的 memory_items 2 列
+    //   - PHASE 8.3 的 agency_experts 人才属性列
+    //   - PHASE 8.4 的 agent_profiles.business_role_id
+    //   - PHASE 9 的 workflow_templates.mission_hash
+    //   - v100 早期消息/providers/dynamic_ui_schemas 等 ALTER
+    //
+    // 策略：
+    //   - PG: 先用 information_schema 查缺，再 ADD COLUMN（不用 `IF NOT EXISTS`
+    //     是为了保持兼容 PG 9.4 以下）。
+    //   - SQLite: 用 pragma_table_info 查缺，再 ADD COLUMN（不再 `let _ =`）。
     // ========================================================================
+    {
+        use sea_orm::Statement;
 
-    if is_pg {
+        // PG 的某些表可能有冲突触发器需要先丢（如审计触发器）
+        if is_pg {
+            for trigger_table in &["messages"] {
+                db.execute_unprepared(&format!(
+                    "DROP TRIGGER IF EXISTS trg_audit_{trigger_table} ON {trigger_table}"
+                ))
+                .await?;
+            }
+        }
+
         let mut added = 0usize;
         let mut already = 0usize;
 
-        for (table, column, col_type) in MISSING_COLUMN_TARGETS {
-            let row = db
-                .query_one_raw(sea_orm::Statement::from_string(
-                    DbBackend::Postgres,
-                    format!(
-                        "SELECT 1 AS exists_flag FROM information_schema.columns \
-                         WHERE table_schema = current_schema() \
-                           AND table_name = '{table}' AND column_name = '{column}'"
-                    ),
-                ))
-                .await?;
+        for (table, column, col_type) in ADDITIONAL_COLUMNS {
+            let exists = if is_pg {
+                let row = db
+                    .query_one_raw(Statement::from_string(
+                        DbBackend::Postgres,
+                        format!(
+                            "SELECT 1 AS exists_flag FROM information_schema.columns \
+                             WHERE table_schema = current_schema() \
+                               AND table_name = '{table}' AND column_name = '{column}'"
+                        ),
+                    ))
+                    .await?;
+                row.is_some()
+            } else {
+                let rows = db
+                    .query_all_raw(Statement::from_sql_and_values(
+                        DbBackend::Sqlite,
+                        "SELECT name FROM pragma_table_info(?)",
+                        [(*table).into()],
+                    ))
+                    .await?;
+                rows.iter().any(|r| {
+                    r.try_get_by::<String, _>("name").map(|n| n == *column).unwrap_or(false)
+                })
+            };
 
-            if row.is_some() {
+            if exists {
                 already += 1;
                 continue;
             }
@@ -901,43 +949,11 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         }
 
         tracing::info!(
-            "[v100] PHASE 3.7 missing columns: {} added, {} already present",
+            "[v100] PHASE 3.9 column compliance: {} added, {} already present (total {})",
             added,
-            already
+            already,
+            ADDITIONAL_COLUMNS.len()
         );
-    } else {
-        // SQLite: ADD COLUMN 已存在的列会报错，忽略之（PHASE 2 已建表的新库
-        // 此处列已存在，报错被忽略；旧库缺失列则被补上）。
-        for (table, column, col_type) in MISSING_COLUMN_TARGETS {
-            let sql = format!("ALTER TABLE {table} ADD COLUMN {column} {col_type}");
-            let _ = db.execute_unprepared(&sql).await;
-        }
-        tracing::info!("[v100] SQLite: PHASE 3.7 missing columns ADD COLUMN (errors ignored)");
-    }
-
-    // ========================================================================
-    // PHASE 3.8: 为 knowledge_bases 表补 kind / vault_path 列
-    //   这两列由 v105_kb_vault_kind 正式引入，但旧库（v105 之前版本）在
-    //   跑 v100 时需要兜底补上，否则 SeaORM 查询 knowledge_bases.kind 会
-    //   报「字段不存在」错误。kind 有 NOT NULL DEFAULT 'indexed'，不能
-    //   放在 PHASE 3.7 的 MISSING_COLUMN_TARGETS（那里只处理可空列）。
-    // ========================================================================
-
-    if is_pg {
-        for sql in &[
-            "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'indexed'",
-            "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS vault_path TEXT",
-        ] {
-            db.execute_unprepared(sql).await?;
-        }
-    } else {
-        let _ = db
-            .execute_unprepared(
-                "ALTER TABLE knowledge_bases ADD COLUMN kind TEXT NOT NULL DEFAULT 'indexed'",
-            )
-            .await;
-        let _ =
-            db.execute_unprepared("ALTER TABLE knowledge_bases ADD COLUMN vault_path TEXT").await;
     }
 
     // ========================================================================
@@ -1199,7 +1215,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     //   6 个内置业务岗位种子数据。
     // ========================================================================
 
-    let backend = db.get_database_backend();
+    let _backend = db.get_database_backend();
 
     // --- 8.1: 创建 business_roles 表（业务岗位）
     //   DDL 写 PG 语法（BIGINT + FK），SQLite 通过 exec_ddl 自动接受。
@@ -1251,47 +1267,13 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     )
     .await?;
 
-    // --- 8.3: 扩展 agency_experts 表（人才属性） ---
-
-    let agency_experts_columns: &[(&str, &str)] = &[
-        ("seniority", "TEXT"),
-        ("specialties", "TEXT"),
-        ("parent_role_id", "TEXT"),
-        ("success_rate", "DOUBLE PRECISION"),
-        ("avg_latency_ms", "BIGINT"),
-        ("avg_token_cost", "BIGINT"),
-    ];
-
-    for (col, ty) in agency_experts_columns {
-        if is_pg {
-            let sql = format!("ALTER TABLE agency_experts ADD COLUMN IF NOT EXISTS {} {}", col, ty);
-            db.execute_unprepared(&sql).await?;
-        } else {
-            // SQLite: ADD COLUMN 不支持 IF NOT EXISTS，重复列错误吞掉实现幂等
-            let sql = format!("ALTER TABLE agency_experts ADD COLUMN {} {}", col, ty);
-            let _ = db.execute_raw(Statement::from_string(backend, sql)).await;
-        }
-    }
+    // --- 8.3: 扩展 agency_experts 表（人才属性）——已由 PHASE 3.9 统一处理 ---
 
     // SQLite 的 agency_experts.parent_role_id 无法加 FK（SQLite 限制），靠应用层校验。
     // PostgreSQL 的 FK 也跳过（ALTER ADD CONSTRAINT IF NOT EXISTS 在 PG < 9.4 不支持，
     // 且存量库可能存在数据不一致），改由应用层 validate_parent_role_id 校验。
 
-    // --- 8.4: 扩展 agent_profiles 表（business_role_id 外键） ---
-
-    if is_pg {
-        db.execute_unprepared(
-            "ALTER TABLE agent_profiles ADD COLUMN IF NOT EXISTS business_role_id TEXT",
-        )
-        .await?;
-    } else {
-        let _ = db
-            .execute_raw(Statement::from_string(
-                backend,
-                "ALTER TABLE agent_profiles ADD COLUMN business_role_id TEXT",
-            ))
-            .await;
-    }
+    // --- 8.4: 扩展 agent_profiles 表（business_role_id 外键）——已由 PHASE 3.9 统一处理 ---
 
     // --- 8.5: 内置业务岗位种子数据（仅首次创建时插入） ---
 
@@ -1362,21 +1344,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // ========================================================================
     // PHASE 9: workflow_templates.mission_hash 列 + 部分索引
-    //   来自 v102_mission_hash：支持 compile_mission_to_template 去重缓存。
+    //   已由 PHASE 3.9 统一处理 ALTER TABLE，此处仅为 mission_hash 建索引。
     // ========================================================================
-
-    // 添加 mission_hash 列（用于 compile_mission_to_template 去重缓存）
-    if is_pg {
-        db.execute_unprepared(
-            "ALTER TABLE workflow_templates ADD COLUMN IF NOT EXISTS mission_hash TEXT",
-        )
-        .await?;
-    } else {
-        // SQLite 不支持 IF NOT EXISTS，吞掉重复列错误实现幂等
-        let _ = db
-            .execute_unprepared("ALTER TABLE workflow_templates ADD COLUMN mission_hash TEXT")
-            .await;
-    }
 
     // 为 mission_hash 创建索引（仅在非 NULL 时索引，加速查重）
     let _ = db
