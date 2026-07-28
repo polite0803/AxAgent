@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke, listen } from "@/lib/invoke";
 import type {
   CreateKnowledgeBaseInput,
@@ -118,7 +119,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       const rows = rawRows.map(normalizeFileRow);
       set({ rows, loading: false });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -136,7 +137,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
     try {
       await invoke("open_files_page_entry", { path });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -149,7 +150,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
     try {
       await invoke("reveal_files_page_entry", { path });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -159,7 +160,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       await invoke("cleanup_missing_files_page_entry", { entryId });
       set((state) => ({ rows: state.rows.filter((r) => r.id !== entryId) }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -170,7 +171,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       const bases = await invoke<KnowledgeBase[]>("list_knowledge_bases");
       set({ bases: Array.isArray(bases) ? bases : [], loading: false, error: null });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -182,7 +183,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       set((s) => ({ bases: [...s.bases, base], error: null }));
       return base;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -198,7 +199,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
         error: null,
       }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -208,7 +209,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       await invoke("delete_knowledge_base", { id });
       set((s) => ({ bases: s.bases.filter((b) => b.id !== id), error: null }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -223,7 +224,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
     try {
       await invoke("reorder_knowledge_bases", { baseIds });
     } catch (e) {
-      set({ bases: prev, error: String(e) });
+      set({ bases: prev, error: translateBackendError(e) });
     }
   },
 
@@ -236,7 +237,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       );
       set({ documents, loading: false, error: null });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -250,7 +251,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       });
       await get().loadDocuments(baseId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -263,7 +264,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       });
       await get().loadDocuments(knowledgeBaseId);
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -279,7 +280,7 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
       await get().loadDocuments(baseId);
       return result;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },

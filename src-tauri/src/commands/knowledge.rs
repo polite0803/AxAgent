@@ -136,6 +136,17 @@ pub async fn update_knowledge_base(
 
 #[tauri::command]
 pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    // 校验 base_id 格式，防止 SQL 注入（与 list_memory_items 一致的规则）
+    if id.is_empty()
+        || id.len() > 128
+        || id.contains(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+    {
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            "Invalid base_id: must be 1-128 alphanumeric/hyphen/underscore characters",
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )));
+    }
+
     // Delete vector collection (vec_kb_{id} and vec_kb_{id}_meta tables)
     let collection_id = format!("kb_{}", id);
     let _ = state.vector_store.delete_collection(&collection_id).await;
@@ -165,10 +176,16 @@ pub async fn kb_connect_vault(
 ) -> Result<KnowledgeBase, String> {
     let path = std::path::Path::new(&vault_path);
     if !path.is_absolute() {
-        return Err("vault_path must be an absolute path".to_string());
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            "vault_path must be an absolute path",
+        ));
     }
     if !path.is_dir() {
-        return Err(format!("vault_path is not a directory: {}", vault_path));
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("vault_path is not a directory: {vault_path}"),
+        ));
     }
 
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &id)
@@ -300,7 +317,7 @@ pub async fn add_knowledge_document(
             "pending",
         )
         .await;
-        crate::index_queue::enqueue_job_sync(
+        if let Err(e) = crate::index_queue::enqueue_job_sync(
             &state,
             &app,
             jobs::JOB_TYPE_INDEX_DOCUMENT,
@@ -309,13 +326,20 @@ pub async fn add_knowledge_document(
             &doc.id,
             None,
             None,
-        )
-        .map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
+        ) {
+            // 入队失败时回滚状态到 "skipped"，避免文档永久卡在 pending
+            let _ = axagent_dao::repo::knowledge::update_document_status_with_error(
+                state.harness.db(),
+                &doc.id,
+                "skipped",
+                Some(&format!("enqueue failed: {e}")),
+            )
+            .await;
+            return Err(String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+            )));
+        }
     }
 
     Ok(doc)
@@ -340,15 +364,24 @@ pub async fn import_knowledge_directory(
 ) -> Result<ImportDirectoryResult, String> {
     let dir = PathBuf::from(&directory_path);
     if !dir.exists() || !dir.is_dir() {
-        return Err(format!("路径不存在或不是目录: {directory_path}"));
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("路径不存在或不是目录: {directory_path}"),
+        ));
     }
 
     let recursive = recursive.unwrap_or(false);
 
     let mut files = Vec::new();
     let mut skipped = Vec::new();
-    collect_importable_files(&dir, recursive, &extensions, &mut files, &mut skipped)
-        .map_err(|e| format!("读取目录失败 {directory_path}: {e}"))?;
+    collect_importable_files(&dir, recursive, &extensions, &mut files, &mut skipped).map_err(
+        |e| {
+            crate::commands::error::ErrorResponse::err_with_detail(
+                crate::commands::error_code::knowledge::IMPORT_DIR_FAILED,
+                format!("读取目录失败 {directory_path}: {e}"),
+            )
+        },
+    )?;
 
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
@@ -411,6 +444,14 @@ pub async fn import_knowledge_directory(
                         None,
                         None,
                     ) {
+                        // 入队失败时回滚状态到 "skipped"，避免文档永久卡在 pending
+                        let _ = axagent_dao::repo::knowledge::update_document_status_with_error(
+                            state.harness.db(),
+                            &doc.id,
+                            "skipped",
+                            Some(&format!("enqueue failed: {e}")),
+                        )
+                        .await;
                         tracing::warn!("[knowledge] 目录导入入队索引失败 {}: {}", doc.id, e);
                     }
                 }
@@ -470,7 +511,9 @@ pub async fn search_knowledge_base(
         ))
     })?;
 
-    // Apply distance threshold filter consistent with collect_rag_context
+    // Apply distance threshold filter consistent with collect_rag_context_from_refs.
+    // score 是 L2 距离（越小越相似）。threshold > 0 时使用用户配置；
+    // threshold == 0（默认）时使用与 rag.rs 一致的默认阈值 20.0，避免前端搜索与 Agent RAG 行为不一致。
     let kb = axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &base_id)
         .await
         .map_err(|e| {
@@ -479,7 +522,7 @@ pub async fn search_knowledge_base(
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
-    let default_max_distance = 2.0_f32;
+    let default_max_distance = 20.0_f32; // 必须与 crates/search/src/rag.rs 中 default_max_distance 保持一致
     let threshold = kb.retrieval_threshold.unwrap_or(0.0);
     let effective_threshold = if threshold > 0.0 {
         threshold
@@ -506,7 +549,11 @@ pub async fn rebuild_knowledge_index(
         ))
     })?;
 
-    let embedding_provider = kb.embedding_provider.ok_or("No embedding provider configured")?;
+    let embedding_provider = kb.embedding_provider.ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
 
     let collection_id = format!("kb_{}", base_id);
 
@@ -656,6 +703,22 @@ pub async fn rebuild_knowledge_index(
                         }),
                     );
                 },
+            }
+        }
+
+        // 兜底：把本 KB 下所有仍处于 "indexing" 状态的文档标记为 "failed"，
+        // 防止中途 panic / 任务取消导致状态永久卡死。
+        if let Ok(stuck_docs) = axagent_dao::repo::knowledge::list_documents(&db, &base_id).await {
+            for doc in &stuck_docs {
+                if doc.indexing_status == "indexing" {
+                    let _ = axagent_dao::repo::knowledge::update_document_status_with_error(
+                        &db,
+                        &doc.id,
+                        "failed",
+                        Some("rebuild task terminated unexpectedly"),
+                    )
+                    .await;
+                }
             }
         }
 
@@ -873,7 +936,9 @@ pub async fn clear_knowledge_index(
         ))
     })?;
 
-    // Reset all documents to "pending"
+    // 清空索引后把文档状态重置为 "skipped"（而非 "pending"），
+    // 避免文档永久卡在 pending 但无索引任务可执行。
+    // 用户如需重新索引，可调用 rebuild_knowledge_index。
     let docs = axagent_dao::repo::knowledge::list_documents(state.harness.db(), &base_id)
         .await
         .map_err(|e| {
@@ -884,10 +949,11 @@ pub async fn clear_knowledge_index(
         })?;
 
     for doc in docs {
-        let _ = axagent_dao::repo::knowledge::update_document_status(
+        let _ = axagent_dao::repo::knowledge::update_document_status_with_error(
             state.harness.db(),
             &doc.id,
-            "pending",
+            "skipped",
+            Some("index cleared by user"),
         )
         .await;
     }
@@ -1015,8 +1081,11 @@ pub async fn add_knowledge_chunk(
         ))
     })?;
 
-    let embedding_provider =
-        kb.embedding_provider.ok_or_else(|| "No embedding provider configured".to_string())?;
+    let embedding_provider = kb.embedding_provider.ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
 
     let collection_id = format!("kb_{}", base_id);
     let db = state.harness.db().clone();
@@ -1089,13 +1158,17 @@ pub async fn reindex_knowledge_chunk(
         ))
     })?;
 
-    let embedding_provider =
-        kb.embedding_provider.ok_or_else(|| "No embedding provider configured".to_string())?;
+    let embedding_provider = kb.embedding_provider.ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
 
     // Whitelist check: base_id must only contain alphanumeric chars and hyphens (for safe table name usage)
     if !base_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-        return Err(format!(
-            "Invalid base_id: '{base_id}' — only ASCII alphanumeric and hyphens allowed"
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("Invalid base_id: '{base_id}' — only ASCII alphanumeric and hyphens allowed"),
         ));
     }
 
@@ -1119,7 +1192,12 @@ pub async fn reindex_knowledge_chunk(
                     crate::commands::error::ErrorCategory::Unrecoverable,
                 ))
             })?
-            .ok_or_else(|| format!("Chunk {} not found", chunk_id))?;
+            .ok_or_else(|| {
+                crate::commands::error::ErrorResponse::err_with_detail(
+                    crate::commands::error_code::knowledge::DOCUMENT_NOT_FOUND,
+                    format!("Chunk {chunk_id} not found"),
+                )
+            })?;
         row.try_get::<String>("", "content").map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
@@ -1188,7 +1266,11 @@ pub async fn rebuild_knowledge_document(
         ))
     })?;
 
-    let embedding_provider = kb.embedding_provider.ok_or("No embedding provider configured")?;
+    let embedding_provider = kb.embedding_provider.ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
 
     let collection_id = format!("kb_{}", base_id);
 

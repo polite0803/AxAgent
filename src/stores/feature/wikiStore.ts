@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import type {
   BacklinkInfo,
@@ -101,7 +102,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       const notes = await invoke<Note[]>("wiki_notes_list", { vaultId });
       set({ notes, loading: false });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -109,7 +110,7 @@ export const useWikiStore = create<WikiState>((set) => ({
     try {
       return await invoke<Note>("wiki_notes_get", { id });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -121,7 +122,7 @@ export const useWikiStore = create<WikiState>((set) => ({
         filePath,
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -132,7 +133,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set((s) => ({ notes: [...s.notes, note], error: null }));
       return note;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -146,7 +147,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       }));
       return updated;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -160,7 +161,7 @@ export const useWikiStore = create<WikiState>((set) => ({
         error: null,
       }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -173,7 +174,7 @@ export const useWikiStore = create<WikiState>((set) => ({
         topK,
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return [];
     }
   },
@@ -182,7 +183,7 @@ export const useWikiStore = create<WikiState>((set) => ({
     try {
       return await invoke<NoteLink[]>("wiki_notes_get_links", { noteId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return [];
     }
   },
@@ -193,7 +194,7 @@ export const useWikiStore = create<WikiState>((set) => ({
         noteId,
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return [];
     }
   },
@@ -202,7 +203,7 @@ export const useWikiStore = create<WikiState>((set) => ({
     try {
       await invoke("wiki_notes_sync_links", { vaultId, sourceNoteId, links });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       throw e;
     }
   },
@@ -215,7 +216,7 @@ export const useWikiStore = create<WikiState>((set) => ({
     try {
       return await invoke<NoteVersion[]>("wiki_note_versions", { noteId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return [];
     }
   },
@@ -224,7 +225,7 @@ export const useWikiStore = create<WikiState>((set) => ({
     try {
       return await invoke<NoteVersion>("wiki_note_get_version", { versionId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -241,7 +242,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       }));
       return updated;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -253,7 +254,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       });
       set({ templates });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -265,7 +266,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set((s) => ({ templates: [...s.templates, template], error: null }));
       return template;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -278,7 +279,7 @@ export const useWikiStore = create<WikiState>((set) => ({
         error: null,
       }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -292,7 +293,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set((s) => ({ notes: [...s.notes, note], error: null }));
       return note;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -309,7 +310,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       });
       return note;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -323,7 +324,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set({ error: null });
       return stats;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -337,7 +338,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set({ error: null });
       return stats;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -351,7 +352,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set({ error: null });
       return stats;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -365,7 +366,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set({ error: null });
       return stats;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -379,7 +380,7 @@ export const useWikiStore = create<WikiState>((set) => ({
       set({ error: null });
       return htmlPath;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },

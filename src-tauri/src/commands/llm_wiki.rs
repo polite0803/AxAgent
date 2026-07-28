@@ -457,9 +457,9 @@ fn resolve_provider_adapter(
 fn parse_embedding_provider(ep: &str) -> Result<(String, String), String> {
     let parts: Vec<&str> = ep.splitn(2, "::").collect();
     if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
-        return Err(format!(
-            "Invalid embedding_provider format '{}'. Expected 'providerId::modelId'",
-            ep
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("Invalid embedding_provider format '{}'. Expected 'providerId::modelId'", ep),
         ));
     }
     Ok((parts[0].to_string(), parts[1].to_string()))
@@ -783,11 +783,12 @@ async fn generate_query_embedding(
         ))
     })?;
 
-    embed_response
-        .embeddings
-        .into_iter()
-        .next()
-        .ok_or_else(|| "No query embedding returned".to_string())
+    embed_response.embeddings.into_iter().next().ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::vector::EMBEDDING_FAILED,
+            "No query embedding returned",
+        )
+    })
 }
 
 struct WikiVectorSearchAdapter {
@@ -1038,10 +1039,11 @@ pub async fn llm_wiki_ask(
             ))
         })?;
 
-    let embedding_provider = wiki_model
-        .embedding_provider
-        .clone()
-        .ok_or_else(|| "Wiki has no embedding_provider configured".to_string())?;
+    let embedding_provider = wiki_model.embedding_provider.clone().ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
 
     let (adapter, ctx, model) =
         build_llm_adapter(state.harness.db(), state.harness.master_key(), &embedding_provider)
@@ -1095,7 +1097,10 @@ pub async fn write_base64_to_file(
         || input.file_name.contains('/')
         || input.file_name.contains('\\')
     {
-        return Err(format!("Invalid file name: {}", input.file_name));
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::security::PATH_TRAVERSAL,
+            format!("Invalid file name: {}", input.file_name),
+        ));
     }
 
     let file_path = raw_dir.join(&input.file_name);
@@ -1137,9 +1142,12 @@ pub async fn write_base64_to_file(
 
 fn base64_decode(encoded: &str) -> Result<Vec<u8>, String> {
     use base64::Engine;
-    base64::engine::general_purpose::STANDARD
-        .decode(encoded)
-        .map_err(|e| format!("Base64 decode failed: {}", e))
+    base64::engine::general_purpose::STANDARD.decode(encoded).map_err(|e| {
+        crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("Base64 decode failed: {e}"),
+        )
+    })
 }
 
 #[tauri::command]
@@ -1162,6 +1170,14 @@ pub async fn wiki_sync_process_pending(
     let mut processed = 0;
     for item in pending {
         if item.retry_count >= 3 {
+            // 重试次数超限：标记为 "failed" 避免无限循环查询
+            // 先保存 error_message，因为 into_active_model 会消费 item
+            let last_error = item.error_message.clone().unwrap_or_default();
+            let mut am = item.into_active_model();
+            am.status = Set("failed".to_string());
+            am.error_message =
+                Set(Some(format!("exceeded max retry count (3), last error: {}", last_error)));
+            let _ = am.update(state.harness.db()).await;
             continue;
         }
 
@@ -1187,12 +1203,15 @@ pub async fn wiki_sync_process_pending(
                 let mut am = item_clone.clone().into_active_model();
                 am.status = Set("completed".to_string());
                 am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-                am.update(state.harness.db()).await.map_err(|e| {
-                    String::from(crate::commands::error::ErrorResponse::from_error(
-                        e,
-                        crate::commands::error::ErrorCategory::Unrecoverable,
-                    ))
-                })?;
+                // 处理已成功，状态更新失败时仅记录日志，不返回错误，
+                // 避免状态永久卡在 "processing" 导致下次查询无法重试。
+                if let Err(e) = am.update(state.harness.db()).await {
+                    tracing::error!(
+                        "[wiki-sync] 队列项 {} 处理成功但状态更新为 completed 失败: {}",
+                        item_clone.id,
+                        e
+                    );
+                }
                 processed += 1;
             },
             Err(e) => {
@@ -1200,12 +1219,13 @@ pub async fn wiki_sync_process_pending(
                 am.status = Set("failed".to_string());
                 am.error_message = Set(Some(e.to_string()));
                 am.retry_count = Set(item_clone.retry_count + 1);
-                am.update(state.harness.db()).await.map_err(|e| {
-                    String::from(crate::commands::error::ErrorResponse::from_error(
-                        e,
-                        crate::commands::error::ErrorCategory::Unrecoverable,
-                    ))
-                })?;
+                if let Err(update_err) = am.update(state.harness.db()).await {
+                    tracing::error!(
+                        "[wiki-sync] 队列项 {} 处理失败且状态更新为 failed 也失败: {}",
+                        item_clone.id,
+                        update_err
+                    );
+                }
             },
         }
     }
@@ -1286,7 +1306,12 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?
-        .ok_or_else(|| "Queue item not found".to_string())?;
+        .ok_or_else(|| {
+            crate::commands::error::ErrorResponse::err_with_detail(
+                crate::commands::error_code::wiki::NOT_FOUND,
+                format!("Queue item {queue_id} not found"),
+            )
+        })?;
 
     let model_clone = model.clone();
     let mut am = model.into_active_model();
@@ -1311,12 +1336,15 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             let mut am = model_clone.clone().into_active_model();
             am.status = Set("completed".to_string());
             am.processed_at = Set(Some(chrono::Utc::now().timestamp()));
-            am.update(state.harness.db()).await.map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
+            // 处理已成功，状态更新失败时仅记录日志，不返回错误，
+            // 避免状态永久卡在 "processing" 导致下次查询无法重试。
+            if let Err(e) = am.update(state.harness.db()).await {
+                tracing::error!(
+                    "[wiki-sync] 队列项 {} 处理成功但状态更新为 completed 失败: {}",
+                    model_clone.id,
+                    e
+                );
+            }
             Ok(())
         },
         Err(e) => {
@@ -1324,12 +1352,13 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
             am.status = Set("failed".to_string());
             am.error_message = Set(Some(e.to_string()));
             am.retry_count = Set(model_clone.retry_count + 1);
-            am.update(state.harness.db()).await.map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
+            if let Err(update_err) = am.update(state.harness.db()).await {
+                tracing::error!(
+                    "[wiki-sync] 队列项 {} 处理失败且状态更新为 failed 也失败: {}",
+                    model_clone.id,
+                    update_err
+                );
+            }
             // C-3: 迁移到 ErrorResponse，保留原始错误信息用于调试
             Err(crate::commands::error::ErrorResponse::from_error(
                 e,

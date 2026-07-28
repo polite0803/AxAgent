@@ -16,6 +16,23 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
 
+/// 校验容器 ID（vault_id / note_id 等）格式，防止 SQL 注入和路径穿越。
+/// 规则：1-128 字符，仅允许字母数字、连字符、下划线。
+fn validate_container_id(id: &str, field_name: &str) -> Result<(), String> {
+    if id.is_empty()
+        || id.len() > 128
+        || id.contains(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+    {
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            format!(
+                "Invalid {field_name}: must be 1-128 alphanumeric/hyphen/underscore characters"
+            ),
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )));
+    }
+    Ok(())
+}
+
 /// 同步 IO 包装：把 std::fs 调用扔到 spawn_blocking 线程池，避免阻塞 tokio runtime。
 /// 多个小文件操作适合 inline `spawn_blocking`。
 async fn write_file_blocking(path: PathBuf, content: Vec<u8>) -> std::io::Result<()> {
@@ -127,6 +144,8 @@ pub struct WikiUpdateResult {
 /// 与 `delete_knowledge_base` / `delete_memory_namespace` 行为对齐。
 #[tauri::command]
 pub async fn delete_wiki(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    validate_container_id(&id, "wiki_id")?;
+
     // 与 llm_wiki_delete 保持一致的 collection_id 命名规则
     let collection_id = format!("wiki_{}", id);
     if let Err(e) = state.vector_store.delete_collection(&collection_id).await {
@@ -199,16 +218,26 @@ pub async fn wiki_notes_update(
     input: UpdateNoteInput,
 ) -> Result<Note, String> {
     if input.content.is_some() || input.title.is_some() {
-        if let Ok(existing) = axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
-            let _ = wiki::create_version(
-                state.harness.db(),
-                &existing.vault_id,
-                &existing.id,
-                &existing.title,
-                &existing.content,
-                &existing.author,
-            )
-            .await;
+        match axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
+            Ok(existing) => {
+                // 版本备份失败时记录错误日志但不阻止更新（版本备份是辅助功能，
+                // 不应因备份失败阻止用户修改内容；但需记录以便排查）
+                if let Err(e) = wiki::create_version(
+                    state.harness.db(),
+                    &existing.vault_id,
+                    &existing.id,
+                    &existing.title,
+                    &existing.content,
+                    &existing.author,
+                )
+                .await
+                {
+                    tracing::error!("[wiki] 笔记 {} 版本备份失败，原始内容将被覆盖: {}", id, e);
+                }
+            },
+            Err(e) => {
+                tracing::warn!("[wiki] 更新前获取笔记 {} 失败，跳过版本备份: {}", id, e);
+            },
         }
     }
 
@@ -237,24 +266,26 @@ pub async fn wiki_notes_update(
 
 #[tauri::command]
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    let vault_id =
-        if let Ok(existing) = axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
+    // 删除前先取出 vault_id，用于清理向量嵌入和失效图谱缓存
+    // 区分 NotFound（直接返回 Ok）和 DB 错误（返回错误），避免向量残留
+    let vault_id = match axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
+        Ok(existing) => {
             let collection_id = format!("wiki_{}", existing.vault_id);
             let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
-
-            let _ = wiki::create_version(
-                state.harness.db(),
-                &existing.vault_id,
-                &existing.id,
-                &existing.title,
-                &existing.content,
-                &existing.author,
-            )
-            .await;
             Some(existing.vault_id)
-        } else {
-            None
-        };
+        },
+        Err(e) if e.to_string().contains("NotFound") || e.to_string().contains("not found") => {
+            // 笔记不存在，视为已删除，直接返回成功
+            return Ok(());
+        },
+        Err(e) => {
+            // DB 错误：返回错误，避免在不知道 vault_id 的情况下删除导致向量残留
+            return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            )));
+        },
+    };
 
     axagent_dao::repo::note::delete_note(state.harness.db(), &id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -286,8 +317,11 @@ pub async fn rebuild_wiki_index(
             ))
         })?;
 
-    let _embedding_provider =
-        wiki.embedding_provider.as_ref().ok_or("No embedding provider configured for this wiki")?;
+    let _embedding_provider = wiki.embedding_provider.as_ref().ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
 
     let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
 
@@ -483,6 +517,7 @@ pub async fn wiki_notes_search(
     query: String,
     top_k: Option<usize>,
 ) -> Result<Vec<NoteSearchResult>, String> {
+    validate_container_id(&vault_id, "vault_id")?;
     let top_k = top_k.unwrap_or(10);
 
     let wiki =
@@ -495,7 +530,19 @@ pub async fn wiki_notes_search(
 
     if wiki.embedding_provider.is_some() {
         match wiki_notes_search_hybrid(&state, &vault_id, &query, top_k).await {
-            Ok(results) => return Ok(results),
+            Ok(results) => {
+                // 应用距离阈值过滤（与 collect_rag_context_from_refs 一致）
+                let default_max_distance = 20.0_f32;
+                let threshold = wiki.retrieval_threshold.unwrap_or(0.0);
+                let effective_threshold = if threshold > 0.0 {
+                    threshold
+                } else {
+                    default_max_distance
+                };
+                let filtered: Vec<NoteSearchResult> =
+                    results.into_iter().filter(|r| r.score <= effective_threshold as f64).collect();
+                return Ok(filtered);
+            },
             Err(e) => {
                 tracing::warn!(
                     "Hybrid search failed for wiki {}, falling back to keyword: {}",
@@ -523,7 +570,11 @@ async fn wiki_notes_search_hybrid(
             ))
         })?;
 
-    let ep = wiki.embedding_provider.as_ref().ok_or("No embedding provider")?;
+    let ep = wiki.embedding_provider.as_ref().ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        )
+    })?;
     let dimensions = wiki.embedding_dimensions.map(|d| d as usize);
 
     let embed_fn = crate::indexing::ProviderEmbedFn;
@@ -543,11 +594,12 @@ async fn wiki_notes_search_hybrid(
         ))
     })?;
 
-    let query_embedding = embed_response
-        .embeddings
-        .into_iter()
-        .next()
-        .ok_or_else(|| "No query embedding returned".to_string())?;
+    let query_embedding = embed_response.embeddings.into_iter().next().ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::vector::EMBEDDING_FAILED,
+            "No query embedding returned",
+        )
+    })?;
 
     let collection_id = collection_id(WikiVaultRAG.collection_prefix(), vault_id);
     let searcher = HybridSearcher::new(state.harness.db().clone());
@@ -1030,8 +1082,12 @@ pub async fn sync_knowledge_document_to_wiki(
     let content = {
         let path = std::path::Path::new(&doc.source_path);
         if path.exists() {
-            axagent_document_parser::extract_text(path, &doc.mime_type)
-                .map_err(|e| format!("Failed to extract text: {}", e))?
+            axagent_document_parser::extract_text(path, &doc.mime_type).map_err(|e| {
+                crate::commands::error::ErrorResponse::err_with_detail(
+                    crate::commands::error_code::wiki::IMPORT_FAILED,
+                    format!("Failed to extract text: {e}"),
+                )
+            })?
         } else {
             let collection_name = format!("kb_{}", doc.knowledge_base_id);
             match state.vector_store.list_document_chunks(&collection_name, &doc.id).await {
@@ -1039,10 +1095,13 @@ pub async fn sync_knowledge_document_to_wiki(
                     chunks.into_iter().map(|c| c.content).collect::<Vec<_>>().join("\n\n")
                 },
                 _ => {
-                    return Err(format!(
-                        "Document file not found at '{}' and no indexed chunks available. \
-                         The document may have been deleted or the source is a remote URL.",
-                        doc.source_path
+                    return Err(crate::commands::error::ErrorResponse::err_with_detail(
+                        crate::commands::error_code::wiki::IMPORT_FAILED,
+                        format!(
+                            "Document file not found at '{}' and no indexed chunks available. \
+                             The document may have been deleted or the source is a remote URL.",
+                            doc.source_path
+                        ),
                     ));
                 },
             }
@@ -1313,7 +1372,10 @@ pub async fn wiki_import_obsidian_vault(
 ) -> Result<ImportStats, String> {
     let root = std::path::Path::new(&vault_path);
     if !root.is_dir() {
-        return Err(format!("Path is not a directory: {}", vault_path));
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("Path is not a directory: {vault_path}"),
+        ));
     }
 
     let existing =
@@ -1440,12 +1502,18 @@ pub async fn wiki_import_knowledge_md(
 
     // 检查文件是否存在
     if !knowledge_path.exists() {
-        return Err(format!("KNOWLEDGE.md not found at: {}", knowledge_path.display()));
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::wiki::NOT_FOUND,
+            format!("KNOWLEDGE.md not found at: {}", knowledge_path.display()),
+        ));
     }
 
-    let raw = read_to_string_blocking(knowledge_path.to_path_buf())
-        .await
-        .map_err(|e| format!("Failed to read KNOWLEDGE.md: {}", e))?;
+    let raw = read_to_string_blocking(knowledge_path.to_path_buf()).await.map_err(|e| {
+        crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::wiki::IMPORT_FAILED,
+            format!("Failed to read KNOWLEDGE.md: {e}"),
+        )
+    })?;
     // 归一化换行符：Windows 下 KNOWLEDGE.md 常为 CRLF，若不在分割前统一，
     // 则 "\n## " 无法匹配（实际为 "\r## "），导致整篇无法按章节导入。
     let raw = raw.replace("\r\n", "\n").replace('\r', "\n");

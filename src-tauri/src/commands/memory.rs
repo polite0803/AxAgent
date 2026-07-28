@@ -12,6 +12,23 @@ use axagent_kit::prompts::PromptLang;
 use sea_orm::ActiveModelTrait;
 use tauri::{AppHandle, State};
 
+/// 校验容器 ID（namespace_id / item_id 等）格式，防止 SQL 注入和路径穿越。
+/// 规则：1-128 字符，仅允许字母数字、连字符、下划线。
+fn validate_container_id(id: &str, field_name: &str) -> Result<(), String> {
+    if id.is_empty()
+        || id.len() > 128
+        || id.contains(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
+    {
+        return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+            format!(
+                "Invalid {field_name}: must be 1-128 alphanumeric/hyphen/underscore characters"
+            ),
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        )));
+    }
+    Ok(())
+}
+
 fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
     match pt {
         ProviderType::OpenAI => "openai",
@@ -82,11 +99,12 @@ async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, 
     };
 
     let registry_key = provider_type_to_registry_key(&provider.provider_type);
-    let adapter = state
-        .harness
-        .provider_registry()
-        .get(registry_key)
-        .ok_or_else(|| format!("Unsupported provider type: {}", registry_key))?;
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::provider::ADAPTER_NOT_FOUND,
+            format!("Unsupported provider type: {registry_key}"),
+        )
+    })?;
 
     Ok(ResolvedProvider { model_id: model_id.to_string(), ctx, adapter })
 }
@@ -118,10 +136,32 @@ pub async fn create_memory_namespace(
 
 #[tauri::command]
 pub async fn delete_memory_namespace(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    validate_container_id(&id, "namespace_id")?;
+
+    // 先查询该 namespace 下所有 item，用于清理 FTS5 索引
+    let items =
+        axagent_dao::repo::memory::list_items(state.harness.db(), &id).await.unwrap_or_default();
+
     // Delete the entire vector collection for this namespace
     let collection_name = format!("mem_{}", id);
     if let Err(e) = state.vector_store.delete_collection(&collection_name).await {
         tracing::warn!("Failed to delete vector collection {}: {}", collection_name, e);
+    }
+
+    // 清理 FTS5 全文搜索索引（与 delete_memory_item 保持一致）
+    if !items.is_empty() {
+        let ms = state.memory_service.read().await;
+        let storage = ms.storage();
+        for item in &items {
+            if let Err(e) = storage.delete_memory_fts(&item.id).await {
+                tracing::warn!(
+                    "Failed to remove memory {} from FTS5 index during namespace deletion: {}",
+                    item.id,
+                    e
+                );
+            }
+        }
+        drop(ms);
     }
 
     axagent_dao::repo::memory::delete_namespace(state.harness.db(), &id).await.map_err(|e| {
@@ -151,16 +191,7 @@ pub async fn list_memory_items(
     state: State<'_, AppState>,
     namespace_id: String,
 ) -> Result<Vec<MemoryItem>, String> {
-    // Validate namespace_id format (prevent injection)
-    if namespace_id.is_empty()
-        || namespace_id.len() > 128
-        || namespace_id.contains(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
-    {
-        return Err(
-            "Invalid namespace_id: must be 1-128 alphanumeric/hyphen/underscore characters"
-                .to_string(),
-        );
-    }
+    validate_container_id(&namespace_id, "namespace_id")?;
     // Verify namespace exists before accessing its items
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
@@ -212,7 +243,8 @@ pub async fn add_memory_item(
         )
         .await;
 
-        crate::index_queue::enqueue_job_sync(
+        // 入队失败时回滚 index_status 到 "skipped"，避免记忆永久卡在 pending 状态
+        if let Err(e) = crate::index_queue::enqueue_job_sync(
             &state,
             &app,
             jobs::JOB_TYPE_INDEX_MEMORY,
@@ -221,13 +253,19 @@ pub async fn add_memory_item(
             &item.id,
             None,
             None,
-        )
-        .map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
+        ) {
+            let _ = axagent_dao::repo::memory::update_item_index_status(
+                state.harness.db(),
+                &item.id,
+                "skipped",
+                Some(&format!("enqueue failed: {e}")),
+            )
+            .await;
+            return Err(String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+            )));
+        }
 
         Ok(MemoryItem { index_status: "pending".to_string(), ..item })
     } else {
@@ -307,7 +345,7 @@ pub async fn update_memory_item(
             )
             .await;
 
-            crate::index_queue::enqueue_job_sync(
+            if let Err(e) = crate::index_queue::enqueue_job_sync(
                 &state,
                 &app,
                 jobs::JOB_TYPE_REINDEX_DOCUMENT,
@@ -316,13 +354,21 @@ pub async fn update_memory_item(
                 &id,
                 None,
                 None,
-            )
-            .map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
+            ) {
+                // 入队失败时回滚状态到 "skipped"，避免条目永久卡在 pending
+                let err_msg = format!("enqueue failed: {e}");
+                let _ = axagent_dao::repo::memory::update_item_index_status(
+                    state.harness.db(),
+                    &id,
+                    "skipped",
+                    Some(&err_msg),
+                )
+                .await;
+                return Err(String::from(crate::commands::error::ErrorResponse::from_error(
                     e,
                     crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
+                )));
+            }
 
             return Ok(MemoryItem { index_status: "pending".to_string(), ..item });
         }
@@ -338,16 +384,7 @@ pub async fn search_memory(
     query: String,
     top_k: Option<usize>,
 ) -> Result<Vec<axagent_search::vector_store::VectorSearchResult>, String> {
-    // Validate namespace_id format (prevent injection)
-    if namespace_id.is_empty()
-        || namespace_id.len() > 128
-        || namespace_id.contains(|c: char| !c.is_alphanumeric() && c != '-' && c != '_')
-    {
-        return Err(
-            "Invalid namespace_id: must be 1-128 alphanumeric/hyphen/underscore characters"
-                .to_string(),
-        );
-    }
+    validate_container_id(&namespace_id, "namespace_id")?;
     // Verify namespace exists before searching
     let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
         .await
@@ -357,8 +394,8 @@ pub async fn search_memory(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
-    let _ = ns; // Namespace exists, proceed
-    crate::indexing::search_memory(
+
+    let mut results = crate::indexing::search_memory(
         state.harness.db(),
         state.harness.master_key(),
         &state.vector_store,
@@ -372,7 +409,20 @@ pub async fn search_memory(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
-    })
+    })?;
+
+    // 应用与 collect_rag_context_from_refs 一致的距离阈值过滤
+    // score 是 L2 距离（越小越相似），threshold > 0 时使用用户配置，否则用默认阈值 20.0
+    let default_max_distance = 20.0_f32;
+    let threshold = ns.retrieval_threshold.unwrap_or(0.0);
+    let effective_threshold = if threshold > 0.0 {
+        threshold
+    } else {
+        default_max_distance
+    };
+    results.retain(|r| r.score <= effective_threshold);
+
+    Ok(results)
 }
 
 #[tauri::command]
@@ -391,7 +441,9 @@ pub async fn rebuild_memory_index(
         })?;
 
     if ns.embedding_provider.is_none() {
-        return Err("No embedding provider configured".to_string());
+        return Err(crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        ));
     }
 
     let collection_id = format!("mem_{}", namespace_id);
@@ -535,11 +587,24 @@ pub async fn auto_extract_incremental_memories(
     }
 
     let last_extracted = conv.last_memory_extracted_at.as_deref();
-    let new_messages: Vec<axagent_harness::types::Message> = if let Some(_last_ts) = last_extracted
-    {
-        let recent: Vec<_> = messages.into_iter().rev().take(6).collect();
-        recent.into_iter().rev().collect()
+    // 按时间戳过滤增量消息：只提取上次抽取之后的新消息
+    let new_messages: Vec<axagent_harness::types::Message> = if let Some(last_ts) = last_extracted {
+        // 解析上次抽取时间（RFC3339），失败时回退到取最近 6 条
+        let cutoff_ts = chrono::DateTime::parse_from_rfc3339(last_ts)
+            .ok()
+            .map(|dt| dt.timestamp())
+            .unwrap_or(0);
+        let filtered: Vec<_> = messages.into_iter().filter(|m| m.created_at > cutoff_ts).collect();
+        if filtered.is_empty() {
+            return Ok(serde_json::json!({
+                "extracted": 0,
+                "skipped": true,
+                "reason": "no new messages since last extraction"
+            }));
+        }
+        filtered
     } else {
+        // 首次抽取：取最近 20 条
         let recent: Vec<_> = messages.into_iter().rev().take(20).collect();
         recent.into_iter().rev().collect()
     };
@@ -699,7 +764,9 @@ pub async fn clear_memory_index(
         ))
     })?;
 
-    // Reset all items to "pending"
+    // 清空索引后把条目状态重置为 "skipped"（而非 "pending"），
+    // 避免条目永久卡在 pending 但无索引任务可执行。
+    // 用户如需重新索引，可调用 rebuild_memory_index。
     let items = axagent_dao::repo::memory::list_items(state.harness.db(), &namespace_id)
         .await
         .map_err(|e| {
@@ -713,8 +780,8 @@ pub async fn clear_memory_index(
         let _ = axagent_dao::repo::memory::update_item_index_status(
             state.harness.db(),
             &item.id,
-            "pending",
-            None,
+            "skipped",
+            Some("index cleared by user"),
         )
         .await;
     }
@@ -739,7 +806,9 @@ pub async fn reindex_memory_item(
         })?;
 
     if ns.embedding_provider.is_none() {
-        return Err("No embedding provider configured".to_string());
+        return Err(crate::commands::error::ErrorResponse::err(
+            crate::commands::error_code::knowledge::NO_EMBEDDING_PROVIDER,
+        ));
     }
 
     let _ = axagent_dao::repo::memory::update_item_index_status(
@@ -787,7 +856,12 @@ pub async fn sync_working_memory_to_namespace(
 
     let mut synced = 0;
     for (id, content, mem_type) in &entries {
-        let title = format!("[working-memory][{}] {}", mem_type, &content[..content.len().min(50)]);
+        // SAFETY: 使用 truncate_to_char_boundary 避免 UTF-8 字符边界 panic
+        let title = format!(
+            "[working-memory][{}] {}",
+            mem_type,
+            axagent_harness::util_fns::truncate_to_char_boundary(content, 50)
+        );
         let input = CreateMemoryItemInput {
             namespace_id: namespace_id.clone(),
             title,
@@ -1171,7 +1245,10 @@ pub async fn get_memory_provenance(
             "effective_score": entry.effective_score(),
             "tags": entry.tags,
         })),
-        None => Err("Memory not found".to_string()),
+        None => Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::memory::NOT_FOUND,
+            "Memory not found",
+        )),
     }
 }
 
@@ -1192,7 +1269,10 @@ pub async fn consolidate_memory_cluster(
     memory_ids: Vec<String>,
 ) -> Result<serde_json::Value, String> {
     if memory_ids.len() < 2 {
-        return Err("Need at least 2 memories to consolidate".to_string());
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::memory::CONSOLIDATION_INSUFFICIENT,
+            "Need at least 2 memories to consolidate",
+        ));
     }
 
     let ms = state.memory_service.read().await;
@@ -1202,7 +1282,10 @@ pub async fn consolidate_memory_cluster(
         memory_ids.iter().filter_map(|id| mem.entries.get(id).map(|e| e.content.clone())).collect();
 
     if contents.len() < 2 {
-        return Err("Could not find enough memories for consolidation".to_string());
+        return Err(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::memory::CONSOLIDATION_INSUFFICIENT,
+            "Could not find enough memories for consolidation",
+        ));
     }
 
     drop(ms);
@@ -1523,6 +1606,8 @@ async fn update_conversation_memory_status(
             ("archived", "extracted") => "both",
             ("none", "archived") => "archived",
             ("extracted", "archived") => "both",
+            // "both" 状态已包含两种标记，任意动作都保持 "both"，避免状态丢失
+            ("both", _) => "both",
             (current, "extracted") if !current.starts_with("extract") => "extracted",
             (current, "archived") if !current.starts_with("archiv") => "archived",
             _ => &current_status,
@@ -1717,12 +1802,10 @@ pub async fn export_memories_to_project(
     let workspace_dir = match settings.default_workspace_dir.as_ref() {
         Some(d) if !d.is_empty() => d.clone(),
         _ => {
-            return Err(String::from(ErrorResponse::from_error(
-                axagent_harness::core_error::AxAgentError::Validation(
-                    "未配置默认工作区目录（default_workspace_dir）".to_string(),
-                ),
-                ErrorCategory::Unrecoverable,
-            )));
+            return Err(ErrorResponse::err_with_detail(
+                crate::commands::error_code::common::INVALID_INPUT,
+                "default_workspace_dir not configured",
+            ));
         },
     };
 
