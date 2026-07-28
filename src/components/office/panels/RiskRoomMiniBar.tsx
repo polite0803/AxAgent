@@ -70,6 +70,11 @@ export interface RiskRoomMiniBarProps {
 }
 
 export function RiskRoomMiniBar({ sceneTemplateSlug }: RiskRoomMiniBarProps) {
+  // === 所有 hook 前先做条件返回，遵守 Rules of Hooks ===
+  if (sceneTemplateSlug !== "investment_office") {
+    return null;
+  }
+
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -81,11 +86,6 @@ export function RiskRoomMiniBar({ sceneTemplateSlug }: RiskRoomMiniBarProps) {
   );
 
   const [collapsed, setCollapsed] = useState(false);
-
-  // 仅 investment_office 场景渲染
-  if (sceneTemplateSlug !== "investment_office") {
-    return null;
-  }
 
   // 首次挂载拉取
   useEffect(() => {

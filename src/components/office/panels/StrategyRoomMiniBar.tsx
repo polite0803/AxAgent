@@ -46,6 +46,11 @@ export interface StrategyRoomMiniBarProps {
 }
 
 export function StrategyRoomMiniBar({ sceneTemplateSlug }: StrategyRoomMiniBarProps) {
+  // === 所有 hook 前先做条件返回，遵守 Rules of Hooks ===
+  if (sceneTemplateSlug !== "investment_office") {
+    return null;
+  }
+
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
@@ -56,11 +61,6 @@ export function StrategyRoomMiniBar({ sceneTemplateSlug }: StrategyRoomMiniBarPr
   const loadStrategies = useStrategyStore((s) => s.loadStrategies);
 
   const [collapsed, setCollapsed] = useState(false);
-
-  // 仅 investment_office 场景渲染
-  if (sceneTemplateSlug !== "investment_office") {
-    return null;
-  }
 
   // 首次挂载拉取
   useEffect(() => {

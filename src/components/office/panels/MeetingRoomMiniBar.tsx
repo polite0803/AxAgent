@@ -82,6 +82,11 @@ export interface MeetingRoomMiniBarProps {
 }
 
 export function MeetingRoomMiniBar({ sceneTemplateSlug }: MeetingRoomMiniBarProps) {
+  // === 所有 hook 前先做条件返回，遵守 Rules of Hooks ===
+  if (sceneTemplateSlug !== "investment_office") {
+    return null;
+  }
+
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
@@ -99,11 +104,6 @@ export function MeetingRoomMiniBar({ sceneTemplateSlug }: MeetingRoomMiniBarProp
   useEffect(() => {
     void fetchRecentMainlines(7);
   }, [fetchRecentMainlines]);
-
-  // 仅 investment_office 场景渲染
-  if (sceneTemplateSlug !== "investment_office") {
-    return null;
-  }
 
   // 选中的日期：默认今日（若今日无主线则取最近一日）
   const availableDates = useMemo(() => {

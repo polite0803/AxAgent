@@ -151,6 +151,15 @@ function parseWorkflowResults(results: Record<string, unknown>) {
         }
       }
       dataQualitySummary = content;
+      if (import.meta.env.DEV) {
+        console.debug("[DQ] parseWorkflowResults stepId=data-quality", {
+          rawType: raw ? typeof raw : "(null)",
+          rawKeys: raw && typeof raw === "object" ? Object.keys(raw as object) : null,
+          hasResult: raw && typeof raw === "object" ? !!(raw as Record<string, unknown>).result : null,
+          contentLen: content.length,
+          contentPreview: content.slice(0, 200),
+        });
+      }
     } else if (stepId === "raw-data") {
       rawData[stepId] = output;
     }
@@ -1863,6 +1872,18 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           const r = raw.result;
           content = typeof r === "string" ? r : JSON.stringify(r);
         }
+        if (import.meta.env.DEV) {
+          console.debug("[DQ] routeNodeOutput data-quality", {
+            textLen: text.length,
+            rawOutputType: rawOutput ? typeof rawOutput : "(null)",
+            rawHasResult: raw ? "result" in raw : false,
+            resultType: raw && raw.result ? typeof raw.result : null,
+            resultIsObj: raw && raw.result && typeof raw.result === "object",
+            contentLen: content.length,
+            contentPreview: content.slice(0, 300),
+            setTo: content.slice(0, 200),
+          });
+        }
         set({ dataQualitySummary: content });
       } else if (nodeId === "raw-data") {
         set({ rawData: { ...s.rawData, [nodeId]: text } });
@@ -1945,6 +1966,22 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             if (newViolations.length > 0) {
               set({ violations: [...s.violations, ...newViolations] });
             }
+          }
+
+          // DQ 诊断：记录 data-quality 节点的原始输出结构
+          if (nodeId === "data-quality" && import.meta.env.DEV) {
+            const outputObj = output && typeof output === "object";
+            console.debug("[DQ] workflow-step-done", {
+              status,
+              outputType: output ? typeof output : "(null)",
+              outputKeys: outputObj ? Object.keys(output as object) : null,
+              hasResult: outputObj ? "result" in (output as Record<string, unknown>) : null,
+              resultType: outputObj && ((output as Record<string, unknown>).result)
+                ? typeof (output as Record<string, unknown>).result
+                : null,
+              textLen: text.length,
+              textPreview: text.slice(0, 300),
+            });
           }
 
           routeNodeOutput(nodeId, text, output);
@@ -2153,6 +2190,23 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           }
         }
 
+        // 第 3 步: 数据质量诊断日志
+        if (import.meta.env.DEV) {
+          const dqRaw = results["data-quality"];
+          const dqKeys = dqRaw && typeof dqRaw === "object" ? Object.keys(dqRaw as object) : null;
+          console.debug("[DQ] workflow-completed", {
+            hasDataQualityKey: "data-quality" in results,
+            resultKeys: Object.keys(results),
+            dqRawType: dqRaw ? typeof dqRaw : "(absent)",
+            dqRawKeys: dqKeys,
+            dqHasResult: dqKeys ? dqKeys.includes("result") : null,
+            dqResultType: dqKeys && dqRaw ? typeof (dqRaw as Record<string, unknown>).result : null,
+            parsedDQLen: parsed.dataQualitySummary.length,
+            parsedDQPreview: parsed.dataQualitySummary.slice(0, 200),
+            streamingDQ: s.dataQualitySummary ? s.dataQualitySummary.slice(0, 200) : "(empty)",
+          });
+        }
+
         set({
           analystReports: { ...s.analystReports, ...parsed.analystReports },
           debateRounds: mergedDebateRounds,
@@ -2267,6 +2321,16 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         // 即使失败也尝试解析已有的部分结果
         if (results) {
           const parsed = parseWorkflowResults(results);
+          if (import.meta.env.DEV) {
+            console.debug("[DQ] workflow-error", {
+              error: msg,
+              errorCode,
+              hasDataQualityKey: "data-quality" in results,
+              resultKeys: Object.keys(results),
+              parsedDQLen: parsed.dataQualitySummary.length,
+              parsedDQPreview: parsed.dataQualitySummary.slice(0, 200),
+            });
+          }
           set({
             analystReports: parsed.analystReports,
             debateRounds: parsed.debateRounds,

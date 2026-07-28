@@ -373,6 +373,38 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         description: Some("获取财联社实时快讯".into()),
         parameters: no_params(),
     };
+    let td_search_news = ToolDef {
+        name: "search_news".into(),
+        description: Some("按关键词搜索财经新闻，用于验证催化剂/CapEx/行业趋势".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some(std::collections::HashMap::from([
+                (
+                    "keyword".into(),
+                    JsonSchemaProperty {
+                        schema_type: "string".into(),
+                        description: Some("搜索关键词".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                ),
+                (
+                    "limit".into(),
+                    JsonSchemaProperty {
+                        schema_type: "integer".into(),
+                        description: Some("返回条数".into()),
+                        default: Some(serde_json::json!(10)),
+                        enum_values: None,
+                        format: None,
+                    },
+                ),
+            ])),
+            required: Some(vec!["keyword".into()]),
+            items: None,
+        }),
+    };
     let mut kdj_props = std::collections::HashMap::new();
     kdj_props.insert("klines_json".into(), sc_prop("K线JSON(含high/low/close)"));
     kdj_props.insert("n".into(), int_prop("KDJ周期N", Some(9)));
@@ -601,6 +633,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ("compute_kdj", td_kdj.clone()),
         ("compute_obv", td_obv.clone()),
         ("get_cls_flash", td_cls.clone()),
+        ("search_news", td_search_news.clone()),
         ("get_north_bound_flow", td_north.clone()),
         ("get_market_dragon_tiger", td_dragon.clone()),
         ("get_stock_research_reports", td_research.clone()),
