@@ -91,6 +91,7 @@ export function RLCheckpointManager() {
       <Table
         dataSource={checkpoints.map((c) => ({ ...c, key: c.id }))}
         columns={columns}
+        rowKey="key"
         pagination={false}
         size="small"
         locale={{ emptyText: t("rl.checkpoints.empty") }}

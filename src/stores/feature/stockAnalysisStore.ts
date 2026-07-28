@@ -1128,6 +1128,11 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
     set({ llmDecisionJson, decisionAgreementScore });
     if (record.blackboardSnapshot) {
       try {
+        if (import.meta.env.DEV) {
+          console.debug("[DQ] loadAnalysis enter snapshot branch", {
+            snapshotLen: record.blackboardSnapshot.length,
+          });
+        }
         // 后端 axagent_stock_analysis::blackboard::build_blackboard_snapshot 会把
         // 节点 ID 重写为带前缀的 key(见 blackboard.rs:25-51):
         //   a-*        → report.{nodeId}
@@ -1139,6 +1144,18 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         // 其它节点保留原 nodeId。
         // 这里用本地解析把 snapshot 还原成结构化字段。
         const snap: Record<string, string> = JSON.parse(record.blackboardSnapshot);
+        if (import.meta.env.DEV) {
+          const dqValue = snap["data_quality_summary"];
+          console.debug("[DQ] loadAnalysis snapshot", {
+            snapshotLen: record.blackboardSnapshot.length,
+            snapKeys: Object.keys(snap),
+            hasDQKey: "data_quality_summary" in snap,
+            dqValueType: dqValue !== undefined ? typeof dqValue : "(absent)",
+            dqValueIsObj: dqValue !== null && typeof dqValue === "object",
+            dqValueLen: typeof dqValue === "string" ? dqValue.length : null,
+            dqValuePreview: typeof dqValue === "string" ? dqValue.slice(0, 200) : null,
+          });
+        }
         const reports: Record<string, string> = {};
         const debates: Array<{ round: number; bull: string; bear: string }> = [];
         const risks: Record<string, string> = {};
@@ -1297,6 +1314,15 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           }
         }
         const decisionInputsReport = buildDecisionInputsReport(normalizedSnap, {});
+        if (import.meta.env.DEV) {
+          console.debug("[DQ] loadAnalysis final", {
+            dataQualityLen: dataQuality.length,
+            dataQualityPreview: dataQuality.slice(0, 200),
+            reportsCount: Object.keys(reports).length,
+            debatesCount: debates.length,
+            risksCount: Object.keys(risks).length,
+          });
+        }
         set({
           analystReports: reports,
           debateRounds: debates,

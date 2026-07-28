@@ -224,6 +224,7 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
             <Table
               dataSource={data.failureModes.map((r, i) => ({ ...r, key: i }))}
               columns={failureColumns}
+              rowKey="key"
               pagination={false}
               size="small"
             />

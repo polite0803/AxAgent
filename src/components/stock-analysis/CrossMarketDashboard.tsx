@@ -170,6 +170,7 @@ export function CrossMarketDashboard() {
             <Table
               columns={quoteColumns}
               dataSource={quoteRows}
+              rowKey="key"
               size="small"
               pagination={false}
               onRow={(row) => ({

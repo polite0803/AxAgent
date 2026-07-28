@@ -218,6 +218,7 @@ export function BrowserAutomationPanel() {
               size="small"
               dataSource={elements.map((el, i) => ({ ...el, key: i }))}
               columns={columns}
+              rowKey="key"
               pagination={{ pageSize: 10 }}
               scroll={{ y: 200 }}
               onRow={(record) => ({

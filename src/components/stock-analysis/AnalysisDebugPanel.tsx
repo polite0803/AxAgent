@@ -226,6 +226,7 @@ export function AnalysisDebugPanel() {
       <Table
         dataSource={allNodes}
         columns={columns}
+        rowKey="nodeId"
         pagination={false}
         size="small"
         className="mt-2"

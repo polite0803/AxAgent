@@ -341,6 +341,7 @@ function StrategyTable({ data }: { data: GroupBacktestResult }) {
     <Table
       dataSource={dataSource}
       columns={columns}
+      rowKey="key"
       pagination={false}
       size="small"
       bordered={false}

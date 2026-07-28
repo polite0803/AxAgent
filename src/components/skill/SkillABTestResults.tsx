@@ -78,6 +78,7 @@ export function SkillABTestResults({ skillId }: SkillABTestResultsProps) {
       <Table
         dataSource={results.map((r, i) => ({ ...r, key: i }))}
         columns={columns}
+        rowKey="key"
         pagination={false}
         size="small"
         style={{ marginBottom: 12 }}
