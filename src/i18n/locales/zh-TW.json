@@ -7716,7 +7716,14 @@
     "nlWorkflowExplanation": "上述內容將自動轉換為工作流",
     "doubao": "豆包",
     "tongyi": "通義",
-    "siliconFlow": "SiliconFlow"
+    "siliconFlow": "SiliconFlow",
+    "complexTaskNote": "任務已被判定為複雜任務，請確認後執行。",
+    "planCompleted": "（模擬）計劃已批准，執行完成。",
+    "globDesc": "使用 glob 模式搜尋檔案。回傳相符的檔案路徑列表。",
+    "grepDesc": "在檔案中搜尋符合正規表示式的內容。",
+    "fileEditDesc": "精確編輯檔案（字串取代）。透過 old_string/new_string 搜尋取代。",
+    "deleteFileDesc": "刪除指定路徑的檔案。此操作不可逆。",
+    "bashDesc": "執行 shell 命令。適用：執行測試、建構、git 操作。危險命令需權限確認。"
   },
   "cancel": "取消",
   "searchUtils": {

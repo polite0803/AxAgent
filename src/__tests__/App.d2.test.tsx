@@ -142,7 +142,13 @@ vi.mock("@/stores", () => ({
       selector({
         startStreamListening: vi.fn(),
       }),
-    { getState: () => ({ startStreamListening: vi.fn() }) },
+    {
+      getState: () => ({
+        startStreamListening: vi.fn(),
+        fetchConversations: vi.fn().mockResolvedValue(undefined),
+        conversations: [],
+      }),
+    },
   ),
   useStreamStore: Object.assign(
     (selector: (state: unknown) => unknown) =>
@@ -192,6 +198,14 @@ vi.mock("@/stores", () => ({
     showPanel: vi.fn(),
     hidePanel: vi.fn(),
   }),
+  useAppConfigStore: Object.assign(
+    () => ({ loadConfig: vi.fn().mockResolvedValue(undefined) }),
+    { getState: () => ({ loadConfig: vi.fn().mockResolvedValue(undefined) }) },
+  ),
+  useTabStore: Object.assign(
+    () => ({ pruneInvalidTabs: vi.fn() }),
+    { getState: () => ({ pruneInvalidTabs: vi.fn() }) },
+  ),
 }));
 
 vi.mock("@/hooks/useKeyboardShortcuts", () => ({
