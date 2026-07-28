@@ -96,7 +96,7 @@ export function OfficeGame({
       gameRef.current = game;
     } catch (err) {
       // Phaser 初始化失败（无 WebGL/Canvas 等环境异常）不应阻断 React 树
-      console.error("[OfficeGame] Phaser 初始化失败:", err);
+      console.error("[OfficeGame] Phaser init failed:", err);
       sceneRef.current = null;
       gameRef.current = null;
     }
@@ -105,7 +105,7 @@ export function OfficeGame({
       try {
         gameRef.current?.destroy(true);
       } catch (err) {
-        console.warn("[OfficeGame] Phaser 销毁失败:", err);
+        console.warn("[OfficeGame] Phaser destroy failed:", err);
       }
       gameRef.current = null;
       sceneRef.current = null;
@@ -141,7 +141,7 @@ export function OfficeGame({
         scene.addMemberSprite(m);
       }
     } catch (err) {
-      console.warn("[OfficeGame] 成员同步失败:", err);
+      console.warn("[OfficeGame] member sync failed:", err);
     }
   }, [members]);
 
