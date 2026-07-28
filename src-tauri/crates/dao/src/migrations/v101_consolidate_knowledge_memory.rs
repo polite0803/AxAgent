@@ -82,7 +82,13 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             .await?;
         }
     } else {
-        // SQLite: ALTER TABLE ADD COLUMN is limited, do best-effort (ignore "duplicate column")
+        // SQLite: ALTER TABLE 已由 v100 PHASE 3.9 全表合规检查统一保障，
+        // 此处保留仅为向后兼容（纯文档性注释，实际由 v100 提前补列）。
+
+        // 即使 v100 提前补了列，此处仍执行 ALTER TABLE 确保幂等——
+        // v100 的 CREATE TABLE IF NOT EXISTS 对新库已包含这些列，
+        // 对存量库 v100 PHASE 3.9 已兜底，此处 ADD COLUMN 遇到重复列
+        // 报错被 `let _` 忽略。
         for col in &[
             "ALTER TABLE knowledge_entities ADD COLUMN aliases TEXT NOT NULL DEFAULT '[]'",
             "ALTER TABLE knowledge_entities ADD COLUMN mention_count INTEGER NOT NULL DEFAULT 1",
@@ -103,6 +109,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             "ALTER TABLE knowledge_relations ADD COLUMN IF NOT EXISTS weight DOUBLE PRECISION NOT NULL DEFAULT 1.0"
         ).await?;
     } else {
+        // weight 列已由 v100 PHASE 3.9 统一保障，此处保留 ADD COLUMN 仅用于
+        // 历史数据库幂等（重复列错误由 `let _` 忽略）。
         let _ = db
             .execute_unprepared(
                 "ALTER TABLE knowledge_relations ADD COLUMN weight REAL NOT NULL DEFAULT 1.0",
@@ -140,8 +148,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         }
     } else {
         for (name, _dtype) in mem_cols {
-            // SQLite ALTER TABLE ADD COLUMN doesn't support complex types in same way;
-            // we just add with simple TEXT/INTEGER/REAL
+            // 所有 10 列已由 v100 PHASE 3.9 统一保障，此处保留 ALTER TABLE
+            // 仅用于历史数据库幂等（重复列错误由 `let _` 忽略）。
             let sql = match *name {
                 "tier" => {
                     "ALTER TABLE memory_items ADD COLUMN tier TEXT NOT NULL DEFAULT 'working'"

@@ -8,44 +8,24 @@
 //! 指向用户已有的 Obsidian vault，agent 通过 9 个 `obsidian_*` 工具直接读写
 //! live 文件，不索引、不向量化）。
 //!
-//! 本迁移加两列：
-//! - `kind TEXT NOT NULL DEFAULT 'indexed'`：KB 类型字符串
-//! - `vault_path TEXT`：ConnectedVault 类型时的 vault 根路径
+//! 本迁移曾用 ALTER TABLE 加两列，现在由 v100 PHASE 3.9 全表合规检查统一处理，
+//! 本迁移保留为无操作（兼容历史数据库标记此版本已应用）。
 //!
-//! ## 幂等策略
+//! ## 幂等
 //!
-//! - PostgreSQL: `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`，原生幂等
-//! - SQLite: 直接 `ADD COLUMN`，列已存在时会报错，用 `let _ = ...` 忽略错误
+//! 已由 v100 PHASE 3.9 保证列存在，本迁移无操作不依赖后端。
 
-use sea_orm::{ConnectionTrait, DbBackend, DbErr};
+use sea_orm::DbErr;
 
-pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    let is_pg = db.get_database_backend() == DbBackend::Postgres;
-
-    if is_pg {
-        for sql in &[
-            "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'indexed'",
-            "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS vault_path TEXT",
-        ] {
-            db.execute_unprepared(sql).await?;
-        }
-    } else {
-        let _ = db
-            .execute_unprepared(
-                "ALTER TABLE knowledge_bases ADD COLUMN kind TEXT NOT NULL DEFAULT 'indexed'",
-            )
-            .await;
-        let _ =
-            db.execute_unprepared("ALTER TABLE knowledge_bases ADD COLUMN vault_path TEXT").await;
-    }
-
+pub async fn up(_db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
+    tracing::info!("[v105] 列定义已由 v100 PHASE 3.9 统一保障，无需 ALTER TABLE");
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::{Database, DbBackend, Statement};
+    use sea_orm::{ConnectionTrait, Database, DbBackend, Statement};
 
     #[tokio::test]
     async fn v105_adds_kind_and_vault_path_columns() {
