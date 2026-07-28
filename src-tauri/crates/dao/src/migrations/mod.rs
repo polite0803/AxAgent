@@ -263,19 +263,13 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
             Err(e) => {
                 // 即使迁移失败（如旧表已被删除导致的查询错误），
                 // 也继续跑后面的迁移。记录警告而非中断全部流程。
-                tracing::warn!(
-                    "[repair_schema] 迁移 v{} 重跑报错（可忽略）: {}",
-                    m.version, e
-                );
+                tracing::warn!("[repair_schema] 迁移 v{} 重跑报错（可忽略）: {}", m.version, e);
             },
         }
     }
 
     // 确保 schema_version 表记录完整（重跑不写版本号是正常的）
-    tracing::info!(
-        "[repair_schema] 完成: 重跑了 {}/{} 条迁移",
-        fixed, total
-    );
+    tracing::info!("[repair_schema] 完成: 重跑了 {}/{} 条迁移", fixed, total);
 
     Ok((fixed, total))
 }
