@@ -9,6 +9,7 @@ use axagent_entities::{
 use axagent_harness::types::*;
 use axagent_search::rag::KnowledgeContainer;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter, State};
 
@@ -2002,6 +2003,117 @@ pub async fn sync_project_knowledge_sources(
     Ok(result)
 }
 
+/// 将知识图谱的实体/关系桥接到 Wiki vault 中：为每个实体创建一篇笔记，
+/// 在内容中嵌入 `[[关联实体]]` wikilinks，使 Wiki 图谱视图展示关联关系。
+async fn bridge_graph_to_wiki(
+    db: &sea_orm::DatabaseConnection,
+    kb_id: &str,
+    wiki_id: &str,
+) -> (usize, usize) {
+    // 1) 读取图谱侧全部实体 + 关系
+    let entities = match knowledge_entities::Entity::find()
+        .filter(knowledge_entities::Column::KnowledgeBaseId.eq(kb_id))
+        .all(db)
+        .await
+    {
+        Ok(e) => e,
+        Err(e) => {
+            tracing::warn!("[graph_to_wiki] 读取 entity 失败: {e}");
+            return (0, 0);
+        },
+    };
+    let relations = match knowledge_relations::Entity::find()
+        .filter(knowledge_relations::Column::KnowledgeBaseId.eq(kb_id))
+        .all(db)
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::warn!("[graph_to_wiki] 读取 relation 失败: {e}");
+            return (0, 0);
+        },
+    };
+
+    // 2) 建立 entity_id → name 索引
+    let name_by_id: HashMap<String, String> =
+        entities.iter().map(|e| (e.id.clone(), e.name.clone())).collect();
+
+    // 3) 建立 entity_id → [(target_id, relation_type)]
+    let mut rel_map: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    for r in &relations {
+        rel_map
+            .entry(r.source_entity_id.clone())
+            .or_default()
+            .push((r.target_entity_id.clone(), r.relation_type.clone()));
+        rel_map
+            .entry(r.target_entity_id.clone())
+            .or_default()
+            .push((r.source_entity_id.clone(), format!("inverse_{}", r.relation_type)));
+    }
+
+    // 4) 读取 Wiki 已有笔记标题，跳过已存在的
+    let existing = axagent_dao::repo::note::list_notes(db, wiki_id).await.unwrap_or_default();
+    let existing_titles: HashSet<String> = existing.iter().map(|n| n.title.clone()).collect();
+
+    let mut created = 0usize;
+    let mut skipped = 0usize;
+
+    for entity in &entities {
+        if existing_titles.contains(&entity.name) {
+            skipped += 1;
+            continue;
+        }
+
+        // 构建笔记内容：关联节点用 [[wikilinks]] 嵌入
+        let mut content = format!(
+            "# {}\n\n> ℹ️ 从知识图谱自动导入的实体节点\n\n**类型**: {} \n\n",
+            entity.name, entity.entity_type
+        );
+        if let Some(related) = rel_map.get(&entity.id) {
+            let mut links: Vec<String> = Vec::new();
+            for (tid, rtype) in related {
+                if let Some(tname) = name_by_id.get(tid) {
+                    if tname != &entity.name {
+                        links.push(format!("- [[{}]]  — *{}*", tname, rtype));
+                    }
+                }
+            }
+            if !links.is_empty() {
+                content.push_str("## 关联节点\n\n");
+                content.push_str(&links.join("\n"));
+            }
+        }
+
+        let input = axagent_harness::note_dtos::CreateNoteInput {
+            vault_id: wiki_id.to_string(),
+            title: entity.name.clone(),
+            file_path: format!("graph-entities/{}.md", entity.name),
+            content,
+            author: "graph-import".to_string(),
+            page_type: None,
+            source_refs: None,
+        };
+
+        match axagent_dao::repo::note::create_note(db, input).await {
+            Ok(_) => created += 1,
+            Err(e) => {
+                tracing::warn!("[graph_to_wiki] 创建笔记失败 {}: {e}", entity.name);
+                skipped += 1;
+            },
+        }
+    }
+
+    tracing::info!(
+        "[graph_to_wiki] 桥接完成: 创建 {} 篇, 跳过 {} 篇 (kb={}, wiki={})",
+        created,
+        skipped,
+        kb_id,
+        wiki_id,
+    );
+
+    (created, skipped)
+}
+
 // ── 项目知识源一键导入 ───────────────────────────────────
 
 /// 项目知识源导入结果。
@@ -2019,6 +2131,9 @@ pub struct ProjectKnowledgeImportResult {
     pub kb_name: String,
     pub entity_count: usize,
     pub relation_count: usize,
+    /// 本次图谱→Wiki 桥接创建的笔记数（含 [[wikilinks]]）
+    pub bridged_notes: usize,
+    pub bridged_skipped: usize,
     pub embedding_provider: Option<String>,
     /// 本次操作是否变更了 embedding_provider（前端据此提示用户重建索引）
     pub embedding_changed: bool,
@@ -2297,7 +2412,11 @@ pub async fn import_project_knowledge_sources(
         (wiki_id, wiki_name, kb_id, kb_name, graph_result, kb_embedding_provider, embedding_changed)
     }; // ← db 引用在此释放，state 恢复可移动状态
 
-    // 5) 入队 KB 文档索引任务
+    // 5) 桥接图谱→Wiki：为图谱中的实体创建 Wiki 笔记，内含 [[wikilinks]] 关联
+    let (bridged_notes, bridged_skipped) =
+        bridge_graph_to_wiki(state.harness.db(), &kb_id, &wiki_id).await;
+
+    // 6) 入队 KB 文档索引任务
     // import_lemonhu_graph 创建文档时仅写入 DB（indexing_status="pending"），未入队 index_queue。
     // 此处统一补齐：查询 KB 下所有 pending 文档，循环入队 JOB_TYPE_INDEX_DOCUMENT，
     // 否则 RAG 检索永远查不到这些文档（vector_store 中无对应 embedding）。
@@ -2355,18 +2474,21 @@ pub async fn import_project_knowledge_sources(
         kb_name,
         entity_count,
         relation_count,
+        bridged_notes,
+        bridged_skipped,
         embedding_provider: final_embedding_provider,
         embedding_changed,
     };
 
     tracing::info!(
-        "[import_project] {} 完成: Wiki +{}/-{}/={} notes, KB {} 实体 + {} 关系",
+        "[import_project] {} 完成: Wiki +{}/-{}/={} notes, Graph {} 实体 + {} 关系, Bridge {} notes",
         if is_update { "更新" } else { "导入" },
         result.wiki_imported,
         result.wiki_failed,
         result.wiki_skipped,
         result.entity_count,
         result.relation_count,
+        result.bridged_notes,
     );
 
     Ok(result)

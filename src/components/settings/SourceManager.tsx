@@ -480,6 +480,8 @@ function ImportProjectSourcesModal({
         kbName: string;
         entityCount: number;
         relationCount: number;
+        bridgedNotes: number;
+        bridgedSkipped: number;
         embeddingProvider: string | null;
         embeddingChanged: boolean;
       }>("import_project_knowledge_sources", {
@@ -493,6 +495,7 @@ function ImportProjectSourcesModal({
         skipped: result.wikiFailed + result.wikiSkipped,
         entities: result.entityCount,
         relations: result.relationCount,
+        bridged: result.bridgedNotes,
         wikiName: result.wikiName,
         kbName: result.kbName,
       }));

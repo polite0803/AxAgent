@@ -6177,7 +6177,7 @@
     },
     "importSelectBase": "请先选择目标知识库",
     "importProjectSources": "导入项目知识源",
-    "importSuccess": "导入完成: Wiki 笔记 {{imported}} 篇（跳过 {{skipped}}）, 图谱 {{entities}} 实体 + {{relations}} 关系",
+    "importSuccess": "导入完成: Wiki 笔记 {{imported}} 篇（跳过 {{skipped}}）, 图谱 {{entities}} 实体 + {{relations}} 关系, 桥接 {{bridged}} 篇节点笔记",
     "importNoEmbedding": "嵌入模型未设置，内容已入库但无法向量检索。请在知识源卡片底部点击「配置」选择嵌入模型后重建索引。",
     "syncProjectSources": "同步更新项目知识源",
     "syncSuccess": "同步完成: +{{added}} 新增, ~{{updated}} 更新, -{{deleted}} 删除, ={{skipped}} 跳过",

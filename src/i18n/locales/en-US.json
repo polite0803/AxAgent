@@ -6438,7 +6438,7 @@
     },
     "importSelectBase": "Please select a target knowledge base",
     "importProjectSources": "Import Project Knowledge Sources",
-    "importSuccess": "Import complete: Wiki {{imported}} notes ({{skipped}} skipped), Graph {{entities}} entities + {{relations}} relations",
+    "importSuccess": "Import complete: Wiki {{imported}} notes ({{skipped}} skipped), Graph {{entities}} entities + {{relations}} relations, Bridge {{bridged}} entity notes",
     "importNoEmbedding": "No embedding model set. Content was imported but cannot be used for semantic search. Click 'Config' on the source card to select an embedding model, then rebuild the index.",
     "syncProjectSources": "Sync Project Knowledge Sources",
     "syncSuccess": "Sync complete: +{{added}} new, ~{{updated}} updated, -{{deleted}} deleted, ={{skipped}} skipped",
