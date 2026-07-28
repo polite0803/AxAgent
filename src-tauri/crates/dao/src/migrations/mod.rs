@@ -32,9 +32,10 @@ pub mod v105_kb_vault_kind;
 pub mod v106_context_source_doc_ids;
 pub mod v107_paper_reading_list;
 pub mod v108_memory_applicability;
+pub mod v109_repair_memory_items_columns;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 108;
+pub const CURRENT_VERSION: i32 = 109;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -111,6 +112,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 108,
         description: "v108_memory_applicability: 为 memory_items 表添加 applicability_tags + confirmed 字段，支持记忆适用范围边界划分与人工确认门（自进化闭环）",
         up: |db| Box::pin(v108_memory_applicability::up(db)),
+    },
+    Migration {
+        version: 109,
+        description: "v109_repair_memory_items_columns: 防御性修复，补全 memory_items 表可能缺失的 tier/importance/access_count 等 12 个字段（修复 v101/v108 在 SQLite 上 ALTER TABLE 静默失败导致的字段缺失）",
+        up: |db| Box::pin(v109_repair_memory_items_columns::up(db)),
     },
 ];
 
@@ -321,7 +327,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 9 行（v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v108）
+        // schema_version 表应有 10 行（v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v108 + v109）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -332,8 +338,8 @@ mod tests {
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
-            cnt, 9,
-            "schema_version should have 9 rows (v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v108)"
+            cnt, 10,
+            "schema_version should have 10 rows (v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v108 + v109)"
         );
     }
 
