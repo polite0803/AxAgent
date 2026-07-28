@@ -70,6 +70,9 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     ("knowledge_entities", "last_seen_at", "TEXT"),
     // ── knowledge_relations 权重（v101） ──
     ("knowledge_relations", "weight", "REAL NOT NULL DEFAULT 1.0"),
+    // ── knowledge_documents 时间戳 —— entity 有定义但老库建表时缺失 ──
+    ("knowledge_documents", "created_at", "BIGINT NOT NULL DEFAULT 0"),
+    ("knowledge_documents", "updated_at", "BIGINT NOT NULL DEFAULT 0"),
     // ── memory_items 轨迹记忆字段（v101 + v108） ──
     ("memory_items", "tier", "TEXT NOT NULL DEFAULT 'working'"),
     ("memory_items", "importance", "REAL NOT NULL DEFAULT 0.5"),
