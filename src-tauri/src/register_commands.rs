@@ -198,6 +198,8 @@ macro_rules! register_all_commands {
             commands::memory::apply_user_memory_decay_tick,
             // v108: 自进化闭环 — 确认记忆项（晋升 core 层的确认门）
             commands::memory::confirm_memory_item,
+            // v108: 自进化闭环 — DB memory 导出到文件级 ProjectMemory
+            commands::memory::export_memories_to_project,
             commands::memory::auto_extract_incremental_memories,
             commands::memory::extract_conversation_entities,
             commands::memory::graph_search_memories,
@@ -469,6 +471,7 @@ macro_rules! register_all_commands {
             commands::memory::record_user_memory_access,
             commands::memory::apply_user_memory_decay_tick,
             commands::memory::confirm_memory_item,
+            commands::memory::export_memories_to_project,
             commands::agent_analytics::record_feedback,
             // Proactive commands
             commands::proactive::proactive_list_suggestions,
@@ -932,6 +935,7 @@ macro_rules! register_all_commands {
             // App config
             commands::app_config::get_app_config,
             commands::app_config::save_app_config,
+            commands::app_config::set_self_improvement_flags,
             // Dream / consolidation
             commands::dream::dream_consolidate_now,
             commands::dream::dream_get_status,

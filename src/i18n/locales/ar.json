@@ -3533,7 +3533,11 @@
         "toolConcurrency": "تزامن الأدوات",
         "toolConcurrencyDesc": "السماح بالتنفيذ المتزامن لاستدعاءات أدوات مستقلة متعددة",
         "verificationAgent": "وكيل التحقق",
-        "verificationAgentDesc": "تفعيل وكيل تحقق مستقل لمراجعة نتائج التنفيذ"
+        "verificationAgentDesc": "تفعيل وكيل تحقق مستقل لمراجعة نتائج التنفيذ",
+        "selfImprovingLoop": "حلقة التحسين الذاتي",
+        "selfImprovingLoopDesc": "يقوم الوكيل بتقييم مخرجاته ذاتياً ويحسنها تكرارياً بناءً على التغذية الراجعة حتى يصل إلى معيار الجودة",
+        "finalOutputReflection": "بوابة جودة المخرجات النهائية",
+        "finalOutputReflectionDesc": "فحص تلقائي للجودة قبل التوليف النهائي؛ العودة والتحسين إذا كان أقل من الحد الأدنى"
       },
       "features": "الميزات",
       "fullAccess": "وصول كامل",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "تم تخفيض الذاكرة",
       "duplicateClusters": "مجموعات الذاكرة المكررة",
       "editItem": "تحرير الذاكرة",
+      "exportToProject": "تصدير إلى المشروع",
+      "exportToProjectConfirm": "تصدير الذكريات عالية القيمة المؤكدة (tier ∈ {core, long_term}) إلى ملفات .axagent/memory/؟",
+      "exportToProjectEmpty": "لا توجد ذكريات للتصدير (يتطلب confirmed=1 و tier core أو long_term)",
+      "exportToProjectSuccess": "تم تصدير {{exported}}/{{total}} ذكرى إلى ملفات المشروع",
       "effective": "فعّال",
       "embeddingDimensions": "أبعاد التضمين",
       "embeddingDimensionsAuto": "تلقائي",

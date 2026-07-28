@@ -3533,7 +3533,11 @@
         "toolConcurrency": "Tool Concurrency",
         "toolConcurrencyDesc": "Allow simultaneous execution of multiple independent tool calls",
         "verificationAgent": "Verification Agent",
-        "verificationAgentDesc": "Enable an independent verification agent to review execution results"
+        "verificationAgentDesc": "Enable an independent verification agent to review execution results",
+        "selfImprovingLoop": "Self-Improving Loop",
+        "selfImprovingLoopDesc": "Agent self-evaluates its output and iteratively improves based on feedback until quality threshold is met",
+        "finalOutputReflection": "Final Output Reflection",
+        "finalOutputReflectionDesc": "Auto-check output quality before final synthesis; revert and improve if below threshold"
       },
       "features": "Features",
       "fullAccess": "Full Access",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "Memory demoted",
       "duplicateClusters": "Duplicate Memory Clusters",
       "editItem": "Edit memory",
+      "exportToProject": "Export to Project",
+      "exportToProjectConfirm": "Export confirmed high-value memories (tier ∈ {core, long_term}) to .axagent/memory/ files?",
+      "exportToProjectEmpty": "No memories to export (need confirmed=1 and tier core or long_term)",
+      "exportToProjectSuccess": "Exported {{exported}}/{{total}} memories to project files",
       "effective": "Effective",
       "embeddingDimensions": "Embedding dimensions",
       "embeddingDimensionsAuto": "Auto",

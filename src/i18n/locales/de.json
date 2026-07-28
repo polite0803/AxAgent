@@ -3533,7 +3533,11 @@
         "toolConcurrency": "Tool-Parallelität",
         "toolConcurrencyDesc": "Gleichzeitige Ausführung mehrerer unabhängiger Tool-Aufrufe erlauben",
         "verificationAgent": "Verifizierungs-Agent",
-        "verificationAgentDesc": "Einen unabhängigen Verifizierungs-Agenten zur Überprüfung der Ausführungsergebnisse aktivieren"
+        "verificationAgentDesc": "Einen unabhängigen Verifizierungs-Agenten zur Überprüfung der Ausführungsergebnisse aktivieren",
+        "selfImprovingLoop": "Selbstverbesserungsschleife",
+        "selfImprovingLoopDesc": "Agent bewertet seine Ausgabe selbst und verbessert sie iterativ basierend auf Feedback, bis Qualitätsstandard erreicht ist",
+        "finalOutputReflection": "Endgültige Ausgabe-Qualitätsprüfung",
+        "finalOutputReflectionDesc": "Automatische Qualitätsprüfung vor der finalen Synthese; bei Unterschreitung automatisch zurück und verbessern"
       },
       "features": "Funktionen",
       "fullAccess": "Vollzugriff",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "Speicher herabgestuft",
       "duplicateClusters": "Doppelte Speichercluster",
       "editItem": "Erinnerung bearbeiten",
+      "exportToProject": "Zum Projekt exportieren",
+      "exportToProjectConfirm": "Bestätigte wertvolle Erinnerungen (tier ∈ {core, long_term}) in .axagent/memory/ Dateien exportieren?",
+      "exportToProjectEmpty": "Keine Erinnerungen zu exportieren (confirmed=1 und tier core oder long_term erforderlich)",
+      "exportToProjectSuccess": "{{exported}}/{{total}} Erinnerungen in Projektdateien exportiert",
       "effective": "Wirksam",
       "embeddingDimensions": "Embedding-Dimensionen",
       "embeddingDimensionsAuto": "Automatisch",

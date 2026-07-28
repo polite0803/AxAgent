@@ -476,6 +476,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 自进化闭环:注入 Reflector,启用每个 turn 完成时自动复盘
     // (解决 experience_pipeline.rs:243 注释的 "Reflector::reflect() 目前零调用" 问题)
     agent_session_manager.set_reflector(reflector.clone()).await;
+
+    // 缺陷1修复:从 DB 读取前端 FeatureFlag,注入 SessionManager,
+    // 使 finalOutputReflection / selfImprovingLoop 开关真正影响后端复盘行为:
+    // - finalOutputReflection=true:turn 完成后同步等待 Reflector 评估
+    // - selfImprovingLoop=true + 质量不达标:把改进建议写入 nudge 供下次 turn 使用
+    let self_improvement_flags =
+        crate::commands::app_config::read_self_improvement_flags(&sea_db).await;
+    agent_session_manager.set_self_improvement_flags(self_improvement_flags).await;
     work_engine.set_event_bus(Arc::clone(&event_bus));
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
         Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new()));

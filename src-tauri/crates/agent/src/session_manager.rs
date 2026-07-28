@@ -257,6 +257,27 @@ pub struct SessionManager {
     /// 通常由 wiring 层(src/init/state.rs)在构造 AppState 时调用
     /// `set_reflector()` 注入。
     reflector: tokio::sync::RwLock<Option<Arc<crate::reflector::Reflector>>>,
+    /// 自改进循环开关(由 wiring 层从 DB 读取前端 FeatureFlag 后注入)。
+    ///
+    /// - `final_output_reflection=true`:turn 完成后同步等待 Reflector 评估完成
+    ///   (而非 fire-and-forget),使评估结果可立即用于质量门判定。
+    /// - `self_improvement_enabled=true` 且质量不达标:把改进建议写入 session
+    ///   的 nudge_lines,在下次 turn 中作为隐式提示注入 LLM。
+    ///
+    /// 未注入时保持原行为(异步 fire-and-forget 复盘)。
+    self_improvement_flags: tokio::sync::RwLock<SelfImprovementFlags>,
+}
+
+/// 自改进循环相关开关(对应前端 FeatureFlag)。
+///
+/// 由 wiring 层(`src/init/state.rs`)通过 `read_self_improvement_flags()`
+/// 从 DB 读取前端 `app_config.features` 后注入到 `SessionManager`。
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SelfImprovementFlags {
+    /// 是否启用自改进循环(对应 `features.selfImprovingLoop`)
+    pub self_improvement_enabled: bool,
+    /// 是否对最终输出做质量反射检查(对应 `features.finalOutputReflection`)
+    pub final_output_reflection: bool,
 }
 
 /// Maximum number of sessions to keep in memory (LRU eviction).
@@ -277,6 +298,7 @@ impl SessionManager {
             agent_session_repo,
             event_bus: tokio::sync::RwLock::new(None),
             reflector: tokio::sync::RwLock::new(None),
+            self_improvement_flags: tokio::sync::RwLock::new(SelfImprovementFlags::default()),
         }
     }
 
@@ -297,6 +319,18 @@ impl SessionManager {
     pub async fn set_reflector(&self, reflector: Arc<crate::reflector::Reflector>) {
         let mut guard = self.reflector.write().await;
         *guard = Some(reflector);
+    }
+
+    /// 注入自改进循环开关(由 wiring 层从 DB 读取前端 FeatureFlag 后调用)。
+    ///
+    /// 注入后,`run_turn_with_tools` 的复盘环节会根据 flag 决定:
+    /// - `final_output_reflection=true`:同步等待 Reflector 评估完成
+    /// - `self_improvement_enabled=true` 且质量不达标:把改进建议写入 nudge_lines
+    ///
+    /// 未注入时保持原行为(异步 fire-and-forget 复盘)。
+    pub async fn set_self_improvement_flags(&self, flags: SelfImprovementFlags) {
+        let mut guard = self.self_improvement_flags.write().await;
+        *guard = flags;
     }
 
     /// 发布一个 agent 领域事件到统一总线(若已注入)。
@@ -815,17 +849,24 @@ impl SessionManager {
             trackers.remove(&conversation_id);
         }
 
-        // ── 自动复盘(best-effort,不阻塞主流程) ──
+        // ── 自动复盘 ──
         //
-        // 若注入了 Reflector,任务完成后异步 spawn 复盘任务:
+        // 若注入了 Reflector,任务完成后做复盘:
         // - 从 summary.assistant_messages.blocks 提取 ToolUse 工具名序列
         // - 从 summary.tool_results.blocks 检查 ToolResult.is_error 判断成功
         // - 30s 超时保护,失败仅日志
         //
-        // 解决 `Reflector::reflect()` 零调用问题(experience_pipeline.rs:243 注释)。
+        // 复盘模式由 `self_improvement_flags` 控制(wiring 层从前端 FeatureFlag 注入):
+        // 1. `final_output_reflection=true`(最终输出质量门):**同步**等待 Reflector
+        //    完成,使评估结果可立即用于质量门判定。若同时启用 `self_improvement_enabled`
+        //    且质量不达标,把改进建议写入 session 的 nudge_lines,下次 turn 注入 LLM。
+        // 2. 默认(两个 flag 均为 false):**异步** fire-and-forget,不阻塞主流程
+        //    (保持原行为,解决 `Reflector::reflect()` 零调用问题)。
+        //
         // 复盘产物落 reflections.jsonl + InsightGenerator.store_insight,
         // 由 Reflector 内部逻辑处理,这里仅触发。
         let reflector_opt = self.reflector.read().await.clone();
+        let flags = *self.self_improvement_flags.read().await;
         if let Some(reflector) = reflector_opt {
             use axagent_harness::conversation_model::ContentBlock;
 
@@ -869,9 +910,11 @@ impl SessionManager {
                 record = record.with_error("tool_execution_error".to_string());
             }
 
-            // 异步 spawn,与主流程解耦(反思失败不影响 turn 结果)
-            let reflector_clone = reflector.clone();
-            tokio::spawn(async move {
+            if flags.final_output_reflection {
+                // ── 同步质量门:等待 Reflector 完成 ──
+                // 启用 finalOutputReflection 时,同步等待评估结果,
+                // 使质量分数和改进建议可立即用于下游决策。
+                let reflector_clone = reflector.clone();
                 let reflect_result = tokio::time::timeout(
                     std::time::Duration::from_secs(30),
                     reflector_clone.reflect(&record),
@@ -880,20 +923,81 @@ impl SessionManager {
                 match reflect_result {
                     Ok(reflection) => {
                         tracing::info!(
-                            "[session_manager] auto-reflect completed for task {}: quality_score={}",
+                            "[session_manager] sync-reflect completed for task {}: quality_score={}",
                             task_id,
                             reflection.quality_score
                         );
+
+                        // 若同时启用自改进循环且质量不达标,把改进建议写入 nudge_lines
+                        // (下次 turn 通过 runtime.set_nudge_lines 注入 LLM)
+                        if flags.self_improvement_enabled
+                            && !reflection.improvement_suggestions.is_empty()
+                        {
+                            // 质量阈值:quality_score < 7 视为不达标
+                            const QUALITY_THRESHOLD: u8 = 7;
+                            if reflection.quality_score < QUALITY_THRESHOLD {
+                                let nudge: Vec<String> = reflection
+                                    .improvement_suggestions
+                                    .iter()
+                                    .take(3)
+                                    .map(|s| format!("改进建议: {s}"))
+                                    .collect();
+                                tracing::info!(
+                                    "[session_manager] quality gate triggered for task {}: score={} < {}, injecting {} nudge lines",
+                                    task_id,
+                                    reflection.quality_score,
+                                    QUALITY_THRESHOLD,
+                                    nudge.len()
+                                );
+                                // 写入 session 的 nudge_lines,供下次 turn 使用
+                                // (通过 sessions map 中的 session 引用)
+                                let mut sessions = self.sessions.lock().await;
+                                if let Some(session) = sessions.get_mut(session_id) {
+                                    // AgentSession 没有直接的 nudge_lines 字段,
+                                    // 通过 blackboard 传递(下次 turn 前由调用方读取)
+                                    let _ = session
+                                        .record_to_blackboard("pending_nudge", &nudge.join("\n"))
+                                        .await;
+                                }
+                            }
+                        }
                     },
                     Err(e) => {
                         tracing::warn!(
-                            "[session_manager] auto-reflect timeout or failed for task {}: {}",
+                            "[session_manager] sync-reflect timeout or failed for task {}: {}",
                             task_id,
                             e
                         );
                     },
                 }
-            });
+            } else {
+                // ── 异步 fire-and-forget(默认行为) ──
+                // 异步 spawn,与主流程解耦(反思失败不影响 turn 结果)
+                let reflector_clone = reflector.clone();
+                tokio::spawn(async move {
+                    let reflect_result = tokio::time::timeout(
+                        std::time::Duration::from_secs(30),
+                        reflector_clone.reflect(&record),
+                    )
+                    .await;
+                    match reflect_result {
+                        Ok(reflection) => {
+                            tracing::info!(
+                                "[session_manager] auto-reflect completed for task {}: quality_score={}",
+                                task_id,
+                                reflection.quality_score
+                            );
+                        },
+                        Err(e) => {
+                            tracing::warn!(
+                                "[session_manager] auto-reflect timeout or failed for task {}: {}",
+                                task_id,
+                                e
+                            );
+                        },
+                    }
+                });
+            }
         }
 
         Ok((summary, updated_session))

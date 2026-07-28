@@ -221,8 +221,8 @@ pub async fn add_item(db: &DatabaseConnection, input: CreateMemoryItemInput) -> 
         last_accessed: Set(None),
         decay_rate: Set(decay_rate),
         expires_at: Set(expires_at),
-        source_conversation_id: Set(None),
-        source_message_id: Set(None),
+        source_conversation_id: Set(input.source_conversation_id),
+        source_message_id: Set(input.source_message_id),
         memory_nature: Set(memory_nature),
         tags: Set(tags_json),
         // v108: 自进化闭环 — applicability_tags + confirmed

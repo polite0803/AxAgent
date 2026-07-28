@@ -227,6 +227,9 @@ impl Tool for MemoryFlushTool {
             expires_at: None,
             applicability_tags: None,
             confirmed: None,
+            // v109: 经验溯源字段（MemoryFlush 工具不追踪来源，留空）
+            source_conversation_id: None,
+            source_message_id: None,
         };
 
         match axagent_harness::repositories::memory_repository().add_item(input).await {

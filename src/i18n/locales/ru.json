@@ -3533,7 +3533,11 @@
         "toolConcurrency": "Параллельность инструментов",
         "toolConcurrencyDesc": "Разрешить одновременное выполнение нескольких независимых вызовов инструментов",
         "verificationAgent": "Агент проверки",
-        "verificationAgentDesc": "Включить независимый агент проверки для анализа результатов выполнения"
+        "verificationAgentDesc": "Включить независимый агент проверки для анализа результатов выполнения",
+        "selfImprovingLoop": "Цикл самоулучшения",
+        "selfImprovingLoopDesc": "Агент самооценивает свой вывод и итеративно улучшает его на основе обратной связи до достижения стандарта качества",
+        "finalOutputReflection": "Контроль качества окончательного вывода",
+        "finalOutputReflectionDesc": "Автоматическая проверка качества перед финальным синтезом; откат и улучшение при несоответствии порогу"
       },
       "features": "Возможности",
       "fullAccess": "Полный доступ",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "Память понижена",
       "duplicateClusters": "Дубликаты кластеров памяти",
       "editItem": "Редактировать память",
+      "exportToProject": "Экспорт в проект",
+      "exportToProjectConfirm": "Экспортировать подтверждённые ценные воспоминания (tier ∈ {core, long_term}) в файлы .axagent/memory/?",
+      "exportToProjectEmpty": "Нет воспоминаний для экспорта (требуется confirmed=1 и tier core или long_term)",
+      "exportToProjectSuccess": "Экспортировано {{exported}}/{{total}} воспоминаний в файлы проекта",
       "effective": "Эффективный",
       "embeddingDimensions": "Размерность эмбеддинга",
       "embeddingDimensionsAuto": "Авто",

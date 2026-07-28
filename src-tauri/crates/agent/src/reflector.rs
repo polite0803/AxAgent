@@ -213,6 +213,11 @@ impl Reflector {
 
         let repo = axagent_harness::repositories::memory_repository();
 
+        // v109: 经验溯源 — task_id 格式为 `{conversation_id}-{timestamp_millis}`
+        // (session_manager.rs:855),解析出 conversation_id 设入 source_conversation_id,
+        // 便于前端从经验跳转到原始会话。
+        let source_conversation_id = parse_conversation_id_from_task_id(&reflection.task_id);
+
         // 1. 查找 Reflector Insights namespace
         let ns_id = match repo.list_namespaces().await {
             Ok(list) => {
@@ -304,6 +309,9 @@ impl Reflector {
             applicability_tags: None,
             // 默认未确认,需人工审核才能晋升 core 层(v108 确认门)
             confirmed: None,
+            // v109: 经验溯源
+            source_conversation_id,
+            source_message_id: None,
         };
 
         match repo.add_item(input).await {
@@ -749,6 +757,117 @@ impl Reflector {
 
     pub fn get_insight_generator(&self) -> Arc<InsightGenerator> {
         Arc::clone(&self.insight_generator)
+    }
+}
+
+/// 从 task_id 解析出 conversation_id。
+///
+/// task_id 格式由 session_manager.rs:855 定义为 `{conversation_id}-{timestamp_millis}`,
+/// 其中 conversation_id 本身是 UUID(不包含连字符以外的特殊字符),
+/// timestamp 是纯数字。因此最后一个连字符之前的部分即为 conversation_id。
+///
+/// 解析失败时返回 None(不影响沉淀主流程,只是缺少溯源信息)。
+fn parse_conversation_id_from_task_id(task_id: &str) -> Option<String> {
+    let last_dash = task_id.rfind('-')?;
+    let prefix = &task_id[..last_dash];
+    let suffix = &task_id[last_dash + 1..];
+    if !suffix.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    if prefix.is_empty() {
+        return None;
+    }
+    Some(prefix.to_string())
+}
+
+/// 从 ReAct 引擎的 ThoughtChain 派生一个最小化的 [`TaskExecutionRecord`]，
+/// 供 `Reflector::reflect()` 在 Synthesizing/Reflecting 阶段做质量门检查使用。
+///
+/// 派生规则：
+/// - `task_id`：使用 `original_input` 的哈希或固定前缀（ReAct 引擎内嵌调用时无会话级 task_id）
+/// - `task_description`：取 `context.original_input`（用户原始输入）
+/// - `success`：根据 chain 中是否有 result 文本判定（非空视为成功）
+/// - `iterations`：取 `chain.iteration`
+/// - `tools_used`：从 chain.steps 中提取所有 ToolCall 类型的 tool_name
+/// - 时间戳与 duration：以"现在"为终点，duration 按 iterations × 2000ms 估算
+///
+/// 该函数只用于 ReAct 引擎内部的质量门检查；session_manager 在任务完成时
+/// 会用真实的 task_id / 时间戳 / 工具调用记录调用 `Reflector::reflect()`，
+/// 那条路径产出的反思才是会被持久化到 DB 的权威记录。
+pub fn task_record_from_chain(
+    chain: &crate::thought_chain::ThoughtChain,
+    context: &crate::reasoning_state::ReasoningContext,
+) -> TaskExecutionRecord {
+    use crate::reasoning_state::ActionType;
+
+    let now = chrono::Utc::now();
+    // 估算开始时间：以当前为 end，按 iterations × 2s 倒推
+    let duration_ms = (context.iteration.max(1) as u64) * 2000;
+    let start_time = now - chrono::Duration::milliseconds(duration_ms as i64);
+
+    let tools_used: Vec<String> = chain
+        .steps
+        .iter()
+        .filter_map(|s| {
+            s.action.as_ref().and_then(|a| {
+                if matches!(a.action_type, ActionType::ToolCall) {
+                    a.tool_name.clone()
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    let has_result = chain
+        .latest_step()
+        .and_then(|s| s.result.as_ref())
+        .map(|r| !r.trim().is_empty())
+        .unwrap_or(false);
+
+    let task_id = format!("react-inline-{}", context.iteration);
+
+    TaskExecutionRecord::new(task_id, context.original_input.clone(), start_time, now)
+        .with_success(has_result)
+        .with_tools(tools_used)
+        .with_iterations(context.iteration)
+}
+
+#[cfg(test)]
+mod tests_parse_task_id {
+    use super::*;
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_normal() {
+        let task_id = "conv-abc-123-1700000000000";
+        let parsed = parse_conversation_id_from_task_id(task_id);
+        assert_eq!(parsed.as_deref(), Some("conv-abc-123"));
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_uuid_format() {
+        // UUID 形式的 conversation_id + timestamp
+        let task_id = "550e8400-e29b-41d4-a716-446655440000-1700000000000";
+        let parsed = parse_conversation_id_from_task_id(task_id);
+        assert_eq!(parsed.as_deref(), Some("550e8400-e29b-41d4-a716-446655440000"));
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_no_dash() {
+        let parsed = parse_conversation_id_from_task_id("nodash");
+        assert_eq!(parsed, None);
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_suffix_not_numeric() {
+        let parsed = parse_conversation_id_from_task_id("conv-abc");
+        assert_eq!(parsed, None);
+    }
+
+    #[test]
+    fn test_parse_conversation_id_from_task_id_empty_prefix() {
+        let parsed = parse_conversation_id_from_task_id("-1700000000000");
+        assert_eq!(parsed, None);
     }
 }
 

@@ -611,6 +611,9 @@ pub async fn auto_extract_incremental_memories(
             expires_at: None,
             applicability_tags: None,
             confirmed: None,
+            // v109: 经验溯源字段（命令层不追踪来源，留空）
+            source_conversation_id: None,
+            source_message_id: None,
         };
         if let Ok(mem_item) = axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             let ns = axagent_dao::repo::memory::get_namespace(state.harness.db(), &namespace_id)
@@ -798,6 +801,9 @@ pub async fn sync_working_memory_to_namespace(
             expires_at: None,
             applicability_tags: None,
             confirmed: None,
+            // v109: 经验溯源字段（命令层不追踪来源，留空）
+            source_conversation_id: None,
+            source_message_id: None,
         };
         match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
@@ -1373,6 +1379,9 @@ pub async fn extract_conversation_memories(
             expires_at: None,
             applicability_tags: None,
             confirmed: None,
+            // v109: 经验溯源字段（命令层不追踪来源，留空）
+            source_conversation_id: None,
+            source_message_id: None,
         };
         match axagent_dao::repo::memory::add_item(state.harness.db(), input).await {
             Ok(mem_item) => {
@@ -1686,5 +1695,77 @@ pub async fn apply_user_memory_decay_tick(
         "expiredDeleted": expired,
         "lowScoreDeleted": low_score,
         "capacityEvicted": capacity,
+    }))
+}
+
+/// v108: 自进化闭环 — 把 DB memory_items 导出到文件级 ProjectMemory。
+///
+/// 遍历所有 namespace，把 `tier ∈ {core, long_term}` 且 `confirmed=1` 的记忆
+/// 导出到 `.axagent/memory/{user,project}/` 下的 .md 文件，并更新 MEMORY.md 索引。
+///
+/// 导出后，文件级 `scan_relevant_files` 检索即可取用到这些经验，
+/// 即使向量嵌入未配置也能通过 TF 关键词匹配检索。
+#[tauri::command]
+pub async fn export_memories_to_project(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    use crate::commands::error::{ErrorCategory, ErrorResponse};
+
+    // 1. 获取 workspace_dir
+    let settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+    let workspace_dir = match settings.default_workspace_dir.as_ref() {
+        Some(d) if !d.is_empty() => d.clone(),
+        _ => {
+            return Err(String::from(ErrorResponse::from_error(
+                axagent_harness::core_error::AxAgentError::Validation(
+                    "未配置默认工作区目录（default_workspace_dir）".to_string(),
+                ),
+                ErrorCategory::Unrecoverable,
+            )));
+        },
+    };
+
+    // 2. 遍历所有 namespace，收集 memory_items
+    let namespaces = axagent_dao::repo::memory::list_namespaces(state.harness.db())
+        .await
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
+
+    let mut all_items: Vec<MemoryItem> = Vec::new();
+    for ns in &namespaces {
+        let items =
+            axagent_dao::repo::memory::list_items(state.harness.db(), &ns.id).await.map_err(
+                |e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)),
+            )?;
+        // 仅导出已确认的高价值记忆
+        for it in items {
+            if it.confirmed == 1 && (it.tier == "core" || it.tier == "long_term") {
+                all_items.push(it);
+            }
+        }
+    }
+
+    if all_items.is_empty() {
+        return Ok(serde_json::json!({
+            "exported": 0,
+            "message": "无可导出的记忆（需 confirmed=1 且 tier ∈ {core, long_term}）",
+        }));
+    }
+
+    // 3. 调用 ProjectMemory 导出到文件
+    let pm = axagent_agent::ProjectMemory::new(std::path::PathBuf::from(workspace_dir));
+    let exported = pm.export_memory_items(&all_items).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            axagent_harness::core_error::AxAgentError::Internal(format!(
+                "导出到 ProjectMemory 失败: {}",
+                e
+            )),
+            ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(serde_json::json!({
+        "exported": exported,
+        "totalCandidates": all_items.len(),
     }))
 }

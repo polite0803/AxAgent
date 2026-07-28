@@ -40,6 +40,8 @@ interface MemoryState {
   recordItemAccess: (namespaceId: string, itemId: string) => Promise<void>;
   // v108: 自进化闭环 — 确认记忆项（晋升 core 层的确认门）
   confirmItem: (namespaceId: string, itemId: string) => Promise<void>;
+  // v108: 自进化闭环 — DB memory 导出到文件级 ProjectMemory
+  exportMemoriesToProject: () => Promise<{ exported: number; totalCandidates: number }>;
   setSelectedNamespaceId: (id: string | null) => void;
   reorderNamespaces: (namespaceIds: string[]) => Promise<void>;
 }
@@ -198,6 +200,14 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
       set({ error: String(e) });
       throw e;
     }
+  },
+
+  // v108: 自进化闭环 — DB memory 导出到文件级 ProjectMemory
+  exportMemoriesToProject: async () => {
+    const result = await invoke<{ exported: number; totalCandidates: number }>(
+      "export_memories_to_project",
+    );
+    return result;
   },
 
   setSelectedNamespaceId: (id) => {

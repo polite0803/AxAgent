@@ -67,6 +67,9 @@ export type CreateMemoryItemInput = {
   // v108: 自进化闭环 — 创建时可选指定适用范围与确认状态
   applicabilityTags?: string[];
   confirmed?: number;
+  // v109: 自进化闭环 — 经验溯源（保留来源以便溯源）
+  sourceConversationId?: string;
+  sourceMessageId?: string;
 };
 
 export type UpdateMemoryItemInput = {

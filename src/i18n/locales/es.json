@@ -3533,7 +3533,11 @@
         "toolConcurrency": "Concurrencia de herramientas",
         "toolConcurrencyDesc": "Permitir la ejecución simultánea de múltiples llamadas de herramientas independientes",
         "verificationAgent": "Agente de verificación",
-        "verificationAgentDesc": "Activar un agente de verificación independiente para revisar los resultados de ejecución"
+        "verificationAgentDesc": "Activar un agente de verificación independiente para revisar los resultados de ejecución",
+        "selfImprovingLoop": "Bucle de Automejora",
+        "selfImprovingLoopDesc": "El agente autoevalúa su salida y mejora iterativamente basándose en retroalimentación hasta alcanzar el estándar de calidad",
+        "finalOutputReflection": "Reflexión de Salida Final",
+        "finalOutputReflectionDesc": "Verificación automática de calidad antes de la síntesis final; revertir y mejorar si está por debajo del umbral"
       },
       "features": "Características",
       "fullAccess": "Acceso completo",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "Memoria degradada",
       "duplicateClusters": "Clústeres de memoria duplicados",
       "editItem": "Editar memoria",
+      "exportToProject": "Exportar al proyecto",
+      "exportToProjectConfirm": "¿Exportar recuerdos de alto valor confirmados (tier ∈ {core, long_term}) a archivos .axagent/memory/?",
+      "exportToProjectEmpty": "No hay recuerdos para exportar (requiere confirmed=1 y tier core o long_term)",
+      "exportToProjectSuccess": "Exportados {{exported}}/{{total}} recuerdos a archivos de proyecto",
       "effective": "Efectivo",
       "embeddingDimensions": "Dimensiones de embedding",
       "embeddingDimensionsAuto": "Auto",

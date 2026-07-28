@@ -732,6 +732,11 @@ pub async fn collect_rag_context_with_filters(
 /// 三层记忆系统：根据 memory_items.tier / importance 对 Memory 知识源的检索结果
 /// 进行二次加权与重排序，让 core / long_term 记忆在 RAG 检索中真正发挥作用。
 ///
+/// v108: 同时读取 applicability_tags，按当前 query 做适用范围过滤：
+/// - tags 为空 → 全局适用，保留
+/// - tags 非空且 query 中命中至少一个 tag → 匹配，保留
+/// - tags 非空且 query 中未命中任何 tag → 适用范围不符，剔除
+///
 /// 算法：
 /// - tier 优先级 bonus：core=2.0, long_term=1.5, working=1.0, short_term=0.5
 /// - adjusted_score = original_score - tier_bonus * importance
@@ -739,16 +744,22 @@ pub async fn collect_rag_context_with_filters(
 /// - 按 adjusted_score 升序重排序
 ///
 /// 未命中 memory_items 表的 id（理论上不会发生）原样保留 score 不调整。
-async fn apply_memory_tier_weight(db: &DatabaseConnection, items: &mut [RagRetrievedItem]) {
+async fn apply_memory_tier_weight(
+    db: &DatabaseConnection,
+    items: &mut Vec<RagRetrievedItem>,
+    query: &str,
+) {
     if items.is_empty() {
         return;
     }
 
-    // 收集所有 id，批量查询 tier / importance
+    // 收集所有 id，批量查询 tier / importance / applicability_tags
     let ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
     let placeholders =
         ids.iter().enumerate().map(|(i, _)| format!("?{}", i + 1)).collect::<Vec<_>>().join(", ");
-    let sql = format!("SELECT id, tier, importance FROM memory_items WHERE id IN ({placeholders})");
+    let sql = format!(
+        "SELECT id, tier, importance, applicability_tags FROM memory_items WHERE id IN ({placeholders})"
+    );
 
     let values: Vec<sea_orm::Value> = ids.into_iter().map(sea_orm::Value::from).collect();
     let rows = match db
@@ -762,9 +773,10 @@ async fn apply_memory_tier_weight(db: &DatabaseConnection, items: &mut [RagRetri
         },
     };
 
-    // id → (tier_bonus, importance)
+    // id → (tier_bonus, importance, applicability_tags)
     use std::collections::HashMap;
-    let mut weight_map: HashMap<String, (f32, f32)> = HashMap::with_capacity(rows.len());
+    let mut weight_map: HashMap<String, (f32, f32, Vec<String>)> =
+        HashMap::with_capacity(rows.len());
     for row in rows {
         let id: String = match row.try_get("", "id") {
             Ok(v) => v,
@@ -779,12 +791,53 @@ async fn apply_memory_tier_weight(db: &DatabaseConnection, items: &mut [RagRetri
             "short_term" => 0.5,
             _ => 1.0,
         };
-        weight_map.insert(id, (tier_bonus, importance as f32));
+        // v108: applicability_tags 存储为 JSON 数组字符串
+        let applicability_tags: Vec<String> = row
+            .try_get::<String>("", "applicability_tags")
+            .ok()
+            .and_then(|s| serde_json::from_str::<Vec<String>>(&s).ok())
+            .unwrap_or_default();
+        weight_map.insert(id, (tier_bonus, importance as f32, applicability_tags));
     }
 
+    // v108: 按 applicability_tags 过滤适用范围
+    filter_items_by_applicability_tags(items, &weight_map, query);
+
     // 调整 score 并按升序重排序（L2 distance 越小越相关）
+    apply_tier_weight_and_sort(items, &weight_map);
+}
+
+/// v108: 按 applicability_tags 过滤适用范围（纯函数，便于单元测试）
+///
+/// 规则：
+/// - weight_map 中无此 id → 视为全局适用，保留
+/// - tags 为空 → 全局适用，保留
+/// - tags 非空 → query 中需命中至少一个 tag（不区分大小写子串匹配）
+pub(crate) fn filter_items_by_applicability_tags(
+    items: &mut Vec<RagRetrievedItem>,
+    weight_map: &std::collections::HashMap<String, (f32, f32, Vec<String>)>,
+    query: &str,
+) {
+    let query_lower = query.to_lowercase();
+    items.retain(|it| match weight_map.get(&it.id) {
+        Some((_, _, tags)) if !tags.is_empty() => {
+            tags.iter().any(|tag| query_lower.contains(&tag.to_lowercase()))
+        },
+        _ => true,
+    });
+}
+
+/// v108: 应用 tier 权重并按 score 升序排序（纯函数，便于单元测试）
+///
+/// `weight_map` 的 value 为 `(tier_bonus, importance, _applicability_tags)`。
+/// 调整公式：`adjusted_score = original_score - tier_bonus * importance`
+/// （original_score 是 L2 distance，越小越相关；减去 bonus 让高 tier 记忆排前）
+pub(crate) fn apply_tier_weight_and_sort(
+    items: &mut [RagRetrievedItem],
+    weight_map: &std::collections::HashMap<String, (f32, f32, Vec<String>)>,
+) {
     for it in items.iter_mut() {
-        if let Some((tier_bonus, importance)) = weight_map.get(&it.id) {
+        if let Some((tier_bonus, importance, _)) = weight_map.get(&it.id) {
             it.score -= tier_bonus * importance;
         }
     }
@@ -903,8 +956,9 @@ async fn collect_rag_context_from_refs(
                     .collect();
 
                 // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
+                // v108: 同时按 applicability_tags 过滤适用范围
                 if matches!(src_ref.source_type, RAGSourceType::Memory) {
-                    apply_memory_tier_weight(db, &mut items).await;
+                    apply_memory_tier_weight(db, &mut items, query).await;
                 }
 
                 // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
@@ -1640,8 +1694,9 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
                     .collect();
 
                 // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
+                // v108: 同时按 applicability_tags 过滤适用范围
                 if matches!(src_ref.source_type, RAGSourceType::Memory) {
-                    apply_memory_tier_weight(db, &mut items).await;
+                    apply_memory_tier_weight(db, &mut items, query).await;
                 }
 
                 let label = source.context_label();
@@ -1808,5 +1863,212 @@ mod tests {
         let strategy = ChunkStrategy::Direct;
         let chunks = prepare_chunks("item-1", &strategy).unwrap();
         assert!(chunks.is_empty());
+    }
+
+    // ── v108: filter_items_by_applicability_tags 单元测试 ──────────
+
+    /// 构造测试用 RagRetrievedItem
+    fn make_item(id: &str, score: f32) -> RagRetrievedItem {
+        RagRetrievedItem {
+            content: String::new(),
+            score,
+            document_id: String::new(),
+            id: id.to_string(),
+            document_name: None,
+            chunk_index: None,
+        }
+    }
+
+    #[test]
+    fn test_filter_empty_items_no_op() {
+        let mut items: Vec<RagRetrievedItem> = Vec::new();
+        let map = std::collections::HashMap::new();
+        filter_items_by_applicability_tags(&mut items, &map, "rust");
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_filter_empty_weight_map_keeps_all() {
+        let mut items = vec![make_item("a", 1.0), make_item("b", 2.0)];
+        let map = std::collections::HashMap::new();
+        filter_items_by_applicability_tags(&mut items, &map, "rust");
+        assert_eq!(items.len(), 2);
+    }
+
+    #[test]
+    fn test_filter_id_not_in_map_keeps() {
+        let mut items = vec![make_item("a", 1.0), make_item("b", 2.0)];
+        let mut map = std::collections::HashMap::new();
+        // 仅注册 a，b 不在 map → b 保留
+        map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
+        filter_items_by_applicability_tags(&mut items, &map, "rust");
+        // a 命中 rust tag，b 视为全局适用，均保留
+        assert_eq!(items.len(), 2);
+    }
+
+    #[test]
+    fn test_filter_empty_tags_keeps() {
+        let mut items = vec![make_item("a", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (1.0, 0.5, Vec::new()));
+        filter_items_by_applicability_tags(&mut items, &map, "anything");
+        assert_eq!(items.len(), 1);
+    }
+
+    #[test]
+    fn test_filter_tag_matched_keeps() {
+        let mut items = vec![make_item("a", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
+        filter_items_by_applicability_tags(&mut items, &map, "rust programming");
+        assert_eq!(items.len(), 1);
+    }
+
+    #[test]
+    fn test_filter_tag_not_matched_removed() {
+        let mut items = vec![make_item("a", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
+        filter_items_by_applicability_tags(&mut items, &map, "python programming");
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_filter_case_insensitive() {
+        let mut items = vec![make_item("a", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        // tag 大写
+        map.insert("a".to_string(), (1.0, 0.5, vec!["RUST".to_string()]));
+        // query 小写 → 子串匹配应不区分大小写
+        filter_items_by_applicability_tags(&mut items, &map, "rust is great");
+        assert_eq!(items.len(), 1);
+
+        // 反向：tag 小写，query 大写
+        let mut items2 = vec![make_item("a", 1.0)];
+        let mut map2 = std::collections::HashMap::new();
+        map2.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
+        filter_items_by_applicability_tags(&mut items2, &map2, "RUST IS GREAT");
+        assert_eq!(items2.len(), 1);
+    }
+
+    #[test]
+    fn test_filter_multiple_tags_any_match() {
+        let mut items = vec![make_item("a", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        // 多 tag，query 命中第二个
+        map.insert("a".to_string(), (1.0, 0.5, vec!["python".to_string(), "rust".to_string()]));
+        filter_items_by_applicability_tags(&mut items, &map, "rust coding");
+        assert_eq!(items.len(), 1);
+
+        // 多 tag，query 未命中任何一个
+        let mut items2 = vec![make_item("a", 1.0)];
+        filter_items_by_applicability_tags(&mut items2, &map, "golang coding");
+        assert!(items2.is_empty());
+    }
+
+    #[test]
+    fn test_filter_mixed_items_partial_removal() {
+        let mut items = vec![
+            make_item("a", 1.0), // tags=["rust"], query 命中 → 保留
+            make_item("b", 2.0), // tags=["python"], query 未命中 → 移除
+            make_item("c", 3.0), // tags=[] → 全局适用 → 保留
+            make_item("d", 4.0), // 不在 map → 保留
+        ];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
+        map.insert("b".to_string(), (1.0, 0.5, vec!["python".to_string()]));
+        map.insert("c".to_string(), (1.0, 0.5, Vec::new()));
+        filter_items_by_applicability_tags(&mut items, &map, "rust programming");
+        assert_eq!(items.len(), 3);
+        // b 应被移除
+        assert!(items.iter().all(|it| it.id != "b"));
+    }
+
+    #[test]
+    fn test_filter_empty_query_with_nonempty_tags_removes() {
+        let mut items = vec![make_item("a", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
+        // query 为空 → 任何 tag 都无法命中 → 移除
+        filter_items_by_applicability_tags(&mut items, &map, "");
+        assert!(items.is_empty());
+    }
+
+    // ── v108: apply_tier_weight_and_sort 单元测试 ──────────
+
+    #[test]
+    fn test_weight_sort_empty_items_no_op() {
+        let mut items: Vec<RagRetrievedItem> = Vec::new();
+        let map = std::collections::HashMap::new();
+        apply_tier_weight_and_sort(&mut items, &map);
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_weight_sort_id_not_in_map_score_unchanged() {
+        let mut items = vec![make_item("a", 5.0)];
+        let map = std::collections::HashMap::new();
+        apply_tier_weight_and_sort(&mut items, &map);
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].score, 5.0);
+    }
+
+    #[test]
+    fn test_weight_sort_single_item_adjusted() {
+        let mut items = vec![make_item("a", 10.0)];
+        let mut map = std::collections::HashMap::new();
+        // tier_bonus=2.0, importance=0.5 → adjusted = 10 - 2.0*0.5 = 9.0
+        map.insert("a".to_string(), (2.0, 0.5, Vec::new()));
+        apply_tier_weight_and_sort(&mut items, &map);
+        assert_eq!(items.len(), 1);
+        assert!((items[0].score - 9.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_weight_sort_ascending_order() {
+        // 原始 score：a=10, b=5, c=8
+        // 加权后：a=10-2.0*0.9=8.2, b=5-0.5*0.5=4.75, c=8-1.5*0.7=6.95
+        // 升序：b(4.75) < c(6.95) < a(8.2)
+        let mut items = vec![make_item("a", 10.0), make_item("b", 5.0), make_item("c", 8.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (2.0, 0.9, Vec::new())); // core
+        map.insert("b".to_string(), (0.5, 0.5, Vec::new())); // short_term
+        map.insert("c".to_string(), (1.5, 0.7, Vec::new())); // long_term
+        apply_tier_weight_and_sort(&mut items, &map);
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].id, "b");
+        assert_eq!(items[1].id, "c");
+        assert_eq!(items[2].id, "a");
+        // 验证 adjusted score
+        assert!((items[0].score - 4.75).abs() < 1e-6);
+        assert!((items[1].score - 6.95).abs() < 1e-6);
+        assert!((items[2].score - 8.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_weight_sort_core_ranks_before_short_term() {
+        // 即使原始 L2 distance 相同，core 的 bonus 更大（减得更多），应排前
+        let mut items = vec![make_item("short", 5.0), make_item("core", 5.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("core".to_string(), (2.0, 0.9, Vec::new()));
+        map.insert("short".to_string(), (0.5, 0.9, Vec::new()));
+        apply_tier_weight_and_sort(&mut items, &map);
+        // core adjusted = 5 - 2.0*0.9 = 3.2
+        // short adjusted = 5 - 0.5*0.9 = 4.55
+        // 升序：core(3.2) < short(4.55)
+        assert_eq!(items[0].id, "core");
+        assert_eq!(items[1].id, "short");
+    }
+
+    #[test]
+    fn test_weight_sort_nan_score_fallback() {
+        // 包含 NaN score 的 item 应不 panic（fallback 到 Equal）
+        let mut items = vec![make_item("a", f32::NAN), make_item("b", 1.0)];
+        let mut map = std::collections::HashMap::new();
+        map.insert("a".to_string(), (1.0, 0.5, Vec::new()));
+        map.insert("b".to_string(), (1.0, 0.5, Vec::new()));
+        // 不应 panic
+        apply_tier_weight_and_sort(&mut items, &map);
+        assert_eq!(items.len(), 2);
     }
 }

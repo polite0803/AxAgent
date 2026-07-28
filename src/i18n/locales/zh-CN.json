@@ -3533,7 +3533,11 @@
         "toolConcurrency": "工具并发",
         "toolConcurrencyDesc": "允许同时执行多个独立工具调用",
         "verificationAgent": "验证 Agent",
-        "verificationAgentDesc": "启用独立验证 Agent 审查执行结果"
+        "verificationAgentDesc": "启用独立验证 Agent 审查执行结果",
+        "selfImprovingLoop": "自改进循环",
+        "selfImprovingLoopDesc": "Agent 在生成输出后自我评估，根据反馈迭代改进，直到达到质量标准",
+        "finalOutputReflection": "最终输出质量门",
+        "finalOutputReflectionDesc": "Agent 合成最终回答前自动检查质量，不达标时自动回退改进"
       },
       "features": "功能",
       "fullAccess": "完全访问",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "记忆已降级",
       "duplicateClusters": "重复记忆聚类",
       "editItem": "编辑记忆",
+      "exportToProject": "导出到项目",
+      "exportToProjectConfirm": "把已确认的高价值记忆（tier ∈ {core, long_term}）导出到 .axagent/memory/ 文件？",
+      "exportToProjectEmpty": "无可导出的记忆（需先确认且 tier 为 core 或 long_term）",
+      "exportToProjectSuccess": "已导出 {{exported}}/{{total}} 条记忆到项目文件",
       "effective": "有效性",
       "embeddingDimensions": "嵌入维度",
       "embeddingDimensionsAuto": "自动",

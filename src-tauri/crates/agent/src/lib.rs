@@ -15,6 +15,7 @@ pub mod academic_search;
 pub mod action_executor;
 pub mod agent_adapter;
 pub mod agent_config;
+pub mod agent_round_adapter;
 pub mod agent_runtime;
 pub mod checkpoint;
 pub mod citation_tracker;
@@ -77,6 +78,7 @@ pub mod schema_manager;
 pub mod search_orchestrator;
 pub mod search_planner;
 pub mod search_provider;
+pub mod self_improvement_executor;
 pub mod self_verifier;
 pub mod session_manager;
 pub mod shadow_fs;
@@ -101,7 +103,8 @@ pub mod wiki_compiler;
 
 // session_manager — 外部引用：app_state, state/*, init/*, commands/*
 pub use session_manager::{
-    AgentSession, ChannelPermissionPrompter, SessionManager, TauriHookProgressReporter,
+    AgentSession, ChannelPermissionPrompter, SelfImprovementFlags, SessionManager,
+    TauriHookProgressReporter,
 };
 
 // shared_blackboard — 外部引用：consumer crate 通过 harness trait 操控多 Agent 协作
@@ -203,6 +206,12 @@ pub use reasoning_router::{
 pub use tree_of_thoughts::{
     DefaultToTReasoningProvider, LlmReasoningProvider, TreeOfThoughtsEngine,
 };
+
+// self_improvement_executor — 外部引用：coordinator 内嵌自改进循环
+pub use self_improvement_executor::{FinalOutput, SelfImprovementConfig, SelfImprovementExecutor};
+
+// agent_round_adapter — 外部引用：wiring 层包装 ReActEngine 进入自改进循环
+pub use agent_round_adapter::AgentRoundAdapter;
 
 // runtime-core 类型透传 — 外部引用：commands/agent
 

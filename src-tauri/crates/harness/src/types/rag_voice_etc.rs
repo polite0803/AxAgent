@@ -1045,6 +1045,15 @@ pub struct CreateMemoryItemInput {
     /// 0=未确认（默认），1=已确认。Reflector 沉淀时默认 0，需前端确认后才晋升。
     #[serde(default)]
     pub confirmed: Option<i32>,
+    /// v109: 自进化闭环 — 经验溯源（保留来源以便溯源）。
+    /// Reflector 沉淀时从 task_id 解析出 conversation_id 设入此字段。
+    /// None 表示无来源（手动创建）。
+    #[serde(default)]
+    pub source_conversation_id: Option<String>,
+    /// v109: 自进化闭环 — 经验溯源（消息级）。
+    /// 通常不设置（Reflector 是 turn 级复盘，不对应具体消息）。
+    #[serde(default)]
+    pub source_message_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

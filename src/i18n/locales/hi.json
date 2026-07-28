@@ -3533,7 +3533,11 @@
         "toolConcurrency": "टूल समवर्तीता",
         "toolConcurrencyDesc": "कई स्वतंत्र टूल कॉल का एक साथ निष्पादन अनुमति दें",
         "verificationAgent": "सत्यापन एजेंट",
-        "verificationAgentDesc": "निष्पादन परिणामों की समीक्षा के लिए एक स्वतंत्र सत्यापन एजेंट सक्षम करें"
+        "verificationAgentDesc": "निष्पादन परिणामों की समीक्षा के लिए एक स्वतंत्र सत्यापन एजेंट सक्षम करें",
+        "selfImprovingLoop": "स्व-सुधार लूप",
+        "selfImprovingLoopDesc": "एजेंट अपने आउटपुट का स्व-मूल्यांकन करता है और फीडबैक के आधार पर गुणवत्ता मानक तक पहुँचने तक पुनरावृत्ति से सुधार करता है",
+        "finalOutputReflection": "अंतिम आउटपुट गुणवत्ता गेट",
+        "finalOutputReflectionDesc": "अंतिम संश्लेषण से पहले गुणवत्ता की स्वचालित जांच; सीमा से कम होने पर स्वचालित रूप से वापस जाएं और सुधार करें"
       },
       "features": "सुविधाएँ",
       "fullAccess": "पूर्ण पहुँच",
@@ -4024,6 +4028,10 @@
       "demoteSuccess": "मेमोरी अवनत की गई",
       "duplicateClusters": "डुप्लिकेट मेमोरी क्लस्टर",
       "editItem": "मेमोरी संपादित करें",
+      "exportToProject": "प्रोजेक्ट में निर्यात करें",
+      "exportToProjectConfirm": "पुष्टि किए गए उच्च-मूल्य स्मृतियों (tier ∈ {core, long_term}) को .axagent/memory/ फ़ाइलों में निर्यात करें?",
+      "exportToProjectEmpty": "निर्यात के लिए कोई स्मृति नहीं (confirmed=1 और tier core या long_term आवश्यक)",
+      "exportToProjectSuccess": "{{exported}}/{{total}} स्मृतियाँ प्रोजेक्ट फ़ाइलों में निर्यात की गईं",
       "effective": "प्रभावी",
       "embeddingDimensions": "एम्बेडिंग आयाम",
       "embeddingDimensionsAuto": "स्वचालित",

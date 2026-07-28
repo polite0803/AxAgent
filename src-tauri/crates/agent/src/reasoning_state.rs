@@ -109,6 +109,23 @@ pub struct ReActConfig {
     pub goal_evaluation_enabled: bool,
     /// 是否启用动态自适应反思阈值
     pub adaptive_reflection: bool,
+    /// 是否启用自改进循环（最终输出质量门）
+    #[serde(default)]
+    pub self_improvement_enabled: bool,
+    /// 质量阈值（对应 Reflector QualityMetrics 分数，0-10）
+    #[serde(default = "default_min_quality_threshold")]
+    pub min_quality_threshold: u8,
+    /// 最终输出后做质量反射检查
+    #[serde(default)]
+    pub final_output_reflection: bool,
+    /// 自改进循环配置（None = 使用默认配置）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub self_improvement_loop_config:
+        Option<crate::self_improvement_executor::SelfImprovementConfig>,
+}
+
+fn default_min_quality_threshold() -> u8 {
+    5
 }
 
 impl Default for ReActConfig {
@@ -132,6 +149,10 @@ impl Default for ReActConfig {
             agent_role: "executor".to_string(),
             goal_evaluation_enabled: false,
             adaptive_reflection: true,
+            self_improvement_enabled: false,
+            min_quality_threshold: 5,
+            final_output_reflection: false,
+            self_improvement_loop_config: None,
         }
     }
 }
@@ -157,6 +178,10 @@ impl ReActConfig {
             agent_role: "executor".to_string(),
             goal_evaluation_enabled: false,
             adaptive_reflection: false,
+            self_improvement_enabled: false,
+            min_quality_threshold: 5,
+            final_output_reflection: false,
+            self_improvement_loop_config: None,
         }
     }
 
@@ -180,6 +205,10 @@ impl ReActConfig {
             agent_role: "executor".to_string(),
             goal_evaluation_enabled: true,
             adaptive_reflection: true,
+            self_improvement_enabled: false,
+            min_quality_threshold: 5,
+            final_output_reflection: false,
+            self_improvement_loop_config: None,
         }
     }
 }
@@ -193,6 +222,10 @@ pub struct ReasoningContext {
     pub resources: Vec<String>,
     pub iteration: usize,
     pub depth: usize,
+    /// 反思系统注入的改进提示（由 Reflector 在 Reflecting/Synthesizing 阶段写入，
+    /// 在 Thinking 阶段消费并清空）。每条提示是面向 LLM 的可读建议文本。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reflection_hints: Vec<String>,
 }
 
 impl ReasoningContext {
@@ -214,6 +247,21 @@ impl ReasoningContext {
 
     pub fn increment_depth(&mut self) {
         self.depth += 1;
+    }
+
+    /// 注入一条反思改进提示，供下一轮 Thinking 阶段消费
+    pub fn add_reflection_hint(&mut self, hint: impl Into<String>) {
+        self.reflection_hints.push(hint.into());
+    }
+
+    /// 批量注入反思改进提示
+    pub fn extend_reflection_hints(&mut self, hints: &[String]) {
+        self.reflection_hints.extend(hints.iter().cloned());
+    }
+
+    /// 消费并返回当前累积的反思提示（调用后清空，避免重复注入）
+    pub fn take_reflection_hints(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.reflection_hints)
     }
 }
 
@@ -316,6 +364,10 @@ impl From<ReasoningStrategy> for ReActConfig {
             agent_role: "executor".to_string(),
             goal_evaluation_enabled: false,
             adaptive_reflection: true,
+            self_improvement_enabled: false,
+            min_quality_threshold: 5,
+            final_output_reflection: false,
+            self_improvement_loop_config: None,
         }
     }
 }
