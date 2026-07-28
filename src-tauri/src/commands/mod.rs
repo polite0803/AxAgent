@@ -52,6 +52,7 @@ pub mod gateway;
 pub mod gateway_link;
 pub mod generated_tool;
 pub mod health;
+pub mod hooks_config;
 pub mod image_gen;
 pub mod image_gen_settings;
 pub mod index_jobs;

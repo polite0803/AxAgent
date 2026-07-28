@@ -197,6 +197,9 @@ pub struct AppSettings {
     /// Auto-load downloaded GGUF models into memory when RAG pipeline is active.
     /// When disabled, models are downloaded but not loaded into candle workers.
     pub auto_load_models: bool,
+    /// P2-8: ACP (Agent Client Protocol) 服务端 base URL。
+    /// None 时使用默认值 http://localhost:9876。
+    pub acp_base_url: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -335,6 +338,7 @@ impl Default for AppSettings {
             smart_router_enabled: false,
             smart_router_tier_mappings: std::collections::HashMap::new(),
             auto_load_models: true,
+            acp_base_url: None,
         }
     }
 }

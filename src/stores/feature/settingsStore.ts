@@ -155,6 +155,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   smart_router_tier_mappings: {},
   // RAG 模型自动加载
   auto_load_models: true,
+  // P2-8: ACP 服务端 base URL（null 时使用默认值 http://localhost:9876）
+  acp_base_url: null,
 };
 
 export interface GlobalShortcutDiagnostic {

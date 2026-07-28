@@ -3098,6 +3098,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         proactive_service: Arc::new(tokio::sync::RwLock::new(ProactiveService::new())),
         dashboard_registry: None,
         webhook_subscription_manager: None,
+        webhook_event_emitter: None,
         #[cfg(not(mobile))]
         pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
         telemetry_level_handle: Arc::new(std::sync::RwLock::new(

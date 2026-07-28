@@ -2,7 +2,7 @@
 
 import { invoke, logIpcError } from "@/lib/invoke";
 import { Alert, App, Button, Card, Form, Input, InputNumber, Radio, Space, Switch, Typography } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface DbConfigForm {
@@ -17,6 +17,20 @@ interface DbConfigForm {
   use_ssl?: boolean;
 }
 
+// P2-9: Schema 迁移状态（与后端 axagent_dao::migrations::SchemaMigrationStatus 对齐）
+interface AppliedMigration {
+  version: number;
+  applied_at: number;
+  description: string;
+}
+
+interface SchemaMigrationStatus {
+  applied_version: number;
+  latest_version: number;
+  pending_count: number;
+  applied: AppliedMigration[];
+}
+
 export function DatabaseSettings() {
   const { t } = useTranslation();
   const { message } = App.useApp();
@@ -26,6 +40,26 @@ export function DatabaseSettings() {
   const [testing, setTesting] = useState(false);
   const dbType = Form.useWatch("db_type", form);
 
+  // P2-9: Schema 迁移状态
+  const [schemaStatus, setSchemaStatus] = useState<SchemaMigrationStatus | null>(null);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+
+  const refreshSchemaStatus = useCallback(() => {
+    setSchemaLoading(true);
+    setSchemaError(null);
+    invoke<SchemaMigrationStatus>("get_schema_status")
+      .then((status) => {
+        setSchemaStatus(status);
+      })
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        setSchemaError(msg);
+        logIpcError("get_schema_status")(e);
+      })
+      .finally(() => setSchemaLoading(false));
+  }, []);
+
   useEffect(() => {
     invoke<DbConfigForm>("get_db_config")
       .then((cfg) => {
@@ -33,7 +67,9 @@ export function DatabaseSettings() {
       })
       .catch(logIpcError("get_db_config"))
       .finally(() => setInitialLoading(false));
-  }, [form]);
+    // P2-9: 同时加载 schema 状态
+    refreshSchemaStatus();
+  }, [form, refreshSchemaStatus]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -170,6 +206,51 @@ export function DatabaseSettings() {
             </>
           )}
       </Form>
+
+      {/* P2-9: Schema 迁移状态展示 */}
+      <Card
+        size="small"
+        title={t("settings.database.schemaStatusTitle")}
+        style={{ marginTop: 16 }}
+        extra={
+          <Button
+            size="small"
+            onClick={refreshSchemaStatus}
+            loading={schemaLoading}
+          >
+            {t("settings.database.schemaStatusRefresh")}
+          </Button>
+        }
+      >
+        {schemaError
+          ? (
+            <Alert
+              type="error"
+              showIcon
+              title={t("settings.database.schemaStatusError", { error: schemaError })}
+            />
+          )
+          : schemaStatus
+          ? (
+            <Alert
+              type={schemaStatus.pending_count > 0 ? "warning" : "success"}
+              showIcon
+              title={schemaStatus.pending_count > 0
+                ? t("settings.database.schemaStatusPending", {
+                  applied: schemaStatus.applied_version,
+                  count: schemaStatus.pending_count,
+                })
+                : t("settings.database.schemaStatusUpToDate", {
+                  version: schemaStatus.latest_version,
+                })}
+            />
+          )
+          : (
+            <Typography.Text type="secondary">
+              {t("settings.database.schemaStatusLoadFailed")}
+            </Typography.Text>
+          )}
+      </Card>
     </Card>
   );
 }

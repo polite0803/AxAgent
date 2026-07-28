@@ -117,6 +117,20 @@ pub trait WebhookSubscriptionService: fmt::Debug + Send + Sync {
     async fn list_subscriptions(&self) -> Vec<WebhookSubscriptionInfo>;
 }
 
+/// P2-7: Webhook 订阅持久化契约
+///
+/// 由 wiring 层（`src/init/state.rs`）注入 DAO 实现，
+/// 让 `WebhookSubscriptionManager` 在订阅增删/启用状态变化后立即持久化，
+/// 并在启动时从持久化恢复所有订阅。
+#[async_trait::async_trait]
+pub trait WebhookPersistence: Send + Sync {
+    /// 加载所有持久化的订阅（启动时调用）
+    async fn load(&self) -> Result<Vec<WebhookSubscription>, String>;
+
+    /// 保存完整订阅列表（每次增删/状态变化后调用）
+    async fn save(&self, subscriptions: &[WebhookSubscription]) -> Result<(), String>;
+}
+
 /// Webhook 订阅信息（纯数据 DTO）
 #[derive(Debug, Clone)]
 pub struct WebhookSubscriptionInfo {
@@ -125,6 +139,48 @@ pub struct WebhookSubscriptionInfo {
     pub secret: Option<String>,
     pub event: String,
     pub enabled: bool,
+}
+
+// ── 派发契约 ────────────────────────────────────────────
+
+/// Webhook 事件派发契约：把事件数据派发给所有匹配的订阅端点。
+///
+/// 由 `axagent-rt-webhook::WebhookDispatcher` 实现，
+/// 由 `axagent-rt-messaging::PlatformBridge` 消费。
+/// 放在 harness（foundation 层）避免 implementor 与 hybrid 互相依赖。
+#[async_trait::async_trait]
+pub trait WebhookDispatch: Send + Sync {
+    /// 派发事件，返回每个订阅端点的投递结果。
+    async fn dispatch(
+        &self,
+        event: WebhookEvent,
+        data: HashMap<String, serde_json::Value>,
+    ) -> DispatchResult;
+}
+
+/// Webhook 事件接收槽：供 tools / agent 等 hybrid/consumer crate 注入，
+/// 在工具执行完成、Agent 结束等关键时刻触发 webhook 事件，
+/// 无需依赖 rt-webhook（implementor）。
+///
+/// 实现方：`axagent_rt_webhook::WebhookEventEmitter`。
+/// 注入为 `None` 时无副作用（no-op）。
+#[async_trait::async_trait]
+pub trait WebhookEventSink: Send + Sync {
+    /// 工具执行成功时触发
+    async fn emit_tool_complete(
+        &self,
+        tool_name: &str,
+        args: HashMap<String, serde_json::Value>,
+        result: &str,
+    );
+    /// 工具执行失败时触发
+    async fn emit_tool_error(&self, tool_name: &str, error: &str);
+    /// Agent 会话出错时触发
+    async fn emit_agent_error(&self, session_id: &str, error: &str);
+    /// Agent 会话正常结束时触发
+    async fn emit_agent_end(&self, session_id: &str, outcome: &str);
+    /// 会话结束时触发
+    async fn emit_session_end(&self, session_id: &str);
 }
 
 // ── 空实现 — 什么也不做 ────────────────────────────────

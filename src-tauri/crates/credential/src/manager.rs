@@ -67,6 +67,91 @@ impl CredentialManager {
         Ok(())
     }
 
+    /// 刷新 OAuth2 access token（P1 修复：补齐 client_credentials 刷新逻辑）。
+    ///
+    /// 向 `token_url` 发起 `grant_type=client_credentials` 请求，
+    /// 成功后更新缓存中的 `access_token` / `expires_at`，并持久化到存储。
+    pub async fn refresh_oauth2_token(&self, id: &str) -> Result<Credential> {
+        let mut cred = self.get_credential(id).await?;
+        let (client_id, client_secret, token_url, scopes) = match &cred.credential_type {
+            CredentialType::OAuth2 { client_id, client_secret, token_url, scopes, .. } => {
+                (client_id.clone(), client_secret.clone(), token_url.clone(), scopes.clone())
+            },
+            _ => {
+                return Err(CredentialError::Validation(format!(
+                    "credential {id} is not OAuth2, cannot refresh"
+                )));
+            },
+        };
+
+        tracing::info!("[credential] Refreshing OAuth2 token for {id} from {token_url}");
+
+        let client = reqwest::Client::new();
+        let mut form = vec![
+            ("grant_type".to_string(), "client_credentials".to_string()),
+            ("client_id".to_string(), client_id),
+            ("client_secret".to_string(), client_secret),
+        ];
+        if !scopes.is_empty() {
+            form.push(("scope".to_string(), scopes.join(" ")));
+        }
+
+        let resp = client.post(&token_url).form(&form).send().await.map_err(|e| {
+            CredentialError::Validation(format!("OAuth2 refresh request failed: {e}"))
+        })?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(CredentialError::Validation(format!(
+                "OAuth2 token endpoint returned {status}: {body}"
+            )));
+        }
+
+        #[derive(serde::Deserialize)]
+        struct TokenResponse {
+            access_token: String,
+            expires_in: Option<u64>,
+        }
+
+        let token_data: TokenResponse = resp.json().await.map_err(|e| {
+            CredentialError::Validation(format!("OAuth2 token response parse failed: {e}"))
+        })?;
+
+        let expires_at = token_data
+            .expires_in
+            .map(|secs| chrono::Utc::now().timestamp_millis() + (secs as i64) * 1000);
+
+        // 更新 credential_type 中的 access_token / expires_at
+        if let CredentialType::OAuth2 { access_token, expires_at: exp_slot, .. } =
+            &mut cred.credential_type
+        {
+            *access_token = Some(token_data.access_token);
+            *exp_slot = expires_at;
+        }
+        cred.updated_at = chrono::Utc::now().timestamp_millis();
+
+        // 持久化更新后的凭证（含新 token）
+        self.store.save_credential(&cred)?;
+        {
+            let mut cache = self.cache.lock().await;
+            cache.insert(id.to_string(), cred.clone());
+        }
+
+        tracing::info!("[credential] OAuth2 token refreshed for {id}, expires_at={expires_at:?}");
+        Ok(cred)
+    }
+
+    /// 获取凭证，如果 OAuth2 token 已过期则自动刷新（P1 修复）。
+    pub async fn get_credential_with_refresh(&self, id: &str) -> Result<Credential> {
+        let cred = self.get_credential(id).await?;
+        if cred.credential_type.is_oauth2_expired() {
+            tracing::debug!("[credential] OAuth2 token for {id} expired, auto-refreshing");
+            return self.refresh_oauth2_token(id).await;
+        }
+        Ok(cred)
+    }
+
     /// Inject credential-based authentication into an HTTP request builder.
     pub fn inject_into_http_request(
         &self,
@@ -194,7 +279,8 @@ impl CredentialService for CredentialManager {
         &self,
         credential_id: &str,
     ) -> std::result::Result<Vec<(String, String)>, String> {
-        let cred = CredentialManager::get_credential(self, credential_id)
+        // P1 修复：使用 get_credential_with_refresh 自动刷新过期的 OAuth2 token
+        let cred = CredentialManager::get_credential_with_refresh(self, credential_id)
             .await
             .map_err(|e| e.to_string())?;
         CredentialManager::get_auth_headers(self, &cred).map_err(|e| e.to_string())

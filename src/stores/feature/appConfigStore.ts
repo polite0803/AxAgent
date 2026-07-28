@@ -108,7 +108,7 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
         set({ loading: false });
       }
     } catch (e) {
-      logIpcError("appConfigStore: 加载配置失败")(e);
+      logIpcError("appConfigStore: loadConfig failed")(e);
       set({ loading: false, error: String(e) });
     }
   },
@@ -125,7 +125,7 @@ export const useAppConfigStore = create<AppConfigState>((set, get) => ({
         },
       });
     } catch (e) {
-      logIpcError("appConfigStore: 保存配置失败")(e);
+      logIpcError("appConfigStore: saveConfig failed")(e);
       set({ error: String(e) });
     }
   },

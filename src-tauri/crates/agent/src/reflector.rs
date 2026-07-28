@@ -211,7 +211,9 @@ impl Reflector {
         const REFLECTOR_INSIGHTS_NS_NAME: &str = "Reflector Insights";
         const REFLECTOR_INSIGHTS_MIN_QUALITY_FOR_PROMOTE: u8 = 7;
 
-        let repo = axagent_harness::repositories::memory_repository();
+        let Some(repo) = axagent_harness::repositories::try_memory_repository() else {
+            return;
+        };
 
         // v109: 经验溯源 — task_id 格式为 `{conversation_id}-{timestamp_millis}`
         // (session_manager.rs:855),解析出 conversation_id 设入 source_conversation_id,

@@ -88,6 +88,55 @@ impl WebhookDispatcher {
     }
 }
 
+// ── harness::WebhookDispatch trait 实现 ──────────────────
+// 让 WebhookDispatcher 实现 harness 中的 WebhookDispatch 契约，
+// 这样 PlatformBridge（rt-messaging）可以通过 Arc<dyn WebhookDispatch> 注入，
+// 无需 rt-messaging ↔ rt-webhook 互相依赖。
+
+#[async_trait::async_trait]
+impl axagent_harness::WebhookDispatch for WebhookDispatcher {
+    async fn dispatch(
+        &self,
+        event: axagent_harness::WebhookEvent,
+        data: HashMap<String, serde_json::Value>,
+    ) -> axagent_harness::DispatchResult {
+        WebhookDispatcher::dispatch(self, event, data).await
+    }
+}
+
+// ── harness::WebhookEventSink trait 实现 ──────────────────
+// 让 WebhookEventEmitter 实现 harness 中的 WebhookEventSink 契约，
+// 这样 tools / agent 等 hybrid/consumer crate 可以通过
+// Option<Arc<dyn WebhookEventSink>> 注入，无需依赖 rt-webhook。
+
+#[async_trait::async_trait]
+impl axagent_harness::WebhookEventSink for WebhookEventEmitter {
+    async fn emit_tool_complete(
+        &self,
+        tool_name: &str,
+        args: HashMap<String, serde_json::Value>,
+        result: &str,
+    ) {
+        WebhookEventEmitter::emit_tool_complete(self, tool_name, args, result).await;
+    }
+
+    async fn emit_tool_error(&self, tool_name: &str, error: &str) {
+        WebhookEventEmitter::emit_tool_error(self, tool_name, error).await;
+    }
+
+    async fn emit_agent_error(&self, session_id: &str, error: &str) {
+        WebhookEventEmitter::emit_agent_error(self, session_id, error).await;
+    }
+
+    async fn emit_agent_end(&self, session_id: &str, outcome: &str) {
+        WebhookEventEmitter::emit_agent_end(self, session_id, outcome).await;
+    }
+
+    async fn emit_session_end(&self, session_id: &str) {
+        WebhookEventEmitter::emit_session_end(self, session_id).await;
+    }
+}
+
 pub struct WebhookEventEmitter {
     dispatcher: Arc<WebhookDispatcher>,
 }

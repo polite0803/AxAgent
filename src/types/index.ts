@@ -603,6 +603,8 @@ export interface AppSettings {
   smart_router_tier_mappings?: Record<string, SmartRouterTierMapping>;
   /** Auto-load downloaded GGUF models into memory when RAG pipeline is active. */
   auto_load_models?: boolean;
+  /** P2-8: ACP (Agent Client Protocol) 服务端 base URL。null 时使用默认值。 */
+  acp_base_url?: string | null;
 }
 
 /** Smart Router tier → provider/model 映射项（对应后端 harness TierModelMapping）。 */

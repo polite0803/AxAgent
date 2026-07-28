@@ -173,7 +173,41 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let platform_manager =
         Arc::new(axagent_runtime::message_gateway::platform_manager::PlatformManager::new());
 
-    let platform_bridge = harness.build_platform_bridge(platform_manager.clone());
+    // ── Webhook 派发器（P0 修复：实例化 WebhookDispatcher + WebhookEventEmitter） ──
+    // WebhookSubscriptionManager 必须先于 PlatformBridge 创建，
+    // 这样 PlatformBridge::on_message 中的 MessageReceived / MessageSent 事件才能被派发。
+    // P2-7: 注入 DbWebhookPersistence，启动时自动从 DB 恢复订阅，增删/状态变化时持久化。
+    let webhook_persistence: Arc<dyn axagent_harness::WebhookPersistence> =
+        Arc::new(DbWebhookPersistence { db: sea_db.clone() });
+    let webhook_subscription_manager: Option<
+        Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
+    > = {
+        let mgr = axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new()
+            .with_persistence(webhook_persistence)
+            .await
+            .map_err(|e| format!("初始化 WebhookSubscriptionManager 失败: {}", e))?;
+        Some(Arc::new(mgr))
+    };
+    let webhook_dispatcher: Option<Arc<axagent_rt_webhook::webhook_dispatcher::WebhookDispatcher>> =
+        webhook_subscription_manager.as_ref().map(|mgr| {
+            Arc::new(axagent_rt_webhook::webhook_dispatcher::WebhookDispatcher::new(
+                mgr.clone() as Arc<dyn axagent_harness::WebhookSubscriptionService>
+            ))
+        });
+    // 把 dispatcher 转为 trait 对象传给 PlatformBridge
+    let webhook_dispatch_trait: Option<Arc<dyn axagent_harness::WebhookDispatch>> =
+        webhook_dispatcher.as_ref().map(|d| d.clone() as Arc<dyn axagent_harness::WebhookDispatch>);
+    // WebhookEventEmitter 用于在工具执行 / Agent 结束时触发事件（注入到 AppState 供下游使用）
+    // 以 trait 对象形式存储，命令层无需依赖 rt-webhook crate
+    let webhook_event_emitter: Option<Arc<dyn axagent_harness::WebhookEventSink>> =
+        webhook_dispatcher.as_ref().map(|d| {
+            let emitter =
+                axagent_rt_webhook::webhook_dispatcher::WebhookEventEmitter::new(d.clone());
+            Arc::new(emitter) as Arc<dyn axagent_harness::WebhookEventSink>
+        });
+
+    let platform_bridge =
+        harness.build_platform_bridge(platform_manager.clone(), webhook_dispatch_trait.clone());
 
     platform_manager.set_message_callback(platform_bridge.clone()).await;
 
@@ -512,9 +546,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                 auto_load: true,
             },
         )));
-    let webhook_subscription_manager: Option<
-        Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
-    > = Some(Arc::new(axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new()));
+    // 注：webhook_subscription_manager 已在 PlatformBridge 之前创建（见上方 P0 修复块）
     let semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>> = {
         let cache = match SemanticCache::new(sea_db.clone(), CacheConfig::default()).await {
             Ok(c) => c,
@@ -983,6 +1015,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         proactive_service,
         dashboard_registry,
         webhook_subscription_manager,
+        webhook_event_emitter,
         semantic_cache,
         prompt_cache,
         fleet_repository,
@@ -1108,4 +1141,44 @@ fn hostname_or_uuid() -> String {
         .ok()
         .or_else(|| std::env::var("COMPUTERNAME").ok())
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string())
+}
+
+// ── P2-7: Webhook 订阅持久化 DAO 实现 ──────────────────────────────────────
+//
+// 把 WebhookSubscriptionManager 的订阅列表序列化为 JSON，
+// 通过 settings 表的 KV 接口存储（key = "webhook_subscriptions"）。
+// 启动时调用 `with_persistence` 自动从 DB 恢复所有订阅到内存。
+
+const WEBHOOK_PERSIST_KEY: &str = "webhook_subscriptions";
+
+#[derive(Debug)]
+struct DbWebhookPersistence {
+    db: sea_orm::DatabaseConnection,
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::WebhookPersistence for DbWebhookPersistence {
+    async fn load(&self) -> Result<Vec<axagent_harness::WebhookSubscription>, String> {
+        match axagent_dao::repo::settings::get_setting(&self.db, WEBHOOK_PERSIST_KEY).await {
+            Ok(Some(json_str)) => {
+                let subs: Vec<axagent_harness::WebhookSubscription> =
+                    serde_json::from_str(&json_str)
+                        .map_err(|e| format!("解析 webhook_subscriptions 失败: {}", e))?;
+                Ok(subs)
+            },
+            Ok(None) => Ok(Vec::new()),
+            Err(e) => Err(format!("读取 webhook_subscriptions 失败: {}", e)),
+        }
+    }
+
+    async fn save(
+        &self,
+        subscriptions: &[axagent_harness::WebhookSubscription],
+    ) -> Result<(), String> {
+        let json_str = serde_json::to_string(subscriptions)
+            .map_err(|e| format!("序列化 webhook_subscriptions 失败: {}", e))?;
+        axagent_dao::repo::settings::set_setting(&self.db, WEBHOOK_PERSIST_KEY, &json_str)
+            .await
+            .map_err(|e| format!("保存 webhook_subscriptions 失败: {}", e))
+    }
 }

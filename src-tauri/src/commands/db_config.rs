@@ -10,11 +10,15 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use sea_orm::{ConnectOptions, ConnectionTrait, Database};
+use tauri::State;
 use tauri::command;
 
 use axagent_crypto::{decrypt_key, encrypt_key};
 
 use axagent_dao::config::DbConfig;
+use axagent_dao::migrations::SchemaMigrationStatus;
+
+use crate::AppState;
 
 fn db_config_path() -> PathBuf {
     crate::paths::axagent_home().join("db_config.json")
@@ -117,4 +121,21 @@ pub async fn test_db_connection(config: DbConfig) -> Result<String, String> {
     let conn = Database::connect(opt).await.map_err(|e| format!("连接失败: {}", e))?;
     conn.execute_unprepared("SELECT 1").await.map_err(|e| format!("查询验证失败: {}", e))?;
     Ok("连接成功".to_string())
+}
+
+/// P2-9: 查询当前 schema 迁移状态。
+///
+/// 返回已应用版本、最新版本、pending 数量和已应用迁移列表，
+/// 供前端诊断「schema 滞后」类问题（如启动后迁移未跑完导致表缺失）。
+#[command]
+pub async fn get_schema_status(
+    state: State<'_, AppState>,
+) -> Result<SchemaMigrationStatus, String> {
+    let db = state.harness.db();
+    axagent_dao::migrations::get_schema_status(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

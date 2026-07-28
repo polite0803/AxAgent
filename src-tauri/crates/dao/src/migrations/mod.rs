@@ -57,6 +57,12 @@ pub mod v207_chat_run;
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
 pub const CURRENT_VERSION: i32 = 207;
 
+/// P2-10: Schema 版本追踪表名。
+///
+/// 所有 migration 状态查询/写入都通过此常量引用表名，
+/// 避免散落的字符串字面量导致重命名时遗漏。
+pub const SCHEMA_VERSION_TABLE: &str = "axagent_schema_version";
+
 /// 迁移函数签名：所有 `up()` 都遵循这个接口。
 ///
 /// `DatabaseConnection` 是 `Arc<DbConnection>` 的 newtype，clone
@@ -182,12 +188,12 @@ pub async fn run_migrations(db: &sea_orm::DatabaseConnection) -> Result<(), DbEr
     let backend = db.get_database_backend();
 
     // 1) 确保 version tracking 表存在（ANSI DDL，SQLite/PG 通用）
-    db.execute_unprepared(
-        "CREATE TABLE IF NOT EXISTS axagent_schema_version (\
+    db.execute_unprepared(&format!(
+        "CREATE TABLE IF NOT EXISTS {SCHEMA_VERSION_TABLE} (\
          version INTEGER NOT NULL PRIMARY KEY, \
          applied_at INTEGER NOT NULL, \
-         description TEXT)",
-    )
+         description TEXT)"
+    ))
     .await?;
 
     // 2) 读已应用的最大版本号（首次启动 = 0）
@@ -210,7 +216,7 @@ async fn read_max_version(db: &sea_orm::DatabaseConnection) -> Result<i32, DbErr
     let row = db
         .query_one_raw(Statement::from_string(
             db.get_database_backend(),
-            "SELECT COALESCE(MAX(version), 0) AS v FROM axagent_schema_version",
+            format!("SELECT COALESCE(MAX(version), 0) AS v FROM {SCHEMA_VERSION_TABLE}"),
         ))
         .await?;
     match row {
@@ -221,6 +227,69 @@ async fn read_max_version(db: &sea_orm::DatabaseConnection) -> Result<i32, DbErr
             Ok(v)
         },
     }
+}
+
+// ── P2-9: Schema 迁移状态查询 ─────────────────────────────────────────────
+//
+// 暴露给 Tauri 命令层，让前端可以查询当前 schema 版本号、已应用迁移列表、
+// 以及尚未应用的 pending 迁移数量（用于诊断「schema 滞后」类问题）。
+
+/// 单条已应用迁移的元数据（对应 `axagent_schema_version` 表的一行）。
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AppliedMigration {
+    pub version: i32,
+    pub applied_at: i64,
+    pub description: String,
+}
+
+/// Schema 迁移状态摘要。
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SchemaMigrationStatus {
+    /// 当前数据库已应用的最大版本号（0 表示首次启动未跑过任何 migration）
+    pub applied_version: i32,
+    /// 代码中定义的最新版本号（`CURRENT_VERSION`）
+    pub latest_version: i32,
+    /// 尚未应用的 migration 数量（latest - applied，若已追平则为 0）
+    pub pending_count: i32,
+    /// 已应用迁移的完整列表（按 version 升序）
+    pub applied: Vec<AppliedMigration>,
+}
+
+/// P2-9: 查询当前 schema 迁移状态。
+///
+/// 返回已应用版本、最新版本、pending 数量和已应用迁移列表。
+/// 失败时返回 `DbErr`，调用方（Tauri 命令）转 `String`。
+pub async fn get_schema_status(
+    db: &sea_orm::DatabaseConnection,
+) -> Result<SchemaMigrationStatus, DbErr> {
+    // 1) 读已应用的最大版本号
+    let applied_version = read_max_version(db).await?;
+
+    // 2) 读全部已应用迁移的明细
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            db.get_database_backend(),
+            format!(
+                "SELECT version, applied_at, description FROM {SCHEMA_VERSION_TABLE} ORDER BY version ASC"
+            ),
+        ))
+        .await?;
+    let mut applied: Vec<AppliedMigration> = Vec::new();
+    for r in rows {
+        let version: i32 = r.try_get_by::<i32, _>("version").unwrap_or(0);
+        let applied_at: i64 = r.try_get_by::<i64, _>("applied_at").unwrap_or(0);
+        let description: String = r.try_get_by::<String, _>("description").unwrap_or_default();
+        applied.push(AppliedMigration { version, applied_at, description });
+    }
+
+    let pending_count = (CURRENT_VERSION - applied_version).max(0);
+
+    Ok(SchemaMigrationStatus {
+        applied_version,
+        latest_version: CURRENT_VERSION,
+        pending_count,
+        applied,
+    })
 }
 
 async fn record_version(
@@ -235,17 +304,22 @@ async fn record_version(
     // 参数化查询：避免 format! 拼接 SQL 带来的注入风险与转义负担。
     // SQLite 用 `INSERT OR IGNORE`；PostgreSQL 用 `ON CONFLICT DO NOTHING`
     // （二者语义等价：版本号冲突时静默跳过，保证幂等）。
+    // 注：表名是编译期常量 `SCHEMA_VERSION_TABLE`，非用户输入，用 format! 拼接安全。
     let stmt = if backend == DbBackend::Postgres {
         Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "INSERT INTO axagent_schema_version (version, applied_at, description) \
-             VALUES ($1, $2, $3) ON CONFLICT (version) DO NOTHING",
+            format!(
+                "INSERT INTO {SCHEMA_VERSION_TABLE} (version, applied_at, description) \
+                 VALUES ($1, $2, $3) ON CONFLICT (version) DO NOTHING"
+            ),
             [version.into(), now.into(), description.into()],
         )
     } else {
         Statement::from_sql_and_values(
             DbBackend::Sqlite,
-            "INSERT OR IGNORE INTO axagent_schema_version (version, applied_at, description) VALUES (?, ?, ?)",
+            format!(
+                "INSERT OR IGNORE INTO {SCHEMA_VERSION_TABLE} (version, applied_at, description) VALUES (?, ?, ?)"
+            ),
             [version.into(), now.into(), description.into()],
         )
     };
@@ -271,7 +345,7 @@ mod tests {
             "provider_keys",
             "gateway_keys",
             "gateway_usage",
-            "axagent_schema_version",
+            SCHEMA_VERSION_TABLE,
         ] {
             let row = db
                 .query_one_raw(Statement::from_sql_and_values(
@@ -312,7 +386,7 @@ mod tests {
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
-                "SELECT COUNT(*) AS cnt FROM axagent_schema_version",
+                format!("SELECT COUNT(*) AS cnt FROM {SCHEMA_VERSION_TABLE}"),
             ))
             .await
             .unwrap()

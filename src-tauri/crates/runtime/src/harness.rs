@@ -123,12 +123,13 @@ impl RuntimeHarness {
 
     // ── Builder 方法 ──────────────────────────────────────────
 
-    /// 构建已注入 ProviderRegistry 的 PlatformBridge
+    /// 构建已注入 ProviderRegistry（和可选 WebhookDispatcher）的 PlatformBridge
     pub fn build_platform_bridge(
         &self,
         platform_manager: Arc<
             axagent_rt_messaging::message_gateway::platform_manager::PlatformManager,
         >,
+        webhook_dispatcher: Option<Arc<dyn axagent_harness::WebhookDispatch>>,
     ) -> Arc<axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge> {
         let mut bridge =
             axagent_rt_messaging::message_gateway::platform_bridge::PlatformBridge::new(
@@ -138,6 +139,9 @@ impl RuntimeHarness {
             );
         use axagent_harness::HasProviderRegistry;
         bridge.set_provider_registry(self.provider_registry.clone());
+        if let Some(dispatcher) = webhook_dispatcher {
+            bridge.set_webhook_dispatcher(dispatcher);
+        }
         Arc::new(bridge)
     }
 }

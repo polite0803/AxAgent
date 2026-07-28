@@ -2309,6 +2309,11 @@ pub async fn agent_query(
                 }
             }
 
+            // P0 修复：触发 Webhook AgentEnd 事件
+            if let Some(ref emitter) = app_state.webhook_event_emitter {
+                emitter.emit_agent_end(&conversation_id, "completed").await;
+            }
+
             Ok(AgentQueryResponse {
                 conversation_id,
                 assistant_message_id: assistant_message.id,
@@ -2340,6 +2345,11 @@ pub async fn agent_query(
                     message: error_msg.clone(),
                 },
             );
+
+            // P0 修复：触发 Webhook AgentError 事件
+            if let Some(ref emitter) = app_state.webhook_event_emitter {
+                emitter.emit_agent_error(&conversation_id, &error_msg).await;
+            }
 
             Err(error_msg)
         },

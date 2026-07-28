@@ -4,6 +4,7 @@ import { useStreamStore } from "@/stores/domain/streamStore";
 import { useAgentStore } from "@/stores/feature/agentStore";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 /** A single tab entry */
 export interface TabItem {
@@ -41,6 +42,8 @@ interface TabState {
   closeOtherTabs: (tabId: string) => void;
   /** Close all tabs to the right of the specified one */
   closeTabsToRight: (tabId: string) => void;
+  /** P1-6: 启动后清理失效 tab（conversationId 已不存在于有效集合中） */
+  pruneInvalidTabs: (validConversationIds: Set<string>) => void;
 }
 
 /** Clean up domain/feature store state for the given conversation */
@@ -53,146 +56,172 @@ function cleanupConversationState(conversationId: string) {
   useExecutionStore.getState().clearConversation(conversationId);
 }
 
-export const useTabStore = create<TabState>((set, get) => ({
-  tabs: [],
-  activeTabId: null,
+export const useTabStore = create<TabState>()(
+  persist(
+    (set, get) => ({
+      tabs: [],
+      activeTabId: null,
 
-  openTab: (conversationId, title) => {
-    const { tabs } = get();
-    // If a tab for this conversation already exists, just activate it
-    const existing = tabs.find((t) => t.conversationId === conversationId);
-    if (existing) {
-      set({ activeTabId: existing.id });
-      return existing.id;
-    }
-    // Create a new tab
-    const newTab: TabItem = {
-      id: crypto.randomUUID(),
-      conversationId,
-      title,
-    };
-    const nextTabs = [...tabs, newTab];
-    set({ tabs: nextTabs, activeTabId: newTab.id });
-    return newTab.id;
-  },
+      openTab: (conversationId, title) => {
+        const { tabs } = get();
+        // If a tab for this conversation already exists, just activate it
+        const existing = tabs.find((t) => t.conversationId === conversationId);
+        if (existing) {
+          set({ activeTabId: existing.id });
+          return existing.id;
+        }
+        // Create a new tab
+        const newTab: TabItem = {
+          id: crypto.randomUUID(),
+          conversationId,
+          title,
+        };
+        const nextTabs = [...tabs, newTab];
+        set({ tabs: nextTabs, activeTabId: newTab.id });
+        return newTab.id;
+      },
 
-  closeTab: (tabId) => {
-    const { tabs, activeTabId } = get();
-    const idx = tabs.findIndex((t) => t.id === tabId);
-    if (idx === -1) {
-      return;
-    }
+      closeTab: (tabId) => {
+        const { tabs, activeTabId } = get();
+        const idx = tabs.findIndex((t) => t.id === tabId);
+        if (idx === -1) {
+          return;
+        }
 
-    const closedTab = tabs[idx];
-    const nextTabs = tabs.filter((t) => t.id !== tabId);
+        const closedTab = tabs[idx];
+        const nextTabs = tabs.filter((t) => t.id !== tabId);
 
-    // Only clean up conversation state if no other tabs reference the same conversation
-    const hasOtherTabsForConversation = nextTabs.some(
-      (t) => t.conversationId === closedTab.conversationId,
-    );
-    if (!hasOtherTabsForConversation) {
-      cleanupConversationState(closedTab.conversationId);
-    }
+        // Only clean up conversation state if no other tabs reference the same conversation
+        const hasOtherTabsForConversation = nextTabs.some(
+          (t) => t.conversationId === closedTab.conversationId,
+        );
+        if (!hasOtherTabsForConversation) {
+          cleanupConversationState(closedTab.conversationId);
+        }
 
-    // If we're closing the active tab, activate an adjacent one
-    let nextActiveId = activeTabId;
-    if (activeTabId === tabId) {
-      if (nextTabs.length === 0) {
-        nextActiveId = null;
-      } else {
-        // Prefer the tab to the right, then left
-        const adjacentIdx = Math.min(idx, nextTabs.length - 1);
-        nextActiveId = nextTabs[adjacentIdx]?.id ?? null;
-      }
-    }
+        // If we're closing the active tab, activate an adjacent one
+        let nextActiveId = activeTabId;
+        if (activeTabId === tabId) {
+          if (nextTabs.length === 0) {
+            nextActiveId = null;
+          } else {
+            // Prefer the tab to the right, then left
+            const adjacentIdx = Math.min(idx, nextTabs.length - 1);
+            nextActiveId = nextTabs[adjacentIdx]?.id ?? null;
+          }
+        }
 
-    set({ tabs: nextTabs, activeTabId: nextActiveId });
-  },
+        set({ tabs: nextTabs, activeTabId: nextActiveId });
+      },
 
-  setActiveTab: (tabId) => {
-    set({ activeTabId: tabId });
-  },
+      setActiveTab: (tabId) => {
+        set({ activeTabId: tabId });
+      },
 
-  updateTabTitle: (conversationId, title) => {
-    set((s) => ({
-      tabs: s.tabs.map((t) => t.conversationId === conversationId ? { ...t, title } : t),
-    }));
-  },
+      updateTabTitle: (conversationId, title) => {
+        set((s) => ({
+          tabs: s.tabs.map((t) => t.conversationId === conversationId ? { ...t, title } : t),
+        }));
+      },
 
-  removeTabsByConversationId: (conversationId) => {
-    const { tabs, activeTabId } = get();
-    const removedTabIds = new Set(
-      tabs.flatMap((t) => (t.conversationId === conversationId ? [t.id] : [])),
-    );
-    if (removedTabIds.size === 0) {
-      return;
-    }
+      removeTabsByConversationId: (conversationId) => {
+        const { tabs, activeTabId } = get();
+        const removedTabIds = new Set(
+          tabs.flatMap((t) => (t.conversationId === conversationId ? [t.id] : [])),
+        );
+        if (removedTabIds.size === 0) {
+          return;
+        }
 
-    const nextTabs = tabs.filter((t) => !removedTabIds.has(t.id));
-    let nextActiveId = activeTabId;
-    if (activeTabId && removedTabIds.has(activeTabId)) {
-      // Find the nearest remaining tab
-      const closedIdx = tabs.findIndex((t) => t.id === activeTabId);
-      if (nextTabs.length === 0) {
-        nextActiveId = null;
-      } else {
-        const adjacentIdx = Math.min(closedIdx, nextTabs.length - 1);
-        nextActiveId = nextTabs[adjacentIdx]?.id ?? null;
-      }
-    }
-    set({ tabs: nextTabs, activeTabId: nextActiveId });
-  },
+        const nextTabs = tabs.filter((t) => !removedTabIds.has(t.id));
+        let nextActiveId = activeTabId;
+        if (activeTabId && removedTabIds.has(activeTabId)) {
+          // Find the nearest remaining tab
+          const closedIdx = tabs.findIndex((t) => t.id === activeTabId);
+          if (nextTabs.length === 0) {
+            nextActiveId = null;
+          } else {
+            const adjacentIdx = Math.min(closedIdx, nextTabs.length - 1);
+            nextActiveId = nextTabs[adjacentIdx]?.id ?? null;
+          }
+        }
+        set({ tabs: nextTabs, activeTabId: nextActiveId });
+      },
 
-  moveTab: (fromIndex, toIndex) => {
-    set((s) => {
-      const tabs = [...s.tabs];
-      const [moved] = tabs.splice(fromIndex, 1);
-      tabs.splice(toIndex, 0, moved);
-      return { tabs };
-    });
-  },
+      moveTab: (fromIndex, toIndex) => {
+        set((s) => {
+          const tabs = [...s.tabs];
+          const [moved] = tabs.splice(fromIndex, 1);
+          tabs.splice(toIndex, 0, moved);
+          return { tabs };
+        });
+      },
 
-  getActiveConversationId: () => {
-    const { tabs, activeTabId } = get();
-    if (!activeTabId) {
-      return null;
-    }
-    return tabs.find((t) => t.id === activeTabId)?.conversationId ?? null;
-  },
+      getActiveConversationId: () => {
+        const { tabs, activeTabId } = get();
+        if (!activeTabId) {
+          return null;
+        }
+        return tabs.find((t) => t.id === activeTabId)?.conversationId ?? null;
+      },
 
-  closeOtherTabs: (tabId) => {
-    const { tabs } = get();
-    const target = tabs.find((t) => t.id === tabId);
-    if (!target) {
-      return;
-    }
-    const removedConvIds = new Set(
-      tabs
-        .filter((t) => t.id !== tabId)
-        .map((t) => t.conversationId),
-    );
-    const keptConvIds = new Set([target.conversationId]);
-    for (const convId of removedConvIds) {
-      if (!keptConvIds.has(convId)) {
-        cleanupConversationState(convId);
-      }
-    }
-    set({ tabs: [target], activeTabId: tabId });
-  },
+      closeOtherTabs: (tabId) => {
+        const { tabs } = get();
+        const target = tabs.find((t) => t.id === tabId);
+        if (!target) {
+          return;
+        }
+        const removedConvIds = new Set(
+          tabs
+            .filter((t) => t.id !== tabId)
+            .map((t) => t.conversationId),
+        );
+        const keptConvIds = new Set([target.conversationId]);
+        for (const convId of removedConvIds) {
+          if (!keptConvIds.has(convId)) {
+            cleanupConversationState(convId);
+          }
+        }
+        set({ tabs: [target], activeTabId: tabId });
+      },
 
-  closeTabsToRight: (tabId) => {
-    const { tabs } = get();
-    const idx = tabs.findIndex((t) => t.id === tabId);
-    if (idx === -1) {
-      return;
-    }
-    const removed = tabs.slice(idx + 1);
-    const keptConvIds = new Set(tabs.slice(0, idx + 1).map((t) => t.conversationId));
-    for (const tab of removed) {
-      if (!keptConvIds.has(tab.conversationId)) {
-        cleanupConversationState(tab.conversationId);
-      }
-    }
-    set({ tabs: tabs.slice(0, idx + 1) });
-  },
-}));
+      closeTabsToRight: (tabId) => {
+        const { tabs } = get();
+        const idx = tabs.findIndex((t) => t.id === tabId);
+        if (idx === -1) {
+          return;
+        }
+        const removed = tabs.slice(idx + 1);
+        const keptConvIds = new Set(tabs.slice(0, idx + 1).map((t) => t.conversationId));
+        for (const tab of removed) {
+          if (!keptConvIds.has(tab.conversationId)) {
+            cleanupConversationState(tab.conversationId);
+          }
+        }
+        set({ tabs: tabs.slice(0, idx + 1) });
+      },
+
+      pruneInvalidTabs: (validConversationIds) => {
+        const { tabs, activeTabId } = get();
+        if (tabs.length === 0) {
+          return;
+        }
+        const nextTabs = tabs.filter((t) => validConversationIds.has(t.conversationId));
+        if (nextTabs.length === tabs.length) {
+          return;
+        }
+        let nextActiveId = activeTabId;
+        if (activeTabId && !nextTabs.some((t) => t.id === activeTabId)) {
+          nextActiveId = nextTabs[0]?.id ?? null;
+        }
+        set({ tabs: nextTabs, activeTabId: nextActiveId });
+      },
+    }),
+    {
+      name: "axagent-tab-storage",
+      storage: createJSONStorage(() => localStorage),
+      // 仅持久化数据字段，不持久化 actions
+      partialize: (state) => ({ tabs: state.tabs, activeTabId: state.activeTabId }),
+    },
+  ),
+);
