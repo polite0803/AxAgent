@@ -3,7 +3,14 @@
 import i18n from "@/i18n";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { preloadChatRenderers, preloadCommonPages } from "@/lib/preloadChatRenderers";
-import { useConversationStore, useOnboardingStore, useSettingsStore, useSkillExtensionStore } from "@/stores";
+import {
+  useAppConfigStore,
+  useConversationStore,
+  useOnboardingStore,
+  useSettingsStore,
+  useSkillExtensionStore,
+  useTabStore,
+} from "@/stores";
 import { Button, Result, Spin, theme, Typography } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -106,12 +113,33 @@ export function AppInitializer({ children }: AppInitializerProps) {
         parallelTasks.push(i18n.changeLanguage(settings.language));
       }
 
+      // P1-4: 启动时加载 AppConfigStore（model / permissionMode / features 等），
+      // 失败不阻塞首屏，降级为默认配置。
+      parallelTasks.push(
+        useAppConfigStore.getState().loadConfig().catch((e) => {
+          logIpcError("appConfigStore: loadConfig")(e);
+        }),
+      );
+
       await Promise.all(parallelTasks);
 
       setPhase("startServices");
       useConversationStore.getState().startStreamListening();
       useSkillExtensionStore.getState().fetchSkills().catch(logIpcError("list_skills"));
       useOnboardingStore.getState().loadFromSettings();
+
+      // P1-6: 启动后加载 conversations 并清理失效 tab（持久化的 conversationId 可能已被删除）
+      void (async () => {
+        try {
+          await useConversationStore.getState().fetchConversations();
+          const validIds = new Set(
+            useConversationStore.getState().conversations.map((c) => c.id),
+          );
+          useTabStore.getState().pruneInvalidTabs(validIds);
+        } catch (e) {
+          logIpcError("fetchConversations + pruneInvalidTabs")(e);
+        }
+      })();
 
       // D2（WASM）/ Monaco / 页面预加载改为 fire-and-forget，不阻塞首屏。
       // 这些是重型依赖，idle 时间加载即可，首屏渲染不应等待。

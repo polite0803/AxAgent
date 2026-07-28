@@ -546,6 +546,7 @@ macro_rules! register_all_commands {
             commands::db_config::get_db_config,
             commands::db_config::save_db_config,
             commands::db_config::test_db_connection,
+            commands::db_config::get_schema_status,
             commands::index_jobs::index_jobs_list,
             commands::index_jobs::index_jobs_stats,
             commands::index_jobs::index_jobs_retry,
@@ -772,6 +773,7 @@ macro_rules! register_all_commands {
             commands::rl_training::save_checkpoint,
             commands::rl_training::load_checkpoint,
             commands::rl_training::list_checkpoints,
+            commands::rl_training::delete_checkpoint,
             commands::rl_training::run_rl_training_step,
             commands::evolution_engine::get_all_engine_status,
             commands::evolution_engine::start_engine,
@@ -936,6 +938,9 @@ macro_rules! register_all_commands {
             commands::app_config::get_app_config,
             commands::app_config::save_app_config,
             commands::app_config::set_self_improvement_flags,
+            // HooksTab 钩子配置持久化（P1-5）
+            commands::hooks_config::get_hooks_config,
+            commands::hooks_config::save_hooks_config,
             // Dream / consolidation
             commands::dream::dream_consolidate_now,
             commands::dream::dream_get_status,

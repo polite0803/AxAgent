@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { type Session, useAxAgent } from "@/sdk";
+import { useSettingsStore } from "@/stores";
 import {
   Badge,
   Button,
@@ -16,7 +17,7 @@ import {
   Typography,
 } from "antd";
 import { Link2, Plus, Power, RefreshCw, Server } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
@@ -28,8 +29,10 @@ const DEFAULT_BASE_URL = "http://localhost:9876";
 export function AcpSettings() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const settingsAcqBaseUrl = useSettingsStore((s) => s.settings.acp_base_url);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [baseUrl, setBaseUrl] = useState(
-    () => localStorage.getItem(STORAGE_KEY) || DEFAULT_BASE_URL,
+    () => settingsAcqBaseUrl ?? localStorage.getItem(STORAGE_KEY) ?? DEFAULT_BASE_URL,
   );
   const [connected, setConnected] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
@@ -45,12 +48,26 @@ export function AcpSettings() {
     refreshSessions,
   } = useAxAgent(baseUrl);
 
-  // 地址变更时保存
-  const handleBaseUrlChange = (val: string) => {
+  // P2-8: 当 settingsStore 中的 acp_base_url 变化（例如其他面板修改后），同步本地 state。
+  // 用 ref 防止 saveSettings 触发的回流把用户正在输入的值覆盖。
+  const lastSyncedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const next = settingsAcqBaseUrl ?? null;
+    if (next !== null && next !== lastSyncedRef.current && next !== baseUrl) {
+      setBaseUrl(next);
+      lastSyncedRef.current = next;
+    }
+  }, [settingsAcqBaseUrl, baseUrl]);
+
+  // 地址变更时同时写入 localStorage（快速启动缓存）和 settingsStore（统一持久化）
+  const handleBaseUrlChange = useCallback((val: string) => {
     setBaseUrl(val);
     localStorage.setItem(STORAGE_KEY, val);
     setConnected(null);
-  };
+    // 异步保存到后端 settings，失败仅提示不影响 UI
+    void saveSettings({ acp_base_url: val }).catch(() => {});
+    lastSyncedRef.current = val;
+  }, [saveSettings]);
 
   const handleTestConnection = useCallback(async () => {
     setChecking(true);

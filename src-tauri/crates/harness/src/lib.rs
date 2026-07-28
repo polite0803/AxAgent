@@ -154,8 +154,8 @@ pub mod trajectory_service;
 pub mod webhook_subscription;
 /// 关键 Webhook 类型重导出 — struct/enum 级
 pub use webhook_subscription::{
-    DispatchResult, WebhookEvent, WebhookPayload, WebhookSubscription, WebhookSubscriptionInfo,
-    WebhookSubscriptionService,
+    DispatchResult, WebhookDispatch, WebhookEvent, WebhookEventSink, WebhookPayload,
+    WebhookPersistence, WebhookSubscription, WebhookSubscriptionInfo, WebhookSubscriptionService,
 };
 
 // ── 消息平台 Webhook 契约 ──

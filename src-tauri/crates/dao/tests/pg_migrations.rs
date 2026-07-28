@@ -17,7 +17,7 @@
 //!   cargo test -p axagent-dao --test pg_migrations
 //! ```
 
-use axagent_dao::migrations::run_migrations;
+use axagent_dao::migrations::{SCHEMA_VERSION_TABLE, run_migrations};
 use sea_orm::{ConnectionTrait, Database, DbBackend, Statement};
 
 const TEST_DB: &str = "axagent_pg_migtest";
@@ -63,7 +63,7 @@ async fn pg_migrations_apply_and_search_works() {
         "provider_keys",
         "gateway_keys",
         "gateway_usage",
-        "axagent_schema_version",
+        SCHEMA_VERSION_TABLE,
         "trajectory_trajectories",
         "trajectory_memories",
         "wiki_page_versions",
@@ -109,7 +109,7 @@ async fn pg_migrations_apply_and_search_works() {
     let max_row = db
         .query_one_raw(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "SELECT COALESCE(MAX(version), 0)::int AS v FROM axagent_schema_version",
+            format!("SELECT COALESCE(MAX(version), 0)::int AS v FROM {SCHEMA_VERSION_TABLE}"),
             Vec::<sea_orm::Value>::new(),
         ))
         .await

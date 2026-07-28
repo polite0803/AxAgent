@@ -9,6 +9,7 @@
 use crate::AppState;
 use axagent_harness::trajectory_types::RewardType;
 use axagent_trajectory::RLConfig;
+use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -353,6 +354,53 @@ pub async fn list_checkpoints(state: State<'_, AppState>) -> Result<Vec<Checkpoi
     // 按时间戳降序排列
     all.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
     Ok(all)
+}
+
+/// 删除训练检查点（P1 修复：补齐前端调用的后端命令）。
+///
+/// 同时清理训练运行时内存和持久化存储（trajectory_patterns 表）中的记录。
+#[command]
+pub async fn delete_checkpoint(
+    state: State<'_, AppState>,
+    checkpoint_id: String,
+) -> Result<(), String> {
+    let mut removed_from_runtime = false;
+
+    // 1. 从训练运行时内存中移除
+    {
+        let mut store = training_runtime().lock().await;
+        for runtime in store.values_mut() {
+            let before = runtime.state.checkpoints.len();
+            runtime.state.checkpoints.retain(|c| c.id != checkpoint_id);
+            if runtime.state.checkpoints.len() < before {
+                removed_from_runtime = true;
+            }
+        }
+    }
+
+    // 2. 从持久化存储中删除（trajectory_patterns 表）
+    let db = state.harness.db();
+    let delete_result =
+        axagent_entities::trajectory_patterns::Entity::delete_by_id(checkpoint_id.clone())
+            .exec(db)
+            .await;
+
+    let removed_from_storage = match delete_result {
+        Ok(r) => r.rows_affected > 0,
+        Err(e) => {
+            tracing::warn!(target: "rl_training", checkpoint_id = %checkpoint_id,
+                "Failed to delete checkpoint from storage: {}", e);
+            false
+        },
+    };
+
+    if !removed_from_runtime && !removed_from_storage {
+        return Err(format!("检查点 '{}' 不存在", checkpoint_id));
+    }
+
+    tracing::info!(target: "rl_training", checkpoint_id = %checkpoint_id,
+        "Checkpoint deleted (runtime={}, storage={})", removed_from_runtime, removed_from_storage);
+    Ok(())
 }
 
 /// 运行一轮真实 RL 训练（对接 RLEngine 的 compute_rewards）。

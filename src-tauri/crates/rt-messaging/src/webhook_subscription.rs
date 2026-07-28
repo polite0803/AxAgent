@@ -95,20 +95,26 @@ pub async fn assert_url_safe(url: &str, require_https: bool) -> Result<(), Strin
     Ok(())
 }
 
-/// Webhook 事件派发 trait（纯数据 DTO 已迁至 harness）
-#[async_trait::async_trait]
-pub trait WebhookDispatch: Send + Sync {
-    async fn dispatch(
-        &self,
-        event: WebhookEvent,
-        data: std::collections::HashMap<String, serde_json::Value>,
-    );
-}
+/// Webhook 事件派发 trait（契约已上沉至 `axagent-harness`，此处仅 re-export）
+pub use axagent_harness::WebhookDispatch;
 
 /// Webhook 订阅管理器 — 管理生命周期和事件派发
-#[derive(Debug)]
 pub struct WebhookSubscriptionManager {
     subscriptions: Arc<RwLock<std::collections::HashMap<String, WebhookSubscription>>>,
+    /// P2-7: 可选的持久化桥接器，由 wiring 层注入 DAO 实现。
+    /// None 时退化为纯内存模式（向后兼容旧测试）。
+    persistence: Option<Arc<dyn axagent_harness::WebhookPersistence>>,
+}
+
+// 手动实现 Debug：`dyn WebhookPersistence` 未实现 Debug，
+// 用占位符展示持久化是否存在，避免泄露内部指针。
+impl std::fmt::Debug for WebhookSubscriptionManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WebhookSubscriptionManager")
+            .field("subscriptions", &self.subscriptions)
+            .field("persistence", &self.persistence.as_ref().map(|_| "<set>"))
+            .finish()
+    }
 }
 
 impl Default for WebhookSubscriptionManager {
@@ -119,7 +125,37 @@ impl Default for WebhookSubscriptionManager {
 
 impl WebhookSubscriptionManager {
     pub fn new() -> Self {
-        Self { subscriptions: Arc::new(RwLock::new(std::collections::HashMap::new())) }
+        Self {
+            subscriptions: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            persistence: None,
+        }
+    }
+
+    /// P2-7: 注入持久化实现，并从持久化恢复所有订阅到内存。
+    pub async fn with_persistence(
+        mut self,
+        p: Arc<dyn axagent_harness::WebhookPersistence>,
+    ) -> Result<Self, String> {
+        self.persistence = Some(p.clone());
+        let loaded = p.load().await.unwrap_or_default();
+        {
+            let mut map = self.subscriptions.write().await;
+            for sub in loaded {
+                map.insert(sub.id.clone(), sub);
+            }
+        }
+        Ok(self)
+    }
+
+    /// P2-7: 把当前内存中的全部订阅保存到持久化（best-effort，失败仅记录日志）。
+    async fn persist_all(&self) {
+        if let Some(p) = &self.persistence {
+            let all: Vec<WebhookSubscription> =
+                self.subscriptions.read().await.values().cloned().collect();
+            if let Err(e) = p.save(&all).await {
+                tracing::warn!("Webhook persistence save failed: {}", e);
+            }
+        }
     }
 
     pub async fn subscribe(
@@ -147,12 +183,14 @@ impl WebhookSubscriptionManager {
             subscription.id,
             subscription.events.len()
         );
+        self.persist_all().await;
         Ok(subscription)
     }
 
     pub async fn unsubscribe(&self, id: &str) -> Result<(), String> {
         if self.subscriptions.write().await.remove(id).is_some() {
             tracing::info!("Webhook unsubscribed: {}", id);
+            self.persist_all().await;
             Ok(())
         } else {
             Err(format!("Subscription '{}' not found", id))
@@ -184,15 +222,24 @@ impl WebhookSubscriptionManager {
         if let Some(sub) = self.subscriptions.write().await.get_mut(id) {
             sub.last_triggered = Some(chrono::Utc::now());
         }
+        // 仅更新时间戳不触发持久化，避免频繁写入
     }
 
     pub async fn increment_failure(&self, id: &str) {
-        if let Some(sub) = self.subscriptions.write().await.get_mut(id) {
-            sub.failure_count += 1;
-            if sub.failure_count >= 5 {
-                sub.enabled = false;
-                tracing::warn!("Webhook {} disabled due to repeated failures", id);
+        let mut state_changed = false;
+        {
+            let mut map = self.subscriptions.write().await;
+            if let Some(sub) = map.get_mut(id) {
+                sub.failure_count += 1;
+                if sub.failure_count >= 5 && sub.enabled {
+                    sub.enabled = false;
+                    state_changed = true;
+                    tracing::warn!("Webhook {} disabled due to repeated failures", id);
+                }
             }
+        }
+        if state_changed {
+            self.persist_all().await;
         }
     }
 
@@ -200,16 +247,19 @@ impl WebhookSubscriptionManager {
         if let Some(sub) = self.subscriptions.write().await.get_mut(id) {
             sub.failure_count = 0;
         }
+        self.persist_all().await;
     }
 
     pub async fn set_enabled(&self, id: &str, enabled: bool) -> Result<(), String> {
         if let Some(sub) = self.subscriptions.write().await.get_mut(id) {
             sub.enabled = enabled;
             tracing::info!("Webhook {} {}", id, if enabled { "enabled" } else { "disabled" });
-            Ok(())
         } else {
-            Err(format!("Subscription '{}' not found", id))
+            return Err(format!("Subscription '{}' not found", id));
         }
+        // 写锁在 if 块结束时自动释放，此处可安全获取读锁进行持久化
+        self.persist_all().await;
+        Ok(())
     }
 
     pub async fn test_subscription(&self, id: &str) -> Result<(), String> {
@@ -222,7 +272,21 @@ impl WebhookSubscriptionManager {
     }
 
     pub async fn reload(&self) -> Result<(), String> {
-        tracing::info!("Reloading webhook subscriptions");
+        // P2-7: 从持久化重新加载订阅
+        if let Some(p) = &self.persistence {
+            let loaded = p.load().await.unwrap_or_default();
+            let mut map = self.subscriptions.write().await;
+            map.clear();
+            for sub in loaded {
+                map.insert(sub.id.clone(), sub);
+            }
+            tracing::info!(
+                "Webhook subscriptions reloaded from persistence: {} entries",
+                map.len()
+            );
+        } else {
+            tracing::info!("Reloading webhook subscriptions (no persistence, noop)");
+        }
         Ok(())
     }
 }

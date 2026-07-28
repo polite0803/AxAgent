@@ -398,6 +398,10 @@ impl ServiceRegistry {
             .expect("MemoryRepository not initialized.")
     }
 
+    pub fn memory_repository_opt(&self) -> Option<Arc<dyn MemoryRepository>> {
+        self.memory_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+    }
+
     // ── BackgroundTaskRepository ──
 
     pub fn set_background_task_repository(&self, repo: Arc<dyn BackgroundTaskRepository>) {

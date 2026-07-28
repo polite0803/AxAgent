@@ -23,8 +23,10 @@ pub enum CredentialType {
     /// - `access_token`: 当前持有的 access token；首次构造时为 None，刷新后填入
     /// - `expires_at`:   access token 过期时间（Unix 毫秒），None 表示尚未刷新或无过期信息
     ///
-    /// 完整的 token 刷新逻辑（向 `token_url` 发起 client_credentials 请求）
-    /// 暂未实现——当前仅检测过期并返回错误，由调用方决定如何处理。
+    /// Token 刷新逻辑（P1 修复已实现）：`CredentialManager::refresh_oauth2_token`
+    /// 向 `token_url` 发起 `grant_type=client_credentials` 请求，
+    /// 成功后更新 `access_token` / `expires_at` 并持久化。
+    /// `CredentialService::get_auth_headers` 会自动调用 `get_credential_with_refresh`。
     ///
     /// 向后兼容：`Option<T>` 字段在反序列化缺失时默认为 `None`，
     /// 旧版本写入的 OAuth2 凭证（无 access_token/expires_at）仍可正常读取。

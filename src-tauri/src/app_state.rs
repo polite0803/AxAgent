@@ -279,6 +279,8 @@ pub struct AppState {
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,
     pub webhook_subscription_manager: Option<Arc<WebhookSubscriptionManager>>,
+    /// Webhook 事件派发器（P0 修复：用于在工具执行 / Agent 结束时触发 webhook）
+    pub webhook_event_emitter: Option<Arc<dyn axagent_harness::WebhookEventSink>>,
     pub semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>>,
     pub prompt_cache: Arc<PromptCache>,
     /// Fleet 持久化仓库

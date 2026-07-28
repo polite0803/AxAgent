@@ -42,7 +42,7 @@ import {
   Trash2,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentProfileManager } from "./AgentProfileManager";
 import { BusinessRoleManager } from "./BusinessRoleManager";
@@ -617,6 +617,88 @@ function HooksTab() {
   );
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
+  // P1-5: 启动时从后端加载持久化的 hooks 配置
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await invoke<{ hooks?: HookState[] }>("get_hooks_config");
+        if (cancelled || !data?.hooks?.length) {
+          return;
+        }
+        // 用持久化数据合并默认列表：以 HOOK_EVENTS 为基准，保留持久化的 enabled/commands
+        setHooks((prev) =>
+          prev.map((base) => {
+            const persisted = data.hooks!.find((h) => h.event === base.event);
+            return persisted
+              ? { ...base, enabled: persisted.enabled, commands: persisted.commands }
+              : base;
+          })
+        );
+      } catch (e) {
+        logIpcError("get_hooks_config")(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // P1-5: 任意修改后立即持久化（防抖避免快速切换产生大量 IPC）
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSave = useCallback((next: HookState[]) => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(() => {
+      invoke("save_hooks_config", { config: { hooks: next } }).catch(logIpcError("save_hooks_config"));
+    }, 300);
+  }, []);
+
+  const toggleHook = (event: string) => {
+    setHooks((prev) => {
+      const next = prev.map((h) => (h.event === event ? { ...h, enabled: !h.enabled } : h));
+      scheduleSave(next);
+      return next;
+    });
+  };
+
+  const addCommand = (event: string) => {
+    const cmd = window.prompt(t("settings.agent.enterShellCommand"));
+    if (!cmd || !cmd.trim()) {
+      return;
+    }
+    setHooks((prev) => {
+      const next = prev.map((h) =>
+        h.event === event
+          ? {
+            ...h,
+            commands: [
+              ...h.commands,
+              { id: crypto.randomUUID(), command: cmd.trim() },
+            ],
+          }
+          : h
+      );
+      scheduleSave(next);
+      return next;
+    });
+    message.success(t("settings.agent.commandAddedForEvent", { event }));
+  };
+
+  const removeCommand = (event: string, cmdId: string) => {
+    setHooks((prev) => {
+      const next = prev.map((h) =>
+        h.event === event
+          ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) }
+          : h
+      );
+      scheduleSave(next);
+      return next;
+    });
+    message.success(t("settings.agent.commandRemoved"));
+  };
+
   const toggleExpand = (event: string) => {
     setExpandedEvents((prev) => {
       const next = new Set(prev);
@@ -627,42 +709,6 @@ function HooksTab() {
       }
       return next;
     });
-  };
-
-  const toggleHook = (event: string) => {
-    setHooks((prev) => prev.map((h) => (h.event === event ? { ...h, enabled: !h.enabled } : h)));
-  };
-
-  const addCommand = (event: string) => {
-    const cmd = window.prompt(t("settings.agent.enterShellCommand"));
-    if (!cmd || !cmd.trim()) {
-      return;
-    }
-    setHooks((prev) =>
-      prev.map((h) =>
-        h.event === event
-          ? {
-            ...h,
-            commands: [
-              ...h.commands,
-              { id: crypto.randomUUID(), command: cmd.trim() },
-            ],
-          }
-          : h
-      )
-    );
-    message.success(t("settings.agent.commandAddedForEvent", { event }));
-  };
-
-  const removeCommand = (event: string, cmdId: string) => {
-    setHooks((prev) =>
-      prev.map((h) =>
-        h.event === event
-          ? { ...h, commands: h.commands.filter((c) => c.id !== cmdId) }
-          : h
-      )
-    );
-    message.success(t("settings.agent.commandRemoved"));
   };
 
   const hookMeta = (event: string) => HOOK_EVENTS.find((e) => e.event === event);

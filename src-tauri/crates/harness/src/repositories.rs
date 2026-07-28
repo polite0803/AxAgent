@@ -284,6 +284,10 @@ pub fn memory_repository() -> Arc<dyn MemoryRepository> {
     get_service_registry().read().unwrap().memory_repository()
 }
 
+pub fn try_memory_repository() -> Option<Arc<dyn MemoryRepository>> {
+    get_service_registry().read().unwrap().memory_repository_opt()
+}
+
 #[async_trait]
 pub trait DatabaseInitializer: Send + Sync {
     async fn run_initialization(&self) -> Result<(), String>;
