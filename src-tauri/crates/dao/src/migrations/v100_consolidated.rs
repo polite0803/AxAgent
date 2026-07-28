@@ -42,7 +42,7 @@ pub use super::pg_ddl::exec_ddl;
 // ============================================================================
 
 /// (表名, 列名, SQL 类型定义 — 含 DEFAULT/NOT NULL 等约束)
-const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
+pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     // ── 旧库（v001–v011 时期的表） ──
     ("agent_roles", "active_domains", "TEXT"),
     ("agency_experts", "recommended_workflows", "TEXT"),

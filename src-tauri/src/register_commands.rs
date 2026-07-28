@@ -550,6 +550,7 @@ macro_rules! register_all_commands {
             commands::db_config::save_db_config,
             commands::db_config::test_db_connection,
             commands::db_config::get_schema_status,
+            commands::db_config::repair_schema,
             commands::index_jobs::index_jobs_list,
             commands::index_jobs::index_jobs_stats,
             commands::index_jobs::index_jobs_retry,

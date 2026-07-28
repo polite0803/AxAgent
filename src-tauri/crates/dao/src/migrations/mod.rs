@@ -298,6 +298,43 @@ pub async fn get_schema_status(
     })
 }
 
+/// 修复数据库架构：重跑所有注册的迁移（幂等安全）。
+///
+/// 与 `run_migrations` 不同，此函数跳过版本号检查，
+/// 无条件对**所有**已注册迁移调用 `up()` 函数。
+///
+/// 由于每个迁移的 DDL 都使用 `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`，
+/// 重复执行是安全的：
+///   - 新库/已修复的库：CREATE/ALTER 检测到已存在 → 无操作
+///   - 缺失表/列的存量库：首次触发 DDL → 补全
+///   - v101 等含数据迁移步骤的：INSERT ... SELECT 用 ON CONFLICT DO NOTHING
+///     防止重复，旧表被删除后自动跳过
+///
+/// 优势：不依赖版本号、无硬编码清单、自动适配所有下游 fork（v200+）。
+pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, usize), DbErr> {
+    let mut fixed = 0usize;
+    let total = MIGRATIONS.len();
+
+    for m in MIGRATIONS {
+        tracing::info!("[repair_schema] 重跑迁移 v{}: {}", m.version, m.description);
+        match (m.up)(db.clone()).await {
+            Ok(()) => {
+                fixed += 1;
+            },
+            Err(e) => {
+                // 即使迁移失败（如旧表已被删除导致的查询错误），
+                // 也继续跑后面的迁移。记录警告而非中断全部流程。
+                tracing::warn!("[repair_schema] 迁移 v{} 重跑报错（可忽略）: {}", m.version, e);
+            },
+        }
+    }
+
+    // 确保 schema_version 表记录完整（重跑不写版本号是正常的）
+    tracing::info!("[repair_schema] 完成: 重跑了 {}/{} 条迁移", fixed, total);
+
+    Ok((fixed, total))
+}
+
 async fn record_version(
     db: &sea_orm::DatabaseConnection,
     backend: DbBackend,

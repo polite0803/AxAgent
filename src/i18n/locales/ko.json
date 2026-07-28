@@ -5206,7 +5206,11 @@
       "typeLabel": "데이터베이스 유형",
       "typePostgres": "PostgreSQL(pgvector 지원)",
       "typeSqlite": "SQLite(로컬 파일, 기본값)",
-      "useSslLabel": "SSL 연결 사용"
+      "useSslLabel": "SSL 연결 사용",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "기본 대화 모델",
     "defaultConversationModelDesc": "새 대화의 기본 모델. 설정되지 않은 경우 마지막 활성 대화 모델로 폴백",

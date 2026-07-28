@@ -5206,7 +5206,11 @@
       "typeLabel": "Тип базы данных",
       "typePostgres": "PostgreSQL (с поддержкой pgvector)",
       "typeSqlite": "SQLite (локальный файл, по умолчанию)",
-      "useSslLabel": "Использовать SSL-соединение"
+      "useSslLabel": "Использовать SSL-соединение",
+      "schemaRepairButton": "修复 Schema",
+      "schemaRepairRunning": "修复中...",
+      "schemaRepairSuccess": "Schema 修复完成，补了 {{count}} 个缺失字段",
+      "schemaRepairFailed": "Schema 修复失败：{{error}}"
     },
     "defaultConversationModel": "Модель чата по умолчанию",
     "defaultConversationModelDesc": "Модель по умолчанию для новых чатов. Если не задана, используется последняя активная модель",
