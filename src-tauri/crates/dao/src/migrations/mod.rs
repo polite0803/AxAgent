@@ -45,6 +45,7 @@ pub mod v105_kb_vault_kind;
 pub mod v106_context_source_doc_ids;
 pub mod v107_paper_reading_list;
 pub mod v108_memory_applicability;
+pub mod v109_repair_memory_items_columns;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -132,6 +133,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 108,
         description: "v108_memory_applicability: 为 memory_items 表添加 applicability_tags + confirmed 字段，支持记忆适用范围边界划分与人工确认门（自进化闭环）",
         up: |db| Box::pin(v108_memory_applicability::up(db)),
+    },
+    Migration {
+        version: 109,
+        description: "v109_repair_memory_items_columns: 防御性修复，补全 memory_items 表可能缺失的 tier/importance/access_count 等 12 个字段（修复 v101/v108 在 SQLite 上 ALTER TABLE 静默失败导致的字段缺失）",
+        up: |db| Box::pin(v109_repair_memory_items_columns::up(db)),
     },
     Migration {
         version: 200,
@@ -382,7 +388,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 17 行（v100~v108 + v200~v207）
+        // schema_version 表应有 18 行（v100~v108 + v109 + v200~v207）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -392,7 +398,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 17, "schema_version should have 17 rows (v100~v108 + v200~v207)");
+        assert_eq!(cnt, 18, "schema_version should have 18 rows (v100~v108 + v109 + v200~v207)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。
