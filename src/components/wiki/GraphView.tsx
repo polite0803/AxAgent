@@ -212,6 +212,75 @@ function gridLayout(
   return positions;
 }
 
+/**
+ * 圆形布局：节点按同心环排列，环数由 sqrt(n) 决定。
+ * - 中心 1 个节点（枢纽感）
+ * - 每环节点数随环号递增（环 r 上放 6*r 个节点，r 从 1 开始）
+ * - 半径基准取容器短边 * 0.4，保证不超出视口
+ * 与 ForceAtlas2 的 linLogMode 不同，这里产出的是规整的同心圆。
+ */
+function circularLayout(
+  nodes: GraphNode[],
+  width: number,
+  height: number,
+): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+  if (nodes.length === 0) { return positions; }
+  if (nodes.length === 1) {
+    positions.set(nodes[0].id, { x: 0, y: 0 });
+    return positions;
+  }
+  // 容器短边作为基准半径，留 20% 边距
+  const baseRadius = Math.min(width, height) * 0.4;
+  // 中心放第一个节点
+  positions.set(nodes[0].id, { x: 0, y: 0 });
+  // 其余节点分环排列：环 r 放 6*r 个节点
+  let placed = 1;
+  let ring = 1;
+  while (placed < nodes.length) {
+    const slots = 6 * ring;
+    const remaining = nodes.length - placed;
+    const onThisRing = Math.min(slots, remaining);
+    const radius = baseRadius * (ring / Math.max(1, Math.ceil(Math.sqrt(nodes.length / 6))));
+    // 角度从 -π/2（正上方）开始，顺时针分布
+    for (let i = 0; i < onThisRing; i++) {
+      const angle = -Math.PI / 2 + (i / onThisRing) * Math.PI * 2;
+      const node = nodes[placed];
+      if (!node) { break; }
+      positions.set(node.id, {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+      });
+      placed++;
+    }
+    ring++;
+  }
+  return positions;
+}
+
+/** 计算节点群包围盒，用于相机居中 */
+function computeBoundingBox(
+  positions: Array<{ x: number; y: number }>,
+): { centerX: number; centerY: number; width: number; height: number } | null {
+  if (positions.length === 0) { return null; }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of positions) {
+    if (p.x < minX) { minX = p.x; }
+    if (p.y < minY) { minY = p.y; }
+    if (p.x > maxX) { maxX = p.x; }
+    if (p.y > maxY) { maxY = p.y; }
+  }
+  return {
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
 /** 计算连通分量统计 */
 function computeComponentStats(
   nodeIds: string[],
@@ -280,9 +349,19 @@ function GraphViewInner({
   const workerRef = useRef<Worker | null>(null);
   const workerBusyRef = useRef(false);
   const nodeIndexRef = useRef<Map<string, GraphNode>>(new Map());
+  // hover 节点：用于 nodeReducer 视觉反馈（不触发 React 重渲染，性能更好）
+  const hoveredNodeRef = useRef<string | null>(null);
+  // 位置动画 RAF 句柄：用于取消未完成的动画
+  const positionAnimRef = useRef<number | null>(null);
+  // 入场动画 RAF 句柄
+  const enterAnimRef = useRef<number | null>(null);
+  // 选中节点 ref：nodeReducer 通过它读取最新选中态，避免闭包失效
+  const selectedNodeIdRef = useRef<string | null>(null);
+  // 高亮集合 ref：搜索/外部高亮时用于淡化非命中节点
+  const highlightSetRef = useRef<Set<string> | undefined>(undefined);
 
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("force");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("radial");
   const [layoutRunning, setLayoutRunning] = useState(false);
   const [stats, setStats] = useState({ visible: 0, total: 0, edges: 0 });
   const [searchTerm, setSearchTerm] = useState("");
@@ -384,6 +463,48 @@ function GraphViewInner({
     });
     sigmaRef.current = sigmaInstance;
 
+    // ── nodeReducer：hover 放大 + 选中高亮 + 淡化非命中节点 ──
+    // 通过 ref 读取最新状态，避免闭包失效和频繁重设 reducer
+    sigmaInstance.setSetting("nodeReducer", (node, data) => {
+      const res = { ...data };
+      const hovered = hoveredNodeRef.current;
+      const selected = selectedNodeIdRef.current;
+      const highlight = highlightSetRef.current;
+      const hasHighlight = highlight && highlight.size > 0;
+
+      if (selected === node) {
+        res.size = data.size * 1.6;
+        res.highlighted = true;
+      } else if (hovered === node) {
+        res.size = data.size * 1.4;
+        res.highlighted = true;
+      } else if (hasHighlight && !highlight!.has(node)) {
+        // 搜索/外部高亮时，非命中节点淡化
+        res.color = `${resolveColor(data.color)}30`;
+        res.label = undefined;
+      }
+      return res;
+    });
+
+    // ── edgeReducer：hover 时高亮相关边、淡化无关边 ──
+    sigmaInstance.setSetting("edgeReducer", (edge, data) => {
+      const res = { ...data };
+      const hovered = hoveredNodeRef.current;
+      if (!hovered) { return res; }
+      const g = sigmaInstance.getGraph();
+      const [src, tgt] = g.extremities(edge);
+      if (src !== hovered && tgt !== hovered) {
+        // 淡化非相关边
+        res.color = `${resolveColor(data.color)}20`;
+        res.hidden = false;
+      } else {
+        // 高亮相关边
+        res.size = data.size * 2.2;
+        res.color = resolveColor(data.color);
+      }
+      return res;
+    });
+
     // 事件
     sigmaInstance.on("clickNode", ({ node }) => onNodeClick?.(node));
     sigmaInstance.on("doubleClickNode", ({ node }) => onNodeDoubleClick?.(node));
@@ -394,9 +515,50 @@ function GraphViewInner({
       nativeEvent?.preventDefault();
       onContextMenu?.(node, { x: event.x, y: event.y });
     });
-    sigmaInstance.on("enterNode", ({ node }) => onNodeHover?.(node));
-    sigmaInstance.on("leaveNode", () => onNodeHover?.(null));
+    sigmaInstance.on("enterNode", ({ node }) => {
+      hoveredNodeRef.current = node;
+      onNodeHover?.(node);
+      // skipIndexation：节点索引不变，仅重绘，性能更好
+      sigmaInstance.refresh({ skipIndexation: true });
+    });
+    sigmaInstance.on("leaveNode", () => {
+      hoveredNodeRef.current = null;
+      onNodeHover?.(null);
+      sigmaInstance.refresh({ skipIndexation: true });
+    });
     sigmaInstance.on("clickStage", () => onDeselect?.());
+
+    // ── 自定义滚轮缩放：跟随鼠标位置（sigma 默认缩放视口中心，不跟手）──
+    const minRatio = (sigmaInstance.getSetting("minCameraRatio") as number | undefined) ?? 0.02;
+    const maxRatio = (sigmaInstance.getSetting("maxCameraRatio") as number | undefined) ?? 10;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const sigma = sigmaRef.current;
+      if (!sigma) { return; }
+      const camera = sigma.getCamera();
+      const state = camera.getState();
+      // 滚轮向上 → 放大（ratio 减小）；向下 → 缩小（ratio 增大）
+      const factor = e.deltaY < 0 ? 0.82 : 1.22;
+      const newRatio = Math.max(minRatio, Math.min(maxRatio, state.ratio * factor));
+      if (newRatio === state.ratio) { return; }
+      // 鼠标在视口中的位置
+      const rect = el.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      // 鼠标对应的世界坐标
+      const world = sigma.viewportToGraph({ x: mouseX, y: mouseY });
+      // 缩放后让鼠标位置仍对应同一世界坐标：
+      // newCamera = world + (oldCamera - world) * (newRatio / oldRatio)
+      const newX = world.x + (state.x - world.x) * (newRatio / state.ratio);
+      const newY = world.y + (state.y - world.y) * (newRatio / state.ratio);
+      camera.animate(
+        { x: newX, y: newY, ratio: newRatio },
+        { duration: 180, easing: (k) => k },
+      );
+    };
+    // capture: true → 在 sigma 默认 wheel 处理之前拦截
+    el.addEventListener("wheel", handleWheel, { passive: false, capture: true });
 
     // 键盘
     const handleKey = (e: KeyboardEvent) => {
@@ -417,7 +579,17 @@ function GraphViewInner({
     el.addEventListener("keydown", handleKey);
 
     return () => {
+      el.removeEventListener("wheel", handleWheel, { capture: true });
       el.removeEventListener("keydown", handleKey);
+      // 清理进行中的动画，避免 sigma kill 后继续 refresh 导致报错
+      if (positionAnimRef.current !== null) {
+        cancelAnimationFrame(positionAnimRef.current);
+        positionAnimRef.current = null;
+      }
+      if (enterAnimRef.current !== null) {
+        cancelAnimationFrame(enterAnimRef.current);
+        enterAnimRef.current = null;
+      }
       sigmaInstance.kill();
       sigmaRef.current = null;
       graphRef.current = null;
@@ -431,20 +603,26 @@ function GraphViewInner({
     const sigmaInstance = sigmaRef.current;
     if (!graph || !sigmaInstance) { return; }
 
+    // 取消可能进行中的入场/位置动画
+    if (enterAnimRef.current !== null) {
+      cancelAnimationFrame(enterAnimRef.current);
+      enterAnimRef.current = null;
+    }
+
     // 清空
     graph.clear();
     nodeIndexRef.current = new Map();
 
-    // 初始位置：网格布局，作为 worker 跑完前的占位
+    // 目标位置：网格布局
     const initialPositions = gridLayout(filteredNodes, dimensions.width, dimensions.height);
 
+    // 节点入场：先全部放到视口中心 (0,0)，再展开到网格位置
     for (const node of filteredNodes) {
-      const pos = initialPositions.get(node.id) ?? { x: 0, y: 0 };
       const color = getNodeColor(node, communities, token);
       const size = getNodeSize(node);
       graph.addNode(node.id, {
-        x: pos.x,
-        y: pos.y,
+        x: 0,
+        y: 0,
         size,
         color,
         label: node.title,
@@ -476,7 +654,34 @@ function GraphViewInner({
     });
     sigmaInstance.refresh();
 
-    // 触发布局计算
+    // ── 入场动画：从中心 (0,0) 展开到网格位置 ──
+    const endPositions = new Map<string, { x: number; y: number }>();
+    for (const node of filteredNodes) {
+      const target = initialPositions.get(node.id) ?? { x: 0, y: 0 };
+      endPositions.set(node.id, target);
+    }
+    // 用 enterAnimRef 单独管理入场动画，避免被 applyPositions 的取消逻辑打断
+    const startTime = performance.now();
+    const enterDuration = 600;
+    const enterTick = (now: number) => {
+      const t = Math.min(1, (now - startTime) / enterDuration);
+      // ease-out quint：更明显的"落地"感
+      const eased = 1 - Math.pow(1 - t, 5);
+      for (const [id, end] of endPositions) {
+        if (!graph.hasNode(id)) { continue; }
+        graph.setNodeAttribute(id, "x", end.x * eased);
+        graph.setNodeAttribute(id, "y", end.y * eased);
+      }
+      sigmaInstance.refresh({ skipIndexation: true });
+      if (t < 1) {
+        enterAnimRef.current = requestAnimationFrame(enterTick);
+      } else {
+        enterAnimRef.current = null;
+      }
+    };
+    enterAnimRef.current = requestAnimationFrame(enterTick);
+
+    // 触发布局计算（worker 算完后会通过 applyPositions 做二次位置动画）
     triggerLayout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredNodes, filteredEdges, communities, token, dimensions, layoutMode]);
@@ -516,27 +721,27 @@ function GraphViewInner({
     if (!worker || !graph) { return; }
     if (filteredNodes.length === 0) { return; }
 
-    // hierarchy 模式：直接用网格，不跑 worker
+    // hierarchy 模式：网格布局
     if (layoutMode === "hierarchy") {
       const positions = gridLayout(filteredNodes, dimensions.width, dimensions.height);
       applyPositions(Array.from(positions.entries()).map(([id, p]) => ({ id, x: p.x, y: p.y })));
       return;
     }
 
-    // 小图同步跑：worker 启动开销大于计算本身
-    if (filteredNodes.length < LAYOUT_FORCE_THRESHOLD) {
-      applyPositions(
-        filteredNodes.map((n) => {
-          const p = graph.getNodeAttributes(n.id);
-          return { id: n.id, x: p.x, y: p.y };
-        }),
-      );
-      // 简单抖动一次，避免节点重叠
-      // 不引入 d3-force，直接用网格结果即可
+    // radial 模式：真正的同心圆布局（不走 ForceAtlas2，避免收敛成不规则形状）
+    if (layoutMode === "radial") {
+      const positions = circularLayout(filteredNodes, dimensions.width, dimensions.height);
+      applyPositions(Array.from(positions.entries()).map(([id, p]) => ({ id, x: p.x, y: p.y })));
       return;
     }
 
-    // 大图走 worker
+    // force 模式：小图直接用网格（worker 开销大于计算），大图走 worker
+    if (filteredNodes.length < LAYOUT_FORCE_THRESHOLD) {
+      const positions = gridLayout(filteredNodes, dimensions.width, dimensions.height);
+      applyPositions(Array.from(positions.entries()).map(([id, p]) => ({ id, x: p.x, y: p.y })));
+      return;
+    }
+
     if (workerBusyRef.current) { return; }
     workerBusyRef.current = true;
     setLayoutRunning(true);
@@ -550,10 +755,10 @@ function GraphViewInner({
     const settings: LayoutRequest["settings"] = {
       barnesHutOptimize: useBarnesHut,
       barnesHutTheta: 0.6,
-      gravity: layoutMode === "radial" ? 0.5 : 1.0,
+      gravity: 1.0,
       slowDown: 4,
       scaling: 1.0,
-      linLogMode: layoutMode === "radial",
+      linLogMode: false,
     };
 
     const req: LayoutRequest = {
@@ -566,28 +771,90 @@ function GraphViewInner({
     worker.postMessage(req);
   }, [filteredNodes, filteredEdges, dimensions, layoutMode, useBarnesHut]);
 
-  // ── 应用位置 ──
-  const applyPositions = useCallback(
-    (positions: Array<{ id: string; x: number; y: number }>) => {
+  // ── 位置插值动画（RAF + ease-out cubic）──
+  // 通用方法：从 startPositions 插值到 endPositions，duration 毫秒内完成
+  const animatePositions = useCallback(
+    (
+      startPositions: Map<string, { x: number; y: number }>,
+      endPositions: Map<string, { x: number; y: number }>,
+      duration: number,
+      onDone?: () => void,
+    ) => {
       const graph = graphRef.current;
       const sigmaInstance = sigmaRef.current;
       if (!graph || !sigmaInstance) { return; }
-      for (const p of positions) {
-        if (graph.hasNode(p.id)) {
-          graph.setNodeAttribute(p.id, "x", p.x);
-          graph.setNodeAttribute(p.id, "y", p.y);
-        }
+      // 取消未完成的位置动画，避免叠加抖动
+      if (positionAnimRef.current !== null) {
+        cancelAnimationFrame(positionAnimRef.current);
+        positionAnimRef.current = null;
       }
-      sigmaInstance.refresh();
-      // 自适应视图
-      setTimeout(() => {
-        sigmaInstance.getCamera().animate(
-          { ...sigmaInstance.getCamera().getState(), ratio: 1.2 },
-          { duration: 300 },
-        );
-      }, 50);
+      const ids = Array.from(endPositions.keys());
+      const startTime = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - startTime) / duration);
+        // ease-out cubic：起步快、收尾稳，适合节点落地
+        const eased = 1 - Math.pow(1 - t, 3);
+        for (const id of ids) {
+          const start = startPositions.get(id);
+          const end = endPositions.get(id);
+          if (!start || !end || !graph.hasNode(id)) { continue; }
+          graph.setNodeAttribute(id, "x", start.x + (end.x - start.x) * eased);
+          graph.setNodeAttribute(id, "y", start.y + (end.y - start.y) * eased);
+        }
+        sigmaInstance.refresh({ skipIndexation: true });
+        if (t < 1) {
+          positionAnimRef.current = requestAnimationFrame(tick);
+        } else {
+          positionAnimRef.current = null;
+          onDone?.();
+        }
+      };
+      positionAnimRef.current = requestAnimationFrame(tick);
     },
     [],
+  );
+
+  // ── 应用位置：从当前位置插值到目标位置，完成后强制视觉居中 ──
+  const applyPositions = useCallback(
+    (positions: Array<{ id: string; x: number; y: number }>) => {
+      const graph = graphRef.current;
+      if (!graph) { return; }
+      const startPositions = new Map<string, { x: number; y: number }>();
+      const endPositions = new Map<string, { x: number; y: number }>();
+      for (const p of positions) {
+        if (graph.hasNode(p.id)) {
+          const attrs = graph.getNodeAttributes(p.id);
+          startPositions.set(p.id, { x: attrs.x, y: attrs.y });
+          endPositions.set(p.id, { x: p.x, y: p.y });
+        }
+      }
+      animatePositions(startPositions, endPositions, 550, () => {
+        // 布局完成后：计算节点群包围盒，把相机对准包围盒中心（强制视觉居中）
+        const sigma = sigmaRef.current;
+        if (!sigma) { return; }
+        const bbox = computeBoundingBox(positions);
+        if (!bbox) { return; }
+        // ratio 根据包围盒大小自适应：保证整个图能放进视口，留 20% 边距
+        // sigma 的 camera ratio 是"视口短边 / 世界短边"的反比，越大越缩小
+        const viewportWidth = sigma.getDimensions().width;
+        const viewportHeight = sigma.getDimensions().height;
+        const bboxMaxDim = Math.max(bbox.width, bbox.height, 1);
+        const viewportMinDim = Math.min(viewportWidth, viewportHeight, 1);
+        // ratio = bboxMaxDim / viewportMinDim * 1.2（1.2 是边距系数）
+        const targetRatio = Math.max(
+          (sigma.getSetting("minCameraRatio") as number | undefined) ?? 0.02,
+          Math.min(
+            (sigma.getSetting("maxCameraRatio") as number | undefined) ?? 10,
+            (bboxMaxDim / viewportMinDim) * 1.2,
+          ),
+        );
+        sigma.getCamera().animate(
+          { x: bbox.centerX, y: bbox.centerY, ratio: targetRatio },
+          { duration: 450 },
+        );
+      });
+    },
+    [animatePositions],
   );
 
   // ── 内部搜索高亮：合并外部 + 内部 ──
@@ -612,26 +879,13 @@ function GraphViewInner({
     return ids.size > 0 ? ids : undefined;
   }, [searchTerm, data.nodes, highlightedNodeIds]);
 
-  // ── 高亮/选中 ──
+  // ── 高亮/选中：同步 ref，视觉反馈由 nodeReducer 即时计算 ──
   useEffect(() => {
-    const graph = graphRef.current;
-    const sigmaInstance = sigmaRef.current;
-    if (!graph || !sigmaInstance) { return; }
-
-    const hasHighlights = effectiveHighlights && effectiveHighlights.size > 0;
-    graph.forEachNode((node, attrs) => {
-      const original = nodeIndexRef.current.get(node);
-      if (!original) { return; }
-      const baseColor = getNodeColor(original, communities, token);
-      const isSelected = selectedNodeId === node;
-      const isHighlighted = !hasHighlights || effectiveHighlights?.has(node);
-      const color = isHighlighted ? baseColor : `${baseColor}40`;
-      const size = isSelected ? getNodeSize(original) * 1.5 : getNodeSize(original);
-      if (attrs.color !== color) { graph.setNodeAttribute(node, "color", color); }
-      if (attrs.size !== size) { graph.setNodeAttribute(node, "size", size); }
-    });
-    sigmaInstance.refresh();
-  }, [effectiveHighlights, selectedNodeId, communities, token]);
+    selectedNodeIdRef.current = selectedNodeId ?? null;
+    highlightSetRef.current = effectiveHighlights;
+    // skipIndexation：节点索引不变，仅重绘以应用 reducer
+    sigmaRef.current?.refresh({ skipIndexation: true });
+  }, [effectiveHighlights, selectedNodeId]);
 
   // ── 工具栏 ──
   const handleZoomIn = useCallback(() => {
@@ -641,7 +895,34 @@ function GraphViewInner({
     sigmaRef.current?.getCamera().animatedUnzoom({ duration: 300 });
   }, []);
   const handleFitAll = useCallback(() => {
-    sigmaRef.current?.getCamera().animatedReset({ duration: 600 });
+    const sigma = sigmaRef.current;
+    const graph = graphRef.current;
+    if (!sigma || !graph) { return; }
+    // 收集所有节点的当前位置，计算包围盒后居中
+    const positions: Array<{ x: number; y: number }> = [];
+    graph.forEachNode((_, attrs) => {
+      positions.push({ x: attrs.x, y: attrs.y });
+    });
+    const bbox = computeBoundingBox(positions);
+    if (!bbox) {
+      sigma.getCamera().animatedReset({ duration: 600 });
+      return;
+    }
+    const viewportWidth = sigma.getDimensions().width;
+    const viewportHeight = sigma.getDimensions().height;
+    const bboxMaxDim = Math.max(bbox.width, bbox.height, 1);
+    const viewportMinDim = Math.min(viewportWidth, viewportHeight, 1);
+    const targetRatio = Math.max(
+      (sigma.getSetting("minCameraRatio") as number | undefined) ?? 0.02,
+      Math.min(
+        (sigma.getSetting("maxCameraRatio") as number | undefined) ?? 10,
+        (bboxMaxDim / viewportMinDim) * 1.2,
+      ),
+    );
+    sigma.getCamera().animate(
+      { x: bbox.centerX, y: bbox.centerY, ratio: targetRatio },
+      { duration: 600 },
+    );
   }, []);
   const handleFocusSelected = useCallback(() => {
     if (!selectedNodeId || !sigmaRef.current || !graphRef.current) { return; }
