@@ -392,10 +392,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(
-            cnt, 17,
-            "schema_version should have 17 rows (v100~v108 + v200~v207)"
-        );
+        assert_eq!(cnt, 17, "schema_version should have 17 rows (v100~v108 + v200~v207)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。
