@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use axagent_agent::{SelfImprovementConfig, SelfImprovementExecutor};
+use axagent_agent::self_improvement_executor::{SelfImprovementConfig, SelfImprovementExecutor};
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketBatchQuery};
 use axagent_astock_data::fundamentals_report::{FundamentalsAnalyzer, FundamentalsReport};

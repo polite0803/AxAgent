@@ -1226,6 +1226,8 @@ macro_rules! register_all_commands {
             commands::stock_analysis::list_batch_reflection_crons,
             commands::stock_analysis::toggle_batch_reflection_cron,
             commands::stock_analysis::delete_batch_reflection_cron,
+            // 自改进分析循环（Loop Engineering）
+            commands::stock_analysis::run_self_improving_stock_analysis,
             // 荐股定时推送任务
             commands::recommendation_cron::create_recommendation_cron,
             commands::recommendation_cron::list_recommendation_crons,
