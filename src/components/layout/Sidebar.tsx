@@ -105,7 +105,7 @@ const builtinNavItems: NavItem[] = [
     key: "multi-agent",
     icon: <Icon icon="fluent:people-team-20-filled" size={17} />,
     labelKey: "nav.multiAgent",
-    path: BUILTIN_PAGE_PATH["multi-agent"],
+    path: BUILTIN_PAGE_PATH.multiAgent,
     isPlugin: false,
   },
   {

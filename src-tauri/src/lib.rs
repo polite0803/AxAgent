@@ -448,6 +448,11 @@ pub fn run() {
                 }
                 // G13: 同步内置 SKILL.md 到用户目录（同步操作，快速完成）
                 crate::commands::skills::seed_builtin_skills();
+                // Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
+                // 幂等 upsert，每次启动都调用，确保三个内置角色记录存在
+                if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&seed_db).await {
+                    tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
+                }
             });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 

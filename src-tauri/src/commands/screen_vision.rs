@@ -54,8 +54,8 @@ async fn capture_screenshot(
 }
 
 pub(crate) struct VisionContext {
-    pub adapter: Arc<dyn ProviderAdapter>,
-    pub ctx: ProviderRequestContext,
+    pub(crate) adapter: Arc<dyn ProviderAdapter>,
+    pub(crate) ctx: ProviderRequestContext,
 }
 
 pub(crate) async fn build_vision_context(

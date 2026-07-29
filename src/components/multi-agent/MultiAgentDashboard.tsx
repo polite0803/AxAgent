@@ -290,10 +290,10 @@ function DelegateForm({ roles, onSubmit, submitting }: DelegateFormProps) {
               value={temperature}
               onChange={(v) => setTemperature(v as number)}
               options={[
-                { label: "0.0 (严格)", value: 0.0 },
-                { label: "0.2 (默认)", value: 0.2 },
+                { label: `0.0 (${t("multiAgent.temperatureStrict")})`, value: 0.0 },
+                { label: `0.2 (${t("multiAgent.temperatureDefault")})`, value: 0.2 },
                 { label: "0.5", value: 0.5 },
-                { label: "0.8 (发散)", value: 0.8 },
+                { label: `0.8 (${t("multiAgent.temperatureDivergent")})`, value: 0.8 },
               ]}
             />
           </Col>
@@ -305,7 +305,7 @@ function DelegateForm({ roles, onSubmit, submitting }: DelegateFormProps) {
               onChange={(v) => setMaxTokens(v as number)}
               options={[
                 { label: "1024", value: 1024 },
-                { label: "2048 (默认)", value: 2048 },
+                { label: `2048 (${t("multiAgent.maxTokensDefault")})`, value: 2048 },
                 { label: "4096", value: 4096 },
                 { label: "8192", value: 8192 },
               ]}

@@ -28,6 +28,7 @@ pub mod credibility_evaluator;
 pub mod cycle_detector;
 pub mod deep_research;
 pub mod environment_probe;
+pub mod multi_agent_hook;
 pub mod shared_blackboard;
 // error_classifier merged into recovery_strategies
 pub mod error_recovery_engine;
@@ -53,7 +54,6 @@ pub mod lint_checker;
 pub mod llm_bridge;
 pub mod llm_dispatcher;
 pub mod metrics;
-pub mod multi_agent_hook;
 pub mod noop_kit;
 pub mod outline_builder;
 pub mod personality;

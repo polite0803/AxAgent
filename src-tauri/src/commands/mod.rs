@@ -71,6 +71,7 @@ pub mod message_continuation;
 pub mod messages;
 pub mod migration;
 pub mod multi_agent;
+pub mod multi_agent_setup;
 pub mod nl_to_cron;
 pub mod onboarding;
 pub mod orchestrator;

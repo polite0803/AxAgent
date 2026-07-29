@@ -53,6 +53,7 @@ export { useLocalToolStore } from "./feature/localToolStore";
 export { useMcpStore } from "./feature/mcpStore";
 export type { DiscoveredMcpServer } from "./feature/mcpStore";
 export { useMemoryStore } from "./feature/memoryStore";
+export { useMultiAgentStore } from "./feature/multiAgentStore";
 export { useNudgeStore } from "./feature/nudgeStore";
 export { useOfficeStore } from "./feature/officeStore";
 export { useOnboardingStore } from "./feature/onboardingStore";
@@ -99,9 +100,6 @@ export { useMarketMainlineStore } from "./feature/marketMainlineStore";
 
 // ── G6 截图持仓诊断（Screenshot Diagnosis） ──
 export { useScreenshotDiagnosisStore } from "./feature/screenshotDiagnosisStore";
-
-// ── G5 Multi-Agent 固定角色 pool ──
-export { useMultiAgentStore } from "./feature/multiAgentStore";
 
 // ── G1 跨市场数据接入（美股/港股/外汇/基准指数） ──
 export { useCrossMarketStore } from "./feature/crossMarketStore";

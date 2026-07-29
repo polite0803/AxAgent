@@ -14,7 +14,7 @@
 //! - MultiAgentTriggerHook 在 pre_llm_call 中检测复杂任务时自动委派
 
 use crate::AppState;
-use crate::commands::screen_vision::{build_vision_context, resolve_provider_adapter};
+use crate::commands::screen_vision::build_vision_context;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ use std::sync::Arc;
 use tauri::State;
 
 // 复用 G5 种子化时定义的角色 ID 常量
-use crate::commands::stock_analysis_setup::seed_multi_agent_roles::{
+use crate::commands::multi_agent_setup::seed_multi_agent_roles::{
     ROLE_ANALYST, ROLE_IMPLEMENTER, ROLE_REVIEWER,
 };
 
@@ -206,10 +206,4 @@ pub struct MultiAgentRoleInfo {
     pub description: String,
     pub max_concurrent: i32,
     pub timeout_seconds: i64,
-}
-
-/// 让 resolve_provider_adapter 在本模块可见（screen_vision 已 pub(crate)）
-#[allow(dead_code)]
-fn _ensure_resolve_visible() {
-    let _ = resolve_provider_adapter;
 }

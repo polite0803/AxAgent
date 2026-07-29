@@ -323,7 +323,7 @@ export const ContentArea = memo(function ContentArea() {
             }
           />
           <Route
-            path={BUILTIN_PAGE_PATH["multi-agent"]}
+            path={BUILTIN_PAGE_PATH.multiAgent}
             element={
               <PageContextProvider page="multi-agent">
                 <SafeLazyPage Page={LazyMultiAgentPage} />
