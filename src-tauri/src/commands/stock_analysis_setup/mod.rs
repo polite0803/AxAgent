@@ -5,11 +5,12 @@
 //! - seed_serenity: Serenity 瓶颈筛选工作流模板种子
 //! - seed_daily_market_events: G4 每日市场主线提炼工作流模板种子
 //! - seed_screenshot_portfolio_diagnosis: G6 截图持仓诊断工作流模板种子
-//! - seed_multi_agent_roles: G5 Multi-Agent 固定角色（analyst/implementer/reviewer）种子
 //! - seed_news_cross_market: G3.3 新闻→跨市场传导分析工作流模板种子
+//!
+//! 注：Multi-Agent 固定角色（analyst/implementer/reviewer）种子化已迁移到上游
+//! `commands/multi_agent_setup/seed_multi_agent_roles`，本模块不再负责。
 
 pub mod seed_daily_market_events;
-pub mod seed_multi_agent_roles;
 pub mod seed_news_cross_market;
 pub mod seed_screenshot_portfolio_diagnosis;
 pub mod seed_serenity;
@@ -631,13 +632,6 @@ pub async fn ensure_stock_analysis_experts_seeded(
         );
     }
     tracing::warn!("[stock_analysis_setup] === G6 截图诊断模板种子完成 ===");
-
-    // G5: Multi-Agent 固定角色（analyst/implementer/reviewer）— 失败不阻塞主流程
-    tracing::warn!("[stock_analysis_setup] === 开始种子 G5 Multi-Agent 固定角色 ===");
-    if let Err(e) = seed_multi_agent_roles::seed_multi_agent_roles(db).await {
-        tracing::error!("[stock_analysis_setup] Multi-Agent 固定角色种子失败 (非致命): {e}");
-    }
-    tracing::warn!("[stock_analysis_setup] === G5 Multi-Agent 固定角色种子完成 ===");
 
     // G3.3: news-to-cross-market-analysis 新闻→跨市场传导分析模板 — 失败不阻塞主流程
     tracing::warn!("[stock_analysis_setup] === 开始种子 G3.3 跨市场传导分析模板 ===");
