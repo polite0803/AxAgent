@@ -2,6 +2,7 @@
 
 import { ChatPage } from "@/pages/ChatPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { FilesPage } from "@/pages/FilesPage";
 import { KnowledgeHubPage } from "@/pages/KnowledgeHubPage";
 import { TerminalPage } from "@/pages/TerminalPage";
 import { WorkflowPage } from "@/pages/WorkflowPage";
@@ -11,7 +12,8 @@ import { useLocation } from "react-router-dom";
 
 /**
  * 工作台 Hub：/chat 路由的统一渲染器。
- * 根据当前功能 Tab 渲染对应页面组件。
+ * 内容区根据当前功能 Tab 渲染对应页面组件。
+ * 顶部的 WorkspaceSwitcher 在 App.tsx 中渲染（WorkspaceSwitcherBar）。
  *
  * 当从旧路由（/dashboard 等）通过 <Navigate state={{ tab }} /> 重定向过来时，
  * 读取 location.state.tab 切换到对应功能 Tab。
@@ -38,6 +40,8 @@ export function WorkspaceHub() {
       return <WorkflowPage />;
     case "terminal":
       return <TerminalPage />;
+    case "files":
+      return <FilesPage />;
     case "knowledge":
       return <KnowledgeHubPage />;
     default:

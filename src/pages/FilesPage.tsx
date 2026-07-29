@@ -8,17 +8,39 @@ import { useTranslation } from "react-i18next";
 
 export function FilesPage() {
   const { t } = useTranslation();
-  // F-P1-5: 默认分类从 FILE_CATEGORIES 派生，避免硬编码 "images" 与数组顺序脱钩
   const [category, setCategory] = useState<FileCategory>(FILE_CATEGORIES[0].id);
 
   return (
-    <div className="fl-layout">
-      <div className="fl-sidebar">
-        <div className="fl-sidebar-title">{t("appHeader.filesContext")}</div>
-        <FilesSidebar activeCategory={category} onSelect={setCategory} />
-      </div>
-      <div className="fl-body">
-        <FilesContent activeCategory={category} />
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <div
+          style={{
+            width: 200,
+            minWidth: 200,
+            borderRight: "1px solid var(--color-border-secondary)",
+            display: "flex",
+            flexDirection: "column",
+            padding: "8px",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              padding: "8px 10px 4px",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--color-text-tertiary)",
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
+          >
+            {t("appHeader.filesContext")}
+          </div>
+          <FilesSidebar activeCategory={category} onSelect={setCategory} />
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+          <FilesContent activeCategory={category} />
+        </div>
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ export function WorkflowSettings({
   };
 
   const renderMyWorkflows = () => (
-    <div style={{ padding: "0" }}>
+    <div style={{ padding: "16px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
       <div
         style={{
           display: "flex",
@@ -71,10 +71,10 @@ export function WorkflowSettings({
   );
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <Tabs
         className="ax-fill-tabs"
-        style={{ padding: "0 16px" }}
+        style={{ padding: "0 16px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
         tabBarStyle={{ flexShrink: 0, marginBottom: 0 }}
         items={[
           {

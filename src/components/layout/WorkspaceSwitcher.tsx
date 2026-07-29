@@ -2,7 +2,7 @@
 
 import { useWorkspaceTabStore, type WorkspaceTab } from "@/stores";
 import { theme } from "antd";
-import { Database, FolderTree, Grid, MessageSquare, SquareTerminal } from "lucide-react";
+import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface TabConfig {
@@ -16,13 +16,14 @@ const TABS: TabConfig[] = [
   { key: "dashboard", labelKey: "nav.dashboard", icon: Grid },
   { key: "workflow", labelKey: "nav.workflow", icon: FolderTree },
   { key: "terminal", labelKey: "nav.terminal", icon: SquareTerminal },
+  { key: "files", labelKey: "nav.files", icon: Folder },
   { key: "knowledge", labelKey: "nav.knowledge", icon: Database },
 ];
 
 /**
  * 工作台功能切换栏。
  * 紧凑的水平按钮组，位于内容区顶部，在 /chat 路由下显示。
- * 对话页作为核心枢纽，其他功能（仪表盘/工作流/终端/知识源）以 Tab 形式切换。
+ * 对话页作为核心枢纽，其他功能（仪表盘/工作流/终端/文件/知识源）以 Tab 形式切换。
  */
 export function WorkspaceSwitcher() {
   const { t } = useTranslation();

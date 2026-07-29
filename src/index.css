@@ -2243,6 +2243,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 .page-area {
   flex: 1;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   position: relative;
   min-height: 0;
@@ -4249,21 +4250,32 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── 通用 Tabs 高度填满容器 (ax-fill-tabs) ────────────────────
    让 Antd Tabs 的内容区填满父容器高度，避免内部 100% 高度失效。
-   用法：父容器 flex 布局 + Tabs 加 className="ax-fill-tabs"
+   DOM 层级：.ant-tabs > .ant-tabs-nav + .ant-tabs-content-holder
+              > .ant-tabs-content > .ant-tabs-tabpane-active > 内容
    ═══════════════════════════════════════════════════════════════ */
 .ax-fill-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+}
+.ax-fill-tabs > .ant-tabs-nav {
+  flex-shrink: 0;
+  margin-bottom: 0 !important;
+}
+.ax-fill-tabs > .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
-.ax-fill-tabs > .ant-tabs-nav {
-  flex-shrink: 0;
-  margin-bottom: 0;
-}
-.ax-fill-tabs > .ant-tabs-content-holder,
-.ax-fill-tabs > .ant-tabs-content,
-.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content,
 .ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
   flex: 1;
   min-height: 0;

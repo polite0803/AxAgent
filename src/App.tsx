@@ -104,7 +104,7 @@ function PageTransitionWrapper({ children }: { children: React.ReactNode }) {
     <div
       ref={ref}
       className="ax-page-transition"
-      style={{ flex: 1, display: "flex", overflow: "hidden" }}
+      style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}
     >
       {children}
     </div>
