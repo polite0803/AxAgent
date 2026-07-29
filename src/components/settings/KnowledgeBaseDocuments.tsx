@@ -16,13 +16,13 @@ import {
 import { open } from "@tauri-apps/plugin-dialog";
 import {
   Alert,
+  App,
   Button,
   Collapse,
   Divider,
   Empty,
   Input,
   InputNumber,
-  message,
   Modal,
   Popconfirm,
   Select,
@@ -113,7 +113,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
     deleteDocument,
     importDirectory,
   } = useKnowledgeStore();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
 
   // Settings modal state
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -143,7 +143,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   const [importExtensionsText, setImportExtensionsText] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportDirectoryResult | null>(null);
-  const [importMessageApi, importContextHolder] = message.useMessage();
+  // (共享同一个 App.useApp().message 实例)
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -444,7 +444,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
 
   const handleImportDir = useCallback(async () => {
     if (!importDirPath) {
-      importMessageApi.warning(t("settings.knowledge.importSelectFirst"));
+      messageApi.warning(t("settings.knowledge.importSelectFirst"));
       return;
     }
     const exts = importExtensionsText
@@ -467,12 +467,12 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
         error: result.errorCount,
       });
       if (result.errorCount > 0) {
-        importMessageApi.warning(summary);
+        messageApi.warning(summary);
       } else {
-        importMessageApi.success(summary);
+        messageApi.success(summary);
       }
     } catch (e) {
-      importMessageApi.error(String(e));
+      messageApi.error(String(e));
     } finally {
       setImporting(false);
     }
@@ -482,7 +482,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
     importRecursive,
     base.id,
     importDirectory,
-    importMessageApi,
+    messageApi,
     t,
   ]);
 
@@ -823,7 +823,6 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
 
   return (
     <div className="p-6 pb-12 overflow-y-auto h-full">
-      {contextHolder}
       {/* Header: Icon + Name + Tag + Settings */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -1623,7 +1622,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
         size="small"
         bordered
         virtual
-        scroll={{ y: 600, x: "max-content" }}
+        scroll={{ y: 600, x: 1200 }}
       />
 
       {/* Chunks Modal */}
@@ -1831,8 +1830,6 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
           />
         </div>
       </Modal>
-      {importContextHolder}
-
       {/* Import Directory Modal */}
       <Modal
         title={t("settings.knowledge.importDirTitle")}

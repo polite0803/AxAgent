@@ -25,7 +25,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Modal,
   Popconfirm,
   Progress,
@@ -388,7 +387,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemoryItem | null>(null);
   const [itemForm] = Form.useForm();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = AntdApp.useApp();
 
   // Settings modal state
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1044,7 +1043,6 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
 
   return (
     <div className="p-6 pb-12 overflow-y-auto h-full">
-      {contextHolder}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <IconEditor
@@ -2016,7 +2014,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         size="small"
         bordered
         virtual
-        scroll={{ y: 600, x: "max-content" }}
+        scroll={{ y: 600, x: 1200 }}
       />
 
       {/* Add / Edit Modal */}

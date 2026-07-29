@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { message } from "@/lib/toast";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { ImportPromptResult, ImportPromptTemplateInput } from "@/types";
 import { DownloadOutlined, FolderOpenOutlined, GithubOutlined, InboxOutlined, LinkOutlined } from "@ant-design/icons";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { Alert, Button, Form, Input, Modal, Progress, Space, Tabs, Tag, Typography, Upload } from "antd";
+import { Alert, App, Button, Form, Input, Modal, Progress, Space, Tabs, Tag, Typography, Upload } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,7 +17,7 @@ interface PromptImportModalProps {
 
 export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
   const { t } = useTranslation();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportPromptResult | null>(null);
   const [urlForm] = Form.useForm();
@@ -166,7 +165,6 @@ export function PromptImportModal({ open, onClose }: PromptImportModalProps) {
       width={640}
       destroyOnHidden
     >
-      {contextHolder}
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}

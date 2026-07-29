@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
-import { message } from "@/lib/toast";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type {
   CreatePromptTemplateInput,
@@ -22,7 +21,7 @@ import {
   StarFilled,
   StarOutlined,
 } from "@ant-design/icons";
-import { Button, Empty, Form, Input, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
+import { App, Button, Empty, Form, Input, Modal, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptImportModal } from "./PromptImportModal";
@@ -44,7 +43,7 @@ function extractCategories(templates: PromptTemplate[]): string[] {
 export function PromptTemplatesSettings() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -237,7 +236,6 @@ export function PromptTemplatesSettings() {
 
   return (
     <SettingsGroup>
-      {contextHolder}
       <div className="px-4 py-3">
         {/* 工具栏 */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">

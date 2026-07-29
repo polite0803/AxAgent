@@ -19,7 +19,6 @@ import {
   Empty,
   Form,
   Input,
-  message,
   Modal,
   Popconfirm,
   Radio,
@@ -141,7 +140,7 @@ function SourceConfigModal({
   const [saving, setSaving] = useState(false);
   const [rebuildConfirmOpen, setRebuildConfirmOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = AntdApp.useApp();
 
   useEffect(() => {
     if (!open || !source) {
@@ -221,7 +220,6 @@ function SourceConfigModal({
         </span>
       }
     >
-      {contextHolder}
       <Spin spinning={loading || saving || rebuilding}>
         {config
           ? (
@@ -623,10 +621,13 @@ function SourceCard({
   source,
   onViewConfig,
   onViewDocument,
+  onNavigateToTab,
 }: {
   source: UnifiedSource;
   onViewConfig: (s: UnifiedSource) => void;
   onViewDocument?: (s: UnifiedSource) => void;
+  /** AllSourcesTab 等无独立详情页的场景下，点击"进入"后切换到对应 tab */
+  onNavigateToTab?: (tab: string) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -634,27 +635,31 @@ function SourceCard({
   const meta = TYPE_META[source.containerType];
   const deleteSource = useSourceStore((s) => s.deleteSource);
   const fetchSources = useSourceStore((s) => s.fetchSources);
-  const [messageApi, contextHolder] = message.useMessage();
-  const { modal } = AntdApp.useApp();
+  const { message: messageApi, modal } = AntdApp.useApp();
   const formatProviderLabel = useEmbeddingProviderLabel();
 
   const handleView = useCallback(() => {
-    if (onViewDocument && source.containerType === "knowledge") {
-      onViewDocument(source);
-      return;
-    }
     switch (source.containerType) {
+      case "knowledge":
+        // KnowledgeTab 传入了 onViewDocument：在当前页内切换选中的 base
+        if (onViewDocument) {
+          onViewDocument(source);
+        } else if (onNavigateToTab) {
+          // AllSourcesTab 等场景：切换到 knowledge tab
+          onNavigateToTab("knowledge");
+        }
+        // 否则用户已在 /knowledge 页面，无需导航
+        break;
+      case "memory":
+        navigate(`/memory`);
+        break;
       case "wiki":
         navigate(`/llm-wiki/${source.id}/graph`);
-        break;
-      case "knowledge":
-      case "memory":
-        navigate(`/knowledge`);
         break;
       default:
         break;
     }
-  }, [navigate, onViewDocument, source]);
+  }, [navigate, onViewDocument, onNavigateToTab, source]);
 
   const handleDeleteClick = () => {
     modal.confirm({
@@ -693,7 +698,6 @@ function SourceCard({
         body: { padding: `${token.paddingSM}px ${token.padding}px` },
       }}
     >
-      {contextHolder}
       <div className="flex items-start gap-3">
         <div
           className="shrink-0 flex items-center justify-center"
@@ -1068,7 +1072,7 @@ function MemoryTab({
               <Button
                 size="small"
                 type="link"
-                onClick={() => navigate("/knowledge")}
+                onClick={() => navigate("/memory")}
               >
                 {t("sourceManager.viewAll")}
               </Button>
@@ -1080,7 +1084,7 @@ function MemoryTab({
                     hoverable
                     size="small"
                     style={{ borderRadius: token.borderRadiusLG }}
-                    onClick={() => navigate("/knowledge")}
+                    onClick={() => navigate("/memory")}
                     styles={{ body: { padding: token.paddingSM } }}
                   >
                     <div className="flex items-center gap-3">
@@ -1254,7 +1258,7 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const deleteWiki = useLlmWikiStore((s) => s.deleteWiki);
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = AntdApp.useApp();
 
   const handleDelete = async () => {
     try {
@@ -1267,7 +1271,6 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
 
   return (
     <>
-      {contextHolder}
       <Card
         hoverable
         size="small"
@@ -1531,7 +1534,11 @@ function AllSourcesTab({
             <Row gutter={[10, 10]}>
               {displaySources.map((source) => (
                 <Col key={source.id} xs={24} sm={12} lg={8} xl={6}>
-                  <SourceCard source={source} onViewConfig={onViewConfig} />
+                  <SourceCard
+                    source={source}
+                    onViewConfig={onViewConfig}
+                    onNavigateToTab={onNavigateToTab}
+                  />
                 </Col>
               ))}
             </Row>
