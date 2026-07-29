@@ -6994,6 +6994,7 @@
       "logging": "로깅",
       "loop": "루프",
       "merge": "병합",
+      "multiAgent": "멀티 에이전트",
       "notification": "알림",
       "parallel": "병렬 실행",
       "phaseSeparator": "단계 구분자",
@@ -7019,6 +7020,31 @@
       "title": "알림"
     },
     "outputSchema": "출력 스키마",
+    "property": {
+      "task": "작업",
+      "taskTip": "멀티 에이전트 협업 작업 설명",
+      "role": "기본 역할",
+      "roleTip": "에이전트의 기본 역할 설정",
+      "model": "모델",
+      "modelTip": "사용할 AI 모델 지정",
+      "outputVar": "출력 변수",
+      "outputVarTip": "노드 실행 결과의 변수명",
+      "mode": "모드",
+      "modeTip": "멀티 에이전트 협업 방식",
+      "maxRounds": "최대 라운드",
+      "maxRoundsTip": "에이전트 간 최대 대화 라운드 수"
+    },
+    "placeholder": {
+      "task": "예: 사용자 피드백 분석 및 개선 제안 생성...",
+      "role": "기본 역할 입력...",
+      "model": "모델 선택...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "자동",
+      "swarm": "스웜",
+      "debate": "토론"
+    },
     "parallelNode": {
       "anyComplete": "임의 완료",
       "autoInput": "부모에서 자동 입력",

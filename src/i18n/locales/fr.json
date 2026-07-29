@@ -6994,6 +6994,7 @@
       "logging": "Journalisation",
       "loop": "Boucle",
       "merge": "Fusionner",
+      "multiAgent": "Multi-agent",
       "notification": "Notification",
       "parallel": "Parallèle",
       "phaseSeparator": "Séparateur de phase",
@@ -7019,6 +7020,31 @@
       "title": "Notifications"
     },
     "outputSchema": "Schéma de sortie",
+    "property": {
+      "task": "Tâche",
+      "taskTip": "Décrivez la tâche pour la collaboration multi-agent",
+      "role": "Rôle par défaut",
+      "roleTip": "Attribution de rôle par défaut pour les agents",
+      "model": "Modèle",
+      "modelTip": "Spécifiez le modèle IA à utiliser",
+      "outputVar": "Variable de sortie",
+      "outputVarTip": "Nom de la variable pour le résultat d'exécution du nœud",
+      "mode": "Mode",
+      "modeTip": "Mode de collaboration multi-agent",
+      "maxRounds": "Tours max",
+      "maxRoundsTip": "Nombre maximum de tours de conversation entre agents"
+    },
+    "placeholder": {
+      "task": "Ex. : Analyser les retours utilisateurs et générer des suggestions d'amélioration...",
+      "role": "Saisir le rôle par défaut...",
+      "model": "Sélectionner le modèle...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "Auto",
+      "swarm": "Essaim",
+      "debate": "Débat"
+    },
     "parallelNode": {
       "anyComplete": "N'importe quel terminé",
       "autoInput": "Entrée auto du parent",

@@ -6994,6 +6994,7 @@
       "logging": "Logging",
       "loop": "Loop",
       "merge": "Merge",
+      "multiAgent": "Multi-Agent",
       "notification": "Notification",
       "parallel": "Parallel",
       "phaseSeparator": "Phase Separator",
@@ -7019,6 +7020,31 @@
       "title": "Notifications"
     },
     "outputSchema": "Output Schema",
+    "property": {
+      "task": "Task",
+      "taskTip": "Describe the task for multi-agent collaboration",
+      "role": "Default Role",
+      "roleTip": "Default role assignment for agents",
+      "model": "Model",
+      "modelTip": "Specify the AI model to use",
+      "outputVar": "Output Variable",
+      "outputVarTip": "Variable name for node execution result",
+      "mode": "Mode",
+      "modeTip": "Multi-agent collaboration mode",
+      "maxRounds": "Max Rounds",
+      "maxRoundsTip": "Maximum conversation rounds between agents"
+    },
+    "placeholder": {
+      "task": "e.g., Analyze user feedback and generate improvement suggestions...",
+      "role": "Enter default role...",
+      "model": "Select model...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "Auto",
+      "swarm": "Swarm",
+      "debate": "Debate"
+    },
     "parallelNode": {
       "anyComplete": "Any complete",
       "autoInput": "Auto-receive parent input",

@@ -34,6 +34,7 @@ pub mod media_delivery;
 pub mod messaging;
 pub mod migration_tool;
 pub mod misc;
+pub mod multi_agent;
 pub mod monitor;
 pub mod network;
 pub mod obsidian;
@@ -89,6 +90,7 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(todo_write::NotebookEditTool),
         // ── Agent 和 Skill ──
         std::sync::Arc::new(agent::AgentTool),
+        std::sync::Arc::new(multi_agent::DelegateTaskTool),
         std::sync::Arc::new(skill::SkillsListTool),
         std::sync::Arc::new(skill::SkillViewTool),
         std::sync::Arc::new(skill::SkillReferenceTool),
@@ -277,7 +279,11 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
 pub fn init_extensions(
     migration_runner: Arc<dyn axagent_harness::MigrationRunner>,
     plugin_agent_provider: Arc<dyn axagent_harness::PluginAgentProvider>,
+    delegate_task_runner: Option<Arc<dyn axagent_harness::DelegateTaskRunner>>,
 ) {
     migration_tool::set_migration_runner(migration_runner);
     agent::set_plugin_agent_provider(plugin_agent_provider);
+    if let Some(runner) = delegate_task_runner {
+        multi_agent::set_delegate_task_runner(runner);
+    }
 }

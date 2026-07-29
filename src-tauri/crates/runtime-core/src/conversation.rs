@@ -18,6 +18,7 @@ use crate::compact::{
 use crate::config::RuntimeFeatureConfig;
 use crate::context_contributor::{ContextContributor, ContextRequest};
 use crate::execution_progress::AgentExecutionProgress;
+use crate::hook_chain::HookChain;
 use crate::hooks::{HookAbortSignal, HookProgressReporter, HookRunResult, HookRunner};
 use crate::permissions::{
     PermissionContext, PermissionOutcome, PermissionPolicy, PermissionPrompter,
@@ -203,6 +204,8 @@ pub struct ConversationRuntime<C, T> {
     error_recovery_enabled: bool,
     /// 思维链开关（对应 RuntimeFeatureConfig.thought_chain_enabled）。
     thought_chain_enabled: bool,
+    /// 可选的 PluginHook 链（MultiAgent 自动委派等），在 LLM 调用前后、工具调用前后执行。
+    hook_chain: Option<Arc<HookChain>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -260,6 +263,7 @@ where
             nudge_lines: Vec::new(),
             error_recovery_enabled: feature_config.error_recovery_enabled,
             thought_chain_enabled: feature_config.thought_chain_enabled,
+            hook_chain: None,
         }
     }
 
@@ -335,6 +339,13 @@ where
         self
     }
 
+    /// 设置 PluginHook 链（如 MultiAgentTriggerHook），在 LLM/工具调用前后执行钩子。
+    #[must_use]
+    pub fn with_hook_chain(mut self, hook_chain: Arc<HookChain>) -> Self {
+        self.hook_chain = Some(hook_chain);
+        self
+    }
+
     /// 准备发送给 LLM 的请求消息:先 L2 Microcompact 去重,再 L1 Snip 截断超长 ToolResult。
     ///
     /// 此方法不修改 session 自身,仅产生请求副本。
@@ -347,7 +358,18 @@ where
         crate::snip::snip_tool_results(&deduped, &snip_config)
     }
 
-    fn run_pre_tool_use_hook(
+        /// 在同步上下文中执行 async HookChain 方法。
+    /// 仅在有 hook_chain 时调用,操作轻量（原子增减 + JSON 比对）。
+    fn exec_sync_hook<H, F>(&self, f: F) -> H
+    where
+        F: std::future::Future<Output = H>,
+    {
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(f)
+        })
+    }
+
+fn run_pre_tool_use_hook(
         &mut self,
         tool_name: &str,
         input: &str,
@@ -607,6 +629,24 @@ where
                 system_prompt.push(nudge_block);
             }
 
+            // ── PluginHook: pre_llm_call ──
+            if let Some(ref hook_chain) = self.hook_chain {
+                let llm_ctx = crate::plugin_hooks::LlmCallContext {
+                    model: String::new(),
+                    message_count: self.session.messages.len(),
+                    tool_count: iterations.saturating_sub(1),
+                    estimated_tokens: None,
+                    session_id: Some(self.session.session_id.clone()),
+                };
+                if let Some(crate::plugin_hooks::HookDecision::Veto { reason }) =
+                    self.exec_sync_hook(hook_chain.execute_pre_llm_call(&llm_ctx))
+                {
+                    let error = RuntimeError::new(format!("pre_llm_call hook vetoed: {}", reason));
+                    self.record_turn_failed(iterations, &error);
+                    return Err(error);
+                }
+            }
+
             let request = ApiRequest { system_prompt, messages: self.prepare_request_messages() };
             let events = match self.api_client.stream(request) {
                 Ok(events) => events,
@@ -737,6 +777,39 @@ where
                         return Err(error);
                     },
                 };
+
+            // ── PluginHook: post_llm_call ──
+            if let Some(ref hook_chain) = self.hook_chain {
+                let llm_ctx = crate::plugin_hooks::LlmCallContext {
+                    model: String::new(),
+                    message_count: self.session.messages.len(),
+                    tool_count: iterations.saturating_sub(1),
+                    estimated_tokens: usage.map(|u| u.input_tokens as u64),
+                    session_id: Some(self.session.session_id.clone()),
+                };
+                let llm_result = crate::plugin_hooks::LlmCallResult {
+                    content: assistant_message.blocks.iter()
+                        .filter_map(|b| match b {
+                            ContentBlock::Text { text } => Some(text.clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    tool_calls: Some(
+                        assistant_message.blocks.iter()
+                            .filter_map(|b| match b {
+                                ContentBlock::ToolUse { name, .. } => Some(name.clone()),
+                                _ => None,
+                            })
+                            .collect::<Vec<_>>()
+                    ),
+                    usage_prompt_tokens: usage.map(|u| u.input_tokens as u32),
+                    usage_completion_tokens: usage.map(|u| u.output_tokens as u32),
+                    duration_ms: None,
+                };
+                self.exec_sync_hook(hook_chain.execute_post_llm_call(&llm_ctx, &llm_result));
+            }
+
             if !turn_thinking.is_empty() {
                 if !thinking.is_empty() {
                     thinking.push('\n');
@@ -807,6 +880,23 @@ where
                     self.session
                         .push_message(warning_msg)
                         .map_err(|error| RuntimeError::new(error.to_string()))?;
+                }
+
+                // ── PluginHook: pre_tool_call ──
+                if let Some(ref hook_chain) = self.hook_chain {
+                    let tool_ctx = crate::plugin_hooks::ToolCallContext {
+                        tool_name: tool_name.clone(),
+                        tool_namespace: None,
+                        arguments: serde_json::from_str(&input).unwrap_or_default(),
+                        session_id: Some(self.session.session_id.clone()),
+                    };
+                    if let Some(crate::plugin_hooks::HookDecision::Veto { reason }) =
+                        self.exec_sync_hook(hook_chain.execute_pre_tool_call(&tool_ctx))
+                    {
+                        let error = RuntimeError::new(format!("工具被 hook 拒绝: {}", reason));
+                        self.record_turn_failed(iterations, &error);
+                        return Err(error);
+                    }
                 }
 
                 let pre_hook_result =
@@ -1013,6 +1103,23 @@ where
                                 || post_hook_result.is_failed()
                                 || post_hook_result.is_cancelled(),
                         );
+
+                        // ── PluginHook: post_tool_call ──
+                        if let Some(ref hook_chain) = self.hook_chain {
+                            let tool_ctx = crate::plugin_hooks::ToolCallContext {
+                                tool_name: tool_name.clone(),
+                                tool_namespace: None,
+                                arguments: serde_json::from_str(&input).unwrap_or_default(),
+                                session_id: Some(self.session.session_id.clone()),
+                            };
+                            let tool_result = crate::plugin_hooks::ToolCallResult {
+                                tool_name: tool_name.clone(),
+                                result: serde_json::Value::String(output.clone()),
+                                success: !is_error,
+                                duration_ms: None,
+                            };
+                            self.exec_sync_hook(hook_chain.execute_post_tool_call(&tool_ctx, &tool_result));
+                        }
 
                         // Update shared execution progress before the
                         // Allow arm closes (output/is_error live here).
@@ -1692,6 +1799,8 @@ impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
 
 /// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
 /// agent crate 用此函数代替直接引用 ConversationRuntime 类型，消除依赖。
+///
+/// `hook_chain` — 可选的 PluginHook 链，在 LLM/工具调用前后执行钩子。
 pub fn create_conversation_runtime(
     session: axagent_harness::runtime_types::session::Session,
     api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
@@ -1701,8 +1810,9 @@ pub fn create_conversation_runtime(
     permission_policy: crate::permissions::PermissionPolicy,
     system_prompt: Vec<String>,
     feature_config: RuntimeFeatureConfig,
+    hook_chain: Option<Arc<HookChain>>,
 ) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
-    let rt = ConversationRuntime::new_with_features(
+    let mut rt = ConversationRuntime::new_with_features(
         session,
         api_client,
         tool_executor,
@@ -1710,6 +1820,9 @@ pub fn create_conversation_runtime(
         system_prompt,
         &feature_config,
     );
+    if let Some(hc) = hook_chain {
+        rt = rt.with_hook_chain(hc);
+    }
     Box::new(rt)
 }
 

@@ -6994,6 +6994,7 @@
       "logging": "ログ",
       "loop": "ループ",
       "merge": "マージ",
+      "multiAgent": "マルチエージェント",
       "notification": "通知",
       "parallel": "並列実行",
       "phaseSeparator": "フェーズ区切り",
@@ -7019,6 +7020,31 @@
       "title": "通知"
     },
     "outputSchema": "出力スキーマ",
+    "property": {
+      "task": "タスク",
+      "taskTip": "マルチエージェントで協力するタスクを記述",
+      "role": "デフォルトロール",
+      "roleTip": "エージェントのデフォルトロール設定",
+      "model": "モデル",
+      "modelTip": "使用する AI モデルを指定",
+      "outputVar": "出力変数",
+      "outputVarTip": "ノード実行結果の変数名",
+      "mode": "モード",
+      "modeTip": "マルチエージェントの協調方式",
+      "maxRounds": "最大ラウンド数",
+      "maxRoundsTip": "エージェント間の最大対話ラウンド数"
+    },
+    "placeholder": {
+      "task": "例：ユーザーフィードバックを分析し改善提案を生成...",
+      "role": "デフォルトロールを入力...",
+      "model": "モデルを選択...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "自動",
+      "swarm": "スウォーム",
+      "debate": "ディベート"
+    },
     "parallelNode": {
       "anyComplete": "いずれか完了で続行",
       "autoInput": "親から自動入力",

@@ -1,70 +1,169 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! G5 Multi-Agent 固定角色 pool — Tauri 命令层。
+//! G5 Multi-Agent 固定角色 pool — Tauri 命令层 + DelegateTaskRunner 实现。
 //!
-//! 提供 `delegate_task` 命令：将子任务委派给指定 role（analyst/implementer/reviewer），
-//! 由后端按 role 的 system_prompt 调用 LLM 完成子任务，返回结构化结果。
-//!
-//! 设计动机：DojoAgents 宣传口径中的"Multi-Agent 固定角色 pool"——任意 Agent 在执行
-//! 过程中可通过 delegate_task 把子任务分给专家角色，实现角色间协作。
+//! 提供：
+//! - `delegate_task` Tauri 命令（前端直接调用）
+//! - `DelegateTaskRunnerImpl` 实现 harness 契约，供 `DelegateTaskTool` 注入
+//! - `init_delegate_task_runner()` wiring 函数，在 init 时注入到 tools crate
 //!
 //! 调用路径：
 //! - 前端 MultiAgentPanel 直接调用 `delegate_task` 命令
-//! - 工作流 AgentNode 通过 ToolResolver 路由到 `delegate_task` 工具
-//! - MultiAgentTriggerHook 在 pre_llm_call 中检测复杂任务时自动委派
+//! - Agent LLM 通过 DelegateTaskTool 调用（工具系统触发）
+//! - MultiAgentTriggerHook 在 pre_llm_call 中自动委派
 
 use crate::AppState;
 use crate::commands::screen_vision::build_vision_context;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use axagent_harness::{DelegateTaskInput, DelegateTaskResult, DelegateTaskRunner};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tauri::State;
+
+// ── 全局 HookChain（供 conversation loop 挂载使用）──
+
+static GLOBAL_HOOK_CHAIN: OnceLock<Arc<axagent_runtime_core::HookChain>> = OnceLock::new();
+
+/// 获取全局 HookChain 的 Arc 副本（init 时由 `register_global_multi_agent_hook()` 初始化）。
+pub fn get_global_hook_chain() -> Option<Arc<axagent_runtime_core::HookChain>> {
+    GLOBAL_HOOK_CHAIN.get().cloned()
+}
+
+/// 在 init 阶段创建 HookChain、注册 MultiAgentTriggerHook，存入全局 static。
+///
+/// 调用时机：`init_delegate_task_runner()` 之后，
+/// 在 `src/init/state.rs` 的 init 函数中调用。
+///
+/// 当前在同步 init 上下文中通过 `block_on` 完成异步 registration。
+pub fn register_global_multi_agent_hook() {
+    // 只初始化一次
+    if GLOBAL_HOOK_CHAIN.get().is_some() {
+        return;
+    }
+    let chain = Arc::new(axagent_runtime_core::HookChain::new());
+    let hook = axagent_agent::multi_agent_hook::create_multi_agent_trigger_hook();
+    // 先 set 再注册 hook
+    let _ = GLOBAL_HOOK_CHAIN.set(chain);
+    if let Some(chain) = GLOBAL_HOOK_CHAIN.get() {
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async move {
+                chain.register(hook).await;
+                tracing::info!(
+                    target: "axagent.multi_agent",
+                    "已注册 MultiAgentTriggerHook 到全局 HookChain"
+                );
+            });
+        });
+    }
+}
 
 // 复用 G5 种子化时定义的角色 ID 常量
 use crate::commands::multi_agent_setup::seed_multi_agent_roles::{
     ROLE_ANALYST, ROLE_IMPLEMENTER, ROLE_REVIEWER,
 };
 
-/// delegate_task 输入参数
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DelegateTaskInput {
-    /// 目标角色 ID：analyst / implementer / reviewer
-    pub role_name: String,
-    /// 子任务描述（中文，作为 user message）
-    pub task: String,
-    /// 上下文变量（可选，会以 JSON 形式注入到 user message 前）
-    #[serde(default)]
-    pub context: serde_json::Value,
-    /// LLM 供应商 ID
-    pub provider_id: String,
-    /// 模型 ID
-    pub model_id: String,
-    /// 温度（可选，默认 0.2 以保证稳定性）
-    #[serde(default)]
-    pub temperature: Option<f64>,
-    /// 最大输出 tokens（可选，默认 2048）
-    #[serde(default)]
-    pub max_tokens: Option<u32>,
+// ── 实现 DelegateTaskRunner trait ──────────────────────────────────────
+
+/// `DelegateTaskRunner` 的 wiring 层实现。
+///
+/// 持有 `AppState` 中需要的资源（db / master_key），
+/// 由 `init_delegate_task_runner()` 创建并注入到 tools crate。
+pub struct DelegateTaskRunnerImpl {
+    pub db: sea_orm::DatabaseConnection,
+    pub master_key: [u8; 32],
 }
 
-/// delegate_task 输出结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DelegateTaskResult {
-    /// 委派 ID（用于追踪）
-    pub delegation_id: String,
-    /// 角色 ID
-    pub role_name: String,
-    /// LLM 生成的文本输出
-    pub content: String,
-    /// token 使用情况（prompt + completion）
-    pub prompt_tokens: u64,
-    pub completion_tokens: u64,
-    /// 调用耗时（毫秒）
-    pub duration_ms: u64,
+#[async_trait::async_trait]
+impl DelegateTaskRunner for DelegateTaskRunnerImpl {
+    async fn delegate(&self, input: DelegateTaskInput) -> Result<DelegateTaskResult, String> {
+        validate_role(&input.role_name)?;
+
+        let started = std::time::Instant::now();
+
+        // 1. 从 DB 读取 role 的 system_prompt
+        let role = agent_role::get_agent_role(&self.db, &input.role_name)
+            .await
+            .map_err(|e| format!("DB 查询 agent_role 失败: {}", e))?
+            .ok_or_else(|| format!("Role '{}' 未找到", input.role_name))?;
+
+        // 2. 构造 vision context（含 adapter + ctx + api_key）
+        let vision = build_vision_context(&self.db, &self.master_key, &input.provider_id).await?;
+
+        // 3. 构造 user message
+        let user_content = if input.context.is_null() {
+            input.task.clone()
+        } else {
+            format!(
+                "## 任务\n\n{}\n\n## 上下文\n\n```json\n{}\n```",
+                input.task,
+                serde_json::to_string_pretty(&input.context).unwrap_or_else(|_| "{}".to_string())
+            )
+        };
+
+        let messages = vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text(role.system_prompt.clone()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(user_content),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+        ];
+
+        let request = Arc::new(ChatRequest {
+            model: input.model_id.clone(),
+            messages,
+            stream: false,
+            temperature: Some(input.temperature.unwrap_or(0.2)),
+            top_p: None,
+            max_tokens: Some(input.max_tokens.unwrap_or(2048)),
+            tools: None,
+            thinking_budget: None,
+            use_max_completion_tokens: None,
+            thinking_param_style: None,
+            api_mode: None,
+            instructions: None,
+            conversation: None,
+            previous_response_id: None,
+            store: None,
+            response_format: None,
+        });
+
+        // 4. 调用 LLM
+        let response = vision
+            .adapter
+            .chat(&vision.ctx, request)
+            .await
+            .map_err(|e| format!("LLM 调用失败: {}", e))?;
+
+        let duration_ms = started.elapsed().as_millis() as u64;
+
+        Ok(DelegateTaskResult {
+            delegation_id: format!("del-{}", axagent_kit::utils::now_ts()),
+            role_name: input.role_name,
+            content: response.content,
+            prompt_tokens: response.usage.input_tokens as u64,
+            completion_tokens: response.usage.output_tokens as u64,
+            duration_ms,
+        })
+    }
 }
+
+/// 在 init 阶段注入 DelegateTaskRunner 到 tools crate。
+pub fn init_delegate_task_runner(db: sea_orm::DatabaseConnection, master_key: [u8; 32]) {
+    let runner = Arc::new(DelegateTaskRunnerImpl { db, master_key });
+    axagent_tools::tools::multi_agent::set_delegate_task_runner(runner);
+}
+
+// ── 原有的 validate_role + Tauri 命令 ──────────────────────────────────
 
 /// 校验 role_name 是否为 G5 固定角色
 fn validate_role(role_name: &str) -> Result<(), String> {
@@ -77,103 +176,29 @@ fn validate_role(role_name: &str) -> Result<(), String> {
     }
 }
 
-/// 委派任务给指定 Multi-Agent 角色。
+/// 委派任务给指定 Multi-Agent 角色（Tauri 命令入口）。
 ///
-/// 内部流程：
-/// 1. 校验 role_name ∈ {analyst, implementer, reviewer}
-/// 2. 从 DB agent_roles 表读取该 role 的 system_prompt
-/// 3. 构造 ChatRequest（system: role.system_prompt, user: task + context）
-/// 4. 调用 LLM provider 完成子任务
-/// 5. 返回结构化结果（含 token 用量、耗时）
+/// 委托给 `DelegateTaskRunnerImpl.delegate()` 实现，确保 Tauri 命令与
+/// Tool 走同一套业务逻辑。错误统一使用 `ErrorResponse` + 错误码。
 #[tauri::command]
 pub async fn delegate_task(
     state: State<'_, AppState>,
     input: DelegateTaskInput,
 ) -> Result<DelegateTaskResult, String> {
-    validate_role(&input.role_name)?;
-
-    let started = std::time::Instant::now();
-
-    // 1. 从 DB 读取 role 的 system_prompt
-    let role = agent_role::get_agent_role(state.harness.db(), &input.role_name)
-        .await
-        .map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?
-        .ok_or_else(|| format!("Role '{}' not found in agent_roles table", input.role_name))?;
-
-    // 2. 构造 vision context（含 adapter + ctx + api_key）
-    let vision =
-        build_vision_context(state.harness.db(), state.harness.master_key(), &input.provider_id)
-            .await?;
-
-    // 3. 构造 user message（task + context 拼接）
-    let user_content = if input.context.is_null() {
-        input.task.clone()
-    } else {
-        format!(
-            "## 任务\n\n{}\n\n## 上下文\n\n```json\n{}\n```",
-            input.task,
-            serde_json::to_string_pretty(&input.context).unwrap_or_else(|_| "{}".to_string())
-        )
+    let runner = DelegateTaskRunnerImpl {
+        db: state.harness.db().clone(),
+        master_key: state.harness.master_key_owned(),
     };
-
-    let messages = vec![
-        ChatMessage {
-            role: "system".to_string(),
-            content: ChatContent::Text(role.system_prompt.clone()),
-            tool_calls: None,
-            tool_call_id: None,
-            thinking: None,
-        },
-        ChatMessage {
-            role: "user".to_string(),
-            content: ChatContent::Text(user_content),
-            tool_calls: None,
-            tool_call_id: None,
-            thinking: None,
-        },
-    ];
-
-    let request = Arc::new(ChatRequest {
-        model: input.model_id.clone(),
-        messages,
-        stream: false,
-        temperature: Some(input.temperature.unwrap_or(0.2)),
-        top_p: None,
-        max_tokens: Some(input.max_tokens.unwrap_or(2048)),
-        tools: None,
-        thinking_budget: None,
-        use_max_completion_tokens: None,
-        thinking_param_style: None,
-        api_mode: None,
-        instructions: None,
-        conversation: None,
-        previous_response_id: None,
-        store: None,
-        response_format: None,
-    });
-
-    // 4. 调用 LLM
-    let response = vision
-        .adapter
-        .chat(&vision.ctx, request)
-        .await
-        .map_err(|e| format!("LLM 调用失败: {}", e))?;
-
-    let duration_ms = started.elapsed().as_millis() as u64;
-
-    Ok(DelegateTaskResult {
-        delegation_id: format!("del-{}", axagent_kit::utils::now_ts()),
-        role_name: input.role_name,
-        content: response.content,
-        prompt_tokens: response.usage.input_tokens as u64,
-        completion_tokens: response.usage.output_tokens as u64,
-        duration_ms,
-    })
+    let result = runner.delegate(input).await.map_err(|e| {
+        String::from(
+            crate::commands::error::ErrorResponse::new(
+                crate::commands::error_code::multi_agent::DELEGATE_FAILED,
+            )
+            .with_category(crate::commands::error::ErrorCategory::Retryable)
+            .with_detail(format!("委托任务执行失败: {}", e)),
+        )
+    })?;
+    Ok(result)
 }
 
 /// 列出 G5 Multi-Agent 固定角色（前端 UI 用）

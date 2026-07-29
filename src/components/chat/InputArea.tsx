@@ -32,6 +32,7 @@ import {
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import { useMultiAgentStore } from "@/stores/feature/multiAgentStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
 import {
@@ -43,10 +44,26 @@ import {
   type ProviderConfig,
   type RealtimeConfig,
 } from "@/types";
-import { AudioOutlined } from "@ant-design/icons";
+import { AudioOutlined, TeamOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { App, Badge, Button, Checkbox, Form, Image, Input, Modal, Popover, Select, Tag, theme, Typography } from "antd";
+import {
+  App,
+  Badge,
+  Button,
+  Checkbox,
+  Form,
+  Image,
+  Input,
+  Modal,
+  Popover,
+  Segmented,
+  Select,
+  Space,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
 import {
   ArrowUp,
   Atom,
@@ -302,6 +319,7 @@ export function InputArea() {
   );
 
   const { message: messageApi, modal } = App.useApp();
+  const multiAgentStore = useMultiAgentStore();
   const activeConversationId = useConversationStore(
     (s) => s.activeConversationId,
   );
@@ -439,6 +457,23 @@ export function InputArea() {
 
   // Prompt template state
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+
+  // Delegate task state
+  const [delegateModalOpen, setDelegateModalOpen] = useState(false);
+  const [delegateRole, setDelegateRole] = useState("");
+  const [delegateTask, setDelegateTask] = useState("");
+
+  // Fetch roles when delegate modal opens
+  useEffect(() => {
+    if (delegateModalOpen) {
+      if (multiAgentStore.roles.length === 0) {
+        multiAgentStore.fetchRoles();
+      }
+      if (!delegateRole && multiAgentStore.roles.length > 0) {
+        setDelegateRole(multiAgentStore.roles[0].id);
+      }
+    }
+  }, [delegateModalOpen]);
 
   // Context clear
   const insertContextClear = useConversationStore((s) => s.insertContextClear);
@@ -2985,6 +3020,19 @@ export function InputArea() {
                 onClick={() => setSettingsOpen(true)}
               />
             </Tooltip>
+            {currentMode === "agent" && (
+              <Tooltip title={t("multiAgent.delegateBtn")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<TeamOutlined style={{ fontSize: 14 }} />}
+                  onClick={() => {
+                    setDelegateTask(value);
+                    setDelegateModalOpen(true);
+                  }}
+                />
+              </Tooltip>
+            )}
             {activeConversation?.session_type !== "workflow" && (
               <DropdownMenu items={unifiedModeMenuItems}>
                 <Tooltip title={t("chat.mode.title")}>
@@ -3178,6 +3226,58 @@ export function InputArea() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
+
+      {/* 委派任务弹窗 */}
+      <Modal
+        title={t("multiAgent.delegateTitle")}
+        open={delegateModalOpen}
+        onCancel={() => setDelegateModalOpen(false)}
+        confirmLoading={multiAgentStore.delegating}
+        onOk={async () => {
+          if (!delegateRole || !delegateTask.trim()) {
+            messageApi.warning(t("multiAgent.fillRequired"));
+            return;
+          }
+          try {
+            await multiAgentStore.delegateTask({
+              roleName: delegateRole,
+              task: delegateTask.trim(),
+              providerId: activeConversation?.provider_id || "",
+              modelId: activeConversation?.model_id || "",
+            });
+            messageApi.success(t("multiAgent.delegateSuccess"));
+            setDelegateModalOpen(false);
+          } catch (e) {
+            messageApi.error(`${t("multiAgent.delegateFailed")}: ${e}`);
+          }
+        }}
+        okText={t("multiAgent.delegateBtn")}
+        destroyOnClose
+      >
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <div>
+            <Typography.Text type="secondary">{t("multiAgent.selectRole")}</Typography.Text>
+            <Segmented
+              block
+              value={delegateRole}
+              onChange={(v) => setDelegateRole(v as string)}
+              options={multiAgentStore.roles.map((r) => ({
+                label: r.name,
+                value: r.id,
+              }))}
+            />
+          </div>
+          <div>
+            <Typography.Text type="secondary">{t("multiAgent.taskDescription")}</Typography.Text>
+            <Input.TextArea
+              value={delegateTask}
+              onChange={(e) => setDelegateTask(e.target.value)}
+              rows={4}
+              placeholder={t("multiAgent.taskPlaceholder")}
+            />
+          </div>
+        </Space>
+      </Modal>
 
       <Modal
         title={editingMcpServer

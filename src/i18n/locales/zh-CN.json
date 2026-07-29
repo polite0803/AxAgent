@@ -6994,6 +6994,7 @@
       "logging": "日志",
       "loop": "循环",
       "merge": "合并",
+      "multiAgent": "多智能体",
       "notification": "通知",
       "parallel": "并行执行",
       "phaseSeparator": "阶段分隔线",
@@ -7019,6 +7020,31 @@
       "title": "通知"
     },
     "outputSchema": "输出模式",
+    "property": {
+      "task": "任务",
+      "taskTip": "描述需要多智能体协作完成的任务",
+      "role": "默认角色",
+      "roleTip": "智能体的默认角色设定",
+      "model": "模型",
+      "modelTip": "指定使用的 AI 模型",
+      "outputVar": "输出变量",
+      "outputVarTip": "节点执行结果的变量名",
+      "mode": "协作模式",
+      "modeTip": "多智能体协作方式",
+      "maxRounds": "最大轮次",
+      "maxRoundsTip": "智能体间最大对话轮数"
+    },
+    "placeholder": {
+      "task": "例如：分析用户反馈并生成改进建议...",
+      "role": "输入默认角色...",
+      "model": "选择模型...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "自动",
+      "swarm": "群智",
+      "debate": "辩论"
+    },
     "parallelNode": {
       "anyComplete": "任一完成即可",
       "autoInput": "自动接收父节点输入",

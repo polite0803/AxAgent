@@ -439,6 +439,7 @@ function getNodeIcon(type: string): string {
   const icons: Record<string, string> = {
     trigger: "⚡",
     agent: "🤖",
+    multiAgent: "🏭",
     llm: "🧠",
     condition: "❓",
     parallel: "⏩",

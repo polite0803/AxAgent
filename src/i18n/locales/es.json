@@ -6994,6 +6994,7 @@
       "logging": "Registro",
       "loop": "Bucle",
       "merge": "Combinar",
+      "multiAgent": "Multiagente",
       "notification": "Notificación",
       "parallel": "Paralelo",
       "phaseSeparator": "Separador de fases",
@@ -7019,6 +7020,31 @@
       "title": "Notificaciones"
     },
     "outputSchema": "Esquema de salida",
+    "property": {
+      "task": "Tarea",
+      "taskTip": "Describa la tarea para la colaboración multiagente",
+      "role": "Rol predeterminado",
+      "roleTip": "Asignación de rol predeterminada para agentes",
+      "model": "Modelo",
+      "modelTip": "Especifique el modelo de IA a utilizar",
+      "outputVar": "Variable de salida",
+      "outputVarTip": "Nombre de la variable para el resultado del nodo",
+      "mode": "Modo",
+      "modeTip": "Modo de colaboración multiagente",
+      "maxRounds": "Rondas máx.",
+      "maxRoundsTip": "Número máximo de rondas de conversación entre agentes"
+    },
+    "placeholder": {
+      "task": "Ej.: Analizar comentarios de usuarios y generar sugerencias de mejora...",
+      "role": "Ingrese el rol predeterminado...",
+      "model": "Seleccione el modelo...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "Automático",
+      "swarm": "Enjambre",
+      "debate": "Debate"
+    },
     "parallelNode": {
       "anyComplete": "Cualquier completado",
       "autoInput": "Auto-entrada del padre",

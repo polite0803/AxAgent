@@ -2,7 +2,7 @@
 
 import { useWorkspaceStore, type WorkspaceTab } from "@/stores";
 import { theme } from "antd";
-import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal } from "lucide-react";
+import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface TabConfig {
@@ -18,6 +18,7 @@ const TABS: TabConfig[] = [
   { key: "terminal", labelKey: "nav.terminal", icon: SquareTerminal },
   { key: "files", labelKey: "nav.files", icon: Folder },
   { key: "knowledge", labelKey: "nav.knowledge", icon: Database },
+  { key: "multiAgent", labelKey: "nav.multiAgent", icon: Users },
 ];
 
 /**

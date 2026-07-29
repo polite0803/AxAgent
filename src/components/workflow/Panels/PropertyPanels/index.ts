@@ -20,6 +20,7 @@ export { LLMPropertyPanel } from "./LLMPropertyPanel";
 export { LoggingPropertyPanel } from "./LoggingPropertyPanel";
 export { LoopPropertyPanel } from "./LoopPropertyPanel";
 export { MergePropertyPanel } from "./MergePropertyPanel";
+export { MultiAgentPropertyPanel } from "./MultiAgentPropertyPanel";
 export { NotificationPropertyPanel } from "./NotificationPropertyPanel";
 export { ParallelPropertyPanel } from "./ParallelPropertyPanel";
 export { StoragePropertyPanel } from "./StoragePropertyPanel";

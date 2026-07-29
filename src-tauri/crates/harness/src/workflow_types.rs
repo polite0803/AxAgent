@@ -343,6 +343,39 @@ pub struct AgentNode {
     pub config: AgentNodeConfig,
 }
 
+fn default_multi_agent_rounds() -> u32 {
+    3
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+pub struct MultiAgentNodeConfig {
+    /// 委派任务描述
+    #[serde(default)]
+    pub task: String,
+    /// 角色/agent 名称（可选）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// 模型覆盖（可选）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// 输出变量名
+    #[serde(default)]
+    pub output_var: String,
+    /// 协作模式: auto / swarm / debate
+    #[serde(default)]
+    pub mode: String,
+    /// 最大协作轮数
+    #[serde(default = "default_multi_agent_rounds")]
+    pub max_rounds: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+pub struct MultiAgentNode {
+    #[serde(flatten)]
+    pub base: WorkflowNodeBase,
+    pub config: MultiAgentNodeConfig,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct LLMNodeConfig {
     pub model: String,
@@ -1344,6 +1377,8 @@ pub enum WorkflowNode {
     Debate(DebateNode),
     #[serde(rename = "swarm")]
     Swarm(SwarmNode),
+    #[serde(rename = "multiAgent")]
+    MultiAgent(MultiAgentNode),
     #[serde(rename = "storage")]
     Storage(StorageNode),
     #[serde(rename = "tool")]
@@ -1383,6 +1418,7 @@ impl WorkflowNode {
             WorkflowNode::Email(n) => &n.base.id,
             WorkflowNode::Debate(n) => &n.base.id,
             WorkflowNode::Swarm(n) => &n.base.id,
+            WorkflowNode::MultiAgent(n) => &n.base.id,
             WorkflowNode::Storage(n) => &n.base.id,
             WorkflowNode::WorkflowRef(n) => &n.base.id,
             WorkflowNode::End(n) => &n.base.id,
@@ -1420,6 +1456,7 @@ impl WorkflowNode {
             WorkflowNode::Email(n) => &n.base,
             WorkflowNode::Debate(n) => &n.base,
             WorkflowNode::Swarm(n) => &n.base,
+            WorkflowNode::MultiAgent(n) => &n.base,
             WorkflowNode::Storage(n) => &n.base,
             WorkflowNode::WorkflowRef(n) => &n.base,
             WorkflowNode::End(n) => &n.base,
@@ -1457,6 +1494,7 @@ impl WorkflowNode {
             WorkflowNode::Email(n) => &mut n.base,
             WorkflowNode::Debate(n) => &mut n.base,
             WorkflowNode::Swarm(n) => &mut n.base,
+            WorkflowNode::MultiAgent(n) => &mut n.base,
             WorkflowNode::Storage(n) => &mut n.base,
             WorkflowNode::WorkflowRef(n) => &mut n.base,
             WorkflowNode::End(n) => &mut n.base,

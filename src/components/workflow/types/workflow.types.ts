@@ -129,6 +129,20 @@ export interface AgentNode extends WorkflowNodeBase {
   config: AgentNodeConfig;
 }
 
+export interface MultiAgentNodeConfig {
+  task: string;
+  role?: string;
+  model?: string;
+  output_var: string;
+  mode: "auto" | "swarm" | "debate";
+  max_rounds: number;
+}
+
+export interface MultiAgentNode extends WorkflowNodeBase {
+  type: "multiAgent";
+  config: MultiAgentNodeConfig;
+}
+
 export interface LLMNodeConfig {
   model: string;
   prompt: string;
@@ -650,6 +664,7 @@ export type WorkflowNode =
   | EmailNode
   | DebateNode
   | SwarmNode
+  | MultiAgentNode
   | StorageNode;
 
 export type EdgeType =
@@ -992,6 +1007,7 @@ export const NODE_KIND_MAP: Record<string, NodeKind> = {
   agent: "agent",
   llm: "agent",
   llmClassifier: "agent",
+  multiAgent: "agent",
   // Condition（条件路由）
   condition: "condition",
   switch: "condition",
@@ -1041,6 +1057,12 @@ export const NODE_TYPE_MAP: Record<
   llmClassifier: {
     labelKey: "workflow.nodeTypes.llmClassifier",
     category: "llm",
+    color: "#1677ff",
+    kind: "agent",
+  },
+  multiAgent: {
+    labelKey: "workflow.nodeTypes.multiAgent",
+    category: "agent",
     color: "#1677ff",
     kind: "agent",
   },

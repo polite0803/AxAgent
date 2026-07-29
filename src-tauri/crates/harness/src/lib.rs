@@ -170,7 +170,10 @@ pub use migration_types::{
 
 // ── 工具扩展契约 ──
 pub mod tools_ext;
-pub use tools_ext::{MigrationRunner, PluginAgentDescriptor, PluginAgentProvider};
+pub use tools_ext::{
+    DelegateTaskInput, DelegateTaskResult, DelegateTaskRunner, MigrationRunner,
+    PluginAgentDescriptor, PluginAgentProvider,
+};
 
 // ── 搜索层数据源 trait（让 search crate 不依赖 dao / document-parser） ──
 pub mod search_sources;

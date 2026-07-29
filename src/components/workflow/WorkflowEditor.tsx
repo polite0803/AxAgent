@@ -72,6 +72,7 @@ import {
   LoggingNode,
   LoopNode,
   MergeNode,
+  MultiAgentNode,
   NotificationNode,
   ParallelNode,
   PhaseSeparatorNode,
@@ -105,6 +106,7 @@ const nodeTypes = {
   parallel: ParallelNode,
   loop: LoopNode,
   merge: MergeNode,
+  multiAgent: MultiAgentNode,
   delay: DelayNode,
   tool: ToolNode,
   code: CodeNode,
@@ -2304,6 +2306,15 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
         outputMode: "text",
         model: undefined,
       };
+    case "multiAgent":
+      return {
+        task: "",
+        role: undefined,
+        model: undefined,
+        output_var: "",
+        mode: "auto",
+        max_rounds: 3,
+      };
     case "llm":
       return { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 };
     case "condition":
@@ -2402,6 +2413,19 @@ function createWorkflowNode(
           max_tool_rounds: undefined,
           execution_mode: undefined,
           rag_source_ids: [],
+        },
+      };
+    case "multiAgent":
+      return {
+        ...baseNode,
+        type: "multiAgent",
+        config: {
+          task: "",
+          role: undefined,
+          model: undefined,
+          output_var: "",
+          mode: "auto",
+          max_rounds: 3,
         },
       };
     case "llm":

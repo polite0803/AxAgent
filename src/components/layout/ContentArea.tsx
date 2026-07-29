@@ -33,7 +33,6 @@ const LazyLearningGraphPage = lazy(() =>
 const LazyDynamicPageViewer = lazy(() =>
   import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
 );
-const LazyMultiAgentPage = lazy(() => import("@/pages/MultiAgentPage").then((m) => ({ default: m.MultiAgentPage })));
 
 function PageLoader() {
   return (
@@ -109,6 +108,7 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH.terminal} element={redirectToChat("terminal")} />
           <Route path={BUILTIN_PAGE_PATH.files} element={redirectToChat("files")} />
           <Route path={BUILTIN_PAGE_PATH.knowledge} element={redirectToChat("knowledge")} />
+          <Route path={BUILTIN_PAGE_PATH.multiAgent} element={redirectToChat("multiAgent")} />
           <Route path={BUILTIN_PAGE_PATH.marketplace} element={redirectToChat("workflow")} />
           {/* 记忆页保留独立路由（无侧栏入口，通过知识源内 Memory Tab 访问） */}
           <Route
@@ -235,15 +235,6 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="learning-graph">
                 <SafeLazyPage Page={LazyLearningGraphPage} />
-              </PageContextProvider>
-            }
-          />
-          {/* Multi-Agent 协作骨架（analyst/implementer/reviewer 三角色） */}
-          <Route
-            path={BUILTIN_PAGE_PATH.multiAgent}
-            element={
-              <PageContextProvider page="multi-agent">
-                <SafeLazyPage Page={LazyMultiAgentPage} />
               </PageContextProvider>
             }
           />

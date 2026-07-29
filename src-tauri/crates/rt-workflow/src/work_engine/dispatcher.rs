@@ -13,7 +13,7 @@ use super::executors::{
     AggregatorExecutor, ApprovalExecutor, CodeExecutor, DataTransformerExecutor,
     DatabaseQueryExecutor, DebateExecutor, DelayExecutor, DocumentParserExecutor, EmailExecutor,
     EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor, LoggingExecutor,
-    LoopExecutor, MergeExecutor, NotificationExecutor, ParallelExecutor, StorageExecutor,
+    LoopExecutor, MergeExecutor, MultiAgentExecutor, NotificationExecutor, ParallelExecutor, StorageExecutor,
     SubWorkflowExecutor, SwarmExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor,
     VectorRetrieveExecutor, WebhookSendExecutor,
 };
@@ -103,6 +103,7 @@ impl NodeDispatcher {
         self.register(AggregatorExecutor::new()).await;
         self.register(EmailExecutor::new()).await;
         self.register(SwarmExecutor::new()).await;
+        self.register(MultiAgentExecutor::new()).await;
     }
 
     /// 注册 executor。若同名 executor 已存在，记录 warn 日志

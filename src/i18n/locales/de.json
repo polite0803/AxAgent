@@ -6994,6 +6994,7 @@
       "logging": "Protokollierung",
       "loop": "Schleife",
       "merge": "Zusammenführen",
+      "multiAgent": "Multi-Agent",
       "notification": "Benachrichtigung",
       "parallel": "Parallel",
       "phaseSeparator": "Phasentrenner",
@@ -7019,6 +7020,31 @@
       "title": "Benachrichtigungen"
     },
     "outputSchema": "Ausgabeschema",
+    "property": {
+      "task": "Aufgabe",
+      "taskTip": "Beschreiben Sie die Aufgabe für die Multi-Agent-Zusammenarbeit",
+      "role": "Standardrolle",
+      "roleTip": "Standard-Rollenzuweisung für Agenten",
+      "model": "Modell",
+      "modelTip": "Geben Sie das zu verwendende KI-Modell an",
+      "outputVar": "Ausgabevariable",
+      "outputVarTip": "Variablenname für das Knotenergebnis",
+      "mode": "Modus",
+      "modeTip": "Multi-Agent-Kooperationsmodus",
+      "maxRounds": "Max. Runden",
+      "maxRoundsTip": "Maximale Anzahl von Dialogen zwischen Agenten"
+    },
+    "placeholder": {
+      "task": "z.B. Benutzerfeedback analysieren und Verbesserungsvorschläge generieren...",
+      "role": "Standardrolle eingeben...",
+      "model": "Modell auswählen...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "Auto",
+      "swarm": "Schwarm",
+      "debate": "Debatte"
+    },
     "parallelNode": {
       "anyComplete": "Beliebig vollständig",
       "autoInput": "Auto-Eingabe vom Elternknoten",

@@ -65,12 +65,18 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         ));
     }
 
-    // 注入 tools 扩展层的 trait 实现（MigrationRunner + PluginAgentProvider）。
-    // 通过 OnceLock 全局注入，工具层不再依赖 axagent-migration / axagent-plugins。
+    // 注入 tools 扩展层的 trait 实现（MigrationRunner + PluginAgentProvider + DelegateTaskRunner）。
+    // 通过 OnceLock 全局注入，工具层不再依赖 axagent-migration / axagent-plugins / commands。
     axagent_tools::tools::init_extensions(
         std::sync::Arc::new(axagent_migration::DefaultMigrationRunner),
         std::sync::Arc::new(axagent_plugins::agent_provider::GlobalPluginAgentProvider),
+        None,
     );
+    // DelegateTaskRunner — 注入到 tools crate 供 DelegateTaskTool 使用
+    crate::commands::multi_agent::init_delegate_task_runner(sea_db.clone(), master_key);
+
+    // 注册 MultiAgentTriggerHook 到全局 HookChain（供后续 conversation loop 挂载使用）
+    crate::commands::multi_agent::register_global_multi_agent_hook();
 
     // 注入 search 层的 5 个数据源 trait 实现。
     // search crate 不再依赖 axagent-dao / axagent-document-parser。

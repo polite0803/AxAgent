@@ -46,6 +46,7 @@ export const NODE_ICONS: Record<string, ComponentType<{ style?: CSSProperties }>
   agent: RobotOutlined,
   llm: BulbOutlined,
   llmClassifier: TagsOutlined,
+  multiAgent: TeamOutlined,
   condition: BranchesOutlined,
   switch: SwapOutlined,
   parallel: PartitionOutlined,
