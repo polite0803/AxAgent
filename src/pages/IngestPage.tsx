@@ -192,7 +192,7 @@ export function IngestPage() {
           <Tabs
             activeKey={activeTab}
             onChange={setActiveTab}
-            className="flex-1 px-3 pt-2"
+            className="ax-fill-tabs px-3 pt-2"
             size="small"
             items={[
               {

@@ -252,14 +252,11 @@ export function DashboardPage() {
                 {t("dashboard.tabs.office")}
               </span>
             ),
-            children: (
-              <div style={{ height: "calc(100vh - 140px)", minHeight: 600 }}>
-                <OfficeTab />
-              </div>
-            ),
+            children: <OfficeTab />,
           },
         ]}
-        style={{ flex: 1, minHeight: 0, padding: "0 16px" }}
+        className="ax-fill-tabs"
+        style={{ padding: "0 16px" }}
         tabBarStyle={{ flexShrink: 0, marginBottom: 0 }}
         destroyInactiveTabPane
       />
@@ -378,7 +375,7 @@ function OverviewTab() {
         display: "flex",
         flexDirection: "column",
         gap: 24,
-        padding: "16px 0",
+        padding: "16px 8px",
         overflow: "auto",
       }}
     >

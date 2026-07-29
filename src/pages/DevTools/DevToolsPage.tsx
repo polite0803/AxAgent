@@ -57,7 +57,8 @@ export function DevToolsPage() {
       <Tabs
         defaultActiveKey="trace-explorer"
         items={tabItems}
-        style={{ flex: 1, minHeight: 0, padding: "0 16px" }}
+        className="ax-fill-tabs"
+        style={{ padding: "0 16px" }}
         tabBarStyle={{ flexShrink: 0, marginBottom: 0 }}
         destroyInactiveTabPane
       />

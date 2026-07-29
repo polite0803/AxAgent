@@ -4191,320 +4191,85 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── StockAnalysisPage 布局 ──────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
-.sa-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-.sa-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  min-height: 36px;
-}
-.sa-header-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--fg);
-}
-.sa-header-meta {
-  font-size: 11px;
-  color: var(--muted);
-  margin-right: auto;
-}
-.sa-header-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: none;
-  background: none;
-  transition: all 0.12s;
-  font-family: inherit;
-}
-.sa-header-back:hover {
-  background: var(--accent-bg);
-  color: var(--accent);
-}
-.sa-body {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.sa-body-inner {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-.sa-main {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-.sa-sidebar {
-  width: 280px;
-  min-width: 280px;
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.sa-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 4px 12px;
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-  flex-shrink: 0;
-}
-.sa-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  border: none;
-  background: none;
-  border-radius: 4px;
-  transition: all 0.12s;
-  white-space: nowrap;
-  font-family: inherit;
-}
-.sa-tab:hover {
-  background: var(--accent-bg);
-  color: var(--fg);
-}
-.sa-tab.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 500;
-}
-.sa-bottom-sheet {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.25s ease;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  z-index: var(--z-overlay);
-}
-.sa-bottom-sheet.open {
-  max-height: 60vh;
-  overflow-y: auto;
-}
-.sa-sheet-handle {
-  display: flex;
-  justify-content: center;
-  padding: 6px;
-  cursor: pointer;
-}
-.sa-sheet-handle-bar {
-  width: 32px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border);
-}
-.sa-sheet-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 4px 12px;
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-}
-.sa-sheet-tab {
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--muted);
-  cursor: pointer;
-  border: none;
-  background: none;
-  border-radius: 4px;
-  white-space: nowrap;
-  font-family: inherit;
-}
-.sa-sheet-tab:hover {
-  background: var(--accent-bg);
-  color: var(--fg);
-}
-.sa-sheet-tab.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 500;
-}
-.sa-sheet-body {
-  padding: 8px 12px;
-}
-.sa-sheet-toggle {
-  position: fixed;
-  bottom: 12px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  font-size: 18px;
-  z-index: var(--z-overlay);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-.sa-loading {
-  padding: 24px 16px;
-}
-.sa-panel-body {
-  max-height: 400px;
-  overflow-y: auto;
-}
-.sa-markdown-content {
-  /* 统一基础字号：分析师卡片、辩论卡片、RiskMatrix、DecisionBanner 均走 13px */
-  /* 显式定义子元素字号，避免继承混乱导致 h1/h2 也只有 13px 失去层级 */
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--color-text-base, inherit);
-  word-break: break-word;
-}
-.sa-markdown-content h1,
-.sa-markdown-content h2,
-.sa-markdown-content h3,
-.sa-markdown-content h4,
-.sa-markdown-content h5,
-.sa-markdown-content h6 {
-  font-weight: 600;
-  line-height: 1.4;
-  margin: 0.6em 0 0.4em;
-}
+.sa-layout { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.sa-header { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; min-height: 36px; }
+.sa-header-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--fg); }
+.sa-header-meta { font-size: 11px; color: var(--muted); margin-right: auto; }
+.sa-header-back { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; border: none; background: none; transition: all 0.12s; font-family: inherit; }
+.sa-header-back:hover { background: var(--accent-bg); color: var(--accent); }
+.sa-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
+.sa-body-inner { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.sa-main { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.sa-sidebar { width: 280px; min-width: 280px; border-left: 1px solid var(--border); overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.sa-tabs { display: flex; gap: 2px; padding: 4px 12px; border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; }
+.sa-tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: none; border-radius: 4px; transition: all 0.12s; white-space: nowrap; font-family: inherit; }
+.sa-tab:hover { background: var(--accent-bg); color: var(--fg); }
+.sa-tab.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.sa-bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: var(--surface); border-top: 1px solid var(--border); z-index: var(--z-overlay); }
+.sa-bottom-sheet.open { max-height: 60vh; overflow-y: auto; }
+.sa-sheet-handle { display: flex; justify-content: center; padding: 6px; cursor: pointer; }
+.sa-sheet-handle-bar { width: 32px; height: 4px; border-radius: 2px; background: var(--border); }
+.sa-sheet-tabs { display: flex; gap: 2px; padding: 4px 12px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.sa-sheet-tab { padding: 4px 8px; font-size: 11px; color: var(--muted); cursor: pointer; border: none; background: none; border-radius: 4px; white-space: nowrap; font-family: inherit; }
+.sa-sheet-tab:hover { background: var(--accent-bg); color: var(--fg); }
+.sa-sheet-tab.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.sa-sheet-body { padding: 8px 12px; }
+.sa-sheet-toggle { position: fixed; bottom: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; border: none; cursor: pointer; display: grid; place-items: center; font-size: 18px; z-index: var(--z-overlay); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.sa-loading { padding: 24px 16px; }
+.sa-panel-body { max-height: 400px; overflow-y: auto; }
+.sa-markdown-content { font-size: 13px; line-height: 1.65; color: var(--color-text-base, inherit); word-break: break-word; }
+.sa-markdown-content h1, .sa-markdown-content h2, .sa-markdown-content h3, .sa-markdown-content h4, .sa-markdown-content h5, .sa-markdown-content h6 { font-weight: 600; line-height: 1.4; margin: 0.6em 0 0.4em; }
 .sa-markdown-content h1 { font-size: 16px; }
 .sa-markdown-content h2 { font-size: 15px; }
 .sa-markdown-content h3 { font-size: 14px; }
 .sa-markdown-content h4 { font-size: 13px; }
 .sa-markdown-content h5 { font-size: 12px; }
 .sa-markdown-content h6 { font-size: 12px; }
-.sa-markdown-content p {
-  margin: 0.4em 0;
-}
-.sa-markdown-content ul,
-.sa-markdown-content ol {
-  margin: 0.4em 0;
-  padding-left: 1.4em;
-}
-.sa-markdown-content li {
-  margin: 0.15em 0;
-}
-.sa-markdown-content blockquote {
-  margin: 0.5em 0;
-  padding: 4px 10px;
-  border-left: 3px solid var(--border, #d9d9d9);
-  color: var(--muted, #6b7280);
-  background: var(--surface, rgba(0, 0, 0, 0.02));
-}
-.sa-markdown-content code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: var(--surface, rgba(0, 0, 0, 0.04));
-}
-.sa-markdown-content pre {
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  background: var(--surface, rgba(0, 0, 0, 0.04));
-  overflow-x: auto;
-}
-.sa-markdown-content pre code {
-  padding: 0;
-  background: transparent;
-  font-size: inherit;
-}
-.sa-markdown-content table {
-  border-collapse: collapse;
-  margin: 0.4em 0;
-  font-size: inherit;
-}
-.sa-markdown-content th,
-.sa-markdown-content td {
-  border: 1px solid var(--border, #d9d9d9);
-  padding: 4px 8px;
-  text-align: left;
-}
-.sa-markdown-content th {
-  font-weight: 600;
-  background: var(--surface, rgba(0, 0, 0, 0.02));
-}
-.sa-markdown-content hr {
-  border: none;
-  border-top: 1px solid var(--border, #d9d9d9);
-  margin: 0.8em 0;
-}
-.sa-markdown-content a {
-  color: var(--ant-color-link, #1677ff);
-  text-decoration: none;
-}
-.sa-markdown-content a:hover {
-  text-decoration: underline;
-}
-.sa-markdown-content strong {
-  font-weight: 600;
-}
-.sa-markdown-content em {
-  font-style: italic;
-}
-.sa-settings-inline {
+.sa-markdown-content p { margin: 0.4em 0; }
+.sa-markdown-content ul, .sa-markdown-content ol { margin: 0.4em 0; padding-left: 1.4em; }
+.sa-markdown-content li { margin: 0.15em 0; }
+.sa-markdown-content blockquote { margin: 0.5em 0; padding: 4px 10px; border-left: 3px solid var(--border, #d9d9d9); color: var(--muted, #6b7280); background: var(--surface, rgba(0, 0, 0, 0.02)); }
+.sa-markdown-content code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding: 1px 4px; border-radius: 3px; background: var(--surface, rgba(0, 0, 0, 0.04)); }
+.sa-markdown-content pre { font-size: 12px; padding: 8px 10px; border-radius: 4px; background: var(--surface, rgba(0, 0, 0, 0.04)); overflow-x: auto; }
+.sa-markdown-content pre code { padding: 0; background: transparent; font-size: inherit; }
+.sa-markdown-content table { border-collapse: collapse; margin: 0.4em 0; font-size: inherit; }
+.sa-markdown-content th, .sa-markdown-content td { border: 1px solid var(--border, #d9d9d9); padding: 4px 8px; text-align: left; }
+.sa-markdown-content th { font-weight: 600; background: var(--surface, rgba(0, 0, 0, 0.02)); }
+.sa-markdown-content hr { border: none; border-top: 1px solid var(--border, #d9d9d9); margin: 0.8em 0; }
+.sa-markdown-content a { color: var(--ant-color-link, #1677ff); text-decoration: none; }
+.sa-markdown-content a:hover { text-decoration: underline; }
+.sa-markdown-content strong { font-weight: 600; }
+.sa-markdown-content em { font-style: italic; }
+.sa-settings-inline { display: flex; flex-direction: column; height: 100%; }
+.sa-settings-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.sa-settings-title { font-size: 13px; font-weight: 600; color: var(--fg); }
+.sa-settings-body { flex: 1; overflow-y: auto; padding: 8px 12px; }
+@media (max-width: 768px) { .sa-body-inner { flex-direction: column; } .sa-sidebar { width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--border); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   ── 通用 Tabs 高度填满容器 (ax-fill-tabs) ────────────────────
+   让 Antd Tabs 的内容区填满父容器高度，避免内部 100% 高度失效。
+   用法：父容器 flex 布局 + Tabs 加 className="ax-fill-tabs"
+   ═══════════════════════════════════════════════════════════════ */
+.ax-fill-tabs {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
-.sa-settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
+.ax-fill-tabs > .ant-tabs-nav {
+  flex-shrink: 0;
+  margin-bottom: 0;
 }
-.sa-settings-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--fg);
-}
-.sa-settings-body {
+.ax-fill-tabs > .ant-tabs-content-holder,
+.ax-fill-tabs > .ant-tabs-content,
+.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
   flex: 1;
-  overflow-y: auto;
-  padding: 8px 12px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .sa-body-inner {
-    flex-direction: column;
-  }
-  .sa-sidebar {
-    width: 100%;
-    min-width: 0;
-    border-left: none;
-    border-top: 1px solid var(--border);
-  }
+.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
+  flex: 1;
 }
