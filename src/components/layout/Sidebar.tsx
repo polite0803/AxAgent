@@ -6,23 +6,14 @@ import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { BUILTIN_PAGE_PATH } from "@/lib/pageRegistry";
-import { getPinnedSchemasByGroup, PIN_GROUPS } from "@/lib/pinned-schemas";
-import type { PinnedSchemaMap } from "@/lib/pinned-schemas";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
-import {
-  useAgentPanelStore,
-  useDynamicUIStore,
-  useOnboardingStore,
-  useSettingsStore,
-  useUIStore,
-  useUserProfileStore,
-} from "@/stores";
+import { useAgentPanelStore, useOnboardingStore, useSettingsStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
-import { AppstoreAddOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
+import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
 import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserProfileModal } from "./UserProfileModal";
@@ -326,45 +317,7 @@ export function Sidebar() {
     return sections.filter((s) => s.items.length > 0);
   }, [settings.show_developer_tools]);
 
-  // ── 固定在导航的动态页面 ──
-  const dynamicSchemas = useDynamicUIStore((s) => s.schemas);
-  const fetchSchemas = useDynamicUIStore((s) => s.fetchSchemas);
-  const pins = useDynamicUIStore((s) => s.pins);
-  const fetchPins = useDynamicUIStore((s) => s.fetchPins);
-  useEffect(() => {
-    void fetchSchemas();
-    void fetchPins();
-  }, [fetchSchemas, fetchPins]);
-
-  const pinnedGroups = useMemo(() => {
-    const schemasById = new Map(dynamicSchemas.map((s) => [s.id, s]));
-    const pinnedMap: PinnedSchemaMap = {};
-    for (const p of pins) {
-      pinnedMap[p.schema_id] = {
-        schemaId: p.schema_id,
-        title: p.title,
-        group: p.group_name,
-        position: p.position,
-      };
-    }
-    const grouped = getPinnedSchemasByGroup(pinnedMap);
-    return grouped
-      .map((g) => ({
-        groupKey: g.group,
-        labelKey: PIN_GROUPS.find((pg) => pg.key === g.group)?.labelKey ?? g.group,
-        items: g.items
-          .filter((c) => schemasById.has(c.schemaId))
-          .map((c) => ({
-            key: `dynamic-ui-${c.schemaId}`,
-            icon: <AppstoreAddOutlined />,
-            // 缺陷 6：优先使用 schema 实时标题，保证改名后导航项同步更新
-            labelKey: schemasById.get(c.schemaId)?.title ?? c.title,
-            path: `/dynamic-ui/${c.schemaId}`,
-            isPlugin: true,
-          })),
-      }))
-      .filter((g) => g.items.length > 0);
-  }, [dynamicSchemas, pins]);
+  // 动态固定页面已移至设置/扩展分组管理，不再在侧栏加载和渲染
 
   return (
     <>
@@ -411,31 +364,7 @@ export function Sidebar() {
         </div>
       ))}
 
-      {/* 固定在导航的动态页面 */}
-      {pinnedGroups.map((group) => (
-        <div key={group.groupKey}>
-          {!sidebarCollapsed && (
-            <div className="ax-sidebar-section-header">
-              {t(group.labelKey)}
-            </div>
-          )}
-          {group.items.map((item) => (
-            <Tooltip
-              key={item.key}
-              title={sidebarCollapsed ? item.labelKey : ""}
-              placement="right"
-            >
-              <NavItemButton
-                item={item}
-                activePage={activePage}
-                sidebarCollapsed={sidebarCollapsed}
-                settings={settings}
-                onNavigate={navigate}
-              />
-            </Tooltip>
-          ))}
-        </div>
-      ))}
+      {/* 动态固定页面已移至设置/扩展分组管理，不再在侧栏显示 */}
 
       <div className="flex-1" />
 
