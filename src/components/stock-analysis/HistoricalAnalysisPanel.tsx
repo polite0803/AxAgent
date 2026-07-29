@@ -214,7 +214,7 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
 
       {/* V66 修复(2026-07-29): 数据质量诊断展示，与 DecisionBanner 对齐 */}
       {dataQualityInfo && (
-        <Card size="small" title="数据质量" styles={{ body: { padding: "4px 8px" } }}>
+        <Card size="small" title={t("stockAnalysis.dataQuality") as string} styles={{ body: { padding: "4px 8px" } }}>
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <Tag
               color={dataQualityInfo.grade === "A"
@@ -227,12 +227,15 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
                 ? "orange"
                 : "red"}
             >
-              {dataQualityInfo.grade} 级
+              {dataQualityInfo.grade}
+              {t("stockAnalysis.gradeSuffix")}
             </Tag>
-            <span style={{ color: "var(--muted)" }}>得分: {dataQualityInfo.score}</span>
+            <span style={{ color: "var(--muted)" }}>
+              {t("stockAnalysis.scoreLabel", { score: dataQualityInfo.score })}
+            </span>
             {dataQualityInfo.missingFactors.length > 0 && (
               <span style={{ color: "var(--sa-amber, #f59e0b)" }}>
-                缺失因子: {dataQualityInfo.missingFactors.join("、")}
+                {t("stockAnalysis.missingFactorsLabel", { factors: dataQualityInfo.missingFactors.join("、") })}
               </span>
             )}
           </div>

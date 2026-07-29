@@ -451,8 +451,8 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
             let mut fallback = serde_json::Map::new();
             fallback.insert("action".to_string(), json!("观望"));
             fallback.insert("positionPct".to_string(), json!(0));
-            fallback.insert("confidence".to_string(), json!(50.0));
-            fallback.insert("riskLevel".to_string(), json!("中风险"));
+            fallback.insert("confidence".to_string(), json!(0));
+            fallback.insert("riskLevel".to_string(), json!("未知"));
             fallback.insert("timeHorizon".to_string(), json!("短期"));
             fallback.insert(
                 "reasoning".to_string(),
@@ -508,8 +508,8 @@ pub(crate) fn extract_decision_json(wf: &Workflow) -> Option<String> {
             let mut fallback = serde_json::Map::new();
             fallback.insert("action".to_string(), json!("观望"));
             fallback.insert("positionPct".to_string(), json!(0));
-            fallback.insert("confidence".to_string(), json!(50.0));
-            fallback.insert("riskLevel".to_string(), json!("中风险"));
+            fallback.insert("confidence".to_string(), json!(0));
+            fallback.insert("riskLevel".to_string(), json!("未知"));
             fallback.insert("timeHorizon".to_string(), json!("短期"));
             fallback.insert(
                 "reasoning".to_string(),

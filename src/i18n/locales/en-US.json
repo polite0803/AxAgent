@@ -2241,9 +2241,7 @@
     "schemaAllValid": "Schema validation passed, all fields valid",
     "schemaValidation": "Schema Validation",
     "waitingForJson": "Waiting for valid JSON...",
-    "title": "Dynamic UI Preview",
-    "title": "Dynamic UI Preview",
-    "waitingForJson": "Waiting for valid JSON..."
+    "title": "Dynamic UI Preview"
   },
   "error": {
     "deleteFailed": "Delete failed, please retry",
@@ -6865,11 +6863,15 @@
       "rootHint": "root nodes"
     },
     "categories": {
-      "container": "Container layout",
-      "data-display": "Data display",
+      "container": "Layout & Containers",
+      "data-display": "Data Display",
       "form": "Form",
       "media": "Media",
-      "misc": "Misc"
+      "misc": "Miscellaneous",
+      "basic": "Basic",
+      "data": "Data",
+      "layout": "Layout",
+      "navigation": "Navigation"
     },
     "components": {
       "Accordion": "Accordion",
@@ -6905,21 +6907,21 @@
       "Tree": "Tree"
     },
     "error": {
-      "reset": "Reset",
-      "title": "Editor error"
+      "title": "Error rendering property panel",
+      "reset": "Reset"
     },
-    "exitFullscreen": "Exit fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
     "fullscreen": "Fullscreen",
     "outline": {
-      "delete": "Delete",
-      "duplicate": "Duplicate",
-      "title": "Outline"
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
     },
     "palette": {
       "title": "Components"
     },
     "preview": {
-      "actionTriggered": "Action triggered"
+      "actionTriggered": "Action Triggered"
     },
     "property": {
       "accordion": "Accordion mode",
@@ -6985,7 +6987,7 @@
         "static": "Static data",
         "store": "Store"
       },
-      "field": "Field",
+      "field": "field",
       "format": "Format",
       "gap": "Gap",
       "generationId": "Generation ID",
@@ -7105,19 +7107,7 @@
         "events": "Events",
         "style": "Style"
       },
-      "title": "Property Panel",
-      "field": "field"
-    },
-    "categories": {
-      "container": "Layout & Containers",
-      "data-display": "Data Display",
-      "form": "Form",
-      "media": "Media",
-      "misc": "Miscellaneous",
-      "basic": "Basic",
-      "data": "Data",
-      "layout": "Layout",
-      "navigation": "Navigation"
+      "title": "Property Panel"
     },
     "toolbar": {
       "undo": "Undo",
@@ -7140,20 +7130,6 @@
         "tablet": "Tablet",
         "mobile": "Mobile"
       }
-    },
-    "outline": {
-      "title": "Component Tree Outline",
-      "duplicate": "Duplicate node",
-      "delete": "Delete node"
-    },
-    "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit Fullscreen",
-    "preview": {
-      "actionTriggered": "Action Triggered"
-    },
-    "error": {
-      "title": "Error rendering property panel",
-      "reset": "Reset"
     },
     "field": "字段"
   },
@@ -12721,7 +12697,54 @@
       "indexQuotes": "大盘指数",
       "peers": "同行对比",
       "optionPcr": "期权PCR"
-    }
+    },
+    "takeProfit": "Take Profit",
+    "gapsLabel": "Gaps:",
+    "moreGaps": "+{{count}}",
+    "evidenceLabel": "Evidence({{count}}):",
+    "moreEvidence": "+{{count}} more",
+    "riskLevelFormula": "Risk Level: Formula",
+    "gapSimilarity": "· Gap Similarity: {{pct}}%",
+    "llmEvidenceCount": "· LLM Evidence: {{count}}",
+    "dqDiagnostics": "Data Quality Diagnostics",
+    "dqHighConfCount": "{{good}}/{{total}} High Conf · Avg {{avg}}",
+    "factorCompleteness": "Factor Completeness",
+    "missingFactors": "Missing Factors:",
+    "allFactorsComplete": "✓ All factors complete",
+    "analystDataGapDetails": "Analyst Data Gap Details",
+    "dqTableAnalyst": "Analyst",
+    "dqTableExpectedData": "Expected Data",
+    "dqTableConfidence": "Confidence",
+    "dqTableStatus": "Status",
+    "dqTableGapReason": "Gap Reason",
+    "dqStatusNormal": "Normal",
+    "dqStatusLowConfidence": "Low Confidence",
+    "dqStatusMissing": "Missing",
+    "dqStatusUntrusted": "Untrusted",
+    "decisionInputsDiag": "Decision Inputs Diagnostics",
+    "diNormalCount": "{{normal}}/{{total}} Normal",
+    "diMissing": "Missing {{count}}",
+    "diLowConfidence": "Low Conf {{count}}",
+    "diUntrusted": "Untrusted {{count}}",
+    "diTotal": "{{total}} Total",
+    "groupByFactor": "Group by Factor",
+    "diTableFactor": "Factor",
+    "diTableNode": "Node",
+    "diTableRole": "Role",
+    "diTableWeight": "Weight",
+    "diTableConfidence": "Confidence",
+    "diTableDirection": "Direction/Value",
+    "diTableStatus": "Status",
+    "diTableNote": "Note",
+    "weightCollapseDqi": "Data quality grade F (dqi<25), decision basis invalid",
+    "weightCollapseUntrusted": "Untrusted upstream ≥2 (untrusted_count={{count}})",
+    "weightCollapseThreshold": "Factor weight {{ratio}}% below threshold",
+    "weightCollapseConsequence": "Consequence: position forced 0%, direction confidence ×0.5",
+    "weightCollapseTag": "Factor Weight Collapse",
+    "confidenceBayesianTooltip": "Confidence = Bayesian evidence strength (capped by data quality grade), unaffected by weight collapse. Differs from decision confidence: the latter is directional certainty, halved when collapsed.",
+    "gradeSuffix": "",
+    "scoreLabel": "Score: {{score}}",
+    "missingFactorsLabel": "Missing Factors: {{factors}}"
   },
   "pipeline": {
     "title": "Stock Pipeline",

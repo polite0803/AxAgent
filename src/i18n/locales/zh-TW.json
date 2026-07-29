@@ -2241,9 +2241,7 @@
     "schemaAllValid": "結構描述驗證通過，所有欄位有效",
     "schemaValidation": "結構描述驗證",
     "waitingForJson": "等待有效的 JSON...",
-    "title": "Dynamic UI Preview",
-    "title": "動態 UI 預覽",
-    "waitingForJson": "等待有效的 JSON..."
+    "title": "動態 UI 預覽"
   },
   "error": {
     "deleteFailed": "刪除失敗，請重試",
@@ -6862,11 +6860,15 @@
       "rootHint": "個根節點"
     },
     "categories": {
-      "container": "容器佈局",
-      "data-display": "資料展示",
-      "form": "表單",
-      "media": "媒體",
-      "misc": "其他"
+      "container": "Layout & Containers",
+      "data-display": "Data Display",
+      "form": "Form",
+      "media": "Media",
+      "misc": "Miscellaneous",
+      "basic": "基礎",
+      "data": "資料",
+      "layout": "版面配置",
+      "navigation": "導航"
     },
     "components": {
       "Accordion": "手風琴",
@@ -6902,21 +6904,21 @@
       "Tree": "樹狀"
     },
     "error": {
-      "reset": "重置",
-      "title": "編輯器發生錯誤"
+      "title": "Error rendering property panel",
+      "reset": "Reset"
     },
-    "exitFullscreen": "結束全螢幕",
-    "fullscreen": "全螢幕",
+    "exitFullscreen": "退出全屏",
+    "fullscreen": "全屏",
     "outline": {
-      "delete": "刪除",
-      "duplicate": "複製",
-      "title": "大綱"
+      "title": "Component Tree Outline",
+      "duplicate": "Duplicate node",
+      "delete": "Delete node"
     },
     "palette": {
       "title": "元件面板"
     },
     "preview": {
-      "actionTriggered": "動作已觸發"
+      "actionTriggered": "Action Triggered"
     },
     "property": {
       "accordion": "手風琴模式",
@@ -6982,7 +6984,7 @@
         "static": "靜態資料",
         "store": "Store"
       },
-      "field": "欄位",
+      "field": "field",
       "format": "格式",
       "gap": "間距",
       "generationId": "生成 ID",
@@ -7103,22 +7105,8 @@
         "style": "樣式"
       },
       "text": "文字",
-      "title": "屬性面板",
-      "field": "field"
+      "title": "屬性面板"
     },
-    "categories": {
-      "container": "Layout & Containers",
-      "data-display": "Data Display",
-      "form": "Form",
-      "media": "Media",
-      "misc": "Miscellaneous",
-      "basic": "基礎",
-      "data": "資料",
-      "layout": "版面配置",
-      "navigation": "導航"
-    },
-    "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏",
     "field": "欄位",
     "toolbar": {
       "undo": "Undo",
@@ -7141,18 +7129,6 @@
         "tablet": "Tablet",
         "mobile": "Mobile"
       }
-    },
-    "outline": {
-      "title": "Component Tree Outline",
-      "duplicate": "Duplicate node",
-      "delete": "Delete node"
-    },
-    "preview": {
-      "actionTriggered": "Action Triggered"
-    },
-    "error": {
-      "title": "Error rendering property panel",
-      "reset": "Reset"
     }
   },
   "viz": {
@@ -12820,7 +12796,54 @@
     "alert.conditionVolume": "Volume Spike",
     "alert.noHistory": "No Triggered Records",
     "alert.activeTab": "Active ({{count}})",
-    "alert.triggeredTab": "Triggered ({{count}})"
+    "alert.triggeredTab": "Triggered ({{count}})",
+    "takeProfit": "止盈",
+    "gapsLabel": "缺口:",
+    "moreGaps": "+{{count}}",
+    "evidenceLabel": "论据({{count}}):",
+    "moreEvidence": "+{{count}} 条",
+    "riskLevelFormula": "风险等级: 公式",
+    "gapSimilarity": "· 缺口相似度: {{pct}}%",
+    "llmEvidenceCount": "· LLM 引用论据: {{count}} 条",
+    "dqDiagnostics": "🔍 数据质量诊断",
+    "dqHighConfCount": "{{good}}/{{total}} 高置信 · 平均 {{avg}}",
+    "factorCompleteness": "📊 因子完整度",
+    "missingFactors": "缺失因子：",
+    "allFactorsComplete": "✓ 所有因子数据完整",
+    "analystDataGapDetails": "分析师数据差距详情",
+    "dqTableAnalyst": "分析师",
+    "dqTableExpectedData": "预期数据",
+    "dqTableConfidence": "置信度",
+    "dqTableStatus": "状态",
+    "dqTableGapReason": "差距原因",
+    "dqStatusNormal": "✅ 正常",
+    "dqStatusLowConfidence": "⚠️ 低置信",
+    "dqStatusMissing": "❌ 缺失",
+    "dqStatusUntrusted": "⚠️ 兜底",
+    "decisionInputsDiag": "📋 决策输入诊断",
+    "diNormalCount": "{{normal}}/{{total}} 正常",
+    "diMissing": "缺失 {{count}}",
+    "diLowConfidence": "低置信 {{count}}",
+    "diUntrusted": "兜底 {{count}}",
+    "diTotal": "共 {{total}} 项",
+    "groupByFactor": "按因子分组查看",
+    "diTableFactor": "因子",
+    "diTableNode": "节点",
+    "diTableRole": "角色",
+    "diTableWeight": "权重",
+    "diTableConfidence": "置信度",
+    "diTableDirection": "方向/值",
+    "diTableStatus": "状态",
+    "diTableNote": "备注",
+    "weightCollapseDqi": "数据质量 F 级（dqi<25），决策基础不成立",
+    "weightCollapseUntrusted": "不可信上游 ≥2 个（untrusted_count={{count}}）",
+    "weightCollapseThreshold": "因子权重占比 {{ratio}}% 低于阈值",
+    "weightCollapseConsequence": "后果：仓位强制 0%、方向置信度 ×0.5",
+    "weightCollapseTag": "⚠️ 因子权重坍缩",
+    "confidenceBayesianTooltip": "置信度 = 贝叶斯证据强度（受数据质量分级 cap），不受权重坍缩影响。与「决策置信度」不同：后者是方向确信度，坍缩时减半。",
+    "gradeSuffix": " 级",
+    "scoreLabel": "得分: {{score}}",
+    "missingFactorsLabel": "缺失因子: {{factors}}"
   },
   "pipeline": {
     "title": "股票管道",

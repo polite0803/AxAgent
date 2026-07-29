@@ -633,22 +633,21 @@ export function DecisionBanner() {
                 </Tag>
               )}
               {decision.weightsCollapsed && (
-                // V66 修复(2026-07-29): weights_collapsed 状态可见化
                 <Tooltip
                   title={
                     <div className="text-xs">
                       <div>
                         {decision.collapseReason === "dqi_collapsed"
-                          ? `数据质量 F 级（dqi<25），决策基础不成立`
+                          ? t("stockAnalysis.weightCollapseDqi")
                           : decision.collapseReason === "multi_untrusted"
-                          ? `不可信上游 ≥2 个（untrusted_count=${decision.untrustedCount ?? "?"}）`
-                          : `因子权重占比 ${decision.weightRatio ?? "?"}% 低于阈值`}
+                          ? t("stockAnalysis.weightCollapseUntrusted", { count: decision.untrustedCount ?? "?" })
+                          : t("stockAnalysis.weightCollapseThreshold", { ratio: decision.weightRatio ?? "?" })}
                       </div>
-                      <div className="mt-1">后果：仓位强制 0%、方向置信度 ×0.5</div>
+                      <div className="mt-1">{t("stockAnalysis.weightCollapseConsequence")}</div>
                     </div>
                   }
                 >
-                  <Tag color="red">⚠️ 因子权重坍缩</Tag>
+                  <Tag color="red">{t("stockAnalysis.weightCollapseTag")}</Tag>
                 </Tooltip>
               )}
             </div>
@@ -706,7 +705,7 @@ export function DecisionBanner() {
                 {confidenceLabel}
               </span>
               {/* V66 修复(2026-07-29): 补充 confidence 语义说明，与 decisionConfidence 区分 */}
-              <Tooltip title="置信度 = 贝叶斯证据强度（受数据质量分级 cap），不受权重坍缩影响。与「决策置信度」不同：后者是方向确信度，坍缩时减半。">
+              <Tooltip title={t("stockAnalysis.confidenceBayesianTooltip")}>
                 <span className="text-xs ml-1 cursor-help" style={{ color: "var(--muted)" }}>?</span>
               </Tooltip>
               {/* V58: 决策方向置信度 — 看空决策 confidence 低但 decision_confidence 高时展示 */}
@@ -1285,12 +1284,14 @@ export function DecisionBanner() {
                   )}
                   {llmFields.stopLossPct != null && (
                     <span>
-                      止损 <b style={{ color: "var(--sa-red)" }}>{llmFields.stopLossPct.toFixed(1)}%</b>
+                      {t("stockAnalysis.stopLoss")}{" "}
+                      <b style={{ color: "var(--sa-red)" }}>{llmFields.stopLossPct.toFixed(1)}%</b>
                     </span>
                   )}
                   {llmFields.takeProfitPct != null && (
                     <span>
-                      止盈 <b style={{ color: "var(--sa-green)" }}>{llmFields.takeProfitPct.toFixed(1)}%</b>
+                      {t("stockAnalysis.takeProfit")}{" "}
+                      <b style={{ color: "var(--sa-green)" }}>{llmFields.takeProfitPct.toFixed(1)}%</b>
                     </span>
                   )}
                 </div>
@@ -1298,7 +1299,7 @@ export function DecisionBanner() {
               {/* V65: LLM 数据缺口 */}
               {llmFields?.gaps && llmFields.gaps.length > 0 && (
                 <div className="flex flex-wrap gap-1" style={{ fontSize: "11px" }}>
-                  <span style={{ color: "var(--muted)" }}>缺口:</span>
+                  <span style={{ color: "var(--muted)" }}>{t("stockAnalysis.gapsLabel")}</span>
                   {llmFields.gaps.slice(0, 3).map((g, i) => (
                     <span
                       key={i}
@@ -1309,7 +1310,9 @@ export function DecisionBanner() {
                     </span>
                   ))}
                   {llmFields.gaps.length > 3 && (
-                    <span style={{ color: "var(--muted)" }}>+{llmFields.gaps.length - 3}</span>
+                    <span style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.moreGaps", { count: llmFields.gaps.length - 3 })}
+                    </span>
                   )}
                 </div>
               )}
@@ -1317,7 +1320,7 @@ export function DecisionBanner() {
               {llmFields?.evidence && llmFields.evidence.length > 0 && (
                 <div className="space-y-0.5" style={{ fontSize: "11px" }}>
                   <span style={{ color: "var(--muted)" }}>
-                    论据({llmFields.evidence.length}):
+                    {t("stockAnalysis.evidenceLabel", { count: llmFields.evidence.length })}
                   </span>
                   {llmFields.evidence.slice(0, 2).map((e, i) => (
                     <div key={i} style={{ color: "var(--color-text-secondary)" }}>
@@ -1326,7 +1329,9 @@ export function DecisionBanner() {
                     </div>
                   ))}
                   {llmFields.evidence.length > 2 && (
-                    <div style={{ color: "var(--muted)" }}>+{llmFields.evidence.length - 2} 条</div>
+                    <div style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.moreEvidence", { count: llmFields.evidence.length - 2 })}
+                    </div>
                   )}
                 </div>
               )}
@@ -1411,7 +1416,7 @@ export function DecisionBanner() {
                 && decision.agreementBreakdown.formulaRiskLevel !== "?"
                 && decision.agreementBreakdown.llmRiskLevel !== "?" && (
                 <div className="text-[11px]" style={{ color: "var(--muted)" }}>
-                  风险等级: 公式
+                  {t("stockAnalysis.riskLevelFormula")}
                   <span style={{ color: getRiskColor(decision.agreementBreakdown.formulaRiskLevel) }}>
                     {t(getRiskTKey(decision.agreementBreakdown.formulaRiskLevel))}
                   </span>{" "}
@@ -1421,12 +1426,14 @@ export function DecisionBanner() {
                   </span>
                   {decision.agreementBreakdown.dataGapsSimilarity != null && (
                     <span className="ml-2">
-                      · 缺口相似度: {(decision.agreementBreakdown.dataGapsSimilarity * 100).toFixed(0)}%
+                      {t("stockAnalysis.gapSimilarity", {
+                        pct: (decision.agreementBreakdown.dataGapsSimilarity * 100).toFixed(0),
+                      })}
                     </span>
                   )}
                   {typeof decision.agreementBreakdown.evidenceCount === "number" && (
                     <span className="ml-2">
-                      · LLM 引用论据: {decision.agreementBreakdown.evidenceCount} 条
+                      {t("stockAnalysis.llmEvidenceCount", { count: decision.agreementBreakdown.evidenceCount })}
                     </span>
                   )}
                 </div>
@@ -1590,7 +1597,7 @@ export function DecisionBanner() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">
-                    🔍 数据质量诊断
+                    {t("stockAnalysis.dqDiagnostics")}
                   </span>
                   <Tag
                     color={dataQualityReport.grade === "A" || dataQualityReport.grade === "B"
@@ -1604,8 +1611,11 @@ export function DecisionBanner() {
                   </Tag>
                 </div>
                 <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
-                  {dataQualityReport.good_count}/{dataQualityReport.total_analysts} 高置信 · 平均{" "}
-                  {dataQualityReport.avg_confidence.toFixed(1)}
+                  {t("stockAnalysis.dqHighConfCount", {
+                    good: dataQualityReport.good_count,
+                    total: dataQualityReport.total_analysts,
+                    avg: dataQualityReport.avg_confidence.toFixed(1),
+                  })}
                 </span>
               </div>
               <div className="text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
@@ -1615,7 +1625,7 @@ export function DecisionBanner() {
               {dataQualityReport.factor_completeness_pct !== undefined && (
                 <div className="mb-3 p-2 rounded" style={{ background: "var(--surface)" }}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold">📊 因子完整度</span>
+                    <span className="text-xs font-semibold">{t("stockAnalysis.factorCompleteness")}</span>
                     <span
                       className="text-xs font-mono"
                       style={{
@@ -1631,7 +1641,7 @@ export function DecisionBanner() {
                   </div>
                   {dataQualityReport.missing_factors && dataQualityReport.missing_factors.length > 0 && (
                     <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                      <span className="font-medium">缺失因子：</span>
+                      <span className="font-medium">{t("stockAnalysis.missingFactors")}</span>
                       <span className="ml-1" style={{ color: "#ef4444" }}>
                         {dataQualityReport.missing_factors.join("、")}
                       </span>
@@ -1639,7 +1649,7 @@ export function DecisionBanner() {
                   )}
                   {(!dataQualityReport.missing_factors || dataQualityReport.missing_factors.length === 0) && (
                     <div className="text-xs" style={{ color: "#10b981" }}>
-                      ✓ 所有因子数据完整
+                      {t("stockAnalysis.allFactorsComplete")}
                     </div>
                   )}
                 </div>
@@ -1649,17 +1659,31 @@ export function DecisionBanner() {
                 defaultActiveKey={dataQualityReport.grade === "F" || dataQualityReport.grade === "D" ? ["diag"] : []}
                 items={[{
                   key: "diag",
-                  label: <span className="text-sm" style={{ color: "var(--muted)" }}>分析师数据差距详情</span>,
+                  label: (
+                    <span className="text-sm" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.analystDataGapDetails")}
+                    </span>
+                  ),
                   children: (
                     <div className="overflow-x-auto">
                       <table className="text-xs w-full" style={{ borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>分析师</th>
-                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>预期数据</th>
-                            <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>置信度</th>
-                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>状态</th>
-                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>差距原因</th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                              {t("stockAnalysis.dqTableAnalyst")}
+                            </th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                              {t("stockAnalysis.dqTableExpectedData")}
+                            </th>
+                            <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                              {t("stockAnalysis.dqTableConfidence")}
+                            </th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                              {t("stockAnalysis.dqTableStatus")}
+                            </th>
+                            <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                              {t("stockAnalysis.dqTableGapReason")}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1670,10 +1694,10 @@ export function DecisionBanner() {
                               ? "#f59e0b"
                               : "#10b981";
                             const statusLabel = diag.status === "missing"
-                              ? "❌ 缺失"
+                              ? t("stockAnalysis.dqStatusMissing")
                               : diag.status === "low"
-                              ? "⚠️ 低置信"
-                              : "✅ 正常";
+                              ? t("stockAnalysis.dqStatusLowConfidence")
+                              : t("stockAnalysis.dqStatusNormal");
                             const confText = diag.confidence < 0
                               ? "—"
                               : `${diag.confidence.toFixed(0)}`;
@@ -1831,6 +1855,7 @@ export function DecisionBanner() {
 // 纯前端展示组件，数据来自 store.decisionInputsReport（不持久化）
 // 按 factor 分组渲染，颜色标注 missing/low/untrusted/normal 四种状态
 function DecisionInputsDiagPanel({ report }: { report: DecisionInputsReport }) {
+  const { t } = useTranslation();
   const summary = useMemo(() => summarizeDecisionInputs(report), [report]);
   // 按 factor 分组
   const grouped = useMemo(() => {
@@ -1854,19 +1879,25 @@ function DecisionInputsDiagPanel({ report }: { report: DecisionInputsReport }) {
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">📋 决策输入诊断</span>
+          <span className="text-sm font-semibold">{t("stockAnalysis.decisionInputsDiag")}</span>
           <Tag
             color={hasIssue ? "error" : "success"}
             style={{ fontSize: 12, lineHeight: "20px", height: 20, paddingInline: 6 }}
           >
-            {summary.normal}/{summary.total} 正常
+            {t("stockAnalysis.diNormalCount", { normal: summary.normal, total: summary.total })}
           </Tag>
         </div>
         <span className="text-xs font-mono" style={{ color: "var(--muted)" }}>
-          {summary.missing > 0 && <span style={{ color: "#ef4444" }}>缺失 {summary.missing} ·</span>}
-          {summary.low > 0 && <span style={{ color: "#f59e0b" }}>低置信 {summary.low} ·</span>}
-          {summary.untrusted > 0 && <span style={{ color: "#ef4444" }}>兜底 {summary.untrusted} ·</span>}
-          <span>共 {summary.total} 项</span>
+          {summary.missing > 0 && (
+            <span style={{ color: "#ef4444" }}>{t("stockAnalysis.diMissing", { count: summary.missing })} ·</span>
+          )}
+          {summary.low > 0 && (
+            <span style={{ color: "#f59e0b" }}>{t("stockAnalysis.diLowConfidence", { count: summary.low })} ·</span>
+          )}
+          {summary.untrusted > 0 && (
+            <span style={{ color: "#ef4444" }}>{t("stockAnalysis.diUntrusted", { count: summary.untrusted })} ·</span>
+          )}
+          <span>{t("stockAnalysis.diTotal", { total: summary.total })}</span>
         </span>
       </div>
       <Collapse
@@ -1874,20 +1905,36 @@ function DecisionInputsDiagPanel({ report }: { report: DecisionInputsReport }) {
         defaultActiveKey={hasIssue ? ["inputs-diag"] : []}
         items={[{
           key: "inputs-diag",
-          label: <span className="text-sm" style={{ color: "var(--muted)" }}>按因子分组查看</span>,
+          label: <span className="text-sm" style={{ color: "var(--muted)" }}>{t("stockAnalysis.groupByFactor")}</span>,
           children: (
             <div className="overflow-x-auto">
               <table className="text-xs w-full" style={{ borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>因子</th>
-                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>节点</th>
-                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>角色</th>
-                    <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>权重</th>
-                    <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>置信度</th>
-                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>方向/值</th>
-                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>状态</th>
-                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>备注</th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableFactor")}
+                    </th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableNode")}
+                    </th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableRole")}
+                    </th>
+                    <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableWeight")}
+                    </th>
+                    <th className="text-right py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableConfidence")}
+                    </th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableDirection")}
+                    </th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableStatus")}
+                    </th>
+                    <th className="text-left py-1.5 px-2" style={{ color: "var(--muted)" }}>
+                      {t("stockAnalysis.diTableNote")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1899,12 +1946,12 @@ function DecisionInputsDiagPanel({ report }: { report: DecisionInputsReport }) {
                         ? "#f59e0b"
                         : "#10b981";
                       const statusLabel = item.status === "missing"
-                        ? "❌ 缺失"
+                        ? t("stockAnalysis.dqStatusMissing")
                         : item.status === "untrusted"
-                        ? "⚠️ 兜底"
+                        ? t("stockAnalysis.dqStatusUntrusted")
                         : item.status === "low"
-                        ? "⚠️ 低置信"
-                        : "✅ 正常";
+                        ? t("stockAnalysis.dqStatusLowConfidence")
+                        : t("stockAnalysis.dqStatusNormal");
                       const confText = item.confidence === null
                         ? "—"
                         : `${item.confidence.toFixed(0)}`;

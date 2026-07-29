@@ -2164,9 +2164,7 @@
     "schemaAllValid": "Schema 校验通过，所有字段合法",
     "schemaValidation": "Schema 校验",
     "waitingForJson": "等待有效 JSON...",
-    "title": "Dynamic UI Preview",
-    "title": "动态 UI 预览",
-    "waitingForJson": "等待有效 JSON..."
+    "title": "动态 UI 预览"
   },
   "error": {
     "deleteFailed": "删除失败，请重试",
@@ -6604,11 +6602,15 @@
       "rootHint": "个根节点"
     },
     "categories": {
-      "container": "容器布局",
+      "container": "布局容器",
       "data-display": "数据展示",
       "form": "表单",
       "media": "媒体",
-      "misc": "其他"
+      "misc": "其他",
+      "basic": "基础",
+      "data": "数据",
+      "layout": "布局",
+      "navigation": "导航"
     },
     "components": {
       "Accordion": "手风琴",
@@ -6724,7 +6726,7 @@
         "static": "静态数据",
         "store": "Store"
       },
-      "field": "字段",
+      "field": "field",
       "format": "格式",
       "gap": "间距",
       "generationId": "生成 ID",
@@ -6845,22 +6847,8 @@
         "style": "样式"
       },
       "text": "文本",
-      "title": "属性面板",
-      "field": "field"
+      "title": "属性面板"
     },
-    "categories": {
-      "container": "布局容器",
-      "data-display": "数据展示",
-      "form": "表单",
-      "media": "媒体",
-      "misc": "其他",
-      "basic": "基础",
-      "data": "数据",
-      "layout": "布局",
-      "navigation": "导航"
-    },
-    "fullscreen": "全屏",
-    "exitFullscreen": "退出全屏",
     "field": "字段"
   },
   "viz": {
@@ -9276,9 +9264,9 @@
     "executeLabel": "执行",
     "triggerLabel": "触发",
     "fileRead": "读取文件",
-    "fileReadDesc": "读取本地文件内容",
+    "fileReadDesc": "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。",
     "fileWrite": "写入文件",
-    "fileWriteDesc": "将内容写入本地文件",
+    "fileWriteDesc": "创建新文件或完全覆盖已有文件（⚠️ 不可逆）。",
     "shellCommand": "Shell 命令",
     "shellCommandDesc": "在终端中执行命令",
     "copyHintCursor": "使用 Cursor 编辑器操作文件",
@@ -9291,10 +9279,8 @@
     "siliconFlow": "SiliconFlow",
     "complexTaskNote": "任务已被判定为复杂任务，请确认后执行。",
     "planCompleted": "（模拟）计划已批准，执行完成。",
-    "fileReadDesc": "读取文件内容。支持文本文件（可指定行范围）、图片、PDF。",
     "globDesc": "使用 glob 模式搜索文件。返回匹配的文件路径列表。",
     "grepDesc": "在文件中搜索匹配正则表达式的内容。",
-    "fileWriteDesc": "创建新文件或完全覆盖已有文件（⚠️ 不可逆）。",
     "fileEditDesc": "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。",
     "deleteFileDesc": "删除指定路径的文件。此操作不可逆。",
     "bashDesc": "执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。"
@@ -12321,7 +12307,54 @@
       "indexQuotes": "大盘指数",
       "peers": "同行对比",
       "optionPcr": "期权PCR"
-    }
+    },
+    "takeProfit": "止盈",
+    "gapsLabel": "缺口:",
+    "moreGaps": "+{{count}}",
+    "evidenceLabel": "论据({{count}}):",
+    "moreEvidence": "+{{count}} 条",
+    "riskLevelFormula": "风险等级: 公式",
+    "gapSimilarity": "· 缺口相似度: {{pct}}%",
+    "llmEvidenceCount": "· LLM 引用论据: {{count}} 条",
+    "dqDiagnostics": "🔍 数据质量诊断",
+    "dqHighConfCount": "{{good}}/{{total}} 高置信 · 平均 {{avg}}",
+    "factorCompleteness": "📊 因子完整度",
+    "missingFactors": "缺失因子：",
+    "allFactorsComplete": "✓ 所有因子数据完整",
+    "analystDataGapDetails": "分析师数据差距详情",
+    "dqTableAnalyst": "分析师",
+    "dqTableExpectedData": "预期数据",
+    "dqTableConfidence": "置信度",
+    "dqTableStatus": "状态",
+    "dqTableGapReason": "差距原因",
+    "dqStatusNormal": "✅ 正常",
+    "dqStatusLowConfidence": "⚠️ 低置信",
+    "dqStatusMissing": "❌ 缺失",
+    "dqStatusUntrusted": "⚠️ 兜底",
+    "decisionInputsDiag": "📋 决策输入诊断",
+    "diNormalCount": "{{normal}}/{{total}} 正常",
+    "diMissing": "缺失 {{count}}",
+    "diLowConfidence": "低置信 {{count}}",
+    "diUntrusted": "兜底 {{count}}",
+    "diTotal": "共 {{total}} 项",
+    "groupByFactor": "按因子分组查看",
+    "diTableFactor": "因子",
+    "diTableNode": "节点",
+    "diTableRole": "角色",
+    "diTableWeight": "权重",
+    "diTableConfidence": "置信度",
+    "diTableDirection": "方向/值",
+    "diTableStatus": "状态",
+    "diTableNote": "备注",
+    "weightCollapseDqi": "数据质量 F 级（dqi<25），决策基础不成立",
+    "weightCollapseUntrusted": "不可信上游 ≥2 个（untrusted_count={{count}}）",
+    "weightCollapseThreshold": "因子权重占比 {{ratio}}% 低于阈值",
+    "weightCollapseConsequence": "后果：仓位强制 0%、方向置信度 ×0.5",
+    "weightCollapseTag": "⚠️ 因子权重坍缩",
+    "confidenceBayesianTooltip": "置信度 = 贝叶斯证据强度（受数据质量分级 cap），不受权重坍缩影响。与「决策置信度」不同：后者是方向确信度，坍缩时减半。",
+    "gradeSuffix": " 级",
+    "scoreLabel": "得分: {{score}}",
+    "missingFactorsLabel": "缺失因子: {{factors}}"
   },
   "pipeline": {
     "title": "股票管道",
