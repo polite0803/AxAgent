@@ -2,7 +2,7 @@
 
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import { DislikeOutlined, LikeOutlined } from "@ant-design/icons";
-import { Button, Input, notification, Space, Typography } from "antd";
+import { App as AntdApp, Button, Input, Space, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -23,6 +23,7 @@ interface FeedbackCollectorProps {
 
 export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
   const { t } = useTranslation();
+  const { notification } = AntdApp.useApp();
   const submitFeedback = useTracerStore((s) => s.submitFeedback);
   const [rating, setRating] = useState<"like" | "dislike" | null>(null);
   const [comment, setComment] = useState("");

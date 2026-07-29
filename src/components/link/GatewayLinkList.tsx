@@ -50,7 +50,8 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
       await toggleLink(link.id, checked);
       void fetchLinks();
     } catch {
-      message.error(t("link.addFailed"));
+      // GW-P1-1: 修正错误的 i18n key,toggle 失败不应显示"添加失败"
+      message.error(t("link.toggleFailed"));
     }
   };
 

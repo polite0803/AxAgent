@@ -10,17 +10,20 @@ const { RangePicker } = DatePicker;
 
 export function TraceFilters() {
   const { t } = useTranslation();
-  const { filter, setFilter } = useTracerStore();
+  const { filter, setFilter, loadTraces } = useTracerStore();
   const [localFilter, setLocalFilter] = useState<TraceFilter>(filter);
 
+  // DT-P0-1: 应用筛选时必须触发数据加载,否则功能闭环断裂
   const handleApply = () => {
     setFilter(localFilter);
+    loadTraces(localFilter);
   };
 
   const handleReset = () => {
     const emptyFilter: TraceFilter = {};
     setLocalFilter(emptyFilter);
     setFilter(emptyFilter);
+    loadTraces(emptyFilter);
   };
 
   return (

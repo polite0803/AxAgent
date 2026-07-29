@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { type FileInfo, getFileInfo, readTextFile } from "@/lib/fileBrowserApi";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Empty, Spin, theme, Typography } from "antd";
 import { File as FileIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -112,12 +113,15 @@ export function FilePreview({ path }: FilePreviewProps) {
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState<FileInfo | null>(null);
   const [text, setText] = useState<string | null>(null);
+  // 图片预览的 base64 data URL（通过后端命令读取，避免 file:// 协议被 CSP 拦截 + Windows 路径格式问题）
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
   useEffect(() => {
     setInfo(null);
     setText(null);
+    setImageSrc(null);
     setImageError(false);
     setErrorText(null);
     if (!path) { return; }
@@ -136,6 +140,15 @@ export function FilePreview({ path }: FilePreviewProps) {
             if (!cancelled) { setText(content); }
           } catch {
             // 文本读取失败不致命，回退到信息展示
+          }
+        } else if (IMAGE_EXTENSIONS.has(ext)) {
+          // 通过后端命令读取 base64 data URL，规避 CSP 拦截 + Windows file:// 路径格式问题
+          try {
+            const dataUrl = await invoke<string>("read_attachment_preview", { filePath: path });
+            if (!cancelled) { setImageSrc(dataUrl); }
+          } catch (e) {
+            logIpcError("FilePreview read_attachment_preview")(e);
+            if (!cancelled) { setImageError(true); }
           }
         }
       } catch (e) {
@@ -181,7 +194,10 @@ export function FilePreview({ path }: FilePreviewProps) {
   }
 
   const ext = getExtension(path);
-  const showImage = !info.isDir && IMAGE_EXTENSIONS.has(ext) && !imageError;
+  const isImage = !info.isDir && IMAGE_EXTENSIONS.has(ext);
+  // 图片 src 优先使用后端读取的 base64 data URL；imageError 时回退到图标占位
+  const showImage = isImage && !imageError && imageSrc !== null;
+  const showImagePlaceholder = isImage && (imageError || imageSrc === null);
   const showText = text !== null;
   const typeLabel = info.isDir
     ? t("files.previewDirType")
@@ -200,11 +216,11 @@ export function FilePreview({ path }: FilePreviewProps) {
         </Text>
       </div>
 
-      {/* 图片预览 */}
+      {/* 图片预览（base64 data URL，规避 CSP 拦截 + Windows 路径格式问题） */}
       {showImage && (
         <div className="flex justify-center">
           <img
-            src={`file://${info.path}`}
+            src={imageSrc ?? undefined}
             alt={info.name}
             onError={() => setImageError(true)}
             style={{
@@ -213,6 +229,22 @@ export function FilePreview({ path }: FilePreviewProps) {
               border: `1px solid ${token.colorBorderSecondary}`,
             }}
           />
+        </div>
+      )}
+      {showImagePlaceholder && (
+        <div
+          className="flex flex-col items-center justify-center gap-2 py-8"
+          style={{
+            color: token.colorTextTertiary,
+            backgroundColor: token.colorFillQuaternary,
+            borderRadius: 8,
+            border: `1px solid ${token.colorBorderSecondary}`,
+          }}
+        >
+          <FileIcon size={32} style={{ color: token.colorTextTertiary }} />
+          <span className="text-xs">
+            {imageError ? t("files.previewImageFailed") : t("files.previewLoading")}
+          </span>
         </div>
       )}
 

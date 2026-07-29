@@ -128,8 +128,10 @@ export const FormRenderer: React.FC<DynamicUIProps> = ({
             instance_key: instanceKey,
           });
           message.success(t("common.saved"));
-        } catch {
-          // 持久化失败不应阻断后续动作
+        } catch (e) {
+          // DUI-P1-05: 持久化失败不阻断后续动作，但需提示用户
+          console.warn("FormRenderer: 表单数据持久化失败", e);
+          message.warning(t("dynamicUI.persistFailed"));
         }
       }
 

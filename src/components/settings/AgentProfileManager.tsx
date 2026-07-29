@@ -2,6 +2,7 @@
 
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useUIStore } from "@/stores";
 import { useAgentStore } from "@/stores/feature/agentStore";
 import type {
@@ -17,7 +18,6 @@ import {
   Divider,
   Empty,
   Input,
-  message,
   Modal,
   Popconfirm,
   Select,

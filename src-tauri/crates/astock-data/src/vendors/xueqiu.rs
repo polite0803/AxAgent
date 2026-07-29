@@ -234,34 +234,37 @@ impl StockVendor for XueqiuVendor {
         );
         let count = limit.min(50);
         // 雪球股票时间线接口：个股动态（新闻+讨论）
-        // 注意：此接口被阿里云 WAF 保护，token 无效或网络环境触发 WAF 时会返回
-        // text/html WAF 挑战页面而非 JSON。检查 Content-Type 以提前识别这种情形。
         let url = format!(
             "https://xueqiu.com/statuses/stock_timeline.json?symbol_id={symbol_id}&page=1&count={count}"
         );
-        let resp = self.xq_get(&url).await?;
+        let resp = match self.xq_get(&url).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!("[xueqiu] 新闻原生接口请求失败，降级到东方财富: {e}");
+                return crate::vendors::fetch_eastmoney_news(
+                    &self.http, "xueqiu", stock_code, limit,
+                )
+                .await;
+            },
+        };
 
         // 预检 Content-Type，防止将 WAF HTML 页面当作 JSON 解析
-        // 先克隆 Content-Type 字符串，避免借用 resp
         let ct = resp
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok().map(String::from))
             .unwrap_or_default();
         if ct.starts_with("text/html") || ct.starts_with("text/plain") {
-            // 修复: 原 `unwrap_or_default()` 把 body 读取失败吞为空串，
-            // 导致 warn 日志中 preview 为空，丢失 WAF/反爬诊断信息。
-            // 改为内嵌错误原因，便于排查。
             let body = match resp.text().await {
                 Ok(t) => t,
                 Err(e) => format!("<resp.text() failed: {e}>"),
             };
             let preview = &body[..body.len().min(200)];
-            tracing::warn!("[xueqiu] 新闻接口返回非 JSON (Content-Type={ct}), preview={preview}");
-            return Err(DataError::VendorError {
-                vendor: "xueqiu".into(),
-                message: format!("雪球新闻接口返回非 JSON (Content-Type={ct})，可能是阿里云 WAF 拦截或 API 已变更"),
-            });
+            tracing::warn!(
+                "[xueqiu] 新闻接口返回非 JSON (Content-Type={ct})，阿里云 WAF 拦截，降级到东方财富, preview={preview}"
+            );
+            return crate::vendors::fetch_eastmoney_news(&self.http, "xueqiu", stock_code, limit)
+                .await;
         }
 
         let json: serde_json::Value = resp

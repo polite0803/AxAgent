@@ -659,7 +659,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
       try {
         const data = await invoke<WorkflowData>("workflow_get_status", {
-          workflow_id: workflowId,
+          workflowId,
         });
         if (fetchIdRef.current !== requestId) {
           return;
@@ -724,10 +724,10 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
     }
     setCancelling(true);
     try {
-      await invoke("workflow_cancel", { workflow_id: workflowId });
+      await invoke("workflow_cancel", { workflowId });
       message.success(t("chat.workflow.cancelled"));
       const data = await invoke<WorkflowData>("workflow_get_status", {
-        workflow_id: workflowId,
+        workflowId,
       });
       setWorkflow(data);
       setError(null);

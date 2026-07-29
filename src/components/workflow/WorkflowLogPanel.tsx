@@ -45,14 +45,20 @@ export function WorkflowLogPanel({ logs, onClear, onExport, maxHeight = 300 }: W
 
   return (
     <div>
-      <div style={{ marginBottom: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button size="small" onClick={onClear}>
-          {t("workflow.log.clear")}
-        </Button>
-        <Button size="small" onClick={onExport}>
-          {t("workflow.log.export")}
-        </Button>
-      </div>
+      {(onClear || onExport) && (
+        <div style={{ marginBottom: 8, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          {onClear && (
+            <Button size="small" onClick={onClear}>
+              {t("workflow.log.clear")}
+            </Button>
+          )}
+          {onExport && (
+            <Button size="small" onClick={onExport}>
+              {t("workflow.log.export")}
+            </Button>
+          )}
+        </div>
+      )}
       <div
         ref={containerRef}
         style={{

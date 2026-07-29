@@ -138,7 +138,8 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
       return;
     }
 
-    setTimeout(() => setDataLoading(true), 0);
+    // DUI-P2-02: 保存 setTimeout 句柄，在 cleanup 中清理避免内存泄漏
+    const loadingTimer = setTimeout(() => setDataLoading(true), 0);
     let cancelled = false;
 
     subscribeDataSource(
@@ -167,6 +168,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
 
     return () => {
       cancelled = true;
+      clearTimeout(loadingTimer);
       if (subscriberRef.current) {
         subscriberRef.current.unsubscribe();
         subscriberRef.current = null;

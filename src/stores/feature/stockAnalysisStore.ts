@@ -2211,6 +2211,12 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           traderRaw ? Object.keys(traderRaw as object).join(",") : "null/undefined",
         );
         console.log("[workflow-completed] llmDecisionJson:", llmDecisionJson);
+        // 清理 LLM 输出中的 markdown 代码围栏（```json ... ```），部分 model 会在 JSON 外包裹这些标记
+        if (llmDecisionJson) {
+          llmDecisionJson = llmDecisionJson
+            .replace(/^`{3}(?:json)?\s*/m, "") // 去掉开头的 ```json 或 ```
+            .replace(/`{3}\s*$/m, ""); // 去掉结尾的 ```
+        }
         // 用同一份 llmDecisionJson 计算一致性分数
         if (llmDecisionJson && decision) {
           try {

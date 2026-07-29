@@ -3,9 +3,9 @@
 import { showBackendError } from "@/lib/errorI18n";
 import { getDocumentsRoot } from "@/lib/fileBrowserApi";
 import { useKnowledgeStore } from "@/stores";
-import { Alert, App, Button, Input, Modal, Popconfirm, Space, theme } from "antd";
+import { Alert, App, Button, Empty, Input, Modal, Popconfirm, Space, theme } from "antd";
 import { Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FILE_CATEGORIES, type FileCategory } from "./fileCategories";
 import { FileList } from "./FileList";
@@ -21,8 +21,17 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   const { message } = App.useApp();
   const { token } = theme.useToken();
   const meta = FILE_CATEGORIES.find((c) => c.id === activeCategory);
+  // F-P1-2: render 阶段抛错会崩溃整个页面，改为返回 Empty + 控制台告警
   if (!meta) {
-    throw new Error(`Unhandled file category: ${activeCategory}`);
+    console.warn("[FilesContent] Unhandled file category:", activeCategory);
+    return (
+      <div className="h-full flex items-center justify-center p-6">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t("files.unknownCategory", { cat: activeCategory })}
+        />
+      </div>
+    );
   }
 
   const {
@@ -40,63 +49,93 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   // 文件浏览器根目录（异步加载 documents_root）
   const [treeRootPath, setTreeRootPath] = useState<string>("");
+  // F-P2-7: 根目录加载失败时显示错误提示，避免左侧栏空白无反馈
+  const [treeRootError, setTreeRootError] = useState<string | null>(null);
   // 当前预览的文件路径
   const [previewPath, setPreviewPath] = useState<string | null>(null);
 
-  // 组件挂载时初始化外部 store 状态（避免在 effect 内 setState 触发级联渲染）
+  // F-P2-9: 合并初始化与分类加载为单一 useEffect，避免重复触发 loadCategory
   useEffect(() => {
     setSearch("");
     setSortKey("createdAt");
-  }, [setSearch, setSortKey]);
-
-  useEffect(() => {
     void loadCategory(activeCategory);
-  }, [activeCategory, loadCategory]);
+  }, [activeCategory, loadCategory, setSearch, setSortKey]);
 
   // 异步获取文件浏览器根目录
   useEffect(() => {
     let cancelled = false;
+    setTreeRootError(null);
     getDocumentsRoot()
       .then((root) => {
         if (!cancelled) { setTreeRootPath(root); }
       })
       .catch((e: unknown) => {
-        // 获取根目录失败不致命，静默处理
-        console.warn("[FilesContent] getDocumentsRoot failed:", e);
+        // F-P2-7: 失败时设置错误状态而非静默，UI 上显示 Alert
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setTreeRootError(msg);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    void loadCategory(activeCategory);
-  };
+  // F-P2-9: 搜索输入加 debounce（300ms），避免每次按键都触发后端调用
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+      searchDebounceRef.current = setTimeout(() => {
+        void loadCategory(activeCategory);
+      }, 300);
+    },
+    [activeCategory, loadCategory, setSearch],
+  );
 
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
+
+  // F-P1-3: 用 Promise.allSettled 统计部分成功/失败，避免已成功删除不可见
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleBatchDelete = useCallback(async () => {
     if (selectedRowKeys.length === 0) {
       return;
     }
-    try {
-      await Promise.all(selectedRowKeys.map((key) => deleteEntry(key)));
-      setSelectedRowKeys([]);
-      message.success(
-        t("files.batchDeleteSuccess", { count: selectedRowKeys.length }),
+    const keysToDelete = selectedRowKeys;
+    const results = await Promise.allSettled(
+      keysToDelete.map((key) => deleteEntry(key)),
+    );
+    const fulfilled = results.filter((r) => r.status === "fulfilled").length;
+    const rejected = results.filter((r) => r.status === "rejected");
+    if (fulfilled > 0) {
+      // 只保留删除失败的行
+      const failedKeys = new Set(
+        keysToDelete.filter((_, idx) => results[idx].status === "rejected"),
       );
-      void loadCategory(activeCategory);
-    } catch (e) {
-      showBackendError(message, e);
+      setSelectedRowKeys((prev) => prev.filter((k) => failedKeys.has(k)));
+      if (rejected.length === 0) {
+        message.success(t("files.batchDeleteSuccess", { count: fulfilled }));
+      } else {
+        message.warning(
+          t("files.batchDeletePartial", { ok: fulfilled, fail: rejected.length }),
+        );
+        const firstError = (rejected[0] as PromiseRejectedResult).reason;
+        showBackendError(message, firstError);
+      }
+    } else if (rejected.length > 0) {
+      showBackendError(message, (rejected[0] as PromiseRejectedResult).reason);
     }
-  }, [
-    selectedRowKeys,
-    activeCategory,
-    loadCategory,
-    deleteEntry,
-    message,
-    t,
-  ]);
+    void loadCategory(activeCategory);
+  }, [selectedRowKeys, activeCategory, loadCategory, deleteEntry, message, t]);
 
   const handleDeleteEntry = useCallback(
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -127,7 +166,18 @@ export function FilesContent({ activeCategory }: FilesContentProps) {
           borderRight: `1px solid ${token.colorBorderSecondary}`,
         }}
       >
-        {treeRootPath
+        {treeRootError
+          ? (
+            <div className="p-3">
+              <Alert
+                type="error"
+                message={t("files.rootLoadFailed")}
+                description={treeRootError}
+                showIcon
+              />
+            </div>
+          )
+          : treeRootPath
           ? (
             <FileTreeView
               rootPath={treeRootPath}

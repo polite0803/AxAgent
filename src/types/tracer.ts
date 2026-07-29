@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// DT-P0-2: 与后端 telemetry/src/span.rs SpanType 对齐,补充 workflow/workflow_node
 export type SpanType =
   | "agent"
   | "tool"
@@ -7,7 +8,9 @@ export type SpanType =
   | "task"
   | "sub_task"
   | "reflection"
-  | "reasoning";
+  | "reasoning"
+  | "workflow"
+  | "workflow_node";
 
 export type SpanStatus = "ok" | "error" | "cancelled";
 

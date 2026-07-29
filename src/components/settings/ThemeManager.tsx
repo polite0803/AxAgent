@@ -85,8 +85,11 @@ export function ThemeManager() {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [form] = Form.useForm();
 
+  // S-P1-1: 添加错误处理
   useEffect(() => {
-    loadThemes();
+    loadThemes().catch(() => {
+      // store 内部已处理错误
+    });
   }, [loadThemes]);
 
   const handleThemeSelect = (themeName: string) => {
@@ -129,11 +132,12 @@ colors:
 `;
   };
 
-  const handleImportTheme = (values: { yaml: string }) => {
+  // S-P1-2: saveCustomTheme 是异步,必须 await 以捕获错误
+  const handleImportTheme = async (values: { yaml: string }) => {
     try {
       const theme = yamlToTheme(values.yaml);
       if (theme) {
-        useThemeStore.getState().saveCustomTheme(theme);
+        await useThemeStore.getState().saveCustomTheme(theme);
         message.success(t("settings.theme.imported"));
         setImportModalVisible(false);
         form.resetFields();

@@ -1,18 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
+import type { TraceSummary } from "@/types";
 import { Bug, Clock, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-interface TraceSummary {
-  trace_id: string;
-  started_at?: string;
-  ended_at?: string;
-  duration_ms: number;
-  span_count: number;
-  error_count: number;
-}
+// DT-P1-7: 使用 @/types 权威定义,避免本地重定义
 
 export function TracerPanel() {
   const { t } = useTranslation();
@@ -177,7 +171,7 @@ export function TracerPanel() {
                   </div>
                   <div className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
                     <Clock size={10} />
-                    {trace.duration_ms > 0 ? `${trace.duration_ms}ms` : "--"}
+                    {trace.duration_ms && trace.duration_ms > 0 ? `${trace.duration_ms}ms` : "--"}
                     <span>·</span>
                     {trace.span_count} spans
                     {trace.error_count > 0 && (

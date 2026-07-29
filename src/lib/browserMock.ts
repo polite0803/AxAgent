@@ -28,6 +28,16 @@ import type { Artifact } from "@/types";
 import type { BackupManifest } from "@/types";
 import type { CreateKnowledgeBaseInput } from "@/types";
 import type { CreateMemoryItemInput, CreateMemoryNamespaceInput } from "@/types";
+import type {
+  CreateDynamicUISchemaParams,
+  DynamicUIFormDataRecord,
+  DynamicUIPinRecord,
+  DynamicUISchemaRecord,
+  DynamicUISchemaVersion,
+  ListVersionsResponse,
+  SaveDynamicUIFormDataParams,
+  UpdateDynamicUISchemaParams,
+} from "@/types";
 import { emitBrowserEvent } from "./browserEvents";
 
 interface Fleet {
@@ -708,6 +718,56 @@ function resolvePlanDecision(conversationId: string, decision: string): void {
     planDecisionResolvers.delete(conversationId);
     resolver(decision);
   }
+}
+
+// ── DynamicUI Mock 辅助函数 ──────────────────────────────────────
+// i18n-exempt: Mock data keys for localStorage, not user-facing.
+function loadMockDynamicUIData<T>(key: string, defaultValue: T): T {
+  try {
+    const data = localStorage.getItem(`axagent.mock.dynamicUI.${key}`);
+    return data ? (JSON.parse(data) as T) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function saveMockDynamicUIData<T>(key: string, data: T): void {
+  try {
+    localStorage.setItem(`axagent.mock.dynamicUI.${key}`, JSON.stringify(data));
+  } catch (e) {
+    console.warn(`Failed to write localStorage key: axagent.mock.dynamicUI.${key}`, e);
+  }
+}
+
+/** 语义化版本号 patch 自增（不传 version 时使用） */
+function bumpPatchVersion(version: string): string {
+  const parts = version.split(".");
+  if (parts.length !== 3) {
+    return version;
+  }
+  const patch = parseInt(parts[2], 10);
+  if (isNaN(patch)) {
+    return version;
+  }
+  return `${parts[0]}.${parts[1]}.${patch + 1}`;
+}
+
+/** 生成一个简单的 mock UISchema JSON（Column + Text 结构） */
+function buildMockUISchemaJSON(): string {
+  return JSON.stringify({
+    version: "1.0",
+    id: "mock-root",
+    type: "Column",
+    props: {},
+    children: [
+      {
+        version: "1.0",
+        id: "mock-text",
+        type: "Text",
+        props: { content: "Mock 动态 UI 内容" },
+      },
+    ],
+  });
 }
 
 export async function handleCommand<T>(
@@ -3278,6 +3338,536 @@ export async function handleCommand<T>(
         }),
       } as T;
     }
+
+    // ── DynamicUI Schema CRUD ──────────────────────────────────────────
+    case "list_dynamic_ui_schemas": {
+      const { category } = (args as { category?: string | null }) ?? {};
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      const filtered = category
+        ? schemas.filter((s) => s.category === category)
+        : schemas;
+      return filtered as T;
+    }
+    case "get_dynamic_ui_schema": {
+      const { id } = args as { id?: string };
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      const schema = schemas.find((s) => s.id === id) ?? null;
+      return schema as T;
+    }
+    case "create_dynamic_ui_schema": {
+      const req = (args as { req?: CreateDynamicUISchemaParams }).req;
+      if (!req) {
+        throw new Error("Missing req parameter");
+      }
+      const now = new Date().toISOString();
+      const schema: DynamicUISchemaRecord = {
+        id: genId(),
+        title: req.title,
+        description: req.description,
+        schema_json: req.schema_json,
+        category: req.category,
+        tags: req.tags,
+        version: "1.0.0",
+        is_builtin: false,
+        created_at: now,
+        updated_at: now,
+      };
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      schemas.push(schema);
+      saveMockDynamicUIData("schemas", schemas);
+      // 创建初始版本记录
+      const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
+      versions.push({
+        id: Date.now(),
+        schema_id: schema.id,
+        version: schema.version,
+        title: schema.title,
+        description: schema.description,
+        schema_json: schema.schema_json,
+        category: schema.category,
+        tags: schema.tags,
+        change_log: "初始创建",
+        created_at: Date.now(),
+      });
+      saveMockDynamicUIData("versions", versions);
+      return schema as T;
+    }
+    case "update_dynamic_ui_schema": {
+      const { id, req } = args as {
+        id?: string;
+        req?: UpdateDynamicUISchemaParams;
+      };
+      if (!id || !req) {
+        throw new Error("Missing id or req parameter");
+      }
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      const idx = schemas.findIndex((s) => s.id === id);
+      if (idx === -1) {
+        throw new Error("Schema not found");
+      }
+      const old = schemas[idx];
+      // 版本号：传了用传入值，否则 patch 自增
+      const newVersion = req.version ?? bumpPatchVersion(old.version);
+      const updated: DynamicUISchemaRecord = {
+        ...old,
+        title: req.title ?? old.title,
+        description: req.description ?? old.description,
+        schema_json: req.schema_json ?? old.schema_json,
+        category: req.category ?? old.category,
+        tags: req.tags ?? old.tags,
+        version: newVersion,
+        updated_at: new Date().toISOString(),
+      };
+      schemas[idx] = updated;
+      saveMockDynamicUIData("schemas", schemas);
+      // 创建版本记录
+      const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
+      versions.push({
+        id: Date.now(),
+        schema_id: updated.id,
+        version: updated.version,
+        title: updated.title,
+        description: updated.description,
+        schema_json: updated.schema_json,
+        category: updated.category,
+        tags: updated.tags,
+        change_log: req.change_log ?? "更新",
+        created_at: Date.now(),
+      });
+      saveMockDynamicUIData("versions", versions);
+      return updated as T;
+    }
+    case "delete_dynamic_ui_schema": {
+      const { id } = args as { id?: string };
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      saveMockDynamicUIData(
+        "schemas",
+        schemas.filter((s) => s.id !== id),
+      );
+      // 同步清理版本记录
+      const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
+      saveMockDynamicUIData(
+        "versions",
+        versions.filter((v) => v.schema_id !== id),
+      );
+      return undefined as T;
+    }
+
+    // ── DynamicUI 表单数据持久化 ──────────────────────────────────────
+    case "save_dynamic_ui_form_data": {
+      const req = (args as { req?: SaveDynamicUIFormDataParams }).req;
+      if (!req) {
+        throw new Error("Missing req parameter");
+      }
+      const instanceKey = req.instance_key ?? "__default__";
+      const records = loadMockDynamicUIData<DynamicUIFormDataRecord[]>("formData", []);
+      const idx = records.findIndex(
+        (r) => r.schema_id === req.schema_id && r.instance_key === instanceKey,
+      );
+      const now = new Date().toISOString();
+      const record: DynamicUIFormDataRecord = {
+        id: idx !== -1 ? records[idx].id : genId(),
+        schema_id: req.schema_id,
+        instance_key: instanceKey,
+        form_data_json: req.form_data_json,
+        updated_at: now,
+      };
+      if (idx !== -1) {
+        records[idx] = record;
+      } else {
+        records.push(record);
+      }
+      saveMockDynamicUIData("formData", records);
+      return record as T;
+    }
+    case "get_dynamic_ui_form_data": {
+      const { schema_id, instance_key } = args as {
+        schema_id?: string;
+        instance_key?: string | null;
+      };
+      const instanceKey = instance_key ?? "__default__";
+      const records = loadMockDynamicUIData<DynamicUIFormDataRecord[]>("formData", []);
+      const record = records.find(
+        (r) => r.schema_id === schema_id && r.instance_key === instanceKey,
+      ) ?? null;
+      return record as T;
+    }
+    case "delete_dynamic_ui_form_data": {
+      const { schema_id, instance_key } = args as {
+        schema_id?: string;
+        instance_key?: string | null;
+      };
+      const instanceKey = instance_key ?? "__default__";
+      const records = loadMockDynamicUIData<DynamicUIFormDataRecord[]>("formData", []);
+      saveMockDynamicUIData(
+        "formData",
+        records.filter(
+          (r) => !(r.schema_id === schema_id && r.instance_key === instanceKey),
+        ),
+      );
+      return undefined as T;
+    }
+
+    // ── DynamicUI 钉入配置 ────────────────────────────────────────────
+    case "list_dynamic_ui_pins": {
+      const pins = loadMockDynamicUIData<DynamicUIPinRecord[]>("pins", []);
+      return pins as T;
+    }
+    case "pin_dynamic_ui_schema": {
+      const { schema_id, title, group_name, position } = args as {
+        schema_id?: string;
+        title?: string;
+        group_name?: string;
+        position?: number | null;
+      };
+      if (!schema_id) {
+        throw new Error("Missing schema_id");
+      }
+      const pins = loadMockDynamicUIData<DynamicUIPinRecord[]>("pins", []);
+      const idx = pins.findIndex((p) => p.schema_id === schema_id);
+      const now = new Date().toISOString();
+      const pos = position
+        ?? (pins.length > 0 ? Math.max(...pins.map((p) => p.position)) + 1 : 0);
+      const record: DynamicUIPinRecord = {
+        schema_id,
+        title: title ?? "",
+        group_name: group_name ?? "",
+        position: pos,
+        created_at: idx !== -1 ? pins[idx].created_at : now,
+        updated_at: now,
+      };
+      if (idx !== -1) {
+        pins[idx] = record;
+      } else {
+        pins.push(record);
+      }
+      saveMockDynamicUIData("pins", pins);
+      return record as T;
+    }
+    case "unpin_dynamic_ui_schema": {
+      const { schema_id } = args as { schema_id?: string };
+      const pins = loadMockDynamicUIData<DynamicUIPinRecord[]>("pins", []);
+      saveMockDynamicUIData(
+        "pins",
+        pins.filter((p) => p.schema_id !== schema_id),
+      );
+      return undefined as T;
+    }
+
+    // ── DynamicUI 版本管理 ────────────────────────────────────────────
+    case "list_dynamic_ui_schema_versions": {
+      const { schema_id } = args as { schema_id?: string };
+      const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
+      const filtered = versions.filter((v) => v.schema_id === schema_id);
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      const schema = schemas.find((s) => s.id === schema_id);
+      const response: ListVersionsResponse = {
+        versions: filtered,
+        current_version: schema?.version ?? "",
+      };
+      return response as T;
+    }
+    case "get_dynamic_ui_schema_version": {
+      const { version_id } = args as { version_id?: number };
+      const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
+      const version = versions.find((v) => v.id === version_id) ?? null;
+      return version as T;
+    }
+    case "restore_dynamic_ui_schema_version": {
+      const { schema_id, version_id } = args as {
+        schema_id?: string;
+        version_id?: number;
+      };
+      const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
+      const version = versions.find(
+        (v) => v.id === version_id && v.schema_id === schema_id,
+      );
+      if (!version) {
+        throw new Error("Version not found");
+      }
+      const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
+      const idx = schemas.findIndex((s) => s.id === schema_id);
+      if (idx === -1) {
+        throw new Error("Schema not found");
+      }
+      const restored: DynamicUISchemaRecord = {
+        id: schemas[idx].id,
+        title: version.title,
+        description: version.description,
+        schema_json: version.schema_json,
+        category: version.category,
+        tags: version.tags,
+        version: version.version,
+        is_builtin: schemas[idx].is_builtin,
+        created_at: schemas[idx].created_at,
+        updated_at: new Date().toISOString(),
+      };
+      schemas[idx] = restored;
+      saveMockDynamicUIData("schemas", schemas);
+      return restored as T;
+    }
+
+    // ── DynamicUI 自然语言生成 ────────────────────────────────────────
+    case "edit_dynamic_ui_schema_nl": {
+      const { prompt } = args as { existing_schema?: string; prompt?: string };
+      const mockSchema = buildMockUISchemaJSON();
+      return {
+        schema: mockSchema,
+        description: `Mock: 已根据指令"${(prompt ?? "").slice(0, 50)}"编辑示例 schema`,
+      } as T;
+    }
+    case "generate_dynamic_ui_schema_nl": {
+      const { prompt } = args as { prompt?: string };
+      const mockSchema = buildMockUISchemaJSON();
+      return {
+        schema: mockSchema,
+        title: "Mock 动态 UI",
+        description: `Mock: 已根据描述"${(prompt ?? "").slice(0, 50)}"生成示例 schema`,
+      } as T;
+    }
+
+    // ── DevTools: Tracer (轨迹追踪) ───────────────────────────────────
+    case "tracer_start_span":
+      return genId() as T;
+    case "tracer_end_span":
+    case "tracer_record_error":
+    case "tracer_record_span":
+    case "tracer_delete_trace":
+    case "tracer_submit_feedback":
+    case "telemetry_report_error":
+      return undefined as T;
+    case "tracer_list_traces":
+    case "tracer_get_feedback":
+    case "tracer_generate_suggestions":
+      return [] as T;
+    case "tracer_get_trace":
+    case "tracer_get_span":
+    case "tracer_get_metrics":
+      return null as T;
+    case "tracer_export_traces":
+      // 后端返回 Vec<u8>，浏览器 mock 用空数组占位
+      return [] as unknown as T;
+    case "tracer_delete_old_traces":
+      return 0 as T;
+    case "tracer_get_bottlenecks":
+      return { bottlenecks: [], summary: {} } as T;
+
+    // ── DevTools: Evaluator (评估器) ──────────────────────────────────
+    case "evaluator_list_benchmarks":
+    case "evaluator_list_datasets":
+      return [] as T;
+    case "evaluator_get_benchmark":
+    case "evaluator_get_ab_results":
+      return null as T;
+    case "evaluator_run_benchmark":
+      return {
+        benchmark_id: "",
+        status: "completed",
+        results: [],
+        started_at: nowTs(),
+        completed_at: nowTs(),
+      } as T;
+    case "evaluator_generate_report":
+      return {
+        id: genId(),
+        benchmark_id: "",
+        generated_at: nowTs(),
+        summary: {},
+        metrics: {},
+      } as T;
+    case "evaluator_import_dataset":
+      return {
+        id: genId(),
+        name: "Mock Dataset",
+        source_path: (args as { path?: string })?.path ?? "",
+        size: 0,
+        created_at: nowTs(),
+      } as T;
+    case "evaluator_export_report":
+      return "" as T;
+    case "evaluator_run_ab_test":
+      return {
+        test_id: genId(),
+        status: "completed",
+        variants: {},
+        started_at: nowTs(),
+        completed_at: nowTs(),
+      } as T;
+
+    // ── DevTools: RL Training (强化学习) ──────────────────────────────
+    case "start_rl_training":
+    case "stop_rl_training":
+    case "load_checkpoint":
+    case "delete_checkpoint":
+      return undefined as T;
+    case "get_training_metrics":
+      return {
+        episode: 0,
+        reward: 0,
+        loss: 0,
+        steps: 0,
+        avg_reward: 0,
+        epsilon: 0,
+        learning_rate: 0,
+      } as T;
+    case "save_checkpoint":
+      return {
+        id: genId(),
+        episode: 0,
+        reward: 0,
+        created_at: nowTs(),
+        path: "/mock/checkpoint.pt",
+      } as T;
+    case "list_checkpoints":
+      return [] as T;
+    case "run_rl_training_step":
+      return { step: 0, reward: 0, loss: 0, done: false } as T;
+
+    // ── DevTools: Fine-tune (微调) ────────────────────────────────────
+    case "list_datasets":
+      return [] as T;
+    case "get_dataset":
+      return {
+        id: "",
+        name: "",
+        description: "",
+        sample_count: 0,
+        created_at: 0,
+      } as T;
+    case "create_dataset":
+      return {
+        id: genId(),
+        name: (args as { name?: string })?.name ?? "Mock Dataset",
+        description: (args as { description?: string })?.description ?? "",
+        sample_count: 0,
+        created_at: nowTs(),
+      } as T;
+    case "add_sample":
+    case "delete_dataset":
+    case "cancel_training_job":
+    case "delete_training_job":
+    case "start_training_job":
+    case "set_active_model":
+      return undefined as T;
+    case "list_training_jobs":
+      return [] as T;
+    case "get_training_job":
+      return {
+        id: "",
+        status: "pending",
+        progress: 0,
+        created_at: 0,
+      } as T;
+    case "create_training_job":
+      return {
+        id: genId(),
+        dataset_id: (args as { dataset_id?: string })?.dataset_id ?? "",
+        base_model: (args as { base_model?: string })?.base_model ?? "",
+        status: "pending",
+        progress: 0,
+        created_at: nowTs(),
+      } as T;
+    case "get_training_stats":
+      return {
+        total_jobs: 0,
+        active_jobs: 0,
+        completed_jobs: 0,
+        failed_jobs: 0,
+        total_samples: 0,
+      } as T;
+    case "list_base_models":
+    case "list_lora_adapters":
+      return [] as T;
+    case "get_active_model":
+      return null as T;
+
+    // ── DevTools: Agent Analytics (智能体分析) ────────────────────────
+    case "trajectory_stats":
+      return {
+        total_trajectories: 0,
+        total_steps: 0,
+        avg_steps: 0,
+        avg_quality: 0,
+        success_rate: 0,
+      } as T;
+    case "trajectory_list":
+      return [] as T;
+    case "get_trajectory_detail":
+      return null as T;
+    case "pattern_stats":
+      return {
+        total_patterns: 0,
+        high_value_patterns: 0,
+        failure_patterns: 0,
+        avg_success_rate: 0,
+      } as T;
+    case "closed_loop_status":
+      return {
+        closed_loop_running: false,
+        nudge_count: 0,
+        pattern_count: 0,
+        insight_count: 0,
+      } as T;
+    case "rl_config":
+      return { config: {}, weights: {} } as T;
+    case "rl_export_training_data":
+      return [] as T;
+    case "rl_compute_rewards":
+      return {
+        trajectory_id: (args as { trajectory_id?: string })?.trajectory_id
+          ?? "",
+        reward_count: 0,
+        total_reward: 0,
+        value_count: 0,
+        advantage_count: 0,
+      } as T;
+    case "record_feedback":
+      return undefined as T;
+
+    // ── DevTools: Evolution (进化) ────────────────────────────────────
+    case "pattern_list":
+    case "cross_session_insights":
+      return [] as T;
+    case "skill_evolution_start":
+      return {
+        skill_id: (args as { skill_id?: string })?.skill_id ?? "",
+        improved: false,
+        reason: "Mock: 未生成进化结果",
+        confidence: 0,
+      } as T;
+    case "skill_evolution_status":
+      return { is_running: false, stats: {} } as T;
+    case "adaptation_status":
+      return {
+        response_style: "",
+        content_adjustments: [],
+        skill_suggestions: [],
+        memory_priorities: [],
+      } as T;
+
+    // ── DevTools: Evolution Engine (进化引擎) ─────────────────────────
+    case "get_all_engine_status":
+      return [] as T;
+    case "start_engine":
+    case "stop_engine":
+      return undefined as T;
+    case "update_engine_config":
+      return { success: true } as T;
+    case "get_engine_logs":
+      return [] as T;
+    case "run_skill_evolution_generation":
+    case "run_text_grad_optimize":
+    case "run_dream_consolidation":
+    case "run_auto_tool_create":
+    case "run_process_reward_analysis":
+    case "run_intrinsic_motivation_analysis":
+    case "run_coevolution_cycle":
+    case "run_sandbox_validate_step":
+      return { success: false, reason: "Mock 模式未启用", stats: {} } as T;
+    case "get_coevolution_status":
+      return { is_running: false, generation: 0, stats: {} } as T;
+    case "get_sandbox_policy":
+      return { enabled: false, rules: [] } as T;
 
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);

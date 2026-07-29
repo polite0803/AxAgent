@@ -434,3 +434,121 @@ pub fn format_timestamp(ts: i64, fmt: &str, vendor: &str) -> String {
         },
     )
 }
+
+/// 东方财富新闻 API 降级辅助
+///
+/// 当 vendor 原生新闻接口不可用时（如 WAF 拦截、接口下线），
+/// 通过 `http` client 直接请求东方财富搜索 API 作为备用。
+/// `target_vendor` 用于日志/错误消息中的 vendor 标识。
+pub async fn fetch_eastmoney_news(
+    http: &reqwest::Client,
+    target_vendor: &str,
+    stock_code: &str,
+    limit: u32,
+) -> Result<Vec<NewsItem>, DataError> {
+    let param = serde_json::json!({
+        "uid": "",
+        "keyword": stock_code,
+        "type": ["cmsArticleWebOld"],
+        "client": "web",
+        "clientType": "web",
+        "clientVersion": "curr",
+        "param": {
+            "cmsArticleWebOld": {
+                "searchScope": "default",
+                "sort": "default",
+                "pageIndex": 1,
+                "pageSize": limit.min(50),
+                "preTag": "",
+                "postTag": ""
+            }
+        }
+    });
+
+    let url = format!(
+        "https://search-api-web.eastmoney.com/search/jsonp?cb=jQuery&param={}",
+        urlencoding::encode(&param.to_string())
+    );
+
+    let resp = http
+        .get(&url)
+        .header("Referer", "https://so.eastmoney.com/")
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .send()
+        .await
+        .map_err(|e| DataError::VendorError {
+            vendor: target_vendor.into(),
+            message: format!("(东方财富新闻备用) 请求失败: {e}"),
+        })?;
+
+    let text = resp.text().await.map_err(|e| DataError::VendorError {
+        vendor: target_vendor.into(),
+        message: format!("(东方财富新闻备用) 响应读取失败: {e}"),
+    })?;
+
+    // 解析 JSONP 响应: jQuery18306726XXX(...)
+    let trimmed = text.trim();
+    let json_str = if let Some(start) = trimmed.find('(') {
+        if let Some(end) = trimmed.rfind(')') {
+            &trimmed[start + 1..end]
+        } else {
+            trimmed
+        }
+    } else {
+        trimmed
+    };
+
+    let json: serde_json::Value = serde_json::from_str(json_str).map_err(|e| {
+        DataError::ParseError(format!(
+            "{target_vendor}(东方财富) jsonp 解析失败: {e}, raw: {}",
+            &text[..200.min(text.len())]
+        ))
+    })?;
+
+    let items = json["result"]["cmsArticleWebOld"]
+        .as_array()
+        .or_else(|| json["result"]["cmsArticleWebOld"]["list"].as_array())
+        .cloned()
+        .unwrap_or_default();
+
+    Ok(items
+        .iter()
+        .filter_map(|item| {
+            let title = item.get("title")?.as_str()?.to_string();
+            let summary = item
+                .get("digest")
+                .or_else(|| item.get("content"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let source = item
+                .get("mediaName")
+                .or_else(|| item.get("source"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("东方财富")
+                .to_string();
+            let article_url = item
+                .get("articleUrl")
+                .or_else(|| item.get("url"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let publish_time = item
+                .get("showTime")
+                .or_else(|| item.get("publishTime"))
+                .or_else(|| item.get("ctime"))
+                .or_else(|| item.get("date"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            Some(NewsItem {
+                title,
+                summary,
+                source,
+                url: article_url,
+                publish_time,
+                sentiment_score: None,
+            })
+        })
+        .collect())
+}

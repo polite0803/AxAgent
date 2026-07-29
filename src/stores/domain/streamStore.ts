@@ -43,8 +43,9 @@ const WATCHDOG_INTERVAL_MS = 30 * 1000;
 let _watchdogTimer: ReturnType<typeof setInterval> | null = null;
 
 function startWatchdog(checkFn: () => void): void {
-  if (_watchdogTimer !== null) { return; // 已启动，防止 StrictMode 双重启动
-   }
+  if (_watchdogTimer !== null) {
+    return; // 已启动，防止 StrictMode 双重启动
+  }
   _watchdogTimer = setInterval(checkFn, WATCHDOG_INTERVAL_MS);
 }
 function stopWatchdog(): void {

@@ -131,10 +131,9 @@ export function BottleneckAnalyzer({ traceId }: BottleneckAnalyzerProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setTimeout(() => {
-      setLoading(true);
-      setError(null);
-    }, 0);
+    // DT-P1-6: 移除多余 setTimeout,避免 loading 闪烁
+    setLoading(true);
+    setError(null);
 
     getBottlenecks(traceId)
       .then((result) => {

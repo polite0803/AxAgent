@@ -221,7 +221,8 @@ export function StorageSpaceManager() {
             >
               <div className="divide-y divide-gray-100">
                 {inventory.buckets.map((bucket) => (
-                  <div style={{ padding: "12px 0" }}>
+                  // S-P1-5: 添加 key 属性避免 React 警告
+                  <div key={bucket.bucket} style={{ padding: "12px 0" }}>
                     <div className="flex items-center gap-3 w-full">
                       <span
                         className="flex items-center"

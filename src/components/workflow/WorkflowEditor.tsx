@@ -473,10 +473,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           }
         }
         autoSaveRetryCountRef.current = 0;
-      } catch {
+      } catch (e) {
+        // WF-P0-4: 记录错误日志，便于诊断
+        logIpcError("WorkflowEditor: auto-save")(e);
         autoSaveRetryCountRef.current++;
         if (autoSaveRetryCountRef.current >= MAX_AUTO_SAVE_RETRIES) {
-          useWorkflowEditorStore.setState({ error: "Auto-save failed after 3 retries" });
+          // WF-P2-1: 使用 i18n 替代硬编码英文
+          useWorkflowEditorStore.setState({ error: t("workflow.autoSave.failed") });
           autoSaveRetryCountRef.current = 0;
         }
       }

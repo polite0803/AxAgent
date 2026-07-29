@@ -107,13 +107,17 @@ pub async fn workflow_execute(
     let wid_for_panic = wid.clone();
     tokio::spawn(async move {
         // 兜底：panic / 早退路径上 emit execution-completed failed 事件
+        // WF-P0-2: emit 字段统一为 { workflow_id, execution_id, status, total_time_ms, error? }
+        // 与前端 workEngineStore.ts 期望对齐
         let _guard = SpawnGuard::new("workflow_run", move || {
             tracing::error!("[workflow_run] PANIC guard fired for workflow={}", wid_for_panic);
             let _ = app_for_panic.emit(
                 "workflow:execution-completed",
                 serde_json::json!({
                     "workflow_id": wid_for_panic,
-                    "success": false,
+                    "execution_id": null,
+                    "status": "failed",
+                    "total_time_ms": 0,
                     "error": "Internal panic during workflow execution",
                 }),
             );
@@ -133,24 +137,33 @@ pub async fn workflow_execute(
             let clamped = mc.max(1);
             opts = opts.with_max_concurrent(clamped);
         }
+        let started_at = std::time::Instant::now();
         match engine.run_workflow(&wid, opts).await {
-            Ok(result) => {
+            Ok(workflow) => {
+                let total_time_ms = started_at.elapsed().as_millis() as u64;
+                // run_workflow 不生成独立 execution_id，使用 workflow.id 作为标识
+                let execution_id = workflow.id.clone();
+                let status_str = format!("{:?}", workflow.status).to_lowercase();
                 let _ = app_for_emit.emit(
                     "workflow:execution-completed",
                     serde_json::json!({
                         "workflow_id": wid,
-                        "success": true,
-                        "result": result,
+                        "execution_id": execution_id,
+                        "status": status_str,
+                        "total_time_ms": total_time_ms,
                     }),
                 );
             },
             Err(e) => {
                 tracing::error!("[workflow] 执行失败: {}", e);
+                let total_time_ms = started_at.elapsed().as_millis() as u64;
                 let _ = app_for_emit.emit(
                     "workflow:execution-completed",
                     serde_json::json!({
                         "workflow_id": wid,
-                        "success": false,
+                        "execution_id": null,
+                        "status": "failed",
+                        "total_time_ms": total_time_ms,
                         "error": e.to_string(),
                     }),
                 );

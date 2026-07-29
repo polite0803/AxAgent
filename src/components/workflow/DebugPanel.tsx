@@ -1759,7 +1759,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           try {
                             const result = await invoke<ExecutionStatusResponse>(
                               "get_workflow_execution_status",
-                              { execution_id: childId },
+                              { executionId: childId },
                             );
                             setSubExecutionDetail(result);
                           } catch {

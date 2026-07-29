@@ -1,21 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { type Session, useAxAgent } from "@/sdk";
 import { useSettingsStore } from "@/stores";
-import {
-  Badge,
-  Button,
-  Descriptions,
-  Divider,
-  Empty,
-  Input,
-  message,
-  Popconfirm,
-  Space,
-  Tag,
-  theme,
-  Typography,
-} from "antd";
+import { Badge, Button, Descriptions, Divider, Empty, Input, Popconfirm, Space, Tag, theme, Typography } from "antd";
 import { Link2, Plus, Power, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";

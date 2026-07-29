@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke, logIpcError } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import { useAppConfigStore } from "@/stores/feature/appConfigStore";
 import type { FeatureFlags } from "@/stores/feature/appConfigStore";
 import type { SubAgent } from "@/types";
@@ -12,7 +13,6 @@ import {
   Divider,
   Empty,
   InputNumber,
-  message,
   Popconfirm,
   Radio,
   Space,
@@ -893,13 +893,14 @@ export function SettingsPanel() {
   const { token } = theme.useToken();
   const { saveConfig, loadConfig } = useAppConfigStore();
 
+  // S-P1-1: 添加错误处理
   useEffect(() => {
-    loadConfig();
+    loadConfig().catch((e) => logIpcError("loadConfig")(e));
   }, [loadConfig]);
 
   useEffect(() => {
     return () => {
-      saveConfig();
+      saveConfig().catch((e) => logIpcError("saveConfig")(e));
     };
   }, [saveConfig]);
 

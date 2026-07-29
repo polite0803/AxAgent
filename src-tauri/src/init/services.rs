@@ -61,16 +61,51 @@ pub fn start_background_services(
     // P3-B5(G): vendor 健康后台周期探测，加速 Degraded vendor 恢复
     start_vendor_health_prober(state);
     // P0: 启动实时监控引擎（价格告警 + T+0 异动重跑）
-    // 之前 app_state.stock_monitor 一直是 None，PriceAlertPanel 创建的告警永远不会触发。
-    // 此处初始化 RealtimeMonitor，注入 TauriMonitorEmitter，并启动 30s 轮询循环。
     start_realtime_monitor(app, state);
     // P1-2: 启动实时行情推送（替代前端 15s 轮询，2s Active / 10s Background 自适应）
     start_realtime_quote_watcher(app, state);
 
-    // G14: 注册 DojoSdkExecutor — 让 dojo_* / sector_precomputed_* MCP 工具
-    // 能路由到 quant / stock-analysis / tools 等具体 crate。
-    // 必须在 start_background_services 末尾注册，确保 astock_client 已就绪。
+    // G14: 注册 DojoSdkExecutor
     register_dojo_sdk_executor(state);
+
+    // PTY 事件转发器
+    #[cfg(not(mobile))]
+    start_pty_event_forwarder(app, state);
+}
+
+/// PTY 事件转发器：从 PtyManager 的 mpsc 通道消费输出/退出事件，
+/// 通过 Tauri 事件总线 emit 到前端（事件名 `pty_output` / `pty_exit`）。
+#[cfg(not(mobile))]
+fn start_pty_event_forwarder(app: &tauri::AppHandle, state: &AppState) {
+    use axagent_runtime::pty::{PtyExitEvent, PtyOutputEvent};
+
+    let app_handle_output = app.clone();
+    let pty_manager_output = state.pty_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let event: Option<PtyOutputEvent> = pty_manager_output.recv_output().await;
+            let Some(event) = event else {
+                break;
+            };
+            if let Err(e) = app_handle_output.emit("pty_output", event) {
+                tracing::warn!("pty_output emit failed: {}", e);
+            }
+        }
+    });
+
+    let app_handle_exit = app.clone();
+    let pty_manager_exit = state.pty_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let event: Option<PtyExitEvent> = pty_manager_exit.recv_exit().await;
+            let Some(event) = event else {
+                break;
+            };
+            if let Err(e) = app_handle_exit.emit("pty_exit", event) {
+                tracing::warn!("pty_exit emit failed: {}", e);
+            }
+        }
+    });
 }
 
 /// P1-D10: 注册 portfolio-mgr.rhai 依赖的 pm_* 函数到共享 Rhai Engine。

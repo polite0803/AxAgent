@@ -2,7 +2,7 @@
 
 import { useGatewayLinkStore } from "@/stores";
 import type { GatewayLink } from "@/types";
-import { Button, Card, Col, Empty, Row, Statistic, Tag, theme } from "antd";
+import { App, Button, Card, Col, Empty, Row, Statistic, Tag, theme } from "antd";
 import { Clock, PlayCircle, Power, RefreshCw, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -13,6 +13,7 @@ interface LinkOverviewProps {
 export function LinkOverview({ link }: LinkOverviewProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message } = App.useApp();
   const connectLink = useGatewayLinkStore((s) => s.connectLink);
   const disconnectLink = useGatewayLinkStore((s) => s.disconnectLink);
   const fetchLinks = useGatewayLinkStore((s) => s.fetchLinks);
@@ -36,8 +37,9 @@ export function LinkOverview({ link }: LinkOverviewProps) {
         await connectLink(link.id);
       }
       void fetchLinks();
-    } catch {
-      // error handled in store
+    } catch (e) {
+      // GW-P1-2: 补充错误反馈,避免静默吞错
+      message.error(t("link.toggleFailed", { error: String(e) }));
     }
   };
 

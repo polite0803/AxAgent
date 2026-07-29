@@ -1036,7 +1036,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         "archive_conversation_to_knowledge_base",
         {
           id,
-          knowledge_base_id: knowledgeBaseId,
+          knowledgeBaseId,
         },
       );
       // Archive succeeded — move from active list to archived list
@@ -1335,9 +1335,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
 
       await invoke("switch_message_version", {
-        conversation_id: conversationId,
-        parent_message_id: parentMessageId,
-        message_id: messageId,
+        conversationId,
+        parentMessageId,
+        messageId,
       });
 
       // Normal path: fetch all versions from DB and keep them all in store
@@ -1455,7 +1455,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       );
       set({ workspaceSnapshot: snapshot });
       return snapshot;
-    } catch {
+    } catch (e) {
+      // C-P1-2: 记录错误日志,避免静默吞错导致问题难以排查
+      logIpcError("loadWorkspaceSnapshot")(e);
       set({ workspaceSnapshot: null });
       return null;
     }
@@ -1464,7 +1466,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   updateWorkspaceSnapshot: async (conversationId, snapshot) => {
     try {
       await invoke("update_workspace_snapshot", {
-        conversation_id: conversationId,
+        conversationId,
         ...snapshot,
       });
       set((s) => ({
@@ -1498,7 +1500,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         branchA: leftMessageId,
         branchB: rightMessageId,
       });
-    } catch {
+    } catch (e) {
+      // C-P1-2: 记录错误日志,避免静默吞错
+      logIpcError("compareResponses")(e);
       return null;
     }
   },

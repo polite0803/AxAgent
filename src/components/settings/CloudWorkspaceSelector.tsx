@@ -2,6 +2,7 @@
 
 import { PasteButton } from "@/components/common/PasteButton";
 import { invoke, logIpcError } from "@/lib/invoke";
+import { message } from "@/lib/toast";
 import {
   Alert,
   Button,
@@ -11,7 +12,6 @@ import {
   Divider,
   Form,
   Input,
-  message,
   Modal,
   Radio,
   Select,

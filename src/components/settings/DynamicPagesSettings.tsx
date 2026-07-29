@@ -7,6 +7,7 @@ import { editUIFromNL, generateUIFromNLBackend } from "@/lib/dynamicUI/nl2ui-edi
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
 import { PIN_GROUPS } from "@/lib/pinned-schemas";
 import type { PinnedSchemaMap } from "@/lib/pinned-schemas";
+import { message } from "@/lib/toast";
 import { useDynamicUIStore } from "@/stores";
 import type { DynamicUISchemaRecord, UISchema } from "@/types";
 import { EditOutlined, SaveOutlined } from "@ant-design/icons";
@@ -17,7 +18,6 @@ import {
   Empty,
   Input,
   InputNumber,
-  message,
   Modal,
   Select,
   Space,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { CopyButton } from "@/components/common/CopyButton";
+import { logIpcError } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useGatewayStore } from "@/stores";
 import type { GatewayRequestLog } from "@/types";
@@ -35,6 +36,10 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
     try {
       const logs = await listRequestLogs(10);
       setRecentLogs(logs.slice(0, 10));
+    } catch (e) {
+      // GW-P1-3: 补充 catch 块,避免 unhandled promise rejection 静默吞错
+      logIpcError("GatewayOverview.loadRecentLogs")(e);
+      setRecentLogs([]);
     } finally {
       setRecentLogsLoading(false);
     }

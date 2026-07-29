@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { executeActionChain } from "@/lib/skillActionExecutor";
 import { resolveIconComponent } from "@/lib/skillIcons";
 import { useSkillExtensionStore } from "@/stores";
@@ -58,7 +58,9 @@ function StatusBarItem({ item }: { item: MergedStatusBarItem }) {
         const val = result?.value ?? result?.count ?? Object.values(result || {})[0];
         setDynamicValue(template.replace("{{value}}", String(val ?? "")));
         failCountRef.current = 0;
-      } catch {
+      } catch (e) {
+        // SK-P1: 记录错误日志,避免静默吞错导致问题难以排查
+        logIpcError(`skill.statusBar.dynamic:${command}`)(e);
         setDynamicValue("--");
         failCountRef.current += 1;
       }

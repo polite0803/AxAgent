@@ -1,38 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
+import type { GatewayMetrics } from "@/types";
+import type { GatewayRequestLog } from "@/types/backup";
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Card, Popconfirm, Spin, Statistic, Table, Tag, theme } from "antd";
-import { Activity, BarChart3, Clock, Server } from "lucide-react";
+import { App, Button, Card, Popconfirm, Spin, Statistic, Table, Tag, theme } from "antd";
+import { Activity, BarChart3, DollarSign, Server, TrendingUp, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-interface GatewayMetrics {
-  total_requests: number;
-  total_tokens: number;
-  active_connections: number;
-  avg_latency_ms: number;
-  error_count: number;
-  uptime_seconds: number;
-}
-
-interface RequestLog {
-  id: string;
-  timestamp: string;
-  method: string;
-  path: string;
-  status: number;
-  duration_ms: number;
-  tokens_in: number;
-  tokens_out: number;
-  client_ip: string;
-}
 
 export function GatewayMonitor() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message } = App.useApp();
   const [metrics, setMetrics] = useState<GatewayMetrics | null>(null);
-  const [logs, setLogs] = useState<RequestLog[]>([]);
+  const [logs, setLogs] = useState<GatewayRequestLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,28 +23,21 @@ export function GatewayMonitor() {
     setLoading(true);
     setError(null);
     try {
+      // GW-P0-3/4: 使用后端实际返回的 GatewayMetrics / GatewayRequestLog 类型,
+      // 移除内层 .catch 让错误冒泡到外层统一处理
       const [m, l] = await Promise.all([
-        invoke<GatewayMetrics>("get_gateway_metrics").catch((e) => {
-          logIpcError("get_gateway_metrics")(e);
-          return null;
-        }),
-        invoke<RequestLog[]>("list_gateway_request_logs", { limit: 50 }).catch(
-          (e) => {
-            logIpcError("list_gateway_request_logs")(e);
-            return [];
-          },
-        ),
+        invoke<GatewayMetrics>("get_gateway_metrics"),
+        invoke<GatewayRequestLog[]>("list_gateway_request_logs", { limit: 50 }),
       ]);
       setMetrics(m);
       setLogs(l);
     } catch (e) {
-      const msg = t("gatewayMonitor.loadMetricsFailed", { error: String(e) });
       logIpcError("GatewayMonitor.loadData")(e);
-      setError(msg);
+      setError(String(e));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   const loadDataRef = useRef(loadData);
 
@@ -77,24 +53,21 @@ export function GatewayMonitor() {
     try {
       await invoke("clear_gateway_request_logs");
       setLogs([]);
+      message.success(t("gatewayMonitor.logsCleared"));
     } catch (e) {
       logIpcError("GatewayMonitor.clearLogs")(e);
+      showBackendError(message, e);
     }
-  };
-
-  const formatUptime = (s: number) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    return `${h}h ${m}m`;
   };
 
   const logColumns = [
     {
       title: t("gatewayMonitor.colTime"),
-      dataIndex: "timestamp",
+      dataIndex: "createdAt",
       key: "ts",
       width: 160,
-      render: (t: string) => new Date(t).toLocaleString(),
+      // GW-P0-4: 后端 createdAt 是 number(毫秒时间戳)
+      render: (ts: number) => new Date(ts).toLocaleString(),
     },
     {
       title: t("gatewayMonitor.colMethod"),
@@ -111,23 +84,24 @@ export function GatewayMonitor() {
     },
     {
       title: t("gatewayMonitor.colStatus"),
-      dataIndex: "status",
+      dataIndex: "statusCode",
       key: "status",
       width: 70,
       render: (s: number) => <Tag color={s < 300 ? "green" : s < 500 ? "orange" : "red"}>{s}</Tag>,
     },
     {
       title: t("gatewayMonitor.colLatency"),
-      dataIndex: "duration_ms",
+      dataIndex: "durationMs",
       key: "dur",
       width: 70,
       render: (d: number) => `${d}ms`,
     },
     {
-      title: "Token",
+      title: t("gatewayMonitor.colToken"),
       key: "tokens",
-      width: 100,
-      render: (_: unknown, r: RequestLog) => `${r.tokens_in}+${r.tokens_out}`,
+      width: 110,
+      // GW-P0-4: 后端字段是 requestTokens / responseTokens (camelCase)
+      render: (_: unknown, r: GatewayRequestLog) => `${r.requestTokens}+${r.responseTokens}`,
     },
   ];
 
@@ -204,24 +178,25 @@ export function GatewayMonitor() {
               </Card>
               <Card size="small">
                 <Statistic
-                  title={t("gatewayMonitor.avgLatency")}
-                  value={metrics.avg_latency_ms}
-                  suffix="ms"
-                  precision={0}
+                  title={t("gatewayMonitor.todayRequests")}
+                  value={metrics.today_requests}
+                  prefix={<TrendingUp size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
-                  title={t("gatewayMonitor.errorCount")}
-                  value={metrics.error_count}
-                  styles={{ content: { color: metrics.error_count > 0 ? token.colorError : undefined } }}
+                  title={t("gatewayMonitor.todayTokens")}
+                  value={metrics.today_tokens}
+                  prefix={<Zap size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
-                  title={t("gatewayMonitor.uptime")}
-                  value={formatUptime(metrics.uptime_seconds)}
-                  prefix={<Clock size={16} />}
+                  title={t("gatewayMonitor.totalCost")}
+                  value={metrics.total_cost_usd}
+                  precision={4}
+                  prefix={<DollarSign size={16} />}
+                  styles={{ content: { color: token.colorSuccess } }}
                 />
               </Card>
             </div>

@@ -153,7 +153,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
     try {
       const modelSyncs = await invoke<GatewayLinkModelSync[]>(
         "get_gateway_link_model_syncs",
-        { link_id: linkId },
+        { linkId },
       );
       set({ modelSyncs, error: null });
     } catch (e) {
@@ -188,7 +188,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
     try {
       const skillSyncs = await invoke<GatewayLinkSkillSync[]>(
         "get_gateway_link_skill_syncs",
-        { link_id: linkId },
+        { linkId },
       );
       set({ skillSyncs, error: null });
     } catch (e) {
@@ -223,7 +223,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
     try {
       const policy = await invoke<GatewayLinkPolicy | null>(
         "get_gateway_link_policy",
-        { link_id: linkId },
+        { linkId },
       );
       set({ policy, error: null });
     } catch (e) {
@@ -236,7 +236,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
       const policy = await invoke<GatewayLinkPolicy>(
         "save_gateway_link_policy",
         {
-          link_id: linkId,
+          linkId,
           input: policyUpdate,
         },
       );
@@ -253,8 +253,8 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
         "update_gateway_link_sync_settings",
         {
           id: linkId,
-          auto_sync_models: autoSyncModels,
-          auto_sync_skills: autoSyncSkills,
+          autoSyncModels,
+          autoSyncSkills,
         },
       );
       set((s) => ({
@@ -271,7 +271,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
     try {
       const activities = await invoke<GatewayLinkActivity[]>(
         "get_gateway_link_activities",
-        { link_id: linkId },
+        { linkId },
       );
       set({ activities, error: null });
     } catch (e) {
@@ -283,7 +283,7 @@ export const useGatewayLinkStore = create<GatewayLinkState>((set, get) => ({
     try {
       const conversationId = await invoke<string>(
         "create_gateway_conversation",
-        { link_id: linkId },
+        { linkId },
       );
       return conversationId;
     } catch (e) {

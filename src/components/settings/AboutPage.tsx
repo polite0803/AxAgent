@@ -139,11 +139,15 @@ export function AboutPage() {
   const navigate = useNavigate();
   const startTutorial = useOnboardingStore((s) => s.startTutorial);
 
+  // S-P1-1: 添加错误处理
   useEffect(() => {
     if (isTauri()) {
-      import("@tauri-apps/api/app").then(({ getVersion }) => {
-        getVersion().then((v) => setAppVersion(v));
-      });
+      import("@tauri-apps/api/app")
+        .then(({ getVersion }) => getVersion())
+        .then((v) => setAppVersion(v))
+        .catch(() => {
+          // 忽略获取版本失败
+        });
     }
   }, []);
 

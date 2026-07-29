@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { invoke, logIpcError } from "@/lib/invoke";
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { SkillVersion } from "@/stores/feature/evolutionStore";
-import { Button, Modal, Tag, theme, Timeline, Typography } from "antd";
+import { App, Button, Modal, Tag, theme, Timeline, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -38,11 +39,13 @@ function MetricChange({ metrics }: { metrics: Record<string, { before: number; a
 
 export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const getSkillEvolutionHistory = useEvolutionStore((s) => s.getSkillEvolutionHistory);
   const versions: SkillVersion[] = getSkillEvolutionHistory(skillId);
   const [diffModalOpen, setDiffModalOpen] = useState(false);
   const [selectedDiff, setSelectedDiff] = useState<{ old: string; new: string } | null>(null);
   const [rollbackConfirm, setRollbackConfirm] = useState<number | null>(null);
+  const [rollingBack, setRollingBack] = useState(false);
   const { token } = theme.useToken();
 
   if (versions.length === 0) {
@@ -142,8 +145,30 @@ export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
         title={t("skill.evolution.confirmRollback")}
         open={rollbackConfirm !== null}
         onCancel={() => setRollbackConfirm(null)}
-        onOk={() => {
-          setRollbackConfirm(null);
+        confirmLoading={rollingBack}
+        onOk={async () => {
+          if (rollbackConfirm === null) {
+            return;
+          }
+          setRollingBack(true);
+          try {
+            // SK-P0: 实际调用 rollback_skill 后端命令,而非空操作
+            await invoke<string>("rollback_skill", {
+              skill_name: skillId,
+              target_version: String(rollbackConfirm),
+            });
+            message.success(
+              t("skill.evolution.rollbackSuccess", { version: rollbackConfirm }),
+            );
+            setRollbackConfirm(null);
+          } catch (e) {
+            logIpcError("rollback_skill")(e);
+            message.error(
+              t("skill.evolution.rollbackFailed", { error: String(e) }),
+            );
+          } finally {
+            setRollingBack(false);
+          }
         }}
         okText={t("skill.evolution.confirmRollback")}
         okButtonProps={{ danger: true }}

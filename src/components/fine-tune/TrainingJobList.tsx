@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { message } from "@/lib/toast";
 import { useFineTuneStore } from "@/stores/devtools/fineTuneStore";
 import { DeleteOutlined, PauseCircleOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import { Badge, Button, Card, Progress, Space, Table, Tag } from "antd";
@@ -49,16 +50,32 @@ export function TrainingJobList() {
     fetchTrainingStats();
   }, [fetchTrainingJobs, fetchTrainingStats]);
 
+  // DT-P1-5: 三个 handler 添加 try/catch 错误反馈
   const handleStartJob = async (id: string) => {
-    await startTrainingJob(id);
+    try {
+      await startTrainingJob(id);
+      message.success(t("trainingJob.startSuccess"));
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : t("trainingJob.startFailed"));
+    }
   };
 
   const handleCancelJob = async (id: string) => {
-    await cancelTrainingJob(id);
+    try {
+      await cancelTrainingJob(id);
+      message.success(t("trainingJob.cancelSuccess"));
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : t("trainingJob.cancelFailed"));
+    }
   };
 
   const handleDeleteJob = async (id: string) => {
-    await deleteTrainingJob(id);
+    try {
+      await deleteTrainingJob(id);
+      message.success(t("trainingJob.deleteSuccess"));
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : t("trainingJob.deleteFailed"));
+    }
   };
 
   return (

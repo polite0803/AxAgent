@@ -4,7 +4,7 @@
 import { WorkflowLogPanel } from "@/components/workflow/WorkflowLogPanel";
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { WorkflowDefinition, WorkflowExecution } from "@/types";
-import { Button, Descriptions, Form, Input, Modal, Space, Tag, Typography } from "antd";
+import { App, Button, Descriptions, Empty, Form, Input, Modal, Space, Tag, Typography } from "antd";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,13 +18,24 @@ interface WorkflowExecutorProps {
 
 const statusColor: Record<string, string> = {
   waiting: "default",
+  pending: "default",
+  ready: "default",
   running: "processing",
+  in_progress: "processing",
   success: "success",
+  completed: "success",
   failed: "error",
+  error: "error",
+  timeout: "error",
+  skipped: "default",
+  cancelled: "warning",
+  partially_completed: "warning",
+  paused: "warning",
 };
 
 export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorProps) {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [execution, setExecution] = useState<WorkflowExecution | null>(null);
   const isExecuting = useWorkflowStore((s) => s.isExecuting);
@@ -32,16 +43,30 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
 
   const statusLabel: Record<string, string> = useMemo(() => ({
     waiting: t("rl.status.idle"),
+    pending: t("rl.status.idle"),
+    ready: t("rl.status.idle"),
     running: t("rl.status.running"),
+    in_progress: t("rl.status.running"),
     success: t("rl.status.completed"),
+    completed: t("rl.status.completed"),
     failed: t("rl.status.failed"),
+    error: t("rl.status.failed"),
+    timeout: t("rl.status.failed"),
+    skipped: t("workflow.executor.skipped"),
+    cancelled: t("workflow.executor.cancelled"),
+    partially_completed: t("workflow.executor.partiallyCompleted"),
+    paused: t("workflow.executor.paused"),
   }), [t]);
 
   const handleExecute = useCallback(async () => {
-    const values = form.getFieldsValue();
-    const exec = await executeWorkflow(workflow.id, values);
-    setExecution(exec);
-  }, [form, workflow.id, executeWorkflow]);
+    try {
+      const values = form.getFieldsValue();
+      const exec = await executeWorkflow(workflow.id, values);
+      setExecution(exec);
+    } catch (e) {
+      message.error(String(e));
+    }
+  }, [form, workflow.id, executeWorkflow, message]);
 
   const handleClose = useCallback(() => {
     setExecution(null);
@@ -74,6 +99,8 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
             </Form>
           </div>
         )}
+
+        {variableEntries.length === 0 && !execution && <Empty description={t("workflow.executor.noInputVariables")} />}
 
         {/* 执行按钮 */}
         {!execution && (
@@ -153,8 +180,6 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
                 <Text strong style={{ display: "block", marginBottom: 8 }}>{t("workflow.executor.executionLog")}</Text>
                 <WorkflowLogPanel
                   logs={execution.logs}
-                  onClear={() => {}}
-                  onExport={() => {}}
                   maxHeight={200}
                 />
               </div>

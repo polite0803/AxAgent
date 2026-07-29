@@ -2075,10 +2075,12 @@
   },
   "datasetManager": {
     "action": "Action",
+    "addSampleFailed": "Échec de l'ajout de l'échantillon",
     "cancel": "Annuler",
     "createNew": "Créer un nouveau dataset",
     "created": "Créé",
     "createdSuccess": "Dataset created",
+    "deleteFailed": "Échec de la suppression du dataset",
     "deletedSuccess": "Jeu de données supprimé",
     "description": "Description",
     "name": "Nom",
@@ -2295,6 +2297,7 @@
     "unknownFile": "Fichier inconnu",
     "unregisteredComponent": "Composant non enregistré: {{type}}",
     "unsupportedChartType": "Type de graphique non pris en charge : {{type}}",
+    "persistFailed": "Échec de la persistance des données du formulaire, vérifiez le service backend",
     "schemaNotFound": "Page dynamique introuvable",
     "uiSchemaJson": "Schéma JSON de l'interface utilisateur"
   },
@@ -2376,6 +2379,9 @@
     "export": "Exporter",
     "exportAll": "Tout exporter",
     "exportSuccess": "Exporté avec succès",
+    "fieldChildren": "Enfants ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "Propriétés",
     "keyPlaceholder": "clé",
     "valuePlaceholder": "valeur",
     "subtitle": "Create, manage and preview dynamic UI components with NL generation support",
@@ -2392,10 +2398,14 @@
     "parseErrorCantValidate": "Erreur d'analyse JSON, impossible de valider",
     "pass": "Réussi",
     "reset": "Réinitialiser",
+    "sampleCardTitle": "Carte d'exemple",
+    "sampleText": "Hello World! Ceci est un exemple d'UI dynamique.",
     "schemaAllValid": "Validation du schéma réussie, tous les champs sont valides",
     "schemaValidation": "Validation du schéma",
     "waitingForJson": "En attente d'un JSON valide...",
-    "title": "Dynamic UI Preview"
+    "title": "Dynamic UI Preview",
+    "title": "Aperçu UI dynamique",
+    "waitingForJson": "En attente d'un JSON valide..."
   },
   "error": {
     "deleteFailed": "Échec de la suppression, veuillez réessayer",
@@ -2908,6 +2918,7 @@
     "backups": "Sauvegardes",
     "batchDelete": "Supprimer ({{count}})",
     "batchDeleteConfirm": "Voulez-vous vraiment supprimer {{count}} éléments sélectionnés ?",
+    "batchDeletePartial": "{{ok}} supprimés, {{fail}} échecs",
     "batchDeleteSuccess": "{{count}} éléments supprimés",
     "columnActions": "Actions",
     "columnCreatedAt": "Créé",
@@ -2943,6 +2954,8 @@
     "previewDirType": "Dossier",
     "previewEmpty": "Sélectionnez un fichier à prévisualiser",
     "previewFailed": "Impossible de charger l'aperçu",
+    "previewImageFailed": "Échec du chargement de l'image",
+    "previewLoading": "Chargement…",
     "previewModified": "Modifié",
     "previewPath": "Chemin",
     "previewSize": "Taille",
@@ -2951,6 +2964,8 @@
     "previewUnknownType": "Inconnu",
     "renameSuccess": "Renommé",
     "renameTitle": "Renommer",
+    "rootLoadFailed": "Échec du chargement du répertoire",
+    "unknownCategory": "Catégorie de fichier inconnue : {{cat}}",
     "treeEmpty": "Dossier vide"
   },
   "fineTune": {
@@ -3122,12 +3137,17 @@
     "colPath": "Chemin",
     "colStatus": "Statut",
     "colTime": "Heure",
+    "colToken": "Token",
     "errorCount": "Nombre d'erreurs",
     "loadMetricsFailed": "Échec du chargement des métriques de passerelle : {{error}}",
+    "logsCleared": "Journaux effacés",
     "noRequestLogs": "Aucun journal de requêtes",
     "refresh": "Actualiser",
     "requestLogs": "Journaux de requêtes",
     "title": "Moniteur de passerelle",
+    "todayRequests": "Requêtes du jour",
+    "todayTokens": "Tokens du jour",
+    "totalCost": "Coût total (USD)",
     "totalRequests": "Requêtes totales",
     "totalTokens": "Total des jetons",
     "uptime": "Disponibilité"
@@ -3267,6 +3287,18 @@
   },
   "learningGraph": {
     "all": "Tout",
+    "categories": {
+      "concept": "Concept",
+      "context": "Contexte",
+      "fact": "Fait",
+      "improvement": "Amélioration",
+      "pattern": "Motif",
+      "preference": "Préférence",
+      "project": "Projet",
+      "warning": "Avertissement"
+    },
+    "categoryMatch": "Correspondance de catégorie",
+    "derived": "Dérivé",
     "detail": "Détails",
     "edges": "Liens",
     "entities": "Entités",
@@ -3275,8 +3307,12 @@
     "lexicalOverlap": "Lié",
     "memories": "Souvenirs",
     "refresh": "Actualiser",
+    "related": "Lié",
     "searchPlaceholder": "Rechercher des nœuds...",
     "skills": "Compétences",
+    "stateActive": "Actif",
+    "stateArchived": "Archivé",
+    "stateSkipped": "Ignoré",
     "title": "Graphe d'apprentissage",
     "useCount": "Nombre d'utilisations: {count}",
     "stockAnalysis": {
@@ -3727,6 +3763,8 @@
     "syncedSkills": "Compétences Synchronisées",
     "tokenLimitPerMinute": "Limite de Tokens par Minute",
     "typeCustom": "Personnalisé",
+    "toggleFailed": "Échec du basculement",
+    "createConversationFailed": "Échec de la création de la conversation : {{error}}",
     "unlimited": "Illimité",
     "updateSettingsFailed": "Échec de la mise à jour des paramètres",
     "weighted": "Pondéré",
@@ -5289,6 +5327,7 @@
       "categoryLearning": "Apprentissage",
       "categorySafety": "Sécurité",
       "config": "Configuration",
+      "empty": "Aucun moteur d'évolution",
       "engineCount": "En cours",
       "engineNotFound": "Moteur introuvable",
       "engineNotFoundDesc": "Moteur \"{{name}}\" introuvable",
@@ -6538,6 +6577,8 @@
       "oldVersion": "Ancien (v{{version}})",
       "rollback": "Revenir",
       "rollbackConfirmMessage": "Êtes-vous sûr de vouloir revenir à la v{{version}} ? Cela annulera toutes les modifications d'évolution après cette version.",
+      "rollbackFailed": "Échec du rollback : {{error}}",
+      "rollbackSuccess": "Retour à v{{version}} réussi",
       "totalEvolutions": "Nombre total d'évolutions",
       "viewDiff": "Voir la différence"
     },
@@ -6551,6 +6592,10 @@
     "installed": "Installé",
     "loadFailed": "Échec du chargement de \"{{name}}\"",
     "loading": "Chargement du composant...",
+    "markdown": {
+      "loadFailed": "Échec du chargement du contenu Markdown",
+      "parseError": "Erreur d'analyse"
+    },
     "marketplace": "Marché des compétences",
     "name": "Nom",
     "namePlaceholder": "Entrer un nom...",
@@ -7111,8 +7156,12 @@
   "trainingJob": {
     "action": "Action",
     "baseModel": "Modèle de base",
+    "cancelFailed": "Échec de l'annulation de la tâche d'entraînement",
+    "cancelSuccess": "Tâche d'entraînement annulée",
     "completed": "Terminé",
     "datasetId": "ID du dataset",
+    "deleteFailed": "Échec de la suppression de la tâche d'entraînement",
+    "deleteSuccess": "Tâche d'entraînement supprimée",
     "failed": "Échoué",
     "id": "ID",
     "loraOutput": "Sortie LoRA",
@@ -7120,6 +7169,8 @@
     "progress": "Progression",
     "ready": "Prêt",
     "running": "En cours",
+    "startFailed": "Échec du démarrage de la tâche d'entraînement",
+    "startSuccess": "Tâche d'entraînement démarrée",
     "status": "Statut",
     "title": "Tâches d’entraînement",
     "totalJobs": "Total des tâches",
@@ -7140,9 +7191,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "Zone enfant",
+      "childCount": "Enfants",
+      "dropHere": "Déposer ici",
       "dropHint": "Prend en charge les conteneurs, formulaires, affichage de données, etc.",
       "dropPrompt": "Déposez les composants ici",
-      "emptyHint": "Le canevas est vide. Faites glisser les composants depuis le panneau de gauche pour construire votre interface utilisateur"
+      "emptyHint": "Le canevas est vide. Faites glisser les composants depuis le panneau de gauche pour construire votre interface utilisateur",
+      "leafNode": "Nœud feuille (sans enfant)",
+      "livePreview": "Aperçu en direct",
+      "previewEmpty": "Aucun contenu, quittez le mode aperçu pour modifier",
+      "rootHint": "nœuds racines"
+    },
+    "categories": {
+      "container": "Disposition conteneur",
+      "data-display": "Affichage de données",
+      "form": "Formulaire",
+      "media": "Média",
+      "misc": "Divers"
     },
     "components": {
       "Accordion": "Accordéon",
@@ -7177,30 +7242,208 @@
       "Timeline": "Chronologie",
       "Tree": "Arborescence"
     },
+    "error": {
+      "reset": "Réinitialiser",
+      "title": "Erreur de l'éditeur"
+    },
+    "exitFullscreen": "Quitter le plein écran",
+    "fullscreen": "Plein écran",
+    "outline": {
+      "delete": "Supprimer",
+      "duplicate": "Dupliquer",
+      "title": "Plan"
+    },
     "palette": {
       "title": "Composants"
     },
+    "preview": {
+      "actionTriggered": "Action déclenchée"
+    },
     "property": {
-      "delete": "Supprimer",
-      "placeholder": {
-        "propKey": "Clé",
-        "propValue": "Valeur"
+      "accordion": "Mode accordéon",
+      "addAction": "Ajouter une action",
+      "addDataSource": "Ajouter une source de données",
+      "addEvent": "Ajouter un événement",
+      "addOption": "Ajouter une option",
+      "advancedProps": "Propriétés avancées",
+      "align": {
+        "center": "Centre",
+        "end": "Fin",
+        "start": "Début"
       },
+      "alignLabel": "Alignement",
+      "alt": "Texte alternatif",
+      "apiEndpoint": "Point de terminaison API",
+      "apiMethod": "Méthode de requête",
+      "apiParams": "Paramètres de requête",
+      "bordered": "Afficher la bordure",
+      "btnType": {
+        "dashed": "Tirets",
+        "default": "Par défaut",
+        "link": "Lien",
+        "primary": "Principal"
+      },
+      "chartType": {
+        "area": "Aire",
+        "bar": "Barres",
+        "line": "Ligne",
+        "pie": "Camembert",
+        "scatter": "Nuage de points"
+      },
+      "chartTypeLabel": "Type de graphique",
+      "checkable": "Cochable",
+      "color": {
+        "blue": "Bleu",
+        "green": "Vert",
+        "orange": "Orange",
+        "purple": "Violet",
+        "red": "Rouge"
+      },
+      "colorLabel": "Couleur",
+      "columns": "Colonnes",
+      "command": "Nom de la commande",
+      "conditional": {
+        "addRule": "Ajouter une règle",
+        "clear": "Tout effacer",
+        "description": "Configurez les règles de rendu conditionnel. Prend en charge la logique ET/OU et l'inversion NON.",
+        "empty": "Aucune règle, cliquez ci-dessous pour ajouter",
+        "fieldPlaceholder": "Nom du champ",
+        "notHint": "Inverser le résultat",
+        "valuePlaceholder": "Valeur de comparaison"
+      },
+      "content": "Contenu",
+      "data": "Données",
+      "dataSourceType": "Type de source de données",
+      "defaultChecked": "Coché par défaut",
+      "delete": "Supprimer",
+      "disabled": "Désactivé",
+      "dsType": {
+        "agent": "Généré par l'agent",
+        "api": "API",
+        "static": "Données statiques",
+        "store": "Store"
+      },
+      "field": "Champ",
+      "format": "Format",
+      "gap": "Espacement",
+      "generationId": "ID de génération",
+      "height": "Hauteur",
+      "icon": "Icône",
+      "inputType": {
+        "password": "Mot de passe",
+        "text": "Texte",
+        "textarea": "Zone de texte"
+      },
+      "itemLayout": {
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
+      },
+      "itemLayoutLabel": "Disposition de la liste",
+      "items": "Éléments de données",
+      "jsonPlaceholder": "Saisir JSON...",
+      "label": "Étiquette",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "Texte brut",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "Langue",
+      "layout": {
+        "horizontal": "Horizontal",
+        "inline": "En ligne",
+        "vertical": "Vertical"
+      },
+      "layoutLabel": "Disposition du formulaire",
+      "max": "Max",
+      "maxLength": "Longueur max",
+      "min": "Min",
+      "name": "Nom",
+      "noEvents": "Aucun événement",
+      "noOptions": "Aucune option",
+      "nodeId": "ID de nœud",
+      "options": "Options",
+      "percent": "Pourcentage",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "Clé de propriété",
+        "propValue": "Valeur de propriété",
+        "schemaId": "schema-id",
+        "storeName": "ex. userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "Espace réservé",
+      "polling": "Intervalle d'interrogation",
+      "pollingHint": "Millisecondes, 0 désactive",
+      "preview": "Aperçuable",
+      "progressType": {
+        "circle": "Cercle",
+        "dashboard": "Tableau de bord",
+        "line": "Ligne"
+      },
+      "readOnly": "Lecture seule",
+      "removeDataSource": "Supprimer la source de données",
+      "required": "Requis",
+      "rows": "Lignes",
       "selectHint": "Cliquez sur un composant dans le canevas\npour modifier ses propriétés",
+      "selectMode": {
+        "default": "Unique",
+        "multiple": "Multiple",
+        "tags": "Étiquettes"
+      },
+      "selectModeLabel": "Mode de sélection",
+      "selector": "Sélecteur",
+      "seriesKey": "Champ de série",
+      "showHeader": "Afficher l'en-tête",
+      "showLine": "Afficher la ligne",
+      "showTime": "Afficher l'heure",
+      "size": {
+        "default": "Par défaut",
+        "large": "Grand",
+        "middle": "Moyen",
+        "small": "Petit"
+      },
+      "sizeLabel": "Taille",
+      "specificFields": "Champs spécifiques",
+      "src": "URL de l'image",
+      "staticValue": "Valeur statique",
+      "step": "Pas",
+      "storeName": "Nom du Store",
+      "strong": "Gras",
       "style": {
         "add": "Ajouter",
         "empty": "Aucune propriété de style",
         "label": "Propriétés de style",
         "placeholder": {
-          "propKey": "Propriété",
-          "propValue": "Valeur"
+          "propKey": "Clé de style",
+          "propValue": "Valeur de style"
         },
         "quickStyles": "Styles rapides"
       },
+      "submitText": "Texte du bouton de soumission",
+      "tabPosition": {
+        "bottom": "Bas",
+        "left": "Gauche",
+        "right": "Droite",
+        "top": "Haut"
+      },
+      "tabPositionLabel": "Position des onglets",
       "tabs": {
         "basic": "De base",
+        "conditional": "Conditionnel",
+        "data": "Données",
+        "events": "Événements",
         "style": "Style"
       },
+      "text": "Texte",
       "title": "Panneau de propriétés",
       "field": "champ"
     },
@@ -7277,7 +7520,36 @@
       "treemap": "Treemap",
       "sankey": "Diagramme de Sankey",
       "gauge": "Jauge",
-      "table": "Tableau"
+      "table": "Tableau",
+      "treeData": "Données d'arborescence",
+      "type": "Type",
+      "value": "Valeur",
+      "version": "Version",
+      "width": "Largeur",
+      "xKey": "Champ axe X",
+      "yKey": "Champ axe Y"
+    },
+    "toolbar": {
+      "copied": "Copié",
+      "copy": "Copier",
+      "cut": "Couper",
+      "cutDone": "Couper",
+      "editMode": "Mode édition",
+      "export": "Exporter",
+      "exported": "Exporté",
+      "import": "Importer",
+      "imported": "Importé",
+      "invalidJson": "Fichier JSON invalide",
+      "paste": "Coller",
+      "pasted": "Collé",
+      "previewMode": "Mode aperçu",
+      "redo": "Refaire",
+      "undo": "Annuler",
+      "viewport": {
+        "desktop": "Bureau",
+        "mobile": "Mobile",
+        "tablet": "Tablette"
+      }
     }
   },
   "voice": {
@@ -7631,6 +7903,9 @@
     }
   },
   "workflow": {
+    "autoSave": {
+      "failed": "Échec de la sauvegarde automatique après 3 tentatives"
+    },
     "agentNode": {
       "agent": "Agent",
       "context": "Contexte",
@@ -8192,7 +8467,12 @@
       "failed": "Échec",
       "inputVars": "Variables d'entrée",
       "nodeStatus": "Statut d'exécution des nœuds",
+      "noInputVariables": "Aucune variable d'entrée",
       "runningNode": "Exécution du nœud de workflow en cours",
+      "partiallyCompleted": "Partiellement terminé",
+      "paused": "En pause",
+      "skipped": "Ignoré",
+      "cancelled": "Annulé",
       "success": "Succès",
       "waiting": "En attente"
     },
@@ -8491,6 +8771,8 @@
       "componentCount": "Nombre de composants",
       "components": "{{count}} composants",
       "depthLevel": "Profondeur",
+      "parsingPhases": "Phases d'analyse",
+      "schemaTitle": "UI Schema",
       "rootType": "Type racine",
       "generate": "Générer",
       "generating": "Génération en cours...",
@@ -8637,6 +8919,7 @@
       "analyzingIntent": "Analyse de l'intention...",
       "buildingWorkflow": "Construction du workflow...",
       "complete": "Terminé",
+      "generating": "Génération...",
       "intentAnalysis": "Analyse d'intention",
       "matchingNodes": "Correspondance des nœuds...",
       "optimizing": "Optimisation..."
@@ -9259,6 +9542,8 @@
       "current": "Version actuelle",
       "currentWorkflowWillBeOverwritten": "Le workflow actuel sera écrasé par la nouvelle version",
       "deletedNode": "- Nœud supprimé : {{id}} ({{desc}})",
+      "diffPlaceholder": "La comparaison de versions est en cours de développement. Utilisez l'historique des versions pour voir les détails.",
+      "restoreSuccess": "Restauré avec succès à la version {{version}}",
       "initialCreation": "Création initiale",
       "modifiedNode": "~ Nœud modifié : {{id}} ({{desc}})",
       "newNode": "+ Nœud ajouté : {{id}} ({{desc}})",

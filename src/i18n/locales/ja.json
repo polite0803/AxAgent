@@ -2075,10 +2075,12 @@
   },
   "datasetManager": {
     "action": "アクション",
+    "addSampleFailed": "サンプルの追加に失敗しました",
     "cancel": "キャンセル",
     "createNew": "新規データセットを作成",
     "created": "作成済み",
     "createdSuccess": "データセットを作成しました",
+    "deleteFailed": "データセットの削除に失敗しました",
     "deletedSuccess": "データセットを削除しました",
     "description": "説明",
     "name": "名前",
@@ -2295,6 +2297,7 @@
     "unknownFile": "不明なファイル",
     "unregisteredComponent": "未登録コンポーネント: {{type}}",
     "unsupportedChartType": "サポートされていないチャートタイプ: {{type}}",
+    "persistFailed": "フォームデータの永続化に失敗しました。バックエンドサービスを確認してください",
     "schemaNotFound": "動的ページが見つかりません",
     "uiSchemaJson": "UIスキーマJSON"
   },
@@ -2376,6 +2379,9 @@
     "export": "エクスポート",
     "exportAll": "すべてエクスポート",
     "exportSuccess": "正常にエクスポートされました",
+    "fieldChildren": "子ノード ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "プロパティ",
     "keyPlaceholder": "キー",
     "valuePlaceholder": "値",
     "subtitle": "動的UIコンポーネントの作成、管理、プレビュー（自然言語生成対応）",
@@ -2392,10 +2398,14 @@
     "parseErrorCantValidate": "JSON解析エラー、検証できません",
     "pass": "合格",
     "reset": "リセット",
+    "sampleCardTitle": "サンプルカード",
+    "sampleText": "Hello World! これは動的 UI のサンプルです。",
     "schemaAllValid": "スキーマ検証完了、全フィールド有効",
     "schemaValidation": "スキーマ検証",
     "waitingForJson": "有効なJSONを待機中...",
-    "title": "Dynamic UI Preview"
+    "title": "Dynamic UI Preview",
+    "title": "動的 UI プレビュー",
+    "waitingForJson": "有効なJSONを待機中..."
   },
   "error": {
     "deleteFailed": "削除に失敗しました。もう一度お試しください",
@@ -2908,6 +2918,7 @@
     "backups": "バックアップ",
     "batchDelete": "削除 ({{count}})",
     "batchDeleteConfirm": "選択した {{count}} ファイルを削除しますか？",
+    "batchDeletePartial": "{{ok}} 件削除、{{fail}} 件失敗",
     "batchDeleteSuccess": "{{count}} 項目を削除しました",
     "columnActions": "アクション",
     "columnCreatedAt": "作成日",
@@ -2943,6 +2954,8 @@
     "previewDirType": "フォルダ",
     "previewEmpty": "ファイルを選択してプレビュー",
     "previewFailed": "プレビューを読み込めません",
+    "previewImageFailed": "画像の読み込みに失敗",
+    "previewLoading": "読み込み中…",
     "previewModified": "更新日時",
     "previewPath": "パス",
     "previewSize": "サイズ",
@@ -2951,6 +2964,8 @@
     "previewUnknownType": "不明",
     "renameSuccess": "名前を変更しました",
     "renameTitle": "名前変更",
+    "rootLoadFailed": "ディレクトリの読み込みに失敗",
+    "unknownCategory": "不明なファイルカテゴリ: {{cat}}",
     "treeEmpty": "空のディレクトリ"
   },
   "fineTune": {
@@ -3122,12 +3137,17 @@
     "colPath": "パス",
     "colStatus": "ステータス",
     "colTime": "時間",
+    "colToken": "Token",
     "errorCount": "エラー数",
     "loadMetricsFailed": "ゲートウェイメトリクスの読み込みに失敗しました：{{error}}",
+    "logsCleared": "ログをクリアしました",
     "noRequestLogs": "リクエストログなし",
     "refresh": "更新",
     "requestLogs": "リクエストログ",
     "title": "ゲートウェイモニター",
+    "todayRequests": "今日のリクエスト",
+    "todayTokens": "今日の Token",
+    "totalCost": "総コスト (USD)",
     "totalRequests": "総リクエスト数",
     "totalTokens": "合計トークン数",
     "uptime": "稼働時間"
@@ -3267,6 +3287,18 @@
   },
   "learningGraph": {
     "all": "すべて",
+    "categories": {
+      "concept": "コンセプト",
+      "context": "コンテキスト",
+      "fact": "事実",
+      "improvement": "改善",
+      "pattern": "パターン",
+      "preference": "設定",
+      "project": "プロジェクト",
+      "warning": "警告"
+    },
+    "categoryMatch": "カテゴリ一致",
+    "derived": "派生",
     "detail": "詳細",
     "edges": "関連",
     "entities": "エンティティ",
@@ -3275,8 +3307,12 @@
     "lexicalOverlap": "関連",
     "memories": "記憶",
     "refresh": "更新",
+    "related": "関連",
     "searchPlaceholder": "ノード検索...",
     "skills": "スキル",
+    "stateActive": "アクティブ",
+    "stateArchived": "アーカイブ",
+    "stateSkipped": "スキップ済み",
     "title": "学習グラフ",
     "useCount": "使用回数: {count}",
     "stockAnalysis": {
@@ -3727,6 +3763,8 @@
     "syncedSkills": "同期済みスキル",
     "tokenLimitPerMinute": "1分あたりのトークン制限",
     "typeCustom": "カスタム",
+    "toggleFailed": "切り替えに失敗しました",
+    "createConversationFailed": "会話の作成に失敗しました：{{error}}",
     "unlimited": "無制限",
     "updateSettingsFailed": "設定更新失敗",
     "weighted": "加重",
@@ -5289,6 +5327,7 @@
       "categoryLearning": "学習",
       "categorySafety": "安全性",
       "config": "設定",
+      "empty": "進化エンジンがありません",
       "engineCount": "実行中",
       "engineNotFound": "エンジンが見つかりません",
       "engineNotFoundDesc": "エンジン「{{name}}」が見つかりません",
@@ -6538,6 +6577,8 @@
       "oldVersion": "旧 (v{{version}})",
       "rollback": "ロールバック",
       "rollbackConfirmMessage": "v{{version}}にロールバックしてもよろしいですか？そのバージョン以降のすべての進化変更が破棄されます。",
+      "rollbackFailed": "ロールバックに失敗しました：{{error}}",
+      "rollbackSuccess": "v{{version}} にロールバックしました",
       "totalEvolutions": "総進化回数",
       "viewDiff": "差分を表示"
     },
@@ -6551,6 +6592,10 @@
     "installed": "インストール済み",
     "loadFailed": "スキル「{{name}}」の読み込みに失敗",
     "loading": "スキルコンポーネントを読み込み中...",
+    "markdown": {
+      "loadFailed": "Markdown コンテンツの読み込みに失敗しました",
+      "parseError": "解析エラー"
+    },
     "marketplace": "スキルマーケット",
     "name": "名前",
     "namePlaceholder": "名前を入力...",
@@ -7111,8 +7156,12 @@
   "trainingJob": {
     "action": "アクション",
     "baseModel": "ベースモデル",
+    "cancelFailed": "トレーニングジョブのキャンセルに失敗しました",
+    "cancelSuccess": "トレーニングジョブをキャンセルしました",
     "completed": "完了",
     "datasetId": "データセットID",
+    "deleteFailed": "トレーニングジョブの削除に失敗しました",
+    "deleteSuccess": "トレーニングジョブを削除しました",
     "failed": "失敗",
     "id": "ID",
     "loraOutput": "LoRA出力",
@@ -7120,6 +7169,8 @@
     "progress": "進捗",
     "ready": "準備完了",
     "running": "実行中",
+    "startFailed": "トレーニングジョブの開始に失敗しました",
+    "startSuccess": "トレーニングジョブを開始しました",
     "status": "ステータス",
     "title": "トレーニングジョブ",
     "totalJobs": "合計ジョブ",
@@ -7140,9 +7191,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "子ノード領域",
+      "childCount": "子ノード",
+      "dropHere": "ここにドロップ",
       "dropHint": "コンテナ、フォーム、データ表示などをサポート",
       "dropPrompt": "コンポーネントをここにドロップ",
-      "emptyHint": "キャンバスは空です。左パネルからコンポーネントをドラッグしてUIを構築"
+      "emptyHint": "キャンバスは空です。左パネルからコンポーネントをドラッグしてUIを構築",
+      "leafNode": "葉ノード（子ノードなし）",
+      "livePreview": "ライブプレビュー",
+      "previewEmpty": "コンテンツがありません。プレビューモードを終了して編集してください",
+      "rootHint": "ルートノード"
+    },
+    "categories": {
+      "container": "コンテナレイアウト",
+      "data-display": "データ表示",
+      "form": "フォーム",
+      "media": "メディア",
+      "misc": "その他"
     },
     "components": {
       "Accordion": "アコーディオン",
@@ -7177,30 +7242,208 @@
       "Timeline": "タイムライン",
       "Tree": "ツリー"
     },
+    "error": {
+      "reset": "リセット",
+      "title": "エディタエラー"
+    },
+    "exitFullscreen": "全画面終了",
+    "fullscreen": "全画面",
+    "outline": {
+      "delete": "削除",
+      "duplicate": "複製",
+      "title": "アウトライン"
+    },
     "palette": {
       "title": "コンポーネント"
     },
+    "preview": {
+      "actionTriggered": "アクションがトリガーされました"
+    },
     "property": {
-      "delete": "削除",
-      "placeholder": {
-        "propKey": "キー",
-        "propValue": "値"
+      "accordion": "アコーディオンモード",
+      "addAction": "アクション追加",
+      "addDataSource": "データソース追加",
+      "addEvent": "イベント追加",
+      "addOption": "オプション追加",
+      "advancedProps": "高度なプロパティ",
+      "align": {
+        "center": "中央",
+        "end": "終了",
+        "start": "開始"
       },
+      "alignLabel": "整列",
+      "alt": "代替テキスト",
+      "apiEndpoint": "API エンドポイント",
+      "apiMethod": "リクエストメソッド",
+      "apiParams": "リクエストパラメータ",
+      "bordered": "枠線表示",
+      "btnType": {
+        "dashed": "破線",
+        "default": "デフォルト",
+        "link": "リンク",
+        "primary": "プライマリ"
+      },
+      "chartType": {
+        "area": "エリア",
+        "bar": "バー",
+        "line": "ライン",
+        "pie": "パイ",
+        "scatter": "散布図"
+      },
+      "chartTypeLabel": "チャートタイプ",
+      "checkable": "チェック可能",
+      "color": {
+        "blue": "青",
+        "green": "緑",
+        "orange": "オレンジ",
+        "purple": "紫",
+        "red": "赤"
+      },
+      "colorLabel": "色",
+      "columns": "列数",
+      "command": "コマンド名",
+      "conditional": {
+        "addRule": "ルール追加",
+        "clear": "すべてクリア",
+        "description": "条件付きレンダリングルールを設定します。AND/OR 論理および NOT 反転をサポート。",
+        "empty": "ルールがありません。下をクリックして追加",
+        "fieldPlaceholder": "フィールド名",
+        "notHint": "結果を反転",
+        "valuePlaceholder": "比較値"
+      },
+      "content": "コンテンツ",
+      "data": "データ",
+      "dataSourceType": "データソースタイプ",
+      "defaultChecked": "デフォルトチェック",
+      "delete": "削除",
+      "disabled": "無効",
+      "dsType": {
+        "agent": "エージェント生成",
+        "api": "API",
+        "static": "静的データ",
+        "store": "Store"
+      },
+      "field": "フィールド",
+      "format": "フォーマット",
+      "gap": "間隔",
+      "generationId": "生成 ID",
+      "height": "高さ",
+      "icon": "アイコン",
+      "inputType": {
+        "password": "パスワード",
+        "text": "テキスト",
+        "textarea": "テキストエリア"
+      },
+      "itemLayout": {
+        "horizontal": "水平",
+        "vertical": "垂直"
+      },
+      "itemLayoutLabel": "リストレイアウト",
+      "items": "データ項目",
+      "jsonPlaceholder": "JSON を入力...",
+      "label": "ラベル",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "プレーンテキスト",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "言語",
+      "layout": {
+        "horizontal": "水平",
+        "inline": "インライン",
+        "vertical": "垂直"
+      },
+      "layoutLabel": "フォームレイアウト",
+      "max": "最大",
+      "maxLength": "最大長",
+      "min": "最小",
+      "name": "名前",
+      "noEvents": "イベントなし",
+      "noOptions": "オプションなし",
+      "nodeId": "ノード ID",
+      "options": "オプション",
+      "percent": "パーセント",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "プロパティキー",
+        "propValue": "プロパティ値",
+        "schemaId": "schema-id",
+        "storeName": "例: userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "プレースホルダー",
+      "polling": "ポーリング間隔",
+      "pollingHint": "ミリ秒単位、0 で無効",
+      "preview": "プレビュー可能",
+      "progressType": {
+        "circle": "サークル",
+        "dashboard": "ダッシュボード",
+        "line": "ライン"
+      },
+      "readOnly": "読み取り専用",
+      "removeDataSource": "データソース削除",
+      "required": "必須",
+      "rows": "行数",
       "selectHint": "キャンバス上のコンポーネントをクリックして\nプロパティを編集",
+      "selectMode": {
+        "default": "単一",
+        "multiple": "複数",
+        "tags": "タグ"
+      },
+      "selectModeLabel": "選択モード",
+      "selector": "セレクタ",
+      "seriesKey": "シリーズフィールド",
+      "showHeader": "ヘッダー表示",
+      "showLine": "ライン表示",
+      "showTime": "時間表示",
+      "size": {
+        "default": "デフォルト",
+        "large": "大",
+        "middle": "中",
+        "small": "小"
+      },
+      "sizeLabel": "サイズ",
+      "specificFields": "固有フィールド",
+      "src": "画像 URL",
+      "staticValue": "静的値",
+      "step": "ステップ",
+      "storeName": "Store 名",
+      "strong": "太字",
       "style": {
         "add": "追加",
         "empty": "スタイルプロパティなし",
         "label": "スタイルプロパティ",
         "placeholder": {
-          "propKey": "プロパティ",
-          "propValue": "値"
+          "propKey": "スタイルキー",
+          "propValue": "スタイル値"
         },
         "quickStyles": "クイックスタイル"
       },
+      "submitText": "送信ボタンテキスト",
+      "tabPosition": {
+        "bottom": "下部",
+        "left": "左",
+        "right": "右",
+        "top": "上部"
+      },
+      "tabPositionLabel": "タブ位置",
       "tabs": {
         "basic": "基本",
+        "conditional": "条件",
+        "data": "データ",
+        "events": "イベント",
         "style": "スタイル"
       },
+      "text": "テキスト",
       "title": "プロパティパネル",
       "field": "フィールド"
     },
@@ -7277,7 +7520,36 @@
       "treemap": "ツリーマップ",
       "sankey": "サンキーダイアグラム",
       "gauge": "ゲージ",
-      "table": "テーブル"
+      "table": "テーブル",
+      "treeData": "ツリーデータ",
+      "type": "タイプ",
+      "value": "値",
+      "version": "バージョン",
+      "width": "幅",
+      "xKey": "X 軸フィールド",
+      "yKey": "Y 軸フィールド"
+    },
+    "toolbar": {
+      "copied": "コピーしました",
+      "copy": "コピー",
+      "cut": "切り取り",
+      "cutDone": "切り取りました",
+      "editMode": "編集モード",
+      "export": "エクスポート",
+      "exported": "エクスポートしました",
+      "import": "インポート",
+      "imported": "インポートしました",
+      "invalidJson": "無効な JSON ファイル",
+      "paste": "貼り付け",
+      "pasted": "貼り付けました",
+      "previewMode": "プレビューモード",
+      "redo": "やり直し",
+      "undo": "元に戻す",
+      "viewport": {
+        "desktop": "デスクトップ",
+        "mobile": "モバイル",
+        "tablet": "タブレット"
+      }
     }
   },
   "voice": {
@@ -7631,6 +7903,9 @@
     }
   },
   "workflow": {
+    "autoSave": {
+      "failed": "自動保存に失敗しました（3回再試行）"
+    },
     "agentNode": {
       "agent": "エージェント",
       "context": "コンテキスト",
@@ -8192,7 +8467,12 @@
       "failed": "失敗",
       "inputVars": "入力変数",
       "nodeStatus": "ノード実行状態",
+      "noInputVariables": "入力変数なし",
       "runningNode": "ワークフローノードを実行中",
+      "partiallyCompleted": "一部完了",
+      "paused": "一時停止中",
+      "skipped": "スキップ",
+      "cancelled": "キャンセル",
       "success": "成功",
       "waiting": "待機中"
     },
@@ -8491,6 +8771,8 @@
       "componentCount": "コンポーネント数",
       "components": "{{count}} コンポーネント",
       "depthLevel": "深度",
+      "parsingPhases": "解析フェーズ",
+      "schemaTitle": "UI Schema",
       "rootType": "ルートタイプ",
       "generate": "生成",
       "generating": "生成中...",
@@ -8637,6 +8919,7 @@
       "analyzingIntent": "意図分析中...",
       "buildingWorkflow": "ワークフロー構築中...",
       "complete": "完了",
+      "generating": "生成中...",
       "intentAnalysis": "意図分析",
       "matchingNodes": "ノードマッチング中...",
       "optimizing": "最適化中..."
@@ -9259,6 +9542,8 @@
       "current": "現在のバージョン",
       "currentWorkflowWillBeOverwritten": "現在のワークフローは新しいバージョンで上書きされます",
       "deletedNode": "- ノード削除: {{id}} ({{desc}})",
+      "diffPlaceholder": "バージョン比較機能は開発中です。バージョン履歴から各バージョンの詳細をご確認ください",
+      "restoreSuccess": "バージョン {{version}} への復元に成功しました",
       "initialCreation": "初期作成",
       "modifiedNode": "~ ノード変更: {{id}} ({{desc}})",
       "newNode": "+ ノード追加: {{id}} ({{desc}})",

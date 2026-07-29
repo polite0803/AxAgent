@@ -38,10 +38,17 @@ export function UserProfileSettings() {
     } | null
   >(null);
 
+  // S-P1-1: 添加错误处理
   useEffect(() => {
-    loadTrajectoryProfile();
-    loadStyleProfile("default");
-    getStats().then((s) => setStats(s));
+    Promise.all([
+      loadTrajectoryProfile(),
+      loadStyleProfile("default"),
+      getStats(),
+    ])
+      .then(([, , s]) => setStats(s))
+      .catch(() => {
+        // store 内部已处理错误
+      });
   }, [loadTrajectoryProfile, loadStyleProfile, getStats]);
 
   if (isLoading && !trajectoryProfile) {

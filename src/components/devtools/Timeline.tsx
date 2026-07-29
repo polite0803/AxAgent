@@ -27,6 +27,11 @@ function getSpanTypeColor(type_: SpanType): string {
       return "#eb2f96";
     case "reasoning":
       return "#faad14";
+    // DT-P0-2: 补充 workflow/workflow_node 颜色
+    case "workflow":
+      return "#2f54eb";
+    case "workflow_node":
+      return "#a0d911";
     default:
       return "#d9d9d9";
   }

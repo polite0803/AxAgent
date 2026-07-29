@@ -41,7 +41,7 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
             strokeColor={strokeColor}
           />
           <div>
-            <Title level={5} style={{ marginBottom: 2 }}>UI Schema</Title>
+            <Title level={5} style={{ marginBottom: 2 }}>{t("workflow.nl2UI.schemaTitle")}</Title>
             <Space>
               <Tag color="purple">{schema.type}</Tag>
               <Text type="secondary">{t("workflow.nl2UI.components", { count: componentCount })}</Text>
@@ -93,11 +93,14 @@ export const NL2UIResultView: React.FC<NL2UIResultViewProps> = React.memo(
           items={[
             {
               key: "phases",
-              label: t("workflow.nl2Skill.parsingPhases"),
+              label: t("workflow.nl2UI.parsingPhases"),
               children: (
-                <div className="divide-y divide-gray-100">
+                <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
                   {phases.map((p) => (
-                    <div key={p.phase} style={{ padding: "2px 0" }}>
+                    <div
+                      key={p.phase}
+                      style={{ padding: "2px 0", borderBottom: `1px solid ${token.colorBorderSecondary}` }}
+                    >
                       <Space>
                         {p.status === "done"
                           ? <CheckCircleOutlined style={{ color: token.colorSuccess }} />

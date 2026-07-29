@@ -52,7 +52,8 @@ function useThumbnailSrc(
         }
       })
       .catch((e: unknown) => {
-        logIpcError("FileList listener")(e);
+        // F-P2-8: 准确描述日志来源（thumbnail 加载失败而非 listener 注册失败）
+        logIpcError("FileList thumbnail read_attachment_preview")(e);
       });
     return () => {
       cancelled = true;

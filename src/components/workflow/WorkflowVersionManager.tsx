@@ -3,7 +3,7 @@
 
 import { useWorkflowStore } from "@/stores/feature/workflowStore";
 import type { WorkflowDefinition, WorkflowVersion } from "@/types";
-import { Button, Drawer, Empty, Modal, Popconfirm, Space, Table, Tag, Timeline, Typography } from "antd";
+import { App, Button, Drawer, Empty, Popconfirm, Space, Table, Tag, Timeline, Typography } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +17,7 @@ interface WorkflowVersionManagerProps {
 
 export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVersionManagerProps) {
   const { t } = useTranslation();
+  const { message, modal } = App.useApp();
   const [versions, setVersions] = useState<WorkflowVersion[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedVersions, setSelectedVersions] = useState<number[]>([]);
@@ -32,10 +33,15 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
 
   const loadVersions = useCallback(async () => {
     setLoading(true);
-    const v = await getVersionHistory(workflow.id);
-    setVersions(v);
-    setLoading(false);
-  }, [workflow.id, getVersionHistory]);
+    try {
+      const v = await getVersionHistory(workflow.id);
+      setVersions(v);
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [workflow.id, getVersionHistory, message]);
 
   useEffect(() => {
     const tid = setTimeout(() => {
@@ -46,15 +52,20 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
 
   const handleRestore = useCallback(
     async (version: number) => {
-      await restoreVersion(workflow.id, version);
-      loadVersions();
+      try {
+        await restoreVersion(workflow.id, version);
+        message.success(t("workflow.version.restoreSuccess", { version }));
+        loadVersions();
+      } catch (e) {
+        message.error(String(e));
+      }
     },
-    [workflow.id, restoreVersion, loadVersions],
+    [workflow.id, restoreVersion, loadVersions, message, t],
   );
 
   const handleCompare = useCallback(() => {
     if (selectedVersions.length === 2) {
-      Modal.info({
+      modal.info({
         title: t("workflow.version.version"),
         width: 700,
         content: (
@@ -63,25 +74,13 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
               {t("workflow.version.compareHint", { v1: selectedVersions[0], v2: selectedVersions[1] })}
             </Text>
             <div style={{ marginTop: 16 }}>
-              <Space orientation="vertical" style={{ width: "100%" }}>
-                <div style={{ padding: 8, backgroundColor: "#f6ffed", borderRadius: 4 }}>
-                  <Text type="success">+ {t("workflow.version.newNode", { id: "output-2", desc: "发送摘要" })}</Text>
-                </div>
-                <div style={{ padding: 8, backgroundColor: "#fff2f0", borderRadius: 4 }}>
-                  <Text type="danger">- {t("workflow.version.deletedNode", { id: "action-3", desc: "冗余步骤" })}</Text>
-                </div>
-                <div style={{ padding: 8, backgroundColor: "#fffbe6", borderRadius: 4 }}>
-                  <Text type="warning">
-                    ~ {t("workflow.version.modifiedNode", { id: "action-1", desc: "超时时间 30s → 60s" })}
-                  </Text>
-                </div>
-              </Space>
+              <Text type="secondary">{t("workflow.version.diffPlaceholder")}</Text>
             </div>
           </div>
         ),
       });
     }
-  }, [selectedVersions, t]);
+  }, [selectedVersions, t, modal]);
 
   const columns = [
     {
@@ -167,7 +166,6 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
                 type: "checkbox",
                 selectedRowKeys: selectedVersions,
                 onChange: (keys) => setSelectedVersions(keys as number[]),
-                getCheckboxProps: () => ({ style: { marginLeft: 0 } }),
               }}
             />
 

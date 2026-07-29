@@ -104,6 +104,21 @@ impl SinaVendor {
             })
             .collect())
     }
+
+    /// 备选新闻端点失败后，降级到东方财富搜索 API
+    async fn get_news_fallback_or_eastmoney(
+        &self,
+        stock_code: &str,
+        limit: u32,
+    ) -> Result<Vec<NewsItem>, DataError> {
+        match self.get_news_fallback(stock_code, limit).await {
+            Ok(news) => Ok(news),
+            Err(e) => {
+                tracing::warn!("[sina] 新闻备选端点也失败，降级到东方财富: {e}");
+                crate::vendors::fetch_eastmoney_news(&self.http, "sina", stock_code, limit).await
+            },
+        }
+    }
 }
 
 #[async_trait]
@@ -272,15 +287,20 @@ impl StockVendor for SinaVendor {
     }
 
     async fn get_news(&self, stock_code: &str, limit: u32) -> Result<Vec<NewsItem>, DataError> {
-        // 注意: vip.stock.finance.sina.com.cn/corp/go.php/vCB_AllNewsStock/symbol/{code}.json
-        // 目前(2026-06)返回 HTTP 200 + 空 body(Content-Type: text/html)，疑似接口已废弃。
-        // 先尝试原端点，如果失败则尝试备选端点；仍失败则返回清晰错误供上游降级。
+        // 降级链路：新浪主端点 → 新浪备选端点 → 东方财富
         let primary_url = format!(
             "https://vip.stock.finance.sina.com.cn/corp/go.php/vCB_AllNewsStock/symbol/{stock_code}.json?page=1&num={}",
             limit.min(50)
         );
 
-        let resp = self.sina_get(&primary_url).await?;
+        let resp = match self.sina_get(&primary_url).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!("[sina] 新闻主端点请求失败，尝试备选端点: {e}");
+                return self.get_news_fallback_or_eastmoney(stock_code, limit).await;
+            },
+        };
+
         let ct = resp
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
@@ -293,7 +313,7 @@ impl StockVendor for SinaVendor {
             tracing::warn!(
                 "[sina] 新闻主端点返回非 JSON (Content-Type={ct}, Content-Length={body_len})，尝试备选端点"
             );
-            return self.get_news_fallback(stock_code, limit).await;
+            return self.get_news_fallback_or_eastmoney(stock_code, limit).await;
         }
 
         let items: Vec<serde_json::Value> =
@@ -304,7 +324,7 @@ impl StockVendor for SinaVendor {
 
         if items.is_empty() {
             tracing::warn!("[sina] 新闻主端点返回空数组，尝试备选端点");
-            return self.get_news_fallback(stock_code, limit).await;
+            return self.get_news_fallback_or_eastmoney(stock_code, limit).await;
         }
 
         Ok(items

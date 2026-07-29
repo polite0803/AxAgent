@@ -30,6 +30,181 @@ import "@xyflow/react/dist/style.css";
 
 const { Text, Title } = Typography;
 
+// F-P1-3: 浏览器开发模式（npm run dev）下的 mock 数据，遵循 AGENTS.md 约定的 localStorage mock 模式
+const MOCK_GRAPH: LearningGraph = {
+  nodes: [
+    {
+      id: "skill-1",
+      kind: "skill",
+      label: "Mock Skill A",
+      detail: "Dev mode sample",
+      category: "coding",
+      timestampMs: Date.now(),
+      useCount: 5,
+      state: "active",
+    },
+    {
+      id: "skill-2",
+      kind: "skill",
+      label: "Mock Skill B",
+      detail: "Dev mode sample",
+      category: "writing",
+      timestampMs: Date.now(),
+      useCount: 2,
+      state: "active",
+    },
+    {
+      id: "memory-1",
+      kind: "memory",
+      label: "Mock Memory",
+      detail: "Dev mode sample",
+      category: "preference",
+      timestampMs: Date.now(),
+      useCount: 8,
+      state: "active",
+    },
+    {
+      id: "insight-1",
+      kind: "insight",
+      label: "Mock Insight",
+      detail: "Dev mode sample",
+      category: "improvement",
+      timestampMs: Date.now(),
+      useCount: 0,
+      state: "active",
+    },
+    {
+      id: "entity-1",
+      kind: "entity",
+      label: "Mock Entity",
+      detail: "Dev mode sample",
+      category: "concept",
+      timestampMs: Date.now(),
+      useCount: 3,
+      state: "active",
+    },
+  ],
+  edges: [
+    { source: "skill-1", target: "memory-1", relation: "category_match", weight: 0.8 },
+    { source: "skill-1", target: "entity-1", relation: "lexical_overlap", weight: 0.5 },
+    { source: "skill-2", target: "entity-1", relation: "related", weight: 0.3 },
+    { source: "memory-1", target: "insight-1", relation: "derived", weight: 0.7 },
+  ],
+  stats: {
+    totalSkills: 2,
+    totalMemories: 1,
+    totalInsights: 1,
+    totalEntities: 1,
+    totalEdges: 4,
+    linkedNodes: 5,
+    categories: [
+      { category: "coding", count: 1 },
+      { category: "writing", count: 1 },
+      { category: "preference", count: 1 },
+      { category: "improvement", count: 1 },
+      { category: "concept", count: 1 },
+    ],
+  },
+};
+
+// F-P1-5: localStorage 持久化节点 position 的 key（按 stats 哈希区分不同图）
+const LAYOUT_STORAGE_KEY = "axagent.learningGraph.layout";
+
+function loadSavedLayout(graphStats: LearningGraph["stats"] | undefined): Record<string, { x: number; y: number }> {
+  if (!graphStats) { return {}; }
+  try {
+    const key = `${LAYOUT_STORAGE_KEY}.${graphStats.totalSkills}-${graphStats.totalMemories}-${graphStats.totalEdges}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) { return {}; }
+    const parsed = JSON.parse(raw) as Record<string, { x: number; y: number }>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLayout(
+  graphStats: LearningGraph["stats"] | undefined,
+  positions: Record<string, { x: number; y: number }>,
+): void {
+  if (!graphStats) { return; }
+  try {
+    const key = `${LAYOUT_STORAGE_KEY}.${graphStats.totalSkills}-${graphStats.totalMemories}-${graphStats.totalEdges}`;
+    localStorage.setItem(key, JSON.stringify(positions));
+  } catch {
+    // localStorage 满或禁用时静默忽略
+  }
+}
+
+// F-P0-2: 简单分层布局算法（基于入度的 BFS 拓扑分层，比纯索引网格更能体现关系）
+function computeLayeredLayout(
+  nodes: GraphNode[],
+  edges: Array<{ source: string; target: string }>,
+): Record<string, { x: number; y: number }> {
+  const positions: Record<string, { x: number; y: number }> = {};
+  const inDegree = new Map<string, number>();
+  const adj = new Map<string, string[]>();
+  nodes.forEach((n) => {
+    inDegree.set(n.id, 0);
+    adj.set(n.id, []);
+  });
+  edges.forEach((e) => {
+    if (inDegree.has(e.target) && adj.has(e.source)) {
+      inDegree.set(e.target, (inDegree.get(e.target) ?? 0) + 1);
+      adj.get(e.source)?.push(e.target);
+    }
+  });
+  // BFS 分层
+  const layers = new Map<string, number>();
+  const queue: string[] = [];
+  inDegree.forEach((deg, id) => {
+    if (deg === 0) {
+      layers.set(id, 0);
+      queue.push(id);
+    }
+  });
+  // 处理孤立节点（无入度也无出度）和环
+  if (queue.length === 0 && nodes.length > 0) {
+    nodes.forEach((n, i) => layers.set(n.id, Math.floor(i / 5)));
+  }
+  let head = 0;
+  while (head < queue.length) {
+    const cur = queue[head++];
+    const curLayer = layers.get(cur) ?? 0;
+    const neighbors = adj.get(cur) ?? [];
+    neighbors.forEach((nb) => {
+      const newLayer = curLayer + 1;
+      if (!layers.has(nb) || (layers.get(nb) ?? 0) < newLayer) {
+        layers.set(nb, newLayer);
+        queue.push(nb);
+      }
+    });
+  }
+  // 兜底：未分层的节点放到第 0 层
+  nodes.forEach((n) => {
+    if (!layers.has(n.id)) { layers.set(n.id, 0); }
+  });
+  // 按层摆放
+  const byLayer = new Map<number, string[]>();
+  layers.forEach((layer, id) => {
+    if (!byLayer.has(layer)) { byLayer.set(layer, []); }
+    byLayer.get(layer)?.push(id);
+  });
+  const LAYER_HEIGHT = 160;
+  const NODE_WIDTH = 260;
+  const X_OFFSET = 200;
+  const Y_OFFSET = 80;
+  byLayer.forEach((ids, layer) => {
+    ids.forEach((id, idxInLayer) => {
+      positions[id] = {
+        x: X_OFFSET + idxInLayer * NODE_WIDTH,
+        y: Y_OFFSET + layer * LAYER_HEIGHT,
+      };
+    });
+  });
+  return positions;
+}
+
 // ── Node type components ──────────────────────────────────────────────
 
 function SkillNode({ data }: NodeProps) {
@@ -196,7 +371,9 @@ export function LearningGraphPage() {
   // Fetch graph data (initial load)
   useEffect(() => {
     const load = async () => {
+      // F-P1-3: 浏览器开发模式（npm run dev）下加载 mock 数据，避免空白页违反 AGENTS.md 约定
       if (!isTauri()) {
+        setGraph(MOCK_GRAPH);
         setLoading(false);
         return;
       }
@@ -217,7 +394,14 @@ export function LearningGraphPage() {
   // Manual refresh — uses its own refreshing flag so the loading overlay only
   // covers the initial load, while a small spinner shows on the refresh button.
   const handleRefresh = useCallback(async () => {
-    if (!isTauri()) { return; }
+    // F-P1-3: 浏览器开发模式下也允许刷新（重新加载 mock）
+    if (!isTauri()) {
+      setIsRefreshing(true);
+      setGraph(MOCK_GRAPH);
+      setErrorMsg(null);
+      setIsRefreshing(false);
+      return;
+    }
     setIsRefreshing(true);
     setErrorMsg(null);
     try {
@@ -243,6 +427,16 @@ export function LearningGraphPage() {
     });
   }, [graph, filterKind, debouncedSearch]);
 
+  // F-P0-1: edge label 翻译移到 useMemo 中，避免 useEffect 依赖 t 导致语言切换时重置布局
+  const edgeLabelMap = useMemo(() => {
+    return {
+      lexical_overlap: t("learningGraph.lexicalOverlap"),
+      category_match: t("learningGraph.categoryMatch"),
+      related: t("learningGraph.related"),
+      derived: t("learningGraph.derived"),
+    } as Record<string, string>;
+  }, [t]);
+
   useEffect(() => {
     if (!graph || filteredNodes.length === 0) {
       if (filteredNodes.length === 0 && graph) {
@@ -253,10 +447,16 @@ export function LearningGraphPage() {
     }
     const nodeMap = new Map(filteredNodes.map((n) => [n.id, n]));
 
-    const rfNodes = filteredNodes.map((n, i) => ({
+    // F-P0-2: 用基于入度的 BFS 拓扑分层算法替代纯索引网格
+    // F-P1-5: 优先读取 localStorage 中保存的 position，无则用计算出的布局
+    const computedLayout = computeLayeredLayout(filteredNodes, graph.edges);
+    const savedLayout = loadSavedLayout(graph.stats);
+    const finalLayout = { ...computedLayout, ...savedLayout };
+
+    const rfNodes = filteredNodes.map((n) => ({
       id: n.id,
       type: n.kind,
-      position: { x: 200 + (i % 5) * 250, y: 80 + Math.floor(i / 5) * 140 },
+      position: finalLayout[n.id] ?? { x: 200, y: 80 },
       data: {
         label: n.label,
         detail: n.detail,
@@ -274,16 +474,23 @@ export function LearningGraphPage() {
         animated: true,
         style: { stroke: "#888", strokeWidth: 1 + e.weight * 2 },
         markerEnd: { type: MarkerType.ArrowClosed, color: "#888" } as const,
-        label: e.relation === "lexical_overlap"
-          ? t("learningGraph.lexicalOverlap")
-          : e.relation === "category_match"
-          ? t("learningGraph.insights")
-          : e.relation,
+        // F-P1-4: category_match 用独立 i18n key 而非复用 insights
+        label: edgeLabelMap[e.relation] ?? e.relation,
       }));
 
     setNodes(rfNodes);
     setEdges(rfEdges);
-  }, [filteredNodes, graph, setNodes, setEdges, t]);
+  }, [filteredNodes, graph, setNodes, setEdges, edgeLabelMap]);
+
+  // F-P1-5: 监听 nodes position 变化时持久化到 localStorage
+  useEffect(() => {
+    if (!graph || nodes.length === 0) { return; }
+    const positions: Record<string, { x: number; y: number }> = {};
+    nodes.forEach((n) => {
+      positions[n.id] = n.position;
+    });
+    saveLayout(graph.stats, positions);
+  }, [nodes, graph]);
 
   // Handle node click — show detail panel
   const onNodeClick = useCallback(
@@ -435,7 +642,11 @@ export function LearningGraphPage() {
               <Controls />
               <MiniMap
                 nodeStrokeColor={token.colorBorder}
-                nodeColor={(n: { type?: string }) => KIND_COLORS[n.type || "skill"] || "#888"}
+                // F-P1-7: node.type 大小写不敏感，避免 "Skill" vs "skill" 导致回退到灰色
+                nodeColor={(n: { type?: string }) => {
+                  const type = (n.type || "skill").toLowerCase();
+                  return KIND_COLORS[type] || "#888";
+                }}
                 style={{ border: `1px solid ${token.colorBorderSecondary}` }}
               />
             </ReactFlow>
@@ -465,8 +676,18 @@ export function LearningGraphPage() {
                   ? t("learningGraph.entities")
                   : t("learningGraph.insights")}
               </Tag>
-              <Tag>{selectedNode.category}</Tag>
-              {selectedNode.state !== "active" && <Tag color="orange">{selectedNode.state}</Tag>}
+              {/* F-P1-6: category/state 用 i18n 翻译，未知值回退到原始字符串 */}
+              <Tag>
+                {t(`learningGraph.categories.${selectedNode.category}`, { defaultValue: selectedNode.category })}
+              </Tag>
+              {selectedNode.state !== "active" && (
+                <Tag color="orange">
+                  {t(
+                    `learningGraph.state${selectedNode.state.charAt(0).toUpperCase()}${selectedNode.state.slice(1)}`,
+                    { defaultValue: selectedNode.state },
+                  )}
+                </Tag>
+              )}
             </div>
             {selectedNode.useCount > 0 && (
               <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>

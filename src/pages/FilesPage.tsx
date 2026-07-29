@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { FileCategory } from "@/components/files/fileCategories";
+import { FILE_CATEGORIES, type FileCategory } from "@/components/files/fileCategories";
 import { FilesContent } from "@/components/files/FilesContent";
 import { FilesSidebar } from "@/components/files/FilesSidebar";
 import { useState } from "react";
@@ -8,7 +8,8 @@ import { useTranslation } from "react-i18next";
 
 export function FilesPage() {
   const { t } = useTranslation();
-  const [category, setCategory] = useState<FileCategory>("images");
+  // F-P1-5: 默认分类从 FILE_CATEGORIES 派生，避免硬编码 "images" 与数组顺序脱钩
+  const [category, setCategory] = useState<FileCategory>(FILE_CATEGORIES[0].id);
 
   return (
     <div className="fl-layout">
