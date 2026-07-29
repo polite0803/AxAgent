@@ -64,55 +64,8 @@ const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.chat,
     isPlugin: false,
   },
-  {
-    key: "dashboard",
-    icon: <Icon icon="fluent:grid-20-filled" size={17} />,
-    labelKey: "nav.dashboard",
-    path: BUILTIN_PAGE_PATH.dashboard,
-    isPlugin: false,
-  },
-  {
-    key: "knowledge",
-    icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
-    labelKey: "nav.knowledge",
-    path: BUILTIN_PAGE_PATH.knowledge,
-    isPlugin: false,
-  },
-  {
-    key: "terminal",
-    icon: <Icon icon="fluent:prompt-20-filled" size={17} />,
-    labelKey: "nav.terminal",
-    path: BUILTIN_PAGE_PATH.terminal,
-    isPlugin: false,
-  },
-  {
-    key: "files",
-    icon: <Icon icon="fluent:folder-20-filled" size={17} />,
-    labelKey: "nav.files",
-    path: BUILTIN_PAGE_PATH.files,
-    isPlugin: false,
-  },
-  {
-    key: "workflow",
-    icon: <Icon icon="fluent:flow-20-filled" size={17} />,
-    labelKey: "nav.workflow",
-    path: BUILTIN_PAGE_PATH.workflow,
-    isPlugin: false,
-  },
-  {
-    key: "marketplace",
-    icon: <Icon icon="fluent:store-microsoft-20-filled" size={17} />,
-    labelKey: "nav.marketplace",
-    path: BUILTIN_PAGE_PATH.marketplace,
-    isPlugin: false,
-  },
-  {
-    key: "dynamic-ui",
-    icon: <Icon icon="fluent:apps-20-filled" size={17} />,
-    labelKey: "nav.dynamicUI",
-    path: BUILTIN_PAGE_PATH["dynamic-ui"],
-    isPlugin: false,
-  },
+  // dashboard/knowledge/terminal/files/workflow/marketplace 已合并到 /chat 的 WorkspaceHub Tab（见 ContentArea 重定向），
+  // dynamic-ui 已迁入设置页，侧栏不再保留这 7 项（跟踪上游 86bf7959 清理）
   {
     key: "workspace",
     icon: <Icon icon="fluent:target-20-filled" size={17} />,
@@ -415,34 +368,12 @@ export function Sidebar() {
   const sections = useMemo<SidebarSection[]>(() => {
     const sections: SidebarSection[] = [];
 
-    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源 Tab）
-    // 仅保留 chat（核心枢纽）与 dynamic-ui（应用中心入口），
-    // 其余项各自归入下方 creation/knowledge/development/invest-* 分组，避免重复
+    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源 Tab，见 WorkspaceHub）
+    // creation/knowledge/development 分组已废弃——这些功能合并到 /chat 的 Tab，不再单独出现在侧栏
     sections.push({
       key: "workspace",
       labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "dynamic-ui"),
-    });
-
-    // 创作：工作流编排与市场
-    sections.push({
-      key: "creation",
-      labelKey: "sidebar.sectionCreation",
-      items: builtinNavItems.filter((n) => n.key === "workflow" || n.key === "marketplace"),
-    });
-
-    // 知识：知识源（含记忆与学习图入口）
-    sections.push({
-      key: "knowledge",
-      labelKey: "sidebar.sectionKnowledge",
-      items: builtinNavItems.filter((n) => n.key === "knowledge"),
-    });
-
-    // 开发：终端与文件
-    sections.push({
-      key: "development",
-      labelKey: "sidebar.sectionDevelopment",
-      items: builtinNavItems.filter((n) => n.key === "terminal" || n.key === "files"),
+      items: builtinNavItems.filter((n) => n.key === "chat"),
     });
 
     sections.push({
