@@ -66,85 +66,15 @@ const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.chat,
     isPlugin: false,
   },
-  {
-    key: "dashboard",
-    icon: <Icon icon="fluent:grid-20-filled" size={17} />,
-    labelKey: "nav.dashboard",
-    path: BUILTIN_PAGE_PATH.dashboard,
-    isPlugin: false,
-  },
-  {
-    key: "knowledge",
-    icon: <Icon icon="fluent:book-database-20-filled" size={17} />,
-    labelKey: "nav.knowledge",
-    path: BUILTIN_PAGE_PATH.knowledge,
-    isPlugin: false,
-  },
-  {
-    key: "terminal",
-    icon: <Icon icon="fluent:prompt-20-filled" size={17} />,
-    labelKey: "nav.terminal",
-    path: BUILTIN_PAGE_PATH.terminal,
-    isPlugin: false,
-  },
-  {
-    key: "files",
-    icon: <Icon icon="fluent:folder-20-filled" size={17} />,
-    labelKey: "nav.files",
-    path: BUILTIN_PAGE_PATH.files,
-    isPlugin: false,
-  },
-  {
-    key: "workflow",
-    icon: <Icon icon="fluent:flow-20-filled" size={17} />,
-    labelKey: "nav.workflow",
-    path: BUILTIN_PAGE_PATH.workflow,
-    isPlugin: false,
-  },
-  {
-    key: "marketplace",
-    icon: <Icon icon="fluent:store-microsoft-20-filled" size={17} />,
-    labelKey: "nav.marketplace",
-    path: BUILTIN_PAGE_PATH.marketplace,
-    isPlugin: false,
-  },
 ];
 
-/** 开发者工具导航项 — 由 settings.show_developer_tools 门控 */
+/** 开发者工具导航项 — 由 settings.show_developer_tools 门控；5 项合并为 1 项统一入口 */
 const devtoolsNavItems: NavItem[] = [
   {
-    key: "devtoolsTraceExplorer",
-    icon: <Icon icon="fluent:search-info-20-filled" size={17} />,
-    labelKey: "nav.devtools.traceExplorer",
-    path: BUILTIN_PAGE_PATH.devtoolsTraceExplorer,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsBenchmark",
-    icon: <Icon icon="fluent:gauge-20-filled" size={17} />,
-    labelKey: "nav.devtools.benchmark",
-    path: BUILTIN_PAGE_PATH.devtoolsBenchmark,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsToolRecommender",
-    icon: <Icon icon="fluent:wand-20-filled" size={17} />,
-    labelKey: "nav.devtools.toolRecommender",
-    path: BUILTIN_PAGE_PATH.devtoolsToolRecommender,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsFineTune",
-    icon: <Icon icon="fluent:brain-circuit-20-filled" size={17} />,
-    labelKey: "nav.devtools.fineTune",
-    path: BUILTIN_PAGE_PATH.devtoolsFineTune,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsRlTraining",
-    icon: <Icon icon="fluent:trophy-20-filled" size={17} />,
-    labelKey: "nav.devtools.rlTraining",
-    path: BUILTIN_PAGE_PATH.devtoolsRlTraining,
+    key: "devtools",
+    icon: <Icon icon="fluent:tool-toolbox-20-filled" size={17} />,
+    labelKey: "nav.devTools",
+    path: BUILTIN_PAGE_PATH.devtools,
     isPlugin: false,
   },
 ];
@@ -377,35 +307,14 @@ export function Sidebar() {
   const sections = useMemo<SidebarSection[]>(() => {
     const sections: SidebarSection[] = [];
 
-    // 工作区：核心交互入口（对话 + 仪表盘）
+    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源 Tab）
     sections.push({
       key: "workspace",
       labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "dashboard"),
+      items: builtinNavItems,
     });
 
-    // 创作：工作流编排与市场
-    sections.push({
-      key: "creation",
-      labelKey: "sidebar.sectionCreation",
-      items: builtinNavItems.filter((n) => n.key === "workflow" || n.key === "marketplace"),
-    });
-
-    // 知识：知识源（含记忆与学习图入口）
-    sections.push({
-      key: "knowledge",
-      labelKey: "sidebar.sectionKnowledge",
-      items: builtinNavItems.filter((n) => n.key === "knowledge"),
-    });
-
-    // 开发：终端与文件
-    sections.push({
-      key: "development",
-      labelKey: "sidebar.sectionDevelopment",
-      items: builtinNavItems.filter((n) => n.key === "terminal" || n.key === "files"),
-    });
-
-    // 开发者工具分组 — 仅在设置开启时显示（默认 true）
+    // 开发者工具分组 — 仅在设置开启时显示（默认 true）；5 项合并为 1 项
     if (settings.show_developer_tools !== false) {
       sections.push({
         key: "developer",

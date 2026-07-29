@@ -29,6 +29,11 @@ const uiState = {
   activePage: "chat",
 };
 
+const workspaceState = {
+  activeTab: "chat",
+  setActiveTab: vi.fn(),
+};
+
 vi.mock("antd", () => ({
   ConfigProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   App: Object.assign(
@@ -110,6 +115,10 @@ vi.mock("@/components/layout/Sidebar", () => ({
   Sidebar: () => <div>sidebar</div>,
 }));
 
+vi.mock("@/components/layout/WorkspaceSwitcher", () => ({
+  WorkspaceSwitcher: () => <div data-testid="workspace-switcher" />,
+}));
+
 vi.mock("@/components/layout/TitleBar", () => ({
   TitleBar: () => <div>titlebar</div>,
 }));
@@ -131,6 +140,7 @@ vi.mock("@/hooks/useCommandPalette", () => ({
 
 vi.mock("@/stores", () => ({
   useUIStore: (selector: (state: typeof uiState) => unknown) => selector(uiState),
+  useWorkspaceStore: (selector: (state: typeof workspaceState) => unknown) => selector(workspaceState),
   useSettingsStore: Object.assign(
     (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
     {

@@ -7,9 +7,16 @@ import { StatusBarWidget } from "@/components/terminal/StatusBarWidget";
 import { TerminalBackendSelector } from "@/components/terminal/TerminalBackendSelector";
 import { message } from "@/lib/toast";
 import { useTerminalStore } from "@/stores/feature/terminalStore";
+import { Tabs } from "antd";
+import { Folder, SquareTerminal } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FilesPage } from "./FilesPage";
 
+/**
+ * 终端页面：合并了「终端」与「文件」两个 Tab。
+ * 文件原为独立侧栏导航项，现作为终端页内的二级 Tab，减少导航层级。
+ */
 export function TerminalPage() {
   const { t } = useTranslation();
   const { sessions, activeSessionId } = useTerminalStore();
@@ -62,7 +69,7 @@ export function TerminalPage() {
     [t],
   );
 
-  return (
+  const terminalTab = (
     <div className="term-layout">
       <div className="term-topbar">
         <TerminalBackendSelector
@@ -90,6 +97,39 @@ export function TerminalPage() {
       />
 
       <StatusBarWidget sessionId={activeSession?.id} />
+    </div>
+  );
+
+  const tabItems = [
+    {
+      key: "terminal",
+      label: (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <SquareTerminal size={14} /> {t("nav.terminal")}
+        </span>
+      ),
+      children: terminalTab,
+    },
+    {
+      key: "files",
+      label: (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Folder size={14} /> {t("nav.files")}
+        </span>
+      ),
+      children: <FilesPage />,
+    },
+  ];
+
+  return (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <Tabs
+        defaultActiveKey="terminal"
+        items={tabItems}
+        style={{ flex: 1, minHeight: 0, padding: "0 16px" }}
+        tabBarStyle={{ flexShrink: 0, marginBottom: 0 }}
+        destroyInactiveTabPane
+      />
     </div>
   );
 }
