@@ -43,13 +43,24 @@ impl XueqiuVendor {
     }
 }
 
+/// 将股票代码转换为雪球 symbol_id 格式（SH/SZ/BJ + 纯数字代码）。
+/// 自动去除 sh/sz/bj 前缀（大小写不敏感），避免 "sh600519" → "SHsh600519" 的错误。
 fn to_xq_symbol(code: &str) -> String {
-    if code.starts_with('6') || code.starts_with('9') {
-        format!("SH{code}")
-    } else if code.starts_with('8') || code.starts_with('4') {
-        format!("BJ{code}")
+    // 去除可能的市场前缀（sh/sz/bj，大小写不敏感）
+    let bare = code
+        .strip_prefix("sh")
+        .or_else(|| code.strip_prefix("SH"))
+        .or_else(|| code.strip_prefix("sz"))
+        .or_else(|| code.strip_prefix("SZ"))
+        .or_else(|| code.strip_prefix("bj"))
+        .or_else(|| code.strip_prefix("BJ"))
+        .unwrap_or(code);
+    if bare.starts_with('6') || bare.starts_with('9') {
+        format!("SH{bare}")
+    } else if bare.starts_with('8') || bare.starts_with('4') {
+        format!("BJ{bare}")
     } else {
-        format!("SZ{code}")
+        format!("SZ{bare}")
     }
 }
 
@@ -221,17 +232,8 @@ impl StockVendor for XueqiuVendor {
         if !self.enabled().await {
             return Ok(vec![]);
         }
-        let symbol_id = format!(
-            "{}{}",
-            if stock_code.starts_with('6') {
-                "SH"
-            } else if stock_code.starts_with('8') || stock_code.starts_with('4') {
-                "BJ"
-            } else {
-                "SZ"
-            },
-            stock_code
-        );
+        // 使用 to_xq_symbol 统一构造 symbol_id，自动去除 sh/sz/bj 前缀
+        let symbol_id = to_xq_symbol(stock_code);
         let count = limit.min(50);
         // 雪球股票时间线接口：个股动态（新闻+讨论）
         let url = format!(

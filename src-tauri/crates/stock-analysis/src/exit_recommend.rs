@@ -174,9 +174,11 @@ async fn evaluate_position(
     let mut pnl_amount = 0.0;
 
     // --- 获取实时行情 ---
+    // R1-修复: quote 拉取失败时用 avg_cost 作为 fallback（假设不涨不跌），
+    //   而非用 0.0 导致 pnl 计算出 -100% 亏损的假信号。
     let quote = astock_client.get_quote(&holding.stock_code).await.ok();
-    let current_price_f64 = quote.as_ref().map(|q| q.price).unwrap_or(0.0);
-    let _pre_close = quote.as_ref().map(|q| q.pre_close).unwrap_or(0.0);
+    let current_price_f64 = quote.as_ref().map(|q| q.price).unwrap_or(holding.avg_cost);
+    let _pre_close = quote.as_ref().map(|q| q.pre_close).unwrap_or(holding.avg_cost);
 
     // 计算盈亏
     if holding.avg_cost > 0.0 && current_price_f64 > 0.0 {

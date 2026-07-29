@@ -117,10 +117,16 @@ pub fn analyze_sentiment(
             0.0
         }
     } else if n >= 2 {
-        let first_half: u32 = history[n / 2..].iter().map(|s| s.post_count).sum();
-        let second_half: u32 = history[..n / 2].iter().map(|s| s.post_count).sum();
-        if second_half > 0 {
-            (first_half as f64 - second_half as f64) / second_half as f64 * 100.0
+        // R1-修复: 修正 heat_change 计算方向。
+        //   history 为 newest-first（最新在前），history[..n/2] 是较新的一半，
+        //   history[n/2..] 是较老的一半。
+        //   原代码 (first_half - second_half) / second_half = (较老 - 较新) / 较新，
+        //   热度上升时结果为负，与实际趋势相反。
+        //   修正为 (较新 - 较老) / 较老，热度上升时结果为正。
+        let recent_half: u32 = history[..n / 2].iter().map(|s| s.post_count).sum();
+        let older_half: u32 = history[n / 2..].iter().map(|s| s.post_count).sum();
+        if older_half > 0 {
+            (recent_half as f64 - older_half as f64) / older_half as f64 * 100.0
         } else {
             0.0
         }

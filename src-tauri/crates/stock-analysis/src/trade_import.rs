@@ -350,17 +350,14 @@ pub async fn batch_import_trades(
         let trade_id = uuid::Uuid::new_v4().to_string();
 
         // 买入：合并持仓；卖出：减仓并计算盈亏
+        // R1-修复: 先计算 realized_pnl 并写入 trades 记录，再更新持仓，
+        //   确保交易审计数据不因持仓更新失败而丢失。
+        let mut realized_pnl: Option<f64> = None;
+
         if row.direction == "buy" {
-            upsert_position_import(
-                db,
-                &row.stock_code,
-                &row.stock_name,
-                row.quantity as f64,
-                row.price,
-            )
-            .await?;
+            // 买入不需要 realized_pnl，直接在交易记录写入后更新持仓
         } else {
-            // 卖出：减仓
+            // 卖出：先读取持仓计算 realized_pnl，再更新持仓
             let holdings = axagent_entities::portfolio_holdings::Entity::find()
                 .filter(axagent_entities::portfolio_holdings::Column::StockCode.eq(&row.stock_code))
                 .one(db)
@@ -371,7 +368,7 @@ pub async fn batch_import_trades(
                 let sell_qty = row.quantity as f64;
                 let cost = h.avg_cost * sell_qty;
                 let revenue = row.price * sell_qty;
-                let _realized_pnl = revenue - cost;
+                realized_pnl = Some(revenue - cost);
 
                 let remaining = h.shares - sell_qty;
                 if remaining <= 0.0 {
@@ -389,7 +386,7 @@ pub async fn batch_import_trades(
             }
         }
 
-        // 写入交易记录
+        // 写入交易记录（含 realized_pnl，不再丢弃）
         use axagent_entities::trades;
         use sea_orm::ActiveModelTrait;
         use sea_orm::Set;
@@ -405,12 +402,24 @@ pub async fn batch_import_trades(
             trade_time: Set(row.trade_time.clone()),
             fee: Set(row.fee),
             strategy: Set(None),
-            realized_pnl: Set(None), // 会在卖出时重新计算
+            realized_pnl: Set(realized_pnl),
             notes: Set(row.notes.clone()),
             created_at: Set(now),
         };
 
         trade.insert(db).await.map_err(|e| format!("第 {} 行写入失败: {e}", row.row))?;
+
+        // 买入：交易记录写入成功后再合并持仓（持仓更新失败不丢失审计数据）
+        if row.direction == "buy" {
+            upsert_position_import(
+                db,
+                &row.stock_code,
+                &row.stock_name,
+                row.quantity as f64,
+                row.price,
+            )
+            .await?;
+        }
 
         summary.valid += 1;
     }

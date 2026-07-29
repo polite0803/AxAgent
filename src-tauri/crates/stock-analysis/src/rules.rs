@@ -89,23 +89,24 @@ impl RuleEngine {
 
         if proposed_stop_loss.is_none() || proposed_stop_loss == Some(0.0) {
             violations.push("缺少止损价位，不符合严进策略要求。".to_string());
+            // R1-修复: 确保 auto_stop 不高于入场价，否则"一买入就触发止损"。
+            //   场景: 股价在 MA20 下方时 ma20_stop > entry，取较大值会导致止损价高于入场价。
             let auto_stop = if let Some(entry) = proposed_entry_price {
                 let ma20_stop = indicators.ma20;
                 let pct_stop = entry * (1.0 - config.auto_stop_loss_pct / 100.0);
-                if ma20_stop > pct_stop {
+                let candidate = if ma20_stop > pct_stop {
                     ma20_stop
                 } else {
                     pct_stop
-                }
+                };
+                // 止损价不得高于入场价
+                candidate.min(entry)
             } else {
                 indicators.ma20
             };
             corrections.push(format!(
-                "自动设定止损价: {:.2}（MA20={:.2}和-{:.0}%止损={:.2}取较大值）",
-                auto_stop,
-                indicators.ma20,
-                config.auto_stop_loss_pct,
-                proposed_entry_price.unwrap_or(0.0) * (1.0 - config.auto_stop_loss_pct / 100.0)
+                "自动设定止损价: {:.2}（MA20={:.2}和-{:.0}%止损取较大值，且不超入场价）",
+                auto_stop, indicators.ma20, config.auto_stop_loss_pct
             ));
         }
 

@@ -83,12 +83,20 @@ impl ValueAssessment {
         };
 
         let f_score = FScore {
-            profitability: (metrics.f_score).min(4),
-            leverage: (metrics.f_score).saturating_sub(4).min(3),
-            efficiency: (metrics.f_score).saturating_sub(7).min(2),
+            // 修复(2026-07-29): 原代码从 total 机械分配分项（盈利先满4→杠杆→效率），
+            //   与实际 Piotroski 9 项分布无关，会误导用户。例如 total=5 时实际可能是
+            //   profitability=1/leverage=3/efficiency=1，但原逻辑算成 4/1/0。
+            //   ValueMetrics 仅存 total，无法还原分项，故置 0 并在 details 标注。
+            //   如需分项详情，应直接调用 ValueEngine::f_score(current, previous)。
+            profitability: 0,
+            leverage: 0,
+            efficiency: 0,
             total: metrics.f_score,
             grade: metrics.f_score_level.clone(),
-            details: vec![format!("F-Score={}/9", metrics.f_score)],
+            details: vec![format!(
+                "F-Score={}/9（分项不可还原，详见 ValueEngine::f_score）",
+                metrics.f_score
+            )],
         };
 
         let moat = MoatAssessment {

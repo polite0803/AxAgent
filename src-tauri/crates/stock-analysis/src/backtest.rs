@@ -161,9 +161,14 @@ impl BacktestEngine {
             }
         }
 
-        // 计算收益率
+        // 计算收益率（扣除交易成本）
+        // R1-修复: A股双边交易成本约 0.18%（佣金双边 0.08% + 卖出印花税 0.1%），
+        //   不扣成本会导致短线策略胜率虚高（如真实 +0.1% 扣成本后为 -0.08%）。
         let return_pct = match entry_price {
-            Some(entry) if entry > 0.0 => ((exit_price - entry) / entry) * 100.0,
+            Some(entry) if entry > 0.0 => {
+                const COST_RATE: f64 = 0.0018; // 0.18% 双边成本
+                ((exit_price - entry) / entry - COST_RATE) * 100.0
+            },
             _ => 0.0,
         };
 

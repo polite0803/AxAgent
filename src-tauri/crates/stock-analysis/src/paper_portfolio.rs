@@ -275,6 +275,10 @@ pub async fn close_all_positions(
     exit_price: f64,
     exit_date: &str,
 ) -> Result<u64, DbErr> {
+    // R1-修复: 校验 exit_price 合法性，避免 0 或负数导致 realized_pnl 计算异常
+    if exit_price <= 0.0 {
+        return Err(DbErr::Custom("exit_price must be positive".into()));
+    }
     let now = chrono::Utc::now().timestamp_millis();
     let res = pos_entity::Entity::update_many()
         .col_expr(pos_entity::Column::ExitPrice, Expr::value(exit_price))

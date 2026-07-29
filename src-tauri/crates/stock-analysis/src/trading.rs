@@ -282,11 +282,11 @@ impl TradingEngine {
         let trade_id = uuid::Uuid::new_v4().to_string();
         let mut realized_pnl = None;
 
-        // 更新持仓
-        if direction == "buy" {
-            upsert_position(&self.db, stock_code, stock_name, quantity as f64, price).await?;
-        } else {
-            // sell: 计算实现盈亏
+        // R1-修复: 调整操作顺序为"先写交易记录，再更新持仓"。
+        //   原顺序（先持仓后交易）在 trades 写入失败时会导致持仓已变更但无审计记录。
+        //   新顺序确保交易审计数据优先保存，持仓更新失败可通过对账修复。
+        // 卖出时先读取持仓计算 realized_pnl（不修改），供交易记录使用。
+        if direction == "sell" {
             let holdings = portfolio_holdings::Entity::find()
                 .filter(portfolio_holdings::Column::StockCode.eq(stock_code))
                 .one(self.db.as_ref())
@@ -298,8 +298,46 @@ impl TradingEngine {
                 let cost = h.avg_cost * sell_qty;
                 let revenue = price * sell_qty;
                 realized_pnl = Some(revenue - cost);
+            }
+        }
 
-                let remaining = h.shares - sell_qty;
+        // 写入交易记录（审计优先）
+        let trade = trades::ActiveModel {
+            id: Set(trade_id),
+            stock_code: Set(stock_code.to_string()),
+            stock_name: Set(stock_name.to_string()),
+            direction: Set(direction.to_string()),
+            price: Set(price),
+            quantity: Set(quantity),
+            trade_date: Set(trade_date.to_string()),
+            trade_time: Set(trade_time.to_string()),
+            fee: Set(None),
+            realized_pnl: Set(realized_pnl),
+            // R2-遗留修复: trades entity 有 strategy 字段,之前漏写导致 cargo check E0063。
+            // 用户手动 record_trade 走的是 stock_analysis command,不带 strategy 上下文,
+            // 与 trade_import.rs:412 的 Set(None) 保持一致(手动录入不属于任何自动策略)。
+            strategy: Set(None),
+            notes: Set(notes.map(|s| s.to_string())),
+            // analysis_id 当前未持久化（trades entity 暂未挂该字段，留作未来扩展）
+            created_at: Set(now),
+        };
+        let _ = analysis_id;
+
+        let trade_model = trade.insert(self.db.as_ref()).await.map_err(|e| e.to_string())?;
+
+        // 交易记录写入成功后再更新持仓（持仓更新失败不丢失审计数据）
+        if direction == "buy" {
+            upsert_position(&self.db, stock_code, stock_name, quantity as f64, price).await?;
+        } else {
+            // sell: 减仓或清仓
+            let holdings = portfolio_holdings::Entity::find()
+                .filter(portfolio_holdings::Column::StockCode.eq(stock_code))
+                .one(self.db.as_ref())
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if let Some(h) = holdings {
+                let remaining = h.shares - quantity as f64;
                 if remaining <= 0.0 {
                     // 清仓：删除持仓记录
                     portfolio_holdings::Entity::delete_by_id(&h.id)
@@ -325,29 +363,7 @@ impl TradingEngine {
             }
         }
 
-        // 写入交易记录
-        let trade = trades::ActiveModel {
-            id: Set(trade_id),
-            stock_code: Set(stock_code.to_string()),
-            stock_name: Set(stock_name.to_string()),
-            direction: Set(direction.to_string()),
-            price: Set(price),
-            quantity: Set(quantity),
-            trade_date: Set(trade_date.to_string()),
-            trade_time: Set(trade_time.to_string()),
-            fee: Set(None),
-            realized_pnl: Set(realized_pnl),
-            // R2-遗留修复: trades entity 有 strategy 字段,之前漏写导致 cargo check E0063。
-            // 用户手动 record_trade 走的是 stock_analysis command,不带 strategy 上下文,
-            // 与 trade_import.rs:412 的 Set(None) 保持一致(手动录入不属于任何自动策略)。
-            strategy: Set(None),
-            notes: Set(notes.map(|s| s.to_string())),
-            // analysis_id 当前未持久化（trades entity 暂未挂该字段，留作未来扩展）
-            created_at: Set(now),
-        };
-        let _ = analysis_id;
-
-        trade.insert(self.db.as_ref()).await.map_err(|e| e.to_string())
+        Ok(trade_model)
     }
 
     // ── 持仓汇总 ──

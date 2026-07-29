@@ -134,15 +134,29 @@ impl MacroDataClient {
     }
 
     /// 获取宏观经济数据快照
+    ///
+    /// ⚠️ 当前为占位实现（mock 数据），真实数据源接入前不应在生产决策中依赖此返回值。
+    /// TODO: 调用 vendor API 获取真实数据
+    /// - eastmoney: /api/qt/schd/data?type=HG
+    /// - neodata: macro indicators
+    /// - akshare: macro_china_*
     pub async fn snapshot(&self) -> MacroDataSnapshot {
-        // TODO: 调用 vendor API 获取真实数据
-        // - eastmoney: /api/qt/schd/data?type=HG
-        // - neodata: macro indicators
-        // - akshare: macro_china_*
-
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        // 修复(2026-07-29):
+        // 1. 原 `chrono::Local::now()` 在非中国时区部署时会偏移一天,改用 UTC+8 固定时区。
+        // 2. 原 mock 数据 source 字段写成 "国家统计局"/"中国人民银行" 会误导下游
+        //    把 mock 当真实数据使用,改为 "mock(占位实现)" 显式标注。
+        // 3. 增加 tracing::warn! 警告日志,让运行时可见当前返回的是 mock 数据。
+        tracing::warn!(
+            "[macro_data] MacroDataClient.snapshot() 返回 mock 占位数据,TODO: 接入真实 vendor API"
+        );
+        let today = chrono::Utc::now()
+            .with_timezone(&chrono::FixedOffset::east_opt(8 * 3600).unwrap())
+            .format("%Y-%m-%d")
+            .to_string();
         let mut snap = MacroDataSnapshot::empty(&today);
 
+        // mock 数据 source 统一标注为 "mock(占位实现)",避免下游误判为真实数据
+        const MOCK_SOURCE: &str = "mock(占位实现)";
         snap.all = vec![
             MacroDataPoint {
                 indicator: "gdp".into(),
@@ -152,7 +166,7 @@ impl MacroDataClient {
                 yoy: Some(4.6),
                 mom: Some(1.3),
                 unit: "%".into(),
-                source: "国家统计局".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-10-18".into()),
             },
             MacroDataPoint {
@@ -163,7 +177,7 @@ impl MacroDataClient {
                 yoy: Some(0.2),
                 mom: Some(0.1),
                 unit: "%".into(),
-                source: "国家统计局".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2026-01-09".into()),
             },
             MacroDataPoint {
@@ -174,7 +188,7 @@ impl MacroDataClient {
                 yoy: None,
                 mom: Some(-0.2),
                 unit: "%".into(),
-                source: "国家统计局".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-12-31".into()),
             },
             MacroDataPoint {
@@ -185,7 +199,7 @@ impl MacroDataClient {
                 yoy: None,
                 mom: None,
                 unit: "%".into(),
-                source: "中国人民银行".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-12-20".into()),
             },
             MacroDataPoint {
@@ -196,7 +210,7 @@ impl MacroDataClient {
                 yoy: None,
                 mom: None,
                 unit: "%".into(),
-                source: "中国人民银行".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-12-20".into()),
             },
             MacroDataPoint {
@@ -207,7 +221,7 @@ impl MacroDataClient {
                 yoy: Some(7.1),
                 mom: None,
                 unit: "%".into(),
-                source: "中国人民银行".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-12-13".into()),
             },
             MacroDataPoint {
@@ -218,7 +232,7 @@ impl MacroDataClient {
                 yoy: Some(8.0),
                 mom: None,
                 unit: "%".into(),
-                source: "中国人民银行".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-12-13".into()),
             },
             MacroDataPoint {
@@ -229,7 +243,7 @@ impl MacroDataClient {
                 yoy: Some(5.4),
                 mom: Some(0.3),
                 unit: "%".into(),
-                source: "国家统计局".into(),
+                source: MOCK_SOURCE.into(),
                 release_date: Some("2025-12-16".into()),
             },
         ];

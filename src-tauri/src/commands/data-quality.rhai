@@ -78,6 +78,21 @@ fn extract_report(v) {
     ""
 }
 
+// is_untrusted: 检测分析师 verdict 是否被标记为不可信
+// strict_mode 降级时 agent_executor 在节点顶层注入 __untrusted=true,
+// 但 verdict map 本身可能不含此字段（__untrusted 在 NodeOutput 顶层）。
+// data-quality.rhai 的 input_mapping 只映射了 .content.verdict,未映射节点顶层的 __untrusted,
+// 因此此处额外检查 verdict map 内的 __untrusted 字段（部分降级路径会内嵌）。
+// 修复(2026-07-29): 原代码完全忽略 __untrusted 标记,导致 strict_mode 降级的分析师
+//   被当成可信分析师参与评分,tool_credibility_score 虚高。
+fn is_untrusted(v) {
+    if type_of(v) == "map" {
+        let flag = v["__untrusted"];
+        if type_of(flag) == "bool" { return flag; }
+    }
+    false
+}
+
 // count_chars: 估算报告字数（中英文混合）
 // 简单实现：len() 返回 UTF-8 字节数，中文 3 字节，英文 1 字节
 // 经验值：A 股分析师报告 90% 中文，平均 1 字符 ≈ 2.5 字节
@@ -218,25 +233,57 @@ let res_g = res_c < 0.0;
 let sec_g = sec_c < 0.0;
 let cat_g = cat_c < 0.0;
 
+// ── V67 修复(2026-07-29): 检测分析师 __untrusted 标记 ──
+// strict_mode 降级时 agent_executor 在 NodeOutput 顶层注入 __untrusted=true,
+// data-quality.rhai 的 input_mapping 映射了 {id}.__untrusted → {id}_untrusted 字段。
+// 同时保留 verdict map 内 __untrusted 检测作为兜底(部分降级路径会内嵌到 content)。
+// 原代码完全忽略此标记,导致不可信分析师被当成可信分析师参与评分。
+// 现单独统计 untrusted_analyst_count,用于:
+//   1. 从 good_count 中排除不可信分析师(避免虚高)
+//   2. 在 tool_credibility 中增加 untrusted 惩罚
+let mk_u = is_untrusted(mk_verdict) || (present(mk_untrusted) && mk_untrusted == true);
+let sent_u = is_untrusted(sent_verdict) || (present(sent_untrusted) && sent_untrusted == true);
+let news_u = is_untrusted(news_verdict) || (present(news_untrusted) && news_untrusted == true);
+let fund_u = is_untrusted(fund_verdict) || (present(fund_untrusted) && fund_untrusted == true);
+let pol_u = is_untrusted(pol_verdict) || (present(pol_untrusted) && pol_untrusted == true);
+let hm_u = is_untrusted(hm_verdict) || (present(hm_untrusted) && hm_untrusted == true);
+let lk_u = is_untrusted(lk_verdict) || (present(lk_untrusted) && lk_untrusted == true);
+let res_u = is_untrusted(res_verdict) || (present(res_untrusted) && res_untrusted == true);
+let sec_u = is_untrusted(sec_verdict) || (present(sec_untrusted) && sec_untrusted == true);
+let cat_u = is_untrusted(cat_verdict) || (present(cat_untrusted) && cat_untrusted == true);
+let untrusted_analyst_count = 0;
+if mk_u { untrusted_analyst_count += 1; }
+if sent_u { untrusted_analyst_count += 1; }
+if news_u { untrusted_analyst_count += 1; }
+if fund_u { untrusted_analyst_count += 1; }
+if pol_u { untrusted_analyst_count += 1; }
+if hm_u { untrusted_analyst_count += 1; }
+if lk_u { untrusted_analyst_count += 1; }
+if res_u { untrusted_analyst_count += 1; }
+if sec_u { untrusted_analyst_count += 1; }
+if cat_u { untrusted_analyst_count += 1; }
+
 // 分母 = 当前分析师数量
 let n = 10.0;
 let n_int = 10;
 
-let good_count = 0;       // confidence >= 50
-let valid_count = 0;      // confidence >= 0
-let gap_count = 0;        // 数据完全缺失
-let total_conf = 0.0;     // 累加有效 confidence
+let good_count = 0;       // confidence >= 50 且 非 untrusted
+let valid_count = 0;      // confidence >= 0 且 非 untrusted
+let gap_count = 0;        // 数据完全缺失（confidence < 0）或 untrusted
+let total_conf = 0.0;     // 累加有效 confidence（排除 untrusted）
 
-if mk_c >= 0.0 { valid_count += 1; total_conf += mk_c; if mk_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if sent_c >= 0.0 { valid_count += 1; total_conf += sent_c; if sent_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if news_c >= 0.0 { valid_count += 1; total_conf += news_c; if news_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if fund_c >= 0.0 { valid_count += 1; total_conf += fund_c; if fund_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if pol_c >= 0.0 { valid_count += 1; total_conf += pol_c; if pol_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if hm_c >= 0.0 { valid_count += 1; total_conf += hm_c; if hm_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if lk_c >= 0.0 { valid_count += 1; total_conf += lk_c; if lk_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if res_c >= 0.0 { valid_count += 1; total_conf += res_c; if res_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if sec_c >= 0.0 { valid_count += 1; total_conf += sec_c; if sec_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
-if cat_c >= 0.0 { valid_count += 1; total_conf += cat_c; if cat_c >= 50.0 { good_count += 1; } } else { gap_count += 1; }
+// 修复(2026-07-29): untrusted 分析师不计入 valid/good_count,计入 gap_count
+//   理由: strict_mode 降级的 confidence=50 是中性兜底,不代表真实数据质量
+if mk_u || mk_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += mk_c; if mk_c >= 50.0 { good_count += 1; } }
+if sent_u || sent_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += sent_c; if sent_c >= 50.0 { good_count += 1; } }
+if news_u || news_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += news_c; if news_c >= 50.0 { good_count += 1; } }
+if fund_u || fund_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += fund_c; if fund_c >= 50.0 { good_count += 1; } }
+if pol_u || pol_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += pol_c; if pol_c >= 50.0 { good_count += 1; } }
+if hm_u || hm_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += hm_c; if hm_c >= 50.0 { good_count += 1; } }
+if lk_u || lk_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += lk_c; if lk_c >= 50.0 { good_count += 1; } }
+if res_u || res_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += res_c; if res_c >= 50.0 { good_count += 1; } }
+if sec_u || sec_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += sec_c; if sec_c >= 50.0 { good_count += 1; } }
+if cat_u || cat_c < 0.0 { gap_count += 1; } else { valid_count += 1; total_conf += cat_c; if cat_c >= 50.0 { good_count += 1; } }
 
 let avg_conf = if valid_count > 0 { total_conf / valid_count.to_float() } else { 0.0 };
 
@@ -295,9 +342,17 @@ if !present(lb_shareholder_trades_len) || lb_shareholder_trades_len <= 0 { missi
 if !present(ann_count) || ann_count <= 0 { missing_factors.push("公告数据"); }
 if !present(pace_signal) { missing_factors.push("PACE情绪"); }
 
-// 综合评分公式：报告质量 45% + 工具可信度 35% + 因子完整度 20%
-// 因子缺失直接拉低综合分，避免虚高 A 级
-let score = report_quality_avg * 0.45 + tool_credibility_score * 0.35 + factor_completeness * 100.0 * 0.20;
+// 综合评分公式：报告质量 35% + 工具可信度 35% + 因子完整度 30%
+// V67 修复(2026-07-29): 因子完整度权重从 0.20 提高到 0.30。
+//   原权重 0.20 时,5/10 因子缺失(factor=0.5)仍可达 A 级(score≥85):
+//     100×0.45 + 100×0.35 + 50×0.20 = 45+35+10 = 90 → A 级
+//   提高到 0.30 后,5/10 因子缺失:
+//     100×0.35 + 100×0.35 + 50×0.30 = 35+35+15 = 85 → A 级下限(临界)
+//   6/10 因子缺失(factor=0.4):
+//     100×0.35 + 100×0.35 + 40×0.30 = 35+35+12 = 82 → B 级 ✓
+//   这样"因子缺失仍评 A 级"的问题被缓解(需 ≤5 个因子缺失且报告+工具满分才临界 A)。
+// 同时降低 report_quality 权重 0.45→0.35,因为报告写得好不等于数据质量好。
+let score = report_quality_avg * 0.35 + tool_credibility_score * 0.35 + factor_completeness * 100.0 * 0.30;
 score = clamp(score, 0.0, 100.0);
 let final_score = (score * 10.0).round() / 10.0;
 let report_quality_score_final = (report_quality_avg * 10.0).round() / 10.0;
@@ -366,6 +421,7 @@ let low_count = 10 - good_count - gap_count;
 // ── P1-B3: warnings 数组（基于报告质量检测的问题列表）──
 let warnings = [];
 if gap_count >= 1 { warnings.push(`${gap_count} 个分析师数据缺失`); }
+if untrusted_analyst_count >= 1 { warnings.push(`${untrusted_analyst_count} 个分析师 strict_mode 降级(__untrusted)`); }
 if avg_conf < 30.0 && avg_conf > 0.0 { warnings.push(`平均置信度过低 (${avg_conf})`); }
 // 字数过低的报告（< 200 字符）
 if mk_r != "" && count_chars(mk_r) < 200 { warnings.push("技术面报告字数不足 200"); }
@@ -387,12 +443,12 @@ if has_placeholder(mk_r) || has_placeholder(sent_r) || has_placeholder(news_r)
 }
 
 let summary_text = if grade == "F" || grade == "D" {
-    let base = `数据质量 ${grade} 级（综合 ${final_score} = 报告 ${report_quality_score_final} × 0.45 + 工具 ${tool_credibility_score_final} × 0.35 + 因子完整度 ${factor_completeness_pct} × 0.20）：${gap_count} 个缺失，${low_count} 个低置信，${good_count} 个高置信。`;
+    let base = `数据质量 ${grade} 级（综合 ${final_score} = 报告 ${report_quality_score_final} × 0.35 + 工具 ${tool_credibility_score_final} × 0.35 + 因子完整度 ${factor_completeness_pct} × 0.30）：${gap_count} 个缺失，${low_count} 个低置信，${good_count} 个高置信，${untrusted_analyst_count} 个降级。`;
     let miss_part = if missing_analysts.len() > 0 { `缺失：${join_arr(missing_analysts, "、")}。` } else { "" };
     let low_part = if low_confidence_analysts.len() > 0 { `低置信：${join_arr(low_confidence_analysts, "、")}。` } else { "" };
     `${base}${miss_part}${low_part}平均置信度 ${avg_conf}。建议检查对应分析师的上游工具数据源。`
 } else {
-    `数据质量 ${grade} 级（综合 ${final_score} = 报告 ${report_quality_score_final} × 0.45 + 工具 ${tool_credibility_score_final} × 0.35 + 因子完整度 ${factor_completeness_pct} × 0.20）：${good_count}/10 高置信度，平均置信度 ${avg_conf}。`
+    `数据质量 ${grade} 级（综合 ${final_score} = 报告 ${report_quality_score_final} × 0.35 + 工具 ${tool_credibility_score_final} × 0.35 + 因子完整度 ${factor_completeness_pct} × 0.30）：${good_count}/10 高置信度，${untrusted_analyst_count} 个降级，平均置信度 ${avg_conf}。`
 };
 
 #{

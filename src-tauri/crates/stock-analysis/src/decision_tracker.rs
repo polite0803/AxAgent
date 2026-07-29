@@ -35,16 +35,39 @@ pub struct DecisionRecord {
 }
 
 /// 记录一条分析决策到文件
+/// R1-修复: 原代码所有失败（序列化、文件打开、写入）均静默忽略，导致决策记录
+///   丢失后后续回测无法验证。现增加 tracing::error! 日志记录失败。
 pub fn record_decision(record: &DecisionRecord) {
     let path = get_records_path();
     if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(json) = serde_json::to_string(record) {
-        use std::io::Write;
-        if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
-            let _ = writeln!(file, "{json}");
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            tracing::error!("[decision_tracker] 创建目录失败: {e}, path={:?}", path);
+            return;
         }
+    }
+    match serde_json::to_string(record) {
+        Ok(json) => {
+            use std::io::Write;
+            match std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+                Ok(mut file) => {
+                    if let Err(e) = writeln!(file, "{json}") {
+                        tracing::error!(
+                            "[decision_tracker] 写入决策记录失败: {e}, path={:?}",
+                            path
+                        );
+                    }
+                },
+                Err(e) => {
+                    tracing::error!(
+                        "[decision_tracker] 打开决策记录文件失败: {e}, path={:?}",
+                        path
+                    );
+                },
+            }
+        },
+        Err(e) => {
+            tracing::error!("[decision_tracker] 序列化决策记录失败: {e}");
+        },
     }
 }
 

@@ -2011,6 +2011,20 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                     ("res_report", "a-research.content.report"),
                     ("sec_report", "a-sector.content.report"),
                     ("cat_report", "a-catalyst.content.report"),
+                    // ── V67 修复(2026-07-29): 映射分析师 __untrusted 标记 ──
+                    // agent_executor 在 strict_mode 降级时于 NodeOutput 顶层注入 __untrusted=true。
+                    // data-quality.rhai 需读取此标记,将不可信分析师排除出 good_count,
+                    // 避免中性兜底 confidence=50 被当成有效信号推高 tool_credibility_score。
+                    ("mk_untrusted", "a-market-analyst.__untrusted"),
+                    ("sent_untrusted", "a-sentiment.__untrusted"),
+                    ("news_untrusted", "a-news.__untrusted"),
+                    ("fund_untrusted", "a-fundamentals.__untrusted"),
+                    ("pol_untrusted", "a-policy.__untrusted"),
+                    ("hm_untrusted", "a-hot-money.__untrusted"),
+                    ("lk_untrusted", "a-lockup.__untrusted"),
+                    ("res_untrusted", "a-research.__untrusted"),
+                    ("sec_untrusted", "a-sector.__untrusted"),
+                    ("cat_untrusted", "a-catalyst.__untrusted"),
                     // ── 因子数据完整度评估（供 pm_compute_factor_completeness 使用）──
                     // 这些因子数据来自 ToolNode，用于评估因子层数据完整度
                     ("total_score", "t-scoring.result.totalScore"),

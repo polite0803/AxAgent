@@ -7,9 +7,17 @@ use axagent_astock_data::indicators::sma;
 use axagent_astock_data::KLine;
 use serde::{Deserialize, Serialize};
 
-/// K 线最小结构（反序列化用）
+/// K 线原始数据（从 JSON 反序列化）。
+/// R1-修复: 补全 open/high/low 字段，避免 raw_to_kline 丢失 OHLC 导致
+/// candlestick_pattern::detect_all_patterns 所有形态检测失效。
 #[derive(Debug, Clone, Deserialize)]
 struct KLineRaw {
+    #[serde(default)]
+    open: f64,
+    #[serde(default)]
+    high: f64,
+    #[serde(default)]
+    low: f64,
     #[serde(default)]
     close: f64,
     #[serde(default)]
@@ -178,14 +186,14 @@ pub fn detect_breakout(klines_json: &str, support: f64, resistance: f64) -> Brea
 // ── K 线形态确认增强 ──
 
 /// 将 KLineRaw 向量转为 KLine 向量（供 candlestick_pattern 使用）。
+/// R1-修复: 使用真实 OHLC 而非用 close 填充，使 K 线形态检测生效。
 fn raw_to_kline(raw: &[KLineRaw]) -> Vec<KLine> {
-    // KLineRaw 只有 close/volume，其他字段用默认值
     raw.iter()
         .map(|r| KLine {
             date: String::new(),
-            open: r.close,
-            high: r.close,
-            low: r.close,
+            open: r.open,
+            high: r.high,
+            low: r.low,
             close: r.close,
             volume: r.volume,
             amount: r.close * r.volume,

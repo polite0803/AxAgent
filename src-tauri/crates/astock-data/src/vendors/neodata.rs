@@ -332,7 +332,12 @@ impl StockVendor for NeoDataVendor {
 
         Ok(vec![FinancialReport {
             stock_code: stock_code.to_string(),
-            report_date: chrono::Local::now().format("%Y-%m-%d").to_string(),
+            // R1-修复: NeoData 未返回报告期字段，此处为抓取日期而非报告期。
+            //   使用 UTC+8 固定时区避免跨时区部署偏移。TODO: 从响应中提取真实报告期。
+            report_date: chrono::Utc::now()
+                .with_timezone(&chrono::FixedOffset::east_opt(8 * 3600).unwrap())
+                .format("%Y-%m-%d")
+                .to_string(),
             revenue,
             net_profit,
             eps,

@@ -614,9 +614,17 @@ impl Strategy for TurtleStrategy {
                         (h - l).max((h - pc).abs()).max((l - pc).abs())
                     })
                     .collect();
+                // 修复(2026-07-29): 防御 atr_period=0 导致 NaN。
+                //   若用户通过 new() 直接传入 atr_period=0（set_param 已拦截但构造函数未拦截），
+                //   n=0 会导致 `trs[len-0..]`=空切片, sum=0, 0/0=NaN 污染下游止损价计算。
+                //   n=0 时返回 0.0 让 stop_price = entry_p,由后续逻辑处理。
                 let n = self.atr_period.min(trs.len());
-                let recent = &trs[trs.len() - n..];
-                recent.iter().sum::<f64>() / n as f64
+                if n == 0 {
+                    0.0
+                } else {
+                    let recent = &trs[trs.len() - n..];
+                    recent.iter().sum::<f64>() / n as f64
+                }
             } else {
                 0.0
             };

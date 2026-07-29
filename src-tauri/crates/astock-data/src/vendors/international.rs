@@ -351,13 +351,15 @@ impl InternationalVendor {
         let parse_f64 =
             |key: &str| -> f64 { data.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0) };
 
+        // 字段映射参考 browser_eastmoney.rs:169-175 的正确映射
+        // f43=最新价 f60=昨收 f46=开盘 f44=最高 f45=最低 f47=成交量(手) f48=成交额(元)
         let price = parse_f64("f43");
-        let pre_close = parse_f64("f44");
-        let open = parse_f64("f45");
-        let high = parse_f64("f46");
-        let low = parse_f64("f47");
-        let volume = parse_f64("f48");
-        let amount = parse_f64("f50");
+        let pre_close = parse_f64("f60");
+        let open = parse_f64("f46");
+        let high = parse_f64("f44");
+        let low = parse_f64("f45");
+        let volume = parse_f64("f47");
+        let amount = parse_f64("f48");
         let turnover_rate = parse_f64("f168");
 
         Ok(StockQuote {
@@ -368,7 +370,8 @@ impl InternationalVendor {
             open,
             high,
             low,
-            volume: volume * 100.0, // eastmoney 手→股
+            // f47 单位为"手"，1 手 = 100 股，转换为"股"
+            volume: volume * 100.0,
             amount,
             change_pct: if pre_close > 0.0 {
                 (price - pre_close) / pre_close * 100.0
@@ -378,12 +381,17 @@ impl InternationalVendor {
             turnover_rate,
             pe: Some(parse_f64("f162")),
             pb: Some(parse_f64("f167")),
-            total_mv: Some(parse_f64("f116") * 1_0000.0),
-            circulating_mv: Some(parse_f64("f117") * 1_0000.0),
+            // f116/f117 单位为"元"，与 browser_eastmoney.rs:180-181 保持一致，不乘系数
+            total_mv: Some(parse_f64("f116")),
+            circulating_mv: Some(parse_f64("f117")),
             limit_up: None,
             limit_down: None,
             is_st: false,
-            timestamp: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            // 使用 UTC+8（北京时间）固定时区，避免跨时区部署时时间戳偏移
+            timestamp: chrono::Utc::now()
+                .with_timezone(&chrono::FixedOffset::east_opt(8 * 3600).unwrap())
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string(),
         })
     }
 

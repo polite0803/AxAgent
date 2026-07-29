@@ -13,12 +13,27 @@ fn val_to_f64(v: &Value) -> Option<f64> {
     v.as_str().and_then(|s| s.parse().ok()).or_else(|| v.as_f64())
 }
 
-/// 去除 sh/sz/bj 前缀,同花顺 URL 只接受纯数字代码
+/// 去除 sh/sz/bj 前缀（大小写不敏感），同花顺 URL 只接受纯数字代码
 ///
 /// 修复(2026-07-22): 原代码直接用 stock_code 构造 URL,如传入 "sh600887",
 /// URL 变为 `https://basic.10jqka.com.cn/sh600887/concept.shtml` 会 404。
+/// 修复(2026-07-29): 大小写不敏感处理。原 `trim_start_matches("sh")` 只能去小写前缀,
+///   传入 "SH600887" 时无法去除 → URL 仍 404。改为按 ASCII 大小写归一后判断。
 fn pure_code(stock_code: &str) -> &str {
-    stock_code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj")
+    // 找到第一个数字字符的位置（A股代码均为数字开头）
+    // 这样可兼容 sh/sz/bj/SH/SZ/BJ 各种大小写前缀，无前缀时原样返回
+    if let Some(idx) = stock_code.find(|c: char| c.is_ascii_digit()) {
+        // 仅当存在合法前缀（前缀长度 ≤ 2 且非数字）时才截断
+        let prefix = &stock_code[..idx];
+        if prefix.is_empty()
+            || prefix.eq_ignore_ascii_case("sh")
+            || prefix.eq_ignore_ascii_case("sz")
+            || prefix.eq_ignore_ascii_case("bj")
+        {
+            return &stock_code[idx..];
+        }
+    }
+    stock_code
 }
 
 #[async_trait]
@@ -177,11 +192,17 @@ impl StockVendor for ThsVendor {
         };
 
         let latest = &items[0];
+        // 修复(2026-07-29): 原 `v.as_i64().map(|_| "")` 把数字年份（如 2024）映射成空字符串,
+        //   导致 ConsensusEPS.year 永远为空。改为将数字年份转为字符串保留。
         let year = latest
             .get("year")
-            .and_then(|v| v.as_str().or_else(|| v.as_i64().map(|_| "")))
-            .unwrap_or("")
-            .to_string();
+            .and_then(|v| {
+                v.as_str()
+                    .map(|s| s.to_string())
+                    .or_else(|| v.as_i64().map(|i| i.to_string()))
+                    .or_else(|| v.as_f64().map(|f| f.to_string()))
+            })
+            .unwrap_or_default();
         let consensus_eps = latest.get("avg").and_then(val_to_f64);
         let rating_count = latest.get("num").and_then(|v| {
             v.as_str().and_then(|s| s.parse::<i32>().ok()).or_else(|| v.as_i64().map(|i| i as i32))

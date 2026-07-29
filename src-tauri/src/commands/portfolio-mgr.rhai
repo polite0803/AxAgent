@@ -1054,11 +1054,17 @@ let evidence_scale = pm_evidence_scale(total_weight, max_weight);
 //   注意: 此豁免依赖 dqi_score 包含 factor_completeness 维度。若未来 dqi_score
 //         公式移除 factor_completeness,则需重新评估 A 级豁免的合理性。
 let dqi_collapsed = present(dqi_score) && dqi_score < 25.0;
-let dqi_a_level = present(dqi_score) && dqi_score >= 85.0;  // A 级完全豁免
+// V67 修复(2026-07-29): A 级豁免增加 untrusted_count==0 前提条件。
+//   原代码 dqi>=85 即完全豁免 weights_collapsed,但 dqi_score 可能因
+//   report_quality + tool_credibility 满分而达 A 级,此时若存在 untrusted 分析师,
+//   豁免会导致不可信信号被当成有效信号继续融合。
+//   新条件: dqi>=85 且 untrusted_count==0 才完全豁免。
+//   若 dqi>=85 但 untrusted_count>=1,降级为 B 级处理(threshold=0.15)。
+let dqi_a_level = present(dqi_score) && dqi_score >= 85.0 && untrusted_count == 0;
 let dqi_high_quality = present(dqi_score) && dqi_score >= 65.0;  // A/B 级
 // 因子权重坍缩阈值与数据质量联动:
-//   A 级(dqi≥85): 完全豁免（threshold=0.0 永不触发，且跳过 untrusted/dqi_collapsed）
-//   B 级(65≤dqi<85): 仅当 total_weight/max_weight<0.15 时触发(因子几乎全缺失)
+//   A 级(dqi≥85 且 untrusted==0): 完全豁免（threshold=0.0 永不触发，且跳过 untrusted/dqi_collapsed）
+//   B 级(65≤dqi<85 或 dqi≥85但有untrusted): 仅当 total_weight/max_weight<0.15 时触发
 //   C/D/F 级(dqi<65): total_weight/max_weight<0.3 时触发(因子+分析师双重不可靠)
 let weight_collapse_threshold = if dqi_a_level { 0.0 }
     else if dqi_high_quality { 0.15 }
@@ -1255,8 +1261,10 @@ let weights_collapsed = !dqi_a_level && (
 	} else { "" };
 
 	// C2.1 三级降级标注
+	// V69 修复(2026-07-29): 此处 0.3 同步替换为 weight_collapse_threshold，
+	//   与 L1102 的 V68 修复保持一致，避免 B 级数据文案与触发条件错位。
 let collapse_note = if weights_collapsed {
-    if dqi_collapsed && !((total_weight / max_weight) < 0.3) && untrusted_count < 2 {
+    if dqi_collapsed && !((total_weight / max_weight) < weight_collapse_threshold) && untrusted_count < 2 {
         ` | ⚠️数据质量F级(dqi_score=${(dqi_score*10.0).round()/10.0}<25),0%仓位+置信度×0.5`
     } else {
         ` | ⚠️因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`

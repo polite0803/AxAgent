@@ -80,10 +80,13 @@ pub async fn get_trade_review(db: &DatabaseConnection) -> Result<TradeReviewSumm
         }
 
         // 获取分析预测对比
+        // R1-修复: 增加 CreatedAt.lt(sell.created_at) 过滤，确保只取卖出前的分析
+        //   （事前预测），避免用事后分析对比导致复盘结论失真。
         let (target, stop, deviation) = if let Some(analysis) =
             axagent_entities::stock_analyses::Entity::find()
                 .filter(axagent_entities::stock_analyses::Column::StockCode.eq(&sell.stock_code))
                 .filter(axagent_entities::stock_analyses::Column::Status.eq("completed"))
+                .filter(axagent_entities::stock_analyses::Column::CreatedAt.lt(sell.created_at))
                 .order_by_desc(axagent_entities::stock_analyses::Column::CreatedAt)
                 .one(db)
                 .await

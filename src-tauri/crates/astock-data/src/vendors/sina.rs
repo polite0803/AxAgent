@@ -371,7 +371,12 @@ impl StockVendor for SinaVendor {
             return Ok(None);
         }
 
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        // R1-修复: 新浪 API 未返回交易日期，用当前日期（UTC+8 北京时间）作为兜底。
+        //   原 Local::now() 在非中国时区部署时会偏移一天。
+        let today = chrono::Utc::now()
+            .with_timezone(&chrono::FixedOffset::east_opt(8 * 3600).unwrap())
+            .format("%Y-%m-%d")
+            .to_string();
 
         Ok(Some(MoneyFlow {
             date: today,
