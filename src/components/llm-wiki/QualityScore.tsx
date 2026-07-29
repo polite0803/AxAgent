@@ -205,7 +205,7 @@ export function QualityScore({
         trigger="click"
         placement="bottomRight"
         arrow={false}
-        overlayInnerStyle={{ padding: "8px 10px" }}
+        styles={{ container: { padding: "8px 10px" } }}
         overlayStyle={{ width: 260, maxWidth: "90vw" }}
         content={
           <div style={{ width: "100%" }}>

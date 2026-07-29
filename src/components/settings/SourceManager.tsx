@@ -441,7 +441,7 @@ function ImportProjectSourcesModal({
   const [form] = Form.useForm();
   const [importing, setImporting] = useState(false);
   const [dirPath, setDirPath] = useState("");
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = AntdApp.useApp();
   const mode: "create" | "update" = Form.useWatch("mode", form) ?? initialMode;
 
   // 打开时同步初始 mode 与默认名称
@@ -535,7 +535,6 @@ function ImportProjectSourcesModal({
       confirmLoading={importing}
       width={520}
     >
-      {contextHolder}
       <Form form={form} layout="vertical">
         <Form.Item
           label={t("sourceManager.importProjectModal.directory")}
@@ -788,6 +787,7 @@ function KnowledgeTab({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const navigate = useNavigate();
+  const { message: messageApi } = AntdApp.useApp();
   const { bases, loadBases, loading: knowledgeLoading } = useKnowledgeStore();
   const allSources = useSourceStore((s) => s.sources);
   const knowledgeSources = useMemo(
@@ -814,7 +814,7 @@ function KnowledgeTab({
         basesCount: bases.length,
         baseIds: bases.map(b => b.id),
       });
-      message.error(t("sourceManager.enterFailed"));
+      messageApi.error(t("sourceManager.enterFailed"));
     }
   }, [bases, t]);
 

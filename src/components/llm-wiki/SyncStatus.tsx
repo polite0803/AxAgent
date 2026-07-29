@@ -160,7 +160,7 @@ export function SyncStatus({
         trigger="click"
         placement="bottomRight"
         arrow={false}
-        overlayInnerStyle={{ padding: "8px 10px" }}
+        styles={{ container: { padding: "8px 10px" } }}
         overlayStyle={{ width: 280, maxWidth: "90vw" }}
         content={
           <div style={{ width: "100%" }}>
