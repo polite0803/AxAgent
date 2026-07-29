@@ -108,7 +108,7 @@ describe("knowledgeStore - importDirectory", () => {
       useKnowledgeStore.getState().importDirectory(BASE_ID, DIR_PATH),
     ).rejects.toThrow("DB error");
 
-    expect(useKnowledgeStore.getState().error).toBe("Error: DB error");
+    expect(useKnowledgeStore.getState().error).toBe("DB error");
   });
 
   it("returns result with zero counts for empty directory", async () => {
@@ -214,7 +214,7 @@ describe("knowledgeStore - base CRUD", () => {
     const res = await useKnowledgeStore.getState().createBase({ name: "X" });
 
     expect(res).toBeNull();
-    expect(useKnowledgeStore.getState().error).toBe("Error: boom");
+    expect(useKnowledgeStore.getState().error).toBe("boom");
   });
 
   it("updateBase replaces the matching base", async () => {
@@ -302,6 +302,6 @@ describe("knowledgeStore - documents", () => {
     await expect(
       useKnowledgeStore.getState().deleteDocument(BASE_ID, "doc-9"),
     ).rejects.toThrow("nope");
-    expect(useKnowledgeStore.getState().error).toBe("Error: nope");
+    expect(useKnowledgeStore.getState().error).toBe("nope");
   });
 });

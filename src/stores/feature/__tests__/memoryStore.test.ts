@@ -85,7 +85,7 @@ describe("memoryStore", () => {
 
       await useMemoryStore.getState().loadNamespaces();
 
-      expect(useMemoryStore.getState().error).toBe("Error: Network error");
+      expect(useMemoryStore.getState().error).toBe("Network error");
       expect(useMemoryStore.getState().loading).toBe(false);
     });
   });
@@ -111,7 +111,7 @@ describe("memoryStore", () => {
       const result = await useMemoryStore.getState().createNamespace("New NS", "team");
 
       expect(result).toBeNull();
-      expect(useMemoryStore.getState().error).toBe("Error: Create failed");
+      expect(useMemoryStore.getState().error).toBe("Create failed");
     });
   });
 
