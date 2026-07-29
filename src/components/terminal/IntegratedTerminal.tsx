@@ -42,6 +42,7 @@ export function IntegratedTerminal({
     appendOutput,
   } = useTerminalStore();
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const xtermRef = useRef<any>(null);
@@ -110,11 +111,33 @@ export function IntegratedTerminal({
       xterm.loadAddon(new WebLinksAddon());
 
       xterm.open(terminalRef.current);
-      fitAddon.fit();
+
+      // 多重延迟确保DOM布局完成后再fit：
+      // 1. requestAnimationFrame: 等当前帧渲染完成
+      // 2. setTimeout 50ms: 等父容器flex布局计算完成
+      // 3. setTimeout 200ms: 等Tab切换动画/重排完成
+      const fitWithRetry = () => {
+        requestAnimationFrame(() => {
+          fitAddon.fit();
+          setTimeout(() => fitAddon.fit(), 50);
+          setTimeout(() => fitAddon.fit(), 200);
+        });
+      };
+      fitWithRetry();
 
       xtermRef.current = xterm;
       fitAddonRef.current = fitAddon;
       terminalReadyRef.current = true;
+
+      // 点击终端区域时自动聚焦
+      if (terminalRef.current) {
+        terminalRef.current.addEventListener("click", () => {
+          xterm.focus();
+        });
+      }
+
+      // 初始聚焦
+      setTimeout(() => xterm.focus(), 100);
 
       // 写入初始化前的待处理输出
       const lastLine = activeOutput[activeOutput.length - 1] ?? "";
@@ -250,14 +273,17 @@ export function IntegratedTerminal({
   useEffect(() => {
     const handleResize = () => {
       if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
+        // 延迟一帧确保DOM布局更新完成
+        requestAnimationFrame(() => {
+          fitAddonRef.current?.fit();
+        });
       }
     };
 
     window.addEventListener("resize", handleResize);
     const observer = new ResizeObserver(handleResize);
-    if (terminalRef.current) {
-      observer.observe(terminalRef.current);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
     }
 
     return () => {
@@ -326,11 +352,13 @@ export function IntegratedTerminal({
 
   return (
     <div
+      ref={containerRef}
       className={isMaximized ? "term-maximized" : undefined}
       style={{
         display: "flex",
         flexDirection: "column",
         flex: 1,
+        minHeight: 0,
         width: "100%",
         border: "1px solid #333",
         borderRadius: isMaximized ? 0 : 8,
@@ -351,7 +379,7 @@ export function IntegratedTerminal({
       >
         <Terminal size={16} color="#89b4fa" />
         <span style={{ color: "#cdd6f4", fontSize: 13, fontWeight: 500 }}>
-          Terminal
+          {t("nav.terminal")}
         </span>
 
         {sessions.length > 0 && (
@@ -479,48 +507,52 @@ export function IntegratedTerminal({
         </div>
       )}
 
-      <div style={{ flex: 1, position: "relative" }}>
-        {sessions.length === 0
-          ? (
-            <div
+      <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
+        {/* xterm 容器始终渲染，确保 initTerminal 时 terminalRef 存在 */}
+        <div
+          ref={terminalRef}
+          style={{
+            width: "100%",
+            flex: 1,
+            minHeight: 0,
+            padding: "4px 8px",
+            visibility: sessions.length === 0 ? "hidden" : "visible",
+          }}
+        />
+        {/* 无会话时显示 Empty 状态，叠加在 xterm 容器上方 */}
+        {sessions.length === 0 && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              background: "#1e1e2e",
+              zIndex: 1,
+            }}
+          >
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={<span style={{ color: "#6c7086" }}>{t("terminal.noSessions")}</span>}
+            />
+            <Button
+              size="small"
+              icon={<Plus size={14} />}
+              onClick={handleCreateSession}
+              loading={loading}
               style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                gap: 12,
+                background: "#313244",
+                borderColor: "#45475a",
+                color: "#cdd6f4",
               }}
             >
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={<span style={{ color: "#6c7086" }}>{t("terminal.noSessions")}</span>}
-              />
-              <Button
-                size="small"
-                icon={<Plus size={14} />}
-                onClick={handleCreateSession}
-                loading={loading}
-                style={{
-                  background: "#313244",
-                  borderColor: "#45475a",
-                  color: "#cdd6f4",
-                }}
-              >
-                {t("terminal.newTerminal")}
-              </Button>
-            </div>
-          )
-          : (
-            <div
-              ref={terminalRef}
-              style={{
-                width: "100%",
-                height: "100%",
-                padding: "4px 8px",
-              }}
-            />
-          )}
+              {t("terminal.newTerminal")}
+            </Button>
+          </div>
+        )}
       </div>
 
       {activeSession && (

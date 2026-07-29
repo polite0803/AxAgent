@@ -87,10 +87,10 @@ export const ContentArea = memo(function ContentArea() {
   const { ipcHealthy } = useIpcHealth();
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", minWidth: 0 }}>
       <IpcReconnectBanner healthy={ipcHealthy} />
       <AppHeader />
-      <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
           <Route path="/" element={<Navigate to={DEFAULT_HOME} replace />} />
           {/* 工作台 Hub：对话页作为核心，内含仪表盘/工作流/终端/知识源 Tab */}
@@ -106,9 +106,9 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH.dashboard} element={redirectToChat("dashboard")} />
           <Route path={BUILTIN_PAGE_PATH.workflow} element={redirectToChat("workflow")} />
           <Route path={BUILTIN_PAGE_PATH.terminal} element={redirectToChat("terminal")} />
+          <Route path={BUILTIN_PAGE_PATH.files} element={redirectToChat("files")} />
           <Route path={BUILTIN_PAGE_PATH.knowledge} element={redirectToChat("knowledge")} />
           <Route path={BUILTIN_PAGE_PATH.marketplace} element={redirectToChat("workflow")} />
-          <Route path={BUILTIN_PAGE_PATH.files} element={redirectToChat("terminal")} />
           {/* 记忆页保留独立路由（无侧栏入口，通过知识源内 Memory Tab 访问） */}
           <Route
             path={BUILTIN_PAGE_PATH.memory}

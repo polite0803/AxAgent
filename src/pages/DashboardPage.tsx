@@ -372,6 +372,8 @@ function OverviewTab() {
   return (
     <div
       style={{
+        flex: 1,
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
         gap: 24,

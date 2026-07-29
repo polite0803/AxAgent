@@ -11,7 +11,8 @@ export type WorkspaceTab =
   | "dashboard"
   | "workflow"
   | "terminal"
-  | "knowledge";
+  | "knowledge"
+  | "files";
 
 interface WorkspaceState {
   /** 当前激活的功能 Tab */
@@ -22,7 +23,7 @@ interface WorkspaceState {
 
 /**
  * 工作台 Tab 状态。
- * 管理 /chat 路由下 5 个功能 Tab 的切换（对话/仪表盘/工作流/终端/知识源）。
+ * 管理 /chat 路由下功能 Tab 的切换（对话/仪表盘/工作流/终端/知识源/文件）。
  */
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   activeTab: "chat",
