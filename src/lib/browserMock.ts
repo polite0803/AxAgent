@@ -145,7 +145,7 @@ function setStore<T>(key: string, value: T): void {
 }
 
 function generateBrowserResponse(userContent: string): string {
-  const greeting = /^(你好|hi|hello|hey|嗨)/i.test(userContent.trim());
+  const greeting = /^(hi|hello|hey)/i.test(userContent.trim());
   if (greeting) {
     return i18n.t("browserMock.greeting");
   }
@@ -764,7 +764,7 @@ function buildMockUISchemaJSON(): string {
         version: "1.0",
         id: "mock-text",
         type: "Text",
-        props: { content: "Mock 动态 UI 内容" },
+        props: { content: "Mock dynamic UI content" },
       },
     ],
   });
@@ -3386,7 +3386,7 @@ export async function handleCommand<T>(
         schema_json: schema.schema_json,
         category: schema.category,
         tags: schema.tags,
-        change_log: "初始创建",
+        change_log: "initial create",
         created_at: Date.now(),
       });
       saveMockDynamicUIData("versions", versions);
@@ -3431,7 +3431,7 @@ export async function handleCommand<T>(
         schema_json: updated.schema_json,
         category: updated.category,
         tags: updated.tags,
-        change_log: req.change_log ?? "更新",
+        change_log: req.change_log ?? "update",
         created_at: Date.now(),
       });
       saveMockDynamicUIData("versions", versions);
@@ -3613,7 +3613,7 @@ export async function handleCommand<T>(
       const mockSchema = buildMockUISchemaJSON();
       return {
         schema: mockSchema,
-        description: `Mock: 已根据指令"${(prompt ?? "").slice(0, 50)}"编辑示例 schema`,
+        description: `Mock: edited example schema per instruction "${(prompt ?? "").slice(0, 50)}"`,
       } as T;
     }
     case "generate_dynamic_ui_schema_nl": {
@@ -3621,8 +3621,8 @@ export async function handleCommand<T>(
       const mockSchema = buildMockUISchemaJSON();
       return {
         schema: mockSchema,
-        title: "Mock 动态 UI",
-        description: `Mock: 已根据描述"${(prompt ?? "").slice(0, 50)}"生成示例 schema`,
+        title: "Mock Dynamic UI",
+        description: `Mock: generated example schema per description "${(prompt ?? "").slice(0, 50)}"`,
       } as T;
     }
 
@@ -3832,7 +3832,7 @@ export async function handleCommand<T>(
       return {
         skill_id: (args as { skill_id?: string })?.skill_id ?? "",
         improved: false,
-        reason: "Mock: 未生成进化结果",
+        reason: "Mock: no evolution result generated",
         confidence: 0,
       } as T;
     case "skill_evolution_status":
@@ -3863,7 +3863,7 @@ export async function handleCommand<T>(
     case "run_intrinsic_motivation_analysis":
     case "run_coevolution_cycle":
     case "run_sandbox_validate_step":
-      return { success: false, reason: "Mock 模式未启用", stats: {} } as T;
+      return { success: false, reason: "Mock mode not enabled", stats: {} } as T;
     case "get_coevolution_status":
       return { is_running: false, generation: 0, stats: {} } as T;
     case "get_sandbox_policy":

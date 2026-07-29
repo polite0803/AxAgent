@@ -112,7 +112,7 @@ export function DynamicUIStandalone({
 
       // 校验 formValues 是合法对象
       if (typeof formValues !== "object" || formValues === null || Array.isArray(formValues)) {
-        console.warn("[DynamicUIStandalone] store action config 中的 values/formValues 必须为普通对象");
+        console.warn("[DynamicUIStandalone] store action config values/formValues must be plain objects");
         return;
       }
 
@@ -142,7 +142,7 @@ export function DynamicUIStandalone({
           form_data_json: JSON.stringify(latest),
           instance_key: ikey,
         }).catch((e) => {
-          console.warn("DynamicUIStandalone: 卸载时持久化表单数据失败", e);
+          console.warn("DynamicUIStandalone: failed to persist form data on unmount", e);
         });
       }
     };

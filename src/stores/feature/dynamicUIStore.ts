@@ -73,7 +73,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       set({ schemas, loading: false });
     } catch (e) {
       // DUI-P2-01: 记录错误日志便于排查
-      console.error("fetchSchemas 失败:", e);
+      console.error("fetchSchemas failed:", e);
       set({ loading: false });
     }
   },
@@ -134,7 +134,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       set({ pins });
     } catch (e) {
       // DUI-P2-01: pins 加载失败可静默，但记录日志便于排查
-      console.warn("fetchPins 失败（可忽略）:", e);
+      console.warn("fetchPins failed (ignorable):", e);
     }
   },
 
@@ -253,7 +253,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       return result.versions;
     } catch (e) {
       // DUI-P2-01: 版本列表加载失败需记录日志，否则 UI 显示空状态无法区分"无数据"还是"加载失败"
-      console.error("loadVersions 失败:", e);
+      console.error("loadVersions failed:", e);
       set({ versionLoading: false });
       return [];
     }
@@ -265,7 +265,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
         version_id: versionId,
       });
     } catch (e) {
-      console.error("getVersion 失败:", e);
+      console.error("getVersion failed:", e);
       return null;
     }
   },
@@ -282,7 +282,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       }));
       return updated;
     } catch (e) {
-      console.error("restoreVersion 失败:", e);
+      console.error("restoreVersion failed:", e);
       return null;
     }
   },
