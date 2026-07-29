@@ -11,6 +11,7 @@ import { GlobalStatusBar } from "@/components/layout/GlobalStatusBar";
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TitleBar } from "@/components/layout/TitleBar";
+import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 // 非首屏核心组件改为 lazy，避免 dev 模式下 Vite 逐个编译阻塞首帧。
@@ -43,7 +44,14 @@ import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { setDefaultNavigate } from "@/lib/actionRouter";
 import { invoke, isTauri, listen } from "@/lib/invoke";
 import { message, setMessageInstance } from "@/lib/toast";
-import { useAgentPanelStore, useSettingsStore, useSkillStore, useStreamStore, useUIStore } from "@/stores";
+import {
+  useAgentPanelStore,
+  useSettingsStore,
+  useSkillStore,
+  useStreamStore,
+  useUIStore,
+  useWorkspaceTabStore,
+} from "@/stores";
 import { useShadcnTheme } from "@/theme/shadcnTheme";
 import type { ThemePreset } from "@/theme/shadcnTheme";
 import type { SkillProposal } from "@/types";
@@ -114,10 +122,30 @@ function GlobalStatusBarWrapper() {
 function GlobalTabBar() {
   const location = useLocation();
   const isChatPage = location.pathname === "/chat" || location.pathname === "/" || location.pathname === "";
-  if (!isChatPage) { return null; }
+  const workspaceTab = useWorkspaceTabStore((s) => s.activeTab);
+  // 仅在 /chat 路由且功能 Tab 为「对话」时显示会话 TabBar
+  if (!isChatPage || workspaceTab !== "chat") {
+    return null;
+  }
   return (
     <ModuleErrorBoundary moduleName="TabBar">
       <TabBar />
+    </ModuleErrorBoundary>
+  );
+}
+
+/**
+ * 工作台切换栏：仅在 /chat 路由下显示功能切换（对话/仪表盘/工作流/终端/知识源）。
+ */
+function WorkspaceSwitcherBar() {
+  const location = useLocation();
+  const isChatPage = location.pathname === "/chat" || location.pathname === "/" || location.pathname === "";
+  if (!isChatPage) {
+    return null;
+  }
+  return (
+    <ModuleErrorBoundary moduleName="WorkspaceSwitcher">
+      <WorkspaceSwitcher />
     </ModuleErrorBoundary>
   );
 }
@@ -343,6 +371,7 @@ function AppInner() {
                     transition: isAgentDragging ? "none" : "margin-right 300ms ease-in-out",
                   }}
                 >
+                  <WorkspaceSwitcherBar />
                   <GlobalTabBar />
                   <div className="page-area">
                     <PageTransitionWrapper>

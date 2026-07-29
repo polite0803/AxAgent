@@ -6,20 +6,15 @@ import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageContextProvider } from "@/components/shared/PageContextProvider";
 import { useIpcHealth } from "@/hooks/useIpcHealth";
 import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "@/lib/pageRegistry";
+import { useWorkspaceTabStore } from "@/stores";
 import { Button, Result, Spin } from "antd";
-import { lazy, memo, Suspense } from "react";
+import { lazy, memo, Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
-const LazyChatPage = lazy(() =>
-  import("@/pages/ChatPage").then((m) => ({
-    default: m.ChatPage,
-  }))
-);
-const LazyKnowledgeHubPage = lazy(() =>
-  import("@/pages/KnowledgeHubPage").then((m) => ({
-    default: m.KnowledgeHubPage,
-  }))
+// ── 页面 lazy 导入 ──
+const LazyWorkspaceHub = lazy(() =>
+  import("@/components/layout/WorkspaceHub").then((m) => ({ default: m.WorkspaceHub }))
 );
 const LazyMemoryPage = lazy(() => import("@/pages/MemoryPage").then((m) => ({ default: m.MemoryPage })));
 const LazyGatewayLinkPage = lazy(() =>
@@ -27,48 +22,14 @@ const LazyGatewayLinkPage = lazy(() =>
     default: m.GatewayLinkPage,
   }))
 );
-const LazyDashboardPage = lazy(() =>
-  import("@/pages/DashboardPage").then((m) => ({
-    default: m.DashboardPage,
-  }))
-);
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
-const LazyWorkflowPage = lazy(() => import("@/pages/WorkflowPage").then((m) => ({ default: m.WorkflowPage })));
-const LazyWorkflowMarketplace = lazy(() =>
-  import("@/pages/WorkflowMarketplace").then((m) => ({ default: m.WorkflowMarketplace }))
-);
-const LazyTraceExplorer = lazy(() =>
-  import("@/pages/DevTools/TraceExplorer").then((m) => ({
-    default: m.TraceExplorer,
-  }))
-);
-const LazyBenchmarkRunner = lazy(() =>
-  import("@/pages/DevTools/BenchmarkRunner").then((m) => ({
-    default: m.BenchmarkRunner,
-  }))
-);
-const LazyToolRecommender = lazy(() =>
-  import("@/pages/DevTools/ToolRecommender").then((m) => ({
-    default: m.ToolRecommender,
-  }))
-);
-const LazyRLTrainingPanel = lazy(() =>
-  import("@/components/devtools/RLTrainingPanel").then((m) => ({
-    default: m.RLTrainingPanel,
-  }))
-);
-const LazyFineTune = lazy(() => import("@/pages/FineTunePage").then((m) => ({ default: m.FineTunePage })));
+const LazyDevToolsPage = lazy(() => import("@/pages/DevTools/DevToolsPage").then((m) => ({ default: m.DevToolsPage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
 const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) => ({ default: m.WikiGraphPage })));
 const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => ({ default: m.WikiEditPage })));
 const LazyQuickBarPage = lazy(() => import("@/pages/QuickBarPage").then((m) => ({ default: m.QuickBarPage })));
-const LazyTerminalPage = lazy(() => import("@/pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
-const LazyFilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
 const LazyLearningGraphPage = lazy(() =>
   import("@/pages/LearningGraphPage").then((m) => ({ default: m.LearningGraphPage }))
-);
-const LazyDynamicUIManagerPage = lazy(() =>
-  import("@/pages/DynamicUIManagerPage").then((m) => ({ default: m.DynamicUIManagerPage }))
 );
 const LazyDynamicPageViewer = lazy(() =>
   import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
@@ -147,6 +108,20 @@ function NotFoundRoute() {
   );
 }
 
+/**
+ * 将旧路由（/dashboard, /workflow, /terminal, /knowledge）重定向到 /chat，
+ * 并设置对应的工作台功能 Tab。
+ */
+function RedirectAndSetTab({ tab }: { tab: "dashboard" | "workflow" | "terminal" | "knowledge" }) {
+  const setActiveTab = useWorkspaceTabStore((s) => s.setActiveTab);
+  const navigate = useNavigate();
+  useEffect(() => {
+    setActiveTab(tab);
+    navigate(BUILTIN_PAGE_PATH.chat, { replace: true });
+  }, [tab, setActiveTab, navigate]);
+  return null;
+}
+
 export const ContentArea = memo(function ContentArea() {
   const { ipcHealthy } = useIpcHealth();
 
@@ -157,35 +132,23 @@ export const ContentArea = memo(function ContentArea() {
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Routes>
           <Route path="/" element={<Navigate to={DEFAULT_HOME} replace />} />
+          {/* 工作台 Hub：对话页作为核心，内含仪表盘/工作流/终端/知识源 Tab */}
           <Route
             path={BUILTIN_PAGE_PATH.chat}
             element={
               <PageContextProvider page="chat">
-                <SafeLazyPage Page={LazyChatPage} />
+                <SafeLazyPage Page={LazyWorkspaceHub} />
               </PageContextProvider>
             }
           />
-          <Route
-            path={BUILTIN_PAGE_PATH.dashboard}
-            element={
-              <PageContextProvider page="dashboard">
-                <SafeLazyPage Page={LazyDashboardPage} />
-              </PageContextProvider>
-            }
-          />
-          {
-            /* /knowledge 与 /llm-wiki 共用 KnowledgeHubPage（LLM 知识库）。
-               二者仅 page 上下文不同（"knowledge" vs "wiki"），属同组件双入口别名，
-               保留 /llm-wiki 作为 wiki 数据源管理入口（含图谱子路由）。路径已收归 BUILTIN_PAGE_PATH，禁止散写。 */
-          }
-          <Route
-            path={BUILTIN_PAGE_PATH.knowledge}
-            element={
-              <PageContextProvider page="knowledge">
-                <SafeLazyPage Page={LazyKnowledgeHubPage} />
-              </PageContextProvider>
-            }
-          />
+          {/* 以下路由重定向到 /chat 并设置对应功能 Tab */}
+          <Route path={BUILTIN_PAGE_PATH.dashboard} element={<RedirectAndSetTab tab="dashboard" />} />
+          <Route path={BUILTIN_PAGE_PATH.workflow} element={<RedirectAndSetTab tab="workflow" />} />
+          <Route path={BUILTIN_PAGE_PATH.terminal} element={<RedirectAndSetTab tab="terminal" />} />
+          <Route path={BUILTIN_PAGE_PATH.knowledge} element={<RedirectAndSetTab tab="knowledge" />} />
+          <Route path={BUILTIN_PAGE_PATH.marketplace} element={<RedirectAndSetTab tab="workflow" />} />
+          <Route path={BUILTIN_PAGE_PATH.files} element={<RedirectAndSetTab tab="terminal" />} />
+          {/* 记忆页保留独立路由（无侧栏入口，通过知识源内 Memory Tab 访问） */}
           <Route
             path={BUILTIN_PAGE_PATH.memory}
             element={
@@ -224,29 +187,10 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          <Route
-            path={BUILTIN_PAGE_PATH.workflow}
-            element={
-              <PageContextProvider page="workflow">
-                <SafeLazyPage Page={LazyWorkflowPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.marketplace}
-            element={
-              <PageContextProvider page="marketplace">
-                <SafeLazyPage Page={LazyWorkflowMarketplace} />
-              </PageContextProvider>
-            }
-          />
+          {/* 知识库子路由（/llm-wiki 与 /knowledge 共用 KnowledgeHubPage，保留 wiki 上下文） */}
           <Route
             path={BUILTIN_PAGE_PATH.llmWiki}
-            element={
-              <PageContextProvider page="wiki">
-                <SafeLazyPage Page={LazyKnowledgeHubPage} />
-              </PageContextProvider>
-            }
+            element={<RedirectAndSetTab tab="knowledge" />}
           />
           <Route
             path={`${BUILTIN_PAGE_PATH.llmWiki}/:wikiId/graph`}
@@ -280,30 +224,7 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          <Route
-            path={BUILTIN_PAGE_PATH.files}
-            element={
-              <PageContextProvider page="files">
-                <SafeLazyPage Page={LazyFilesPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.terminal}
-            element={
-              <PageContextProvider page="terminal">
-                <SafeLazyPage Page={LazyTerminalPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH["dynamic-ui"]}
-            element={
-              <PageContextProvider page="dynamic-ui">
-                <SafeLazyPage Page={LazyDynamicUIManagerPage} />
-              </PageContextProvider>
-            }
-          />
+          {/* 动态页面查看器保留独立路由（通过 schemaId 访问） */}
           <Route
             path={`${BUILTIN_PAGE_PATH["dynamic-ui"]}/:schemaId`}
             element={
@@ -312,6 +233,12 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
+          {/* 动态页面管理入口重定向到设置（已迁入设置/扩展分组） */}
+          <Route
+            path={BUILTIN_PAGE_PATH["dynamic-ui"]}
+            element={<Navigate to={BUILTIN_PAGE_PATH.settings} replace />}
+          />
+          {/* 开发者工具统一入口（5 项合并为 1 项，内部 Tab 切换） */}
           <Route
             path={BUILTIN_PAGE_PATH.workspace}
             element={
@@ -467,45 +394,32 @@ export const ContentArea = memo(function ContentArea() {
           />
           <Route
             path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer}
-            element={
-              <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyTraceExplorer} />
-              </PageContextProvider>
-            }
+            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
           />
           <Route
             path={BUILTIN_PAGE_PATH.devtoolsBenchmark}
-            element={
-              <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyBenchmarkRunner} />
-              </PageContextProvider>
-            }
+            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
           />
           <Route
             path={BUILTIN_PAGE_PATH.devtoolsToolRecommender}
-            element={
-              <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyToolRecommender} />
-              </PageContextProvider>
-            }
+            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
           />
           <Route
             path={BUILTIN_PAGE_PATH.devtoolsFineTune}
-            element={
-              <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyFineTune} />
-              </PageContextProvider>
-            }
+            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
           />
           <Route
             path={BUILTIN_PAGE_PATH.devtoolsRlTraining}
+            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.devtools}
             element={
               <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyRLTrainingPanel} />
+                <SafeLazyPage Page={LazyDevToolsPage} />
               </PageContextProvider>
             }
           />
-
           {/* 学习图 */}
           <Route
             path={BUILTIN_PAGE_PATH.learningGraph}

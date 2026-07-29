@@ -174,41 +174,13 @@ const builtinNavItems: NavItem[] = [
   },
 ];
 
-/** 开发者工具导航项 — 由 settings.show_developer_tools 门控 */
+/** 开发者工具导航项 — 由 settings.show_developer_tools 门控；5 项合并为 1 项统一入口 */
 const devtoolsNavItems: NavItem[] = [
   {
-    key: "devtoolsTraceExplorer",
-    icon: <Icon icon="fluent:search-info-20-filled" size={17} />,
-    labelKey: "nav.devtools.traceExplorer",
-    path: BUILTIN_PAGE_PATH.devtoolsTraceExplorer,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsBenchmark",
-    icon: <Icon icon="fluent:gauge-20-filled" size={17} />,
-    labelKey: "nav.devtools.benchmark",
-    path: BUILTIN_PAGE_PATH.devtoolsBenchmark,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsToolRecommender",
-    icon: <Icon icon="fluent:wand-20-filled" size={17} />,
-    labelKey: "nav.devtools.toolRecommender",
-    path: BUILTIN_PAGE_PATH.devtoolsToolRecommender,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsFineTune",
-    icon: <Icon icon="fluent:brain-circuit-20-filled" size={17} />,
-    labelKey: "nav.devtools.fineTune",
-    path: BUILTIN_PAGE_PATH.devtoolsFineTune,
-    isPlugin: false,
-  },
-  {
-    key: "devtoolsRlTraining",
-    icon: <Icon icon="fluent:trophy-20-filled" size={17} />,
-    labelKey: "nav.devtools.rlTraining",
-    path: BUILTIN_PAGE_PATH.devtoolsRlTraining,
+    key: "devtools",
+    icon: <Icon icon="fluent:tool-toolbox-20-filled" size={17} />,
+    labelKey: "nav.devTools",
+    path: BUILTIN_PAGE_PATH.devtools,
     isPlugin: false,
   },
 ];
@@ -446,11 +418,11 @@ export function Sidebar() {
   const sections = useMemo<SidebarSection[]>(() => {
     const sections: SidebarSection[] = [];
 
-    // 工作区：核心交互入口（对话 + 仪表盘）
+    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源 Tab）
     sections.push({
       key: "workspace",
       labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "dashboard"),
+      items: builtinNavItems,
     });
 
     // 创作：工作流编排与市场

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Icon } from "@/components/common/Icon";
 import { OfficeTab } from "@/components/office/OfficeTab";
 import { invoke } from "@/lib/invoke";
 import {
@@ -221,44 +220,19 @@ function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: 
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  const { token } = theme.useToken();
   const [activeTab, setActiveTab] = useState<"overview" | "office">("overview");
 
   return (
     <div
       style={{
-        padding: 24,
         height: "100%",
-        overflow: "auto",
         display: "flex",
         flexDirection: "column",
-        gap: 16,
       }}
     >
-      {/* ── Page Title ── */}
-      <div>
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: token.colorText,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <Icon icon="fluent:grid-20-filled" size={22} />
-          {t("nav.dashboard")}
-        </div>
-        <div style={{ fontSize: 12, color: token.colorTextQuaternary, marginTop: 4 }}>
-          {t("appHeader.dashboardContext")}
-        </div>
-      </div>
-
       <Tabs
         activeKey={activeTab}
         onChange={(k) => setActiveTab(k as "overview" | "office")}
-        size="large"
         items={[
           {
             key: "overview",
@@ -279,12 +253,15 @@ export function DashboardPage() {
               </span>
             ),
             children: (
-              <div style={{ height: "calc(100vh - 200px)", minHeight: 600 }}>
+              <div style={{ height: "calc(100vh - 140px)", minHeight: 600 }}>
                 <OfficeTab />
               </div>
             ),
           },
         ]}
+        style={{ flex: 1, minHeight: 0, padding: "0 16px" }}
+        tabBarStyle={{ flexShrink: 0, marginBottom: 0 }}
+        destroyInactiveTabPane
       />
     </div>
   );
@@ -401,6 +378,8 @@ function OverviewTab() {
         display: "flex",
         flexDirection: "column",
         gap: 24,
+        padding: "16px 0",
+        overflow: "auto",
       }}
     >
       {/* ── Overview Cards ── */}

@@ -14,8 +14,9 @@
  *   3. 在 Sidebar builtinNavItems 增加导航项（path 引用本表）。
  */
 
-/** 应用冷启动后的默认首页路径（"/" 重定向目标）。 */
-export const DEFAULT_HOME = "/dashboard";
+/** 应用冷启动后的默认首页路径（"/" 重定向目标）。
+ *  仪表盘已合并到对话页的「工作台」Tab，默认进入对话页。 */
+export const DEFAULT_HOME = "/chat";
 
 /**
  * key→path 映射，覆盖所有内置页面（含未进入导航栏的 link/marketplace 等）。
@@ -58,6 +59,8 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",
   quickbar: "/quickbar",
+  // 开发者工具统一入口（5 个子项合并为 1 项，内部 Tab 切换）
+  devtools: "/devtools",
   devtoolsTraceExplorer: "/devtools/trace-explorer",
   devtoolsBenchmark: "/devtools/benchmark",
   devtoolsToolRecommender: "/devtools/tool-recommender",

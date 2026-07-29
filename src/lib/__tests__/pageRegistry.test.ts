@@ -6,8 +6,8 @@ import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "../pageRegistry";
 
 describe("pageRegistry", () => {
   describe("DEFAULT_HOME", () => {
-    it("应为 /dashboard", () => {
-      expect(DEFAULT_HOME).toBe("/dashboard");
+    it("应为 /chat（仪表盘已合并到对话页工作台 Tab）", () => {
+      expect(DEFAULT_HOME).toBe("/chat");
     });
   });
 
@@ -26,6 +26,7 @@ describe("pageRegistry", () => {
     });
 
     it("应包含 devtools 路由", () => {
+      expect(BUILTIN_PAGE_PATH.devtools).toBe("/devtools");
       expect(BUILTIN_PAGE_PATH.devtoolsTraceExplorer).toBe("/devtools/trace-explorer");
       expect(BUILTIN_PAGE_PATH.devtoolsBenchmark).toBe("/devtools/benchmark");
       expect(BUILTIN_PAGE_PATH.devtoolsFineTune).toBe("/devtools/fine-tune");

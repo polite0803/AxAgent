@@ -5,6 +5,7 @@ export type { AgentContext, AgentPanelTab, AgentSelection } from "./shared/agent
 export { useArtifactStore } from "./shared/artifactStore";
 export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
+export { useWorkspaceStore as useWorkspaceTabStore, type WorkspaceTab } from "./shared/workspaceStore";
 
 export { useBackendStatusStore } from "./shared/backendStatusStore";
 export { useErrorNotificationStore } from "./shared/errorNotificationStore";
