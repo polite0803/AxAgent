@@ -3418,6 +3418,7 @@
     "maxConcurrent": "最大并发",
     "timeoutSec": "超时（秒）",
     "dynamicUI": "动态页面",
+    "learningGraph": "学习图",
     "devtools": {
       "traceExplorer": "追踪浏览器",
       "benchmark": "基准测试",
@@ -5910,6 +5911,10 @@
     "sectionInfrastructure": "基础设施",
     "sectionOverview": "概览",
     "sectionTools": "工具",
+    "sectionWorkspace": "工作区",
+    "sectionCreation": "创作",
+    "sectionKnowledge": "知识",
+    "sectionDevelopment": "开发",
     "agentPanel": "Agent 面板",
     "sectionInvest": "投资",
     "sectionInvestDiscover": "发现",

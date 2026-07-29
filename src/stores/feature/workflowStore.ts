@@ -681,7 +681,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           if (!resolved) {
             resolved = true;
             cleanup();
-            reject(new Error(`执行超时（${timeoutMs / 1000}s）`));
+            reject(new Error(`execution timed out (${timeoutMs / 1000}s)`));
           }
         }, timeoutMs);
 
@@ -865,7 +865,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         { id: workflowId, version },
       );
       if (!histResp) {
-        throw new Error(`版本 ${version} 不存在`);
+        throw new Error(`version ${version} not found`);
       }
 
       // 用历史版本的 nodes/edges 覆盖当前模板

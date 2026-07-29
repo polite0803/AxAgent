@@ -3679,6 +3679,7 @@
     "maxConcurrent": "最大並發",
     "timeoutSec": "超時（秒）",
     "dynamicUI": "動態頁面",
+    "learningGraph": "學習圖",
     "devtools": {
       "traceExplorer": "追蹤瀏覽器",
       "benchmark": "基準測試",
@@ -6171,6 +6172,10 @@
     "sectionInfrastructure": "基礎設施",
     "sectionOverview": "概覽",
     "sectionTools": "工具",
+    "sectionWorkspace": "工作區",
+    "sectionCreation": "創作",
+    "sectionKnowledge": "知識",
+    "sectionDevelopment": "開發",
     "agentPanel": "代理面板",
     "sectionWork": "工作",
     "sectionInvest": "投資",

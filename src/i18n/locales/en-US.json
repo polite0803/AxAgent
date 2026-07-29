@@ -3679,6 +3679,7 @@
     "maxConcurrent": "Max Concurrency",
     "timeoutSec": "Timeout (seconds)",
     "dynamicUI": "Dynamic Pages",
+    "learningGraph": "Learning Graph",
     "devtools": {
       "traceExplorer": "Trace Explorer",
       "benchmark": "Benchmark",
@@ -6171,6 +6172,10 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionOverview": "Overview",
     "sectionTools": "Tools",
+    "sectionWorkspace": "Workspace",
+    "sectionCreation": "Creation",
+    "sectionKnowledge": "Knowledge",
+    "sectionDevelopment": "Development",
     "agentPanel": "Agent Panel",
     "sectionWork": "Work",
     "sectionPlugins": "Plugins",

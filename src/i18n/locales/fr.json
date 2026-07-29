@@ -4025,6 +4025,7 @@
     "maxConcurrent": "Concurrence maximale",
     "timeoutSec": "Délai d'attente (secondes)",
     "dynamicUI": "Pages dynamiques",
+    "learningGraph": "Graphe d'apprentissage",
     "devtools": {
       "traceExplorer": "Explorateur de traces",
       "benchmark": "Benchmark",
@@ -6517,6 +6518,10 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionOverview": "Aperçu",
     "sectionTools": "Outils",
+    "sectionWorkspace": "Espace de travail",
+    "sectionCreation": "Création",
+    "sectionKnowledge": "Connaissance",
+    "sectionDevelopment": "Développement",
     "agentPanel": "Panneau d'agent",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "Espace de travail",

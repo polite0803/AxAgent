@@ -4025,6 +4025,7 @@
     "maxConcurrent": "Max. Nebenläufigkeit",
     "timeoutSec": "Zeitüberschreitung (Sekunden)",
     "dynamicUI": "Dynamische Seiten",
+    "learningGraph": "Lerngraph",
     "devtools": {
       "traceExplorer": "Trace-Explorer",
       "benchmark": "Benchmark",
@@ -6517,6 +6518,10 @@
     "sectionInfrastructure": "Infrastruktur",
     "sectionOverview": "Übersicht",
     "sectionTools": "Werkzeuge",
+    "sectionWorkspace": "Arbeitsbereich",
+    "sectionCreation": "Erstellung",
+    "sectionKnowledge": "Wissen",
+    "sectionDevelopment": "Entwicklung",
     "agentPanel": "Agent-Panel",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "Arbeitsbereich",

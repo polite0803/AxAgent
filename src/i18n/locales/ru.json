@@ -4025,6 +4025,7 @@
     "maxConcurrent": "Макс. параллельность",
     "timeoutSec": "Тайм-аут (сек)",
     "dynamicUI": "Динамические страницы",
+    "learningGraph": "Граф обучения",
     "devtools": {
       "traceExplorer": "Обозреватель трассировки",
       "benchmark": "Бенчмарк",
@@ -6517,6 +6518,10 @@
     "sectionInfrastructure": "Инфраструктура",
     "sectionOverview": "Обзор",
     "sectionTools": "Инструменты",
+    "sectionWorkspace": "Рабочая область",
+    "sectionCreation": "Создание",
+    "sectionKnowledge": "Знания",
+    "sectionDevelopment": "Разработка",
     "agentPanel": "Панель агента",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "Рабочая область",

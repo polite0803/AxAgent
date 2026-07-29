@@ -4025,6 +4025,7 @@
     "maxConcurrent": "最大並行",
     "timeoutSec": "タイムアウト（秒）",
     "dynamicUI": "ダイナミックページ",
+    "learningGraph": "学習グラフ",
     "devtools": {
       "traceExplorer": "トレースエクスプローラー",
       "benchmark": "ベンチマーク",
@@ -6517,6 +6518,10 @@
     "sectionInfrastructure": "インフラ",
     "sectionOverview": "概要",
     "sectionTools": "ツール",
+    "sectionWorkspace": "ワークスペース",
+    "sectionCreation": "作成",
+    "sectionKnowledge": "知識",
+    "sectionDevelopment": "開発",
     "agentPanel": "エージェントパネル",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "ワークスペース",

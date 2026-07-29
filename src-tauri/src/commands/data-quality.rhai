@@ -26,7 +26,8 @@
 // P1-B3 升级（2026-07-24）:
 //   - 算法化 report_quality_score（60% 程序化，基于报告字数+关键词覆盖+占位符检测）
 //   - 算法化 tool_credibility_score（基于已有 avg_conf + gap_count + good_count）
-//   - 综合 score = report_quality_avg × 0.6 + tool_credibility × 0.4（按设计文档公式）
+//   - 综合 score = report_quality × 0.45 + tool_credibility × 0.35 + factor_completeness × 0.20
+//     （V42 调整: 加入因子完整度维度，权重重新分配为 45/35/20）
 //   - t-scoring/t-valuation/t-risk 的 credibility 字段待 P3 接入后再升级 tool_credibility
 
 // ── 辅助函数（供因子完整度评估使用）──

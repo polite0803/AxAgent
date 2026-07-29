@@ -82,13 +82,6 @@ const builtinNavItems: NavItem[] = [
     isPlugin: false,
   },
   {
-    key: "gateway",
-    icon: <Icon icon="fluent:globe-20-filled" size={17} />,
-    labelKey: "nav.gateway",
-    path: BUILTIN_PAGE_PATH.gateway,
-    isPlugin: false,
-  },
-  {
     key: "terminal",
     icon: <Icon icon="fluent:prompt-20-filled" size={17} />,
     labelKey: "nav.terminal",
@@ -227,7 +220,7 @@ interface SidebarSection {
 }
 
 const NAV_SHORTCUT_MAP: Partial<Record<string, ShortcutAction>> = {
-  gateway: "toggleGateway",
+  // 网关已迁入设置页，侧栏不再保留快捷键映射
 };
 
 /**
@@ -453,25 +446,32 @@ export function Sidebar() {
   const sections = useMemo<SidebarSection[]>(() => {
     const sections: SidebarSection[] = [];
 
+    // 工作区：核心交互入口（对话 + 仪表盘）
     sections.push({
-      key: "overview",
-      labelKey: "sidebar.sectionOverview",
+      key: "workspace",
+      labelKey: "sidebar.sectionWorkspace",
       items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "dashboard"),
     });
 
+    // 创作：工作流编排与市场
     sections.push({
-      key: "tools",
-      labelKey: "sidebar.sectionTools",
+      key: "creation",
+      labelKey: "sidebar.sectionCreation",
+      items: builtinNavItems.filter((n) => n.key === "workflow" || n.key === "marketplace"),
+    });
+
+    // 知识：知识源（含记忆与学习图入口）
+    sections.push({
+      key: "knowledge",
+      labelKey: "sidebar.sectionKnowledge",
       items: builtinNavItems.filter((n) => n.key === "knowledge"),
     });
 
+    // 开发：终端与文件
     sections.push({
-      key: "infrastructure",
-      labelKey: "sidebar.sectionInfrastructure",
-      items: builtinNavItems.filter((n) =>
-        n.key === "gateway" || n.key === "terminal" || n.key === "files" || n.key === "workflow"
-        || n.key === "marketplace" || n.key === "dynamic-ui"
-      ),
+      key: "development",
+      labelKey: "sidebar.sectionDevelopment",
+      items: builtinNavItems.filter((n) => n.key === "terminal" || n.key === "files"),
     });
 
     sections.push({

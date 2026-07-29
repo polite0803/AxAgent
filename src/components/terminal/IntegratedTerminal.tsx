@@ -140,7 +140,7 @@ export function IntegratedTerminal({
         }
       });
     } catch (e) {
-      logIpcError("初始化 xterm")(e);
+      logIpcError("initialize xterm")(e);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -174,7 +174,7 @@ export function IntegratedTerminal({
           }
         });
       } catch (e) {
-        logIpcError("监听 pty_output")(e);
+        logIpcError("listen pty_output")(e);
       }
 
       try {
@@ -192,7 +192,7 @@ export function IntegratedTerminal({
           }));
         });
       } catch (e) {
-        logIpcError("监听 pty_exit")(e);
+        logIpcError("listen pty_exit")(e);
       }
     })();
 
@@ -217,7 +217,7 @@ export function IntegratedTerminal({
           useTerminalStore
             .getState()
             .removeSession(s.id)
-            .catch((e) => logIpcError(`清理 PTY 会话 ${s.id}`)(e));
+            .catch((e) => logIpcError(`cleanup PTY session ${s.id}`)(e));
         }
       }
     };
@@ -276,7 +276,7 @@ export function IntegratedTerminal({
         cwd: defaultCwd,
       });
     } catch (e) {
-      logIpcError("创建终端会话")(e);
+      logIpcError("create terminal session")(e);
     }
   };
 
@@ -301,7 +301,7 @@ export function IntegratedTerminal({
     try {
       await analyzeOutput(activeSessionId);
     } catch (e) {
-      logIpcError("分析终端输出")(e);
+      logIpcError("analyze terminal output")(e);
     }
   };
 

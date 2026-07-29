@@ -202,7 +202,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
       const { onMount } = getLifecycleHandlers(schema.events);
       if (onMount.length > 0) {
         void executeActions(onMount, { context: mergedContextRef.current, onAction, scope, navigate })
-          .catch((err) => console.error("[DynamicUIRenderer] onMount 生命周期动作执行失败", err));
+          .catch((err) => console.error("[DynamicUIRenderer] onMount lifecycle action failed", err));
       }
     }
     return () => {
@@ -210,7 +210,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
         const { onUnmount } = getLifecycleHandlers(schema.events);
         if (onUnmount.length > 0) {
           void executeActions(onUnmount, { context: mergedContextRef.current, onAction, scope, navigate })
-            .catch((err) => console.error("[DynamicUIRenderer] onUnmount 生命周期动作执行失败", err));
+            .catch((err) => console.error("[DynamicUIRenderer] onUnmount lifecycle action failed", err));
         }
       }
     };

@@ -112,10 +112,10 @@ fn start_pty_event_forwarder(app: &tauri::AppHandle, state: &AppState) {
 ///
 /// rt-workflow（hybrid 层）不能依赖 AxInvest 专属 crate `axagent-stock-analysis`，
 /// 但主 crate（wiring 层）可以同时依赖两者。此函数在应用启动时调用
-/// `register_shared_engine_initializer`，把 6 个 pm_* 函数注入到
+/// `register_shared_engine_initializer`，把 pm_* 函数注入到
 /// `code_executor::shared_rhai_engine()` 的初始化流程中。
 ///
-/// 注册的函数（与 `stock_workflow/decision.rs` Rerun Decision 路径保持一致）：
+/// 注册的函数（与 `stock_workflow/decision.rs` Rerun Decision 路径保持对称）：
 /// - `pm_evidence_scale`: 非线性证据缩放（sqrt 曲线）
 /// - `pm_kelly_position`: 凯利仓位计算（半凯利 + 成本扣减 + 风险上限）
 /// - `pm_classify_risk`: 基于量化指标的算法风险分类
@@ -125,6 +125,8 @@ fn start_pty_event_forwarder(app: &tauri::AppHandle, state: &AppState) {
 /// - `pm_portfolio_risk_gate`: 组合风控门（P1-E13）
 /// - `pm_compute_news_sentiment`: 统一新闻情感分（P2-B4，[-1.0, 1.0]）
 /// - `pm_compute_text_sentiment`: 单文本情感分（P2-B4，[-1.0, 1.0]）
+/// - `pm_compute_bayes_confidence`: 贝叶斯因子置信度（P0，基于 prior→posterior 证据强度）
+/// - `pm_compute_factor_completeness`: 因子数据完整度（供 data-quality.rhai 使用）
 ///
 /// 必须在 `shared_rhai_engine()` 首次调用前注册（即任何工作流执行前）。
 /// 后续注册不会生效（`OnceLock::set` 在已初始化后返回 Err，仅记 warn）。
@@ -208,6 +210,13 @@ fn register_portfolio_mgr_rhai_functions() {
         // P2-B4: 单文本版本(只传标题或合并后的文本)
         engine.register_fn("pm_compute_text_sentiment", |text: &str| -> f64 {
             axagent_astock_data::sentiment::compute_text_sentiment(text).unwrap_or(0.0)
+        });
+        // P0: 贝叶斯因子置信度（基于 prior→posterior 的证据强度）
+        // 必须与 decision.rs 本地 Engine 注册保持对称，否则 DAG 工作流执行
+        // portfolio-mgr.rhai 第 996 行调用会触发 "Function not found" 错误，
+        // 整个 portfolio-mgr 被 catch 块降级为保守决策。
+        engine.register_fn("pm_compute_bayes_confidence", |prior: f64, posterior: f64| -> f64 {
+            portfolio_formula::compute_bayes_confidence(prior, posterior)
         });
         // 因子数据完整度：供 data-quality.rhai 评估因子层数据完整度
         engine.register_fn(

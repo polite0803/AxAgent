@@ -4025,6 +4025,7 @@
     "maxConcurrent": "الحد الأقصى للتزامن",
     "timeoutSec": "المهلة (ثواني)",
     "dynamicUI": "صفحات ديناميكية",
+    "learningGraph": "رسم التعلم",
     "devtools": {
       "traceExplorer": "مستكشف التتبع",
       "benchmark": "قياس الأداء",
@@ -6517,6 +6518,10 @@
     "sectionInfrastructure": "البنية التحتية",
     "sectionOverview": "نظرة عامة",
     "sectionTools": "الأدوات",
+    "sectionWorkspace": "مساحة العمل",
+    "sectionCreation": "إنشاء",
+    "sectionKnowledge": "المعرفة",
+    "sectionDevelopment": "تطوير",
     "agentPanel": "لوحة الوكيل",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "مساحة العمل",

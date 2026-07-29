@@ -243,13 +243,21 @@ let f3_signal = if f3_weight > 0.0 {
     // V40 修复: 用 contains 而非精确 switch 匹配，保证与 prompt 字段值对齐
     // prompt 输出格式: "L3估值体系级" / "L2业绩拐点级" / "L1普通消息"
     //                   "L-3退市/造假级" / "L-2业绩暴雷级" / "L-1普通利空"
-    let llm_signal = if catalyst_level.contains("L-3") || catalyst_level.contains("退市") || catalyst_level.contains("造假") { -0.8 }
-    else if catalyst_level.contains("L-2") || catalyst_level.contains("业绩暴雷") { -0.5 }
-    else if catalyst_level.contains("L-1") || catalyst_level.contains("普通利空") { -0.2 }
-    else if catalyst_level.contains("L3") || catalyst_level.contains("估值体系级") { 0.8 }
-    else if catalyst_level.contains("L2") || catalyst_level.contains("业绩拐点级") { 0.5 }
-    else if catalyst_level.contains("L1") || catalyst_level.contains("普通消息") { 0.2 }
-    else { 0.0 };
+    // V67 修复(2026-07-29): 用 f3_has_catalyst 守卫 catalyst_level 访问。
+    //   原问题: 当 f3_has_catalyst=false（catalyst_level 为 unit/空/"无"）但
+    //   f3_has_announcement_signal=true 时, f3_weight = f3_default * 0.5 > 0,
+    //   进入本块后 catalyst_level.contains() 在 unit 上调用会抛 "Method not found",
+    //   触发 catch 块导致整个 portfolio-mgr 降级为保守决策。
+    //   修复: llm_signal 只在 f3_has_catalyst=true 时计算,否则为 0.0。
+    let llm_signal = if f3_has_catalyst {
+        if catalyst_level.contains("L-3") || catalyst_level.contains("退市") || catalyst_level.contains("造假") { -0.8 }
+        else if catalyst_level.contains("L-2") || catalyst_level.contains("业绩暴雷") { -0.5 }
+        else if catalyst_level.contains("L-1") || catalyst_level.contains("普通利空") { -0.2 }
+        else if catalyst_level.contains("L3") || catalyst_level.contains("估值体系级") { 0.8 }
+        else if catalyst_level.contains("L2") || catalyst_level.contains("业绩拐点级") { 0.5 }
+        else if catalyst_level.contains("L1") || catalyst_level.contains("普通消息") { 0.2 }
+        else { 0.0 }
+    } else { 0.0 };
     // P2 修复: 叠加公告关键词风险信号，让公告标题层面的风险/利好修正催化剂强度
     // 公告信号权重 0.3，催化剂 LLM 信号权重 0.7，二者加权
     // 例: LLM=0.5(L2利好) + 公告=-0.15(有风险提示) → 加权=0.5*0.7+(-0.15)*0.3=0.305
@@ -1084,7 +1092,14 @@ let weights_collapsed = !dqi_a_level && (
 	}
 	// C2.1: 三级降级 decision_trail（原 696-713 行前向引用为死代码，移至此处方能生效）
 	if weights_collapsed {
-	    let collapse_reason = if dqi_collapsed && !((total_weight / max_weight) < 0.3) && untrusted_count < 2 {
+	    // V68 修复(2026-07-29): 用 weight_collapse_threshold 替代硬编码 0.3，
+	    //   保持与上方 weights_collapsed 判定逻辑一致。
+	    //   原问题: B 级数据 threshold=0.15，但此处硬编码 0.3 导致 dqi_collapsed 分支
+	    //   条件错位——B 级数据 total_weight/max_weight=0.2 时,
+	    //     weights_collapsed 判定为 true（0.2 < 0.15 ❌ 实际 false, 但若 < 0.15 则 true）
+	    //     此处 !(0.2 < 0.3) = false → 走 else 分支「因子权重坍缩」措辞
+	    //   对 B 级数据应使用 0.15 阈值,否则 collapse_reason 文案与实际触发条件不匹配。
+	    let collapse_reason = if dqi_collapsed && !((total_weight / max_weight) < weight_collapse_threshold) && untrusted_count < 2 {
 	        `数据质量F级(dqi_score=${(dqi_score*10.0).round()/10.0}<25), 10个分析师基本全缺失, 0%仓位+置信度×0.5`
 	    } else {
 	        `因子权重坍缩(${(total_weight*100.0).to_int()}%)或不可信上游≥2,0%仓位+置信度×0.5`

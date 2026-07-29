@@ -4025,6 +4025,7 @@
     "maxConcurrent": "최대 동시성",
     "timeoutSec": "시간 초과 (초)",
     "dynamicUI": "동적 페이지",
+    "learningGraph": "학습 그래프",
     "devtools": {
       "traceExplorer": "트레이스 탐색기",
       "benchmark": "벤치마크",
@@ -6517,6 +6518,10 @@
     "sectionInfrastructure": "인프라",
     "sectionOverview": "개요",
     "sectionTools": "도구",
+    "sectionWorkspace": "워크스페이스",
+    "sectionCreation": "창작",
+    "sectionKnowledge": "지식",
+    "sectionDevelopment": "개발",
     "agentPanel": "에이전트 패널",
     "sectionInvestDiscover": "Discover",
     "sectionInvestWorkspace": "워크스페이스",

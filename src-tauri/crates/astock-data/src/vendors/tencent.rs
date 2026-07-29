@@ -69,7 +69,7 @@ fn parse_quote(raw: &str) -> Result<StockQuote, DataError> {
     // 腾讯对不存在的股票/停牌股可能返回简版错误（如 "CODE~FAIL~" 或空引号，仅 1-4 字段）
     if fields.len() < 50 {
         if fields.len() < 5 {
-            let code = fields.get(2).or_else(|| fields.get(0)).copied().unwrap_or("unknown");
+            let code = fields.get(2).or_else(|| fields.first()).copied().unwrap_or("unknown");
             return Err(DataError::NotFound(code.to_string()));
         }
         return Err(DataError::ParseError(format!("expected >=50 fields, got {}", fields.len())));

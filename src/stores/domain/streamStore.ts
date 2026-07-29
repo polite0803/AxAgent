@@ -935,7 +935,7 @@ continuing: {},
         },
       }));
     } catch (e) {
-      logIpcError("continuationStore: 加载可续写消息失败")(e);
+      logIpcError("continuationStore: loading continuable messages failed")(e);
     }
   },
 
@@ -953,7 +953,7 @@ continuing: {},
         await convRef.regenerateMessage(messageId);
       }
     } catch (e) {
-      logIpcError("continuationStore: 续写失败")(e);
+      logIpcError("continuationStore: continue failed")(e);
     } finally {
       set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
     }
@@ -1151,7 +1151,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
         },
       }));
     } catch (e) {
-      logIpcError("continuationStore: 加载可续写消息失败")(e);
+      logIpcError("continuationStore: loading continuable messages failed")(e);
     }
   },
 
@@ -1169,7 +1169,7 @@ export const useStreamStore = create<StreamState>((set, get) => ({
         await convRef.regenerateMessage(messageId);
       }
     } catch (e) {
-      logIpcError("continuationStore: 续写失败")(e);
+      logIpcError("continuationStore: continue failed")(e);
     } finally {
       set((s) => ({ continuing: { ...s.continuing, [messageId]: false } }));
     }
