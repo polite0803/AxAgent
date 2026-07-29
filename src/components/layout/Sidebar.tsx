@@ -416,10 +416,12 @@ export function Sidebar() {
     const sections: SidebarSection[] = [];
 
     // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源 Tab）
+    // 仅保留 chat（核心枢纽）与 dynamic-ui（应用中心入口），
+    // 其余项各自归入下方 creation/knowledge/development/invest-* 分组，避免重复
     sections.push({
       key: "workspace",
       labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems,
+      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "dynamic-ui"),
     });
 
     // 创作：工作流编排与市场
