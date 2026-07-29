@@ -45,8 +45,11 @@ export function FineTunePage() {
   ];
 
   return (
-    <div className="dev-page">
-      <h2 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 600 }}>
+    <div
+      className="dev-page"
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
+    >
+      <h2 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 600, flexShrink: 0 }}>
         {t("fineTune.title")}
       </h2>
       {stats && (
@@ -59,6 +62,7 @@ export function FineTunePage() {
             borderRadius: 8,
             background: "var(--color-bg-tertiary)",
             fontSize: 13,
+            flexShrink: 0,
           }}
         >
           <span>
@@ -75,7 +79,7 @@ export function FineTunePage() {
           </span>
         </div>
       )}
-      <Tabs items={tabItems} />
+      <Tabs items={tabItems} className="ax-fill-tabs" />
     </div>
   );
 }

@@ -30,7 +30,7 @@ export function TraceExplorer() {
         <TraceFilters />
         <TraceList />
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {isLoading
           ? (
             <div className="flex items-center justify-center h-full">
@@ -41,8 +41,8 @@ export function TraceExplorer() {
           ? (
             <Tabs
               defaultActiveKey="detail"
-              tabBarStyle={{ paddingLeft: 16, paddingTop: 4 }}
-              style={{ height: "100%" }}
+              className="ax-fill-tabs"
+              tabBarStyle={{ paddingLeft: 16, paddingTop: 4, flexShrink: 0, marginBottom: 0 }}
               items={[
                 {
                   key: "detail",
@@ -53,7 +53,7 @@ export function TraceExplorer() {
                   key: "timeline",
                   label: t("traceExplorer.tab.timeline"),
                   children: (
-                    <div style={{ padding: 16 }}>
+                    <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
                       <TraceTimeline traceId={selectedTrace.trace.trace_id} />
                     </div>
                   ),
@@ -62,7 +62,7 @@ export function TraceExplorer() {
                   key: "bottleneck",
                   label: t("traceExplorer.tab.bottleneck"),
                   children: (
-                    <div style={{ padding: 16 }}>
+                    <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
                       <BottleneckAnalyzer traceId={selectedTrace.trace.trace_id} />
                     </div>
                   ),
@@ -71,7 +71,7 @@ export function TraceExplorer() {
                   key: "suggestions",
                   label: t("traceExplorer.tab.suggestions"),
                   children: (
-                    <div style={{ padding: 16 }}>
+                    <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
                       <ImprovementSuggestion traceId={selectedTrace.trace.trace_id} />
                     </div>
                   ),
@@ -80,7 +80,7 @@ export function TraceExplorer() {
                   key: "feedback",
                   label: t("traceExplorer.tab.feedback"),
                   children: (
-                    <div style={{ padding: 16 }}>
+                    <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
                       <FeedbackCollector traceId={selectedTrace.trace.trace_id} />
                     </div>
                   ),

@@ -1198,14 +1198,11 @@ export function SkillsPage() {
         style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}
       >
         <Tabs
-          className="skills-page-tabs"
+          className="ax-fill-tabs"
           defaultActiveKey="my"
           onChange={handleTabChange}
           style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0,
+            padding: "0 12px",
           }}
           tabBarStyle={{ padding: "0 16px", flexShrink: 0 }}
           items={[
@@ -1266,23 +1263,6 @@ export function SkillsPage() {
 
         <style>
           {`
-          .skills-page-tabs > .ant-tabs-content-holder {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            padding: 0 12px;
-          }
-          .skills-page-tabs > .ant-tabs-content-holder > .ant-tabs-content {
-            flex: 1;
-            min-height: 0;
-          }
-          .skills-page-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-          }
           .skill-card-hover {
             transition: border-color 0.2s;
           }

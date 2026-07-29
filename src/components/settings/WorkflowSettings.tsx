@@ -73,13 +73,9 @@ export function WorkflowSettings({
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Tabs
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-        }}
-        tabBarStyle={{ padding: "0 24px", marginBottom: 0, flexShrink: 0 }}
+        className="ax-fill-tabs"
+        style={{ padding: "0 16px" }}
+        tabBarStyle={{ flexShrink: 0, marginBottom: 0 }}
         items={[
           {
             key: "my-workflows",
