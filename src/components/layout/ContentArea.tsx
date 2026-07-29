@@ -6,9 +6,9 @@ import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageContextProvider } from "@/components/shared/PageContextProvider";
 import { useIpcHealth } from "@/hooks/useIpcHealth";
 import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "@/lib/pageRegistry";
-import { useWorkspaceTabStore } from "@/stores";
+
 import { Button, Result, Spin } from "antd";
-import { lazy, memo, Suspense, useEffect } from "react";
+import { lazy, memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
@@ -109,17 +109,11 @@ function NotFoundRoute() {
 }
 
 /**
- * 将旧路由（/dashboard, /workflow, /terminal, /knowledge）重定向到 /chat，
- * 并设置对应的工作台功能 Tab。
+ * 旧路由重定向到 /chat，通过 location.state.tab 传递目标功能 Tab。
+ * WorkspaceHub 读取 state 并切换 Tab。
  */
-function RedirectAndSetTab({ tab }: { tab: "dashboard" | "workflow" | "terminal" | "knowledge" }) {
-  const setActiveTab = useWorkspaceTabStore((s) => s.setActiveTab);
-  const navigate = useNavigate();
-  useEffect(() => {
-    setActiveTab(tab);
-    navigate(BUILTIN_PAGE_PATH.chat, { replace: true });
-  }, [tab, setActiveTab, navigate]);
-  return null;
+function redirectToChat(tab: string) {
+  return <Navigate to={BUILTIN_PAGE_PATH.chat} replace state={{ tab }} />;
 }
 
 export const ContentArea = memo(function ContentArea() {
@@ -141,13 +135,13 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* 以下路由重定向到 /chat 并设置对应功能 Tab */}
-          <Route path={BUILTIN_PAGE_PATH.dashboard} element={<RedirectAndSetTab tab="dashboard" />} />
-          <Route path={BUILTIN_PAGE_PATH.workflow} element={<RedirectAndSetTab tab="workflow" />} />
-          <Route path={BUILTIN_PAGE_PATH.terminal} element={<RedirectAndSetTab tab="terminal" />} />
-          <Route path={BUILTIN_PAGE_PATH.knowledge} element={<RedirectAndSetTab tab="knowledge" />} />
-          <Route path={BUILTIN_PAGE_PATH.marketplace} element={<RedirectAndSetTab tab="workflow" />} />
-          <Route path={BUILTIN_PAGE_PATH.files} element={<RedirectAndSetTab tab="terminal" />} />
+          {/* 以下路由重定向到 /chat 并通过 state.tab 设置功能 Tab */}
+          <Route path={BUILTIN_PAGE_PATH.dashboard} element={redirectToChat("dashboard")} />
+          <Route path={BUILTIN_PAGE_PATH.workflow} element={redirectToChat("workflow")} />
+          <Route path={BUILTIN_PAGE_PATH.terminal} element={redirectToChat("terminal")} />
+          <Route path={BUILTIN_PAGE_PATH.knowledge} element={redirectToChat("knowledge")} />
+          <Route path={BUILTIN_PAGE_PATH.marketplace} element={redirectToChat("workflow")} />
+          <Route path={BUILTIN_PAGE_PATH.files} element={redirectToChat("terminal")} />
           {/* 记忆页保留独立路由（无侧栏入口，通过知识源内 Memory Tab 访问） */}
           <Route
             path={BUILTIN_PAGE_PATH.memory}
@@ -190,7 +184,7 @@ export const ContentArea = memo(function ContentArea() {
           {/* 知识库子路由（/llm-wiki 与 /knowledge 共用 KnowledgeHubPage，保留 wiki 上下文） */}
           <Route
             path={BUILTIN_PAGE_PATH.llmWiki}
-            element={<RedirectAndSetTab tab="knowledge" />}
+            element={redirectToChat("knowledge")}
           />
           <Route
             path={`${BUILTIN_PAGE_PATH.llmWiki}/:wikiId/graph`}
