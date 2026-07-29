@@ -15,13 +15,13 @@ import { useSkillStore, useUIStore } from "@/stores";
 import type { MarketplaceSkill, Skill } from "@/types";
 import { Claude } from "@lobehub/icons";
 import {
+  App,
   Button,
   Card,
   Collapse,
   Dropdown,
   Empty,
   Input,
-  message,
   Modal,
   Popconfirm,
   Select,
@@ -433,7 +433,7 @@ export function SkillsPage() {
   const { token } = theme.useToken();
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   const isSmall = deviceLayout === "mobile" || deviceLayout === "tablet";
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = App.useApp();
   const {
     skills,
     marketplaceSkills,
@@ -1193,7 +1193,6 @@ export function SkillsPage() {
 
   return (
     <>
-      {contextHolder}
       <div
         className="h-full flex flex-col"
         style={{ overflow: "hidden", backgroundColor: token.colorBgElevated }}
