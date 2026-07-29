@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "إجراء",
+    "addSampleFailed": "فشل إضافة العينة",
     "cancel": "إلغاء",
     "createNew": "إنشاء مجموعة بيانات جديدة",
     "created": "تم الإنشاء",
     "createdSuccess": "Dataset created",
+    "deleteFailed": "فشل حذف مجموعة البيانات",
     "deletedSuccess": "تم حذف مجموعة البيانات",
     "description": "الوصف",
     "name": "الاسم",
@@ -1787,6 +1789,7 @@
     "unknownFile": "ملف غير معروف",
     "unregisteredComponent": "مكون غير مسجل: {{type}}",
     "unsupportedChartType": "نوع الرسم البياني غير مدعوم: {{type}}",
+    "persistFailed": "فشل في حفظ بيانات النموذج، يرجى التحقق من خدمة الواجهة الخلفية",
     "schemaNotFound": "الصفحة الديناميكية غير موجودة",
     "uiSchemaJson": "JSON مخطط واجهة المستخدم"
   },
@@ -1868,6 +1871,9 @@
     "export": "تصدير",
     "exportAll": "تصدير الكل",
     "exportSuccess": "تم التصدير بنجاح",
+    "fieldChildren": "العناصر الفرعية ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "الخصائص",
     "keyPlaceholder": "مفتاح",
     "valuePlaceholder": "قيمة"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "خطأ في تحليل JSON، لا يمكن التحقق",
     "pass": "نجاح",
     "reset": "إعادة تعيين",
+    "sampleCardTitle": "بطاقة نموذجية",
+    "sampleText": "Hello World! هذا مثال على واجهة ديناميكية.",
     "schemaAllValid": "تم التحقق من المخطط، جميع الحقول صالحة",
     "schemaValidation": "التحقق من المخطط",
+    "title": "معاينة واجهة ديناميكية",
     "waitingForJson": "في انتظار JSON صالح..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "نسخ احتياطية",
     "batchDelete": "حذف ({{count}})",
     "batchDeleteConfirm": "هل تريد حذف {{count}} عنصر محدد؟",
+    "batchDeletePartial": "تم حذف {{ok}}، فشل {{fail}}",
     "batchDeleteSuccess": "تم حذف {{count}} عنصر",
     "columnActions": "الإجراءات",
     "columnCreatedAt": "تاريخ الإنشاء",
@@ -2370,6 +2380,8 @@
     "previewDirType": "مجلد",
     "previewEmpty": "اختر ملفًا للمعاينة",
     "previewFailed": "تعذر تحميل المعاينة",
+    "previewImageFailed": "فشل تحميل الصورة",
+    "previewLoading": "جارٍ التحميل…",
     "previewModified": "تاريخ التعديل",
     "previewPath": "المسار",
     "previewSize": "الحجم",
@@ -2378,6 +2390,8 @@
     "previewUnknownType": "غير معروف",
     "renameSuccess": "تمت إعادة التسمية",
     "renameTitle": "إعادة تسمية",
+    "rootLoadFailed": "فشل تحميل الدليل",
+    "unknownCategory": "فئة ملف غير معروفة: {{cat}}",
     "treeEmpty": "دليل فارغ"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "المسار",
     "colStatus": "الحالة",
     "colTime": "الوقت",
+    "colToken": "Token",
     "errorCount": "عدد الأخطاء",
     "loadMetricsFailed": "فشل تحميل مقاييس البوابة: {{error}}",
+    "logsCleared": "تم مسح السجلات",
     "noRequestLogs": "لا توجد سجلات طلبات",
     "refresh": "تحديث",
     "requestLogs": "سجلات الطلبات",
     "title": "مراقب البوابة",
+    "todayRequests": "طلبات اليوم",
+    "todayTokens": "Token اليوم",
+    "totalCost": "التكلفة الإجمالية (USD)",
     "totalRequests": "إجمالي الطلبات",
     "totalTokens": "إجمالي الرموز",
     "uptime": "وقت التشغيل"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "الكل",
+    "categories": {
+      "concept": "مفهوم",
+      "context": "سياق",
+      "fact": "حقيقة",
+      "improvement": "تحسين",
+      "pattern": "نمط",
+      "preference": "تفضيل",
+      "project": "مشروع",
+      "warning": "تحذير"
+    },
+    "categoryMatch": "تطابق الفئة",
+    "derived": "مشتق",
     "detail": "تفاصيل",
     "edges": "الحواف",
     "entities": "الكيانات",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "ذات صلة",
     "memories": "الذكريات",
     "refresh": "تحديث",
+    "related": "مرتبط",
     "searchPlaceholder": "ابحث في العقد...",
     "skills": "مهارات",
+    "stateActive": "نشط",
+    "stateArchived": "مؤرشف",
+    "stateSkipped": "تم تخطيه",
     "title": "الرسم البياني للتعلم",
     "useCount": "عدد الاستخدامات: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "المهارات المتزامنة",
     "tokenLimitPerMinute": "حد الرموز في الدقيقة",
     "typeCustom": "مخصص",
+    "toggleFailed": "فشل التبديل",
+    "createConversationFailed": "فشل إنشاء المحادثة: {{error}}",
     "unlimited": "غير محدود",
     "updateSettingsFailed": "فشل تحديث الإعدادات",
     "weighted": "مرجح"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "تعلم",
       "categorySafety": "الأمان",
       "config": "التكوين",
+      "empty": "لا توجد محركات تطور",
       "engineCount": "قيد التشغيل",
       "engineNotFound": "المحرك غير موجود",
       "engineNotFoundDesc": "المحرك \"{{name}}\" غير موجود",
@@ -4865,6 +4903,8 @@
       "oldVersion": "قديم (الإصدار {{version}})",
       "rollback": "تراجع",
       "rollbackConfirmMessage": "هل أنت متأكد من رغبتك في التراجع إلى الإصدار {{version}}؟ سيؤدي هذا إلى تجاهل جميع تغييرات التطور بعد ذلك الإصدار.",
+      "rollbackFailed": "فشل التراجع: {{error}}",
+      "rollbackSuccess": "تم التراجع إلى v{{version}} بنجاح",
       "totalEvolutions": "إجمالي التطورات",
       "viewDiff": "عرض الفرق"
     },
@@ -4878,6 +4918,10 @@
     "installed": "مثبت",
     "loadFailed": "فشل تحميل \"{{name}}\"",
     "loading": "جار تحميل المكون...",
+    "markdown": {
+      "loadFailed": "فشل تحميل محتوى Markdown",
+      "parseError": "خطأ في التحليل"
+    },
     "marketplace": "سوق المهارات",
     "name": "الاسم",
     "namePlaceholder": "أدخل الاسم...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "إجراء",
     "baseModel": "النموذج الأساسي",
+    "cancelFailed": "فشل إلغاء مهمة التدريب",
+    "cancelSuccess": "تم إلغاء مهمة التدريب",
     "completed": "مكتمل",
     "datasetId": "معرّف مجموعة البيانات",
+    "deleteFailed": "فشل حذف مهمة التدريب",
+    "deleteSuccess": "تم حذف مهمة التدريب",
     "failed": "فشل",
     "id": "المعرف",
     "loraOutput": "مخرج LoRA",
@@ -5377,6 +5425,8 @@
     "progress": "التقدم",
     "ready": "جاهز",
     "running": "قيد التشغيل",
+    "startFailed": "فشل بدء مهمة التدريب",
+    "startSuccess": "تم بدء مهمة التدريب",
     "status": "الحالة",
     "title": "مهام التدريب",
     "totalJobs": "إجمالي المهام"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "منطقة الأبناء",
+      "childCount": "الأبناء",
+      "dropHere": "أسقط هنا",
       "dropHint": "يدعم الحاويات والنماذج وعرض البيانات والمزيد",
       "dropPrompt": "أسقط المكونات هنا",
-      "emptyHint": "اللوحة فارغة. اسحب المكونات من اللوحة اليسرى لبناء واجهة المستخدم الخاصة بك"
+      "emptyHint": "اللوحة فارغة. اسحب المكونات من اللوحة اليسرى لبناء واجهة المستخدم الخاصة بك",
+      "leafNode": "عقدة طرفية (بدون أبناء)",
+      "livePreview": "معاينة مباشرة",
+      "previewEmpty": "لا يوجد محتوى، اخرج من وضع المعاينة للتحرير",
+      "rootHint": "عقد جذرية"
+    },
+    "categories": {
+      "container": "تخطيط الحاوية",
+      "data-display": "عرض البيانات",
+      "form": "نموذج",
+      "media": "وسائط",
+      "misc": "أخرى"
     },
     "components": {
       "Accordion": "الأكورديون",
@@ -5430,32 +5494,238 @@
       "Timeline": "الخط الزمني",
       "Tree": "شجرة"
     },
+    "error": {
+      "reset": "إعادة تعيين",
+      "title": "خطأ في المحرر"
+    },
+    "exitFullscreen": "إنهاء ملء الشاشة",
+    "fullscreen": "ملء الشاشة",
+    "outline": {
+      "delete": "حذف",
+      "duplicate": "تكرار",
+      "title": "المخطط"
+    },
     "palette": {
       "title": "المكونات"
     },
+    "preview": {
+      "actionTriggered": "تم تنفيذ الإجراء"
+    },
     "property": {
-      "delete": "حذف",
-      "placeholder": {
-        "propKey": "المفتاح",
-        "propValue": "القيمة"
+      "accordion": "وضع الأكورديون",
+      "addAction": "إضافة إجراء",
+      "addDataSource": "إضافة مصدر بيانات",
+      "addEvent": "إضافة حدث",
+      "addOption": "إضافة خيار",
+      "advancedProps": "خصائص متقدمة",
+      "align": {
+        "center": "وسط",
+        "end": "نهاية",
+        "start": "بداية"
       },
+      "alignLabel": "المحاذاة",
+      "alt": "نص بديل",
+      "apiEndpoint": "نقطة نهاية API",
+      "apiMethod": "طريقة الطلب",
+      "apiParams": "معاملات الطلب",
+      "bordered": "إظهار الحدود",
+      "btnType": {
+        "dashed": "متقطع",
+        "default": "افتراضي",
+        "link": "رابط",
+        "primary": "أساسي"
+      },
+      "chartType": {
+        "area": "مساحة",
+        "bar": "أعمدة",
+        "line": "خط",
+        "pie": "دائري",
+        "scatter": "مبعثر"
+      },
+      "chartTypeLabel": "نوع الرسم البياني",
+      "checkable": "قابل للتحديد",
+      "color": {
+        "blue": "أزرق",
+        "green": "أخضر",
+        "orange": "برتقالي",
+        "purple": "بنفسجي",
+        "red": "أحمر"
+      },
+      "colorLabel": "اللون",
+      "columns": "أعمدة",
+      "command": "اسم الأمر",
+      "conditional": {
+        "addRule": "إضافة قاعدة",
+        "clear": "مسح الكل",
+        "description": "تكوين قواعد العرض الشرطي. يدعم منطق AND/OR وعكس NOT.",
+        "empty": "لا توجد قواعد، انقر بالأسفل للإضافة",
+        "fieldPlaceholder": "اسم الحقل",
+        "notHint": "عكس النتيجة",
+        "valuePlaceholder": "قيمة المقارنة"
+      },
+      "content": "المحتوى",
+      "data": "البيانات",
+      "dataSourceType": "نوع مصدر البيانات",
+      "defaultChecked": "محدد افتراضياً",
+      "delete": "حذف",
+      "disabled": "معطّل",
+      "dsType": {
+        "agent": "مُنشأ بواسطة الوكيل",
+        "api": "API",
+        "static": "بيانات ثابتة",
+        "store": "Store"
+      },
+      "field": "حقل",
+      "format": "التنسيق",
+      "gap": "فجوة",
+      "generationId": "معرف التوليد",
+      "height": "الارتفاع",
+      "icon": "أيقونة",
+      "inputType": {
+        "password": "كلمة المرور",
+        "text": "نص",
+        "textarea": "منطقة نص"
+      },
+      "itemLayout": {
+        "horizontal": "أفقي",
+        "vertical": "عمودي"
+      },
+      "itemLayoutLabel": "تخطيط القائمة",
+      "items": "عناصر البيانات",
+      "jsonPlaceholder": "أدخل JSON...",
+      "label": "تسمية",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "نص عادي",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "اللغة",
+      "layout": {
+        "horizontal": "أفقي",
+        "inline": "مضمن",
+        "vertical": "عمودي"
+      },
+      "layoutLabel": "تخطيط النموذج",
+      "max": "الأقصى",
+      "maxLength": "الحد الأقصى للطول",
+      "min": "الأدنى",
+      "name": "الاسم",
+      "noEvents": "لا توجد أحداث",
+      "noOptions": "لا توجد خيارات",
+      "nodeId": "معرف العقدة",
+      "options": "خيارات",
+      "percent": "نسبة مئوية",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "مفتاح الخاصية",
+        "propValue": "قيمة الخاصية",
+        "schemaId": "schema-id",
+        "storeName": "مثال userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "عنصر نائب",
+      "polling": "فترة الاستطلاع",
+      "pollingHint": "بالملي ثانية، 0 للتعطيل",
+      "preview": "قابل للمعاينة",
+      "progressType": {
+        "circle": "دائرة",
+        "dashboard": "لوحة قيادة",
+        "line": "خط"
+      },
+      "readOnly": "للقراءة فقط",
+      "removeDataSource": "إزالة مصدر البيانات",
+      "required": "مطلوب",
+      "rows": "صفوف",
       "selectHint": "انقر على مكون في اللوحة\nلتعديل خصائصه",
+      "selectMode": {
+        "default": "فردي",
+        "multiple": "متعدد",
+        "tags": "وسوم"
+      },
+      "selectModeLabel": "وضع التحديد",
+      "selector": "محدد",
+      "seriesKey": "حقل السلسلة",
+      "showHeader": "إظهار الرأس",
+      "showLine": "إظهار الخط",
+      "showTime": "إظهار الوقت",
+      "size": {
+        "default": "افتراضي",
+        "large": "كبير",
+        "middle": "متوسط",
+        "small": "صغير"
+      },
+      "sizeLabel": "الحجم",
+      "specificFields": "حقول محددة",
+      "src": "رابط الصورة",
+      "staticValue": "قيمة ثابتة",
+      "step": "خطوة",
+      "storeName": "اسم Store",
+      "strong": "عريض",
       "style": {
         "add": "إضافة",
         "empty": "لا توجد خصائص نمط",
         "label": "خصائص النمط",
         "placeholder": {
-          "propKey": "الخاصية",
-          "propValue": "القيمة"
+          "propKey": "مفتاح النمط",
+          "propValue": "قيمة النمط"
         },
         "quickStyles": "أنماط سريعة"
       },
+      "submitText": "نص زر الإرسال",
+      "tabPosition": {
+        "bottom": "أسفل",
+        "left": "يسار",
+        "right": "يمين",
+        "top": "أعلى"
+      },
+      "tabPositionLabel": "موضع التبويب",
       "tabs": {
         "basic": "أساسي",
+        "conditional": "شرطي",
+        "data": "بيانات",
+        "events": "أحداث",
         "style": "نمط"
       },
+      "text": "نص",
       "title": "لوحة الخصائص",
-      "field": "حقل"
+      "treeData": "بيانات الشجرة",
+      "type": "النوع",
+      "value": "القيمة",
+      "version": "الإصدار",
+      "width": "العرض",
+      "xKey": "حقل المحور السيني",
+      "yKey": "حقل المحور الصادي"
+    },
+    "toolbar": {
+      "copied": "تم النسخ",
+      "copy": "نسخ",
+      "cut": "قص",
+      "cutDone": "تم القص",
+      "editMode": "وضع التحرير",
+      "export": "تصدير",
+      "exported": "تم التصدير",
+      "import": "استيراد",
+      "imported": "تم الاستيراد",
+      "invalidJson": "ملف JSON غير صالح",
+      "paste": "لصق",
+      "pasted": "تم اللصق",
+      "previewMode": "وضع المعاينة",
+      "redo": "إعادة",
+      "undo": "تراجع",
+      "viewport": {
+        "desktop": "سطح المكتب",
+        "mobile": "جوال",
+        "tablet": "لوحي"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "تقرير الفحص"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "فشل الحفظ التلقائي بعد 3 محاولات"
+    },
     "agentNode": {
       "agent": "وكيل",
       "context": "سياق",
@@ -6309,7 +6582,12 @@
       "failed": "فشل",
       "inputVars": "متغيرات الإدخال",
       "nodeStatus": "حالة تنفيذ العقدة",
+      "noInputVariables": "لا توجد متغيرات إدخال",
       "runningNode": "جارٍ تنفيذ عقدة سير العمل",
+      "partiallyCompleted": "مكتمل جزئياً",
+      "paused": "متوقف مؤقتاً",
+      "skipped": "تم تخطيه",
+      "cancelled": "ملغى",
       "success": "نجاح",
       "waiting": "بانتظار"
     },
@@ -6608,6 +6886,8 @@
       "componentCount": "عدد المكونات",
       "components": "{{count}} مكون",
       "depthLevel": "العمق",
+      "parsingPhases": "مراحل التحليل",
+      "schemaTitle": "UI Schema",
       "rootType": "نوع الجذر",
       "generate": "توليد",
       "generating": "جارٍ التوليد...",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "تحليل النية...",
       "buildingWorkflow": "بناء سير العمل...",
       "complete": "مكتمل",
+      "generating": "جارٍ الإنشاء...",
       "intentAnalysis": "تحليل النية",
       "matchingNodes": "مطابقة العقد...",
       "optimizing": "تحسين..."
@@ -7376,6 +7657,8 @@
       "current": "الإصدار الحالي",
       "currentWorkflowWillBeOverwritten": "سيتم استبدال سير العمل الحالي بالإصدار الجديد",
       "deletedNode": "- تمت إزالة العقدة: {{id}} ({{desc}})",
+      "diffPlaceholder": "مقارنة الإصدارات قيد التطوير. استخدم سجل الإصدارات لعرض التفاصيل.",
+      "restoreSuccess": "تمت الاستعادة بنجاح إلى الإصدار {{version}}",
       "initialCreation": "الإنشاء الأولي",
       "modifiedNode": "~ تم تعديل العقدة: {{id}} ({{desc}})",
       "newNode": "+ تمت إضافة العقدة: {{id}} ({{desc}})",

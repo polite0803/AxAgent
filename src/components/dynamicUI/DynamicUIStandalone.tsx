@@ -5,6 +5,7 @@ import { useDynamicUIStore } from "@/stores";
 import type { DynamicAction, UISchema } from "@/types";
 import { Alert, Spin } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface DynamicUIStandaloneProps {
   schemaId: string;
@@ -24,6 +25,7 @@ export function DynamicUIStandalone({
   onFormSubmit,
 }: DynamicUIStandaloneProps) {
   const { getSchema, loadFormData, saveFormData } = useDynamicUIStore();
+  const { t } = useTranslation();
   const [schema, setSchema] = useState<UISchema | null>(null);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
@@ -130,14 +132,17 @@ export function DynamicUIStandalone({
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
+      // DUI-P1-06: 卸载时保存无法 await，至少记录失败日志避免静默丢数据
       if (savePendingRef.current) {
         const latest = formDataRef.current;
         const sid = schemaIdRef.current;
         const ikey = instanceKeyRef.current;
-        void saveFormData({
+        saveFormData({
           schema_id: sid,
           form_data_json: JSON.stringify(latest),
           instance_key: ikey,
+        }).catch((e) => {
+          console.warn("DynamicUIStandalone: 卸载时持久化表单数据失败", e);
         });
       }
     };
@@ -154,7 +159,8 @@ export function DynamicUIStandalone({
   }
 
   if (error || !schema) {
-    return <Alert type="error" title={error || "Schema not found"} showIcon />;
+    // DUI-P1-01: Alert 用 message 而非 title（Ant Design 规范），并使用 i18n
+    return <Alert type="error" message={error || t("dynamicUI.schemaNotFound")} showIcon />;
   }
 
   return (

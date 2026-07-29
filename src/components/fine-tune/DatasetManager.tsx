@@ -45,8 +45,12 @@ export function DatasetManager() {
   };
 
   const handleDeleteDataset = async (id: string) => {
-    await deleteDataset(id);
-    message.success(t("datasetManager.deletedSuccess"));
+    try {
+      await deleteDataset(id);
+      message.success(t("datasetManager.deletedSuccess"));
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : t("datasetManager.deleteFailed"));
+    }
   };
 
   const handleAddSample = async (values: {
@@ -54,7 +58,8 @@ export function DatasetManager() {
     output: string;
     systemPrompt?: string;
   }) => {
-    if (selectedDatasetId) {
+    if (!selectedDatasetId) { return; }
+    try {
       await addSample(
         selectedDatasetId,
         values.input,
@@ -64,6 +69,8 @@ export function DatasetManager() {
       message.success(t("datasetManager.sampleAdded"));
       setAddSampleModalVisible(false);
       sampleForm.resetFields();
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : t("datasetManager.addSampleFailed"));
     }
   };
 

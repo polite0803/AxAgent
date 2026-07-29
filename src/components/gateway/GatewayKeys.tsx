@@ -90,7 +90,12 @@ export function GatewayKeys() {
       render: (enabled: boolean, record: GatewayKey) => (
         <Switch
           checked={enabled}
-          onChange={(checked) => toggleKey(record.id, checked)}
+          // GW-P1-4: 补充 catch 避免未处理的 promise rejection
+          onChange={(checked) => {
+            toggleKey(record.id, checked).catch((e) => {
+              showBackendError(message, e);
+            });
+          }}
           size="small"
         />
       ),
@@ -123,7 +128,12 @@ export function GatewayKeys() {
           )}
           <Popconfirm
             title={t("gateway.deleteKeyConfirm")}
-            onConfirm={() => deleteKey(record.id)}
+            // GW-P1-4: 补充 catch 避免未处理的 promise rejection
+            onConfirm={() => {
+              deleteKey(record.id).catch((e) => {
+                showBackendError(message, e);
+              });
+            }}
           >
             <Button
               type="text"
@@ -216,7 +226,7 @@ export function GatewayKeys() {
         {createdKey
           ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <Alert title={t("gateway.copyWarning")} type="warning" showIcon />
+              <Alert message={t("gateway.copyWarning")} type="warning" showIcon />
               <Input.TextArea
                 id="gateway-keys-input-textarea-41"
                 value={createdKey}

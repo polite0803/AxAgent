@@ -43,7 +43,7 @@ function extractCategories(templates: PromptTemplate[]): string[] {
 export function PromptTemplatesSettings() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { message: messageApi } = App.useApp();
+  const { message: messageApi, modal } = App.useApp();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -155,7 +155,7 @@ export function PromptTemplatesSettings() {
 
   const handleDelete = useCallback(
     async (tmpl: PromptTemplate) => {
-      Modal.confirm({
+      modal.confirm({
         title: t("promptTemplates.deleteTemplateConfirm"),
         content: tmpl.name,
         okText: t("common.delete"),
@@ -167,7 +167,7 @@ export function PromptTemplatesSettings() {
         },
       });
     },
-    [deleteTemplate, messageApi, t],
+    [deleteTemplate, messageApi, modal, t],
   );
 
   const handleViewHistory = useCallback(
@@ -185,7 +185,7 @@ export function PromptTemplatesSettings() {
       if (!versionHistoryTemplate) {
         return;
       }
-      Modal.confirm({
+      modal.confirm({
         title: t("promptTemplates.rollbackConfirm"),
         content: t("promptTemplates.rollbackConfirmDetail", {
           name: versionHistoryTemplate.name,
@@ -203,7 +203,7 @@ export function PromptTemplatesSettings() {
         },
       });
     },
-    [versionHistoryTemplate, rollbackTemplate, messageApi, t],
+    [versionHistoryTemplate, rollbackTemplate, messageApi, modal, t],
   );
 
   const handleExport = useCallback(

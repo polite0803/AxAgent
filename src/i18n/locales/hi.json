@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "कार्रवाई",
+    "addSampleFailed": "नमूना जोड़ना विफल",
     "cancel": "रद्द करें",
     "createNew": "नया डेटासेट बनाएं",
     "created": "बनाया गया",
     "createdSuccess": "Dataset created",
+    "deleteFailed": "डेटासेट हटाना विफल",
     "deletedSuccess": "डेटासेट हटा दिया गया",
     "description": "विवरण",
     "name": "नाम",
@@ -1787,6 +1789,7 @@
     "unknownFile": "अज्ञात फ़ाइल",
     "unregisteredComponent": "अपंजीकृत घटक: {{type}}",
     "unsupportedChartType": "असमर्थित चार्ट प्रकार: {{type}}",
+    "persistFailed": "फ़ॉर्म डेटा सहेजने में विफल, कृपया बैकएंड सेवा जांचें",
     "schemaNotFound": "डायनामिक पेज नहीं मिला",
     "uiSchemaJson": "UI स्कीमा JSON"
   },
@@ -1868,6 +1871,9 @@
     "export": "निर्यात",
     "exportAll": "सभी निर्यात करें",
     "exportSuccess": "सफलतापूर्वक निर्यात किया गया",
+    "fieldChildren": "चाइल्ड नोड ({{count}})",
+    "fieldId": "आईडी",
+    "fieldProps": "गुण",
     "keyPlaceholder": "कुंजी",
     "valuePlaceholder": "मान"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "JSON पार्स त्रुटि, मान्य नहीं किया जा सकता",
     "pass": "पास",
     "reset": "रीसेट",
+    "sampleCardTitle": "उदाहरण कार्ड",
+    "sampleText": "Hello World! यह एक डायनामिक UI उदाहरण है।",
     "schemaAllValid": "स्कीमा मान्यता पास, सभी फ़ील्ड मान्य हैं",
     "schemaValidation": "स्कीमा मान्यता",
+    "title": "डायनामिक UI पूर्वावलोकन",
     "waitingForJson": "मान्य JSON की प्रतीक्षा कर रहा है..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "बैकअप",
     "batchDelete": "हटाएँ ({{count}})",
     "batchDeleteConfirm": "क्या आप {{count}} चुने गए आइटम हटाना चाहते हैं?",
+    "batchDeletePartial": "{{ok}} हटाए गए, {{fail}} विफल",
     "batchDeleteSuccess": "{{count}} आइटम हटाए गए",
     "columnActions": "क्रियाएँ",
     "columnCreatedAt": "बनाया गया",
@@ -2370,6 +2380,8 @@
     "previewDirType": "फ़ोल्डर",
     "previewEmpty": "पूर्वावलोकन के लिए फ़ाइल चुनें",
     "previewFailed": "पूर्वावलोकन लोड नहीं हो सका",
+    "previewImageFailed": "छवि लोड विफल",
+    "previewLoading": "लोड हो रहा है…",
     "previewModified": "संशोधित",
     "previewPath": "पथ",
     "previewSize": "आकार",
@@ -2378,6 +2390,8 @@
     "previewUnknownType": "अज्ञात",
     "renameSuccess": "नाम बदला गया",
     "renameTitle": "नाम बदलें",
+    "rootLoadFailed": "निर्देशिका लोड विफल",
+    "unknownCategory": "अज्ञात फ़ाइल श्रेणी: {{cat}}",
     "treeEmpty": "खाली निर्देशिका"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "पथ",
     "colStatus": "स्थिति",
     "colTime": "समय",
+    "colToken": "Token",
     "errorCount": "त्रुटि गणना",
     "loadMetricsFailed": "गेटवे मेट्रिक्स लोड करने में विफल: {{error}}",
+    "logsCleared": "लॉग साफ़ कर दिए गए",
     "noRequestLogs": "कोई अनुरोध लॉग नहीं",
     "refresh": "रीफ़्रेश",
     "requestLogs": "अनुरोध लॉग",
     "title": "गेटवे मॉनिटर",
+    "todayRequests": "आज के अनुरोध",
+    "todayTokens": "आज के Token",
+    "totalCost": "कुल लागत (USD)",
     "totalRequests": "कुल अनुरोध",
     "totalTokens": "कुल टोकन",
     "uptime": "अपटाइम"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "सभी",
+    "categories": {
+      "concept": "अवधारणा",
+      "context": "संदर्भ",
+      "fact": "तथ्य",
+      "improvement": "सुधार",
+      "pattern": "पैटर्न",
+      "preference": "प्राथमिकता",
+      "project": "परियोजना",
+      "warning": "चेतावनी"
+    },
+    "categoryMatch": "श्रेणी मिलान",
+    "derived": "व्युत्पन्न",
     "detail": "विवरण",
     "edges": "किनारे",
     "entities": "इकाइयाँ",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "संबंधित",
     "memories": "यादें",
     "refresh": "ताज़ा करें",
+    "related": "संबंधित",
     "searchPlaceholder": "नोड्स खोजें...",
     "skills": "कौशल",
+    "stateActive": "सक्रिय",
+    "stateArchived": "संग्रहीत",
+    "stateSkipped": "छोड़ा गया",
     "title": "लर्निंग ग्राफ",
     "useCount": "उपयोग गणना: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "सिंक किए गए कौशल",
     "tokenLimitPerMinute": "प्रति मिनट टोकन सीमा",
     "typeCustom": "कस्टम",
+    "toggleFailed": "टॉगल विफल",
+    "createConversationFailed": "बातचीत बनाने में विफल: {{error}}",
     "unlimited": "असीमित",
     "updateSettingsFailed": "सेटिंग अपडेट विफल",
     "weighted": "भारित"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "सीखना",
       "categorySafety": "सुरक्षा",
       "config": "कॉन्फ़िग",
+      "empty": "कोई इवोल्यूशन इंजन नहीं है",
       "engineCount": "चल रहा है",
       "engineNotFound": "इंजन नहीं मिला",
       "engineNotFoundDesc": "इंजन \"{{name}}\" नहीं मिला",
@@ -4865,6 +4903,8 @@
       "oldVersion": "पुराना (v{{version}})",
       "rollback": "रोलबैक",
       "rollbackConfirmMessage": "क्या आप v{{version}} पर वापस जाना चाहते हैं? इससे उस संस्करण के बाद के सभी विकास परिवर्तन हट जाएंगे।",
+      "rollbackFailed": "रॉलबैक विफल: {{error}}",
+      "rollbackSuccess": "v{{version}} पर सफलतापूर्वक रॉलबैक",
       "totalEvolutions": "कुल विकास",
       "viewDiff": "अंतर देखें"
     },
@@ -4878,6 +4918,10 @@
     "installed": "इंस्टॉल किया गया",
     "loadFailed": "स्किल \"{{name}}\" लोड विफल",
     "loading": "स्किल घटक लोड हो रहा है...",
+    "markdown": {
+      "loadFailed": "Markdown सामग्री लोड करने में विफल",
+      "parseError": "पार्स त्रुटि"
+    },
     "marketplace": "कौशल मार्केटप्लेस",
     "name": "नाम",
     "namePlaceholder": "नाम दर्ज करें...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "कार्रवाई",
     "baseModel": "बेस मॉडल",
+    "cancelFailed": "प्रशिक्षण कार्य रद्द करना विफल",
+    "cancelSuccess": "प्रशिक्षण कार्य रद्द कर दिया गया",
     "completed": "पूर्ण",
     "datasetId": "डेटासेट आईडी",
+    "deleteFailed": "प्रशिक्षण कार्य हटाना विफल",
+    "deleteSuccess": "प्रशिक्षण कार्य हटा दिया गया",
     "failed": "विफल",
     "id": "आईडी",
     "loraOutput": "LoRA आउटपुट",
@@ -5377,6 +5425,8 @@
     "progress": "प्रगति",
     "ready": "तैयार",
     "running": "चल रहा है",
+    "startFailed": "प्रशिक्षण कार्य शुरू करना विफल",
+    "startSuccess": "प्रशिक्षण कार्य शुरू कर दिया गया",
     "status": "स्थिति",
     "title": "प्रशिक्षण कार्य",
     "totalJobs": "कुल कार्य"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "चाइल्ड क्षेत्र",
+      "childCount": "चाइल्ड",
+      "dropHere": "यहां छोड़ें",
       "dropHint": "कंटेनर, फॉर्म, डेटा डिस्प्ले और अधिक का समर्थन करता है",
       "dropPrompt": "यहां घटक छोड़ें",
-      "emptyHint": "कैनवास खाली है। अपना UI बनाने के लिए बाएं पैनल से घटक खींचें"
+      "emptyHint": "कैनवास खाली है। अपना UI बनाने के लिए बाएं पैनल से घटक खींचें",
+      "leafNode": "लीफ नोड (कोई चाइल्ड नहीं)",
+      "livePreview": "लाइव प्रीव्यू",
+      "previewEmpty": "कोई सामग्री नहीं, संपादित करने के लिए प्रीव्यू मोड से बाहर निकलें",
+      "rootHint": "रूट नोड्स"
+    },
+    "categories": {
+      "container": "कंटेनर लेआउट",
+      "data-display": "डेटा डिस्प्ले",
+      "form": "फ़ॉर्म",
+      "media": "मीडिया",
+      "misc": "विविध"
     },
     "components": {
       "Accordion": "एकॉर्डियन",
@@ -5430,32 +5494,238 @@
       "Timeline": "समयरेखा",
       "Tree": "ट्री"
     },
+    "error": {
+      "reset": "रीसेट",
+      "title": "एडिटर त्रुटि"
+    },
+    "exitFullscreen": "फुलस्क्रीन से बाहर निकलें",
+    "fullscreen": "फुलस्क्रीन",
+    "outline": {
+      "delete": "हटाएं",
+      "duplicate": "डुप्लिकेट",
+      "title": "आउटलाइन"
+    },
     "palette": {
       "title": "कम्पोनेंट्स"
     },
+    "preview": {
+      "actionTriggered": "क्रिया ट्रिगर की गई"
+    },
     "property": {
-      "delete": "हटाएं",
-      "placeholder": {
-        "propKey": "कुंजी",
-        "propValue": "मान"
+      "accordion": "एकॉर्डियन मोड",
+      "addAction": "क्रिया जोड़ें",
+      "addDataSource": "डेटा स्रोत जोड़ें",
+      "addEvent": "इवेंट जोड़ें",
+      "addOption": "विकल्प जोड़ें",
+      "advancedProps": "उन्नत गुण",
+      "align": {
+        "center": "मध्य",
+        "end": "अंत",
+        "start": "प्रारंभ"
       },
+      "alignLabel": "संरेखण",
+      "alt": "वैकल्पिक टेक्स्ट",
+      "apiEndpoint": "API एंडपॉइंट",
+      "apiMethod": "अनुरोध विधि",
+      "apiParams": "अनुरोध पैरामीटर",
+      "bordered": "बॉर्डर दिखाएं",
+      "btnType": {
+        "dashed": "डैश",
+        "default": "डिफ़ॉल्ट",
+        "link": "लिंक",
+        "primary": "प्राथमिक"
+      },
+      "chartType": {
+        "area": "क्षेत्र",
+        "bar": "बार",
+        "line": "लाइन",
+        "pie": "पाई",
+        "scatter": "स्कैटर"
+      },
+      "chartTypeLabel": "चार्ट प्रकार",
+      "checkable": "चेक करने योग्य",
+      "color": {
+        "blue": "नीला",
+        "green": "हरा",
+        "orange": "नारंगी",
+        "purple": "बैंगनी",
+        "red": "लाल"
+      },
+      "colorLabel": "रंग",
+      "columns": "कॉलम",
+      "command": "कमांड नाम",
+      "conditional": {
+        "addRule": "नियम जोड़ें",
+        "clear": "सभी साफ़ करें",
+        "description": "सशर्त रेंडरिंग नियम कॉन्फ़िगर करें। AND/OR लॉजिक और NOT इन्वर्जन का समर्थन करता है।",
+        "empty": "कोई नियम नहीं, जोड़ने के लिए नीचे क्लिक करें",
+        "fieldPlaceholder": "फ़ील्ड नाम",
+        "notHint": "परिणाम उल्टा करें",
+        "valuePlaceholder": "तुलना मान"
+      },
+      "content": "सामग्री",
+      "data": "डेटा",
+      "dataSourceType": "डेटा स्रोत प्रकार",
+      "defaultChecked": "डिफ़ॉल्ट रूप से चेक किया गया",
+      "delete": "हटाएं",
+      "disabled": "अक्षम",
+      "dsType": {
+        "agent": "एजेंट-जनित",
+        "api": "API",
+        "static": "स्थिर डेटा",
+        "store": "Store"
+      },
+      "field": "फ़ील्ड",
+      "format": "प्रारूप",
+      "gap": "अंतर",
+      "generationId": "जनरेशन ID",
+      "height": "ऊंचाई",
+      "icon": "आइकन",
+      "inputType": {
+        "password": "पासवर्ड",
+        "text": "टेक्स्ट",
+        "textarea": "टेक्स्टएरिया"
+      },
+      "itemLayout": {
+        "horizontal": "क्षैतिज",
+        "vertical": "लंबवत"
+      },
+      "itemLayoutLabel": "सूची लेआउट",
+      "items": "डेटा आइटम",
+      "jsonPlaceholder": "JSON दर्ज करें...",
+      "label": "लेबल",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "सादा टेक्स्ट",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "भाषा",
+      "layout": {
+        "horizontal": "क्षैतिज",
+        "inline": "इनलाइन",
+        "vertical": "लंबवत"
+      },
+      "layoutLabel": "फ़ॉर्म लेआउट",
+      "max": "अधिकतम",
+      "maxLength": "अधिकतम लंबाई",
+      "min": "न्यूनतम",
+      "name": "नाम",
+      "noEvents": "कोई इवेंट नहीं",
+      "noOptions": "कोई विकल्प नहीं",
+      "nodeId": "नोड ID",
+      "options": "विकल्प",
+      "percent": "प्रतिशत",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "प्रॉपर्टी कुंजी",
+        "propValue": "प्रॉपर्टी मान",
+        "schemaId": "schema-id",
+        "storeName": "जैसे userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "प्लेसहोल्डर",
+      "polling": "पोलिंग अंतराल",
+      "pollingHint": "मिलीसेकंड, 0 अक्षम करता है",
+      "preview": "प्रीव्यू करने योग्य",
+      "progressType": {
+        "circle": "वृत्त",
+        "dashboard": "डैशबोर्ड",
+        "line": "लाइन"
+      },
+      "readOnly": "केवल पढ़ने योग्य",
+      "removeDataSource": "डेटा स्रोत हटाएं",
+      "required": "आवश्यक",
+      "rows": "पंक्तियाँ",
       "selectHint": "इसके गुण संपादित करने के लिए\nकैनवास पर एक घटक पर क्लिक करें",
+      "selectMode": {
+        "default": "एकल",
+        "multiple": "बहु",
+        "tags": "टैग"
+      },
+      "selectModeLabel": "चयन मोड",
+      "selector": "सेलेक्टर",
+      "seriesKey": "श्रृंखला फ़ील्ड",
+      "showHeader": "हेडर दिखाएं",
+      "showLine": "लाइन दिखाएं",
+      "showTime": "समय दिखाएं",
+      "size": {
+        "default": "डिफ़ॉल्ट",
+        "large": "बड़ा",
+        "middle": "मध्यम",
+        "small": "छोटा"
+      },
+      "sizeLabel": "आकार",
+      "specificFields": "विशिष्ट फ़ील्ड",
+      "src": "इमेज URL",
+      "staticValue": "स्थिर मान",
+      "step": "चरण",
+      "storeName": "Store नाम",
+      "strong": "बोल्ड",
       "style": {
         "add": "जोड़ें",
         "empty": "कोई शैली गुण नहीं",
         "label": "शैली गुण",
         "placeholder": {
-          "propKey": "गुण",
-          "propValue": "मान"
+          "propKey": "शैली कुंजी",
+          "propValue": "शैली मान"
         },
         "quickStyles": "त्वरित शैलियाँ"
       },
+      "submitText": "सबमिट बटन टेक्स्ट",
+      "tabPosition": {
+        "bottom": "नीचे",
+        "left": "बाएं",
+        "right": "दाएं",
+        "top": "ऊपर"
+      },
+      "tabPositionLabel": "टैब स्थिति",
       "tabs": {
         "basic": "मूल",
+        "conditional": "सशर्त",
+        "data": "डेटा",
+        "events": "इवेंट",
         "style": "शैली"
       },
+      "text": "टेक्स्ट",
       "title": "गुण पैनल",
-      "field": "क्षेत्र"
+      "treeData": "ट्री डेटा",
+      "type": "प्रकार",
+      "value": "मान",
+      "version": "संस्करण",
+      "width": "चौड़ाई",
+      "xKey": "X-अक्ष फ़ील्ड",
+      "yKey": "Y-अक्ष फ़ील्ड"
+    },
+    "toolbar": {
+      "copied": "कॉपी किया गया",
+      "copy": "कॉपी",
+      "cut": "कट",
+      "cutDone": "कट किया गया",
+      "editMode": "संपादन मोड",
+      "export": "निर्यात",
+      "exported": "निर्यात किया गया",
+      "import": "आयात",
+      "imported": "आयात किया गया",
+      "invalidJson": "अमान्य JSON फ़ाइल",
+      "paste": "पेस्ट",
+      "pasted": "पेस्ट किया गया",
+      "previewMode": "प्रीव्यू मोड",
+      "redo": "पुनः करें",
+      "undo": "पूर्ववत करें",
+      "viewport": {
+        "desktop": "डेस्कटॉप",
+        "mobile": "मोबाइल",
+        "tablet": "टैबलेट"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "लिंट रिपोर्ट"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "3 पुनः प्रयासों के बाद स्वतः सहेजना विफल"
+    },
     "agentNode": {
       "agent": "एजेंट",
       "context": "संदर्भ",
@@ -6309,7 +6582,12 @@
       "failed": "विफल",
       "inputVars": "इनपुट चर",
       "nodeStatus": "नोड निष्पादन स्थिति",
+      "noInputVariables": "कोई इनपुट वेरिएबल नहीं",
       "runningNode": "वर्कफ़्लो नोड निष्पादित हो रहा है",
+      "partiallyCompleted": "आंशिक रूप से पूर्ण",
+      "paused": "रुका हुआ",
+      "skipped": "छोड़ा गया",
+      "cancelled": "रद्द",
       "success": "सफल",
       "waiting": "प्रतीक्षारत"
     },
@@ -6608,6 +6886,8 @@
       "componentCount": "घटक गणना",
       "components": "{{count}} घटक",
       "depthLevel": "गहराई",
+      "parsingPhases": "विश्लेषण चरण",
+      "schemaTitle": "UI Schema",
       "rootType": "रूट प्रकार",
       "generate": "उत्पन्न करें",
       "generating": "उत्पन्न हो रहा है...",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "इरादा विश्लेषण हो रहा है...",
       "buildingWorkflow": "वर्कफ़्लो बनाया जा रहा है...",
       "complete": "पूर्ण",
+      "generating": "उत्पन्न कर रहा है...",
       "intentAnalysis": "इरादा विश्लेषण",
       "matchingNodes": "नोड्स मिलान हो रहे हैं...",
       "optimizing": "अनुकूलन हो रहा है..."
@@ -7376,6 +7657,8 @@
       "current": "वर्तमान संस्करण",
       "currentWorkflowWillBeOverwritten": "वर्तमान वर्कफ़्लो नए संस्करण द्वारा अधिलेखित हो जाएगा",
       "deletedNode": "- नोड हटाया गया: {{id}} ({{desc}})",
+      "diffPlaceholder": "संस्करण तुलना विकास के अधीन है। विवरण देखने के लिए संस्करण इतिहास का उपयोग करें।",
+      "restoreSuccess": "संस्करण {{version}} में सफलतापूर्वक पुनर्स्थापित किया गया",
       "initialCreation": "प्रारंभिक निर्माण",
       "modifiedNode": "~ नोड संशोधित: {{id}} ({{desc}})",
       "newNode": "+ नोड जोड़ा गया: {{id}} ({{desc}})",

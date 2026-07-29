@@ -235,7 +235,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
 
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">ID</label>
+                <label className="block text-xs text-gray-500 mb-1">{t("dynamicUIManager.fieldId")}</label>
                 <Input
                   size="small"
                   value={selectedNode.id}
@@ -243,7 +243,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Version</label>
+                <label className="block text-xs text-gray-500 mb-1">{t("dynamicUIManager.version")}</label>
                 <Input
                   size="small"
                   value={selectedNode.version}
@@ -257,7 +257,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
             {/* Props 编辑器 */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-gray-500">Props</label>
+                <label className="text-xs text-gray-500">{t("dynamicUIManager.fieldProps")}</label>
                 <Button size="small" type="dashed" icon={<PlusOutlined />} onClick={handleAddProp}>
                   {t("dynamicUIManager.addProp")}
                 </Button>
@@ -314,7 +314,7 @@ export function SchemaTreeEditor({ schema, onChange }: SchemaTreeEditorProps) {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs text-gray-500">
-                  Children ({selectedNode.children?.length ?? 0})
+                  {t("dynamicUIManager.fieldChildren", { count: selectedNode.children?.length ?? 0 })}
                 </label>
                 <Space size={4}>
                   <Select

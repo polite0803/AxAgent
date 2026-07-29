@@ -8,6 +8,7 @@ use tauri::Manager;
 use tauri::command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PtyCreateConfig {
     pub shell: Option<String>,
     pub cwd: Option<String>,
@@ -17,6 +18,7 @@ pub struct PtyCreateConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PtySessionInfo {
     pub id: String,
     pub status: String,

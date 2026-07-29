@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useTracerStore } from "@/stores/devtools/tracerStore";
-import { Button, Card, notification, Spin, Typography } from "antd";
+import { App as AntdApp, Button, Card, Spin, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -28,6 +28,7 @@ interface ImprovementSuggestionProps {
 
 export function ImprovementSuggestion({ traceId }: ImprovementSuggestionProps) {
   const { t } = useTranslation();
+  const { notification } = AntdApp.useApp();
   const generateSuggestions = useTracerStore((s) => s.generateSuggestions);
   const [suggestions, setSuggestions] = useState<ImprovementSuggestion[]>([]);
   const [loading, setLoading] = useState(true);

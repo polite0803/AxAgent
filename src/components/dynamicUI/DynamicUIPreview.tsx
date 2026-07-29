@@ -11,28 +11,31 @@ import { DynamicUIRenderer } from "./DynamicUIRenderer";
 const { Text } = Typography;
 const { TextArea } = Input;
 
-const DEFAULT_SCHEMA: UISchema = {
-  version: "1.0",
-  id: "root",
-  type: "Column",
-  props: {},
-  children: [
-    {
-      version: "1.0",
-      id: "card-1",
-      type: "Card",
-      props: { title: "示例卡片", bordered: true },
-      children: [
-        {
-          version: "1.0",
-          id: "text-1",
-          type: "Text",
-          props: { content: "Hello World! 这是一个动态 UI 示例。", type: "secondary" },
-        },
-      ],
-    },
-  ],
-};
+// DUI-P2-04: 默认 schema 文本根据当前语言动态生成，避免硬编码中文
+function buildDefaultSchema(t: (key: string) => string): UISchema {
+  return {
+    version: "1.0",
+    id: "root",
+    type: "Column",
+    props: {},
+    children: [
+      {
+        version: "1.0",
+        id: "card-1",
+        type: "Card",
+        props: { title: t("dynamicUIPreview.sampleCardTitle"), bordered: true },
+        children: [
+          {
+            version: "1.0",
+            id: "text-1",
+            type: "Text",
+            props: { content: t("dynamicUIPreview.sampleText"), type: "secondary" },
+          },
+        ],
+      },
+    ],
+  };
+}
 
 /**
  * Schema 预览/调试工具组件。
@@ -42,9 +45,9 @@ const DEFAULT_SCHEMA: UISchema = {
  */
 export const DynamicUIPreview: React.FC = () => {
   const { t } = useTranslation();
-  const [schemaText, setSchemaText] = useState(
-    JSON.stringify(DEFAULT_SCHEMA, null, 2),
-  );
+  // 默认 schema 文本基于当前语言生成，语言切换时重置
+  const defaultSchemaText = useMemo(() => JSON.stringify(buildDefaultSchema(t), null, 2), [t]);
+  const [schemaText, setSchemaText] = useState(defaultSchemaText);
   const [parseError, setParseError] = useState<string | null>(null);
 
   const { schema, validation } = useMemo((): {
@@ -78,15 +81,15 @@ export const DynamicUIPreview: React.FC = () => {
   }, [schema, schemaText, t]);
 
   const handleReset = useCallback(() => {
-    setSchemaText(JSON.stringify(DEFAULT_SCHEMA, null, 2));
-  }, []);
+    setSchemaText(defaultSchemaText);
+  }, [defaultSchemaText]);
 
   return (
     <div className="flex flex-col h-full gap-2 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <Text strong className="text-lg">
-          Dynamic UI Preview
+          {t("dynamicUIPreview.title")}
         </Text>
         <Button size="small" onClick={handleReset}>
           {t("dynamicUIPreview.reset")}
@@ -122,10 +125,10 @@ export const DynamicUIPreview: React.FC = () => {
           className="flex-1 min-w-0 overflow-auto"
         >
           {parseError
-            ? <Alert type="error" title={t("dynamicUIPreview.jsonParseError")} description={parseError} showIcon />
+            ? <Alert type="error" message={t("dynamicUIPreview.jsonParseError")} description={parseError} showIcon />
             : schema
             ? <DynamicUIRenderer schema={schema} />
-            : <Alert type="info" title={t("dynamicUIPreview.waitingForJson")} showIcon />}
+            : <Alert type="info" message={t("dynamicUIPreview.waitingForJson")} showIcon />}
         </Card>
       </div>
 

@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "Action",
+    "addSampleFailed": "Failed to add sample",
     "cancel": "Cancel",
     "createNew": "Create New Dataset",
     "created": "Created",
     "createdSuccess": "Dataset created successfully",
+    "deleteFailed": "Failed to delete dataset",
     "deletedSuccess": "Dataset deleted",
     "description": "Description",
     "name": "Name",
@@ -1787,6 +1789,7 @@
     "unknownFile": "Unknown File",
     "unregisteredComponent": "Unregistered Component: {{type}}",
     "unsupportedChartType": "Unsupported Chart Type: {{type}}",
+    "persistFailed": "Form data persistence failed, please check backend service",
     "schemaNotFound": "Specified Dynamic Page Not Found",
     "uiSchemaJson": "UI Schema JSON"
   },
@@ -1868,6 +1871,9 @@
     "export": "Export",
     "exportAll": "Export All",
     "exportSuccess": "Exported successfully",
+    "fieldChildren": "Children ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "Props",
     "keyPlaceholder": "key",
     "valuePlaceholder": "value"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "JSON parse error, cannot validate",
     "pass": "Pass",
     "reset": "Reset",
+    "sampleCardTitle": "Sample Card",
+    "sampleText": "Hello World! This is a dynamic UI sample.",
     "schemaAllValid": "Schema validation passed, all fields valid",
     "schemaValidation": "Schema Validation",
+    "title": "Dynamic UI Preview",
     "waitingForJson": "Waiting for valid JSON..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "Backups",
     "batchDelete": "Delete ({{count}})",
     "batchDeleteConfirm": "Are you sure you want to delete {{count}} selected items?",
+    "batchDeletePartial": "Deleted {{ok}} items, {{fail}} failed",
     "batchDeleteSuccess": "Deleted {{count}} items",
     "columnActions": "Actions",
     "columnCreatedAt": "Created",
@@ -2370,6 +2380,8 @@
     "previewDirType": "Folder",
     "previewEmpty": "Select a file to preview",
     "previewFailed": "Unable to load preview",
+    "previewImageFailed": "Image load failed",
+    "previewLoading": "Loading…",
     "previewModified": "Modified",
     "previewPath": "Path",
     "previewSize": "Size",
@@ -2378,6 +2390,8 @@
     "previewUnknownType": "Unknown",
     "renameSuccess": "Renamed",
     "renameTitle": "Rename",
+    "rootLoadFailed": "Failed to load directory",
+    "unknownCategory": "Unknown file category: {{cat}}",
     "treeEmpty": "Empty directory"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "Path",
     "colStatus": "Status",
     "colTime": "Time",
+    "colToken": "Token",
     "errorCount": "Error Count",
     "loadMetricsFailed": "Failed to load gateway metrics: {{error}}",
+    "logsCleared": "Logs cleared",
     "noRequestLogs": "No request logs",
     "refresh": "Refresh",
     "requestLogs": "Request Logs",
     "title": "Gateway Monitor",
+    "todayRequests": "Today Requests",
+    "todayTokens": "Today Tokens",
+    "totalCost": "Total Cost (USD)",
     "totalRequests": "Total Requests",
     "totalTokens": "Total Tokens",
     "uptime": "Uptime"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "All",
+    "categories": {
+      "concept": "Concept",
+      "context": "Context",
+      "fact": "Fact",
+      "improvement": "Improvement",
+      "pattern": "Pattern",
+      "preference": "Preference",
+      "project": "Project",
+      "warning": "Warning"
+    },
+    "categoryMatch": "Category Match",
+    "derived": "Derived",
     "detail": "Details",
     "edges": "Edges",
     "entities": "Entities",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "Related",
     "memories": "Memories",
     "refresh": "Refresh",
+    "related": "Related",
     "searchPlaceholder": "Search nodes...",
     "skills": "Skills",
+    "stateActive": "Active",
+    "stateArchived": "Archived",
+    "stateSkipped": "Skipped",
     "title": "Learning Graph",
     "useCount": "Use count: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "Synced Skills",
     "tokenLimitPerMinute": "Token Limit per Minute",
     "typeCustom": "Custom",
+    "toggleFailed": "Toggle failed",
+    "createConversationFailed": "Failed to create conversation: {{error}}",
     "unlimited": "Unlimited",
     "updateSettingsFailed": "Update settings failed",
     "weighted": "Weighted"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "Learning",
       "categorySafety": "Safety",
       "config": "Config",
+      "empty": "No evolution engines",
       "engineCount": "Running",
       "engineNotFound": "Engine Not Found",
       "engineNotFoundDesc": "Engine \"{{name}}\" not found",
@@ -4865,6 +4903,8 @@
       "oldVersion": "Old (v{{version}})",
       "rollback": "Rollback",
       "rollbackConfirmMessage": "Are you sure you want to roll back to v{{version}}? This will discard all evolution changes after that version.",
+      "rollbackFailed": "Rollback failed: {{error}}",
+      "rollbackSuccess": "Successfully rolled back to v{{version}}",
       "totalEvolutions": "Total Evolutions",
       "viewDiff": "View Diff"
     },
@@ -4878,6 +4918,10 @@
     "installed": "Installed",
     "loadFailed": "Skill \"{{name}}\" load failed",
     "loading": "Loading skill component...",
+    "markdown": {
+      "loadFailed": "Failed to load Markdown content",
+      "parseError": "Parse error"
+    },
     "marketplace": "Skill Marketplace",
     "name": "Name",
     "namePlaceholder": "Enter name...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "Action",
     "baseModel": "Base Model",
+    "cancelFailed": "Failed to cancel training job",
+    "cancelSuccess": "Training job cancelled",
     "completed": "Completed",
     "datasetId": "Dataset ID",
+    "deleteFailed": "Failed to delete training job",
+    "deleteSuccess": "Training job deleted",
     "failed": "Failed",
     "id": "ID",
     "loraOutput": "LoRA Output",
@@ -5377,6 +5425,8 @@
     "progress": "Progress",
     "ready": "Ready",
     "running": "Running",
+    "startFailed": "Failed to start training job",
+    "startSuccess": "Training job started",
     "status": "Status",
     "title": "Training Jobs",
     "totalJobs": "Total Jobs"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "Child area",
+      "childCount": "Children",
+      "dropHere": "Drop here",
       "dropHint": "Supports containers, forms, data display, and more",
       "dropPrompt": "Drop components here",
-      "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI"
+      "emptyHint": "Canvas is empty. Drag components from the left panel to build your UI",
+      "leafNode": "Leaf node (no children)",
+      "livePreview": "Live preview",
+      "previewEmpty": "No content, exit preview mode to edit",
+      "rootHint": "root nodes"
+    },
+    "categories": {
+      "container": "Container layout",
+      "data-display": "Data display",
+      "form": "Form",
+      "media": "Media",
+      "misc": "Misc"
     },
     "components": {
       "Accordion": "Accordion",
@@ -5430,32 +5494,238 @@
       "Timeline": "Timeline",
       "Tree": "Tree"
     },
+    "error": {
+      "reset": "Reset",
+      "title": "Editor error"
+    },
+    "exitFullscreen": "Exit fullscreen",
+    "fullscreen": "Fullscreen",
+    "outline": {
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "title": "Outline"
+    },
     "palette": {
       "title": "Components"
     },
+    "preview": {
+      "actionTriggered": "Action triggered"
+    },
     "property": {
-      "delete": "Delete",
-      "placeholder": {
-        "propKey": "Key",
-        "propValue": "Value"
+      "accordion": "Accordion mode",
+      "addAction": "Add action",
+      "addDataSource": "Add data source",
+      "addEvent": "Add event",
+      "addOption": "Add option",
+      "advancedProps": "Advanced props",
+      "align": {
+        "center": "Center",
+        "end": "End",
+        "start": "Start"
       },
+      "alignLabel": "Alignment",
+      "alt": "Alt text",
+      "apiEndpoint": "API endpoint",
+      "apiMethod": "Request method",
+      "apiParams": "Request params",
+      "bordered": "Show border",
+      "btnType": {
+        "dashed": "Dashed",
+        "default": "Default",
+        "link": "Link",
+        "primary": "Primary"
+      },
+      "chartType": {
+        "area": "Area",
+        "bar": "Bar",
+        "line": "Line",
+        "pie": "Pie",
+        "scatter": "Scatter"
+      },
+      "chartTypeLabel": "Chart type",
+      "checkable": "Checkable",
+      "color": {
+        "blue": "Blue",
+        "green": "Green",
+        "orange": "Orange",
+        "purple": "Purple",
+        "red": "Red"
+      },
+      "colorLabel": "Color",
+      "columns": "Columns",
+      "command": "Command name",
+      "conditional": {
+        "addRule": "Add rule",
+        "clear": "Clear all",
+        "description": "Configure conditional rendering rules. Supports AND/OR logic and NOT inversion.",
+        "empty": "No rules, click below to add",
+        "fieldPlaceholder": "Field name",
+        "notHint": "Invert result",
+        "valuePlaceholder": "Compare value"
+      },
+      "content": "Content",
+      "data": "Data",
+      "dataSourceType": "Data source type",
+      "defaultChecked": "Default checked",
+      "delete": "Delete",
+      "disabled": "Disabled",
+      "dsType": {
+        "agent": "Agent-generated",
+        "api": "API",
+        "static": "Static data",
+        "store": "Store"
+      },
+      "field": "Field",
+      "format": "Format",
+      "gap": "Gap",
+      "generationId": "Generation ID",
+      "height": "Height",
+      "icon": "Icon",
+      "inputType": {
+        "password": "Password",
+        "text": "Text",
+        "textarea": "Textarea"
+      },
+      "itemLayout": {
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
+      },
+      "itemLayoutLabel": "List layout",
+      "items": "Data items",
+      "jsonPlaceholder": "Enter JSON...",
+      "label": "Label",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "Plain text",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "Language",
+      "layout": {
+        "horizontal": "Horizontal",
+        "inline": "Inline",
+        "vertical": "Vertical"
+      },
+      "layoutLabel": "Form layout",
+      "max": "Max",
+      "maxLength": "Max length",
+      "min": "Min",
+      "name": "Name",
+      "noEvents": "No events",
+      "noOptions": "No options",
+      "nodeId": "Node ID",
+      "options": "Options",
+      "percent": "Percent",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "Property key",
+        "propValue": "Property value",
+        "schemaId": "schema-id",
+        "storeName": "e.g. userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "Placeholder",
+      "polling": "Polling interval",
+      "pollingHint": "Milliseconds, 0 disables",
+      "preview": "Previewable",
+      "progressType": {
+        "circle": "Circle",
+        "dashboard": "Dashboard",
+        "line": "Line"
+      },
+      "readOnly": "Read-only",
+      "removeDataSource": "Remove data source",
+      "required": "Required",
+      "rows": "Rows",
       "selectHint": "Click a component on the canvas\nto edit its properties",
+      "selectMode": {
+        "default": "Single",
+        "multiple": "Multiple",
+        "tags": "Tags"
+      },
+      "selectModeLabel": "Select mode",
+      "selector": "Selector",
+      "seriesKey": "Series field",
+      "showHeader": "Show header",
+      "showLine": "Show line",
+      "showTime": "Show time",
+      "size": {
+        "default": "Default",
+        "large": "Large",
+        "middle": "Middle",
+        "small": "Small"
+      },
+      "sizeLabel": "Size",
+      "specificFields": "Specific fields",
+      "src": "Image URL",
+      "staticValue": "Static value",
+      "step": "Step",
+      "storeName": "Store name",
+      "strong": "Bold",
       "style": {
         "add": "Add",
-        "empty": "No style properties",
-        "label": "Style Properties",
+        "empty": "No style props",
+        "label": "Style props",
         "placeholder": {
-          "propKey": "Property",
-          "propValue": "Value"
+          "propKey": "Style key",
+          "propValue": "Style value"
         },
-        "quickStyles": "Quick Styles"
+        "quickStyles": "Quick styles"
       },
+      "submitText": "Submit button text",
+      "tabPosition": {
+        "bottom": "Bottom",
+        "left": "Left",
+        "right": "Right",
+        "top": "Top"
+      },
+      "tabPositionLabel": "Tab position",
       "tabs": {
         "basic": "Basic",
+        "conditional": "Conditional",
+        "data": "Data",
+        "events": "Events",
         "style": "Style"
       },
-      "title": "Property Panel",
-      "field": "field"
+      "text": "Text",
+      "title": "Property panel",
+      "treeData": "Tree data",
+      "type": "Type",
+      "value": "Value",
+      "version": "Version",
+      "width": "Width",
+      "xKey": "X-axis field",
+      "yKey": "Y-axis field"
+    },
+    "toolbar": {
+      "copied": "Copied",
+      "copy": "Copy",
+      "cut": "Cut",
+      "cutDone": "Cut",
+      "editMode": "Edit mode",
+      "export": "Export",
+      "exported": "Exported",
+      "import": "Import",
+      "imported": "Imported",
+      "invalidJson": "Invalid JSON file",
+      "paste": "Paste",
+      "pasted": "Pasted",
+      "previewMode": "Preview mode",
+      "redo": "Redo",
+      "undo": "Undo",
+      "viewport": {
+        "desktop": "Desktop",
+        "mobile": "Mobile",
+        "tablet": "Tablet"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "Lint report"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "Auto-save failed after 3 retries"
+    },
     "agentNode": {
       "agent": "Agent",
       "context": "📚 Context",
@@ -6309,7 +6582,12 @@
       "failed": "Failed",
       "inputVars": "Input Variables",
       "nodeStatus": "Node Execution Status",
+      "noInputVariables": "No input variables",
       "runningNode": "Running Workflow Node",
+      "partiallyCompleted": "Partially Completed",
+      "paused": "Paused",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled",
       "success": "Success",
       "waiting": "Waiting"
     },
@@ -6608,6 +6886,8 @@
       "componentCount": "Component Count",
       "components": "{{count}} components",
       "depthLevel": "Depth",
+      "parsingPhases": "Parsing Phases",
+      "schemaTitle": "UI Schema",
       "rootType": "Root Type",
       "generate": "Generate",
       "generating": "Generating...",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "Analyzing intent...",
       "buildingWorkflow": "Building workflow...",
       "complete": "Complete",
+      "generating": "Generating...",
       "intentAnalysis": "Intent Analysis",
       "matchingNodes": "Matching nodes...",
       "optimizing": "Optimizing..."
@@ -7376,6 +7657,8 @@
       "current": "Current version",
       "currentWorkflowWillBeOverwritten": "Current workflow will be overwritten by the new version",
       "deletedNode": "- Removed node: {{id}} ({{desc}})",
+      "diffPlaceholder": "Version comparison is under development. Please use version history to view details.",
+      "restoreSuccess": "Successfully restored to version {{version}}",
       "initialCreation": "Initial creation",
       "modifiedNode": "~ Modified node: {{id}} ({{desc}})",
       "newNode": "+ Added node: {{id}} ({{desc}})",

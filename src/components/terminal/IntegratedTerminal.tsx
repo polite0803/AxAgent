@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
-import { logIpcError } from "@/lib/invoke";
+import { isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { type PtySessionInfo, useTerminalStore } from "@/stores/feature/terminalStore";
 import { Badge, Button, Empty, Select } from "antd";
 import { AlertTriangle, CheckCircle, Maximize2, Minimize2, Plus, RefreshCw, Terminal, Trash2, X } from "lucide-react";
@@ -39,6 +39,7 @@ export function IntegratedTerminal({
     clearOutput,
     analyzeOutput,
     clearError,
+    appendOutput,
   } = useTerminalStore();
 
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -147,12 +148,77 @@ export function IntegratedTerminal({
   useEffect(() => {
     initTerminal();
 
+    // P0-1: 监听后端 PTY 输出事件，实时写入 xterm
+    // 在浏览器 mock 模式下 listen() 会回退到内存事件总线，确保 e2e 可用
+    let unlistenOutput: UnlistenFn | null = null;
+    let unlistenExit: UnlistenFn | null = null;
+    (async () => {
+      try {
+        unlistenOutput = await listen<{
+          sessionId: string;
+          data: string;
+          timestamp: number;
+        }>("pty_output", (event) => {
+          const payload = event.payload;
+          if (!payload) { return; }
+          const { sessionId, data } = payload;
+          // 更新 store 缓冲区
+          appendOutput(sessionId, data);
+          // 直接写入 xterm，避免走 activeOutput useMemo 再触发 useEffect 的二次写入
+          if (
+            xtermRef.current
+            && terminalReadyRef.current
+            && sessionId === activeSessionIdRef.current
+          ) {
+            xtermRef.current.write(data);
+          }
+        });
+      } catch (e) {
+        logIpcError("监听 pty_output")(e);
+      }
+
+      try {
+        unlistenExit = await listen<{
+          sessionId: string;
+          exitCode: number | null;
+          timestamp: number;
+        }>("pty_exit", (event) => {
+          const payload = event.payload;
+          if (!payload) { return; }
+          const sessionId = payload.sessionId;
+          // 更新会话状态为 exited
+          useTerminalStore.setState((state) => ({
+            sessions: state.sessions.map((s) => s.id === sessionId ? { ...s, status: "exited" as const } : s),
+          }));
+        });
+      } catch (e) {
+        logIpcError("监听 pty_exit")(e);
+      }
+    })();
+
     return () => {
+      // P0-2: 清理 xterm 资源
       if (xtermRef.current) {
         xtermRef.current.dispose();
         xtermRef.current = null;
         fitAddonRef.current = null;
         terminalReadyRef.current = false;
+      }
+      // P0-2: 取消事件订阅，避免重复写入已 dispose 的 xterm
+      unlistenOutput?.();
+      unlistenExit?.();
+      // P0-2: 清理本组件创建的所有后端 PTY 会话，防止资源泄漏
+      // 仅在 Tauri 真机环境下执行后端清理
+      const snapshot = useTerminalStore.getState().sessions;
+      if (isTauri() && snapshot.length > 0) {
+        for (const s of snapshot) {
+          // removeSession 会同步清空 store 并调用后端 pty_remove_session
+          // 用 catch 吞掉错误避免一个失败影响其他清理
+          useTerminalStore
+            .getState()
+            .removeSession(s.id)
+            .catch((e) => logIpcError(`清理 PTY 会话 ${s.id}`)(e));
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,11 +230,13 @@ export function IntegratedTerminal({
     }
 
     const xterm = xtermRef.current;
-    const lastLine = activeOutput[activeOutput.length - 1] ?? "";
-    if (lastLine) {
-      xterm.write(lastLine + "\r\n");
+    // 切换会话时重写整个缓冲区到 xterm（PTY 输出事件只对当前 activeSessionId 实时写入，
+    // 切换到其他会话时需要把该会话已有的缓冲区内容回写到 xterm 显示）
+    xterm.reset();
+    if (activeOutput.length > 0) {
+      xterm.write(activeOutput.join(""));
       if (onOutput && activeSessionId) {
-        onOutput(activeSessionId, lastLine);
+        onOutput(activeSessionId, activeOutput[activeOutput.length - 1]);
       }
     }
   }, [activeOutput, activeSessionId, onOutput]);

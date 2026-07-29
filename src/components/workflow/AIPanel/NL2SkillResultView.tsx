@@ -61,16 +61,16 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
         <div>
           <Text strong>{t("workflow.nl2Skill.triggersLabel")}</Text>
           <Space style={{ marginLeft: 8 }}>
-            {skill.triggers.map((t) => <Tag key={t} color="blue">{t}</Tag>)}
+            {skill.triggers.map((trig) => <Tag key={trig} color="blue">{trig}</Tag>)}
           </Space>
         </div>
 
         {/* Parameter list */}
         <div>
           <Text strong>{t("workflow.nl2Skill.parametersLabel")}</Text>
-          <div className="divide-y divide-gray-100">
+          <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
             {skill.parameters.map((p) => (
-              <div key={p.name} style={{ padding: "4px 0" }}>
+              <div key={p.name} style={{ padding: "4px 0", borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
                 <Space>
                   <Tag color={p.required ? "red" : "default"}>
                     {p.required ? t("workflow.nl2Skill.required") : t("workflow.nl2Skill.optional")}
@@ -92,9 +92,12 @@ export const NL2SkillResultView: React.FC<NL2SkillResultViewProps> = React.memo(
               key: "phases",
               label: t("workflow.nl2Skill.parsingPhases"),
               children: (
-                <div className="divide-y divide-gray-100">
+                <div style={{ borderTop: `1px solid ${token.colorBorderSecondary}` }}>
                   {phases.map((p) => (
-                    <div key={p.phase} style={{ padding: "2px 0" }}>
+                    <div
+                      key={p.phase}
+                      style={{ padding: "2px 0", borderBottom: `1px solid ${token.colorBorderSecondary}` }}
+                    >
                       <Space>
                         {p.status === "done"
                           ? <CheckCircleOutlined style={{ color: token.colorSuccess }} />

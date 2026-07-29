@@ -71,7 +71,9 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
         category: category || null,
       });
       set({ schemas, loading: false });
-    } catch {
+    } catch (e) {
+      // DUI-P2-01: 记录错误日志便于排查
+      console.error("fetchSchemas 失败:", e);
       set({ loading: false });
     }
   },
@@ -130,8 +132,9 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
     try {
       const pins = await invoke<DynamicUIPinRecord[]>("list_dynamic_ui_pins");
       set({ pins });
-    } catch {
-      // 忽略加载失败
+    } catch (e) {
+      // DUI-P2-01: pins 加载失败可静默，但记录日志便于排查
+      console.warn("fetchPins 失败（可忽略）:", e);
     }
   },
 
@@ -244,11 +247,13 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
     set({ versionLoading: true });
     try {
       const result = await invoke<ListVersionsResponse>("list_dynamic_ui_schema_versions", {
-        schemaId,
+        schema_id: schemaId,
       });
       set({ versionList: result.versions, versionLoading: false });
       return result.versions;
-    } catch {
+    } catch (e) {
+      // DUI-P2-01: 版本列表加载失败需记录日志，否则 UI 显示空状态无法区分"无数据"还是"加载失败"
+      console.error("loadVersions 失败:", e);
       set({ versionLoading: false });
       return [];
     }
@@ -257,9 +262,10 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   getVersion: async (versionId) => {
     try {
       return await invoke<DynamicUISchemaVersion>("get_dynamic_ui_schema_version", {
-        versionId,
+        version_id: versionId,
       });
-    } catch {
+    } catch (e) {
+      console.error("getVersion 失败:", e);
       return null;
     }
   },
@@ -267,15 +273,16 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   restoreVersion: async (schemaId, versionId) => {
     try {
       const updated = await invoke<DynamicUISchemaRecord>("restore_dynamic_ui_schema_version", {
-        schemaId,
-        versionId,
+        schema_id: schemaId,
+        version_id: versionId,
       });
       set((state) => ({
         schemas: state.schemas.map((s) => (s.id === schemaId ? updated : s)),
         currentSchema: state.currentSchema?.id === schemaId ? updated : state.currentSchema,
       }));
       return updated;
-    } catch {
+    } catch (e) {
+      console.error("restoreVersion 失败:", e);
       return null;
     }
   },

@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "操作",
+    "addSampleFailed": "添加样本失败",
     "cancel": "取消",
     "createNew": "创建新数据集",
     "created": "创建时间",
     "createdSuccess": "数据集创建成功",
+    "deleteFailed": "删除数据集失败",
     "deletedSuccess": "数据集已删除",
     "description": "描述",
     "name": "名称",
@@ -1787,6 +1789,7 @@
     "unknownFile": "未知文件",
     "unregisteredComponent": "未注册组件: {{type}}",
     "unsupportedChartType": "不支持的图表类型: {{type}}",
+    "persistFailed": "表单数据持久化失败，请检查后端服务",
     "schemaNotFound": "未找到指定的动态页面",
     "uiSchemaJson": "UI Schema JSON"
   },
@@ -1868,6 +1871,9 @@
     "export": "导出",
     "exportAll": "导出全部",
     "exportSuccess": "导出成功",
+    "fieldChildren": "子节点 ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "属性",
     "keyPlaceholder": "键",
     "valuePlaceholder": "值"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "JSON 解析错误，无法校验",
     "pass": "通过",
     "reset": "重置",
+    "sampleCardTitle": "示例卡片",
+    "sampleText": "Hello World! 这是一个动态 UI 示例。",
     "schemaAllValid": "Schema 校验通过，所有字段合法",
     "schemaValidation": "Schema 校验",
+    "title": "动态 UI 预览",
     "waitingForJson": "等待有效 JSON..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "备份",
     "batchDelete": "删除 ({{count}})",
     "batchDeleteConfirm": "确定要删除选中的 {{count}} 个文件吗？",
+    "batchDeletePartial": "已删除 {{ok}} 项，{{fail}} 项失败",
     "batchDeleteSuccess": "已删除 {{count}} 项",
     "columnActions": "操作",
     "columnCreatedAt": "创建时间",
@@ -2368,6 +2378,8 @@
     "previewDirType": "文件夹",
     "previewEmpty": "选择文件以预览",
     "previewFailed": "无法加载预览",
+    "previewImageFailed": "图片加载失败",
+    "previewLoading": "加载中…",
     "previewModified": "修改时间",
     "previewPath": "路径",
     "previewSize": "大小",
@@ -2376,8 +2388,10 @@
     "previewUnknownType": "未知",
     "renameSuccess": "已重命名",
     "renameTitle": "重命名",
+    "rootLoadFailed": "目录加载失败",
     "searchPlaceholder": "搜索{{category}}…",
     "totalItems": "共 {{total}} 项",
+    "unknownCategory": "未知的文件分类：{{cat}}",
     "treeEmpty": "空目录"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "路径",
     "colStatus": "状态",
     "colTime": "时间",
+    "colToken": "Token",
     "errorCount": "错误数",
     "loadMetricsFailed": "加载网关指标失败: {{error}}",
+    "logsCleared": "日志已清空",
     "noRequestLogs": "暂无请求日志",
     "refresh": "刷新",
     "requestLogs": "请求日志",
     "title": "Gateway 监控",
+    "todayRequests": "今日请求",
+    "todayTokens": "今日 Token",
+    "totalCost": "总成本 (USD)",
     "totalRequests": "总请求",
     "totalTokens": "总 Token",
     "uptime": "运行时间"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "全部",
+    "categories": {
+      "concept": "概念",
+      "context": "上下文",
+      "fact": "事实",
+      "improvement": "改进",
+      "pattern": "模式",
+      "preference": "偏好",
+      "project": "项目",
+      "warning": "警告"
+    },
+    "categoryMatch": "类别匹配",
+    "derived": "派生",
     "detail": "详情",
     "edges": "关联",
     "entities": "实体",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "关联",
     "memories": "记忆",
     "refresh": "刷新",
+    "related": "相关",
     "searchPlaceholder": "搜索节点...",
     "skills": "技能",
+    "stateActive": "活跃",
+    "stateArchived": "已归档",
+    "stateSkipped": "已跳过",
     "title": "学习图",
     "useCount": "使用次数: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "已同步技能",
     "tokenLimitPerMinute": "每分钟 Token 限制",
     "typeCustom": "自定义",
+    "toggleFailed": "切换状态失败",
+    "createConversationFailed": "创建会话失败：{{error}}",
     "unlimited": "无限制",
     "updateSettingsFailed": "更新设置失败",
     "weighted": "加权"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "学习",
       "categorySafety": "安全",
       "config": "配置",
+      "empty": "暂无进化引擎",
       "engineCount": "运行中",
       "engineNotFound": "引擎未找到",
       "engineNotFoundDesc": "未找到引擎 \"{{name}}\"",
@@ -4865,6 +4903,8 @@
       "oldVersion": "旧版 (v{{version}})",
       "rollback": "回滚",
       "rollbackConfirmMessage": "确定要回滚到 v{{version}} 吗？此操作将丢弃之后的所有进化变更。",
+      "rollbackFailed": "回滚失败：{{error}}",
+      "rollbackSuccess": "已成功回滚到 v{{version}}",
       "totalEvolutions": "总进化次数",
       "viewDiff": "查看 Diff"
     },
@@ -4878,6 +4918,10 @@
     "installed": "已安装",
     "loadFailed": "技能 \"{{name}}\" 加载失败",
     "loading": "加载技能组件...",
+    "markdown": {
+      "loadFailed": "加载 Markdown 内容失败",
+      "parseError": "解析错误"
+    },
     "marketplace": "技能市场",
     "name": "名称",
     "namePlaceholder": "输入名称...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "操作",
     "baseModel": "基础模型",
+    "cancelFailed": "取消训练任务失败",
+    "cancelSuccess": "训练任务已取消",
     "completed": "已完成",
     "datasetId": "数据集 ID",
+    "deleteFailed": "删除训练任务失败",
+    "deleteSuccess": "训练任务已删除",
     "failed": "失败",
     "id": "ID",
     "loraOutput": "LoRA 输出",
@@ -5377,6 +5425,8 @@
     "progress": "进度",
     "ready": "就绪",
     "running": "运行中",
+    "startFailed": "启动训练任务失败",
+    "startSuccess": "训练任务已启动",
     "status": "状态",
     "title": "训练任务",
     "totalJobs": "总任务"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "子节点区域",
+      "childCount": "子节点",
+      "dropHere": "拖放到此处",
       "dropHint": "支持容器、表单、数据展示等多种组件类型",
       "dropPrompt": "将组件拖放到此处",
-      "emptyHint": "画布为空，从左侧拖入组件开始构建 UI"
+      "emptyHint": "画布为空，从左侧拖入组件开始构建 UI",
+      "leafNode": "叶子节点（无子节点）",
+      "livePreview": "实时预览",
+      "previewEmpty": "暂无内容，请退出预览模式编辑",
+      "rootHint": "个根节点"
+    },
+    "categories": {
+      "container": "容器布局",
+      "data-display": "数据展示",
+      "form": "表单",
+      "media": "媒体",
+      "misc": "其他"
     },
     "components": {
       "Accordion": "手风琴",
@@ -5430,16 +5494,182 @@
       "Timeline": "时间线",
       "Tree": "树形控件"
     },
+    "error": {
+      "reset": "重置",
+      "title": "编辑器发生错误"
+    },
+    "exitFullscreen": "退出全屏",
+    "fullscreen": "全屏",
+    "outline": {
+      "delete": "删除",
+      "duplicate": "复制",
+      "title": "大纲"
+    },
     "palette": {
       "title": "组件"
     },
+    "preview": {
+      "actionTriggered": "动作已触发"
+    },
     "property": {
-      "delete": "删除",
-      "placeholder": {
-        "propKey": "属性名",
-        "propValue": "属性值"
+      "accordion": "手风琴模式",
+      "addAction": "添加动作",
+      "addDataSource": "添加数据源",
+      "addEvent": "添加事件",
+      "addOption": "添加选项",
+      "advancedProps": "高级属性",
+      "align": {
+        "center": "居中",
+        "end": "结束",
+        "start": "起始"
       },
+      "alignLabel": "对齐方式",
+      "alt": "替代文本",
+      "apiEndpoint": "API 端点",
+      "apiMethod": "请求方法",
+      "apiParams": "请求参数",
+      "bordered": "显示边框",
+      "btnType": {
+        "dashed": "虚线",
+        "default": "默认",
+        "link": "链接",
+        "primary": "主要"
+      },
+      "chartType": {
+        "area": "面积图",
+        "bar": "柱状图",
+        "line": "折线图",
+        "pie": "饼图",
+        "scatter": "散点图"
+      },
+      "chartTypeLabel": "图表类型",
+      "checkable": "可勾选",
+      "color": {
+        "blue": "蓝色",
+        "green": "绿色",
+        "orange": "橙色",
+        "purple": "紫色",
+        "red": "红色"
+      },
+      "colorLabel": "颜色",
+      "columns": "列数",
+      "command": "命令名",
+      "conditional": {
+        "addRule": "添加规则",
+        "clear": "清空全部",
+        "description": "配置条件渲染规则。支持 AND/OR 逻辑组合及 NOT 取反。",
+        "empty": "暂无规则，点击下方添加",
+        "fieldPlaceholder": "字段名",
+        "notHint": "对结果取反",
+        "valuePlaceholder": "比较值"
+      },
+      "content": "内容",
+      "data": "数据",
+      "dataSourceType": "数据源类型",
+      "defaultChecked": "默认选中",
+      "delete": "删除",
+      "disabled": "禁用",
+      "dsType": {
+        "agent": "智能体生成",
+        "api": "API",
+        "static": "静态数据",
+        "store": "Store"
+      },
+      "field": "字段",
+      "format": "格式",
+      "gap": "间距",
+      "generationId": "生成 ID",
+      "height": "高度",
+      "icon": "图标",
+      "inputType": {
+        "password": "密码",
+        "text": "文本",
+        "textarea": "多行文本"
+      },
+      "itemLayout": {
+        "horizontal": "水平",
+        "vertical": "垂直"
+      },
+      "itemLayoutLabel": "列表布局",
+      "items": "数据项",
+      "jsonPlaceholder": "请输入 JSON...",
+      "label": "标签",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "纯文本",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "语言",
+      "layout": {
+        "horizontal": "水平",
+        "inline": "行内",
+        "vertical": "垂直"
+      },
+      "layoutLabel": "表单布局",
+      "max": "最大值",
+      "maxLength": "最大长度",
+      "min": "最小值",
+      "name": "名称",
+      "noEvents": "暂无事件",
+      "noOptions": "暂无选项",
+      "nodeId": "节点 ID",
+      "options": "选项",
+      "percent": "百分比",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "属性名",
+        "propValue": "属性值",
+        "schemaId": "schema-id",
+        "storeName": "如 userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "占位提示",
+      "polling": "轮询间隔",
+      "pollingHint": "单位毫秒，0 表示不轮询",
+      "preview": "可预览",
+      "progressType": {
+        "circle": "圆形",
+        "dashboard": "仪表盘",
+        "line": "线形"
+      },
+      "readOnly": "只读",
+      "removeDataSource": "移除数据源",
+      "required": "必填",
+      "rows": "行数",
       "selectHint": "点击画布中的组件\n以编辑其属性",
+      "selectMode": {
+        "default": "单选",
+        "multiple": "多选",
+        "tags": "标签"
+      },
+      "selectModeLabel": "选择模式",
+      "selector": "选择器",
+      "seriesKey": "系列字段",
+      "showHeader": "显示表头",
+      "showLine": "显示连接线",
+      "showTime": "显示时间",
+      "size": {
+        "default": "默认",
+        "large": "大",
+        "middle": "中",
+        "small": "小"
+      },
+      "sizeLabel": "尺寸",
+      "specificFields": "专属字段",
+      "src": "图片地址",
+      "staticValue": "静态值",
+      "step": "步长",
+      "storeName": "Store 名称",
+      "strong": "加粗",
       "style": {
         "add": "添加",
         "empty": "暂无样式属性",
@@ -5450,12 +5680,52 @@
         },
         "quickStyles": "快捷样式"
       },
+      "submitText": "提交按钮文本",
+      "tabPosition": {
+        "bottom": "底部",
+        "left": "左侧",
+        "right": "右侧",
+        "top": "顶部"
+      },
+      "tabPositionLabel": "标签位置",
       "tabs": {
         "basic": "基本",
+        "conditional": "条件",
+        "data": "数据",
+        "events": "事件",
         "style": "样式"
       },
+      "text": "文本",
       "title": "属性面板",
-      "field": "字段"
+      "treeData": "树数据",
+      "type": "类型",
+      "value": "值",
+      "version": "版本",
+      "width": "宽度",
+      "xKey": "X 轴字段",
+      "yKey": "Y 轴字段"
+    },
+    "toolbar": {
+      "copied": "已复制",
+      "copy": "复制",
+      "cut": "剪切",
+      "cutDone": "已剪切",
+      "editMode": "编辑模式",
+      "export": "导出",
+      "exported": "已导出",
+      "import": "导入",
+      "imported": "已导入",
+      "invalidJson": "JSON 文件无效或格式错误",
+      "paste": "粘贴",
+      "pasted": "已粘贴",
+      "previewMode": "预览模式",
+      "redo": "重做",
+      "undo": "撤销",
+      "viewport": {
+        "desktop": "桌面端",
+        "mobile": "移动端",
+        "tablet": "平板"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "Lint 报告"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "自动保存失败，已重试 3 次"
+    },
     "agentNode": {
       "agent": "智能体",
       "context": "上下文",
@@ -6309,7 +6582,12 @@
       "failed": "失败",
       "inputVars": "输入变量",
       "nodeStatus": "节点执行状态",
+      "noInputVariables": "无输入变量",
+      "partiallyCompleted": "部分完成",
+      "paused": "已暂停",
       "runningNode": "正在执行工作流节点",
+      "skipped": "已跳过",
+      "cancelled": "已取消",
       "success": "成功",
       "waiting": "等待中"
     },
@@ -6608,7 +6886,9 @@
       "componentCount": "组件数",
       "components": "{{count}} 个组件",
       "depthLevel": "层级深度",
+      "parsingPhases": "解析阶段",
       "rootType": "根类型",
+      "schemaTitle": "UI Schema",
       "generate": "生成",
       "generating": "生成中...",
       "instruction": "描述你想要的 UI",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "正在分析意图...",
       "buildingWorkflow": "正在构建工作流...",
       "complete": "完成",
+      "generating": "生成中...",
       "intentAnalysis": "意图分析",
       "matchingNodes": "正在匹配节点...",
       "optimizing": "正在优化..."
@@ -7376,6 +7657,8 @@
       "current": "当前版本",
       "currentWorkflowWillBeOverwritten": "当前工作流将被新版本覆盖",
       "deletedNode": "- 删除节点: {{id}} ({{desc}})",
+      "diffPlaceholder": "版本对比功能开发中，请使用版本历史查看各版本详情",
+      "restoreSuccess": "已成功恢复到版本 {{version}}",
       "initialCreation": "初始创建",
       "modifiedNode": "~ 修改节点: {{id}} ({{desc}})",
       "newNode": "+ 新增节点: {{id}} ({{desc}})",

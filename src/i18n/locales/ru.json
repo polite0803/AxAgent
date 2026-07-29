@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "Действие",
+    "addSampleFailed": "Не удалось добавить пример",
     "cancel": "Отмена",
     "createNew": "Создать новый датасет",
     "created": "Создано",
     "createdSuccess": "Dataset created",
+    "deleteFailed": "Не удалось удалить датасет",
     "deletedSuccess": "Набор данных удален",
     "description": "Описание",
     "name": "Имя",
@@ -1787,6 +1789,7 @@
     "unknownFile": "Неизвестный файл",
     "unregisteredComponent": "Незарегистрированный компонент: {{type}}",
     "unsupportedChartType": "Неподдерживаемый тип диаграммы: {{type}}",
+    "persistFailed": "Не удалось сохранить данные формы, проверьте бэкенд-сервис",
     "schemaNotFound": "Динамическая страница не найдена",
     "uiSchemaJson": "UI Schema JSON"
   },
@@ -1868,6 +1871,9 @@
     "export": "Экспорт",
     "exportAll": "Экспорт всех",
     "exportSuccess": "Успешно экспортировано",
+    "fieldChildren": "Дочерние ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "Свойства",
     "keyPlaceholder": "ключ",
     "valuePlaceholder": "значение"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "Ошибка парсинга JSON, невозможно проверить",
     "pass": "Пройдено",
     "reset": "Сброс",
+    "sampleCardTitle": "Пример карточки",
+    "sampleText": "Hello World! Это пример динамического UI.",
     "schemaAllValid": "Проверка схемы пройдена, все поля валидны",
     "schemaValidation": "Проверка схемы",
+    "title": "Предпросмотр динамического UI",
     "waitingForJson": "Ожидание валидного JSON..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "Резервные копии",
     "batchDelete": "Удалить ({{count}})",
     "batchDeleteConfirm": "Удалить {{count}} выбранных элементов?",
+    "batchDeletePartial": "{{ok}} удалено, {{fail}} с ошибкой",
     "batchDeleteSuccess": "Удалено {{count}} элементов",
     "columnActions": "Действия",
     "columnCreatedAt": "Создан",
@@ -2370,6 +2380,8 @@
     "previewDirType": "Папка",
     "previewEmpty": "Выберите файл для предпросмотра",
     "previewFailed": "Не удалось загрузить предпросмотр",
+    "previewImageFailed": "Не удалось загрузить изображение",
+    "previewLoading": "Загрузка…",
     "previewModified": "Изменён",
     "previewPath": "Путь",
     "previewSize": "Размер",
@@ -2378,6 +2390,8 @@
     "previewUnknownType": "Неизвестно",
     "renameSuccess": "Переименовано",
     "renameTitle": "Переименовать",
+    "rootLoadFailed": "Не удалось загрузить каталог",
+    "unknownCategory": "Неизвестная категория файла: {{cat}}",
     "treeEmpty": "Пустая директория"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "Путь",
     "colStatus": "Статус",
     "colTime": "Время",
+    "colToken": "Token",
     "errorCount": "Количество ошибок",
     "loadMetricsFailed": "Не удалось загрузить метрики шлюза: {{error}}",
+    "logsCleared": "Журналы очищены",
     "noRequestLogs": "Нет журналов запросов",
     "refresh": "Обновить",
     "requestLogs": "Журнал запросов",
     "title": "Монитор шлюза",
+    "todayRequests": "Запросы сегодня",
+    "todayTokens": "Token сегодня",
+    "totalCost": "Общая стоимость (USD)",
     "totalRequests": "Всего запросов",
     "totalTokens": "Всего токенов",
     "uptime": "Время работы"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "Все",
+    "categories": {
+      "concept": "Концепция",
+      "context": "Контекст",
+      "fact": "Факт",
+      "improvement": "Улучшение",
+      "pattern": "Шаблон",
+      "preference": "Предпочтение",
+      "project": "Проект",
+      "warning": "Предупреждение"
+    },
+    "categoryMatch": "Совпадение категории",
+    "derived": "Производный",
     "detail": "Подробности",
     "edges": "Связи",
     "entities": "Сущности",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "Связано",
     "memories": "Воспоминания",
     "refresh": "Обновить",
+    "related": "Связанный",
     "searchPlaceholder": "Поиск узлов...",
     "skills": "Навыки",
+    "stateActive": "Активен",
+    "stateArchived": "Архивирован",
+    "stateSkipped": "Пропущен",
     "title": "Граф обучения",
     "useCount": "Количество использований: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "Синхронизированные навыки",
     "tokenLimitPerMinute": "Лимит токенов в минуту",
     "typeCustom": "Пользовательский",
+    "toggleFailed": "Ошибка переключения",
+    "createConversationFailed": "Ошибка создания беседы: {{error}}",
     "unlimited": "Без ограничений",
     "updateSettingsFailed": "Ошибка обновления настроек",
     "weighted": "Взвешенный"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "Обучение",
       "categorySafety": "Безопасность",
       "config": "Конфиг",
+      "empty": "Нет движков эволюции",
       "engineCount": "Запущено",
       "engineNotFound": "Движок не найден",
       "engineNotFoundDesc": "Движок \"{{name}}\" не найден",
@@ -4865,6 +4903,8 @@
       "oldVersion": "Старая (v{{version}})",
       "rollback": "Откат",
       "rollbackConfirmMessage": "Вы уверены, что хотите откатиться до v{{version}}? Это отменит все изменения эволюции после этой версии.",
+      "rollbackFailed": "Откат не удался: {{error}}",
+      "rollbackSuccess": "Откат к v{{version}} выполнен",
       "totalEvolutions": "Всего эволюций",
       "viewDiff": "Просмотреть различия"
     },
@@ -4878,6 +4918,10 @@
     "installed": "Установлено",
     "loadFailed": "Ошибка загрузки \"{{name}}\"",
     "loading": "Загрузка компонента...",
+    "markdown": {
+      "loadFailed": "Ошибка загрузки содержимого Markdown",
+      "parseError": "Ошибка анализа"
+    },
     "marketplace": "Маркетплейс навыков",
     "name": "Имя",
     "namePlaceholder": "Ввести название...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "Действие",
     "baseModel": "Базовая модель",
+    "cancelFailed": "Не удалось отменить задачу обучения",
+    "cancelSuccess": "Задача обучения отменена",
     "completed": "Завершено",
     "datasetId": "ID датасета",
+    "deleteFailed": "Не удалось удалить задачу обучения",
+    "deleteSuccess": "Задача обучения удалена",
     "failed": "Не удалось",
     "id": "ID",
     "loraOutput": "Вывод LoRA",
@@ -5377,6 +5425,8 @@
     "progress": "Прогресс",
     "ready": "Готово",
     "running": "Выполняется",
+    "startFailed": "Не удалось запустить задачу обучения",
+    "startSuccess": "Задача обучения запущена",
     "status": "Статус",
     "title": "Задачи обучения",
     "totalJobs": "Всего задач"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "Область дочерних элементов",
+      "childCount": "Дочерние",
+      "dropHere": "Перетащить сюда",
       "dropHint": "Поддерживает контейнеры, формы, отображение данных и многое другое",
       "dropPrompt": "Перетащите компоненты сюда",
-      "emptyHint": "Холст пуст. Перетащите компоненты с левой панели, чтобы создать ваш интерфейс"
+      "emptyHint": "Холст пуст. Перетащите компоненты с левой панели, чтобы создать ваш интерфейс",
+      "leafNode": "Листовой узел (без дочерних)",
+      "livePreview": "Живой предпросмотр",
+      "previewEmpty": "Нет содержимого, выйдите из режима предпросмотра для редактирования",
+      "rootHint": "корневых узлов"
+    },
+    "categories": {
+      "container": "Макет контейнера",
+      "data-display": "Отображение данных",
+      "form": "Форма",
+      "media": "Медиа",
+      "misc": "Прочее"
     },
     "components": {
       "Accordion": "Аккордеон",
@@ -5430,32 +5494,238 @@
       "Timeline": "Временная шкала",
       "Tree": "Дерево"
     },
+    "error": {
+      "reset": "Сбросить",
+      "title": "Ошибка редактора"
+    },
+    "exitFullscreen": "Выйти из полноэкранного режима",
+    "fullscreen": "Полный экран",
+    "outline": {
+      "delete": "Удалить",
+      "duplicate": "Дублировать",
+      "title": "Структура"
+    },
     "palette": {
       "title": "Компоненты"
     },
+    "preview": {
+      "actionTriggered": "Действие запущено"
+    },
     "property": {
-      "delete": "Удалить",
-      "placeholder": {
-        "propKey": "Ключ",
-        "propValue": "Значение"
+      "accordion": "Режим аккордеона",
+      "addAction": "Добавить действие",
+      "addDataSource": "Добавить источник данных",
+      "addEvent": "Добавить событие",
+      "addOption": "Добавить параметр",
+      "advancedProps": "Расширенные свойства",
+      "align": {
+        "center": "По центру",
+        "end": "Конец",
+        "start": "Начало"
       },
+      "alignLabel": "Выравнивание",
+      "alt": "Альтернативный текст",
+      "apiEndpoint": "API эндпоинт",
+      "apiMethod": "Метод запроса",
+      "apiParams": "Параметры запроса",
+      "bordered": "Показать рамку",
+      "btnType": {
+        "dashed": "Пунктир",
+        "default": "По умолчанию",
+        "link": "Ссылка",
+        "primary": "Основная"
+      },
+      "chartType": {
+        "area": "Область",
+        "bar": "Столбцы",
+        "line": "Линия",
+        "pie": "Круг",
+        "scatter": "Точечная"
+      },
+      "chartTypeLabel": "Тип диаграммы",
+      "checkable": "Отмечаемый",
+      "color": {
+        "blue": "Синий",
+        "green": "Зеленый",
+        "orange": "Оранжевый",
+        "purple": "Фиолетовый",
+        "red": "Красный"
+      },
+      "colorLabel": "Цвет",
+      "columns": "Столбцы",
+      "command": "Имя команды",
+      "conditional": {
+        "addRule": "Добавить правило",
+        "clear": "Очистить все",
+        "description": "Настройте правила условного рендеринга. Поддерживает логику И/ИЛИ и инверсию НЕ.",
+        "empty": "Нет правил, нажмите ниже, чтобы добавить",
+        "fieldPlaceholder": "Имя поля",
+        "notHint": "Инвертировать результат",
+        "valuePlaceholder": "Значение сравнения"
+      },
+      "content": "Содержимое",
+      "data": "Данные",
+      "dataSourceType": "Тип источника данных",
+      "defaultChecked": "Отмечено по умолчанию",
+      "delete": "Удалить",
+      "disabled": "Отключено",
+      "dsType": {
+        "agent": "Сгенерировано агентом",
+        "api": "API",
+        "static": "Статические данные",
+        "store": "Store"
+      },
+      "field": "Поле",
+      "format": "Формат",
+      "gap": "Промежуток",
+      "generationId": "ID генерации",
+      "height": "Высота",
+      "icon": "Иконка",
+      "inputType": {
+        "password": "Пароль",
+        "text": "Текст",
+        "textarea": "Текстовая область"
+      },
+      "itemLayout": {
+        "horizontal": "Горизонтально",
+        "vertical": "Вертикально"
+      },
+      "itemLayoutLabel": "Макет списка",
+      "items": "Элементы данных",
+      "jsonPlaceholder": "Введите JSON...",
+      "label": "Метка",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "Простой текст",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "Язык",
+      "layout": {
+        "horizontal": "Горизонтально",
+        "inline": "В строку",
+        "vertical": "Вертикально"
+      },
+      "layoutLabel": "Макет формы",
+      "max": "Макс",
+      "maxLength": "Макс. длина",
+      "min": "Мин",
+      "name": "Имя",
+      "noEvents": "Нет событий",
+      "noOptions": "Нет параметров",
+      "nodeId": "ID узла",
+      "options": "Параметры",
+      "percent": "Процент",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "Ключ свойства",
+        "propValue": "Значение свойства",
+        "schemaId": "schema-id",
+        "storeName": "напр. userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "Заполнитель",
+      "polling": "Интервал опроса",
+      "pollingHint": "Миллисекунды, 0 отключает",
+      "preview": "Предпросматриваемый",
+      "progressType": {
+        "circle": "Круг",
+        "dashboard": "Панель",
+        "line": "Линия"
+      },
+      "readOnly": "Только чтение",
+      "removeDataSource": "Удалить источник данных",
+      "required": "Обязательно",
+      "rows": "Строки",
       "selectHint": "Нажмите на компонент на холсте,\nчтобы изменить его свойства",
+      "selectMode": {
+        "default": "Одиночный",
+        "multiple": "Множественный",
+        "tags": "Теги"
+      },
+      "selectModeLabel": "Режим выбора",
+      "selector": "Селектор",
+      "seriesKey": "Поле серии",
+      "showHeader": "Показать заголовок",
+      "showLine": "Показать линию",
+      "showTime": "Показать время",
+      "size": {
+        "default": "По умолчанию",
+        "large": "Большой",
+        "middle": "Средний",
+        "small": "Малый"
+      },
+      "sizeLabel": "Размер",
+      "specificFields": "Специфические поля",
+      "src": "URL изображения",
+      "staticValue": "Статическое значение",
+      "step": "Шаг",
+      "storeName": "Имя Store",
+      "strong": "Жирный",
       "style": {
         "add": "Добавить",
         "empty": "Нет свойств стиля",
         "label": "Свойства стиля",
         "placeholder": {
-          "propKey": "Свойство",
-          "propValue": "Значение"
+          "propKey": "Ключ стиля",
+          "propValue": "Значение стиля"
         },
         "quickStyles": "Быстрые стили"
       },
+      "submitText": "Текст кнопки отправки",
+      "tabPosition": {
+        "bottom": "Внизу",
+        "left": "Слева",
+        "right": "Справа",
+        "top": "Вверху"
+      },
+      "tabPositionLabel": "Позиция вкладок",
       "tabs": {
         "basic": "Базовый",
+        "conditional": "Условия",
+        "data": "Данные",
+        "events": "События",
         "style": "Стиль"
       },
+      "text": "Текст",
       "title": "Панель свойств",
-      "field": "поле"
+      "treeData": "Данные дерева",
+      "type": "Тип",
+      "value": "Значение",
+      "version": "Версия",
+      "width": "Ширина",
+      "xKey": "Поле оси X",
+      "yKey": "Поле оси Y"
+    },
+    "toolbar": {
+      "copied": "Скопировано",
+      "copy": "Копировать",
+      "cut": "Вырезать",
+      "cutDone": "Вырезано",
+      "editMode": "Режим редактирования",
+      "export": "Экспорт",
+      "exported": "Экспортировано",
+      "import": "Импорт",
+      "imported": "Импортировано",
+      "invalidJson": "Неверный JSON файл",
+      "paste": "Вставить",
+      "pasted": "Вставлено",
+      "previewMode": "Режим предпросмотра",
+      "redo": "Повторить",
+      "undo": "Отменить",
+      "viewport": {
+        "desktop": "Десктоп",
+        "mobile": "Мобильный",
+        "tablet": "Планшет"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "Отчет Lint"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "Автосохранение не удалось после 3 попыток"
+    },
     "agentNode": {
       "agent": "Агент",
       "context": "Контекст",
@@ -6309,7 +6582,12 @@
       "failed": "Неудача",
       "inputVars": "Входные переменные",
       "nodeStatus": "Статус выполнения узла",
+      "noInputVariables": "Нет входных переменных",
       "runningNode": "Выполнение узла рабочего процесса",
+      "partiallyCompleted": "Частично завершено",
+      "paused": "Приостановлено",
+      "skipped": "Пропущено",
+      "cancelled": "Отменено",
       "success": "Успех",
       "waiting": "Ожидание"
     },
@@ -6608,6 +6886,8 @@
       "componentCount": "Количество компонентов",
       "components": "{{count}} компонентов",
       "depthLevel": "Глубина",
+      "parsingPhases": "Фазы анализа",
+      "schemaTitle": "UI Schema",
       "rootType": "Корневой тип",
       "generate": "Сгенерировать",
       "generating": "Генерация...",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "Анализ намерений...",
       "buildingWorkflow": "Построение workflow...",
       "complete": "Завершено",
+      "generating": "Генерация...",
       "intentAnalysis": "Анализ намерений",
       "matchingNodes": "Сопоставление узлов...",
       "optimizing": "Оптимизация..."
@@ -7376,6 +7657,8 @@
       "current": "Текущая версия",
       "currentWorkflowWillBeOverwritten": "Текущий рабочий процесс будет перезаписан новой версией",
       "deletedNode": "- Удален узел: {{id}} ({{desc}})",
+      "diffPlaceholder": "Сравнение версий в разработке. Используйте историю версий для просмотра деталей.",
+      "restoreSuccess": "Успешно восстановлено до версии {{version}}",
       "initialCreation": "Первоначальное создание",
       "modifiedNode": "~ Изменен узел: {{id}} ({{desc}})",
       "newNode": "+ Добавлен узел: {{id}} ({{desc}})",

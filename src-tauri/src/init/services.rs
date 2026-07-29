@@ -44,6 +44,47 @@ pub fn start_background_services(
     start_trajectory_cleanup(state);
     start_index_job_service(app, state);
     start_plugins(state);
+    #[cfg(not(mobile))]
+    start_pty_event_forwarder(app, state);
+}
+
+/// PTY 事件转发器：从 PtyManager 的 mpsc 通道消费输出/退出事件，
+/// 通过 Tauri 事件总线 emit 到前端（事件名 `pty_output` / `pty_exit`）。
+///
+/// 必须在 wiring 层做这件事，因为 runtime crate 不依赖 tauri，
+/// 保持分层清晰。该任务在 Tauri 主 runtime 上常驻直到进程退出。
+#[cfg(not(mobile))]
+fn start_pty_event_forwarder(app: &tauri::AppHandle, state: &AppState) {
+    use axagent_runtime::pty::{PtyExitEvent, PtyOutputEvent};
+
+    let app_handle_output = app.clone();
+    let pty_manager_output = state.pty_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let event: Option<PtyOutputEvent> = pty_manager_output.recv_output().await;
+            let Some(event) = event else {
+                // channel 所有 sender drop 后返回 None，此时退出循环
+                break;
+            };
+            if let Err(e) = app_handle_output.emit("pty_output", event) {
+                tracing::warn!("pty_output emit failed: {}", e);
+            }
+        }
+    });
+
+    let app_handle_exit = app.clone();
+    let pty_manager_exit = state.pty_manager.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let event: Option<PtyExitEvent> = pty_manager_exit.recv_exit().await;
+            let Some(event) = event else {
+                break;
+            };
+            if let Err(e) = app_handle_exit.emit("pty_exit", event) {
+                tracing::warn!("pty_exit emit failed: {}", e);
+            }
+        }
+    });
 }
 
 /// 初始化 MCP OAuth 凭据存储的全局单例。

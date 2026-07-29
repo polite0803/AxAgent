@@ -665,6 +665,8 @@ macro_rules! register_all_commands {
             commands::workflow_ai::generate_workflow_from_prompt,
             commands::workflow_ai::optimize_agent_prompt,
             commands::workflow_ai::recommend_nodes,
+            commands::workflow_ai::generate_skill_from_prompt,
+            commands::workflow_ai::generate_ui_from_prompt,
             commands::workflow_ai::workflow_ai_chat_stream,
             commands::workflow_ai::workflow_ai_chat_cancel,
             commands::workflow_ai::compile_mission_to_template,

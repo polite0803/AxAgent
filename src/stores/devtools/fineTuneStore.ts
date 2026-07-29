@@ -56,6 +56,14 @@ export interface LoRAConfig {
   epochs: number;
 }
 
+// DT-P0-4: 与后端 ActiveModelConfig 对齐
+export interface ActiveModelInfo {
+  base_model: string;
+  lora_adapters: string[];
+  system_prompt?: string;
+  generation_params: unknown;
+}
+
 export const useFineTuneStore = create<{
   datasets: DatasetInfo[];
   trainingJobs: TrainingJobInfo[];
@@ -92,6 +100,10 @@ export const useFineTuneStore = create<{
   fetchTrainingStats: () => Promise<void>;
   fetchBaseModels: () => Promise<void>;
   fetchLoRAAdapters: () => Promise<void>;
+  // DT-P0-3/4: 与后端 set_active_model(base_model, adapter_ids) 对齐
+  setActiveModel: (baseModel: string, adapterIds: string[]) => Promise<void>;
+  // DT-P0-4: 与后端 ActiveModelConfig 返回结构对齐
+  getActiveModel: () => Promise<ActiveModelInfo | null>;
 }>((set, get) => ({
   datasets: [],
   trainingJobs: [],
@@ -162,10 +174,10 @@ export const useFineTuneStore = create<{
         isLoading: false,
       }));
     } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : "Failed to delete dataset",
-        isLoading: false,
-      });
+      const msg = error instanceof Error ? error.message : "Failed to delete dataset";
+      set({ error: msg, isLoading: false });
+      // DT-P1-3: 错误时抛出,调用方可显示错误反馈
+      throw error instanceof Error ? error : new Error(msg);
     }
   },
 
@@ -179,9 +191,10 @@ export const useFineTuneStore = create<{
       await invoke("add_sample", { datasetId, input, output, systemPrompt });
       await get().fetchDatasets();
     } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : "Failed to add sample",
-      });
+      const msg = error instanceof Error ? error.message : "Failed to add sample";
+      set({ error: msg });
+      // DT-P1-4: 错误时抛出,调用方可显示错误反馈
+      throw error instanceof Error ? error : new Error(msg);
     }
   },
 
@@ -254,11 +267,10 @@ export const useFineTuneStore = create<{
       await invoke("start_training_job", { jobId: id });
       await get().fetchTrainingJobs();
     } catch (error) {
-      set({
-        error: error instanceof Error
-          ? error.message
-          : "Failed to start training job",
-      });
+      const msg = error instanceof Error ? error.message : "Failed to start training job";
+      set({ error: msg });
+      // DT-P1-5: 错误时抛出,调用方可显示错误反馈
+      throw error instanceof Error ? error : new Error(msg);
     }
   },
 
@@ -267,11 +279,9 @@ export const useFineTuneStore = create<{
       await invoke("cancel_training_job", { jobId: id });
       await get().fetchTrainingJobs();
     } catch (error) {
-      set({
-        error: error instanceof Error
-          ? error.message
-          : "Failed to cancel training job",
-      });
+      const msg = error instanceof Error ? error.message : "Failed to cancel training job";
+      set({ error: msg });
+      throw error instanceof Error ? error : new Error(msg);
     }
   },
 
@@ -283,11 +293,9 @@ export const useFineTuneStore = create<{
         selectedJob: state.selectedJob?.id === id ? null : state.selectedJob,
       }));
     } catch (error) {
-      set({
-        error: error instanceof Error
-          ? error.message
-          : "Failed to delete training job",
-      });
+      const msg = error instanceof Error ? error.message : "Failed to delete training job";
+      set({ error: msg });
+      throw error instanceof Error ? error : new Error(msg);
     }
   },
 
@@ -330,9 +338,13 @@ export const useFineTuneStore = create<{
     }
   },
 
-  setActiveModel: async (modelId: string, adapterId?: string) => {
+  // DT-P0-3: 参数名 base_model/adapter_ids 与后端一致
+  setActiveModel: async (baseModel: string, adapterIds: string[]) => {
     try {
-      await invoke("set_active_model", { modelId, adapterId });
+      await invoke("set_active_model", {
+        baseModel,
+        adapterIds,
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to set active model",
@@ -340,11 +352,10 @@ export const useFineTuneStore = create<{
     }
   },
 
+  // DT-P0-4: 返回 ActiveModelInfo,与后端 ActiveModelConfig 字段一致
   getActiveModel: async () => {
     try {
-      const info = await invoke<{ modelId: string; adapterId?: string }>(
-        "get_active_model",
-      );
+      const info = await invoke<ActiveModelInfo | null>("get_active_model");
       return info;
     } catch (error) {
       set({

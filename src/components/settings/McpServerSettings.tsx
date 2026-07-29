@@ -3,6 +3,7 @@
 import { IconEditor } from "@/components/shared/IconEditor";
 import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { showBackendError } from "@/lib/errorI18n";
+import { message } from "@/lib/toast";
 import { DiscoveredMcpServer, useMcpStore } from "@/stores";
 import type { CreateMcpServerInput, McpServer, ToolDescriptor } from "@/types";
 import {
@@ -13,7 +14,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Modal,
   Popconfirm,
   Select,

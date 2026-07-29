@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "動作",
+    "addSampleFailed": "新增樣本失敗",
     "cancel": "取消",
     "createNew": "創建新數據集",
     "created": "創建時間",
     "createdSuccess": "資料集建立成功",
+    "deleteFailed": "刪除資料集失敗",
     "deletedSuccess": "資料集已刪除",
     "description": "說明",
     "name": "名稱",
@@ -1787,6 +1789,7 @@
     "unknownFile": "未知檔案",
     "unregisteredComponent": "未註冊組件: {{type}}",
     "unsupportedChartType": "不支援的圖表類型: {{type}}",
+    "persistFailed": "表單資料持久化失敗，請檢查後端服務",
     "schemaNotFound": "找不到指定的動態頁面",
     "uiSchemaJson": "UI Schema JSON"
   },
@@ -1868,6 +1871,9 @@
     "export": "匯出",
     "exportAll": "匯出全部",
     "exportSuccess": "匯出成功",
+    "fieldChildren": "子節點 ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "屬性",
     "keyPlaceholder": "鍵",
     "valuePlaceholder": "值"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "JSON 解析錯誤，無法驗證",
     "pass": "通過",
     "reset": "重設",
+    "sampleCardTitle": "範例卡片",
+    "sampleText": "Hello World! 這是一個動態 UI 範例。",
     "schemaAllValid": "結構描述驗證通過，所有欄位有效",
     "schemaValidation": "結構描述驗證",
+    "title": "動態 UI 預覽",
     "waitingForJson": "等待有效的 JSON..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "備份",
     "batchDelete": "刪除 ({{count}})",
     "batchDeleteConfirm": "確定要刪除選得的 {{count}} 個檔案嗎？",
+    "batchDeletePartial": "已刪除 {{ok}} 項，{{fail}} 項失敗",
     "batchDeleteSuccess": "已刪除 {{count}} 項",
     "columnActions": "動作",
     "columnCreatedAt": "建立時間",
@@ -2370,6 +2380,8 @@
     "previewDirType": "資料夾",
     "previewEmpty": "選擇檔案以預覽",
     "previewFailed": "無法載入預覽",
+    "previewImageFailed": "圖片載入失敗",
+    "previewLoading": "載入中…",
     "previewModified": "修改時間",
     "previewPath": "路徑",
     "previewSize": "大小",
@@ -2378,6 +2390,8 @@
     "previewUnknownType": "未知",
     "renameSuccess": "已重新命名",
     "renameTitle": "重新命名",
+    "rootLoadFailed": "目錄載入失敗",
+    "unknownCategory": "未知的檔案分類：{{cat}}",
     "treeEmpty": "空目錄"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "路徑",
     "colStatus": "狀態",
     "colTime": "時間",
+    "colToken": "Token",
     "errorCount": "錯誤數",
     "loadMetricsFailed": "加載網關指標失敗: {{error}}",
+    "logsCleared": "日誌已清空",
     "noRequestLogs": "暫無請求日誌",
     "refresh": "重新整理",
     "requestLogs": "請求日誌",
     "title": "Gateway 監控",
+    "todayRequests": "今日請求",
+    "todayTokens": "今日 Token",
+    "totalCost": "總成本 (USD)",
     "totalRequests": "總請求",
     "totalTokens": "總 Token",
     "uptime": "運行時間"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "全部",
+    "categories": {
+      "concept": "概念",
+      "context": "上下文",
+      "fact": "事實",
+      "improvement": "改進",
+      "pattern": "模式",
+      "preference": "偏好",
+      "project": "專案",
+      "warning": "警告"
+    },
+    "categoryMatch": "類別匹配",
+    "derived": "衍生",
     "detail": "詳情",
     "edges": "關聯",
     "entities": "實體",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "關聯",
     "memories": "記憶",
     "refresh": "重新整理",
+    "related": "相關",
     "searchPlaceholder": "搜索節點...",
     "skills": "技能",
+    "stateActive": "活躍",
+    "stateArchived": "已封存",
+    "stateSkipped": "已跳過",
     "title": "學習圖",
     "useCount": "使用次數: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "已同步的技能",
     "tokenLimitPerMinute": "每分鐘 Token 限制",
     "typeCustom": "自訂",
+    "toggleFailed": "切換狀態失敗",
+    "createConversationFailed": "建立會話失敗：{{error}}",
     "unlimited": "無限制",
     "updateSettingsFailed": "更新設置失敗",
     "weighted": "加權"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "學習",
       "categorySafety": "安全性",
       "config": "設定",
+      "empty": "暫無進化引擎",
       "engineCount": "執行中",
       "engineNotFound": "未找到引擎",
       "engineNotFoundDesc": "引擎 \"{{name}}\" 未找到",
@@ -4865,6 +4903,8 @@
       "oldVersion": "舊版 (v{{version}})",
       "rollback": "回滾",
       "rollbackConfirmMessage": "確定要回滾到 v{{version}} 嗎？此操作將丟棄之後的所有進化變更。",
+      "rollbackFailed": "回滾失敗：{{error}}",
+      "rollbackSuccess": "已成功回滾到 v{{version}}",
       "totalEvolutions": "總進化次數",
       "viewDiff": "檢視 Diff"
     },
@@ -4878,6 +4918,10 @@
     "installed": "已安裝",
     "loadFailed": "技能「{{name}}」載入失敗",
     "loading": "載入技能元件中...",
+    "markdown": {
+      "loadFailed": "載入 Markdown 內容失敗",
+      "parseError": "解析錯誤"
+    },
     "marketplace": "技能市場",
     "name": "名稱",
     "namePlaceholder": "輸入名稱...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "動作",
     "baseModel": "基礎模型",
+    "cancelFailed": "取消訓練任務失敗",
+    "cancelSuccess": "訓練任務已取消",
     "completed": "已完成",
     "datasetId": "數據集 ID",
+    "deleteFailed": "刪除訓練任務失敗",
+    "deleteSuccess": "訓練任務已刪除",
     "failed": "失敗",
     "id": "ID",
     "loraOutput": "LoRA 輸出",
@@ -5377,6 +5425,8 @@
     "progress": "進度",
     "ready": "就緒",
     "running": "運行中",
+    "startFailed": "啟動訓練任務失敗",
+    "startSuccess": "訓練任務已啟動",
     "status": "狀態",
     "title": "訓練任務",
     "totalJobs": "總任務"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "子節點區域",
+      "childCount": "子節點",
+      "dropHere": "拖放至此",
       "dropHint": "支援容器、表單、資料展示等元件",
       "dropPrompt": "將元件拖放至此",
-      "emptyHint": "畫布為空。從左側面板拖曳元件來建構 UI"
+      "emptyHint": "畫布為空。從左側面板拖曳元件來建構 UI",
+      "leafNode": "葉子節點（無子節點）",
+      "livePreview": "即時預覽",
+      "previewEmpty": "暫無內容，請結束預覽模式編輯",
+      "rootHint": "個根節點"
+    },
+    "categories": {
+      "container": "容器佈局",
+      "data-display": "資料展示",
+      "form": "表單",
+      "media": "媒體",
+      "misc": "其他"
     },
     "components": {
       "Accordion": "手風琴",
@@ -5430,16 +5494,182 @@
       "Timeline": "時間軸",
       "Tree": "樹狀"
     },
+    "error": {
+      "reset": "重置",
+      "title": "編輯器發生錯誤"
+    },
+    "exitFullscreen": "結束全螢幕",
+    "fullscreen": "全螢幕",
+    "outline": {
+      "delete": "刪除",
+      "duplicate": "複製",
+      "title": "大綱"
+    },
     "palette": {
       "title": "元件面板"
     },
+    "preview": {
+      "actionTriggered": "動作已觸發"
+    },
     "property": {
-      "delete": "刪除",
-      "placeholder": {
-        "propKey": "屬性名",
-        "propValue": "屬性值"
+      "accordion": "手風琴模式",
+      "addAction": "新增動作",
+      "addDataSource": "新增資料來源",
+      "addEvent": "新增事件",
+      "addOption": "新增選項",
+      "advancedProps": "進階屬性",
+      "align": {
+        "center": "置中",
+        "end": "結束",
+        "start": "起始"
       },
-      "selectHint": "點擊畫布上的元件\\n以編輯其屬性",
+      "alignLabel": "對齊方式",
+      "alt": "替代文字",
+      "apiEndpoint": "API 端點",
+      "apiMethod": "請求方法",
+      "apiParams": "請求參數",
+      "bordered": "顯示邊框",
+      "btnType": {
+        "dashed": "虛線",
+        "default": "預設",
+        "link": "連結",
+        "primary": "主要"
+      },
+      "chartType": {
+        "area": "面積圖",
+        "bar": "柱狀圖",
+        "line": "折線圖",
+        "pie": "圓餅圖",
+        "scatter": "散佈圖"
+      },
+      "chartTypeLabel": "圖表類型",
+      "checkable": "可勾選",
+      "color": {
+        "blue": "藍色",
+        "green": "綠色",
+        "orange": "橙色",
+        "purple": "紫色",
+        "red": "紅色"
+      },
+      "colorLabel": "顏色",
+      "columns": "列數",
+      "command": "命令名",
+      "conditional": {
+        "addRule": "新增規則",
+        "clear": "清空全部",
+        "description": "設定條件渲染規則。支援 AND/OR 邏輯組合及 NOT 取反。",
+        "empty": "暫無規則，點擊下方新增",
+        "fieldPlaceholder": "欄位名",
+        "notHint": "對結果取反",
+        "valuePlaceholder": "比較值"
+      },
+      "content": "內容",
+      "data": "資料",
+      "dataSourceType": "資料來源類型",
+      "defaultChecked": "預設選取",
+      "delete": "刪除",
+      "disabled": "停用",
+      "dsType": {
+        "agent": "智慧體生成",
+        "api": "API",
+        "static": "靜態資料",
+        "store": "Store"
+      },
+      "field": "欄位",
+      "format": "格式",
+      "gap": "間距",
+      "generationId": "生成 ID",
+      "height": "高度",
+      "icon": "圖示",
+      "inputType": {
+        "password": "密碼",
+        "text": "文字",
+        "textarea": "多行文字"
+      },
+      "itemLayout": {
+        "horizontal": "水平",
+        "vertical": "垂直"
+      },
+      "itemLayoutLabel": "列表佈局",
+      "items": "資料項",
+      "jsonPlaceholder": "請輸入 JSON...",
+      "label": "標籤",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "純文字",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "語言",
+      "layout": {
+        "horizontal": "水平",
+        "inline": "行內",
+        "vertical": "垂直"
+      },
+      "layoutLabel": "表單佈局",
+      "max": "最大值",
+      "maxLength": "最大長度",
+      "min": "最小值",
+      "name": "名稱",
+      "noEvents": "暫無事件",
+      "noOptions": "暫無選項",
+      "nodeId": "節點 ID",
+      "options": "選項",
+      "percent": "百分比",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "屬性名",
+        "propValue": "屬性值",
+        "schemaId": "schema-id",
+        "storeName": "如 userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "占位提示",
+      "polling": "輪詢間隔",
+      "pollingHint": "單位毫秒，0 表示不輪詢",
+      "preview": "可預覽",
+      "progressType": {
+        "circle": "圓形",
+        "dashboard": "儀表板",
+        "line": "線形"
+      },
+      "readOnly": "唯讀",
+      "removeDataSource": "移除資料來源",
+      "required": "必填",
+      "rows": "行數",
+      "selectHint": "點擊畫布中的元件\n以編輯其屬性",
+      "selectMode": {
+        "default": "單選",
+        "multiple": "多選",
+        "tags": "標籤"
+      },
+      "selectModeLabel": "選擇模式",
+      "selector": "選擇器",
+      "seriesKey": "系列欄位",
+      "showHeader": "顯示表頭",
+      "showLine": "顯示連接線",
+      "showTime": "顯示時間",
+      "size": {
+        "default": "預設",
+        "large": "大",
+        "middle": "中",
+        "small": "小"
+      },
+      "sizeLabel": "尺寸",
+      "specificFields": "專屬欄位",
+      "src": "圖片位址",
+      "staticValue": "靜態值",
+      "step": "步長",
+      "storeName": "Store 名稱",
+      "strong": "加粗",
       "style": {
         "add": "新增",
         "empty": "暫無樣式屬性",
@@ -5450,12 +5680,52 @@
         },
         "quickStyles": "快捷樣式"
       },
+      "submitText": "提交按鈕文字",
+      "tabPosition": {
+        "bottom": "底部",
+        "left": "左側",
+        "right": "右側",
+        "top": "頂部"
+      },
+      "tabPositionLabel": "標籤位置",
       "tabs": {
         "basic": "基本",
+        "conditional": "條件",
+        "data": "資料",
+        "events": "事件",
         "style": "樣式"
       },
+      "text": "文字",
       "title": "屬性面板",
-      "field": "欄位"
+      "treeData": "樹資料",
+      "type": "類型",
+      "value": "值",
+      "version": "版本",
+      "width": "寬度",
+      "xKey": "X 軸欄位",
+      "yKey": "Y 軸欄位"
+    },
+    "toolbar": {
+      "copied": "已複製",
+      "copy": "複製",
+      "cut": "剪下",
+      "cutDone": "已剪下",
+      "editMode": "編輯模式",
+      "export": "匯出",
+      "exported": "已匯出",
+      "import": "匯入",
+      "imported": "已匯入",
+      "invalidJson": "JSON 檔案無效或格式錯誤",
+      "paste": "貼上",
+      "pasted": "已貼上",
+      "previewMode": "預覽模式",
+      "redo": "重做",
+      "undo": "復原",
+      "viewport": {
+        "desktop": "桌面端",
+        "mobile": "行動端",
+        "tablet": "平板"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "Lint 報告"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "自動儲存失敗，已重試 3 次"
+    },
     "agentNode": {
       "agent": "智能體",
       "context": "📚 上下文",
@@ -6309,7 +6582,12 @@
       "failed": "失敗",
       "inputVars": "輸入變數",
       "nodeStatus": "節點執行狀態",
+      "noInputVariables": "無輸入變數",
       "runningNode": "正在執行工作流節點",
+      "partiallyCompleted": "部分完成",
+      "paused": "已暫停",
+      "skipped": "已跳過",
+      "cancelled": "已取消",
       "success": "成功",
       "waiting": "等待中"
     },
@@ -6608,6 +6886,8 @@
       "componentCount": "元件數量",
       "components": "{{count}} 個元件",
       "depthLevel": "深度",
+      "parsingPhases": "解析階段",
+      "schemaTitle": "UI Schema",
       "rootType": "根類型",
       "generate": "產生",
       "generating": "產生中...",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "正在分析意圖...",
       "buildingWorkflow": "正在建構工作流...",
       "complete": "完成",
+      "generating": "生成中...",
       "intentAnalysis": "意圖分析",
       "matchingNodes": "正在匹配節點...",
       "optimizing": "正在最佳化..."
@@ -7376,6 +7657,8 @@
       "current": "目前版本",
       "currentWorkflowWillBeOverwritten": "目前工作流將被新版本覆蓋",
       "deletedNode": "- 已移除節點：{{id}}（{{desc}}）",
+      "diffPlaceholder": "版本對比功能開發中，請使用版本歷史查看各版本詳情",
+      "restoreSuccess": "已成功恢復到版本 {{version}}",
       "initialCreation": "初始建立",
       "modifiedNode": "修改節點",
       "newNode": "+ 已新增節點：{{id}}（{{desc}}）",

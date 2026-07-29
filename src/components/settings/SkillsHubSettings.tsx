@@ -2,6 +2,7 @@
 
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
+import type { Skill } from "@/types";
 import { Button, Card, Typography } from "antd";
 import { Download, Upload } from "lucide-react";
 import { useCallback } from "react";
@@ -16,10 +17,10 @@ const { Title, Paragraph } = Typography;
 export function SkillsHubSettings() {
   const { t } = useTranslation();
 
+  // SK-P0-1/2: 修复 list_skills 返回类型(后端直接返回数组)与 install_skill 参数名
   const handleExportSkill = useCallback(async () => {
     try {
-      const result = await invoke<{ skills: Array<{ name: string }> }>("list_skills");
-      const availableSkills = result?.skills ?? [];
+      const availableSkills = await invoke<Skill[]>("list_skills");
       if (availableSkills.length === 0) {
         message.warning(t("settings.skillsHub.noSkillsToExport"));
         return;
@@ -56,9 +57,11 @@ export function SkillsHubSettings() {
           message.error(t("settings.skillsHub.invalidSkillFile"));
           return;
         }
+        // SK-P0-2: 后端 install_skill 期望 source/target/scenarios 参数
         await invoke("install_skill", {
-          name: skillData.name,
-          sourcePath: skillData.sourcePath ?? skillData.name,
+          source: skillData.sourcePath ?? skillData.name,
+          target: null,
+          scenarios: null,
         });
         message.success(t("settings.skillsHub.imported", { name: skillData.name }));
       } catch (e) {

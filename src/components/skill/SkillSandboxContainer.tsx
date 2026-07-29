@@ -17,7 +17,7 @@ import { createHostApiBridge, createHostRpcBridge } from "@/sdk/rpcBridge";
 import type { HostApiBridge, HostRpcBridge } from "@/sdk/rpcBridge";
 import { generateSandboxHtml } from "@/sdk/sandboxTemplate";
 import type { SkillHostApi, SkillHostStore, SkillHostUi, SkillPermissions } from "@/sdk/types";
-import { notification, theme as antdTheme } from "antd";
+import { App as AntdApp, theme as antdTheme } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SkillErrorFallback, SkillLoadingSkeleton } from "./SkillErrorFallback";
@@ -54,6 +54,8 @@ export function SkillSandboxContainer({
   const { token: themeToken } = antdTheme.useToken();
   const currentTheme: "light" | "dark" = themeToken.colorBgBase === "#ffffff" ? "light" : "dark";
   const navigate = useNavigate();
+  // SK-P0-6: 使用 useApp() 获取 notification 实例,继承主题上下文
+  const { notification } = AntdApp.useApp();
 
   const loadSandbox = useCallback(async () => {
     // 重试时先移除上一次绑定的 message 监听，避免监听器累积泄漏
@@ -198,9 +200,10 @@ export function SkillSandboxContainer({
     }, SANDBOX_LOAD_TIMEOUT_MS);
 
     try {
+      // SK-P0-3: 后端期望参数名 name/file_name,而非 skillName/path
       const htmlContent = await invoke<string>("skill_read_asset", {
-        skillName,
-        path: entry,
+        name: skillName,
+        file_name: entry,
       });
 
       if (!htmlContent || htmlContent.trim().length === 0) {
@@ -302,6 +305,7 @@ export function SkillSandboxContainer({
     componentConfig,
     permissions,
     navigate,
+    notification,
   ]);
 
   useEffect(() => {

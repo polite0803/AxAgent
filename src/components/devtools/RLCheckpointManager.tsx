@@ -3,7 +3,7 @@
 import { useRlTrainingStore } from "@/stores/feature/rlTrainingStore";
 import type { CheckpointInfo } from "@/stores/feature/rlTrainingStore";
 import { Button, Input, Modal, Space, Table, Typography } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -14,9 +14,15 @@ export function RLCheckpointManager() {
   const saveCheckpoint = useRlTrainingStore((s) => s.saveCheckpoint);
   const loadCheckpoint = useRlTrainingStore((s) => s.loadCheckpoint);
   const deleteCheckpoint = useRlTrainingStore((s) => s.deleteCheckpoint);
+  const listCheckpoints = useRlTrainingStore((s) => s.listCheckpoints);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [checkpointName, setCheckpointName] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  // DT-P1-1: 挂载时加载历史 checkpoint 列表
+  useEffect(() => {
+    listCheckpoints();
+  }, [listCheckpoints]);
 
   const handleSave = async () => {
     if (!checkpointName.trim()) { return; }
@@ -25,10 +31,14 @@ export function RLCheckpointManager() {
     setSaveModalOpen(false);
   };
 
+  // DT-P1-2: try/finally 确保 loadingId 永远会被重置
   const handleLoad = async (id: string) => {
     setLoadingId(id);
-    await loadCheckpoint(id);
-    setLoadingId(null);
+    try {
+      await loadCheckpoint(id);
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const columns = [

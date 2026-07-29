@@ -17,7 +17,6 @@ interface WorkEngineState {
   isDebugRunning: boolean;
   lastDebugError: string | null;
 
-  startExecution: (workflowId: string, input: unknown) => Promise<string>;
   debugRun: (
     templateId: string,
     options?: {
@@ -56,20 +55,6 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
   isDebugRunning: false,
   lastDebugError: null,
 
-  startExecution: async (workflowId: string, input: unknown) => {
-    set({ loading: true });
-    try {
-      const executionId = await invoke<string>("start_workflow_execution", {
-        workflow_id: workflowId,
-        input,
-      });
-      set({ executionId, isDebugRunning: true });
-      return executionId;
-    } finally {
-      set({ loading: false });
-    }
-  },
-
   debugRun: async (
     templateId: string,
     options?: {
@@ -83,12 +68,12 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     set({ loading: true, nodeStatuses: {}, nodeRecords: [], variables: {}, lastDebugError: null });
     try {
       const executionId = await invoke<string>("debug_run_workflow", {
-        templateId: templateId,
+        templateId,
         input: options?.input ?? null,
         breakpoints: options?.breakpoints ?? null,
-        dry_run: options?.dryRun ?? get().dryRun,
-        model_id: options?.modelId ?? null,
-        provider_id: options?.providerId ?? null,
+        dryRun: options?.dryRun ?? get().dryRun,
+        modelId: options?.modelId ?? null,
+        providerId: options?.providerId ?? null,
       });
       set({ executionId, isDebugRunning: true, lastDebugError: null });
       return executionId;
@@ -107,7 +92,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     if (!executionId) { return; }
     try {
       await invoke<boolean>("pause_workflow_execution", {
-        execution_id: executionId,
+        executionId,
       });
     } catch (e) {
       console.error("[workEngine] pause failed:", String(e));
@@ -120,7 +105,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     if (!executionId) { return; }
     try {
       await invoke<boolean>("resume_workflow_execution", {
-        execution_id: executionId,
+        executionId,
       });
     } catch (e) {
       console.error("[workEngine] resume failed:", String(e));
@@ -133,7 +118,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     if (!executionId) { return; }
     try {
       await invoke<boolean>("cancel_workflow_execution", {
-        execution_id: executionId,
+        executionId,
       });
       set({ isDebugRunning: false });
     } catch (e) {
@@ -147,8 +132,8 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     const { executionId } = get();
     try {
       await invoke<boolean>("set_workflow_breakpoints", {
-        node_ids: nodeIds,
-        execution_id: executionId ?? null,
+        nodeIds,
+        executionId: executionId ?? null,
       });
       set({ breakpoints: nodeIds });
     } catch (e) {
@@ -162,7 +147,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     if (!executionId) { return; }
     try {
       await invoke<boolean>("resume_workflow_breakpoint", {
-        execution_id: executionId,
+        executionId,
       });
     } catch (e) {
       console.error("[workEngine] resumeBreakpoint failed:", String(e));
@@ -175,7 +160,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     if (!executionId) { return; }
     try {
       await invoke<boolean>("step_workflow_breakpoint", {
-        execution_id: executionId,
+        executionId,
       });
     } catch (e) {
       console.error("[workEngine] stepBreakpoint failed:", String(e));
@@ -193,8 +178,8 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     if (get().isDebugRunning) {
       try {
         await invoke<boolean>("set_workflow_breakpoints", {
-          node_ids: next,
-          execution_id: executionId ?? null,
+          nodeIds: next,
+          executionId: executionId ?? null,
         });
       } catch (e) {
         console.error("[workEngine] toggleBreakpoint remote sync failed:", String(e));
@@ -211,7 +196,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
   loadHistory: async (workflowId: string) => {
     const history = await invoke<ExecutionSummary[]>(
       "list_workflow_executions",
-      { workflow_id: workflowId },
+      { workflowId },
     );
     set({ executionHistory: history });
   },
@@ -219,7 +204,7 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
   getStatus: async (executionId: string, replaceStatuses?: boolean) => {
     const status = await invoke<ExecutionStatusResponse>(
       "get_workflow_execution_status",
-      { execution_id: executionId },
+      { executionId },
     );
     const nodeStatusesFromRecords: Record<string, string> = {};
     for (const r of status.node_records ?? []) {

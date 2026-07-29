@@ -53,6 +53,16 @@ export function LinkModels({ link }: LinkModelsProps) {
     }
   };
 
+  // GW-P0-6: 行内 Push 按钮推送当前行,而非全局选中行
+  const handlePushOne = async (modelId: string) => {
+    try {
+      await pushModels(link.id, [modelId]);
+      message.success(t("link.pushModelsSuccess"));
+    } catch {
+      message.error(t("link.pushModelsFailed"));
+    }
+  };
+
   const SYNC_STATUS_MAP: Record<string, { color: string; label: string }> = {
     synced: { color: "green", label: t("link.syncStatusSynced") },
     pending: { color: "orange", label: t("link.syncStatusPending") },
@@ -97,11 +107,12 @@ export function LinkModels({ link }: LinkModelsProps) {
       title: t("link.actions"),
       key: "actions",
       width: 100,
-      render: (_: unknown) => (
+      // GW-P0-6: 接收 record 参数,推送当前行而非全局选中行
+      render: (_: unknown, record: { model_id: string }) => (
         <Button
           size="small"
           icon={<Upload size={14} />}
-          onClick={() => handlePushSelected()}
+          onClick={() => handlePushOne(record.model_id)}
           disabled={link.status !== "connected"}
         >
           {t("link.push")}

@@ -1584,10 +1584,12 @@
   },
   "datasetManager": {
     "action": "작업",
+    "addSampleFailed": "샘플 추가 실패",
     "cancel": "취소",
     "createNew": "새 데이터셋 만들기",
     "created": "생성됨",
     "createdSuccess": "Dataset created",
+    "deleteFailed": "데이터셋 삭제 실패",
     "deletedSuccess": "데이터셋 삭제됨",
     "description": "설명",
     "name": "이름",
@@ -1787,6 +1789,7 @@
     "unknownFile": "알 수 없는 파일",
     "unregisteredComponent": "등록되지 않은 컴포넌트: {{type}}",
     "unsupportedChartType": "지원되지 않는 차트 유형: {{type}}",
+    "persistFailed": "양식 데이터 저장에 실패했습니다. 백엔드 서비스를 확인하세요",
     "schemaNotFound": "동적 페이지를 찾을 수 없습니다",
     "uiSchemaJson": "UI 스키마 JSON"
   },
@@ -1868,6 +1871,9 @@
     "export": "내보내기",
     "exportAll": "모두 내보내기",
     "exportSuccess": "내보내기 성공",
+    "fieldChildren": "자식 노드 ({{count}})",
+    "fieldId": "ID",
+    "fieldProps": "속성",
     "keyPlaceholder": "키",
     "valuePlaceholder": "값"
   },
@@ -1878,8 +1884,11 @@
     "parseErrorCantValidate": "JSON 구문 분석 오류, 유효성 검사 불가",
     "pass": "통과",
     "reset": "초기화",
+    "sampleCardTitle": "샘플 카드",
+    "sampleText": "Hello World! 이것은 동적 UI 샘플입니다.",
     "schemaAllValid": "스키마 유효성 검사 통과, 모든 필드가 유효합니다",
     "schemaValidation": "스키마 유효성 검사",
+    "title": "동적 UI 미리보기",
     "waitingForJson": "유효한 JSON을 기다리는 중..."
   },
   "error": {
@@ -2338,6 +2347,7 @@
     "backups": "백업",
     "batchDelete": "삭제 ({{count}})",
     "batchDeleteConfirm": "선택한 {{count}}개의 항목을 삭제하시겠습니까?",
+    "batchDeletePartial": "{{ok}}개 삭제, {{fail}}개 실패",
     "batchDeleteSuccess": "{{count}}개를 삭제했습니다",
     "columnActions": "작업",
     "columnCreatedAt": "생성됨",
@@ -2370,6 +2380,8 @@
     "previewDirType": "폴더",
     "previewEmpty": "미리보기할 파일 선택",
     "previewFailed": "미리보기를 불러올 수 없습니다",
+    "previewImageFailed": "이미지 로드 실패",
+    "previewLoading": "로드 중…",
     "previewModified": "수정 시간",
     "previewPath": "경로",
     "previewSize": "크기",
@@ -2378,6 +2390,8 @@
     "previewUnknownType": "알 수 없음",
     "renameSuccess": "이름이 변경되었습니다",
     "renameTitle": "이름 변경",
+    "rootLoadFailed": "디렉토리 로드 실패",
+    "unknownCategory": "알 수 없는 파일 카테고리: {{cat}}",
     "treeEmpty": "빈 디렉토리"
   },
   "fineTune": {
@@ -2525,12 +2539,17 @@
     "colPath": "경로",
     "colStatus": "상태",
     "colTime": "시간",
+    "colToken": "Token",
     "errorCount": "오류 수",
     "loadMetricsFailed": "게이트웨이 메트릭 로드 실패: {{error}}",
+    "logsCleared": "로그가 삭제되었습니다",
     "noRequestLogs": "요청 로그 없음",
     "refresh": "새로고침",
     "requestLogs": "요청 로그",
     "title": "게이트웨이 모니터",
+    "todayRequests": "오늘 요청",
+    "todayTokens": "오늘 Token",
+    "totalCost": "총 비용 (USD)",
     "totalRequests": "총 요청 수",
     "totalTokens": "총 토큰 수",
     "uptime": "가동 시간"
@@ -2638,6 +2657,18 @@
   },
   "learningGraph": {
     "all": "전체",
+    "categories": {
+      "concept": "개념",
+      "context": "컨텍스트",
+      "fact": "사실",
+      "improvement": "개선",
+      "pattern": "패턴",
+      "preference": "환경설정",
+      "project": "프로젝트",
+      "warning": "경고"
+    },
+    "categoryMatch": "카테고리 일치",
+    "derived": "파생",
     "detail": "상세",
     "edges": "연결",
     "entities": "엔티티",
@@ -2646,8 +2677,12 @@
     "lexicalOverlap": "관련",
     "memories": "기억",
     "refresh": "새로고침",
+    "related": "관련",
     "searchPlaceholder": "노드 검색...",
     "skills": "스킬",
+    "stateActive": "활성",
+    "stateArchived": "보관됨",
+    "stateSkipped": "건너뜀",
     "title": "학습 그래프",
     "useCount": "사용 횟수: {count}"
   },
@@ -2734,6 +2769,8 @@
     "syncedSkills": "동기화된 스킬",
     "tokenLimitPerMinute": "분당 토큰 제한",
     "typeCustom": "사용자 정의",
+    "toggleFailed": "전환 실패",
+    "createConversationFailed": "대화 생성 실패: {{error}}",
     "unlimited": "무제한",
     "updateSettingsFailed": "설정 업데이트 실패",
     "weighted": "가중치"
@@ -3837,6 +3874,7 @@
       "categoryLearning": "학습",
       "categorySafety": "안전",
       "config": "설정",
+      "empty": "진화 엔진이 없습니다",
       "engineCount": "실행 중",
       "engineNotFound": "엔진을 찾을 수 없음",
       "engineNotFoundDesc": "엔진 \"{{name}}\"을(를) 찾을 수 없음",
@@ -4865,6 +4903,8 @@
       "oldVersion": "이전(v{{version}})",
       "rollback": "롤백",
       "rollbackConfirmMessage": "v{{version}}으로 롤백하시겠습니까? 해당 버전 이후의 모든 진화 변경 사항이 삭제됩니다.",
+      "rollbackFailed": "롤백 실패: {{error}}",
+      "rollbackSuccess": "v{{version}}로 롤백 성공",
       "totalEvolutions": "총 진화 횟수",
       "viewDiff": "차이 보기"
     },
@@ -4878,6 +4918,10 @@
     "installed": "설치됨",
     "loadFailed": "스킬 \"{{name}}\" 로드 실패",
     "loading": "스킬 컴포넌트 로딩 중...",
+    "markdown": {
+      "loadFailed": "Markdown 콘텐츠 로드 실패",
+      "parseError": "구문 분석 오류"
+    },
     "marketplace": "스킬 마켓플레이스",
     "name": "이름",
     "namePlaceholder": "이름 입력...",
@@ -5368,8 +5412,12 @@
   "trainingJob": {
     "action": "작업",
     "baseModel": "기본 모델",
+    "cancelFailed": "훈련 작업 취소 실패",
+    "cancelSuccess": "훈련 작업이 취소되었습니다",
     "completed": "완료",
     "datasetId": "데이터셋 ID",
+    "deleteFailed": "훈련 작업 삭제 실패",
+    "deleteSuccess": "훈련 작업이 삭제되었습니다",
     "failed": "실패",
     "id": "ID",
     "loraOutput": "LoRA 출력",
@@ -5377,6 +5425,8 @@
     "progress": "진행률",
     "ready": "준비",
     "running": "실행 중",
+    "startFailed": "훈련 작업 시작 실패",
+    "startSuccess": "훈련 작업이 시작되었습니다",
     "status": "상태",
     "title": "훈련 작업",
     "totalJobs": "총 작업"
@@ -5393,9 +5443,23 @@
   },
   "visualEditor": {
     "canvas": {
+      "childArea": "자식 노드 영역",
+      "childCount": "자식 노드",
+      "dropHere": "여기에 드롭",
       "dropHint": "컨테이너, 폼, 데이터 표시 등을 지원합니다",
       "dropPrompt": "여기에 컴포넌트를 드롭하세요",
-      "emptyHint": "캔버스가 비어 있습니다. 왼쪽 패널에서 컴포넌트를 드래그하여 UI를 구축하세요"
+      "emptyHint": "캔버스가 비어 있습니다. 왼쪽 패널에서 컴포넌트를 드래그하여 UI를 구축하세요",
+      "leafNode": "리프 노드 (자식 없음)",
+      "livePreview": "실시간 미리보기",
+      "previewEmpty": "콘텐츠가 없습니다. 미리보기 모드를 종료하고 편집하세요",
+      "rootHint": "루트 노드"
+    },
+    "categories": {
+      "container": "컨테이너 레이아웃",
+      "data-display": "데이터 표시",
+      "form": "폼",
+      "media": "미디어",
+      "misc": "기타"
     },
     "components": {
       "Accordion": "아코디언",
@@ -5430,32 +5494,238 @@
       "Timeline": "타임라인",
       "Tree": "트리"
     },
+    "error": {
+      "reset": "재설정",
+      "title": "에디터 오류"
+    },
+    "exitFullscreen": "전체 화면 종료",
+    "fullscreen": "전체 화면",
+    "outline": {
+      "delete": "삭제",
+      "duplicate": "복제",
+      "title": "아웃라인"
+    },
     "palette": {
       "title": "컴포넌트"
     },
+    "preview": {
+      "actionTriggered": "작업이 트리거되었습니다"
+    },
     "property": {
-      "delete": "삭제",
-      "placeholder": {
-        "propKey": "키",
-        "propValue": "값"
+      "accordion": "아코디언 모드",
+      "addAction": "작업 추가",
+      "addDataSource": "데이터 소스 추가",
+      "addEvent": "이벤트 추가",
+      "addOption": "옵션 추가",
+      "advancedProps": "고급 속성",
+      "align": {
+        "center": "가운데",
+        "end": "끝",
+        "start": "시작"
       },
+      "alignLabel": "정렬",
+      "alt": "대체 텍스트",
+      "apiEndpoint": "API 엔드포인트",
+      "apiMethod": "요청 메서드",
+      "apiParams": "요청 매개변수",
+      "bordered": "테두리 표시",
+      "btnType": {
+        "dashed": "점선",
+        "default": "기본",
+        "link": "링크",
+        "primary": "주요"
+      },
+      "chartType": {
+        "area": "영역",
+        "bar": "막대",
+        "line": "선",
+        "pie": "파이",
+        "scatter": "분산"
+      },
+      "chartTypeLabel": "차트 유형",
+      "checkable": "체크 가능",
+      "color": {
+        "blue": "파랑",
+        "green": "초록",
+        "orange": "주황",
+        "purple": "보라",
+        "red": "빨강"
+      },
+      "colorLabel": "색상",
+      "columns": "열 수",
+      "command": "명령 이름",
+      "conditional": {
+        "addRule": "규칙 추가",
+        "clear": "모두 지우기",
+        "description": "조건부 렌더링 규칙을 설정합니다. AND/OR 논리 및 NOT 반전을 지원합니다.",
+        "empty": "규칙이 없습니다. 아래를 클릭하여 추가",
+        "fieldPlaceholder": "필드 이름",
+        "notHint": "결과 반전",
+        "valuePlaceholder": "비교 값"
+      },
+      "content": "내용",
+      "data": "데이터",
+      "dataSourceType": "데이터 소스 유형",
+      "defaultChecked": "기본 선택",
+      "delete": "삭제",
+      "disabled": "비활성화",
+      "dsType": {
+        "agent": "에이전트 생성",
+        "api": "API",
+        "static": "정적 데이터",
+        "store": "Store"
+      },
+      "field": "필드",
+      "format": "형식",
+      "gap": "간격",
+      "generationId": "생성 ID",
+      "height": "높이",
+      "icon": "아이콘",
+      "inputType": {
+        "password": "비밀번호",
+        "text": "텍스트",
+        "textarea": "텍스트 영역"
+      },
+      "itemLayout": {
+        "horizontal": "가로",
+        "vertical": "세로"
+      },
+      "itemLayoutLabel": "목록 레이아웃",
+      "items": "데이터 항목",
+      "jsonPlaceholder": "JSON 입력...",
+      "label": "레이블",
+      "lang": {
+        "javascript": "JavaScript",
+        "json": "JSON",
+        "markdown": "Markdown",
+        "plaintext": "일반 텍스트",
+        "python": "Python",
+        "rust": "Rust",
+        "typescript": "TypeScript"
+      },
+      "language": "언어",
+      "layout": {
+        "horizontal": "가로",
+        "inline": "인라인",
+        "vertical": "세로"
+      },
+      "layoutLabel": "폼 레이아웃",
+      "max": "최대",
+      "maxLength": "최대 길이",
+      "min": "최소",
+      "name": "이름",
+      "noEvents": "이벤트 없음",
+      "noOptions": "옵션 없음",
+      "nodeId": "노드 ID",
+      "options": "옵션",
+      "percent": "백분율",
+      "placeholder": {
+        "actionStoreName": "storeName",
+        "agentSelector": "state.path.to.data",
+        "apiEndpoint": "/api/endpoint",
+        "emitEvent": "event-name",
+        "generationId": "generation-id",
+        "navigatePath": "/target/path",
+        "propKey": "속성 키",
+        "propValue": "속성 값",
+        "schemaId": "schema-id",
+        "storeName": "예: userStore",
+        "storeSelector": "state.path.to.data"
+      },
+      "placeholderLabel": "자리표시자",
+      "polling": "폴링 간격",
+      "pollingHint": "밀리초 단위, 0은 비활성화",
+      "preview": "미리보기 가능",
+      "progressType": {
+        "circle": "원형",
+        "dashboard": "대시보드",
+        "line": "선형"
+      },
+      "readOnly": "읽기 전용",
+      "removeDataSource": "데이터 소스 제거",
+      "required": "필수",
+      "rows": "행 수",
       "selectHint": "캔버스에서 컴포넌트를 클릭하여\n속성을 편집하세요",
+      "selectMode": {
+        "default": "단일",
+        "multiple": "다중",
+        "tags": "태그"
+      },
+      "selectModeLabel": "선택 모드",
+      "selector": "선택기",
+      "seriesKey": "시리즈 필드",
+      "showHeader": "헤더 표시",
+      "showLine": "선 표시",
+      "showTime": "시간 표시",
+      "size": {
+        "default": "기본",
+        "large": "큼",
+        "middle": "중간",
+        "small": "작음"
+      },
+      "sizeLabel": "크기",
+      "specificFields": "전용 필드",
+      "src": "이미지 URL",
+      "staticValue": "정적 값",
+      "step": "단계",
+      "storeName": "Store 이름",
+      "strong": "굵게",
       "style": {
         "add": "추가",
         "empty": "스타일 속성 없음",
         "label": "스타일 속성",
         "placeholder": {
-          "propKey": "속성",
-          "propValue": "값"
+          "propKey": "스타일 키",
+          "propValue": "스타일 값"
         },
         "quickStyles": "빠른 스타일"
       },
+      "submitText": "제출 버튼 텍스트",
+      "tabPosition": {
+        "bottom": "하단",
+        "left": "왼쪽",
+        "right": "오른쪽",
+        "top": "상단"
+      },
+      "tabPositionLabel": "탭 위치",
       "tabs": {
         "basic": "기본",
+        "conditional": "조건",
+        "data": "데이터",
+        "events": "이벤트",
         "style": "스타일"
       },
+      "text": "텍스트",
       "title": "속성 패널",
-      "field": "필드"
+      "treeData": "트리 데이터",
+      "type": "유형",
+      "value": "값",
+      "version": "버전",
+      "width": "너비",
+      "xKey": "X축 필드",
+      "yKey": "Y축 필드"
+    },
+    "toolbar": {
+      "copied": "복사됨",
+      "copy": "복사",
+      "cut": "잘라내기",
+      "cutDone": "잘라내기 완료",
+      "editMode": "편집 모드",
+      "export": "내보내기",
+      "exported": "내보내기 완료",
+      "import": "가져오기",
+      "imported": "가져오기 완료",
+      "invalidJson": "잘못된 JSON 파일",
+      "paste": "붙여넣기",
+      "pasted": "붙여넣기 완료",
+      "previewMode": "미리보기 모드",
+      "redo": "다시 실행",
+      "undo": "실행 취소",
+      "viewport": {
+        "desktop": "데스크톱",
+        "mobile": "모바일",
+        "tablet": "태블릿"
+      }
     }
   },
   "voice": {
@@ -5748,6 +6018,9 @@
     "lintReport": "린트 보고서"
   },
   "workflow": {
+    "autoSave": {
+      "failed": "자동 저장 실패 (3회 재시도)"
+    },
     "agentNode": {
       "agent": "에이전트",
       "context": "컨텍스트",
@@ -6309,7 +6582,12 @@
       "failed": "실패",
       "inputVars": "입력 변수",
       "nodeStatus": "노드 실행 상태",
+      "noInputVariables": "입력 변수 없음",
       "runningNode": "워크플로우 노드 실행 중",
+      "partiallyCompleted": "부분 완료",
+      "paused": "일시정지됨",
+      "skipped": "건너뜀",
+      "cancelled": "취소됨",
       "success": "성공",
       "waiting": "대기 중"
     },
@@ -6608,6 +6886,8 @@
       "componentCount": "구성 요소 수",
       "components": "{{count}}개 구성 요소",
       "depthLevel": "깊이",
+      "parsingPhases": "파싱 단계",
+      "schemaTitle": "UI Schema",
       "rootType": "루트 유형",
       "generate": "생성",
       "generating": "생성 중...",
@@ -6754,6 +7034,7 @@
       "analyzingIntent": "의도 분석 중...",
       "buildingWorkflow": "워크플로우 구축 중...",
       "complete": "완료",
+      "generating": "생성 중...",
       "intentAnalysis": "의도 분석",
       "matchingNodes": "노드 매칭 중...",
       "optimizing": "최적화 중..."
@@ -7376,6 +7657,8 @@
       "current": "현재 버전",
       "currentWorkflowWillBeOverwritten": "현재 워크플로가 새 버전으로 덮어쓰여집니다",
       "deletedNode": "- 노드 제거됨: {{id}} ({{desc}})",
+      "diffPlaceholder": "버전 비교 기능이 개발 중입니다. 버전 기록에서 각 버전의 세부 정보를 확인하세요",
+      "restoreSuccess": "버전 {{version}}으로 성공적으로 복원되었습니다",
       "initialCreation": "초기 생성",
       "modifiedNode": "~ 노드 수정됨: {{id}} ({{desc}})",
       "newNode": "+ 노드 추가됨: {{id}} ({{desc}})",

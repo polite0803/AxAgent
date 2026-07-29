@@ -170,7 +170,11 @@ export function FileTreeView({ rootPath, onSelectFile }: FileTreeViewProps) {
       setMkdirState(null);
       return;
     }
-    const fullPath = `${mkdirState.parentPath}/${name}`;
+    // F-P1-4: 检测父路径使用的分隔符，避免 Windows 上拼出混合分隔符路径
+    const sep = /[\\/]/.test(mkdirState.parentPath)
+      ? (mkdirState.parentPath.includes("\\") ? "\\" : "/")
+      : "/";
+    const fullPath = `${mkdirState.parentPath}${sep}${name}`;
     try {
       await createDirectory(fullPath);
       message.success(t("files.mkdirSuccess"));

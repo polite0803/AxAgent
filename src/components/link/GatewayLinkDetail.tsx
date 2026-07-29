@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useGatewayLinkStore } from "@/stores";
-import { Button, Tabs, Tag, theme } from "antd";
+import { App, Button, Tabs, Tag, theme } from "antd";
 import { Bot, Gauge, MessageSquarePlus, Shield, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import { LinkSkills } from "./LinkSkills";
 export function GatewayLinkDetail() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const selectedLinkId = useGatewayLinkStore((s) => s.selectedLinkId);
   const links = useGatewayLinkStore((s) => s.links);
@@ -37,8 +38,9 @@ export function GatewayLinkDetail() {
     try {
       const conversationId = await createGatewayConversation(selectedLink.id);
       navigate(`/?conversation=${conversationId}`);
-    } catch {
-      // error handled in store
+    } catch (e) {
+      // GW-P1-2: 补充错误反馈,避免静默吞错让用户以为按钮坏了
+      message.error(t("link.createConversationFailed", { error: String(e) }));
     }
   };
 

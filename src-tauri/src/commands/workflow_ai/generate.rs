@@ -7,6 +7,7 @@ use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
 #[tauri::command]
@@ -571,4 +572,257 @@ fn fallback_recommendations(context: &str) -> Vec<NodeRecommendation> {
     recommendations.truncate(5);
 
     recommendations
+}
+
+// ============================================================
+// NL2Skill / NL2UI — 自然语言→技能定义 / 动态 UI Schema
+// ============================================================
+
+/// NL2Skill 生成结果（与前端 NL2SkillResult 对齐，phases 由前端构造）
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SkillGenerationResult {
+    /// 技能定义（SkillDefinition）
+    pub skill: serde_json::Value,
+    /// 置信度 0.0-1.0
+    pub confidence: f32,
+    /// 后续建议
+    pub suggestions: Vec<String>,
+    /// 备选技能定义
+    #[serde(default)]
+    pub alternatives: Vec<serde_json::Value>,
+}
+
+/// NL2UI 生成结果（与前端 NL2UIResult 对齐，phases 由前端构造）
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UIGenerationResult {
+    /// UI Schema
+    pub schema: serde_json::Value,
+    /// 置信度 0.0-1.0
+    pub confidence: f32,
+    /// 后续建议
+    pub suggestions: Vec<String>,
+    /// 备选方案
+    #[serde(default)]
+    pub alternatives: Vec<AlternativeUI>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AlternativeUI {
+    pub schema: serde_json::Value,
+    pub description: String,
+}
+
+/// NL2Skill：从自然语言生成技能定义
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn generate_skill_from_prompt(
+    state: State<'_, AppState>,
+    prompt: String,
+    skill_type: Option<String>,
+) -> Result<SkillGenerationResult, String> {
+    let resolved = resolve_ai_provider(&state).await?;
+
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&resolved.provider_type);
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
+
+    let skill_type_str = skill_type.as_deref().unwrap_or("chat");
+    let system_prompt = format!(
+        r#"You are a skill design assistant. Generate a skill definition based on the user's description.
+
+=== 技能类型 ===
+当前目标类型：{skill_type}（chat=对话型 / tool=工具型 / workflow=工作流型 / automation=自动化型）
+
+=== 输出格式（严格遵循 JSON）===
+{{
+  "skill": {{
+    "id": "skill-<简短英文ID>",
+    "name": "<中文名称>",
+    "description": "<技能用途描述>",
+    "type": "{skill_type}",
+    "triggers": ["<触发关键词1>", "<触发关键词2>"],
+    "prompt_template": "<技能执行时的 prompt 模板，可用 {{{{param_name}}}} 占位>",
+    "parameters": [
+      {{
+        "name": "<参数名>",
+        "type": "string|number|boolean|enum|object",
+        "description": "<参数说明>",
+        "required": true,
+        "default": "<可选默认值>",
+        "options": ["<enum 类型时的选项>"]
+      }}
+    ],
+    "tools": ["<依赖工具名>"],
+    "icon": "<emoji 或图标名>",
+    "tags": ["<标签>"]
+  }},
+  "confidence": 0.0,
+  "suggestions": ["<改进建议>"],
+  "alternatives": []
+}}
+
+=== 强制规则 ===
+1. skill.id 用小写英文+短横线，如 "code-review"、"data-extractor"。
+2. skill.type 必须与目标类型一致。
+3. prompt_template 使用 {{{{param}}}} 双花括号语法标记占位符。
+4. parameters 中 required 为 bool，options 仅 enum 类型需要。
+5. confidence 范围 0.0-1.0，反映对生成结果的信心。
+6. 仅输出 JSON，不要额外解释。"#,
+        skill_type = skill_type_str
+    );
+
+    let request = ChatRequest {
+        model: resolved.model_id.clone(),
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text(system_prompt),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(prompt.clone()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+        ],
+        temperature: Some(0.7),
+        top_p: None,
+        max_tokens: Some(4096),
+        stream: false,
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+        response_format: None,
+    };
+
+    let response = adapter
+        .chat(&resolved.ctx, request.into())
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
+
+    let json_str = extract_json_from_response(&response.content)
+        .ok_or_else(|| format!("Failed to parse LLM response as JSON: {}", response.content))?;
+
+    serde_json::from_str::<SkillGenerationResult>(json_str)
+        .map_err(|e| format!("Failed to deserialize skill generation result: {}", e))
+}
+
+/// NL2UI：从自然语言生成动态 UI Schema
+#[tauri::command]
+#[tracing::instrument(skip(state))]
+pub async fn generate_ui_from_prompt(
+    state: State<'_, AppState>,
+    prompt: String,
+    ui_type: Option<String>,
+) -> Result<UIGenerationResult, String> {
+    let resolved = resolve_ai_provider(&state).await?;
+
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&resolved.provider_type);
+    let adapter = state.harness.provider_registry().get(registry_key).ok_or_else(|| {
+        ErrorResponse::err_with_detail(
+            provider_err::ADAPTER_NOT_FOUND,
+            format!("Provider adapter not found for type: {}", registry_key),
+        )
+    })?;
+
+    let ui_type_str = ui_type.as_deref().unwrap_or("form");
+    let system_prompt = format!(
+        r#"You are a UI design assistant. Generate a dynamic UI Schema based on the user's description.
+
+=== UI 类型 ===
+当前目标类型：{ui_type}（form=表单 / dashboard=仪表盘 / settings=设置面板 / report=报告 / custom=自定义）
+
+=== 输出格式（严格遵循 JSON）===
+{{
+  "schema": {{
+    "type": "object",
+    "title": "<UI 标题>",
+    "description": "<UI 描述>",
+    "properties": {{
+      "<field_name>": {{
+        "type": "string|number|boolean|array|object",
+        "title": "<字段标题>",
+        "description": "<字段说明>",
+        "default": "<默认值>",
+        "enum": ["<枚举选项>"],
+        "format": "<date|time|datetime|email|url|textarea|color>",
+        "minimum": 0,
+        "maximum": 100
+      }}
+    }},
+    "required": ["<必填字段名>"]
+  }},
+  "confidence": 0.0,
+  "suggestions": ["<改进建议>"],
+  "alternatives": []
+}}
+
+=== 强制规则 ===
+1. schema 遵循 JSON Schema 规范，字段命名用 snake_case。
+2. type 为 {ui_type} 时应生成对应的合理结构（form=扁平字段、dashboard=分组卡片、settings=分类标签）。
+3. confidence 范围 0.0-1.0，反映对生成结果的信心。
+4. 仅输出 JSON，不要额外解释。"#,
+        ui_type = ui_type_str
+    );
+
+    let request = ChatRequest {
+        model: resolved.model_id.clone(),
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: ChatContent::Text(system_prompt),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text(prompt.clone()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            },
+        ],
+        temperature: Some(0.7),
+        top_p: None,
+        max_tokens: Some(4096),
+        stream: false,
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+        response_format: None,
+    };
+
+    let response = adapter
+        .chat(&resolved.ctx, request.into())
+        .await
+        .map_err(|e| format!("LLM API error: {}", e))?;
+
+    let json_str = extract_json_from_response(&response.content)
+        .ok_or_else(|| format!("Failed to parse LLM response as JSON: {}", response.content))?;
+
+    serde_json::from_str::<UIGenerationResult>(json_str)
+        .map_err(|e| format!("Failed to deserialize UI generation result: {}", e))
 }

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PtySessionConfig {
     pub shell: Option<String>,
     pub cwd: Option<String>,
@@ -23,6 +24,7 @@ impl Default for PtySessionConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PtyOutputEvent {
     pub session_id: String,
     pub data: String,
@@ -30,6 +32,7 @@ pub struct PtyOutputEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PtyExitEvent {
     pub session_id: String,
     pub exit_code: Option<i32>,
@@ -37,6 +40,7 @@ pub struct PtyExitEvent {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum PtySessionStatus {
     Starting,
     Running,
@@ -378,6 +382,12 @@ impl PtyManager {
     pub async fn try_recv_exit(&self) -> Option<PtyExitEvent> {
         let mut rx = self.exit_rx.lock().await;
         rx.try_recv().ok()
+    }
+
+    /// 阻塞等待下一个退出事件。当所有 sender drop 后返回 None。
+    pub async fn recv_exit(&self) -> Option<PtyExitEvent> {
+        let mut rx = self.exit_rx.lock().await;
+        rx.recv().await
     }
 
     pub async fn kill_all(&self) {

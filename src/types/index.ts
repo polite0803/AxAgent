@@ -367,6 +367,8 @@ export interface GatewayMetrics {
   today_tokens: number;
   today_request_tokens: number;
   today_response_tokens: number;
+  total_cost_usd: number;
+  today_cost_usd: number;
 }
 
 export interface UsageByKey {

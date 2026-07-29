@@ -64,8 +64,11 @@ export function BusinessRoleManager() {
   const [certInput, setCertInput] = useState("");
   const [managedInput, setManagedInput] = useState("");
 
+  // S-P1-1: 添加错误处理
   useEffect(() => {
-    fetchRoles();
+    fetchRoles().catch(() => {
+      // store 内部已处理错误
+    });
   }, [fetchRoles]);
 
   const sortedRoles = useMemo(() => {

@@ -8,12 +8,14 @@
  * @module components/skill/SkillStatsPanel
  */
 
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import { Card, Col, Progress, Row, Statistic, Typography } from "antd";
 import { Clock, Target, TrendingUp, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// SK-P1-2: 后端暂未实现 get_skill_execution_stats,定义前端类型
+// TODO: 后端实现后将此类型迁移到 @/types
 interface SkillExecutionStats {
   name: string;
   successRate: number;
@@ -28,13 +30,11 @@ export function SkillStatsPanel() {
   const { t } = useTranslation();
   const [stats, setStats] = useState<SkillExecutionStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     /* eslint-disable react-hooks/set-state-in-effect */
     setLoading(true);
-    setError(null);
     /* eslint-enable react-hooks/set-state-in-effect */
 
     async function load() {
@@ -53,9 +53,11 @@ export function SkillStatsPanel() {
           });
           setStats(merged.sort((a, b) => b.totalUsages - a.totalUsages));
         }
-      } catch {
+      } catch (e) {
+        // SK-P0-4: 后端未实现该命令,优雅降级显示空状态而非错误
+        logIpcError("get_skill_execution_stats")(e);
         if (!cancelled) {
-          setError("get_skill_execution_stats not available");
+          setStats([]);
         }
       } finally {
         if (!cancelled) {
@@ -69,14 +71,6 @@ export function SkillStatsPanel() {
       cancelled = true;
     };
   }, []);
-
-  if (error) {
-    return (
-      <Typography.Text type="secondary">
-        {t("skill.stats.error")}
-      </Typography.Text>
-    );
-  }
 
   if (loading) {
     return (
