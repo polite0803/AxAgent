@@ -127,12 +127,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         },
       },
       {
-        id: "go-gateway",
+        id: "go-settings-gateway",
         label: t("commandPalette.goToGateway"),
         icon: <Network size={16} color={CHAT_ICON_COLORS.Network} />,
         category: nav,
         action: () => {
-          navigate("/gateway");
+          // 网关管理已迁入设置/网络分组；保留 /gateway 路由用于 OAuth 回调
+          navigate("/settings");
+          useUIStore.getState().setSettingsSection("gateway");
           onClose();
         },
       },

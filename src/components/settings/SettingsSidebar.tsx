@@ -61,6 +61,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   scheduler: <Clock size={14} />,
   backup: <CloudUpload size={14} />,
   acp: <Network size={14} />,
+  gateway: <Globe size={14} />,
   skillsHub: <ShoppingBag size={14} />,
   plugins: <Puzzle size={14} />,
   dashboardPlugins: <LayoutDashboard size={14} />,
@@ -130,7 +131,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "appConfig",
     "imageGen",
   ],
-  network: ["proxy", "messageChannels", "webhooks", "acp"],
+  network: ["proxy", "messageChannels", "webhooks", "acp", "gateway"],
   data: [
     "data",
     "database",

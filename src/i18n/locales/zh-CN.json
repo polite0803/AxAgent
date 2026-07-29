@@ -2849,6 +2849,7 @@
     "workflow": "工作流",
     "marketplace": "市场",
     "dynamicUI": "动态页面",
+    "learningGraph": "学习图",
     "devtools": {
       "traceExplorer": "追踪浏览器",
       "benchmark": "基准测试",
@@ -4851,6 +4852,10 @@
     "sectionInfrastructure": "基础设施",
     "sectionOverview": "概览",
     "sectionTools": "工具",
+    "sectionWorkspace": "工作区",
+    "sectionCreation": "创作",
+    "sectionKnowledge": "知识",
+    "sectionDevelopment": "开发",
     "agentPanel": "Agent 面板",
     "sectionDeveloper": "开发者工具"
   },

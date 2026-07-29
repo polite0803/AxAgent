@@ -2849,6 +2849,7 @@
     "workflow": "Flux de travail",
     "marketplace": "Marché",
     "dynamicUI": "Pages dynamiques",
+    "learningGraph": "Graphe d'apprentissage",
     "devtools": {
       "traceExplorer": "Explorateur de traces",
       "benchmark": "Benchmark",
@@ -4851,6 +4852,10 @@
     "sectionInfrastructure": "Infrastructure",
     "sectionOverview": "Aperçu",
     "sectionTools": "Outils",
+    "sectionWorkspace": "Espace de travail",
+    "sectionCreation": "Création",
+    "sectionKnowledge": "Connaissance",
+    "sectionDevelopment": "Développement",
     "agentPanel": "Panneau d'agent",
     "sectionDeveloper": "Outils de developpement"
   },

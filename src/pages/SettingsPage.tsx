@@ -108,6 +108,8 @@ const LazyDynamicPagesSettings = lazy(() =>
   import("@/components/settings/DynamicPagesSettings").then((m) => ({ default: m.DynamicPagesSettings }))
 );
 const LazyPersonaPage = lazy(() => import("@/pages/PersonaPage").then((m) => ({ default: m.PersonaPage })));
+// 网关管理页迁入设置/网络分组（侧栏入口已移除，路由保留用于 OAuth 回调）
+const LazyGatewayLinkPage = lazy(() => import("@/pages/GatewayLinkPage").then((m) => ({ default: m.GatewayLinkPage })));
 const LazyProactiveSettings = lazy(() =>
   import("@/components/settings/ProactiveSettings").then((m) => ({ default: m.ProactiveSettings }))
 );
@@ -318,6 +320,11 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   knowledgeGraph: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyKnowledgeGraphSearchPanel />
+    </Suspense>
+  ),
+  gateway: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyGatewayLinkPage />
     </Suspense>
   ),
 };

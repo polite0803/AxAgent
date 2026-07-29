@@ -2849,6 +2849,7 @@
     "workflow": "वर्कफ़्लो",
     "marketplace": "मार्केटप्लेस",
     "dynamicUI": "डायनामिक पृष्ठ",
+    "learningGraph": "लर्निंग ग्राफ",
     "devtools": {
       "traceExplorer": "ट्रेस एक्सप्लोरर",
       "benchmark": "बेंचमार्क",
@@ -4851,6 +4852,10 @@
     "sectionInfrastructure": "बुनियादी ढांचा",
     "sectionOverview": "अवलोकन",
     "sectionTools": "उपकरण",
+    "sectionWorkspace": "कार्यक्षेत्र",
+    "sectionCreation": "निर्माण",
+    "sectionKnowledge": "ज्ञान",
+    "sectionDevelopment": "विकास",
     "agentPanel": "एजेंट पैनल",
     "sectionDeveloper": "डेवलपर टूल"
   },

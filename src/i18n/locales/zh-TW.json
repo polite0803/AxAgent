@@ -2849,6 +2849,7 @@
     "workflow": "工作流程",
     "marketplace": "市場",
     "dynamicUI": "動態頁面",
+    "learningGraph": "學習圖",
     "devtools": {
       "traceExplorer": "追蹤瀏覽器",
       "benchmark": "基準測試",
@@ -4851,6 +4852,10 @@
     "sectionInfrastructure": "基礎設施",
     "sectionOverview": "概覽",
     "sectionTools": "工具",
+    "sectionWorkspace": "工作區",
+    "sectionCreation": "創作",
+    "sectionKnowledge": "知識",
+    "sectionDevelopment": "開發",
     "agentPanel": "代理面板",
     "sectionDeveloper": "開發者工具"
   },

@@ -798,6 +798,7 @@ export type SettingsSection =
   | "readingList"
   | "paperOverview"
   | "knowledgeGraph"
+  | "gateway"
   | string;
 
 // === Generated Tool ===
