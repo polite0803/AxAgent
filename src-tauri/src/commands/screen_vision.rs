@@ -28,7 +28,7 @@ pub struct SuggestedActionInfo {
     pub y: f64,
 }
 
-fn resolve_provider_adapter(
+pub(crate) fn resolve_provider_adapter(
     provider_type: &ProviderType,
 ) -> Result<Arc<dyn ProviderAdapter>, String> {
     match provider_type {
@@ -53,12 +53,12 @@ async fn capture_screenshot(
     capture.capture_full(monitor_index).await.map_err(|e| format!("Screen capture failed: {}", e))
 }
 
-struct VisionContext {
-    adapter: Arc<dyn ProviderAdapter>,
-    ctx: ProviderRequestContext,
+pub(crate) struct VisionContext {
+    pub(crate) adapter: Arc<dyn ProviderAdapter>,
+    pub(crate) ctx: ProviderRequestContext,
 }
 
-async fn build_vision_context(
+pub(crate) async fn build_vision_context(
     db: &sea_orm::DatabaseConnection,
     master_key: &[u8; 32],
     provider_id: &str,
