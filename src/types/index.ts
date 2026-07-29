@@ -1195,6 +1195,7 @@ export * from "./llmWiki";
 export * from "./localTool";
 export * from "./mcp";
 export * from "./memory";
+export * from "./multi-agent";
 export * from "./nudge";
 // Fleet（多办公室 AI 团队）— 与后端 axagent_harness::fleet 一一对应
 export * from "./office";

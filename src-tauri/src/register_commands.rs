@@ -1046,6 +1046,9 @@ macro_rules! register_all_commands {
             commands::fleet::fleet_reset_daily_tokens,
             commands::fleet::fleet_update_member_status,
             commands::fleet::fleet_update_status,
+            // Multi-Agent 协作骨架（analyst/implementer/reviewer 三角色）
+            commands::multi_agent::delegate_task,
+            commands::multi_agent::list_multi_agent_roles,
         ]
     };
 }

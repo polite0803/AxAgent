@@ -57,6 +57,13 @@ const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.chat,
     isPlugin: false,
   },
+  {
+    key: "multi-agent",
+    icon: <Icon icon="fluent:people-team-20-filled" size={17} />,
+    labelKey: "nav.multiAgent",
+    path: BUILTIN_PAGE_PATH.multiAgent,
+    isPlugin: false,
+  },
 ];
 
 /** 开发者工具导航项 — 由 settings.show_developer_tools 门控；5 项合并为 1 项统一入口 */

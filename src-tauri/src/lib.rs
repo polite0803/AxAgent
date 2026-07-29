@@ -422,9 +422,13 @@ pub fn run() {
             let tray_language = "en".to_string();
 
             // 异步启动：不阻塞 UI
-            let _seed_db = state.harness.db().clone();
+            let seed_db = state.harness.db().clone();
             tauri::async_runtime::spawn(async move {
-                // 股票业务种子化（stock_analysis_setup）已在另一分支维护
+                // Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
+                // 幂等 upsert，每次启动都调用，确保三个内置角色记录存在
+                if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&seed_db).await {
+                    tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
+                }
             });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
