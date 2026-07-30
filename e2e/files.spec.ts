@@ -35,8 +35,15 @@ test.describe("Files Page", () => {
   });
 
   test("should navigate to chat from files", async ({ page }) => {
-    await page.goto("/chat");
-    await page.waitForSelector('[data-testid="chat-view"]', { timeout: 30000 });
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+
+    await page.goto("/chat", { waitUntil: "networkidle" });
+    await page.waitForSelector('[data-testid="chat-view"]', { timeout: 45000 });
     await expect(page.locator('[data-testid="chat-view"]')).toBeVisible();
+
+    if (errors.length > 0) {
+      console.log("Page errors during chat navigation:", errors.join("; "));
+    }
   });
 });

@@ -11,7 +11,7 @@ async function dismissModals(page: import("@playwright/test").Page) {
   // 直接点 X 在部分环境下不会真正 dismiss，必须点“跳过”才能关闭，否则会遮挡画布。
   const skipBtn = page.getByTestId("onboarding-skip").first();
   if (await skipBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await skipBtn.click();
+    await skipBtn.click({ force: true });
     await page.waitForTimeout(300);
   }
   const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();

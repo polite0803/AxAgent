@@ -805,8 +805,8 @@ where
                             })
                             .collect::<Vec<_>>(),
                     ),
-                    usage_prompt_tokens: usage.map(|u| u.input_tokens as u32),
-                    usage_completion_tokens: usage.map(|u| u.output_tokens as u32),
+                    usage_prompt_tokens: usage.map(|u| u.input_tokens),
+                    usage_completion_tokens: usage.map(|u| u.output_tokens),
                     duration_ms: None,
                 };
                 self.exec_sync_hook(hook_chain.execute_post_llm_call(&llm_ctx, &llm_result));

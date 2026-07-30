@@ -84,7 +84,10 @@ vi.mock("@/stores", () => ({
     selector: (state: typeof conversationState) => unknown,
   ) => selector(conversationState),
   useProviderStore: (selector: (state: typeof providerState) => unknown) => selector(providerState),
-  useSettingsStore: (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
+  useSettingsStore: Object.assign(
+    (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
+    { getState: () => settingsState },
+  ),
   useTabStore: (selector: (state: typeof tabState) => unknown) => selector(tabState),
   useRightPanelStore: (selector: (state: typeof rightPanelState) => unknown) => selector(rightPanelState),
   useUIStore: (selector: (state: typeof uiState) => unknown) => selector(uiState),
