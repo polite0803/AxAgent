@@ -1,7 +1,7 @@
 import { classifySentiment } from "@/lib/stock-analysis-utils";
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { ExpandOutlined, ReloadOutlined, WarningOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Empty, Modal, Segmented, Tag, Typography } from "antd";
+import { Alert, Button, Card, Empty, Modal, Segmented, Spin, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ReportMarkdown } from "./ReportMarkdown";
@@ -842,6 +842,7 @@ export function DebatePanel() {
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const debateRounds = useStockAnalysisStore((s) => s.debateRounds);
+  const workflowStatus = useStockAnalysisStore((s) => s.status);
   // 阶段 6: 重跑辩论:在 early-return 之前声明 hook,保持 hooks 调用顺序一致
   const startAnalysis = useStockAnalysisStore((s) => s.startAnalysis);
   const [expanded, setExpanded] = useState(false);
@@ -907,8 +908,6 @@ export function DebatePanel() {
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
   }, [processedRounds]);
 
-  if (debateRounds.length === 0) { return null; }
-
   // 阶段 6: 重跑辩论 — 直接触发一次 stock-analysis workflow
   // (用 stockAnalysisStore 的 startAnalysis;不引入新后端命令)
   // startAnalysis hook 已在组件顶部声明
@@ -917,6 +916,29 @@ export function DebatePanel() {
     if (!stockCode) { return; }
     void startAnalysis(stockCode);
   };
+
+  // 辩论加载中状态：工作流运行中且无辩论数据时显示
+  const isWorkflowRunning = workflowStatus === "running" || workflowStatus === "loading";
+
+  if (debateRounds.length === 0) {
+    if (isWorkflowRunning) {
+      return (
+        <Card
+          size="small"
+          title={t("stockAnalysis.debate.title")}
+          styles={{ body: { padding: 24 } }}
+        >
+          <div className="flex flex-col items-center justify-center gap-3 py-8">
+            <Spin size="large" />
+            <div className="text-sm" style={{ color: "var(--muted)" }}>
+              {t("stockAnalysis.debate.loading")}
+            </div>
+          </div>
+        </Card>
+      );
+    }
+    return null;
+  }
 
   // Round 标签
   const roundOptions = processedRounds.map((r, i) => ({

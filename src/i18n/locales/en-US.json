@@ -10737,7 +10737,8 @@
       "unstructuredDesc": "The debate node failed to produce JSON-structured data. The raw output is LLM internal reasoning and cannot be rendered.",
       "parsedNoDisplay": "(Parsed but no displayable fields)",
       "verdictOnlyLabel": "The debater only provided a conclusion, without detailed analysis.",
-      "title": "Debate Summary"
+      "title": "Debate Summary",
+      "loading": "Debate analysis in progress..."
     },
     "debateHistory": "Debate History",
     "debateRound": "Round {{round}}",
@@ -12396,7 +12397,8 @@
       "exportTitle": "风险评估报告",
       "itemScore": "{{label}}（{{score}} / 100）",
       "overview": "风险评分总览",
-      "scoreLabel": "风险评分"
+      "scoreLabel": "风险评分",
+      "loading": "Risk assessment in progress..."
     },
     "quantSim": {
       "title": "策略模拟",

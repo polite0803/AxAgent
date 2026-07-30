@@ -308,7 +308,7 @@ impl VendorRouting {
                 "baidu_stock".into(),
                 "neodata".into(),
             ],
-            cls_flash: vec!["eastmoney".into(), "akshare".into(), "neodata".into()],
+            cls_flash: vec!["eastmoney".into(), "browser_eastmoney".into(), "akshare".into()],
             north_bound_flow: vec![
                 "eastmoney".into(),
                 "browser_eastmoney".into(),

@@ -143,11 +143,23 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
         items={report.citations.map((citation, i) => ({
           key: String(i),
           label: (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-400 font-mono text-xs">#{i + 1}</span>
-              <span className="text-gray-200 truncate flex-1">{citation.claim}</span>
+            <div
+              className="flex items-center gap-2 text-sm"
+              style={{ maxWidth: "100%", minWidth: 0 }}
+            >
+              <span className="text-gray-400 font-mono text-xs shrink-0">#{i + 1}</span>
+              <span
+                className="text-gray-200 flex-1"
+                style={{
+                  overflowWrap: "anywhere",
+                  wordBreak: "break-all",
+                  whiteSpace: "normal",
+                }}
+              >
+                {citation.claim}
+              </span>
               <Tag
-                className="text-[10px] leading-none px-1 py-0"
+                className="text-[10px] leading-none px-1 py-0 shrink-0"
                 color={citation.hasDataSupport ? "green" : "orange"}
               >
                 {citation.hasDataSupport

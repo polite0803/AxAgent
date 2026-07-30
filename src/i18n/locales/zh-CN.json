@@ -10265,7 +10265,8 @@
       "unstructuredDesc": "辩论节点未能产出 JSON 格式的结构化数据，原始输出为 LLM 内部推理过程，无法渲染。",
       "parsedNoDisplay": "(原始数据已解析但无可用展示字段)",
       "verdictOnlyLabel": "该辩手仅给出了结论，未提供详细分析文字",
-      "title": "辩论总结"
+      "title": "辩论总结",
+      "loading": "辩论分析进行中..."
     },
     "debateRound": "第{{round}}轮",
     "bull": "多方",
@@ -10652,7 +10653,8 @@
       "exportTitle": "风险评估报告",
       "itemScore": "{{label}}（{{score}} / 100）",
       "overview": "风险评分总览",
-      "scoreLabel": "风险评分"
+      "scoreLabel": "风险评分",
+      "loading": "风险评估进行中..."
     },
     "buyShort": "买",
     "sellShort": "卖",

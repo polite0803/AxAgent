@@ -12318,7 +12318,8 @@
       "exportTitle": "风险评估报告",
       "itemScore": "{{label}}（{{score}} / 100）",
       "overview": "风险评分总览",
-      "scoreLabel": "风险评分"
+      "scoreLabel": "风险评分",
+      "loading": "風險評估進行中..."
     },
     "quantSim": {
       "title": "策略模拟",

@@ -63,6 +63,8 @@ use crate::ExtractedRelation;
 use crate::FilterAction;
 use crate::GatewayService;
 use crate::GatewayStatus;
+use crate::GraphEnhancedSearchInput;
+use crate::GraphEnhancedSearchResult;
 use crate::IndexConfig;
 use crate::IndexJobStatus;
 use crate::IntegrityResult;
@@ -720,6 +722,12 @@ impl EntityGraphProvider for NoopEntityGraphProvider {
     }
     async fn delete_relation(&self, _: &str) -> std::result::Result<(), String> {
         Ok(())
+    }
+    async fn graph_enhanced_search(
+        &self,
+        _: GraphEnhancedSearchInput,
+    ) -> std::result::Result<GraphEnhancedSearchResult, String> {
+        Err("not configured".into())
     }
 }
 
@@ -1653,7 +1661,7 @@ impl WorkflowExecutionRepository for EmptyWorkflowExecutionRepository {
         _status: &str,
         _output_result: Option<&str>,
         _node_executions: Option<&str>,
-        _total_time_ms: Option<i32>,
+        _total_time_ms: Option<i64>,
     ) -> std::result::Result<bool, String> {
         Ok(true)
     }

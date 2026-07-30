@@ -163,10 +163,15 @@ export function DecisionHeroBar() {
   // ── 专业模式：多行完整指标 + 一致性仪表盘 ──
   return (
     <div
-      className="rounded px-3 py-2 space-y-2"
+      className="rounded px-3 py-2 space-y-1.5"
       style={{
         background: "var(--surface)",
         borderLeft: `3px solid var(--accent)`,
+        maxWidth: "100%",
+        minWidth: 0,
+        overflow: "hidden",
+        wordBreak: "break-all",
+        overflowWrap: "anywhere",
       }}
     >
       {/* 第一行：Action + 核心指标 */}
@@ -233,33 +238,22 @@ export function DecisionHeroBar() {
       </div>
 
       {/* 第二行：信心 + 一致性仪表盘 */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         {/* 信心条 */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-sm" style={{ color: "var(--muted)" }}>
             {t("workspace.decisionHero.confidence")}
           </span>
           <span className="font-mono font-semibold" style={{ color: confidenceColor }}>
             {confidencePct}%
           </span>
-          {/* 调制后置信度 */}
-          {decision.adjustedConfidence != null
-            && Math.abs(decision.adjustedConfidence - confidencePct) > 3 && (
-            <span
-              className="font-mono text-sm"
-              style={{
-                color: decision.adjustedConfidence > confidencePct
-                  ? "var(--sa-green)"
-                  : "var(--sa-red)",
-                opacity: 0.85,
-              }}
-            >
-              →{Math.round(decision.adjustedConfidence)}%
-            </span>
-          )}
+          {
+            /* V68 修复(2026-07-30): 移除 adjustedConfidence 显示
+              置信度完全由公式决策计算，与 LLM 决策无关 */
+          }
           <div
             className="relative rounded-full overflow-hidden"
-            style={{ width: 80, height: 4, background: "var(--color-border-tertiary)" }}
+            style={{ width: 60, height: 4, background: "var(--color-border-tertiary)" }}
           >
             <div
               style={{
@@ -272,12 +266,13 @@ export function DecisionHeroBar() {
           </div>
         </div>
 
-        {/* 一致性仪表盘 */}
+        {/* 一致性仪表盘（紧凑版） */}
         <DecisionConsensusMeter
           agreementScore={decisionAgreementScore}
           isContradictory={!!decision.isContradictory}
           isFallback={!!decision.isFallback}
           agreementBreakdown={decision.agreementBreakdown}
+          compact
         />
 
         {/* 详情按钮 */}
@@ -362,19 +357,7 @@ function DecisionDetailDrawer({
             </span>
             <span className="font-mono font-semibold" style={{ color: confidenceColor }}>
               {confidencePct}%
-              {decision.adjustedConfidence != null
-                && Math.abs(decision.adjustedConfidence - confidencePct) > 3 && (
-                <span
-                  className="ml-1"
-                  style={{
-                    color: decision.adjustedConfidence > confidencePct
-                      ? "var(--sa-green)"
-                      : "var(--sa-red)",
-                  }}
-                >
-                  →{Math.round(decision.adjustedConfidence)}%
-                </span>
-              )}
+              {/* V68 修复: 移除 adjustedConfidence 显示 */}
             </span>
           </div>
           <div

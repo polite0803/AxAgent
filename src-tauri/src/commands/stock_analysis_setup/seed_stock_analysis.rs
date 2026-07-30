@@ -2239,7 +2239,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             enabled: true,
             parent_id: None,
             compensation: None,
-            continue_on_fail: false,
+            continue_on_fail: true,
         },
         config: CodeNodeConfig {
             language: "rhai".into(),

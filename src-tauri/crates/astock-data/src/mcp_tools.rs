@@ -837,9 +837,36 @@ pub async fn execute_mcp_tool(
     // 修复(2026-07-22): GLM-5.2 偶尔传入 {"stock_code": 600887} (数字) 而非
     // {"stock_code": "600887"} (字符串),导致 as_str() 返回 None → 空字符串。
     let parse_code = |args: &serde_json::Value| -> String {
-        match &args["stock_code"] {
+        // 修复(2026-07-22): GLM-5.2 偶传 {"stock_code": 600887} (数字)
+        // 修复(2026-07-30): GLM-5.2 偶传 {"argument": 601398} (泛化键名)
+        // 修复(2026-07-30 第2版): GLM-5.2 偶传 {"argument": {"stock_code": "601899"}} (嵌套对象)
+        let from_key = |key: &str| -> String {
+            match &args[key] {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Number(n) => n.to_string(),
+                _ => String::new(),
+            }
+        };
+        let code = from_key("stock_code");
+        if !code.is_empty() {
+            return code;
+        }
+        // 兼容 "argument" 为字符串/数字/嵌套对象三种形态
+        match &args["argument"] {
             serde_json::Value::String(s) => s.clone(),
             serde_json::Value::Number(n) => n.to_string(),
+            serde_json::Value::Object(obj) => {
+                // GLM-5.2 偶传 {"argument": {"stock_code": "601899"}}
+                if let Some(v) = obj.get("stock_code") {
+                    match v {
+                        serde_json::Value::String(s) => s.clone(),
+                        serde_json::Value::Number(n) => n.to_string(),
+                        _ => String::new(),
+                    }
+                } else {
+                    String::new()
+                }
+            },
             _ => String::new(),
         }
     };

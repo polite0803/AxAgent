@@ -96,13 +96,11 @@ function DashboardTabContent() {
 }
 
 import { EvolutionDriftPanel } from "./EvolutionDriftPanel";
-import { IndexQuotesPanel } from "./IndexQuotesPanel";
 import { IndustryRankingPanel } from "./IndustryRankingPanel";
 import { InvestDashboard } from "./InvestDashboard";
 import { KLineChart } from "./KLineChart";
 import { NorthBoundPanel } from "./NorthBoundPanel";
 import { OptionPcrPanel } from "./OptionPcrPanel";
-import { PositionsMiniPanel } from "./PositionsMiniPanel";
 import { ReflectionPanel } from "./ReflectionPanel";
 import { RiskMatrix } from "./RiskMatrix";
 import { SectorHeatmapPanel } from "./SectorHeatmapPanel";
@@ -367,8 +365,6 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
   }, [tabs]);
 
   const allSheetPanels: SheetPanel[] = [
-    { key: "holdings", label: t("stockAnalysis.holdingsSheet"), element: <PositionsMiniPanel /> },
-    { key: "index", label: t("stockAnalysis.indexQuotes"), element: <IndexQuotesPanel /> },
     { key: "sectors", label: t("stockAnalysis.settings.sheet.sectors"), element: <SectorHeatmapPanel /> },
     { key: "north", label: t("stockAnalysis.settings.sheet.north"), element: <NorthBoundPanel /> },
     { key: "events", label: t("stockAnalysis.settings.sheet.events"), element: <EventCalendarPanel /> },
@@ -383,13 +379,11 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
     { key: "flash", label: t("stockAnalysis.clsFlash"), element: <ClsFlashPanel /> },
   ];
   // 桌面全部显示，移动端只直接显示 3 个核心面板，其余通过"更多"下拉菜单访问
-  // 总面板数 = 3 + 6 = 9
-  // 注: 荐股面板已迁出 —— 选股中心用 Tabs 统一了"智能荐股 / 我的筛选",
-  // 避免"两处都看到荐股"的歧义。
+  // 注: 大盘指数和持仓表已提升为主区域常驻面板，不再放在底部 Sheet
   const mobileCoreKeys = [
-    "index",
     "sectors",
     "north",
+    "events",
   ];
   const sheetPanels = isMobile ? allSheetPanels.filter((p) => mobileCoreKeys.includes(p.key)) : allSheetPanels;
 
@@ -399,7 +393,7 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
   return (
     <PageErrorBoundary title={t("error.page")}>
       <StockAnalysisPageContext.Provider value={{ openDataSourceSettings }}>
-        <div className="sa-layout">
+        <div className="sa-layout" style={isInWorkspace ? { height: "auto", overflow: "visible" } : undefined}>
           {!isInWorkspace && (
             <div className="sa-header">
               <button type="button" className="sa-header-back" onClick={() => navigate("/")}>
@@ -443,12 +437,15 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
 
           <div
             className="sa-body"
-            style={isReplay
-              ? {
-                backgroundImage:
-                  "linear-gradient(180deg, rgba(124,58,237,0.04) 0%, rgba(124,58,237,0.01) 30%, transparent 100%)",
-              }
-              : undefined}
+            style={{
+              ...(isInWorkspace ? { overflow: "visible", display: "block" } : {}),
+              ...(isReplay
+                ? {
+                  backgroundImage:
+                    "linear-gradient(180deg, rgba(124,58,237,0.04) 0%, rgba(124,58,237,0.01) 30%, transparent 100%)",
+                }
+                : {}),
+            }}
           >
             <StockSearchBar />
             <div style={{ margin: "4px 16px 0 16px", display: "flex", gap: 8, alignItems: "center" }}>
@@ -472,7 +469,7 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
             {/* Decision hero (full width, at top) — outside flex row to avoid layout shift */}
             {status === "completed" && (
               <div style={{ margin: "0 16px 12px 16px" }}>
-                <DecisionBanner />
+                <DecisionBanner embeddedInWorkspace={isInWorkspace} />
                 {/* Analyst consensus summary */}
                 <AnalystConsensusBar />
                 {/* Experiment trail */}
@@ -483,8 +480,11 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
               </div>
             )}
 
-            <div className="sa-body-inner">
-              <div className="sa-main">
+            <div
+              className="sa-body-inner"
+              style={isInWorkspace ? { overflow: "visible", display: "block" } : undefined}
+            >
+              <div className="sa-main" style={isInWorkspace ? { overflow: "visible", display: "block" } : undefined}>
                 {settingsOpen && !isMobile
                   ? (
                     <div className="sa-settings-inline">
@@ -658,44 +658,47 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
                   )}
               </div>
 
-              <div className="sa-sidebar">
-                {status === "completed" && (
-                  <>
-                    <ExperimentSidebar />
-                    {/* Execute shortcut */}
-                    <div
-                      onClick={() => navigate("/trade")}
-                      style={{
-                        marginTop: 8,
-                        padding: "8px 0",
-                        textAlign: "center",
-                        fontSize: 12,
-                        border: "0.5px solid var(--color-border-tertiary)",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        color: "var(--color-text-secondary)",
-                      }}
-                    >
-                      {t("stockAnalysis.experiment.executeTrade")}
-                    </div>
-                  </>
-                )}
-                {status !== "completed" && (
-                  <Collapse
-                    size="small"
-                    ghost
-                    defaultActiveKey={["screener"]}
-                    items={sheetPanels.map((p) => ({
-                      key: p.key,
-                      label: <span className="text-xs font-medium">{p.label}</span>,
-                      children: <div className="sa-panel-body">{p.element}</div>,
-                    }))}
-                  />
-                )}
-              </div>
+              {/* 侧边栏 — 仅独立模式显示，工作区模式下由 ContextSidebar 承载 */}
+              {!isInWorkspace && (
+                <div className="sa-sidebar">
+                  {status === "completed" && (
+                    <>
+                      <ExperimentSidebar />
+                      {/* Execute shortcut */}
+                      <div
+                        onClick={() => navigate("/trade")}
+                        style={{
+                          marginTop: 8,
+                          padding: "8px 0",
+                          textAlign: "center",
+                          fontSize: 12,
+                          border: "0.5px solid var(--color-border-tertiary)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          color: "var(--color-text-secondary)",
+                        }}
+                      >
+                        {t("stockAnalysis.experiment.executeTrade")}
+                      </div>
+                    </>
+                  )}
+                  {status !== "completed" && (
+                    <Collapse
+                      size="small"
+                      ghost
+                      defaultActiveKey={["screener"]}
+                      items={sheetPanels.map((p) => ({
+                        key: p.key,
+                        label: <span className="text-xs font-medium">{p.label}</span>,
+                        children: <div className="sa-panel-body">{p.element}</div>,
+                      }))}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* 数据源健康仪表盘 — 在所有状态下都可见 */}
-              {!stockCode && (
+              {!isInWorkspace && !stockCode && (
                 <div className="p-2">
                   <VendorHealthDashboard />
                 </div>
@@ -704,57 +707,61 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
           </div>
 
           {/* Experiment trail (Phase 10) */}
-          {/* 底部滑出面板  ? 平板/移动 ? */}
-          <div className={`sa-bottom-sheet${sheetOpen ? " open" : ""}`}>
-            <div className="sa-sheet-handle" onClick={() => setSheetOpen(!sheetOpen)}>
-              <div className="sa-sheet-handle-bar" />
-            </div>
+          {/* 底部滑出面板 — 仅独立模式显示，工作区模式下由 ContextSidebar 承载 */}
+          {!isInWorkspace && (
+            <div className={`sa-bottom-sheet${sheetOpen ? " open" : ""}`}>
+              <div className="sa-sheet-handle" onClick={() => setSheetOpen(!sheetOpen)}>
+                <div className="sa-sheet-handle-bar" />
+              </div>
 
-            <div className="sa-sheet-tabs">
-              {sheetPanels.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  className={`sa-sheet-tab${sheetTab === p.key ? " active" : ""}`}
-                  onClick={() => {
-                    setSheetTab(p.key);
-                    if (!sheetOpen) { setSheetOpen(true); }
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-              {isMobile && (
-                <Dropdown
-                  menu={{
-                    items: allSheetPanels.filter((p) => !mobileCoreKeys.includes(p.key)).map((p) => ({
-                      key: p.key,
-                      label: p.label,
-                      onClick: () => {
-                        setSheetTab(p.key);
-                        if (!sheetOpen) { setSheetOpen(true); }
-                      },
-                    })),
-                  }}
-                  trigger={["click"]}
-                >
-                  <button type="button" className="sa-sheet-tab">{t("stockAnalysis.settings.sheet.more")} ?</button>
-                </Dropdown>
-              )}
-            </div>
+              <div className="sa-sheet-tabs">
+                {sheetPanels.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    className={`sa-sheet-tab${sheetTab === p.key ? " active" : ""}`}
+                    onClick={() => {
+                      setSheetTab(p.key);
+                      if (!sheetOpen) { setSheetOpen(true); }
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+                {isMobile && (
+                  <Dropdown
+                    menu={{
+                      items: allSheetPanels.filter((p) => !mobileCoreKeys.includes(p.key)).map((p) => ({
+                        key: p.key,
+                        label: p.label,
+                        onClick: () => {
+                          setSheetTab(p.key);
+                          if (!sheetOpen) { setSheetOpen(true); }
+                        },
+                      })),
+                    }}
+                    trigger={["click"]}
+                  >
+                    <button type="button" className="sa-sheet-tab">{t("stockAnalysis.settings.sheet.more")} ?</button>
+                  </Dropdown>
+                )}
+              </div>
 
-            <div className="sa-sheet-body">
-              {activePanel?.element}
+              <div className="sa-sheet-body">
+                {activePanel?.element}
+              </div>
             </div>
-          </div>
+          )}
 
-          <button
-            type="button"
-            className="sa-sheet-toggle"
-            onClick={() => setSheetOpen(!sheetOpen)}
-          >
-            {sheetOpen ? " ?" : "+"}
-          </button>
+          {!isInWorkspace && (
+            <button
+              type="button"
+              className="sa-sheet-toggle"
+              onClick={() => setSheetOpen(!sheetOpen)}
+            >
+              {sheetOpen ? " ?" : "+"}
+            </button>
+          )}
         </div>
         {isMobile && (
           <StockAnalysisSettingsModal

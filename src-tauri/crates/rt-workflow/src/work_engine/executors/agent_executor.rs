@@ -1254,9 +1254,11 @@ impl NodeExecutorTrait for AgentExecutor {
                 // 限制：单条 tool result 最多保留 3000 字符（约 1500 中文字，足够 LLM 理解结论）。
                 const TOOL_RESULT_MAX_CHARS: usize = 3000;
                 let limited_result = if result_str.len() > TOOL_RESULT_MAX_CHARS {
+                    // 安全截断：使用 floor_char_boundary 确保不切到多字节 UTF-8 字符中间
+                    let end = result_str.floor_char_boundary(TOOL_RESULT_MAX_CHARS);
                     format!(
                         "{}……\n[数据过长，已截断至 {} 字符]",
-                        &result_str[..TOOL_RESULT_MAX_CHARS],
+                        &result_str[..end],
                         TOOL_RESULT_MAX_CHARS,
                     )
                 } else {

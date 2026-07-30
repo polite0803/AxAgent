@@ -4197,18 +4197,43 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── StockAnalysisPage 布局 ──────────────────────────────────
    ═══════════════════════════════════════════════════════════════ */
-.sa-layout { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.sa-layout { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+/* 全局强制长串 wrap — 覆盖所有 sa-* 和工作区布局 */
+.sa-layout,
+.sa-layout *,
+.sa-main,
+.sa-main *,
+.sa-body,
+.sa-body *,
+.sa-tabs,
+.sa-tab,
+.sa-panel-body,
+.sa-markdown-content,
+.sa-markdown-content * {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  min-width: 0;
+}
+/* 工作区壳层（DecisionHeroBar/StockSwitcher 等容器） */
+.ax-stock-workspace,
+.ax-stock-workspace * {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  min-width: 0;
+}
+.sa-body { overflow-x: hidden; max-width: 100%; }
 .sa-header { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; min-height: 36px; }
 .sa-header-title { font-size: 14px; font-weight: 600; margin: 0; color: var(--fg); }
 .sa-header-meta { font-size: 11px; color: var(--muted); margin-right: auto; }
 .sa-header-back { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; border: none; background: none; transition: all 0.12s; font-family: inherit; }
 .sa-header-back:hover { background: var(--accent-bg); color: var(--accent); }
-.sa-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-height: 0; }
-.sa-body-inner { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-.sa-main { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.sa-body { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; min-height: 0; max-width: 100%; }
+.sa-body-inner { display: flex; flex: 1; min-height: 0; overflow: visible; }
+.sa-main { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
 .sa-sidebar { width: 280px; min-width: 280px; border-left: 1px solid var(--border); overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
-.sa-tabs { display: flex; gap: 2px; padding: 4px 12px; border-bottom: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; min-width: 0; flex-wrap: wrap; }
-.sa-tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: none; border-radius: 4px; transition: all 0.12s; white-space: nowrap; flex-shrink: 0; font-family: inherit; }
+.sa-tabs { display: flex; gap: 2px; padding: 4px 10px; border-bottom: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; min-width: 0; flex-wrap: wrap; }
+.sa-tab { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: none; border-radius: 4px; transition: all 0.12s; white-space: nowrap; flex-shrink: 0; font-family: inherit; }
+.analyst-cards-grid { min-width: 0; max-width: 100%; width: 100%; }
 .sa-tab:hover { background: var(--accent-bg); color: var(--fg); }
 .sa-tab.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 .sa-bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: var(--surface); border-top: 1px solid var(--border); z-index: var(--z-overlay); }
@@ -4255,8 +4280,11 @@ html[data-theme="dark"] .markstream-react .table-node thead {
 /* ═══════════════════════════════════════════════════════════════
    ── 通用 Tabs 高度填满容器 (ax-fill-tabs) ────────────────────
    让 Antd Tabs 的内容区填满父容器高度，避免内部 100% 高度失效。
-   DOM 层级：.ant-tabs > .ant-tabs-nav + .ant-tabs-content-holder
-              > .ant-tabs-content > .ant-tabs-tabpane-active > 内容
+   Ant Design v5 DOM 层级：
+     .ant-tabs > .ant-tabs-nav + .ant-tabs-body-holder
+              > .ant-tabs-body > .ant-tabs-content > 内容
+   注意：只给 .ant-tabs-content-active 设 display:flex，
+         否则会覆盖 Antd 隐藏非激活 Tab 的机制（ant-tabs-content-hidden）。
    ═══════════════════════════════════════════════════════════════ */
 .ax-fill-tabs {
   flex: 1;
@@ -4268,25 +4296,28 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex-shrink: 0;
   margin-bottom: 0 !important;
 }
-.ax-fill-tabs > .ant-tabs-content-holder {
+.ax-fill-tabs > .ant-tabs-body-holder {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
-.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content {
+.ax-fill-tabs > .ant-tabs-body-holder > .ant-tabs-body {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
-.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
+/* 通用：tab 内容容器填满高度（不指定 display，避免覆盖 Antd 隐藏机制） */
+.ax-fill-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+/* 只给激活态 Tab 设 display:flex，非激活态由 Antd 用 display:none 隐藏 */
+.ax-fill-tabs > .ant-tabs-body-holder > .ant-tabs-body > .ant-tabs-content-active {
   display: flex;
   flex-direction: column;
-}
-.ax-fill-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane-active {
-  flex: 1;
 }

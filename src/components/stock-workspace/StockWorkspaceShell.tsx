@@ -58,7 +58,7 @@ export function StockWorkspaceShell() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { stockCode: pathStockCode } = useParams<{ stockCode?: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // stockCode 可来自路径参数（旧路由）或 query 参数（InvestHub tab）
   const urlStockCode = pathStockCode ?? searchParams.get("stockCode");
   const urlView = searchParams.get("view") as string | null;
@@ -160,7 +160,13 @@ export function StockWorkspaceShell() {
           <button
             key={tab.key}
             type="button"
-            onClick={() => setCurrentView(tab.key)}
+            onClick={() => {
+              setCurrentView(tab.key);
+              // 同步 URL（避免 URL→store effect 反向覆盖）
+              const next = new URLSearchParams(searchParams);
+              next.set("view", tab.key);
+              setSearchParams(next, { replace: true });
+            }}
             className="flex items-center gap-1.5 px-3 py-1 rounded text-sm transition-colors"
             style={{
               background: isActive ? "var(--accent)" : "transparent",
@@ -178,7 +184,7 @@ export function StockWorkspaceShell() {
   // ── 移动端布局 ──
   if (isMobile) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full min-h-0" style={{ overflow: "hidden" }}>
         {/* 顶部 Header */}
         <div
           className="flex items-center gap-2 px-3 py-2"
@@ -202,8 +208,8 @@ export function StockWorkspaceShell() {
           <DecisionHeroBar />
         </div>
 
-        {/* 视图区 */}
-        <div className="flex-1 overflow-hidden">
+        {/* 视图区（唯一滚动入口） */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           {renderView()}
         </div>
 
@@ -215,7 +221,7 @@ export function StockWorkspaceShell() {
 
   // ── 桌面端/平板布局 ──
   return (
-    <div className="flex flex-col h-full">
+    <div className="ax-stock-workspace flex flex-col h-full min-h-0" style={{ overflow: "hidden" }}>
       {/* 顶部 Header */}
       <div
         className="flex items-center gap-3 px-3 py-2"
@@ -243,19 +249,20 @@ export function StockWorkspaceShell() {
       </div>
 
       {/* DecisionHeroBar — 永久可见，跨视图共享 */}
-      <div className="px-3 py-2" style={{ flexShrink: 0 }}>
+      <div className="px-3 py-2" style={{ flexShrink: 0, minWidth: 0, maxWidth: "100%" }}>
         <DecisionHeroBar />
       </div>
 
       {/* 三栏布局 */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* 左栏：股票切换器 */}
         <StockSwitcher />
 
         {/* 中栏：视图区 */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {desktopTabBar}
-          <div className="flex-1 overflow-hidden">
+          {/* 视图容器：单视图在大内容时竖向滚动（唯一滚动入口） */}
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {renderView()}
           </div>
         </div>

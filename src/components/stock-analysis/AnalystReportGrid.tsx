@@ -645,8 +645,8 @@ export function AnalystReportGrid() {
       )}
 
       <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))" }}
+        className="grid gap-2 analyst-cards-grid"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
       >
         {entries.map((entry) => {
           if (entry.status === "done") {

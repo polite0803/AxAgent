@@ -1,6 +1,6 @@
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { DownloadOutlined, ExpandOutlined } from "@ant-design/icons";
-import { Button, Card, Modal, Tag } from "antd";
+import { Button, Card, Modal, Spin, Tag } from "antd";
 import * as echarts from "echarts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -185,6 +185,7 @@ export function RiskMatrix() {
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const riskAssessments = useStockAnalysisStore((s) => s.riskAssessments);
+  const workflowStatus = useStockAnalysisStore((s) => s.status);
   const stockCode = useStockAnalysisStore((s) => s.stockCode);
   const stockName = useStockAnalysisStore((s) => s.stockName);
   const [chartReady] = useState(false);
@@ -356,7 +357,28 @@ export function RiskMatrix() {
     return cache;
   }, [riskAssessments]);
 
-  if (Object.keys(riskAssessments).length === 0) { return null; }
+  // 风险评估加载中状态：工作流运行中且无风险数据时显示
+  const isWorkflowRunning = workflowStatus === "running" || workflowStatus === "loading";
+
+  if (Object.keys(riskAssessments).length === 0) {
+    if (isWorkflowRunning) {
+      return (
+        <Card
+          size="small"
+          title={t("stockAnalysis.riskAssessment")}
+          styles={{ body: { padding: 24 } }}
+        >
+          <div className="flex flex-col items-center justify-center gap-3 py-8">
+            <Spin size="large" />
+            <div className="text-sm" style={{ color: "var(--muted)" }}>
+              {t("stockAnalysis.riskMatrix.loading")}
+            </div>
+          </div>
+        </Card>
+      );
+    }
+    return null;
+  }
 
   const entries = Object.entries(riskAssessments)
     .filter(([type]) => type !== "risk-aggregated" && type !== "agg-risk");

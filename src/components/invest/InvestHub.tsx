@@ -174,13 +174,12 @@ export function InvestHub() {
   );
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full min-h-0">
       <Tabs
         activeKey={currentTab}
         onChange={handleTabChange}
         items={items}
-        className="invest-hub-tabs"
-        style={{ height: "100%" }}
+        className="invest-hub-tabs ax-fill-tabs"
         tabBarStyle={{
           margin: 0,
           padding: "0 16px",

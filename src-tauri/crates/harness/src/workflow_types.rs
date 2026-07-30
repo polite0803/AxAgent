@@ -1527,6 +1527,10 @@ impl WorkflowNode {
         self.base().enabled
     }
 
+    pub fn base_continue_on_fail(&self) -> bool {
+        self.base().continue_on_fail
+    }
+
     pub fn base_title(&self) -> &str {
         &self.base().title
     }

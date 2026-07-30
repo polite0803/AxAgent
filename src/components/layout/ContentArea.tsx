@@ -122,7 +122,9 @@ export const ContentArea = memo(function ContentArea() {
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", minWidth: 0 }}>
       <IpcReconnectBanner healthy={ipcHealthy} />
       <AppHeader />
-      <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div
+        style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", minWidth: 0 }}
+      >
         <Routes>
           <Route path="/" element={<Navigate to={DEFAULT_HOME} replace />} />
           {/* 工作台 Hub：对话页作为核心，内含仪表盘/工作流/终端/知识源 Tab */}

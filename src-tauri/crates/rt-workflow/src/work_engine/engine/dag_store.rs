@@ -75,11 +75,26 @@ fn make_workflow(id: &str, nodes: Vec<WorkflowNode>, edges: Vec<WorkflowEdge>) -
 
 impl WorkEngine {
     /// 根据 edges 构建邻接表，返回就绪节点（入度为 0 的节点）。
+    ///
+    /// 支持 `continue_on_fail` 容错机制：当上游节点 Failed 且下游节点
+    /// 配置了 `continue_on_fail = true` 时，该依赖不阻塞下游节点执行。
     pub(crate) fn compute_ready_nodes(workflow: &Workflow) -> Vec<String> {
         let done_or_skipped: HashSet<&str> = workflow
             .node_states
             .iter()
             .filter(|(_, s)| matches!(s.status, NodeStatus::Completed | NodeStatus::Skipped))
+            .map(|(id, _)| id.as_str())
+            .collect();
+
+        // 构建节点 continue_on_fail 索引（用于快速查找 target 是否允许容错）
+        let continue_on_fail_map: HashMap<&str, bool> =
+            workflow.nodes.iter().map(|n| (n.base_id(), n.base_continue_on_fail())).collect();
+
+        // 构建 Failed 状态节点集合
+        let failed_nodes: HashSet<&str> = workflow
+            .node_states
+            .iter()
+            .filter(|(_, s)| matches!(s.status, NodeStatus::Failed))
             .map(|(id, _)| id.as_str())
             .collect();
 
@@ -89,9 +104,24 @@ impl WorkEngine {
             remaining_deps.entry(node.base_id()).or_insert(0);
         }
         for edge in &workflow.edges {
-            // source 未完成 → target 有未满足的依赖
+            // source 未完成 → 检查是否因容错而跳过
             if !done_or_skipped.contains(edge.source.as_str()) {
-                *remaining_deps.entry(edge.target.as_str()).or_insert(0) += 1;
+                // 如果 source Failed 且 target 允许容错，则不计入依赖
+                let target_id = edge.target.as_str();
+                let source_failed = failed_nodes.contains(edge.source.as_str());
+                let target_continue_on_fail =
+                    continue_on_fail_map.get(target_id).copied().unwrap_or(false);
+
+                if source_failed && target_continue_on_fail {
+                    // 容错：上游失败不阻塞下游
+                    tracing::debug!(
+                        source = edge.source.as_str(),
+                        target = target_id,
+                        "continue_on_fail: 上游节点失败但下游允许容错，跳过依赖"
+                    );
+                } else {
+                    *remaining_deps.entry(target_id).or_insert(0) += 1;
+                }
                 continue;
             }
 
@@ -251,6 +281,87 @@ pub(crate) fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdg
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 构建一个支持 continue_on_fail 的 Tool 节点
+    fn make_tool_node_with_failover(
+        id: &str,
+        enabled: bool,
+        continue_on_fail: bool,
+    ) -> WorkflowNode {
+        use axagent_harness::workflow_types::{
+            Position, RetryConfig, ToolNode, ToolNodeConfig, WorkflowNodeBase,
+        };
+        WorkflowNode::Tool(ToolNode {
+            base: WorkflowNodeBase {
+                id: id.to_string(),
+                title: format!("Tool {id}"),
+                description: None,
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail,
+            },
+            config: ToolNodeConfig {
+                tool_name: format!("tool_{id}"),
+                input_mapping: HashMap::new(),
+                output_var: format!("out_{id}"),
+            },
+        })
+    }
+
+    #[test]
+    fn continue_on_fail_unblocks_downstream() {
+        // 上游节点 a Failed，下游节点 b 配置 continue_on_fail = true
+        let a = make_tool_node("a", true);
+        let b = make_tool_node_with_failover("b", true, true); // continue_on_fail = true
+        let edges = vec![make_edge("a", "b")];
+        let mut wf = make_workflow("wf_failover", vec![a, b], edges);
+
+        // 标记 a 为 Failed
+        wf.node_states.get_mut("a").unwrap().status = NodeStatus::Failed;
+
+        // b 应该就绪，因为它允许容错
+        let ready = WorkEngine::compute_ready_nodes(&wf);
+        assert_eq!(ready, vec!["b"], "continue_on_fail=true 的节点应在上游失败时就绪");
+    }
+
+    #[test]
+    fn continue_on_fail_false_blocks_downstream() {
+        // 上游节点 a Failed，下游节点 b 配置 continue_on_fail = false
+        let a = make_tool_node("a", true);
+        let b = make_tool_node_with_failover("b", true, false); // continue_on_fail = false
+        let edges = vec![make_edge("a", "b")];
+        let mut wf = make_workflow("wf_no_failover", vec![a, b], edges);
+
+        // 标记 a 为 Failed
+        wf.node_states.get_mut("a").unwrap().status = NodeStatus::Failed;
+
+        // b 不应该就绪，因为它不允许容错
+        let ready = WorkEngine::compute_ready_nodes(&wf);
+        assert!(ready.is_empty(), "continue_on_fail=false 的节点在上游失败时不应就绪");
+    }
+
+    #[test]
+    fn multi_upstream_with_mixed_failover() {
+        // 多个上游节点，部分 Failed，部分 Completed
+        // 下游节点配置 continue_on_fail = true
+        let a = make_tool_node("a", true);
+        let b = make_tool_node("b", true);
+        let c = make_tool_node_with_failover("c", true, true); // continue_on_fail = true
+        let edges = vec![make_edge("a", "c"), make_edge("b", "c")];
+        let mut wf = make_workflow("wf_multi", vec![a, b, c], edges);
+
+        // 标记 a 为 Failed，b 为 Completed
+        wf.node_states.get_mut("a").unwrap().status = NodeStatus::Failed;
+        wf.node_states.get_mut("b").unwrap().status = NodeStatus::Completed;
+
+        // c 应该就绪，因为它允许容错（虽然 a 失败了，但 b 完成了）
+        let ready = WorkEngine::compute_ready_nodes(&wf);
+        assert_eq!(ready, vec!["c"], "混合状态下 continue_on_fail=true 节点应就绪");
+    }
 
     #[test]
     fn single_node_all_ready() {

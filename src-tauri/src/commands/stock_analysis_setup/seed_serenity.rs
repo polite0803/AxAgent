@@ -62,8 +62,23 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     };
     let td_concept = ToolDef {
         name: "get_stock_concept_blocks".into(),
-        description: Some("获取概念板块归属".into()),
-        parameters: None,
+        description: Some("获取概念板块归属（需股票代码）".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some(std::collections::HashMap::from([(
+                "stock_code".into(),
+                JsonSchemaProperty {
+                    schema_type: "string".into(),
+                    description: Some("6位股票代码".into()),
+                    default: None,
+                    enum_values: None,
+                    format: None,
+                },
+            )])),
+            required: Some(vec!["stock_code".into()]),
+            items: None,
+        }),
     };
     let td_north = ToolDef {
         name: "get_north_bound_flow".into(),

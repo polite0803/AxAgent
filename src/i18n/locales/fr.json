@@ -12510,7 +12510,8 @@
       "exportTitle": "风险评估报告",
       "itemScore": "{{label}}（{{score}} / 100）",
       "overview": "风险评分总览",
-      "scoreLabel": "风险评分"
+      "scoreLabel": "风险评分",
+      "loading": "Évaluation des risques en cours..."
     },
     "quantSim": {
       "title": "策略模拟",

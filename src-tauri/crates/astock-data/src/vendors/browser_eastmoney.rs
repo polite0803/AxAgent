@@ -601,4 +601,47 @@ impl StockVendor for BrowserEastMoneyVendor {
             })
             .collect())
     }
+
+    async fn get_cls_flash(&self) -> Result<Vec<ClsFlashItem>, DataError> {
+        let req_trace = chrono::Utc::now().timestamp_millis();
+        let url = format!(
+            "https://np-listapi.eastmoney.com/comm/web/getNewsByColumns?client=web&biz=web_news_col&column=250&order=1&needInteractData=0&page_index=1&page_size=20&req_trace={req_trace}"
+        );
+        let json = browser_fetch(self.fetcher.as_ref(), &url).await?;
+
+        let items = match json["data"]["list"].as_array() {
+            Some(arr) => arr,
+            None => match json["data"].as_array() {
+                Some(arr) => arr,
+                None => return Ok(vec![]),
+            },
+        };
+
+        Ok(items
+            .iter()
+            .filter_map(|item| {
+                let title = item.get("title")?.as_str()?.to_string();
+                let content = item
+                    .get("digest")
+                    .or_else(|| item.get("content"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let publish_time = item
+                    .get("showTime")
+                    .or_else(|| item.get("publish_time"))
+                    .or_else(|| item.get("ctime"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let source = item
+                    .get("source")
+                    .or_else(|| item.get("mediaName"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
+                Some(ClsFlashItem { title, content, publish_time, source })
+            })
+            .collect())
+    }
 }
