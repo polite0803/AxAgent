@@ -113,7 +113,7 @@ impl Tool for DelegateTaskTool {
         let result = delegate_runner()
             .delegate(delegate_input)
             .await
-            .map_err(|e| ToolError::execution_failed(e))?;
+            .map_err(ToolError::execution_failed)?;
 
         Ok(ToolResult::success(format!(
             "## 委派结果（角色: {}）\n\n{}\n\n---\nPrompt: {} tokens · Completion: {} tokens · 耗时: {}ms",
