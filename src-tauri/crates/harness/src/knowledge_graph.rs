@@ -25,6 +25,13 @@ pub trait EntityGraphProvider: Send + Sync {
         rel_type: &str,
     ) -> Result<KnowledgeRelation, String>;
     async fn delete_relation(&self, relation_id: &str) -> Result<(), String>;
+
+    /// 核心方法：图增强检索
+    /// 根据用户 Query 检索实体，并扩展其邻居关系，最终返回可直接注入 RAG 的上下文
+    async fn graph_enhanced_search(
+        &self,
+        input: GraphEnhancedSearchInput,
+    ) -> Result<GraphEnhancedSearchResult, String>;
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -113,6 +120,17 @@ pub struct GraphRelationEdge {
 pub struct GraphEnhancedSearchInput {
     pub knowledge_base_id: String,
     pub query: String,
+
+    /// 限制检索的实体类型 (e.g., ["company", "person"])
+    /// 如果为空，则检索所有类型
+    #[serde(default)]
+    pub entity_type_filters: Vec<String>,
+
+    /// 限制扩展的关系类型 (e.g., ["in_industry", "has_chairman"])
+    /// 如果为空，则扩展所有关系
+    #[serde(default)]
+    pub relation_type_filters: Vec<String>,
+
     /// 最多返回的实体数（默认 10）
     pub top_k: Option<usize>,
     /// 是否包含 1-hop 邻居关系（默认 true）
@@ -129,4 +147,39 @@ pub struct GraphEnhancedSearchResult {
     pub context_text: String,
     /// 命中实体总数
     pub total_hits: usize,
+}
+
+/// 图上下文格式化器接口
+/// 允许调用方自定义如何将实体关系网络转换为 LLM 可理解的文本格式
+#[async_trait]
+pub trait GraphContextFormatter: Send + Sync {
+    /// 将图检索结果格式化为字符串
+    async fn format_context(&self, result: &GraphEnhancedSearchResult) -> Result<String, String>;
+}
+
+/// 提供一个默认的简单格式化器
+pub struct DefaultGraphFormatter;
+
+#[async_trait]
+impl GraphContextFormatter for DefaultGraphFormatter {
+    async fn format_context(&self, result: &GraphEnhancedSearchResult) -> Result<String, String> {
+        let mut context = String::new();
+        for entity in &result.entities {
+            context.push_str(&format!(
+                "【{} - {}】\n",
+                entity.entity_type, entity.entity_name
+            ));
+            if let Some(desc) = &entity.description {
+                context.push_str(&format!("描述: {}\n", desc));
+            }
+            for rel in &entity.relations {
+                context.push_str(&format!(
+                    "- {} (关系: {})\n",
+                    rel.target_entity_name, rel.relation_type
+                ));
+            }
+            context.push('\n');
+        }
+        Ok(context)
+    }
 }

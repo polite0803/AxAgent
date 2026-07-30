@@ -60,6 +60,8 @@ use crate::ExtractedCodePatterns;
 use crate::ExtractedElement;
 use crate::ExtractedEntity;
 use crate::ExtractedRelation;
+use crate::GraphEnhancedSearchInput;
+use crate::GraphEnhancedSearchResult;
 use crate::FilterAction;
 use crate::GatewayService;
 use crate::GatewayStatus;
@@ -720,6 +722,12 @@ impl EntityGraphProvider for NoopEntityGraphProvider {
     }
     async fn delete_relation(&self, _: &str) -> std::result::Result<(), String> {
         Ok(())
+    }
+    async fn graph_enhanced_search(
+        &self,
+        _: GraphEnhancedSearchInput,
+    ) -> std::result::Result<GraphEnhancedSearchResult, String> {
+        Err("not configured".into())
     }
 }
 
