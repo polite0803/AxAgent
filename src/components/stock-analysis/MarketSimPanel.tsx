@@ -145,7 +145,7 @@ export function MarketSimPanel() {
                   title={t("stockAnalysis.marketSimPanel.totalEvents")}
                   value={result.totalEvents}
                   suffix={t("stockAnalysis.marketSimPanel.eventsSuffix")}
-                  valueStyle={{ fontSize: 22 }}
+                  styles={{ content: { fontSize: 22 } }}
                 />
               </Card>
             </Col>
@@ -155,7 +155,7 @@ export function MarketSimPanel() {
                   title={t("stockAnalysis.marketSimPanel.totalTrades")}
                   value={result.stats.totalTrades}
                   suffix={t("stockAnalysis.marketSimPanel.tradesSuffix")}
-                  valueStyle={{ fontSize: 22 }}
+                  styles={{ content: { fontSize: 22 } }}
                 />
               </Card>
             </Col>
@@ -165,7 +165,7 @@ export function MarketSimPanel() {
                   title={t("stockAnalysis.marketSimPanel.wallClock")}
                   value={result.wallClockMs}
                   suffix="ms"
-                  valueStyle={{ fontSize: 22 }}
+                  styles={{ content: { fontSize: 22 } }}
                 />
               </Card>
             </Col>
@@ -175,7 +175,7 @@ export function MarketSimPanel() {
                   title={t("stockAnalysis.marketSimPanel.finalMidPrice")}
                   value={result.finalMidPrice ?? "—"}
                   suffix={result.finalMidPrice ? t("stockAnalysis.marketSimPanel.fenSuffix") : ""}
-                  valueStyle={{ fontSize: 22 }}
+                  styles={{ content: { fontSize: 22 } }}
                 />
               </Card>
             </Col>

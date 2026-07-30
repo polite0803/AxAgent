@@ -296,7 +296,7 @@ strategies:
             <Statistic
               title={t("settings.strategyPack.stat.builtin")}
               value={builtinCount}
-              valueStyle={{ color: "#1677ff" }}
+              styles={{ content: { color: "#1677ff" } }}
             />
           </Card>
         </Col>
@@ -305,7 +305,7 @@ strategies:
             <Statistic
               title={t("settings.strategyPack.stat.user")}
               value={userCount}
-              valueStyle={{ color: "#fa8c16" }}
+              styles={{ content: { color: "#fa8c16" } }}
             />
           </Card>
         </Col>
@@ -361,7 +361,11 @@ strategies:
             <Paragraph type="secondary">{detail.description}</Paragraph>
             <Row gutter={16}>
               <Col span={6}>
-                <Statistic title={t("stockAnalysis.settings.statId")} value={detail.id} valueStyle={{ fontSize: 14 }} />
+                <Statistic
+                  title={t("stockAnalysis.settings.statId")}
+                  value={detail.id}
+                  styles={{ content: { fontSize: 14 } }}
+                />
               </Col>
               <Col span={6}>
                 <Statistic title={t("stockAnalysis.settings.statVersion")} value={detail.version} />

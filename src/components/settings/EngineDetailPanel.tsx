@@ -102,7 +102,12 @@ export function EngineDetailPanel({ engineName, open, onClose }: EngineDetailPan
 
   if (!engine) {
     return (
-      <Drawer title={t("settings.evolution.engineNotFound")} open={open} onClose={onClose} width={640}>
+      <Drawer
+        title={t("settings.evolution.engineNotFound")}
+        open={open}
+        onClose={onClose}
+        styles={{ wrapper: { width: 640 } }}
+      >
         <Text type="secondary">{t("settings.evolution.engineNotFoundDesc", { name: engineName })}</Text>
       </Drawer>
     );
@@ -130,7 +135,7 @@ export function EngineDetailPanel({ engineName, open, onClose }: EngineDetailPan
       }
       open={open}
       onClose={onClose}
-      width={720}
+      styles={{ wrapper: { width: 720 } }}
       extra={
         <Button
           type={engine.running ? "default" : "primary"}

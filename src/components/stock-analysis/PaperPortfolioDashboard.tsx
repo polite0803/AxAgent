@@ -178,21 +178,21 @@ function PortfolioCard({
           value={s.totalUnrealizedPnl}
           precision={2}
           prefix="¥"
-          valueStyle={{ color: pnlColor(s.totalUnrealizedPnl) }}
+          styles={{ content: { color: pnlColor(s.totalUnrealizedPnl) } }}
         />
         <Statistic
           title={t("paperPortfolio.totalRealizedPnl")}
           value={s.totalRealizedPnl}
           precision={2}
           prefix="¥"
-          valueStyle={{ color: pnlColor(s.totalRealizedPnl) }}
+          styles={{ content: { color: pnlColor(s.totalRealizedPnl) } }}
         />
         <Statistic
           title={t("paperPortfolio.totalReturnPct")}
           value={s.totalReturnPct}
           precision={2}
           suffix="%"
-          valueStyle={{ color: pnlColor(s.totalReturnPct) }}
+          styles={{ content: { color: pnlColor(s.totalReturnPct) } }}
         />
         <Statistic
           title={t("paperPortfolio.positionCount")}
@@ -495,14 +495,14 @@ export function PaperPortfolioDashboard() {
           value={totalPnl}
           precision={2}
           prefix="¥"
-          valueStyle={{ color: pnlColor(totalPnl) }}
+          styles={{ content: { color: pnlColor(totalPnl) } }}
         />
         <Statistic
           title={t("paperPortfolio.totalReturnPctAll")}
           value={totalReturnPct}
           precision={2}
           suffix="%"
-          valueStyle={{ color: pnlColor(totalReturnPct) }}
+          styles={{ content: { color: pnlColor(totalReturnPct) } }}
         />
       </Space>
 

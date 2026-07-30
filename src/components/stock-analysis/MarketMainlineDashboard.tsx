@@ -118,7 +118,7 @@ function MainlineCard({
           <Statistic
             title={t("marketMainline.strength", "强度")}
             value={mainline.strengthScore}
-            valueStyle={{ color: strengthColor(mainline.strengthScore), fontSize: 18 }}
+            styles={{ content: { color: strengthColor(mainline.strengthScore), fontSize: 18 } }}
             suffix="/100"
           />
         </Col>

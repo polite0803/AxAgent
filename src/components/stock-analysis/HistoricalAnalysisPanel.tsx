@@ -251,18 +251,22 @@ export function HistoricalAnalysisPanel({ analysisId = "" }: Props) {
       {btStats && (
         <Card size="small" title={t("stockAnalysis.backtest.summary")} styles={{ body: { padding: "4px 8px" } }}>
           <div className="grid grid-cols-3 gap-1 text-center">
-            <Statistic title={t("stockAnalysis.backtest.total")} value={btStats.total} valueStyle={{ fontSize: 14 }} />
+            <Statistic
+              title={t("stockAnalysis.backtest.total")}
+              value={btStats.total}
+              styles={{ content: { fontSize: 14 } }}
+            />
             <Statistic
               title={t("stockAnalysis.backtest.accuracy")}
               value={btStats.correct}
               suffix={`/${btStats.total}`}
-              valueStyle={{ fontSize: 14, color: "var(--sa-green)" }}
+              styles={{ content: { fontSize: 14, color: "var(--sa-green)" } }}
             />
             <Statistic
               title={t("stockAnalysis.backtest.avgReturn")}
               value={btStats.avgReturn}
               suffix="%"
-              valueStyle={{ fontSize: 14 }}
+              styles={{ content: { fontSize: 14 } }}
             />
           </div>
         </Card>

@@ -224,17 +224,17 @@ export function TradeImportPanel() {
           <Statistic
             title={t("trade.import.summaryValid")}
             value={summary.valid}
-            valueStyle={{ color: "#52c41a" }}
+            styles={{ content: { color: "#52c41a" } }}
           />
           <Statistic
             title={t("trade.import.summarySkipped")}
             value={summary.skipped}
-            valueStyle={{ color: "#faad14" }}
+            styles={{ content: { color: "#faad14" } }}
           />
           <Statistic
             title={t("trade.import.summaryFailed")}
             value={summary.failed}
-            valueStyle={{ color: summary.failed > 0 ? "#ff4d4f" : undefined }}
+            styles={{ content: { color: summary.failed > 0 ? "#ff4d4f" : undefined } }}
           />
         </Space>
       )}

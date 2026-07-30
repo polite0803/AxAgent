@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "Markt-Hauptlinie",
     "screenshotDiagnosis": "Screenshot-Diagnose",
-    "multiAgent": "Multi-Agent",
+    "invest": "Investieren",
     "devtools": {
       "traceExplorer": "Trace-Explorer",
       "benchmark": "Benchmark",
       "toolRecommender": "Werkzeug-Empfehlung",
       "fineTune": "Feinabstimmung",
       "rlTraining": "RL-Training"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "Markt-Hauptlinie",
+      "screener": "Screener",
+      "workspace": "Arbeitsbereich",
+      "screenshotDiagnosis": "Screenshot-Diagnose",
+      "paperPortfolio": "Paper Portfolio",
+      "quant": "Quant",
+      "pipeline": "Pipeline"
     }
   },
   "paperPortfolio": {

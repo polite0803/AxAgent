@@ -3265,13 +3265,24 @@
     "pipeline": "股票管道",
     "marketMainline": "市场主线",
     "screenshotDiagnosis": "截图诊断",
-    "multiAgent": "多智能体协作",
+    "invest": "投资",
     "devtools": {
       "traceExplorer": "追踪浏览器",
       "benchmark": "基准测试",
       "toolRecommender": "工具推荐",
       "fineTune": "模型微调",
       "rlTraining": "强化学习训练"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "市场主线",
+      "screener": "选股",
+      "workspace": "工作区",
+      "screenshotDiagnosis": "截图诊断",
+      "paperPortfolio": "模拟观察",
+      "quant": "量化",
+      "pipeline": "管道"
     }
   },
   "paperPortfolio": {

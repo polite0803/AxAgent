@@ -223,7 +223,7 @@ function RiskMetrics({ diagnosis }: RiskMetricsProps) {
               value={d.concentrationRisk.top1Weight}
               precision={2}
               suffix="%"
-              valueStyle={{ color: levelColor(d.concentrationRisk.level) }}
+              styles={{ content: { color: levelColor(d.concentrationRisk.level) } }}
             />
             <div style={{ marginTop: 8 }}>
               <Tag color={levelColor(d.concentrationRisk.level)}>
@@ -244,7 +244,7 @@ function RiskMetrics({ diagnosis }: RiskMetricsProps) {
               value={d.coreConcentration.top3Weight}
               precision={2}
               suffix="%"
-              valueStyle={{ color: levelColor(d.coreConcentration.level) }}
+              styles={{ content: { color: levelColor(d.coreConcentration.level) } }}
             />
             <div style={{ marginTop: 8 }}>
               <Tag color={levelColor(d.coreConcentration.level)}>

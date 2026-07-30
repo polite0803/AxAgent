@@ -10,7 +10,7 @@ import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "@/lib/pageRegistry";
 import { Button, Result, Spin } from "antd";
 import { lazy, memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 // ── 页面 lazy 导入 ──
 const LazyWorkspaceHub = lazy(() =>
@@ -34,38 +34,10 @@ const LazyLearningGraphPage = lazy(() =>
 const LazyDynamicPageViewer = lazy(() =>
   import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
 );
-const LazyStockAnalysisPage = lazy(() =>
-  import("@/pages/StockAnalysisPage").then((m) => ({ default: m.StockAnalysisPage }))
-);
-const LazyScreenerPage = lazy(() => import("@/pages/ScreenerPage").then((m) => ({ default: m.ScreenerPage })));
-const LazyWatchlistPage = lazy(() => import("@/pages/WatchlistPage").then((m) => ({ default: m.WatchlistPage })));
-const LazyPortfolioPage = lazy(() => import("@/pages/PortfolioPage").then((m) => ({ default: m.PortfolioPage })));
-const LazyPaperPortfolioPage = lazy(() =>
-  import("@/pages/PaperPortfolioPage").then((m) => ({ default: m.PaperPortfolioPage }))
-);
-const LazyMarketMainlinePage = lazy(() =>
-  import("@/pages/MarketMainlinePage").then((m) => ({ default: m.MarketMainlinePage }))
-);
-const LazyScreenshotDiagnosisPage = lazy(() =>
-  import("@/pages/ScreenshotDiagnosisPage").then((m) => ({
-    default: m.ScreenshotDiagnosisPage,
-  }))
-);
+// AxInvest 股票业务页面已合并到 /invest 的 InvestHub Tab，相关 lazy 导入移至 InvestHub 内部。
+// 此处仅保留 Multi-Agent（通用功能，非投资业务）的独立懒加载。
 const LazyMultiAgentPage = lazy(() => import("@/pages/MultiAgentPage").then((m) => ({ default: m.MultiAgentPage })));
-const LazyTradePage = lazy(() => import("@/pages/TradePage").then((m) => ({ default: m.TradePage })));
-const LazyBacktestPage = lazy(() => import("@/pages/BacktestPage").then((m) => ({ default: m.BacktestPage })));
-const LazyComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
-const LazyScheduledAnalysisPage = lazy(() =>
-  import("@/pages/ScheduledAnalysisPage").then((m) => ({ default: m.ScheduledAnalysisPage }))
-);
-const LazyQuantLabPage = lazy(() => import("@/pages/QuantLabPage").then((m) => ({ default: m.QuantLabPage })));
-const LazyReplayWorkbenchPage = lazy(() =>
-  import("@/pages/ReplayWorkbenchPage").then((m) => ({ default: m.ReplayWorkbenchPage }))
-);
-const LazyPipelinePage = lazy(() => import("@/pages/PipelinePage").then((m) => ({ default: m.PipelinePage })));
-const LazyStockWorkspacePage = lazy(() =>
-  import("@/pages/StockWorkspacePage").then((m) => ({ default: m.StockWorkspacePage }))
-);
+const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
 
 function PageLoader() {
   return (
@@ -114,6 +86,27 @@ function NotFoundRoute() {
  */
 function redirectToChat(tab: string) {
   return <Navigate to={BUILTIN_PAGE_PATH.chat} replace state={{ tab }} />;
+}
+
+/**
+ * 旧股票业务路由重定向到 /invest?tab=xxx。
+ * InvestHub 读取 query 参数激活对应 Tab。
+ * 附加参数（stockCode/view）以 query 形式传递，workspace tab 会消费。
+ */
+function redirectToInvest(
+  tab: string,
+  extra?: { stockCode?: string; view?: string },
+) {
+  const params = new URLSearchParams({ tab });
+  if (extra?.stockCode) { params.set("stockCode", extra.stockCode); }
+  if (extra?.view) { params.set("view", extra.view); }
+  return <Navigate to={`${BUILTIN_PAGE_PATH.invest}?${params.toString()}`} replace />;
+}
+
+/** 从路径参数读取 stockCode 并重定向到 /invest?tab=workspace&stockCode=xxx */
+function RedirectStockWorkspace() {
+  const { stockCode } = useParams<{ stockCode?: string }>();
+  return redirectToInvest("workspace", { stockCode });
 }
 
 export const ContentArea = memo(function ContentArea() {
@@ -232,157 +225,64 @@ export const ContentArea = memo(function ContentArea() {
             path={BUILTIN_PAGE_PATH["dynamic-ui"]}
             element={<Navigate to={BUILTIN_PAGE_PATH.settings} replace />}
           />
-          {/* 开发者工具统一入口（5 项合并为 1 项，内部 Tab 切换） */}
+          {/* AxInvest 股票业务统一入口 — 7 个业务页面合并为 InvestHub Tab */}
           <Route
-            path={BUILTIN_PAGE_PATH.workspace}
+            path={BUILTIN_PAGE_PATH.invest}
             element={
-              <PageContextProvider page="workspace">
-                <SafeLazyPage Page={LazyStockWorkspacePage} />
+              <PageContextProvider page="invest">
+                <SafeLazyPage Page={LazyInvestPage} />
               </PageContextProvider>
             }
           />
-          <Route
-            path={`${BUILTIN_PAGE_PATH.workspace}/:stockCode`}
-            element={
-              <PageContextProvider page="workspace">
-                <SafeLazyPage Page={LazyStockWorkspacePage} />
-              </PageContextProvider>
-            }
-          />
+          {/* ── 旧股票业务路由重定向到 /invest?tab=xxx ── */}
+          {/* /workspace → workspace tab（单股深度工作区） */}
+          <Route path={BUILTIN_PAGE_PATH.workspace} element={redirectToInvest("workspace")} />
+          <Route path={`${BUILTIN_PAGE_PATH.workspace}/:stockCode`} element={<RedirectStockWorkspace />} />
+          {/* /stock-analysis → workspace tab（股票分析归入工作区 analysis 视图） */}
           <Route
             path={BUILTIN_PAGE_PATH["stock-analysis"]}
-            element={
-              <PageContextProvider page="stock-analysis">
-                <SafeLazyPage Page={LazyStockAnalysisPage} />
-              </PageContextProvider>
-            }
+            element={redirectToInvest("workspace", { view: "analysis" })}
           />
           <Route
             path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/:id`}
-            element={
-              <PageContextProvider page="stock-analysis">
-                <SafeLazyPage Page={LazyStockAnalysisPage} />
-              </PageContextProvider>
-            }
+            element={redirectToInvest("workspace", { view: "analysis" })}
           />
-          {/* 通配子路由：捕获所有 /stock-analysis/* 子路径，防止任意无效子路径触发全局 404 */}
           <Route
             path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/*`}
-            element={
-              <PageContextProvider page="stock-analysis">
-                <SafeLazyPage Page={LazyStockAnalysisPage} />
-              </PageContextProvider>
-            }
+            element={redirectToInvest("workspace", { view: "analysis" })}
           />
-          <Route
-            path={BUILTIN_PAGE_PATH.screener}
-            element={
-              <PageContextProvider page="screener">
-                <SafeLazyPage Page={LazyScreenerPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.watchlist}
-            element={
-              <PageContextProvider page="watchlist">
-                <SafeLazyPage Page={LazyWatchlistPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.portfolio}
-            element={
-              <PageContextProvider page="portfolio">
-                <SafeLazyPage Page={LazyPortfolioPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH["paper-portfolio"]}
-            element={
-              <PageContextProvider page="paper-portfolio">
-                <SafeLazyPage Page={LazyPaperPortfolioPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH["market-mainline"]}
-            element={
-              <PageContextProvider page="market-mainline">
-                <SafeLazyPage Page={LazyMarketMainlinePage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH["screenshot-diagnosis"]}
-            element={
-              <PageContextProvider page="screenshot-diagnosis">
-                <SafeLazyPage Page={LazyScreenshotDiagnosisPage} />
-              </PageContextProvider>
-            }
-          />
+          {/* /screener → screener tab（选股） */}
+          <Route path={BUILTIN_PAGE_PATH.screener} element={redirectToInvest("screener")} />
+          {/* /watchlist → workspace tab monitor 视图（自选股跟踪） */}
+          <Route path={BUILTIN_PAGE_PATH.watchlist} element={redirectToInvest("workspace", { view: "monitor" })} />
+          {/* /portfolio → workspace tab monitor 视图（持仓跟踪） */}
+          <Route path={BUILTIN_PAGE_PATH.portfolio} element={redirectToInvest("workspace", { view: "monitor" })} />
+          {/* /paper-portfolio → paper-portfolio tab（模拟观察） */}
+          <Route path={BUILTIN_PAGE_PATH["paper-portfolio"]} element={redirectToInvest("paper-portfolio")} />
+          {/* /market-mainline → market-mainline tab（市场主线） */}
+          <Route path={BUILTIN_PAGE_PATH["market-mainline"]} element={redirectToInvest("market-mainline")} />
+          {/* /screenshot-diagnosis → screenshot-diagnosis tab（截图诊断） */}
+          <Route path={BUILTIN_PAGE_PATH["screenshot-diagnosis"]} element={redirectToInvest("screenshot-diagnosis")} />
+          {/* /trade → workspace tab trade 视图（交易） */}
+          <Route path={BUILTIN_PAGE_PATH.trade} element={redirectToInvest("workspace", { view: "trade" })} />
+          {/* /backtest → workspace tab backtest 视图（回测） */}
+          <Route path={BUILTIN_PAGE_PATH.backtest} element={redirectToInvest("workspace", { view: "backtest" })} />
+          {/* /compare → workspace tab compare 视图（对比） */}
+          <Route path={BUILTIN_PAGE_PATH.compare} element={redirectToInvest("workspace", { view: "compare" })} />
+          {/* /scheduled-analysis → 无对应 tab，重定向到默认（market-mainline） */}
+          <Route path={BUILTIN_PAGE_PATH["scheduled-analysis"]} element={redirectToInvest("market-mainline")} />
+          {/* /quant → quant tab（量化策略验证） */}
+          <Route path={BUILTIN_PAGE_PATH.quant} element={redirectToInvest("quant")} />
+          {/* /replay-workbench → 无对应 tab，重定向到默认 */}
+          <Route path={BUILTIN_PAGE_PATH["replay-workbench"]} element={redirectToInvest("market-mainline")} />
+          {/* /pipeline → pipeline tab（流程编排） */}
+          <Route path={BUILTIN_PAGE_PATH.pipeline} element={redirectToInvest("pipeline")} />
+          {/* Multi-Agent 为通用功能（已迁移上游），保留独立路由，不并入投资 Tab */}
           <Route
             path={BUILTIN_PAGE_PATH.multiAgent}
             element={
               <PageContextProvider page="multi-agent">
                 <SafeLazyPage Page={LazyMultiAgentPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.trade}
-            element={
-              <PageContextProvider page="trade">
-                <SafeLazyPage Page={LazyTradePage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.backtest}
-            element={
-              <PageContextProvider page="backtest">
-                <SafeLazyPage Page={LazyBacktestPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.compare}
-            element={
-              <PageContextProvider page="compare">
-                <SafeLazyPage Page={LazyComparePage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH["scheduled-analysis"]}
-            element={
-              <PageContextProvider page="scheduled-analysis">
-                <SafeLazyPage Page={LazyScheduledAnalysisPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.quant}
-            element={
-              <PageContextProvider page="quant">
-                <SafeLazyPage Page={LazyQuantLabPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH["replay-workbench"]}
-            element={
-              <PageContextProvider page="replay-workbench">
-                <SafeLazyPage Page={LazyReplayWorkbenchPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.pipeline}
-            element={
-              <PageContextProvider page="pipeline">
-                <SafeLazyPage Page={LazyPipelinePage} />
               </PageContextProvider>
             }
           />

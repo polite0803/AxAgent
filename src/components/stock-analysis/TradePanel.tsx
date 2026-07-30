@@ -264,18 +264,18 @@ export function TradePanel() {
           <Statistic
             title={t("stockAnalysis.trade.totalTrades")}
             value={stats.totalTrades}
-            valueStyle={{ fontSize: 14 }}
+            styles={{ content: { fontSize: 14 } }}
           />
           <Statistic
             title={t("stockAnalysis.trade.winRate")}
             value={stats.winRate}
             suffix="%"
-            valueStyle={{ fontSize: 14 }}
+            styles={{ content: { fontSize: 14 } }}
           />
           <Statistic
             title={t("stockAnalysis.trade.totalPnl")}
             value={stats.totalPnl.toFixed(0)}
-            valueStyle={{ fontSize: 14, color: stats.totalPnl >= 0 ? "var(--sa-red)" : "var(--sa-green)" }}
+            styles={{ content: { fontSize: 14, color: stats.totalPnl >= 0 ? "var(--sa-red)" : "var(--sa-green)" } }}
           />
         </div>
       )}

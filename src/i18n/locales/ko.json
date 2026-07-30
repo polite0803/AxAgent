@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "시장 메인라인",
     "screenshotDiagnosis": "스크린샷 진단",
-    "multiAgent": "멀티 에이전트",
+    "invest": "투자",
     "devtools": {
       "traceExplorer": "트레이스 탐색기",
       "benchmark": "벤치마크",
       "toolRecommender": "도구 추천",
       "fineTune": "파인튜닝",
       "rlTraining": "강화 학습 훈련"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "시장 메인라인",
+      "screener": "스크리너",
+      "workspace": "워크스페이스",
+      "screenshotDiagnosis": "스크린샷 진단",
+      "paperPortfolio": "모의 포트폴리오",
+      "quant": "퀀트",
+      "pipeline": "파이프라인"
     }
   },
   "paperPortfolio": {

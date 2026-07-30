@@ -139,16 +139,18 @@ export function PortfolioMonitorPanel() {
             title={t("stockAnalysis.portfolioMonitor.totalMv")}
             value={fmtMoney(dashboard.totalMarketValue)}
             prefix="¥"
-            valueStyle={{ fontSize: 18 }}
+            styles={{ content: { fontSize: 18 } }}
           />
         </Col>
         <Col xs={12} sm={8} md={4}>
           <Statistic
             title={t("stockAnalysis.portfolioMonitor.totalPnl")}
             value={fmtMoney(dashboard.totalPnl)}
-            valueStyle={{
-              fontSize: 18,
-              color: dashboard.totalPnl >= 0 ? "#cf1322" : "#389e0d",
+            styles={{
+              content: {
+                fontSize: 18,
+                color: dashboard.totalPnl >= 0 ? "#cf1322" : "#389e0d",
+              },
             }}
             prefix={dashboard.totalPnl >= 0 ? "+" : ""}
           />
@@ -157,9 +159,11 @@ export function PortfolioMonitorPanel() {
           <Statistic
             title={t("stockAnalysis.portfolioMonitor.totalPnlPct")}
             value={fmtPct(dashboard.totalPnlPct, false)}
-            valueStyle={{
-              fontSize: 18,
-              color: dashboard.totalPnlPct >= 0 ? "#cf1322" : "#389e0d",
+            styles={{
+              content: {
+                fontSize: 18,
+                color: dashboard.totalPnlPct >= 0 ? "#cf1322" : "#389e0d",
+              },
             }}
           />
         </Col>
@@ -167,7 +171,7 @@ export function PortfolioMonitorPanel() {
           <Statistic
             title={t("stockAnalysis.portfolioMonitor.topConcentration")}
             value={fmtPct(dashboard.topConcentrationPct, false)}
-            valueStyle={{ fontSize: 18 }}
+            styles={{ content: { fontSize: 18 } }}
             suffix={
               <Tooltip title={t("stockAnalysis.portfolioMonitor.topConcentrationTip")}>
                 <Tag color="red" className="ml-1">
@@ -182,7 +186,7 @@ export function PortfolioMonitorPanel() {
             <Statistic
               title={t("stockAnalysis.portfolioMonitor.beta")}
               value={dashboard.beta?.toFixed(2) ?? "—"}
-              valueStyle={{ fontSize: 18 }}
+              styles={{ content: { fontSize: 18 } }}
             />
           </Tooltip>
         </Col>
@@ -192,9 +196,11 @@ export function PortfolioMonitorPanel() {
               title={t("stockAnalysis.portfolioMonitor.diversificationScore")}
               value={dashboard.diversificationScore}
               suffix="/ 100"
-              valueStyle={{
-                fontSize: 18,
-                color: dashboard.diversificationScore >= 70 ? "#389e0d" : "#d46b08",
+              styles={{
+                content: {
+                  fontSize: 18,
+                  color: dashboard.diversificationScore >= 70 ? "#389e0d" : "#d46b08",
+                },
               }}
             />
           </Tooltip>

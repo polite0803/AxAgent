@@ -19,7 +19,7 @@ import {
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { GitBranch, Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
+import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -66,39 +66,13 @@ const builtinNavItems: NavItem[] = [
   },
   // dashboard/knowledge/terminal/files/workflow/marketplace 已合并到 /chat 的 WorkspaceHub Tab（见 ContentArea 重定向），
   // dynamic-ui 已迁入设置页，侧栏不再保留这 7 项（跟踪上游 86bf7959 清理）
+  // AxInvest 股票业务 7 个独立页面（workspace/screener/paper-portfolio/market-mainline/
+  // screenshot-diagnosis/quant/pipeline）已合并到 /invest 的 InvestHub Tab，侧栏只保留一个统一入口。
   {
-    key: "workspace",
-    icon: <Icon icon="fluent:target-20-filled" size={17} />,
-    labelKey: "nav.workspace",
-    path: BUILTIN_PAGE_PATH.workspace,
-    isPlugin: false,
-  },
-  {
-    key: "screener",
-    icon: <Icon icon="fluent:search-20-filled" size={17} />,
-    labelKey: "nav.screener",
-    path: BUILTIN_PAGE_PATH.screener,
-    isPlugin: false,
-  },
-  {
-    key: "paper-portfolio",
-    icon: <Icon icon="fluent:notebook-20-filled" size={17} />,
-    labelKey: "nav.paperPortfolio",
-    path: BUILTIN_PAGE_PATH["paper-portfolio"],
-    isPlugin: false,
-  },
-  {
-    key: "market-mainline",
-    icon: <Icon icon="fluent:arrow-trending-lines-20-filled" size={17} />,
-    labelKey: "nav.marketMainline",
-    path: BUILTIN_PAGE_PATH["market-mainline"],
-    isPlugin: false,
-  },
-  {
-    key: "screenshot-diagnosis",
-    icon: <Icon icon="fluent:image-20-filled" size={17} />,
-    labelKey: "nav.screenshotDiagnosis",
-    path: BUILTIN_PAGE_PATH["screenshot-diagnosis"],
+    key: "invest",
+    icon: <LineChart size={17} />,
+    labelKey: "nav.invest",
+    path: BUILTIN_PAGE_PATH.invest,
     isPlugin: false,
   },
   {
@@ -106,20 +80,6 @@ const builtinNavItems: NavItem[] = [
     icon: <Icon icon="fluent:people-team-20-filled" size={17} />,
     labelKey: "nav.multiAgent",
     path: BUILTIN_PAGE_PATH.multiAgent,
-    isPlugin: false,
-  },
-  {
-    key: "quant",
-    icon: <Icon icon="fluent:brain-20-filled" size={17} />,
-    labelKey: "nav.quant",
-    path: BUILTIN_PAGE_PATH.quant,
-    isPlugin: false,
-  },
-  {
-    key: "pipeline",
-    icon: <GitBranch size={17} />,
-    labelKey: "nav.pipeline",
-    path: BUILTIN_PAGE_PATH.pipeline,
     isPlugin: false,
   },
 ];
@@ -373,23 +333,14 @@ export function Sidebar() {
     sections.push({
       key: "workspace",
       labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "chat"),
+      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "multi-agent"),
     });
 
+    // 投资分组：7 个股票业务页面合并为 /invest 统一入口（InvestHub 内部 Tab 切换）
     sections.push({
-      key: "invest-workspace",
-      labelKey: "sidebar.sectionInvestWorkspace",
-      items: builtinNavItems.filter((n) =>
-        n.key === "workspace" || n.key === "screener" || n.key === "paper-portfolio"
-        || n.key === "market-mainline" || n.key === "screenshot-diagnosis"
-        || n.key === "multi-agent"
-      ),
-    });
-
-    sections.push({
-      key: "invest-review",
-      labelKey: "sidebar.sectionInvestReview",
-      items: builtinNavItems.filter((n) => n.key === "quant" || n.key === "pipeline"),
+      key: "invest",
+      labelKey: "sidebar.sectionInvest",
+      items: builtinNavItems.filter((n) => n.key === "invest"),
     });
 
     // 开发者工具分组 — 仅在设置开启时显示（默认 true）

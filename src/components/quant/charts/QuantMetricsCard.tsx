@@ -41,7 +41,7 @@ export function QuantMetricsCard({
         precision={precision}
         suffix={suffix}
         prefix={prefix}
-        valueStyle={color ? { color } : undefined}
+        styles={{ content: color ? { color } : undefined }}
         formatter={formatter ?? ((v) => v)}
       />
       {hint && <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4 }}>{hint}</div>}

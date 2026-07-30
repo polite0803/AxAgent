@@ -177,8 +177,7 @@ export function VersionHistoryPanel({
       }
       open={open}
       onClose={onClose}
-      width={520}
-      styles={{ body: { padding: 0 } }}
+      styles={{ body: { padding: 0 }, wrapper: { width: 520 } }}
     >
       {loading
         ? (

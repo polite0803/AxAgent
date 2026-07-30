@@ -133,7 +133,7 @@ export function WorkflowVersionManager({ workflow, open, onClose }: WorkflowVers
       title={t("workflow.version.versionManager", { name: workflow.name })}
       open={open}
       onClose={onClose}
-      width={640}
+      styles={{ wrapper: { width: 640 } }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {versions.length === 0 && !loading ? <Empty description={t("workflow.version.noVersionHistory")} /> : (

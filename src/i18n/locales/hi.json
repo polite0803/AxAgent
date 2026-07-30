@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "बाज़ार मुख्य लाइन",
     "screenshotDiagnosis": "स्क्रीनशॉट निदान",
-    "multiAgent": "मल्टी-एजेंट",
+    "invest": "निवेश",
     "devtools": {
       "traceExplorer": "ट्रेस एक्सप्लोरर",
       "benchmark": "बेंचमार्क",
       "toolRecommender": "टूल अनुशंसक",
       "fineTune": "फ़ाइन-ट्यून",
       "rlTraining": "आरएल प्रशिक्षण"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "बाज़ार मेनलाइन",
+      "screener": "स्क्रीनर",
+      "workspace": "कार्यक्षेत्र",
+      "screenshotDiagnosis": "स्क्रीनशॉट निदान",
+      "paperPortfolio": "पेपर पोर्टफोलियो",
+      "quant": "क्वांट",
+      "pipeline": "पाइपलाइन"
     }
   },
   "paperPortfolio": {

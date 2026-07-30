@@ -3526,13 +3526,24 @@
     "pipeline": "股票管道",
     "marketMainline": "市場主線",
     "screenshotDiagnosis": "截圖診斷",
-    "multiAgent": "多智能體協作",
+    "invest": "投資",
     "devtools": {
       "traceExplorer": "追蹤瀏覽器",
       "benchmark": "基準測試",
       "toolRecommender": "工具推薦",
       "fineTune": "模型微調",
       "rlTraining": "強化學習訓練"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "市場主線",
+      "screener": "選股",
+      "workspace": "工作區",
+      "screenshotDiagnosis": "截圖診斷",
+      "paperPortfolio": "模擬觀察",
+      "quant": "量化",
+      "pipeline": "管道"
     }
   },
   "paperPortfolio": {

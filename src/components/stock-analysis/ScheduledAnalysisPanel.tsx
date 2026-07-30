@@ -251,7 +251,7 @@ export function ScheduledAnalysisPanel() {
               title={t("stockAnalysis.scheduledAnalysis.totalTasks")}
               value={jobs.length}
               prefix={<Clock size={14} />}
-              valueStyle={{ fontSize: 18 }}
+              styles={{ content: { fontSize: 18 } }}
             />
           </Card>
         </Col>
@@ -260,7 +260,7 @@ export function ScheduledAnalysisPanel() {
             <Statistic
               title={t("stockAnalysis.scheduledAnalysis.activeTasks")}
               value={activeCount}
-              valueStyle={{ fontSize: 18, color: activeCount > 0 ? "var(--color-up)" : undefined }}
+              styles={{ content: { fontSize: 18, color: activeCount > 0 ? "var(--color-up)" : undefined } }}
             />
           </Card>
         </Col>
@@ -269,7 +269,7 @@ export function ScheduledAnalysisPanel() {
             <Statistic
               title={t("stockAnalysis.scheduledAnalysis.failedTasks")}
               value={failedCount}
-              valueStyle={{ fontSize: 18, color: failedCount > 0 ? "var(--color-down)" : undefined }}
+              styles={{ content: { fontSize: 18, color: failedCount > 0 ? "var(--color-down)" : undefined } }}
               prefix={failedCount > 0 ? <AlertCircle size={14} /> : undefined}
             />
           </Card>
@@ -280,7 +280,7 @@ export function ScheduledAnalysisPanel() {
               title={t("stockAnalysis.scheduledAnalysis.totalRuns")}
               value={totalRunCount}
               prefix={<Calendar size={14} />}
-              valueStyle={{ fontSize: 18 }}
+              styles={{ content: { fontSize: 18 } }}
             />
           </Card>
         </Col>

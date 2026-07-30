@@ -152,25 +152,25 @@ export function BacktestPanel() {
                 <Statistic
                   title={t("stockAnalysis.backtest.total")}
                   value={stats.totalAnalyses}
-                  valueStyle={{ fontSize: 18 }}
+                  styles={{ content: { fontSize: 18 } }}
                 />
                 <Statistic
                   title={t("stockAnalysis.backtest.accuracy")}
                   value={stats.accuracyPct.toFixed(1)}
                   suffix="%"
-                  valueStyle={{ fontSize: 18, color: accuracyColor, fontWeight: "bold" }}
+                  styles={{ content: { fontSize: 18, color: accuracyColor, fontWeight: "bold" } }}
                 />
                 <Statistic
                   title={t("stockAnalysis.backtest.avgReturn")}
                   value={stats.avgReturnPct.toFixed(2)}
                   suffix="%"
-                  valueStyle={{ fontSize: 18, color: returnColor, fontWeight: "bold" }}
+                  styles={{ content: { fontSize: 18, color: returnColor, fontWeight: "bold" } }}
                 />
                 <Statistic
                   title={t("stockAnalysis.backtest.maxDrawdown")}
                   value={stats.avgMaxDrawdownPct.toFixed(2)}
                   suffix="%"
-                  valueStyle={{ fontSize: 18, color: "var(--sa-green)" }}
+                  styles={{ content: { fontSize: 18, color: "var(--sa-green)" } }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">

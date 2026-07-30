@@ -11,7 +11,7 @@ export function StockAnalysisSettingsModal(
     <Drawer
       title={t("stockAnalysis.settings.title")}
       placement="right"
-      width={900}
+      styles={{ wrapper: { width: 900 } }}
       rootClassName="sacp-drawer"
       open={open}
       onClose={onClose}

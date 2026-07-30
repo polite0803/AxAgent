@@ -1878,18 +1878,20 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                 <Statistic
                   title={t("settings.knowledge.importedCount")}
                   value={importResult.importedCount}
-                  valueStyle={{ color: "var(--ant-color-success)" }}
+                  styles={{ content: { color: "var(--ant-color-success)" } }}
                 />
                 <Statistic
                   title={t("settings.knowledge.importSkipped")}
                   value={importResult.skippedCount}
-                  valueStyle={{ color: "var(--ant-color-text-secondary)" }}
+                  styles={{ content: { color: "var(--ant-color-text-secondary)" } }}
                 />
                 <Statistic
                   title={t("settings.knowledge.errorCount")}
                   value={importResult.errorCount}
-                  valueStyle={{
-                    color: importResult.errorCount > 0 ? "var(--ant-color-error)" : undefined,
+                  styles={{
+                    content: {
+                      color: importResult.errorCount > 0 ? "var(--ant-color-error)" : undefined,
+                    },
                   }}
                 />
               </div>

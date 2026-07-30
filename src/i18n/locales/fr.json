@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "Tendance du marché",
     "screenshotDiagnosis": "Diagnostic de capture",
-    "multiAgent": "Multi-Agent",
+    "invest": "Investir",
     "devtools": {
       "traceExplorer": "Explorateur de traces",
       "benchmark": "Benchmark",
       "toolRecommender": "Recommandation d'outils",
       "fineTune": "Reglage fin",
       "rlTraining": "Entrainement RL"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "Ligne Principale du Marché",
+      "screener": "Screener",
+      "workspace": "Espace de Travail",
+      "screenshotDiagnosis": "Diagnostic Screenshot",
+      "paperPortfolio": "Portefeuille Papier",
+      "quant": "Quant",
+      "pipeline": "Pipeline"
     }
   },
   "paperPortfolio": {

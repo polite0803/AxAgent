@@ -296,31 +296,35 @@ export const MultiLlmVotePanel = React.memo(function MultiLlmVotePanel({
         <Statistic
           title={t("chat.multiModelVote.finalAction")}
           value={result.finalAction ?? "—"}
-          valueStyle={{
-            color: result.finalAction
-              ? token[`color${actionColor(result.finalAction).replace(/^./, (c) => c.toUpperCase())}` as "colorPrimary"]
-                ?? token.colorPrimary
-              : token.colorTextSecondary,
-            fontSize: 20,
+          styles={{
+            content: {
+              color: result.finalAction
+                ? token[
+                  `color${actionColor(result.finalAction).replace(/^./, (c) => c.toUpperCase())}` as "colorPrimary"
+                ]
+                  ?? token.colorPrimary
+                : token.colorTextSecondary,
+              fontSize: 20,
+            },
           }}
         />
         <Statistic
           title={t("chat.multiModelVote.avgConfidence")}
           value={(result.avgConfidence * 100).toFixed(1)}
           suffix="%"
-          valueStyle={{ fontSize: 18 }}
+          styles={{ content: { fontSize: 18 } }}
         />
         <Statistic
           title={t("chat.multiModelVote.modelCount")}
           value={result.total}
           suffix={` / ${votes.length}`}
-          valueStyle={{ fontSize: 18 }}
+          styles={{ content: { fontSize: 18 } }}
         />
         {result.winnerModelId && (
           <Statistic
             title={t("chat.multiModelVote.winnerModel")}
             value={result.winnerModelId}
-            valueStyle={{ fontSize: 14, color: token.colorPrimary }}
+            styles={{ content: { fontSize: 14, color: token.colorPrimary } }}
           />
         )}
       </div>

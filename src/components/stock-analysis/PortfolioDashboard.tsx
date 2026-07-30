@@ -300,7 +300,7 @@ function HoldingsTab() {
                 value={totalMarketValue}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ fontSize: 18 }}
+                styles={{ content: { fontSize: 18 } }}
               />
             </Card>
           </Col>
@@ -314,7 +314,7 @@ function HoldingsTab() {
                   ? <TrendingUp size={16} className="text-red-500" />
                   : <TrendingDown size={16} className="text-green-500" />}
                 suffix={`(${totalPnlPct >= 0 ? "+" : ""}${totalPnlPct.toFixed(2)}%)`}
-                valueStyle={{ color: totalPnl >= 0 ? "var(--color-up)" : "var(--color-down)", fontSize: 18 }}
+                styles={{ content: { color: totalPnl >= 0 ? "var(--color-up)" : "var(--color-down)", fontSize: 18 } }}
               />
             </Card>
           </Col>
@@ -325,7 +325,7 @@ function HoldingsTab() {
                 value={totalCost}
                 precision={2}
                 prefix="¥"
-                valueStyle={{ fontSize: 18 }}
+                styles={{ content: { fontSize: 18 } }}
               />
             </Card>
           </Col>
@@ -335,7 +335,7 @@ function HoldingsTab() {
                 title={t("portfolio.holdings")}
                 value={holdings.length}
                 prefix={<BarChart3 size={16} />}
-                valueStyle={{ fontSize: 18 }}
+                styles={{ content: { fontSize: 18 } }}
               />
             </Card>
           </Col>

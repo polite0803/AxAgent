@@ -408,7 +408,7 @@ function SyncStatusPanel({
               title={t("wiki.sync.pending")}
               value={pendingCount}
               prefix={<PauseCircleOutlined />}
-              valueStyle={{ fontSize: 18 }}
+              styles={{ content: { fontSize: 18 } }}
             />
           </Col>
           <Col span={8}>
@@ -416,14 +416,14 @@ function SyncStatusPanel({
               title={t("wiki.sync.processing")}
               value={processingCount}
               prefix={<SyncOutlined spin />}
-              valueStyle={{ fontSize: 18 }}
+              styles={{ content: { fontSize: 18 } }}
             />
           </Col>
           <Col span={8}>
             <Statistic
               title={t("wiki.sync.failed")}
               value={failedCount}
-              valueStyle={{ fontSize: 18, color: failedCount > 0 ? "#ff4d4f" : undefined }}
+              styles={{ content: { fontSize: 18, color: failedCount > 0 ? "#ff4d4f" : undefined } }}
               prefix={failedCount > 0 ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
             />
           </Col>

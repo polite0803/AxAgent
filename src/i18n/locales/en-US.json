@@ -3526,13 +3526,24 @@
     "scheduledAnalysis": "Scheduled",
     "marketMainline": "Market Mainline",
     "screenshotDiagnosis": "Screenshot Diagnosis",
-    "multiAgent": "Multi-Agent",
+    "invest": "Invest",
     "devtools": {
       "traceExplorer": "Trace Explorer",
       "benchmark": "Benchmark",
       "toolRecommender": "Tool Recommender",
       "fineTune": "Fine-Tune",
       "rlTraining": "RL Training"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "Market Mainline",
+      "screener": "Screener",
+      "workspace": "Workspace",
+      "screenshotDiagnosis": "Screenshot Diagnosis",
+      "paperPortfolio": "Paper Portfolio",
+      "quant": "Quant",
+      "pipeline": "Pipeline"
     }
   },
   "paperPortfolio": {

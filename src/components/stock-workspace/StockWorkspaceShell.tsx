@@ -51,13 +51,16 @@ const VALID_VIEWS: WorkspaceView[] = [
  * 顶部永久可见 DecisionHeroBar，跨视图共享决策摘要。
  * 移动端：单栏 + 底部 Tab Bar（4 核心 + 更多）+ 抽屉。
  *
- * 路由：/workspace/:stockCode?  →  URL 参数驱动当前股票
+ * 路由：/invest?tab=workspace&stockCode=xxx  →  query 参数驱动当前股票
+ * 兼容：/workspace/:stockCode（旧路由，已重定向到 /invest?tab=workspace&stockCode=xxx）
  */
 export function StockWorkspaceShell() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { stockCode: urlStockCode } = useParams<{ stockCode?: string }>();
+  const { stockCode: pathStockCode } = useParams<{ stockCode?: string }>();
   const [searchParams] = useSearchParams();
+  // stockCode 可来自路径参数（旧路由）或 query 参数（InvestHub tab）
+  const urlStockCode = pathStockCode ?? searchParams.get("stockCode");
   const urlView = searchParams.get("view") as string | null;
 
   const deviceLayout = useUIStore((s) => s.deviceLayout);

@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "市場メインライン",
     "screenshotDiagnosis": "スクリーンショット診断",
-    "multiAgent": "マルチエージェント",
+    "invest": "投資",
     "devtools": {
       "traceExplorer": "トレースエクスプローラー",
       "benchmark": "ベンチマーク",
       "toolRecommender": "ツールレコメンダー",
       "fineTune": "ファインチューニング",
       "rlTraining": "強化学習トレーニング"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "市場メインライン",
+      "screener": "スクリーナー",
+      "workspace": "ワークスペース",
+      "screenshotDiagnosis": "スクリーンショット診断",
+      "paperPortfolio": "ペーパーポートフォリオ",
+      "quant": "クオンツ",
+      "pipeline": "パイプライン"
     }
   },
   "paperPortfolio": {

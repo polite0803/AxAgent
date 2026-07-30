@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "الاتجاه السوقي الرئيسي",
     "screenshotDiagnosis": "تشخيص لقطة الشاشة",
-    "multiAgent": "متعدد الوكلاء",
+    "invest": "استثمار",
     "devtools": {
       "traceExplorer": "مستكشف التتبع",
       "benchmark": "قياس الأداء",
       "toolRecommender": "موصي الأدوات",
       "fineTune": "الضبط الدقيق",
       "rlTraining": "تدريب التعلم المعزز"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "الخط الرئيسي للسوق",
+      "screener": "المسح",
+      "workspace": "مساحة العمل",
+      "screenshotDiagnosis": "تشخيص لقطة الشاشة",
+      "paperPortfolio": "محفظة ورقية",
+      "quant": "كمي",
+      "pipeline": "خط الأنابيب"
     }
   },
   "paperPortfolio": {

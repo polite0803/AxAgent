@@ -35,7 +35,9 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   "dynamic-ui": "/dynamic-ui",
   marketplace: "/marketplace",
   wiki: "/wiki",
-  // AxInvest 股票页面
+  // AxInvest 股票业务统一入口（7 个业务页面合并为 Tab）
+  invest: "/invest",
+  // 以下为 invest 页面子 tab 的历史独立路由（已重定向到 /invest?tab=xxx）
   workspace: "/workspace",
   "stock-analysis": "/stock-analysis",
   screener: "/screener",

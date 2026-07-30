@@ -156,7 +156,7 @@ export function NorthBoundPanel() {
               title={t("stockAnalysis.settings.panels.northTitle", { dir, date: flow.date })}
               value={Math.abs(total / 1e4).toFixed(1)}
               suffix={t("stockAnalysis.settings.panels.yiDisplay")}
-              valueStyle={{ fontSize: 20, color, fontWeight: "bold" }}
+              styles={{ content: { fontSize: 20, color, fontWeight: "bold" } }}
             />
             <div className="grid grid-cols-2 gap-1 mt-1 text-xs text-gray-500">
               <span>

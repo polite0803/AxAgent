@@ -3872,13 +3872,24 @@
     "skills": "技能",
     "marketMainline": "Основная линия рынка",
     "screenshotDiagnosis": "Диагностика скриншота",
-    "multiAgent": "Мульти-агент",
+    "invest": "Инвестиции",
     "devtools": {
       "traceExplorer": "Обозреватель трассировки",
       "benchmark": "Бенчмарк",
       "toolRecommender": "Рекомендатель инструментов",
       "fineTune": "Тонкая настройка",
       "rlTraining": "Обучение с подкреплением"
+    }
+  },
+  "invest": {
+    "tab": {
+      "marketMainline": "Главная линия рынка",
+      "screener": "Скринер",
+      "workspace": "Рабочая область",
+      "screenshotDiagnosis": "Диагностика скриншота",
+      "paperPortfolio": "Бумажный портфель",
+      "quant": "Квант",
+      "pipeline": "Конвейер"
     }
   },
   "paperPortfolio": {

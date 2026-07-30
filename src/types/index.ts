@@ -773,6 +773,7 @@ export type BuiltinPageKey =
   | "replay-workbench"
   | "cross-market"
   | "workspace"
+  | "invest"
   | "settings"
   | "marketplace"
   | "wiki"

@@ -224,7 +224,7 @@ export function QuickBacktestPanel() {
                   title={t("stockAnalysis.backtest.totalRuns")}
                   value={result.totalSamples}
                   prefix={<BarChart3 size={14} />}
-                  valueStyle={{ fontSize: 18 }}
+                  styles={{ content: { fontSize: 18 } }}
                 />
               </Card>
             </Col>
@@ -235,7 +235,9 @@ export function QuickBacktestPanel() {
                   value={result.winRate}
                   precision={1}
                   suffix="%"
-                  valueStyle={{ color: result.winRate >= 50 ? "var(--color-up)" : "var(--color-down)", fontSize: 18 }}
+                  styles={{
+                    content: { color: result.winRate >= 50 ? "var(--color-up)" : "var(--color-down)", fontSize: 18 },
+                  }}
                 />
               </Card>
             </Col>
@@ -247,9 +249,11 @@ export function QuickBacktestPanel() {
                   precision={2}
                   suffix="%"
                   prefix={result.avgReturnPct >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  valueStyle={{
-                    color: result.avgReturnPct >= 0 ? "var(--color-up)" : "var(--color-down)",
-                    fontSize: 18,
+                  styles={{
+                    content: {
+                      color: result.avgReturnPct >= 0 ? "var(--color-up)" : "var(--color-down)",
+                      fontSize: 18,
+                    },
                   }}
                 />
               </Card>
@@ -260,7 +264,7 @@ export function QuickBacktestPanel() {
                   title={t("stockAnalysis.backtest.correctCount")}
                   value={`${result.correctCount}/${result.totalSamples}`}
                   prefix={<Clock size={14} />}
-                  valueStyle={{ fontSize: 18 }}
+                  styles={{ content: { fontSize: 18 } }}
                 />
               </Card>
             </Col>
