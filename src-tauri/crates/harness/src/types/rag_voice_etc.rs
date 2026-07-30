@@ -40,6 +40,9 @@ pub struct RagContextResult {
     pub context_parts: Vec<String>,
     /// Structured results for frontend display.
     pub source_results: Vec<RagSourceResult>,
+    /// Graph RAG 增强检索结果（如果启用了 EntityGraphProvider）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub graph_context: Option<crate::GraphEnhancedSearchResult>,
 }
 
 /// Tauri event emitted after RAG context retrieval completes.

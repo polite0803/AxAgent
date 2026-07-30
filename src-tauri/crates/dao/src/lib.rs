@@ -17,6 +17,7 @@ pub mod db;
 pub mod ddl;
 pub mod generated_tool_repository;
 pub mod integrity;
+pub mod knowledge_graph_provider;
 pub mod loop_checkpoint_repository;
 pub mod marketplace_service;
 pub mod memory_repository;

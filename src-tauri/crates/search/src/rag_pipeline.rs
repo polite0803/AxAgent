@@ -37,10 +37,6 @@ impl RAGPipeline {
         entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>>,
     ) -> Self {
         Self {
-            // 修复：原本硬编码传 None 给 engine，导致 cross_encoder 永远降级到 rule。
-            // 现在改为根据 config + 注入的 engine/api_key 创建合适的 rerank pipeline，
-            // 让 rule / cross_encoder / pipeline / cohere / jina / voyage 各 backend
-            // 都能被正确实例化。
             rerank_pipeline: reranker::create_rerank_pipeline(&config.rerank, engine, api_key),
             self_rag_gate: SelfRagGate::new(config.self_rag.clone()),
             entity_graph_provider,
@@ -114,6 +110,7 @@ impl RAGPipeline {
                 results: vec![],
                 quality: RetrievalQuality::Poor("No results from search".to_string()),
                 retries: 0,
+                graph_context: None,
             });
         }
 
@@ -179,7 +176,12 @@ impl RAGPipeline {
             })
             .collect();
 
-        Ok(PipelineOutput { results: filtered, quality, retries: 0, graph_context })
+        Ok(PipelineOutput {
+            results: filtered,
+            quality,
+            retries: 0,
+            graph_context,
+        })
     }
 }
 

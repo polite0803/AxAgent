@@ -887,7 +887,11 @@ async fn collect_rag_context_from_refs(
     wiki_ids: &[String],
 ) -> RagContextResult {
     if sources.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+            graph_context: None,
+        };
     }
 
     let mut context_parts = Vec::new();
@@ -1037,7 +1041,11 @@ async fn collect_rag_context_from_refs(
     // N 是 source_results 扁平化后的全局序号，前端据此渲染可点击 chip 并跳转高亮对应 item。
     let final_context = rebuild_context_with_citations(&deduped_results, kg_context);
 
-    RagContextResult { context_parts: final_context, source_results: deduped_results }
+    RagContextResult {
+        context_parts: final_context,
+        source_results: deduped_results,
+        graph_context: None,
+    }
 }
 
 /// 引用追溯：根据 `source_results` 重建 context_parts，为每个 item 的 snippet 前注入
@@ -1338,9 +1346,9 @@ fn validate_collection_name(name: &str) -> Result<()> {
     }
     // 允许连字符：下游 `count_collection_items` 会用 `.replace('-', "_")` 清洗，
     // 此处校验需与之保持一致（否则 wiki/kb/mem 的 UUID 含连字符会被误拒）。
-    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err(AxAgentError::Validation(format!(
-            "Invalid collection name '{}': only alphanumeric characters, hyphens and underscores are allowed",
+            "Invalid collection name '{}': only alphanumeric characters and underscores are allowed",
             name
         )));
     }
@@ -1557,6 +1565,7 @@ pub async fn collect_rag_context_with_pipeline(
     pipeline_config: &axagent_harness::types::RAGPipelineConfig,
     llm_fn: Option<LlmCallFn>,
     api_key: Option<String>,
+    entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>>,
 ) -> RagContextResult {
     let sources = build_source_refs(kb_ids, mem_ids, wiki_ids);
     collect_rag_context_with_pipeline_from_refs(
@@ -1572,6 +1581,7 @@ pub async fn collect_rag_context_with_pipeline(
         api_key,
         kb_ids,
         wiki_ids,
+        entity_graph_provider,
     )
     .await
 }
@@ -1591,6 +1601,7 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     api_key: Option<String>,
     kb_ids: &[String],
     wiki_ids: &[String],
+    entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>>,
 ) -> RagContextResult {
     // 阶段 0：查询增强
     let queries: Vec<String> = if pipeline_config.query_enhancement.enabled {
@@ -1634,14 +1645,24 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     }
 
     let engine: Arc<dyn InferenceEngine> = crate::inference::global_engine();
-    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, Some(engine), api_key);
+    let pipeline = crate::rag_pipeline::RAGPipeline::new(
+        pipeline_config,
+        Some(engine),
+        api_key,
+        entity_graph_provider.clone(),
+    );
 
     if sources.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+            graph_context: None,
+        };
     }
 
     let mut context_parts = Vec::new();
     let mut source_results = Vec::new();
+    let mut graph_context_result: Option<axagent_harness::GraphEnhancedSearchResult> = None;
 
     for src_ref in &sources {
         let source = src_ref.source();
@@ -1721,6 +1742,7 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
                     items,
                     container_name: None,
                 });
+
             },
             Ok(_) => {
                 tracing::warn!(
