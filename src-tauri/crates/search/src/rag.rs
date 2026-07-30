@@ -1743,6 +1743,10 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
                     container_name: None,
                 });
 
+                // 收集图增强检索结果
+                if let Some(gc) = output.graph_context {
+                    graph_context_result = Some(gc);
+                }
             },
             Ok(_) => {
                 tracing::warn!(
@@ -1800,7 +1804,11 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     // 引用追溯：在 dedup 之后重建 context_parts，为每个 item 的 snippet 前注入 [cite:N] token。
     let final_context = rebuild_context_with_citations(&deduped_results, kg_context);
 
-    RagContextResult { context_parts: final_context, source_results: deduped_results }
+    RagContextResult {
+        context_parts: final_context,
+        source_results: deduped_results,
+        graph_context: graph_context_result,
+    }
 }
 
 #[cfg(test)]

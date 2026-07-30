@@ -176,12 +176,7 @@ impl RAGPipeline {
             })
             .collect();
 
-        Ok(PipelineOutput {
-            results: filtered,
-            quality,
-            retries: 0,
-            graph_context,
-        })
+        Ok(PipelineOutput { results: filtered, quality, retries: 0, graph_context })
     }
 }
 
