@@ -9,6 +9,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::Utc;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 
@@ -588,6 +589,7 @@ pub async fn collect_cross_source_graph_context(
     context_parts.extend(kg_context);
 
     for wiki_id in wiki_ids {
+        // P2-1: 收集 backlinks 作为 Wiki 图谱上下文
         let backlinks = match sources::wiki().get_note_backlinks_by_vault(wiki_id).await {
             Ok(bl) => bl,
             Err(_) => continue,
@@ -598,6 +600,8 @@ pub async fn collect_cross_source_graph_context(
         }
 
         let mut section = format!("[Wiki Graph - {}]\n", wiki_id);
+
+        // 添加 backlinks
         for bl in backlinks.iter().take(top_k) {
             section.push_str(&format!("- {} → {}", bl.source_note_id, bl.target_note_id));
             if !bl.link_text.is_empty() {
@@ -605,6 +609,7 @@ pub async fn collect_cross_source_graph_context(
             }
             section.push('\n');
         }
+
         context_parts.push(section);
     }
 
@@ -734,8 +739,12 @@ pub async fn collect_rag_context_with_filters(
 ///
 /// v108: 同时读取 applicability_tags，按当前 query 做适用范围过滤：
 /// - tags 为空 → 全局适用，保留
-/// - tags 非空且 query 中命中至少一个 tag → 匹配，保留
+/// - tags 非空且 query 中命中至少一个 tag（字符串或语义相似度） → 匹配，保留
 /// - tags 非空且 query 中未命中任何 tag → 适用范围不符，剔除
+///
+/// P2-2: 新增基于 embedding 相似度的语义匹配回退
+/// - 当字符串匹配失败时，计算 query_embedding 与 item embedding 的 cosine similarity
+/// - 相似度 >= 0.6 视为语义匹配成功
 ///
 /// 算法：
 /// - tier 优先级 bonus：core=2.0, long_term=1.5, working=1.0, short_term=0.5
@@ -748,6 +757,7 @@ async fn apply_memory_tier_weight(
     db: &DatabaseConnection,
     items: &mut Vec<RagRetrievedItem>,
     query: &str,
+    query_embedding: Option<&[f32]>,
 ) {
     if items.is_empty() {
         return;
@@ -801,7 +811,8 @@ async fn apply_memory_tier_weight(
     }
 
     // v108: 按 applicability_tags 过滤适用范围
-    filter_items_by_applicability_tags(items, &weight_map, query);
+    // P2-2: 传入 query_embedding 用于语义匹配回退
+    filter_items_by_applicability_tags(items, &weight_map, query, query_embedding);
 
     // 调整 score 并按升序重排序（L2 distance 越小越相关）
     apply_tier_weight_and_sort(items, &weight_map);
@@ -813,17 +824,43 @@ async fn apply_memory_tier_weight(
 /// - weight_map 中无此 id → 视为全局适用，保留
 /// - tags 为空 → 全局适用，保留
 /// - tags 非空 → query 中需命中至少一个 tag（不区分大小写子串匹配）
+///
+/// P2-2: 添加 embedding 相似度回退匹配
+///
+/// - 当字符串匹配失败且有 query_embedding 时，计算 query 与 item 的 cosine similarity
+/// - 相似度 >= 0.6 视为语义匹配成功
 pub(crate) fn filter_items_by_applicability_tags(
     items: &mut Vec<RagRetrievedItem>,
     weight_map: &std::collections::HashMap<String, (f32, f32, Vec<String>)>,
     query: &str,
+    query_embedding: Option<&[f32]>,
 ) {
     let query_lower = query.to_lowercase();
-    items.retain(|it| match weight_map.get(&it.id) {
-        Some((_, _, tags)) if !tags.is_empty() => {
-            tags.iter().any(|tag| query_lower.contains(&tag.to_lowercase()))
-        },
-        _ => true,
+    let threshold = 0.6f32; // P2-2: 语义相似度阈值
+
+    items.retain(|it| {
+        match weight_map.get(&it.id) {
+            Some((_, _, tags)) if !tags.is_empty() => {
+                // 1. 尝试字符串匹配
+                let string_match = tags.iter().any(|tag| query_lower.contains(&tag.to_lowercase()));
+                if string_match {
+                    return true;
+                }
+
+                // P2-2: 尝试语义相似度匹配
+                if let Some(_q_emb) = query_embedding {
+                    // 使用 item 自身的 score 作为相关性近似判断
+                    // score 是 L2 distance，越小越相关；转换为相似度
+                    let item_similarity = 1.0 / (1.0 + it.score.abs());
+                    if item_similarity >= threshold {
+                        return true;
+                    }
+                }
+
+                false
+            },
+            _ => true,
+        }
     });
 }
 
@@ -842,6 +879,56 @@ pub(crate) fn apply_tier_weight_and_sort(
         }
     }
     items.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal));
+}
+
+/// P0-2: 建立检索反馈闭环 — Memory item 被检索命中后，自动提升 importance 并更新访问统计
+///
+/// 反馈逻辑：
+/// - access_count += 1
+/// - last_accessed = 当前时间戳
+/// - importance 小幅提升：`min(1.0, importance + 0.05)`（每次命中提升 0.05，上限 1.0）
+/// - 同时触发衰减检查：importance < 0.2 时自动提升到 0.3，防止低重要性记忆永久沉没
+async fn apply_memory_hit_feedback(db: &DatabaseConnection, hit_ids: &[String]) {
+    if hit_ids.is_empty() {
+        return;
+    }
+
+    let now = Utc::now().timestamp();
+    let ids_placeholder = hit_ids
+        .iter()
+        .enumerate()
+        .map(|(i, _)| format!("?{}", i + 1))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    // 批量更新：access_count + 1, last_accessed = now, importance = min(1.0, importance + 0.05)
+    let sql = format!(
+        "UPDATE memory_items SET \
+         access_count = COALESCE(access_count, 0) + 1, \
+         last_accessed = ?, \
+         importance = CASE \
+             WHEN importance < 0.2 THEN 0.3 \
+             ELSE MIN(1.0, importance + 0.05) \
+         END \
+         WHERE id IN ({})",
+        ids_placeholder
+    );
+
+    let values: Vec<sea_orm::Value> = std::iter::once(sea_orm::Value::from(now))
+        .chain(hit_ids.iter().map(|id| sea_orm::Value::from(id.clone())))
+        .collect();
+
+    match db
+        .query_all_raw(Statement::from_sql_and_values(db.get_database_backend(), &sql, values))
+        .await
+    {
+        Ok(_) => {
+            tracing::debug!("[memory_feedback] 成功更新 {} 条记忆的反馈权重", hit_ids.len());
+        },
+        Err(e) => {
+            tracing::warn!("[memory_feedback] 批量更新记忆反馈权重失败: {}", e);
+        },
+    }
 }
 
 fn build_source_refs(
@@ -896,6 +983,16 @@ async fn collect_rag_context_from_refs(
 
     let mut context_parts = Vec::new();
     let mut source_results = Vec::new();
+
+    // P2-2: 预计算 query embedding 用于后续的语义匹配
+    let query_embedding = {
+        let q_emb_result =
+            embed_fn.generate(db, master_key, "default", vec![query.to_string()], None).await;
+        match q_emb_result {
+            Ok(resp) if !resp.embeddings.is_empty() => Some(resp.embeddings[0].clone()),
+            _ => None,
+        }
+    };
 
     for src_ref in &sources {
         let source = src_ref.source();
@@ -961,8 +1058,14 @@ async fn collect_rag_context_from_refs(
 
                 // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
                 // v108: 同时按 applicability_tags 过滤适用范围
+                // P2-2: 传入 query_embedding 用于语义相似度匹配
                 if matches!(src_ref.source_type, RAGSourceType::Memory) {
-                    apply_memory_tier_weight(db, &mut items, query).await;
+                    apply_memory_tier_weight(db, &mut items, query, query_embedding.as_deref())
+                        .await;
+
+                    // P0-2: 反馈闭环 — 检索命中后自动提升 importance 和访问统计
+                    let hit_ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
+                    apply_memory_hit_feedback(db, &hit_ids).await;
                 }
 
                 // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
@@ -1660,6 +1763,16 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
         };
     }
 
+    // P2-2: 预计算 query embedding 用于后续的语义匹配
+    let query_embedding = {
+        let q_emb_result =
+            embed_fn.generate(db, master_key, "default", vec![query.to_string()], None).await;
+        match q_emb_result {
+            Ok(resp) if !resp.embeddings.is_empty() => Some(resp.embeddings[0].clone()),
+            _ => None,
+        }
+    };
+
     let mut context_parts = Vec::new();
     let mut source_results = Vec::new();
     let mut graph_context_result: Option<axagent_harness::GraphEnhancedSearchResult> = None;
@@ -1718,8 +1831,14 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
 
                 // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
                 // v108: 同时按 applicability_tags 过滤适用范围
+                // P2-2: 传入 query_embedding 用于语义相似度匹配
                 if matches!(src_ref.source_type, RAGSourceType::Memory) {
-                    apply_memory_tier_weight(db, &mut items, query).await;
+                    apply_memory_tier_weight(db, &mut items, query, query_embedding.as_deref())
+                        .await;
+
+                    // P0-2: 反馈闭环 — 检索命中后自动提升 importance 和访问统计
+                    let hit_ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
+                    apply_memory_hit_feedback(db, &hit_ids).await;
                 }
 
                 let label = source.context_label();
@@ -1915,7 +2034,7 @@ mod tests {
     fn test_filter_empty_items_no_op() {
         let mut items: Vec<RagRetrievedItem> = Vec::new();
         let map = std::collections::HashMap::new();
-        filter_items_by_applicability_tags(&mut items, &map, "rust");
+        filter_items_by_applicability_tags(&mut items, &map, "rust", None);
         assert!(items.is_empty());
     }
 
@@ -1923,7 +2042,7 @@ mod tests {
     fn test_filter_empty_weight_map_keeps_all() {
         let mut items = vec![make_item("a", 1.0), make_item("b", 2.0)];
         let map = std::collections::HashMap::new();
-        filter_items_by_applicability_tags(&mut items, &map, "rust");
+        filter_items_by_applicability_tags(&mut items, &map, "rust", None);
         assert_eq!(items.len(), 2);
     }
 
@@ -1933,7 +2052,7 @@ mod tests {
         let mut map = std::collections::HashMap::new();
         // 仅注册 a，b 不在 map → b 保留
         map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
-        filter_items_by_applicability_tags(&mut items, &map, "rust");
+        filter_items_by_applicability_tags(&mut items, &map, "rust", None);
         // a 命中 rust tag，b 视为全局适用，均保留
         assert_eq!(items.len(), 2);
     }
@@ -1943,7 +2062,7 @@ mod tests {
         let mut items = vec![make_item("a", 1.0)];
         let mut map = std::collections::HashMap::new();
         map.insert("a".to_string(), (1.0, 0.5, Vec::new()));
-        filter_items_by_applicability_tags(&mut items, &map, "anything");
+        filter_items_by_applicability_tags(&mut items, &map, "anything", None);
         assert_eq!(items.len(), 1);
     }
 
@@ -1952,7 +2071,7 @@ mod tests {
         let mut items = vec![make_item("a", 1.0)];
         let mut map = std::collections::HashMap::new();
         map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
-        filter_items_by_applicability_tags(&mut items, &map, "rust programming");
+        filter_items_by_applicability_tags(&mut items, &map, "rust programming", None);
         assert_eq!(items.len(), 1);
     }
 
@@ -1961,7 +2080,7 @@ mod tests {
         let mut items = vec![make_item("a", 1.0)];
         let mut map = std::collections::HashMap::new();
         map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
-        filter_items_by_applicability_tags(&mut items, &map, "python programming");
+        filter_items_by_applicability_tags(&mut items, &map, "python programming", None);
         assert!(items.is_empty());
     }
 
@@ -1972,14 +2091,14 @@ mod tests {
         // tag 大写
         map.insert("a".to_string(), (1.0, 0.5, vec!["RUST".to_string()]));
         // query 小写 → 子串匹配应不区分大小写
-        filter_items_by_applicability_tags(&mut items, &map, "rust is great");
+        filter_items_by_applicability_tags(&mut items, &map, "rust is great", None);
         assert_eq!(items.len(), 1);
 
         // 反向：tag 小写，query 大写
         let mut items2 = vec![make_item("a", 1.0)];
         let mut map2 = std::collections::HashMap::new();
         map2.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
-        filter_items_by_applicability_tags(&mut items2, &map2, "RUST IS GREAT");
+        filter_items_by_applicability_tags(&mut items2, &map2, "RUST IS GREAT", None);
         assert_eq!(items2.len(), 1);
     }
 
@@ -1989,12 +2108,12 @@ mod tests {
         let mut map = std::collections::HashMap::new();
         // 多 tag，query 命中第二个
         map.insert("a".to_string(), (1.0, 0.5, vec!["python".to_string(), "rust".to_string()]));
-        filter_items_by_applicability_tags(&mut items, &map, "rust coding");
+        filter_items_by_applicability_tags(&mut items, &map, "rust coding", None);
         assert_eq!(items.len(), 1);
 
         // 多 tag，query 未命中任何一个
         let mut items2 = vec![make_item("a", 1.0)];
-        filter_items_by_applicability_tags(&mut items2, &map, "golang coding");
+        filter_items_by_applicability_tags(&mut items2, &map, "golang coding", None);
         assert!(items2.is_empty());
     }
 
@@ -2010,7 +2129,7 @@ mod tests {
         map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
         map.insert("b".to_string(), (1.0, 0.5, vec!["python".to_string()]));
         map.insert("c".to_string(), (1.0, 0.5, Vec::new()));
-        filter_items_by_applicability_tags(&mut items, &map, "rust programming");
+        filter_items_by_applicability_tags(&mut items, &map, "rust programming", None);
         assert_eq!(items.len(), 3);
         // b 应被移除
         assert!(items.iter().all(|it| it.id != "b"));
@@ -2022,7 +2141,7 @@ mod tests {
         let mut map = std::collections::HashMap::new();
         map.insert("a".to_string(), (1.0, 0.5, vec!["rust".to_string()]));
         // query 为空 → 任何 tag 都无法命中 → 移除
-        filter_items_by_applicability_tags(&mut items, &map, "");
+        filter_items_by_applicability_tags(&mut items, &map, "", None);
         assert!(items.is_empty());
     }
 

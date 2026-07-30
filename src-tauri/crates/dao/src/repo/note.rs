@@ -87,6 +87,19 @@ pub async fn get_note_by_path(
     Ok(model_to_note(model))
 }
 
+/// P1-1: 批量加载指定 IDs 的 notes（用于 Wiki 实体抽取等场景）
+pub async fn get_notes_by_ids(db: &DatabaseConnection, ids: &[String]) -> Result<Vec<Note>> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let models = notes::Entity::find()
+        .filter(notes::Column::Id.is_in(ids.to_vec()))
+        .filter(notes::Column::IsDeleted.eq(0))
+        .all(db)
+        .await?;
+    Ok(models.into_iter().map(model_to_note).collect())
+}
+
 pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Result<Note> {
     let id = gen_id();
     let now = chrono::Utc::now().timestamp();
@@ -254,18 +267,40 @@ pub async fn sync_note_links(
 ) -> Result<()> {
     let now = chrono::Utc::now().timestamp();
 
+    // 1. 删除旧的正向链接
     note_links::Entity::delete_many()
         .filter(note_links::Column::SourceNoteId.eq(source_note_id))
         .exec(db)
         .await?;
 
-    for (target_note_id, link_text, link_type) in links {
+    // 2. 删除旧的反向链接（source_note_id 作为 target 的记录）
+    note_backlinks::Entity::delete_many()
+        .filter(note_backlinks::Column::TargetNoteId.eq(source_note_id))
+        .exec(db)
+        .await?;
+
+    // 3. 同步写入新的正向链接 + 反向链接
+    for (target_note_id, link_text, link_type) in &links {
+        // 正向链接：source_note → target_note
         note_links::Entity::insert(note_links::ActiveModel {
             vault_id: Set(vault_id.to_string()),
             source_note_id: Set(source_note_id.to_string()),
-            target_note_id: Set(target_note_id),
-            link_text: Set(link_text),
-            link_type: Set(link_type),
+            target_note_id: Set(target_note_id.clone()),
+            link_text: Set(link_text.clone()),
+            link_type: Set(link_type.clone()),
+            created_at: Set(now),
+            ..Default::default()
+        })
+        .exec(db)
+        .await?;
+
+        // 反向链接：target_note ← source_note（自动维护 note_backlinks 索引）
+        note_backlinks::Entity::insert(note_backlinks::ActiveModel {
+            vault_id: Set(vault_id.to_string()),
+            source_note_id: Set(source_note_id.to_string()),
+            target_note_id: Set(target_note_id.clone()),
+            link_text: Set(link_text.clone()),
+            link_type: Set(link_type.clone()),
             created_at: Set(now),
             ..Default::default()
         })
