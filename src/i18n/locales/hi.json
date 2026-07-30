@@ -2540,6 +2540,10 @@
     "MEMORY_CONSOLIDATION_INSUFFICIENT": "समेकन के लिए अपर्याप्त मेमोरी प्रविष्टियाँ",
     "MEMORY_NAMESPACE_NOT_FOUND": "मेमोरी नेमस्पेस नहीं मिला",
     "MEMORY_INDEX_FAILED": "मेमोरी इंडेक्सिंग विफल",
+    "MULTI_AGENT_ROLE_NOT_FOUND": "मल्टी-एजेंट भूमिका नहीं मिली",
+    "MULTI_AGENT_DELEGATE_FAILED": "मल्टी-एजेंट प्रतिनिधित्व विफल",
+    "MULTI_AGENT_INVALID_ROLE": "अमान्य मल्टी-एजेंट भूमिका नाम",
+    "MULTI_AGENT_PROVIDER_NOT_FOUND": "मल्टी-एजेंट प्रदाता नहीं मिला",
     "ONBOARDING_API_KEY_FAILED": "API कुंजी सत्यापन विफल",
     "ONBOARDING_NO_PROVIDER": "कोई प्रदाता कॉन्फ़िगर नहीं",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama कॉन्फ़िगर नहीं",
@@ -8866,6 +8870,7 @@
       "logging": "लॉगिंग",
       "loop": "लूप",
       "merge": "विलय",
+      "multiAgent": "मल्टी-एजेंट",
       "notification": "अधिसूचना",
       "parallel": "समानांतर",
       "phaseSeparator": "चरण विभाजक",
@@ -8891,6 +8896,31 @@
       "title": "सूचनाएं"
     },
     "outputSchema": "आउटपुट स्कीमा",
+    "property": {
+      "task": "कार्य",
+      "taskTip": "मल्टी-एजेंट सहयोग के लिए कार्य का विवरण दें",
+      "role": "डिफ़ॉल्ट भूमिका",
+      "roleTip": "एजेंटों के लिए डिफ़ॉल्ट भूमिका निर्धारण",
+      "model": "मॉडल",
+      "modelTip": "उपयोग करने के लिए AI मॉडल निर्दिष्ट करें",
+      "outputVar": "आउटपुट वेरिएबल",
+      "outputVarTip": "नोड निष्पादन परिणाम के लिए वेरिएबल नाम",
+      "mode": "मोड",
+      "modeTip": "मल्टी-एजेंट सहयोग मोड",
+      "maxRounds": "अधिकतम राउंड",
+      "maxRoundsTip": "एजेंटों के बीच अधिकतम संवाद राउंड"
+    },
+    "placeholder": {
+      "task": "उदा: उपयोगकर्ता प्रतिक्रिया का विश्लेषण करें और सुधार सुझाव उत्पन्न करें...",
+      "role": "डिफ़ॉल्ट भूमिका दर्ज करें...",
+      "model": "मॉडल चुनें...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "स्वचालित",
+      "swarm": "स्वॉर्म",
+      "debate": "बहस"
+    },
     "parallelNode": {
       "anyComplete": "कोई भी पूर्ण",
       "autoInput": "पैरेंट से ऑटो इनपुट",

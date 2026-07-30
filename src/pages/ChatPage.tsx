@@ -38,7 +38,6 @@ export function ChatPage() {
 
   // 右侧面板状态
   const settings = useSettingsStore((s) => s.settings);
-  const saveSettings = useSettingsStore((s) => s.saveSettings);
   const agentPanelEnabled = settings.agent_panel_enabled !== false;
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
     settings.agent_panel_compact === true,
@@ -50,9 +49,10 @@ export function ChatPage() {
     setRightPanelCollapsed((prev) => !prev);
   }, []);
 
+  // 只在 rightPanelCollapsed 变化时保存设置，直接用 getState() 避免依赖 saveSettings 导致循环
   useEffect(() => {
-    saveSettings({ agent_panel_compact: rightPanelCollapsed });
-  }, [rightPanelCollapsed, saveSettings]);
+    useSettingsStore.getState().saveSettings({ agent_panel_compact: rightPanelCollapsed });
+  }, [rightPanelCollapsed]);
 
   // ChatView 暴露的 scroll 能力，供右侧面板点击跳转消息使用
   const [scrollApi, setScrollApi] = useState<ChatViewScrollApi | null>(null);
@@ -131,6 +131,8 @@ export function ChatPage() {
   const closeTab = useTabStore((s) => s.closeTab);
   const updateTabTitle = useTabStore((s) => s.updateTabTitle);
   const tabsInitializedRef = useRef(false);
+  // 防止 tab↔conversation 双向同步循环：当一个方向正在同步时，跳过另一个方向的同步
+  const syncingRef = useRef<"tab-to-conv" | "conv-to-tab" | null>(null);
 
   // 初始数据加载
   useEffect(() => {
@@ -159,14 +161,21 @@ export function ChatPage() {
 
   // 当 activeTabId 变化时，同步 activeConversationId
   useEffect(() => {
+    // 如果上一次是 conv → tab 同步，跳过本次 tab → conv 同步，避免循环
+    if (syncingRef.current === "conv-to-tab") {
+      syncingRef.current = null;
+      return;
+    }
     if (!activeTabId) {
       if (tabsInitializedRef.current && activeConversationId) {
+        syncingRef.current = "tab-to-conv";
         void setActiveConversation(null);
       }
       return;
     }
     const activeTab = tabs.find((t) => t.id === activeTabId);
     if (activeTab && activeTab.conversationId !== activeConversationId) {
+      syncingRef.current = "tab-to-conv";
       void setActiveConversation(activeTab.conversationId);
     }
     // 显式省略 tabs/activeConversationId/setActiveConversation：
@@ -177,9 +186,15 @@ export function ChatPage() {
 
   // 当 activeConversationId 从外部变化时（如侧边栏点击），确保有对应 tab
   useEffect(() => {
+    // 如果上一次是 tab → conv 同步，跳过本次 conv → tab 同步，避免循环
+    if (syncingRef.current === "tab-to-conv") {
+      syncingRef.current = null;
+      return;
+    }
     if (!activeConversationId) {
       // 会话被清空（如删除当前会话）→ 关闭当前 tab
       if (tabsInitializedRef.current && activeTabId) {
+        syncingRef.current = "conv-to-tab";
         closeTab(activeTabId);
       }
       return;
@@ -190,9 +205,11 @@ export function ChatPage() {
     if (!existingTab) {
       const conv = conversations.find((c) => c.id === activeConversationId);
       if (conv) {
+        syncingRef.current = "conv-to-tab";
         openTab(conv.id, conv.title);
       }
     } else if (existingTab.id !== activeTabId) {
+      syncingRef.current = "conv-to-tab";
       useTabStore.getState().setActiveTab(existingTab.id);
     }
     // 显式省略 tabs/activeTabId/openTab/conversations：

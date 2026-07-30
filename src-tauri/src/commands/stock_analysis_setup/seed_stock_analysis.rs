@@ -3230,6 +3230,10 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
                     n.base.position.x -= container_pos.x;
                     n.base.position.y -= container_pos.y;
                 },
+                WorkflowNode::MultiAgent(n) => {
+                    n.base.position.x -= container_pos.x;
+                    n.base.position.y -= container_pos.y;
+                },
                 WorkflowNode::WorkflowRef(n) => {
                     n.base.position.x -= container_pos.x;
                     n.base.position.y -= container_pos.y;

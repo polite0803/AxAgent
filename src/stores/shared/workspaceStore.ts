@@ -12,7 +12,8 @@ export type WorkspaceTab =
   | "workflow"
   | "terminal"
   | "knowledge"
-  | "files";
+  | "files"
+  | "multiAgent";
 
 interface WorkspaceState {
   /** 当前激活的功能 Tab */

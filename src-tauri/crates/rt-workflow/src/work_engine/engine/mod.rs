@@ -378,6 +378,7 @@ pub fn node_type_of(node: &axagent_harness::workflow_types::WorkflowNode) -> &'s
         WorkflowNode::Email(_) => "email",
         WorkflowNode::WorkflowRef(_) => "workflowRef",
         WorkflowNode::Swarm(_) => "swarm",
+        WorkflowNode::MultiAgent(_) => "multiAgent",
     }
 }
 

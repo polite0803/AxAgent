@@ -26,6 +26,7 @@ import {
   LoggingPropertyPanel,
   LoopPropertyPanel,
   MergePropertyPanel,
+  MultiAgentPropertyPanel,
   NotificationPropertyPanel,
   ParallelPropertyPanel,
   StoragePropertyPanel,
@@ -69,6 +70,14 @@ function NodePropertyPanel({
     case "agent":
       return (
         <AgentPropertyPanel
+          node={selectedNode}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
+      );
+    case "multiAgent":
+      return (
+        <MultiAgentPropertyPanel
           node={selectedNode}
           onUpdate={onUpdate}
           onDelete={onDelete}

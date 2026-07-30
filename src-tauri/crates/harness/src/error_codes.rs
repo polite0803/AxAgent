@@ -301,6 +301,18 @@ pub mod vector {
     pub const SEARCH_FAILED: &str = "VECTOR_SEARCH_FAILED";
 }
 
+/// Multi-Agent 委派相关错误码
+pub mod multi_agent {
+    /// 角色未找到
+    pub const ROLE_NOT_FOUND: &str = "MULTI_AGENT_ROLE_NOT_FOUND";
+    /// 委派失败（LLM 调用内部异常）
+    pub const DELEGATE_FAILED: &str = "MULTI_AGENT_DELEGATE_FAILED";
+    /// 无效的角色名称（非 analyst/implementer/reviewer）
+    pub const INVALID_ROLE: &str = "MULTI_AGENT_INVALID_ROLE";
+    /// 提供商未找到
+    pub const PROVIDER_NOT_FOUND: &str = "MULTI_AGENT_PROVIDER_NOT_FOUND";
+}
+
 /// 安全性相关错误码
 pub mod security {
     pub const PATH_TRAVERSAL: &str = "SECURITY_PATH_TRAVERSAL";

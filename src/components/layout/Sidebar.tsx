@@ -19,7 +19,7 @@ import {
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
+import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -64,10 +64,6 @@ const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.chat,
     isPlugin: false,
   },
-  // dashboard/knowledge/terminal/files/workflow/marketplace 已合并到 /chat 的 WorkspaceHub Tab（见 ContentArea 重定向），
-  // dynamic-ui 已迁入设置页，侧栏不再保留这 7 项（跟踪上游 86bf7959 清理）
-  // AxInvest 股票业务 7 个独立页面（workspace/screener/paper-portfolio/market-mainline/
-  // screenshot-diagnosis/quant/pipeline）已合并到 /invest 的 InvestHub Tab，侧栏只保留一个统一入口。
   {
     key: "invest",
     icon: <LineChart size={17} />,
@@ -227,7 +223,6 @@ function UserAvatarButton({
 /** Mobile action buttons — mirrors TitleBar actions on Android where they get clipped */
 function MobileActions() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [pinned, setPinned] = useState(settings.always_on_top ?? false);
@@ -290,15 +285,6 @@ function MobileActions() {
       <Tooltip title={t("desktop.reloadPage")} placement="right">
         <button style={btnBase} onClick={() => window.location.reload()} aria-label={t("desktop.reloadPage")}>
           <RotateCcw size={16} />
-        </button>
-      </Tooltip>
-      <Tooltip title={t("settings.openSettings")} placement="right">
-        <button
-          style={btnBase}
-          onClick={() => navigate(BUILTIN_PAGE_PATH.settings)}
-          aria-label={t("settings.openSettings")}
-        >
-          <Settings size={16} />
         </button>
       </Tooltip>
     </div>
@@ -452,18 +438,6 @@ export function Sidebar() {
           </button>
         </Tooltip>
       )}
-
-      {/* Settings — lower group, above plugins in prototype */}
-      <Tooltip title={sidebarCollapsed ? t("settings.openSettings") : ""} placement="right">
-        <button
-          type="button"
-          className={`nav-item${activePage === "settings" ? " active" : ""}`}
-          onClick={() => navigate(BUILTIN_PAGE_PATH.settings)}
-          aria-label={t("settings.openSettings")}
-        >
-          <Icon icon="fluent:settings-20-filled" size={17} />
-        </button>
-      </Tooltip>
 
       {/* Mobile action buttons (TitleBar actions on Android) */}
       <MobileActions />

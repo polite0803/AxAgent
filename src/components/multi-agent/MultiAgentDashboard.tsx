@@ -469,7 +469,7 @@ export function MultiAgentDashboard() {
   const sortedHistory = useMemo(() => store.history, [store.history]);
 
   return (
-    <div style={{ padding: 16 }}>
+    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: 16, overflow: "auto" }}>
       {/* 顶部标题 */}
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space>

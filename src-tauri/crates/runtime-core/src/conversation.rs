@@ -18,6 +18,7 @@ use crate::compact::{
 use crate::config::RuntimeFeatureConfig;
 use crate::context_contributor::{ContextContributor, ContextRequest};
 use crate::execution_progress::AgentExecutionProgress;
+use crate::hook_chain::HookChain;
 use crate::hooks::{HookAbortSignal, HookProgressReporter, HookRunResult, HookRunner};
 use crate::permissions::{
     PermissionContext, PermissionOutcome, PermissionPolicy, PermissionPrompter,
@@ -199,16 +200,12 @@ pub struct ConversationRuntime<C, T> {
     context_contributors: Vec<Box<dyn ContextContributor>>,
     /// Nudge 上下文行（从 NudgeService 提取，每次 run_turn 前设置）。
     nudge_lines: Vec<String>,
-    /// G9 工具调用护栏（可选，None = 不启用护栏检查）
-    tool_call_guardrail: Option<Box<dyn crate::guard_traits::ToolCallGuardrail>>,
-    /// G10 思考链清理器（可选，None = 不清理 thinking 内容）
-    think_scrubber: Option<Box<dyn crate::guard_traits::ThinkScrubber>>,
-    /// G11 token 用量 sink（可选，None = 不记录用量到外部 ledger）
-    token_usage_sink: Option<Arc<dyn crate::guard_traits::TokenUsageSink>>,
     /// 错误恢复协调器开关（对应 RuntimeFeatureConfig.error_recovery_enabled）。
     error_recovery_enabled: bool,
     /// 思维链开关（对应 RuntimeFeatureConfig.thought_chain_enabled）。
     thought_chain_enabled: bool,
+    /// 可选的 PluginHook 链（MultiAgent 自动委派等），在 LLM 调用前后、工具调用前后执行。
+    hook_chain: Option<Arc<HookChain>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -264,11 +261,9 @@ where
             progress: None,
             context_contributors: Vec::new(),
             nudge_lines: Vec::new(),
-            tool_call_guardrail: None,
-            think_scrubber: None,
-            token_usage_sink: None,
             error_recovery_enabled: feature_config.error_recovery_enabled,
             thought_chain_enabled: feature_config.thought_chain_enabled,
+            hook_chain: None,
         }
     }
 
@@ -344,33 +339,10 @@ where
         self
     }
 
-    /// G9: 注入工具调用护栏。每次工具调用前会检查是否允许，调用后记录结果。
+    /// 设置 PluginHook 链（如 MultiAgentTriggerHook），在 LLM/工具调用前后执行钩子。
     #[must_use]
-    pub fn with_tool_call_guardrail(
-        mut self,
-        guardrail: Box<dyn crate::guard_traits::ToolCallGuardrail>,
-    ) -> Self {
-        self.tool_call_guardrail = Some(guardrail);
-        self
-    }
-
-    /// G10: 注入思考链清理器。LLM 响应的 thinking 内容会被清理后再注入到 blocks。
-    #[must_use]
-    pub fn with_think_scrubber(
-        mut self,
-        scrubber: Box<dyn crate::guard_traits::ThinkScrubber>,
-    ) -> Self {
-        self.think_scrubber = Some(scrubber);
-        self
-    }
-
-    /// G11: 注入 token 用量 sink。每次 LLM 调用和压缩事件会通知外部 ledger。
-    #[must_use]
-    pub fn with_token_usage_sink(
-        mut self,
-        sink: Arc<dyn crate::guard_traits::TokenUsageSink>,
-    ) -> Self {
-        self.token_usage_sink = Some(sink);
+    pub fn with_hook_chain(mut self, hook_chain: Arc<HookChain>) -> Self {
+        self.hook_chain = Some(hook_chain);
         self
     }
 
@@ -384,6 +356,15 @@ where
         let deduped =
             crate::microcompact::microcompact_messages(&self.session.messages, &mc_config);
         crate::snip::snip_tool_results(&deduped, &snip_config)
+    }
+
+    /// 在同步上下文中执行 async HookChain 方法。
+    /// 仅在有 hook_chain 时调用,操作轻量（原子增减 + JSON 比对）。
+    fn exec_sync_hook<H, F>(&self, f: F) -> H
+    where
+        F: std::future::Future<Output = H>,
+    {
+        tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(f))
     }
 
     fn run_pre_tool_use_hook(
@@ -646,6 +627,24 @@ where
                 system_prompt.push(nudge_block);
             }
 
+            // ── PluginHook: pre_llm_call ──
+            if let Some(ref hook_chain) = self.hook_chain {
+                let llm_ctx = crate::plugin_hooks::LlmCallContext {
+                    model: String::new(),
+                    message_count: self.session.messages.len(),
+                    tool_count: iterations.saturating_sub(1),
+                    estimated_tokens: None,
+                    session_id: Some(self.session.session_id.clone()),
+                };
+                if let Some(crate::plugin_hooks::HookDecision::Veto { reason }) =
+                    self.exec_sync_hook(hook_chain.execute_pre_llm_call(&llm_ctx))
+                {
+                    let error = RuntimeError::new(format!("pre_llm_call hook vetoed: {}", reason));
+                    self.record_turn_failed(iterations, &error);
+                    return Err(error);
+                }
+            }
+
             let request = ApiRequest { system_prompt, messages: self.prepare_request_messages() };
             let events = match self.api_client.stream(request) {
                 Ok(events) => events,
@@ -768,7 +767,7 @@ where
                     }
                 },
             };
-            let (mut assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
+            let (assistant_message, usage, turn_prompt_cache_events, turn_thinking) =
                 match build_assistant_message(events, self.thought_chain_enabled) {
                     Ok(result) => result,
                     Err(error) => {
@@ -776,36 +775,42 @@ where
                         return Err(error);
                     },
                 };
-            // G10: 清理 thinking 内容中的敏感信息（API key / IP / prompt leak / 重复行）
-            let turn_thinking = if !turn_thinking.is_empty() {
-                if let Some(ref scrubber) = self.think_scrubber {
-                    let scrubbed = scrubber.scrub(&turn_thinking);
-                    if scrubbed != turn_thinking {
-                        // 同步更新 assistant_message.blocks 中的 thinking 块
-                        let new_thinking_block =
-                            format!("<think data-axagent=\"1\">\n{}\n</think>", scrubbed);
-                        for block in &mut assistant_message.blocks {
-                            if let ContentBlock::Text { text } = block
-                                && text.starts_with("<think data-axagent=\"1\">")
-                            {
-                                // 替换 thinking 块，保留后续正文（如果有）
-                                if let Some(rest_start) = text.find("</think>") {
-                                    let rest = &text[rest_start + "</think>".len()..];
-                                    *text = format!("{}{}", new_thinking_block, rest);
-                                } else {
-                                    *text = new_thinking_block;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    scrubbed
-                } else {
-                    turn_thinking
-                }
-            } else {
-                turn_thinking
-            };
+
+            // ── PluginHook: post_llm_call ──
+            if let Some(ref hook_chain) = self.hook_chain {
+                let llm_ctx = crate::plugin_hooks::LlmCallContext {
+                    model: String::new(),
+                    message_count: self.session.messages.len(),
+                    tool_count: iterations.saturating_sub(1),
+                    estimated_tokens: usage.map(|u| u.input_tokens as u64),
+                    session_id: Some(self.session.session_id.clone()),
+                };
+                let llm_result = crate::plugin_hooks::LlmCallResult {
+                    content: assistant_message
+                        .blocks
+                        .iter()
+                        .filter_map(|b| match b {
+                            ContentBlock::Text { text } => Some(text.clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    tool_calls: Some(
+                        assistant_message
+                            .blocks
+                            .iter()
+                            .filter_map(|b| match b {
+                                ContentBlock::ToolUse { name, .. } => Some(name.clone()),
+                                _ => None,
+                            })
+                            .collect::<Vec<_>>(),
+                    ),
+                    usage_prompt_tokens: usage.map(|u| u.input_tokens),
+                    usage_completion_tokens: usage.map(|u| u.output_tokens),
+                    duration_ms: None,
+                };
+                self.exec_sync_hook(hook_chain.execute_post_llm_call(&llm_ctx, &llm_result));
+            }
             if !turn_thinking.is_empty() {
                 if !thinking.is_empty() {
                     thinking.push('\n');
@@ -814,13 +819,6 @@ where
             }
             if let Some(usage) = usage {
                 self.usage_tracker.record(usage);
-                // G11: 通知外部 token usage sink（SessionTokenLedger）
-                // TokenUsage 是 Copy，usage 在 record 后仍可用
-                if let Some(ref sink) = self.token_usage_sink {
-                    // provider_id / model_id 在 ConversationRuntime 层不可知，
-                    // 由 sink 侧按需填充或留空。cost_usd 暂不估算（由 sink 侧查定价表）。
-                    sink.record("", "", usage, 0.0);
-                }
             }
             prompt_cache_events.extend(turn_prompt_cache_events);
             let pending_tool_uses = assistant_message
@@ -849,60 +847,6 @@ where
             }
 
             for (tool_use_id, tool_name, input) in pending_tool_uses {
-                // G9: 工具调用护栏检查 — 在 pre_tool_use_hook 之前拦截重复失败循环
-                if let Some(ref guardrail) = self.tool_call_guardrail {
-                    let verdict = guardrail.check_allowed(&tool_name, &input);
-                    match verdict {
-                        crate::guard_traits::GuardrailVerdict::Allow => {},
-                        crate::guard_traits::GuardrailVerdict::Warn(reason) => {
-                            tracing::warn!(
-                                tool = %tool_name,
-                                reason = %reason,
-                                "[G9 Guardrail] 工具调用警告（允许执行）"
-                            );
-                        },
-                        crate::guard_traits::GuardrailVerdict::Block(reason) => {
-                            tracing::warn!(
-                                tool = %tool_name,
-                                reason = %reason,
-                                "[G9 Guardrail] 工具调用被阻止"
-                            );
-                            guardrail.record_call(&tool_name, &input, false);
-                            let err_msg =
-                                format!("Tool `{}` blocked by guardrail: {}", tool_name, reason);
-                            let result_msg = ConversationMessageExt::tool_result(
-                                tool_use_id.clone(),
-                                tool_name.clone(),
-                                err_msg.clone(),
-                                true,
-                            );
-                            tool_results.push(result_msg);
-                            self.session
-                                .push_message(ConversationMessageExt::tool_result(
-                                    tool_use_id,
-                                    tool_name,
-                                    err_msg,
-                                    true,
-                                ))
-                                .map_err(|error| RuntimeError::new(error.to_string()))?;
-                            continue;
-                        },
-                        crate::guard_traits::GuardrailVerdict::Halt(reason) => {
-                            tracing::error!(
-                                tool = %tool_name,
-                                reason = %reason,
-                                "[G9 Guardrail] 工具调用触发 Halt，停止 Agent Loop"
-                            );
-                            guardrail.record_call(&tool_name, &input, false);
-                            let error = RuntimeError::new(format!(
-                                "Agent loop halted by guardrail: {reason}"
-                            ));
-                            self.record_turn_failed(iterations, &error);
-                            return Err(error);
-                        },
-                    }
-                }
-
                 // Detect repeated identical tool calls to prevent infinite loops.
                 let input_hash = {
                     use std::hash::Hasher;
@@ -915,7 +859,6 @@ where
                 *repeat_count += 1;
 
                 if *repeat_count >= MAX_IDENTICAL_CALLS_HARD {
-                    // Hard limit: abort the turn to prevent wasting API credits
                     let error = RuntimeError::new(format!(
                         "Aborted: tool '{}' called {} times with identical arguments. \
                                  This likely indicates a loop — please try a different approach.",
@@ -926,7 +869,6 @@ where
                 }
 
                 if *repeat_count == MAX_IDENTICAL_CALLS {
-                    // Soft warning: inject a hint into the session so the LLM sees it
                     let warning_msg = ConversationMessageExt::assistant(vec![ContentBlock::Text {
                         text: format!(
                             "[System] You have called '{}' {} times with the same arguments. \
@@ -937,6 +879,23 @@ where
                     self.session
                         .push_message(warning_msg)
                         .map_err(|error| RuntimeError::new(error.to_string()))?;
+                }
+
+                // ── PluginHook: pre_tool_call ──
+                if let Some(ref hook_chain) = self.hook_chain {
+                    let tool_ctx = crate::plugin_hooks::ToolCallContext {
+                        tool_name: tool_name.clone(),
+                        tool_namespace: None,
+                        arguments: serde_json::from_str(&input).unwrap_or_default(),
+                        session_id: Some(self.session.session_id.clone()),
+                    };
+                    if let Some(crate::plugin_hooks::HookDecision::Veto { reason }) =
+                        self.exec_sync_hook(hook_chain.execute_pre_tool_call(&tool_ctx))
+                    {
+                        let error = RuntimeError::new(format!("工具被 hook 拒绝: {}", reason));
+                        self.record_turn_failed(iterations, &error);
+                        return Err(error);
+                    }
                 }
 
                 let pre_hook_result =
@@ -1144,6 +1103,25 @@ where
                                 || post_hook_result.is_cancelled(),
                         );
 
+                        // ── PluginHook: post_tool_call ──
+                        if let Some(ref hook_chain) = self.hook_chain {
+                            let tool_ctx = crate::plugin_hooks::ToolCallContext {
+                                tool_name: tool_name.clone(),
+                                tool_namespace: None,
+                                arguments: serde_json::from_str(&input).unwrap_or_default(),
+                                session_id: Some(self.session.session_id.clone()),
+                            };
+                            let tool_result = crate::plugin_hooks::ToolCallResult {
+                                tool_name: tool_name.clone(),
+                                result: serde_json::Value::String(output.clone()),
+                                success: !is_error,
+                                duration_ms: None,
+                            };
+                            self.exec_sync_hook(
+                                hook_chain.execute_post_tool_call(&tool_ctx, &tool_result),
+                            );
+                        }
+
                         // Update shared execution progress before the
                         // Allow arm closes (output/is_error live here).
                         if let Some(ref progress) = self.progress {
@@ -1168,16 +1146,6 @@ where
                     .push_message(result_message.clone())
                     .map_err(|error| RuntimeError::new(error.to_string()))?;
                 self.record_tool_finished(iterations, &result_message);
-                // G9: 记录工具调用结果到护栏（用于后续重复失败检测）
-                if let Some(ref guardrail) = self.tool_call_guardrail
-                    && let Some(ContentBlock::ToolResult { tool_name, is_error, .. }) =
-                        result_message.blocks.iter().find_map(|b| match b {
-                            block @ ContentBlock::ToolResult { .. } => Some(block),
-                            _ => None,
-                        })
-                {
-                    guardrail.record_call(tool_name, &input, !*is_error);
-                }
                 tool_results.push(result_message);
             }
 
@@ -1832,6 +1800,8 @@ impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
 
 /// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
 /// agent crate 用此函数代替直接引用 ConversationRuntime 类型，消除依赖。
+///
+/// `hook_chain` — 可选的 PluginHook 链，在 LLM/工具调用前后执行钩子。
 pub fn create_conversation_runtime(
     session: axagent_harness::runtime_types::session::Session,
     api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
@@ -1841,8 +1811,9 @@ pub fn create_conversation_runtime(
     permission_policy: crate::permissions::PermissionPolicy,
     system_prompt: Vec<String>,
     feature_config: RuntimeFeatureConfig,
+    hook_chain: Option<Arc<HookChain>>,
 ) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
-    let rt = ConversationRuntime::new_with_features(
+    let mut rt = ConversationRuntime::new_with_features(
         session,
         api_client,
         tool_executor,
@@ -1850,6 +1821,9 @@ pub fn create_conversation_runtime(
         system_prompt,
         &feature_config,
     );
+    if let Some(hc) = hook_chain {
+        rt = rt.with_hook_chain(hc);
+    }
     Box::new(rt)
 }
 

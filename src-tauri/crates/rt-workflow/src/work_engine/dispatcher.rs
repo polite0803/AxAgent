@@ -13,9 +13,9 @@ use super::executors::{
     AggregatorExecutor, ApprovalExecutor, CodeExecutor, DataTransformerExecutor,
     DatabaseQueryExecutor, DebateExecutor, DelayExecutor, DocumentParserExecutor, EmailExecutor,
     EndExecutor, FallbackExecutor, FileOperationExecutor, HttpRequestExecutor, LoggingExecutor,
-    LoopExecutor, MergeExecutor, NotificationExecutor, ParallelExecutor, StorageExecutor,
-    SubWorkflowExecutor, SwarmExecutor, ToolExecutor, TriggerExecutor, ValidationExecutor,
-    VectorRetrieveExecutor, WebhookSendExecutor,
+    LoopExecutor, MergeExecutor, MultiAgentExecutor, NotificationExecutor, ParallelExecutor,
+    StorageExecutor, SubWorkflowExecutor, SwarmExecutor, ToolExecutor, TriggerExecutor,
+    ValidationExecutor, VectorRetrieveExecutor, WebhookSendExecutor,
 };
 use super::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
@@ -103,6 +103,7 @@ impl NodeDispatcher {
         self.register(AggregatorExecutor::new()).await;
         self.register(EmailExecutor::new()).await;
         self.register(SwarmExecutor::new()).await;
+        self.register(MultiAgentExecutor::new()).await;
     }
 
     /// 注册 executor。若同名 executor 已存在，记录 warn 日志

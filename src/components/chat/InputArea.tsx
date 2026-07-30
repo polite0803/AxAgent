@@ -32,6 +32,7 @@ import {
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import { useMultiAgentStore } from "@/stores/feature/multiAgentStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
 import {
@@ -43,10 +44,26 @@ import {
   type ProviderConfig,
   type RealtimeConfig,
 } from "@/types";
-import { AudioOutlined } from "@ant-design/icons";
+import { AudioOutlined, TeamOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
-import { App, Badge, Button, Checkbox, Form, Image, Input, Modal, Popover, Select, Tag, theme, Typography } from "antd";
+import {
+  App,
+  Badge,
+  Button,
+  Checkbox,
+  Form,
+  Image,
+  Input,
+  Modal,
+  Popover,
+  Segmented,
+  Select,
+  Space,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
 import {
   ArrowUp,
   Atom,
@@ -204,6 +221,7 @@ export function AgentProfileSelect({
 export function InputArea() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message: messageApi, modal } = App.useApp();
   const [value, setValue] = useState(() => {
     const convId = useConversationStore.getState().activeConversationId;
     return convId ? _draftCache.get(convId) || "" : "";
@@ -238,8 +256,6 @@ export function InputArea() {
     },
   });
   const gatewayKeys = useGatewayStore((s) => s.keys);
-  const fetchGatewayKeys = useGatewayStore((s) => s.fetchKeys);
-  const decryptKey = useGatewayStore((s) => s.decryptKey);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -301,7 +317,7 @@ export function InputArea() {
     (s) => s.sendMultiModelMessage,
   );
 
-  const { message: messageApi, modal } = App.useApp();
+  const multiAgentStore = useMultiAgentStore();
   const activeConversationId = useConversationStore(
     (s) => s.activeConversationId,
   );
@@ -375,11 +391,9 @@ export function InputArea() {
     // 没有任何可用服务商时，传一个非空占位让后端走 DDG 免费搜索
     return searchEnabled ? "__ddg_fallback__" : null;
   }, [searchEnabled, searchProviderId, searchProviders]);
-  const loadSearchProviders = useSearchStore((s) => s.loadProviders);
 
   // MCP state
   const mcpServers = useMcpStore((s) => s.servers);
-  const loadMcpServers = useMcpStore((s) => s.loadServers);
   const createMcpServer = useMcpStore((s) => s.createServer);
   const updateMcpServer = useMcpStore((s) => s.updateServer);
   const enabledMcpServerIds = useConversationStore(
@@ -405,14 +419,12 @@ export function InputArea() {
 
   // Gateway links state
   const gatewayLinks = useGatewayLinkStore((s) => s.links);
-  const fetchGatewayLinks = useGatewayLinkStore((s) => s.fetchLinks);
   const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(
     null,
   );
 
   // Knowledge base state
   const knowledgeBases = useKnowledgeStore((s) => s.bases);
-  const loadKnowledgeBases = useKnowledgeStore((s) => s.loadBases);
   const enabledKnowledgeBaseIds = useConversationStore(
     (s) => s.enabledKnowledgeBaseIds,
   );
@@ -423,7 +435,6 @@ export function InputArea() {
 
   // Memory state
   const memoryNamespaces = useMemoryStore((s) => s.namespaces);
-  const loadMemoryNamespaces = useMemoryStore((s) => s.loadNamespaces);
   const activeMemoryNamespaceId = useConversationStore(
     (s) => s.activeMemoryNamespaceId,
   );
@@ -433,12 +444,28 @@ export function InputArea() {
 
   // Wiki vault state
   const wikis = useLlmWikiStore((s) => s.wikis);
-  const loadWikis = useLlmWikiStore((s) => s.loadWikis);
   const enabledWikiIds = useConversationStore((s) => s.enabledWikiIds);
   const toggleWiki = useConversationStore((s) => s.toggleWiki);
 
   // Prompt template state
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
+
+  // Delegate task state
+  const [delegateModalOpen, setDelegateModalOpen] = useState(false);
+  const [delegateRole, setDelegateRole] = useState("");
+  const [delegateTask, setDelegateTask] = useState("");
+
+  // Fetch roles when delegate modal opens
+  useEffect(() => {
+    if (delegateModalOpen) {
+      if (multiAgentStore.roles.length === 0) {
+        multiAgentStore.fetchRoles();
+      }
+      if (!delegateRole && multiAgentStore.roles.length > 0) {
+        setDelegateRole(multiAgentStore.roles[0].id);
+      }
+    }
+  }, [delegateModalOpen]);
 
   // Context clear
   const insertContextClear = useConversationStore((s) => s.insertContextClear);
@@ -488,9 +515,8 @@ export function InputArea() {
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
-  // 引用回复：当前被引用的消息 ID 及其清理函数
+  // 引用回复：当前被引用的消息 ID
   const quotedMessageId = useUIStore((s) => s.quotedMessageId);
-  const setQuotedMessageId = useUIStore((s) => s.setQuotedMessageId);
   const quotedMessage = useMemo(() => {
     if (!quotedMessageId) { return null; }
     return useConversationStore.getState().messages.find((m) => m.id === quotedMessageId) ?? null;
@@ -498,50 +524,46 @@ export function InputArea() {
 
   // 引用回复：切换会话时清除引用状态，避免跨会话残留
   useEffect(() => {
-    setQuotedMessageId(null);
-  }, [activeConversationId, setQuotedMessageId]);
+    useUIStore.getState().setQuotedMessageId(null);
+  }, [activeConversationId]);
 
-  // Load search providers on mount
+  // Mount 时加载各 store 数据：依赖必须为空数组，避免 store 在 IPC 失败时
+  // set 新空数组导致引用变化 → useEffect 重新执行 → 无限循环
   useEffect(() => {
-    if ((searchProviders ?? []).length === 0) {
-      loadSearchProviders();
+    if ((useSearchStore.getState().providers ?? []).length === 0) {
+      useSearchStore.getState().loadProviders();
     }
-  }, [searchProviders, loadSearchProviders]);
+  }, []);
 
-  // Load MCP servers on mount
   useEffect(() => {
-    if ((mcpServers ?? []).length === 0) {
-      loadMcpServers();
+    if ((useMcpStore.getState().servers ?? []).length === 0) {
+      useMcpStore.getState().loadServers();
     }
-  }, [mcpServers, loadMcpServers]);
+  }, []);
 
-  // Load knowledge bases on mount
   useEffect(() => {
-    if ((knowledgeBases ?? []).length === 0) {
-      loadKnowledgeBases();
+    if ((useKnowledgeStore.getState().bases ?? []).length === 0) {
+      useKnowledgeStore.getState().loadBases();
     }
-  }, [knowledgeBases, loadKnowledgeBases]);
+  }, []);
 
-  // Load memory namespaces on mount
   useEffect(() => {
-    if ((memoryNamespaces ?? []).length === 0) {
-      loadMemoryNamespaces();
+    if ((useMemoryStore.getState().namespaces ?? []).length === 0) {
+      useMemoryStore.getState().loadNamespaces();
     }
-  }, [memoryNamespaces, loadMemoryNamespaces]);
+  }, []);
 
-  // Load wiki vaults on mount
   useEffect(() => {
-    if ((wikis ?? []).length === 0) {
-      loadWikis();
+    if ((useLlmWikiStore.getState().wikis ?? []).length === 0) {
+      useLlmWikiStore.getState().loadWikis();
     }
-  }, [wikis, loadWikis]);
+  }, []);
 
-  // Load gateway links on mount
   useEffect(() => {
-    if ((gatewayLinks ?? []).length === 0) {
-      fetchGatewayLinks();
+    if ((useGatewayLinkStore.getState().links ?? []).length === 0) {
+      useGatewayLinkStore.getState().fetchLinks();
     }
-  }, [gatewayLinks, fetchGatewayLinks]);
+  }, []);
 
   // Set default workspace directory when in agent mode and no conversation is active
   useEffect(() => {
@@ -1857,7 +1879,7 @@ export function InputArea() {
         );
       }
       // 引用回复：发送成功后清除引用状态
-      setQuotedMessageId(null);
+      useUIStore.getState().setQuotedMessageId(null);
     } catch (e) {
       setValue((current) => current || trimmed);
       setAttachedFiles((current) => current.length > 0 ? current : submittedFiles);
@@ -1896,7 +1918,6 @@ export function InputArea() {
     selectedGatewayId,
     effectiveSearchProviderId,
     quotedMessageId,
-    setQuotedMessageId,
   ]);
 
   const handleFillLastMessage = useCallback(() => {
@@ -2183,21 +2204,34 @@ export function InputArea() {
   // 加载 gateway API key 用于语音通话鉴权
   React.useEffect(() => {
     if (gatewayKeys.length === 0) {
-      fetchGatewayKeys();
+      useGatewayStore.getState().fetchKeys();
     }
-  }, [fetchGatewayKeys, gatewayKeys.length]);
+  }, [gatewayKeys.length]);
+
+  // 稳定 messageApi / t 引用，避免其不稳定导致下方解密 useEffect 反复触发
+  const messageApiRef = useRef(messageApi);
+  messageApiRef.current = messageApi;
+  const tRef = useRef(t);
+  tRef.current = t;
+  // 解密尝试标记：防止 decryptKey 失败后无限重试（避免 Maximum update depth exceeded）
+  const decryptAttemptedRef = useRef(false);
 
   React.useEffect(() => {
-    if (gatewayKeys.length > 0 && !voiceApiKey) {
-      const enabledKey = gatewayKeys.find((k) => k.enabled) || gatewayKeys[0];
-      // P1-10：解密失败时给用户可见的反馈，而不是静默吞错（之前 .catch(() => {}) 会让语音入口无任何提示直接失效）
-      decryptKey(enabledKey.id)
-        .then(setVoiceApiKey)
-        .catch(() => {
-          messageApi.error(t("voice.decryptKeyFailed"));
-        });
+    if (gatewayKeys.length === 0 || voiceApiKey || decryptAttemptedRef.current) {
+      return;
     }
-  }, [gatewayKeys, decryptKey, voiceApiKey, messageApi, t]);
+    decryptAttemptedRef.current = true;
+    const enabledKey = gatewayKeys.find((k) => k.enabled) || gatewayKeys[0];
+    // P1-10：解密失败时给用户可见的反馈，而不是静默吞错（之前 .catch(() => {}) 会让语音入口无任何提示直接失效）
+    useGatewayStore.getState().decryptKey(enabledKey.id)
+      .then(setVoiceApiKey)
+      .catch(() => {
+        // 仅在首次失败提示；用 ref 读取最新的 messageApi/t，避免把不稳定引用放入依赖
+        messageApiRef.current.error(tRef.current("voice.decryptKeyFailed"));
+      });
+    // 依赖只用 length 和 voiceApiKey（稳定值）；messageApi/t 通过 ref 读取
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gatewayKeys.length, voiceApiKey]);
 
   React.useEffect(() => {
     const onEscape = () => setVoiceCallVisible(false);
@@ -2568,7 +2602,7 @@ export function InputArea() {
                 type="text"
                 size="small"
                 icon={<X size={14} />}
-                onClick={() => setQuotedMessageId(null)}
+                onClick={() => useUIStore.getState().setQuotedMessageId(null)}
                 style={{ color: token.colorTextTertiary, flexShrink: 0 }}
               />
             </Tooltip>
@@ -2985,6 +3019,19 @@ export function InputArea() {
                 onClick={() => setSettingsOpen(true)}
               />
             </Tooltip>
+            {currentMode === "agent" && (
+              <Tooltip title={t("multiAgent.delegateBtn")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<TeamOutlined style={{ fontSize: 14 }} />}
+                  onClick={() => {
+                    setDelegateTask(value);
+                    setDelegateModalOpen(true);
+                  }}
+                />
+              </Tooltip>
+            )}
             {activeConversation?.session_type !== "workflow" && (
               <DropdownMenu items={unifiedModeMenuItems}>
                 <Tooltip title={t("chat.mode.title")}>
@@ -3178,6 +3225,58 @@ export function InputArea() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
+
+      {/* 委派任务弹窗 */}
+      <Modal
+        title={t("multiAgent.delegateTitle")}
+        open={delegateModalOpen}
+        onCancel={() => setDelegateModalOpen(false)}
+        confirmLoading={multiAgentStore.delegating}
+        onOk={async () => {
+          if (!delegateRole || !delegateTask.trim()) {
+            messageApi.warning(t("multiAgent.fillRequired"));
+            return;
+          }
+          try {
+            await multiAgentStore.delegateTask({
+              roleName: delegateRole,
+              task: delegateTask.trim(),
+              providerId: activeConversation?.provider_id || "",
+              modelId: activeConversation?.model_id || "",
+            });
+            messageApi.success(t("multiAgent.delegateSuccess"));
+            setDelegateModalOpen(false);
+          } catch (e) {
+            messageApi.error(`${t("multiAgent.delegateFailed")}: ${e}`);
+          }
+        }}
+        okText={t("multiAgent.delegateBtn")}
+        destroyOnHidden
+      >
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <div>
+            <Typography.Text type="secondary">{t("multiAgent.selectRole")}</Typography.Text>
+            <Segmented
+              block
+              value={delegateRole}
+              onChange={(v) => setDelegateRole(v as string)}
+              options={multiAgentStore.roles.map((r) => ({
+                label: r.name,
+                value: r.id,
+              }))}
+            />
+          </div>
+          <div>
+            <Typography.Text type="secondary">{t("multiAgent.taskDescription")}</Typography.Text>
+            <Input.TextArea
+              value={delegateTask}
+              onChange={(e) => setDelegateTask(e.target.value)}
+              rows={4}
+              placeholder={t("multiAgent.taskPlaceholder")}
+            />
+          </div>
+        </Space>
+      </Modal>
 
       <Modal
         title={editingMcpServer

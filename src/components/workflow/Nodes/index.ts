@@ -22,6 +22,7 @@ export { LLMNode } from "./LLMNode";
 export { LoggingNode } from "./LoggingNode";
 export { LoopNode } from "./LoopNode";
 export { MergeNode } from "./MergeNode";
+export { MultiAgentNode } from "./MultiAgentNode";
 export { NotificationNode } from "./NotificationNode";
 export { ParallelNode } from "./ParallelNode";
 export { PhaseSeparatorNode } from "./PhaseSeparatorNode";

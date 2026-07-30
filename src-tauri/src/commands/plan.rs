@@ -666,6 +666,7 @@ async fn execute_step_with_agent(
         PermissionPolicy::new(axagent_runtime::PermissionMode::Prompt),
         system_prompt,
         runtime_feature_config,
+        crate::commands::multi_agent::get_global_hook_chain(),
     );
 
     let result = session_manager

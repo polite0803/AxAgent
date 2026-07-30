@@ -2378,6 +2378,10 @@
     "MEMORY_CONSOLIDATION_INSUFFICIENT": "Insufficient memory entries for consolidation",
     "MEMORY_NAMESPACE_NOT_FOUND": "Memory namespace not found",
     "MEMORY_INDEX_FAILED": "Failed to index memory",
+    "MULTI_AGENT_ROLE_NOT_FOUND": "Multi-agent role not found",
+    "MULTI_AGENT_DELEGATE_FAILED": "Multi-agent delegation failed",
+    "MULTI_AGENT_INVALID_ROLE": "Invalid multi-agent role name",
+    "MULTI_AGENT_PROVIDER_NOT_FOUND": "Multi-agent provider not found",
     "ONBOARDING_API_KEY_FAILED": "API key verification failed",
     "ONBOARDING_NO_PROVIDER": "No provider configured",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama is not configured",
@@ -8524,6 +8528,7 @@
       "logging": "Logging",
       "loop": "Loop",
       "merge": "Merge",
+      "multiAgent": "Multi-Agent",
       "notification": "Notification",
       "parallel": "Parallel",
       "phaseSeparator": "Phase Separator",
@@ -8549,6 +8554,31 @@
       "title": "Notifications"
     },
     "outputSchema": "Output Schema",
+    "property": {
+      "task": "Task",
+      "taskTip": "Describe the task for multi-agent collaboration",
+      "role": "Default Role",
+      "roleTip": "Default role assignment for agents",
+      "model": "Model",
+      "modelTip": "Specify the AI model to use",
+      "outputVar": "Output Variable",
+      "outputVarTip": "Variable name for node execution result",
+      "mode": "Mode",
+      "modeTip": "Multi-agent collaboration mode",
+      "maxRounds": "Max Rounds",
+      "maxRoundsTip": "Maximum conversation rounds between agents"
+    },
+    "placeholder": {
+      "task": "e.g., Analyze user feedback and generate improvement suggestions...",
+      "role": "Enter default role...",
+      "model": "Select model...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "Auto",
+      "swarm": "Swarm",
+      "debate": "Debate"
+    },
     "parallelNode": {
       "anyComplete": "Any complete",
       "autoInput": "Auto-receive parent input",

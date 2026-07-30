@@ -34,8 +34,6 @@ const LazyLearningGraphPage = lazy(() =>
 const LazyDynamicPageViewer = lazy(() =>
   import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
 );
-// AxInvest 股票业务页面已合并到 /invest 的 InvestHub Tab，相关 lazy 导入移至 InvestHub 内部。
-// 此处仅保留 Multi-Agent（通用功能，非投资业务）的独立懒加载。
 const LazyMultiAgentPage = lazy(() => import("@/pages/MultiAgentPage").then((m) => ({ default: m.MultiAgentPage })));
 const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
 
@@ -109,6 +107,14 @@ function RedirectStockWorkspace() {
   return redirectToInvest("workspace", { stockCode });
 }
 
+/** 从路径参数读取 analysis ID 并重定向到 /invest?tab=workspace&view=analysis&analysisId=xxx */
+function RedirectStockAnalysisById() {
+  const { id } = useParams<{ id: string }>();
+  const params = new URLSearchParams({ tab: "workspace", view: "analysis" });
+  if (id) { params.set("analysisId", id); }
+  return <Navigate to={`${BUILTIN_PAGE_PATH.invest}?${params.toString()}`} replace />;
+}
+
 export const ContentArea = memo(function ContentArea() {
   const { ipcHealthy } = useIpcHealth();
 
@@ -134,6 +140,7 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH.terminal} element={redirectToChat("terminal")} />
           <Route path={BUILTIN_PAGE_PATH.files} element={redirectToChat("files")} />
           <Route path={BUILTIN_PAGE_PATH.knowledge} element={redirectToChat("knowledge")} />
+          <Route path={BUILTIN_PAGE_PATH.multiAgent} element={redirectToChat("multiAgent")} />
           <Route path={BUILTIN_PAGE_PATH.marketplace} element={redirectToChat("workflow")} />
           {/* 记忆页保留独立路由（无侧栏入口，通过知识源内 Memory Tab 访问） */}
           <Route
@@ -245,7 +252,7 @@ export const ContentArea = memo(function ContentArea() {
           />
           <Route
             path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/:id`}
-            element={redirectToInvest("workspace", { view: "analysis" })}
+            element={<RedirectStockAnalysisById />}
           />
           <Route
             path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/*`}

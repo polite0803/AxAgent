@@ -2378,6 +2378,10 @@
     "MEMORY_CONSOLIDATION_INSUFFICIENT": "記憶條目不足以進行合併",
     "MEMORY_NAMESPACE_NOT_FOUND": "記憶命名空間未找到",
     "MEMORY_INDEX_FAILED": "記憶索引失敗",
+    "MULTI_AGENT_ROLE_NOT_FOUND": "多智能體角色未找到",
+    "MULTI_AGENT_DELEGATE_FAILED": "多智能體委派失敗",
+    "MULTI_AGENT_INVALID_ROLE": "無效的多智能體角色名稱",
+    "MULTI_AGENT_PROVIDER_NOT_FOUND": "多智能體提供商未找到",
     "ONBOARDING_API_KEY_FAILED": "API 金鑰驗證失敗",
     "ONBOARDING_NO_PROVIDER": "未設定任何提供者",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama 未設定",
@@ -8520,6 +8524,7 @@
       "logging": "日誌",
       "loop": "迴圈",
       "merge": "合併",
+      "multiAgent": "多智能體",
       "notification": "通知",
       "parallel": "並行",
       "phaseSeparator": "階段分隔",
@@ -8545,6 +8550,31 @@
       "title": "通知"
     },
     "outputSchema": "輸出模式",
+    "property": {
+      "task": "任務",
+      "taskTip": "描述需要多智能體協作完成的任務",
+      "role": "默認角色",
+      "roleTip": "智能體的默認角色設定",
+      "model": "模型",
+      "modelTip": "指定使用的 AI 模型",
+      "outputVar": "輸出變量",
+      "outputVarTip": "節點執行結果的變量名",
+      "mode": "協作模式",
+      "modeTip": "多智能體協作方式",
+      "maxRounds": "最大輪次",
+      "maxRoundsTip": "智能體間最大對話輪數"
+    },
+    "placeholder": {
+      "task": "例如：分析用戶反饋並生成改進建議...",
+      "role": "輸入默認角色...",
+      "model": "選擇模型...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "自動",
+      "swarm": "群智",
+      "debate": "辯論"
+    },
     "parallelNode": {
       "anyComplete": "任一完成",
       "autoInput": "自動接收父節點輸入",

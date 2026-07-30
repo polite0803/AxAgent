@@ -756,11 +756,18 @@ export function useChatViewMessages({
       } else {
         multiModelVersions.delete(parentMsgId);
       }
-      if (
-        hadCached !== stillMultiModel
-        || !multiModelResponseParents.has(parentMsgId)
-      ) {
-        setDisplayModeOverrides((prev) => new Map(prev));
+      // 只在缓存状态真正变化时才更新 displayModeOverrides，
+      // 且仅当需要移除已存在的 override 时才创建新 Map，避免引用变化触发循环
+      if (hadCached !== stillMultiModel) {
+        setDisplayModeOverrides((prev) => {
+          if (!stillMultiModel && prev.has(parentMsgId)) {
+            const next = new Map(prev);
+            next.delete(parentMsgId);
+            return next;
+          }
+          // 无需变更时返回同一引用，避免触发下游 useCallback/useMemo 重建
+          return prev;
+        });
       }
     },
     [multiModelResponseParents, multiModelVersions],

@@ -2540,6 +2540,10 @@
     "MEMORY_CONSOLIDATION_INSUFFICIENT": "Недостаточно записей памяти для консолидации",
     "MEMORY_NAMESPACE_NOT_FOUND": "Пространство имен памяти не найдено",
     "MEMORY_INDEX_FAILED": "Ошибка индексации памяти",
+    "MULTI_AGENT_ROLE_NOT_FOUND": "Роль мультиагента не найдена",
+    "MULTI_AGENT_DELEGATE_FAILED": "Делегирование мультиагента не удалось",
+    "MULTI_AGENT_INVALID_ROLE": "Недопустимое имя роли мультиагента",
+    "MULTI_AGENT_PROVIDER_NOT_FOUND": "Провайдер мультиагента не найден",
     "ONBOARDING_API_KEY_FAILED": "Ошибка проверки ключа API",
     "ONBOARDING_NO_PROVIDER": "Поставщик не настроен",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama не настроен",
@@ -8866,6 +8870,7 @@
       "logging": "Логирование",
       "loop": "Цикл",
       "merge": "Слияние",
+      "multiAgent": "Мультиагент",
       "notification": "Уведомление",
       "parallel": "Параллельно",
       "phaseSeparator": "Разделитель фаз",
@@ -8891,6 +8896,31 @@
       "title": "Уведомления"
     },
     "outputSchema": "Схема вывода",
+    "property": {
+      "task": "Задача",
+      "taskTip": "Опишите задачу для многолетной совместной работы",
+      "role": "Роль по умолчанию",
+      "roleTip": "Назначение роли по умолчанию для агентов",
+      "model": "Модель",
+      "modelTip": "Укажите используемую модель ИИ",
+      "outputVar": "Выходная переменная",
+      "outputVarTip": "Имя переменной для результата выполнения узла",
+      "mode": "Режим",
+      "modeTip": "Режим многолетного сотрудничества",
+      "maxRounds": "Макс. раундов",
+      "maxRoundsTip": "Максимальное количество раундов диалога между агентами"
+    },
+    "placeholder": {
+      "task": "Напр.: проанализировать отзывы пользователей и сгенерировать предложения по улучшению...",
+      "role": "Введите роль по умолчанию...",
+      "model": "Выберите модель...",
+      "outputVar": "multiAgentOutput"
+    },
+    "mode": {
+      "auto": "Авто",
+      "swarm": "Рой",
+      "debate": "Дебаты"
+    },
     "parallelNode": {
       "anyComplete": "Любой завершён",
       "autoInput": "Авто-вход от родителя",

@@ -2,7 +2,7 @@
 
 import { useWorkspaceTabStore, type WorkspaceTab } from "@/stores";
 import { theme } from "antd";
-import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal } from "lucide-react";
+import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface TabConfig {
@@ -18,6 +18,7 @@ const TABS: TabConfig[] = [
   { key: "terminal", labelKey: "nav.terminal", icon: SquareTerminal },
   { key: "files", labelKey: "nav.files", icon: Folder },
   { key: "knowledge", labelKey: "nav.knowledge", icon: Database },
+  { key: "multiAgent", labelKey: "nav.multiAgent", icon: Users },
 ];
 
 /**
@@ -42,6 +43,8 @@ export function WorkspaceSwitcher() {
         backgroundColor: token.colorBgContainer,
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
         flexShrink: 0,
+        overflowX: "auto",
+        whiteSpace: "nowrap",
       }}
     >
       {TABS.map(({ key, labelKey, icon: Icon }) => {
@@ -50,6 +53,7 @@ export function WorkspaceSwitcher() {
           <button
             key={key}
             type="button"
+            title={t(labelKey)}
             onClick={() => setActiveTab(key)}
             style={{
               display: "inline-flex",
@@ -60,6 +64,7 @@ export function WorkspaceSwitcher() {
               borderRadius: 6,
               cursor: "pointer",
               fontSize: 13,
+              flexShrink: 0,
               fontWeight: isActive ? 500 : 400,
               color: isActive ? token.colorPrimary : token.colorTextSecondary,
               backgroundColor: isActive
@@ -79,7 +84,7 @@ export function WorkspaceSwitcher() {
             }}
           >
             <Icon size={14} />
-            {t(labelKey)}
+            <span className="ws-label">{t(labelKey)}</span>
           </button>
         );
       })}

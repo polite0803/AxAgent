@@ -105,7 +105,17 @@ export const useUIStore = create<UIState>((set, get) => ({
   settingsHighlight: null,
   selectedProviderId: null,
   workflowEditorOpen: false,
-  deviceLayout: resolveDeviceLayout(window.innerWidth),
+  // 支持 ?layout=mobile / ?layout=tablet URL 参数（仅 dev 模式），方便预览面板直接切换布局
+  deviceLayout: (() => {
+    if (import.meta.env.DEV) {
+      const params = new URLSearchParams(window.location.search);
+      const forced = params.get("layout");
+      if (forced === "mobile" || forced === "tablet" || forced === "desktop") {
+        return forced;
+      }
+    }
+    return resolveDeviceLayout(window.innerWidth);
+  })(),
 
   // --- Right Panel state ---
   chartData: null,
@@ -167,3 +177,10 @@ export const useUIStore = create<UIState>((set, get) => ({
     });
   },
 }));
+
+// 开发模式：暴露全局切换布局方法，方便预览响应式效果
+if (import.meta.env.DEV) {
+  (window as Window & { __setDeviceLayout?: (layout: DeviceLayout) => void }).__setDeviceLayout = (layout) => {
+    useUIStore.getState().setDeviceLayout(layout);
+  };
+}

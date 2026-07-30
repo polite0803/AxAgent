@@ -1766,6 +1766,7 @@ pub async fn agent_query(
         PermissionPolicy::new(runtime_permission_mode),
         system_prompt,
         runtime_feature_config,
+        crate::commands::multi_agent::get_global_hook_chain(),
     );
 
     // 将 nudge 注入到运行时级 system_prompt（通过 <memory_context> 块在每次 LLM 调用前注入）

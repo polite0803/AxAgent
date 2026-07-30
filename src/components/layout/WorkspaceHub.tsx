@@ -4,6 +4,7 @@ import { ChatPage } from "@/pages/ChatPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { FilesPage } from "@/pages/FilesPage";
 import { KnowledgeHubPage } from "@/pages/KnowledgeHubPage";
+import { MultiAgentPage } from "@/pages/MultiAgentPage";
 import { TerminalPage } from "@/pages/TerminalPage";
 import { WorkflowPage } from "@/pages/WorkflowPage";
 import { useWorkspaceTabStore, type WorkspaceTab } from "@/stores";
@@ -44,6 +45,8 @@ export function WorkspaceHub() {
       return <FilesPage />;
     case "knowledge":
       return <KnowledgeHubPage />;
+    case "multiAgent":
+      return <MultiAgentPage />;
     default:
       return <ChatPage />;
   }

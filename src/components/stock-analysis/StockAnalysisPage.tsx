@@ -127,10 +127,15 @@ interface SheetPanel {
   element: ReactNode;
 }
 
-export function StockAnalysisPage() {
+export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace?: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  // 兼容两种进入路径：
+  //   - 旧路由 /stock-analysis/:id → routeId 来自 useParams
+  //   - InvestHub 工作区 /invest?tab=workspace&view=analysis&analysisId=xxx → analysisId 来自 searchParams
+  const id = routeId ?? searchParams.get("analysisId");
   const loadAnalysis = useStockAnalysisStore((s) => s.loadAnalysis);
   const status = useStockAnalysisStore((s) => s.status);
   const [showDebug, setShowDebug] = useState(false);
@@ -151,10 +156,11 @@ export function StockAnalysisPage() {
   const timeAnchorMode = useTimeAnchorStore((s) => s.mode);
   const isReplay = timeAnchorMode === "replay" || timeAnchorMode === "backtest_sweep";
 
-  const [searchParams] = useSearchParams();
-  // 股票工作区（/workspace/...）下使用本页面时，外层 StockWorkspaceShell 已渲染 PageTimeAnchor
-  // 与"返回对话"按钮，此处跳过避免重复
-  const isInWorkspace = useLocation().pathname.startsWith("/workspace");
+  // 在工作区壳层内使用时：
+  //   - 跳过  sa-header（外层已有自己的标题栏和 PageTimeAnchor）
+  //   - 跳过  InvestDashboard idle 态（外层控制何时开始分析）
+  //   - 保留  sa-tabs、搜索栏、进度条、内容面板
+  const isInWorkspace = embeddedInWorkspace ?? useLocation().pathname.startsWith("/workspace");
   const [activeTab, setActiveTab] = useState("market");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetTab, setSheetTab] = useState("trade");
@@ -394,34 +400,35 @@ export function StockAnalysisPage() {
     <PageErrorBoundary title={t("error.page")}>
       <StockAnalysisPageContext.Provider value={{ openDataSourceSettings }}>
         <div className="sa-layout">
-          <div className="sa-header">
-            {/* 工作区上下文下，外层已渲染"返回对话"与 PageTimeAnchor，此处跳过避免重复 */}
-            {!isInWorkspace && (
+          {!isInWorkspace && (
+            <div className="sa-header">
               <button type="button" className="sa-header-back" onClick={() => navigate("/")}>
                 ? {t("nav.chat")}
               </button>
-            )}
-            <h2 className="sa-header-title">{t("stockAnalysis.title")}</h2>
-            {marketStatus && <span className="sa-header-meta">{marketStatus}</span>}
-            {!isInWorkspace && <PageTimeAnchor />}
-            <button
-              type="button"
-              className="sa-header-back"
-              onClick={() => navigate("/trade")}
-              title={t("nav.trade")}
-            >
-              <ArrowLeftRight size={14} /> {t("nav.trade")}
-            </button>
-            <button
-              type="button"
-              className="sa-header-back"
-              onClick={() => setSettingsOpen(!settingsOpen)}
-              title={t("stockAnalysis.settings.title")}
-              style={settingsOpen && !isMobile ? { background: "var(--accent-bg)", color: "var(--accent)" } : undefined}
-            >
-              {settingsOpen && !isMobile ? <X size={16} /> : <Settings size={16} />}
-            </button>
-          </div>
+              <h2 className="sa-header-title">{t("stockAnalysis.title")}</h2>
+              {marketStatus && <span className="sa-header-meta">{marketStatus}</span>}
+              <PageTimeAnchor />
+              <button
+                type="button"
+                className="sa-header-back"
+                onClick={() => navigate("/trade")}
+                title={t("nav.trade")}
+              >
+                <ArrowLeftRight size={14} /> {t("nav.trade")}
+              </button>
+              <button
+                type="button"
+                className="sa-header-back"
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                title={t("stockAnalysis.settings.title")}
+                style={settingsOpen && !isMobile
+                  ? { background: "var(--accent-bg)", color: "var(--accent)" }
+                  : undefined}
+              >
+                {settingsOpen && !isMobile ? <X size={16} /> : <Settings size={16} />}
+              </button>
+            </div>
+          )}
           {isReplay && (
             // L2 视觉信号: 页面态细条 — 顶部 1px 紫色细线 + 极淡紫色背景,让用户一眼看到当前是回放模式
             <div
@@ -519,7 +526,7 @@ export function StockAnalysisPage() {
                         </div>
                       )}
 
-                      {status === "idle" && <InvestDashboard />}
+                      {status === "idle" && !isInWorkspace && <InvestDashboard />}
 
                       {status === "error" && (
                         <div

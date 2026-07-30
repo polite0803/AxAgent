@@ -388,16 +388,20 @@ const WorkflowDagView: React.FC<{ steps: StepLike[] }> = memo(
   ({ steps }) => {
     const { token } = theme.useToken();
     const { fitView } = useReactFlow();
+    // fitView 在 @xyflow/react 中引用不稳定，放进依赖数组会形成循环；
+    // 用 ref 缓存最新引用，依赖数组只保留 nodes。
+    const fitViewRef = useRef(fitView);
+    fitViewRef.current = fitView;
     const { nodes, edges } = useMemo(() => computeDagLayout(steps, token), [steps, token]);
 
     useEffect(() => {
       if (nodes.length > 0) {
         const timer = setTimeout(() => {
-          fitView({ padding: 0.3, duration: 200 });
+          fitViewRef.current({ padding: 0.3, duration: 200 });
         }, 60);
         return () => clearTimeout(timer);
       }
-    }, [nodes, fitView]);
+    }, [nodes]);
 
     if (nodes.length === 0) {
       return null;
