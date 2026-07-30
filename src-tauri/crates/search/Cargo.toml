@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
+axagent-entities = { path = "../entities" }
 axagent-harness = { path = "../harness" }
 candle-core = "0.11"
 candle-transformers = "0.11"

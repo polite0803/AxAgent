@@ -13,10 +13,12 @@ use axagent_harness::InferenceEngine;
 use axagent_harness::core_error::Result;
 use axagent_harness::types::*;
 
-/// RAG 管线 —— 编排 检索 → 重排序 → 质检
+/// RAG 管线 —— 编排 检索 → 重排序 → 质检 → 图增强检索
 pub struct RAGPipeline {
     rerank_pipeline: RerankPipeline,
     self_rag_gate: SelfRagGate,
+    /// 可选的实体图谱提供者，用于 Graph RAG 增强检索
+    entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>>,
 }
 
 impl RAGPipeline {
@@ -27,10 +29,12 @@ impl RAGPipeline {
     /// - `api_key`：云端 reranker（cohere/jina/voyage）的实际 API Key，
     ///   应由 wiring 层根据 `RerankConfig.api_key_ref` 凭证引用名解析后注入；
     ///   当前调用方暂传 `None`（占位），后续 wiring 层接入后改为传入实际 key。
+    /// - `entity_graph_provider`：可选的实体图谱提供者，用于执行图增强检索。
     pub fn new(
         config: &RAGPipelineConfig,
         engine: Option<Arc<dyn InferenceEngine>>,
         api_key: Option<String>,
+        entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>>,
     ) -> Self {
         Self {
             // 修复：原本硬编码传 None 给 engine，导致 cross_encoder 永远降级到 rule。
@@ -39,6 +43,7 @@ impl RAGPipeline {
             // 都能被正确实例化。
             rerank_pipeline: reranker::create_rerank_pipeline(&config.rerank, engine, api_key),
             self_rag_gate: SelfRagGate::new(config.self_rag.clone()),
+            entity_graph_provider,
         }
     }
 
@@ -137,6 +142,27 @@ impl RAGPipeline {
         let judgments = self.self_rag_gate.judge_chunks(query, &chunks).await?;
         let quality = self.self_rag_gate.evaluate_quality(&judgments);
 
+        // 阶段 4：图增强检索（如果启用了 EntityGraphProvider）
+        let graph_context = if let Some(provider) = &self.entity_graph_provider {
+            let graph_input = axagent_harness::GraphEnhancedSearchInput {
+                knowledge_base_id: container_id.to_string(),
+                query: query.to_string(),
+                entity_type_filters: vec![],
+                relation_type_filters: vec![],
+                top_k: Some(5),
+                include_neighbors: Some(true),
+            };
+            match provider.graph_enhanced_search(graph_input).await {
+                Ok(result) => Some(result),
+                Err(e) => {
+                    tracing::warn!("Graph enhanced search failed: {}", e);
+                    None
+                },
+            }
+        } else {
+            None
+        };
+
         // 过滤不相关 chunk（引用追溯：保留 chunk_index 字段）
         let filtered: Vec<RerankedChunk> = reranked
             .iter()
@@ -153,7 +179,7 @@ impl RAGPipeline {
             })
             .collect();
 
-        Ok(PipelineOutput { results: filtered, quality, retries: 0 })
+        Ok(PipelineOutput { results: filtered, quality, retries: 0, graph_context })
     }
 }
 
@@ -174,4 +200,6 @@ pub struct PipelineOutput {
     pub results: Vec<RerankedChunk>,
     pub quality: RetrievalQuality,
     pub retries: u8,
+    /// 图增强检索结果（如果启用了 EntityGraphProvider）
+    pub graph_context: Option<axagent_harness::GraphEnhancedSearchResult>,
 }
