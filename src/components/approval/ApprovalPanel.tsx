@@ -180,7 +180,7 @@ export function ApprovalPanel() {
       onCancel={() => setPanelOpen(false)}
       width={800}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       {/* 备注输入 */}
       <Input.TextArea

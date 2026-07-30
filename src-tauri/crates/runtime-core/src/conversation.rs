@@ -358,18 +358,16 @@ where
         crate::snip::snip_tool_results(&deduped, &snip_config)
     }
 
-        /// 在同步上下文中执行 async HookChain 方法。
+    /// 在同步上下文中执行 async HookChain 方法。
     /// 仅在有 hook_chain 时调用,操作轻量（原子增减 + JSON 比对）。
     fn exec_sync_hook<H, F>(&self, f: F) -> H
     where
         F: std::future::Future<Output = H>,
     {
-        tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(f)
-        })
+        tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(f))
     }
 
-fn run_pre_tool_use_hook(
+    fn run_pre_tool_use_hook(
         &mut self,
         tool_name: &str,
         input: &str,
@@ -788,7 +786,9 @@ fn run_pre_tool_use_hook(
                     session_id: Some(self.session.session_id.clone()),
                 };
                 let llm_result = crate::plugin_hooks::LlmCallResult {
-                    content: assistant_message.blocks.iter()
+                    content: assistant_message
+                        .blocks
+                        .iter()
                         .filter_map(|b| match b {
                             ContentBlock::Text { text } => Some(text.clone()),
                             _ => None,
@@ -796,12 +796,14 @@ fn run_pre_tool_use_hook(
                         .collect::<Vec<_>>()
                         .join("\n"),
                     tool_calls: Some(
-                        assistant_message.blocks.iter()
+                        assistant_message
+                            .blocks
+                            .iter()
                             .filter_map(|b| match b {
                                 ContentBlock::ToolUse { name, .. } => Some(name.clone()),
                                 _ => None,
                             })
-                            .collect::<Vec<_>>()
+                            .collect::<Vec<_>>(),
                     ),
                     usage_prompt_tokens: usage.map(|u| u.input_tokens as u32),
                     usage_completion_tokens: usage.map(|u| u.output_tokens as u32),
@@ -1118,7 +1120,9 @@ fn run_pre_tool_use_hook(
                                 success: !is_error,
                                 duration_ms: None,
                             };
-                            self.exec_sync_hook(hook_chain.execute_post_tool_call(&tool_ctx, &tool_result));
+                            self.exec_sync_hook(
+                                hook_chain.execute_post_tool_call(&tool_ctx, &tool_result),
+                            );
                         }
 
                         // Update shared execution progress before the

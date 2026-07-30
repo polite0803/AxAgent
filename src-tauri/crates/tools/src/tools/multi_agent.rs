@@ -117,7 +117,11 @@ impl Tool for DelegateTaskTool {
 
         Ok(ToolResult::success(format!(
             "## 委派结果（角色: {}）\n\n{}\n\n---\nPrompt: {} tokens · Completion: {} tokens · 耗时: {}ms",
-            result.role_name, result.content, result.prompt_tokens, result.completion_tokens, result.duration_ms,
+            result.role_name,
+            result.content,
+            result.prompt_tokens,
+            result.completion_tokens,
+            result.duration_ms,
         )))
     }
 }

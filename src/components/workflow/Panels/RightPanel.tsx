@@ -416,7 +416,7 @@ const SchemaEditorModal: React.FC<{
       okText={t("common.confirm")}
       cancelText={t("common.cancel")}
       width={640}
-      destroyOnClose
+      destroyOnHidden
     >
       <Input.TextArea
         value={text}

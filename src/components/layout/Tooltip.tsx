@@ -87,7 +87,7 @@ export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
       onKeyUp,
       onContextMenu,
     },
-    forwardedRef,
+    _forwardedRef,
   ) => {
     const [internalVisible, setInternalVisible] = useState(false);
     const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
@@ -114,6 +114,11 @@ export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
         setInternalVisible(false);
       }
     }, [isControlled]);
+
+    // 稳定的 ref 回调 - 仅设置内部 triggerRef，不转发 forwardedRef 避免循环
+    const setTriggerRef = useCallback((el: HTMLElement | null) => {
+      triggerRef.current = el;
+    }, []);
 
     // 清理 timeout
     useEffect(() => {
@@ -143,14 +148,7 @@ export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
             any
           >,
           {
-            ref: (el: HTMLElement | null) => {
-              triggerRef.current = el;
-              if (typeof forwardedRef === "function") {
-                forwardedRef(el);
-              } else if (forwardedRef && "current" in forwardedRef) {
-                (forwardedRef as React.MutableRefObject<HTMLElement | null>).current = el;
-              }
-            },
+            ref: setTriggerRef,
             onMouseEnter: show,
             onMouseLeave: hide,
             onFocus: show,

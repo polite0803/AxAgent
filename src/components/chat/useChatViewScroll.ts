@@ -84,7 +84,7 @@ export function useChatViewScroll({
   useLayoutEffect(() => {
     const el = bubbleListRef.current;
     scrollBoxRef.current = ((el as BubbleListElement)?.scrollBoxNativeElement as HTMLElement) ?? el ?? null;
-  });
+  }, [bubbleListRef]);
 
   useEffect(() => {
     stickToBottomRef.current = stickToBottom;
@@ -359,7 +359,15 @@ export function useChatViewScroll({
       syncScrollToBottomVisibility();
     });
     return () => window.cancelAnimationFrame(rafId);
-  }, [allBubbleItems, stickToBottom, syncScrollToBottomVisibility, scrollToBottomImmediate]);
+    // allBubbleItems 是数组引用，父组件每次渲染可能传入新引用（即使内容相同），
+    // 直接放进依赖数组会形成循环。用 length + lastBubbleKey 作为内容变化的代理。
+  }, [
+    allBubbleItems.length,
+    lastBubbleKey,
+    stickToBottom,
+    syncScrollToBottomVisibility,
+    scrollToBottomImmediate,
+  ]);
 
   useEffect(() => {
     if (!activeConversationId || allBubbleItems.length === 0) {

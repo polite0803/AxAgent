@@ -2141,6 +2141,7 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   overflow-x: auto;
 }
 .tabbar::-webkit-scrollbar { display: none; }
+.ax-workspace-switcher::-webkit-scrollbar { display: none; }
 .tabbar-scroll {
   display: flex;
   align-items: stretch;
@@ -3056,6 +3057,10 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   .tab-item { max-width: 100px; font-size: 11px; padding: 0 6px; }
   .tab-item .tab-close { display: none; }
   .titlebar-actions { gap: 1px; }
+  /* WorkspaceSwitcher: 隐藏标签文字，只显示图标，减小内边距 */
+  .ax-workspace-switcher .ws-label { display: none; }
+  .ax-workspace-switcher { gap: 0; padding: 4px 8px; }
+  .ax-workspace-switcher button { padding: 4px 6px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

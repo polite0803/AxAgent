@@ -574,7 +574,7 @@ export function AgentProfileManager() {
         okText={t("common.save")}
         cancelText={t("common.cancel")}
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingRole && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

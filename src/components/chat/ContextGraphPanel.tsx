@@ -695,6 +695,10 @@ interface GraphCanvasProps {
 /// 放在 <ReactFlow> 内部，筛选变化时自动 fitView
 function FitViewOnNodeChange({ nodeCount }: { nodeCount: number }) {
   const { fitView } = useReactFlow();
+  // fitView 在 @xyflow/react 中每次 context 变化都会重建，引用不稳定，
+  // 放进依赖数组会形成循环。用 ref 缓存最新引用，依赖数组只保留原始值 nodeCount。
+  const fitViewRef = React.useRef(fitView);
+  fitViewRef.current = fitView;
   const prevRef = React.useRef(nodeCount);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
@@ -702,14 +706,17 @@ function FitViewOnNodeChange({ nodeCount }: { nodeCount: number }) {
   React.useEffect(() => {
     if (nodeCount !== prevRef.current) {
       prevRef.current = nodeCount;
-      timerRef.current = setTimeout(() => fitView({ padding: 0.3 }), 50);
+      timerRef.current = setTimeout(
+        () => fitViewRef.current({ padding: 0.3 }),
+        50,
+      );
     }
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [nodeCount, fitView]);
+  }, [nodeCount]);
   return null;
 }
 

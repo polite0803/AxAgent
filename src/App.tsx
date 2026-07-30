@@ -168,6 +168,7 @@ function AppInner() {
   const isInSettings = location.pathname === "/settings"
     || location.pathname.startsWith("/settings/");
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const deviceLayout = useUIStore((s) => s.deviceLayout);
   const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
   const isAgentMiniMode = useAgentPanelStore((s) => s.isMiniMode);
   const isAgentDragging = useAgentPanelStore((s) => s.isDragging);
@@ -367,7 +368,10 @@ function AppInner() {
                   style={{
                     flex: 1,
                     minWidth: 0,
-                    marginRight: agentInTheLoopEnabled && isAgentPanelOpen ? agentPanelWidth : 0,
+                    marginRight: (agentInTheLoopEnabled && isAgentPanelOpen && deviceLayout !== "mobile"
+                        && deviceLayout !== "tablet")
+                      ? agentPanelWidth
+                      : 0,
                     transition: isAgentDragging ? "none" : "margin-right 300ms ease-in-out",
                   }}
                 >
@@ -382,7 +386,33 @@ function AppInner() {
                 </div>
                 {agentInTheLoopEnabled && (
                   <Suspense fallback={null}>
-                    <LazyAgentPanel />
+                    {/* 手机/平板 → 覆盖层，不占 flex 空间；桌面 → 内联浮动 */}
+                    {(deviceLayout === "mobile" || deviceLayout === "tablet") && isAgentPanelOpen && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          zIndex: 49,
+                          backgroundColor: "rgba(0,0,0,0.3)",
+                        }}
+                        onClick={() => useAgentPanelStore.getState().close()}
+                      />
+                    )}
+                    <div
+                      style={deviceLayout === "mobile" || deviceLayout === "tablet"
+                        ? {
+                          position: "absolute",
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          zIndex: 50,
+                          display: isAgentPanelOpen ? undefined : "none",
+                          maxWidth: "100vw",
+                        }
+                        : { display: "contents" }}
+                    >
+                      <LazyAgentPanel />
+                    </div>
                   </Suspense>
                 )}
               </div>

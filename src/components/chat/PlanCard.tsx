@@ -12,7 +12,7 @@ import {
 import { Button, Progress, Tag, theme } from "antd";
 import type { GlobalToken } from "antd/es/theme/interface";
 import { AlertTriangle, ClipboardList, Play, RotateCcw, X } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./PlanCard.css";
 import { Tooltip } from "@/components/layout/Tooltip";
@@ -100,8 +100,14 @@ export function PlanCard({
   const [localSteps, setLocalSteps] = useState<PlanStep[]>(plan.steps);
 
   // Sync with store updates
+  // 用 ref 缓存上次序列化结果，避免 store 返回新数组引用时形成 setState 循环
+  const prevStepsKeyRef = useRef<string>("");
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const key = JSON.stringify(plan.steps);
+    if (key === prevStepsKeyRef.current) {
+      return;
+    }
+    prevStepsKeyRef.current = key;
     setLocalSteps(plan.steps);
   }, [plan.steps]);
 

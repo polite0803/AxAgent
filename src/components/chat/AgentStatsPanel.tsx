@@ -65,12 +65,27 @@ export const AgentStatsPanel: React.FC = () => {
   const startTimeRef = useRef(0);
   const pausedDurationRef = useRef(0);
   const pauseStartRef = useRef(0);
+  // 用 ref 存储最新 stats，避免在 setState updater 中嵌套调用另一个 setState
+  const latestStatsRef = useRef<RuntimeStats | null>(null);
+
+  // 调试：记录渲染次数和 effect 执行次数，精确定位循环源
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (import.meta.env.DEV && renderCountRef.current % 20 === 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[AgentStatsPanel] render #${renderCountRef.current}`,
+      { streaming, activeConversationId, stats: !!stats, elapsed, toolElapsed },
+    );
+  }
 
   useEffect(() => {
     if (!streaming || !activeConversationId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStats(null);
-      setElapsed(0);
+      // 仅在值不同时才 setState，避免无效更新触发连锁渲染
+      if (stats !== null) { setStats(null); }
+      if (elapsed !== 0) { setElapsed(0); }
+      if (toolElapsed !== 0) { setToolElapsed(0); }
+      latestStatsRef.current = null;
       startTimeRef.current = 0;
       pausedDurationRef.current = 0;
       pauseStartRef.current = 0;
@@ -81,7 +96,9 @@ export const AgentStatsPanel: React.FC = () => {
     startTimeRef.current = Date.now();
     pausedDurationRef.current = 0;
     pauseStartRef.current = 0;
+    latestStatsRef.current = null;
     setElapsed(0);
+    setToolElapsed(0);
 
     const interval = setInterval(async () => {
       if (cancelled) {
@@ -113,6 +130,7 @@ export const AgentStatsPanel: React.FC = () => {
           }
         }
 
+        latestStatsRef.current = s;
         setStats(s);
 
         if (s.paused && pauseStartRef.current === 0) {
@@ -135,19 +153,17 @@ export const AgentStatsPanel: React.FC = () => {
       }
     }, 2000);
 
-    // Track per-tool elapsed time
+    // Track per-tool elapsed time — 直接从 ref 读取，不嵌套 setState
     const toolInterval = setInterval(() => {
-      setStats((prev) => {
-        const p = prev?.executionProgress;
-        if (p?.currentTool && p.currentToolStartedAt) {
-          setToolElapsed(
-            Math.floor((Date.now() - p.currentToolStartedAt) / 1000),
-          );
-        } else {
-          setToolElapsed(0);
-        }
-        return prev;
-      });
+      const s = latestStatsRef.current;
+      const p = s?.executionProgress;
+      if (p?.currentTool && p.currentToolStartedAt) {
+        setToolElapsed(
+          Math.floor((Date.now() - p.currentToolStartedAt) / 1000),
+        );
+      } else {
+        setToolElapsed(0);
+      }
     }, 1000);
 
     invoke<RuntimeStats>("agent_runtime_stats", {
@@ -155,6 +171,7 @@ export const AgentStatsPanel: React.FC = () => {
     })
       .then((s) => {
         if (!cancelled) {
+          latestStatsRef.current = s;
           setStats(s);
         }
       })

@@ -44,11 +44,12 @@ function useEntries(): MinimapEntry[] {
   const loadingOlder = useConversationStore((s) => s.loadingOlder);
 
   // Eagerly load all older messages so the minimap shows the full conversation
+  // 注意：依赖中不能包含 messages，否则加载后 messages 变化会再次触发 effect 形成循环
   useEffect(() => {
     if (hasOlderMessages && !loadingOlder) {
       useConversationStore.getState().loadOlderMessages();
     }
-  }, [hasOlderMessages, loadingOlder, messages]);
+  }, [hasOlderMessages, loadingOlder]);
 
   return useMemo(() => {
     const active = messages.filter((m) => m.is_active !== false);

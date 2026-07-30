@@ -43,6 +43,8 @@ export function WorkspaceSwitcher() {
         backgroundColor: token.colorBgContainer,
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
         flexShrink: 0,
+        overflowX: "auto",
+        whiteSpace: "nowrap",
       }}
     >
       {TABS.map(({ key, labelKey, icon: Icon }) => {
@@ -51,6 +53,7 @@ export function WorkspaceSwitcher() {
           <button
             key={key}
             type="button"
+            title={t(labelKey)}
             onClick={() => setActiveTab(key)}
             style={{
               display: "inline-flex",
@@ -61,6 +64,7 @@ export function WorkspaceSwitcher() {
               borderRadius: 6,
               cursor: "pointer",
               fontSize: 13,
+              flexShrink: 0,
               fontWeight: isActive ? 500 : 400,
               color: isActive ? token.colorPrimary : token.colorTextSecondary,
               backgroundColor: isActive
@@ -80,7 +84,7 @@ export function WorkspaceSwitcher() {
             }}
           >
             <Icon size={14} />
-            {t(labelKey)}
+            <span className="ws-label">{t(labelKey)}</span>
           </button>
         );
       })}

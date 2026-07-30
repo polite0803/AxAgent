@@ -252,50 +252,57 @@ export function ChatSidebar({
     }
   }, [activeConversationId, conversations]);
 
+  // 用于防止自动选择循环的 ref
+  const lastAutoSelectedIdRef = useRef<string | null>(null);
+  const lastSavedIdRef = useRef<string | null>(null);
+
   // Auto-select conversation: restore last selected, or fall back to first
   useEffect(() => {
     // Suppress auto-select when the active conversation was just deleted/archived.
     // The user explicitly closed the conversation and should see the welcome screen.
     if (isSidebarAutoSelectSuppressed()) {
       resetSidebarAutoSelectSuppression();
+      lastAutoSelectedIdRef.current = null;
       return;
     }
     if (!activeConversationId && conversations.length > 0 && !settingsLoading) {
-      const lastId = settings.last_selected_conversation_id;
+      // 直接从 store 读取最新 settings，避免依赖 settings.last_selected_conversation_id 导致循环
+      const lastId = useSettingsStore.getState().settings.last_selected_conversation_id;
       const lastConv = lastId
         ? conversations.find((c) => c.id === lastId)
         : null;
-      if (lastConv) {
-        setActiveConversation(lastConv.id);
-      } else {
+      const targetId = lastConv?.id ?? (() => {
         const sorted = conversations.toSorted((a, b) => {
           if (a.is_pinned !== b.is_pinned) {
             return a.is_pinned ? -1 : 1;
           }
           return b.updated_at - a.updated_at;
         });
-        setActiveConversation(sorted[0].id);
+        return sorted[0]?.id ?? null;
+      })();
+
+      // 防止重复设置同一个 ID 导致循环
+      if (targetId && targetId !== lastAutoSelectedIdRef.current) {
+        lastAutoSelectedIdRef.current = targetId;
+        setActiveConversation(targetId);
       }
     }
   }, [
     activeConversationId,
     conversations,
     setActiveConversation,
-    settings.last_selected_conversation_id,
     settingsLoading,
   ]);
 
-  // Persist last selected conversation
+  // Persist last selected conversation — 只在 activeConversationId 真正变化时保存
   useEffect(() => {
-    if (
-      activeConversationId
-      && activeConversationId !== settings.last_selected_conversation_id
-    ) {
+    if (activeConversationId && activeConversationId !== lastSavedIdRef.current) {
+      lastSavedIdRef.current = activeConversationId;
       void useSettingsStore
         .getState()
         .saveSettings({ last_selected_conversation_id: activeConversationId });
     }
-  }, [activeConversationId, settings.last_selected_conversation_id]);
+  }, [activeConversationId]);
 
   const handleNewConversation = useCallback(async () => {
     let provider: (typeof providers)[0] | undefined;

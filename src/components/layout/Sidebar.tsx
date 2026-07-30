@@ -12,7 +12,7 @@ import { useAgentPanelStore, useOnboardingStore, useSettingsStore, useUIStore, u
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { Globe, Moon, Pin, PinOff, RotateCcw, Settings, Sun, User } from "lucide-react";
+import { Globe, Moon, Pin, PinOff, RotateCcw, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -202,7 +202,6 @@ function UserAvatarButton({
 /** Mobile action buttons — mirrors TitleBar actions on Android where they get clipped */
 function MobileActions() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [pinned, setPinned] = useState(settings.always_on_top ?? false);
@@ -265,11 +264,6 @@ function MobileActions() {
       <Tooltip title={t("desktop.reloadPage")} placement="right">
         <button style={btnBase} onClick={() => window.location.reload()} aria-label={t("desktop.reloadPage")}>
           <RotateCcw size={16} />
-        </button>
-      </Tooltip>
-      <Tooltip title={t("settings.openSettings")} placement="right">
-        <button style={btnBase} onClick={() => navigate("/settings")} aria-label={t("settings.openSettings")}>
-          <Settings size={16} />
         </button>
       </Tooltip>
     </div>

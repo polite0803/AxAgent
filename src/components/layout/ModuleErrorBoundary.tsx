@@ -41,6 +41,19 @@ class ModuleErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (import.meta.env.DEV) {
+      // 将完整错误信息挂到 window 上，便于调试时获取完整 componentStack
+      if (typeof window !== "undefined") {
+        const list = (window as unknown as {
+          __moduleErrors?: Array<{ moduleName: string; error: string; componentStack: string; ts: number }>;
+        }).__moduleErrors ?? [];
+        list.push({
+          moduleName: this.props.moduleName,
+          error: error.message,
+          componentStack: errorInfo.componentStack ?? "",
+          ts: Date.now(),
+        });
+        (window as unknown as { __moduleErrors?: unknown }).__moduleErrors = list;
+      }
       console.error(
         `ModuleErrorBoundary (${this.props.moduleName}) caught an error:`,
         error,

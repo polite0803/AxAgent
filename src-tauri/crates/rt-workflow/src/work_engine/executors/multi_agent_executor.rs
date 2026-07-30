@@ -56,9 +56,15 @@ impl NodeExecutorTrait for MultiAgentExecutor {
 
         let mut result = HashMap::new();
         result.insert("task".to_string(), serde_json::Value::String(task.clone()));
-        result.insert("role".to_string(), serde_json::Value::String(mn.config.role.clone().unwrap_or_default()));
+        result.insert(
+            "role".to_string(),
+            serde_json::Value::String(mn.config.role.clone().unwrap_or_default()),
+        );
         result.insert("mode".to_string(), serde_json::Value::String(mn.config.mode.clone()));
-        result.insert("max_rounds".to_string(), serde_json::Value::Number(serde_json::Number::from(mn.config.max_rounds)));
+        result.insert(
+            "max_rounds".to_string(),
+            serde_json::Value::Number(serde_json::Number::from(mn.config.max_rounds)),
+        );
         result.insert("status".to_string(), serde_json::Value::String("delegated".to_string()));
 
         Ok(NodeOutput {
