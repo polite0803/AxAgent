@@ -165,10 +165,7 @@ impl GraphContextFormatter for DefaultGraphFormatter {
     async fn format_context(&self, result: &GraphEnhancedSearchResult) -> Result<String, String> {
         let mut context = String::new();
         for entity in &result.entities {
-            context.push_str(&format!(
-                "【{} - {}】\n",
-                entity.entity_type, entity.entity_name
-            ));
+            context.push_str(&format!("【{} - {}】\n", entity.entity_type, entity.entity_name));
             if let Some(desc) = &entity.description {
                 context.push_str(&format!("描述: {}\n", desc));
             }
