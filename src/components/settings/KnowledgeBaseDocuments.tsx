@@ -37,6 +37,7 @@ import {
 } from "antd";
 import {
   BookOpen,
+  Brain,
   FileText,
   FolderOpen,
   Pencil,
@@ -181,6 +182,9 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   const [rebuildingDocIds, setRebuildingDocIds] = useState<Set<string>>(
     new Set(),
   );
+
+  // Entity extraction state
+  const [extracting, setExtracting] = useState(false);
 
   const [syncWikiModalOpen, setSyncWikiModalOpen] = useState(false);
   const [syncWikiDocId, setSyncWikiDocId] = useState<string | null>(null);
@@ -532,6 +536,23 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
     },
     [base.id, messageApi],
   );
+
+  const handleExtractEntities = useCallback(async () => {
+    if (extracting) {
+      return;
+    }
+    setExtracting(true);
+    try {
+      await invoke<{ jobId: string }>("extract_entities_for_kb", {
+        knowledgeBaseId: base.id,
+      });
+      messageApi.success(t("knowledgeGraph.extractSuccess", { newEntities: 0, newRelations: 0 }));
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setExtracting(false);
+    }
+  }, [base.id, extracting, messageApi, t]);
 
   const handleRebuildIndex = useCallback(async () => {
     if (rebuildingRef.current) {
@@ -1479,6 +1500,19 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                 icon={<Zap size={14} />}
                 loading={rebuildingIndex}
                 disabled={!base.embeddingProvider}
+              />
+            </Tooltip>
+          </Popconfirm>
+          <Popconfirm
+            title={t("knowledgeGraph.extractConfirm")}
+            placement="bottom"
+            onConfirm={handleExtractEntities}
+          >
+            <Tooltip title={t("knowledgeGraph.extract")}>
+              <Button
+                icon={<Brain size={14} />}
+                loading={extracting}
+                disabled={!base.embeddingProvider || documents.length === 0}
               />
             </Tooltip>
           </Popconfirm>

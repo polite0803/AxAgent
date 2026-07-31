@@ -20,11 +20,13 @@ pub const JOB_TYPE_INDEX_MEMORY: &str = "index_memory";
 pub const JOB_TYPE_INDEX_WIKI_NOTE: &str = "index_wiki_note";
 pub const JOB_TYPE_REBUILD_CONTAINER: &str = "rebuild_container";
 pub const JOB_TYPE_REINDEX_DOCUMENT: &str = "reindex_document";
+pub const JOB_TYPE_EXTRACT_ENTITIES: &str = "extract_entities";
 
 pub const STAGE_PARSING: &str = "parsing";
 pub const STAGE_CHUNKING: &str = "chunking";
 pub const STAGE_EMBEDDING: &str = "embedding";
 pub const STAGE_STORING: &str = "storing";
+pub const STAGE_EXTRACTING: &str = "extracting";
 
 pub fn model_to_job(m: index_jobs::Model) -> IndexJob {
     IndexJob {

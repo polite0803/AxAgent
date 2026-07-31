@@ -239,7 +239,7 @@ pub async fn extract_entities_from_documents(
 /// 3. 转换为 `ExtractedEntity` / `ExtractedRelation` 列表
 ///
 /// 解析失败时返回空列表（不报错，因为 LLM 可能返回 "no entities found"）。
-fn parse_entity_extraction_response(
+pub(crate) fn parse_entity_extraction_response(
     response: &str,
 ) -> Result<(Vec<ExtractedEntity>, Vec<ExtractedRelation>), String> {
     // 1. 清理 markdown fences
@@ -480,6 +480,56 @@ pub async fn extract_entities_from_wiki(
         skipped_chunks: result.skipped_chunks,
         elapsed_ms: started.elapsed().as_millis() as u64,
     })
+}
+
+/// 手动触发知识库实体抽取（通过索引队列异步执行）
+#[tauri::command]
+pub async fn extract_entities_for_kb(
+    state: State<'_, AppState>,
+    knowledge_base_id: String,
+) -> Result<serde_json::Value, String> {
+    use axagent_dao::repo::index_jobs as jobs;
+
+    let exists = axagent_dao::repo::knowledge::get_knowledge_base(
+        state.harness.db(),
+        &knowledge_base_id,
+    )
+    .await
+    .map_err(|e| {
+        ErrorResponse::from_error(
+            format!("知识库不存在: {}", e),
+            ErrorCategory::Unrecoverable,
+        )
+    })?;
+    let _ = exists;
+
+    let metadata = serde_json::json!({
+        "manual_extract": true,
+    });
+
+    let input = jobs::CreateIndexJobInput {
+        job_type: jobs::JOB_TYPE_EXTRACT_ENTITIES.to_string(),
+        container_type: "KnowledgeBase".to_string(),
+        container_id: knowledge_base_id.clone(),
+        item_id: knowledge_base_id.clone(),
+        max_retries: Some(1),
+        priority: Some(0),
+        metadata: Some(serde_json::to_string(&metadata).unwrap_or_default()),
+    };
+
+    let job = jobs::enqueue_job(state.harness.db(), input)
+        .await
+        .map_err(|e| {
+            ErrorResponse::from_error(
+                format!("入队实体抽取任务失败: {}", e),
+                ErrorCategory::Unrecoverable,
+            )
+        })?;
+
+    Ok(serde_json::json!({
+        "jobId": job.id,
+        "jobType": job.job_type,
+    }))
 }
 
 /// P1-3: 跨源实体合并 — 按 name+entity_type 合并 Wiki/KB/Memory 中的重复实体

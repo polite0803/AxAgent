@@ -112,6 +112,7 @@ macro_rules! register_all_commands {
             commands::knowledge_graph::extract_entities_from_documents,
             commands::knowledge_graph::extract_entities_from_wiki,
             commands::knowledge_graph::merge_duplicate_entities,
+            commands::knowledge_graph::extract_entities_for_kb,
             commands::local_models::list_local_models,
             commands::local_models::download_model,
             commands::local_models::delete_model,
