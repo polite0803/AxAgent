@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { loadMonaco } from "@/lib/monaco";
 import type { ArtifactLanguage } from "@/types";
 import { useEffect, useRef } from "react";
-
-declare global {
-  interface Window {
-    monaco: typeof import("monaco-editor");
-  }
-}
 
 const LANGUAGE_MAP: Record<ArtifactLanguage, string> = {
   javascript: "javascript",
@@ -45,36 +40,54 @@ export function MonacoEditor({
     import("monaco-editor").editor.IStandaloneCodeEditor | null
   >(null);
 
+  // monaco 动态加载是异步的，编辑器创建时须使用最新的 value/language，
+  // 不能依赖挂载时闭包捕获的初始值（加载完成前 props 可能已更新）。
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const languageRef = useRef(language);
+  languageRef.current = language;
+
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
+    let disposed = false;
+    let editor: import("monaco-editor").editor.IStandaloneCodeEditor | null = null;
 
-    const editor = window.monaco.editor.create(containerRef.current, {
-      value,
-      language: LANGUAGE_MAP[language] || "plaintext",
-      readOnly,
-      theme: "vs-dark",
-      minimap: { enabled: false },
-      fontSize: 13,
-      lineNumbers: "on",
-      scrollBeyondLastLine: false,
-      automaticLayout: true,
-      wordWrap: "on",
-      padding: { top: 8 },
-    });
+    loadMonaco()
+      .then((monaco) => {
+        if (disposed || !containerRef.current) {
+          return;
+        }
 
-    editorRef.current = editor;
+        editor = monaco.editor.create(containerRef.current, {
+          value: valueRef.current,
+          language: LANGUAGE_MAP[languageRef.current] || "plaintext",
+          readOnly,
+          theme: "vs-dark",
+          minimap: { enabled: false },
+          fontSize: 13,
+          lineNumbers: "on",
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          wordWrap: "on",
+          padding: { top: 8 },
+        });
 
-    if (onChange) {
-      editor.onDidChangeModelContent(() => {
-        const newValue = editor.getValue();
-        onChange(newValue);
+        editorRef.current = editor;
+
+        if (onChange) {
+          editor.onDidChangeModelContent(() => {
+            const newValue = editor?.getValue() ?? "";
+            onChange(newValue);
+          });
+        }
+      })
+      .catch((e) => {
+        console.error("[MonacoEditor] 加载 monaco-editor 失败:", e);
       });
-    }
 
     return () => {
-      editor.dispose();
+      disposed = true;
+      editor?.dispose();
+      editorRef.current = null;
     };
     // 仅挂载时初始化 Monaco editor 实例，后续通过另一个 effect 更新内容。
     // 加入 value/language/onChange 会导致每次变更销毁并重建编辑器，性能极差。
@@ -94,10 +107,12 @@ export function MonacoEditor({
     if (editorRef.current) {
       const model = editorRef.current.getModel();
       if (model) {
-        window.monaco.editor.setModelLanguage(
-          model,
-          LANGUAGE_MAP[language] || "plaintext",
-        );
+        loadMonaco().then((monaco) => {
+          monaco.editor.setModelLanguage(
+            model,
+            LANGUAGE_MAP[language] || "plaintext",
+          );
+        });
       }
     }
   }, [language]);

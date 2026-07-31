@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { loadMonaco } from "@/lib/monaco";
 import { Button, Space, Tag, theme, Typography } from "antd";
 import { Check, FileCode, FileDiff, GitBranch, Minus, Plus, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -63,12 +64,6 @@ interface MonacoDiffEditorProps {
   readOnly?: boolean;
 }
 
-declare global {
-  interface Window {
-    monaco: typeof import("monaco-editor");
-  }
-}
-
 function MonacoDiffEditor({
   original,
   modified,
@@ -81,38 +76,68 @@ function MonacoDiffEditor({
     import("monaco-editor").editor.IStandaloneDiffEditor | null
   >(null);
 
+  // monaco 动态加载是异步的，编辑器创建时须使用最新的 original/modified/language。
+  const originalRef = useRef(original);
+  originalRef.current = original;
+  const modifiedRef = useRef(modified);
+  modifiedRef.current = modified;
+  const languageRef = useRef(language);
+  languageRef.current = language;
+
   useEffect(() => {
-    if (!containerRef.current || typeof window.monaco === "undefined") {
-      return;
-    }
+    let disposed = false;
+    let diffEditor: import("monaco-editor").editor.IStandaloneDiffEditor | null = null;
+    let originalModel: import("monaco-editor").editor.ITextModel | null = null;
+    let modifiedModel: import("monaco-editor").editor.ITextModel | null = null;
 
-    const diffEditor = window.monaco.editor.createDiffEditor(
-      containerRef.current,
-      {
-        theme: "vs-dark",
-        readOnly,
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 12,
-        lineNumbers: "on",
-        scrollBeyondLastLine: false,
-        wordWrap: "on",
-        padding: { top: 8 },
-        renderSideBySide: true,
-        originalEditable: false,
-      },
-    );
+    loadMonaco()
+      .then((monaco) => {
+        if (disposed || !containerRef.current) {
+          return;
+        }
 
-    const originalModel = window.monaco.editor.createModel(original, language);
-    const modifiedModel = window.monaco.editor.createModel(modified, language);
-    diffEditor.setModel({ original: originalModel, modified: modifiedModel });
+        diffEditor = monaco.editor.createDiffEditor(
+          containerRef.current,
+          {
+            theme: "vs-dark",
+            readOnly,
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 12,
+            lineNumbers: "on",
+            scrollBeyondLastLine: false,
+            wordWrap: "on",
+            padding: { top: 8 },
+            renderSideBySide: true,
+            originalEditable: false,
+          },
+        );
 
-    editorRef.current = diffEditor;
+        originalModel = monaco.editor.createModel(
+          originalRef.current,
+          languageRef.current,
+        );
+        modifiedModel = monaco.editor.createModel(
+          modifiedRef.current,
+          languageRef.current,
+        );
+        diffEditor.setModel({
+          original: originalModel,
+          modified: modifiedModel,
+        });
+
+        editorRef.current = diffEditor;
+      })
+      .catch((e) => {
+        console.error("[MonacoDiffEditor] 加载 monaco-editor 失败:", e);
+      });
 
     return () => {
-      originalModel.dispose();
-      modifiedModel.dispose();
-      diffEditor.dispose();
+      disposed = true;
+      originalModel?.dispose();
+      modifiedModel?.dispose();
+      diffEditor?.dispose();
+      editorRef.current = null;
     };
     // 仅挂载时初始化 Monaco diff editor 实例，后续通过另一个 effect 更新内容。
     // 加入 original/modified/language/readOnly 会导致每次变更销毁并重建编辑器，性能极差。
@@ -130,10 +155,10 @@ function MonacoDiffEditor({
           models.modified.setValue(modified);
         }
         // Update model language when file extension changes
-        if (window.monaco) {
-          window.monaco.editor.setModelLanguage(models.original, language);
-          window.monaco.editor.setModelLanguage(models.modified, language);
-        }
+        loadMonaco().then((monaco) => {
+          monaco.editor.setModelLanguage(models.original, language);
+          monaco.editor.setModelLanguage(models.modified, language);
+        });
       }
     }
   }, [original, modified, language]);

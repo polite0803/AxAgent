@@ -9,6 +9,7 @@ import { TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
 import { VersionHistoryPanel } from "@/components/wiki/VersionHistoryPanel";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
 import { showBackendError } from "@/lib/errorI18n";
+import { loadMonaco } from "@/lib/monaco";
 import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
@@ -175,52 +176,65 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   }, [content, title]);
 
   useEffect(() => {
-    if (!window.monaco) {
-      return;
-    }
-    const provider = window.monaco.languages.registerCompletionItemProvider(
-      "markdown",
-      {
-        triggerCharacters: ["["],
-        provideCompletionItems: (model, position) => {
-          const textUntilPosition = model.getValueInRange({
-            startLineNumber: position.lineNumber,
-            startColumn: 1,
-            endLineNumber: position.lineNumber,
-            endColumn: position.column,
-          });
-          const match = textUntilPosition.match(/\[\[([^\]]*)$/);
-          if (!match) {
-            return { suggestions: [] };
-          }
+    let disposed = false;
+    let provider: import("monaco-editor").IDisposable | null = null;
 
-          const search = match[1].toLowerCase();
-          const openBracketCol = position.column - match[0].length;
-          const currentNotes = useWikiStore.getState().notes;
+    loadMonaco()
+      .then((monaco) => {
+        if (disposed) {
+          return;
+        }
+        provider = monaco.languages.registerCompletionItemProvider(
+          "markdown",
+          {
+            triggerCharacters: ["["],
+            provideCompletionItems: (model, position) => {
+              const textUntilPosition = model.getValueInRange({
+                startLineNumber: position.lineNumber,
+                startColumn: 1,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column,
+              });
+              const match = textUntilPosition.match(/\[\[([^\]]*)$/);
+              if (!match) {
+                return { suggestions: [] };
+              }
 
-          const suggestions = currentNotes.flatMap((n) =>
-            n.id !== noteId && n.title.toLowerCase().includes(search)
-              ? [
-                {
-                  kind: window.monaco.languages.CompletionItemKind.Reference,
-                  label: n.title,
-                  insertText: `[[${n.title}]]`,
-                  range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: openBracketCol,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column,
-                  },
-                },
-              ]
-              : []
-          );
+              const search = match[1].toLowerCase();
+              const openBracketCol = position.column - match[0].length;
+              const currentNotes = useWikiStore.getState().notes;
 
-          return { suggestions };
-        },
-      },
-    );
-    return () => provider.dispose();
+              const suggestions = currentNotes.flatMap((n) =>
+                n.id !== noteId && n.title.toLowerCase().includes(search)
+                  ? [
+                    {
+                      kind: monaco.languages.CompletionItemKind.Reference,
+                      label: n.title,
+                      insertText: `[[${n.title}]]`,
+                      range: {
+                        startLineNumber: position.lineNumber,
+                        startColumn: openBracketCol,
+                        endLineNumber: position.lineNumber,
+                        endColumn: position.column,
+                      },
+                    },
+                  ]
+                  : []
+              );
+
+              return { suggestions };
+            },
+          },
+        );
+      })
+      .catch((e) => {
+        console.error("[WikiEditorPage] 加载 monaco-editor 失败:", e);
+      });
+
+    return () => {
+      disposed = true;
+      provider?.dispose();
+    };
   }, [noteId]);
 
   const handleBackWithConfirm = () => {
