@@ -19,36 +19,115 @@ pub struct RecoHistoryItem {
 pub async fn list_reco_history(
     state: State<'_, AppState>,
     style_filter: Option<String>,
+    exclude_styles: Option<String>,
     limit: Option<u32>,
     offset: Option<u32>,
 ) -> Result<Vec<RecoHistoryItem>, String> {
     use sea_orm::{ConnectionTrait, Statement};
     let db = state.harness.db();
+    // 2026-07-31 修复：DB 已切 PostgreSQL（db_config.json db_type=postgres），
+    // 原 SQLite 方言 SQL（GROUP_CONCAT + `?` 占位符）在 PG 上必然报错
+    // （function group_concat does not exist）→ 前端 catch 静默 → 历史记录永远为空。
+    // 按 backend 分支：PG 用 string_agg + $N；SQLite 保持原样。
+    // 2026-08-01 修复：GROUP BY 必须包含非聚合列 period——
+    // PG 强制 "SELECT 非聚合列必须出现在 GROUP BY"，SQLite 宽松不报（编译测不出，
+    // 运行时报错被前端 catch 静默 → 历史列表仍为空）。一次执行只对应一个 period，
+    // 加 period 到 GROUP BY 不会拆分分组。
+    let is_pg = db.get_database_backend() == sea_orm::DbBackend::Postgres;
 
-    let mut sql = String::from(
-        "SELECT generated_at, period, COUNT(*) as stock_count, \
-         GROUP_CONCAT(DISTINCT style) as styles, MAX(created_at) as created_at \
-         FROM reco_picks WHERE 1=1",
-    );
+    let mut sql = if is_pg {
+        String::from(
+            "SELECT generated_at, period, COUNT(*) as stock_count, \
+             STRING_AGG(DISTINCT style, ',') as styles, MAX(created_at) as created_at \
+             FROM reco_picks WHERE 1=1",
+        )
+    } else {
+        String::from(
+            "SELECT generated_at, period, COUNT(*) as stock_count, \
+             GROUP_CONCAT(DISTINCT style) as styles, MAX(created_at) as created_at \
+             FROM reco_picks WHERE 1=1",
+        )
+    };
     let mut values: Vec<sea_orm::Value> = Vec::new();
 
+    // style_filter 支持单个或多个（逗号分隔）——趋势智选面板同时认
+    // 'serenity'（serenity-screening 工作流产物）和 'bottleneck'
+    // （智能荐股内置 SerenityStrategy 产物，业务上都是"趋势智选"）。
     if let Some(ref style) = style_filter {
-        sql.push_str(" AND style = ?");
-        values.push(style.clone().into());
+        let styles: Vec<String> = style
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !styles.is_empty() {
+            sql.push_str(" AND style IN (");
+            for (i, _) in styles.iter().enumerate() {
+                if i > 0 {
+                    sql.push(',');
+                }
+                if is_pg {
+                    sql.push_str(&format!("${}", values.len() + 1));
+                } else {
+                    sql.push('?');
+                }
+            }
+            sql.push(')');
+            for s in styles {
+                values.push(s.into());
+            }
+        }
     }
 
-    sql.push_str(" GROUP BY generated_at ORDER BY generated_at DESC");
+    // exclude_styles 同样支持逗号分隔多值（NOT IN）——
+    // 智能荐股历史用 exclude_styles="serenity,bottleneck" 排除趋势智选专属产出，
+    // 与趋势智选面板的 style_filter="serenity,bottleneck" 互为镜像，两个面板不重复。
+    if let Some(ref style) = exclude_styles {
+        let styles: Vec<String> = style
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !styles.is_empty() {
+            sql.push_str(" AND style NOT IN (");
+            for (i, _) in styles.iter().enumerate() {
+                if i > 0 {
+                    sql.push(',');
+                }
+                if is_pg {
+                    sql.push_str(&format!("${}", values.len() + 1));
+                } else {
+                    sql.push('?');
+                }
+            }
+            sql.push(')');
+            for s in styles {
+                values.push(s.into());
+            }
+        }
+    }
+
+    sql.push_str(" GROUP BY generated_at, period ORDER BY generated_at DESC");
 
     if let Some(l) = limit {
-        sql.push_str(" LIMIT ?");
+        if is_pg {
+            sql.push_str(&format!(" LIMIT ${}", values.len() + 1));
+        } else {
+            sql.push_str(" LIMIT ?");
+        }
         values.push((l as i64).into());
     }
     if let Some(o) = offset {
-        sql.push_str(" OFFSET ?");
+        if is_pg {
+            sql.push_str(&format!(" OFFSET ${}", values.len() + 1));
+        } else {
+            sql.push_str(" OFFSET ?");
+        }
         values.push((o as i64).into());
     }
 
-    let stmt = Statement::from_sql_and_values(sea_orm::DbBackend::Sqlite, sql.as_str(), values);
+    let backend =
+        if is_pg { sea_orm::DbBackend::Postgres } else { sea_orm::DbBackend::Sqlite };
+    let stmt = Statement::from_sql_and_values(backend, sql.as_str(), values);
 
     let rows = db.query_all_raw(stmt).await.map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("查询荐股历史失败: {e}"))
@@ -90,6 +169,7 @@ pub async fn get_reco_detail(
     state: State<'_, AppState>,
     generated_at: String,
     style_filter: Option<String>,
+    exclude_styles: Option<String>,
 ) -> Result<Vec<RecoDetailItem>, String> {
     use axagent_entities::reco_picks;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
@@ -98,8 +178,29 @@ pub async fn get_reco_detail(
     let mut query =
         reco_picks::Entity::find().filter(reco_picks::Column::GeneratedAt.eq(&generated_at));
 
+    // style_filter 支持单个或多个（逗号分隔）——同上，保持 list/detail 过滤语义一致
     if let Some(ref style) = style_filter {
-        query = query.filter(reco_picks::Column::Style.eq(style));
+        let styles: Vec<String> = style
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !styles.is_empty() {
+            query = query.filter(reco_picks::Column::Style.is_in(styles));
+        }
+    }
+
+    // exclude_styles 逗号分隔多值（NOT IN）——与 list 语义一致，智能荐股详情排除趋势智选专属风格
+    if let Some(ref style) = exclude_styles {
+        let styles: Vec<String> = style
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !styles.is_empty() {
+            // ColumnTrait 自带 is_not_in（与上方 is_in 对应），无需 Expr
+            query = query.filter(reco_picks::Column::Style.is_not_in(styles));
+        }
     }
 
     let items = query.all(db).await.map_err(|e| {

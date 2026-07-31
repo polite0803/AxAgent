@@ -153,7 +153,7 @@ for i in range(0, 5) {
         if chain_high_nodes.len() > 0 && best_btl != "" {
             let found = false;
             for hn in chain_high_nodes {
-                if hn.find(best_btl) != () || best_btl.find(hn) != () || hn == best_btl {
+                if hn.contains(best_btl) || best_btl.contains(hn) || hn == best_btl {
                     found = true; break;
                 }
             }
@@ -179,7 +179,7 @@ for i in range(0, 5) {
             for bn in btl_nodes {
                 let bn_name = safe_str(bn, "node_name");
                 if bn_name == "" { continue; }
-                if cn_name.find(bn_name) != () || bn_name.find(cn_name) != () || cn_name == bn_name {
+                if cn_name.contains(bn_name) || bn_name.contains(cn_name) || cn_name == bn_name {
                     let btl_barrier_score = safe_f64(bn, "supply_rigidity_score");
                     if btl_barrier_score >= 0.0 {
                         // chain barrier: low/medium/high → 35/60/85

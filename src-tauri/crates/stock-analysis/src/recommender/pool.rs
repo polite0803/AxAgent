@@ -131,6 +131,16 @@ pub async fn liquidity_filter_and_truncate_with_concurrency(
 
 async fn filter_one(client: &AStockClient, item: SeedItem) -> Option<SeedItem> {
     let (code, name, sector) = item;
+    // A 股荐股场景排除 B 股（沪B 900xxx / 深B 200xxx）：
+    // 腾讯等 quote 源不支持 B 股（Stock code not found），
+    // 提前过滤避免无谓请求与日志噪音。
+    let plain = code
+        .trim_start_matches("sh")
+        .trim_start_matches("sz")
+        .trim_start_matches("bj");
+    if plain.len() == 6 && (plain.starts_with("900") || plain.starts_with("200")) {
+        return None;
+    }
     // 行情数据必须可获取，否则无法交易（quote 走 tencent 路由，通常稳定）
     // 加一次轻量重试：瞬断场景下避免大量标的被误过滤
     // 用 tokio::time::timeout 包裹，避免单个标的长时间阻塞整个过滤阶段

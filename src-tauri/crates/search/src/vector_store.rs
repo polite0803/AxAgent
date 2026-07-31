@@ -706,7 +706,43 @@ impl VectorStore {
 
             let start_rowid: i64 = meta_max.max(vec_max) + 1;
 
+            // 内容级去重（v17.1 修复）：同 collection 中 content 已存在的 chunk 跳过。
+            // document 级去重（delete_rows_by_document_inner）只防同 document_id 重复，
+            // 无法防「不同 document_id + 相同内容」的重复导入（如知识图谱重复灌入）。
+            // 用 PG 内置 md5() 做字节级比较（text 等值比较会因历史乱码 chunk 触发 UTF8 校验失败）。
+            // 批次内同样维护 seen 集合，避免同批两条相同内容（不同 document_id）都插入。
+            let mut seen_in_batch: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+
             for (rid, record) in (start_rowid..).zip(records.iter()) {
+                if !seen_in_batch.insert(record.content.clone()) {
+                    tracing::info!(
+                        "[vector_store] 跳过同批重复内容 chunk: doc={} idx={}",
+                        record.document_id,
+                        record.chunk_index
+                    );
+                    continue;
+                }
+                let dup = txn
+                    .query_one_raw(Statement::from_sql_and_values(
+                        self.be(),
+                        &format!(
+                            "SELECT 1 AS x FROM {name}_meta WHERE md5(content) = md5($1) LIMIT 1"
+                        ),
+                        vec![record.content.clone().into()],
+                    ))
+                    .await
+                    .map_err(Self::wrap)?
+                    .is_some();
+                if dup {
+                    tracing::info!(
+                        "[vector_store] 跳过已存在内容 chunk: doc={} idx={}",
+                        record.document_id,
+                        record.chunk_index
+                    );
+                    continue;
+                }
+
                 let vec_json = Self::embedding_to_json(&record.embedding);
 
                 self.txn_exec_params(

@@ -9832,7 +9832,7 @@
   },
   "serenityPanel": {
     "desc": "趋势智选：扫描市场数据识别产业链瓶颈/政策驱动/业绩驱动/资金面信号，自动筛选候选标的",
-    "run": "运行 Serenity 筛���",
+    "run": "运行 Serenity 筛选",
     "running": "筛选中...",
     "settings": "估值过滤参数",
     "stage_loading": "加载工作流模板...",
@@ -9858,6 +9858,7 @@
     "noCandidateTitle": "本次未产出候选标的",
     "errorUnknown": "未知错误",
     "callFailed": "调用失败",
+    "timeoutHint": "筛选耗时超过 {seconds} 秒，后端仍在处理中，请稍后查看结果或查看执行日志",
     "stepLogTitle": "执行日志",
     "nodeTitles": {
       "trigger": "启动筛选",
@@ -9878,7 +9879,12 @@
       "c-scorer-trend5": "评分计算 #5",
       "c-consistency-check": "一致性检查",
       "a-candidate-mapper": "候选公司筛选",
-      "c-data-verifier": "数据验证"
+      "c-data-verifier": "数据验证",
+      "a-chain-trend1": "产业链拆解 #1",
+      "a-chain-trend2": "产业链拆解 #2",
+      "a-chain-trend3": "产业链拆解 #3",
+      "a-chain-trend4": "产业链拆解 #4",
+      "a-chain-trend5": "产业链拆解 #5"
     },
     "catalystEarnings": "财报",
     "catalystProdRamp": "量产",
@@ -11247,6 +11253,12 @@
       "styleValue": "价值投资",
       "styleWatchlist": "自选股",
       "styleSerenity": "趋势智选",
+      "styleBottleneck": "供给瓶颈",
+      "styleCapital_flow": "资金净流入",
+      "styleEarnings": "业绩驱动",
+      "styleEvent": "事件驱动",
+      "stylePolicy": "政策驱动",
+      "styleTechnical": "技术面",
       "cachedAt": "缓存于 {{time}}",
       "cachedBadge": "缓存",
       "calibrate": "自动校准",
@@ -12696,8 +12708,5 @@
     "yKey": "Y 轴字段",
     "text": "",
     "title": ""
-  },
-  "stockAnalysis": {
-    "collapseComparison": ""
   }
 }

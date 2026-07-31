@@ -467,9 +467,12 @@ impl HybridSearcher {
             words.iter().map(|w| format!("content ILIKE '%{}%'", w.replace('\'', "''"))).collect();
         let mut where_clause = conditions.join(" OR ");
 
-        let (in_clause, mut params, next_ph) = match doc_ids {
+        // PostgreSQL 占位符必须从 $1 连续编号且不可跳号：
+        //   values 顺序 = [top_k, doc_ids...] → $1=top_k(LIMIT), $2..$(N+1)=doc_ids
+        // 修复前 bug：无 doc_ids 时 LIMIT $2（缺 $1）、有 doc_ids 时 LIMIT $N+2（跳号），
+        // 导致 sqlx 报 "绑定消息提供了1个参数,但是已准备好语句要求2个参数"。
+        let (in_clause, mut params, limit_ph) = match doc_ids {
             Some(ids) if !ids.is_empty() => {
-                // $1 = top_k, $2.. = doc_ids
                 let placeholders = ids
                     .iter()
                     .enumerate()
@@ -477,14 +480,12 @@ impl HybridSearcher {
                     .collect::<Vec<_>>()
                     .join(", ");
                 let clause = format!(" AND document_id IN ({placeholders})");
-                (clause, ids.iter().cloned().map(Value::from).collect::<Vec<_>>(), ids.len() + 2)
+                (clause, ids.iter().cloned().map(Value::from).collect::<Vec<_>>(), "$1".to_string())
             },
-            _ => (String::new(), Vec::new(), 2),
+            _ => (String::new(), Vec::new(), "$1".to_string()),
         };
 
         where_clause = format!("({where_clause}){in_clause}");
-
-        let limit_ph = format!("${next_ph}");
 
         let sql = format!(
             "SELECT id, document_id, chunk_index, content, \

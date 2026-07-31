@@ -1,4 +1,4 @@
-import { invoke, listen } from "@/lib/invoke";
+import { invoke, listen, TimeoutError as InvokeTimeoutError } from "@/lib/invoke";
 import {
   type SerenityCandidate,
   type StepLog,
@@ -53,6 +53,46 @@ interface SerenityResult {
    * 字段说明原因；前端在 candidates 为空时把它展示给用户。
    */
   emptyReason?: string | null;
+}
+
+/// get_reco_detail 返回的单条候选记录（serde camelCase）
+interface RecoDetailItem {
+  id: string;
+  generatedAt: string;
+  period: string;
+  stockCode: string;
+  stockName: string;
+  style: string;
+  confidence: number;
+  synthetic: number;
+  seedPoolJson?: string | null;
+  pickData?: string | null;
+  createdAt: string;
+}
+
+/// 从 reco_picks 落库数据还原 SerenityCandidate：
+/// 优先解析 seed_pool_json（serenity-screening 工作流写的 candidate 对象），
+/// 失败时用基础列构造兜底候选（智能荐股 bottleneck 行的 seed_pool_json 是
+/// 推荐池 [[code,name]] 数组，无法解析为单个候选，必须走 fallback）。
+function restoreCandidate(item: RecoDetailItem): SerenityCandidate | null {
+  if (item.seedPoolJson) {
+    try {
+      const parsed = JSON.parse(item.seedPoolJson) as unknown;
+      // 只接受单个对象（serenity workflow 写的 candidate）—— 数组（推荐池快照）
+      // 和其它 shape 一律走 fallback，否则 SerenityCandidate 字段全是 undefined
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as SerenityCandidate;
+      }
+    } catch {
+      // seed_pool_json 损坏时降级到基础字段
+    }
+  }
+  if (!item.stockCode) { return null; }
+  return {
+    stockCode: item.stockCode,
+    stockName: item.stockName,
+    confidence: item.confidence,
+  };
 }
 
 /// 从多种可能的 candidates 结构中提取候选数组。
@@ -343,6 +383,9 @@ export function SerenityScreeningPanel() {
   >(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
 
+  // 挂载时恢复上次运行候选的加载状态（避免 Empty 闪烁）
+  const [lastRunLoading, setLastRunLoading] = useState(false);
+
   // 瓶颈掘金历史（多选 + 批量删除）
   const [serenityHistoryOpen, setSerenityHistoryOpen] = useState(false);
   const [serenityHistory, setSerenityHistory] = useState<
@@ -411,6 +454,46 @@ export function SerenityScreeningPanel() {
       unlistenDoneRef.current?.();
     };
   }, []);
+
+  // ── 挂载时恢复最近一次工作流运行产生的候选 ──
+  // tab 打开（destroyOnHidden 下每次切换都会重新 mount）默认展示上一次
+  // 趋势智选产物。styleFilter 同时认 'serenity'（serenity-screening 工作流
+  // 落库 style='serenity'）和 'bottleneck'（智能荐股内置 SerenityStrategy
+  // 落库 style='bottleneck'）——业务上两类都是"趋势智选"，让面板都能显示。
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // 若工作流正在运行，不打扰运行态（completed 事件会覆盖结果）
+      if (useSerenityStore.getState().running) { return; }
+      setLastRunLoading(true);
+      try {
+        const list = await invoke<Array<{ generatedAt: string; stockCount: number; createdAt: string }>>(
+          "list_reco_history",
+          { styleFilter: "serenity,bottleneck", limit: 1 },
+        );
+        if (cancelled || !list || list.length === 0) { return; }
+        const detail = await invoke<RecoDetailItem[]>("get_reco_detail", {
+          generatedAt: list[0].generatedAt,
+          styleFilter: "serenity,bottleneck",
+        });
+        if (cancelled) { return; }
+        const restored = (detail ?? [])
+          .map(restoreCandidate)
+          .filter((c): c is SerenityCandidate => c != null);
+        if (restored.length > 0) {
+          setCandidates(restored);
+        }
+      } catch (e) {
+        // 历史为空/查询失败不阻塞面板，保持默认空状态
+        console.error("[Serenity] 加载上次运行候选失败", e);
+      } finally {
+        if (!cancelled) { setLastRunLoading(false); }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setCandidates]);
 
   const toggleStep = useCallback((idx: number) => {
     setExpandedSteps((prev) => {
@@ -542,7 +625,13 @@ export function SerenityScreeningPanel() {
         : null;
       // invoke 作为兜底：如果 completed 事件已设置结果，这里的重复 set 是无害的；
       // 如果事件未到达（如非 Tauri 环境），invoke 返回值是唯一来源。
-      const r = await invoke<SerenityResult>("run_serenity_screening", { asOfDate });
+      // Serenity 筛选涉及多个 LLM 调用，超时时间设为 30 分钟
+      const SERENITY_TIMEOUT_MS = 30 * 60 * 1000;
+      const r = await invoke<SerenityResult>(
+        "run_serenity_screening",
+        { asOfDate },
+        SERENITY_TIMEOUT_MS,
+      );
       // 如果事件已经处理过（覆盖了 candidates/trends），这里不要重复 set
       // 但仍要确保 running 状态被关闭
       if (!eventHandledRef.current) {
@@ -561,7 +650,19 @@ export function SerenityScreeningPanel() {
     } catch (err: unknown) {
       // 仅在 completed 事件未已经处理时才显示错误
       if (!eventHandledRef.current) {
-        setError(err instanceof Error ? err.message : String(err));
+        // 超时错误特殊处理：如果后端仍在运行，给用户友好提示
+        if (err instanceof InvokeTimeoutError) {
+          console.warn(
+            `[Serenity] invoke 超时（${(err.timeoutMs / 1000).toFixed(0)}秒），后端工作流可能仍在运行中...`,
+          );
+          setError(
+            t("serenityPanel.timeoutHint", {
+              seconds: (err.timeoutMs / 1000).toFixed(0),
+            }),
+          );
+        } else {
+          setError(err instanceof Error ? err.message : String(err));
+        }
         setStage("error");
       }
     } finally {
@@ -645,8 +746,10 @@ export function SerenityScreeningPanel() {
               setSerenityHistoryOpen(true);
               setSerenityHistoryLoading(true);
               try {
+                // 同时认 'serenity'（serenity-screening 工作流）和 'bottleneck'
+                // （智能荐股内置 SerenityStrategy）——业务上都是"趋势智选"。
                 const list = await invoke<typeof serenityHistory>("list_reco_history", {
-                  styleFilter: "serenity",
+                  styleFilter: "serenity,bottleneck",
                   limit: 50,
                 });
                 setSerenityHistory(list ?? []);
@@ -953,6 +1056,16 @@ export function SerenityScreeningPanel() {
         </Card>
       )}
 
+      {/* 挂载恢复上次候选的加载态 */}
+      {lastRunLoading && (
+        <Card size="small" className="w-full">
+          <div className="py-6 flex items-center justify-center gap-2 text-sm text-gray-400">
+            <Spin size="small" />
+            <span>{t("common.loading")}</span>
+          </div>
+        </Card>
+      )}
+
       {/* 候选股列表 */}
       {candidates.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -1013,7 +1126,7 @@ export function SerenityScreeningPanel() {
       )}
 
       {/* 空状态 / 解释无候选原因 */}
-      {!running && !error && candidates.length === 0 && trends.length === 0 && (
+      {!running && !error && !lastRunLoading && candidates.length === 0 && trends.length === 0 && (
         emptyReason
           ? (
             <Alert
@@ -1031,7 +1144,7 @@ export function SerenityScreeningPanel() {
             />
           )
       )}
-      {!running && !error && candidates.length === 0 && trends.length > 0 && emptyReason && (
+      {!running && !error && !lastRunLoading && candidates.length === 0 && trends.length > 0 && emptyReason && (
         <Alert
           type="info"
           showIcon

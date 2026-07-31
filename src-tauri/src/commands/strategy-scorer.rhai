@@ -1,7 +1,13 @@
-// strategy-scorer.rhai v1 — 统一多策略评分
+// strategy-scorer.rhai v2 — 统一多策略评分
 // 根据 trend_strategy 变量路由到对应策略的评分逻辑
 // 所有策略输出统一格式的 computed_nodes，供 candidate-mapper 消费
 // Rhai v1.25 不支持 let mut，全部 let
+//
+// v2 修复（2026-07-31）：访问 input_mapping 注入变量的函数全部改为「闭包」。
+// Rhai 的函数是纯函数，无法访问 eval_ast_with_scope 注入的 scope 变量
+// （已验证：push/push_constant/顶层 let 提升在 fn 内全部 Variable not found），
+// 而闭包（let f = |...| {...}）可以捕获环境变量。调用统一用 f.call(...)。
+// 纯函数（clamp_score / readiness_signal）保持 fn 定义。
 
 // ═══════════════════════════════════════════════
 // 通用函数（所有策略共享）
@@ -9,14 +15,51 @@
 
 fn clamp_score(v) { if v < 0.0 { 0.0 } else if v > 100.0 { 100.0 } else { v } }
 
+// 任意值 → 数组（v4 防御，2026-07-31）
+// 工具节点（ToolNode）输出经 ToolResult.content（String）注入 scope 后是 JSON 文本字符串，
+// 直接 for 会报 "For loop expects iterable type"。统一解析：
+// - 数组原样返回
+// - 字符串 → json_parse 解析为数组
+// - map → 尝试提取 content/data/industries/items 字段（ToolNode 包装格式）
+// - 其它（含 ()/对象错误包）→ []
+fn to_array(v) {
+    if type_of(v) == "array" { v }
+    else if type_of(v) == "string" {
+        let p = json_parse(v.to_string());
+        if type_of(p) == "array" { p } else { [] }
+    } else if type_of(v) == "map" {
+        // ToolNode 输出常被包装为 {"content": "JSON字符串"}
+        if v["content"] != () && type_of(v["content"]) == "string" {
+            let p = json_parse(v["content"].to_string());
+            if type_of(p) == "array" { p }
+            else if type_of(p) == "map" && p["data"] != () && type_of(p["data"]) == "array" { p["data"] }
+            else if type_of(p) == "map" && p["industries"] != () && type_of(p["industries"]) == "array" { p["industries"] }
+            else { [] }
+        } else if v["data"] != () && type_of(v["data"]) == "array" { v["data"] }
+        else if v["industries"] != () && type_of(v["industries"]) == "array" { v["industries"] }
+        else if v["items"] != () && type_of(v["items"]) == "array" { v["items"] }
+        else { [] }
+    } else { [] }
+}
+
+// 任意值 → 浮点数（权重等数值字段防御：模板变量可能是 i64/字符串数字）
+fn to_f64(v, fallback) {
+    if type_of(v) == "f64" { v }
+    else if type_of(v) == "i64" { v.to_float() }
+    else if type_of(v) == "string" {
+        let p = json_parse(v.to_string());
+        if type_of(p) == "f64" { p } else if type_of(p) == "i64" { p.to_float() } else { fallback }
+    } else { fallback }
+}
+
 // 从模板变量读取权重（兜底默认值）
 // 注意：参数名不能用 default，它是 Rhai 保留关键字
-fn read_weight(name, fallback) {
+let read_weight = |name, fallback| {
     if name == "w_supply" { if w_supply != () { w_supply } else { fallback } }
     else if name == "w_demand" { if w_demand != () { w_demand } else { fallback } }
     else if name == "w_irreplace" { if w_irreplace != () { w_irreplace } else { fallback } }
     else { fallback }
-}
+};
 
 fn readiness_signal(score) {
     if score >= 75.0 { "strong_signal" }
@@ -25,37 +68,85 @@ fn readiness_signal(score) {
     else { "no_signal" }
 }
 
+// 归一化 chain_analysis（v18）：字符串（```tool_json/```json 围栏包裹的文本，拆包失败时保留）
+// → 剥围栏 + json_parse 提取对象；解析失败（json_parse 返回 ()）置空 map。
+// 否则闭包内 ca["chain_nodes"] 对字符串做索引会触发
+// "Data type incorrect: string (expecting i64)"。
+// 注意：Rhai 无内置 find/rfind，字符串查找用 contains()/index_of()；
+// json_parse 由 harness 注册，失败静默返回 ()，无需 try/catch。
+let ca = chain_analysis;
+if type_of(ca) == "string" {
+    let s = ca.to_string();
+    let body = if s.contains("```") {
+        // 剥围栏：跳过首行（```tool_json 等），取到闭合 ``` 之前
+        let nl = s.index_of("\n");
+        let rest = if nl >= 0 { s.sub_string(nl + 1, s.len() - nl - 1) } else { s };
+        let fence_end = rest.index_of("```");
+        if fence_end >= 0 { rest.sub_string(0, fence_end) } else { rest }
+    } else { s };
+    let parsed = json_parse(body); // serde_json 容忍首尾空白，Rhai 无可用 trim
+    if type_of(parsed) == "map" { ca = parsed; }
+    else { ca = #{}; }
+} else if type_of(ca) == "map" && ca["report"] != () {
+    // VERDICT 重构兜底形态：{"report":"```tool_json...```","verdict":{...}}
+    // （agent_executor 拆包失败时 strict_mode 会把 tool_json 文本包进 report 字段）
+    // 剥 report 文本的围栏再解析；解析失败保留原 map（走 no_data 兜底）
+    let rs = ca["report"].to_string();
+    let body = if rs.contains("```") {
+        let nl = rs.index_of("\n");
+        let rest = if nl >= 0 { rs.sub_string(nl + 1, rs.len() - nl - 1) } else { rs };
+        let fence_end = rest.index_of("```");
+        if fence_end >= 0 { rest.sub_string(0, fence_end) } else { rest }
+    } else { rs };
+    let parsed = json_parse(body);
+    if type_of(parsed) == "map" {
+        // 若 report 内含 submit_chain 协议（arguments 字段），取 arguments；否则用解析对象本身
+        ca = if parsed["arguments"] != () && parsed["name"] != () { parsed["arguments"] }
+             else { parsed };
+    }
+}
+
 // ═══════════════════════════════════════════════
 // bottleneck 策略评分（复用 bottleneck-calc 精简版）
 // ═══════════════════════════════════════════════
 
-fn score_bottleneck() {
-    // 解包 chain_analysis
+let score_bottleneck = || {
+    // 解包 chain_analysis（ca 为顶层归一化后的对象）
+    // v4 简化：统一用 to_array 处理所有形态（直接数组 / 嵌套 arguments / JSON 字符串）
     let chain_nodes = [];
-    if chain_analysis["chain_nodes"] != () {
-        chain_nodes = chain_analysis["chain_nodes"];
-    } else if chain_analysis["arguments"] != () {
-        let args = chain_analysis["arguments"];
-        chain_nodes = if args["chain_nodes"] != () { args["chain_nodes"] }
-        else if args["content"] != () {
+    if ca["chain_nodes"] != () {
+        chain_nodes = to_array(ca["chain_nodes"]);
+    } else if ca["arguments"] != () {
+        let args = ca["arguments"];
+        if args["chain_nodes"] != () {
+            chain_nodes = to_array(args["chain_nodes"]);
+        } else if args["content"] != () {
             let parsed = json_parse(args["content"].to_string());
-            if parsed != () && parsed["chain_nodes"] != () { parsed["chain_nodes"] } else { [] }
-        } else { [] };
+            if parsed != () && parsed["chain_nodes"] != () {
+                chain_nodes = to_array(parsed["chain_nodes"]);
+            }
+        }
     }
     if chain_nodes.len() == 0 {
         return #{"status": "no_data", "computed_nodes": [], "summary": "无产业链数据"};
     }
 
     // 行业排名数据处理
+    // v4 修复（2026-07-31 22:30）：industry_ranking 是 ToolNode 输出，
+    // 注入 scope 后可能是 字符串/数组/map（含 content 包装层）。
+    // 统一用 to_array 解析，彻底覆盖所有形态。
     let ind_map = #{};
     if industry_ranking != () {
-        for ind in industry_ranking {
-            let name = if ind["industryName"] != () { ind["industryName"].to_string() } else { "" };
-            if name != "" {
-                ind_map[name] = #{
-                    "changePct": if ind["changePct"] != () { ind["changePct"] } else { 0.0 },
-                    "mainInflow": if ind["mainInflow"] != () { ind["mainInflow"] } else { 0.0 },
-                };
+        let ir = to_array(industry_ranking);
+        if ir.len() > 0 {
+            for ind in ir {
+                let name = if ind["industryName"] != () { ind["industryName"].to_string() } else { "" };
+                if name != "" {
+                    ind_map[name] = #{
+                        "changePct": if ind["changePct"] != () { ind["changePct"] } else { 0.0 },
+                        "mainInflow": if ind["mainInflow"] != () { ind["mainInflow"] } else { 0.0 },
+                    };
+                }
             }
         }
     }
@@ -105,7 +196,7 @@ fn score_bottleneck() {
         let icp = 0.0; let iif = 0.0; let min = "";
         for ik in ind_map.keys() {
             let kw = ik.to_string();
-            if nn.find(kw) != () || kw.find(nn) != () {
+            if nn.contains(kw) || kw.contains(nn) {
                 min = kw;
                 if ind_map[kw] != () {
                     icp = if ind_map[kw]["changePct"] != () { ind_map[kw]["changePct"] } else { 0.0 };
@@ -117,10 +208,10 @@ fn score_bottleneck() {
         if min != "" { has_ind = true; };
         let ims = if icp > 5.0 && iif > 0.0 { 75.0 } else if icp > 2.0 && iif > 0.0 { 60.0 } else if icp > 0.0 { 45.0 } else { 30.0 };
 
-        // 三力评分
-        let ws = if w_supply != () { w_supply } else { 0.35 };
-        let wd = if w_demand != () { w_demand } else { 0.35 };
-        let wi = if w_irreplace != () { w_irreplace } else { 0.30 };
+        // 三力评分（v3：权重统一 to_f64，防模板变量为 i64/字符串数字）
+        let ws = if w_supply != () { to_f64(w_supply, 0.35) } else { 0.35 };
+        let wd = if w_demand != () { to_f64(w_demand, 0.35) } else { 0.35 };
+        let wi = if w_irreplace != () { to_f64(w_irreplace, 0.30) } else { 0.30 };
         let cs = if t3 >= 70.0 { 85.0 } else if t3 >= 50.0 { 65.0 } else if t3 >= 0.0 { 40.0 } else { 50.0 };
         let bs = if bar == "high" { 85.0 } else if bar == "medium" { 60.0 } else { 35.0 };
         let cyc = if exp >= 24.0 { 80.0 } else if exp >= 12.0 { 60.0 } else if exp >= 0.0 { 40.0 } else { 50.0 };
@@ -167,16 +258,16 @@ fn score_bottleneck() {
     #{"status": "ok", "num_nodes": computed.len(), "computed_nodes": computed,
       "top": #{ "name": top_name, "score": max_score },
       "overall_reliability": overall, "summary": summary}
-}
+};
 
 // ═══════════════════════════════════════════════
 // policy 策略评分
 // ═══════════════════════════════════════════════
 
-fn score_policy() {
+let score_policy = || {
     // note: weights are hardcoded per-strategy; future: inject via template variables
-    let analysis = chain_analysis;  // Agent 输出的分析结果
-    let beneficiaries = if analysis["beneficiaries"] != () { analysis["beneficiaries"] } else { [] };
+    let analysis = ca;  // Agent 输出的分析结果
+    let beneficiaries = to_array(analysis["beneficiaries"]);
     if beneficiaries.len() == 0 {
         return #{"status": "no_data", "computed_nodes": [], "summary": "无政策受益数据"};
     }
@@ -184,7 +275,7 @@ fn score_policy() {
     let computed = [];
     for sector in beneficiaries {
         let sector_name = if sector["sector"] != () { sector["sector"].to_string() } else { "未知行业" };
-        let stocks = if sector["stocks"] != () { sector["stocks"] } else { [] };
+        let stocks = to_array(sector["stocks"]);
         for stk in stocks {
             let code = if stk["code"] != () { stk["code"].to_string() } else { "" };
             let name = if stk["name"] != () { stk["name"].to_string() } else { "" };
@@ -209,15 +300,15 @@ fn score_policy() {
     let summary = "政策分析: " + beneficiaries.len().to_string() + " 个受益行业, " + computed.len().to_string() + " 只候选";
     #{"status": "ok", "num_nodes": computed.len(), "computed_nodes": computed, "summary": summary,
       "overall_reliability": "llm_estimated"}
-}
+};
 
 // ═══════════════════════════════════════════════
 // earnings 策略评分
 // ═══════════════════════════════════════════════
 
-fn score_earnings() {
-    let analysis = chain_analysis;
-    let candidates = if analysis["candidates"] != () { analysis["candidates"] } else { [] };
+let score_earnings = || {
+    let analysis = ca;
+    let candidates = to_array(analysis["candidates"]);
     if candidates.len() == 0 {
         return #{"status": "no_data", "computed_nodes": [], "summary": "无业绩驱动数据"};
     }
@@ -230,11 +321,11 @@ fn score_earnings() {
         // earnings 评分：预期差幅度(40%) + 过往准确性(30%) + 催化剂时效(30%)
         let beat_score = if beat >= 30.0 { 90.0 } else if beat >= 15.0 { 70.0 } else if beat >= 5.0 { 50.0 } else { 25.0 };
         // 过往准确性：基于 reason 中的明确度估算（Agent 不输出时默认 50）
-        let track_record = if reason.find("数据") != () || reason.find("调研") != () || reason.find("动销") != () { 70.0 } else { 50.0 };
+        let track_record = if reason.contains("数据") || reason.contains("调研") || reason.contains("动销") { 70.0 } else { 50.0 };
         // 催化剂时效：短中期利好加分
         let timeliness = if c["timeframe"] != () {
             let tf = c["timeframe"].to_string();
-            if tf.find("short") != () { 80.0 } else if tf.find("mid") != () { 60.0 } else { 40.0 }
+            if tf.contains("short") { 80.0 } else if tf.contains("mid") { 60.0 } else { 40.0 }
         } else { 55.0 };
         let composite = clamp_score(beat_score * 0.40 + track_record * 0.30 + timeliness * 0.30);
         computed.push(#{
@@ -254,15 +345,15 @@ fn score_earnings() {
     let summary = "业绩分析: " + computed.len().to_string() + " 只候选";
     #{"status": "ok", "num_nodes": computed.len(), "computed_nodes": computed, "summary": summary,
       "overall_reliability": "partially_verified"}
-}
+};
 
 // ═══════════════════════════════════════════════
 // capital 策略评分
 // ═══════════════════════════════════════════════
 
-fn score_capital() {
-    let analysis = chain_analysis;
-    let sectors_analysis = if analysis["sectors"] != () { analysis["sectors"] } else { [] };
+let score_capital = || {
+    let analysis = ca;
+    let sectors_analysis = to_array(analysis["sectors"]);
     if sectors_analysis.len() == 0 {
         return #{"status": "no_data", "computed_nodes": [], "summary": "无资金面数据"};
     }
@@ -271,7 +362,7 @@ fn score_capital() {
         let sec_name = if sec["name"] != () { sec["name"].to_string() } else { "未知板块" };
         let inflow = if sec["net_inflow"] != () { sec["net_inflow"] } else { 0.0 };
         let sustainability = if sec["days"] != () { sec["days"] } else { 1.0 };
-        let stocks = if sec["stocks"] != () { sec["stocks"] } else { [] };
+        let stocks = to_array(sec["stocks"]);
         for stk in stocks {
             let code = if stk["code"] != () { stk["code"].to_string() } else { "" };
             let name = if stk["name"] != () { stk["name"].to_string() } else { "" };
@@ -301,7 +392,7 @@ fn score_capital() {
     let summary = "资金面分析: " + computed.len().to_string() + " 只候选";
     #{"status": "ok", "num_nodes": computed.len(), "computed_nodes": computed, "summary": summary,
       "overall_reliability": "industry_inferred"}
-}
+};
 
 // ═══════════════════════════════════════════════
 // 主函数：按策略类型路由
@@ -311,9 +402,9 @@ fn score_capital() {
 // event 策略评分（事件驱动）
 // ═══════════════════════════════════════════════
 
-fn score_event() {
-    let analysis = chain_analysis;
-    let events = if analysis["events"] != () { analysis["events"] } else { [] };
+let score_event = || {
+    let analysis = ca;
+    let events = to_array(analysis["events"]);
     if events.len() == 0 {
         return #{"status": "no_data", "computed_nodes": [], "summary": "无事件驱动数据"};
     }
@@ -333,7 +424,7 @@ fn score_event() {
             else { 50.0 };
         let timeliness = if ev["timeframe"] != () {
             let tf = ev["timeframe"].to_string();
-            if tf.find("short") != () { 80.0 } else if tf.find("mid") != () { 60.0 } else { 40.0 }
+            if tf.contains("short") { 80.0 } else if tf.contains("mid") { 60.0 } else { 40.0 }
         } else { 50.0 };
         let price_position = if ev["price_position"] != () {
             let pp = ev["price_position"].to_string();
@@ -358,15 +449,15 @@ fn score_event() {
     let summary = "事件分析: " + computed.len().to_string() + " 只候选";
     #{"status": "ok", "num_nodes": computed.len(), "computed_nodes": computed, "summary": summary,
       "overall_reliability": "partially_verified"}
-}
+};
 
 // ═══════════════════════════════════════════════
 // technical 策略评分（技术面驱动）
 // ═══════════════════════════════════════════════
 
-fn score_technical() {
-    let analysis = chain_analysis;
-    let signals = if analysis["signals"] != () { analysis["signals"] } else { [] };
+let score_technical = || {
+    let analysis = ca;
+    let signals = to_array(analysis["signals"]);
     if signals.len() == 0 {
         return #{"status": "no_data", "computed_nodes": [], "summary": "无技术面信号"};
     }
@@ -377,10 +468,10 @@ fn score_technical() {
         let pattern = if sig["pattern"] != () { sig["pattern"].to_string() } else { "" };
         let reason = if sig["reason"] != () { sig["reason"].to_string() } else { "" };
         // 技术评分：形态强度(35%) + 成交量确认(35%) + 板块共振(30%)
-        let pattern_score = if pattern.find("突破") != () || pattern.find("breakout") != () { 85.0 }
-            else if pattern.find("金叉") != () || pattern.find("golden") != () { 75.0 }
-            else if pattern.find("底背离") != () || pattern.find("divergence") != () { 65.0 }
-            else if pattern.find("支撑") != () || pattern.find("反弹") != () { 55.0 }
+        let pattern_score = if pattern.contains("突破") || pattern.contains("breakout") { 85.0 }
+            else if pattern.contains("金叉") || pattern.contains("golden") { 75.0 }
+            else if pattern.contains("底背离") || pattern.contains("divergence") { 65.0 }
+            else if pattern.contains("支撑") || pattern.contains("反弹") { 55.0 }
             else { 45.0 };
         let volume_confirm = if sig["volume_surge"] != () {
             let vs = sig["volume_surge"];
@@ -406,17 +497,17 @@ fn score_technical() {
     let summary = "技术分析: " + computed.len().to_string() + " 只候选";
     #{"status": "ok", "num_nodes": computed.len(), "computed_nodes": computed, "summary": summary,
       "overall_reliability": "industry_inferred"}
-}
+};
 
-fn main() {
-    let strategy = if trend_strategy != () { trend_strategy.to_string() } else { "bottleneck" };
-    if strategy == "bottleneck" { return score_bottleneck(); }
-    if strategy == "policy" { return score_policy(); }
-    if strategy == "earnings" { return score_earnings(); }
-    if strategy == "capital" { return score_capital(); }
-    if strategy == "event" { return score_event(); }
-    if strategy == "technical" { return score_technical(); }
-    #{"status": "unknown_strategy", "computed_nodes": [], "summary": "未知策略类型: " + strategy}
-}
-
-main()
+// ── 顶层路由（原 fn main → 顶层顺序执行） ──
+// main() 的 fn 包装会导致 input_mapping 变量（trend_strategy）不可见，
+// 移到顶层后 scope 变量可直接访问。
+let strategy = if trend_strategy != () { trend_strategy.to_string() } else { "bottleneck" };
+let result = if strategy == "bottleneck" { score_bottleneck.call() }
+else if strategy == "policy" { score_policy.call() }
+else if strategy == "earnings" { score_earnings.call() }
+else if strategy == "capital" { score_capital.call() }
+else if strategy == "event" { score_event.call() }
+else if strategy == "technical" { score_technical.call() }
+else { #{"status": "unknown_strategy", "computed_nodes": [], "summary": "未知策略类型: " + strategy} };
+result

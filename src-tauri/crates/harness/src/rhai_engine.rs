@@ -73,12 +73,59 @@ pub fn register_common_functions(engine: &mut Engine) {
     engine.register_fn("json_parse", |s: &str| -> rhai::Dynamic {
         match serde_json::from_str::<serde_json::Value>(s) {
             Ok(v) => json_value_to_dynamic(&v),
-            Err(e) => {
-                tracing::warn!("[harness::rhai_engine] json_parse 失败: {e}");
-                rhai::Dynamic::UNIT
+            Err(first_err) => {
+                // 2026-07-31 完整修复：LLM 输出的 JSON 常带尾逗号（如 "key": "value",\n}），
+                // serde_json 严格模式直接失败 → Rhai 脚本 json_parse 返回 () → 上游 no_data
+                // （21:47 轮 c-scorer-trend2 实锤：trailing comma at line 73）。
+                // 清理"逗号后紧跟 } 或 ]（含中间空白）"的尾逗号后再试一次，全部脚本受益。
+                let cleaned = strip_trailing_commas(s);
+                if cleaned != s {
+                    match serde_json::from_str::<serde_json::Value>(&cleaned) {
+                        Ok(v) => json_value_to_dynamic(&v),
+                        Err(second_err) => {
+                            tracing::warn!(
+                                "[harness::rhai_engine] json_parse 失败（清理尾逗号后仍失败）: {second_err}"
+                            );
+                            rhai::Dynamic::UNIT
+                        },
+                    }
+                } else {
+                    tracing::warn!("[harness::rhai_engine] json_parse 失败: {first_err}");
+                    rhai::Dynamic::UNIT
+                }
             },
         }
     });
+}
+
+/// 清理 JSON 文本中的尾逗号（LLM 输出常见病：`"key": "value",}` / `[1,2,]`）。
+///
+/// 逐字符扫描：遇到逗号时，若其后方（跳过空白）紧跟 `}` 或 `]`，则该逗号是尾逗号，丢弃。
+/// 不修改任何其他内容（保留原字符串格式与空白）。
+fn strip_trailing_commas(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::with_capacity(s.len());
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        if c == ',' {
+            // 跳过逗号后的空白，看第一个非空白字符
+            let mut j = i + 1;
+            while j < chars.len()
+                && matches!(chars[j], ' ' | '\t' | '\n' | '\r')
+            {
+                j += 1;
+            }
+            if j < chars.len() && (chars[j] == '}' || chars[j] == ']') {
+                // 尾逗号：丢弃，跳到空白后的 } / ]
+                i = j;
+                continue;
+            }
+        }
+        out.push(c);
+        i += 1;
+    }
+    out
 }
 
 /// 将 `serde_json::Value` 转换为 Rhai `Dynamic`。

@@ -27,7 +27,7 @@ interface RecoDetailItem {
   createdAt: string;
 }
 
-/** 风格颜色映射 */
+/** 风格颜色映射（覆盖所有后端 Style 枚举序列化值，2026-08-01 补 serenity 系 5 个） */
 const STYLE_COLOR: Record<string, string> = {
   trend: "red",
   value: "blue",
@@ -35,6 +35,12 @@ const STYLE_COLOR: Record<string, string> = {
   reversion: "purple",
   watchlist: "cyan",
   serenity: "green",
+  bottleneck: "magenta",
+  capital_flow: "gold",
+  earnings: "lime",
+  event: "volcano",
+  policy: "geekblue",
+  technical: "blue",
 };
 
 export function RecoHistoryModal() {
@@ -57,7 +63,13 @@ export function RecoHistoryModal() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await invoke<RecoHistoryRow[]>("list_reco_history", { limit: 50 });
+      // 智能荐股历史：排除趋势智选专属风格（serenity-screening 工作流 'serenity'
+      // + 智能荐股内置 SerenityStrategy 落库 'bottleneck'）——这两类在趋势智选
+      // 面板（SerenityScreeningPanel）的历史弹窗里展示，两个面板各管各的。
+      const list = await invoke<RecoHistoryRow[]>("list_reco_history", {
+        excludeStyles: "serenity,bottleneck",
+        limit: 50,
+      });
       setData(list ?? []);
     } catch { /* */ }
     setLoading(false);
@@ -70,6 +82,7 @@ export function RecoHistoryModal() {
     try {
       const items = await invoke<RecoDetailItem[]>("get_reco_detail", {
         generatedAt: row.generatedAt,
+        excludeStyles: "serenity,bottleneck",
       });
       setDetailItems(items ?? []);
     } catch (e) {

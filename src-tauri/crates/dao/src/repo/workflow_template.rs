@@ -93,6 +93,41 @@ pub async fn update_workflow_template(
 
     if let Some(t) = template {
         tracing::info!("[workflow_template] 找到模板 id={}, version={}", id, t.version);
+        // ── 计算 effective 值 ──
+        // nodes/edges 允许用户编辑（增删节点、配置知识源等），正常保存即可。
+        // 2026-07-31 简化：version 不再由前端保存递增（只由 seed 写入），
+        // seed 的"existing.version >= TEMPLATE_VERSION"版本门因此天然有效——
+        // 前端保存不会把 version 推高、不会误挡 seed 重建；用户编辑的内容
+        // 在 seed 未升版本号时也永远不会被 seed 覆盖。
+        let nodes_val = serde_json::to_string(&nodes).unwrap_or_default();
+        let edges_val = serde_json::to_string(&edges).unwrap_or_default();
+        let tags_val = serde_json::to_string(&tags).unwrap_or_default();
+        let trigger_val = trigger_config.and_then(|c| serde_json::to_string(&c).ok());
+        let input_schema_val = input_schema.and_then(|s| serde_json::to_string(&s).ok());
+        let output_schema_val = output_schema.and_then(|s| serde_json::to_string(&s).ok());
+        let variables_val = serde_json::to_string(&variables).unwrap_or_default();
+        let error_val = error_config.and_then(|e| serde_json::to_string(&e).ok());
+        let tool_defs_val =
+            tool_defs.as_ref().map(|tds| serde_json::to_string(tds).unwrap_or_default());
+
+        // 无任何内容变化（如编辑器 auto-save 空转）→ 不写快照、不更新（version 自然不变）
+        let unchanged = t.name == name
+            && t.description == description
+            && t.icon == icon
+            && t.tags.as_ref() == Some(&tags_val)
+            && t.trigger_config == trigger_val
+            && t.nodes == nodes_val
+            && t.edges == edges_val
+            && t.input_schema == input_schema_val
+            && t.output_schema == output_schema_val
+            && t.variables.as_ref() == Some(&variables_val)
+            && t.error_config == error_val
+            && t.tool_defs == tool_defs_val;
+        if unchanged {
+            tracing::info!("[workflow_template] 内容无变化，跳过保存 id={}", id);
+            return Ok(true);
+        }
+
         // D9: save old version as a snapshot before updating
         let version_snapshot = workflow_template_version::ActiveModel {
             id: Set(format!("{}_v{}", t.id, t.version)),
@@ -131,19 +166,17 @@ pub async fn update_workflow_template(
         active_model.name = Set(name);
         active_model.description = Set(description);
         active_model.icon = Set(icon);
-        active_model.tags = Set(Some(serde_json::to_string(&tags).unwrap_or_default()));
-        active_model.trigger_config =
-            Set(trigger_config.and_then(|c| serde_json::to_string(&c).ok()));
-        active_model.nodes = Set(serde_json::to_string(&nodes).unwrap_or_default());
-        active_model.edges = Set(serde_json::to_string(&edges).unwrap_or_default());
-        active_model.input_schema = Set(input_schema.and_then(|s| serde_json::to_string(&s).ok()));
-        active_model.output_schema =
-            Set(output_schema.and_then(|s| serde_json::to_string(&s).ok()));
-        active_model.variables = Set(Some(serde_json::to_string(&variables).unwrap_or_default()));
-        active_model.error_config = Set(error_config.and_then(|e| serde_json::to_string(&e).ok()));
-        active_model.tool_defs =
-            Set(tool_defs.as_ref().map(|tds| serde_json::to_string(tds).unwrap_or_default()));
-        active_model.version = Set(t.version + 1);
+        active_model.tags = Set(Some(tags_val));
+        active_model.trigger_config = Set(trigger_val);
+        active_model.nodes = Set(nodes_val);
+        active_model.edges = Set(edges_val);
+        active_model.input_schema = Set(input_schema_val);
+        active_model.output_schema = Set(output_schema_val);
+        active_model.variables = Set(Some(variables_val));
+        active_model.error_config = Set(error_val);
+        active_model.tool_defs = Set(tool_defs_val);
+        // 2026-07-31：version 不再递增（只由 seed 写入），保证 seed 版本门稳定有效。
+        // 快照 id 用 version 命名，version 不变时 do_nothing 保留首份快照（无害）。
         active_model.updated_at = Set(chrono::Utc::now().timestamp_millis());
 
         // 使用 upsert 而非 update，避免 find_by_id 与 update 之间记录被删除导致 0 行报错

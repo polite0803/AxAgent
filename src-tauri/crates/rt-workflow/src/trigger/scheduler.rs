@@ -46,9 +46,12 @@ pub(crate) async fn spawn_schedule(
 
     let handle = tokio::spawn(async move {
         loop {
-            // 计算下一次触发时间（基于时区本地时间）
+            // 计算下一次触发时间（按目标时区解释 cron 表达式）
+            // 修复：原 `upcoming(chrono_tz::Tz::UTC)` 使 cron 字段按 UTC 计算，
+            // 导致 Asia/Shanghai 的 "0 18 * * *" 实际在 UTC 18:00（北京 02:00）触发，
+            // 比预期提前 16 小时。
             let now_local = Utc::now().with_timezone(&tz);
-            let next_local = match schedule.upcoming(chrono_tz::Tz::UTC).next() {
+            let next_local = match schedule.upcoming(tz).next() {
                 Some(t) => t,
                 None => {
                     tracing::error!(
@@ -59,7 +62,7 @@ pub(crate) async fn spawn_schedule(
                     return;
                 },
             };
-            // schedule.upcoming(UTC) 返回 UTC 时间，转换为 tz 本地展示
+            // upcoming(tz) 按目标时区解释 cron，返回 tz 本地时间；转换为 UTC 计算等待时长
             let next_utc = next_local.with_timezone(&Utc);
             let next_display = next_utc.with_timezone(&tz);
 

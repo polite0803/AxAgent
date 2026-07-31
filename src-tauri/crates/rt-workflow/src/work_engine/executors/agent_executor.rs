@@ -703,6 +703,11 @@ impl NodeExecutorTrait for AgentExecutor {
                     let rag_result = rag_cb(kb_ids, mem_ids, wiki_ids, rag_query).await;
                     match rag_result {
                         Ok(result) if !result.context_parts.is_empty() => {
+                            tracing::info!(
+                                "[RAG] agent node {} 注入 {} 条知识库片段 → system prompt（--- 知识库参考 ---）",
+                                an.base.id,
+                                result.context_parts.len()
+                            );
                             all_segments.push(TemplateSegment::Static(
                                 "\n\n--- 知识库参考 ---\n".to_string(),
                             ));
@@ -1554,6 +1559,45 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
+        // ── tool_json 协议拆包（最高优先级，先于 strict_mode / VERDICT 重构）──
+        // Serenity 等 agent 节点输出 ```tool_json {"name":"submit_xxx","arguments":{...}} ``` 代码块，
+        // 下游按 arguments 内字段下钻（a-trend-scanner.content.trends / a-chain-trendN.content.chain_nodes）。
+        // 若不拆包：strict_mode 的 VERDICT 重构（下方 1557 块）会把整个块包进 report 文本，
+        // 下游 resolve_var_path 无法解析（表现为 c-scorer 的 chain_analysis 取不到 chain_nodes → no_data）。
+        // 必须无条件执行（不依赖输出是否合法 JSON——带 VERDICT 标签的文本输出同样要拆）。
+        if !final_content.trim().is_empty() {
+            if let Some(inner) = extract_tool_json_block(final_content.trim()) {
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&inner) {
+                    if parsed.is_object() {
+                        let tool_name = parsed
+                            .get("name")
+                            .and_then(|n| n.as_str())
+                            .unwrap_or("?")
+                            .to_string();
+                        let args = parsed
+                            .get("arguments")
+                            .or_else(|| parsed.get("input"))
+                            .cloned()
+                            .unwrap_or(parsed);
+                        // GLM 偶发把 arguments 序列化成 JSON 字符串（双层转义），需再解析一层
+                        let args = match args {
+                            serde_json::Value::String(s) => serde_json::from_str::<serde_json::Value>(&s)
+                                .unwrap_or(serde_json::Value::String(s)),
+                            other => other,
+                        };
+                        if args.is_object() || args.is_array() {
+                            tracing::info!(
+                                node_id = %node.base_id(),
+                                tool = %tool_name,
+                                "通用后处理: 拆包 tool_json 代码块为结构化输出"
+                            );
+                            final_content = args.to_string();
+                        }
+                    }
+                }
+            }
+        }
+
         // ── VERDICT tag 提取 + strict_mode 输出校验 ──
         // 优先尝试提取 <!-- VERDICT: {...} --> 标签：
         // 若找到 VERDICT tag，则用其内容重构 minimal JSON（analyst/debater/risk-evaluator 节点适用），
@@ -1841,7 +1885,53 @@ impl NodeExecutorTrait for AgentExecutor {
         //   新增分支：合法 JSON 但 verdict 字段是字符串（扁平结构）时，
         //   把 verdict 相关字段提取到嵌套 map，统一为 {"report":..., "verdict":{...}}。
         if !final_content.trim().is_empty() {
-            let parsed_opt = serde_json::from_str::<serde_json::Value>(final_content.trim()).ok();
+            let mut parsed_opt = serde_json::from_str::<serde_json::Value>(final_content.trim()).ok();
+
+            // ── tool_json 协议拆包（优先于 VERDICT 重构） ──
+            // 工作流 agent 节点约定输出 ```tool_json {"name":"submit_xxx","arguments":{...}} ```
+            // 代码块，下游按 content.<arguments 内字段> 下钻（如 a-trend-scanner.content.trends、
+            // a-candidate-mapper.content.candidates）。不拆包则 content 保持文本，下游全部解析失败
+            // （表现为 c-scorer 等节点的 input_mapping 变量为 null / Rhai Variable not found）。
+            // 拆出 arguments 作为结构化 content；拆包后重新解析 parsed_opt 供后续分支使用。
+            if parsed_opt.is_none() {
+                if let Some(inner) = extract_tool_json_block(final_content.trim()) {
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&inner) {
+                        if parsed.is_object() {
+                            let tool_name = parsed
+                                .get("name")
+                                .and_then(|n| n.as_str())
+                                .unwrap_or("?")
+                                .to_string();
+                            let args = parsed
+                                .get("arguments")
+                                .or_else(|| parsed.get("input"))
+                                .cloned()
+                                .unwrap_or(parsed);
+                            // GLM 偶发把 arguments 序列化成 JSON 字符串（双层转义），需再解析一层
+                            let args = match args {
+                                serde_json::Value::String(s) => {
+                                    serde_json::from_str::<serde_json::Value>(&s)
+                                        .unwrap_or(serde_json::Value::String(s))
+                                }
+                                other => other,
+                            };
+                            if args.is_object() || args.is_array() {
+                                tracing::info!(
+                                    node_id = %node.base_id(),
+                                    tool = %tool_name,
+                                    "通用后处理: 拆包 tool_json 代码块为结构化输出"
+                                );
+                                final_content = args.to_string();
+                                parsed_opt = serde_json::from_str::<serde_json::Value>(
+                                    final_content.trim(),
+                                )
+                                .ok();
+                            }
+                        }
+                    }
+                }
+            }
+
             let needs_verdict_tag_reconstruct = parsed_opt.is_none();
             let needs_flat_reconstruct = parsed_opt.as_ref().is_some_and(|v| {
                 v.is_object() && v.get("verdict").is_some_and(|vd| !vd.is_object())
@@ -3431,6 +3521,81 @@ fn is_refusal_plain_text(s: &str) -> bool {
 ///
 /// 这是 TradingAgents 模式的 Rust 实现：
 /// 分析师输出自然语言报告，末尾追加 <!-- VERDICT: {...} --> 供机读。
+/// 从 LLM 输出中提取 ```tool_json（或 ```json tool_json）代码块内的 JSON 对象。
+///
+/// 工作流 agent 节点（trend-scanner / chain-decomposer / candidate-mapper 等）约定输出
+/// tool_json 代码块（Serenity 协议），但 rt-workflow 的 agent_executor 不经过 IR Normalizer，
+/// 块内容会原样保留为文本，导致下游 resolve_var_path 无法下钻。此函数提取块内 JSON。
+///
+/// 兼容 GLM 两种 fence 写法：```tool_json 与 ```json tool_json。
+fn extract_tool_json_block(text: &str) -> Option<String> {
+    let lower = text.to_ascii_lowercase();
+    let mut search_from = 0;
+    while let Some(rel) = lower[search_from..].find("```") {
+        let abs = search_from + rel;
+        let line_end = text[abs..].find('\n').map(|o| abs + o).unwrap_or(text.len());
+        let fence_line = text[abs..line_end].trim();
+        // 围栏匹配：```tool_json / ```json tool_json（Serenity 协议），以及裸 ```json
+        // （GLM 偶发用普通 json 围栏包裹 submit_* 工具调用）。裸 ```json 提取出的 JSON
+        // 若无 arguments 字段，上游 unwrap_or(parsed) 保持 JSON 本身，等价于规范化输出，无害。
+        let is_tool_fence = fence_line.contains("tool_json");
+        let is_plain_json_fence = fence_line.trim_end().eq_ignore_ascii_case("```json")
+            || fence_line.trim_end().eq_ignore_ascii_case("```JSON");
+        if is_tool_fence || is_plain_json_fence {
+            let rest = &text[line_end..];
+            // 限定在闭合围栏（下一个 ```）之前提取，防止 rfind('}') 越过围栏
+            // 取到围栏后 VERDICT 标签的 }（场景：tool_json 块在前、<!-- VERDICT --> 在后，
+            // 会导致 candidate 混入标签文本解析失败）。
+            let body_end = rest.find("```").unwrap_or(rest.len());
+            let body = &rest[..body_end];
+            if let Some(start) = body.find('{') {
+                let candidate = &body[start..];
+                // 从第一个 { 截到闭合围栏前最后一个 }
+                if let Some(end) = candidate.rfind('}') {
+                    let candidate = &candidate[..=end];
+                    if serde_json::from_str::<serde_json::Value>(candidate).is_ok() {
+                        return Some(candidate.to_string());
+                    }
+                }
+            }
+        }
+        search_from = abs + 3;
+    }
+    // 裸形式（无围栏）：某行（trim 后）以 `tool_json` 开头且后续内容为 JSON。
+    // GLM 偶发输出不带 ``` 围栏的 `tool_json\n{...}` 形式（如 a-trend-scanner）。
+    let mut line_search = 0;
+    while let Some(rel) = lower[line_search..].find("tool_json") {
+        let abs = line_search + rel;
+        let line_end = text[abs..].find('\n').map(|o| abs + o).unwrap_or(text.len());
+        let line = text[abs..line_end].trim();
+        // 行首为 tool_json（或 ``` 围栏内残留的 tool_json 语言标签）
+        let line_start_is_clean = line == "tool_json"
+            || line == "json tool_json"
+            || line.starts_with("tool_json")
+            || line.starts_with("json tool_json");
+        // 前面必须是行首/空白/围栏闭合，避免误匹配正文中的"tool_json"字样
+        let before = &text[..abs];
+        let at_line_start = before.is_empty()
+            || before.ends_with('\n')
+            || before.trim_end().ends_with("```")
+            || before.trim_end().is_empty();
+        if line_start_is_clean && at_line_start {
+            let rest = &text[line_end..];
+            if let Some(start) = rest.find('{') {
+                let body = &rest[start..];
+                if let Some(end) = body.rfind('}') {
+                    let candidate = &body[..=end];
+                    if serde_json::from_str::<serde_json::Value>(candidate).is_ok() {
+                        return Some(candidate.to_string());
+                    }
+                }
+            }
+        }
+        line_search = abs + "tool_json".len();
+    }
+    None
+}
+
 fn extract_verdict_tag(text: &str) -> Option<String> {
     // 查找最后一个 <!-- VERDICT: 出现位置（取最后一个，因为正文中可能也有 HTML 注释）
     // 安全做法：直接在全文本上 rfind，不手动做字节切片

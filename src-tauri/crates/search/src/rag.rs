@@ -974,7 +974,11 @@ async fn collect_rag_context_from_refs(
     wiki_ids: &[String],
 ) -> RagContextResult {
     if sources.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+            graph_context: None,
+        };
     }
 
     let mut context_parts = Vec::new();
@@ -1071,6 +1075,14 @@ async fn collect_rag_context_from_refs(
                     source.context_label(),
                     snippets.join("\n---\n")
                 ));
+                // 2026-07-31 可观测性：命中时打 info 日志，日志可直接判定"知识库有贡献"
+                // （此前命中是静默的，只能靠"无 failed/无 returned no results + tsvector notice"反向推断）
+                tracing::info!(
+                    "[RAG] 知识源命中 → {} {} 检索到 {} 条片段，已拼入 context_parts",
+                    source.collection_prefix(),
+                    src_ref.container_id,
+                    items.len()
+                );
 
                 let source_type_str = match src_ref.source_type {
                     RAGSourceType::Knowledge => "knowledge",
@@ -1140,7 +1152,11 @@ async fn collect_rag_context_from_refs(
     // N 是 source_results 扁平化后的全局序号，前端据此渲染可点击 chip 并跳转高亮对应 item。
     let final_context = rebuild_context_with_citations(&deduped_results, kg_context);
 
-    RagContextResult { context_parts: final_context, source_results: deduped_results }
+    RagContextResult {
+        context_parts: final_context,
+        source_results: deduped_results,
+        graph_context: None,
+    }
 }
 
 /// 引用追溯：根据 `source_results` 重建 context_parts，为每个 item 的 snippet 前注入
@@ -1735,10 +1751,14 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     }
 
     let engine: Arc<dyn InferenceEngine> = crate::inference::global_engine();
-    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, Some(engine), api_key);
+    let pipeline = crate::rag_pipeline::RAGPipeline::new(pipeline_config, Some(engine), api_key, None);
 
     if sources.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+            graph_context: None,
+        };
     }
 
     // P2-2: 预计算 query embedding 用于后续的语义匹配
@@ -1895,7 +1915,11 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     // 引用追溯：在 dedup 之后重建 context_parts，为每个 item 的 snippet 前注入 [cite:N] token。
     let final_context = rebuild_context_with_citations(&deduped_results, kg_context);
 
-    RagContextResult { context_parts: final_context, source_results: deduped_results }
+    RagContextResult {
+        context_parts: final_context,
+        source_results: deduped_results,
+        graph_context: None,
+    }
 }
 
 #[cfg(test)]

@@ -198,6 +198,15 @@ pub struct DashboardStats {
 #[tauri::command]
 pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<DashboardStats, String> {
     let db = state.harness.db();
+    // 2026-07-31 修复：DB 已切 PostgreSQL（db_config.json db_type=postgres）。
+    // 原原生 SQL 全部用 DatabaseBackend::Sqlite + `?` 占位符，在 PG 上必然报错
+    // （占位符风格不匹配），导致仪表盘统计静默为 0/报错。按 backend 分支统一处理。
+    let is_pg = db.get_database_backend() == sea_orm::DbBackend::Postgres;
+    let backend = if is_pg {
+        sea_orm::DbBackend::Postgres
+    } else {
+        sea_orm::DbBackend::Sqlite
+    };
 
     // 会话总数
     let total_conversations =
@@ -211,7 +220,7 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
     // 消息聚合查询：COUNT + SUM tokens，避免全表加载到内存
     let msg_stats = db
         .query_all_raw(sea_orm::Statement::from_sql_and_values(
-            sea_orm::DatabaseBackend::Sqlite,
+            backend,
             "SELECT \
              COUNT(*) as total_messages, \
              COALESCE(SUM(prompt_tokens), 0) as total_prompt_tokens, \
@@ -246,14 +255,24 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
 
     // 今日（本地时区）消息统计：messages.created_at 是毫秒时间戳
     let today_start_millis = axagent_harness::util_fns::today_start_local_ts() * 1000;
+    // 占位符按方言：PG 用 $1，SQLite 用 ?
+    let today_msg_sql = if is_pg {
+        "SELECT \
+         COUNT(*) as today_messages, \
+         COALESCE(SUM(prompt_tokens), 0) as today_prompt_tokens, \
+         COALESCE(SUM(completion_tokens), 0) as today_completion_tokens \
+         FROM messages WHERE is_active = 1 AND created_at >= $1"
+    } else {
+        "SELECT \
+         COUNT(*) as today_messages, \
+         COALESCE(SUM(prompt_tokens), 0) as today_prompt_tokens, \
+         COALESCE(SUM(completion_tokens), 0) as today_completion_tokens \
+         FROM messages WHERE is_active = 1 AND created_at >= ?"
+    };
     let today_msg_stats = db
         .query_all_raw(sea_orm::Statement::from_sql_and_values(
-            sea_orm::DatabaseBackend::Sqlite,
-            "SELECT \
-             COUNT(*) as today_messages, \
-             COALESCE(SUM(prompt_tokens), 0) as today_prompt_tokens, \
-             COALESCE(SUM(completion_tokens), 0) as today_completion_tokens \
-             FROM messages WHERE is_active = 1 AND created_at >= ?",
+            backend,
+            today_msg_sql,
             vec![today_start_millis.into()],
         ))
         .await
@@ -275,7 +294,7 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
     // 智能体会话聚合查询
     let session_stats = db
         .query_all_raw(sea_orm::Statement::from_sql_and_values(
-            sea_orm::DatabaseBackend::Sqlite,
+            backend,
             "SELECT \
              COUNT(*) as total_sessions, \
              COALESCE(SUM(total_tokens), 0) as total_agent_tokens, \
@@ -334,10 +353,16 @@ pub async fn get_cost_by_provider(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_harness::types::CostByProvider>, String> {
     let db = state.harness.db();
+    // 2026-07-31 修复：backend 标记按方言（无占位符，SQL 本身 PG 兼容）
+    let backend = if db.get_database_backend() == sea_orm::DbBackend::Postgres {
+        sea_orm::DbBackend::Postgres
+    } else {
+        sea_orm::DbBackend::Sqlite
+    };
 
     let rows = db
         .query_all_raw(sea_orm::Statement::from_sql_and_values(
-            sea_orm::DatabaseBackend::Sqlite,
+            backend,
             "SELECT gu.provider_id, \
              COUNT(*) as request_count, \
              COALESCE(SUM(gu.request_tokens + gu.response_tokens), 0) as token_count \

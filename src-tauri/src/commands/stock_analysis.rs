@@ -2539,7 +2539,11 @@ async fn backtest_reco_strategies_inner(
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     // 1. 找最近一次荐股记录的 generated_at
+    // P1 修复(2026-08-01): 排除 serenity-screening 写入的候选行（style='serenity'，
+    // seed_pool_json 为 candidate 对象数组，非 [[code,name]] 快照格式）——
+    // 若其晚于最近一次智能荐股，会污染回测的候选池解析与正负样本划分。
     let latest = reco_picks::Entity::find()
+        .filter(reco_picks::Column::Style.ne("serenity"))
         .order_by_desc(reco_picks::Column::GeneratedAt)
         .one(state.harness.db())
         .await
@@ -2814,7 +2818,10 @@ pub async fn get_reco_signal_history(
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     // 1. 找最近一次荐股记录
+    // P1 修复(2026-08-01): 排除 serenity 候选行（style='serenity'），
+    // 只取 recommend_stocks 的策略推荐（seed_pool_json 为 [[code,name]] 快照格式）。
     let latest = reco_picks::Entity::find()
+        .filter(reco_picks::Column::Style.ne("serenity"))
         .order_by_desc(reco_picks::Column::GeneratedAt)
         .one(state.harness.db())
         .await
@@ -3857,12 +3864,14 @@ pub async fn recommend_stocks(
         };
 
         // 构建候选池快照（用于回测的负向样本）
-        use axagent_stock_analysis::recommender::pool::build_seed_pool;
-        let seed = build_seed_pool(&state.astock_client).await;
-        let seed_pool_json = serde_json::to_string(
-            &seed.iter().map(|(c, n, _)| vec![c.as_str(), n.as_str()]).collect::<Vec<_>>(),
-        )
-        .unwrap_or_default();
+        // P3 修复(2026-08-01): 直接复用 recommend_stocks 扫描实际使用的池
+        // （流动性过滤后 seed），不再二次 build_seed_pool ——
+        // 旧逻辑浪费 get_hot_stocks + get_industry_ranking 两次请求，
+        // 且两次构建间数据变化会导致快照与真实扫描池不一致（preseed 模式更严重）。
+        let seed_pool_json = response
+            .seed_pool_snapshot
+            .clone()
+            .unwrap_or_else(|| "[]".to_string());
 
         for picks in response.picks.values() {
             for pick in picks {
@@ -3884,7 +3893,17 @@ pub async fn recommend_stocks(
                     pick_data: sea_orm::Set(pick_data),
                     created_at: sea_orm::Set(created_at.clone()),
                 };
-                let _ = am.insert(state.harness.db()).await;
+                // P2 修复(2026-08-01): 插入失败不再静默吞错，记 warn 日志便于排查
+                // （此前 `let _ = insert(...)` 失败无感知，前端表现为"无缓存"）
+                if let Err(e) = am.insert(state.harness.db()).await {
+                    tracing::warn!(
+                        "[recommend_stocks] 写入 reco_picks 失败 ({} {} {}): {}",
+                        pick.period.as_str(),
+                        pick.stock_code,
+                        pick.style.as_str(),
+                        e
+                    );
+                }
             }
         }
     }
@@ -3915,8 +3934,11 @@ pub async fn get_cached_recommendation(
 
     // 1) 找该 period 最新的 generated_at
     // 用 ORDER BY + LIMIT 1 拿最新一次,避免聚合复杂 SQL
+    // P1 修复(2026-08-01): 排除 serenity 候选行（style='serenity'，period 固定 'mid'，
+    // 会抢占 mid 的缓存并让前端 STYLE_KEYS 匹配不上而显示空）。
     let latest = reco_picks::Entity::find()
         .filter(reco_picks::Column::Period.eq(period_str))
+        .filter(reco_picks::Column::Style.ne("serenity"))
         .filter(reco_picks::Column::PickData.is_not_null()) // 跳过 v007 之前的旧行
         .order_by_desc(reco_picks::Column::GeneratedAt)
         .limit(1)
@@ -3990,6 +4012,8 @@ pub async fn get_cached_recommendation(
         as_of_date: None,
         mode: "cached".to_string(),
         error_detail: None,
+        // 缓存还原路径无需携带 seed 快照（serde skip 不传给前端；表内已有）
+        seed_pool_snapshot: None,
     }))
 }
 

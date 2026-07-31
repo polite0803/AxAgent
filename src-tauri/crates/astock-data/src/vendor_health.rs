@@ -46,6 +46,12 @@ pub struct VendorHealth {
     pub last_success_at: Option<i64>,
     /// 最后失败时间 (epoch ms)
     pub last_failure_at: Option<i64>,
+    /// 持续故障标记（2026-07-31 新增）：
+    /// 连接级反爬/网络故障（IncompleteMessage、error sending request、connection reset 等）
+    /// 通常意味着 IP 被数据源封锁，属于"环境级持续故障"，不是 30s 瞬断。
+    /// 标记后降级恢复只看硬超时（recovery_interval_secs），忽略滑动窗口老化，
+    /// 避免长任务（如荐股扫描）内 eastmoney 每 30s 窗口老化就恢复→再被首选→再白打。
+    pub sustained_failure: bool,
 }
 
 impl VendorHealth {
@@ -61,6 +67,7 @@ impl VendorHealth {
             last_error: None,
             last_success_at: None,
             last_failure_at: None,
+            sustained_failure: false,
         }
     }
 
@@ -110,7 +117,9 @@ impl Default for VendorHealthConfig {
     fn default() -> Self {
         Self {
             degraded_threshold: 8,       // 30s 窗口内 8 次失败才降级，burst 免疫
-            recovery_interval_secs: 300, // 兜底恢复间隔（窗口老化的同时仍保留此兜底）
+            recovery_interval_secs: 1800, // 兜底恢复间隔 30 分钟（2026-07-31 从 300s 上调：
+                                          // 连接级反爬封锁是持续环境故障，5 分钟太短，
+                                          // 每轮荐股 run 都会先白打首选 vendor 才降级）
             track_fallback_path: true,
         }
     }
@@ -128,6 +137,23 @@ pub struct VendorHealthTracker {
 
 /// 环形缓冲上限；超出后弹出最旧条目，避免 OOM
 const FALLBACK_LOG_CAP: usize = 1024;
+
+/// 判断是否为连接级持续故障（反爬 RST / 网络中断 / 服务器异常断开）
+///
+/// 这类错误的共同特征：TCP/TLS 层握手成功但响应被掐断（或连接被拒），
+/// 通常是出口 IP 被数据源反爬封锁，属于"环境级持续故障"而非 30s 瞬断。
+/// 触发后 vendor 降级恢复只看硬超时，不随滑动窗口老化。
+fn is_sustained_connection_error(error: &str) -> bool {
+    let e = error.to_lowercase();
+    e.contains("incompletemessage")
+        || e.contains("error sending request")
+        || e.contains("connection reset")
+        || e.contains("connection aborted")
+        || e.contains("close_notify")
+        || e.contains("empty response")
+        || e.contains("server closed")
+        || e.contains("error on write")
+}
 
 use std::collections::{HashMap, VecDeque};
 
@@ -172,6 +198,8 @@ impl VendorHealthTracker {
         entry.consecutive_failures = 0;
         entry.total_successes += 1;
         entry.last_success_at = Some(now);
+        // 一次成功证明链路恢复，清除持续故障标记
+        entry.sustained_failure = false;
 
         // 窗口失败数回落后自动恢复
         let window_count = entry.prune_window(now);
@@ -201,6 +229,13 @@ impl VendorHealthTracker {
         entry.total_failures += 1;
         entry.last_error = Some(error.to_string());
         entry.last_failure_at = Some(now);
+
+        // 连接级反爬/网络故障 → 标记持续故障：
+        // 此类错误（IncompleteMessage、error sending request 等）通常是 IP 被数据源
+        // 封锁，属于环境级持续故障。降级后不随 30s 窗口老化恢复，只按硬超时。
+        if is_sustained_connection_error(error) {
+            entry.sustained_failure = true;
+        }
 
         // 添加失败时间戳到滑动窗口
         entry.window_failures.push_back(now);
@@ -235,6 +270,13 @@ impl VendorHealthTracker {
                     match health.status {
                         VendorStatus::Healthy => true,
                         VendorStatus::Degraded => {
+                            // 持续故障（连接级反爬）：只按硬超时恢复，忽略窗口老化
+                            if health.sustained_failure {
+                                if let Some(last_fail) = health.last_failure_at {
+                                    return now - last_fail >= recovery_ms;
+                                }
+                                return false;
+                            }
                             // 窗口方案：检查窗口失败数是否已回落
                             let window_count = health.window_failure_count(now);
                             if (window_count as u32) < self.config.degraded_threshold {
@@ -282,6 +324,7 @@ impl VendorHealthTracker {
             VendorStatus::Healthy => {
                 entry.consecutive_failures = 0;
                 entry.window_failures.clear();
+                entry.sustained_failure = false;
                 entry.last_success_at = Some(now);
             },
             VendorStatus::Degraded => {
@@ -341,6 +384,15 @@ impl VendorHealthTracker {
             match vendors.get(name.as_str()) {
                 Some(h) if h.status == VendorStatus::Healthy => healthy.push(name),
                 Some(h) if h.status == VendorStatus::Degraded => {
+                    // 持续故障（连接级反爬）：只按硬超时恢复，忽略窗口老化
+                    if h.sustained_failure {
+                        if let Some(last_fail) = h.last_failure_at {
+                            if now - last_fail >= recovery_ms {
+                                recoverable.push(name);
+                            }
+                        }
+                        continue;
+                    }
                     // 窗口方案：检查窗口失败数是否已回落 < 阈值 → 可恢复
                     let window_count = h.window_failure_count(now);
                     if (window_count as u32) < threshold {
@@ -489,5 +541,65 @@ mod tests {
         let h = health.iter().find(|h| h.name == "frozen").unwrap();
         // record_success 的窗口恢复逻辑只对 Degraded 生效，Disabled 保持不变
         assert_eq!(h.status, VendorStatus::Disabled);
+    }
+
+    /// 2026-07-31: 连接级故障（反爬 RST）降级后不随窗口老化恢复
+    #[tokio::test]
+    async fn sustained_failure_ignores_window_aging() {
+        let config = VendorHealthConfig {
+            degraded_threshold: 3,
+            // 长恢复间隔，验证持续故障只按硬超时恢复
+            recovery_interval_secs: 3600,
+            track_fallback_path: true,
+        };
+        let tracker = VendorHealthTracker::new(config);
+        // 连接级错误 3 次 → 降级 + sustained_failure 标记
+        for _ in 0..3 {
+            tracker.record_failure("blocked", "IncompleteMessage").await;
+        }
+        let health = tracker.get_all_health().await;
+        let h = health.iter().find(|h| h.name == "blocked").unwrap();
+        assert_eq!(h.status, VendorStatus::Degraded);
+        assert!(h.sustained_failure, "连接级错误应标记持续故障");
+
+        // 模拟窗口完全老化（等价于 30s 后），持续故障仍不应恢复
+        {
+            let mut vendors = tracker.vendors.write().await;
+            if let Some(h) = vendors.get_mut("blocked") {
+                h.window_failures.clear();
+            }
+        }
+        let healthy = tracker.get_healthy_vendors(&["blocked".to_string()]).await;
+        assert!(healthy.is_empty(), "持续故障在硬超时前不应随窗口老化恢复");
+
+        // 一次成功 → 清除持续故障标记并恢复
+        tracker.record_success("blocked").await;
+        let healthy = tracker.get_healthy_vendors(&["blocked".to_string()]).await;
+        assert_eq!(healthy.len(), 1, "成功后应清除持续故障并恢复");
+    }
+
+    /// 2026-07-31: 普通故障（如解析错误）仍随窗口老化恢复（不破坏原行为）
+    #[tokio::test]
+    async fn normal_failure_still_recovers_on_window_aging() {
+        let config = VendorHealthConfig { degraded_threshold: 3, ..Default::default() };
+        let tracker = VendorHealthTracker::new(config);
+        for _ in 0..3 {
+            tracker.record_failure("flaky", "parse error").await;
+        }
+        let health = tracker.get_all_health().await;
+        let h = health.iter().find(|h| h.name == "flaky").unwrap();
+        assert!(!h.sustained_failure, "解析错误不应标记持续故障");
+        assert_eq!(h.status, VendorStatus::Degraded);
+
+        // 模拟窗口老化 → 普通故障恢复
+        {
+            let mut vendors = tracker.vendors.write().await;
+            if let Some(h) = vendors.get_mut("flaky") {
+                h.window_failures.clear();
+            }
+        }
+        tracker.record_success("flaky").await;
+        let healthy = tracker.get_healthy_vendors(&["flaky".to_string()]).await;
+        assert_eq!(healthy.len(), 1, "普通故障窗口老化后应恢复");
     }
 }

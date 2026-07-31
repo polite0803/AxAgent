@@ -7,6 +7,26 @@
 // 第一部分：函数定义
 // ═══════════════════════════════════════════════
 
+// 任意值 → 数组（防御 ToolNode 输出的多种形态）
+fn to_array(v) {
+    if type_of(v) == "array" { v }
+    else if type_of(v) == "string" {
+        let p = json_parse(v.to_string());
+        if type_of(p) == "array" { p } else { [] }
+    } else if type_of(v) == "map" {
+        if v["content"] != () && type_of(v["content"]) == "string" {
+            let p = json_parse(v["content"].to_string());
+            if type_of(p) == "array" { p }
+            else if type_of(p) == "map" && p["data"] != () && type_of(p["data"]) == "array" { p["data"] }
+            else if type_of(p) == "map" && p["industries"] != () && type_of(p["industries"]) == "array" { p["industries"] }
+            else { [] }
+        } else if v["data"] != () && type_of(v["data"]) == "array" { v["data"] }
+        else if v["industries"] != () && type_of(v["industries"]) == "array" { v["industries"] }
+        else if v["items"] != () && type_of(v["items"]) == "array" { v["items"] }
+        else { [] }
+    } else { [] }
+}
+
 fn barrier_to_score(level) {
     if level == "high" { 85.0 } else if level == "medium" { 60.0 } else { 35.0 }
 }
@@ -71,16 +91,16 @@ fn main() {
     // 解包 chain_analysis（来自链拆解 Agent 的 JSON 输出）
     let chain_nodes = [];
     if chain_analysis["chain_nodes"] != () {
-        chain_nodes = chain_analysis["chain_nodes"];
+        chain_nodes = to_array(chain_analysis["chain_nodes"]);
     } else if chain_analysis["arguments"] != () {
         let args = chain_analysis["arguments"];
         if args["chain_nodes"] != () {
-            chain_nodes = args["chain_nodes"];
+            chain_nodes = to_array(args["chain_nodes"]);
         } else if args["content"] != () {
             let content_str = args["content"].to_string();
             let parsed = json_parse(content_str);
             if parsed != () && parsed["chain_nodes"] != () {
-                chain_nodes = parsed["chain_nodes"];
+                chain_nodes = to_array(parsed["chain_nodes"]);
             }
         }
     }
@@ -96,15 +116,18 @@ fn main() {
     // 处理行业排名数据（用于行业动量评分，不影响瓶颈评分本身）
     let industry_map = #{};
     if industry_ranking != () {
-        for ind in industry_ranking {
-            let name = if ind["industryName"] != () { ind["industryName"].to_string() } else { "" };
-            if name != "" {
-                industry_map[name] = #{
-                    "changePct": if ind["changePct"] != () { ind["changePct"] } else { 0.0 },
-                    "mainInflow": if ind["mainInflow"] != () { ind["mainInflow"] } else { 0.0 },
-                    "turnover": if ind["turnover"] != () { ind["turnover"] } else { 0.0 },
-                    "leaderName": if ind["leaderName"] != () { ind["leaderName"].to_string() } else { "" }
-                };
+        let ir = to_array(industry_ranking);
+        if ir.len() > 0 {
+            for ind in ir {
+                let name = if ind["industryName"] != () { ind["industryName"].to_string() } else { "" };
+                if name != "" {
+                    industry_map[name] = #{
+                        "changePct": if ind["changePct"] != () { ind["changePct"] } else { 0.0 },
+                        "mainInflow": if ind["mainInflow"] != () { ind["mainInflow"] } else { 0.0 },
+                        "turnover": if ind["turnover"] != () { ind["turnover"] } else { 0.0 },
+                        "leaderName": if ind["leaderName"] != () { ind["leaderName"].to_string() } else { "" }
+                    };
+                }
             }
         }
     }

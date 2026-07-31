@@ -36,7 +36,8 @@
     "active": true,
     "targets": "all",
     "resources": [
-      "pricing.toml"
+      "pricing.toml",
+      "scripts/browser-automation.mjs"
     ],
     "icon": [
       "icons/32x32.png",

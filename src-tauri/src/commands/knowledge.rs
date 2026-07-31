@@ -1188,15 +1188,20 @@ pub async fn reindex_knowledge_chunk(
 
     let chunk_content = {
         use sea_orm::{ConnectionTrait, DbBackend, Statement};
+        // 2026-07-31 修复：原 SQL 用 $1（PG 风格）却标 DbBackend::Sqlite（反向标记）。
+        // SQLite 模式 `$1` 占位符不合法（需 `?`）→ 该查询在 SQLite 下必炸，PG 恰好能跑。
+        // 统一按 backend 分支。
+        let db = state.harness.db();
+        let is_pg = db.get_database_backend() == DbBackend::Postgres;
+        let backend = if is_pg { DbBackend::Postgres } else { DbBackend::Sqlite };
         let name = format!("vec_kb_{}", base_id.replace('-', "_"));
-        let row = state
-            .harness
-            .db()
-            .query_one_raw(Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                format!("SELECT content FROM {name}_meta WHERE id = $1"),
-                vec![chunk_id.clone().into()],
-            ))
+        let sql = if is_pg {
+            format!("SELECT content FROM {name}_meta WHERE id = $1")
+        } else {
+            format!("SELECT content FROM {name}_meta WHERE id = ?")
+        };
+        let row = db
+            .query_one_raw(Statement::from_sql_and_values(backend, sql, vec![chunk_id.clone().into()]))
             .await
             .map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(

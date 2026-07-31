@@ -16,12 +16,28 @@ let verified_candidates = [];
 // S-M2 修复: candidates 路径可能因 LLM 输出格式不同而解析失败
 // 路径1 (tool_call格式): candidates = a-candidate-mapper.content.arguments.candidates
 // 路径2 (直接JSON格式): candidates_direct = a-candidate-mapper.content.candidates
+// 路径3 (content整体, 2026-07-31 23:05 实锤): agent_executor 拆包 tool_json 后
+//   final_content = args.to_string()，即 content 是 arguments 对象文本字符串
+//   （{"candidates":[...], "summary":...}）或裸候选数组文本。此时路径1的
+//   content.arguments 层不存在、路径2对字符串索引 candidates 失败 → 全 null →
+//   data-verifier early return 空数组 → serenity 优先取 c-data-verifier 吞掉真候选。
+//   直接对 content 整体 json_parse 兜底。
+let candidates_from_raw = if present(candidates_raw) && type_of(candidates_raw) == "string" {
+    let p = json_parse(candidates_raw);
+    if type_of(p) == "array" { p }
+    else if type_of(p) == "map" && p["candidates"] != () && type_of(p["candidates"]) == "array" {
+        p["candidates"]
+    } else { [] }
+} else { [] };
 // 选择第一个有效的数组
 let effective_candidates = if present(candidates) && type_of(candidates) == "array" && candidates.len() > 0 {
     candidates
 } else if present(candidates_direct) && type_of(candidates_direct) == "array" && candidates_direct.len() > 0 {
     print("[data-verifier] candidates 主路径为空，使用 candidates_direct fallback");
     candidates_direct
+} else if candidates_from_raw.len() > 0 {
+    print("[data-verifier] candidates 主路径为空，使用 content 整体 fallback");
+    candidates_from_raw
 } else {
     print("[data-verifier] candidates 和 candidates_direct 均为空");
     return verified_candidates;
@@ -34,10 +50,14 @@ let strategy_type = if present(first_candidate) && first_candidate["strategy_typ
 } else { "bottleneck" };
 if strategy_type != "bottleneck" {
     // 非 bottleneck 策略只做基本的数据存在性验证
+    // 注意：Rhai 无 map.get() 方法（v44 修复，原 c.get("code") 会 Function not found），
+    // 键存在性用 in 操作符，取值用 [] 索引
     for c in effective_candidates {
         verified_candidates.push(#{
-            "stock_code": if c["stock_code"] != () { c["stock_code"] } else { c.get("code") },
-            "stock_name": if c["stock_name"] != () { c["stock_name"] } else { c.get("name") },
+            "stock_code": if c["stock_code"] != () { c["stock_code"] }
+                          else if "code" in c { c["code"] } else { () },
+            "stock_name": if c["stock_name"] != () { c["stock_name"] }
+                          else if "name" in c { c["name"] } else { () },
             "data_verification": #{
                 "strategy_type": strategy_type,
                 "verified": true,
@@ -249,7 +269,8 @@ for candidate in effective_candidates {
 
         // ── 第二阶段：交叉验证（P0-2 新增） ──
         // 检查 LLM 是否调用了 get_stock_financials 获取该股票的真实数据
-        let real_data = if stock_code_str != "" && real_financials.has(stock_code_str) {
+        // 注意：Rhai 无内置 map.has()，用 in 操作符检查键
+        let real_data = if stock_code_str != "" && (stock_code_str in real_financials) {
             real_financials[stock_code_str]
         } else { () };
 

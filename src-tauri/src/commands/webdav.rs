@@ -193,6 +193,13 @@ pub async fn webdav_restore(
     state: State<'_, AppState>,
     file_name: String,
 ) -> Result<(), String> {
+    // 2026-07-31 修复：PG 模式下恢复流程对 db_path（postgres:// URL）做 fs::copy
+    // 必然失败（且 DB 本就在 PG 服务器，无需本地快照恢复）。明确降级报错。
+    if state.harness.db().get_database_backend() == sea_orm::DbBackend::Postgres {
+        return Err("当前使用 PostgreSQL 数据库：WebDAV 恢复暂不支持 PG 模式。\
+             数据库位于 PG 服务器端，无需从备份 ZIP 恢复；如需恢复文档/工作区，请直接解压备份文件。"
+            .to_string());
+    }
     if file_name.contains('/') || file_name.contains('\\') || file_name.contains("..") {
         return Err("Backup file name must not contain path separators or traversal".to_string());
     }
@@ -502,6 +509,19 @@ async fn do_webdav_backup_once(
     master_key: &[u8; 32],
     app_data_dir: &Path,
 ) -> Result<String, String> {
+    // 2026-07-31 修复：PG 模式下 VACUUM INTO（SQLite 专属语法）必然报错，
+    // 且 ZIP 快照语义（跨设备恢复 axagent.db）对 PG 无意义。明确降级报错，
+    // 避免静默失败/错误行为。完整 PG 支持需 pg_dump 方案（待实现）。
+    if db.get_database_backend() == sea_orm::DbBackend::Postgres {
+        return Err(ErrorResponse::new(backup_err::CREATE_FAILED)
+            .with_detail(
+                "当前使用 PostgreSQL 数据库：WebDAV 备份暂不支持 PG 模式 \
+                 （VACUUM INTO 为 SQLite 专属语法）。请改用 PostgreSQL 自身的备份方案 \
+                 （pg_dump / 服务器级备份）。",
+            )
+            .into());
+    }
+
     // 1. Load config
     let config = get_webdav_config_from_db(db, master_key).await?;
     if config.host.is_empty() {

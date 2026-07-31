@@ -1464,10 +1464,64 @@ impl WorkEngine {
                 let mut exec_wfs = self.execution_workflows.write().await;
                 exec_wfs.insert(execution_id.clone(), wf);
             } else {
-                // 模板不存在：兜底也写入 workflows（保持向后兼容）
-                let mut workflows = self.workflows.write().await;
-                if let Some(workflow) = workflows.get_mut(workflow_id) {
-                    workflow.status = WorkflowStatus::Running;
+                // 模板不在内存注册表：从 DB 兜底加载。
+                // 场景：schedule/webhook/event 触发器在应用重启后已由 trigger_recovery
+                // 恢复注册，但 self.workflows 只由 create_workflow 填充，DB 种子模板
+                // （如 daily-market-events）未注入内存。此时若只走下方空兜底，
+                // execution_workflows 不会插入，主循环 get_ready_steps_for_execution
+                // 必然 NotFound → 表现为 "Execution record not found: <execution_id>"。
+                //
+                // 注意：不能复用 create_workflow —— 它生成 workflow_{uuid} 新 ID 并以
+                // 新 ID 为 key 插入 self.workflows，既无法被后续触发命中（幂等性），
+                // 也无法让 compiled_prompts / 懒编译兜底按模板 ID 查询到。这里手动
+                // 构造 Workflow（id = 模板 ID），以模板 ID 为 key 写入内存注册表。
+                if let Some(tpl) = workflow_template_repository()
+                    .get_workflow_template(workflow_id)
+                    .await
+                    .ok()
+                    .flatten()
+                {
+                    if let Ok(nodes) = serde_json::from_str::<Vec<WorkflowNode>>(&tpl.nodes)
+                        && let Ok(edges) = serde_json::from_str::<Vec<WorkflowEdge>>(&tpl.edges)
+                    {
+                        let node_states: HashMap<String, NodeRuntimeState> = nodes
+                            .iter()
+                            .map(|n| {
+                                (n.base_id().to_string(), NodeRuntimeState::default())
+                            })
+                            .collect();
+                        let wf = Workflow {
+                            id: workflow_id.to_string(),
+                            name: tpl.name.clone(),
+                            nodes,
+                            edges,
+                            status: WorkflowStatus::Running,
+                            created_at: current_timestamp(),
+                            completed_at: None,
+                            results: HashMap::new(),
+                            node_states,
+                            output: None,
+                            error_config: None,
+                            error_workflow_id: None,
+                        };
+                        // 以模板 ID 为 key 写入注册表（幂等：下次触发直接命中上方 if 分支）
+                        self.workflows.write().await.insert(workflow_id.to_string(), wf.clone());
+                        self.execution_workflows
+                            .write()
+                            .await
+                            .insert(execution_id.clone(), wf);
+                        tracing::info!(
+                            "[WorkEngine] run_workflow 模板 {workflow_id} 从 DB 兜底加载成功"
+                        );
+                    } else {
+                        tracing::warn!(
+                            "[WorkEngine] run_workflow 模板 {workflow_id} 从 DB 加载/反序列化失败"
+                        );
+                    }
+                } else {
+                    tracing::warn!(
+                        "[WorkEngine] run_workflow 模板 {workflow_id} 在内存与 DB 均不存在"
+                    );
                 }
             }
         }

@@ -20,32 +20,65 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     const TEMPLATE_ID: &str = "serenity-screening";
     // 每次修改 Rhai 脚本或节点拓扑后+1，强制模板重新写入
     // v2: 重构趋势智选，6策略枚举，多策略评分，策略标记
-    const TEMPLATE_VERSION: i32 = 2;
-    // 检查模板版本，只有需要更新时才会重种子
-    if let Some(existing) =
-        workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
-            ErrorResponse::new(stock_setup::INTERNAL)
-                .with_detail(format!("查询工作流模板失败: {e}"))
-        })?
-    {
-        if existing.version >= TEMPLATE_VERSION {
-            tracing::info!(
-                "[stock_analysis_setup] Serenity 模板已是最新 v{TEMPLATE_VERSION}，跳过"
-            );
-            return Ok(());
-        }
-        tracing::warn!(
-            "[stock_analysis_setup] 更新 Serenity 模板 v{} → v{TEMPLATE_VERSION}",
-            existing.version
-        );
-        // 删除旧记录，后续 insert 会创建新版
-        workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await.map_err(|e| {
-            ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("删除旧模板失败: {e}"))
-        })?;
-        tracing::info!("[stock_analysis_setup] 旧模板已删除，准备创建新版本");
-    } else {
-        tracing::info!("[stock_analysis_setup] Serenity 模板不存在，准备创建");
-    }
+    // v3: 修复 t-policy-news 的 search_news input_mapping 参数名 query→keyword
+    // v16: DB 历史版本已到 v15（重构时版本号曾重置为 2，导致 15>=2/15>=3 永久跳过重建，
+    //      所有模板修复（keyword/闭包脚本）都无法生效）。必须 >15 强制重建。
+    //      - t-policy-news keyword 修复（v3 内容）
+    //      - strategy-scorer.rhai 闭包版（v16 内容：Rhai fn 无法访问注入变量，改闭包）
+    // v17: 移除 14 个硬编码行业节点（t-baseline-* / t-signal-*）及 ref_*_code 变量——
+    //      行业信息改由知识库（RAG）提供，财务指标由 agent 按需调工具获取
+    // v18: strategy-scorer.rhai 归一化 chain_analysis（字符串→JSON 对象，防
+    //      "Data type incorrect: string (expecting i64)"）；find→contains
+    //      （Rhai 无内置 find）；配合 agent_executor 支持 ```json 围栏拆包
+    // v31: 🚨 版本门教训 2：2026-07-31 实测 DB 版本已涨到 30（用户前端保存模板会递增
+    //      version），18>=18 又跳过重建。从此版本号直接取"当前 DB 版本 + 1"，
+    //      修改模板前先查 DB：SELECT version FROM workflow_templates WHERE id=...
+    //      - v19: t-policy-news keyword 字面值→policy_news_keywords 模板变量引用
+    //        （tool_executor resolve_var_path 只解析变量路径，字面值查表失败→null，
+    //        连续 6 轮日志 keyword= 空的真正根因）
+    //      - v20: 移除 stock-candidate-mapper 硬编码 doubao 模型（用户未配火山 →
+    //        503 no_available_account 阻断整条链），回落全局默认模型
+    // v38 定稿：版本门简化（2026-07-31 20:47 用户指正"搞复杂了"）——
+    //   根因其实是前端保存递增 version（dao repo 原 version+1），导致数字版本门失效。
+    //   修复只需一处：dao repo update 保存时【不递增 version】（version 只由 seed 写入）。
+    //   此后 `existing.version >= TEMPLATE_VERSION` 版本门天然稳定：前端 auto-save 不会
+    //   推高 version 误挡 seed 重建；用户编辑（加知识源/改参数）在 seed 未升版本号时
+    //   也不会被 seed 覆盖。seed 要更新模板 → 版本号+1 即可。曾尝试的内容比对/接管标记
+    //   （mission_hash）/preset 只读保护均已回退删除，避免过度设计。
+    // v40: 20:55 日志确认 t-policy-news 已引用 policy_news_keywords，但 DB variables 缺该
+    //      变量（前端保存写回旧 variables，且 variables 列含历史 GBK 乱码无法 SQL 修补）→
+    //      升 40 强制重建写入完整干净 variables。另 data-verifier.rhai has()→in 修复。
+    // v41: 21:47 轮（重启后）candidate-mapper 出 4 候选（中际旭创/源杰科技/天孚通信/仕佳光子）
+    //      但 LLM 把 arguments 直接输出为裸数组 → agent_executor 拆包后 content=候选数组，
+    //      serenity_extract 只认对象形态 → 种子不注入（已由 serenity.rs 裸数组分支兜住）。
+    //      prompt 强化：arguments 必须为 {candidates, summary} 对象、禁裸数组、禁尾逗号。
+    //      另 harness json_parse 加尾逗号容忍（c-scorer-trend2 trailing comma 根治）。
+    // v42: 22:11 轮 5 个 c-scorer 的 industry_ranking/trend_strategy/w_* 输入全 null 实锤：
+    //      code_executor 只注入 edges 直接上游输出（get_node_dependency_results），c-scorer
+    //      是 Code 节点吃不到 V57 context_sources 机制（仅 Agent 节点）→ 非直接上游
+    //      t-industry-rank / a-trend-scanner 不注入 → resolve 全 null → 评分 industry_momentum
+    //      固定 30、matched_industry 空。修复：① c-scorer 手动补边 t-industry-rank →
+    //      c-scorer、a-trend-scanner → c-scorer；② 模板 variables 补 w_supply/w_demand/
+    //      w_irreplace（默认 0.35/0.35/0.30，前端可调）。
+    // v43: 22:25 轮 c-scorer-trend2 报 "For loop expects iterable type (line 96)"——
+    //      实锤 ToolNode 输出经 ToolResult.content(String) 注入 scope 后是 JSON 文本字符串，
+    //      industry_ranking `!= ()` 通过后 for 对字符串迭代炸。strategy-scorer.rhai v3 防御：
+    //      新增 to_array/to_f64 辅助；industry_ranking 字符串→json_parse、对象包装→取内层数组；
+    //      chain_nodes 及 policy/earnings/capital/event/technical 全部数组字段统一 to_array；
+    //      w_supply/w_demand/w_irreplace 权重 to_f64 防 i64/字符串数字。
+    //      另 consistency-check.rhai find()→contains()（Rhai 无内置 find，v18 记录实锤，
+    //      c-scorer 修复后 consistency-check 将拿到真实数据执行到 find → 下一个炸点，同轮修）。
+    // v44: 23:05 轮候选校验 总量=0 实锤：agent_executor 拆包 tool_json 后 content 是
+    //      arguments 对象文本字符串，data-verifier 的 input_mapping 路径
+    //      content.arguments.candidates / content.candidates 全部 resolve 失败（arguments
+    //      层已剥 / 字符串无 candidates 字段）→ early return 空数组 → serenity 优先取
+    //      c-data-verifier 吞掉真候选。修复：① data-verifier input_mapping 增加
+    //      candidates_raw（a-candidate-mapper.content 整体）由脚本 json_parse 兜底；
+    //      ② data-verifier.rhai 非 bottleneck 分支 c.get("code")/c.get("name") 改为
+    //      in 检查（Rhai map 无 get，此前一旦走该分支必 Function not found）；
+    //      ③ serenity.rs candidates_raw 对 data-verifier 空数组结果 filter 回退
+    //      a-candidate-mapper 原始输出。
+    const TEMPLATE_VERSION: i32 = 44;
 
     let now = chrono::Utc::now().timestamp_millis();
 
@@ -590,12 +623,12 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let t_trend_ids: Vec<&str> = t_names.iter().map(|(id, _, _, _, _, _)| *id).collect();
     for (id, title, tool, output, x, y) in &t_names {
         if *id == "t-policy-news" {
-            // search_news 需要固定搜索关键词
+            // search_news 需要固定搜索关键词。
+            // ⚠️ 必须引用模板变量 policy_news_keywords：tool_executor 的 resolve_var_path 只按
+            // 变量路径解析，直接写字面值（含空格）会被当成变量名查表 → 查不到 → 参数为 null，
+            // 导致 search_news 收到空 keyword、4 个 vendor 全部"新闻搜索无结果"（连续 6 轮日志）。
             let mut im = std::collections::HashMap::new();
-            im.insert(
-                "query".to_string(),
-                "政策 利好 促进 扶持 振兴 补贴 实施方案 专项 消费 产业 投资".to_string(),
-            );
+            im.insert("keyword".to_string(), "policy_news_keywords".to_string());
             nodes.push(WorkflowNode::Tool(ToolNode {
                 base: WorkflowNodeBase {
                     id: id.to_string(),
@@ -690,88 +723,19 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         edges.push(edge(&format!("e-{tid}-a-trend-scanner"), tid, "a-trend-scanner"));
     }
 
-    // ── Phase 0b: 行业财务基线数据（并行拉取，供 CodeNode 做行业对比）──
-    // 使用固定的行业代表股，调用 compute_industry_position 获取行业对比数据。
-    // 这些数据不依赖 LLM，每次运行都拉取真实财务指标。
-    // 注意：stock_code 从模板变量中读取，可通过 UI 调整代表股。
-    let baseline_stocks = [
-        // 第一行：4 个基线
-        ("t-baseline-semi", "半导体基线", "ref_semi_code", 40.0, 130.0),
-        ("t-baseline-battery", "电池基线", "ref_battery_code", 240.0, 130.0),
-        ("t-baseline-chem", "化工基线", "ref_chem_code", 440.0, 130.0),
-        ("t-baseline-med", "医药基线", "ref_med_code", 640.0, 130.0),
-        // 第二行：3 个基线
-        ("t-baseline-aero", "军工基线", "ref_aero_code", 140.0, 210.0),
-        ("t-baseline-consumer-elec", "消费电子基线", "ref_consumer_elec_code", 340.0, 210.0),
-        ("t-baseline-auto", "汽车基线", "ref_auto_code", 540.0, 210.0),
-    ];
-    for (id, title, var_name, x, y) in &baseline_stocks {
-        let mut input_map = std::collections::HashMap::new();
-        input_map.insert("stock_code".to_string(), var_name.to_string());
-        nodes.push(WorkflowNode::Tool(ToolNode {
-            base: WorkflowNodeBase {
-                id: id.to_string(),
-                title: title.to_string(),
-                description: Some(format!("行业财务基线: {title}")),
-                position: Position { x: *x, y: *y },
-                retry: RetryConfig::default(),
-                timeout: Some(30),
-                enabled: true,
-                parent_id: None,
-                compensation: None,
-                continue_on_fail: false,
-            },
-            config: ToolNodeConfig {
-                tool_name: "compute_industry_position".into(),
-                input_mapping: input_map,
-                output_var: id.to_string(),
-            },
-        }));
-        edges.push(edge(&format!("e-trigger-{id}"), "trigger", id));
-    }
-
-    // ── Phase 0c: 策略评分数据（并行拉取，供 CodeNode 的财务维度打分）──
-    // 对每个基线代表股调用 compute_bottleneck_signals，获取存货周转、毛利率趋势、
-    // 资本开支/折旧比、固定资产周转率等瓶颈信号。
-    let signal_stocks = [
-        ("t-signal-semi", "半导体信号", "ref_semi_code", 100.0, 130.0),
-        ("t-signal-battery", "电池信号", "ref_battery_code", 300.0, 130.0),
-        ("t-signal-chem", "化工信号", "ref_chem_code", 500.0, 130.0),
-        ("t-signal-med", "医药信号", "ref_med_code", 700.0, 130.0),
-        ("t-signal-aero", "军工信号", "ref_aero_code", 200.0, 210.0),
-        ("t-signal-consumer-elec", "消费电子信号", "ref_consumer_elec_code", 400.0, 210.0),
-        ("t-signal-auto", "汽车信号", "ref_auto_code", 600.0, 210.0),
-    ];
-    for (id, title, var_name, x, y) in &signal_stocks {
-        let mut input_map = std::collections::HashMap::new();
-        input_map.insert("stock_code".to_string(), var_name.to_string());
-        nodes.push(WorkflowNode::Tool(ToolNode {
-            base: WorkflowNodeBase {
-                id: id.to_string(),
-                title: title.to_string(),
-                description: Some(format!("瓶颈信号: {title}")),
-                position: Position { x: *x, y: *y },
-                retry: RetryConfig::default(),
-                timeout: Some(30),
-                enabled: true,
-                parent_id: None,
-                compensation: None,
-                continue_on_fail: false,
-            },
-            config: ToolNodeConfig {
-                tool_name: "compute_bottleneck_signals".into(),
-                input_mapping: input_map,
-                output_var: id.to_string(),
-            },
-        }));
-        edges.push(edge(&format!("e-trigger-{id}"), "trigger", id));
-    }
-
     // ── Phase 1: 对每个趋势拆解产业链+瓶颈鉴定 ──
     // 使用 5 个并行的 chain-decomposer + 5 个 chokepoint-identifier
     // 每个槽位对应一个趋势索引（0-4）。trend-scanner 通常输出 2-5 个趋势，
     // prompt 已处理"趋势不存在"的情况（返回空 chain_nodes）。
     // 收集所有 scorer 的 output_var 供 candidate-mapper 消费
+    //
+    // v17 移除（2026-07-31）：原 Phase 0b/0c 的 14 个硬编码行业节点
+    // （t-baseline-* / t-signal-*，覆盖固定 7 行业：半导体/电池/化工/医药/军工/消费电子/汽车）：
+    // - t-signal-* 定义后零下游引用，纯白跑
+    // - t-baseline-* 只覆盖预置 7 行业，LLM 识别的趋势行业（如 AI 算力/液冷/光模块）匹配不上，
+    //   与「从知识库获取行业信息」的设计意图冲突
+    // 替代：行业/产业链信息由 agent 节点知识源（RAG）检索 kb 获取；
+    //      财务指标由 chain-decomposer 按需调用 get_stock_financials 等工具拉取真实数据。
     let trend_names = ["trend1", "trend2", "trend3", "trend4", "trend5"];
     let trend_x_positions = [60.0, 220.0, 380.0, 540.0, 700.0];
 
@@ -801,10 +765,11 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
              \"roe\": 12.0, \"rnd_ratio\": 15.0, \"capex_dep_ratio\": 3.5}}。\
              非 A 股公司（如 NVIDIA、台积电）仅能获取行情数据（股价/PE/PB），财务数据标为 null。\
              如果工具调用超时或返回空，基于行业常识填入合理估算值，并在 financial_data 中标注 estimated。\
-             **注意：下方 `baseline_*` 变量中包含了 7 个代表行业的真实财务基线数据\
-             （毛利率/ROE/负债率/R&D 强度等）**。这些数据来自交易所实时拉取的行业代表股。\
-             在拆解产业链时，如果某个环节所属行业与某个基线匹配，优先使用基线数据作为行业财务基准。\
-             这比 LLM 凭空估算更可靠。如果无法匹配任何基线，再基于训练知识估算。\
+             **行业信息获取（重要）**：你的知识源（知识库）中检索到了与当前趋势/产业链相关的行业资料，\
+             优先以知识库检索结果为行业背景依据。涉及个股财务指标时，调用 get_stock_financials 工具拉取真实数据；\
+             涉及行业对比时，可调用 compute_industry_position 工具获取行业竞争地位数据。\
+             工具不可用或超时时，再基于训练知识估算并在 financial_data 中标注 estimated。\
+             严禁凭空编造不存在的财务数字。\
              \n\n\
              \n\n\
              重要：如果上游输出的 trends 数组为空或 trend #{i} 不存在，\
@@ -857,19 +822,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
              \"sector_aligned\": true, \"reason\": \"放量突破\"}}],\
              \"chain_nodes\": []}}"
         );
-        // 注入 7 个行业基线数据，供 chain-decomposer 做财务参考
+        // v17: 移除 7 个硬编码行业基线注入（baseline_*）——行业信息改由知识库 RAG 提供
         let mut cd_input_mapping = std::collections::HashMap::new();
-        cd_input_mapping.insert("baseline_semi".to_string(), "t-baseline-semi.result".to_string());
-        cd_input_mapping
-            .insert("baseline_battery".to_string(), "t-baseline-battery.result".to_string());
-        cd_input_mapping.insert("baseline_chem".to_string(), "t-baseline-chem.result".to_string());
-        cd_input_mapping.insert("baseline_med".to_string(), "t-baseline-med.result".to_string());
-        cd_input_mapping.insert("baseline_aero".to_string(), "t-baseline-aero.result".to_string());
-        cd_input_mapping.insert(
-            "baseline_consumer_elec".to_string(),
-            "t-baseline-consumer-elec.result".to_string(),
-        );
-        cd_input_mapping.insert("baseline_auto".to_string(), "t-baseline-auto.result".to_string());
         // 注入策略类型，Agent 根据 strategy_type 选择分析模式
         cd_input_mapping.insert(
             "trend_strategy".to_string(),
@@ -935,6 +889,23 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             &decomposer_id,
             &code_node_id,
         ));
+        // v42 修复：input_mapping 引用的非直接上游手动补边（MEMORY.md 纪律）。
+        // code_executor 只注入 edges 直接上游输出（get_node_dependency_results），
+        // c-scorer 是 Code 节点吃不到 V57 context_sources（仅 Agent 节点）→
+        // industry_ranking（t-industry-rank.result）与 trend_strategy
+        // （a-trend-scanner.content.trends[i].strategy_type）resolve 为 null。
+        // 补边后这两个节点输出进入 deps 注入，评分可用真实行业数据。
+        // 调度无环：t-industry-rank / a-trend-scanner 本就先于 a-chain-* 完成。
+        edges.push(edge(
+            &format!("e-t-industry-rank-{code_node_id}"),
+            "t-industry-rank",
+            &code_node_id,
+        ));
+        edges.push(edge(
+            &format!("e-a-trend-scanner-{code_node_id}"),
+            "a-trend-scanner",
+            &code_node_id,
+        ));
     }
 
     // ── FIX-04: 跨节点一致性检查 CodeNode ──
@@ -943,7 +914,10 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let consistency_code = include_str!("../consistency-check.rhai");
     let mut consistency_input_mapping = std::collections::HashMap::new();
     for tn in &trend_names {
-        let did = format!("a-analyzer-{tn}");
+        // v42 修复：原引用 a-analyzer-{tn}（不存在的节点名，真实节点是 a-chain-{tn}），
+        // 导致 chain_node_trendX 全部 resolve null → 一致性检查空转（22:11 日志实锤
+        // chain_node_trend1~5 全 null）。
+        let did = format!("a-chain-{tn}");
         let cid = format!("c-scorer-{tn}");
         consistency_input_mapping.insert(format!("chain_node_{tn}"), format!("{did}.content"));
         consistency_input_mapping.insert(format!("strategy_{tn}"), format!("{cid}.result"));
@@ -979,8 +953,10 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         edges.push(edge(&format!("e-{cid}-c-consistency-check"), &cid, "c-consistency-check"));
     }
     // chain-decomposers → consistency-check
+    // v42 修复：原引用 a-analyzer-{tn}（不存在的节点名）→ 边指向死节点，
+    // a-chain 输出不注入 consistency 的 variables。改为真实节点 a-chain-{tn}。
     for tn in &trend_names {
-        let did = format!("a-analyzer-{tn}");
+        let did = format!("a-chain-{tn}");
         edges.push(edge(&format!("e-{did}-c-consistency-check"), &did, "c-consistency-check"));
     }
     // consistency-check → candidate-mapper (注入一致性报告到 context)
@@ -1048,12 +1024,13 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
          \n\n\
          ============== 输出格式强约束（必须严格遵守） ==============\n\
          1. 你的回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n\
-         2. 代码块内容为单一 JSON 对象，结构：{\"name\": \"submit_candidates\", \"arguments\": <数据>}\n\
-         3. <数据> 字段即下面的候选股数据。\n\
-         4. 代码块外禁止任何文字：不要写\"以下是...\"、\"输出：\"、注释、解释、前缀、后缀。\n\
-         5. 字段值为空时用 null，不要省略字段。\n\
-         6. 数字字段（serenity_score、confidence 等）必须是 JSON 数字，不要加引号。\n\
-         7. 严禁在 JSON 字符串值中夹带思考文字或自述注解。\n\
+         2. 代码块内容为单一 JSON 对象，结构：{\"name\": \"submit_candidates\", \"arguments\": {\"candidates\": [...], \"summary\": \"...\"}}\n\
+         3. **arguments 必须是含 candidates 和 summary 两个键的对象，严禁把候选数组直接放在 arguments 位置**（arguments 本身不是数组）。\n\
+         4. <数据> 字段即下面的候选股数据。\n\
+         5. 代码块外禁止任何文字：不要写\"以下是...\"、\"输出：\"、注释、解释、前缀、后缀。\n\
+         6. 字段值为空时用 null，不要省略字段。\n\
+         7. 数字字段（serenity_score、confidence 等）必须是 JSON 数字，不要加引号。\n\
+         8. 严禁在 JSON 字符串值中夹带思考文字或自述注解；严禁尾逗号（对象/数组最后一个元素后不得出现逗号）。\n\
          ============================================================\n\
          \n\n\
          <数据> 结构：\n\
@@ -1114,8 +1091,10 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         "a-candidate-mapper",
     ));
     // chain-decomposers → candidate-mapper
+    // v42 修复：原引用 a-analyzer-{tn}（不存在的节点名）→ 死边。改为真实节点 a-chain-{tn}，
+    // 与 mapper_ctx（context_sources）声明的软依赖一致，双保险。
     for tn in &trend_names {
-        let did = format!("a-analyzer-{tn}");
+        let did = format!("a-chain-{tn}");
         edges.push(edge(&format!("e-{did}-a-candidate-mapper"), &did, "a-candidate-mapper"));
     }
 
@@ -1136,6 +1115,15 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     verifier_input_mapping.insert(
         "candidates_direct".to_string(),
         "a-candidate-mapper.content.candidates".to_string(),
+    );
+    // v44 修复（2026-07-31 23:05）：agent_executor 拆包 tool_json 后 content 是
+    // arguments 对象文本字符串（{"candidates":[...],"summary":...}），路径1/2 在 content
+    // 为字符串时全部 resolve 失败（content.arguments 层不存在 / 字符串无 candidates 字段）
+    // → data-verifier early return 空数组 → serenity 优先取 c-data-verifier 吞掉真候选。
+    // 增加路径3：直接注入 a-candidate-mapper.content 整体，由 data-verifier.rhai json_parse 兜底。
+    verifier_input_mapping.insert(
+        "candidates_raw".to_string(),
+        "a-candidate-mapper.content".to_string(),
     );
     // P0-2 修复: 传入 tool_calls_made 用于交叉验证
     // LLM 在候选映射阶段调用的 get_stock_financials 工具返回真实财务数据，
@@ -1224,10 +1212,12 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
                 Some("stock-chain-decomposer") => resolve_tools(chain_tools),
                 Some("stock-candidate-mapper") => {
                     // 候选映射器需要完整上下文：链分析 + 候选筛选
-                    // V53: 候选映射器输出复杂 JSON（含多个候选+催化器+退出信号），
-                    // agnes-2.0-flash 等小模型仅输出 29 tokens 就截断（JSON 从 "b" 处断裂）。
-                    // 强制使用更强的模型保证输出完整性。
-                    a.config.model = Some("doubao-seed-2-0-code-preview-260215".into());
+                    // V53 曾硬编码 doubao-seed-2-0-code-preview-260215（"agnes 小模型输出
+                    // 29 tokens 截断"），但该模型依赖火山引擎账户，用户未配置 → 503
+                    // no_available_account → candidate-mapper 节点永远失败 → 工作流
+                    // PartiallyCompleted、候选为 0。2026-07-31 移除硬编码：回落全局默认
+                    // 模型（用户实际配置的 GLM-5.2，其余 6 个 agent 节点均用它且输出
+                    // 6000-9000 字符完整），模型选择交给用户在设置页统一管理。
                     let mut t = resolve_tools(chain_tools);
                     t.extend(resolve_tools(candidate_tools));
                     t
@@ -1248,55 +1238,14 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     })?;
 
     // ── Variables（用户可调整的参数字段）──
-    // ref_*_code 为行业财务基线 ToolNode 使用的代表股代码，可通过 UI 修改
+    // v17: 移除 ref_*_code（原行业基线代表股，随 t-baseline-* 节点一并删除）
     let serenity_vars = vec![
+        // ── t-policy-news 政策新闻搜索关键词（tool input_mapping 引用变量名，不能直接写字面值）──
         Variable {
-            name: "ref_semi_code".into(),
+            name: "policy_news_keywords".into(),
             var_type: "string".into(),
-            value: serde_json::json!("002371"),
-            description: Some("行业财务基线参考 - 半导体设备代表股代码（北方华创）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "ref_battery_code".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("300750"),
-            description: Some("行业财务基线参考 - 电池/新能源代表股代码（宁德时代）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "ref_chem_code".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("600309"),
-            description: Some("行业财务基线参考 - 化工/材料代表股代码（万华化学）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "ref_med_code".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("300760"),
-            description: Some("行业财务基线参考 - 医药器械代表股代码（迈瑞医疗）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "ref_aero_code".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("600760"),
-            description: Some("行业财务基线参考 - 军工航天代表股代码（中航沈飞）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "ref_consumer_elec_code".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("002475"),
-            description: Some("行业财务基线参考 - 消费电子代表股代码（立讯精密）".into()),
-            is_secret: false,
-        },
-        Variable {
-            name: "ref_auto_code".into(),
-            var_type: "string".into(),
-            value: serde_json::json!("002594"),
-            description: Some("行业财务基线参考 - 汽车零部件代表股代码（比亚迪）".into()),
+            value: serde_json::json!("政策 利好 促进 扶持 振兴 补贴 实施方案 专项 消费 产业 投资"),
+            description: Some("政策新闻搜索关键词（空格分隔），t-policy-news 节点引用".into()),
             is_secret: false,
         },
         // ── V6 新增：估值过滤参数（可在前端 Serenity 设置Tab中调整）──
@@ -1370,6 +1319,28 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             ),
             is_secret: false,
         },
+        // ── v42 新增：瓶颈评分权重（c-scorer input_mapping 引用，缺定义导致 resolve null → 走脚本 fallback）──
+        Variable {
+            name: "w_supply".into(),
+            var_type: "float".into(),
+            value: serde_json::json!(0.35),
+            description: Some("瓶颈评分-供给刚性权重（默认0.35，c-scorer 引用）".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "w_demand".into(),
+            var_type: "float".into(),
+            value: serde_json::json!(0.35),
+            description: Some("瓶颈评分-需求弹性权重（默认0.35，c-scorer 引用）".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "w_irreplace".into(),
+            var_type: "float".into(),
+            value: serde_json::json!(0.30),
+            description: Some("瓶颈评分-不可替代性权重（默认0.30，c-scorer 引用）".into()),
+            is_secret: false,
+        },
     ];
     let variables_json = serde_json::to_string(&serenity_vars).map_err(|e| {
         ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化变量失败: {e}"))
@@ -1381,7 +1352,31 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("序列化标签失败: {e}"))
         })?;
 
-    // ── 写入 DB ──
+    // ── 写入 DB（版本门）──
+    // 2026-07-31 简化定稿：前端保存（update_workflow_template）已改为【不递增 version】，
+    // version 只由 seed 写入 → `existing.version >= TEMPLATE_VERSION` 版本门天然稳定：
+    // 前端 auto-save 不会再推高 version 误挡 seed 重建；用户编辑的内容在 seed 未升
+    // 版本号时也不会被 seed 覆盖。seed 想更新模板 → TEMPLATE_VERSION+1 即可。
+    if let Some(existing) =
+        workflow_template::Entity::find_by_id(TEMPLATE_ID).one(db).await.map_err(|e| {
+            ErrorResponse::new(stock_setup::INTERNAL)
+                .with_detail(format!("查询工作流模板失败: {e}"))
+        })?
+    {
+        if existing.version >= TEMPLATE_VERSION {
+            tracing::info!(
+                "[stock_analysis_setup] Serenity 模板已是最新 v{TEMPLATE_VERSION}（DB version={}），跳过",
+                existing.version
+            );
+            return Ok(());
+        }
+        tracing::warn!(
+            "[stock_analysis_setup] 更新 Serenity 模板 v{} → v{TEMPLATE_VERSION}",
+            existing.version
+        );
+    } else {
+        tracing::info!("[stock_analysis_setup] Serenity 模板不存在，准备创建");
+    }
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),

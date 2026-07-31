@@ -135,12 +135,34 @@ fn check_ip(ip: &std::net::IpAddr) -> Result<(), String> {
 
 #[cfg(not(target_os = "android"))]
 impl PlaywrightClient {
-    pub async fn launch() -> Result<Self> {
-        let script_path = std::env::current_exe()?
+    /// 定位 browser-automation.mjs 脚本。
+    ///
+    /// 优先级：
+    /// 1. exe 同目录 `scripts/`（打包安装版，tauri.conf.json resources 已声明）
+    /// 2. 源码目录 `src-tauri/scripts/`（dev 模式：current_exe 在 target/debug，其下无 scripts，
+    ///    node 直接启动即崩溃退出，stdout EOF 导致 `serde_json::from_str("")` 报
+    ///    "EOF while parsing a value at line 1 column 0"）
+    fn resolve_script_path() -> Result<std::path::PathBuf> {
+        let exe_scripts = std::env::current_exe()?
             .parent()
             .ok_or_else(|| anyhow::anyhow!("Cannot find exe directory"))?
             .join("scripts")
             .join("browser-automation.mjs");
+        if exe_scripts.exists() {
+            return Ok(exe_scripts);
+        }
+        // CARGO_MANIFEST_DIR = <repo>/src-tauri/crates/kit，上溯两级到 src-tauri
+        let dev_scripts = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(|p| p.parent())
+            .map(|p| p.join("scripts").join("browser-automation.mjs"))
+            .filter(|p| p.exists())
+            .unwrap_or(exe_scripts);
+        Ok(dev_scripts)
+    }
+
+    pub async fn launch() -> Result<Self> {
+        let script_path = Self::resolve_script_path()?;
 
         let mut child_builder = Command::new("node");
         child_builder

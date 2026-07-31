@@ -94,6 +94,9 @@ pub async fn run_decision_backtest(
     // ── 1. 读取 reco_picks ──
     let db = state.harness.db();
     let mut query = reco_picks::Entity::find();
+    // P1 修复(2026-08-01): 排除 serenity-screening 候选行（style='serenity'，
+    // pick_data 的 price 等可能为 0，无决策验证意义；且 seed_pool_json 格式不同）。
+    query = query.filter(reco_picks::Column::Style.ne("serenity"));
     if exclude_synthetic {
         query = query.filter(reco_picks::Column::Synthetic.eq(0));
     }

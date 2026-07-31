@@ -408,6 +408,7 @@ pub async fn recommend_stocks(
             as_of_date: None,
             mode: "live".to_string(),
             error_detail: Some(detail),
+            seed_pool_snapshot: None,
         };
         if use_cache {
             cache_put(period, resp.clone());
@@ -802,6 +803,12 @@ pub async fn recommend_stocks(
             .map(|c| c.source.to_string())
             .unwrap_or_else(|| "live".to_string()),
         error_detail: None,
+        // P3 修复(2026-08-01): 落库快照用扫描实际使用的池（流动性过滤后 seed），
+        // command 层不再二次 build_seed_pool（避免快照与真实扫描不一致 + 浪费请求）。
+        seed_pool_snapshot: Some(serde_json::to_string(
+            &seed.iter().map(|(c, n, _)| vec![c.as_str(), n.as_str()]).collect::<Vec<_>>(),
+        )
+        .unwrap_or_default()),
     };
     if use_cache {
         cache_put(period, resp.clone());
@@ -848,6 +855,7 @@ mod tests {
             as_of_date: None,
             mode: mode.to_string(),
             error_detail: None,
+            seed_pool_snapshot: None,
         }
     }
 
@@ -926,6 +934,7 @@ mod tests {
             as_of_date: Some("2026-06-01".into()),
             mode: "user_replay".into(),
             error_detail: None,
+            seed_pool_snapshot: None,
         };
         let s = serde_json::to_string(&resp).unwrap();
         assert!(s.contains("\"asOfDate\":\"2026-06-01\""));
@@ -945,6 +954,7 @@ mod tests {
             as_of_date: None,
             mode: "live".into(),
             error_detail: None,
+            seed_pool_snapshot: None,
         };
         let s = serde_json::to_string(&resp).unwrap();
         assert!(!s.contains("asOfDate"), "as_of_date should be skipped when None");

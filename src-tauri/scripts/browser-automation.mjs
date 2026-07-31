@@ -8,15 +8,28 @@ async function init() {
   // 反检测启动参数：隐藏 headless Chromium 特征
   // 注意：不要使用 --disable-web-security，否则会关闭同源策略，
   // 放大 SSRF/跨站风险（SSRF 已在 Rust 侧通过 validate_browser_url 兜底）。
-  browser = await chromium.launch({
-    headless: true,
-    args: [
-      "--disable-blink-features=AutomationControlled",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-features=IsolateOrigins,site-per-process",
-    ],
-  });
+  // 优先使用本机 Edge（channel: msedge），避免下载 playwright 自带 Chromium；
+  // 本机无 Edge 时回退默认 chromium 启动。
+  const launchArgs = [
+    "--disable-blink-features=AutomationControlled",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-features=IsolateOrigins,site-per-process",
+    // 2026-08-01: 本机 IPv6 链路到东财 push2his/push2 被 RST（ERR_EMPTY_RESPONSE），
+    // Chromium 默认 happy-eyeballs 对"连接成功但响应空"不触发 IPv4 回退 → 抓取全挂。
+    // 禁用 IPv6 让 browser_eastmoney 等浏览器抓取统一走 IPv4（该实例仅用于数据抓取）。
+    "--disable-ipv6",
+  ];
+  try {
+    browser = await chromium.launch({
+      channel: "msedge",
+      headless: true,
+      args: launchArgs,
+    });
+  } catch (e) {
+    console.error(`[browser-automation] 本机 Edge 启动失败，回退默认 chromium: ${e.message}`);
+    browser = await chromium.launch({ headless: true, args: launchArgs });
+  }
   const context = await browser.newContext({
     viewport: { width: 1280, height: 720 },
     locale: "zh-CN",
@@ -82,6 +95,37 @@ async function handleLine(line) {
         // 参数化执行：code 为函数体字符串，arg 作为第二个参数传入，避免字符串拼接注入
         const out = await page.evaluate(msg.params.code, msg.params.arg);
         result = out;
+        break;
+      }
+      case "http_get": {
+        // 通过页面导航发送 GET 请求（绕过 CORS/同源限制），返回诊断结构
+        // { body, navigatedUrl, pageTitle, contentType } —— Rust 侧 browser_fetch 依赖该结构，
+        // 且导航失败时 body 必须以 "PAGE_GOTO_ERROR:" 开头（browser_eastmoney 据此降级）。
+        try {
+          const resp = await page.goto(msg.params.url, {
+            waitUntil: "domcontentloaded",
+            timeout: 30000,
+          });
+          let body = "";
+          let contentType = "";
+          if (resp) {
+            contentType = resp.headers()["content-type"] || "";
+            body = await resp.text().catch(() => "");
+          }
+          result = {
+            body,
+            navigatedUrl: page.url(),
+            pageTitle: await page.title(),
+            contentType,
+          };
+        } catch (navErr) {
+          result = {
+            body: `PAGE_GOTO_ERROR: ${navErr.message}`,
+            navigatedUrl: msg.params.url,
+            pageTitle: "",
+            contentType: "",
+          };
+        }
         break;
       }
       case "http_json": {

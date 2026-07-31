@@ -636,6 +636,18 @@ fn serenity_extract_from_node(raw: &serde_json::Value) -> serde_json::Value {
             return serde_json::Value::Null;
         },
     };
+    // 🚨 2026-07-31 修复：agent_executor 拆包 tool_json 时，若 LLM 输出的 arguments 是裸数组
+    // （{"name":"submit_candidates","arguments":[{candidate},...]}，GLM 偶发形态），
+    // content 就是 candidates 数组本身。此前只处理"对象含 candidates 字段"，裸数组
+    // 一路走到 None → 返回 Null → 种子永不注入（21:47 轮 candidate-mapper 4 候选全被丢弃）。
+    if parsed.is_array() {
+        let count = parsed.as_array().map(|a| a.len()).unwrap_or(0);
+        tracing::info!(
+            "[serenity] parsed 为裸候选数组（arguments 直出形态），直接作为 candidates: {} 个",
+            count
+        );
+        return serde_json::json!({"candidates": parsed});
+    }
     // 导航到 arguments/input → candidates
     let args = parsed
         .as_object()
@@ -770,13 +782,13 @@ pub async fn run_serenity_screening(
     });
 
     // 4. 运行（支持 as-of 时间截断）
-    // 注入模板变量（ref_*_code 等行业基线参数，来自 UI 可编辑的 Variables）
+    // 注入模板变量（来自 UI 可编辑的 Variables）。
+    // 🚨 2026-07-31 修复：原过滤只认 ref_*/serenity_* 前缀，policy_news_keywords（t-policy-news
+    // 的搜索关键词变量）被滤掉 → 运行时 resolve_var_path 查不到 → search_news keyword 恒空
+    // （连续 8 轮日志"keyword="）。v17 已删除 ref_*_code，前缀白名单过时。
+    // 更彻底的做法：模板 variables 全部注入（均为可编辑参数，无敏感字段）。
     let serenity_vars: Option<Vec<axagent_harness::workflow_types::Variable>> =
-        loaded.variables.map(|vars| {
-            vars.into_iter()
-                .filter(|v| v.name.starts_with("ref_") || v.name.starts_with("serenity_"))
-                .collect()
-        });
+        loaded.variables.map(|vars| vars);
     let opts = RunOptions {
         max_concurrent,
         step_timeout,
@@ -811,6 +823,18 @@ pub async fn run_serenity_screening(
                     } else {
                         v.clone()
                     }
+                })
+                // v44 修复（2026-07-31 23:05）：data-verifier 因 input_mapping 路径失效
+                // （content 为 arguments 文本字符串）early return 空数组时，不能吞掉真候选，
+                // 回退到 a-candidate-mapper 原始输出重新提取。
+                .filter(|v| {
+                    let is_empty_array = v
+                        .get("content")
+                        .and_then(|c| c.as_str())
+                        .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+                        .and_then(|p| p.as_array().map(|a| a.is_empty()))
+                        .unwrap_or(false);
+                    !is_empty_array
                 })
                 .or_else(|| wf_result.results.get("a-candidate-mapper").cloned())
                 .unwrap_or(serde_json::Value::Null);
@@ -1088,6 +1112,8 @@ pub async fn run_serenity_screening(
                         "synthetic": false,
                     });
                     // 持久化到 reco_picks
+                    // 修复：style 统一设置为 "serenity"，便于前端查询历史时过滤
+                    // 策略类型信息（bottleneck/policy/earnings 等）已存储在 pick_data.strategy_type 中
                     let pick_id = format!("serenity-{ts_ms}-{i}-{code}");
                     let pick = reco_picks::ActiveModel {
                         id: Set(pick_id),
@@ -1095,20 +1121,7 @@ pub async fn run_serenity_screening(
                         period: Set("mid".to_string()),
                         stock_code: Set(code.to_string()),
                         stock_name: Set(name.to_string()),
-                        style: Set(c
-                            .get("strategy_type")
-                            .and_then(|v| v.as_str())
-                            .map(|s| match s {
-                                "bottleneck" => "bottleneck",
-                                "policy" => "policy",
-                                "earnings" => "earnings",
-                                "capital" => "capital_flow",
-                                "event" => "event",
-                                "technical" => "technical",
-                                _ => "bottleneck",
-                            })
-                            .unwrap_or("bottleneck")
-                            .to_string()),
+                        style: Set("serenity".to_string()),
                         confidence: Set(conf),
                         synthetic: Set(0),
                         seed_pool_json: Set(Some(serde_json::to_string(c).unwrap_or_default())),

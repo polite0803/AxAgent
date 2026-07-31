@@ -171,4 +171,12 @@ pub struct RecoResponse {
     /// None = 正常执行（即使 picks 为空）。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_detail: Option<String>,
+    /// 本次扫描**实际使用**的候选池快照（流动性过滤后，`[[code,name],...]` JSON）。
+    ///
+    /// 仅用于落库 reco_picks.seed_pool_json（回测负向样本 = 候选池 − 正向样本）。
+    /// 由 `recommend_stocks` 内部填充（与扫描用的同一个 seed，避免 command 层二次
+    /// `build_seed_pool` 造成快照与真实扫描池不一致 + 浪费 API 调用）。
+    /// `#[serde(skip)]`：不参与前端 JSON 序列化，前端契约不变。
+    #[serde(skip)]
+    pub seed_pool_snapshot: Option<String>,
 }

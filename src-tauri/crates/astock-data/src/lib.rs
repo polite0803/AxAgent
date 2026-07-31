@@ -41,6 +41,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tokio::sync::RwLock;
 
 use crate::as_of_capability::AsOfCapability;
@@ -388,6 +389,14 @@ pub struct AStockClient {
     ///
     /// 用 parking_lot::RwLock 支持同步读取（find_vendor 是同步方法，不跨 await）
     enabled_vendors: parking_lot::RwLock<Option<HashSet<String>>>,
+    /// 空数据冷却（2026-07-31 新增）：
+    /// key = "{datatype}:{code}" → 冷却到期时间戳(epoch ms)。
+    /// 用于 north_bound / money_flow 等"全部源返回空"的场景：
+    /// - 北向个股持仓明细自 2024-08 港交所停止披露，所有源永远空，
+    ///   荐股 run 内对每只股票白打 3 源 × 重试链 = 数百次无效请求。
+    /// - 非交易时段资金流向接口同样返回空，每只股票白打 2 源。
+    /// 冷却期内直接返回空结果，到期后自动恢复探测。
+    empty_cooldown: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 /// 判断字符串是否为港股/美股代码格式（如"00700.HK"、"TSM.US"）
@@ -475,6 +484,36 @@ pub fn is_forex_pair(code: &str) -> bool {
     false
 }
 
+/// 强制 IPv4 解析的 DNS resolver（2026-08-01）
+///
+/// 根因实测：本机 IPv6 链路到部分数据源（push2his.eastmoney.com / push2.eastmoney.com）
+/// 被服务器 RST 掐断——curl -6 3/3 失败（close_notify missing / ERR_EMPTY_RESPONSE），
+/// 而 curl -4 3/3 HTTP 200。系统 DNS 同时返回 IPv6 + IPv4，客户端（reqwest/浏览器）
+/// 默认优先 IPv6 → 全部请求失败，误判为"反爬封锁"。
+///
+/// 此 resolver 过滤 IPv6 地址只保留 IPv4，绕开坏链路——应用内实现，无需代理。
+/// 对纯 AAAA 域名（无 IPv4 记录）回退默认解析，避免误杀。
+struct Ipv4OnlyResolver;
+
+impl reqwest::dns::Resolve for Ipv4OnlyResolver {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        Box::pin(async move {
+            let host = name.as_str().to_string();
+            let addrs: Vec<std::net::SocketAddr> =
+                tokio::net::lookup_host((host.as_str(), 0)).await?.collect();
+            let v4: Vec<std::net::SocketAddr> =
+                addrs.into_iter().filter(|a| a.is_ipv4()).collect();
+            if !v4.is_empty() {
+                return Ok(Box::new(v4.into_iter()) as reqwest::dns::Addrs);
+            }
+            // 无 IPv4 记录（纯 AAAA 域名）→ 回退默认解析
+            let addrs: Vec<std::net::SocketAddr> =
+                tokio::net::lookup_host((host.as_str(), 0)).await?.collect();
+            Ok(Box::new(addrs.into_iter()) as reqwest::dns::Addrs)
+        })
+    }
+}
+
 impl AStockClient {
     /// 修复 P0-A4: 原 `expect("Failed to create HTTP client")` 在 TLS 初始化
     /// 失败时 panic，拖垮整个 Tauri 进程。改为返回 Result。
@@ -491,7 +530,10 @@ impl AStockClient {
                 );
                 // 降级：用 reqwest 默认配置（无自定义 TLS），至少不 panic。
                 // 仍注册全部 vendor，保证降级后数据源可用。
-                let http = reqwest::Client::new();
+                let http = reqwest::Client::builder()
+                    .dns_resolver(Arc::new(Ipv4OnlyResolver))
+                    .build()
+                    .unwrap_or_else(|_| reqwest::Client::new());
                 let mut client = Self {
                     vendors: Vec::new(),
                     routing: VendorRouting::default_routing(),
@@ -512,6 +554,7 @@ impl AStockClient {
                     news_archive_sink: None,
                     browser_fetcher: None,
                     enabled_vendors: parking_lot::RwLock::new(None),
+                    empty_cooldown: Arc::new(Mutex::new(HashMap::new())),
                 };
                 client.register_default_vendors(http);
                 client
@@ -571,6 +614,9 @@ impl AStockClient {
             .pool_idle_timeout(std::time::Duration::from_secs(30))
             .tcp_keepalive(std::time::Duration::from_secs(60))
             .min_tls_version(reqwest::tls::Version::TLS_1_2)
+            // 2026-08-01: 强制 IPv4 解析。本机 IPv6 链路到东财 push2his/push2 被 RST，
+            // 客户端默认优先 IPv6 导致全部请求失败（误判为反爬封锁），IPv4 完全正常。
+            .dns_resolver(Arc::new(Ipv4OnlyResolver))
             .build()
             .map_err(|e| DataError::VendorError {
                 vendor: "http_client".into(),
@@ -596,6 +642,7 @@ impl AStockClient {
             news_archive_sink: None, // P6:默认不写入,调用方通过 with_news_archive_sink 注入
             browser_fetcher: None,   // 浏览器 fetch 通过 with_browser_fetcher() 注入
             enabled_vendors: parking_lot::RwLock::new(None), // 默认全部启用
+            empty_cooldown: Arc::new(Mutex::new(HashMap::new())),
         };
 
         client.register_default_vendors(http);
@@ -723,6 +770,26 @@ impl AStockClient {
                 tracing::warn!("[astock-data] 序列化失败，跳过缓存写入: key={cache_key}, err={e}")
             },
         }
+    }
+
+    /// 空数据冷却查询：冷却期内返回 true（调用方直接返回空结果，不再请求 vendor）
+    async fn empty_cooldown_active(&self, key: &str) -> bool {
+        let map = self.empty_cooldown.lock().await;
+        match map.get(key) {
+            Some(&until) => chrono::Utc::now().timestamp_millis() < until,
+            None => false,
+        }
+    }
+
+    /// 标记空数据冷却：cooldown_secs 秒内同一 key 直接短路
+    async fn mark_empty_cooldown(&self, key: &str, cooldown_secs: i64) {
+        let until = chrono::Utc::now().timestamp_millis() + cooldown_secs * 1000;
+        self.empty_cooldown.lock().await.insert(key.to_string(), until);
+    }
+
+    /// 清除空数据冷却（数据源恢复后调用，确保下次立即重新探测）
+    async fn clear_empty_cooldown(&self, key: &str) {
+        self.empty_cooldown.lock().await.remove(key);
     }
 
     /// 生成 L1 cache key；自动包含当前 AsOf 后缀以避免 live/replay 互相污染
@@ -2273,6 +2340,11 @@ impl AStockClient {
             );
             return Ok(None);
         }
+        // 空数据冷却：非交易时段/全源空后 30 分钟内直接短路，避免荐股 run 内反复请求
+        let cool_key = format!("money_flow:{stock_code}");
+        if self.empty_cooldown_active(&cool_key).await {
+            return Ok(None);
+        }
         {
             let cache_key = Self::cache_key_for("money_flow", stock_code);
             if let Some(cached) = self.cache_get(&cache_key).await {
@@ -2306,6 +2378,8 @@ impl AStockClient {
             .await
         {
             Ok(result) => {
+                // 成功 → 清除空数据冷却（数据源恢复后立即重新探测）
+                self.clear_empty_cooldown(&cool_key).await;
                 let cache_key = Self::cache_key_for("money_flow", stock_code);
                 self.cache_set_serialized(cache_key, &Some(result.clone()), 60).await;
                 Ok(Some(result))
@@ -2313,6 +2387,8 @@ impl AStockClient {
             Err(e) => {
                 // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
                 tracing::warn!("[get_money_flow] 所有 vendor 失败(stock_code={}): {e}", stock_code);
+                // 全源失败 → 空数据冷却 30 分钟（非交易时段/数据源故障，避免反复请求）
+                self.mark_empty_cooldown(&cool_key, 30 * 60).await;
                 Ok(None)
             },
         }
@@ -2901,6 +2977,12 @@ impl AStockClient {
             );
             return Ok(None);
         }
+        // 空数据冷却：北向个股持仓自 2024-08 港交所停披，所有源永远空，
+        // 冷却 6 小时内直接短路，避免荐股 run 内每只股票白打 3 源 × 重试链
+        let cool_key = format!("north_bound:{stock_code}");
+        if self.empty_cooldown_active(&cool_key).await {
+            return Ok(None);
+        }
         {
             let cache_key = Self::cache_key_for("north_bound", stock_code);
             if let Some(cached) = self.cache_get(&cache_key).await {
@@ -2929,11 +3011,17 @@ impl AStockClient {
             .await
         {
             Ok(result) => {
+                // 成功 → 清除空数据冷却（北向数据源若恢复立即重新探测）
+                self.clear_empty_cooldown(&cool_key).await;
                 let cache_key = Self::cache_key_for("north_bound", stock_code);
                 self.cache_set_serialized(cache_key, &result, 300).await;
                 Ok(Some(result))
             },
-            Err(_) => Ok(None),
+            Err(_) => {
+                // 全源空/失败 → 冷却 6 小时（数据源根本性失效，无谓重试纯浪费）
+                self.mark_empty_cooldown(&cool_key, 6 * 3600).await;
+                Ok(None)
+            },
         }
     }
 
