@@ -771,6 +771,11 @@
     },
     "knowledgeRetrieval": {
       "error": "Error en la búsqueda de la base de conocimientos",
+      "feedbackIrrelevant": "Irrelevante",
+      "feedbackNegative": "No útil",
+      "feedbackNotFound": "Registro de recuperación no encontrado, comentario no guardado",
+      "feedbackPositive": "Útil",
+      "feedbackSubmitted": "Comentario enviado",
       "resultsCount": "Se recuperaron {{count}} elementos de conocimiento",
       "searching": "Buscando en la base de conocimientos..."
     },

@@ -374,18 +374,22 @@ fn spawn_stream_task(
 
                     // Update execution record
                     if let Ok(ref exec) = exec {
-                        let _ = axagent_dao::repo::tool_execution::update_tool_execution_status(
-                            &db,
-                            &exec.id,
-                            if is_error { "failed" } else { "success" },
-                            Some(&result_content),
-                            if is_error {
-                                Some(&result_content)
-                            } else {
-                                None
-                            },
-                        )
-                        .await;
+                        if let Err(e) =
+                            axagent_dao::repo::tool_execution::update_tool_execution_status(
+                                &db,
+                                &exec.id,
+                                if is_error { "failed" } else { "success" },
+                                Some(&result_content),
+                                if is_error {
+                                    Some(&result_content)
+                                } else {
+                                    None
+                                },
+                            )
+                            .await
+                        {
+                            tracing::warn!("工具执行状态更新失败 id={}: {}", exec.id, e);
+                        }
                     }
 
                     // Emit :::mcp result + closer as stream chunk — frontend shows completed state
@@ -927,13 +931,30 @@ pub async fn send_message(
             })
             .collect();
         if !hits.is_empty() {
-            let _ = axagent_dao::repo::retrieval_hit::record_hits(
+            // 统一写入 retrieval_hits 表，获取生成的 ID 供反馈数据湖使用
+            let hit_ids = axagent_dao::repo::retrieval_hit::record_hits(
                 state.harness.db(),
                 &conversation_id,
                 &user_message.id,
                 &hits,
             )
-            .await;
+            .await
+            .unwrap_or_default();
+
+            // 通过反馈数据湖附加反馈字段，供 RL 训练和自适应优化使用
+            if let Some(lake) = axagent_harness::feedback_data_lake::global_feedback_lake() {
+                // 保证 ID 与 hits 一一对应（record_hits 对单条失败有容错，长度可能短于 hits）
+                let mut id_iter = hit_ids.into_iter();
+                for _ in &hits {
+                    if let Some(hit_id) = id_iter.next() {
+                        if let Err(e) =
+                            lake.update_retrieval_hit_feedback(&hit_id, None, Some(false)).await
+                        {
+                            tracing::warn!("反馈数据湖附加元数据失败 hit_id={}: {}", hit_id, e);
+                        }
+                    }
+                }
+            }
         }
     }
 

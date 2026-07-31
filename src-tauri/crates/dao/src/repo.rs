@@ -13,6 +13,7 @@ pub mod conversation;
 pub mod conversation_branch;
 pub mod conversation_category;
 pub mod credential_repo;
+pub mod feedback_data_lake;
 pub mod gateway;
 pub mod gateway_diagnostic;
 pub mod gateway_key;

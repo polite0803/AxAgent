@@ -129,7 +129,6 @@ use crate::TaskComplexity;
 use crate::TaskResult;
 use crate::ToolAccessControl;
 use crate::ToolAccessRequest;
-use crate::ToolCallRecord;
 use crate::ToolMetricsCollector;
 use crate::ToolMetricsSnapshot;
 use crate::TrainingEpisode;
@@ -148,6 +147,7 @@ use crate::repo_dtos::{WorkflowExecutionData, WorkflowTemplateData};
 use crate::repositories::{
     LoopCheckpointRepository, WorkflowExecutionRepository, WorkflowTemplateRepository,
 };
+use crate::tool_metrics::ToolCallRecord;
 use crate::types::CreateKnowledgeEntityInput;
 use crate::types::KnowledgeEntity;
 use crate::types::KnowledgeRelation;

@@ -753,6 +753,7 @@ pub async fn collect_rag_context_with_filters(
 /// - 按 adjusted_score 升序重排序
 ///
 /// 未命中 memory_items 表的 id（理论上不会发生）原样保留 score 不调整。
+#[allow(clippy::ptr_arg)]
 async fn apply_memory_tier_weight(
     db: &DatabaseConnection,
     items: &mut Vec<RagRetrievedItem>,
@@ -816,6 +817,137 @@ async fn apply_memory_tier_weight(
 
     // 调整 score 并按升序重排序（L2 distance 越小越相关）
     apply_tier_weight_and_sort(items, &weight_map);
+
+    // v110: Memory 检索命中 → 自动 promote
+    // 被 RAG 检索命中的记忆条目应增加 access_count，达到阈值时自动晋升 tier
+    // 这是"使用频率驱动重要性提升"闭环的核心
+    promote_memory_items_after_access(db, &weight_map).await;
+}
+
+/// v110: Memory 检索命中后自动 promote
+///
+/// 对被 RAG 检索命中的 memory_items 增加 access_count，
+/// 达到晋升阈值时自动提升 tier（working → short_term → long_term → core）。
+///
+/// 这是"使用频率驱动重要性提升"闭环的核心机制：
+/// 被频繁检索的记忆条目自然上升到更高的记忆层级，
+/// 避免真正有价值的信息被衰减淘汰。
+async fn promote_memory_items_after_access(
+    db: &DatabaseConnection,
+    weight_map: &std::collections::HashMap<String, (f32, f32, Vec<String>)>,
+) {
+    if weight_map.is_empty() {
+        return;
+    }
+
+    let ids: Vec<&str> = weight_map.keys().map(|s| s.as_str()).collect();
+    let placeholders =
+        ids.iter().enumerate().map(|(i, _)| format!("?{}", i + 1)).collect::<Vec<_>>().join(", ");
+
+    // 1. 批量增加 access_count 和 last_accessed
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let update_sql = format!(
+        "UPDATE memory_items SET access_count = access_count + 1, last_accessed = ?1, updated_at = ?1 WHERE id IN ({placeholders})"
+    );
+    let mut values: Vec<sea_orm::Value> = vec![now_ms.into()];
+    values.extend(ids.iter().map(|id| (*id).into()));
+
+    if let Err(e) = db
+        .query_all_raw(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            &update_sql,
+            values,
+        ))
+        .await
+    {
+        tracing::warn!("[memory_promote] 批量更新 access_count 失败: {}", e);
+        return;
+    }
+
+    // 2. 检查晋升条件：查询更新后的 access_count 与 tier
+    let select_sql = format!(
+        "SELECT id, tier, access_count, confirmed FROM memory_items WHERE id IN ({placeholders})"
+    );
+    let select_values: Vec<sea_orm::Value> = ids.iter().map(|id| (*id).into()).collect();
+
+    let rows = match db
+        .query_all_raw(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            &select_sql,
+            select_values,
+        ))
+        .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::warn!("[memory_promote] 查询更新后条目失败: {}", e);
+            return;
+        },
+    };
+
+    for row in &rows {
+        let id: String = match row.try_get("", "id") {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let tier: String = row.try_get("", "tier").unwrap_or_else(|_| "working".to_string());
+        let access_count: i64 = row.try_get("", "access_count").unwrap_or(0);
+        let confirmed: i64 = row.try_get("", "confirmed").unwrap_or(0);
+
+        let threshold = match tier.as_str() {
+            "working" => 5i64,
+            "short_term" => 15,
+            "long_term" => 30,
+            _ => i64::MAX,
+        };
+
+        if access_count >= threshold
+            && let Some(new_tier) = next_tier_for_promotion(&tier)
+            && (new_tier != "core" || confirmed == 1)
+        {
+            let decay_rate = default_decay_rate_for_tier_promotion(new_tier);
+            let promote_sql =
+                "UPDATE memory_items SET tier = ?1, decay_rate = ?2, updated_at = ?3 WHERE id = ?4";
+            let promote_values: Vec<sea_orm::Value> =
+                vec![new_tier.into(), decay_rate.into(), now_ms.into(), id.as_str().into()];
+            if let Err(e) = db
+                .query_all_raw(Statement::from_sql_and_values(
+                    db.get_database_backend(),
+                    promote_sql,
+                    promote_values,
+                ))
+                .await
+            {
+                tracing::debug!("[memory_promote] 晋升失败 id={}: {}", id, e);
+            } else {
+                tracing::info!(
+                    "[memory_promote] 晋升成功 id={} {}→{} access_count={}",
+                    id,
+                    tier,
+                    new_tier,
+                    access_count
+                );
+            }
+        }
+    }
+}
+
+fn next_tier_for_promotion(current: &str) -> Option<&'static str> {
+    match current {
+        "working" => Some("short_term"),
+        "short_term" => Some("long_term"),
+        "long_term" => Some("core"),
+        _ => None,
+    }
+}
+
+fn default_decay_rate_for_tier_promotion(tier: &str) -> f64 {
+    match tier {
+        "core" => 0.001,
+        "long_term" => 0.005,
+        "short_term" => 0.02,
+        _ => 0.05,
+    }
 }
 
 /// v108: 按 applicability_tags 过滤适用范围（纯函数，便于单元测试）
@@ -829,6 +961,7 @@ async fn apply_memory_tier_weight(
 ///
 /// - 当字符串匹配失败且有 query_embedding 时，计算 query 与 item 的 cosine similarity
 /// - 相似度 >= 0.6 视为语义匹配成功
+#[allow(clippy::ptr_arg)]
 pub(crate) fn filter_items_by_applicability_tags(
     items: &mut Vec<RagRetrievedItem>,
     weight_map: &std::collections::HashMap<String, (f32, f32, Vec<String>)>,
@@ -869,8 +1002,9 @@ pub(crate) fn filter_items_by_applicability_tags(
 /// `weight_map` 的 value 为 `(tier_bonus, importance, _applicability_tags)`。
 /// 调整公式：`adjusted_score = original_score - tier_bonus * importance`
 /// （original_score 是 L2 distance，越小越相关；减去 bonus 让高 tier 记忆排前）
+#[allow(clippy::ptr_arg)]
 pub(crate) fn apply_tier_weight_and_sort(
-    items: &mut [RagRetrievedItem],
+    items: &mut Vec<RagRetrievedItem>,
     weight_map: &std::collections::HashMap<String, (f32, f32, Vec<String>)>,
 ) {
     for it in items.iter_mut() {
@@ -929,6 +1063,111 @@ async fn apply_memory_hit_feedback(db: &DatabaseConnection, hit_ids: &[String]) 
             tracing::warn!("[memory_feedback] 批量更新记忆反馈权重失败: {}", e);
         },
     }
+}
+
+/// v110: 跨源反馈权重调整
+///
+/// 根据 `retrieval_hits` 表中的历史反馈数据调整文档排序：
+/// - 正反馈（positive）→ 加分（减小 L2 distance，提升排名）
+/// - 负反馈（negative/irrelevant）→ 减分（增大 L2 distance，降低排名）
+/// - used_in_response=1 的条目 → 微小加分（被引用过说明有价值）
+///
+/// 这是"用户反馈→检索质量提升"自适应闭环的核心：
+/// 用户的每次👍👎反馈都会影响后续相同文档的检索排序，
+/// 让 RAG 系统从被动检索变为主动学习的自适应系统。
+#[allow(clippy::ptr_arg)]
+async fn apply_feedback_weight_adjustment(
+    db: &DatabaseConnection,
+    items: &mut Vec<RagRetrievedItem>,
+    source_type: &str,
+) {
+    if items.is_empty() {
+        return;
+    }
+
+    let doc_ids: Vec<String> = items.iter().map(|it| it.document_id.clone()).collect();
+    let doc_ids: Vec<&str> = doc_ids.iter().map(|s| s.as_str()).collect();
+    let placeholders = doc_ids
+        .iter()
+        .enumerate()
+        .map(|(i, _)| format!("?{}", i + 1))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    // 聚合查询：按文档 ID 统计正/负反馈次数和被引用次数
+    let sql = format!(
+        "SELECT \
+             document_id, \
+             SUM(CASE WHEN feedback = 'positive' THEN 1 ELSE 0 END) AS positive_cnt, \
+             SUM(CASE WHEN feedback IN ('negative', 'irrelevant') THEN 1 ELSE 0 END) AS negative_cnt, \
+             SUM(used_in_response) AS used_cnt \
+         FROM retrieval_hits \
+         WHERE document_id IN ({}) \
+         GROUP BY document_id",
+        placeholders
+    );
+
+    let values: Vec<sea_orm::Value> = doc_ids.iter().map(|id| (*id).into()).collect();
+    let rows = match db
+        .query_all_raw(Statement::from_sql_and_values(db.get_database_backend(), &sql, values))
+        .await
+    {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::warn!(
+                "[feedback_weight] 查询 retrieval_hits 失败 source={}: {}",
+                source_type,
+                e
+            );
+            return;
+        },
+    };
+
+    if rows.is_empty() {
+        return;
+    }
+
+    // 构建 doc_id → feedback_score 映射
+    use std::collections::HashMap;
+    let mut feedback_map: HashMap<String, f32> = HashMap::with_capacity(rows.len());
+    for row in &rows {
+        let doc_id: String = match row.try_get("", "document_id") {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let positive: i64 = row.try_get("", "positive_cnt").unwrap_or(0);
+        let negative: i64 = row.try_get("", "negative_cnt").unwrap_or(0);
+        let used: i64 = row.try_get("", "used_cnt").unwrap_or(0);
+
+        // 反馈分数 = positive * 0.3 - negative * 0.2 + used * 0.05
+        // 正反馈权重高于负反馈，鼓励探索
+        let score = positive as f32 * 0.3 - negative as f32 * 0.2 + used as f32 * 0.05;
+        if score.abs() > 0.001 {
+            feedback_map.insert(doc_id, score);
+        }
+    }
+
+    if feedback_map.is_empty() {
+        return;
+    }
+
+    // 应用反馈权重到文档分数
+    for item in items.iter_mut() {
+        if let Some(feedback_score) = feedback_map.get(&item.document_id) {
+            // L2 distance：越小越相关。正反馈减小距离（提升），负反馈增大距离（降低）
+            item.score -= feedback_score;
+        }
+    }
+
+    // 重新排序
+    items.sort_by(|a, b| a.score.partial_cmp(&b.score).unwrap_or(std::cmp::Ordering::Equal));
+
+    tracing::debug!(
+        "[feedback_weight] 已应用反馈权重 source={} 文档数={} 有反馈数={}",
+        source_type,
+        items.len(),
+        feedback_map.len()
+    );
 }
 
 fn build_source_refs(
@@ -1064,6 +1303,16 @@ async fn collect_rag_context_from_refs(
                     apply_memory_hit_feedback(db, &hit_ids).await;
                 }
 
+                let source_type_str = match src_ref.source_type {
+                    RAGSourceType::Knowledge => "knowledge",
+                    RAGSourceType::Memory => "memory",
+                    RAGSourceType::Wiki => "wiki",
+                };
+
+                // v110: 跨源反馈权重调整 — 根据 retrieval_hits 中的历史反馈数据调整排序
+                // 正反馈文档加分，负反馈文档减分，形成"用户反馈→检索质量提升"闭环
+                apply_feedback_weight_adjustment(db, &mut items, source_type_str).await;
+
                 // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
                 let snippets: Vec<String> = items.iter().map(|it| it.content.clone()).collect();
                 context_parts.push(format!(
@@ -1072,11 +1321,6 @@ async fn collect_rag_context_from_refs(
                     snippets.join("\n---\n")
                 ));
 
-                let source_type_str = match src_ref.source_type {
-                    RAGSourceType::Knowledge => "knowledge",
-                    RAGSourceType::Memory => "memory",
-                    RAGSourceType::Wiki => "wiki",
-                };
                 source_results.push(RagSourceResult {
                     source_type: source_type_str.to_string(),
                     container_id: src_ref.container_id.clone(),
@@ -1817,6 +2061,10 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
                     let hit_ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
                     apply_memory_hit_feedback(db, &hit_ids).await;
                 }
+
+                // v110: 跨源反馈权重调整 — 根据 retrieval_hits 中的历史反馈数据调整排序
+                // 正反馈文档加分，负反馈文档减分，形成"用户反馈→检索质量提升"闭环
+                apply_feedback_weight_adjustment(db, &mut items, source_type_str).await;
 
                 let label = source.context_label();
                 // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致

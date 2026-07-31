@@ -771,6 +771,11 @@
     },
     "knowledgeRetrieval": {
       "error": "ज्ञान आधार खोज विफल",
+      "feedbackIrrelevant": "असंबंधित",
+      "feedbackNegative": "अनुपयोगी",
+      "feedbackNotFound": "पुनर्प्राप्ति रिकॉर्ड नहीं मिला, प्रतिक्रिया सहेजी नहीं गई",
+      "feedbackPositive": "उपयोगी",
+      "feedbackSubmitted": "प्रतिक्रिया सबमिट की गई",
       "resultsCount": "{{count}} ज्ञान आइटम प्राप्त",
       "searching": "ज्ञान आधार में खोज रहे हैं..."
     },

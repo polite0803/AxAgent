@@ -315,27 +315,52 @@ pub async fn spawn_background_task(
                         Ok(exit) => {
                             let code = exit.code().unwrap_or(-1);
                             if exit.success() {
-                                let _ = append_output(
+                                if let Err(e) = append_output(
                                     &db3,
                                     &tid4,
                                     &format!("\n--- 完成 (exit: {}) ---", code),
                                 )
-                                .await;
-                                let _ = update_status(&db3, &tid4, "completed", Some(code)).await;
+                                .await
+                                {
+                                    tracing::warn!("后台任务追加输出失败 task_id={}: {}", tid4, e);
+                                }
+                                if let Err(e) =
+                                    update_status(&db3, &tid4, "completed", Some(code)).await
+                                {
+                                    tracing::warn!(
+                                        "后台任务状态更新为 completed 失败 task_id={}: {}",
+                                        tid4,
+                                        e
+                                    );
+                                }
                             } else {
-                                let _ = append_output(
+                                if let Err(e) = append_output(
                                     &db3,
                                     &tid4,
                                     &format!("\n--- 失败 (exit: {}) ---", code),
                                 )
-                                .await;
-                                let _ = update_status(&db3, &tid4, "failed", Some(code)).await;
+                                .await
+                                {
+                                    tracing::warn!("后台任务追加输出失败 task_id={}: {}", tid4, e);
+                                }
+                                if let Err(e) =
+                                    update_status(&db3, &tid4, "failed", Some(code)).await
+                                {
+                                    tracing::warn!(
+                                        "后台任务状态更新为 failed 失败 task_id={}: {}",
+                                        tid4,
+                                        e
+                                    );
+                                }
                             }
                         },
                         Err(e) => {
-                            let _ =
+                            if let Err(ee) =
                                 append_output(&db3, &tid4, &format!("\n--- 执行错误: {} ---", e))
-                                    .await;
+                                    .await
+                            {
+                                tracing::warn!("后台任务追加输出失败 task_id={}: {}", tid4, ee);
+                            }
                             // Drop guard 兜底覆盖 status=failed
                             return;
                         },
@@ -359,7 +384,9 @@ pub async fn spawn_background_task(
             });
         }
     } else if task_type == "agent" {
-        let _ = update_status(&db, &id, "running", None).await;
+        if let Err(e) = update_status(&db, &id, "running", None).await {
+            tracing::warn!("后台任务启动状态更新为 running 失败 task_id={}: {}", id, e);
+        }
     }
     let _ = app_handle.emit("background-task:created", &id);
     Ok(id)

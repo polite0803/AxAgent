@@ -41,11 +41,338 @@ pub fn start_background_services(
     start_skill_watcher(app, state);
     start_memory_decay_tick(state);
     start_memory_maintenance_tick(state);
+    start_retrieval_feedback_tick(state);
+    start_obsidian_vaults_registration(state);
+    start_knowledge_consolidation_tick(state);
     start_trajectory_cleanup(state);
     start_index_job_service(app, state);
     start_plugins(state);
     #[cfg(not(mobile))]
     start_pty_event_forwarder(app, state);
+}
+
+/// 启动时批量注册 ConnectedVault 类型 KB 到全局 VaultRegistry。
+///
+/// 此前 `register_vault` 仅在创建/转换 KB 时调用，应用重启后
+/// VaultRegistry 为空，导致 9 个 `obsidian_*` 工具全部报 `NotBound` 错误。
+/// 本函数在启动后异步查询所有 `kind = connected_vault` 且 `enabled = true` 的 KB，
+/// 重新注册到 VaultRegistry，修复 Obsidian 集成链路断裂问题。
+fn start_obsidian_vaults_registration(state: &AppState) {
+    let harness_state = state.harness.clone();
+    tauri::async_runtime::spawn(async move {
+        // 延迟 2 秒，确保数据库初始化完成
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+        let db = harness_state.db();
+        match axagent_dao::repo::knowledge::list_knowledge_bases(db).await {
+            Ok(all_kbs) => {
+                let vault_kbs: Vec<_> = all_kbs
+                    .iter()
+                    .filter(|kb| {
+                        kb.enabled
+                            && matches!(kb.kind, axagent_harness::KbKind::ConnectedVault)
+                            && kb.vault_path.is_some()
+                    })
+                    .collect();
+
+                if vault_kbs.is_empty() {
+                    tracing::info!("[obsidian] 启动时未发现 ConnectedVault KB，跳过注册");
+                    return;
+                }
+
+                let mut registered = 0usize;
+                let mut failed = 0usize;
+                for kb in &vault_kbs {
+                    let root = std::path::PathBuf::from(kb.vault_path.as_ref().unwrap());
+                    match axagent_tools::tools::obsidian::register_vault(&kb.id, root) {
+                        Ok(()) => {
+                            tracing::info!(
+                                "[obsidian] 启动注册 ConnectedVault KB: id={} name={} vault={}",
+                                kb.id,
+                                kb.name,
+                                kb.vault_path.as_ref().unwrap()
+                            );
+                            registered += 1;
+                        },
+                        Err(e) => {
+                            tracing::warn!(
+                                "[obsidian] 启动注册 ConnectedVault KB 失败: id={} name={} error={}",
+                                kb.id,
+                                kb.name,
+                                e
+                            );
+                            failed += 1;
+                        },
+                    }
+                }
+                tracing::info!(
+                    "[obsidian] 启动批量注册完成：成功 {} 个，失败 {} 个，总计 {} 个",
+                    registered,
+                    failed,
+                    vault_kbs.len()
+                );
+            },
+            Err(e) => {
+                tracing::warn!("[obsidian] 启动时查询 knowledge_bases 失败: {}", e);
+            },
+        }
+    });
+}
+
+/// 知识转换定时任务：定期将 Wiki/Memory 中的实体回流到知识图谱。
+///
+/// 解决"三套实体系统（Wiki 笔记、Memory 记忆、Knowledge 实体）各自为政"的问题：
+/// 1. Wiki → Knowledge：查询所有 ConnectedVault KB，触发实体抽取（已存在的 extract_entities_from_wiki）
+/// 2. Memory → Knowledge：将 Memory 中的高重要性条目转换为知识图谱实体
+/// 3. 跨源实体合并：调用 merge_duplicate_entities_across_all 去重
+///
+/// 每 6 小时执行一次，避免频繁 LLM 调用。
+/// 失败时仅记录警告，不影响主流程。
+fn start_knowledge_consolidation_tick(state: &AppState) {
+    let harness_state = state.harness.clone();
+    tauri::async_runtime::spawn(async move {
+        // 延迟 30 秒，确保所有启动任务完成
+        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+        let interval = std::time::Duration::from_secs(6 * 3600); // 6 小时
+        loop {
+            tokio::time::sleep(interval).await;
+
+            tracing::info!("[knowledge_consolidation] 开始知识转换周期");
+            let started = std::time::Instant::now();
+
+            // ── 步骤 1：跨源实体合并（轻量，纯数据库操作） ──
+            match axagent_dao::repo::knowledge_graph::merge_duplicate_entities_across_all(
+                harness_state.db(),
+            )
+            .await
+            {
+                Ok(result) => {
+                    if result.groups_found > 0 {
+                        tracing::info!(
+                            "[knowledge_consolidation] 跨源实体合并：{} 个分组，{} 个实体合并，{} 个关系更新",
+                            result.groups_found,
+                            result.entities_merged,
+                            result.relations_updated
+                        );
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("[knowledge_consolidation] 跨源实体合并失败: {}", e);
+                },
+            }
+
+            // ── 步骤 2：Wiki → Knowledge 实体抽取（重量级，需要 LLM） ──
+            // 查询所有 ConnectedVault KB，逐个触发实体抽取
+            match axagent_dao::repo::knowledge::list_knowledge_bases(harness_state.db()).await {
+                Ok(all_kbs) => {
+                    let vault_kbs: Vec<_> = all_kbs
+                        .iter()
+                        .filter(|kb| {
+                            kb.enabled
+                                && matches!(kb.kind, axagent_harness::KbKind::ConnectedVault)
+                                && kb.vault_path.is_some()
+                        })
+                        .collect();
+
+                    for kb in &vault_kbs {
+                        tracing::info!(
+                            "[knowledge_consolidation] 处理 ConnectedVault KB: id={} name={}",
+                            kb.id,
+                            kb.name
+                        );
+                        // 使用已有的 extract_entities_from_wiki 逻辑
+                        // 通过 index_job 机制异步执行（避免阻塞定时任务）
+                        let metadata = serde_json::json!({
+                            "auto_extract": true,
+                            "triggered_by": "consolidation_tick",
+                        });
+                        let input = axagent_dao::repo::index_jobs::CreateIndexJobInput {
+                            job_type: axagent_dao::repo::index_jobs::JOB_TYPE_EXTRACT_ENTITIES
+                                .to_string(),
+                            container_type: "Wiki".to_string(),
+                            container_id: kb.id.clone(),
+                            item_id: kb.id.clone(),
+                            max_retries: Some(1),
+                            priority: Some(5),
+                            metadata: Some(serde_json::to_string(&metadata).unwrap_or_default()),
+                        };
+                        let _ =
+                            axagent_dao::repo::index_jobs::enqueue_job(harness_state.db(), input)
+                                .await
+                                .map_err(|e| {
+                                    tracing::warn!(
+                                        "[knowledge_consolidation] 队列实体抽取任务失败 kb={}: {}",
+                                        kb.id,
+                                        e
+                                    );
+                                    e
+                                });
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("[knowledge_consolidation] 查询 ConnectedVault KB 失败: {}", e);
+                },
+            }
+
+            // ── 步骤 3：Memory → Knowledge 实体回流 ──
+            // 查询高重要性 Memory 条目，写入知识图谱
+            match axagent_dao::repo::memory::list_high_importance_items(
+                harness_state.db(),
+                Some(0.7), // importance >= 0.7
+                Some(100), // 最多 100 条
+            )
+            .await
+            {
+                Ok(items) if !items.is_empty() => {
+                    tracing::info!(
+                        "[knowledge_consolidation] 发现 {} 条高重要性 Memory 条目，开始回流",
+                        items.len()
+                    );
+                    let mut converted = 0usize;
+                    for item in &items {
+                        // 将 Memory 条目转换为知识图谱实体
+                        let kb_id = if item.namespace_id.is_empty() {
+                            "memory_default".to_string()
+                        } else {
+                            item.namespace_id.clone()
+                        };
+                        let name: String = item.content.chars().take(100).collect();
+                        let confidence = (item.importance).min(1.0);
+                        match axagent_dao::repo::knowledge_graph::upsert_entity(
+                            harness_state.db(),
+                            &kb_id,
+                            &name,
+                            "memory_item",
+                            "[]", // empty aliases JSON
+                            confidence,
+                            None,
+                            None,
+                        )
+                        .await
+                        {
+                            Ok(_) => converted += 1,
+                            Err(e) => {
+                                tracing::debug!(
+                                    "[knowledge_consolidation] Memory→Entity 转换失败 item={}: {}",
+                                    item.id,
+                                    e
+                                );
+                            },
+                        }
+                    }
+                    tracing::info!(
+                        "[knowledge_consolidation] Memory→Knowledge 回流完成：{} 条成功",
+                        converted
+                    );
+                },
+                _ => {
+                    // 无高重要性条目或查询失败，静默跳过
+                },
+            }
+
+            // ── 步骤 4：Agent 工具调用结果 → Memory 沉淀 ──
+            // 扫描最近 24 小时的对话，将工具结果（WebSearch/CodeInterpreter 等）
+            // 自动沉淀为 Memory 条目，让 Agent 的执行结果可被后续 RAG 检索使用
+            match axagent_dao::repo::memory::deposit_tool_results_from_recent_messages(
+                harness_state.db(),
+                Some(24),
+            )
+            .await
+            {
+                Ok(count) if count > 0 => {
+                    tracing::info!(
+                        "[knowledge_consolidation] 工具结果沉积：{} 条新 Memory 条目",
+                        count
+                    );
+                },
+                Ok(_) => {
+                    // 无新条目，静默跳过
+                },
+                Err(e) => {
+                    tracing::warn!("[knowledge_consolidation] 工具结果沉积失败: {}", e);
+                },
+            }
+
+            // ── 步骤 5：KB 文档 → Wiki 自动同步 ──
+            // 对 ConnectedVault KB 中新增的文档，自动在 Wiki 中创建对应笔记
+            // 形成"KB↔Wiki"双向同步闭环
+            if let Ok(all_kbs) =
+                axagent_dao::repo::knowledge::list_knowledge_bases(harness_state.db()).await
+            {
+                use axagent_harness::note_dtos::CreateNoteInput;
+
+                let vault_kbs: Vec<_> = all_kbs
+                    .iter()
+                    .filter(|kb| {
+                        kb.enabled
+                            && matches!(kb.kind, axagent_harness::KbKind::ConnectedVault)
+                            && kb.vault_path.is_some()
+                    })
+                    .collect();
+
+                for kb in &vault_kbs {
+                    if let Ok(docs) =
+                        axagent_dao::repo::knowledge::list_documents(harness_state.db(), &kb.id)
+                            .await
+                    {
+                        let vault_id = kb.vault_path.as_deref().unwrap_or("");
+                        let mut synced = 0usize;
+                        for doc in &docs {
+                            // 检查文档是否已同步到 Wiki
+                            let already_synced = axagent_dao::repo::wiki::note_exists_for_document(
+                                harness_state.db(),
+                                vault_id,
+                                &doc.id,
+                            )
+                            .await
+                            .unwrap_or(false);
+
+                            if !already_synced {
+                                // 创建 Wiki 笔记
+                                let input = CreateNoteInput {
+                                    vault_id: vault_id.to_string(),
+                                    title: doc.title.clone(),
+                                    file_path: doc.source_path.clone(),
+                                    content: String::new(),
+                                    author: "system".to_string(),
+                                    page_type: Some("knowledge_document".to_string()),
+                                    source_refs: Some(vec![format!("kb:{}:doc:{}", kb.id, doc.id)]),
+                                };
+                                match axagent_dao::repo::note::create_note(
+                                    harness_state.db(),
+                                    input,
+                                )
+                                .await
+                                {
+                                    Ok(_) => synced += 1,
+                                    Err(e) => {
+                                        tracing::debug!(
+                                            "[knowledge_consolidation] Wiki 同步失败 doc={}: {}",
+                                            doc.id,
+                                            e
+                                        );
+                                    },
+                                }
+                            }
+                        }
+                        if synced > 0 {
+                            tracing::info!(
+                                "[knowledge_consolidation] KB→Wiki 同步：kb={} 新增 {} 篇笔记",
+                                kb.id,
+                                synced
+                            );
+                        }
+                    }
+                }
+            }
+
+            tracing::info!(
+                "[knowledge_consolidation] 知识转换周期完成，耗时 {}ms",
+                started.elapsed().as_millis()
+            );
+        }
+    });
+    tracing::info!("[knowledge_consolidation] 知识转换定时任务已启动（每 6 小时）");
 }
 
 /// PTY 事件转发器：从 PtyManager 的 mpsc 通道消费输出/退出事件，
@@ -1778,4 +2105,85 @@ fn start_index_job_service(app: &tauri::AppHandle, state: &AppState) {
         service.start().await;
     });
     tracing::info!("[index_queue] 已启动持久化索引队列 worker");
+}
+
+/// 检索命中反馈应用定时任务。
+///
+/// 此前 `retrieval_hits` 表只写不读，形成数据沼泽。本任务每小时：
+/// 1. 聚合各 KB 的正/负/无关反馈计数（最近 24 小时窗口）
+/// 2. 查询全局反馈统计
+/// 3. 记录到日志，作为后续 RAG 自适应优化（RL 检索/embedder 微调）的输入信号
+///
+/// 第一阶段仅做数据采集与日志记录；真正的权重调整需要后续接入 RL 引擎。
+fn start_retrieval_feedback_tick(state: &AppState) {
+    let harness_state = state.harness.clone();
+    tauri::async_runtime::spawn(async move {
+        // 首次延迟 5 分钟启动，避免与启动初始化竞争
+        tokio::time::sleep(std::time::Duration::from_secs(300)).await;
+        let interval = std::time::Duration::from_secs(3600);
+        loop {
+            tokio::time::sleep(interval).await;
+
+            // 24 小时滑动窗口
+            let now = chrono::Utc::now().timestamp();
+            let since = now - 86400;
+
+            // 1. 按 KB 聚合反馈
+            match axagent_dao::repo::retrieval_hit::aggregate_feedback_by_kb(
+                harness_state.db(),
+                Some(since),
+            )
+            .await
+            {
+                Ok(stats) => {
+                    if !stats.is_empty() {
+                        tracing::info!(
+                            "[retrieval_feedback] 最近 24h KB 反馈聚合：{} 个 KB 有反馈数据",
+                            stats.len()
+                        );
+                        for (kb_id, pos, neg, irr) in &stats {
+                            tracing::info!(
+                                "[retrieval_feedback] kb={} positive={} negative={} irrelevant={}",
+                                kb_id,
+                                pos,
+                                neg,
+                                irr
+                            );
+                        }
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("[retrieval_feedback] KB 聚合失败: {}", e);
+                },
+            }
+
+            // 2. 全局反馈统计
+            match axagent_dao::repo::retrieval_hit::get_feedback_stats(
+                harness_state.db(),
+                None,
+                Some(since),
+            )
+            .await
+            {
+                Ok(stats) => {
+                    if stats.total_hits > 0 {
+                        tracing::info!(
+                            "[retrieval_feedback] 最近 24h 全局统计：total={} positive={} negative={} irrelevant={} no_feedback={} used_in_response={} positive_rate={:.3}",
+                            stats.total_hits,
+                            stats.positive,
+                            stats.negative,
+                            stats.irrelevant,
+                            stats.no_feedback,
+                            stats.used_in_response,
+                            stats.positive_rate
+                        );
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!("[retrieval_feedback] 全局统计失败: {}", e);
+                },
+            }
+        }
+    });
+    tracing::info!("[retrieval_feedback] 反馈应用定时任务已启动（每小时）");
 }

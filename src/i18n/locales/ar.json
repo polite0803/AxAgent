@@ -771,6 +771,11 @@
     },
     "knowledgeRetrieval": {
       "error": "فشل البحث في قاعدة المعرفة",
+      "feedbackIrrelevant": "غير ذي صلة",
+      "feedbackNegative": "غير مفيد",
+      "feedbackNotFound": "لم يتم العثور على سجل الاسترجاع، لم يتم حفظ الملاحظات",
+      "feedbackPositive": "مفيد",
+      "feedbackSubmitted": "تم إرسال الملاحظات",
       "resultsCount": "تم استرداد {{count}} عنصر معرفي",
       "searching": "جارٍ البحث في قاعدة المعرفة..."
     },

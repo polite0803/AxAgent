@@ -771,6 +771,11 @@
     },
     "knowledgeRetrieval": {
       "error": "Échec de la recherche dans la base de connaissances",
+      "feedbackIrrelevant": "Sans rapport",
+      "feedbackNegative": "Pas utile",
+      "feedbackNotFound": "Enregistrement de récupération introuvable, commentaire non enregistré",
+      "feedbackPositive": "Utile",
+      "feedbackSubmitted": "Commentaire envoyé",
       "resultsCount": "{{count}} éléments récupérés",
       "searching": "Recherche dans la base de connaissances…"
     },

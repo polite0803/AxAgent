@@ -544,6 +544,79 @@ pub async fn merge_duplicate_entities(
         .map_err(|e| err_to_string(AxAgentError::internal(e.to_string())))
 }
 
+/// P2-1: Memory → Knowledge 实体回流命令
+///
+/// 将 Memory 中高重要性（>= importance_threshold）的条目
+/// 批量转换为知识图谱实体，解决三套实体系统各自为政的问题。
+///
+/// 返回转换统计：读取条目数、成功转换数、失败数
+#[derive(Debug, serde::Serialize)]
+pub struct MemoryToKnowledgeResult {
+    pub items_read: usize,
+    pub entities_created: usize,
+    pub failures: usize,
+}
+
+#[tauri::command]
+pub async fn sync_memory_to_knowledge_graph(
+    state: State<'_, AppState>,
+    importance_threshold: Option<f64>,
+    max_items: Option<u32>,
+) -> Result<MemoryToKnowledgeResult, String> {
+    let threshold = importance_threshold.unwrap_or(0.7);
+    let max = max_items.unwrap_or(100);
+
+    let items = axagent_dao::repo::memory::list_high_importance_items(
+        state.harness.db(),
+        Some(threshold),
+        Some(max),
+    )
+    .await
+    .map_err(|e| err_to_string(AxAgentError::internal(e.to_string())))?;
+
+    let items_read = items.len();
+    let mut entities_created = 0usize;
+    let mut failures = 0usize;
+
+    for item in &items {
+        let kb_id = if item.namespace_id.is_empty() {
+            "memory_default".to_string()
+        } else {
+            item.namespace_id.clone()
+        };
+        let name: String = item.content.chars().take(100).collect();
+        let confidence = (item.importance).min(1.0);
+
+        match axagent_dao::repo::knowledge_graph::upsert_entity(
+            state.harness.db(),
+            &kb_id,
+            &name,
+            "memory_item",
+            "[]",
+            confidence,
+            None,
+            None,
+        )
+        .await
+        {
+            Ok(_) => entities_created += 1,
+            Err(e) => {
+                tracing::debug!("[sync_memory_to_knowledge] 转换失败 item={}: {}", item.id, e);
+                failures += 1;
+            },
+        }
+    }
+
+    tracing::info!(
+        "[sync_memory_to_knowledge] 完成：读取 {} 条，创建 {} 实体，{} 失败",
+        items_read,
+        entities_created,
+        failures
+    );
+
+    Ok(MemoryToKnowledgeResult { items_read, entities_created, failures })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

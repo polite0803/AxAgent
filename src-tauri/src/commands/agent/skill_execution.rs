@@ -544,7 +544,9 @@ pub(super) async fn execute_skill_async(
 
     let execution_record =
         SkillExecutionRecord { skill_name: skill_name.to_string(), output: None };
-    let _ = tracker.record_execution(&conversation_id, execution_record);
+    if let Err(e) = tracker.record_execution(&conversation_id, execution_record) {
+        tracing::warn!("技能执行记录失败: {}", e);
+    }
 
     let message =
         format!("Skill '{}' returned content for LLM to process. Task: {}", skill_name, task);
@@ -559,7 +561,9 @@ pub(super) async fn execute_skill_async(
         message,
     };
 
-    let _ = tracker.update_output(&conversation_id, skill_name, result.message.clone());
+    if let Err(e) = tracker.update_output(&conversation_id, skill_name, result.message.clone()) {
+        tracing::warn!("技能输出更新失败: {}", e);
+    }
 
     if let Some(ref skill_steps) = result.steps {
         if let Ok(skill_steps_json) = serde_json::to_string(skill_steps) {

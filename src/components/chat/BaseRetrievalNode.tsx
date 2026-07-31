@@ -8,13 +8,27 @@
  */
 
 import { CITE_JUMP_EVENT, CiteItemsContext } from "@/components/chat/citeContext";
+import { invoke } from "@/lib/invoke";
 import type { MemoryRetrievedItem, MemorySourceResult } from "@/lib/memoryUtils";
-import { theme } from "antd";
-import { AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { App, theme } from "antd";
+import { AlertCircle, ChevronDown, ChevronRight, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import type { NodeComponentProps } from "markstream-react";
-import type { ComponentType, CSSProperties } from "react";
+import { type ComponentType, createContext, type CSSProperties, useCallback } from "react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+/**
+ * RetrievalMessageIdContext — 传递当前消息 ID 给检索结果节点。
+ *
+ * AssistantMarkdown 在渲染时用 Provider 包裹 NodeRenderer，
+ * BaseRetrievalNode 通过 useContext 取 messageId，
+ * 用于调用 update_retrieval_hit_feedback_by_ref 后端命令。
+ * 未提供时（如 user 消息或预览模式），反馈按钮不渲染。
+ */
+export const RetrievalMessageIdContext = createContext<string | null>(null);
+
+/** 反馈类型：positive（有用）/ negative（无用）/ irrelevant（无关） */
+type FeedbackValue = "positive" | "negative" | "irrelevant";
 
 export type BaseRetrievalNodeData = {
   type: string;
@@ -56,10 +70,17 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
     const { node } = props;
     const { token } = theme.useToken();
     const { t } = useTranslation();
+    const { message: messageApi } = App.useApp();
     const [expanded, setExpanded] = useState(false);
     const [highlightedIdx, setHighlightedIdx] = useState<number | null>(null);
     const allEntries = useContext(CiteItemsContext);
     const highlightTimerRef = useRef<number | null>(null);
+    // 从 Context 获取当前消息 ID，用于 RAG 反馈闭环
+    const messageId = useContext(RetrievalMessageIdContext);
+    // 反馈状态：key = `${document_id}#${chunk_ref}`，value = FeedbackValue
+    const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackValue>>({});
+    // 正在提交反馈的 item key 集合，防止重复点击
+    const [submittingKeys, setSubmittingKeys] = useState<Set<string>>(new Set());
 
     if (!node) {
       return null;
@@ -80,6 +101,63 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
     }
 
     const totalItems = sources.reduce((sum, s) => sum + s.items.length, 0);
+
+    // 提交反馈到后端（RAG 反馈闭环）
+    const handleFeedback = useCallback(
+      async (item: MemoryRetrievedItem, feedback: FeedbackValue) => {
+        if (!messageId || !item.document_id || !item.id) {
+          return;
+        }
+        const key = `${item.document_id}#${item.id}`;
+        // 切换反馈：再次点击同一反馈则取消
+        const current = feedbackMap[key];
+        const newFeedback = current === feedback ? null : feedback;
+
+        setSubmittingKeys((prev) => new Set(prev).add(key));
+        try {
+          const ok = await invoke<boolean>(
+            "update_retrieval_hit_feedback_by_ref",
+            {
+              messageId,
+              documentId: item.document_id,
+              chunkRef: item.id,
+              feedback: newFeedback,
+            },
+          );
+          if (ok) {
+            setFeedbackMap((prev) => {
+              const next = { ...prev };
+              if (newFeedback) {
+                next[key] = newFeedback;
+              } else {
+                delete next[key];
+              }
+              return next;
+            });
+            messageApi.success(
+              t(`${i18nPrefix}.feedbackSubmitted`, {
+                defaultValue: t("chat.knowledgeRetrieval.feedbackSubmitted"),
+              }),
+            );
+          } else {
+            messageApi.warning(
+              t(`${i18nPrefix}.feedbackNotFound`, {
+                defaultValue: t("chat.knowledgeRetrieval.feedbackNotFound"),
+              }),
+            );
+          }
+        } catch (e) {
+          messageApi.error(String(e));
+        } finally {
+          setSubmittingKeys((prev) => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        }
+      },
+      [messageId, feedbackMap, messageApi, t, i18nPrefix],
+    );
 
     // 引用追溯：计算本节点内每个 item 对应的全局 cite idx（用于 data-cite-idx 标记 + 跳转高亮匹配）
     // 匹配键：(item.id, item.document_id)，与 AssistantMarkdown 中 citeEntries 的扁平化顺序一致
@@ -348,6 +426,93 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
                       >
                         {(1 / (1 + item.score)).toFixed(4)}
                       </span>
+                      {/* RAG 反馈闭环：仅当有 messageId 时渲染反馈按钮 */}
+                      {messageId && item.document_id && item.id && (() => {
+                        const key = `${item.document_id}#${item.id}`;
+                        const current = feedbackMap[key];
+                        const isSubmitting = submittingKeys.has(key);
+                        const feedbackBtns: Array<{
+                          value: FeedbackValue;
+                          icon: typeof ThumbsUp;
+                          color: string;
+                          labelKey: string;
+                        }> = [
+                          {
+                            value: "positive",
+                            icon: ThumbsUp,
+                            color: token.colorSuccess,
+                            labelKey: `${i18nPrefix}.feedbackPositive`,
+                          },
+                          {
+                            value: "negative",
+                            icon: ThumbsDown,
+                            color: token.colorError,
+                            labelKey: `${i18nPrefix}.feedbackNegative`,
+                          },
+                          {
+                            value: "irrelevant",
+                            icon: XCircle,
+                            color: token.colorTextTertiary,
+                            labelKey: `${i18nPrefix}.feedbackIrrelevant`,
+                          },
+                        ];
+                        return (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 2,
+                              marginLeft: 4,
+                            }}
+                          >
+                            {feedbackBtns.map((btn) => {
+                              const active = current === btn.value;
+                              const BtnIcon = btn.icon;
+                              return (
+                                <button
+                                  key={btn.value}
+                                  type="button"
+                                  disabled={isSubmitting}
+                                  title={t(btn.labelKey, {
+                                    defaultValue: t(`chat.knowledgeRetrieval.${
+                                      btn.value === "positive"
+                                        ? "feedbackPositive"
+                                        : btn.value === "negative"
+                                        ? "feedbackNegative"
+                                        : "feedbackIrrelevant"
+                                    }`),
+                                  })}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleFeedback(item, btn.value);
+                                  }}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: 18,
+                                    height: 18,
+                                    padding: 0,
+                                    border: "none",
+                                    borderRadius: 3,
+                                    cursor: isSubmitting ? "wait" : "pointer",
+                                    opacity: isSubmitting ? 0.5 : 1,
+                                    backgroundColor: active
+                                      ? btn.color === token.colorTextTertiary
+                                        ? token.colorFillSecondary
+                                        : `${btn.color}20`
+                                      : "transparent",
+                                    color: active ? btn.color : token.colorTextQuaternary,
+                                    transition: "all 150ms ease",
+                                  }}
+                                >
+                                  <BtnIcon size={11} />
+                                </button>
+                              );
+                            })}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p
                       style={{

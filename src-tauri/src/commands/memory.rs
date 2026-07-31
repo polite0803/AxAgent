@@ -422,6 +422,30 @@ pub async fn search_memory(
     };
     results.retain(|r| r.score <= effective_threshold);
 
+    // 写入反馈数据湖
+    if let Some(lake) = axagent_harness::feedback_data_lake::global_feedback_lake() {
+        for result in &results {
+            let record = axagent_harness::MemoryAccessRecord {
+                id: uuid::Uuid::new_v4().to_string(),
+                conversation_id: None,
+                namespace_id: namespace_id.clone(),
+                memory_id: result.id.clone(),
+                access_type: "search".to_string(),
+                query: Some(query.clone()),
+                content_snippet: if result.content.len() > 500 {
+                    Some(result.content[..500].to_string())
+                } else {
+                    Some(result.content.clone())
+                },
+                hit: true,
+                created_at: chrono::Utc::now().timestamp_millis(),
+            };
+            if let Err(e) = lake.insert_memory_access(record).await {
+                tracing::warn!("记忆访问反馈写入失败 memory_id={}: {}", result.id, e);
+            }
+        }
+    }
+
     Ok(results)
 }
 
@@ -1850,5 +1874,31 @@ pub async fn export_memories_to_project(
     Ok(serde_json::json!({
         "exported": exported,
         "totalCandidates": all_items.len(),
+    }))
+}
+
+/// v110: Agent 工具调用结果 → Memory 自动沉淀
+///
+/// 扫描最近的对话消息，提取工具执行结果自动沉淀为 Memory 条目。
+/// 这是"Agent 执行→知识沉淀"闭环的核心机制。
+#[tauri::command]
+pub async fn deposit_tool_results_to_memory(
+    state: State<'_, AppState>,
+    hours_lookback: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    let deposited = axagent_dao::repo::memory::deposit_tool_results_from_recent_messages(
+        state.harness.db(),
+        hours_lookback,
+    )
+    .await
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(serde_json::json!({
+        "deposited": deposited,
     }))
 }

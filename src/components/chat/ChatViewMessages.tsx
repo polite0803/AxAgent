@@ -1536,6 +1536,7 @@ export function useChatViewMessages({
                         codeBlockLightTheme={codeBlockLightTheme}
                         codeBlockThemes={codeBlockThemes}
                         codeFontFamily={settings.code_font_family || undefined}
+                        messageId={vMsg?.id}
                       />
                       {vMsg?.blocks
                         && vMsg.blocks.some((b) => b.type === "tool_use")
@@ -1624,6 +1625,7 @@ export function useChatViewMessages({
                   codeBlockLightTheme={codeBlockLightTheme}
                   codeBlockThemes={codeBlockThemes}
                   codeFontFamily={settings.code_font_family || undefined}
+                  messageId={msg?.id}
                 />
                 {isCollapsed && (
                   <div

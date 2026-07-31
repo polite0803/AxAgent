@@ -771,6 +771,11 @@
     },
     "knowledgeRetrieval": {
       "error": "知识库检索失败",
+      "feedbackIrrelevant": "无关",
+      "feedbackNegative": "无用",
+      "feedbackNotFound": "未找到检索记录，反馈未保存",
+      "feedbackPositive": "有用",
+      "feedbackSubmitted": "反馈已提交",
       "resultsCount": "检索到 {{count}} 条知识",
       "searching": "正在检索知识库..."
     },

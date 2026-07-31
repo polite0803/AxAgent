@@ -4,7 +4,9 @@ use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::louvain;
-use axagent_dao::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
+use axagent_dao::repo::note::{
+    CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput, list_notes, sync_note_links,
+};
 use axagent_dao::repo::wiki::{self, CreateWikiTemplateInput, NoteVersion, WikiTemplate};
 use axagent_harness::graph_dtos::LinkGraph;
 use axagent_harness::louvain_dtos::LouvainResult;
@@ -51,6 +53,83 @@ async fn create_dir_all_blocking(path: PathBuf) -> std::io::Result<()> {
     tokio::task::spawn_blocking(move || std::fs::create_dir_all(&path))
         .await
         .map_err(std::io::Error::other)?
+}
+
+/// 从 markdown 内容中提取 `[[Note]]` / `[[Note|alias]]` / `[[Note#anchor]]` 链接。
+/// 返回去重后的目标笔记名称列表（保留原始大小写，匹配时再做归一化）。
+/// 与 obsidian.rs 中的 `extract_wikilinks` 保持一致语法支持。
+fn extract_wikilink_targets(content: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let bytes = content.as_bytes();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] == b'['
+            && bytes[i + 1] == b'['
+            && let Some(end) = content[i + 2..].find("]]")
+        {
+            let raw = &content[i + 2..i + 2 + end];
+            // 取 | 之前、# 之前的部分作为 note 名
+            let name = raw.split('|').next().unwrap_or("").split('#').next().unwrap_or("").trim();
+            if !name.is_empty() && seen.insert(name.to_lowercase()) {
+                names.push(name.to_string());
+            }
+            i += 2 + end + 2;
+            continue;
+        }
+        i += 1;
+    }
+    names
+}
+
+/// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。
+/// 在笔记创建/更新时自动调用，修复"双向链接自动建立机制断裂"问题。
+///
+/// 匹配规则：优先按 title 完全匹配（大小写不敏感），其次按 file_path 去扩展名匹配。
+/// 未找到目标的链接静默跳过，避免污染链接表（用户可能引用了尚未创建的笔记）。
+async fn sync_note_links_from_content(
+    db: &sea_orm::DatabaseConnection,
+    vault_id: &str,
+    source_note_id: &str,
+    content: &str,
+) -> axagent_harness::core_error::Result<()> {
+    let target_names = extract_wikilink_targets(content);
+
+    // 无链接时也要清空旧链接（用户可能删除了所有 wikilink）
+    if target_names.is_empty() {
+        return sync_note_links(db, vault_id, source_note_id, Vec::new()).await;
+    }
+
+    // 批量加载 vault 内所有笔记，构建 title/file_path → note_id 映射（大小写不敏感）
+    let notes_in_vault = list_notes(db, vault_id).await?;
+    let mut name_to_id: std::collections::HashMap<String, String> =
+        std::collections::HashMap::with_capacity(notes_in_vault.len() * 2);
+    for n in &notes_in_vault {
+        // 跳过自身（避免自环）
+        if n.id == source_note_id {
+            continue;
+        }
+        // 优先用 title 作为 key
+        if !n.title.is_empty() {
+            name_to_id.entry(n.title.to_lowercase()).or_insert_with(|| n.id.clone());
+        }
+        // file_path 去扩展名也作为 key（兼容 Obsidian 习惯）
+        if let Some(stem) = std::path::Path::new(&n.file_path).file_stem().and_then(|s| s.to_str())
+        {
+            if !stem.is_empty() {
+                name_to_id.entry(stem.to_lowercase()).or_insert_with(|| n.id.clone());
+            }
+        }
+    }
+
+    let mut links: Vec<(String, String, String)> = Vec::with_capacity(target_names.len());
+    for name in target_names {
+        if let Some(target_id) = name_to_id.get(&name.to_lowercase()) {
+            links.push((target_id.clone(), name, "wikilink".to_string()));
+        }
+    }
+
+    sync_note_links(db, vault_id, source_note_id, links).await
 }
 
 fn enqueue_wiki_note_indexing(
@@ -200,10 +279,42 @@ pub async fn wiki_notes_create(
             ))
         })?;
 
+    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks（修复双向链接自动建立机制断裂）
+    // 失败时仅记录警告，不阻止笔记创建（链接同步是辅助功能）
+    if let Err(e) =
+        sync_note_links_from_content(state.harness.db(), &note.vault_id, &note.id, &note.content)
+            .await
+    {
+        tracing::warn!("[wiki] 笔记 {} 创建后链接同步失败: {}", note.id, e);
+    }
+
     // 失效图谱缓存（notes 表有写入）
     let _ =
         axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), &note.vault_id)
             .await;
+
+    // 写入反馈数据湖
+    if let Some(lake) = axagent_harness::feedback_data_lake::global_feedback_lake() {
+        let record = axagent_harness::WikiEditRecord {
+            id: uuid::Uuid::new_v4().to_string(),
+            conversation_id: None,
+            wiki_id: note.vault_id.clone(),
+            note_id: note.id.clone(),
+            operation: "create".to_string(),
+            before_snippet: None,
+            after_snippet: Some(if note.content.len() > 500 {
+                note.content[..500].to_string()
+            } else {
+                note.content.clone()
+            }),
+            reason: None,
+            quality_score: None,
+            created_at: chrono::Utc::now().timestamp_millis(),
+        };
+        if let Err(e) = lake.insert_wiki_edit(record).await {
+            tracing::warn!("Wiki 编辑反馈写入失败 note_id={}: {}", note.id, e);
+        }
+    }
 
     enqueue_wiki_note_indexing(&state, &app, &note.vault_id, &note.id);
 
@@ -217,7 +328,7 @@ pub async fn wiki_notes_update(
     id: String,
     input: UpdateNoteInput,
 ) -> Result<Note, String> {
-    if input.content.is_some() || input.title.is_some() {
+    let existing_content = if input.content.is_some() || input.title.is_some() {
         match axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
             Ok(existing) => {
                 // 版本备份失败时记录错误日志但不阻止更新（版本备份是辅助功能，
@@ -234,12 +345,16 @@ pub async fn wiki_notes_update(
                 {
                     tracing::error!("[wiki] 笔记 {} 版本备份失败，原始内容将被覆盖: {}", id, e);
                 }
+                Some(existing)
             },
             Err(e) => {
                 tracing::warn!("[wiki] 更新前获取笔记 {} 失败，跳过版本备份: {}", id, e);
+                None
             },
         }
-    }
+    } else {
+        None
+    };
 
     let updated = axagent_dao::repo::note::update_note(state.harness.db(), &id, input)
         .await
@@ -252,12 +367,56 @@ pub async fn wiki_notes_update(
 
     let _ = wiki::delete_old_versions(state.harness.db(), &id, 20).await;
 
+    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks（修复双向链接自动建立机制断裂）
+    // 失败时仅记录警告，不阻止笔记更新
+    if let Err(e) = sync_note_links_from_content(
+        state.harness.db(),
+        &updated.vault_id,
+        &updated.id,
+        &updated.content,
+    )
+    .await
+    {
+        tracing::warn!("[wiki] 笔记 {} 更新后链接同步失败: {}", updated.id, e);
+    }
+
     // 失效图谱缓存（notes 表有更新）
     let _ = axagent_dao::repo::wiki_graph_cache::invalidate_cache(
         state.harness.db(),
         &updated.vault_id,
     )
     .await;
+
+    // 写入反馈数据湖
+    if let Some(lake) = axagent_harness::feedback_data_lake::global_feedback_lake() {
+        let before_snippet = existing_content.map(|e| {
+            if e.content.len() > 500 {
+                e.content[..500].to_string()
+            } else {
+                e.content
+            }
+        });
+        let after_snippet = if updated.content.len() > 500 {
+            Some(updated.content[..500].to_string())
+        } else {
+            Some(updated.content.clone())
+        };
+        let record = axagent_harness::WikiEditRecord {
+            id: uuid::Uuid::new_v4().to_string(),
+            conversation_id: None,
+            wiki_id: updated.vault_id.clone(),
+            note_id: updated.id.clone(),
+            operation: "update".to_string(),
+            before_snippet,
+            after_snippet,
+            reason: None,
+            quality_score: None,
+            created_at: chrono::Utc::now().timestamp_millis(),
+        };
+        if let Err(e) = lake.insert_wiki_edit(record).await {
+            tracing::warn!("Wiki 编辑反馈写入失败 note_id={}: {}", updated.id, e);
+        }
+    }
 
     enqueue_wiki_note_indexing(&state, &app, &updated.vault_id, &updated.id);
 
@@ -268,24 +427,25 @@ pub async fn wiki_notes_update(
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     // 删除前先取出 vault_id，用于清理向量嵌入和失效图谱缓存
     // 区分 NotFound（直接返回 Ok）和 DB 错误（返回错误），避免向量残留
-    let vault_id = match axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
-        Ok(existing) => {
-            let collection_id = format!("wiki_{}", existing.vault_id);
-            let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
-            Some(existing.vault_id)
-        },
-        Err(e) if e.to_string().contains("NotFound") || e.to_string().contains("not found") => {
-            // 笔记不存在，视为已删除，直接返回成功
-            return Ok(());
-        },
-        Err(e) => {
-            // DB 错误：返回错误，避免在不知道 vault_id 的情况下删除导致向量残留
-            return Err(String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            )));
-        },
-    };
+    let (vault_id, existing_content) =
+        match axagent_dao::repo::note::get_note(state.harness.db(), &id).await {
+            Ok(existing) => {
+                let collection_id = format!("wiki_{}", existing.vault_id);
+                let _ = state.vector_store.delete_document_embeddings(&collection_id, &id).await;
+                (Some(existing.vault_id), Some(existing.content))
+            },
+            Err(e) if e.to_string().contains("NotFound") || e.to_string().contains("not found") => {
+                // 笔记不存在，视为已删除，直接返回成功
+                return Ok(());
+            },
+            Err(e) => {
+                // DB 错误：返回错误，避免在不知道 vault_id 的情况下删除导致向量残留
+                return Err(String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                )));
+            },
+        };
 
     axagent_dao::repo::note::delete_note(state.harness.db(), &id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -295,9 +455,35 @@ pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result
     })?;
 
     // 失效图谱缓存（notes 表有删除）
-    if let Some(vid) = vault_id {
+    if let Some(ref vid) = vault_id {
         let _ =
-            axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), &vid).await;
+            axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), vid).await;
+    }
+
+    // 写入反馈数据湖
+    if let (Some(vid), Some(content)) = (&vault_id, &existing_content) {
+        if let Some(lake) = axagent_harness::feedback_data_lake::global_feedback_lake() {
+            let before_snippet = if content.len() > 500 {
+                content[..500].to_string()
+            } else {
+                content.clone()
+            };
+            let record = axagent_harness::WikiEditRecord {
+                id: uuid::Uuid::new_v4().to_string(),
+                conversation_id: None,
+                wiki_id: vid.clone(),
+                note_id: id.clone(),
+                operation: "delete".to_string(),
+                before_snippet: Some(before_snippet),
+                after_snippet: None,
+                reason: None,
+                quality_score: None,
+                created_at: chrono::Utc::now().timestamp_millis(),
+            };
+            if let Err(e) = lake.insert_wiki_edit(record).await {
+                tracing::warn!("Wiki 编辑反馈写入失败 note_id={}: {}", id, e);
+            }
+        }
     }
 
     Ok(())

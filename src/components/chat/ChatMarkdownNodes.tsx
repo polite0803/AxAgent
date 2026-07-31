@@ -33,6 +33,7 @@ import { useSettingsStore } from "@/stores";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import { useTranslation } from "react-i18next";
 import { formatDuration } from "../gateway/tokenFormat";
+import { RetrievalMessageIdContext } from "./BaseRetrievalNode";
 import { CodeBlockHeaderActions } from "./CodeBlockHeaderActions";
 import { CronResultNode } from "./CronResultNode";
 import { DiagramModeToggle } from "./DiagramModeToggle";
@@ -1371,6 +1372,7 @@ const AssistantMarkdown = React.memo(
     codeBlockLightTheme,
     codeBlockThemes,
     codeFontFamily,
+    messageId,
   }: {
     content: string;
     nodes?: ChatMarkdownNode[];
@@ -1380,6 +1382,8 @@ const AssistantMarkdown = React.memo(
     codeBlockLightTheme: string;
     codeBlockThemes: string[];
     codeFontFamily?: string;
+    /** 当前消息 ID，传递给检索结果节点用于 RAG 反馈闭环 */
+    messageId?: string | null;
   }) {
     const { token } = theme.useToken();
     const { t } = useTranslation();
@@ -1525,69 +1529,91 @@ const AssistantMarkdown = React.memo(
 
     return (
       <CiteItemsContext.Provider value={citeEntries}>
-        {singleD2Node
-          ? (
-            <ChatD2BlockNode
-              key={`d2:${rendererKey}`}
-              node={singleD2Node}
-              isDark={isDarkMode}
-            />
-          )
-          : hasDeferredHeavyNodes && !readyToRenderHeavyNodes
-          ? (
-            <div className="axagent-chat-markdown" key={`loading:${rendererKey}`}>
-              <div
-                ref={containerRef}
-                className="my-4 rounded-lg border"
-                style={{
-                  borderColor: token.colorBorderSecondary,
-                  background: isDarkMode
-                    ? token.colorBgContainer
-                    : token.colorBgElevated,
-                }}
-              >
+        <RetrievalMessageIdContext.Provider value={messageId ?? null}>
+          {singleD2Node
+            ? (
+              <ChatD2BlockNode
+                key={`d2:${rendererKey}`}
+                node={singleD2Node}
+                isDark={isDarkMode}
+              />
+            )
+            : hasDeferredHeavyNodes && !readyToRenderHeavyNodes
+            ? (
+              <div className="axagent-chat-markdown" key={`loading:${rendererKey}`}>
                 <div
-                  className="flex items-center justify-center px-4 py-10"
-                  style={{ color: token.colorTextSecondary, gap: 8 }}
+                  ref={containerRef}
+                  className="my-4 rounded-lg border"
+                  style={{
+                    borderColor: token.colorBorderSecondary,
+                    background: isDarkMode
+                      ? token.colorBgContainer
+                      : token.colorBgElevated,
+                  }}
                 >
-                  <SyncOutlined spin />
-                  <span className="text-sm">
-                    {t("chat.loadingRenderContent")}
-                  </span>
+                  <div
+                    className="flex items-center justify-center px-4 py-10"
+                    style={{ color: token.colorTextSecondary, gap: 8 }}
+                  >
+                    <SyncOutlined spin />
+                    <span className="text-sm">
+                      {t("chat.loadingRenderContent")}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-          : (
-            <div
-              className="axagent-chat-markdown"
-              key={`render:${nodeRendererReseedKey}`}
-            >
-              {hasLatex
-                ? latexSegments.map((seg, idx) => {
-                  if (seg.type === "block-math") {
+            )
+            : (
+              <div
+                className="axagent-chat-markdown"
+                key={`render:${nodeRendererReseedKey}`}
+              >
+                {hasLatex
+                  ? latexSegments.map((seg, idx) => {
+                    if (seg.type === "block-math") {
+                      return (
+                        <div
+                          key={`latex-block-${idx}`}
+                          style={{ margin: "8px 0", overflowX: "auto" }}
+                        >
+                          <LatexRenderer content={seg.content} displayMode />
+                        </div>
+                      );
+                    }
+                    if (seg.type === "inline-math") {
+                      return (
+                        <LatexRenderer
+                          key={`latex-inline-${idx}`}
+                          content={seg.content}
+                        />
+                      );
+                    }
+                    // 文本段：走原 Markdown 渲染器（content 模式）
                     return (
-                      <div
-                        key={`latex-block-${idx}`}
-                        style={{ margin: "8px 0", overflowX: "auto" }}
-                      >
-                        <LatexRenderer content={seg.content} displayMode />
-                      </div>
-                    );
-                  }
-                  if (seg.type === "inline-math") {
-                    return (
-                      <LatexRenderer
-                        key={`latex-inline-${idx}`}
+                      <NodeRenderer
+                        key={`text-${idx}`}
                         content={seg.content}
+                        isDark={isDarkMode}
+                        customId="chat"
+                        customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+                        final={!isStreaming}
+                        typewriter={isStreaming}
+                        themes={codeBlockThemes}
+                        codeBlockLightTheme={codeBlockLightTheme}
+                        codeBlockDarkTheme={codeBlockDarkTheme}
+                        codeBlockProps={codeBlockProps}
+                        codeBlockMonacoOptions={codeBlockMonacoOptions}
+                        mermaidProps={CHAT_MERMAID_PROPS}
+                        infographicProps={CHAT_INFOGRAPHIC_PROPS}
+                        {...CHAT_RENDER_BATCH_PROPS}
                       />
                     );
-                  }
-                  // 文本段：走原 Markdown 渲染器（content 模式）
-                  return (
+                  })
+                  : nodes
+                  ? (
                     <NodeRenderer
-                      key={`text-${idx}`}
-                      content={seg.content}
+                      key={nodeRendererReseedKey}
+                      nodes={nodes}
                       isDark={isDarkMode}
                       customId="chat"
                       customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
@@ -1602,49 +1628,29 @@ const AssistantMarkdown = React.memo(
                       infographicProps={CHAT_INFOGRAPHIC_PROPS}
                       {...CHAT_RENDER_BATCH_PROPS}
                     />
-                  );
-                })
-                : nodes
-                ? (
-                  <NodeRenderer
-                    key={nodeRendererReseedKey}
-                    nodes={nodes}
-                    isDark={isDarkMode}
-                    customId="chat"
-                    customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
-                    final={!isStreaming}
-                    typewriter={isStreaming}
-                    themes={codeBlockThemes}
-                    codeBlockLightTheme={codeBlockLightTheme}
-                    codeBlockDarkTheme={codeBlockDarkTheme}
-                    codeBlockProps={codeBlockProps}
-                    codeBlockMonacoOptions={codeBlockMonacoOptions}
-                    mermaidProps={CHAT_MERMAID_PROPS}
-                    infographicProps={CHAT_INFOGRAPHIC_PROPS}
-                    {...CHAT_RENDER_BATCH_PROPS}
-                  />
-                )
-                : (
-                  <NodeRenderer
-                    key={nodeRendererReseedKey}
-                    content={processedContent}
-                    isDark={isDarkMode}
-                    customId="chat"
-                    customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
-                    final={!isStreaming}
-                    typewriter={isStreaming}
-                    themes={codeBlockThemes}
-                    codeBlockLightTheme={codeBlockLightTheme}
-                    codeBlockDarkTheme={codeBlockDarkTheme}
-                    codeBlockProps={codeBlockProps}
-                    codeBlockMonacoOptions={codeBlockMonacoOptions}
-                    mermaidProps={CHAT_MERMAID_PROPS}
-                    infographicProps={CHAT_INFOGRAPHIC_PROPS}
-                    {...CHAT_RENDER_BATCH_PROPS}
-                  />
-                )}
-            </div>
-          )}
+                  )
+                  : (
+                    <NodeRenderer
+                      key={nodeRendererReseedKey}
+                      content={processedContent}
+                      isDark={isDarkMode}
+                      customId="chat"
+                      customHtmlTags={CHAT_CUSTOM_HTML_TAGS}
+                      final={!isStreaming}
+                      typewriter={isStreaming}
+                      themes={codeBlockThemes}
+                      codeBlockLightTheme={codeBlockLightTheme}
+                      codeBlockDarkTheme={codeBlockDarkTheme}
+                      codeBlockProps={codeBlockProps}
+                      codeBlockMonacoOptions={codeBlockMonacoOptions}
+                      mermaidProps={CHAT_MERMAID_PROPS}
+                      infographicProps={CHAT_INFOGRAPHIC_PROPS}
+                      {...CHAT_RENDER_BATCH_PROPS}
+                    />
+                  )}
+              </div>
+            )}
+        </RetrievalMessageIdContext.Provider>
       </CiteItemsContext.Provider>
     );
   },
@@ -1656,7 +1662,8 @@ const AssistantMarkdown = React.memo(
     && prev.codeBlockDarkTheme === next.codeBlockDarkTheme
     && prev.codeBlockLightTheme === next.codeBlockLightTheme
     && prev.codeBlockThemes === next.codeBlockThemes
-    && prev.codeFontFamily === next.codeFontFamily,
+    && prev.codeFontFamily === next.codeFontFamily
+    && prev.messageId === next.messageId,
 );
 
 export {

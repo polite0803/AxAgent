@@ -55,13 +55,43 @@ impl ActionExecutor {
         tracing::debug!(conversation_id = %conversation_id, action_type = ?action.action_type, "Executing action");
 
         let start = Instant::now();
-        match action.action_type {
+        let result = match action.action_type {
             ActionType::ToolCall => {
                 let tool_name = action.tool_name.as_ref().ok_or(ActionError::InvalidAction(
                     "ToolCall action missing tool_name".to_string(),
                 ))?;
                 let input = action.tool_input.clone().unwrap_or(serde_json::json!({}));
-                self.execute_tool(tool_name, input).await
+                let tool_start = Instant::now();
+                let tool_result = self.execute_tool(tool_name, input.clone()).await;
+                let duration_ms = tool_start.elapsed().as_millis() as u64;
+
+                // 写入反馈数据湖
+                if let Some(lake) = axagent_harness::feedback_data_lake::global_feedback_lake() {
+                    let record = axagent_harness::feedback_data_lake::ToolCallRecord {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        conversation_id: Some(conversation_id.to_string()),
+                        trajectory_id: None,
+                        step_index: 0,
+                        tool_name: tool_name.to_string(),
+                        arguments: input,
+                        result: match &tool_result {
+                            Ok(ActionResult::ToolSuccess(output, _)) => {
+                                Some(serde_json::Value::String(output.clone()))
+                            },
+                            Err(e) => Some(serde_json::Value::String(e.to_string())),
+                            _ => None,
+                        },
+                        success: tool_result.is_ok(),
+                        duration_ms,
+                        related_source_id: None,
+                        created_at: chrono::Utc::now().timestamp_millis(),
+                    };
+                    if let Err(e) = lake.insert_tool_call(record).await {
+                        tracing::warn!("工具调用反馈写入失败 tool={}: {}", tool_name, e);
+                    }
+                }
+
+                tool_result
             },
             ActionType::LlmCall => {
                 let prompt = action.llm_prompt.as_ref().ok_or(ActionError::InvalidAction(
@@ -89,8 +119,8 @@ impl ActionExecutor {
             ActionType::Synthesize => {
                 Ok(ActionResult::Synthesis(action.llm_prompt.clone().unwrap_or_default()))
             },
-        }
-        .map(|result| result.with_duration(start.elapsed()))
+        };
+        result.map(|r| r.with_duration(start.elapsed()))
     }
 
     async fn execute_tool(

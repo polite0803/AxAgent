@@ -367,3 +367,28 @@ pub fn apply_template_variables(content: &str, wiki_name: &str) -> String {
         .replace("{{tags}}", "")
         .replace("{{wiki_name}}", wiki_name)
 }
+
+/// v110: 检查 Wiki 中是否已存在对应知识库文档的笔记。
+///
+/// 通过 source_refs 字段查找是否已有引用该文档的笔记。
+/// 用于 KB→Wiki 自动同步时避免重复创建。
+pub async fn note_exists_for_document(
+    db: &DatabaseConnection,
+    _vault_id: &str,
+    doc_id: &str,
+) -> Result<bool> {
+    let pattern = format!("%:doc:{}%", doc_id);
+    let sql = "SELECT COUNT(*) FROM notes WHERE source_refs LIKE ?1 AND is_deleted = 0";
+    let row = db
+        .query_one_raw(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            sql,
+            vec![pattern.into()],
+        ))
+        .await?;
+
+    Ok(match row {
+        Some(r) => r.try_get::<i64>("", "COUNT(*)").unwrap_or(0) > 0,
+        None => false,
+    })
+}

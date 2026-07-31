@@ -771,6 +771,11 @@
     },
     "knowledgeRetrieval": {
       "error": "知識庫檢索失敗",
+      "feedbackIrrelevant": "無關",
+      "feedbackNegative": "無用",
+      "feedbackNotFound": "未找到檢索記錄，回饋未保存",
+      "feedbackPositive": "有用",
+      "feedbackSubmitted": "回饋已提交",
       "resultsCount": "檢索到 {{count}} 條知識",
       "searching": "正在檢索知識庫..."
     },

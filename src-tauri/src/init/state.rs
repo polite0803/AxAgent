@@ -14,7 +14,12 @@ use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, LearningEngineState, SandboxExecutorField, ToolState};
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
+use axagent_dao::repo::feedback_data_lake::FeedbackDataLakeDao;
+use axagent_dao::search_sources_impl::{
+    MemoryUnifiedSource, ObsidianUnifiedSource, RagUnifiedSource, WikiUnifiedSource,
+};
 use axagent_harness::AgentSessionRepository;
+use axagent_harness::feedback_data_lake::register_feedback_lake;
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
@@ -95,6 +100,19 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }),
         std::sync::Arc::new(axagent_document_parser::parser_impl::DefaultDocumentParser),
     );
+
+    // 注册统一知识源实现（v2）：RAG / Wiki / Memory / Obsidian 四类知识源
+    axagent_search::sources::set_unified_sources(vec![
+        std::sync::Arc::new(RagUnifiedSource { db: sea_db.clone() }),
+        std::sync::Arc::new(WikiUnifiedSource { db: sea_db.clone() }),
+        std::sync::Arc::new(MemoryUnifiedSource { db: sea_db.clone() }),
+        std::sync::Arc::new(ObsidianUnifiedSource { db: sea_db.clone() }),
+    ]);
+
+    // 注册全局反馈数据湖实现
+    register_feedback_lake(std::sync::Arc::new(FeedbackDataLakeDao::new(std::sync::Arc::new(
+        sea_db.clone(),
+    ))));
 
     // ensure_preset_servers / migrate_hardcoded_paths / migrate_legacy_keys
     // 已合并到 axagent_dao::db::create_pool() 中，无需在此重复调用
