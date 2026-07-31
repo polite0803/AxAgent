@@ -47,6 +47,9 @@ pub mod v107_paper_reading_list;
 pub mod v108_memory_applicability;
 pub mod v109_repair_memory_items_columns;
 pub mod v110_fix_knowledge_json_columns;
+pub mod v111_retrieval_hits_feedback;
+pub mod v112_feedback_data_lake;
+pub mod v113_unified_knowledge_graph;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -145,6 +148,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 110,
         description: "v110_fix_knowledge_json_columns: 将知识图谱表（knowledge_entities/relations/flows/interfaces/attributes）的 JSON 列从 TEXT 改为 JSONB，修复 SeaORM Json 类型在 PostgreSQL 下的类型不兼容错误（SQLite 下无操作）",
         up: |db| Box::pin(v110_fix_knowledge_json_columns::up(db)),
+    },
+    Migration {
+        version: 111,
+        description: "v111_retrieval_hits_feedback: 为 retrieval_hits 表添加 feedback/feedback_at/used_in_response/score_after_rerank/created_at 字段，构建 RAG 反馈闭环数据基础",
+        up: |db| Box::pin(v111_retrieval_hits_feedback::up(db)),
+    },
+    Migration {
+        version: 112,
+        description: "v112_feedback_data_lake: 新建 tool_call_logs/memory_access_logs/wiki_edit_logs 三张反馈数据表，建立统一反馈数据湖",
+        up: |db| Box::pin(v112_feedback_data_lake::up(db)),
+    },
+    Migration {
+        version: 113,
+        description: "v113_unified_knowledge_graph: 扩展 knowledge_entities/knowledge_relations 表支持多源节点（wiki note/memory item/KB entity/Obsidian note）",
+        up: |db| Box::pin(v113_unified_knowledge_graph::up(db)),
     },
     Migration {
         version: 200,
@@ -475,7 +493,10 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 20, "schema_version should have 20 rows (v100~v110 + v200~v208)");
+        assert_eq!(
+            cnt, 23,
+            "schema_version should have 23 rows (v100~v113 + v200~v208)"
+        );
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

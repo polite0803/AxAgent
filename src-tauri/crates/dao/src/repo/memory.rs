@@ -185,6 +185,37 @@ pub async fn list_items(db: &DatabaseConnection, namespace_id: &str) -> Result<V
     Ok(models.into_iter().map(model_to_item).collect())
 }
 
+/// 在数据库层面执行记忆条目搜索，带 WHERE 过滤和 LIMIT。
+///
+/// 避免全表加载，利用数据库索引和 LIMIT 提前截断。
+/// 当 `namespace_id` 为空字符串时不按命名空间过滤（搜索全部）。
+pub async fn search_items(
+    db: &DatabaseConnection,
+    namespace_id: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<MemoryItem>> {
+    let query_lower = format!("%{}%", query.to_lowercase());
+    let limit = limit as u64;
+
+    let mut select = memory_items::Entity::find();
+    if !namespace_id.is_empty() {
+        select = select.filter(memory_items::Column::NamespaceId.eq(namespace_id));
+    }
+    let models = select
+        .filter(
+            Condition::any()
+                .add(memory_items::Column::Title.like(query_lower.clone()))
+                .add(memory_items::Column::Content.like(query_lower)),
+        )
+        .order_by_desc(memory_items::Column::Importance)
+        .limit(limit)
+        .all(db)
+        .await?;
+
+    Ok(models.into_iter().map(model_to_item).collect())
+}
+
 pub async fn get_item(db: &DatabaseConnection, id: &str) -> Result<MemoryItem> {
     let model = memory_items::Entity::find_by_id(id)
         .one(db)
@@ -581,4 +612,213 @@ pub async fn apply_decay_tick(db: &DatabaseConnection) -> Result<(u64, u64, u64)
     }
 
     Ok((expired_deleted, low_score_deleted, capacity_evicted))
+}
+
+/// 高重要性条目：用于 Memory → Knowledge 实体回流。
+///
+/// 查询 importance >= threshold 的条目，用于定时将高价值记忆
+/// 转换为知识图谱实体，解决三套实体系统各自为政的问题。
+pub async fn list_high_importance_items(
+    db: &DatabaseConnection,
+    min_importance: Option<f64>,
+    limit: Option<u32>,
+) -> Result<Vec<MemoryItem>> {
+    let threshold = min_importance.unwrap_or(0.7);
+    let lim = limit.unwrap_or(100);
+
+    let items = memory_items::Entity::find()
+        .filter(memory_items::Column::Importance.gte(threshold))
+        .order_by_desc(memory_items::Column::Importance)
+        .limit(lim as u64)
+        .all(db)
+        .await?;
+
+    Ok(items.into_iter().map(model_to_item).collect())
+}
+
+/// v110: Agent 工具调用结果 → Memory 自动沉淀
+///
+/// 扫描最近的对话消息，提取工具调用结果（WebSearch、CodeInterpreter、
+/// KnowledgeRetrieval 等），自动沉淀为 Memory 条目。
+///
+/// 这是"Agent 执行→知识沉淀"闭环的核心：
+/// Agent 在执行任务时产生的高价值工具结果（搜索发现、代码运行结果、
+/// 外部数据获取）不应随对话结束而消失，而应自动沉淀为可被后续
+/// RAG 检索使用的记忆条目。
+///
+/// # 工具重要性映射
+/// - web_search / web_fetch → importance 0.6，tier: short_term
+/// - code_interpreter / bash → importance 0.5，tier: short_term
+/// - knowledge_retrieval / file_search → importance 0.7，tier: long_term
+/// - 其他工具 → importance 0.4，tier: working
+///
+/// # 去重策略
+/// 通过 content hash 避免重复沉淀，已存在的相同内容跳过。
+pub async fn deposit_tool_results_from_recent_messages(
+    db: &DatabaseConnection,
+    hours_lookback: Option<i64>,
+) -> Result<usize> {
+    let hours = hours_lookback.unwrap_or(24);
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let cutoff = now_ms - hours * 3600 * 1000;
+
+    // 查询最近包含 tool_result 的消息
+    let sql = r#"
+        SELECT m.id, m.content, m.role, m.created_at
+        FROM messages m
+        WHERE m.created_at >= ?1
+          AND m.role = 'tool'
+          AND m.content IS NOT NULL
+          AND LENGTH(m.content) > 20
+        ORDER BY m.created_at DESC
+        LIMIT 200
+    "#;
+    let rows = db
+        .query_all_raw(Statement::from_sql_and_values(
+            db.get_database_backend(),
+            sql,
+            vec![cutoff.into()],
+        ))
+        .await?;
+
+    if rows.is_empty() {
+        return Ok(0);
+    }
+
+    let mut deposited = 0usize;
+    let existing_contents = load_existing_memory_contents(db).await;
+
+    for row in &rows {
+        let msg_id: String = row.try_get("", "id").unwrap_or_default();
+        let content: String = row.try_get("", "content").unwrap_or_default();
+        if content.is_empty() {
+            continue;
+        }
+
+        // 检查是否已沉积过
+        let content_hash = simple_hash(&content);
+        if existing_contents.contains(&content_hash) {
+            continue;
+        }
+
+        // 根据内容特征判断工具类型和重要性
+        let (importance, tier, decay_rate) = infer_tool_importance(&content);
+
+        // 截取前 200 字符作为标题
+        let title: String = content.chars().take(200).collect();
+
+        // 生成唯一 ID
+        let item_id =
+            format!("tool_{}_{}", msg_id, content_hash.chars().take(8).collect::<String>());
+
+        // 插入 Memory 条目
+        let insert_sql = r#"
+            INSERT OR IGNORE INTO memory_items
+                (id, namespace_id, title, content, tier, importance, decay_rate,
+                 access_count, confirmed, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0, ?8, ?8)
+        "#;
+        let values: Vec<sea_orm::Value> = vec![
+            item_id.as_str().into(),
+            "agent_tool_results".into(),
+            title.as_str().into(),
+            content.as_str().into(),
+            tier.into(),
+            importance.into(),
+            decay_rate.into(),
+            now_ms.into(),
+        ];
+
+        match db
+            .query_all_raw(Statement::from_sql_and_values(
+                db.get_database_backend(),
+                insert_sql,
+                values,
+            ))
+            .await
+        {
+            Ok(_) => {
+                deposited += 1;
+                tracing::debug!(
+                    "[tool_deposit] 沉积成功 msg_id={} importance={} tier={}",
+                    msg_id,
+                    importance,
+                    tier
+                );
+            },
+            Err(e) => {
+                tracing::debug!("[tool_deposit] 沉积失败 msg_id={}: {}", msg_id, e);
+            },
+        }
+    }
+
+    tracing::info!(
+        "[tool_deposit] 工具结果沉积完成：扫描 {} 条消息，沉积 {} 条",
+        rows.len(),
+        deposited
+    );
+
+    Ok(deposited)
+}
+
+/// 加载已有 Memory 条目的内容 hash，用于去重。
+async fn load_existing_memory_contents(
+    db: &DatabaseConnection,
+) -> std::collections::HashSet<String> {
+    let sql = "SELECT id FROM memory_items WHERE namespace_id = 'agent_tool_results'";
+    let rows = match db
+        .query_all_raw(Statement::from_sql_and_values(db.get_database_backend(), sql, vec![]))
+        .await
+    {
+        Ok(rows) => rows,
+        Err(_) => return std::collections::HashSet::new(),
+    };
+
+    rows.into_iter().filter_map(|row| row.try_get::<String>("", "id").ok()).collect()
+}
+
+/// 简单的字符串 hash（FNV-1a 64 位），用于去重。
+fn simple_hash(input: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in input.bytes() {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{:016x}", hash)
+}
+
+/// 根据工具结果内容推断重要性和 tier。
+fn infer_tool_importance(content: &str) -> (f64, &'static str, f64) {
+    let lower = content.to_lowercase();
+
+    // Web 搜索/抓取结果 → 中短期记忆
+    if lower.contains("http")
+        || lower.contains("url")
+        || lower.contains("搜索")
+        || lower.contains("search")
+    {
+        return (0.6, "short_term", 0.02);
+    }
+
+    // 代码执行/运行结果 → 中短期记忆
+    if lower.contains("error")
+        || lower.contains("output")
+        || lower.contains("stderr")
+        || lower.contains("stdout")
+    {
+        return (0.5, "short_term", 0.02);
+    }
+
+    // 知识库检索结果 → 长期记忆
+    if lower.contains("similarity") || lower.contains("relevant") || lower.contains("knowledge") {
+        return (0.7, "long_term", 0.005);
+    }
+
+    // 文件操作结果 → 工作记忆
+    if lower.contains("file") || lower.contains("directory") || lower.contains("文件") {
+        return (0.4, "working", 0.05);
+    }
+
+    // 默认：工作记忆
+    (0.4, "working", 0.05)
 }

@@ -818,6 +818,11 @@
     },
     "knowledgeRetrieval": {
       "error": "Knowledge base search failed",
+      "feedbackIrrelevant": "Irrelevant",
+      "feedbackNegative": "Not useful",
+      "feedbackNotFound": "Retrieval record not found, feedback not saved",
+      "feedbackPositive": "Useful",
+      "feedbackSubmitted": "Feedback submitted",
       "resultsCount": "Retrieved {{count}} knowledge items",
       "searching": "Searching knowledge base..."
     },

@@ -978,6 +978,11 @@
     },
     "knowledgeRetrieval": {
       "error": "Ошибка поиска в базе знаний",
+      "feedbackIrrelevant": "Не по теме",
+      "feedbackNegative": "Бесполезно",
+      "feedbackNotFound": "Запись о поиске не найдена, отзыв не сохранен",
+      "feedbackPositive": "Полезно",
+      "feedbackSubmitted": "Отзыв отправлен",
       "resultsCount": "Найдено {{count}} элементов знаний",
       "searching": "Поиск в базе знаний..."
     },

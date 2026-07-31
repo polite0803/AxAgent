@@ -62,6 +62,39 @@ pub async fn list_notes(db: &DatabaseConnection, vault_id: &str) -> Result<Vec<N
     Ok(models.into_iter().map(model_to_note).collect())
 }
 
+/// 在数据库层面执行 Wiki 笔记搜索，带 WHERE 过滤和 LIMIT。
+///
+/// 避免 `list_notes` 全表加载后在内存中过滤，
+/// 当笔记数量大时能显著降低内存占用和延迟。
+/// 当 `vault_id` 为空字符串时不按 vault 过滤（搜索全部）。
+pub async fn search_notes(
+    db: &DatabaseConnection,
+    vault_id: &str,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<Note>> {
+    let query_lower = format!("%{}%", query.to_lowercase());
+    let limit = limit as u64;
+
+    // 标题精确匹配优先，然后内容模糊匹配
+    let mut select = notes::Entity::find().filter(notes::Column::IsDeleted.eq(0));
+    if !vault_id.is_empty() {
+        select = select.filter(notes::Column::VaultId.eq(vault_id));
+    }
+    let models = select
+        .filter(
+            Condition::any()
+                .add(notes::Column::Title.like(query_lower.clone()))
+                .add(notes::Column::Content.like(query_lower)),
+        )
+        .order_by_desc(notes::Column::QualityScore)
+        .limit(limit)
+        .all(db)
+        .await?;
+
+    Ok(models.into_iter().map(model_to_note).collect())
+}
+
 pub async fn get_note(db: &DatabaseConnection, id: &str) -> Result<Note> {
     let model = notes::Entity::find_by_id(id)
         .one(db)

@@ -158,11 +158,11 @@ pub async fn list_knowledge_entities(
     db: &DatabaseConnection,
     base_id: &str,
 ) -> Result<Vec<KnowledgeEntity>> {
-    let models = knowledge_entities::Entity::find()
-        .filter(knowledge_entities::Column::KnowledgeBaseId.eq(base_id))
-        .order_by_asc(knowledge_entities::Column::Name)
-        .all(db)
-        .await?;
+    let mut select = knowledge_entities::Entity::find();
+    if !base_id.is_empty() {
+        select = select.filter(knowledge_entities::Column::KnowledgeBaseId.eq(base_id));
+    }
+    let models = select.order_by_asc(knowledge_entities::Column::Name).all(db).await?;
 
     Ok(models.into_iter().map(model_to_entity).collect())
 }
@@ -373,6 +373,62 @@ pub async fn search_entities(
         })
         .filter(|(s, _)| *s > 0)
         .collect();
+    scored.sort_by_key(|b| std::cmp::Reverse(b.0));
+    Ok(scored.into_iter().take(top_k).map(|(_, e)| e).collect())
+}
+
+/// 支持类型过滤的图谱实体搜索。
+///
+/// 相比 `search_entities`，本函数支持按 `entity_type` 过滤，
+/// 利用数据库层面的 WHERE 提前筛选，避免全表加载。
+/// 当 `kb_id` 为空字符串时不按知识库过滤（搜索全部）。
+pub async fn search_entities_with_filter(
+    db: &DatabaseConnection,
+    kb_id: &str,
+    query: &str,
+    top_k: usize,
+    entity_type_filter: Option<&str>,
+) -> Result<Vec<KnowledgeEntity>> {
+    let mut select = knowledge_entities::Entity::find();
+    if !kb_id.is_empty() {
+        select = select.filter(knowledge_entities::Column::KnowledgeBaseId.eq(kb_id));
+    }
+
+    if let Some(et) = entity_type_filter {
+        select = select.filter(knowledge_entities::Column::EntityType.eq(et));
+    }
+
+    let limit = top_k as u64;
+    select = select.limit(limit * 3);
+
+    let models = select.all(db).await?;
+    let query_lower = query.to_lowercase();
+    let keywords: Vec<&str> = query_lower.split_whitespace().collect();
+
+    let mut scored: Vec<(i64, KnowledgeEntity)> = models
+        .into_iter()
+        .map(model_to_entity)
+        .map(|e| {
+            let name_lower = e.name.to_lowercase();
+            let desc_lower = e.description.as_deref().unwrap_or("").to_lowercase();
+            let type_lower = e.entity_type.to_lowercase();
+            let mut score: i64 = 0;
+            for kw in &keywords {
+                if name_lower.contains(kw) {
+                    score += 10;
+                }
+                if desc_lower.contains(kw) {
+                    score += 5;
+                }
+                if type_lower.contains(kw) {
+                    score += 3;
+                }
+            }
+            (score, e)
+        })
+        .filter(|(s, _)| *s > 0)
+        .collect();
+
     scored.sort_by_key(|b| std::cmp::Reverse(b.0));
     Ok(scored.into_iter().take(top_k).map(|(_, e)| e).collect())
 }

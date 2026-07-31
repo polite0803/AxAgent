@@ -49,6 +49,11 @@ pub mod memory_items;
 pub mod memory_namespaces;
 pub mod retrieval_hits;
 
+// Feedback data lake entities (v112)
+pub mod memory_access_logs;
+pub mod tool_call_logs;
+pub mod wiki_edit_logs;
+
 pub mod stored_files;
 
 pub mod workflow_snapshots;

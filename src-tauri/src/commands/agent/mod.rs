@@ -640,7 +640,7 @@ pub async fn agent_query(
 
     // Set workflow_status to "running" for workflow-type sessions
     if conversation.session_type == "workflow" {
-        let _ = axagent_dao::repo::conversation::update_conversation(
+        if let Err(e) = axagent_dao::repo::conversation::update_conversation(
             app_state.harness.db(),
             &conversation_id,
             axagent_harness::types::UpdateConversationInput {
@@ -648,7 +648,10 @@ pub async fn agent_query(
                 ..Default::default()
             },
         )
-        .await;
+        .await
+        {
+            tracing::warn!("工作流会话状态更新为 running 失败 id={}: {}", conversation_id, e);
+        }
     }
 
     // Get settings from database（提前加载，供 Smart Router 门控 + 后续 proxy 解析复用）
@@ -1113,6 +1116,55 @@ pub async fn agent_query(
         info!("[agent] Search provider configured: type={}, id={}", sp.provider_type, sp.id);
     } else {
         info!("[agent] No search provider configured — WebSearch will fall back to DDG");
+    }
+
+    // ── 注入 vault_kb_id 到 tool_extra，修复 Obsidian 集成链路断裂 ──
+    // obsidian_* 工具通过 ToolContext.extra["vault_kb_id"] 取 KB ID，再从 VaultRegistry 取 vault。
+    // 此前缺少注入，导致所有 obsidian_* 工具调用时报 NotBound 错误。
+    // 优先从 request.enabled_knowledge_base_ids 筛选 ConnectedVault KB；
+    // 若未指定，回退到第一个启用的 ConnectedVault KB（仅当全局唯一时自动绑定）。
+    match axagent_dao::repo::knowledge::list_knowledge_bases(app_state.harness.db()).await {
+        Ok(all_kbs) => {
+            let vault_kbs: Vec<_> = all_kbs
+                .iter()
+                .filter(|kb| {
+                    kb.enabled
+                        && matches!(kb.kind, axagent_harness::KbKind::ConnectedVault)
+                        && kb.vault_path.is_some()
+                })
+                .collect();
+
+            if !vault_kbs.is_empty() {
+                let enabled_ids = request.enabled_knowledge_base_ids.as_deref().unwrap_or(&[]);
+                let target = if !enabled_ids.is_empty() {
+                    // 从显式启用的 KB 列表中筛选 ConnectedVault
+                    vault_kbs.iter().find(|kb| enabled_ids.iter().any(|id| id == &kb.id)).copied()
+                } else if vault_kbs.len() == 1 {
+                    // 未指定启用列表：仅当全局唯一时自动绑定
+                    vault_kbs.first().copied()
+                } else {
+                    None
+                };
+
+                if let Some(kb) = target {
+                    tool_registry = tool_registry.with_tool_extra("vault_kb_id", kb.id.as_str());
+                    info!(
+                        "[agent] Obsidian vault bound: kb_id={} name={} vault={}",
+                        kb.id,
+                        kb.name,
+                        kb.vault_path.as_ref().unwrap()
+                    );
+                } else if vault_kbs.len() > 1 {
+                    info!(
+                        "[agent] 发现 {} 个 ConnectedVault KB 但未在 enabled_knowledge_base_ids 中指定，obsidian_* 工具暂不绑定",
+                        vault_kbs.len()
+                    );
+                }
+            }
+        },
+        Err(e) => {
+            tracing::warn!("[agent] 查询 ConnectedVault KB 失败，obsidian_* 工具将不绑定: {}", e);
+        },
     }
 
     // Register skill tool handlers in tool_registry for execution.
@@ -1940,7 +1992,7 @@ pub async fn agent_query(
             if let (Some(axagent_session_id), Some(real_cost)) =
                 (session.axagent_session_id(), cost_usd)
             {
-                let _ = axagent_dao::repo::agent_session::update_agent_session_after_query(
+                if let Err(e) = axagent_dao::repo::agent_session::update_agent_session_after_query(
                     app_state.harness.db(),
                     axagent_session_id,
                     "idle",
@@ -1948,7 +2000,10 @@ pub async fn agent_query(
                     0,         // tokens already saved by session_manager
                     real_cost, // real cost delta
                 )
-                .await;
+                .await
+                {
+                    tracing::warn!("Agent session 成本持久化失败 id={}: {}", axagent_session_id, e);
+                }
             }
 
             let blocks: Vec<AgentContentBlock> = summary
@@ -2025,7 +2080,7 @@ pub async fn agent_query(
 
             // Set workflow_status to "completed" for workflow-type sessions
             if conversation.session_type == "workflow" {
-                let _ = axagent_dao::repo::conversation::update_conversation(
+                if let Err(e) = axagent_dao::repo::conversation::update_conversation(
                     app_state.harness.db(),
                     &conversation_id,
                     axagent_harness::types::UpdateConversationInput {
@@ -2033,7 +2088,14 @@ pub async fn agent_query(
                         ..Default::default()
                     },
                 )
-                .await;
+                .await
+                {
+                    tracing::warn!(
+                        "工作流会话状态更新为 completed 失败 id={}: {}",
+                        conversation_id,
+                        e
+                    );
+                }
             }
 
             // Semantic workflow matching for conversation-type sessions:
@@ -2136,10 +2198,17 @@ pub async fn agent_query(
                             if !is_error && tool_name == "MemoryFlush" && !result_content.is_empty()
                             {
                                 let mem = app_state.memory_service.write().await;
-                                let _ = mem.add_memory("agent", result_content).await;
-                                tracing::debug!(
-                                    "[P4-Mirror] Mirrored MemoryFlush result to MemoryService"
-                                );
+                                let result = mem.add_memory("agent", result_content).await;
+                                if result.success {
+                                    tracing::debug!(
+                                        "[P4-Mirror] Mirrored MemoryFlush result to MemoryService"
+                                    );
+                                } else {
+                                    tracing::warn!(
+                                        "MemoryFlush 同步到 MemoryService 失败: {}",
+                                        result.message
+                                    );
+                                }
                             }
                         }
                     }
@@ -2326,7 +2395,7 @@ pub async fn agent_query(
 
             // Set workflow_status to "failed" for workflow-type sessions
             if conversation.session_type == "workflow" {
-                let _ = axagent_dao::repo::conversation::update_conversation(
+                if let Err(e) = axagent_dao::repo::conversation::update_conversation(
                     app_state.harness.db(),
                     &conversation_id,
                     axagent_harness::types::UpdateConversationInput {
@@ -2334,7 +2403,14 @@ pub async fn agent_query(
                         ..Default::default()
                     },
                 )
-                .await;
+                .await
+                {
+                    tracing::warn!(
+                        "工作流会话状态更新为 failed 失败 id={}: {}",
+                        conversation_id,
+                        e
+                    );
+                }
             }
 
             // Emit agent-error event

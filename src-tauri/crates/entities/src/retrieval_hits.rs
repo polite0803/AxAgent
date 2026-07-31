@@ -16,6 +16,16 @@ pub struct Model {
     pub score: f64,
     #[sea_orm(column_type = "Text")]
     pub preview: String,
+    /// 用户反馈：'positive' / 'negative' / 'irrelevant' / NULL
+    pub feedback: Option<String>,
+    /// 反馈时间戳（Unix 秒）
+    pub feedback_at: Option<i64>,
+    /// 是否在最终回复中被引用（0/1）
+    pub used_in_response: i32,
+    /// 重排后分数（可选，用于对比原始 score）
+    pub score_after_rerank: Option<f64>,
+    /// 创建时间戳（Unix 秒）
+    pub created_at: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

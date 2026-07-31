@@ -978,6 +978,11 @@
     },
     "knowledgeRetrieval": {
       "error": "Wissensdatenbanksuche fehlgeschlagen",
+      "feedbackIrrelevant": "Irrelevant",
+      "feedbackNegative": "Nicht nützlich",
+      "feedbackNotFound": "Abrufdatensatz nicht gefunden, Feedback nicht gespeichert",
+      "feedbackPositive": "Nützlich",
+      "feedbackSubmitted": "Feedback übermittelt",
       "resultsCount": "{{count}} Wissenseinträge abgerufen",
       "searching": "Wissensdatenbank wird durchsucht…"
     },

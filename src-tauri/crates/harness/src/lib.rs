@@ -91,6 +91,14 @@ pub use speech::{
     AudioChunkStream, SpeakRequest, SpeechCapabilities, SpeechInput, unsupported_speech_stream,
 };
 
+// ── 反馈数据湖（统一反馈接口，整合 retrieval_hits / tool_call_logs / memory_access_logs / wiki_edit_logs）──
+pub mod feedback_data_lake;
+pub use feedback_data_lake::{
+    FeedbackDataLake, FeedbackDataLakeRegistry, FeedbackEvent, FeedbackEventType, FeedbackQuery,
+    MemoryAccessRecord, RetrievalHitRecord, ToolCallRecord as FeedbackToolCallRecord,
+    WikiEditRecord,
+};
+
 // ── Persistence 契约 ──
 /// `Persistence` trait（实际定义在 `persistence_mod`）
 pub use persistence_mod::{DatabaseConnection, Persistence, SharedPersistence};
@@ -225,7 +233,8 @@ pub use tools_ext::{
 // ── 搜索层数据源 trait（让 search crate 不依赖 dao / document-parser） ──
 pub mod search_sources;
 pub use search_sources::{
-    DocumentParser, KnowledgeSource, MemorySource, SettingsSource, WikiSource,
+    ContentItem, DocumentParser, KnowledgeSource, KnowledgeSourceMeta, KnowledgeSourceType,
+    MemorySource, SearchResult, SettingsSource, UnifiedKnowledgeSource, WikiSource,
 };
 
 // ── Marketplace 契约（让 gateway / kit 不依赖 dao / entities） ──

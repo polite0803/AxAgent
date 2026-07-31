@@ -2,6 +2,104 @@
 //! 知识图谱契约
 use crate::types::rag_voice_etc::{CreateKnowledgeEntityInput, KnowledgeEntity, KnowledgeRelation};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+
+// ── 多源节点类型 ─────────────────────────────────────────────
+
+/// 知识图谱节点来源类型
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum GraphSourceType {
+    /// RAG 知识库实体
+    KnowledgeBase,
+    /// Wiki 笔记
+    Wiki,
+    /// 记忆条目
+    Memory,
+    /// Obsidian Vault 笔记
+    ObsidianVault,
+}
+
+impl GraphSourceType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::KnowledgeBase => "knowledge_base",
+            Self::Wiki => "wiki",
+            Self::Memory => "memory",
+            Self::ObsidianVault => "obsidian_vault",
+        }
+    }
+}
+
+impl std::str::FromStr for GraphSourceType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "wiki" => Ok(Self::Wiki),
+            "memory" => Ok(Self::Memory),
+            "obsidian_vault" => Ok(Self::ObsidianVault),
+            "knowledge_base" => Ok(Self::KnowledgeBase),
+            _ => Err(format!("unknown GraphSourceType: {}", s)),
+        }
+    }
+}
+
+/// 知识图谱节点类型
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum GraphNodeType {
+    /// 知识库实体（原有）
+    Entity,
+    /// Wiki 笔记
+    Note,
+    /// 记忆条目
+    MemoryItem,
+    /// Obsidian Vault 笔记
+    ObsidianNote,
+}
+
+impl GraphNodeType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Entity => "entity",
+            Self::Note => "note",
+            Self::MemoryItem => "memory_item",
+            Self::ObsidianNote => "obsidian_note",
+        }
+    }
+}
+
+// ── 扩展的创建输入 ──────────────────────────────────────────
+
+/// 创建多源实体输入
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateMultiSourceEntityInput {
+    /// 实体 ID（可选，不提供则自动生成）
+    pub id: Option<String>,
+    /// 知识库 ID（兼容原有字段）
+    pub knowledge_base_id: String,
+    /// 节点来源类型
+    pub source_type: GraphSourceType,
+    /// 源 ID（kb_id / wiki_id / namespace_id / vault_id）
+    pub source_id: String,
+    /// 节点类型
+    pub node_type: GraphNodeType,
+    /// 外部系统 ID（如 wiki note_id / memory_id / obsidian note path）
+    pub external_id: Option<String>,
+    /// 实体名称
+    pub name: String,
+    /// 实体类型（如 person / organization / concept）
+    pub entity_type: String,
+    /// 描述
+    pub description: Option<String>,
+    /// 来源路径
+    pub source_path: String,
+    /// 属性 JSON
+    pub properties: Option<serde_json::Value>,
+    /// 别名
+    pub aliases: Option<Vec<String>>,
+}
+
+// ── EntityGraphProvider trait ──────────────────────────────
 
 #[async_trait]
 pub trait EntityGraphProvider: Send + Sync {
@@ -32,6 +130,61 @@ pub trait EntityGraphProvider: Send + Sync {
         &self,
         input: GraphEnhancedSearchInput,
     ) -> Result<GraphEnhancedSearchResult, String>;
+
+    // ── 多源扩展方法（默认实现，便于渐进式采用）──────────────
+
+    /// 按来源类型获取实体
+    async fn get_entities_by_source(
+        &self,
+        source_type: GraphSourceType,
+        source_id: &str,
+    ) -> Result<Vec<KnowledgeEntity>, String> {
+        // 默认实现：调用方需覆盖
+        let _ = (source_type, source_id);
+        Ok(vec![])
+    }
+
+    /// 创建多源实体
+    async fn create_multi_source_entity(
+        &self,
+        input: CreateMultiSourceEntityInput,
+    ) -> Result<KnowledgeEntity, String> {
+        // 默认实现：转换为原有 CreateKnowledgeEntityInput 并调用
+        let kb_id = input.knowledge_base_id.clone();
+        let name = input.name.clone();
+        let entity_type = input.entity_type.clone();
+        let description = input.description.clone();
+        let source_path = input.source_path.clone();
+        let source_language = Some("zh-CN".to_string());
+        let properties =
+            input.properties.unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
+
+        let inner_input = CreateKnowledgeEntityInput {
+            knowledge_base_id: kb_id.clone(),
+            name,
+            entity_type,
+            description,
+            source_path,
+            source_language,
+            properties,
+            lifecycle: None,
+            behaviors: None,
+            metadata: None,
+        };
+        self.create_entity(&kb_id, inner_input).await
+    }
+
+    /// 按节点类型搜索实体
+    async fn search_entities_by_node_type(
+        &self,
+        query: &str,
+        node_type: GraphNodeType,
+        source_id: Option<&str>,
+        top_k: usize,
+    ) -> Result<Vec<KnowledgeEntity>, String> {
+        let _ = (query, node_type, source_id, top_k);
+        Ok(vec![])
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -22,6 +22,10 @@ use async_trait::async_trait;
 use axagent_harness::vault::{
     LinkHit, NoteContent, NoteHit, OBSIDIAN_TOOL_NAMES, TagCount, VaultError, VaultSource,
 };
+use axagent_kit::markdown_parser::{
+    extract_inline_tags as kit_extract_inline_tags, extract_wikilinks as kit_extract_wikilinks,
+    make_snippet as kit_make_snippet, split_frontmatter as kit_split_frontmatter,
+};
 use parking_lot::RwLock;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -151,7 +155,7 @@ impl VaultSource for FsVaultSource {
                 };
                 let lower = content.to_lowercase();
                 if let Some(idx) = lower.find(&q) {
-                    let snippet = make_snippet(&content, idx, 200);
+                    let snippet = kit_make_snippet(&content, idx, 200);
                     out.push(NoteHit {
                         path: path
                             .strip_prefix(&root)
@@ -182,7 +186,7 @@ impl VaultSource for FsVaultSource {
                 VaultError::Io(e)
             }
         })?;
-        let (frontmatter, body) = split_frontmatter(&content);
+        let (frontmatter, body) = kit_split_frontmatter(&content);
         Ok(NoteContent { path: self.rel_path(&path), frontmatter, body })
     }
 
@@ -252,7 +256,7 @@ impl VaultSource for FsVaultSource {
                 };
                 let lower = content.to_lowercase();
                 if let Some(idx) = lower.find(&pattern_lower) {
-                    let snippet = make_snippet(&content, idx, 200);
+                    let snippet = kit_make_snippet(&content, idx, 200);
                     out.push(LinkHit {
                         path: path
                             .strip_prefix(&root)
@@ -274,7 +278,7 @@ impl VaultSource for FsVaultSource {
 
     async fn outgoing_links(&self, note: &str) -> Result<Vec<String>, VaultError> {
         let content = self.read_note(note).await?;
-        Ok(extract_wikilinks(&content.body))
+        Ok(kit_extract_wikilinks(&content.body))
     }
 
     async fn collect_tags(&self, limit: usize) -> Result<Vec<TagCount>, VaultError> {
@@ -300,11 +304,11 @@ impl VaultSource for FsVaultSource {
                     continue;
                 };
                 // inline #tag
-                for tag in extract_inline_tags(&content) {
+                for tag in kit_extract_inline_tags(&content) {
                     *counter.entry(tag).or_insert(0) += 1;
                 }
                 // frontmatter tags
-                let (fm, _) = split_frontmatter(&content);
+                let (fm, _) = kit_split_frontmatter(&content);
                 if let Some(arr) = fm.get("tags").and_then(|v| v.as_array()) {
                     for t in arr {
                         if let Some(s) = t.as_str() {
@@ -374,7 +378,7 @@ impl VaultSource for FsVaultSource {
             return Err(VaultError::NoteNotFound(note.to_string()));
         }
         let raw = tokio::fs::read_to_string(&abs).await?;
-        let (mut fm, body) = split_frontmatter(&raw);
+        let (mut fm, body) = kit_split_frontmatter(&raw);
         if let Some(obj) = fm.as_object_mut() {
             obj.insert(key.to_string(), value);
         } else {
@@ -397,109 +401,6 @@ impl VaultSource for FsVaultSource {
 }
 
 // ── 工具函数 ────────────────────────────────────────────────────────
-
-/// 把 markdown 内容拆为 (frontmatter_json, body)
-///
-/// frontmatter 必须以 `---\n` 开头并以 `\n---\n` 结束
-fn split_frontmatter(content: &str) -> (Value, String) {
-    if !content.starts_with("---\n") && !content.starts_with("---\r\n") {
-        return (Value::Object(serde_json::Map::new()), content.to_string());
-    }
-    let rest = &content["---\n".len()..];
-    let end = rest.find("\n---\n").or_else(|| rest.find("\r\n---\r\n"));
-    let Some(end) = end else {
-        return (Value::Object(serde_json::Map::new()), content.to_string());
-    };
-    let yaml_str = &rest[..end];
-    let body_start = end + "\n---\n".len();
-    let body = if body_start < rest.len() {
-        rest[body_start..].to_string()
-    } else {
-        String::new()
-    };
-    let fm: Value = serde_yaml::from_str(yaml_str).unwrap_or(Value::Object(serde_json::Map::new()));
-    (fm, body)
-}
-
-/// 从 markdown body 提取 `[[Note]]` / `[[Note|alias]]` / `[[Note#anchor]]` 链
-fn extract_wikilinks(body: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let bytes = body.as_bytes();
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        if bytes[i] == b'['
-            && bytes[i + 1] == b'['
-            && let Some(end) = find_substring(&body[i + 2..], "]]")
-        {
-            let raw = &body[i + 2..i + 2 + end];
-            // 取 | 之前、# 之前的部分作为 note 名
-            let name = raw.split('|').next().unwrap_or("").split('#').next().unwrap_or("").trim();
-            if !name.is_empty() {
-                out.push(name.to_string());
-            }
-            i += 2 + end + 2;
-            continue;
-        }
-        i += 1;
-    }
-    out
-}
-
-fn find_substring(haystack: &str, needle: &str) -> Option<usize> {
-    haystack.find(needle)
-}
-
-/// 提取 inline `#tag`（排除 markdown heading）
-fn extract_inline_tags(content: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    for line in content.lines() {
-        let trimmed = line.trim_start();
-        // 跳过 markdown heading（# 开头后跟空格）
-        if trimmed.starts_with("# ") || trimmed.starts_with("## ") {
-            continue;
-        }
-        let bytes = line.as_bytes();
-        let mut i = 0;
-        while i < bytes.len() {
-            if bytes[i] == b'#' {
-                // 前一字符必须是非字母数字（或行首）
-                let prev_ok = i == 0 || !bytes[i - 1].is_ascii_alphanumeric();
-                if prev_ok && i + 1 < bytes.len() && bytes[i + 1].is_ascii_alphabetic() {
-                    let mut j = i + 1;
-                    while j < bytes.len()
-                        && (bytes[j].is_ascii_alphanumeric()
-                            || bytes[j] == b'_'
-                            || bytes[j] == b'-'
-                            || bytes[j] == b'/')
-                    {
-                        j += 1;
-                    }
-                    let tag = &line[i + 1..j];
-                    if !tag.is_empty() {
-                        out.push(tag.to_string());
-                    }
-                    i = j;
-                    continue;
-                }
-            }
-            i += 1;
-        }
-    }
-    out
-}
-
-/// 在 `content` 的 `idx` 位置附近生成 snippet（前后各取一半）
-fn make_snippet(content: &str, idx: usize, total: usize) -> String {
-    let chars: Vec<char> = content.chars().collect();
-    let char_idx = content[..idx.min(content.len())].chars().count();
-    let half = total / 2;
-    let start = char_idx.saturating_sub(half);
-    let end = (start + total).min(chars.len());
-    let snippet: String = chars[start..end].iter().collect();
-    let prefix = if start > 0 { "…" } else { "" };
-    let suffix = if end < chars.len() { "…" } else { "" };
-    format!("{}{}{}", prefix, snippet.trim(), suffix)
-}
 
 // ── Vault Registry（kb_id → Arc<dyn VaultSource>）──────────────────
 

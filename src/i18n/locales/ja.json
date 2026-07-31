@@ -978,6 +978,11 @@
     },
     "knowledgeRetrieval": {
       "error": "ナレッジベース検索に失敗しました",
+      "feedbackIrrelevant": "無関係",
+      "feedbackNegative": "役立たない",
+      "feedbackNotFound": "検索記録が見つかりません、フィードバックは保存されません",
+      "feedbackPositive": "役立つ",
+      "feedbackSubmitted": "フィードバックが送信されました",
       "resultsCount": "{{count}} 件のナレッジを取得",
       "searching": "ナレッジベースを検索中..."
     },
