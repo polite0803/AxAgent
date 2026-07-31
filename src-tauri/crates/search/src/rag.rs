@@ -1449,9 +1449,9 @@ fn validate_collection_name(name: &str) -> Result<()> {
     }
     // 允许连字符：下游 `count_collection_items` 会用 `.replace('-', "_")` 清洗，
     // 此处校验需与之保持一致（否则 wiki/kb/mem 的 UUID 含连字符会被误拒）。
-    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
         return Err(AxAgentError::Validation(format!(
-            "Invalid collection name '{}': only alphanumeric characters and underscores are allowed",
+            "Invalid collection name '{}': only alphanumeric characters, hyphens and underscores are allowed",
             name
         )));
     }
