@@ -193,6 +193,49 @@ fn get_zh_cn(key: &str) -> &'static str {
 
         "entity_extraction.user_template" => "从以下对话中提取实体和关系：\n\n{0}",
 
+        // ── 文档实体抽取（知识库） ──
+        "entity_extraction.document_system_prompt" => {
+            r#"你是一个实体关系抽取专家。请从以下文本中提取实体和关系。
+
+## 实体类型
+- COMPANY: 公司/企业
+- PERSON: 人物/高管
+- INDUSTRY: 行业/产业
+- CONCEPT: 概念/术语
+- PRODUCT: 产品/服务
+- TECH: 技术/技术栈
+
+## 关系类型
+- is_a: 属于...类型
+- part_of: 是...的一部分
+- works_at: 在...任职
+- has_role: 担任...职位
+- operates_in: 从事...行业
+- related_to: 与...相关
+- competitor_of: 与...竞争
+- partner_of: 与...合作
+- uses: 使用...技术/产品
+- produces: 生产...产品
+
+## 输出格式（JSON）
+{
+  "entities": [
+    { "name": "实体名称", "type": "实体类型", "description": "描述（可选）", "aliases": ["别名1", "别名2"] }
+  ],
+  "relations": [
+    { "source": "源实体名称", "target": "目标实体名称", "relation_type": "关系类型", "description": "描述（可选）" }
+  ]
+}
+
+## 要求
+1. 只提取明确提及的实体和关系，不要推测
+2. 实体名称使用原文中的完整名称
+3. 关系方向：source → target，符合 relation_type 的语义
+4. 如果文本没有可提取的实体，返回空的 entities 和 relations 数组"#
+        },
+
+        "entity_extraction.document_user_template" => "## 文本内容\n{document_content}\n\n从以上文本中提取实体和关系。",
+
         // ── 增量提取 ──
         "incremental_extract.system_prompt" => {
             r#"你是一个知识提取助手。从最近的对话中提取新的知识。
@@ -477,6 +520,49 @@ Return JSON:
         "entity_extraction.user_template" => {
             "Extract entities and relationships from this conversation:\n\n{0}"
         },
+
+        // ── Document Entity Extraction (Knowledge Base) ──
+        "entity_extraction.document_system_prompt" => {
+            r#"You are an entity and relationship extraction expert. Extract entities and relationships from the following text.
+
+## Entity Types
+- COMPANY: Company/Organization
+- PERSON: Person/Executive
+- INDUSTRY: Industry/Sector
+- CONCEPT: Concept/Term
+- PRODUCT: Product/Service
+- TECH: Technology/Stack
+
+## Relation Types
+- is_a: Belongs to type
+- part_of: Is part of
+- works_at: Works at
+- has_role: Has role
+- operates_in: Operates in industry
+- related_to: Related to
+- competitor_of: Competitor of
+- partner_of: Partner of
+- uses: Uses technology/product
+- produces: Produces product
+
+## Output Format (JSON)
+{
+  "entities": [
+    { "name": "Entity Name", "type": "Entity Type", "description": "Description (optional)", "aliases": ["alias1", "alias2"] }
+  ],
+  "relations": [
+    { "source": "Source Entity", "target": "Target Entity", "relation_type": "Relation Type", "description": "Description (optional)" }
+  ]
+}
+
+## Requirements
+1. Only extract explicitly mentioned entities and relations, do not speculate
+2. Use the full name from the original text
+3. Direction: source → target, match relation_type semantics
+4. If no entities can be extracted, return empty entities and relations arrays"#
+        },
+
+        "entity_extraction.document_user_template" => "## Text Content\n{document_content}\n\nExtract entities and relationships from the above text.",
 
         // ── Incremental Extract ──
         "incremental_extract.system_prompt" => {

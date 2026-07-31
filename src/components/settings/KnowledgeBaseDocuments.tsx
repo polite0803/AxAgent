@@ -37,6 +37,7 @@ import {
 } from "antd";
 import {
   BookOpen,
+  Brain,
   FileText,
   FolderOpen,
   Pencil,
@@ -183,8 +184,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   );
 
   // Entity extraction state
-  const [extractingEntities, setExtractingEntities] = useState(false);
-  const extractingRef = useRef(false);
+  const [extracting, setExtracting] = useState(false);
 
   const [syncWikiModalOpen, setSyncWikiModalOpen] = useState(false);
   const [syncWikiDocId, setSyncWikiDocId] = useState<string | null>(null);
@@ -537,6 +537,23 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
     [base.id, messageApi],
   );
 
+  const handleExtractEntities = useCallback(async () => {
+    if (extracting) {
+      return;
+    }
+    setExtracting(true);
+    try {
+      await invoke<{ jobId: string }>("extract_entities_for_kb", {
+        knowledgeBaseId: base.id,
+      });
+      messageApi.success(t("knowledgeGraph.extractSuccess", { newEntities: 0, newRelations: 0 }));
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setExtracting(false);
+    }
+  }, [base.id, extracting, messageApi, t]);
+
   const handleRebuildIndex = useCallback(async () => {
     if (rebuildingRef.current) {
       return; // Prevent double-click
@@ -552,31 +569,6 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
       messageApi.error(String(e));
     }
   }, [base.id, loadDocuments, messageApi]);
-
-  const handleExtractEntities = useCallback(async () => {
-    if (extractingRef.current) {
-      return;
-    }
-    setExtractingEntities(true);
-    extractingRef.current = true;
-    try {
-      const result = await invoke<{
-        status: string;
-        documentCount: number;
-        taskCount: number;
-        message?: string;
-      }>("extract_entities_for_kb", { knowledge_base_id: base.id });
-      messageApi.success(
-        result.message
-          || `已入队 ${result.taskCount} 个实体抽取任务，共处理 ${result.documentCount} 个文档`,
-      );
-    } catch (e) {
-      messageApi.error(String(e));
-    } finally {
-      setExtractingEntities(false);
-      extractingRef.current = false;
-    }
-  }, [base.id, messageApi]);
 
   const docColumns = [
     {
@@ -1511,17 +1503,16 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
               />
             </Tooltip>
           </Popconfirm>
-
           <Popconfirm
-            title={t("settings.knowledge.extractEntitiesConfirm")}
+            title={t("knowledgeGraph.extractConfirm")}
             placement="bottom"
             onConfirm={handleExtractEntities}
           >
-            <Tooltip title={t("settings.knowledge.extractEntities")}>
+            <Tooltip title={t("knowledgeGraph.extract")}>
               <Button
-                icon={<Workflow size={14} />}
-                loading={extractingEntities}
-                disabled={!base.embeddingProvider}
+                icon={<Brain size={14} />}
+                loading={extracting}
+                disabled={!base.embeddingProvider || documents.length === 0}
               />
             </Tooltip>
           </Popconfirm>
