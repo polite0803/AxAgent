@@ -1569,11 +1569,8 @@ impl NodeExecutorTrait for AgentExecutor {
             if let Some(inner) = extract_tool_json_block(final_content.trim()) {
                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&inner) {
                     if parsed.is_object() {
-                        let tool_name = parsed
-                            .get("name")
-                            .and_then(|n| n.as_str())
-                            .unwrap_or("?")
-                            .to_string();
+                        let tool_name =
+                            parsed.get("name").and_then(|n| n.as_str()).unwrap_or("?").to_string();
                         let args = parsed
                             .get("arguments")
                             .or_else(|| parsed.get("input"))
@@ -1581,8 +1578,10 @@ impl NodeExecutorTrait for AgentExecutor {
                             .unwrap_or(parsed);
                         // GLM 偶发把 arguments 序列化成 JSON 字符串（双层转义），需再解析一层
                         let args = match args {
-                            serde_json::Value::String(s) => serde_json::from_str::<serde_json::Value>(&s)
-                                .unwrap_or(serde_json::Value::String(s)),
+                            serde_json::Value::String(s) => {
+                                serde_json::from_str::<serde_json::Value>(&s)
+                                    .unwrap_or(serde_json::Value::String(s))
+                            },
                             other => other,
                         };
                         if args.is_object() || args.is_array() {
@@ -1885,7 +1884,8 @@ impl NodeExecutorTrait for AgentExecutor {
         //   新增分支：合法 JSON 但 verdict 字段是字符串（扁平结构）时，
         //   把 verdict 相关字段提取到嵌套 map，统一为 {"report":..., "verdict":{...}}。
         if !final_content.trim().is_empty() {
-            let mut parsed_opt = serde_json::from_str::<serde_json::Value>(final_content.trim()).ok();
+            let mut parsed_opt =
+                serde_json::from_str::<serde_json::Value>(final_content.trim()).ok();
 
             // ── tool_json 协议拆包（优先于 VERDICT 重构） ──
             // 工作流 agent 节点约定输出 ```tool_json {"name":"submit_xxx","arguments":{...}} ```
@@ -1912,7 +1912,7 @@ impl NodeExecutorTrait for AgentExecutor {
                                 serde_json::Value::String(s) => {
                                     serde_json::from_str::<serde_json::Value>(&s)
                                         .unwrap_or(serde_json::Value::String(s))
-                                }
+                                },
                                 other => other,
                             };
                             if args.is_object() || args.is_array() {
@@ -1922,10 +1922,9 @@ impl NodeExecutorTrait for AgentExecutor {
                                     "通用后处理: 拆包 tool_json 代码块为结构化输出"
                                 );
                                 final_content = args.to_string();
-                                parsed_opt = serde_json::from_str::<serde_json::Value>(
-                                    final_content.trim(),
-                                )
-                                .ok();
+                                parsed_opt =
+                                    serde_json::from_str::<serde_json::Value>(final_content.trim())
+                                        .ok();
                             }
                         }
                     }

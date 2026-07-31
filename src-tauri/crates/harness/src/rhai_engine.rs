@@ -111,9 +111,7 @@ fn strip_trailing_commas(s: &str) -> String {
         if c == ',' {
             // 跳过逗号后的空白，看第一个非空白字符
             let mut j = i + 1;
-            while j < chars.len()
-                && matches!(chars[j], ' ' | '\t' | '\n' | '\r')
-            {
+            while j < chars.len() && matches!(chars[j], ' ' | '\t' | '\n' | '\r') {
                 j += 1;
             }
             if j < chars.len() && (chars[j] == '}' || chars[j] == ']') {

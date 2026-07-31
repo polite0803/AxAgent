@@ -3868,10 +3868,8 @@ pub async fn recommend_stocks(
         // （流动性过滤后 seed），不再二次 build_seed_pool ——
         // 旧逻辑浪费 get_hot_stocks + get_industry_ranking 两次请求，
         // 且两次构建间数据变化会导致快照与真实扫描池不一致（preseed 模式更严重）。
-        let seed_pool_json = response
-            .seed_pool_snapshot
-            .clone()
-            .unwrap_or_else(|| "[]".to_string());
+        let seed_pool_json =
+            response.seed_pool_snapshot.clone().unwrap_or_else(|| "[]".to_string());
 
         for picks in response.picks.values() {
             for pick in picks {

@@ -54,11 +54,8 @@ pub async fn list_reco_history(
     // 'serenity'（serenity-screening 工作流产物）和 'bottleneck'
     // （智能荐股内置 SerenityStrategy 产物，业务上都是"趋势智选"）。
     if let Some(ref style) = style_filter {
-        let styles: Vec<String> = style
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
+        let styles: Vec<String> =
+            style.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if !styles.is_empty() {
             sql.push_str(" AND style IN (");
             for (i, _) in styles.iter().enumerate() {
@@ -82,11 +79,8 @@ pub async fn list_reco_history(
     // 智能荐股历史用 exclude_styles="serenity,bottleneck" 排除趋势智选专属产出，
     // 与趋势智选面板的 style_filter="serenity,bottleneck" 互为镜像，两个面板不重复。
     if let Some(ref style) = exclude_styles {
-        let styles: Vec<String> = style
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
+        let styles: Vec<String> =
+            style.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if !styles.is_empty() {
             sql.push_str(" AND style NOT IN (");
             for (i, _) in styles.iter().enumerate() {
@@ -125,8 +119,11 @@ pub async fn list_reco_history(
         values.push((o as i64).into());
     }
 
-    let backend =
-        if is_pg { sea_orm::DbBackend::Postgres } else { sea_orm::DbBackend::Sqlite };
+    let backend = if is_pg {
+        sea_orm::DbBackend::Postgres
+    } else {
+        sea_orm::DbBackend::Sqlite
+    };
     let stmt = Statement::from_sql_and_values(backend, sql.as_str(), values);
 
     let rows = db.query_all_raw(stmt).await.map_err(|e| {
@@ -180,11 +177,8 @@ pub async fn get_reco_detail(
 
     // style_filter 支持单个或多个（逗号分隔）——同上，保持 list/detail 过滤语义一致
     if let Some(ref style) = style_filter {
-        let styles: Vec<String> = style
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
+        let styles: Vec<String> =
+            style.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if !styles.is_empty() {
             query = query.filter(reco_picks::Column::Style.is_in(styles));
         }
@@ -192,11 +186,8 @@ pub async fn get_reco_detail(
 
     // exclude_styles 逗号分隔多值（NOT IN）——与 list 语义一致，智能荐股详情排除趋势智选专属风格
     if let Some(ref style) = exclude_styles {
-        let styles: Vec<String> = style
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
+        let styles: Vec<String> =
+            style.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if !styles.is_empty() {
             // ColumnTrait 自带 is_not_in（与上方 is_in 对应），无需 Expr
             query = query.filter(reco_picks::Column::Style.is_not_in(styles));

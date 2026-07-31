@@ -805,10 +805,12 @@ pub async fn recommend_stocks(
         error_detail: None,
         // P3 修复(2026-08-01): 落库快照用扫描实际使用的池（流动性过滤后 seed），
         // command 层不再二次 build_seed_pool（避免快照与真实扫描不一致 + 浪费请求）。
-        seed_pool_snapshot: Some(serde_json::to_string(
-            &seed.iter().map(|(c, n, _)| vec![c.as_str(), n.as_str()]).collect::<Vec<_>>(),
-        )
-        .unwrap_or_default()),
+        seed_pool_snapshot: Some(
+            serde_json::to_string(
+                &seed.iter().map(|(c, n, _)| vec![c.as_str(), n.as_str()]).collect::<Vec<_>>(),
+            )
+            .unwrap_or_default(),
+        ),
     };
     if use_cache {
         cache_put(period, resp.clone());

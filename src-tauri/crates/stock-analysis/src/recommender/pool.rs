@@ -134,10 +134,7 @@ async fn filter_one(client: &AStockClient, item: SeedItem) -> Option<SeedItem> {
     // A 股荐股场景排除 B 股（沪B 900xxx / 深B 200xxx）：
     // 腾讯等 quote 源不支持 B 股（Stock code not found），
     // 提前过滤避免无谓请求与日志噪音。
-    let plain = code
-        .trim_start_matches("sh")
-        .trim_start_matches("sz")
-        .trim_start_matches("bj");
+    let plain = code.trim_start_matches("sh").trim_start_matches("sz").trim_start_matches("bj");
     if plain.len() == 6 && (plain.starts_with("900") || plain.starts_with("200")) {
         return None;
     }

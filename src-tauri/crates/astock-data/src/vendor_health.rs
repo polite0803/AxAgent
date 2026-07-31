@@ -116,10 +116,10 @@ pub struct VendorHealthConfig {
 impl Default for VendorHealthConfig {
     fn default() -> Self {
         Self {
-            degraded_threshold: 8,       // 30s 窗口内 8 次失败才降级，burst 免疫
+            degraded_threshold: 8,        // 30s 窗口内 8 次失败才降级，burst 免疫
             recovery_interval_secs: 1800, // 兜底恢复间隔 30 分钟（2026-07-31 从 300s 上调：
-                                          // 连接级反爬封锁是持续环境故障，5 分钟太短，
-                                          // 每轮荐股 run 都会先白打首选 vendor 才降级）
+            // 连接级反爬封锁是持续环境故障，5 分钟太短，
+            // 每轮荐股 run 都会先白打首选 vendor 才降级）
             track_fallback_path: true,
         }
     }

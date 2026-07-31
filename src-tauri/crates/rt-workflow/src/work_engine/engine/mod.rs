@@ -1486,9 +1486,7 @@ impl WorkEngine {
                     {
                         let node_states: HashMap<String, NodeRuntimeState> = nodes
                             .iter()
-                            .map(|n| {
-                                (n.base_id().to_string(), NodeRuntimeState::default())
-                            })
+                            .map(|n| (n.base_id().to_string(), NodeRuntimeState::default()))
                             .collect();
                         let wf = Workflow {
                             id: workflow_id.to_string(),
@@ -1506,10 +1504,7 @@ impl WorkEngine {
                         };
                         // 以模板 ID 为 key 写入注册表（幂等：下次触发直接命中上方 if 分支）
                         self.workflows.write().await.insert(workflow_id.to_string(), wf.clone());
-                        self.execution_workflows
-                            .write()
-                            .await
-                            .insert(execution_id.clone(), wf);
+                        self.execution_workflows.write().await.insert(execution_id.clone(), wf);
                         tracing::info!(
                             "[WorkEngine] run_workflow 模板 {workflow_id} 从 DB 兜底加载成功"
                         );

@@ -1121,10 +1121,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     // 为字符串时全部 resolve 失败（content.arguments 层不存在 / 字符串无 candidates 字段）
     // → data-verifier early return 空数组 → serenity 优先取 c-data-verifier 吞掉真候选。
     // 增加路径3：直接注入 a-candidate-mapper.content 整体，由 data-verifier.rhai json_parse 兜底。
-    verifier_input_mapping.insert(
-        "candidates_raw".to_string(),
-        "a-candidate-mapper.content".to_string(),
-    );
+    verifier_input_mapping
+        .insert("candidates_raw".to_string(), "a-candidate-mapper.content".to_string());
     // P0-2 修复: 传入 tool_calls_made 用于交叉验证
     // LLM 在候选映射阶段调用的 get_stock_financials 工具返回真实财务数据，
     // data-verifier.rhai 比对 LLM 输出的 financial_snapshot 与工具返回的真实数据，

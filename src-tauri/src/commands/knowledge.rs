@@ -1193,7 +1193,11 @@ pub async fn reindex_knowledge_chunk(
         // 统一按 backend 分支。
         let db = state.harness.db();
         let is_pg = db.get_database_backend() == DbBackend::Postgres;
-        let backend = if is_pg { DbBackend::Postgres } else { DbBackend::Sqlite };
+        let backend = if is_pg {
+            DbBackend::Postgres
+        } else {
+            DbBackend::Sqlite
+        };
         let name = format!("vec_kb_{}", base_id.replace('-', "_"));
         let sql = if is_pg {
             format!("SELECT content FROM {name}_meta WHERE id = $1")
@@ -1201,7 +1205,11 @@ pub async fn reindex_knowledge_chunk(
             format!("SELECT content FROM {name}_meta WHERE id = ?")
         };
         let row = db
-            .query_one_raw(Statement::from_sql_and_values(backend, sql, vec![chunk_id.clone().into()]))
+            .query_one_raw(Statement::from_sql_and_values(
+                backend,
+                sql,
+                vec![chunk_id.clone().into()],
+            ))
             .await
             .map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(

@@ -501,8 +501,7 @@ impl reqwest::dns::Resolve for Ipv4OnlyResolver {
             let host = name.as_str().to_string();
             let addrs: Vec<std::net::SocketAddr> =
                 tokio::net::lookup_host((host.as_str(), 0)).await?.collect();
-            let v4: Vec<std::net::SocketAddr> =
-                addrs.into_iter().filter(|a| a.is_ipv4()).collect();
+            let v4: Vec<std::net::SocketAddr> = addrs.into_iter().filter(|a| a.is_ipv4()).collect();
             if !v4.is_empty() {
                 return Ok(Box::new(v4.into_iter()) as reqwest::dns::Addrs);
             }
