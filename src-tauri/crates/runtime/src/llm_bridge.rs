@@ -71,15 +71,28 @@ pub async fn build_llm_components_from_db_with(
             })
             .or_else(|| {
                 // 默认 provider 未配置或不可用 → 回退第一个启用的 provider
-                providers
-                    .iter()
-                    .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))
-                    .cloned()
+                providers.iter().find(|p| p.enabled && p.keys.iter().any(|k| k.enabled)).cloned()
             })?
     };
 
     let key = prov.keys.iter().find(|k| k.enabled)?;
     let api_key = crypto::decrypt_key(&key.key_encrypted, master_key).ok()?;
+
+    // 模型选择：显式指定 > settings 默认模型 > provider 第一个启用模型。
+    // 必须在构造 ctx 前计算——ctx 会 partial move `prov.proxy_config`，
+    // 之后 `first_enabled_model(&prov)` 将无法借用。
+    let model = if let Some(mid) = preferred_model_id {
+        mid.to_string()
+    } else if let Some(mid) = settings.as_ref().and_then(|s| s.default_model_id.as_deref()) {
+        // settings 默认模型必须存在于该 provider 的启用模型中，否则回退
+        if prov.models.iter().any(|m| m.enabled && m.model_id == mid) {
+            mid.to_string()
+        } else {
+            first_enabled_model(&prov)
+        }
+    } else {
+        first_enabled_model(&prov)
+    };
 
     // 单源查表：用 ProviderRegistry 取代手写 match
     let registry_key =
@@ -100,20 +113,6 @@ pub async fn build_llm_components_from_db_with(
         store_response: None,
     };
 
-    // 模型选择：显式指定 > settings 默认模型 > provider 第一个启用模型
-    let model = if let Some(mid) = preferred_model_id {
-        mid.to_string()
-    } else if let Some(mid) = settings.as_ref().and_then(|s| s.default_model_id.as_deref()) {
-        // settings 默认模型必须存在于该 provider 的启用模型中，否则回退
-        if prov.models.iter().any(|m| m.enabled && m.model_id == mid) {
-            mid.to_string()
-        } else {
-            first_enabled_model(&prov)
-        }
-    } else {
-        first_enabled_model(&prov)
-    };
-
     Some((adapter, ctx, model))
 }
 
@@ -121,9 +120,7 @@ pub async fn build_llm_components_from_db_with(
 ///
 /// 修复点：原逻辑 `prov.models.first()` 不检查 `model.enabled`，
 /// 可能选到被用户禁用的模型。
-fn first_enabled_model(
-    prov: &axagent_harness::types::provider_model::ProviderConfig,
-) -> String {
+fn first_enabled_model(prov: &axagent_harness::types::provider_model::ProviderConfig) -> String {
     prov.models
         .iter()
         .find(|m| m.enabled)

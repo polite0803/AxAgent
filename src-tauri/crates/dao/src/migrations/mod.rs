@@ -300,7 +300,9 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
     let final_version = read_max_version(db).await.unwrap_or(0);
     tracing::info!(
         "[repair_schema] 完成: 重跑了 {}/{} 条迁移，最终版本号 v{}",
-        fixed, total, final_version
+        fixed,
+        total,
+        final_version
     );
 
     Ok((fixed, total))
@@ -415,6 +417,44 @@ mod tests {
     /// 防回归：v002 引入的索引必须真实存在。
     /// partial index (`idx_messages_branch`) 在 messages.branch_id IS NOT NULL
     /// 命中时使用。
+    #[tokio::test]
+    async fn repair_schema_sets_version_to_current() {
+        let db = Database::connect("sqlite::memory:").await.expect("in-memory db");
+
+        // 模拟存量库：只跑了 v100，后续都没跑
+        // 先直接写入 v100 的版本号
+        db.execute_unprepared(&format!(
+            "CREATE TABLE IF NOT EXISTS {SCHEMA_VERSION_TABLE} (\
+             version INTEGER NOT NULL PRIMARY KEY, \
+             applied_at INTEGER NOT NULL, \
+             description TEXT)"
+        ))
+        .await
+        .unwrap();
+        db.execute_unprepared(&format!(
+            "INSERT INTO {SCHEMA_VERSION_TABLE} (version, applied_at, description) VALUES (100, 0, 'v100')"
+        ))
+        .await
+        .unwrap();
+
+        // 验证此时 pending_count > 0
+        let status = get_schema_status(&db).await.unwrap();
+        assert!(status.pending_count > 0, "should have pending before repair");
+
+        // 执行 repair_schema
+        let (fixed, total) = repair_schema(&db).await.unwrap();
+        assert!(fixed >= 1, "should fix at least 1 migration");
+        assert_eq!(total, MIGRATIONS.len());
+
+        // 验证 pending_count == 0
+        let status = get_schema_status(&db).await.unwrap();
+        assert_eq!(
+            status.pending_count, 0,
+            "pending should be 0 after repair, got {}",
+            status.pending_count
+        );
+        assert_eq!(status.applied_version, CURRENT_VERSION);
+    }
     /// 注：v002 已被合并到 v100_consolidated，索引由 PHASE 4 创建。
     #[tokio::test]
     async fn v002_critical_indices_exist() {
