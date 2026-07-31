@@ -7291,6 +7291,8 @@
       "ragSourceIdsCount": "RAG 知识源 ({{count}})",
       "ragSourceIdsHint": "格式: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "输入或选择知识源 ID...",
+      "ragSourceIdsEmpty": "尚未创建知识库，请先前往知识库管理创建",
+      "ragSourceIdsEmptyHint": "还没有可用的知识库。请前往「知识库」页面创建知识库后再回来配置。",
       "resetTimeoutHint": "重置超时",
       "resetTimeoutMs": "重置超时 (ms)",
       "retry": "重试",
@@ -7666,6 +7668,7 @@
       "title": "验证规则",
       "warn": "仅警告"
     },
+    "invalidEdgesCleaned": "检测到 {{count}} 条无效边，已自动清理：\n{{details}}",
     "validationFailed": "验证失败",
     "validationNode": {
       "assertionCount": "{{count}} 个断言",
