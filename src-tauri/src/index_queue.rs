@@ -9,6 +9,7 @@
 
 use crate::AppState;
 use axagent_dao::repo::index_jobs as jobs;
+use axagent_harness::{ExtractedEntity, ExtractedRelation};
 use axagent_search::rag;
 use axagent_search::vector_store::VectorStore;
 use sea_orm::ConnectionTrait;
@@ -168,12 +169,23 @@ impl IndexJobService {
             }
         }
 
-        jobs::mark_job_processing(&self.db, &job.id, Some(jobs::STAGE_PARSING))
-            .await
-            .map_err(|e| e.to_string())?;
-        self.emit_progress(&job, jobs::STAGE_PARSING, 5).await;
-
-        let result = self.run_indexing(&job).await;
+        // 根据任务类型路由到不同的处理函数
+        let result = match job.job_type.as_str() {
+            jobs::JOB_TYPE_EXTRACT_ENTITIES => {
+                jobs::mark_job_processing(&self.db, &job.id, Some(jobs::STAGE_EXTRACTING))
+                    .await
+                    .map_err(|e| e.to_string())?;
+                self.emit_progress(&job, jobs::STAGE_EXTRACTING, 10).await;
+                self.run_entity_extraction(&job).await
+            },
+            _ => {
+                jobs::mark_job_processing(&self.db, &job.id, Some(jobs::STAGE_PARSING))
+                    .await
+                    .map_err(|e| e.to_string())?;
+                self.emit_progress(&job, jobs::STAGE_PARSING, 5).await;
+                self.run_indexing(&job).await
+            },
+        };
 
         match result {
             Ok(()) => {
@@ -266,7 +278,302 @@ impl IndexJobService {
 
         self.mark_item_ready(&container_type, job).await?;
 
+        // 文档索引完成后，自动入队实体抽取任务
+        if container_type == rag::ContainerType::KnowledgeBase {
+            let metadata = serde_json::json!({
+                "document_ids": [job.item_id.clone()],
+                "auto_extract": true,
+            });
+            let _ = jobs::enqueue_job(
+                &self.db,
+                jobs::CreateIndexJobInput {
+                    job_type: jobs::JOB_TYPE_EXTRACT_ENTITIES.to_string(),
+                    container_type: "kb".to_string(),
+                    container_id: job.container_id.clone(),
+                    item_id: job.item_id.clone(),
+                    max_retries: Some(1),
+                    priority: Some(1),
+                    metadata: serde_json::to_string(&metadata).ok(),
+                },
+            )
+            .await;
+        }
+
         Ok(())
+    }
+
+    /// 执行实体抽取任务
+    async fn run_entity_extraction(&self, job: &jobs::IndexJob) -> Result<(), String> {
+        let kb_id = &job.container_id;
+
+        // 从 metadata 中获取文档 ID 列表
+        let document_ids: Vec<String> = if let Some(ref meta) = job.metadata {
+            serde_json::from_str(meta)
+                .ok()
+                .and_then(|v: serde_json::Value| {
+                    v.get("document_ids")
+                        .and_then(|ids| ids.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                .collect()
+                        })
+                })
+                .unwrap_or_default()
+        } else {
+            // 如果没有指定文档，则处理整个知识库的文档
+            let docs = axagent_dao::repo::knowledge::list_documents(&self.db, kb_id)
+                .await
+                .map_err(|e| e.to_string())?;
+            docs.iter().map(|d| d.id.clone()).collect()
+        };
+
+        if document_ids.is_empty() {
+            tracing::info!(
+                job_id = %job.id,
+                kb_id = %kb_id,
+                "[index_queue] 无文档需要抽取实体，跳过"
+            );
+            return Ok(());
+        }
+
+        jobs::update_job_progress(&self.db, &job.id, Some(jobs::STAGE_EXTRACTING), 30)
+            .await
+            .map_err(|e| e.to_string())?;
+        self.emit_progress(job, jobs::STAGE_EXTRACTING, 30).await;
+
+        // 分批处理（每批最多 20 个文档）
+        let chunk_size = 20;
+        let mut total_new_entities = 0;
+        let mut total_new_relations = 0;
+
+        for chunk in document_ids.chunks(chunk_size) {
+            let batch: Vec<String> = chunk.to_vec();
+
+            // 调用实体抽取逻辑（使用 knowledge_graph 命令的核心逻辑）
+            let result =
+                self.extract_entities_batch(kb_id, &batch).await?;
+
+            total_new_entities += result.new_entities.len();
+            total_new_relations += result.new_relations.len();
+
+            tracing::info!(
+                job_id = %job.id,
+                kb_id = %kb_id,
+                batch_size = batch.len(),
+                new_entities = result.new_entities.len(),
+                new_relations = result.new_relations.len(),
+                "[index_queue] 实体抽取批次完成"
+            );
+        }
+
+        jobs::update_job_progress(&self.db, &job.id, Some(jobs::STAGE_EXTRACTING), 90)
+            .await
+            .map_err(|e| e.to_string())?;
+        self.emit_progress(job, jobs::STAGE_EXTRACTING, 90).await;
+
+        tracing::info!(
+            job_id = %job.id,
+            kb_id = %kb_id,
+            total_new_entities = total_new_entities,
+            total_new_relations = total_new_relations,
+            "[index_queue] 实体抽取任务完成"
+        );
+
+        Ok(())
+    }
+
+    /// 执行一批文档的实体抽取（核心逻辑）
+    async fn extract_entities_batch(
+        &self,
+        kb_id: &str,
+        document_ids: &[String],
+    ) -> Result<axagent_harness::ExtractEntitiesResult, String> {
+        let collection_id = format!("kb_{}", kb_id);
+
+        // 1. 加载所有文档的 chunks 并拼接
+        let mut all_text = String::new();
+        let mut skipped_chunks: u32 = 0;
+        for doc_id in document_ids {
+            let chunks = self
+                .vector_store
+                .list_document_chunks(&collection_id, doc_id)
+                .await
+                .map_err(|e| e.to_string())?;
+            if chunks.is_empty() {
+                skipped_chunks += 1;
+                continue;
+            }
+            for chunk in chunks {
+                all_text.push_str(&chunk.content);
+                all_text.push_str("\n\n");
+                // 截断到上限（16k 字节）
+                if all_text.len() >= 16_000 {
+                    all_text.truncate(16_000);
+                    break;
+                }
+            }
+            if all_text.len() >= 16_000 {
+                break;
+            }
+        }
+
+        if all_text.trim().is_empty() {
+            return Ok(axagent_harness::ExtractEntitiesResult {
+                new_entities: Vec::new(),
+                updated_entities: Vec::new(),
+                new_relations: Vec::new(),
+                skipped_chunks,
+                elapsed_ms: 0,
+            });
+        }
+
+        // 2. 加载已有实体列表（用于去重）
+        let existing_entities =
+            axagent_dao::repo::knowledge_graph::get_all_entities_by_kb(&self.db, kb_id)
+                .await
+                .map_err(|e| e.to_string())?;
+        let existing_names: Vec<String> =
+            existing_entities.iter().take(50).map(|e| e.name.clone()).collect();
+
+        // 3. 构建提示词
+        let system_prompt = axagent_kit::prompts::PromptRegistry::get(
+            "entity_extraction.system_prompt",
+            axagent_harness::prompt_provider::PromptLang::ZhCN,
+        );
+        let user_template = axagent_kit::prompts::PromptRegistry::get(
+            "entity_extraction.user_template",
+            axagent_harness::prompt_provider::PromptLang::ZhCN,
+        );
+
+        let existing_hint = if existing_names.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\n\n[已存在的实体名称（请勿重复抽取，可在关系中引用）]\n{}",
+                existing_names.join(", ")
+            )
+        };
+        let user_prompt = user_template.replace("{0}", &format!("{}{}", all_text, existing_hint));
+
+        // 4. 构建 LLM Bridge
+        let bridge =
+            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&self.master_key)
+                .await
+                .ok_or_else(|| "未找到启用的 LLM Provider，无法执行实体抽取".to_string())?;
+
+        // 5. 调用 LLM
+        let llm_response = bridge
+            .call_llm(system_prompt, &user_prompt)
+            .await
+            .map_err(|e| format!("LLM 实体抽取调用失败：{}", e))?;
+
+        // 6. 解析响应
+        let (entities, relations) = self.parse_entity_extraction_response(&llm_response)?;
+
+        // 7. 写入 DB
+        let result =
+            axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
+                &self.db,
+                kb_id,
+                entities,
+                relations,
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(axagent_harness::ExtractEntitiesResult {
+            new_entities: result.new_entities,
+            updated_entities: result.updated_entities,
+            new_relations: result.new_relations,
+            skipped_chunks: result.skipped_chunks + skipped_chunks,
+            elapsed_ms: result.elapsed_ms,
+        })
+    }
+
+    /// 解析 LLM 实体抽取响应
+    fn parse_entity_extraction_response(
+        &self,
+        response: &str,
+    ) -> Result<(Vec<ExtractedEntity>, Vec<ExtractedRelation>), String> {
+        // 清理 markdown fences
+        let cleaned = response
+            .trim()
+            .trim_start_matches("```")
+            .trim_start_matches("json")
+            .trim_start_matches("JSON")
+            .trim_end_matches("```")
+            .trim()
+            .to_string();
+
+        // 尝试解析 JSON
+        let payload: serde_json::Value = serde_json::from_str(&cleaned).unwrap_or(serde_json::json!({}));
+
+        let entities: Vec<ExtractedEntity> = payload
+            .get("entities")
+            .and_then(|e| e.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|e| {
+                        let name = e.get("name")?.as_str()?.to_string();
+                        if name.is_empty() {
+                            return None;
+                        }
+                        Some(ExtractedEntity {
+                            name,
+                            entity_type: e
+                                .get("entity_type")
+                                .or_else(|| e.get("type"))
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("concept")
+                                .to_string(),
+                            aliases: e
+                                .get("aliases")
+                                .and_then(|a| a.as_array())
+                                .map(|arr| {
+                                    arr.iter()
+                                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                        .collect()
+                                })
+                                .unwrap_or_default(),
+                            description: e
+                                .get("description")
+                                .and_then(|d| d.as_str())
+                                .unwrap_or("")
+                                .to_string(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let relations: Vec<ExtractedRelation> = payload
+            .get("relations")
+            .and_then(|r| r.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|r| {
+                        let source = r.get("source")?.as_str()?.to_string();
+                        let target = r.get("target")?.as_str()?.to_string();
+                        if source.is_empty() || target.is_empty() {
+                            return None;
+                        }
+                        Some(ExtractedRelation {
+                            source,
+                            target,
+                            relation_type: r
+                                .get("relation")
+                                .or_else(|| r.get("relation_type"))
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("mentions")
+                                .to_string(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Ok((entities, relations))
     }
 
     async fn load_container(

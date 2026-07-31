@@ -1025,7 +1025,11 @@ pub async fn collect_rag_context(
     credential_manager: &Arc<CredentialManager>,
 ) -> RagContextResult {
     if kb_ids.is_empty() && mem_ids.is_empty() && wiki_ids.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+            graph_context: None,
+        };
     }
 
     // Read pipeline config from global settings
@@ -1117,6 +1121,12 @@ pub async fn collect_rag_context(
     // 解析云端 reranker 的 API Key（本地 backend 返回 None）
     let rerank_api_key = resolve_rerank_api_key(credential_manager, &pipeline_cfg.rerank).await;
 
+    // 构造 Graph RAG 增强提供者
+    let entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>> = {
+        let provider = axagent_dao::knowledge_graph_provider::KnowledgeGraphProvider::new(db);
+        Some(Arc::new(provider) as Arc<dyn axagent_harness::EntityGraphProvider>)
+    };
+
     rag::collect_rag_context_with_pipeline(
         db,
         master_key,
@@ -1130,6 +1140,7 @@ pub async fn collect_rag_context(
         &pipeline_cfg,
         llm_fn,
         rerank_api_key,
+        entity_graph_provider,
     )
     .await
 }
@@ -1155,7 +1166,11 @@ pub async fn collect_rag_context_with_sources(
     use axagent_search::rag::RAGSourceType;
 
     if sources.is_empty() {
-        return RagContextResult { context_parts: vec![], source_results: vec![] };
+        return RagContextResult {
+            context_parts: vec![],
+            source_results: vec![],
+            graph_context: None,
+        };
     }
 
     // 提取 kb_ids / wiki_ids 用于知识图谱回链
@@ -1226,6 +1241,12 @@ pub async fn collect_rag_context_with_sources(
 
     let rerank_api_key = resolve_rerank_api_key(credential_manager, &pipeline_cfg.rerank).await;
 
+    // 构造 Graph RAG 增强提供者
+    let entity_graph_provider: Option<Arc<dyn axagent_harness::EntityGraphProvider>> = {
+        let provider = axagent_dao::knowledge_graph_provider::KnowledgeGraphProvider::new(db);
+        Some(Arc::new(provider) as Arc<dyn axagent_harness::EntityGraphProvider>)
+    };
+
     axagent_search::rag::collect_rag_context_with_pipeline_from_refs(
         db,
         master_key,
@@ -1239,6 +1260,7 @@ pub async fn collect_rag_context_with_sources(
         rerank_api_key,
         &kb_ids,
         &wiki_ids,
+        entity_graph_provider,
     )
     .await
 }

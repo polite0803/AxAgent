@@ -2021,6 +2021,21 @@ export async function handleCommand<T>(
     case "rebuild_knowledge_index":
     case "clear_knowledge_index":
       return undefined as T;
+    case "extract_entities_for_kb":
+    case "extract_entities_from_documents":
+      return {
+        status: "success",
+        documentCount: 0,
+        taskCount: 0,
+        message: "实体抽取仅在桌面模式下可用（浏览器模式 mock）",
+      } as T;
+    case "graph_enhanced_search":
+      return {
+        query: args?.query ?? "",
+        entities: [],
+        relations: [],
+        chunks: [],
+      } as T;
 
     // ── Phase 2: Memory ───────────────────────────────────────────────
     case "list_memory_namespaces":

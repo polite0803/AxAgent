@@ -182,6 +182,10 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
     new Set(),
   );
 
+  // Entity extraction state
+  const [extractingEntities, setExtractingEntities] = useState(false);
+  const extractingRef = useRef(false);
+
   const [syncWikiModalOpen, setSyncWikiModalOpen] = useState(false);
   const [syncWikiDocId, setSyncWikiDocId] = useState<string | null>(null);
   const [syncWikiDocTitle, setSyncWikiDocTitle] = useState("");
@@ -548,6 +552,31 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
       messageApi.error(String(e));
     }
   }, [base.id, loadDocuments, messageApi]);
+
+  const handleExtractEntities = useCallback(async () => {
+    if (extractingRef.current) {
+      return;
+    }
+    setExtractingEntities(true);
+    extractingRef.current = true;
+    try {
+      const result = await invoke<{
+        status: string;
+        documentCount: number;
+        taskCount: number;
+        message?: string;
+      }>("extract_entities_for_kb", { knowledge_base_id: base.id });
+      messageApi.success(
+        result.message
+          || `已入队 ${result.taskCount} 个实体抽取任务，共处理 ${result.documentCount} 个文档`,
+      );
+    } catch (e) {
+      messageApi.error(String(e));
+    } finally {
+      setExtractingEntities(false);
+      extractingRef.current = false;
+    }
+  }, [base.id, messageApi]);
 
   const docColumns = [
     {
@@ -1478,6 +1507,20 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
               <Button
                 icon={<Zap size={14} />}
                 loading={rebuildingIndex}
+                disabled={!base.embeddingProvider}
+              />
+            </Tooltip>
+          </Popconfirm>
+
+          <Popconfirm
+            title={t("settings.knowledge.extractEntitiesConfirm")}
+            placement="bottom"
+            onConfirm={handleExtractEntities}
+          >
+            <Tooltip title={t("settings.knowledge.extractEntities")}>
+              <Button
+                icon={<Workflow size={14} />}
+                loading={extractingEntities}
                 disabled={!base.embeddingProvider}
               />
             </Tooltip>

@@ -5128,6 +5128,8 @@
       "rebuildDocIndex": "Rebuild Index",
       "rebuildIndex": "Rebuild Index",
       "rebuildIndexConfirm": "Rebuild index? This will regenerate embeddings for all chunks.",
+      "extractEntities": "Extract Entity Relations",
+      "extractEntitiesConfirm": "Extract entity relations for this knowledge base? This will call LLM to extract entities and relations from documents to build a knowledge graph.",
       "retrievalThreshold": "Retrieval Threshold",
       "retrievalTopK": "Top K Results",
       "score": "Similarity",

@@ -5474,6 +5474,8 @@
       "rebuildDocIndex": "Index neu aufbauen",
       "rebuildIndex": "Index neu aufbauen",
       "rebuildIndexConfirm": "Index neu aufbauen? Dabei werden Embeddings für alle Abschnitte neu generiert.",
+      "extractEntities": "Entitätsbeziehungen extrahieren",
+      "extractEntitiesConfirm": "Entitätsbeziehungen für diese Wissensdatenbank extrahieren? Dadurch werden Entitäten und Beziehungen aus Dokumenten extrahiert, um einen Wissensgraphen zu erstellen.",
       "retrievalThreshold": "Abrufschwelle",
       "retrievalTopK": "Top-K-Ergebnisse",
       "score": "Ähnlichkeit",

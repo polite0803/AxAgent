@@ -5474,6 +5474,8 @@
       "rebuildDocIndex": "Reconstruir índice",
       "rebuildIndex": "Reconstruir índice",
       "rebuildIndexConfirm": "¿Reconstruir el índice? Esto regenerará las incrustaciones para todos los fragmentos.",
+      "extractEntities": "Extraer relaciones de entidades",
+      "extractEntitiesConfirm": "¿Extraer relaciones de entidades para esta base de datos? Esto llamará a LLM para extraer entidades y relaciones de los documentos y construir un grafo de conocimiento.",
       "retrievalThreshold": "Umbral de recuperación",
       "retrievalTopK": "Top K resultados",
       "score": "Similitud",

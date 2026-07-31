@@ -4867,6 +4867,8 @@
       "rebuildDocIndex": "重建索引",
       "rebuildIndex": "重建索引",
       "rebuildIndexConfirm": "确定重建索引？将重新生成所有分段的向量嵌入。",
+      "extractEntities": "抽取实体关系",
+      "extractEntitiesConfirm": "确定对该知识库抽取实体关系？将调用 LLM 从文档中提取实体和关系，构建知识图谱。",
       "retrievalThreshold": "检索阈值",
       "retrievalTopK": "检索记录数",
       "score": "相似度",
