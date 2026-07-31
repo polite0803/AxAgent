@@ -65,20 +65,20 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     // ── knowledge_entities 轨迹合并字段（v101） ──
     ("knowledge_entities", "aliases", "TEXT NOT NULL DEFAULT '[]'"),
     ("knowledge_entities", "mention_count", "INTEGER NOT NULL DEFAULT 1"),
-    ("knowledge_entities", "confidence", "REAL NOT NULL DEFAULT 0.5"),
+    ("knowledge_entities", "confidence", "DOUBLE PRECISION NOT NULL DEFAULT 0.5"),
     ("knowledge_entities", "first_seen_at", "TEXT"),
     ("knowledge_entities", "last_seen_at", "TEXT"),
     // ── knowledge_relations 权重（v101） ──
-    ("knowledge_relations", "weight", "REAL NOT NULL DEFAULT 1.0"),
+    ("knowledge_relations", "weight", "DOUBLE PRECISION NOT NULL DEFAULT 1.0"),
     // ── knowledge_documents 时间戳 —— entity 有定义但老库建表时缺失 ──
     ("knowledge_documents", "created_at", "BIGINT NOT NULL DEFAULT 0"),
     ("knowledge_documents", "updated_at", "BIGINT NOT NULL DEFAULT 0"),
     // ── memory_items 轨迹记忆字段（v101 + v108） ──
     ("memory_items", "tier", "TEXT NOT NULL DEFAULT 'working'"),
-    ("memory_items", "importance", "REAL NOT NULL DEFAULT 0.5"),
+    ("memory_items", "importance", "DOUBLE PRECISION NOT NULL DEFAULT 0.5"),
     ("memory_items", "access_count", "INTEGER NOT NULL DEFAULT 0"),
     ("memory_items", "last_accessed", "BIGINT"),
-    ("memory_items", "decay_rate", "REAL NOT NULL DEFAULT 0.01"),
+    ("memory_items", "decay_rate", "DOUBLE PRECISION NOT NULL DEFAULT 0.01"),
     ("memory_items", "expires_at", "BIGINT"),
     ("memory_items", "source_conversation_id", "TEXT"),
     ("memory_items", "source_message_id", "TEXT"),
