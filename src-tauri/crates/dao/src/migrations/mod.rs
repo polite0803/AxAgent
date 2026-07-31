@@ -257,6 +257,17 @@ pub async fn get_schema_status(
 ///
 /// 优势：不依赖版本号、无硬编码清单、自动适配所有下游 fork（v200+）。
 pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, usize), DbErr> {
+    let backend = db.get_database_backend();
+
+    // 确保 version tracking 表存在
+    db.execute_unprepared(&format!(
+        "CREATE TABLE IF NOT EXISTS {SCHEMA_VERSION_TABLE} (\
+         version INTEGER NOT NULL PRIMARY KEY, \
+         applied_at INTEGER NOT NULL, \
+         description TEXT)"
+    ))
+    .await?;
+
     let mut fixed = 0usize;
     let total = MIGRATIONS.len();
 
@@ -264,6 +275,8 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
         tracing::info!("[repair_schema] 重跑迁移 v{}: {}", m.version, m.description);
         match (m.up)(db.clone()).await {
             Ok(()) => {
+                // 成功后写入版本号，确保 get_schema_status 不再显示该版本为 pending
+                record_version(db, backend, m.version, m.description).await?;
                 fixed += 1;
             },
             Err(e) => {
@@ -274,7 +287,6 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
         }
     }
 
-    // 确保 schema_version 表记录完整（重跑不写版本号是正常的）
     tracing::info!("[repair_schema] 完成: 重跑了 {}/{} 条迁移", fixed, total);
 
     Ok((fixed, total))

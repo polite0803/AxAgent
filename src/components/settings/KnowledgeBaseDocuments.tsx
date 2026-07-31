@@ -55,7 +55,7 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface LocalModelInfo {
@@ -188,6 +188,10 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   const [rebuildingDocIds, setRebuildingDocIds] = useState<Set<string>>(
     new Set(),
   );
+
+  // Table flexible height
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [tableScrollY, setTableScrollY] = useState<number>(600);
 
   // Entity extraction state
   const [extracting, setExtracting] = useState(false);
@@ -341,6 +345,29 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   useEffect(() => {
     loadDocuments(base.id);
   }, [base.id, loadDocuments]);
+
+  // Dynamically measure table container height for flexible scrolling
+  useLayoutEffect(() => {
+    const el = tableContainerRef.current;
+    if (!el) { return; }
+    const measure = () => {
+      const h = el.clientHeight;
+      if (h > 0) {
+        setTableScrollY(h);
+      } else {
+        requestAnimationFrame(measure);
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(() => {
+      const h = el.clientHeight;
+      if (h > 0) {
+        setTableScrollY(h);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Listen for indexing completion events to refresh document status in real-time
   useEffect(() => {
@@ -854,7 +881,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   ];
 
   return (
-    <div className="p-6 pb-12 overflow-y-auto h-full">
+    <div className="flex flex-col flex-1 min-h-0 p-6 pb-4 overflow-hidden">
       {/* Header: Icon + Name + Tag + Settings */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -1658,17 +1685,19 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
           )}
       </Modal>
 
-      <Table
-        dataSource={documents}
-        columns={docColumns}
-        rowKey="id"
-        pagination={false}
-        loading={loading}
-        size="small"
-        bordered
-        virtual
-        scroll={{ y: 600, x: 1200 }}
-      />
+      <div ref={tableContainerRef} className="flex-1 min-h-0 overflow-hidden">
+        <Table
+          dataSource={documents}
+          columns={docColumns}
+          rowKey="id"
+          pagination={false}
+          loading={loading}
+          size="small"
+          bordered
+          virtual
+          scroll={{ y: tableScrollY, x: 1200 }}
+        />
+      </div>
 
       {/* Chunks Modal */}
       <Modal

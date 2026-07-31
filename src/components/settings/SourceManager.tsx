@@ -638,10 +638,10 @@ function KnowledgeTab({
   );
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       {selectedBase
         ? (
-          <div>
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <Button
               type="text"
               icon={<ArrowLeft size={16} />}
@@ -1398,7 +1398,7 @@ function SourceManager() {
 
       {/* 内容区：flex:1 撑满剩余空间，内部滚动 */}
       <div
-        className="flex-1"
+        className="flex-1 flex flex-col"
         data-testid="source-manager-body"
         style={{
           minHeight: 0,
