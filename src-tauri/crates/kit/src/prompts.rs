@@ -234,7 +234,9 @@ fn get_zh_cn(key: &str) -> &'static str {
 4. 如果文本没有可提取的实体，返回空的 entities 和 relations 数组"#
         },
 
-        "entity_extraction.document_user_template" => "## 文本内容\n{document_content}\n\n从以上文本中提取实体和关系。",
+        "entity_extraction.document_user_template" => {
+            "## 文本内容\n{document_content}\n\n从以上文本中提取实体和关系。"
+        },
 
         // ── 增量提取 ──
         "incremental_extract.system_prompt" => {
@@ -562,7 +564,9 @@ Return JSON:
 4. If no entities can be extracted, return empty entities and relations arrays"#
         },
 
-        "entity_extraction.document_user_template" => "## Text Content\n{document_content}\n\nExtract entities and relationships from the above text.",
+        "entity_extraction.document_user_template" => {
+            "## Text Content\n{document_content}\n\nExtract entities and relationships from the above text."
+        },
 
         // ── Incremental Extract ──
         "incremental_extract.system_prompt" => {
