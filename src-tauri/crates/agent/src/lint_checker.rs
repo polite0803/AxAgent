@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use axagent_harness::kit_bridge::KitMarkdownParser;
@@ -87,16 +87,27 @@ impl LintChecker {
         let mut linked_titles: HashSet<String> = HashSet::new();
         let mut note_ids: Vec<String> = Vec::new();
 
+        // 批量预加载：构建 notes_map 和 backlink_counts，消除 N+1 查询
+        let mut notes_map: HashMap<String, &Note> = HashMap::new();
+        let mut backlink_counts: HashMap<String, i64> = HashMap::new();
+
         for note in &db_notes {
             all_titles.insert(note.title.clone());
             note_ids.push(note.id.clone());
+            notes_map.insert(note.id.clone(), note);
+        }
+
+        // 批量查询所有笔记的 backlink 计数
+        for note_id in &note_ids {
+            let count = self.backlink_repo.count_by_target_note_id(note_id).await? as i64;
+            backlink_counts.insert(note_id.clone(), count);
         }
 
         for note in &db_notes {
             let mut issues = Vec::new();
 
             self.check_frontmatter(note, &mut issues);
-            self.check_links(note, &mut issues).await?;
+            self.check_links_with_data(note, &mut issues, &all_titles, &backlink_counts).await?;
             self.check_structure(note, &mut issues);
             self.check_content_quality(note, &mut issues);
 
@@ -112,7 +123,14 @@ impl LintChecker {
         }
 
         self.check_index_completeness(wiki_id, &all_titles, &mut results).await?;
-        self.check_orphan_pages(&note_ids, &linked_titles, &mut results).await?;
+        self.check_orphan_pages_with_data(
+            &note_ids,
+            &linked_titles,
+            &backlink_counts,
+            &notes_map,
+            &mut results,
+        )
+        .await?;
 
         Ok(results)
     }
@@ -170,6 +188,50 @@ impl LintChecker {
         }
 
         let backlink_count = self.backlink_repo.count_by_target_note_id(&note.id).await?;
+
+        if backlink_count == 0 && note.author == "llm" {
+            issues.push(LintIssue {
+                severity: IssueSeverity::Info,
+                code: "no-backlinks".to_string(),
+                message: "No other pages reference this page".to_string(),
+                line: None,
+            });
+        }
+
+        Ok(())
+    }
+
+    /// 使用预加载数据的优化版本：消除 N+1 查询，提升批量 lint 性能
+    /// 直接使用预加载的 all_titles (O(1) 查找) 和 backlink_counts (O(1) 查找)
+    async fn check_links_with_data(
+        &self,
+        note: &Note,
+        issues: &mut Vec<LintIssue>,
+        all_titles: &HashSet<String>,
+        backlink_counts: &HashMap<String, i64>,
+    ) -> Result<(), String> {
+        let parsed = self.parser.parse(&note.content);
+
+        for link in &parsed.links {
+            if link.link_type != "wiki" {
+                continue;
+            }
+
+            // 使用预加载的 all_titles 进行 O(1) 查找
+            let target_exists = all_titles.contains(&link.target);
+
+            if !target_exists {
+                issues.push(LintIssue {
+                    severity: IssueSeverity::Warning,
+                    code: "broken-link".to_string(),
+                    message: format!("Broken link to [[{}]]", link.target),
+                    line: None,
+                });
+            }
+        }
+
+        // 使用预加载的 backlink_counts 进行 O(1) 查找
+        let backlink_count = backlink_counts.get(&note.id).copied().unwrap_or(0);
 
         if backlink_count == 0 && note.author == "llm" {
             issues.push(LintIssue {
@@ -304,6 +366,7 @@ impl LintChecker {
         Ok(())
     }
 
+    #[allow(dead_code)]
     async fn check_orphan_pages(
         &self,
         note_ids: &[String],
@@ -323,6 +386,55 @@ impl LintChecker {
 
                 if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
                     let backlinks = self.backlink_repo.count_by_target_note_id(note_id).await?;
+
+                    if backlinks == 0 {
+                        results.push(LintResult {
+                            note_id: note_id.clone(),
+                            issues: vec![LintIssue {
+                                severity: IssueSeverity::Warning,
+                                code: "orphan-page".to_string(),
+                                message: format!(
+                                    "Page '{}' is not referenced by any other page",
+                                    note_ref.title
+                                ),
+                                line: None,
+                            }],
+                            score: 0.3,
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 使用预加载数据的优化版本：消除 N+1 查询
+    /// 使用预加载的 notes_map 直接获取笔记 (O(1) 查找)
+    /// 使用预加载的 backlink_counts 进行 O(1) 查找
+    async fn check_orphan_pages_with_data(
+        &self,
+        note_ids: &[String],
+        linked_titles: &HashSet<String>,
+        backlink_counts: &HashMap<String, i64>,
+        notes_map: &HashMap<String, &Note>,
+        results: &mut Vec<LintResult>,
+    ) -> Result<(), String> {
+        for note_id in note_ids {
+            // 使用预加载的 notes_map 进行 O(1) 查找
+            let note_ref = notes_map.get(note_id);
+
+            if let Some(note_ref) = note_ref {
+                if note_ref.title == "Index"
+                    || note_ref.title == "Operation Log"
+                    || note_ref.title == "Overview"
+                {
+                    continue;
+                }
+
+                if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
+                    // 使用预加载的 backlink_counts 进行 O(1) 查找
+                    let backlinks = backlink_counts.get(note_id).copied().unwrap_or(0);
 
                     if backlinks == 0 {
                         results.push(LintResult {

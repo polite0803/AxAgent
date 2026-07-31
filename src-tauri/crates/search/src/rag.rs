@@ -1439,9 +1439,9 @@ fn validate_collection_name(name: &str) -> Result<()> {
     if name.is_empty() {
         return Err(AxAgentError::Validation("Collection name cannot be empty".to_string()));
     }
-    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
         return Err(AxAgentError::Validation(format!(
-            "Invalid collection name '{}': only alphanumeric characters and underscores are allowed",
+            "Invalid collection name '{}': only alphanumeric characters, hyphens and underscores are allowed",
             name
         )));
     }
