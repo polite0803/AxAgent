@@ -17,11 +17,13 @@
 
 /// 把 PostgreSQL 风格 DDL 转成 SQLite 兼容写法。
 ///
-/// 仅 3 条确定性替换：
+/// 仅 4 条确定性替换：
 /// - `BIGSERIAL PRIMARY KEY` → `INTEGER PRIMARY KEY AUTOINCREMENT`（i64 自增主键）
 /// - `SERIAL PRIMARY KEY` → `INTEGER PRIMARY KEY`（i32 自增主键）
 /// - `to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')`
 ///   → `datetime('now')`（UTC 时间默认值）
+/// - `JSONB` → `TEXT`（SeaORM 的 `Json` 类型在 SQLite 下以 TEXT 存储 JSON 字符串，
+///   与知识图谱表 `properties`/`metadata` 等 JSON 列保持一致）
 ///
 /// 其他类型（BIGINT/DOUBLE PRECISION/BOOLEAN/TEXT）SQLite 直接接受。
 pub fn sqlite_ddl(sql: &str) -> String {
@@ -31,6 +33,7 @@ pub fn sqlite_ddl(sql: &str) -> String {
             "to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')",
             "datetime('now')",
         )
+        .replace("JSONB", "TEXT")
 }
 
 /// 把 SQLite 风格 DDL 转成 PostgreSQL 兼容写法（已废弃，保留向后兼容）。

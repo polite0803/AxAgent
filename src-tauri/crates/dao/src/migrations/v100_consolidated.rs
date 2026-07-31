@@ -568,31 +568,31 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         "CREATE TABLE IF NOT EXISTS knowledge_entities (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, name TEXT NOT NULL, \
             entity_type TEXT NOT NULL, description TEXT, source_path TEXT NOT NULL, \
-            source_language TEXT, properties TEXT NOT NULL, lifecycle TEXT, behaviors TEXT, \
-            metadata TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
+            source_language TEXT, properties JSONB NOT NULL, lifecycle JSONB, behaviors JSONB, \
+            metadata JSONB, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS knowledge_attributes (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, \
             entity_id TEXT NOT NULL, name TEXT NOT NULL, attribute_type TEXT NOT NULL, \
             data_type TEXT NOT NULL, description TEXT, \
-            is_required BOOLEAN NOT NULL DEFAULT FALSE, default_value TEXT, constraints TEXT, \
-            validation_rules TEXT, metadata TEXT, \
+            is_required BOOLEAN NOT NULL DEFAULT FALSE, default_value TEXT, constraints JSONB, \
+            validation_rules JSONB, metadata JSONB, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS knowledge_relations (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, \
             source_entity_id TEXT NOT NULL, target_entity_id TEXT NOT NULL, \
-            relation_type TEXT NOT NULL, description TEXT, properties TEXT, metadata TEXT, \
+            relation_type TEXT NOT NULL, description TEXT, properties JSONB, metadata JSONB, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS knowledge_flows (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, name TEXT NOT NULL, \
             flow_type TEXT NOT NULL, description TEXT, source_path TEXT NOT NULL, \
-            steps TEXT NOT NULL, decision_points TEXT, error_handling TEXT, \
-            preconditions TEXT, postconditions TEXT, metadata TEXT, \
+            steps JSONB NOT NULL, decision_points JSONB, error_handling JSONB, \
+            preconditions JSONB, postconditions JSONB, metadata JSONB, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS knowledge_interfaces (\
             id TEXT NOT NULL PRIMARY KEY, knowledge_base_id TEXT NOT NULL, name TEXT NOT NULL, \
             interface_type TEXT NOT NULL, description TEXT, source_path TEXT NOT NULL, \
-            input_schema TEXT NOT NULL, output_schema TEXT NOT NULL, error_codes TEXT, \
-            communication_pattern TEXT, version TEXT, metadata TEXT, \
+            input_schema JSONB NOT NULL, output_schema JSONB NOT NULL, error_codes JSONB, \
+            communication_pattern TEXT, version TEXT, metadata JSONB, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
