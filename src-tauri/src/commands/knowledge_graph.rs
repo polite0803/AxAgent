@@ -560,17 +560,15 @@ pub async fn extract_entities_for_kb(
 ) -> Result<serde_json::Value, String> {
     use axagent_dao::repo::index_jobs as jobs;
 
-    let exists = axagent_dao::repo::knowledge::get_knowledge_base(
-        state.harness.db(),
-        &knowledge_base_id,
-    )
-    .await
-    .map_err(|e| {
-        ErrorResponse::from_error(
-            format!("知识库不存在: {}", e),
-            ErrorCategory::Unrecoverable,
-        )
-    })?;
+    let exists =
+        axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
+            .await
+            .map_err(|e| {
+                ErrorResponse::from_error(
+                    format!("知识库不存在: {}", e),
+                    ErrorCategory::Unrecoverable,
+                )
+            })?;
     let _ = exists;
 
     let metadata = serde_json::json!({
@@ -587,14 +585,12 @@ pub async fn extract_entities_for_kb(
         metadata: Some(serde_json::to_string(&metadata).unwrap_or_default()),
     };
 
-    let job = jobs::enqueue_job(state.harness.db(), input)
-        .await
-        .map_err(|e| {
-            ErrorResponse::from_error(
-                format!("入队实体抽取任务失败: {}", e),
-                ErrorCategory::Unrecoverable,
-            )
-        })?;
+    let job = jobs::enqueue_job(state.harness.db(), input).await.map_err(|e| {
+        ErrorResponse::from_error(
+            format!("入队实体抽取任务失败: {}", e),
+            ErrorCategory::Unrecoverable,
+        )
+    })?;
 
     Ok(serde_json::json!({
         "jobId": job.id,

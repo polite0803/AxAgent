@@ -546,7 +546,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
       await invoke<{ jobId: string }>("extract_entities_for_kb", {
         knowledgeBaseId: base.id,
       });
-      messageApi.success(t("knowledgeGraph.extractSuccess", { newEntities: 0, newRelations: 0 }));
+      messageApi.success(t("knowledgeGraph.extract"));
     } catch (e) {
       messageApi.error(String(e));
     } finally {
