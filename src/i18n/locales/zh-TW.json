@@ -7280,6 +7280,9 @@
       "fitView": "適應畫布",
       "focusSelected": "聚焦選中",
       "fullscreen": "全螢幕",
+      "layoutForce": "力導向",
+      "layoutRadial": "放射",
+      "layoutHierarchy": "網格",
       "layoutRunning": "正在計算佈局…",
       "loadError": "加載失敗",
       "loading": "加載中...",
@@ -9198,7 +9201,10 @@
       "warn": "僅警告"
     },
     "invalidEdgesCleaned": "偵測到 {{count}} 條無效邊，已自動清理：\n{{details}}",
+    "invalidEdgeDetail": "邊 {{edgeId}} 引用了不存在的節點 {{missingNodeId}}",
     "validationFailed": "驗證失敗",
+    "validationNodeInfo": " (節點: {{nodeId}})",
+    "validationSuggestion": "\n建議: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} 個斷言",
       "continue": "繼續",

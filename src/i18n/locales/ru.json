@@ -7625,6 +7625,9 @@
       "fitView": "По размеру",
       "focusSelected": "Фокус на выбранном",
       "fullscreen": "Полный экран",
+      "layoutForce": "Сила",
+      "layoutRadial": "Радиальный",
+      "layoutHierarchy": "Сетка",
       "layoutRunning": "Расчёт компоновки…",
       "loadError": "Не удалось загрузить",
       "loading": "Загрузка...",
@@ -9542,7 +9545,10 @@
       "warn": "Только предупреждение"
     },
     "invalidEdgesCleaned": "Обнаружено {{count}} невалидных рёбер, автоматически очищено:\n{{details}}",
+    "invalidEdgeDetail": "Ребро {{edgeId}} ссылается на несуществующий узел {{missingNodeId}}",
     "validationFailed": "Валидация не пройдена",
+    "validationNodeInfo": " (Узел: {{nodeId}})",
+    "validationSuggestion": "\nПредложение: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} утверждений",
       "continue": "Продолжить",

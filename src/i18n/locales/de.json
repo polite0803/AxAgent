@@ -7627,6 +7627,9 @@
       "fitView": "Ansicht anpassen",
       "focusSelected": "Auswahl fokussieren",
       "fullscreen": "Vollbild",
+      "layoutForce": "Kraft",
+      "layoutRadial": "Radial",
+      "layoutHierarchy": "Raster",
       "layoutRunning": "Layout wird berechnet…",
       "loadError": "Laden fehlgeschlagen",
       "loading": "Laden...",
@@ -9544,7 +9547,10 @@
       "warn": "Nur Warnung"
     },
     "invalidEdgesCleaned": "{{count}} ungültige Kanten erkannt, automatisch bereinigt:\n{{details}}",
+    "invalidEdgeDetail": "Kante {{edgeId}} referenziert auf einen nicht existierenden Knoten {{missingNodeId}}",
     "validationFailed": "Validierung fehlgeschlagen",
+    "validationNodeInfo": " (Knoten: {{nodeId}})",
+    "validationSuggestion": "\nVorschlag: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} Assertionen",
       "continue": "Fortsetzen",

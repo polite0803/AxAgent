@@ -711,6 +711,36 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
       setLocalEdgeLabel(selectedEdge?.label || "");
     }, [selectedEdge?.id, selectedEdge?.label]);
 
+    React.useEffect(() => {
+      const styleId = "workflow-panel-height-fix";
+      if (document.getElementById(styleId)) { return; }
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .workflow-side-panel .ant-tabs-body-holder {
+          flex: 1 !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+        }
+        .workflow-side-panel .ant-tabs-body {
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+        .workflow-side-panel .ant-tabs-content {
+          height: 100% !important;
+        }
+        .workflow-side-panel .ant-tabs-tabpane,
+        .workflow-side-panel .ant-tabs-tabpane-active {
+          height: 100% !important;
+        }
+      `;
+      document.head.appendChild(style);
+      return () => {
+        const el = document.getElementById(styleId);
+        if (el) { el.remove(); }
+      };
+    }, []);
+
     const handleUpdateNode = (updates: Partial<WorkflowNode>) => {
       if (selectedNode) {
         updateNode(selectedNode.id, updates);

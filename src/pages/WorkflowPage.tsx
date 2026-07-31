@@ -18,15 +18,17 @@ export function WorkflowPage() {
   // 编辑器全屏模式：创建新或编辑现有时隐藏 Tabs
   if (isCreatingNew || editingTemplateId) {
     return (
-      <ReactFlowProvider>
-        <WorkflowEditor
-          templateId={isCreatingNew ? undefined : editingTemplateId}
-          onClose={() => {
-            setEditingTemplateId(undefined);
-            setIsCreatingNew(false);
-          }}
-        />
-      </ReactFlowProvider>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <ReactFlowProvider>
+          <WorkflowEditor
+            templateId={isCreatingNew ? undefined : editingTemplateId}
+            onClose={() => {
+              setEditingTemplateId(undefined);
+              setIsCreatingNew(false);
+            }}
+          />
+        </ReactFlowProvider>
+      </div>
     );
   }
 
