@@ -103,7 +103,7 @@
     "markstream-react": "^0.0.53",
     "overlayscrollbars": "^2.15.1",
     "phaser": "^3.90.0",
-    "react": "^19.2.5",
+    "react": "^19.2.8",
     "react-dom": "^19.2.5",
     "react-i18next": "^17.0.3",
     "react-katex": "^3.0.1",
