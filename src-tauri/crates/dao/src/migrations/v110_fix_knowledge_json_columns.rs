@@ -54,6 +54,15 @@ const JSON_COLUMNS: &[(&str, &str)] = &[
     ("knowledge_attributes", "metadata"),
 ];
 
+/// 因 v100/v101 历史迁移中用了 REAL(f32) 而非 DOUBLE PRECISION(f64)，
+/// 导致 SeaORM entity 的 f64 解码失败。此处统一修复为 DOUBLE PRECISION。
+const FLOAT4_TO_FLOAT8_COLUMNS: &[(&str, &str)] = &[
+    ("knowledge_entities", "confidence"),
+    ("knowledge_relations", "weight"),
+    ("memory_items", "importance"),
+    ("memory_items", "decay_rate"),
+];
+
 /// 知识图谱表建表 DDL（PostgreSQL，JSON 列用 JSONB）。
 /// 包含 v100 原始列 + v101 追加的轨迹合并列/权重列。
 const CREATE_TABLES_PG: &[(&str, &str)] = &[
@@ -65,7 +74,7 @@ const CREATE_TABLES_PG: &[(&str, &str)] = &[
             source_language TEXT, properties JSONB NOT NULL, lifecycle JSONB, behaviors JSONB, \
             metadata JSONB, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             aliases TEXT NOT NULL DEFAULT '[]', mention_count INTEGER NOT NULL DEFAULT 1, \
-            confidence REAL NOT NULL DEFAULT 0.5, first_seen_at TEXT, last_seen_at TEXT)",
+            confidence DOUBLE PRECISION NOT NULL DEFAULT 0.5, first_seen_at TEXT, last_seen_at TEXT)",
     ),
     (
         "knowledge_attributes",
@@ -84,7 +93,7 @@ const CREATE_TABLES_PG: &[(&str, &str)] = &[
             source_entity_id TEXT NOT NULL, target_entity_id TEXT NOT NULL, \
             relation_type TEXT NOT NULL, description TEXT, properties JSONB, metadata JSONB, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
-            weight REAL NOT NULL DEFAULT 1.0)",
+            weight DOUBLE PRECISION NOT NULL DEFAULT 1.0)",
     ),
     (
         "knowledge_flows",
@@ -117,7 +126,7 @@ const CREATE_TABLES_SQLITE: &[(&str, &str)] = &[
             source_language TEXT, properties TEXT NOT NULL, lifecycle TEXT, behaviors TEXT, \
             metadata TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
             aliases TEXT NOT NULL DEFAULT '[]', mention_count INTEGER NOT NULL DEFAULT 1, \
-            confidence REAL NOT NULL DEFAULT 0.5, first_seen_at TEXT, last_seen_at TEXT)",
+            confidence DOUBLE PRECISION NOT NULL DEFAULT 0.5, first_seen_at TEXT, last_seen_at TEXT)",
     ),
     (
         "knowledge_attributes",
@@ -136,7 +145,7 @@ const CREATE_TABLES_SQLITE: &[(&str, &str)] = &[
             source_entity_id TEXT NOT NULL, target_entity_id TEXT NOT NULL, \
             relation_type TEXT NOT NULL, description TEXT, properties TEXT, metadata TEXT, \
             created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, \
-            weight REAL NOT NULL DEFAULT 1.0)",
+            weight DOUBLE PRECISION NOT NULL DEFAULT 1.0)",
     ),
     (
         "knowledge_flows",
@@ -200,6 +209,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     // 记录已补建的表，避免重复建表
     let mut created_tables: Vec<&str> = Vec::new();
 
+    // 第一步：修复 JSON 列类型（TEXT → JSONB）
     for (table, column) in JSON_COLUMNS {
         // 已补建的表跳过（刚建好，列类型已正确）
         if created_tables.contains(&table) {
@@ -230,6 +240,33 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         } else {
             // SQLite：TEXT 存储 JSON 字符串即可兼容，无需修改
             tracing::debug!("[v110] SQLite 下表 {} 列 {} 无需修改", table, column);
+        }
+    }
+
+    // 第二步：修复 f32 → f64 列类型（REAL → DOUBLE PRECISION）
+    // 历史迁移 v100/v101 用了 REAL(f32)，但 SeaORM entity 声明为 f64，
+    // 导致解码错误："mismatched types; FLOAT4 is not compatible with FLOAT8"
+    if is_pg {
+        for (table, column) in FLOAT4_TO_FLOAT8_COLUMNS {
+            // 这些列可能属于 memory_items，不在知识图谱表列表中
+            if !table_exists(&db, table, is_pg).await? {
+                tracing::warn!("[v110] 表 {} 不存在，跳过 REAL→DOUBLE PRECISION 修复", table);
+                continue;
+            }
+            let sql = format!(
+                "ALTER TABLE {table} ALTER COLUMN {column} TYPE DOUBLE PRECISION USING {column}::double precision"
+            );
+            tracing::info!("[v110] 修复 REAL→DOUBLE PRECISION: {}", sql);
+            match db.execute_unprepared(&sql).await {
+                Ok(_) => {},
+                Err(e) => {
+                    // 列可能已是 DOUBLE PRECISION，ALTER TYPE 相同类型时 PG 会报错
+                    // 用 USING col::double precision 可以处理 REAL→DOUBLE PRECISION，
+                    // 但如果已经是 DOUBLE PRECISION，USING 转换是 identity 不会报错的
+                    // 这里仅记录警告
+                    tracing::warn!("[v110] REAL→DOUBLE PRECISION 跳过 {} {}: {}", table, column, e);
+                },
+            }
         }
     }
 

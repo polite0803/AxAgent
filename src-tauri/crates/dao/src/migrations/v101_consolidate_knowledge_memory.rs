@@ -127,10 +127,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     let mem_cols: &[(&str, &str)] = &[
         ("tier", "TEXT NOT NULL DEFAULT 'working'"),
-        ("importance", "REAL NOT NULL DEFAULT 0.5"),
+        ("importance", "DOUBLE PRECISION NOT NULL DEFAULT 0.5"),
         ("access_count", "INTEGER NOT NULL DEFAULT 0"),
         ("last_accessed", "BIGINT"),
-        ("decay_rate", "REAL NOT NULL DEFAULT 0.01"),
+        ("decay_rate", "DOUBLE PRECISION NOT NULL DEFAULT 0.01"),
         ("expires_at", "BIGINT"),
         ("source_conversation_id", "TEXT"),
         ("source_message_id", "TEXT"),
