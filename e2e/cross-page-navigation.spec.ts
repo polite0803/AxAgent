@@ -21,7 +21,7 @@ test.describe("Cross-Page Navigation", () => {
   for (const { name, url, testId } of pages) {
     test(`should load ${name} page (${url})`, async ({ page }) => {
       await page.goto(url);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       if (testId) {
         await expect(page.locator(`[data-testid="${testId}"]`)).toBeVisible({ timeout: 30000 });
@@ -62,7 +62,7 @@ test.describe("Page Navigation Stability", () => {
 
     for (const route of routes) {
       await page.goto(route);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       await expect(page.locator("body")).toBeVisible();
       await page.waitForTimeout(200);
     }

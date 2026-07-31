@@ -1,5 +1,23 @@
 import { expect, test } from "@playwright/test";
 
+// 预置向导已完成（防止 WelcomeWizard Modal 遮挡画布并消除 onboarding-skip 点击竞态）
+async function seedOnboarding(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem(
+        "axagent_settings",
+        JSON.stringify({
+          onboarding_completed: true,
+          onboarding_wizard_dismissed: true,
+          onboarding_tutorial_completed: true,
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 async function dismissModals(page: import("@playwright/test").Page) {
   const closeBtn = page.locator(".ant-modal-close").first();
   if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
@@ -23,8 +41,8 @@ async function dismissModals(page: import("@playwright/test").Page) {
 
 test.describe("Workflow Editor E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
+    await seedOnboarding(page);
     await page.goto("/workflow");
-    await page.waitForLoadState("networkidle");
     await dismissModals(page);
   });
 
@@ -78,8 +96,8 @@ test.describe("Workflow Editor E2E Tests", () => {
 
 test.describe("Workflow Editor Canvas", () => {
   test.beforeEach(async ({ page }) => {
+    await seedOnboarding(page);
     await page.goto("/workflow");
-    await page.waitForLoadState("networkidle");
     await dismissModals(page);
 
     const newButton = page.getByTestId("workflow-create-new-btn").first();

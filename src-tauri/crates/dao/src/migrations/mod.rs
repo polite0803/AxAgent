@@ -46,6 +46,7 @@ pub mod v106_context_source_doc_ids;
 pub mod v107_paper_reading_list;
 pub mod v108_memory_applicability;
 pub mod v109_repair_memory_items_columns;
+pub mod v110_fix_knowledge_json_columns;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -139,6 +140,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 109,
         description: "v109_repair_memory_items_columns: 防御性修复，补全 memory_items 表可能缺失的 tier/importance/access_count 等 12 个字段（修复 v101/v108 在 SQLite 上 ALTER TABLE 静默失败导致的字段缺失）",
         up: |db| Box::pin(v109_repair_memory_items_columns::up(db)),
+    },
+    Migration {
+        version: 110,
+        description: "v110_fix_knowledge_json_columns: 将知识图谱表（knowledge_entities/relations/flows/interfaces/attributes）的 JSON 列从 TEXT 改为 JSONB，修复 SeaORM Json 类型在 PostgreSQL 下的类型不兼容错误（SQLite 下无操作）",
+        up: |db| Box::pin(v110_fix_knowledge_json_columns::up(db)),
     },
     Migration {
         version: 200,
@@ -431,7 +437,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 18 行（v100~v108 + v109 + v200~v207）
+        // schema_version 表应有 20 行（v100~v110 + v200~v208）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -441,7 +447,7 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 19, "schema_version should have 19 rows (v100~v108 + v109 + v200~v208)");
+        assert_eq!(cnt, 20, "schema_version should have 20 rows (v100~v110 + v200~v208)");
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

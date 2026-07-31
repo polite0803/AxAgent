@@ -229,76 +229,6 @@ pub async fn extract_entities_from_documents(
     })
 }
 
-/// 对已有知识库触发实体抽取（入队异步任务）
-///
-/// 用于对已经导入但尚未构建图谱的知识库补抽实体。
-/// 会将知识库的所有文档入队为 `JOB_TYPE_EXTRACT_ENTITIES` 任务。
-#[tauri::command]
-pub async fn extract_entities_for_kb(
-    state: State<'_, AppState>,
-    knowledge_base_id: String,
-) -> Result<serde_json::Value, String> {
-    use axagent_dao::repo::index_jobs as jobs;
-    use axagent_dao::repo::knowledge;
-
-    let db = state.harness.db();
-
-    // 1. 获取知识库下的所有文档
-    let docs = knowledge::list_documents(db, &knowledge_base_id).await.map_err(err_to_string)?;
-
-    if docs.is_empty() {
-        return Ok(serde_json::json!({
-            "status": "skipped",
-            "reason": "该知识库没有文档",
-            "documentCount": 0,
-            "taskCount": 0
-        }));
-    }
-
-    // 2. 收集所有文档 ID
-    let document_ids: Vec<String> = docs.iter().map(|d| d.id.clone()).collect();
-
-    // 3. 分批入队实体抽取任务（每批 20 个文档）
-    let chunk_size = 20;
-    let mut task_count = 0;
-
-    for chunk in document_ids.chunks(chunk_size) {
-        let batch: Vec<String> = chunk.to_vec();
-        let metadata = serde_json::json!({
-            "document_ids": batch,
-            "auto_extract": false,
-            "triggered_by": "manual"
-        });
-
-        let input = jobs::CreateIndexJobInput {
-            job_type: jobs::JOB_TYPE_EXTRACT_ENTITIES.to_string(),
-            container_type: "kb".to_string(),
-            container_id: knowledge_base_id.clone(),
-            item_id: format!("extract_batch_{}", task_count),
-            max_retries: Some(1),
-            priority: Some(2), // 低优先级，在正常索引任务之后
-            metadata: serde_json::to_string(&metadata).ok(),
-        };
-
-        jobs::enqueue_job(db, input).await.map_err(|e| {
-            ErrorResponse::from_error(
-                format!("入队实体抽取任务失败: {e}"),
-                ErrorCategory::Unrecoverable,
-            )
-            .to_string()
-        })?;
-
-        task_count += 1;
-    }
-
-    Ok(serde_json::json!({
-        "status": "success",
-        "documentCount": document_ids.len(),
-        "taskCount": task_count,
-        "message": format!("已入队 {task_count} 个实体抽取任务，共处理 {} 个文档", document_ids.len())
-    }))
-}
-
 /// 解析 LLM 实体抽取响应。
 ///
 /// LLM 通常返回 JSON 对象 `{"entities": [...], "relations": [...]}`，
@@ -550,6 +480,55 @@ pub async fn extract_entities_from_wiki(
         skipped_chunks: result.skipped_chunks,
         elapsed_ms: started.elapsed().as_millis() as u64,
     })
+}
+
+/// 手动触发知识库实体抽取（同步执行，返回抽取计数供前端展示）
+#[tauri::command]
+pub async fn extract_entities_for_kb(
+    state: State<'_, AppState>,
+    knowledge_base_id: String,
+) -> Result<ExtractEntitiesResult, String> {
+    use axagent_dao::repo::index_jobs as jobs;
+
+    let _ =
+        axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
+            .await
+            .map_err(|e| {
+                ErrorResponse::from_error(
+                    format!("知识库不存在: {}", e),
+                    ErrorCategory::Unrecoverable,
+                )
+            })?;
+
+    // 插入 job 记录用于历史追踪 / 失败标记（同步执行，无需经队列 worker 流转）
+    let metadata = serde_json::json!({
+        "manual_extract": true,
+    });
+    let input = jobs::CreateIndexJobInput {
+        job_type: jobs::JOB_TYPE_EXTRACT_ENTITIES.to_string(),
+        container_type: "KnowledgeBase".to_string(),
+        container_id: knowledge_base_id.clone(),
+        item_id: knowledge_base_id.clone(),
+        max_retries: Some(1),
+        priority: Some(0),
+        metadata: Some(serde_json::to_string(&metadata).unwrap_or_default()),
+    };
+    let _ = jobs::enqueue_job(state.harness.db(), input).await.map_err(|e| {
+        ErrorResponse::from_error(
+            format!("记录实体抽取任务失败: {}", e),
+            ErrorCategory::Unrecoverable,
+        )
+    })?;
+
+    // 同步执行核心抽取逻辑并返回计数
+    crate::index_queue::run_entity_extraction_core(
+        state.harness.db(),
+        &state.vector_store,
+        state.harness.master_key(),
+        &knowledge_base_id,
+    )
+    .await
+    .map_err(|e| ErrorResponse::from_error(e, ErrorCategory::Unrecoverable).into())
 }
 
 /// P1-3: 跨源实体合并 — 按 name+entity_type 合并 Wiki/KB/Memory 中的重复实体
