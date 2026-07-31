@@ -864,6 +864,11 @@ pub async fn wiki_graph_communities(
 ///
 /// 10 万节点规模下，实时计算单次数秒；命中缓存 < 10ms。
 /// 缓存在 notes 写入/更新/删除时自动失效。
+///
+/// P1-2: 融合知识图谱实体关系到 Wiki 图谱：
+/// - 在 Wiki 笔记图谱基础上追加知识图谱实体节点（type="entity"）和关系边（type="reference"）
+/// - 实体节点 ID 加 "entity:" 前缀确保与笔记 ID 不冲突
+/// - 空知识库不影响原有图谱显示
 #[tauri::command]
 pub async fn get_wiki_graph_cached(
     state: State<'_, AppState>,
@@ -871,36 +876,69 @@ pub async fn get_wiki_graph_cached(
 ) -> Result<GraphData, String> {
     let db = state.harness.db();
 
-    // 1. 尝试命中缓存
-    if let Some(entry) =
+    // 1. 尝试命中缓存（仅缓存 Wiki 笔记部分）
+    let mut base_graph = if let Some(entry) =
         axagent_dao::repo::wiki_graph_cache::get_cached_graph(db, &wiki_id).await.map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
-        })?
-    {
-        return Ok(entry.graph_data);
+        })? {
+        entry.graph_data
+    } else {
+        // 未命中：实时计算 Wiki 笔记图谱并写缓存
+        let graph_data =
+            axagent_dao::repo::note::get_vault_graph(db, &wiki_id).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+
+        axagent_dao::repo::wiki_graph_cache::save_cached_graph(db, &wiki_id, &graph_data, None)
+            .await
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+
+        graph_data
+    };
+
+    // 2. 融合知识图谱实体关系（实时获取，实体数量通常 < 10000）
+    let mut entity_nodes = Vec::new();
+    let mut reference_edges = Vec::new();
+
+    // 获取实体节点（ID 加 "entity:" 前缀避免与笔记 ID 冲突）
+    let raw_nodes =
+        axagent_dao::repo::knowledge_graph::get_knowledge_graph_nodes_for_wiki(db, &wiki_id)
+            .await
+            .unwrap_or_default();
+
+    for mut node in raw_nodes {
+        node.id = format!("entity:{}", node.id);
+        entity_nodes.push(node);
     }
 
-    // 2. 未命中：实时计算并写缓存
-    let graph_data = axagent_dao::repo::note::get_vault_graph(db, &wiki_id).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })?;
+    // 获取实体关系边
+    let raw_edges =
+        axagent_dao::repo::knowledge_graph::get_knowledge_graph_edges_for_wiki(db, &wiki_id)
+            .await
+            .unwrap_or_default();
 
-    axagent_dao::repo::wiki_graph_cache::save_cached_graph(db, &wiki_id, &graph_data, None)
-        .await
-        .map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })?;
+    for mut edge in raw_edges {
+        edge.source = format!("entity:{}", edge.source);
+        edge.target = format!("entity:{}", edge.target);
+        reference_edges.push(edge);
+    }
 
-    Ok(graph_data)
+    // 3. 合并到统一的 GraphData
+    base_graph.nodes.extend(entity_nodes);
+    base_graph.edges.extend(reference_edges);
+
+    Ok(base_graph)
 }
 
 /// 带缓存的社区检测：优先读缓存，未命中则跑 Louvain 并写缓存。
