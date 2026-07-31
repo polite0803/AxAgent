@@ -986,7 +986,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           count: invalidEdges.length,
           details: invalidEdges
             .map(
-              (e) => `边 ${e.id} 引用了不存在的节点 ${!nodeIdSet.has(e.source) ? e.source : e.target}`,
+              (e) =>
+                t("workflow.invalidEdgeDetail", {
+                  edgeId: e.id,
+                  missingNodeId: !nodeIdSet.has(e.source) ? e.source : e.target,
+                }),
             )
             .join("\n"),
         }),
@@ -1021,10 +1025,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         .map((e) => {
           let detail = e.message;
           if (e.node_id) {
-            detail += ` (节点: ${e.node_id})`;
+            detail += t("workflow.validationNodeInfo", { nodeId: e.node_id });
           }
           if (e.suggestion) {
-            detail += `\n建议: ${e.suggestion}`;
+            detail += t("workflow.validationSuggestion", { suggestion: e.suggestion });
           }
           return detail;
         })
@@ -1864,6 +1868,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        minHeight: 0,
         background: token.colorBgContainer,
       }}
     >
@@ -1993,7 +1998,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         </div>
       )}
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
         {!leftPanelCollapsed && <LeftPanel width={leftPanelWidth} />}
         {!leftPanelCollapsed && (
           <div

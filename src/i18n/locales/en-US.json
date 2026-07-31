@@ -5813,6 +5813,9 @@
       "fitView": "Fit View",
       "focusSelected": "Focus Selected",
       "fullscreen": "Fullscreen",
+      "layoutForce": "Force",
+      "layoutRadial": "Radial",
+      "layoutHierarchy": "Hierarchy",
       "layoutRunning": "Calculating layout…",
       "loadError": "Load failed",
       "loading": "Loading...",
@@ -7670,7 +7673,10 @@
       "warn": "Warn Only"
     },
     "invalidEdgesCleaned": "Detected {{count}} invalid edges, auto-cleaned:\n{{details}}",
+    "invalidEdgeDetail": "Edge {{edgeId}} references non-existent node {{missingNodeId}}",
     "validationFailed": "Validation failed",
+    "validationNodeInfo": " (Node: {{nodeId}})",
+    "validationSuggestion": "\nSuggestion: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} assertions",
       "continue": "Continue",

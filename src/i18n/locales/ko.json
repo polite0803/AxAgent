@@ -5813,6 +5813,9 @@
       "fitView": "화면 맞춤",
       "focusSelected": "선택 항목 포커스",
       "fullscreen": "전체 화면",
+      "layoutForce": "힘 방향",
+      "layoutRadial": "방사형",
+      "layoutHierarchy": "그리드",
       "layoutRunning": "레이아웃 계산 중…",
       "loadError": "로딩 실패",
       "loading": "로딩 중...",
@@ -7670,7 +7673,10 @@
       "warn": "경고만"
     },
     "invalidEdgesCleaned": "{{count}}개의 유효하지 않은 엣지가 감지되어 자동 정리되었습니다:\n{{details}}",
+    "invalidEdgeDetail": "엣지 {{edgeId}}가 존재하지 않는 노드 {{missingNodeId}}를 참조합니다",
     "validationFailed": "유효성 검사 실패",
+    "validationNodeInfo": " (노드: {{nodeId}})",
+    "validationSuggestion": "\n제안: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}}개 어서션",
       "continue": "계속",

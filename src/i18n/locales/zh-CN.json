@@ -5812,6 +5812,9 @@
       "fitView": "适应画布",
       "focusSelected": "聚焦选中",
       "fullscreen": "全屏",
+      "layoutForce": "力导向",
+      "layoutRadial": "放射",
+      "layoutHierarchy": "网格",
       "layoutRunning": "正在计算布局…",
       "loadError": "加载失败",
       "loading": "加载中...",
@@ -7669,7 +7672,10 @@
       "warn": "仅警告"
     },
     "invalidEdgesCleaned": "检测到 {{count}} 条无效边，已自动清理：\n{{details}}",
+    "invalidEdgeDetail": "边 {{edgeId}} 引用了不存在的节点 {{missingNodeId}}",
     "validationFailed": "验证失败",
+    "validationNodeInfo": " (节点: {{nodeId}})",
+    "validationSuggestion": "\n建议: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} 个断言",
       "continue": "继续",

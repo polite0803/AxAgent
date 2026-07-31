@@ -1080,9 +1080,9 @@ function GraphViewInner({
                   value={layoutMode}
                   onChange={(v) => setLayoutMode(v as LayoutMode)}
                   options={[
-                    { label: "力导向", value: "force" },
-                    { label: "放射", value: "radial" },
-                    { label: "网格", value: "hierarchy" },
+                    { label: t("wiki.graph.layoutForce"), value: "force" },
+                    { label: t("wiki.graph.layoutRadial"), value: "radial" },
+                    { label: t("wiki.graph.layoutHierarchy"), value: "hierarchy" },
                   ]}
                 />
               </div>

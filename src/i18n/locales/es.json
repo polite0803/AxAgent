@@ -5813,6 +5813,9 @@
       "fitView": "Ajustar vista",
       "focusSelected": "Enfocar selección",
       "fullscreen": "Pantalla completa",
+      "layoutForce": "Fuerza",
+      "layoutRadial": "Radial",
+      "layoutHierarchy": "Cuadrícula",
       "layoutRunning": "Calculando diseño…",
       "loadError": "Error al cargar",
       "loading": "Cargando...",
@@ -7670,7 +7673,10 @@
       "warn": "Solo advertencia"
     },
     "invalidEdgesCleaned": "Se detectaron {{count}} aristas inválidas, limpiadas automáticamente:\n{{details}}",
+    "invalidEdgeDetail": "La arista {{edgeId}} referencia un nodo inexistente {{missingNodeId}}",
     "validationFailed": "Validación fallida",
+    "validationNodeInfo": " (Nodo: {{nodeId}})",
+    "validationSuggestion": "\nSugerencia: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} aserciones",
       "continue": "Continuar",

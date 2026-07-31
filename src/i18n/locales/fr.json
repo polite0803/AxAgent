@@ -5813,6 +5813,9 @@
       "fitView": "Ajuster la vue",
       "focusSelected": "Focaliser la sélection",
       "fullscreen": "Plein écran",
+      "layoutForce": "Force",
+      "layoutRadial": "Radial",
+      "layoutHierarchy": "Grille",
       "layoutRunning": "Calcul de la disposition…",
       "loadError": "Échec du chargement",
       "loading": "Chargement...",
@@ -7670,7 +7673,10 @@
       "warn": "Avertissement uniquement"
     },
     "invalidEdgesCleaned": "{{count}} arêtes invalides détectées, nettoyées automatiquement :\n{{details}}",
+    "invalidEdgeDetail": "L'arête {{edgeId}} référence un nœud inexistant {{missingNodeId}}",
     "validationFailed": "Échec de la validation",
+    "validationNodeInfo": " (Nœud : {{nodeId}})",
+    "validationSuggestion": "\nSuggestion : {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} assertions",
       "continue": "Continuer",

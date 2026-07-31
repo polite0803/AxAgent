@@ -5813,6 +5813,9 @@
       "fitView": "ملاءمة العرض",
       "focusSelected": "التركيز على المحدد",
       "fullscreen": "ملء الشاشة",
+      "layoutForce": "قوة",
+      "layoutRadial": "شعاعي",
+      "layoutHierarchy": "شبكة",
       "layoutRunning": "جارٍ حساب التخطيط…",
       "loadError": "فشل التحميل",
       "loading": "جارٍ التحميل...",
@@ -7670,7 +7673,10 @@
       "warn": "تحذير فقط"
     },
     "invalidEdgesCleaned": "تم اكتشاف {{count}} حواف غير صالحة وتم تنظيفها تلقائيًا:\n{{details}}",
+    "invalidEdgeDetail": "الحافة {{edgeId}} تشير إلى عقدة غير موجودة {{missingNodeId}}",
     "validationFailed": "فشل التحقق من الصحة",
+    "validationNodeInfo": " (العقدة: {{nodeId}})",
+    "validationSuggestion": "\nاقتراح: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} تأكيدات",
       "continue": "متابعة",

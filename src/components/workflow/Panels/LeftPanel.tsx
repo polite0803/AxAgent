@@ -41,6 +41,37 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
     dragRef.current = null;
   }, []);
 
+  // 注入工作流侧边栏高度链修复样式，确保 Ant Design Tabs 内部层级正确传递高度
+  useEffect(() => {
+    const styleId = "workflow-panel-height-fix";
+    if (document.getElementById(styleId)) { return; }
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      .workflow-side-panel .ant-tabs-body-holder {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+      }
+      .workflow-side-panel .ant-tabs-body {
+        height: 100% !important;
+        overflow: hidden !important;
+      }
+      .workflow-side-panel .ant-tabs-content {
+        height: 100% !important;
+      }
+      .workflow-side-panel .ant-tabs-tabpane,
+      .workflow-side-panel .ant-tabs-tabpane-active {
+        height: 100% !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      const el = document.getElementById(styleId);
+      if (el) { el.remove(); }
+    };
+  }, []);
+
   const handleMouseDown = useCallback(
     (event: React.MouseEvent, nodeType: string, nodeLabel: string) => {
       if (event.button !== 0) {

@@ -5813,6 +5813,9 @@
       "fitView": "キャンバスに合わせる",
       "focusSelected": "選択にフォーカス",
       "fullscreen": "全画面",
+      "layoutForce": "力指向",
+      "layoutRadial": "放射",
+      "layoutHierarchy": "グリッド",
       "layoutRunning": "レイアウトを計算中…",
       "loadError": "読み込み失敗",
       "loading": "読み込み中...",
@@ -7670,7 +7673,10 @@
       "warn": "警告のみ"
     },
     "invalidEdgesCleaned": "{{count}} 本の無効なエッジを検出し、自動的にクリーンアップしました：\n{{details}}",
+    "invalidEdgeDetail": "エッジ {{edgeId}} が存在しないノード {{missingNodeId}} を参照しています",
     "validationFailed": "検証失敗",
+    "validationNodeInfo": " (ノード: {{nodeId}})",
+    "validationSuggestion": "\n提案: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} アサーション",
       "continue": "続行",

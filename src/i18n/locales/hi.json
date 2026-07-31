@@ -5813,6 +5813,9 @@
       "fitView": "फिट व्यू",
       "focusSelected": "चयनित पर फ़ोकस करें",
       "fullscreen": "पूर्ण स्क्रीन",
+      "layoutForce": "बल",
+      "layoutRadial": "रेडियल",
+      "layoutHierarchy": "ग्रिड",
       "layoutRunning": "लेआउट की गणना हो रही है…",
       "loadError": "लोड करना विफल",
       "loading": "लोड हो रहा है...",
@@ -7670,7 +7673,10 @@
       "warn": "केवल चेतावनी"
     },
     "invalidEdgesCleaned": "{{count}} अवैध किनारे detected, स्वचालित रूप से साफ़ किए गए:\n{{details}}",
+    "invalidEdgeDetail": "किनारा {{edgeId}} गलत नोड {{missingNodeId}} को संदर्भित करता है",
     "validationFailed": "मान्यता विफल",
+    "validationNodeInfo": " (नोड: {{nodeId}})",
+    "validationSuggestion": "\nसुझाव: {{suggestion}}",
     "validationNode": {
       "assertionCount": "{{count}} अभिकथन",
       "continue": "जारी रखें",

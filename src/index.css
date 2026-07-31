@@ -2788,9 +2788,14 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   flex-direction: column;
   height: 100%;
 }
-.workflow-side-panel .ant-tabs-content-holder {
+.workflow-side-panel .ant-tabs-body-holder {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+.workflow-side-panel .ant-tabs-body {
+  height: 100%;
+  overflow: hidden;
 }
 .workflow-side-panel .ant-tabs-content {
   height: 100%;
