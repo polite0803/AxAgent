@@ -39,7 +39,16 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  memo,
+  type MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import Sigma from "sigma";
 
@@ -114,38 +123,41 @@ type TokenType = ReturnType<typeof theme.useToken>["token"];
 const LAYOUT_FORCE_THRESHOLD = 200; // 小图直接同步 ForceAtlas2，不丢 worker 开销
 const LABEL_RENDER_THRESHOLD = 5000; // 超过此数量关闭默认标签渲染
 const BARNES_HUT_THRESHOLD = 10000; // 超过此数量启用 Barnes-Hut 优化
-const FORCE_ATLAS_ITERATIONS = 100; // 默认迭代次数
+const FORCE_ATLAS_ITERATIONS = 150; // 默认迭代次数（增加到 150 让布局更稳定）
 
+// Obsidian 风格的鲜明节点配色
 const getNodeColorMap = (token: TokenType): Record<GraphNodeType, string> => ({
   note: token.colorPrimary,
   concept: token.colorSuccess,
-  entity: "var(--orange, #fa8c16)",
-  source: "var(--magenta, #eb2f96)",
+  entity: "#FA8C16",
+  source: "#EB2F96",
 });
 
+// 更有辨识度的社区调色板
 const communityPalette = [
-  "#4C72B0",
-  "#DD8452",
-  "#55A868",
-  "#C44E52",
-  "#8172B3",
-  "#937860",
-  "#DA8BC3",
-  "#8C8C8C",
-  "#CCB974",
-  "#64B5CD",
-  "#E18B6C",
-  "#7AA153",
+  "#5B8FF9",
+  "#61DDAA",
+  "#65789B",
+  "#F6BD16",
+  "#7262FD",
+  "#78D3F8",
+  "#9661BC",
+  "#F6903D",
+  "#008685",
+  "#F08BB4",
+  "#1E90FF",
+  "#32CD32",
 ];
 
+// Obsidian 风格的边样式：link 更细更淡，reference 更鲜明
 const getEdgeTypeStylesMap = (token: TokenType): Record<
   GraphEdgeType,
   { color: string; width: number }
 > => ({
-  link: { color: token.colorBorderSecondary, width: 1 },
-  backlink: { color: token.colorPrimary, width: 1.5 },
-  reference: { color: token.colorSuccess, width: 1.5 },
-  derived_from: { color: "var(--orange, #fa8c16)", width: 1.5 },
+  link: { color: token.colorBorderSecondary, width: 0.8 },
+  backlink: { color: token.colorPrimary, width: 1.2 },
+  reference: { color: "#52C41A", width: 1.8 },
+  derived_from: { color: "#FA8C16", width: 1.5 },
   contradicts: { color: token.colorError, width: 2 },
 });
 
@@ -183,9 +195,15 @@ function getNodeColor(
 }
 
 function getNodeSize(node: GraphNode): number {
-  const linkSum = node.linkCount + node.backlinkCount;
-  // sigma 节点 size 范围建议 1-15
-  return Math.max(3, Math.min(15, 3 + linkSum * 0.5));
+  const degree = node.linkCount + node.backlinkCount;
+  // Obsidian 风格：节点大小范围更大，entity 节点明显更大
+  if (node.type === "entity") {
+    return Math.max(6, Math.min(20, 6 + degree * 0.8));
+  }
+  if (node.type === "concept") {
+    return Math.max(5, Math.min(16, 5 + degree * 0.6));
+  }
+  return Math.max(4, Math.min(14, 4 + degree * 0.4));
 }
 
 /** 网格布局：O(n) 同步，用于 hierarchy 模式或 worker 启动前的初始布局 */
@@ -451,11 +469,12 @@ function GraphViewInner({
       renderEdgeLabels: false,
       defaultNodeColor: token.colorPrimary,
       defaultEdgeColor: token.colorBorderSecondary,
-      labelDensity: 0.07,
-      labelGridCellSize: 60,
-      labelRenderedSizeThreshold: 6,
+      // Obsidian 风格：更智能的标签 LOD
+      labelDensity: 0.05,
+      labelGridCellSize: 80,
+      labelRenderedSizeThreshold: 4,
       labelFont: "Inter, system-ui, sans-serif",
-      labelSize: 12,
+      labelSize: 11,
       labelColor: { color: token.colorText },
       edgeLabelSize: 10,
       minCameraRatio: 0.02,
@@ -463,44 +482,85 @@ function GraphViewInner({
     });
     sigmaRef.current = sigmaInstance;
 
-    // ── nodeReducer：hover 放大 + 选中高亮 + 淡化非命中节点 ──
-    // 通过 ref 读取最新状态，避免闭包失效和频繁重设 reducer
+    // ── nodeReducer：Obsidian 风格的 hover/选中效果 ──
+    // 选中节点：大幅放大 + 脉冲发光
+    // hover 节点：适度放大 + 轻微高亮
+    // 非相关节点：淡化 + 隐藏标签
     sigmaInstance.setSetting("nodeReducer", (node, data) => {
       const res = { ...data };
       const hovered = hoveredNodeRef.current;
       const selected = selectedNodeIdRef.current;
       const highlight = highlightSetRef.current;
       const hasHighlight = highlight && highlight.size > 0;
+      const g = sigmaInstance.getGraph();
 
-      if (selected === node) {
-        res.size = data.size * 1.6;
-        res.highlighted = true;
-      } else if (hovered === node) {
-        res.size = data.size * 1.4;
-        res.highlighted = true;
-      } else if (hasHighlight && !highlight!.has(node)) {
-        // 搜索/外部高亮时，非命中节点淡化
-        res.color = `${resolveColor(data.color)}30`;
-        res.label = undefined;
+      // 收集与 hover/selected 节点相邻的节点
+      const connectedToHovered = new Set<string>();
+      const connectedToSelected = new Set<string>();
+      if (hovered && g.hasNode(hovered)) {
+        g.forEachNeighbor(hovered, (id) => connectedToHovered.add(id));
       }
+      if (selected && g.hasNode(selected)) {
+        g.forEachNeighbor(selected, (id) => connectedToSelected.add(id));
+      }
+
+      // 选中节点效果
+      if (selected === node) {
+        res.size = data.size * 1.8;
+        res.color = `${resolveColor(data.color)}FF`;
+        res.highlighted = true;
+        res.label = nodeIndexRef.current.get(node)?.title ?? data.label;
+      } // 选中节点的邻居：轻微高亮
+      else if (selected && connectedToSelected.has(node)) {
+        res.size = data.size * 1.3;
+        res.color = resolveColor(data.color);
+      } // hover 节点效果
+      else if (hovered === node) {
+        res.size = data.size * 1.5;
+        res.color = `${resolveColor(data.color)}FF`;
+        res.highlighted = true;
+        res.label = nodeIndexRef.current.get(node)?.title ?? data.label;
+      } // hover 节点的邻居：轻度高亮
+      else if (hovered && connectedToHovered.has(node)) {
+        res.size = data.size * 1.15;
+        res.color = resolveColor(data.color);
+      } // 搜索高亮模式下：淡化非命中节点
+      else if (hasHighlight && !highlight!.has(node)) {
+        res.color = `${resolveColor(data.color)}25`;
+        res.label = undefined;
+        res.size = data.size * 0.8;
+      } // 有 hover/selected 时，淡化其他节点
+      else if (hovered || selected) {
+        res.color = `${resolveColor(data.color)}60`;
+        res.size = data.size * 0.85;
+      }
+
       return res;
     });
 
-    // ── edgeReducer：hover 时高亮相关边、淡化无关边 ──
+    // ── edgeReducer：Obsidian 风格的边高亮效果 ──
     sigmaInstance.setSetting("edgeReducer", (edge, data) => {
       const res = { ...data };
       const hovered = hoveredNodeRef.current;
-      if (!hovered) { return res; }
+      const selected = selectedNodeIdRef.current;
+
+      // 无 hover/selected 时保持原样
+      if (!hovered && !selected) { return res; }
+
       const g = sigmaInstance.getGraph();
       const [src, tgt] = g.extremities(edge);
-      if (src !== hovered && tgt !== hovered) {
-        // 淡化非相关边
-        res.color = `${resolveColor(data.color)}20`;
-        res.hidden = false;
-      } else {
-        // 高亮相关边
-        res.size = data.size * 2.2;
+
+      const isConnectedToHovered = hovered && (src === hovered || tgt === hovered);
+      const isConnectedToSelected = selected && (src === selected || tgt === selected);
+
+      if (isConnectedToHovered || isConnectedToSelected) {
+        // 相关边：高亮 + 加粗
         res.color = resolveColor(data.color);
+        res.size = data.size * 2.5;
+      } else {
+        // 非相关边：大幅淡化
+        res.color = `${resolveColor(data.color)}15`;
+        res.size = data.size * 0.5;
       }
       return res;
     });
@@ -614,10 +674,12 @@ function GraphViewInner({
       if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
         // graphology undirected 不支持平行边，但 hasEdge 检查会拒绝重复
         if (!graph.hasEdge(edge.source, edge.target)) {
+          const isReference = edge.type === "reference";
           graph.addEdgeWithKey(edgeId, edge.source, edge.target, {
             color: resolveColor(style.color),
             size: style.width,
             edgeType: edge.type,
+            ...(isReference ? { dash: [6, 4] } : {}),
           });
         }
       }
@@ -750,10 +812,13 @@ function GraphViewInner({
 
     const settings: LayoutRequest["settings"] = {
       barnesHutOptimize: useBarnesHut,
-      barnesHutTheta: 0.6,
-      gravity: 1.0,
-      slowDown: 4,
-      scaling: 1.0,
+      barnesHutTheta: 0.5,
+      // 适中的重力让节点自然聚集但不过分
+      gravity: 0.8,
+      // 更高的 slowDown 让布局更平滑收敛
+      slowDown: 3,
+      // 更小的 scaling 让节点更紧凑
+      scaling: 0.8,
       linLogMode: false,
     };
 
@@ -942,12 +1007,42 @@ function GraphViewInner({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          borderRadius: 12,
+          background: `linear-gradient(135deg, ${token.colorBgContainer}08, ${token.colorBgContainer}15)`,
+          border: `1px solid ${token.colorBorderSecondary}30`,
         }}
       >
         <Empty description={t("wiki.graph.empty")} />
       </Card>
     );
   }
+
+  // 通用按钮样式：Obsidian 风格
+  const ctrlBtnStyle: CSSProperties = {
+    width: 26,
+    height: 26,
+    minWidth: 26,
+    padding: 0,
+    borderRadius: 7,
+    background: `${token.colorBgContainer}e6`,
+    backdropFilter: "blur(8px)",
+    border: `1px solid ${token.colorBorderSecondary}30`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.15s ease",
+  };
+
+  const hoverBtnStyle = (e: ReactMouseEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    el.style.background = token.colorBgTextHover;
+    el.style.transform = "scale(1.05)";
+  };
+  const leaveBtnStyle = (e: ReactMouseEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    el.style.background = `${token.colorBgContainer}e6`;
+    el.style.transform = "scale(1)";
+  };
 
   return (
     <div
@@ -959,29 +1054,25 @@ function GraphViewInner({
       {/* sigma 渲染容器：100% 填充父级 */}
       <div style={{ width: "100%", height: "100%" }} />
 
-      {/* 左上角小按钮组 */}
+      {/* 左上角：筛选按钮 */}
       <div
         style={{
           position: "absolute",
-          top: 8,
-          left: 8,
+          top: 10,
+          left: 10,
           zIndex: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
         }}
       >
-        {/* 筛选按钮 */}
         <Popover
           open={filtersOpen}
           onOpenChange={setFiltersOpen}
           trigger="click"
           placement="bottomLeft"
           arrow={false}
-          overlayInnerStyle={{ padding: "10px 12px" }}
-          overlayStyle={{ width: 260 }}
+          overlayInnerStyle={{ padding: "12px 14px" }}
+          overlayStyle={{ width: 280 }}
           content={
-            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <Typography.Text strong style={{ fontSize: 12 }}>{t("wiki.graph.filters")}</Typography.Text>
                 <Segmented
@@ -989,9 +1080,9 @@ function GraphViewInner({
                   value={layoutMode}
                   onChange={(v) => setLayoutMode(v as LayoutMode)}
                   options={[
-                    { label: "F", value: "force" },
-                    { label: "R", value: "radial" },
-                    { label: "D", value: "hierarchy" },
+                    { label: "力导向", value: "force" },
+                    { label: "放射", value: "radial" },
+                    { label: "网格", value: "hierarchy" },
                   ]}
                 />
               </div>
@@ -1029,6 +1120,7 @@ function GraphViewInner({
                         opacity: isActive ? 1 : 0.4,
                         padding: "0 4px",
                         lineHeight: "18px",
+                        borderRadius: 4,
                       }}
                       onClick={() => {
                         const current = new Set(activeTypes);
@@ -1051,54 +1143,43 @@ function GraphViewInner({
             <Button
               size="small"
               type="text"
-              icon={<SlidersHorizontal size={14} />}
-              style={{
-                width: 28,
-                height: 28,
-                minWidth: 28,
-                padding: 0,
-                borderRadius: 8,
-                background: `${token.colorBgContainer}dd`,
-                backdropFilter: "blur(8px)",
-                border: `1px solid ${token.colorBorderSecondary}40`,
-              }}
+              icon={<SlidersHorizontal size={13} />}
+              style={ctrlBtnStyle}
+              onMouseEnter={hoverBtnStyle}
+              onMouseLeave={leaveBtnStyle}
             />
           </AntTooltip>
         </Popover>
       </div>
 
-      {/* 右上角小按钮组 */}
+      {/* 右上角：统计按钮 */}
       <div
         style={{
           position: "absolute",
-          top: 8,
-          right: 8,
+          top: 10,
+          right: 10,
           zIndex: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
         }}
       >
-        {/* 统计按钮 */}
         <Popover
           open={statsOpen}
           onOpenChange={setStatsOpen}
           trigger="click"
           placement="bottomRight"
           arrow={false}
-          overlayInnerStyle={{ padding: "10px 12px" }}
+          overlayInnerStyle={{ padding: "10px 14px" }}
           overlayStyle={{ width: 180 }}
           content={
-            <Space direction="vertical" size={2} style={{ width: "100%" }}>
+            <Space direction="vertical" size={4} style={{ width: "100%" }}>
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>{t("wiki.graph.stats")}</Typography.Text>
-              <Typography.Text style={{ fontSize: 11 }}>
+              <Typography.Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.nodes")}: {stats.visible}/{stats.total}
               </Typography.Text>
-              <Typography.Text style={{ fontSize: 11 }}>{t("wiki.graph.edges")}: {stats.edges}</Typography.Text>
-              <Typography.Text style={{ fontSize: 11 }}>
+              <Typography.Text style={{ fontSize: 12 }}>{t("wiki.graph.edges")}: {stats.edges}</Typography.Text>
+              <Typography.Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.components")}: {componentStats.components}
               </Typography.Text>
-              <Typography.Text style={{ fontSize: 11 }}>
+              <Typography.Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.largestComponent")}: {componentStats.largestSize}
               </Typography.Text>
               {layoutRunning && (
@@ -1114,17 +1195,13 @@ function GraphViewInner({
               size="small"
               type="text"
               style={{
-                width: 28,
-                height: 28,
-                minWidth: 28,
-                padding: 0,
-                borderRadius: 8,
-                background: `${token.colorBgContainer}dd`,
-                backdropFilter: "blur(8px)",
-                border: `1px solid ${token.colorBorderSecondary}40`,
+                ...ctrlBtnStyle,
                 fontSize: 10,
                 fontWeight: 600,
+                color: token.colorTextSecondary,
               }}
+              onMouseEnter={hoverBtnStyle}
+              onMouseLeave={leaveBtnStyle}
             >
               {stats.total}
             </Button>
@@ -1132,16 +1209,13 @@ function GraphViewInner({
         </Popover>
       </div>
 
-      {/* 右下角小按钮 */}
+      {/* 右下角：图例按钮 */}
       <div
         style={{
           position: "absolute",
-          bottom: 52,
-          right: 8,
+          bottom: 50,
+          right: 10,
           zIndex: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
         }}
       >
         <Popover
@@ -1150,22 +1224,32 @@ function GraphViewInner({
           trigger="click"
           placement="topRight"
           arrow={false}
-          overlayInnerStyle={{ padding: "8px 10px" }}
+          overlayInnerStyle={{ padding: "10px 14px" }}
           content={
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 10 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11 }}>
               {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
                 const s = edgeTypeStyles[et];
                 const isHidden = hiddenEdgeTypes.has(et);
+                const isReference = et === "reference";
                 return (
                   <span
                     key={et}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 3,
+                      gap: 4,
                       cursor: "pointer",
                       opacity: isHidden ? 0.3 : 1,
                       textDecoration: isHidden ? "line-through" : "none",
+                      padding: "2px 6px",
+                      borderRadius: 4,
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = token.colorBgTextHover;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
                     }}
                     onClick={() => {
                       setHiddenEdgeTypes((prev) => {
@@ -1176,8 +1260,20 @@ function GraphViewInner({
                       });
                     }}
                   >
-                    <svg width="18" height="6">
-                      <line x1="0" y1="3" x2="18" y2="3" stroke={resolveColor(s.color)} strokeWidth={s.width} />
+                    <svg width="20" height="8">
+                      {isReference
+                        ? (
+                          <line
+                            x1="0"
+                            y1="4"
+                            x2="20"
+                            y2="4"
+                            stroke={resolveColor(s.color)}
+                            strokeWidth={s.width}
+                            strokeDasharray="4 3"
+                          />
+                        )
+                        : <line x1="0" y1="4" x2="20" y2="4" stroke={resolveColor(s.color)} strokeWidth={s.width} />}
                     </svg>
                     <span style={{ color: resolveColor(s.color) }}>{t(edgeTypeLabels[et])}</span>
                   </span>
@@ -1190,107 +1286,83 @@ function GraphViewInner({
             <Button
               size="small"
               type="text"
-              icon={<Info size={14} />}
-              style={{
-                width: 28,
-                height: 28,
-                minWidth: 28,
-                padding: 0,
-                borderRadius: 8,
-                background: `${token.colorBgContainer}dd`,
-                backdropFilter: "blur(8px)",
-                border: `1px solid ${token.colorBorderSecondary}40`,
-              }}
+              icon={<Info size={13} />}
+              style={ctrlBtnStyle}
+              onMouseEnter={hoverBtnStyle}
+              onMouseLeave={leaveBtnStyle}
             />
           </AntTooltip>
         </Popover>
       </div>
 
-      {/* 底部中：工具栏 */}
+      {/* 底部中央：工具栏（Obsidian 风格） */}
       <div
         style={{
           position: "absolute",
-          bottom: 8,
+          bottom: 10,
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 10,
           display: "flex",
           alignItems: "center",
           gap: 2,
-          padding: "2px 6px",
-          borderRadius: 20,
-          background: `${token.colorBgContainer}ee`,
-          backdropFilter: "blur(12px)",
-          border: `1px solid ${token.colorBorderSecondary}40`,
+          padding: "3px 8px",
+          borderRadius: 16,
+          background: `${token.colorBgContainer}f0`,
+          backdropFilter: "blur(16px)",
+          border: `1px solid ${token.colorBorderSecondary}30`,
+          boxShadow: `0 2px 8px ${token.colorBgMask}20`,
         }}
       >
         <Tooltip title={t("wiki.graph.zoomIn")}>
           <button
             onClick={handleZoomIn}
             style={{
-              background: "none",
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              color: token.colorTextSecondary,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
           >
-            <ZoomIn size={16} />
+            <ZoomIn size={14} />
           </button>
         </Tooltip>
         <Tooltip title={t("wiki.graph.zoomOut")}>
           <button
             onClick={handleZoomOut}
             style={{
-              background: "none",
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              color: token.colorTextSecondary,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
           >
-            <ZoomOut size={16} />
+            <ZoomOut size={14} />
           </button>
         </Tooltip>
         <Tooltip title={t("wiki.graph.fitView")}>
           <button
             onClick={handleFitAll}
             style={{
-              background: "none",
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              color: token.colorTextSecondary,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
           >
-            <Maximize2 size={16} />
+            <Maximize2 size={14} />
           </button>
         </Tooltip>
         {selectedNodeId && (
@@ -1298,30 +1370,25 @@ function GraphViewInner({
             <button
               onClick={handleFocusSelected}
               style={{
-                background: "none",
+                ...ctrlBtnStyle,
+                width: 24,
+                height: 24,
+                minWidth: 24,
+                background: "transparent",
                 border: "none",
-                cursor: "pointer",
-                padding: 4,
-                borderRadius: 6,
-                display: "flex",
-                alignItems: "center",
                 color: token.colorPrimary,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = token.colorBgTextHover;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "none";
-              }}
+              onMouseEnter={hoverBtnStyle}
+              onMouseLeave={leaveBtnStyle}
             >
-              <Minimize2 size={16} />
+              <Minimize2 size={14} />
             </button>
           </Tooltip>
         )}
         <div
           style={{
             width: 1,
-            height: 16,
+            height: 14,
             background: token.colorBorderSecondary,
             margin: "0 2px",
           }}
@@ -1330,69 +1397,51 @@ function GraphViewInner({
           <button
             onClick={handleFullscreenToggle}
             style={{
-              background: "none",
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              color: token.colorTextSecondary,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
           >
-            <Fullscreen size={16} />
+            <Fullscreen size={14} />
           </button>
         </Tooltip>
         <Tooltip title={t("wiki.graph.exportPNG")}>
           <button
             onClick={handleExportPNG}
             style={{
-              background: "none",
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              color: token.colorTextSecondary,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
           >
-            <Download size={16} />
+            <Download size={14} />
           </button>
         </Tooltip>
         <Tooltip title={t("wiki.graph.relayout")}>
           <button
             onClick={handleRelaunchLayout}
             style={{
-              background: "none",
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: "transparent",
               border: "none",
-              cursor: "pointer",
-              padding: 4,
-              borderRadius: 6,
-              display: "flex",
-              alignItems: "center",
-              color: token.colorTextSecondary,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = token.colorBgTextHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={14} />
           </button>
         </Tooltip>
       </div>

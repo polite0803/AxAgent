@@ -7,6 +7,7 @@ use axagent_entities::{
     knowledge_relations,
 };
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::graph_dtos::{GraphEdge, GraphNode};
 use axagent_harness::types::{
     CreateKnowledgeAttributeInput, CreateKnowledgeEntityInput, CreateKnowledgeFlowInput,
     CreateKnowledgeInterfaceInput, CreateKnowledgeRelationInput, KnowledgeAttribute,
@@ -1054,4 +1055,48 @@ async fn update_relation_references(
     };
 
     Ok(source_count + target_count)
+}
+
+// ── Wiki 图谱融合：实体节点和关系边 ────────────────────────────────
+
+/// 获取指定知识库下的实体，转换为图谱节点格式用于 Wiki 图谱融合。
+pub async fn get_knowledge_graph_nodes_for_wiki(
+    db: &DatabaseConnection,
+    kb_id: &str,
+) -> Result<Vec<GraphNode>> {
+    let entities = list_knowledge_entities(db, kb_id).await?;
+
+    let nodes = entities
+        .into_iter()
+        .map(|entity| GraphNode {
+            id: entity.id,
+            title: entity.name,
+            node_type: "entity".to_string(),
+            tags: vec![entity.entity_type],
+            link_count: 0,
+            backlink_count: 0,
+            path: entity.source_path,
+        })
+        .collect();
+
+    Ok(nodes)
+}
+
+/// 获取指定知识库下的实体关系，转换为图谱边格式用于 Wiki 图谱融合。
+pub async fn get_knowledge_graph_edges_for_wiki(
+    db: &DatabaseConnection,
+    kb_id: &str,
+) -> Result<Vec<GraphEdge>> {
+    let relations = list_knowledge_relations(db, kb_id).await?;
+
+    let edges = relations
+        .into_iter()
+        .map(|rel| GraphEdge {
+            source: rel.source_entity_id,
+            target: rel.target_entity_id,
+            edge_type: "reference".to_string(),
+        })
+        .collect();
+
+    Ok(edges)
 }
