@@ -219,6 +219,16 @@ pub fn settings_repository() -> Arc<dyn SettingsRepository> {
     get_service_registry().read().unwrap().settings_repository()
 }
 
+/// 安全获取 SettingsRepository（未注册时返回 None，不 panic）。
+///
+/// 与 `settings_repository()` 的区别：后者在服务注册表未初始化时会 panic
+/// （`expect("SettingsRepository not initialized.")`），只适用于启动流程已完成
+/// 的运行时。本函数用于可能在注册前被调用的 wiring 层工厂
+/// （如 `build_llm_components_from_db`），未注册时返回 None 由调用方回退默认逻辑。
+pub fn try_settings_repository() -> Option<Arc<dyn SettingsRepository>> {
+    get_service_registry().read().ok()?.settings_repo.get()?.read().ok()?.clone()
+}
+
 // ── SessionRepository ──────────────────────────
 
 #[async_trait]

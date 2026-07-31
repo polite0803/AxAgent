@@ -31,6 +31,13 @@ pub async fn build_llm_components_from_db(
 }
 
 /// 从数据库构建 LLM 组件三元组（指定 provider 和 model；调用方提供 registry）。
+///
+/// 选择优先级（修复前：直接取第一个启用的 provider + models[0]，无视用户设置的默认模型）：
+/// 1. `preferred_provider_id` / `preferred_model_id`：调用方显式指定，找不到直接失败
+///    （不静默回退，保持调用方意图）
+/// 2. 用户设置的默认模型：`settings.default_provider_id` / `settings.default_model_id`
+///    （settings 表 key-value，与 `agency_expert.rs` 同款读法；默认配置不可用时回退）
+/// 3. 回退：第一个启用的 provider + 其第一个启用的模型（原逻辑）
 pub async fn build_llm_components_from_db_with(
     master_key: &[u8; 32],
     provider_registry: &Arc<dyn ProviderRegistry>,
@@ -40,12 +47,35 @@ pub async fn build_llm_components_from_db_with(
     let providers =
         axagent_harness::repositories::provider_repository().list_providers().await.ok()?;
 
-    let prov = if let Some(pid) = preferred_provider_id {
-        providers
-            .into_iter()
-            .find(|p| p.id == pid && p.enabled && p.keys.iter().any(|k| k.enabled))?
+    // 读取用户设置的默认 provider/model（注册表未初始化时返回 None，安全回退）
+    let settings = if let Some(repo) = axagent_harness::repositories::try_settings_repository() {
+        repo.get_settings().await.ok()
     } else {
-        providers.into_iter().find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))?
+        None
+    };
+
+    let prov = if let Some(pid) = preferred_provider_id {
+        // 调用方显式指定：找不到直接失败，不静默回退
+        providers
+            .iter()
+            .find(|p| p.id == pid && p.enabled && p.keys.iter().any(|k| k.enabled))?
+            .clone()
+    } else {
+        let default_pid = settings.as_ref().and_then(|s| s.default_provider_id.as_deref());
+        default_pid
+            .and_then(|pid| {
+                providers
+                    .iter()
+                    .find(|p| p.id == pid && p.enabled && p.keys.iter().any(|k| k.enabled))
+                    .cloned()
+            })
+            .or_else(|| {
+                // 默认 provider 未配置或不可用 → 回退第一个启用的 provider
+                providers
+                    .iter()
+                    .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))
+                    .cloned()
+            })?
     };
 
     let key = prov.keys.iter().find(|k| k.enabled)?;
@@ -70,13 +100,36 @@ pub async fn build_llm_components_from_db_with(
         store_response: None,
     };
 
+    // 模型选择：显式指定 > settings 默认模型 > provider 第一个启用模型
     let model = if let Some(mid) = preferred_model_id {
         mid.to_string()
+    } else if let Some(mid) = settings.as_ref().and_then(|s| s.default_model_id.as_deref()) {
+        // settings 默认模型必须存在于该 provider 的启用模型中，否则回退
+        if prov.models.iter().any(|m| m.enabled && m.model_id == mid) {
+            mid.to_string()
+        } else {
+            first_enabled_model(&prov)
+        }
     } else {
-        prov.models.first().map(|m| m.model_id.clone()).unwrap_or_else(|| "default".to_string())
+        first_enabled_model(&prov)
     };
 
     Some((adapter, ctx, model))
+}
+
+/// 返回 provider 第一个启用的模型；全部未启用时取第一个；都没有则 "default"。
+///
+/// 修复点：原逻辑 `prov.models.first()` 不检查 `model.enabled`，
+/// 可能选到被用户禁用的模型。
+fn first_enabled_model(
+    prov: &axagent_harness::types::provider_model::ProviderConfig,
+) -> String {
+    prov.models
+        .iter()
+        .find(|m| m.enabled)
+        .or_else(|| prov.models.first())
+        .map(|m| m.model_id.clone())
+        .unwrap_or_else(|| "default".to_string())
 }
 
 /// 从数据库构建 LLM Bridge（自动选择首个启用的 provider；使用默认 registry）
