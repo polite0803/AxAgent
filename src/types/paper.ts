@@ -200,10 +200,48 @@ export interface ExtractedRelation {
   knowledgeBaseId?: string;
 }
 
-/** 实体关系抽取结果 */
+/** 已写入知识库的实体（对应后端 `KnowledgeEntity`，camelCase 序列化） */
+export interface KnowledgeEntity {
+  id: string;
+  knowledgeBaseId: string;
+  name: string;
+  entityType: string;
+  description?: string | null;
+  sourcePath: string;
+  sourceLanguage?: string | null;
+  properties: Record<string, unknown>;
+  lifecycle?: Record<string, unknown> | null;
+  behaviors?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: number;
+  updatedAt: number;
+  aliases: string;
+  mentionCount: number;
+  confidence: number;
+  firstSeenAt?: string | null;
+  lastSeenAt?: string | null;
+}
+
+/** 已写入知识库的关系（对应后端 `KnowledgeRelation`，camelCase 序列化） */
+export interface KnowledgeRelation {
+  id: string;
+  knowledgeBaseId: string;
+  sourceEntityId: string;
+  targetEntityId: string;
+  relationType: string;
+  description?: string | null;
+  properties?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: number;
+  updatedAt: number;
+  weight: number;
+}
+
+/** 实体关系抽取结果（对应后端 `ExtractEntitiesResult`，camelCase 序列化） */
 export interface ExtractEntitiesResult {
-  newEntities: number;
-  newRelations: number;
-  skippedEntities: number;
-  skippedRelations: number;
+  newEntities: KnowledgeEntity[];
+  updatedEntities: KnowledgeEntity[];
+  newRelations: KnowledgeRelation[];
+  skippedChunks: number;
+  elapsedMs: number;
 }

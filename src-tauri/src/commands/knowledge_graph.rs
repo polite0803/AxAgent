@@ -482,15 +482,15 @@ pub async fn extract_entities_from_wiki(
     })
 }
 
-/// 手动触发知识库实体抽取（通过索引队列异步执行）
+/// 手动触发知识库实体抽取（同步执行，返回抽取计数供前端展示）
 #[tauri::command]
 pub async fn extract_entities_for_kb(
     state: State<'_, AppState>,
     knowledge_base_id: String,
-) -> Result<serde_json::Value, String> {
+) -> Result<ExtractEntitiesResult, String> {
     use axagent_dao::repo::index_jobs as jobs;
 
-    let exists =
+    let _ =
         axagent_dao::repo::knowledge::get_knowledge_base(state.harness.db(), &knowledge_base_id)
             .await
             .map_err(|e| {
@@ -499,12 +499,11 @@ pub async fn extract_entities_for_kb(
                     ErrorCategory::Unrecoverable,
                 )
             })?;
-    let _ = exists;
 
+    // 插入 job 记录用于历史追踪 / 失败标记（同步执行，无需经队列 worker 流转）
     let metadata = serde_json::json!({
         "manual_extract": true,
     });
-
     let input = jobs::CreateIndexJobInput {
         job_type: jobs::JOB_TYPE_EXTRACT_ENTITIES.to_string(),
         container_type: "KnowledgeBase".to_string(),
@@ -514,18 +513,22 @@ pub async fn extract_entities_for_kb(
         priority: Some(0),
         metadata: Some(serde_json::to_string(&metadata).unwrap_or_default()),
     };
-
-    let job = jobs::enqueue_job(state.harness.db(), input).await.map_err(|e| {
+    let _ = jobs::enqueue_job(state.harness.db(), input).await.map_err(|e| {
         ErrorResponse::from_error(
-            format!("入队实体抽取任务失败: {}", e),
+            format!("记录实体抽取任务失败: {}", e),
             ErrorCategory::Unrecoverable,
         )
     })?;
 
-    Ok(serde_json::json!({
-        "jobId": job.id,
-        "jobType": job.job_type,
-    }))
+    // 同步执行核心抽取逻辑并返回计数
+    crate::index_queue::run_entity_extraction_core(
+        state.harness.db(),
+        &state.vector_store,
+        state.harness.master_key(),
+        &knowledge_base_id,
+    )
+    .await
+    .map_err(|e| ErrorResponse::from_error(e, ErrorCategory::Unrecoverable).into())
 }
 
 /// P1-3: 跨源实体合并 — 按 name+entity_type 合并 Wiki/KB/Memory 中的重复实体

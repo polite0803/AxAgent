@@ -3868,6 +3868,16 @@ export async function handleCommand<T>(
       return { is_running: false, generation: 0, stats: {} } as T;
     case "get_sandbox_policy":
       return { enabled: false, rules: [] } as T;
+    case "extract_entities_for_kb":
+    case "extract_entities_from_documents":
+    case "batch_upsert_entities_and_relations":
+      return {
+        newEntities: [],
+        updatedEntities: [],
+        newRelations: [],
+        skippedChunks: 0,
+        elapsedMs: 0,
+      } as T;
 
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);

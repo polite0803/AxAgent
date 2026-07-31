@@ -5,7 +5,13 @@ import { IconEditor } from "@/components/shared/IconEditor";
 import { KnowledgeBaseIcon } from "@/components/shared/KnowledgeBaseIcon";
 import { invoke, listen, logIpcError } from "@/lib/invoke";
 import { useKnowledgeStore, useSettingsStore, useUIStore } from "@/stores";
-import type { ImportDirectoryResult, IndexingStatus, KnowledgeBase, KnowledgeDocument } from "@/types";
+import type {
+  ExtractEntitiesResult,
+  ImportDirectoryResult,
+  IndexingStatus,
+  KnowledgeBase,
+  KnowledgeDocument,
+} from "@/types";
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -543,10 +549,15 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
     }
     setExtracting(true);
     try {
-      await invoke<{ jobId: string }>("extract_entities_for_kb", {
+      const result = await invoke<ExtractEntitiesResult>("extract_entities_for_kb", {
         knowledgeBaseId: base.id,
       });
-      messageApi.success(t("knowledgeGraph.extract"));
+      messageApi.success(
+        t("knowledgeGraph.extractSuccess", {
+          newEntities: result.newEntities.length,
+          newRelations: result.newRelations.length,
+        }),
+      );
     } catch (e) {
       messageApi.error(String(e));
     } finally {
