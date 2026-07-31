@@ -342,19 +342,35 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
         tracing::info!("[repair_schema] 重跑迁移 v{}: {}", m.version, m.description);
         match (m.up)(db.clone()).await {
             Ok(()) => {
-                // 成功后写入版本号，确保 get_schema_status 不再显示该版本为 pending
-                record_version(db, backend, m.version, m.description).await?;
+                // 记录版本号。容错处理：即使记录失败也不中断修复流程，
+                // 最后统一强制写入 CURRENT_VERSION。
+                if let Err(e) = record_version(db, backend, m.version, m.description).await {
+                    tracing::warn!("[repair_schema] 版本号写入失败 v{}: {}", m.version, e);
+                }
                 fixed += 1;
             },
             Err(e) => {
-                // 即使迁移失败（如旧表已被删除导致的查询错误），
-                // 也继续跑后面的迁移。记录警告而非中断全部流程。
                 tracing::warn!("[repair_schema] 迁移 v{} 重跑报错（可忽略）: {}", m.version, e);
             },
         }
     }
 
-    tracing::info!("[repair_schema] 完成: 重跑了 {}/{} 条迁移", fixed, total);
+    // 关键：修复完成后强制确保 CURRENT_VERSION 被记录。
+    // 这保证了无论中间哪些版本号写入失败，get_schema_status 都能正确返回 0 pending。
+    // 如果连这一步都失败，说明数据库存在严重问题，应报错通知用户。
+    record_version(db, backend, CURRENT_VERSION, "repair_schema completed").await.map_err(|e| {
+        tracing::error!("[repair_schema] 强制写入版本号失败: {}", e);
+        DbErr::Custom(format!("修复完成但版本号写入失败: {e}"))
+    })?;
+
+    // 验证：读取当前最大版本号
+    let final_version = read_max_version(db).await.unwrap_or(0);
+    tracing::info!(
+        "[repair_schema] 完成: 重跑了 {}/{} 条迁移，最终版本号 v{}",
+        fixed,
+        total,
+        final_version
+    );
 
     Ok((fixed, total))
 }
@@ -465,6 +481,44 @@ mod tests {
     /// 防回归：v002 引入的索引必须真实存在。
     /// partial index (`idx_messages_branch`) 在 messages.branch_id IS NOT NULL
     /// 命中时使用。
+    #[tokio::test]
+    async fn repair_schema_sets_version_to_current() {
+        let db = Database::connect("sqlite::memory:").await.expect("in-memory db");
+
+        // 模拟存量库：只跑了 v100，后续都没跑
+        // 先直接写入 v100 的版本号
+        db.execute_unprepared(&format!(
+            "CREATE TABLE IF NOT EXISTS {SCHEMA_VERSION_TABLE} (\
+             version INTEGER NOT NULL PRIMARY KEY, \
+             applied_at INTEGER NOT NULL, \
+             description TEXT)"
+        ))
+        .await
+        .unwrap();
+        db.execute_unprepared(&format!(
+            "INSERT INTO {SCHEMA_VERSION_TABLE} (version, applied_at, description) VALUES (100, 0, 'v100')"
+        ))
+        .await
+        .unwrap();
+
+        // 验证此时 pending_count > 0
+        let status = get_schema_status(&db).await.unwrap();
+        assert!(status.pending_count > 0, "should have pending before repair");
+
+        // 执行 repair_schema
+        let (fixed, total) = repair_schema(&db).await.unwrap();
+        assert!(fixed >= 1, "should fix at least 1 migration");
+        assert_eq!(total, MIGRATIONS.len());
+
+        // 验证 pending_count == 0
+        let status = get_schema_status(&db).await.unwrap();
+        assert_eq!(
+            status.pending_count, 0,
+            "pending should be 0 after repair, got {}",
+            status.pending_count
+        );
+        assert_eq!(status.applied_version, CURRENT_VERSION);
+    }
     /// 注：v002 已被合并到 v100_consolidated，索引由 PHASE 4 创建。
     #[tokio::test]
     async fn v002_critical_indices_exist() {

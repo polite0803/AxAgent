@@ -212,7 +212,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     // 第一步：修复 JSON 列类型（TEXT → JSONB）
     for (table, column) in JSON_COLUMNS {
         // 已补建的表跳过（刚建好，列类型已正确）
-        if created_tables.contains(&table) {
+        if created_tables.contains(table) {
             continue;
         }
 
