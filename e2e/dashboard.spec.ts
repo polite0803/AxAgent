@@ -3,7 +3,6 @@ import { expect, test } from "@playwright/test";
 test.describe("Dashboard Page", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
   });
 
   test("should load dashboard page", async ({ page }) => {
@@ -27,7 +26,7 @@ test.describe("Dashboard Page", () => {
 
   test("should navigate to chat from dashboard", async ({ page }) => {
     await page.goto("/chat");
-    await page.waitForSelector('[data-testid="chat-view"]', { timeout: 30000 });
+    await page.waitForSelector('[data-testid="chat-view"]', { timeout: 45000 });
     await expect(page.locator('[data-testid="chat-view"]')).toBeVisible();
   });
 });

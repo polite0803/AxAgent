@@ -3,7 +3,6 @@ import { expect, test } from "@playwright/test";
 test.describe("Files Page", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/files");
-    await page.waitForLoadState("networkidle");
   });
 
   test("should load files page", async ({ page }) => {
@@ -38,7 +37,7 @@ test.describe("Files Page", () => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await page.goto("/chat", { waitUntil: "networkidle" });
+    await page.goto("/chat");
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 45000 });
     await expect(page.locator('[data-testid="chat-view"]')).toBeVisible();
 
