@@ -9163,6 +9163,9 @@
       "ragSourceIdsCount": "Источники RAG ({{count}})",
       "ragSourceIdsHint": "Формат: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "Введите или выберите ID источников знаний…",
+
+      "ragSourceIdsEmpty": "Баз знаний еще нет. Создайте ее сначала",
+      "ragSourceIdsEmptyHint": "Нет доступных баз знаний. Перейдите на страницу «Знания», чтобы создать базу, затем вернитесь для настройки.",
       "resetTimeoutHint": "Сбросить таймаут",
       "resetTimeoutMs": "Тайм-аут сброса (мс)",
       "retry": "Повтор",
@@ -9538,6 +9541,7 @@
       "title": "Правила проверки",
       "warn": "Только предупреждение"
     },
+    "invalidEdgesCleaned": "Обнаружено {{count}} невалидных рёбер, автоматически очищено:\n{{details}}",
     "validationFailed": "Валидация не пройдена",
     "validationNode": {
       "assertionCount": "{{count}} утверждений",

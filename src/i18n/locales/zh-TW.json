@@ -8819,6 +8819,9 @@
       "ragSourceIdsCount": "RAG 來源 ({{count}})",
       "ragSourceIdsHint": "格式：knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "輸入或選擇知識來源 ID…",
+
+      "ragSourceIdsEmpty": "尚未建立知識庫，請先前往知識庫管理建立",
+      "ragSourceIdsEmptyHint": "還沒有可用的知識庫。請前往「知識庫」頁面建立知識庫後再回來設定。",
       "resetTimeoutHint": "重設逾時",
       "resetTimeoutMs": "重置逾時 (ms)",
       "retry": "重試",
@@ -9194,6 +9197,7 @@
       "title": "驗證規則",
       "warn": "僅警告"
     },
+    "invalidEdgesCleaned": "偵測到 {{count}} 條無效邊，已自動清理：\n{{details}}",
     "validationFailed": "驗證失敗",
     "validationNode": {
       "assertionCount": "{{count}} 個斷言",

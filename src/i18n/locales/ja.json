@@ -9165,6 +9165,9 @@
       "ragSourceIdsCount": "RAG ソース ({{count}})",
       "ragSourceIdsHint": "形式：knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "ナレッジソース ID を入力または選択…",
+
+      "ragSourceIdsEmpty": "ナレッジベースがまだありません。先に作成してください",
+      "ragSourceIdsEmptyHint": "利用可能なナレッジベースがありません。「ナレッジ」ページで作成してから設定に戻ってください。",
       "resetTimeoutHint": "タイムアウトをリセット",
       "resetTimeoutMs": "リセットタイムアウト (ms)",
       "retry": "リトライ",
@@ -9540,6 +9543,7 @@
       "title": "検証ルール",
       "warn": "警告のみ"
     },
+    "invalidEdgesCleaned": "{{count}} 本の無効なエッジを検出し、自動的にクリーンアップしました：\n{{details}}",
     "validationFailed": "検証失敗",
     "validationNode": {
       "assertionCount": "{{count}} アサーション",

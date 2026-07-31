@@ -445,6 +445,16 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       }
 
       const { nodes, edges, parentRefs, currentTemplate } = state;
+
+      // 自动清理引用不存在节点的无效边，防止脏数据持久化
+      const nodeIdSet = new Set(nodes.map((n) => n.id));
+      const cleanedEdges = edges.filter(
+        (e) => nodeIdSet.has(e.source) && nodeIdSet.has(e.target),
+      );
+      if (cleanedEdges.length !== edges.length) {
+        useWorkflowEditorStore.setState({ edges: cleanedEdges });
+      }
+
       const nodesWithParent: WorkflowNode[] = nodes.map((n) => {
         const pid = parentRefs[n.id];
         if (pid === undefined) { return n; }
@@ -457,7 +467,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         tags: currentTemplate?.tags || [],
         trigger_config: currentTemplate?.trigger_config,
         nodes: nodesWithParent,
-        edges,
+        edges: cleanedEdges,
         input_schema: currentTemplate?.input_schema,
         output_schema: currentTemplate?.output_schema,
         variables: currentTemplate?.variables || [],
@@ -959,8 +969,33 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       return;
     }
 
+    // 自动清理引用不存在节点的无效边
+    const nodeIdSet = new Set(nodes.map((n) => n.id));
+    const invalidEdges = edges.filter(
+      (e) => !nodeIdSet.has(e.source) || !nodeIdSet.has(e.target),
+    );
+    let cleanedEdges = edges;
+    if (invalidEdges.length > 0) {
+      cleanedEdges = edges.filter(
+        (e) => nodeIdSet.has(e.source) && nodeIdSet.has(e.target),
+      );
+      const { setEdges: storeSetEdges } = useWorkflowEditorStore.getState();
+      storeSetEdges(cleanedEdges);
+      message.warning(
+        t("workflow.invalidEdgesCleaned", {
+          count: invalidEdges.length,
+          details: invalidEdges
+            .map(
+              (e) => `边 ${e.id} 引用了不存在的节点 ${!nodeIdSet.has(e.source) ? e.source : e.target}`,
+            )
+            .join("\n"),
+        }),
+        6,
+      );
+    }
+
     // 前端结构校验：error 级别阻塞保存，warning 级别仅提示
-    const frontendIssues = validate_workflow(nodes, edges, t);
+    const frontendIssues = validate_workflow(nodes, cleanedEdges, t);
     const frontendErrors = frontendIssues.issues.filter((i) => i.severity === "error");
     const frontendWarnings = frontendIssues.issues.filter((i) => i.severity === "warning");
     if (frontendErrors.length > 0) {
@@ -982,8 +1017,23 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
     const validation = await validateTemplate();
     if (validation && !validation.is_valid) {
+      const errorDetails = validation.errors
+        .map((e) => {
+          let detail = e.message;
+          if (e.node_id) {
+            detail += ` (节点: ${e.node_id})`;
+          }
+          if (e.suggestion) {
+            detail += `\n建议: ${e.suggestion}`;
+          }
+          return detail;
+        })
+        .join("\n\n");
       message.error(
-        t("workflow.validationFailed", { count: validation.errors.length }),
+        t("workflow.validationFailed", { count: validation.errors.length })
+          + "\n\n"
+          + errorDetails,
+        8,
       );
       return;
     }
@@ -1004,7 +1054,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       tags: currentTemplate.tags,
       trigger_config: currentTemplate.trigger_config,
       nodes: nodesWithParent,
-      edges,
+      edges: cleanedEdges,
       input_schema: currentTemplate.input_schema,
       output_schema: currentTemplate.output_schema,
       variables: currentTemplate.variables,

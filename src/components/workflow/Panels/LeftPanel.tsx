@@ -110,6 +110,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
       className="workflow-side-panel"
       style={{
         width,
+        height: "100%",
         background: token.colorBgContainer,
         borderRight: `1px solid ${token.colorBorderSecondary}`,
         display: "flex",

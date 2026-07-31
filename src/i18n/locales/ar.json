@@ -9165,6 +9165,9 @@
       "ragSourceIdsCount": "مصادر RAG ({{count}})",
       "ragSourceIdsHint": "الصيغة: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "أدخل أو اختر معرفات مصادر المعرفة…",
+
+      "ragSourceIdsEmpty": "لم يتم إنشاء قاعدة معرفة بعد، يرجى إنشاؤها أولاً",
+      "ragSourceIdsEmptyHint": "لا توجد قواعد معرفة متاحة حتى الآن. يرجى الانتقال إلى صفحة「المعرفة」لإنشاء قاعدة معرفة ثم العودة للتكوين.",
       "resetTimeoutHint": "إعادة ضبط المهلة",
       "resetTimeoutMs": "مهلة إعادة التعيين (مللي ثانية)",
       "retry": "إعادة المحاولة",
@@ -9540,6 +9543,7 @@
       "title": "قواعد التحقق",
       "warn": "تحذير فقط"
     },
+    "invalidEdgesCleaned": "تم اكتشاف {{count}} حواف غير صالحة وتم تنظيفها تلقائيًا:\n{{details}}",
     "validationFailed": "فشل التحقق من الصحة",
     "validationNode": {
       "assertionCount": "{{count}} تأكيدات",

@@ -9165,6 +9165,9 @@
       "ragSourceIdsCount": "RAG-Quellen ({{count}})",
       "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "Wissensquellen-IDs eingeben oder auswählen…",
+
+      "ragSourceIdsEmpty": "Noch keine Wissensdatenbanken. Bitte erstellen Sie zuerst eine",
+      "ragSourceIdsEmptyHint": "Es sind keine Wissensdatenbanken verfügbar. Bitte erstellen Sie eine auf der Wissensseite und kehren Sie dann zur Konfiguration zurück.",
       "resetTimeoutHint": "Timeout zurücksetzen",
       "resetTimeoutMs": "Zurücksetz-Timeout (ms)",
       "retry": "Wiederholen",
@@ -9540,6 +9543,7 @@
       "title": "Validierungsregel",
       "warn": "Nur Warnung"
     },
+    "invalidEdgesCleaned": "{{count}} ungültige Kanten erkannt, automatisch bereinigt:\n{{details}}",
     "validationFailed": "Validierung fehlgeschlagen",
     "validationNode": {
       "assertionCount": "{{count}} Assertionen",

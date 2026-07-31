@@ -9163,6 +9163,9 @@
       "ragSourceIdsCount": "RAG स्रोत ({{count}})",
       "ragSourceIdsHint": "प्रारूप: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "ज्ञान स्रोत ID दर्ज या चुनें…",
+
+      "ragSourceIdsEmpty": "अभी कोई ज्ञान आधार नहीं है। कृपया पहले बनाएं",
+      "ragSourceIdsEmptyHint": "कोई ज्ञान आधार उपलब्ध नहीं है। कृपया बनाने के लिए «ज्ञान» पृष्ठ पर जाएं, फिर कॉन्फ़िगर करने के लिए वापस आएं।",
       "resetTimeoutHint": "टाइमआउट रीसेट",
       "resetTimeoutMs": "रीसेट टाइमआउट (ms)",
       "retry": "पुनःप्रयास",
@@ -9538,6 +9541,7 @@
       "title": "सत्यापन नियम",
       "warn": "केवल चेतावनी"
     },
+    "invalidEdgesCleaned": "{{count}} अवैध किनारे detected, स्वचालित रूप से साफ़ किए गए:\n{{details}}",
     "validationFailed": "मान्यता विफल",
     "validationNode": {
       "assertionCount": "{{count}} अभिकथन",

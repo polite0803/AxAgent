@@ -8823,6 +8823,9 @@
       "ragSourceIdsCount": "RAG Sources ({{count}})",
       "ragSourceIdsHint": "Format: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "Enter or select knowledge source IDs...",
+
+      "ragSourceIdsEmpty": "No knowledge bases yet. Create one first in Knowledge Management",
+      "ragSourceIdsEmptyHint": "There are no knowledge bases available. Please go to the Knowledge page to create one, then come back to configure.",
       "resetTimeoutHint": "Reset timeout",
       "resetTimeoutMs": "Reset Timeout (ms)",
       "retry": "Retry",
@@ -9198,6 +9201,7 @@
       "title": "Validation Rules",
       "warn": "Warn Only"
     },
+    "invalidEdgesCleaned": "Detected {{count}} invalid edges, auto-cleaned:\n{{details}}",
     "validationFailed": "Validation failed",
     "validationNode": {
       "assertionCount": "{{count}} assertions",

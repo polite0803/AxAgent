@@ -1223,10 +1223,10 @@ export const NODE_TYPE_MAP: Record<
     color: "#f5222d",
     kind: "output",
   },
-  // ── Storage 粉 (#eb2f96) ────────────────────────────────
+  // ── RAG（归在 Agent 分类，与 Agent 节点同组便于发现） ──────
   vectorRetrieve: {
     labelKey: "workflow.nodeTypes.vectorRetrieve",
-    category: "integration",
+    category: "agent",
     color: "#eb2f96",
     kind: "storage",
   },

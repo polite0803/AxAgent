@@ -902,6 +902,7 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
         className="workflow-side-panel"
         style={{
           width,
+          height: "100%",
           background: token.colorBgContainer,
           borderLeft: `1px solid ${token.colorBorderSecondary}`,
           display: "flex",

@@ -9165,6 +9165,9 @@
       "ragSourceIdsCount": "Fuentes RAG ({{count}})",
       "ragSourceIdsHint": "Formato: knowledge:<kb_id>, memory:<ns_id>, wiki:<wiki_id>",
       "ragSourceIdsPlaceholder": "Introduce o selecciona IDs de fuente de conocimiento…",
+
+      "ragSourceIdsEmpty": "Aún no hay bases de conocimiento. Cree una primero",
+      "ragSourceIdsEmptyHint": "No hay bases de conocimiento disponibles. Vaya a la página de Conocimiento para crear una y luego vuelva a configurar.",
       "resetTimeoutHint": "Restablecer tiempo de espera",
       "resetTimeoutMs": "Tiempo de restablecimiento (ms)",
       "retry": "Reintentar",
@@ -9540,6 +9543,7 @@
       "title": "Reglas de validación",
       "warn": "Solo advertencia"
     },
+    "invalidEdgesCleaned": "Se detectaron {{count}} aristas inválidas, limpiadas automáticamente:\n{{details}}",
     "validationFailed": "Validación fallida",
     "validationNode": {
       "assertionCount": "{{count}} aserciones",
