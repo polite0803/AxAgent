@@ -244,9 +244,7 @@ pub async fn extract_entities_for_kb(
     let db = state.harness.db();
 
     // 1. 获取知识库下的所有文档
-    let docs = knowledge::list_documents(db, &knowledge_base_id)
-        .await
-        .map_err(err_to_string)?;
+    let docs = knowledge::list_documents(db, &knowledge_base_id).await.map_err(err_to_string)?;
 
     if docs.is_empty() {
         return Ok(serde_json::json!({

@@ -5474,6 +5474,8 @@
       "rebuildDocIndex": "인덱스 재구축",
       "rebuildIndex": "인덱스 재구축",
       "rebuildIndexConfirm": "인덱스를 재구축하시겠습니까? 모든 청크의 임베딩이 재생성됩니다.",
+      "extractEntities": "엔티티 관계 추출",
+      "extractEntitiesConfirm": "이 지식 기반에서 엔티티 관계를 추출하시겠습니까? LLM을 호출하여 문서에서 엔티티와 관계를 추출하여 지식 그래프를 구축합니다.",
       "retrievalThreshold": "검색 임계값",
       "retrievalTopK": "상위 K개 결과",
       "score": "유사도",

@@ -311,13 +311,9 @@ impl IndexJobService {
             serde_json::from_str(meta)
                 .ok()
                 .and_then(|v: serde_json::Value| {
-                    v.get("document_ids")
-                        .and_then(|ids| ids.as_array())
-                        .map(|arr| {
-                            arr.iter()
-                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                                .collect()
-                        })
+                    v.get("document_ids").and_then(|ids| ids.as_array()).map(|arr| {
+                        arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect()
+                    })
                 })
                 .unwrap_or_default()
         } else {
@@ -351,8 +347,7 @@ impl IndexJobService {
             let batch: Vec<String> = chunk.to_vec();
 
             // 调用实体抽取逻辑（使用 knowledge_graph 命令的核心逻辑）
-            let result =
-                self.extract_entities_batch(kb_id, &batch).await?;
+            let result = self.extract_entities_batch(kb_id, &batch).await?;
 
             total_new_entities += result.new_entities.len();
             total_new_relations += result.new_relations.len();
@@ -457,10 +452,9 @@ impl IndexJobService {
         let user_prompt = user_template.replace("{0}", &format!("{}{}", all_text, existing_hint));
 
         // 4. 构建 LLM Bridge
-        let bridge =
-            axagent_runtime::llm_bridge::build_llm_bridge_from_db(&self.master_key)
-                .await
-                .ok_or_else(|| "未找到启用的 LLM Provider，无法执行实体抽取".to_string())?;
+        let bridge = axagent_runtime::llm_bridge::build_llm_bridge_from_db(&self.master_key)
+            .await
+            .ok_or_else(|| "未找到启用的 LLM Provider，无法执行实体抽取".to_string())?;
 
         // 5. 调用 LLM
         let llm_response = bridge
@@ -472,15 +466,11 @@ impl IndexJobService {
         let (entities, relations) = self.parse_entity_extraction_response(&llm_response)?;
 
         // 7. 写入 DB
-        let result =
-            axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
-                &self.db,
-                kb_id,
-                entities,
-                relations,
-            )
-            .await
-            .map_err(|e| e.to_string())?;
+        let result = axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
+            &self.db, kb_id, entities, relations,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
 
         Ok(axagent_harness::ExtractEntitiesResult {
             new_entities: result.new_entities,
@@ -507,7 +497,8 @@ impl IndexJobService {
             .to_string();
 
         // 尝试解析 JSON
-        let payload: serde_json::Value = serde_json::from_str(&cleaned).unwrap_or(serde_json::json!({}));
+        let payload: serde_json::Value =
+            serde_json::from_str(&cleaned).unwrap_or(serde_json::json!({}));
 
         let entities: Vec<ExtractedEntity> = payload
             .get("entities")

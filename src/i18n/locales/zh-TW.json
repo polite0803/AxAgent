@@ -5128,6 +5128,8 @@
       "rebuildDocIndex": "重建搜尋引",
       "rebuildIndex": "重建搜尋引",
       "rebuildIndexConfirm": "確定重建索引？將重新生成所有分段的向量嵌入。",
+      "extractEntities": "抽取實體關係",
+      "extractEntitiesConfirm": "確定對該知識庫抽取實體關係？將呼叫 LLM 從文件中提取實體和關係，建構知識圖譜。",
       "retrievalThreshold": "檢索閾值",
       "retrievalTopK": "檢索記錄數",
       "score": "相似度",

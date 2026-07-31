@@ -5474,6 +5474,8 @@
       "rebuildDocIndex": "インデックスを再構築",
       "rebuildIndex": "インデックスを再構築",
       "rebuildIndexConfirm": "インデックスを再構築しますか？すべてのチャンクの埋め込みが再生成されます。",
+      "extractEntities": "エンティティ関係を抽出",
+      "extractEntitiesConfirm": "このナレッジベースからエンティティ関係を抽出しますか？LLM を呼び出してドキュメントからエンティティと関係を抽出し、ナレッジグラフを構築します。",
       "retrievalThreshold": "検索しきい値",
       "retrievalTopK": "Top K 結果",
       "score": "類似度",

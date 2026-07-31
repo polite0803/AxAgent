@@ -5474,6 +5474,8 @@
       "rebuildDocIndex": "Reconstruire l'index",
       "rebuildIndex": "Reconstruire l'index",
       "rebuildIndexConfirm": "Reconstruire l'index ? Cela régénérera les embeddings pour tous les fragments.",
+      "extractEntities": "Extraire les relations d'entités",
+      "extractEntitiesConfirm": "Extraire les relations d'entités pour cette base de connaissances ? Cela appellera LLM pour extraire les entités et relations des documents afin de construire un graphe de connaissances.",
       "retrievalThreshold": "Seuil de récupération",
       "retrievalTopK": "Top K résultats",
       "score": "Similarité",
