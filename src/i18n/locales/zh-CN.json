@@ -12657,5 +12657,41 @@
   },
   "paperOverview": {
     "title": "论文概览"
+  },
+  "multiAgent": {
+    "subtitle": "将复杂任务分派给专业角色协作完成",
+    "rolesTitle": "固定角色",
+    "noRoles": "暂无可用角色",
+    "selectRole": "选择角色",
+    "taskPlaceholder": "描述您需要完成的任务...",
+    "taskLabel": "任务",
+    "contextJsonOptional": "上下文 JSON（可选）",
+    "contextJsonPlaceholder": "输入上下文 JSON...",
+    "contextJsonInvalid": "JSON 格式无效",
+    "provider": "供应商",
+    "maxTokens": "最大 Token",
+    "delegateTitle": "委派任务",
+    "delegateBtn": "委派",
+    "delegateSuccess": "委派成功",
+    "delegateFailed": "委派失败",
+    "fillRequired": "请填写任务描述",
+    "historyTitle": "委派历史",
+    "clearHistory": "清空历史",
+    "noHistory": "暂无委派记录",
+    "timeoutSec": "超时",
+    "responseLabel": "响应",
+    "temperatureStrict": "严格",
+    "temperatureDefault": "默认",
+    "temperatureDivergent": "发散",
+    "maxTokensDefault": "默认"
+  },
+  "viz": {
+    "xKey": "X 轴字段",
+    "yKey": "Y 轴字段",
+    "text": "",
+    "title": ""
+  },
+  "stockAnalysis": {
+    "collapseComparison": ""
   }
 }

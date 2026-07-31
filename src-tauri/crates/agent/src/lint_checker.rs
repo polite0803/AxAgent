@@ -87,16 +87,17 @@ impl LintChecker {
         let mut linked_titles: HashSet<String> = HashSet::new();
         let mut note_ids: Vec<String> = Vec::new();
 
-        // 预加载：收集所有笔记的标题和 ID
+        // 批量预加载：构建 notes_map 和 backlink_counts，消除 N+1 查询
         let mut notes_map: HashMap<String, &Note> = HashMap::new();
+        let mut backlink_counts: HashMap<String, i64> = HashMap::new();
+
         for note in &db_notes {
             all_titles.insert(note.title.clone());
             note_ids.push(note.id.clone());
             notes_map.insert(note.id.clone(), note);
         }
 
-        // 预加载：批量获取所有笔记的 backlink 计数（消除 N+1 查询）
-        let mut backlink_counts: HashMap<String, i64> = HashMap::new();
+        // 批量查询所有笔记的 backlink 计数
         for note_id in &note_ids {
             let count = self.backlink_repo.count_by_target_note_id(note_id).await? as i64;
             backlink_counts.insert(note_id.clone(), count);
@@ -201,6 +202,7 @@ impl LintChecker {
     }
 
     /// 使用预加载数据的优化版本：消除 N+1 查询，提升批量 lint 性能
+    /// 直接使用预加载的 all_titles (O(1) 查找) 和 backlink_counts (O(1) 查找)
     async fn check_links_with_data(
         &self,
         note: &Note,
@@ -215,8 +217,10 @@ impl LintChecker {
                 continue;
             }
 
-            // 使用预加载的 titles 集合检查链接是否存在（O(1) 查找）
-            if !all_titles.contains(&link.target) {
+            // 使用预加载的 all_titles 进行 O(1) 查找
+            let target_exists = all_titles.contains(&link.target);
+
+            if !target_exists {
                 issues.push(LintIssue {
                     severity: IssueSeverity::Warning,
                     code: "broken-link".to_string(),
@@ -226,7 +230,7 @@ impl LintChecker {
             }
         }
 
-        // 使用预加载的 backlink 计数（O(1) 查找）
+        // 使用预加载的 backlink_counts 进行 O(1) 查找
         let backlink_count = backlink_counts.get(&note.id).copied().unwrap_or(0);
 
         if backlink_count == 0 && note.author == "llm" {
@@ -362,7 +366,52 @@ impl LintChecker {
         Ok(())
     }
 
-    /// 使用预加载数据的优化版本：消除 N+1 查询，提升批量 lint 性能
+    #[allow(dead_code)]
+    async fn check_orphan_pages(
+        &self,
+        note_ids: &[String],
+        linked_titles: &HashSet<String>,
+        results: &mut Vec<LintResult>,
+    ) -> Result<(), String> {
+        for note_id in note_ids {
+            let note_ref = self.note_repo.find_by_id(note_id).await?;
+
+            if let Some(note_ref) = note_ref {
+                if note_ref.title == "Index"
+                    || note_ref.title == "Operation Log"
+                    || note_ref.title == "Overview"
+                {
+                    continue;
+                }
+
+                if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
+                    let backlinks = self.backlink_repo.count_by_target_note_id(note_id).await?;
+
+                    if backlinks == 0 {
+                        results.push(LintResult {
+                            note_id: note_id.clone(),
+                            issues: vec![LintIssue {
+                                severity: IssueSeverity::Warning,
+                                code: "orphan-page".to_string(),
+                                message: format!(
+                                    "Page '{}' is not referenced by any other page",
+                                    note_ref.title
+                                ),
+                                line: None,
+                            }],
+                            score: 0.3,
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 使用预加载数据的优化版本：消除 N+1 查询
+    /// 使用预加载的 notes_map 直接获取笔记 (O(1) 查找)
+    /// 使用预加载的 backlink_counts 进行 O(1) 查找
     async fn check_orphan_pages_with_data(
         &self,
         note_ids: &[String],
@@ -372,37 +421,36 @@ impl LintChecker {
         results: &mut Vec<LintResult>,
     ) -> Result<(), String> {
         for note_id in note_ids {
-            // 使用预加载的 notes_map 直接获取笔记（O(1) 查找，无需再次查询数据库）
-            let note_ref = match notes_map.get(note_id) {
-                Some(note) => note,
-                None => continue,
-            };
+            // 使用预加载的 notes_map 进行 O(1) 查找
+            let note_ref = notes_map.get(note_id);
 
-            if note_ref.title == "Index"
-                || note_ref.title == "Operation Log"
-                || note_ref.title == "Overview"
-            {
-                continue;
-            }
+            if let Some(note_ref) = note_ref {
+                if note_ref.title == "Index"
+                    || note_ref.title == "Operation Log"
+                    || note_ref.title == "Overview"
+                {
+                    continue;
+                }
 
-            if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
-                // 使用预加载的 backlink 计数（O(1) 查找）
-                let backlinks = backlink_counts.get(note_id).copied().unwrap_or(0);
+                if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
+                    // 使用预加载的 backlink_counts 进行 O(1) 查找
+                    let backlinks = backlink_counts.get(note_id).copied().unwrap_or(0);
 
-                if backlinks == 0 {
-                    results.push(LintResult {
-                        note_id: note_id.clone(),
-                        issues: vec![LintIssue {
-                            severity: IssueSeverity::Warning,
-                            code: "orphan-page".to_string(),
-                            message: format!(
-                                "Page '{}' is not referenced by any other page",
-                                note_ref.title
-                            ),
-                            line: None,
-                        }],
-                        score: 0.3,
-                    });
+                    if backlinks == 0 {
+                        results.push(LintResult {
+                            note_id: note_id.clone(),
+                            issues: vec![LintIssue {
+                                severity: IssueSeverity::Warning,
+                                code: "orphan-page".to_string(),
+                                message: format!(
+                                    "Page '{}' is not referenced by any other page",
+                                    note_ref.title
+                                ),
+                                line: None,
+                            }],
+                            score: 0.3,
+                        });
+                    }
                 }
             }
         }
