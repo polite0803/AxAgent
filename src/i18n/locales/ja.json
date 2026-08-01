@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常変更不要）",
     "showDeveloperTools": "開発者ツールを表示",
-    "showDeveloperToolsDesc": "サイドバーに開発者ツールセクション（トレース/ベンチマーク/ファインチューニング/強化学習）を表示",
+    "showDeveloperToolsDesc": "チャットページ上部に開発ツールタブを表示（トレース/ベンチマーク/ファインチューニング/強化学習）",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "プロアクティブ",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "作成",
     "sectionKnowledge": "知識",
     "sectionDevelopment": "開発",
-    "agentPanel": "エージェントパネル",
-    "sectionDeveloper": "開発者ツール"
+    "agentPanel": "エージェントパネル"
   },
   "skill": {
     "abTest": {

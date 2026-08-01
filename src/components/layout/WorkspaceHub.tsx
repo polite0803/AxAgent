@@ -2,6 +2,7 @@
 
 import { ChatPage } from "@/pages/ChatPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { DevToolsPage } from "@/pages/DevTools/DevToolsPage";
 import { FilesPage } from "@/pages/FilesPage";
 import { KnowledgeHubPage } from "@/pages/KnowledgeHubPage";
 import { MultiAgentPage } from "@/pages/MultiAgentPage";
@@ -49,6 +50,8 @@ export function WorkspaceHub() {
       return <KnowledgeHubPage />;
     case "multiAgent":
       return <MultiAgentPage />;
+    case "devtools":
+      return <DevToolsPage />;
     default:
       return <ChatPage />;
   }

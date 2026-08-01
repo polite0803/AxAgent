@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)",
     "showDeveloperTools": "डेवलपर टूल दिखाएं",
-    "showDeveloperToolsDesc": "साइडबार में डेवलपर टूल अनुभाग (ट्रेस/बेंचमार्क/फ़ाइन-ट्यून/आरएल) दिखाएं",
+    "showDeveloperToolsDesc": "चैट पेज की टॉप बार में डेवलपर टूल टैब दिखाएं (ट्रेस/बेंचमार्क/फाइन-ट्यून/आरएल)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "सक्रिय",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "निर्माण",
     "sectionKnowledge": "ज्ञान",
     "sectionDevelopment": "विकास",
-    "agentPanel": "एजेंट पैनल",
-    "sectionDeveloper": "डेवलपर टूल"
+    "agentPanel": "एजेंट पैनल"
   },
   "skill": {
     "abTest": {

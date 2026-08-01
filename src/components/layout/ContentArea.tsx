@@ -22,7 +22,6 @@ const LazyGatewayLinkPage = lazy(() =>
   }))
 );
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
-const LazyDevToolsPage = lazy(() => import("@/pages/DevTools/DevToolsPage").then((m) => ({ default: m.DevToolsPage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
 const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) => ({ default: m.WikiGraphPage })));
 const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => ({ default: m.WikiEditPage })));
@@ -200,35 +199,13 @@ export const ContentArea = memo(function ContentArea() {
             path={BUILTIN_PAGE_PATH["dynamic-ui"]}
             element={<Navigate to={BUILTIN_PAGE_PATH.settings} replace />}
           />
-          {/* 开发者工具统一入口（5 项合并为 1 项，内部 Tab 切换） */}
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsBenchmark}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsToolRecommender}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsFineTune}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsRlTraining}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtools}
-            element={
-              <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyDevToolsPage} />
-              </PageContextProvider>
-            }
-          />
+          {/* 开发工具已并入对话页「开发工具」Tab，旧路由/子路由重定向到 /chat + state.tab */}
+          <Route path={BUILTIN_PAGE_PATH.devtools} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsBenchmark} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsToolRecommender} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsFineTune} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsRlTraining} element={redirectToChat("devtools")} />
           {/* 学习图 */}
           <Route
             path={BUILTIN_PAGE_PATH.learningGraph}

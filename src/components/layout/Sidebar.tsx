@@ -59,17 +59,6 @@ const builtinNavItems: NavItem[] = [
   },
 ];
 
-/** 开发者工具导航项 — 由 settings.show_developer_tools 门控；5 项合并为 1 项统一入口 */
-const devtoolsNavItems: NavItem[] = [
-  {
-    key: "devtools",
-    icon: <Icon icon="fluent:tool-toolbox-20-filled" size={17} />,
-    labelKey: "nav.devTools",
-    path: BUILTIN_PAGE_PATH.devtools,
-    isPlugin: false,
-  },
-];
-
 interface SidebarSection {
   key: string;
   labelKey: string;
@@ -290,26 +279,15 @@ export function Sidebar() {
   const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
 
   const sections = useMemo<SidebarSection[]>(() => {
-    const sections: SidebarSection[] = [];
-
-    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源 Tab）
-    sections.push({
-      key: "workspace",
-      labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems,
-    });
-
-    // 开发者工具分组 — 仅在设置开启时显示（默认 true）；5 项合并为 1 项
-    if (settings.show_developer_tools !== false) {
-      sections.push({
-        key: "developer",
-        labelKey: "sidebar.sectionDeveloper",
-        items: devtoolsNavItems,
-      });
-    }
-
-    return sections.filter((s) => s.items.length > 0);
-  }, [settings.show_developer_tools]);
+    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源/开发工具 Tab）
+    return [
+      {
+        key: "workspace",
+        labelKey: "sidebar.sectionWorkspace",
+        items: builtinNavItems,
+      },
+    ];
+  }, []);
 
   // 动态固定页面已移至设置/扩展分组管理，不再在侧栏加载和渲染
 

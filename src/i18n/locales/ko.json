@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "마커 접두사 (기본값 CHAT2API, 보통 수정 불필요)",
     "showDeveloperTools": "개발자 도구 표시",
-    "showDeveloperToolsDesc": "사이드바에 개발자 도구 섹션(트레이스/벤치마크/파인튜닝/RL)을 표시",
+    "showDeveloperToolsDesc": "채팅 페이지 상단에 개발자 도구 탭 표시(추적/벤치마크/미세 조정/강화 학습)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "능동 기능",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "창작",
     "sectionKnowledge": "지식",
     "sectionDevelopment": "개발",
-    "agentPanel": "에이전트 패널",
-    "sectionDeveloper": "개발자 도구"
+    "agentPanel": "에이전트 패널"
   },
   "skill": {
     "abTest": {

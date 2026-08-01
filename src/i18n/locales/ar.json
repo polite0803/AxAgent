@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "بادئة العلامة (الافتراضية CHAT2API، عادةً لا حاجة للتعديل)",
     "showDeveloperTools": "إظهار أدوات المطوّر",
-    "showDeveloperToolsDesc": "إظهار قسم أدوات المطوّر (التتبع/قياس الأداء/الضبط/التعلم المعزز) في الشريط الجانبي",
+    "showDeveloperToolsDesc": "إظهار تبويب أدوات المطوّر في الشريط العلوي لصفحة المحادثة (تتبع/قياس الأداء/ضبط دقيق/تعلم معزز)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "استباقي",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "إنشاء",
     "sectionKnowledge": "المعرفة",
     "sectionDevelopment": "تطوير",
-    "agentPanel": "لوحة الوكيل",
-    "sectionDeveloper": "أدوات المطوّر"
+    "agentPanel": "لوحة الوكيل"
   },
   "skill": {
     "abTest": {

@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)",
     "showDeveloperTools": "Show developer tools",
-    "showDeveloperToolsDesc": "Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar",
+    "showDeveloperToolsDesc": "Show the developer tools tab (Trace/Benchmark/Fine-Tune/RL) in the chat page top bar",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "Proactive",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "Creation",
     "sectionKnowledge": "Knowledge",
     "sectionDevelopment": "Development",
-    "agentPanel": "Agent Panel",
-    "sectionDeveloper": "Developer Tools"
+    "agentPanel": "Agent Panel"
   },
   "skill": {
     "abTest": {

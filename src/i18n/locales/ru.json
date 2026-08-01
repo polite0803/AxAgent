@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "Префикс маркера (по умолчанию CHAT2API, обычно не нужно изменять)",
     "showDeveloperTools": "Показывать инструменты разработчика",
-    "showDeveloperToolsDesc": "Показывать раздел инструментов разработчика (Трассировка/Бенчмарк/Настройка/RL) на боковой панели",
+    "showDeveloperToolsDesc": "Показывать вкладку «Инструменты разработчика» в верхней панели страницы чата (Трейс/Бенчмарк/Дообучение/RL)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "Проактивность",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "Создание",
     "sectionKnowledge": "Знания",
     "sectionDevelopment": "Разработка",
-    "agentPanel": "Панель агента",
-    "sectionDeveloper": "Инструменты разработчика"
+    "agentPanel": "Панель агента"
   },
   "skill": {
     "abTest": {

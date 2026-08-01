@@ -39,7 +39,7 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",
   quickbar: "/quickbar",
-  // 开发者工具统一入口（5 个子项合并为 1 项，内部 Tab 切换）
+  // 开发者工具已并入对话页「开发工具」Tab（/chat + state.tab），以下路径保留作旧路由重定向
   devtools: "/devtools",
   devtoolsTraceExplorer: "/devtools/trace-explorer",
   devtoolsBenchmark: "/devtools/benchmark",

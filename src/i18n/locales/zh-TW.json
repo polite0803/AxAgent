@@ -4861,7 +4861,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "標記前綴（預設 CHAT2API，通常無需修改）",
     "showDeveloperTools": "顯示開發者工具",
-    "showDeveloperToolsDesc": "在側邊欄顯示開發者工具分組（追蹤/基準測試/微調/強化學習）",
+    "showDeveloperToolsDesc": "在對話頁頂欄顯示開發工具分頁（追蹤/基準測試/微調/強化學習）",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "主動能力",
@@ -4989,8 +4989,7 @@
     "sectionCreation": "創作",
     "sectionKnowledge": "知識",
     "sectionDevelopment": "開發",
-    "agentPanel": "代理面板",
-    "sectionDeveloper": "開發者工具"
+    "agentPanel": "代理面板"
   },
   "skill": {
     "abTest": {
