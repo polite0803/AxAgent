@@ -4956,7 +4956,14 @@
       "refreshModelsFailed": "Failed to refresh model list",
       "noModels": "No models in download directory yet",
       "hfRepo": "HuggingFace Repo",
-      "directUrl": "Direct URL (optional)"
+      "directUrl": "Direct URL (optional)",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {

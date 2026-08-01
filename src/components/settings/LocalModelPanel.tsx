@@ -449,14 +449,14 @@ export function LocalModelPanel({
             <Input
               value={startConfig.serverExe}
               onChange={(e) => setStartConfig({ ...startConfig, serverExe: e.target.value })}
-              placeholder="llama-server"
+              placeholder={t("settings.localModel.serverExePlaceholder")}
             />
           </Form.Item>
           <Form.Item label={t("settings.localModel.modelPathLabel")} required>
             <Input
               value={startConfig.modelPath}
               onChange={(e) => setStartConfig({ ...startConfig, modelPath: e.target.value })}
-              placeholder="E:\\llama-models\\bge-m3-Q5_K_M.gguf"
+              placeholder={t("settings.localModel.modelPathPlaceholder")}
             />
           </Form.Item>
           <Space.Compact style={{ width: "100%" }}>
@@ -486,7 +486,7 @@ export function LocalModelPanel({
                   ...startConfig,
                   alias: e.target.value || null,
                 })}
-              placeholder="bge-m3"
+              placeholder={t("settings.localModel.aliasPlaceholder")}
             />
           </Form.Item>
           <Space.Compact style={{ width: "100%" }}>
