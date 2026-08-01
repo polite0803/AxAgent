@@ -10,6 +10,10 @@ pub struct ModelDownloader {
     cache_dir: PathBuf,
 }
 
+/// 下载进度回调：`(downloaded_bytes, total_bytes)`。
+/// `total_bytes` 未知时为 0（分块传输等场景）。
+pub type ProgressCallback = Box<dyn Fn(u64, u64) + Send>;
+
 /// 预定义模型清单
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PresetModel {
@@ -29,6 +33,8 @@ pub enum PresetModelType {
     /// 稀疏神经编码器（BGE-M3 等），输出 (token_id, weight) 列表。
     /// 用于多引擎 RAG 的 sparse 检索路径。
     SparseEncoder,
+    /// 稠密向量模型（bge-m3 等），供知识库/向量检索主链路使用。
+    Embedding,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -93,6 +99,16 @@ impl ModelDownloader {
                 display_name: "BGE-M3 Sparse Encoder (Q4_K_M)".to_string(),
                 size_bytes: 280_000_000,
             },
+            // BGE-M3 稠密向量模型（Q5_K_M），知识库 embedding 主链路。
+            PresetModel {
+                filename: "bge-m3.Q5_K_M.gguf".to_string(),
+                hf_repo: Some("gpustack/bge-m3-GGUF".to_string()),
+                direct_url: None,
+                sha256: String::new(),
+                model_type: PresetModelType::Embedding,
+                display_name: "BGE-M3 Embedding (Q5_K_M)".to_string(),
+                size_bytes: 467_663_008,
+            },
         ]
     }
 
@@ -127,7 +143,7 @@ impl ModelDownloader {
 
         // 优先 HuggingFace Hub
         if let Some(repo) = &preset.hf_repo {
-            match self.download_from_hf(repo, &preset.filename, &preset.sha256).await {
+            match self.download_from_hf(repo, &preset.filename, &preset.sha256, None).await {
                 Ok(path) => return Ok(path),
                 Err(e) => {
                     tracing::warn!("HF download failed: {}, trying direct URL", e);
@@ -137,13 +153,46 @@ impl ModelDownloader {
 
         // 回退到直链
         if let Some(url) = &preset.direct_url {
-            self.download_direct(&preset.filename, url, &preset.sha256).await
+            self.download_direct(&preset.filename, url, &preset.sha256, None).await
         } else {
             Err(axagent_harness::core_error::AxAgentError::ModelDownload(format!(
                 "No download source for {}",
                 preset.filename
             )))
         }
+    }
+
+    /// 下载 GGUF 模型，带进度回调。
+    ///
+    /// - `hf_repo` 非空时按 `{hf_endpoint}/{repo}/resolve/main/{filename}` 构造 URL
+    ///   （`hf_endpoint` 可传 `https://hf-mirror.com` 等国内镜像）。
+    /// - `direct_url` 非空时优先使用直链。
+    /// - `on_progress` 每写入一个网络块回调一次 `(downloaded_bytes, total_bytes)`，
+    ///   `total_bytes` 为 0 表示长度未知。
+    pub async fn download_with_progress(
+        &self,
+        filename: &str,
+        hf_repo: Option<&str>,
+        direct_url: Option<&str>,
+        hf_endpoint: &str,
+        expected_sha256: &str,
+        on_progress: Option<ProgressCallback>,
+    ) -> Result<PathBuf> {
+        if let Some(url) = direct_url.filter(|u| !u.is_empty()) {
+            return self.download_direct(filename, url, expected_sha256, on_progress).await;
+        }
+        if let Some(repo) = hf_repo.filter(|r| !r.is_empty()) {
+            let endpoint = if hf_endpoint.is_empty() {
+                "https://huggingface.co"
+            } else {
+                hf_endpoint.trim_end_matches('/')
+            };
+            let url = format!("{endpoint}/{repo}/resolve/main/{filename}");
+            return self.download_direct(filename, &url, expected_sha256, on_progress).await;
+        }
+        Err(axagent_harness::core_error::AxAgentError::ModelDownload(
+            "No download source provided".to_string(),
+        ))
     }
 
     /// 从 HuggingFace Hub 下载模型文件（通过直链下载，无需 hf-hub）
@@ -153,9 +202,10 @@ impl ModelDownloader {
         repo: &str,
         filename: &str,
         expected_sha256: &str,
+        on_progress: Option<&ProgressCallback>,
     ) -> Result<PathBuf> {
         let url = format!("https://huggingface.co/{repo}/resolve/main/{filename}");
-        self.download_direct(filename, &url, expected_sha256).await
+        self.download_direct(filename, &url, expected_sha256, on_progress).await
     }
 
     #[cfg(target_os = "android")]
@@ -164,6 +214,7 @@ impl ModelDownloader {
         _repo: &str,
         _filename: &str,
         _expected_sha256: &str,
+        _on_progress: Option<&ProgressCallback>,
     ) -> Result<PathBuf> {
         Err(axagent_harness::core_error::AxAgentError::ModelDownload(
             "HuggingFace Hub is not available on Android".to_string(),
@@ -176,6 +227,7 @@ impl ModelDownloader {
         filename: &str,
         url: &str,
         expected_sha256: &str,
+        on_progress: Option<&ProgressCallback>,
     ) -> Result<PathBuf> {
         tokio::fs::create_dir_all(&self.cache_dir).await.map_err(|e| {
             axagent_harness::core_error::AxAgentError::ModelDownload(format!(
@@ -261,6 +313,13 @@ impl ModelDownloader {
         use futures::StreamExt;
         use tokio::io::AsyncWriteExt;
         let mut stream = response.bytes_stream();
+        // 总大小：续传时 = 已写入字节 + 响应剩余长度；否则 = 响应 Content-Length
+        let total_hint = response.content_length().unwrap_or(0);
+        let base_len = tokio::fs::metadata(&tmp_path).await.map(|m| m.len()).unwrap_or(0);
+        let mut downloaded = base_len;
+        if let Some(cb) = on_progress {
+            cb(downloaded, base_len.saturating_add(total_hint));
+        }
         while let Some(chunk) = stream.next().await {
             let chunk = chunk.map_err(|e| {
                 axagent_harness::core_error::AxAgentError::ModelDownload(format!(
@@ -274,6 +333,10 @@ impl ModelDownloader {
                     e
                 ))
             })?;
+            downloaded = downloaded.saturating_add(chunk.len() as u64);
+            if let Some(cb) = on_progress {
+                cb(downloaded, base_len.saturating_add(total_hint));
+            }
         }
 
         tokio::fs::rename(&tmp_path, &model_path).await.map_err(|e| {
@@ -392,10 +455,11 @@ mod tests {
     #[test]
     fn test_preset_models_not_empty() {
         let models = ModelDownloader::preset_models();
-        assert_eq!(models.len(), 3);
+        assert_eq!(models.len(), 4);
         assert_eq!(models[0].model_type, PresetModelType::Reranker);
         assert_eq!(models[1].model_type, PresetModelType::Judge);
         assert_eq!(models[2].model_type, PresetModelType::SparseEncoder);
+        assert_eq!(models[3].model_type, PresetModelType::Embedding);
     }
 
     #[test]
@@ -403,10 +467,11 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let dl = ModelDownloader::with_cache_dir(tmp.path().to_path_buf());
         let models = dl.list_all_models();
-        assert_eq!(models.len(), 3);
+        assert_eq!(models.len(), 4);
         assert!(!models[0].is_downloaded);
         assert!(!models[1].is_downloaded);
         assert!(!models[2].is_downloaded);
+        assert!(!models[3].is_downloaded);
     }
 
     #[test]
