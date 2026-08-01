@@ -167,15 +167,6 @@
       "invalidSchemaDesc": "Schema 缺少必要的 type 欄位",
       "remove": "移除",
       "title": "Agent 動態 UI"
-    },
-    "permissionGate": {
-      "approve": "允許",
-      "approveAndBypass": "本次不再詢問",
-      "description": "操作描述",
-      "params": "參數",
-      "reject": "拒絕",
-      "tips": "Agent 請求執行一個寫操作，請確認是否允許。此操作可能影響您的資料。",
-      "title": "操作確認"
     }
   },
   "agentGenerator": {

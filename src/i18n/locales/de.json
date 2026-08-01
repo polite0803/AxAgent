@@ -327,15 +327,6 @@
       "invalidSchemaDesc": "Dem Schema fehlt das erforderliche Typfeld",
       "remove": "Entfernen",
       "title": "Dynamische Agent-Oberfläche"
-    },
-    "permissionGate": {
-      "approve": "Zulassen",
-      "approveAndBypass": "Dieses Mal nicht mehr fragen",
-      "description": "Vorgangsbeschreibung",
-      "params": "Parameter",
-      "reject": "Ablehnen",
-      "tips": "Der Agent beantragt einen Schreibvorgang. Bitte bestätigen Sie, ob Sie dies zulassen möchten. Dieser Vorgang kann Ihre Daten betreffen.",
-      "title": "Vorgangsbestätigung"
     }
   },
   "agentGenerator": {

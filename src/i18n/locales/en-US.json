@@ -167,15 +167,6 @@
       "invalidSchemaDesc": "Schema is missing the required type field",
       "remove": "Remove",
       "title": "Agent Dynamic UI"
-    },
-    "permissionGate": {
-      "approve": "Allow",
-      "approveAndBypass": "Don't ask again this time",
-      "description": "Operation Description",
-      "params": "Parameters",
-      "reject": "Reject",
-      "tips": "Agent requests to perform a write operation. Please confirm whether to allow it. This operation may affect your data.",
-      "title": "Operation Confirmation"
     }
   },
   "agentGenerator": {

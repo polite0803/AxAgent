@@ -575,13 +575,18 @@ pub fn run() {
             }
             tracing::info!("[shutdown] 正在停止后台任务...");
 
-            // 显式关闭所有 WebView 窗口，确保 WebView2 在 HWND 有效时完成窗口类注销，
-            // 避免 Chromium 内部在窗口已销毁后尝试 UnregisterClass 导致 ERROR_INVALID_WINDOW_HANDLE (1412)。
+            // 显式销毁所有 WebView 窗口。必须用 destroy() 而非 close()：
+            // close() 会触发 CloseRequested 事件，而本应用在 on_window_event 中
+            // 对 main 窗口无条件 prevent_close()，导致 close() 请求被自己拦截、
+            // 窗口永远关不掉。进程退出时 Chromium 在 browser process 内注销
+            // Chrome_WidgetWin_0 窗口类，发现该类仍有存活窗口句柄，
+            // UnregisterClass 返回 ERROR_CLASS_HAS_WINDOWS (1412)。
+            // destroy() 绕过 CloseRequested，同步销毁 HWND，保证退出时窗口类计数归零。
             let windows: Vec<_> = _app.webview_windows().keys().cloned().collect();
             for label in &windows {
                 if let Some(w) = _app.get_webview_window(label) {
-                    tracing::info!("[shutdown] 正在关闭窗口: {}", label);
-                    let _ = w.close();
+                    tracing::info!("[shutdown] 正在销毁窗口: {}", label);
+                    let _ = w.destroy();
                 }
             }
 

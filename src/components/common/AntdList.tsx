@@ -21,6 +21,8 @@ export interface ListProps<T> {
   renderItem?: (item: T, index: number) => ReactNode;
   rowKey?: string | ((item: T) => string | number);
   size?: "small" | "default" | "large";
+  /** antd v5 List 兼容字段；兼容实现为 Flex 行内布局，不区分水平/垂直 */
+  itemLayout?: "horizontal" | "vertical";
   bordered?: boolean;
   split?: boolean;
   loading?: boolean;

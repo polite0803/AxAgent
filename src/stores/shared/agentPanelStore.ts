@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 
 /** Agent Panel 当前活跃标签页 */
@@ -49,21 +48,6 @@ export interface AgentContext {
   data?: Record<string, unknown>;
   /** 上下文更新时间戳 */
   updatedAt?: number;
-}
-
-/** Agent 待确认的写操作（PermissionGate） */
-export interface PendingConfirmation {
-  id: string;
-  /** 工具名称 */
-  toolName: string;
-  /** 操作描述 */
-  description: string;
-  /** 参数摘要 */
-  paramsSummary?: string;
-  /** 是否允许"本次不再询问" */
-  allowBypass?: boolean;
-  /** 超时时间戳（ms since epoch） */
-  expiresAt?: number;
 }
 
 /** Agent 动态渲染的 UI Schema 条目 */
@@ -169,9 +153,6 @@ interface AgentPanelState {
   /** Agent 页面上下文 */
   agentContext: AgentContext | null;
 
-  /** 待确认的写操作队列 */
-  pendingConfirmations: PendingConfirmation[];
-
   /** Agent 动态渲染的 UI Schema 列表 */
   agentUISchemas: AgentUISchemaEntry[];
 
@@ -188,15 +169,6 @@ interface AgentPanelState {
   /** 增量合并 Agent 上下文（保留未覆盖的字段） */
   mergeAgentContext(ctx: Partial<AgentContext>): void;
   clearAgentContext(): void;
-
-  // ── PermissionGate ──
-
-  /** 添加待确认的写操作 */
-  addPendingConfirmation(confirmation: PendingConfirmation): void;
-  /** 批准待确认操作 */
-  resolveConfirmation(id: string, approved: boolean, bypass?: boolean): void;
-  /** 清空所有待确认操作 */
-  clearPendingConfirmations(): void;
 
   // ── Agent UI 渲染 ──
 
@@ -222,7 +194,6 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
   isMiniMode: loadPersistedMiniMode(),
   isDragging: false,
   agentContext: null,
-  pendingConfirmations: [],
   agentUISchemas: [],
 
   toggle() {
@@ -277,37 +248,6 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
 
   clearAgentContext() {
     set({ agentContext: null });
-  },
-
-  // ── PermissionGate ──
-
-  addPendingConfirmation(confirmation) {
-    const { pendingConfirmations } = get();
-    set({
-      pendingConfirmations: [...pendingConfirmations, confirmation],
-    });
-  },
-
-  resolveConfirmation(id, approved, _bypass) {
-    const { pendingConfirmations } = get();
-    const target = pendingConfirmations.find((c) => c.id === id);
-    set({
-      pendingConfirmations: pendingConfirmations.filter((c) => c.id !== id),
-    });
-
-    // 通知后端权限确认结果
-    if (target) {
-      invoke<void>("agent_permission_response", {
-        requestId: id,
-        approved,
-      }).catch((err) => {
-        console.error("[agent_permission_response] IPC call failed:", err);
-      });
-    }
-  },
-
-  clearPendingConfirmations() {
-    set({ pendingConfirmations: [] });
   },
 
   // ── Agent UI 渲染 ──

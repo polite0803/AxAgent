@@ -1214,6 +1214,29 @@ pub async fn agent_query(
         info!("[agent] Registered {} Tauri command handlers", handler_count);
     }
 
+    // ── [AxInvest] 股票命令桥接器：股票业务命令注册为 Agent 可调用的工具 ──
+    // 本地专属扩展（stock_analysis_bridge.rs），上游无此模块；仅在此追加两处 extend。
+    {
+        use crate::commands::stock_analysis_bridge::{
+            build_stock_chat_tools, build_stock_command_handlers,
+        };
+        let stock_tools = build_stock_chat_tools();
+        let stock_tool_count = stock_tools.len();
+        chat_tools.extend(stock_tools);
+
+        let stock_handlers = build_stock_command_handlers(
+            app_state.astock_client.clone(),
+            app_state.harness.db().clone(),
+            app_state.cron_job_store.clone(),
+        );
+        let stock_handler_count = stock_handlers.len();
+        for (tool_name, handler) in stock_handlers {
+            tool_registry.register_skill_tool(tool_name, handler);
+        }
+        info!("[agent][AxInvest] Added {} stock command tools to chat_tools", stock_tool_count);
+        info!("[agent][AxInvest] Registered {} stock command handlers", stock_handler_count);
+    }
+
     // Create API client with tool definitions, model ID and parameters
     // Also attach a streaming callback to emit text/thinking deltas in real-time
     // 语义缓存注入：仅当运行时开关开启时，把共享的 SemanticCache 作为 HarnessCache
@@ -1830,11 +1853,20 @@ pub async fn agent_query(
     let runtime_feature_config = axagent_runtime_core::RuntimeFeatureConfig::default()
         .with_error_recovery(settings.error_recovery_enabled)
         .with_thought_chain(settings.thought_chain_enabled);
+    // [AxInvest] 股票写命令注入 ask 规则：触发 runtime 原生权限审批
+    // （agent-permission-request → 前端弹窗 → agent_approve 回传）。
+    // ask 规则命中优先于模式判断（PermissionPolicy::authorize_with_context）。
+    let stock_ask_rules: Vec<String> = crate::commands::stock_analysis_bridge::STOCK_WRITE_TOOLS
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    let permission_policy = PermissionPolicy::new(runtime_permission_mode)
+        .with_permission_rules_from_lists(Vec::new(), Vec::new(), stock_ask_rules);
     let mut runtime = create_conversation_runtime(
         session.session().clone(),
         Box::new(api_client),
         Box::new(tool_registry),
-        PermissionPolicy::new(runtime_permission_mode),
+        permission_policy,
         system_prompt,
         runtime_feature_config,
         crate::commands::multi_agent::get_global_hook_chain(),
@@ -3144,31 +3176,5 @@ pub async fn agent_steer(
         instruction.len()
     );
     state.steer_queue.lock().await.entry(conversation_id).or_default().push(instruction);
-    Ok(())
-}
-
-// ── PermissionGate 权限响应处理 ──
-
-/// 前端回传权限确认结果
-///
-/// 当 Agent 发起写操作前，后端会派发 `agent-permission-required` 事件，
-/// 前端 PermissionGate 组件展示确认弹窗，用户响应后通过此命令回传结果。
-#[tauri::command]
-pub async fn agent_permission_response(
-    app_handle: AppHandle,
-    request_id: String,
-    approved: bool,
-) -> Result<(), String> {
-    let payload = serde_json::json!({
-        "requestId": request_id,
-        "approved": approved,
-    });
-
-    app_handle
-        .emit("agent-permission-response-internal", &payload)
-        .map_err(|e| format!("派发权限响应事件失败: {}", e))?;
-
-    tracing::info!("[agent_permission_response] requestId={}, approved={}", request_id, approved);
-
     Ok(())
 }

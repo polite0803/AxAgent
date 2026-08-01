@@ -2,7 +2,8 @@
 
 import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
-import { Empty, List } from "antd";
+import { List } from "@/components/common/AntdList";
+import { Empty } from "antd";
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 
