@@ -3007,6 +3007,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             Arc::new(axagent_agent::SessionManager::new(repo))
         },
         agent_cancel_tokens: Arc::new(DashMap::new()),
+        agent_pause_states: Arc::new(DashMap::new()),
         agent_paused: Arc::new(tokio::sync::Mutex::new(std::collections::HashSet::new())),
         running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
         steer_queue: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),

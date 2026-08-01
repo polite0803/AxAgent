@@ -188,7 +188,12 @@
     "reedit": "再編集",
     "save": "設定を保存",
     "success": "エージェント設定の生成に成功",
-    "title": "自然言語でエージェント作成"
+    "title": "自然言語でエージェント作成",
+    "mock": {
+      "displayName": "General Assistant",
+      "description": "A versatile assistant generated from natural language description",
+      "systemPrompt": "You are a helpful general assistant that provides accurate and concise answers based on user input."
+    }
   },
   "agentHierarchy": {
     "completed": "完了",
@@ -8169,7 +8174,15 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "ok",
-    "foo": "foo"
+    "foo": "foo",
+    "editor": {
+      "context": {
+        "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
+        "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
+        "runningEngines": "\nRunning evolution engines: {{engines}}"
+      },
+      "unnamed": "Unnamed"
+    }
   },
   "voiceChat": {
     "noTicket": "利用可能なチケットがありません。もう一度開始してください。"

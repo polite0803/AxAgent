@@ -1814,34 +1814,80 @@ impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
 
 // ── Factory ──
 
+/// `create_conversation_runtime` 的参数聚合体。
+/// 通过 builder 模式避免过多参数导致的 clippy::too_many_arguments 告警。
+pub struct ConversationRuntimeFactoryArgs {
+    pub session: axagent_harness::runtime_types::session::Session,
+    pub api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
+    pub tool_executor:
+        Box<dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send + 'static>,
+    pub permission_policy: crate::permissions::PermissionPolicy,
+    pub system_prompt: Vec<String>,
+    pub feature_config: RuntimeFeatureConfig,
+    pub hook_chain: Option<Arc<HookChain>>,
+    pub pause_state: Option<Arc<PauseState>>,
+}
+
+impl ConversationRuntimeFactoryArgs {
+    #[must_use]
+    pub fn new(
+        session: axagent_harness::runtime_types::session::Session,
+        api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
+        tool_executor: Box<
+            dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send + 'static,
+        >,
+        permission_policy: crate::permissions::PermissionPolicy,
+        system_prompt: Vec<String>,
+        feature_config: RuntimeFeatureConfig,
+    ) -> Self {
+        Self {
+            session,
+            api_client,
+            tool_executor,
+            permission_policy,
+            system_prompt,
+            feature_config,
+            hook_chain: None,
+            pause_state: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_hook_chain(mut self, hook_chain: Arc<HookChain>) -> Self {
+        self.hook_chain = Some(hook_chain);
+        self
+    }
+
+    #[must_use]
+    pub fn with_hook_chain_option(mut self, hook_chain: Option<Arc<HookChain>>) -> Self {
+        self.hook_chain = hook_chain;
+        self
+    }
+
+    #[must_use]
+    pub fn with_pause_state(mut self, pause_state: Arc<PauseState>) -> Self {
+        self.pause_state = Some(pause_state);
+        self
+    }
+}
+
 /// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
 /// agent crate 用此函数代替直接引用 ConversationRuntime 类型，消除依赖。
-///
-/// `hook_chain` — 可选的 PluginHook 链，在 LLM/工具调用前后执行钩子。
 pub fn create_conversation_runtime(
-    session: axagent_harness::runtime_types::session::Session,
-    api_client: Box<dyn axagent_harness::runtime_types::conversation::ApiClient + Send>,
-    tool_executor: Box<
-        dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send + 'static,
-    >,
-    permission_policy: crate::permissions::PermissionPolicy,
-    system_prompt: Vec<String>,
-    feature_config: RuntimeFeatureConfig,
-    hook_chain: Option<Arc<HookChain>>,
-    pause_state: Option<Arc<PauseState>>,
+    args: ConversationRuntimeFactoryArgs,
 ) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
     let mut rt = ConversationRuntime::new_with_features(
-        session,
-        api_client,
-        tool_executor,
-        permission_policy,
-        system_prompt,
-        &feature_config,
+        args.session,
+        args.api_client,
+        args.tool_executor,
+        args.permission_policy,
+        args.system_prompt,
+        &args.feature_config,
     );
-    if let Some(hc) = hook_chain {
+    if let Some(hc) = args.hook_chain {
         rt = rt.with_hook_chain(hc);
     }
-    if let Some(ps) = pause_state {
+    if let Some(ps) = args.pause_state {
         rt = rt.with_pause_state(ps);
     }
     Box::new(rt)

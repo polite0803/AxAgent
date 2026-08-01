@@ -17,6 +17,7 @@ use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
 };
+use axagent_runtime_core::ConversationRuntimeFactoryArgs;
 use axagent_runtime_core::create_conversation_runtime;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set};
 use serde::{Deserialize, Serialize};
@@ -660,15 +661,15 @@ async fn execute_step_with_agent(
         .with_error_recovery(true)
         .with_thought_chain(false);
     let runtime = create_conversation_runtime(
-        session.session().clone(),
-        Box::new(api_client),
-        Box::new(tool_registry),
-        PermissionPolicy::new(axagent_runtime::PermissionMode::Prompt),
-        system_prompt,
-        runtime_feature_config,
-        crate::commands::multi_agent::get_global_hook_chain(),
-        // 计划步骤执行不参与 agent 暂停/恢复
-        None,
+        ConversationRuntimeFactoryArgs::new(
+            session.session().clone(),
+            Box::new(api_client),
+            Box::new(tool_registry),
+            PermissionPolicy::new(axagent_runtime::PermissionMode::Prompt),
+            system_prompt,
+            runtime_feature_config,
+        )
+        .with_hook_chain_option(crate::commands::multi_agent::get_global_hook_chain()),
     );
 
     let result = session_manager

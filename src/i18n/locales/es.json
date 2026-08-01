@@ -188,7 +188,12 @@
     "reedit": "Reeditar",
     "save": "Guardar configuración",
     "success": "Configuración del agente generada correctamente",
-    "title": "Crear agente con lenguaje natural"
+    "title": "Crear agente con lenguaje natural",
+    "mock": {
+      "displayName": "General Assistant",
+      "description": "A versatile assistant generated from natural language description",
+      "systemPrompt": "You are a helpful general assistant that provides accurate and concise answers based on user input."
+    }
   },
   "agentHierarchy": {
     "completed": "Completado",
@@ -8169,7 +8174,15 @@
     "nestingsuffix": "sufijoDeAnidamiento:",
     "ellipsis": "...",
     "ok": "vale",
-    "foo": "foo"
+    "foo": "foo",
+    "editor": {
+      "context": {
+        "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
+        "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
+        "runningEngines": "\nRunning evolution engines: {{engines}}"
+      },
+      "unnamed": "Unnamed"
+    }
   },
   "voiceChat": {
     "noTicket": "No hay ticket disponible. Por favor, comience de nuevo."
