@@ -10,6 +10,7 @@
  * - 服务日志查看
  */
 import { ModelDownloadPanel } from "@/components/settings/ModelDownloadPanel";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { EmbedTestResult, LocalModelStartConfig, LocalModelStatus } from "@/types";
 import { PlayCircleOutlined, PoweroffOutlined, ReloadOutlined, RobotOutlined, StopOutlined } from "@ant-design/icons";
@@ -147,8 +148,7 @@ export function LocalModelPanel({
       setStartModalOpen(false);
       void refreshRef.current();
     } catch (e) {
-      logIpcError("local_model_start")(e);
-      message.error(t("settings.localModel.startFailed"));
+      showBackendError(message, e, { context: "local_model_start" });
     }
   }, [providerId, startConfig, message, t]);
 
@@ -158,13 +158,14 @@ export function LocalModelPanel({
       message.success(t("settings.localModel.stopSuccess"));
       void refreshRef.current();
     } catch (e) {
-      logIpcError("local_model_stop")(e);
-      message.error(t("settings.localModel.stopFailed"));
+      showBackendError(message, e, { context: "local_model_stop" });
     }
   }, [providerId, message, t]);
 
   const handleRestart = useCallback(async () => {
     await handleStop();
+    // 等待端口释放（taskkill 后进程退出有延迟），避免新进程绑定端口失败
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     // 用已保存配置自动拉起；无有效配置时提示手动配置
     const cfg = startConfig;
     if (cfg.serverExe && cfg.modelPath) {
@@ -175,8 +176,7 @@ export function LocalModelPanel({
         });
         message.success(t("settings.localModel.restartSuccess"));
       } catch (e) {
-        logIpcError("local_model_start")(e);
-        message.error(t("settings.localModel.restartFailed"));
+        showBackendError(message, e, { context: "local_model_start(restart)" });
       }
     } else {
       message.info(t("settings.localModel.restartNeedConfig"));
@@ -199,8 +199,7 @@ export function LocalModelPanel({
       });
       setEmbedResult(res);
     } catch (e) {
-      logIpcError("local_model_embed_test")(e);
-      message.error(t("settings.localModel.embedTestFailed"));
+      showBackendError(message, e, { context: "local_model_embed_test" });
     } finally {
       setEmbedLoading(false);
     }
@@ -218,7 +217,7 @@ export function LocalModelPanel({
     } catch (e) {
       logIpcError("local_model_logs")(e);
       setLogContent("");
-      message.error(t("settings.localModel.logFailed"));
+      showBackendError(message, e, { context: "local_model_logs" });
     } finally {
       setLogLoading(false);
     }

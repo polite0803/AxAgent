@@ -218,6 +218,8 @@ pub mod local_model {
     pub const INVALID_CONFIG: &str = "LOCAL_MODEL_INVALID_CONFIG";
     /// 嵌入连通性测试失败
     pub const EMBED_TEST_FAILED: &str = "LOCAL_MODEL_EMBED_TEST_FAILED";
+    /// 删除本地模型文件失败
+    pub const DELETE_FAILED: &str = "LOCAL_MODEL_DELETE_FAILED";
     /// 日志文件不存在
     pub const LOG_NOT_FOUND: &str = "LOCAL_MODEL_LOG_NOT_FOUND";
     /// 日志读取失败

@@ -8,6 +8,7 @@
  * - 支持从 HuggingFace 仓库或直接 URL 下载（后台任务 + 进度轮询）
  * - 下载完成/删除后自动刷新供应商模型列表（fetch_remote_models 扫描目录）
  */
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { useProviderStore } from "@/stores";
 import type { DownloadRequest, DownloadTaskInfo, LocalFileModel, PresetModelDto } from "@/types";
@@ -20,7 +21,7 @@ import {
 } from "@ant-design/icons";
 import { App, Button, Card, Form, Input, Popconfirm, Progress, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -60,8 +61,6 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
   const [directUrl, setDirectUrl] = useState("");
   const [downloading, setDownloading] = useState(false);
 
-  const activeTaskRef = useRef<string | null>(null);
-
   const loadAll = useCallback(async () => {
     try {
       const [dir, ep, models, ps, ts] = await Promise.all([
@@ -76,43 +75,27 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
       setLocalModels(models);
       setPresets(ps);
       setTasks(ts);
-      // 若存在下载中任务则记录以便轮询
-      const active = ts.find((x) => x.status === "downloading");
-      activeTaskRef.current = active?.filename ?? null;
-      return Boolean(active);
     } catch (e) {
       logIpcError("local_model_list_local_models")(e);
-      return false;
     }
   }, []);
 
-  // 初始加载 + 下载中轮询
+  // 初始加载
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
-    void loadAll().then((hasActive) => {
-      if (hasActive) {
-        timer = setInterval(() => {
-          void loadAll();
-        }, PROGRESS_POLL_MS);
-      }
-    });
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-      }
-    };
+    void loadAll();
   }, [loadAll]);
 
-  // 有活动任务时持续轮询（含下载期间文件大小变化）
+  // 有下载中任务时轮询（任务完成/失败后自动停止）
+  const hasActiveTask = tasks.some((x) => x.status === "downloading");
   useEffect(() => {
-    if (!activeTaskRef.current) {
+    if (!hasActiveTask) {
       return;
     }
     const timer = setInterval(() => {
       void loadAll();
     }, PROGRESS_POLL_MS);
     return () => clearInterval(timer);
-  }, [tasks, loadAll]);
+  }, [hasActiveTask, loadAll]);
 
   const handleSaveDir = useCallback(async () => {
     setSaving(true);
@@ -124,8 +107,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
       message.success(t("settings.localModel.downloadDirSaved"));
       await loadAll();
     } catch (e) {
-      logIpcError("local_model_set_download_dir")(e);
-      message.error(t("settings.localModel.downloadDirSaveFailed"));
+      showBackendError(message, e, { context: "local_model_set_download_dir" });
     } finally {
       setSaving(false);
     }
@@ -140,8 +122,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
       setHfEndpoint(ep);
       message.success(t("settings.localModel.hfEndpointSaved"));
     } catch (e) {
-      logIpcError("local_model_set_hf_endpoint")(e);
-      message.error(t("settings.localModel.hfEndpointSaveFailed"));
+      showBackendError(message, e, { context: "local_model_set_hf_endpoint" });
     } finally {
       setSaving(false);
     }
@@ -181,8 +162,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
       setSelectedPreset(undefined);
       await loadAll();
     } catch (e) {
-      logIpcError("local_model_download")(e);
-      message.error(t("settings.localModel.downloadFailed"));
+      showBackendError(message, e, { context: "local_model_download" });
     } finally {
       setDownloading(false);
     }
@@ -197,8 +177,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
         // 刷新供应商模型列表（目录扫描）
         await fetchRemoteModels(providerId);
       } catch (e) {
-        logIpcError("local_model_delete_local_model")(e);
-        message.error(t("settings.localModel.deleteFailed"));
+        showBackendError(message, e, { context: "local_model_delete_local_model" });
       }
     },
     [loadAll, fetchRemoteModels, providerId, message, t],
@@ -209,8 +188,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
       await fetchRemoteModels(providerId);
       message.success(t("settings.localModel.refreshModelsDone"));
     } catch (e) {
-      logIpcError("fetch_remote_models")(e);
-      message.error(t("settings.localModel.refreshModelsFailed"));
+      showBackendError(message, e, { context: "fetch_remote_models" });
     }
   }, [fetchRemoteModels, providerId, message, t]);
 

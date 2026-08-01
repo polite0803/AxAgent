@@ -197,7 +197,7 @@ fn process_info_windows(pid: u32) -> (Option<String>, Option<u64>) {
         .replace(',', "")
         .parse()
         .unwrap_or(0);
-    (name, (mem_kb > 0).then(|| mem_kb / 1024))
+    (name, (mem_kb > 0).then_some(mem_kb / 1024))
 }
 
 /// 非 Windows：lsof + ps 探测（简化实现）。
@@ -317,11 +317,13 @@ async fn probe(state: &AppState, base: &str, provider_id: &str) -> HarnessResult
 }
 
 /// 从 provider 记录解析 base_url（自动补 /v1）。
+/// 统一先经 `resolve_provider_id` 解析（兼容 builtin_ 前缀等别名）。
 async fn resolve_provider_base(
     db: &axagent_harness::DatabaseConnection,
     provider_id: &str,
 ) -> HarnessResult<(ProviderConfig, String)> {
-    let provider = axagent_dao::repo::provider::get_provider(db, provider_id).await?;
+    let real_id = axagent_dao::repo::provider::resolve_provider_id(db, provider_id).await?;
+    let provider = axagent_dao::repo::provider::get_provider(db, &real_id).await?;
     let base = axagent_harness::url_utils::resolve_base_url_for_type(
         &provider.api_host,
         &provider.provider_type,
@@ -330,7 +332,7 @@ async fn resolve_provider_base(
 }
 
 fn command_error(e: impl std::fmt::Display, code: &str) -> String {
-    String::from(ErrorResponse::err_with_detail(code, e.to_string()))
+    ErrorResponse::err_with_detail(code, e.to_string())
 }
 
 // ── 命令 ───────────────────────────────────────────────────────────
@@ -359,11 +361,11 @@ pub async fn local_model_start(
         .await
         .map_err(|e| command_error(e, lm_err::PROVIDER_NOT_FOUND))?;
 
-    // 已运行则直接返回当前状态
+    // 端口已被进程占用（含启动中 / 外部进程）：不重复启动，直接返回当前状态
     let existing = probe(&state, &base, &provider_id)
         .await
         .map_err(|e| command_error(e, lm_err::STATUS_FAILED))?;
-    if existing.running {
+    if existing.running || existing.pid.is_some() {
         return Ok(existing);
     }
 
@@ -596,13 +598,16 @@ pub async fn local_model_embed_test(
     text: String,
 ) -> Result<EmbedTestResult, String> {
     let db = state.harness.db();
-    let (provider, _) = resolve_provider_base(db, &provider_id)
+    let real_id = axagent_dao::repo::provider::resolve_provider_id(db, &provider_id)
+        .await
+        .map_err(|e| command_error(e, lm_err::PROVIDER_NOT_FOUND))?;
+    let (provider, _) = resolve_provider_base(db, &real_id)
         .await
         .map_err(|e| command_error(e, lm_err::PROVIDER_NOT_FOUND))?;
     let master_key = state.harness.master_key_owned();
     let registry = state.harness.provider_registry().clone();
 
-    let (ctx, _cfg) = crate::indexing::build_embed_context(db, &master_key, &provider_id)
+    let (ctx, _cfg) = crate::indexing::build_embed_context(db, &master_key, &real_id)
         .await
         .map_err(|e| command_error(e, lm_err::EMBED_TEST_FAILED))?;
 
@@ -934,7 +939,7 @@ pub async fn local_model_download(
     request: DownloadRequest,
 ) -> Result<DownloadTaskInfo, String> {
     let db = state.harness.db();
-    validate_filename(&request.filename).map_err(|e| e)?;
+    validate_filename(&request.filename)?;
     if request.hf_repo.as_deref().unwrap_or("").is_empty()
         && request.direct_url.as_deref().unwrap_or("").is_empty()
     {
@@ -1041,11 +1046,11 @@ pub async fn local_model_delete_local_model(
     let path = dir.join(&filename);
     let canonical_base = dir.canonicalize().unwrap_or(dir.clone());
     if path.exists() {
-        let canonical = path.canonicalize().map_err(|e| command_error(e, lm_err::STOP_FAILED))?;
+        let canonical = path.canonicalize().map_err(|e| command_error(e, lm_err::DELETE_FAILED))?;
         if !canonical.starts_with(&canonical_base) {
             return Err(ErrorResponse::err_with_detail(lm_err::INVALID_CONFIG, "路径穿越检测失败"));
         }
-        std::fs::remove_file(&path).map_err(|e| command_error(e, lm_err::STOP_FAILED))?;
+        std::fs::remove_file(&path).map_err(|e| command_error(e, lm_err::DELETE_FAILED))?;
     }
     // 清理下载残留
     let tmp = dir.join(format!("{filename}.download"));
