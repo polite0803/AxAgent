@@ -19,6 +19,7 @@ const PROVIDER_TYPE_OPTIONS: { label: string; value: ProviderType }[] = [
   { label: "Anthropic", value: "anthropic" },
   { label: "Gemini", value: "gemini" },
   { label: "Ollama", value: "ollama" },
+  { label: "llama.cpp", value: "llama_cpp" },
 ];
 
 const DEFAULT_HOSTS: Record<ProviderType, string> = {
@@ -29,6 +30,7 @@ const DEFAULT_HOSTS: Record<ProviderType, string> = {
   openclaw: "",
   hermes: "",
   ollama: "http://localhost:11434",
+  llama_cpp: "http://localhost:8091",
 };
 
 function SortableProviderItem({

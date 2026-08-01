@@ -306,6 +306,11 @@ pub async fn download_and_load_model(filename: &str) -> Result<()> {
         crate::model_downloader::PresetModelType::SparseEncoder => {
             engine.load_sparse_encoder_model(&path).await
         },
+        crate::model_downloader::PresetModelType::Embedding => {
+            // 稠密向量模型由知识库 HTTP 链路（llama_cpp provider）使用，
+            // 进程内引擎无需加载。
+            Ok(())
+        },
     }
 }
 
@@ -338,6 +343,7 @@ async fn auto_load_downloaded_models(engine: Arc<InferenceEngine>, cache_dir: &P
             PresetModelType::Reranker => engine.load_reranker_model(&path).await,
             PresetModelType::Judge => engine.load_judge_model(&path).await,
             PresetModelType::SparseEncoder => engine.load_sparse_encoder_model(&path).await,
+            PresetModelType::Embedding => Ok(()),
         };
         match result {
             Ok(()) => {

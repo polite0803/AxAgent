@@ -18,6 +18,7 @@ pub fn default_version_for_type(provider_type: &ProviderType) -> &'static str {
     match provider_type {
         ProviderType::Gemini => "/v1beta",
         ProviderType::Ollama => "/v1",
+        ProviderType::LlamaCpp => "/v1",
         _ => "/v1",
     }
 }

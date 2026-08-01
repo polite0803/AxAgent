@@ -641,6 +641,7 @@ pub async fn upgrade_tool_with_llm(
         axagent_harness::types::ProviderType::OpenClaw => "openclaw",
         axagent_harness::types::ProviderType::Hermes => "hermes",
         axagent_harness::types::ProviderType::Ollama => "ollama",
+        axagent_harness::types::ProviderType::LlamaCpp => "llama_cpp",
     };
 
     let adapter = state

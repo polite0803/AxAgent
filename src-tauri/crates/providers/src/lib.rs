@@ -10,6 +10,7 @@ pub mod glm;
 pub mod hermes;
 pub mod image_gen;
 pub mod kimi;
+pub mod llama_cpp;
 pub mod managed_tool_adapter;
 pub mod ollama;
 pub mod openai;

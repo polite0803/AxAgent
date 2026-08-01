@@ -20,6 +20,7 @@ fn parse_provider_type(s: &str) -> ProviderType {
         "openclaw" => ProviderType::OpenClaw,
         "hermes" => ProviderType::Hermes,
         "ollama" => ProviderType::Ollama,
+        "llama_cpp" => ProviderType::LlamaCpp,
         _ => ProviderType::OpenClaw, // fallback to OpenClaw for unknown types
     }
 }
@@ -33,6 +34,7 @@ fn provider_type_str(pt: &ProviderType) -> &'static str {
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     }
 }
 

@@ -251,6 +251,7 @@ pub async fn validate_provider_key(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness
@@ -418,6 +419,12 @@ pub async fn fetch_remote_models(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
+
+    // llama.cpp 供应商：模型列表 = 下载目录中的 GGUF 文件（无需远端拉取）
+    if provider.provider_type == ProviderType::LlamaCpp {
+        let dir = crate::commands::local_model::download_dir(state.harness.db()).await;
+        return Ok(crate::commands::local_model::scan_gguf_models(&real_id, &dir));
+    }
     // Get an enabled key for the provider
     let key_row = axagent_dao::repo::provider::get_active_key(state.harness.db(), &real_id)
         .await
@@ -443,6 +450,7 @@ pub async fn fetch_remote_models(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness
@@ -561,6 +569,7 @@ pub async fn test_model(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness

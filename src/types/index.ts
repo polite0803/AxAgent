@@ -10,7 +10,8 @@ export type ProviderType =
   | "gemini"
   | "openclaw"
   | "hermes"
-  | "ollama";
+  | "ollama"
+  | "llama_cpp";
 
 export interface ProviderConfig {
   id: string;
@@ -1747,4 +1748,91 @@ export interface DashboardStats {
   today_completion_tokens: number;
   /** 今日（本地时区）总 token 数 */
   today_tokens: number;
+}
+
+// === Local Model (llama.cpp) Management ===
+
+export interface LocalModelInfo {
+  id: string;
+  nEmbd: number | null;
+  nCtx: number | null;
+  nCtxTrain: number | null;
+  nParams: number | null;
+  sizeBytes: number | null;
+  ftype: string | null;
+  nVocab: number | null;
+}
+
+export interface LocalModelProps {
+  modelPath: string | null;
+  modelAlias: string | null;
+  modelFtype: string | null;
+  nCtx: number | null;
+  totalSlots: number | null;
+}
+
+export interface LocalModelStatus {
+  running: boolean;
+  health: string;
+  pid: number | null;
+  processName: string | null;
+  memoryMb: number | null;
+  baseUrl: string;
+  managed: boolean;
+  model: LocalModelInfo | null;
+  props: LocalModelProps | null;
+}
+
+export interface LocalModelStartConfig {
+  serverExe: string;
+  modelPath: string;
+  host: string;
+  port: number;
+  alias?: string | null;
+  nCtx?: number | null;
+  nGpuLayers?: number | null;
+  embeddingMode?: boolean;
+  extraArgs: string[];
+}
+
+export interface EmbedTestResult {
+  dimensions: number;
+  promptTokens: number | null;
+  elapsedMs: number;
+  preview: number[];
+}
+
+// === Local Model Download ===
+
+export interface LocalFileModel {
+  filename: string;
+  sizeBytes: number;
+  modifiedAt: number | null;
+  modelType: string;
+  isDownloading: boolean;
+  downloadBytes: number;
+}
+
+export interface DownloadTaskInfo {
+  filename: string;
+  downloadedBytes: number;
+  totalBytes: number;
+  status: "downloading" | "done" | "failed";
+  error: string | null;
+}
+
+export interface DownloadRequest {
+  filename: string;
+  hfRepo?: string | null;
+  directUrl?: string | null;
+}
+
+export interface PresetModelDto {
+  filename: string;
+  hfRepo: string | null;
+  directUrl: string | null;
+  displayName: string;
+  sizeBytes: number;
+  modelType: string;
+  isDownloaded: boolean;
 }

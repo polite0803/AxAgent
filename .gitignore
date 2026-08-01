@@ -139,3 +139,6 @@ knowledge-sources/lemonhu/
 .codebuddy
 # Local test data
 data/
+
+# 微调模型运行时数据（按 UUID 目录生成，不入库）
+/src-tauri/crates/agent/fine_tuned_models/

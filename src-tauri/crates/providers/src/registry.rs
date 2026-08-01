@@ -10,6 +10,7 @@ use crate::gemini::GeminiAdapter;
 use crate::glm::GlmAdapter;
 use crate::hermes::HermesAdapter;
 use crate::kimi::KimiAdapter;
+use crate::llama_cpp::LlamaCppAdapter;
 use crate::ollama::OllamaAdapter;
 use crate::openai::OpenAIAdapter;
 use crate::openai_responses::OpenAIResponsesAdapter;
@@ -55,6 +56,7 @@ impl ProviderRegistry {
         registry.register("openclaw", Arc::new(OpenClawAdapter::new()));
         registry.register("hermes", Arc::new(HermesAdapter::new()));
         registry.register("ollama", Arc::new(OllamaAdapter::new()));
+        registry.register("llama_cpp", Arc::new(LlamaCppAdapter::new()));
         // 国内 LLM 厂商原生适配器
         registry.register("deepseek", Arc::new(DeepSeekAdapter::new()));
         registry.register("qwen", Arc::new(QwenAdapter::new()));

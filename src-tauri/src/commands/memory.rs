@@ -38,6 +38,7 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     }
 }
 
