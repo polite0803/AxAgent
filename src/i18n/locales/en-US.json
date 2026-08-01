@@ -196,7 +196,12 @@
     "reedit": "Re-edit",
     "save": "Save Config",
     "success": "Agent config generated successfully",
-    "title": "Create Agent with Natural Language"
+    "title": "Create Agent with Natural Language",
+    "mock": {
+      "displayName": "General Assistant",
+      "description": "A versatile assistant generated from natural language description",
+      "systemPrompt": "You are a helpful general assistant that provides accurate and concise answers based on user input."
+    }
   },
   "agentHierarchy": {
     "completed": "Completed",
@@ -7765,6 +7770,14 @@
     }
   },
   "workflow": {
+    "editor": {
+      "context": {
+        "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
+        "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
+        "runningEngines": "\nRunning evolution engines: {{engines}}"
+      },
+      "unnamed": "Unnamed"
+    },
     "autoSave": {
       "failed": "Auto-save failed after 3 retries"
     },

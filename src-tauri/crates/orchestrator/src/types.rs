@@ -8,7 +8,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use axagent_harness::workflow_types::AgentRole;
 use axagent_harness::workflow_types::ToolDef;
 
 // ── Orchestration Strategy ──────────────────────────────────────────
@@ -116,7 +115,8 @@ pub struct SubTask {
     /// Detailed task description for the worker Agent.
     pub description: String,
     /// The Agent role best suited for this task.
-    pub role: AgentRole,
+    /// Uses a String identifier that maps to an AgentRoleDef in the database.
+    pub role: String,
     /// IDs of sub-tasks that must complete before this one starts.
     pub dependencies: Vec<String>,
     /// Current execution status.
@@ -138,7 +138,7 @@ pub struct SubTask {
 }
 
 impl SubTask {
-    pub fn new(id: String, name: String, description: String, role: AgentRole) -> Self {
+    pub fn new(id: String, name: String, description: String, role: String) -> Self {
         Self {
             id,
             name,
@@ -173,8 +173,8 @@ pub struct WorkerAssignment {
     pub sub_task_id: String,
     /// The worker node ID in the generated subgraph.
     pub worker_node_id: String,
-    /// The Agent role assigned.
-    pub role: AgentRole,
+    /// The Agent role assigned (String identifier for AgentRoleDef lookup).
+    pub role: String,
     /// The generated system prompt for this worker.
     pub system_prompt: String,
 }

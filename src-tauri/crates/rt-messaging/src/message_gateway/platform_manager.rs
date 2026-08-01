@@ -171,6 +171,35 @@ impl PlatformManager {
         router.link_agent_session(platform, user_id, agent_session_id)
     }
 
+    /// 创建或更新会话，支持设置 agent_role
+    pub async fn resolve_or_create_session(
+        &self,
+        platform: &str,
+        user_id: &str,
+        username: Option<String>,
+        agent_role: Option<String>,
+    ) {
+        let mut router = self.session_router.write().await;
+        router.resolve_or_create(platform, user_id, username, agent_role);
+    }
+
+    /// 设置会话的 AgentRole（业务层定义的角色 ID）
+    pub async fn set_agent_role(
+        &self,
+        platform: &str,
+        user_id: &str,
+        role_id: String,
+    ) -> Option<()> {
+        let mut router = self.session_router.write().await;
+        router.set_agent_role(platform, user_id, role_id)
+    }
+
+    /// 获取会话的 AgentRole ID
+    pub async fn get_session_agent_role(&self, platform: &str, user_id: &str) -> Option<String> {
+        let router = self.session_router.read().await;
+        router.get_session(platform, user_id).and_then(|s| s.agent_role.clone())
+    }
+
     pub async fn get_statuses(&self, config: &PlatformConfig) -> Vec<PlatformAdapterStatus> {
         struct AdapterInfo {
             name: String,

@@ -26,7 +26,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::core_error::Result;
-use crate::workflow_types::{AgentRole, ToolDef};
+use crate::workflow_types::ToolDef;
 
 // ============================================================================
 // 派发请求/响应 DTO
@@ -43,8 +43,8 @@ pub struct DispatchRequest {
     pub sub_task_id: String,
     /// 任务描述（自然语言）
     pub mission: String,
-    /// 期望的 agent 角色
-    pub role: AgentRole,
+    /// 期望的 agent 角色（业务层定义的角色 ID）
+    pub role: String,
     /// 可选的 system prompt 覆盖
     pub system_prompt: Option<String>,
     /// 允许使用的工具列表（空表示不限制）
@@ -125,14 +125,13 @@ pub trait SubTaskDispatcher: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workflow_types::AgentRole;
 
     #[test]
     fn dispatch_request_serialization() {
         let req = DispatchRequest {
             sub_task_id: "st-001".to_string(),
             mission: "Analyze the codebase".to_string(),
-            role: AgentRole::Planner,
+            role: "planner".to_string(),
             system_prompt: Some("You are a planner".to_string()),
             tools: vec![],
             output_var: "analysis_output".to_string(),

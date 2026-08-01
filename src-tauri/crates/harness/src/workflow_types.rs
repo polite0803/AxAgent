@@ -219,55 +219,6 @@ pub struct EventTriggerConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
-pub enum AgentRole {
-    #[serde(rename = "researcher")]
-    Researcher,
-    #[serde(rename = "planner")]
-    Planner,
-    #[serde(rename = "developer")]
-    Developer,
-    #[serde(rename = "reviewer")]
-    Reviewer,
-    #[serde(rename = "synthesizer")]
-    Synthesizer,
-    #[serde(rename = "executor")]
-    Executor,
-    #[serde(rename = "coordinator")]
-    Coordinator,
-    #[serde(rename = "browser")]
-    Browser,
-}
-
-impl AgentRole {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            AgentRole::Researcher => "researcher",
-            AgentRole::Planner => "planner",
-            AgentRole::Developer => "developer",
-            AgentRole::Reviewer => "reviewer",
-            AgentRole::Synthesizer => "synthesizer",
-            AgentRole::Executor => "executor",
-            AgentRole::Coordinator => "coordinator",
-            AgentRole::Browser => "browser",
-        }
-    }
-
-    pub fn try_from_str(s: &str) -> Option<Self> {
-        match s {
-            "researcher" => Some(AgentRole::Researcher),
-            "planner" => Some(AgentRole::Planner),
-            "developer" => Some(AgentRole::Developer),
-            "reviewer" => Some(AgentRole::Reviewer),
-            "synthesizer" => Some(AgentRole::Synthesizer),
-            "executor" => Some(AgentRole::Executor),
-            "coordinator" => Some(AgentRole::Coordinator),
-            "browser" => Some(AgentRole::Browser),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub enum OutputMode {
     #[serde(rename = "json")]
     Json,

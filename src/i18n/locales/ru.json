@@ -358,7 +358,12 @@
     "reedit": "Редактировать снова",
     "save": "Сохранить конфигурацию",
     "success": "Конфигурация агента успешно сгенерирована",
-    "title": "Создать агента на естественном языке"
+    "title": "Создать агента на естественном языке",
+    "mock": {
+      "displayName": "General Assistant",
+      "description": "A versatile assistant generated from natural language description",
+      "systemPrompt": "You are a helpful general assistant that provides accurate and concise answers based on user input."
+    }
   },
   "agentHierarchy": {
     "completed": "Завершено",
@@ -10040,7 +10045,15 @@
     "nestingsuffix": "суффикс вложенности:",
     "ellipsis": "...",
     "ok": "ок",
-    "foo": "фу"
+    "foo": "фу",
+    "editor": {
+      "context": {
+        "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
+        "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
+        "runningEngines": "\nRunning evolution engines: {{engines}}"
+      },
+      "unnamed": "Unnamed"
+    }
   },
   "voiceChat": {
     "noTicket": "Нет доступного билета. Пожалуйста, начните заново."

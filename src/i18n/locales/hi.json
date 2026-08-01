@@ -356,7 +356,12 @@
     "reedit": "पुनः संपादन",
     "save": "कॉन्फ़िग सहेजें",
     "success": "एजेंट कॉन्फ़िग सफलतापूर्वक जनरेट किया गया",
-    "title": "प्राकृतिक भाषा से एजेंट बनाएँ"
+    "title": "प्राकृतिक भाषा से एजेंट बनाएँ",
+    "mock": {
+      "displayName": "General Assistant",
+      "description": "A versatile assistant generated from natural language description",
+      "systemPrompt": "You are a helpful general assistant that provides accurate and concise answers based on user input."
+    }
   },
   "agentHierarchy": {
     "completed": "पूर्ण",
@@ -10038,7 +10043,15 @@
     "nestingsuffix": ",नेस्टिंगसफ़िक्स:",
     "ellipsis": "...",
     "ok": "ठीक है",
-    "foo": "फू"
+    "foo": "फू",
+    "editor": {
+      "context": {
+        "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
+        "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
+        "runningEngines": "\nRunning evolution engines: {{engines}}"
+      },
+      "unnamed": "Unnamed"
+    }
   },
   "voiceChat": {
     "noTicket": "कोई टिकट उपलब्ध नहीं है। कृपया पुनः प्रारंभ करें।"

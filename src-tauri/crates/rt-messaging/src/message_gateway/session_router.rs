@@ -20,6 +20,8 @@ pub struct RoutedSession {
     pub user_id: String,
     pub username: Option<String>,
     pub agent_session_id: Option<String>,
+    /// 业务层定义的 AgentRole ID（对应 AgentRoleDef.id）
+    pub agent_role: Option<String>,
     pub created_at: i64,
     pub last_activity: i64,
 }
@@ -38,6 +40,7 @@ impl SessionRouter {
         platform: &str,
         user_id: &str,
         username: Option<String>,
+        agent_role: Option<String>,
     ) -> &RoutedSession {
         let key = Self::session_key(platform, user_id);
         let now = Utc::now().timestamp_millis();
@@ -49,6 +52,9 @@ impl SessionRouter {
                 if username.is_some() {
                     s.username = username.clone();
                 }
+                if agent_role.is_some() {
+                    s.agent_role = agent_role.clone();
+                }
             })
             .or_insert_with(|| RoutedSession {
                 session_id: uuid::Uuid::new_v4().to_string(),
@@ -56,6 +62,7 @@ impl SessionRouter {
                 user_id: user_id.to_string(),
                 username,
                 agent_session_id: None,
+                agent_role,
                 created_at: now,
                 last_activity: now,
             });
@@ -63,6 +70,17 @@ impl SessionRouter {
             // Just inserted above — this branch is unreachable
             panic!("get_or_create_route: session was just inserted")
         })
+    }
+
+    /// 设置会话的 AgentRole（业务层定义的角色 ID）
+    pub fn set_agent_role(&mut self, platform: &str, user_id: &str, role_id: String) -> Option<()> {
+        let key = Self::session_key(platform, user_id);
+        if let Some(session) = self.sessions.get_mut(&key) {
+            session.agent_role = Some(role_id);
+            Some(())
+        } else {
+            None
+        }
     }
 
     pub fn get_session(&self, platform: &str, user_id: &str) -> Option<&RoutedSession> {

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::message_gateway::platform_manager::{PlatformManager, PlatformMessageCallback};
 use axagent_harness::build_provider_request_context;
 use axagent_harness::repositories::{
-    CreateConversationInput, CreateMessageInput, conversation_repository, message_repository,
-    platform_config_repository, provider_repository, settings_repository,
+    CreateConversationInput, CreateMessageInput, agent_role_repository, conversation_repository,
+    message_repository, platform_config_repository, provider_repository, settings_repository,
 };
 
 async fn persist_session_route(
@@ -293,11 +293,49 @@ impl PlatformBridge {
             .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
             .take(32)
             .collect();
-        let mut system_prompt = format!(
-            "You are AxAgent. The user is messaging from {} (username: {}). \
-             Provide helpful, concise responses.",
-            platform, safe_username
-        );
+
+        // 获取 session 的 agent_role，查找对应的 system_prompt
+        let session_agent_role =
+            self.platform_manager.get_session_agent_role(platform, user_id).await;
+
+        let base_system_prompt = if let Some(ref role_id) = session_agent_role {
+            // 尝试从数据库查找 AgentRoleDef
+            match agent_role_repository().get_agent_role(role_id).await {
+                Ok(Some(role_def)) => role_def.system_prompt,
+                Ok(None) => {
+                    tracing::warn!(
+                        "[PlatformBridge] agent_role '{}' not found, using default",
+                        role_id
+                    );
+                    format!(
+                        "You are AxAgent. The user is messaging from {} (username: {}). \
+                         Provide helpful, concise responses.",
+                        platform, safe_username
+                    )
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "[PlatformBridge] Failed to get agent_role '{}': {}, using default",
+                        role_id,
+                        e
+                    );
+                    format!(
+                        "You are AxAgent. The user is messaging from {} (username: {}). \
+                         Provide helpful, concise responses.",
+                        platform, safe_username
+                    )
+                },
+            }
+        } else {
+            // 未设置 agent_role，使用默认系统提示词
+            format!(
+                "You are AxAgent. The user is messaging from {} (username: {}). \
+                 Provide helpful, concise responses.",
+                platform, safe_username
+            )
+        };
+
+        let mut system_prompt = base_system_prompt;
         if let Some(ref personality_msg) = preprocessed.personality_prompt {
             system_prompt.push_str(&format!("\n\n{}", personality_msg));
         }

@@ -196,7 +196,12 @@
     "reedit": "重新編輯",
     "save": "儲存配置",
     "success": "智能體配置生成成功",
-    "title": "自然語言創建智能體"
+    "title": "自然語言創建智能體",
+    "mock": {
+      "displayName": "通用助手",
+      "description": "根据自然语言描述生成的全能助手",
+      "systemPrompt": "你是一个乐于助人的通用助手，基于用户输入提供准确、简洁的回答。"
+    }
   },
   "agentHierarchy": {
     "completed": "已完成",
@@ -9694,7 +9699,15 @@
     "nestingsuffix": "，nestingSuffix:",
     "ellipsis": "...",
     "ok": "確定",
-    "foo": "foo"
+    "foo": "foo",
+    "editor": {
+      "context": {
+        "currentWorkflow": "当前工作流：{{name}}（{{nodes}} 节点/{{edges}} 边）",
+        "recentExecution": "\n最近执行：{{traceId}}，耗时 {{duration}}ms",
+        "runningEngines": "\n运行中的进化引擎：{{engines}}"
+      },
+      "unnamed": "未命名"
+    }
   },
   "voiceChat": {
     "noTicket": "無可用票證。請重新開始。"

@@ -356,7 +356,12 @@
     "reedit": "다시 편집",
     "save": "구성 저장",
     "success": "에이전트 구성이 성공적으로 생성됨",
-    "title": "자연어로 에이전트 만들기"
+    "title": "자연어로 에이전트 만들기",
+    "mock": {
+      "displayName": "General Assistant",
+      "description": "A versatile assistant generated from natural language description",
+      "systemPrompt": "You are a helpful general assistant that provides accurate and concise answers based on user input."
+    }
   },
   "agentHierarchy": {
     "completed": "완료",
@@ -10040,7 +10045,15 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "확인",
-    "foo": "foo"
+    "foo": "foo",
+    "editor": {
+      "context": {
+        "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
+        "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
+        "runningEngines": "\nRunning evolution engines: {{engines}}"
+      },
+      "unnamed": "Unnamed"
+    }
   },
   "voiceChat": {
     "noTicket": "사용 가능한 티켓이 없습니다. 다시 시작해 주세요."

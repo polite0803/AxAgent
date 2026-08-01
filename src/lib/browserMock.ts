@@ -1350,9 +1350,9 @@ export async function handleCommand<T>(
       // 模拟 LLM 生成智能体配置（AgentGeneratorModal 用）
       const mockJson = JSON.stringify({
         agent_type: "general-assistant",
-        display_name: "通用助手",
-        description: "根据自然语言描述生成的全能助手",
-        system_prompt: "你是一个乐于助人的通用助手，基于用户输入提供准确、简洁的回答。",
+        display_name: i18n.t("agentGenerator.mock.displayName"),
+        description: i18n.t("agentGenerator.mock.description"),
+        system_prompt: i18n.t("agentGenerator.mock.systemPrompt"),
         permissions: ["read", "write"],
         preferred_model: "gpt-4o-mini",
       });
