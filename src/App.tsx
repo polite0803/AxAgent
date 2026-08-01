@@ -33,6 +33,9 @@ const LazyWelcomeWizard = lazy(() =>
   import("@/components/onboarding/WelcomeWizard").then((m) => ({ default: m.WelcomeWizard }))
 );
 const LazySkillPanels = lazy(() => import("@/components/skill/SkillPanels").then((m) => ({ default: m.SkillPanels })));
+const LazyPermissionGate = lazy(() =>
+  import("@/components/agent/PermissionGate").then((m) => ({ default: m.PermissionGate }))
+);
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useCommandPalette } from "@/hooks/useCommandPalette";
 import { useGlobalOverlayScrollbars } from "@/hooks/useGlobalOverlayScrollbars";
@@ -441,6 +444,9 @@ function AppInner() {
           <LazyAgentEntryPoint />
         </Suspense>
       )}
+      <Suspense fallback={null}>
+        <LazyPermissionGate />
+      </Suspense>
     </>
   );
 }

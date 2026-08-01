@@ -151,7 +151,24 @@
     "submitted": "送信済み",
     "submitting": "送信中...",
     "supplementPlaceholder": "補足説明（オプション）...",
-    "typeAnswerPlaceholder": "回答を入力してください..."
+    "typeAnswerPlaceholder": "回答を入力してください...",
+    "uiRenderer": {
+      "clearAll": "すべてクリア",
+      "empty": "Agent がレンダリングした UI はまだありません。Agent とチャットして動的インターフェースを生成しましょう。",
+      "invalidSchema": "無効な UI スキーマ",
+      "invalidSchemaDesc": "スキーマに必要な type フィールドがありません",
+      "remove": "削除",
+      "title": "Agent 動的 UI"
+    },
+    "permissionGate": {
+      "approve": "許可",
+      "approveAndBypass": "今回は再度確認しない",
+      "description": "操作の説明",
+      "params": "パラメータ",
+      "reject": "拒否",
+      "tips": "Agent が書き込み操作を要求しています。許可するかどうか確認してください。この操作はデータに影響を与える可能性があります。",
+      "title": "操作の確認"
+    }
   },
   "agentGenerator": {
     "desc": "自然言語で必要なエージェントを記述...",
@@ -236,7 +253,8 @@
       "chat": "チャット",
       "execution": "実行",
       "nlGeneration": "NL生成",
-      "skill": "スキル"
+      "skill": "スキル",
+      "ui": "UI"
     }
   },
   "agentPool": {

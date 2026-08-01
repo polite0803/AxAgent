@@ -5,6 +5,33 @@ use axagent_harness::types::AttachmentInput;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// 前端注入的 Agent 上下文 — 供后端构建系统提示
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AgentContextPayload {
+    /// 当前页面标识（如 "settings", "chat"）
+    pub page: String,
+    /// 当前页面 URL 或路由路径
+    pub url: String,
+    /// 页面暴露给 Agent 的快捷操作列表
+    #[serde(default)]
+    pub quick_actions: Vec<AgentQuickActionPayload>,
+    /// 页面数据快照
+    #[serde(default)]
+    pub data: Option<Value>,
+}
+
+/// 前端快捷操作定义
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentQuickActionPayload {
+    /// 操作唯一标识符
+    pub id: String,
+    /// 操作描述
+    pub description: String,
+    /// 是否需要用户确认
+    #[serde(default)]
+    pub require_confirmation: bool,
+}
+
 // ---------------------------------------------------------------------------
 
 /// Agent 运行阶段状态，前端据此更新加载提示
@@ -154,6 +181,9 @@ pub struct AgentQueryRequest {
     /// 和 AgentRole（岗位）的统一组装体，是 Agent 的唯一入口。
     #[serde(rename = "agentProfileId")]
     pub agent_profile_id: Option<String>,
+    /// 前端注入的页面上下文 — 供 Agent 理解当前环境
+    #[serde(rename = "agentContext")]
+    pub agent_context: Option<AgentContextPayload>,
 }
 
 #[derive(Debug, Deserialize)]

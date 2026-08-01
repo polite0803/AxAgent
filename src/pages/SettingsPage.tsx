@@ -3,6 +3,7 @@
 import { SettingsSidebar } from "@/components/settings";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { SkillPageRenderer } from "@/components/skill/SkillPageRenderer";
+import { useAgentContext } from "@/hooks/useAgentContext";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useSkillExtensionStore, useUIStore } from "@/stores";
@@ -497,6 +498,17 @@ export function SettingsPage() {
   const isSmallScreen = deviceLayout === "mobile" || deviceLayout === "tablet";
   const ContentComponent = SECTION_COMPONENTS[settingsSection as keyof typeof SECTION_COMPONENTS];
   const skillSections = useSkillExtensionStore((s) => s.settingsSections);
+
+  // ── Agent 上下文注入：告知 Agent 当前页面是设置页 ──
+  useAgentContext({
+    page: "settings",
+    url: "/settings",
+    quickActions: [
+      { id: "get-settings", description: "获取当前应用设置" },
+      { id: "save-settings", description: "保存应用设置（主题、语言等）" },
+      { id: "list-kb", description: "列出所有知识库" },
+    ],
+  });
 
   // 侧边栏可拖曳宽度
   const [sidebarWidth, setSidebarWidth] = useState(224);

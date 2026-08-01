@@ -151,7 +151,24 @@
     "submitted": "Eingereicht",
     "submitting": "Einreichen...",
     "supplementPlaceholder": "Zusätzliche Hinweise (optional)...",
-    "typeAnswerPlaceholder": "Geben Sie Ihre Antwort ein..."
+    "typeAnswerPlaceholder": "Geben Sie Ihre Antwort ein...",
+    "uiRenderer": {
+      "clearAll": "Alle löschen",
+      "empty": "No Agent-renderte Oberfläche. Chatten Sie mit dem Agenten, um dynamische Oberflächen zu erzeugen.",
+      "invalidSchema": "Ungültiges UI-Schema",
+      "invalidSchemaDesc": "Dem Schema fehlt das erforderliche Typfeld",
+      "remove": "Entfernen",
+      "title": "Dynamische Agent-Oberfläche"
+    },
+    "permissionGate": {
+      "approve": "Zulassen",
+      "approveAndBypass": "Dieses Mal nicht mehr fragen",
+      "description": "Vorgangsbeschreibung",
+      "params": "Parameter",
+      "reject": "Ablehnen",
+      "tips": "Der Agent beantragt einen Schreibvorgang. Bitte bestätigen Sie, ob Sie dies zulassen möchten. Dieser Vorgang kann Ihre Daten betreffen.",
+      "title": "Vorgangsbestätigung"
+    }
   },
   "agentGenerator": {
     "desc": "Beschreiben Sie den gewünschten Agenten in natürlicher Sprache...",
@@ -236,7 +253,8 @@
       "chat": "Chat",
       "execution": "Ausführung",
       "nlGeneration": "NL-Gen",
-      "skill": "Fähigkeiten"
+      "skill": "Fähigkeiten",
+      "ui": "Oberfläche"
     }
   },
   "agentPool": {

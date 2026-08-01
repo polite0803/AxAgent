@@ -151,7 +151,24 @@
     "submitted": "Eingereicht",
     "submitting": "제출 중...",
     "supplementPlaceholder": "추가 메모 (선택사항)...",
-    "typeAnswerPlaceholder": "답변을 입력하세요..."
+    "typeAnswerPlaceholder": "답변을 입력하세요...",
+    "uiRenderer": {
+      "clearAll": "모두 지우기",
+      "empty": "아직 에이전트가 렌더링한 UI가 없습니다. 에이전트와 채팅하여 동적 인터페이스를 생성하세요.",
+      "invalidSchema": "유효하지 않은 UI 스키마",
+      "invalidSchemaDesc": "스키마에 필요한 type 필드가 없습니다",
+      "remove": "제거",
+      "title": "에이전트 동적 UI"
+    },
+    "permissionGate": {
+      "approve": "허용",
+      "approveAndBypass": "이번에는 다시 묻지 않기",
+      "description": "작업 설명",
+      "params": "매개변수",
+      "reject": "거부",
+      "tips": "에이전트가 쓰기 작업을 요청했습니다. 허용할지 확인해 주세요. 이 작업은 데이터에 영향을 미칠 수 있습니다.",
+      "title": "작업 확인"
+    }
   },
   "agentGenerator": {
     "desc": "자연어로 필요한 에이전트를 설명...",
@@ -236,7 +253,8 @@
       "chat": "채팅",
       "execution": "실행",
       "nlGeneration": "NL 생성",
-      "skill": "스킬"
+      "skill": "스킬",
+      "ui": "UI"
     }
   },
   "agentPool": {

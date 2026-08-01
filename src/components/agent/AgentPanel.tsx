@@ -5,6 +5,7 @@ import { AgentExecutionTab } from "@/components/agent/AgentExecutionTab";
 import { AgentPanelHeader } from "@/components/agent/AgentPanelHeader";
 import { AgentPanelTabs } from "@/components/agent/AgentPanelTabs";
 import { AgentSkillTab } from "@/components/agent/AgentSkillTab";
+import { AgentUIRenderer } from "@/components/agent/AgentUIRenderer";
 import { AgentWfTab } from "@/components/agent/AgentWfTab";
 import { PANEL_MAX_WIDTH, PANEL_MIN_WIDTH, useAgentPanelStore } from "@/stores/shared/agentPanelStore";
 import type { AgentPanelTab } from "@/stores/shared/agentPanelStore";
@@ -74,6 +75,7 @@ export function AgentPanel() {
     chat: <AgentChatTab />,
     execution: <AgentExecutionTab />,
     skill: <AgentSkillTab />,
+    ui: <AgentUIRenderer />,
     "nl-generation": <AgentWfTab />,
   };
 

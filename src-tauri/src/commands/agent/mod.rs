@@ -48,6 +48,9 @@ use skill_execution::{
     execute_skill_sync, load_enabled_skill_contents, load_skill_tools,
 };
 
+pub mod command_bridge;
+use command_bridge::{build_chat_tools as build_tauri_command_chat_tools, build_command_handlers};
+
 /// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
 /// 当 LLM 调用 AskUserQuestionTool 时，通过此桥接器：
 /// 1. emit `agent-ask-user` 事件到前端
@@ -1196,6 +1199,21 @@ pub async fn agent_query(
         info!("[agent] Registered {} skill tool handlers", skill_map.len());
     }
 
+    // ── Tauri 命令桥接器：将现有 Tauri 命令注册为 Agent 可调用的工具 ──
+    {
+        let tauri_tools = build_tauri_command_chat_tools();
+        let tauri_tool_count = tauri_tools.len();
+        chat_tools.extend(tauri_tools);
+
+        let handlers = build_command_handlers(app_state.harness.db().clone(), app.clone());
+        let handler_count = handlers.len();
+        for (tool_name, handler) in handlers {
+            tool_registry.register_skill_tool(tool_name, handler);
+        }
+        info!("[agent] Added {} Tauri command tools to chat_tools", tauri_tool_count);
+        info!("[agent] Registered {} Tauri command handlers", handler_count);
+    }
+
     // Create API client with tool definitions, model ID and parameters
     // Also attach a streaming callback to emit text/thinking deltas in real-time
     // 语义缓存注入：仅当运行时开关开启时，把共享的 SemanticCache 作为 HarnessCache
@@ -1643,6 +1661,7 @@ pub async fn agent_query(
                 Some(formatted)
             }
         },
+        request.agent_context.as_ref(),
     );
 
     // Attach image URLs to the API client for multimodal support
@@ -3125,5 +3144,31 @@ pub async fn agent_steer(
         instruction.len()
     );
     state.steer_queue.lock().await.entry(conversation_id).or_default().push(instruction);
+    Ok(())
+}
+
+// ── PermissionGate 权限响应处理 ──
+
+/// 前端回传权限确认结果
+///
+/// 当 Agent 发起写操作前，后端会派发 `agent-permission-required` 事件，
+/// 前端 PermissionGate 组件展示确认弹窗，用户响应后通过此命令回传结果。
+#[tauri::command]
+pub async fn agent_permission_response(
+    app_handle: AppHandle,
+    request_id: String,
+    approved: bool,
+) -> Result<(), String> {
+    let payload = serde_json::json!({
+        "requestId": request_id,
+        "approved": approved,
+    });
+
+    app_handle
+        .emit("agent-permission-response-internal", &payload)
+        .map_err(|e| format!("派发权限响应事件失败: {}", e))?;
+
+    tracing::info!("[agent_permission_response] requestId={}, approved={}", request_id, approved);
+
     Ok(())
 }

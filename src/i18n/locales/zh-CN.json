@@ -151,7 +151,24 @@
     "submitted": "已提交",
     "submitting": "提交中...",
     "supplementPlaceholder": "补充说明（可选）...",
-    "typeAnswerPlaceholder": "输入您的回答..."
+    "typeAnswerPlaceholder": "输入您的回答...",
+    "uiRenderer": {
+      "clearAll": "清空全部",
+      "empty": "暂无 Agent 渲染的 UI。与 Agent 对话让它为你生成动态界面。",
+      "invalidSchema": "无效的 UI Schema",
+      "invalidSchemaDesc": "Schema 缺少必要的 type 字段",
+      "remove": "移除",
+      "title": "Agent 动态界面"
+    },
+    "permissionGate": {
+      "approve": "允许",
+      "approveAndBypass": "本次不再询问",
+      "description": "操作描述",
+      "params": "参数",
+      "reject": "拒绝",
+      "tips": "Agent 请求执行一个写操作，请确认是否允许。此操作可能影响您的数据。",
+      "title": "操作确认"
+    }
   },
   "agentGenerator": {
     "desc": "用自然语言描述你需要的智能体...",
@@ -236,7 +253,8 @@
       "chat": "对话",
       "execution": "执行追踪",
       "nlGeneration": "NL 生成",
-      "skill": "技能"
+      "skill": "技能",
+      "ui": "UI"
     }
   },
   "agentPool": {

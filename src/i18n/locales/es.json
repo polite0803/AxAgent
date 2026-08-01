@@ -151,7 +151,24 @@
     "submitted": "Enviado",
     "submitting": "Enviando...",
     "supplementPlaceholder": "Notas adicionales (opcional)...",
-    "typeAnswerPlaceholder": "Escriba su respuesta..."
+    "typeAnswerPlaceholder": "Escriba su respuesta...",
+    "uiRenderer": {
+      "clearAll": "Limpiar todo",
+      "empty": "Aún no hay UI renderizada por el Agente. Chatee con el Agente para generar interfaces dinámicas.",
+      "invalidSchema": "Esquema de UI inválido",
+      "invalidSchemaDesc": "El esquema carece del campo de tipo requerido",
+      "remove": "Eliminar",
+      "title": "Interfaz dinámica del Agente"
+    },
+    "permissionGate": {
+      "approve": "Permitir",
+      "approveAndBypass": "No preguntar de nuevo esta vez",
+      "description": "Descripción de la operación",
+      "params": "Parámetros",
+      "reject": "Rechazar",
+      "tips": "El Agente solicita realizar una operación de escritura. Por favor confirme si desea permitirla. Esta operación puede afectar sus datos.",
+      "title": "Confirmación de operación"
+    }
   },
   "agentGenerator": {
     "desc": "Describa el agente que necesita en lenguaje natural...",
@@ -236,7 +253,8 @@
       "chat": "Chat",
       "execution": "Ejecución",
       "nlGeneration": "NL Gen",
-      "skill": "Habilidades"
+      "skill": "Habilidades",
+      "ui": "Interfaz"
     }
   },
   "agentPool": {

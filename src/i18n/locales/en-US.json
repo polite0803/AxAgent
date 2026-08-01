@@ -151,7 +151,24 @@
     "submitted": "Submitted",
     "submitting": "Submitting...",
     "supplementPlaceholder": "Additional notes (optional)...",
-    "typeAnswerPlaceholder": "Type your answer..."
+    "typeAnswerPlaceholder": "Type your answer...",
+    "uiRenderer": {
+      "clearAll": "Clear All",
+      "empty": "No Agent-rendered UI yet. Chat with the Agent to generate dynamic interfaces.",
+      "invalidSchema": "Invalid UI Schema",
+      "invalidSchemaDesc": "Schema is missing the required type field",
+      "remove": "Remove",
+      "title": "Agent Dynamic UI"
+    },
+    "permissionGate": {
+      "approve": "Allow",
+      "approveAndBypass": "Don't ask again this time",
+      "description": "Operation Description",
+      "params": "Parameters",
+      "reject": "Reject",
+      "tips": "Agent requests to perform a write operation. Please confirm whether to allow it. This operation may affect your data.",
+      "title": "Operation Confirmation"
+    }
   },
   "agentGenerator": {
     "desc": "Describe the agent you need in natural language...",
@@ -236,7 +253,8 @@
       "chat": "Chat",
       "execution": "Execution",
       "nlGeneration": "NL Gen",
-      "skill": "Skills"
+      "skill": "Skills",
+      "ui": "UI"
     }
   },
   "agentPool": {

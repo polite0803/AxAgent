@@ -151,7 +151,24 @@
     "submitted": "Soumis",
     "submitting": "Soumission...",
     "supplementPlaceholder": "Notes supplémentaires (facultatif)...",
-    "typeAnswerPlaceholder": "Tapez votre réponse..."
+    "typeAnswerPlaceholder": "Tapez votre réponse...",
+    "uiRenderer": {
+      "clearAll": "Tout effacer",
+      "empty": "Aucune interface rendue par l'agent pour le moment. Discutez avec l'agent pour générer des interfaces dynamiques.",
+      "invalidSchema": "Schéma d'interface invalide",
+      "invalidSchemaDesc": "Le schéma est confronté au champ de type requis",
+      "remove": "Supprimer",
+      "title": "Interface dynamique de l'agent"
+    },
+    "permissionGate": {
+      "approve": "Autoriser",
+      "approveAndBypass": "Ne plus demander cette fois",
+      "description": "Description de l'opération",
+      "params": "Paramètres",
+      "reject": "Rejeter",
+      "tips": "L'agent demande à effectuer une opération d'écriture. Veuillez confirmer si vous souhaitez l'autoriser. Cette opération peut affecter vos données.",
+      "title": "Confirmation de l'opération"
+    }
   },
   "agentGenerator": {
     "desc": "Décrivez l'agent dont vous avez besoin en langage naturel...",
@@ -236,7 +253,8 @@
       "chat": "Chat",
       "execution": "Exécution",
       "nlGeneration": "Génération NL",
-      "skill": "Compétences"
+      "skill": "Compétences",
+      "ui": "Interface"
     }
   },
   "agentPool": {

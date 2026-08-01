@@ -444,6 +444,7 @@ macro_rules! register_all_commands {
             commands::smart_router::smart_router_stats,
             commands::smart_router::smart_router_set_cost_budget,
             commands::agent::agent_steer,
+            commands::agent::agent_permission_response,
             commands::agent::agent_approve,
             commands::agent::agent_approve_plan,
             commands::agent::agent_respond_ask,

@@ -151,7 +151,24 @@
     "submitted": "Eingereicht",
     "submitting": "إرسال...",
     "supplementPlaceholder": "ملاحظات إضافية (اختياري)...",
-    "typeAnswerPlaceholder": "اكتب إجابتك..."
+    "typeAnswerPlaceholder": "اكتب إجابتك...",
+    "uiRenderer": {
+      "clearAll": "مسح الكل",
+      "empty": "لا توجد واجهة معروضة من قبل الوكيل بعد. تحدث مع الوكيل لإنشاء واجهات ديناميكية.",
+      "invalidSchema": "مخطط واجهة غير صالح",
+      "invalidSchemaDesc": "المخطط يفتقر إلى حقل النوع المطلوب",
+      "remove": "إزالة",
+      "title": "الواجهة الديناميكية للوكيل"
+    },
+    "permissionGate": {
+      "approve": "سماح",
+      "approveAndBypass": "لا تسأل مرة أخرى هذا الوقت",
+      "description": "وصف العملية",
+      "params": "المعلمات",
+      "reject": "رفض",
+      "tips": "يطلب الوكيل تنفيذ عملية كتابة. يرجى التأكد مما إذا كنت تريد السماح بها. قد تؤثر هذه العملية على بياناتك.",
+      "title": "تأكيد العملية"
+    }
   },
   "agentGenerator": {
     "desc": "صف الوكيل الذي تحتاجه بلغة طبيعية...",
@@ -236,7 +253,8 @@
       "chat": "دردشة",
       "execution": "تنفيذ",
       "nlGeneration": "توليد اللغة الطبيعية",
-      "skill": "مهارات"
+      "skill": "مهارات",
+      "ui": "واجهة"
     }
   },
   "agentPool": {
