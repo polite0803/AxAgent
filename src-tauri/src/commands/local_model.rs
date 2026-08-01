@@ -271,7 +271,9 @@ async fn probe(state: &AppState, base: &str, provider_id: &str) -> HarnessResult
         .build()
         .map_err(|e| axagent_harness::core_error::AxAgentError::Provider(e.to_string()))?;
 
-    let health = fetch_health(&client, base).await;
+    // llama.cpp 的 /health、/props 在根路径；OpenAI 兼容端点（/v1/models 等）带 /v1 前缀
+    let root = base.strip_suffix("/v1").unwrap_or(base);
+    let health = fetch_health(&client, root).await;
     let running = health == "ok";
     let model = if running {
         fetch_models(&client, base).await
@@ -279,7 +281,7 @@ async fn probe(state: &AppState, base: &str, provider_id: &str) -> HarnessResult
         None
     };
     let props = if running {
-        fetch_props(&client, base).await
+        fetch_props(&client, root).await
     } else {
         None
     };

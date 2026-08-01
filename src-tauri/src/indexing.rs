@@ -103,8 +103,27 @@ pub async fn build_embed_context(
     provider_id: &str,
 ) -> Result<(ProviderRequestContext, ProviderConfig)> {
     let provider = axagent_dao::repo::provider::get_provider(db, provider_id).await?;
-    let key_row = axagent_dao::repo::provider::get_active_key(db, provider_id).await?;
-    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)?;
+
+    // 本地推理供应商（llama.cpp / ollama）无需 API key：无 key 行时降级为空 key，
+    // 避免 embedding 链路被 `get_active_key` 的 NotFound 卡死。
+    let local_no_key = matches!(
+        provider.provider_type,
+        axagent_harness::types::ProviderType::LlamaCpp
+            | axagent_harness::types::ProviderType::Ollama
+    );
+    let (decrypted_key, key_id) = if local_no_key {
+        match axagent_dao::repo::provider::get_active_key(db, provider_id).await {
+            Ok(key_row) => {
+                let k = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)
+                    .unwrap_or_default();
+                (k, key_row.id.clone())
+            },
+            Err(_) => (String::new(), String::new()),
+        }
+    } else {
+        let key_row = axagent_dao::repo::provider::get_active_key(db, provider_id).await?;
+        (axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key)?, key_row.id.clone())
+    };
 
     let global_settings = axagent_dao::repo::settings::get_settings(db).await.unwrap_or_default();
     let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
@@ -114,7 +133,7 @@ pub async fn build_embed_context(
 
     let ctx = ProviderRequestContext {
         api_key: decrypted_key,
-        key_id: key_row.id.clone(),
+        key_id,
         provider_id: provider.id.clone(),
         base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
         api_path: None,
