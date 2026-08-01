@@ -250,7 +250,13 @@ async fn dispatch_command(
                 warn!("Failed to get settings: {}", e);
                 format!("获取设置失败: {}", e)
             })?;
-            serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&settings).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error_with_code(
+                    crate::commands::error_code::common::INTERNAL,
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "tauri_save_settings" => {
             let mut settings =
@@ -283,7 +289,13 @@ async fn dispatch_command(
                     })
                 })
                 .collect();
-            serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&summaries).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error_with_code(
+                    crate::commands::error_code::common::INTERNAL,
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "tauri_get_conversation" => {
             let conv_id = input["conversation_id"]
@@ -295,7 +307,13 @@ async fn dispatch_command(
                     warn!("Failed to get conversation {}: {}", conv_id, e);
                     format!("获取会话失败: {}", e)
                 })?;
-            serde_json::to_string_pretty(&conv).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&conv).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error_with_code(
+                    crate::commands::error_code::common::INTERNAL,
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "tauri_list_knowledge_bases" => {
             let kbs =
@@ -314,7 +332,13 @@ async fn dispatch_command(
                     })
                 })
                 .collect();
-            serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&summaries).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error_with_code(
+                    crate::commands::error_code::common::INTERNAL,
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "tauri_list_memories" => {
             let min_importance = input["min_importance"].as_f64();
@@ -343,7 +367,13 @@ async fn dispatch_command(
                     })
                 })
                 .collect();
-            serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&summaries).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error_with_code(
+                    crate::commands::error_code::common::INTERNAL,
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         // ── Agent UI 渲染 ──
         "tauri_render_ui" => {
