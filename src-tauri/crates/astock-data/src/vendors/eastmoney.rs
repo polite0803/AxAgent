@@ -1582,9 +1582,9 @@ impl StockVendor for EastMoneyVendor {
                     .filter(|s| !s.is_empty())
                     .map(|s| s.to_string())
                     .or_else(|| {
-                        item.get("summary").and_then(|v| v.as_str()).map(|s| {
-                            s.chars().take(80).collect::<String>()
-                        })
+                        item.get("summary")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.chars().take(80).collect::<String>())
                     })?;
                 let content = item
                     .get("summary")

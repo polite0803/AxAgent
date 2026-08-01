@@ -793,8 +793,7 @@ pub async fn run_serenity_screening(
     // 的搜索关键词变量）被滤掉 → 运行时 resolve_var_path 查不到 → search_news keyword 恒空
     // （连续 8 轮日志"keyword="）。v17 已删除 ref_*_code，前缀白名单过时。
     // 更彻底的做法：模板 variables 全部注入（均为可编辑参数，无敏感字段）。
-    let serenity_vars: Option<Vec<axagent_harness::workflow_types::Variable>> =
-        loaded.variables;
+    let serenity_vars: Option<Vec<axagent_harness::workflow_types::Variable>> = loaded.variables;
     let opts = RunOptions {
         max_concurrent,
         step_timeout,

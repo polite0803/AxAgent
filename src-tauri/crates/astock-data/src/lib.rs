@@ -2620,10 +2620,7 @@ impl AStockClient {
 
     /// 单次搜索尝试：正缓存(L1) + 负缓存 + vendor 链。
     /// 由 `search_stock` 主流程按"原始关键词 → 清洗关键词"顺序调用。
-    async fn search_stock_once(
-        &self,
-        keyword: &str,
-    ) -> Result<Vec<StockSearchResult>, DataError> {
+    async fn search_stock_once(&self, keyword: &str) -> Result<Vec<StockSearchResult>, DataError> {
         // H1.1 修复:live 模式也添加 L1 缓存(搜索结果 60s 内变化不大,频繁搜索同关键词可命中缓存)
         // P2 修复(2026-07-25): 正缓存 TTL 从 60s 提到 300s(搜索结果变化慢,5 分钟足够);
         //                    新增负缓存(失败关键词 30s 内不重打全 vendor 链,避免 4-13s 串行延迟放大)。

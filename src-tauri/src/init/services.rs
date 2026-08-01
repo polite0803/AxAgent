@@ -2350,8 +2350,8 @@ fn start_cron_scheduler(state: &AppState) {
             let recurring = job.recurring;
             tokio::task::spawn(async move {
                 let started = axagent_runtime_core::cron_job::now_millis();
-                let results = crate::commands::knowledge_source::run_knowledge_source_sync(&db)
-                    .await;
+                let results =
+                    crate::commands::knowledge_source::run_knowledge_source_sync(&db).await;
                 let errors = results.iter().filter(|r| r.action == "error").count();
                 let ok = results.len().saturating_sub(errors);
                 let result = axagent_runtime_core::TaskRunResult {

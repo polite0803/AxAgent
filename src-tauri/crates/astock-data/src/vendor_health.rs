@@ -281,8 +281,7 @@ impl VendorHealthTracker {
                             // 持续故障（连接级反爬）：硬超时恢复 + 探测恢复（probe_interval）
                             if health.sustained_failure {
                                 if let Some(last_fail) = health.last_failure_at {
-                                    let probe_ms =
-                                        (self.config.probe_interval_secs * 1000) as i64;
+                                    let probe_ms = (self.config.probe_interval_secs * 1000) as i64;
                                     return now - last_fail >= recovery_ms
                                         || now - last_fail >= probe_ms;
                                 }
@@ -623,7 +622,8 @@ mod tests {
 
     /// 2026-07-31: 普通故障（如解析错误）仍随窗口老化恢复（不破坏原行为）
     #[tokio::test]
-    async fn normal_failure_still_recovers_on_window_aging() {        let config = VendorHealthConfig { degraded_threshold: 3, ..Default::default() };
+    async fn normal_failure_still_recovers_on_window_aging() {
+        let config = VendorHealthConfig { degraded_threshold: 3, ..Default::default() };
         let tracker = VendorHealthTracker::new(config);
         for _ in 0..3 {
             tracker.record_failure("flaky", "parse error").await;
