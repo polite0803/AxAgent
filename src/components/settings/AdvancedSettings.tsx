@@ -771,6 +771,68 @@ function SmartRouterSection() {
 }
 
 // ---------------------------------------------------------------------------
+// Agent 能力开关（后端真正消费的运行时能力，此前无 UI 入口）
+// ---------------------------------------------------------------------------
+
+function AgentBehaviorSection() {
+  const { t } = useTranslation();
+  const settings = useSettingsStore((s) => s.settings);
+  const saveSettings = useSettingsStore((s) => s.saveSettings);
+
+  return (
+    <SettingsGroup title={t("advancedSettings.agentBehavior")}>
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+        data-search-key="advanced:thoughtChain"
+      >
+        <span>{t("advancedSettings.thoughtChain")}</span>
+        <Switch
+          checked={settings.thought_chain_enabled ?? true}
+          onChange={(v) => saveSettings({ thought_chain_enabled: v })}
+        />
+      </div>
+      <Divider style={{ margin: "4px 0" }} />
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+        data-search-key="advanced:errorRecovery"
+      >
+        <span>{t("advancedSettings.errorRecovery")}</span>
+        <Switch
+          checked={settings.error_recovery_enabled ?? true}
+          onChange={(v) => saveSettings({ error_recovery_enabled: v })}
+        />
+      </div>
+      <Divider style={{ margin: "4px 0" }} />
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+        data-search-key="advanced:screenPerception"
+      >
+        <span>{t("advancedSettings.screenPerception")}</span>
+        <Switch
+          checked={settings.screen_perception_enabled ?? false}
+          onChange={(v) => saveSettings({ screen_perception_enabled: v })}
+        />
+      </div>
+      <Divider style={{ margin: "4px 0" }} />
+      <div
+        className="flex items-center justify-between"
+        style={{ padding: "4px 0" }}
+        data-search-key="advanced:tot"
+      >
+        <span>{t("advancedSettings.tot")}</span>
+        <Switch
+          checked={settings.tot_enabled ?? false}
+          onChange={(v) => saveSettings({ tot_enabled: v })}
+        />
+      </div>
+    </SettingsGroup>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 主面板
 // ---------------------------------------------------------------------------
 
@@ -782,6 +844,7 @@ export function AdvancedSettings() {
       <BashValidationSection />
       <PermissionEnforcerSection />
       <RecoveryRecipesSection />
+      <AgentBehaviorSection />
       <GreenContractSection />
       <DreamConsolidationSection />
       <LspDiagnosticsSection />

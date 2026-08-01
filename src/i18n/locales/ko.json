@@ -298,7 +298,12 @@
     "telemetryLevelHint": "AxAgent는 기본적으로 어떤 원격 측정 데이터도 수집하지 않습니다. \"최소\"는 사용자 행동 이벤트만 기록하고(세션 추적용), \"전체\"는 HTTP 요청 세부 정보(URL, 상태 코드 등)도 추가로 기록합니다. 변경 사항은 즉시 적용됩니다.",
     "telemetryLevelLabel": "원격 측정 수준",
     "tokenBudgetLimit": "토큰 예산 한도",
-    "warningBuffer": "경고 버퍼 (토큰)"
+    "warningBuffer": "경고 버퍼 (토큰)",
+    "agentBehavior": "에이전트 기능",
+    "thoughtChain": "사고 체인 시각화",
+    "errorRecovery": "오류 자동 복구",
+    "screenPerception": "화면 인식 (데스크톱 제어)",
+    "tot": "생각의 나무 (ToT, 비용 높음)"
   },
   "agent": {
     "answerSubmitted": "답변이 제출되었습니다",
@@ -1622,7 +1627,6 @@
     "reflection": "성찰",
     "report": "리포트",
     "researchSources": "소스",
-    "snapshot": "스냅샷",
     "steer": "조향",
     "task": "태스크",
     "teammate": "팀",
@@ -6638,7 +6642,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "비활성화된 도구",
+    "disabledToolsTooltip": "이 도구들은 LLM에 전달되지 않으며 실행되지도 않습니다",
+    "disabledToolsPlaceholder": "도구 이름을 입력하고 Enter를 누르세요"
   },
   "settingsPage": {
     "refreshPage": "페이지 새로고침"

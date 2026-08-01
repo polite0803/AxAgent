@@ -386,7 +386,10 @@ function AppInner() {
                 </div>
                 {agentInTheLoopEnabled && (
                   <Suspense fallback={null}>
-                    {/* 手机/平板 → 覆盖层，不占 flex 空间；桌面 → 内联浮动 */}
+                    {
+                      /* 面板统一为 absolute 覆盖层，配合 content-col 的 marginRight 让出空间；
+                        若作为 flex 子项内联会与 marginRight 双重占位，面板左侧出现黑缝 */
+                    }
                     {(deviceLayout === "mobile" || deviceLayout === "tablet") && isAgentPanelOpen && (
                       <div
                         style={{
@@ -399,17 +402,18 @@ function AppInner() {
                       />
                     )}
                     <div
-                      style={deviceLayout === "mobile" || deviceLayout === "tablet"
-                        ? {
-                          position: "absolute",
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          zIndex: 50,
-                          display: isAgentPanelOpen ? undefined : "none",
-                          maxWidth: "100vw",
-                        }
-                        : { display: "contents" }}
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        zIndex: deviceLayout === "mobile" || deviceLayout === "tablet" ? 50 : 40,
+                        display: (deviceLayout === "mobile" || deviceLayout === "tablet")
+                            && !isAgentPanelOpen
+                          ? "none"
+                          : undefined,
+                        maxWidth: "100vw",
+                      }}
                     >
                       <LazyAgentPanel />
                     </div>

@@ -15,7 +15,6 @@ import {
   setupAgentEventListeners,
   setupDreamEventListeners,
   setupPlanEventListeners,
-  syncAllStoresToDomain,
   useAgentStore,
   useCacheStore,
   useCompressStore,
@@ -252,7 +251,6 @@ function ChatViewInner({
     const cleanupAgent = setupAgentEventListeners();
     const cleanupPlan = setupPlanEventListeners();
     const cleanupDream = setupDreamEventListeners();
-    syncAllStoresToDomain();
     return () => {
       cleanupAgent();
       cleanupPlan();

@@ -218,6 +218,7 @@ export interface ConversationState {
     content: string,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
+    disabledTools?: string[],
   ) => Promise<void>;
   /** Send a message in plan mode: generates plan first, awaits approval, then executes */
   sendPlanMessage: (

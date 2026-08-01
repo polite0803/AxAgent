@@ -50,6 +50,11 @@ zip = "8"
 [dev-dependencies]
 tempfile = "3"
 
+[features]
+default = ["computer-use"]
+# 桌面控制（ComputerUseTool）：真实 enigo/xcap 实现，由 axagent-kit 提供
+computer-use = ["axagent-kit/computer-use"]
+
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 

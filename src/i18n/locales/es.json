@@ -298,7 +298,12 @@
     "telemetryLevelHint": "AxAgent no recopila telemetría de forma predeterminada. \"Mínimo\" registra solo eventos de comportamiento del usuario (para seguimiento de sesiones); \"Completo\" también registra detalles de solicitudes HTTP (URL, estado, etc.). Los cambios se aplican inmediatamente.",
     "telemetryLevelLabel": "Nivel de telemetría",
     "tokenBudgetLimit": "Límite de presupuesto de tokens",
-    "warningBuffer": "Búfer de advertencia (token)"
+    "warningBuffer": "Búfer de advertencia (token)",
+    "agentBehavior": "Capacidades del agente",
+    "thoughtChain": "Visualización de cadena de pensamiento",
+    "errorRecovery": "Recuperación automática de errores",
+    "screenPerception": "Percepción de pantalla (control de escritorio)",
+    "tot": "Árbol de pensamientos (ToT, costoso)"
   },
   "agent": {
     "answerSubmitted": "Respuesta enviada",
@@ -1622,7 +1627,6 @@
     "reflection": "Reflexión",
     "report": "Informe",
     "researchSources": "Fuentes",
-    "snapshot": "Captura",
     "steer": "Guiar",
     "task": "Tareas",
     "teammate": "Equipo",
@@ -6638,7 +6642,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "Herramientas deshabilitadas",
+    "disabledToolsTooltip": "Estas herramientas no se pasarán al LLM ni se ejecutarán",
+    "disabledToolsPlaceholder": "Escriba un nombre de herramienta y pulse Enter"
   },
   "settingsPage": {
     "refreshPage": "Actualizar página"

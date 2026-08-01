@@ -175,20 +175,14 @@ impl AgentRuntime {
             preprocessed.modified_text
         };
 
-        // 将人格内容注入到 effective_input 之前。
+        // 将人格内容注入到 system prompt（根本修复）。
         //
-        // 修复缺陷 8：原实现把 persona 直接拼到 user message 前，LLM 会把它当作用户内容。
-        // 现在用 <system-directive> 标签包裹，明确告诉 LLM 这是系统级指令而非用户输入。
-        //
-        // TODO: 根本修复应扩展 ConversationRuntimeHost trait，增加 set_system_directive 方法，
-        //       把 persona 注入到真正的 system message 而非 user message。
-        //       当前方案是局部改善，避免改 trait 签名影响所有实现方。
-        let effective_input = match &personality_prompt {
-            Some(p) => {
-                format!("<system-directive>\n{}\n</system-directive>\n\n{}", p, effective_input)
-            },
-            None => effective_input,
-        };
+        // 修复缺陷 8：原实现把 persona 拼到 user message 前，LLM 会把它当作用户内容。
+        // 现在通过 ConversationRuntimeHost::set_system_directive 注入到真正的 system prompt，
+        // 每次 LLM 调用时由 runtime 组装（见 runtime-core conversation.rs 的 system_prompt 组装）。
+        if let Some(ref p) = personality_prompt {
+            self.conversation_runtime.set_system_directive(p.clone());
+        }
 
         // Take ownership of the prompter so the reference doesn't borrow self.config
         // while self.conversation_runtime is simultaneously borrowed by run_turn.

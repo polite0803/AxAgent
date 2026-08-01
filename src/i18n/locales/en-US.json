@@ -138,7 +138,12 @@
     "telemetryLevelHint": "AxAgent collects no telemetry by default. \"Minimal\" records only user-behavior events (for session tracing); \"Full\" additionally logs HTTP request details (URL, status, etc.). Changes take effect immediately.",
     "telemetryLevelLabel": "Telemetry Level",
     "tokenBudgetLimit": "Token Budget Limit",
-    "warningBuffer": "Warning Buffer (token)"
+    "warningBuffer": "Warning Buffer (token)",
+    "agentBehavior": "Agent Capabilities",
+    "thoughtChain": "Thought chain visualization (<think> blocks)",
+    "errorRecovery": "Automatic error recovery",
+    "screenPerception": "Screen perception (desktop control tools)",
+    "tot": "Tree of Thoughts (ToT, expensive)"
   },
   "agent": {
     "answerSubmitted": "Answer submitted",
@@ -1460,7 +1465,6 @@
     "reflection": "Reflection",
     "report": "Report",
     "researchSources": "Sources",
-    "snapshot": "Snapshot",
     "steer": "Steer",
     "task": "Tasks",
     "teammate": "Team",
@@ -6292,7 +6296,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "Disabled tools",
+    "disabledToolsTooltip": "These tools will not be given to the LLM nor executed",
+    "disabledToolsPlaceholder": "Type a tool name and press Enter"
   },
   "settingsPage": {
     "refreshPage": "Refresh Page"

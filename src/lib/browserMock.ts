@@ -1316,6 +1316,48 @@ export async function handleCommand<T>(
       }
       return undefined as T;
     }
+    // ── agent 运行控制 mock（浏览器回退模式，避免抛错）──
+    case "agent_pause":
+    case "agent_resume":
+    case "agent_cancel":
+    case "agent_steer":
+    case "agent_approve":
+    case "agent_respond_ask":
+    case "agent_backup_and_clear_sdk_context":
+    case "agent_restore_sdk_context_from_backup": {
+      return undefined as T;
+    }
+    case "agent_is_running":
+    case "agent_is_paused": {
+      return false as T;
+    }
+    case "agent_runtime_stats": {
+      return {
+        conversationId: (args as { conversationId?: string } | undefined)?.conversationId ?? "",
+        running: false,
+        paused: false,
+        activeSessions: 0,
+        pendingPermissions: 0,
+        pendingAskUser: 0,
+        activeToolCalls: 0,
+        executionProgress: null,
+      } as T;
+    }
+    case "agent_resolve_model": {
+      return "gpt-4o-mini" as T;
+    }
+    case "simple_chat_completion": {
+      // 模拟 LLM 生成智能体配置（AgentGeneratorModal 用）
+      const mockJson = JSON.stringify({
+        agent_type: "general-assistant",
+        display_name: "通用助手",
+        description: "根据自然语言描述生成的全能助手",
+        system_prompt: "你是一个乐于助人的通用助手，基于用户输入提供准确、简洁的回答。",
+        permissions: ["read", "write"],
+        preferred_model: "gpt-4o-mini",
+      });
+      return mockJson as T;
+    }
     case "plan_list": {
       return [] as T;
     }

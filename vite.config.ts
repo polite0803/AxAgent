@@ -191,6 +191,10 @@ export default defineConfig(async () => ({
   test: {
     environment: "jsdom",
     globals: true,
+    // 使用 forks 池替代默认 threads 池：vitest 4.1.4 的 threads 池在 Windows 下
+    // 加载 @/stores 等大依赖树时偶发进程级崩溃（无输出、退出码 1，吞掉 shell 输出），
+    // forks 池稳定通过。2026-08-02 实测确认（WorkspaceHub.test.tsx 等）。
+    pool: "forks",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     // TODO: 这些测试需要修复 CI 兼容性问题后重新启用

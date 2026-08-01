@@ -298,7 +298,12 @@
     "telemetryLevelHint": "لا يجمع AxAgent أي بيانات تتبع عن بُعد افتراضيًا. اختيار 'تصغير' يسجل فقط أحداث سلوك المستخدم (لتتبع الجلسات)، بينما 'كامل' يسجل أيضًا تفاصيل طلبات HTTP (URL، رموز الحالة، إلخ). التغييرات تسري فورًا.",
     "telemetryLevelLabel": "مستوى التتبع عن بُعد",
     "tokenBudgetLimit": "حد ميزانية الرموز",
-    "warningBuffer": "مخزن التحذير (رمز)"
+    "warningBuffer": "مخزن التحذير (رمز)",
+    "agentBehavior": "مفاتيح قدرات الوكيل",
+    "thoughtChain": "عرض سلسلة التفكير",
+    "errorRecovery": "الاسترداد التلقائي من الأخطاء",
+    "screenPerception": "إدراك الشاشة (أداة التحكم في سطح المكتب)",
+    "tot": "شجرة الأفكار (ToT، مكلفة)"
   },
   "agent": {
     "answerSubmitted": "تم إرسال الإجابة",
@@ -1622,7 +1627,6 @@
     "reflection": "تأمل",
     "report": "تقرير",
     "researchSources": "مصادر",
-    "snapshot": "لقطة",
     "steer": "توجيه",
     "task": "مهام",
     "teammate": "فريق",
@@ -6638,7 +6642,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "الأدوات المعطلة",
+    "disabledToolsTooltip": "لن يتم تمرير هذه الأدوات إلى نموذج اللغة أو تنفيذها",
+    "disabledToolsPlaceholder": "أدخل اسم الأداة ثم Enter"
   },
   "settingsPage": {
     "refreshPage": "تحديث الصفحة"

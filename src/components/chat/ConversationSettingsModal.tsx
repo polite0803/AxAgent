@@ -5,9 +5,10 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { CONV_ICON_KEY, type ConvIcon, type ConvIconType } from "@/lib/convIcon";
 import { useConversationStore, useSettingsStore } from "@/stores";
+import { DISABLED_TOOLS_KEY, getConversationDisabledTools } from "@/stores/domain/conversationStoreSend";
 import { useAgentStore } from "@/stores/feature/agentStore";
 import { ModelIcon } from "@lobehub/icons";
-import { Button, Card, Input, Modal, Slider, Tag, theme } from "antd";
+import { Button, Card, Input, Modal, Select, Slider, Tag, theme } from "antd";
 import type { MenuProps } from "antd";
 import { Bot, Info, Undo2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -44,6 +45,7 @@ export function ConversationSettingsModal({
   const [topP, setTopP] = useState<number | null>(null);
   const [maxTokens, setMaxTokens] = useState<number | null>(null);
   const [frequencyPenalty, setFrequencyPenalty] = useState<number | null>(null);
+  const [disabledTools, setDisabledTools] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Icon state
@@ -60,6 +62,7 @@ export function ConversationSettingsModal({
       setTopP(conversation.top_p ?? null);
       setMaxTokens(conversation.max_tokens ?? null);
       setFrequencyPenalty(conversation.frequency_penalty ?? null);
+      setDisabledTools(getConversationDisabledTools(conversation.id));
 
       try {
         const stored = localStorage.getItem(CONTEXT_LIMIT_KEY(conversation.id));
@@ -117,6 +120,15 @@ export function ConversationSettingsModal({
         localStorage.setItem(
           CONTEXT_LIMIT_KEY(conversation.id),
           String(contextLimit),
+        );
+      } catch {
+        // localStorage quota exceeded or unavailable
+      }
+      // 保存会话级禁用工具列表（agent_query 发送时读取）
+      try {
+        localStorage.setItem(
+          DISABLED_TOOLS_KEY(conversation.id),
+          JSON.stringify(disabledTools),
         );
       } catch {
         // localStorage quota exceeded or unavailable
@@ -343,6 +355,29 @@ export function ConversationSettingsModal({
             }}
           />
         </Card>
+
+        {/* Disabled Tools */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={labelStyle}>
+            {t("settings.disabledTools")}
+            <Tooltip title={t("settings.disabledToolsTooltip")}>
+              <Info
+                size={14}
+                style={{ color: token.colorTextSecondary, cursor: "help" }}
+              />
+            </Tooltip>
+          </div>
+          <Select
+            mode="tags"
+            value={disabledTools}
+            onChange={setDisabledTools}
+            placeholder={t("settings.disabledToolsPlaceholder")}
+            style={{ width: "100%" }}
+            open={false}
+            suffixIcon={null}
+            maxCount={20}
+          />
+        </div>
       </div>
     </Modal>
   );

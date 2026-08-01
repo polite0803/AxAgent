@@ -138,7 +138,12 @@
     "telemetryLevelHint": "AxAgent 默认不采集任何遥测数据。选择「最小化」仅记录用户行为事件（用于会话追踪），「完整」会额外记录 HTTP 请求细节（URL、状态码等）。修改后立即生效。",
     "telemetryLevelLabel": "遥测级别",
     "tokenBudgetLimit": "Token 预算上限",
-    "warningBuffer": "警告阈值缓冲（token）"
+    "warningBuffer": "警告阈值缓冲（token）",
+    "agentBehavior": "Agent 能力开关",
+    "thoughtChain": "思维链可视化（<think> 块）",
+    "errorRecovery": "错误自动恢复",
+    "screenPerception": "屏幕感知（桌面控制工具）",
+    "tot": "思维树多路径推理（ToT，开销大）"
   },
   "agent": {
     "answerSubmitted": "回答已提交",
@@ -1383,7 +1388,6 @@
     "reflection": "反思",
     "report": "报告",
     "researchSources": "研究来源",
-    "snapshot": "快照",
     "steer": "引导",
     "task": "任务",
     "teammate": "协作",
@@ -6022,7 +6026,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "禁用工具",
+    "disabledToolsTooltip": "这些工具不会交给 LLM，也不会被执行（agent 模式下生效）",
+    "disabledToolsPlaceholder": "输入工具名后回车添加"
   },
   "settingsPage": {
     "refreshPage": "刷新页面"

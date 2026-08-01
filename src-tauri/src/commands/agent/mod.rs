@@ -11,7 +11,10 @@ use axagent_agent::{
 };
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
-use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
+use axagent_harness::types::{
+    Attachment, ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, McpServer,
+    MessageRole,
+};
 use axagent_harness::{
     ProviderAdapter, ProviderRequestContext, ToolDomain, resolve_base_url_for_type,
 };
@@ -163,6 +166,7 @@ struct AsyncRunningAgentGuard {
     running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     paused_set: Arc<tokio::sync::Mutex<std::collections::HashSet<String>>>,
+    pause_states: Arc<DashMap<String, Arc<axagent_runtime_core::PauseState>>>,
 }
 
 impl Drop for AsyncRunningAgentGuard {
@@ -170,6 +174,7 @@ impl Drop for AsyncRunningAgentGuard {
         let running_agents = self.running_agents.clone();
         let cancel_tokens = self.cancel_tokens.clone();
         let paused_set = self.paused_set.clone();
+        let pause_states = self.pause_states.clone();
         let conversation_id = self.conversation_id.clone();
         if let Ok(_handle) = tokio::runtime::Handle::try_current() {
             tokio::spawn(catch_unwind_logged("agent.cleanup", async move {
@@ -178,6 +183,7 @@ impl Drop for AsyncRunningAgentGuard {
                 cancel_tokens.remove(&conversation_id);
                 let mut paused = paused_set.lock().await;
                 paused.remove(&conversation_id);
+                pause_states.remove(&conversation_id);
             }));
         } else {
             let mut agents = running_agents.blocking_write();
@@ -185,6 +191,7 @@ impl Drop for AsyncRunningAgentGuard {
             cancel_tokens.remove(&conversation_id);
             let mut paused = paused_set.blocking_lock();
             paused.remove(&conversation_id);
+            pause_states.remove(&conversation_id);
         }
     }
 }
@@ -617,6 +624,7 @@ pub async fn agent_query(
             let running = app_state.running_agents.clone();
             let cancel = app_state.agent_cancel_tokens.clone();
             let paused = app_state.agent_paused.clone();
+            let pause_states = app_state.agent_pause_states.clone();
             tokio::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(600)).await;
                 // 10 分钟后如果还在 running_agents 中，说明 guard 未能正常 drop（panic 等）
@@ -629,6 +637,7 @@ pub async fn agent_query(
                     cancel.remove(&cid);
                     let mut p = paused.lock().await;
                     p.remove(&cid);
+                    pause_states.remove(&cid);
                 }
             });
         }
@@ -638,6 +647,7 @@ pub async fn agent_query(
             running_agents: app_state.running_agents.clone(),
             cancel_tokens: app_state.agent_cancel_tokens.clone(),
             paused_set: app_state.agent_paused.clone(),
+            pause_states: app_state.agent_pause_states.clone(),
         }
     });
 
@@ -1853,6 +1863,7 @@ pub async fn agent_query(
     let runtime_feature_config = axagent_runtime_core::RuntimeFeatureConfig::default()
         .with_error_recovery(settings.error_recovery_enabled)
         .with_thought_chain(settings.thought_chain_enabled);
+
     // [AxInvest] 股票写命令注入 ask 规则：触发 runtime 原生权限审批
     // （agent-permission-request → 前端弹窗 → agent_approve 回传）。
     // ask 规则命中优先于模式判断（PermissionPolicy::authorize_with_context）。
@@ -1862,6 +1873,12 @@ pub async fn agent_query(
         .collect();
     let permission_policy = PermissionPolicy::new(runtime_permission_mode)
         .with_permission_rules_from_lists(Vec::new(), Vec::new(), stock_ask_rules);
+
+    // P0-3：暂停桥接。创建共享 PauseState 并注册到 AppState，
+    // agent_pause/agent_resume 命令通过它挂起/唤醒 runtime 循环（wait_while_paused）。
+    let pause_state = Arc::new(axagent_runtime_core::PauseState::new());
+    app_state.agent_pause_states.insert(conversation_id.clone(), pause_state.clone());
+
     let mut runtime = create_conversation_runtime(
         session.session().clone(),
         Box::new(api_client),
@@ -1870,6 +1887,7 @@ pub async fn agent_query(
         system_prompt,
         runtime_feature_config,
         crate::commands::multi_agent::get_global_hook_chain(),
+        Some(pause_state),
     );
 
     // 将 nudge 注入到运行时级 system_prompt（通过 <memory_context> 块在每次 LLM 调用前注入）
@@ -1928,6 +1946,7 @@ pub async fn agent_query(
     {
         let mut paused = app_state.agent_paused.lock().await;
         paused.remove(&conversation_id);
+        app_state.agent_pause_states.remove(&conversation_id);
     }
 
     match result {
@@ -2710,6 +2729,11 @@ pub async fn agent_pause(
         paused.insert(conversation_id.clone());
     }
 
+    // P0-3：桥接 runtime 层 PauseState，唤醒/挂起实际执行循环
+    if let Some(ps) = app_state.agent_pause_states.get(&conversation_id) {
+        ps.pause();
+    }
+
     info!("[agent_pause] Paused agent for conversationId={}", conversation_id);
 
     let _ = app.emit(
@@ -2742,6 +2766,11 @@ pub async fn agent_resume(
     {
         let mut paused = app_state.agent_paused.lock().await;
         paused.remove(&conversation_id);
+    }
+
+    // P0-3：唤醒 runtime 层 PauseState，解除 wait_while_paused 阻塞
+    if let Some(ps) = app_state.agent_pause_states.get(&conversation_id) {
+        ps.resume();
     }
 
     info!("[agent_resume] Resumed agent for conversationId={}", conversation_id);
@@ -3177,4 +3206,145 @@ pub async fn agent_steer(
     );
     state.steer_queue.lock().await.entry(conversation_id).or_default().push(instruction);
     Ok(())
+}
+
+/// 轻量级一次性文本补全请求：不写入会话历史、不触发 agent 引擎/工具循环。
+/// 供"AI 生成配置"等纯文本生成场景使用（前端 AgentGeneratorModal 等）。
+#[derive(Debug, Deserialize)]
+pub struct SimpleChatCompletionRequest {
+    pub conversation_id: String,
+    pub messages: Vec<SimpleChatMessage>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<u32>,
+    /// 显式指定 provider（可选）；缺省按 会话记录 > 第一个启用 provider 回退
+    #[serde(default)]
+    pub provider_id: Option<String>,
+    /// 显式指定 model（可选）；缺省按 会话记录 > 第一个启用 model 回退
+    #[serde(default)]
+    pub model_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SimpleChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+/// 解析一次性补全的 provider/model：
+/// 1. 请求显式指定 → 2. 会话记录 → 3. 第一个启用的 provider + 第一个启用的 model
+async fn resolve_simple_completion_target(
+    app_state: &AppState,
+    input: &SimpleChatCompletionRequest,
+) -> Result<(String, String), String> {
+    if let (Some(p), Some(m)) = (&input.provider_id, &input.model_id) {
+        return Ok((p.clone(), m.clone()));
+    }
+    if let Ok(conv) =
+        conversation::get_conversation(app_state.harness.db(), &input.conversation_id).await
+    {
+        if !conv.provider_id.is_empty() && !conv.model_id.is_empty() {
+            return Ok((conv.provider_id, conv.model_id));
+        }
+    }
+    let providers = provider::list_providers(app_state.harness.db()).await.unwrap_or_default();
+    for p in providers {
+        if !p.enabled {
+            continue;
+        }
+        let models = provider::list_models_for_provider(app_state.harness.db(), &p.id)
+            .await
+            .unwrap_or_default();
+        if let Some(m) = models.into_iter().find(|m| m.enabled) {
+            return Ok((p.id, m.model_id));
+        }
+    }
+    Err("没有可用的 provider/model：请先在设置中启用提供商".to_string())
+}
+
+#[tauri::command]
+pub async fn simple_chat_completion(
+    app_state: State<'_, AppState>,
+    input: SimpleChatCompletionRequest,
+) -> Result<String, String> {
+    let (provider_id, model_id) = resolve_simple_completion_target(&app_state, &input).await?;
+
+    let prov = provider::get_provider(app_state.harness.db(), &provider_id).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let key =
+        provider::get_active_key(app_state.harness.db(), &provider_id).await.map_err(|e| {
+            String::from(ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
+        .map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let settings =
+        axagent_dao::repo::settings::get_settings(app_state.harness.db()).await.unwrap_or_default();
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key.id.clone(),
+        provider_id: prov.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
+        api_path: prov.api_path.clone(),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
+            &prov.proxy_config,
+            &settings,
+        ),
+        custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let adapter: Arc<dyn ProviderAdapter> = app_state
+        .harness
+        .get_adapter_for_provider(&prov)
+        .await
+        .ok_or_else(|| "没有可用的 provider 适配器".to_string())?;
+
+    let messages = input
+        .messages
+        .iter()
+        .map(|m| ChatMessage {
+            role: m.role.clone(),
+            content: ChatContent::Text(m.content.clone()),
+            tool_calls: None,
+            tool_call_id: None,
+            thinking: None,
+        })
+        .collect::<Vec<_>>();
+
+    let request = ChatRequest {
+        model: model_id,
+        messages,
+        stream: false,
+        temperature: input.temperature,
+        top_p: None,
+        max_tokens: input.max_tokens,
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+        response_format: None,
+    };
+
+    let response = adapter.chat(&ctx, Arc::new(request)).await.map_err(|e| e.to_string())?;
+    Ok(response.content)
 }

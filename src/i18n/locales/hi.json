@@ -298,7 +298,12 @@
     "telemetryLevelHint": "AxAgent डिफ़ॉल्ट रूप से कोई टेलीमेट्री डेटा एकत्र नहीं करता है। 'न्यूनतम' चुनने पर केवल उपयोगकर्ता व्यवहार घटनाएँ (सत्र ट्रैकिंग के लिए) रिकॉर्ड होती हैं, 'पूर्ण' अतिरिक्त HTTP अनुरोध विवरण (URL, स्थिति कोड आदि) रिकॉर्ड करता है। परिवर्तन तुरंत प्रभावी होते हैं।",
     "telemetryLevelLabel": "टेलीमेट्री स्तर",
     "tokenBudgetLimit": "टोकन बजट सीमा",
-    "warningBuffer": "चेतावनी बफर (टोकन)"
+    "warningBuffer": "चेतावनी बफर (टोकन)",
+    "agentBehavior": "एजेंट क्षमताएँ",
+    "thoughtChain": "विचार श्रृंखला विज़ुअलाइज़ेशन",
+    "errorRecovery": "स्वचालित त्रुटि पुनर्प्राप्ति",
+    "screenPerception": "स्क्रीन धारणा (डेस्कटॉप नियंत्रण)",
+    "tot": "ट्री ऑफ़ थॉट्स (ToT, महंगा)"
   },
   "agent": {
     "answerSubmitted": "उत्तर सबमिट किया गया",
@@ -1622,7 +1627,6 @@
     "reflection": "चिंतन",
     "report": "रिपोर्ट",
     "researchSources": "स्रोत",
-    "snapshot": "स्नैपशॉट",
     "steer": "स्टीयर",
     "task": "कार्य",
     "teammate": "टीम",
@@ -6636,7 +6640,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "अक्षम उपकरण",
+    "disabledToolsTooltip": "ये उपकरण LLM को नहीं दिए जाएँगे और न ही निष्पादित होंगे",
+    "disabledToolsPlaceholder": "टूल का नाम टाइप करें और Enter दबाएँ"
   },
   "settingsPage": {
     "refreshPage": "पृष्ठ रीफ़्रेश करें"

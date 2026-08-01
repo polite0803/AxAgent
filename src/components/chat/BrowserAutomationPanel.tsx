@@ -25,6 +25,22 @@ interface ExtractedElement {
   placeholder?: string;
 }
 
+/**
+ * 从提取的元素构造可点击的 CSS 选择器：
+ * - 有 href → 精确属性选择器（a[href="..."]）
+ * - 有文本 → Playwright 扩展语法 :has-text() 兜底
+ * - 均无 → 返回空串（不可点击）
+ */
+function buildElementSelector(el: ExtractedElement): string {
+  if (el.href) {
+    return `a[href="${el.href}"]`;
+  }
+  if (el.text) {
+    return `${el.tag}:has-text("${el.text.slice(0, 50)}")`;
+  }
+  return "";
+}
+
 export function BrowserAutomationPanel() {
   const { t } = useTranslation();
   const mountedRef = useRef(true);
@@ -221,13 +237,17 @@ export function BrowserAutomationPanel() {
               rowKey="key"
               pagination={{ pageSize: 10 }}
               scroll={{ y: 200 }}
-              onRow={(record) => ({
-                onClick: () =>
-                  record.tag === "a" || record.tag === "button"
-                    ? handleClick(`css_selector_here`)
-                    : null,
-                style: { cursor: "pointer" },
-              })}
+              onRow={(record) => {
+                const clickable = record.tag === "a" || record.tag === "button";
+                const sel = clickable ? buildElementSelector(record) : "";
+                if (!clickable || !sel) {
+                  return { style: { cursor: clickable ? "pointer" : "default" } };
+                }
+                return {
+                  onClick: () => handleClick(sel),
+                  style: { cursor: "pointer" },
+                };
+              }}
             />
           )}
         </Space>

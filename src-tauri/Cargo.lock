@@ -830,7 +830,6 @@ dependencies = [
  "criterion",
  "dashmap",
  "dirs 6.0.0",
- "embed-resource",
  "feed-rs",
  "font-kit",
  "futures",

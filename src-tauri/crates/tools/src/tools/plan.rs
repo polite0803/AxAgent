@@ -44,23 +44,37 @@ impl Tool for EnterPlanModeTool {
         false
     }
 
-    async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        Ok(ToolResult::success(
+    async fn call(&self, _input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        // 反映当前会话的真实权限状态，避免返回与实际情况冲突的文本
+        let write_note = if ctx.allow_write {
+            "⚠️ 当前会话允许写文件，请自觉遵守计划模式约束"
+        } else {
+            "✅ 当前会话已限制文件写入"
+        };
+        let exec_note = if ctx.allow_execute {
+            "⚠️ 当前会话允许执行 Shell，请自觉遵守计划模式约束"
+        } else {
+            "✅ 当前会话已限制 Shell 执行"
+        };
+        Ok(ToolResult::success(format!(
             "✅ 已进入计划模式。\n\
              在此模式下：\n\
              - ✅ 可以探索代码库\n\
              - ✅ 可以设计方案\n\
              - ❌ 不能修改文件\n\
              - ❌ 不能执行 Shell 命令\n\
-             完成后使用 ExitPlanMode 退出。",
-        ))
+             {write_note}\n\
+             {exec_note}\n\
+             完成后使用 ExitPlanMode 退出。"
+        )))
     }
 }
 
 /// 告知性工具：声明退出 Plan 模式并提交审批。
 ///
-/// 仅返回成功文本，allowedPrompts 参数当前被忽略。
-/// 实际的计划审批由前端 PlanCard 组件和 planStore.approvePlan() 控制。
+/// 返回成功文本并回显 allowedPrompts 数量。
+/// 说明（2026-08-02 审计）：allowedPrompts 的逐条授权由前端 PlanCard + planStore.approvePlan()
+/// 在审批环节接管（工具层无权限存储），故此处仅回显数量供 LLM 确认，不做权限写入。
 pub struct ExitPlanModeTool;
 
 #[async_trait]
@@ -96,8 +110,14 @@ impl Tool for ExitPlanModeTool {
         false
     }
 
-    async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        Ok(ToolResult::success("📤 计划已提交审批。等待用户确认后进入实施阶段。"))
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        let prompt_count = input["allowedPrompts"].as_array().map(|a| a.len()).unwrap_or(0);
+        let extra = if prompt_count > 0 {
+            format!("\n\n（附带 {} 条预授权提示，将在审批时逐条确认）", prompt_count)
+        } else {
+            String::new()
+        };
+        Ok(ToolResult::success(format!("📤 计划已提交审批。等待用户确认后进入实施阶段。{}", extra)))
     }
 }
 

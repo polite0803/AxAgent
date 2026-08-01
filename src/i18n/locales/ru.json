@@ -298,7 +298,14 @@
     },
     "telemetryLevelHint": "AxAgent по умолчанию не собирает телеметрию. «Минимальный» записывает только события поведения пользователя (для отслеживания сеансов); «Полный» дополнительно фиксирует детали HTTP-запросов (URL, статус и т. д.). Изменения вступают в силу немедленно.",
     "telemetryLevelLabel": "Уровень телеметрии",
-    "privacyControl": "Контроль конфиденциальности"
+    "privacyControl": "Контроль конфиденциальности",
+    "tokenBudgetLimit": "Лимит бюджета токенов",
+    "warningBuffer": "Буфер предупреждения (токенов)",
+    "agentBehavior": "Возможности агента",
+    "thoughtChain": "Визуализация цепочки мышления",
+    "errorRecovery": "Автоматическое восстановление ошибок",
+    "screenPerception": "Восприятие экрана (управление рабочим столом)",
+    "tot": "Дерево мыслей (ToT, дорого)"
   },
   "agent": {
     "answerSubmitted": "Ответ отправлен",
@@ -1622,7 +1629,6 @@
     "reflection": "Анализ",
     "report": "Отчёт",
     "researchSources": "Источники",
-    "snapshot": "Снимок",
     "steer": "Курс",
     "task": "Задачи",
     "teammate": "Команда",
@@ -6636,7 +6642,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "Отключённые инструменты",
+    "disabledToolsTooltip": "Эти инструменты не будут переданы LLM и не будут выполняться",
+    "disabledToolsPlaceholder": "Введите имя инструмента и нажмите Enter"
   },
   "settingsPage": {
     "refreshPage": "Обновить страницу"

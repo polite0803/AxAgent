@@ -298,7 +298,12 @@
     "telemetryLevelHint": "AxAgent はデフォルトでテレメトリを収集しません。「最小」はユーザー行動イベントのみを記録し（セッション追跡用）、「フル」は HTTP リクエストの詳細（URL、ステータスコードなど）も記録します。変更は即座に有効になります。",
     "telemetryLevelLabel": "テレメトリレベル",
     "tokenBudgetLimit": "トークンバジェット制限",
-    "warningBuffer": "警告バッファ（トークン）"
+    "warningBuffer": "警告バッファ（トークン）",
+    "agentBehavior": "エージェント機能",
+    "thoughtChain": "思考チェーンの可視化",
+    "errorRecovery": "エラー自動復旧",
+    "screenPerception": "画面認識（デスクトップ操作ツール）",
+    "tot": "思考の木（ToT、高コスト）"
   },
   "agent": {
     "answerSubmitted": "回答が送信されました",
@@ -1622,7 +1627,6 @@
     "reflection": "リフレクション",
     "report": "レポート",
     "researchSources": "ソース",
-    "snapshot": "スナップ",
     "steer": "ステア",
     "task": "タスク",
     "teammate": "チーム",
@@ -6638,7 +6642,10 @@
       "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
       "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
       "directUrlPlaceholder": "https://hf-mirror.com/..."
-    }
+    },
+    "disabledTools": "無効化するツール",
+    "disabledToolsTooltip": "これらのツールは LLM に渡されず、実行もされません",
+    "disabledToolsPlaceholder": "ツール名を入力して Enter を押す"
   },
   "settingsPage": {
     "refreshPage": "ページを更新"

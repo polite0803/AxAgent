@@ -200,6 +200,8 @@ pub struct ConversationRuntime<C, T> {
     context_contributors: Vec<Box<dyn ContextContributor>>,
     /// Nudge 上下文行（从 NudgeService 提取，每次 run_turn 前设置）。
     nudge_lines: Vec<String>,
+    /// 系统级指令（persona 等），注入到每次 LLM 调用的 system_prompt。
+    system_directives: Vec<String>,
     /// 错误恢复协调器开关（对应 RuntimeFeatureConfig.error_recovery_enabled）。
     error_recovery_enabled: bool,
     /// 思维链开关（对应 RuntimeFeatureConfig.thought_chain_enabled）。
@@ -261,6 +263,7 @@ where
             progress: None,
             context_contributors: Vec::new(),
             nudge_lines: Vec::new(),
+            system_directives: Vec::new(),
             error_recovery_enabled: feature_config.error_recovery_enabled,
             thought_chain_enabled: feature_config.thought_chain_enabled,
             hook_chain: None,
@@ -619,6 +622,12 @@ where
                 }
             }
             system_prompt.extend(extra_blocks);
+
+            // 注入系统级指令（persona 等）：位于 nudge 之前、用户内容之外。
+            // 与拼进 user message 相比，LLM 将其视为系统指令而非用户输入。
+            if !self.system_directives.is_empty() {
+                system_prompt.extend(self.system_directives.iter().cloned());
+            }
 
             // 注入 nudge 上下文（从 NudgeService 提取的记忆提醒，在每次 LLM 调用前注入）
             if !self.nudge_lines.is_empty() {
@@ -1791,6 +1800,10 @@ impl<C: ApiClient + Send, T: ToolExecutor + Send + 'static>
         self.nudge_lines = lines;
     }
 
+    fn set_system_directive(&mut self, directive: String) {
+        self.system_directives = vec![directive];
+    }
+
     fn into_session(self: Box<Self>) -> axagent_harness::runtime_types::session::Session {
         self.session
     }
@@ -1812,6 +1825,7 @@ pub fn create_conversation_runtime(
     system_prompt: Vec<String>,
     feature_config: RuntimeFeatureConfig,
     hook_chain: Option<Arc<HookChain>>,
+    pause_state: Option<Arc<PauseState>>,
 ) -> Box<dyn axagent_harness::runtime_types::conversation::ConversationRuntimeHost> {
     let mut rt = ConversationRuntime::new_with_features(
         session,
@@ -1823,6 +1837,9 @@ pub fn create_conversation_runtime(
     );
     if let Some(hc) = hook_chain {
         rt = rt.with_hook_chain(hc);
+    }
+    if let Some(ps) = pause_state {
+        rt = rt.with_pause_state(ps);
     }
     Box::new(rt)
 }

@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { findModelByIds } from "@/lib/modelCapabilities";
+import { useConversationStore, useProviderStore, useSettingsStore } from "@/stores";
 import { useAgentPanelStore } from "@/stores/shared/agentPanelStore";
-import { Bot, Ellipsis, Expand, Plus } from "lucide-react";
+import type { Model, ProviderConfig } from "@/types";
+import { App, Button, Input, Spin } from "antd";
+import { Bot, Ellipsis, Expand, Plus, Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -51,16 +55,37 @@ function persistPosition(x: number, y: number): void {
  */
 export function AgentMiniPanel() {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const isOpen = useAgentPanelStore((s) => s.isOpen);
   const isMiniMode = useAgentPanelStore((s) => s.isMiniMode);
   const open = useAgentPanelStore((s) => s.open);
 
+  // 迷你对话复用 conversation store（与 AgentChatTab 同一发送链路）
+  const activeConversationId = useConversationStore((s) => s.activeConversationId);
+  const messages = useConversationStore((s) => s.messages);
+  const loading = useConversationStore((s) => s.loading);
+  const createConversation = useConversationStore((s) => s.createConversation);
+  const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
+  const sendAgentMessage = useConversationStore((s) => s.sendAgentMessage);
+  const fetchMessages = useConversationStore((s) => s.fetchMessages);
+  const providers = useProviderStore((s) => s.providers);
+  const settings = useSettingsStore((s) => s.settings);
+
   const [position, setPosition] = useState(loadPersistedPosition);
   const [isMiniExpanded, setIsMiniExpanded] = useState(false);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
 
   const draggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const positionRef = useRef(position);
+
+  // 展开时若活跃会话尚无消息，加载最近消息
+  useEffect(() => {
+    if (isMiniExpanded && activeConversationId && messages.length === 0) {
+      fetchMessages(activeConversationId).catch(() => {});
+    }
+  }, [isMiniExpanded, activeConversationId, fetchMessages, messages.length]);
 
   // 同步 positionRef，避免拖拽闭包读取过期值
   useEffect(() => {
@@ -132,6 +157,70 @@ export function AgentMiniPanel() {
     document.addEventListener("mouseup", handleMouseUp);
   }, [position, clampPosition, cleanupDragListeners]);
 
+  const handleNewConversation = useCallback(async () => {
+    // 优先取系统默认模型
+    let provider: ProviderConfig | undefined;
+    let model: Model | undefined;
+
+    if (settings?.default_provider_id && settings?.default_model_id) {
+      const defaultModel = findModelByIds(
+        providers,
+        settings.default_provider_id,
+        settings.default_model_id,
+      );
+      if (defaultModel?.enabled) {
+        provider = providers.find((p) => p.id === settings.default_provider_id);
+        model = defaultModel;
+      }
+    }
+
+    // 回退到第一个启用的 provider
+    if (!provider || !model) {
+      provider = providers.find(
+        (p) => p.enabled && p.models.some((m) => m.enabled),
+      );
+      model = provider?.models.find((m) => m.enabled);
+    }
+
+    if (!provider || !model) {
+      messageApi.warning(t("chat.noModelsAvailable"));
+      return;
+    }
+
+    try {
+      const conv = await createConversation(
+        t("agentPanel.chatDefaultTitle"),
+        model.model_id,
+        provider.id,
+        { mode: "agent" },
+      );
+      setActiveConversation(conv.id);
+    } catch {
+      messageApi.error(t("chat.createConversationFailed"));
+    }
+  }, [createConversation, providers, settings, messageApi, setActiveConversation, t]);
+
+  const handleSend = useCallback(async () => {
+    const text = input.trim();
+    if (!text || !activeConversationId) { return; }
+    setSending(true);
+    setInput("");
+    try {
+      await sendAgentMessage(text);
+    } catch {
+      messageApi.error(t("common.failed"));
+    } finally {
+      setSending(false);
+    }
+  }, [input, activeConversationId, sendAgentMessage, messageApi, t]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
+
   if (!isMiniMode || isOpen) {
     return null;
   }
@@ -193,12 +282,75 @@ export function AgentMiniPanel() {
         </button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="text-center text-[var(--color-text-secondary)] text-sm">
-          <Bot size={40} className="mx-auto mb-3 opacity-30" />
-          <p>{t("agentPanel.miniPanelTitle")}</p>
-          <p className="text-xs mt-1 opacity-70">{t("agentPanel.miniPanelComingSoon")}</p>
-        </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {!activeConversationId
+          ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-4">
+              <Bot size={40} className="opacity-30 text-(--color-text-secondary)" />
+              <Button
+                type="primary"
+                size="small"
+                icon={<Plus size={14} />}
+                onClick={handleNewConversation}
+              >
+                {t("agentPanel.newChat")}
+              </Button>
+            </div>
+          )
+          : (
+            <>
+              <div className="flex-1 overflow-auto px-3 py-2 space-y-2">
+                {loading
+                  ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Spin size="small" />
+                    </div>
+                  )
+                  : messages.length === 0
+                  ? (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-xs text-(--color-text-secondary)">
+                        {t("agentPanel.chatEmptyHint")}
+                      </span>
+                    </div>
+                  )
+                  : messages.slice(-6).map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs ${
+                          msg.role === "user"
+                            ? "bg-(--color-primary) text-white"
+                            : "bg-(--color-fill-alter) text-(--color-text)"
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+              <div className="shrink-0 border-t border-(--border-color) p-2 flex gap-2">
+                <Input
+                  size="small"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t("agentPanel.chatInputPlaceholder")}
+                  disabled={sending}
+                />
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<Send size={14} />}
+                  onClick={handleSend}
+                  loading={sending}
+                  disabled={!input.trim()}
+                />
+              </div>
+            </>
+          )}
       </div>
 
       <div className="flex items-center justify-between px-3 py-2 border-t border-[var(--border-color)] bg-[var(--color-bg-container)] shrink-0">

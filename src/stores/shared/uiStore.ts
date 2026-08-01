@@ -4,14 +4,6 @@ import type { ChartData } from "@/components/chat/ChartInterpreter";
 import type { Citation, PageKey, SettingsSection } from "@/types";
 import { create } from "zustand";
 
-/** UISnapshotViewer 元素 */
-export interface SnapshotElement {
-  element_type: string;
-  label: string | null;
-  bounding_box: { x: number; y: number; width: number; height: number } | null;
-  actionable: boolean;
-}
-
 /** ResearchSources 数据（匹配 researchUtils.ts 的 SearchResult） */
 export interface ResearchSourceItem {
   id: string;
@@ -66,10 +58,6 @@ interface UIState {
   chartRawAnalysis: string;
   setChartResult: (data: ChartData | null, rawAnalysis: string) => void;
 
-  snapshotElements: SnapshotElement[];
-  snapshotDescription: string;
-  setSnapshotResult: (elements: SnapshotElement[], description: string) => void;
-
   researchSources: ResearchSourceItem[];
   setResearchSources: (sources: ResearchSourceItem[]) => void;
 
@@ -121,10 +109,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   chartData: null,
   chartRawAnalysis: "",
   setChartResult: (chartData, chartRawAnalysis) => set({ chartData, chartRawAnalysis }),
-
-  snapshotElements: [],
-  snapshotDescription: "",
-  setSnapshotResult: (snapshotElements, snapshotDescription) => set({ snapshotElements, snapshotDescription }),
 
   researchSources: [],
   setResearchSources: (researchSources) => set({ researchSources }),
