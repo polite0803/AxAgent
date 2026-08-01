@@ -356,9 +356,10 @@ impl ProjectMemory {
     /// 迁移到 `.axagent/memory/project/legacy.md` 并创建索引。
     pub async fn migrate_from_legacy(&self) -> Result<bool, String> {
         let legacy_path = self.project_root.join(".axagent/memory.md");
-        let new_index = self.index_path();
-        // 已有新索引或旧文件不存在,无需迁移
-        if new_index.exists() || !legacy_path.exists() {
+        // 已迁移判定：新结构目录 `.axagent/memory/` 存在即视为已迁移。
+        // 不用索引文件 `MEMORY.md` 判断——Windows 文件系统大小写不敏感，
+        // legacy `memory.md` 与索引 `MEMORY.md` 指向同一文件，会误判已迁移。
+        if self.memory_dir().exists() || !legacy_path.exists() {
             return Ok(false);
         }
         let content = tokio::fs::read_to_string(&legacy_path).await.map_err(|e| e.to_string())?;
@@ -373,7 +374,10 @@ impl ProjectMemory {
             tags: vec!["legacy".to_string()],
         });
         self.save_index(&index).await?;
-        // 删除旧文件
+        // 删除旧文件。Windows 文件系统大小写不敏感：legacy `memory.md` 与索引
+        // `MEMORY.md` 指向同一文件，删除会连刚写入的索引一起删掉，故跳过。
+        // Linux/macOS 大小写敏感，二者是不同文件，可安全删除。
+        #[cfg(not(windows))]
         tokio::fs::remove_file(&legacy_path).await.map_err(|e| e.to_string())?;
         tracing::info!(
             legacy = %legacy_path.display(),
@@ -998,7 +1002,9 @@ mod tests {
         let pm = ProjectMemory::new(dir.path());
         let migrated = pm.migrate_from_legacy().await.unwrap();
         assert!(migrated);
-        // 旧文件应已删除
+        // 旧文件应已删除——Windows 大小写不敏感下 memory.md 与索引 MEMORY.md 同一文件，
+        // 迁移会保留（内容已被索引覆盖），仅 Linux/macOS 真正删除。
+        #[cfg(not(windows))]
         assert!(!axagent_dir.join("memory.md").exists());
         // 新文件应已创建
         assert!(pm.topic_file_path(MemoryCategory::Project, "legacy.md").exists());
@@ -1012,8 +1018,8 @@ mod tests {
     async fn test_project_memory_migrate_from_legacy_already_migrated() {
         let dir = tempfile::tempdir().unwrap();
         let pm = ProjectMemory::new(dir.path());
-        // 先创建新索引
-        pm.save_index(&MemoryIndex::default()).await.unwrap();
+        // 先创建新结构（save_topic_file 会建 `.axagent/memory/` 目录）
+        pm.save_topic_file(MemoryCategory::Project, "existing.md", "already there").await.unwrap();
         // 创建旧文件
         let axagent_dir = dir.path().join(".axagent");
         std::fs::create_dir_all(&axagent_dir).unwrap();

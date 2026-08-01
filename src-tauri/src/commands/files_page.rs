@@ -53,19 +53,26 @@ fn resolve_storage_path(storage_path: &str) -> Result<String, String> {
 
     // 路径安全：canonicalize 后必须落在 documents 根目录之内。
     // 阻止 `..`、绝对路径、符号链接等方式越界访问系统任意文件。
-    // 不存在的路径 canonicalize 会失败，直接返回原路径（只读类命令可接受，
-    // 写/打开类命令由调用方根据结果决定是否继续）。
+    // 不存在的路径 canonicalize 会失败，回退到已含 documents 根的绝对路径。
     let documents_root = axagent_storage::storage_paths::documents_root();
-    let canonical = resolved.canonicalize().unwrap_or(resolved);
+    let canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
     let canonical_root = documents_root.canonicalize().unwrap_or_else(|_| documents_root.clone());
-    if !canonical.starts_with(&canonical_root) {
+    // Windows 上 canonicalize 会给路径加 `\\?\` 扩展前缀，而 fallback 路径没有，
+    // 直接 starts_with 会误判越界。统一剔除前缀后再比较。
+    fn strip_extended_prefix(p: &std::path::Path) -> String {
+        let s = p.to_string_lossy();
+        s.strip_prefix(r"\\?\").map(str::to_string).unwrap_or_else(|| s.to_string())
+    }
+    let canonical_str = strip_extended_prefix(&canonical);
+    let root_str = strip_extended_prefix(&canonical_root);
+    if !canonical_str.starts_with(&root_str) {
         return Err(format!(
             "路径越界：'{}' 不在文档根目录 '{}' 内",
             storage_path.display(),
             documents_root.display()
         ));
     }
-    Ok(canonical.to_string_lossy().to_string())
+    Ok(canonical_str)
 }
 
 /// Build image entries from stored files (mime_type starts with "image/").
