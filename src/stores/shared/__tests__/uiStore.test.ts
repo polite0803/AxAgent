@@ -45,8 +45,6 @@ describe("uiStore", () => {
         workflowEditorOpen: false,
         chartData: null,
         chartRawAnalysis: "",
-        snapshotElements: [],
-        snapshotDescription: "",
         researchSources: [],
         report: null,
         selectedArtifactId: null,
@@ -135,17 +133,6 @@ describe("uiStore", () => {
         useUIStore.getState().setChartResult({ type: "bar" } as any, "分析文本");
         expect(useUIStore.getState().chartData).toEqual({ type: "bar" });
         expect(useUIStore.getState().chartRawAnalysis).toBe("分析文本");
-      });
-    });
-
-    describe("snapshotResult", () => {
-      it("应设置 snapshotElements 和 snapshotDescription", () => {
-        useUIStore.getState().setSnapshotResult(
-          [{ element_type: "button", label: "OK", bounding_box: null, actionable: true }],
-          "截图描述",
-        );
-        expect(useUIStore.getState().snapshotElements.length).toBe(1);
-        expect(useUIStore.getState().snapshotDescription).toBe("截图描述");
       });
     });
 

@@ -449,6 +449,7 @@ macro_rules! register_all_commands {
             commands::agent::agent_respond_ask,
             commands::agent::agent_backup_and_clear_sdk_context,
             commands::agent::agent_restore_sdk_context_from_backup,
+            commands::agent::simple_chat_completion,
             commands::workflows::workflow_create,
             commands::workflows::workflow_execute,
             commands::workflows::workflow_get_status,

@@ -2,6 +2,26 @@
 
 // S-20: Send method factory extracted from conversationStore
 
+/**
+ * 会话级禁用工具列表的 localStorage key（与 contextLimit 的 localStorage 先例一致）。
+ * 由 ConversationSettingsModal 读写、sendAgentMessage 读取后经 options.disabledTools 传给后端。
+ */
+export const DISABLED_TOOLS_KEY = (conversationId: string) => `axagent_disabled_tools_${conversationId}`;
+
+/** 读取会话级禁用工具列表（无则返回空数组） */
+export function getConversationDisabledTools(conversationId: string): string[] {
+  try {
+    const raw = localStorage.getItem(DISABLED_TOOLS_KEY(conversationId));
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 import i18n from "@/i18n";
 import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
 import { buildKnowledgeTag, buildMemoryTag, buildWikiTag } from "@/lib/memoryUtils";
@@ -539,6 +559,7 @@ export function createSendMethods(
       content: string,
       attachments: AttachmentInput[] = [],
       searchProviderId: string | null = null,
+      disabledTools?: string[],
     ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) {
@@ -1194,6 +1215,11 @@ export function createSendMethods(
           }
           : undefined;
 
+        // 会话级禁用工具列表（ConversationSettingsModal 配置，localStorage 持久化）。
+        // 传入后后端不会将这些工具交给 LLM，也不会执行。
+        const effectiveDisabledTools = disabledTools
+          ?? getConversationDisabledTools(conversationId);
+
         const queryResponse = await invoke<{
           status?: string;
           conversationId: string;
@@ -1210,6 +1236,9 @@ export function createSendMethods(
               systemPrompt: conversation.system_prompt ?? undefined,
               searchProviderId: searchProviderId ?? undefined,
               agentContext: agentContextPayload,
+              options: effectiveDisabledTools.length > 0
+                ? { disabledTools: effectiveDisabledTools }
+                : undefined,
             },
           },
           0,

@@ -667,6 +667,8 @@ async fn execute_step_with_agent(
         system_prompt,
         runtime_feature_config,
         crate::commands::multi_agent::get_global_hook_chain(),
+        // 计划步骤执行不参与 agent 暂停/恢复
+        None,
     );
 
     let result = session_manager

@@ -213,11 +213,6 @@ interface WorkflowEditorState {
     workflowName: string,
     workflowDescription?: string,
   ) => Promise<SaveSkillWorkflowResponse>;
-  forceSaveSkillWorkflow: (
-    targetWorkflowId: string,
-    workflowName: string,
-    workflowDescription?: string,
-  ) => Promise<string>;
   setSimilarWorkflowsForReview: (
     workflows: SimilarWorkflow[],
     pendingData: PendingWorkflowData,
@@ -1588,60 +1583,6 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
         await get().loadTemplates();
         return response;
-      } catch (error) {
-        set((state) => {
-          state.error = String(error);
-          state.isSaving = false;
-        });
-        throw error;
-      }
-    },
-
-    forceSaveSkillWorkflow: async (
-      targetWorkflowId: string,
-      workflowName: string,
-      workflowDescription?: string,
-    ) => {
-      const {
-        isDecompositionTemplate,
-        pendingDecompositionSource,
-        nodes,
-        edges,
-      } = get();
-      if (!isDecompositionTemplate || !pendingDecompositionSource) {
-        throw new Error("Not a decomposition workflow or missing source data");
-      }
-
-      set((state) => {
-        state.isSaving = true;
-        state.error = null;
-      });
-
-      try {
-        const workflowId = await invoke<string>("force_save_skill_workflow", {
-          request: {
-            skill_id: pendingDecompositionSource.market,
-            skill_name: pendingDecompositionSource.repo
-              || pendingDecompositionSource.market,
-            workflow_name: workflowName,
-            description: workflowDescription,
-            nodes,
-            edges,
-            target_workflow_id: targetWorkflowId,
-          },
-        });
-
-        set((state) => {
-          state.isSaving = false;
-          state.isDirty = false;
-          state.isDecompositionTemplate = false;
-          state.pendingDecompositionSource = null;
-          state.similarWorkflowsForReview = [];
-          state.pendingWorkflowData = null;
-        });
-
-        await get().loadTemplates();
-        return workflowId;
       } catch (error) {
         set((state) => {
           state.error = String(error);

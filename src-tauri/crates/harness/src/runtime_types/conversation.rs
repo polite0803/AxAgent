@@ -147,6 +147,11 @@ pub trait ConversationRuntimeHost: Send {
     /// 默认实现为空操作（保持向后兼容）。
     fn set_nudge_lines(&mut self, _lines: Vec<String>) {}
 
+    /// 设置系统级指令（persona 等），注入到每次 LLM 调用的 system_prompt。
+    /// 与拼接进 user message 相比，语义更准确：LLM 将其视为系统指令而非用户内容。
+    /// 默认实现为空操作（保持向后兼容）。
+    fn set_system_directive(&mut self, _directive: String) {}
+
     /// 消费 runtime，提取 Session。
     fn into_session(self: Box<Self>) -> Session;
 }
@@ -182,6 +187,10 @@ impl<T: ?Sized + ConversationRuntimeHost> ConversationRuntimeHost for Box<T> {
 
     fn set_nudge_lines(&mut self, lines: Vec<String>) {
         (**self).set_nudge_lines(lines)
+    }
+
+    fn set_system_directive(&mut self, directive: String) {
+        (**self).set_system_directive(directive)
     }
 
     fn into_session(self: Box<Self>) -> Session {

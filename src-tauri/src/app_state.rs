@@ -236,6 +236,9 @@ pub struct AppState {
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
     pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
+    /// P0-3 暂停桥接：conversationId → 共享 PauseState。
+    /// `agent_pause`/`agent_resume` 通过它唤醒/挂起 runtime 循环（wait_while_paused）。
+    pub agent_pause_states: Arc<DashMap<String, Arc<axagent_runtime_core::PauseState>>>,
     pub running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>>,
     /// 前端 SteerInput 指令队列。conversationId → Vec<instruction>
     pub steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>>,

@@ -11,6 +11,17 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./InteractiveTutorial.css";
 
+/** 教程开始条关闭状态持久化键（点关闭后重启不再显示） */
+const BAR_DISMISS_KEY = "axagent:tutorialStartBar:dismissed";
+
+function loadBarDismissed(): boolean {
+  try {
+    return localStorage.getItem(BAR_DISMISS_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 interface TutorialStep {
   target: string;
   titleKey: string;
@@ -58,7 +69,16 @@ export function InteractiveTutorial() {
   const startTutorial = useOnboardingStore((s) => s.startTutorial);
   const tutorialCompleted = useOnboardingStore((s) => s.tutorialCompleted);
 
-  const [barDismissed, setBarDismissed] = useState(false);
+  const [barDismissed, setBarDismissed] = useState(loadBarDismissed);
+
+  const dismissBar = useCallback(() => {
+    try {
+      localStorage.setItem(BAR_DISMISS_KEY, "true");
+    } catch {
+      // 忽略
+    }
+    setBarDismissed(true);
+  }, []);
 
   // 开始教程时自动导航到聊天页（带重试）
   const handleStartTutorial = () => {
@@ -223,7 +243,7 @@ export function InteractiveTutorial() {
           type="link"
           size="small"
           style={{ color: "var(--color-text-secondary)", marginLeft: 4 }}
-          onClick={() => setBarDismissed(true)}
+          onClick={dismissBar}
         >
           {t("common.close")}
         </Button>

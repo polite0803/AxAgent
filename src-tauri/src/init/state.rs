@@ -283,6 +283,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>> = Arc::new(DashMap::new());
     let agent_paused: Arc<Mutex<std::collections::HashSet<String>>> =
         Arc::new(Mutex::new(std::collections::HashSet::new()));
+    // P0-3：暂停桥接。conversationId → 共享 PauseState（runtime 循环在此等待）。
+    // agent_paused 是命令层可见性的权威集合；PauseState 是 runtime 层的实际闸门。
+    let agent_pause_states: Arc<DashMap<String, Arc<axagent_runtime_core::PauseState>>> =
+        Arc::new(DashMap::new());
     let running_agents: Arc<tokio::sync::RwLock<std::collections::HashSet<String>>> =
         Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new()));
     let steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>> =
@@ -938,6 +942,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent_session_manager,
         agent_cancel_tokens,
         agent_paused,
+        agent_pause_states,
         running_agents,
         steer_queue,
         reflector,

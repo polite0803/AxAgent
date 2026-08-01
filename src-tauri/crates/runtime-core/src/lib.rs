@@ -104,7 +104,7 @@ pub use config::{
 };
 
 pub use conversation::{
-    ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
+    ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime, PauseState,
     PromptCacheEvent, RuntimeError, StaticToolExecutor, ToolError, ToolErrorKind, ToolExecutor,
     TurnSummary, auto_compaction_threshold_from_env, create_conversation_runtime,
 };

@@ -77,7 +77,6 @@ import { ResearchSources } from "./ResearchSources";
 import { SteerInput } from "./SteerInput";
 import { TaskPanel } from "./TaskPanel";
 import { TeammatePanel } from "./TeammatePanel";
-import { UISnapshotViewer } from "./UISnapshotViewer";
 import { UserProfilePanel } from "./UserProfilePanel";
 
 export interface RightPanelContainerProps {
@@ -123,8 +122,6 @@ export function RightPanelContainer({
   const settings = useSettingsStore((s) => s.settings);
   const panelChartData = useUIStore((s) => s.chartData);
   const panelChartRawAnalysis = useUIStore((s) => s.chartRawAnalysis);
-  const panelSnapshotElements = useUIStore((s) => s.snapshotElements);
-  const panelSnapshotDescription = useUIStore((s) => s.snapshotDescription);
   const panelResearchSources = useUIStore((s) => s.researchSources);
   const panelReport = useUIStore((s) => s.report);
   const panelSetChartResult = useUIStore((s) => s.setChartResult);
@@ -297,19 +294,6 @@ export function RightPanelContainer({
         ),
       },
       {
-        key: "snapshot",
-        icon: <Camera size={ICON} />,
-        labelKey: "chatRightPanel.snapshot",
-        category: "extra",
-        shouldRender: panelSnapshotElements.length > 0,
-        render: () => (
-          <UISnapshotViewer
-            elements={panelSnapshotElements}
-            rawDescription={panelSnapshotDescription}
-          />
-        ),
-      },
-      {
         key: "profile",
         icon: <User size={ICON} />,
         labelKey: "chatRightPanel.profile",
@@ -363,8 +347,6 @@ export function RightPanelContainer({
     panelReport,
     panelChartData,
     panelChartRawAnalysis,
-    panelSnapshotElements,
-    panelSnapshotDescription,
     panelResearchSources,
     panelSetReport,
     panelSetChartResult,

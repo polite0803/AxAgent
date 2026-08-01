@@ -23,7 +23,6 @@ export { useEvaluatorStore } from "./devtools/evaluatorStore";
 export { useFineTuneStore } from "./devtools/fineTuneStore";
 export { useRecommendationStore } from "./devtools/recommendationStore";
 export { useTracerStore } from "./devtools/tracerStore";
-export { syncAllStoresToDomain, useAgentDomainStore } from "./domain/agentDomainStore";
 export { useCompressStore } from "./domain/compressStore";
 export { useConversationStore } from "./domain/conversationStore";
 export { useMultiModelStore } from "./domain/multiModelStore";

@@ -9,7 +9,7 @@ import { MultiAgentPage } from "@/pages/MultiAgentPage";
 import { TerminalPage } from "@/pages/TerminalPage";
 import { WorkflowPage } from "@/pages/WorkflowPage";
 import { useWorkspaceStore, type WorkspaceTab } from "@/stores";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 /**
@@ -25,15 +25,21 @@ export function WorkspaceHub() {
   const setActiveTab = useWorkspaceStore((s) => s.setActiveTab);
   const location = useLocation();
 
-  // 从重定向的 state 中读取目标 Tab（如 /dashboard → /chat + state.tab="dashboard"）
+  // 记录已消费的重定向 state 对象引用，只消费一次。
+  // 背景：redirectToChat 用 <Navigate replace state={{ tab }} /> 传目标 Tab，
+  // 但 window.history.replaceState 不触发 popstate，router 内部 location.state 永不更新、
+  // 残留 {tab}。若 effect 依赖 activeTab，手动切 Tab 后 effect 重跑会读到残留 state 导致回弹。
+  // 用 ref 记录已消费的 state 对象引用（createLocation 对 state 透传引用、不拷贝）：
+  // 残留的同一 state 引用不再消费；新导航必然产生新引用（即使 tab 值相同）也会正常消费。
+  const handledStateRef = useRef<unknown>(null);
+
   useEffect(() => {
     const state = location.state as { tab?: WorkspaceTab } | null;
-    if (state?.tab && state.tab !== activeTab) {
+    if (state?.tab && state !== handledStateRef.current) {
+      handledStateRef.current = state;
       setActiveTab(state.tab);
-      // 消费后清除 state，避免后续切换 Tab 时回弹
-      window.history.replaceState({}, "");
     }
-  }, [location.state, activeTab, setActiveTab]);
+  }, [location.state, setActiveTab]);
 
   switch (activeTab) {
     case "chat":

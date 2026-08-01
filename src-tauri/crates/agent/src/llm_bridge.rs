@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::provider_fallback::{ProviderEntry, ProviderFallbackManager};
+use axagent_harness::llm_executor::{LlmCallConfig, execute_llm};
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{
@@ -288,12 +289,17 @@ impl ProviderLlmBridge {
             return Ok(cached);
         }
 
-        // 第一步：尝试主适配器
-        // TODO P1: migrate to execute_llm() — currently blocked by custom caching + provider fallback logic
-        // that needs to be adapted to LlmCallConfig.cache + RetryPolicy before migration
+        // 第一步：尝试主适配器（统一走中心化 execute_llm，自动获得 PromptGuard/审计/脱敏能力）。
+        //
+        // 说明（2026-08-02 迁移）：跨 provider 的 fallback 编排（fallback_mgr + adapter_pool +
+        // 健康度记录）保留在本层——这是"路由"语义，不属于 execute_llm 的"单次调用"职责
+        // （LlmCallConfig.retry_policy 仅支持同 adapter 重试）。只把裸 adapter.chat() 收敛到
+        // execute_llm，消除第二套调用逻辑。
+        let llm_config = LlmCallConfig::default();
         let start = Instant::now();
-        match self.adapter.chat(&self.ctx, Arc::new(request.clone())).await {
-            Ok(resp) => {
+        match execute_llm(&*self.adapter, &self.ctx, request.clone(), &llm_config).await {
+            Ok(result) => {
+                let resp = &result.response;
                 let latency = start.elapsed().as_millis() as u64;
                 // 记录成功
                 if let Some(ref mgr) = self.fallback_mgr
@@ -312,7 +318,7 @@ impl ProviderLlmBridge {
                         "LLM response cached (temp=0)"
                     );
                 }
-                Ok(resp.content)
+                Ok(resp.content.clone())
             },
             Err(primary_err) => {
                 // 记录失败
@@ -345,9 +351,10 @@ impl ProviderLlmBridge {
                 let mut fb_request = request;
                 fb_request.model = fallback_entry.model_id.clone();
                 let fb_start = Instant::now();
-                // TODO P1: migrate to execute_llm() — fallback adapter call, needs RetryPolicy integration
-                match fb_adapter.chat(&self.ctx, Arc::new(fb_request)).await {
-                    Ok(resp) => {
+                // 备选适配器同样走 execute_llm（与主调用一致的能力收敛）
+                match execute_llm(&*fb_adapter, &self.ctx, fb_request, &llm_config).await {
+                    Ok(result) => {
+                        let resp = &result.response;
                         let latency = fb_start.elapsed().as_millis() as u64;
                         mgr.record_success(&fallback_entry.provider_id, latency).await;
                         tracing::warn!(
@@ -356,7 +363,7 @@ impl ProviderLlmBridge {
                             fallback_entry.provider_id,
                             primary_err
                         );
-                        Ok(resp.content)
+                        Ok(resp.content.clone())
                     },
                     Err(fb_err) => {
                         mgr.record_failure(&fallback_entry.provider_id).await;

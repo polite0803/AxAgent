@@ -175,7 +175,7 @@ export const AgentStatsPanel: React.FC = () => {
           setStats(s);
         }
       })
-      .catch(logIpcError("agent_session_stats"));
+      .catch(logIpcError("agent_runtime_stats"));
 
     return () => {
       cancelled = true;
