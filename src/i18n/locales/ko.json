@@ -159,15 +159,6 @@
       "invalidSchemaDesc": "스키마에 필요한 type 필드가 없습니다",
       "remove": "제거",
       "title": "에이전트 동적 UI"
-    },
-    "permissionGate": {
-      "approve": "허용",
-      "approveAndBypass": "이번에는 다시 묻지 않기",
-      "description": "작업 설명",
-      "params": "매개변수",
-      "reject": "거부",
-      "tips": "에이전트가 쓰기 작업을 요청했습니다. 허용할지 확인해 주세요. 이 작업은 데이터에 영향을 미칠 수 있습니다.",
-      "title": "작업 확인"
     }
   },
   "agentGenerator": {

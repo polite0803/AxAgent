@@ -159,15 +159,6 @@
       "invalidSchemaDesc": "Schema 缺少必要的 type 字段",
       "remove": "移除",
       "title": "Agent 动态界面"
-    },
-    "permissionGate": {
-      "approve": "允许",
-      "approveAndBypass": "本次不再询问",
-      "description": "操作描述",
-      "params": "参数",
-      "reject": "拒绝",
-      "tips": "Agent 请求执行一个写操作，请确认是否允许。此操作可能影响您的数据。",
-      "title": "操作确认"
     }
   },
   "agentGenerator": {

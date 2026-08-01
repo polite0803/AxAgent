@@ -159,15 +159,6 @@
       "invalidSchemaDesc": "Le schéma est confronté au champ de type requis",
       "remove": "Supprimer",
       "title": "Interface dynamique de l'agent"
-    },
-    "permissionGate": {
-      "approve": "Autoriser",
-      "approveAndBypass": "Ne plus demander cette fois",
-      "description": "Description de l'opération",
-      "params": "Paramètres",
-      "reject": "Rejeter",
-      "tips": "L'agent demande à effectuer une opération d'écriture. Veuillez confirmer si vous souhaitez l'autoriser. Cette opération peut affecter vos données.",
-      "title": "Confirmation de l'opération"
     }
   },
   "agentGenerator": {

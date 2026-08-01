@@ -3,6 +3,7 @@
 // 阅读列表设置面板
 // 对接 useReadingListStore，提供列表管理与条目管理（CRUD + 状态切换 + 重排）
 
+import { List } from "@/components/common/AntdList";
 import { message } from "@/lib/toast";
 import { useReadingListStore } from "@/stores";
 import type { ReadingList, ReadingListItem } from "@/types";
@@ -14,7 +15,6 @@ import {
   Form,
   Input,
   InputNumber,
-  List,
   Modal,
   Popconfirm,
   Select,
@@ -97,7 +97,7 @@ function ReadingItemRow({
           </Space>
         }
         description={
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             {item.notes && (
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {item.notes}
@@ -539,7 +539,7 @@ export function ReadingListSettings() {
                         </Space>
                       }
                       description={
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                           {list.description && (
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               {list.description}

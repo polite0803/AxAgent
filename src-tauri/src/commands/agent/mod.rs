@@ -3146,29 +3146,3 @@ pub async fn agent_steer(
     state.steer_queue.lock().await.entry(conversation_id).or_default().push(instruction);
     Ok(())
 }
-
-// ── PermissionGate 权限响应处理 ──
-
-/// 前端回传权限确认结果
-///
-/// 当 Agent 发起写操作前，后端会派发 `agent-permission-required` 事件，
-/// 前端 PermissionGate 组件展示确认弹窗，用户响应后通过此命令回传结果。
-#[tauri::command]
-pub async fn agent_permission_response(
-    app_handle: AppHandle,
-    request_id: String,
-    approved: bool,
-) -> Result<(), String> {
-    let payload = serde_json::json!({
-        "requestId": request_id,
-        "approved": approved,
-    });
-
-    app_handle
-        .emit("agent-permission-response-internal", &payload)
-        .map_err(|e| format!("派发权限响应事件失败: {}", e))?;
-
-    tracing::info!("[agent_permission_response] requestId={}, approved={}", request_id, approved);
-
-    Ok(())
-}
