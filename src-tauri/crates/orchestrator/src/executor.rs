@@ -768,7 +768,6 @@ impl Default for OrchestratorExecutor {
 mod tests {
     use super::*;
     use axagent_harness::orchestration_dispatch::SubTaskDispatchResult;
-    use axagent_harness::workflow_types::AgentRole;
 
     /// 测试用 Mock 派发器 — 所有任务都成功返回空 handover
     struct MockDispatcher;
@@ -844,8 +843,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(plan.sub_tasks.len(), 4); // Refactor pattern
-        assert!(matches!(plan.sub_tasks[1].role, AgentRole::Planner));
-        assert!(matches!(plan.sub_tasks[2].role, AgentRole::Developer));
+        assert_eq!(plan.sub_tasks[1].role, "planner");
+        assert_eq!(plan.sub_tasks[2].role, "developer");
     }
 
     #[tokio::test]

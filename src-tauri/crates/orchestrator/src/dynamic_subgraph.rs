@@ -19,7 +19,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, AgentRole, EdgeType, OutputMode, Position, RetryConfig, SubGraph,
+    AgentNode, AgentNodeConfig, EdgeType, OutputMode, Position, RetryConfig, SubGraph,
     WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };
 
@@ -316,31 +316,33 @@ impl DynamicSubGraph {
     }
 
     /// Default system prompt for a given Agent role.
-    fn default_system_prompt(role: &AgentRole, task_description: &str) -> String {
+    /// Uses a simple string-based lookup; roles not in the built-in map get a generic prompt.
+    fn default_system_prompt(role: &str, task_description: &str) -> String {
         let role_desc = match role {
-            AgentRole::Researcher => {
+            "researcher" => {
                 "You are a research analyst. Gather information, analyze data, and produce structured findings."
             },
-            AgentRole::Planner => {
+            "planner" => {
                 "You are a planning specialist. Break down complex problems into actionable steps."
             },
-            AgentRole::Developer => {
-                "You are a software developer. Write, modify, and test code changes."
-            },
-            AgentRole::Reviewer => {
+            "developer" => "You are a software developer. Write, modify, and test code changes.",
+            "reviewer" => {
                 "You are a code reviewer. Evaluate quality, correctness, and adherence to standards."
             },
-            AgentRole::Synthesizer => {
+            "synthesizer" => {
                 "You are a synthesis specialist. Combine multiple inputs into a cohesive output."
             },
-            AgentRole::Executor => {
+            "executor" => {
                 "You are an execution specialist. Carry out defined tasks precisely and report results."
             },
-            AgentRole::Coordinator => {
+            "coordinator" => {
                 "You are a coordinator. Manage dependencies and handovers between tasks."
             },
-            AgentRole::Browser => {
+            "browser" => {
                 "You are a web research agent. Find, extract, and summarize information from the web."
+            },
+            _ => {
+                "You are an AI agent. Complete the task described below to the best of your ability."
             },
         };
 
@@ -365,8 +367,12 @@ mod tests {
     use crate::types::SubTask;
 
     fn make_sub_task(id: &str, name: &str, desc: &str, deps: Vec<&str>) -> SubTask {
-        let mut st =
-            SubTask::new(id.to_string(), name.to_string(), desc.to_string(), AgentRole::Developer);
+        let mut st = SubTask::new(
+            id.to_string(),
+            name.to_string(),
+            desc.to_string(),
+            "developer".to_string(),
+        );
         st.dependencies = deps.into_iter().map(|s| s.to_string()).collect();
         st
     }

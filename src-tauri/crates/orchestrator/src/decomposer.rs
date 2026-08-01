@@ -17,7 +17,6 @@ use crate::types::{DecompositionPlan, OrchestrationError, OrchestrationStrategy,
 use axagent_harness::llm_execution::LlmExecutionService;
 use axagent_harness::provider::{ProviderAdapter, ProviderRequestContext};
 use axagent_harness::types::ChatContent;
-use axagent_harness::workflow_types::AgentRole;
 use serde::Deserialize;
 
 // ── Trait ──────────────────────────────────────────────────────────────
@@ -78,7 +77,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                 "analyze".to_string(),
                 "Analyze".to_string(),
                 format!("Analyze the codebase/documents for: {}", mission),
-                AgentRole::Researcher,
+                "researcher".to_string(),
             ));
 
             plan.sub_tasks.push(
@@ -86,7 +85,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "review".to_string(),
                     "Review".to_string(),
                     "Review findings from analysis, identify issues".to_string(),
-                    AgentRole::Reviewer,
+                    "reviewer".to_string(),
                 )
                 .with_dependencies(vec!["analyze".to_string()]),
             );
@@ -96,7 +95,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "report".to_string(),
                     "Report".to_string(),
                     "Compile review findings into structured report".to_string(),
-                    AgentRole::Synthesizer,
+                    "synthesizer".to_string(),
                 )
                 .with_dependencies(vec!["review".to_string()]),
             );
@@ -110,7 +109,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                 "analyze".to_string(),
                 "Analyze".to_string(),
                 format!("Analyze current code structure for: {}", mission),
-                AgentRole::Researcher,
+                "researcher".to_string(),
             ));
 
             plan.sub_tasks.push(
@@ -118,7 +117,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "plan".to_string(),
                     "Plan Refactor".to_string(),
                     "Create refactoring plan with migration steps".to_string(),
-                    AgentRole::Planner,
+                    "planner".to_string(),
                 )
                 .with_dependencies(vec!["analyze".to_string()]),
             );
@@ -128,7 +127,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "implement".to_string(),
                     "Implement".to_string(),
                     "Execute the refactoring changes".to_string(),
-                    AgentRole::Developer,
+                    "developer".to_string(),
                 )
                 .with_dependencies(vec!["plan".to_string()]),
             );
@@ -138,7 +137,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "verify".to_string(),
                     "Verify".to_string(),
                     "Verify refactored code works correctly".to_string(),
-                    AgentRole::Reviewer,
+                    "reviewer".to_string(),
                 )
                 .with_dependencies(vec!["implement".to_string()]),
             );
@@ -152,7 +151,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                 "research".to_string(),
                 "Research".to_string(),
                 format!("Research requirements and constraints for: {}", mission),
-                AgentRole::Researcher,
+                "researcher".to_string(),
             ));
 
             plan.sub_tasks.push(
@@ -160,7 +159,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "design".to_string(),
                     "Design".to_string(),
                     "Create the design/architecture".to_string(),
-                    AgentRole::Planner,
+                    "planner".to_string(),
                 )
                 .with_dependencies(vec!["research".to_string()]),
             );
@@ -170,7 +169,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "review".to_string(),
                     "Review Design".to_string(),
                     "Review the design for completeness and correctness".to_string(),
-                    AgentRole::Reviewer,
+                    "reviewer".to_string(),
                 )
                 .with_dependencies(vec!["design".to_string()]),
             );
@@ -181,7 +180,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                 "analyze".to_string(),
                 "Analyze Requirements".to_string(),
                 format!("Analyze and understand: {}", mission),
-                AgentRole::Researcher,
+                "researcher".to_string(),
             ));
 
             plan.sub_tasks.push(
@@ -189,7 +188,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "implement".to_string(),
                     "Implement".to_string(),
                     format!("Implement the solution for: {}", mission),
-                    AgentRole::Developer,
+                    "developer".to_string(),
                 )
                 .with_dependencies(vec!["analyze".to_string()]),
             );
@@ -199,7 +198,7 @@ impl MissionDecomposer for RuleBasedDecomposer {
                     "review".to_string(),
                     "Review".to_string(),
                     "Review the implementation for correctness".to_string(),
-                    AgentRole::Reviewer,
+                    "reviewer".to_string(),
                 )
                 .with_dependencies(vec!["implement".to_string()]),
             );
@@ -427,15 +426,15 @@ Respond with ONLY a JSON object:
         let mut plan = DecompositionPlan::new(mission.to_string(), strategy);
         for (i, lst) in llm_sub_tasks.into_iter().take(8).enumerate() {
             let role = match lst.role.to_lowercase().as_str() {
-                "researcher" => AgentRole::Researcher,
-                "developer" => AgentRole::Developer,
-                "reviewer" => AgentRole::Reviewer,
-                "planner" => AgentRole::Planner,
-                "synthesizer" => AgentRole::Synthesizer,
-                "executor" => AgentRole::Executor,
-                "coordinator" => AgentRole::Coordinator,
-                "browser" => AgentRole::Browser,
-                _ => AgentRole::Developer,
+                "researcher" => "researcher".to_string(),
+                "developer" => "developer".to_string(),
+                "reviewer" => "reviewer".to_string(),
+                "planner" => "planner".to_string(),
+                "synthesizer" => "synthesizer".to_string(),
+                "executor" => "executor".to_string(),
+                "coordinator" => "coordinator".to_string(),
+                "browser" => "browser".to_string(),
+                _ => "developer".to_string(),
             };
 
             let id = if lst.id.is_empty() {
