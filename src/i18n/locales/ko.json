@@ -5280,7 +5280,8 @@
       "all": "모두",
       "knowledge": "지식",
       "memory": "메모리",
-      "wiki": "위키"
+      "wiki": "위키",
+      "sources": "소스"
     },
     "type": {
       "knowledge": "지식",

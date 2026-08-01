@@ -88,7 +88,7 @@ function checkCommandRegistration() {
   }
 
   const cmdFiles = walk(join(SRC_TAURI, "src"), ".rs");
-  const reDef = /#\[[^\]]*command[^\]]*\][\s\S]*?(?:pub(?:\s*\([^)]*\))?\s+)?(?:async\s+)?fn\s+(\w+)/g;
+  const reDef = /#\[(?:tauri::)?command\][\s\S]*?(?:pub(?:\s*\([^)]*\))?\s+)?(?:async\s+)?fn\s+(\w+)/g;
   const defined = new Set();
   for (const f of cmdFiles) {
     const srcClean = read(f).replace(/\/\/.*$/gm, "");

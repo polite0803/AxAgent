@@ -5280,7 +5280,8 @@
       "all": "全部",
       "knowledge": "RAG 知識庫",
       "memory": "記憶",
-      "wiki": "Wiki 知識庫"
+      "wiki": "Wiki 知識庫",
+      "sources": "來源"
     },
     "type": {
       "knowledge": "RAG 知識庫",

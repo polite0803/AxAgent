@@ -5280,7 +5280,8 @@
       "all": "Todo",
       "knowledge": "Conocimiento",
       "memory": "Memoria",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "sources": "Fuentes"
     },
     "type": {
       "knowledge": "Conocimiento",

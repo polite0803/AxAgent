@@ -5280,7 +5280,8 @@
       "all": "すべて",
       "knowledge": "ナレッジ",
       "memory": "メモリ",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "sources": "ソース"
     },
     "type": {
       "knowledge": "ナレッジ",

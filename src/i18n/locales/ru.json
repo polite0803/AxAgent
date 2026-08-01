@@ -5280,7 +5280,8 @@
       "all": "Все",
       "knowledge": "Знания",
       "memory": "Память",
-      "wiki": "Вики"
+      "wiki": "Вики",
+      "sources": "Источники"
     },
     "type": {
       "knowledge": "Знания",
