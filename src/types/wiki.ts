@@ -110,3 +110,60 @@ export type ExportStats = {
   exported: number;
   failed: number;
 };
+
+// ── 知识源（Knowledge Source）— 知识库增长更新入口 ────────────────
+
+export type KnowledgeSource = {
+  id: string;
+  wikiId: string;
+  sourceType: string;
+  sourcePath: string;
+  title: string;
+  mimeType: string;
+  sizeBytes: number;
+  contentHash: string;
+  metadataJson?: Record<string, unknown>;
+  scheduleCron?: string;
+  lastFetchedAt?: number;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type CreateKnowledgeSourceInput = {
+  wikiId: string;
+  sourceType: string;
+  sourcePath: string;
+  title: string;
+  mimeType?: string;
+  scheduleCron?: string;
+  status?: string;
+  metadataJson?: Record<string, unknown>;
+};
+
+export type UpdateKnowledgeSourceInput = {
+  id: string;
+  title?: string;
+  sourceType?: string;
+  sourcePath?: string;
+  scheduleCron?: string;
+  clearSchedule?: boolean;
+  status?: string;
+  metadataJson?: Record<string, unknown>;
+};
+
+export type FetchUrlResult = {
+  noteId: string;
+  title: string;
+  /** created | updated | skipped */
+  action: string;
+  sourceId?: string;
+};
+
+export type FetchSourceResult = {
+  sourceId: string;
+  sourceTitle: string;
+  /** created | updated | skipped | error */
+  action: string;
+  detail: string;
+};

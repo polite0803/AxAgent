@@ -455,6 +455,48 @@ pub mod reading_list {
 // 知识库（RAG）相关错误码 - 已迁移至 axagent_harness::error_codes::knowledge
 // pub mod knowledge { ... } // 已删除，使用 axagent_harness::error_codes::knowledge
 
+/// 知识源（Knowledge Source）相关错误码（commands/knowledge_source.rs）
+pub mod knowledge_source {
+    /// URL 必须以 http:// 或 https:// 开头
+    pub const URL_SCHEME_INVALID: &str = "KNOWLEDGE_SOURCE_URL_SCHEME_INVALID";
+    /// 禁止访问内网或私有地址
+    pub const URL_BLOCKED: &str = "KNOWLEDGE_SOURCE_URL_BLOCKED";
+    /// HTTP 请求失败
+    pub const HTTP_FETCH_FAILED: &str = "KNOWLEDGE_SOURCE_HTTP_FETCH_FAILED";
+    /// HTTP 状态码异常
+    pub const HTTP_STATUS_ERROR: &str = "KNOWLEDGE_SOURCE_HTTP_STATUS_ERROR";
+    /// 读取响应体失败
+    pub const HTTP_READ_FAILED: &str = "KNOWLEDGE_SOURCE_HTTP_READ_FAILED";
+    /// 目标内容为二进制类型，无法提取文本
+    pub const CONTENT_BINARY: &str = "KNOWLEDGE_SOURCE_CONTENT_BINARY";
+    /// 没有可用的 Wiki 知识库
+    pub const WIKI_NOT_AVAILABLE: &str = "KNOWLEDGE_SOURCE_WIKI_NOT_AVAILABLE";
+    /// 知识源不存在
+    pub const NOT_FOUND: &str = "KNOWLEDGE_SOURCE_NOT_FOUND";
+    /// 暂不支持的知识源类型
+    pub const TYPE_UNSUPPORTED: &str = "KNOWLEDGE_SOURCE_TYPE_UNSUPPORTED";
+    /// 仓库地址无法解析为 GitHub 仓库
+    pub const REPO_PARSE_FAILED: &str = "KNOWLEDGE_SOURCE_REPO_PARSE_FAILED";
+    /// GitHub API 请求/解析失败
+    pub const GITHUB_API_FAILED: &str = "KNOWLEDGE_SOURCE_GITHUB_API_FAILED";
+    /// 仓库中未找到 Markdown 文档
+    pub const GITHUB_NO_DOCS: &str = "KNOWLEDGE_SOURCE_GITHUB_NO_DOCS";
+    /// RSS 请求失败
+    pub const RSS_FETCH_FAILED: &str = "KNOWLEDGE_SOURCE_RSS_FETCH_FAILED";
+    /// RSS 读取失败
+    pub const RSS_READ_FAILED: &str = "KNOWLEDGE_SOURCE_RSS_READ_FAILED";
+    /// RSS 解析失败
+    pub const RSS_PARSE_FAILED: &str = "KNOWLEDGE_SOURCE_RSS_PARSE_FAILED";
+    /// sitemap 请求失败
+    pub const SITEMAP_FETCH_FAILED: &str = "KNOWLEDGE_SOURCE_SITEMAP_FETCH_FAILED";
+    /// sitemap 读取失败
+    pub const SITEMAP_READ_FAILED: &str = "KNOWLEDGE_SOURCE_SITEMAP_READ_FAILED";
+    /// sitemap 中未解析到任何 URL
+    pub const SITEMAP_EMPTY: &str = "KNOWLEDGE_SOURCE_SITEMAP_EMPTY";
+    /// cron 表达式必须是 5 个字段
+    pub const CRON_INVALID: &str = "KNOWLEDGE_SOURCE_CRON_INVALID";
+}
+
 // 向量存储相关错误码 - 已迁移至 axagent_harness::error_codes::vector
 // pub mod vector { ... } // 已删除，使用 axagent_harness::error_codes::vector
 

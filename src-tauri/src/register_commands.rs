@@ -890,6 +890,17 @@ macro_rules! register_all_commands {
             commands::llm_wiki::wiki_get_capacity_info,
             commands::llm_wiki::llm_wiki_get_purpose,
             commands::llm_wiki::llm_wiki_update_purpose,
+            // Knowledge source commands (知识库增长更新入口)
+            commands::knowledge_source::fetch_url_to_wiki,
+            commands::knowledge_source::knowledge_source_list,
+            commands::knowledge_source::knowledge_source_create,
+            commands::knowledge_source::knowledge_source_update,
+            commands::knowledge_source::knowledge_source_delete,
+            commands::knowledge_source::knowledge_source_fetch_now,
+            commands::knowledge_source::knowledge_source_fetch_all,
+            commands::knowledge_source::knowledge_source_schedule_sync,
+            commands::knowledge_source::github_repo_import,
+            commands::knowledge_source::sitemap_crawl,
             // Wiki notes commands
             commands::wiki::wiki_notes_list,
             commands::wiki::wiki_notes_get,

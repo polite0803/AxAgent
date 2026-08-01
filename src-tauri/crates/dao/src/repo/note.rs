@@ -203,6 +203,33 @@ pub async fn update_note(
     get_note(db, id).await
 }
 
+/// 抓取管道专用的笔记内容更新：仅更新标题/正文/指纹/时间戳，
+/// 不触碰 `user_edited` 标记（避免把自动更新误判为用户编辑，
+/// 导致第三次抓取起被 P4 用户编辑保护永久跳过）。
+///
+/// 用户编辑保护（P4 冲突处理）由调用方在命中 `user_edited=true` 时自行跳过。
+pub async fn update_note_from_pipeline(
+    db: &DatabaseConnection,
+    id: &str,
+    title: &str,
+    content: &str,
+) -> Result<Note> {
+    let model = notes::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Note {}", id)))?;
+
+    let mut am = model.into_active_model();
+    am.title = Set(title.to_string());
+    am.content = Set(content.to_string());
+    am.content_hash = Set(calculate_content_hash(content));
+    am.updated_at = Set(chrono::Utc::now().timestamp());
+
+    am.update(db).await?;
+
+    get_note(db, id).await
+}
+
 pub async fn delete_note(db: &DatabaseConnection, id: &str) -> Result<()> {
     let model = notes::Entity::find_by_id(id)
         .one(db)

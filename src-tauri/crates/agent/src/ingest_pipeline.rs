@@ -306,6 +306,9 @@ impl IngestPipeline {
                 size_bytes: 0,
                 content_hash: content_hash.clone(),
                 metadata_json: Some(serde_json::to_value(&metadata).unwrap_or_default()),
+                schedule_cron: None,
+                last_fetched_at: None,
+                status: "active".to_string(),
             })
             .await?;
 
@@ -920,6 +923,9 @@ Each page must be valid JSON inside a ```json fenced code block with these field
                 size_bytes: 0,
                 content_hash: content_hash.to_string(),
                 metadata_json: Some(serde_json::to_value(metadata).unwrap_or_default()),
+                schedule_cron: None,
+                last_fetched_at: None,
+                status: "active".to_string(),
             })
             .await
     }

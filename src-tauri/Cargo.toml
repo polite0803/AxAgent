@@ -160,6 +160,7 @@ base64 = "0.22"
 chrono = { workspace = true }
 dashmap = { workspace = true }
 dirs = "6"
+feed-rs = "2"
 futures = "0.3"
 hex = { workspace = true }
 hostname = "0.4"

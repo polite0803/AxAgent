@@ -392,3 +392,117 @@ pub async fn note_exists_for_document(
         None => false,
     })
 }
+
+// ── 知识源管理 DAO（docs/knowledge-source-ingest-plan.md P2）────────────────
+// wiki_sources 从「来源登记表」升级为「知识源实体」，支撑 knowledge_source_* 命令。
+
+fn model_to_source(m: wiki_sources::Model) -> axagent_harness::wiki_dtos::WikiSource {
+    axagent_harness::wiki_dtos::WikiSource {
+        id: m.id,
+        wiki_id: m.wiki_id,
+        source_type: m.source_type,
+        source_path: m.source_path,
+        title: m.title,
+        mime_type: m.mime_type,
+        size_bytes: m.size_bytes,
+        content_hash: m.content_hash,
+        metadata_json: m.metadata_json,
+        schedule_cron: m.schedule_cron,
+        last_fetched_at: m.last_fetched_at,
+        status: m.status,
+        created_at: m.created_at,
+        updated_at: m.updated_at,
+    }
+}
+
+/// 列出全部知识源（跨 wiki），按创建时间倒序。
+pub async fn list_all_sources(
+    db: &DatabaseConnection,
+) -> Result<Vec<axagent_harness::wiki_dtos::WikiSource>> {
+    let models =
+        wiki_sources::Entity::find().order_by_desc(wiki_sources::Column::CreatedAt).all(db).await?;
+    Ok(models.into_iter().map(model_to_source).collect())
+}
+
+/// 按 ID 查单个知识源。
+pub async fn get_source_by_id(
+    db: &DatabaseConnection,
+    id: &str,
+) -> Result<Option<axagent_harness::wiki_dtos::WikiSource>> {
+    let model = wiki_sources::Entity::find_by_id(id).one(db).await?;
+    Ok(model.map(model_to_source))
+}
+
+/// 知识源可编辑字段集合（避免 update_source_fields 参数超限）。
+#[derive(Debug, Clone, Default)]
+pub struct UpdateSourceFieldsInput {
+    pub title: Option<String>,
+    pub source_type: Option<String>,
+    pub source_path: Option<String>,
+    pub schedule_cron: Option<Option<String>>,
+    pub status: Option<String>,
+    pub metadata_json: Option<Option<serde_json::Value>>,
+}
+
+/// 更新知识源的可编辑字段（标题/类型/路径/调度/状态/配置）。
+pub async fn update_source_fields(
+    db: &DatabaseConnection,
+    id: &str,
+    input: UpdateSourceFieldsInput,
+) -> Result<()> {
+    let mut am: wiki_sources::ActiveModel =
+        match wiki_sources::Entity::find_by_id(id).one(db).await? {
+            Some(m) => m.into(),
+            None => {
+                return Err(AxAgentError::NotFound(format!("知识源 {id} 不存在")));
+            },
+        };
+    if let Some(v) = input.title {
+        am.title = Set(v);
+    }
+    if let Some(v) = input.source_type {
+        am.source_type = Set(v);
+    }
+    if let Some(v) = input.source_path {
+        am.source_path = Set(v);
+    }
+    if let Some(v) = input.schedule_cron {
+        am.schedule_cron = Set(v);
+    }
+    if let Some(v) = input.status {
+        am.status = Set(v);
+    }
+    if let Some(v) = input.metadata_json {
+        am.metadata_json = Set(v);
+    }
+    am.updated_at = Set(chrono::Utc::now().timestamp());
+    am.update(db).await?;
+    Ok(())
+}
+
+/// 抓取完成后更新指纹与时间戳（增量更新闭环核心）。
+pub async fn update_source_fetch_meta(
+    db: &DatabaseConnection,
+    id: &str,
+    content_hash: &str,
+    last_fetched_at: i64,
+) -> Result<()> {
+    let mut am: wiki_sources::ActiveModel =
+        match wiki_sources::Entity::find_by_id(id).one(db).await? {
+            Some(m) => m.into(),
+            None => {
+                return Err(AxAgentError::NotFound(format!("知识源 {id} 不存在")));
+            },
+        };
+    am.content_hash = Set(content_hash.to_string());
+    am.last_fetched_at = Set(Some(last_fetched_at));
+    am.updated_at = Set(chrono::Utc::now().timestamp());
+    am.update(db).await?;
+    Ok(())
+}
+
+/// 删除知识源，返回是否删除了行。
+pub async fn delete_source_by_id(db: &DatabaseConnection, id: &str) -> Result<bool> {
+    let result = wiki_sources::Entity::delete_by_id(id).exec(db).await?;
+    Ok(result.rows_affected > 0)
+}

@@ -58,6 +58,7 @@ pub mod image_gen_settings;
 pub mod index_jobs;
 pub mod knowledge;
 pub mod knowledge_graph;
+pub mod knowledge_source;
 pub mod learning_graph;
 pub mod llm_wiki;
 pub mod local_models;

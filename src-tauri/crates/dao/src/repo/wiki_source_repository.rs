@@ -30,6 +30,9 @@ fn model_to_dto(m: wiki_sources::Model) -> WikiSource {
         size_bytes: m.size_bytes,
         content_hash: m.content_hash,
         metadata_json: m.metadata_json,
+        schedule_cron: m.schedule_cron,
+        last_fetched_at: m.last_fetched_at,
+        status: m.status,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -50,6 +53,9 @@ impl WikiSourceRepository for DaoWikiSourceRepository {
             size_bytes: Set(input.size_bytes),
             content_hash: Set(input.content_hash),
             metadata_json: Set(input.metadata_json),
+            schedule_cron: Set(input.schedule_cron),
+            last_fetched_at: Set(input.last_fetched_at),
+            status: Set(input.status),
             created_at: Set(now),
             updated_at: Set(now),
         };

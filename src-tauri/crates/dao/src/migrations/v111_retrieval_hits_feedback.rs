@@ -185,6 +185,17 @@ mod tests {
         super::super::v100_consolidated::up(db.clone()).await.unwrap();
         up(db.clone()).await.unwrap();
 
+        // 先插入外键父记录（retrieval_hits 引用 conversations / knowledge_bases）
+        db.execute_unprepared(
+            "INSERT INTO conversations (id, title, model_id, provider_id, created_at, updated_at) \
+             VALUES ('conv1', 'Test', 'm1', 'p1', 1700000000, 1700000000)",
+        )
+        .await
+        .unwrap();
+        db.execute_unprepared("INSERT INTO knowledge_bases (id, name) VALUES ('kb1', 'Test KB')")
+            .await
+            .unwrap();
+
         // 插入一条带反馈的记录
         db.execute_unprepared(
             "INSERT INTO retrieval_hits (id, conversation_id, message_id, knowledge_base_id, \

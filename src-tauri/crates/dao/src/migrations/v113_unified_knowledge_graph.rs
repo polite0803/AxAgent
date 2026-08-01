@@ -248,14 +248,14 @@ mod tests {
 
         for (id, kb_id, source_type, node_type, name, ext_id) in &entities {
             let ext_id_str = ext_id.as_deref().unwrap_or("");
-            db.execute_unprepared(format!(
+            db.execute_unprepared(&format!(
                 "INSERT INTO knowledge_entities (id, knowledge_base_id, name, entity_type, \
                  description, source_path, source_language, properties, lifecycle, behaviors, \
                  metadata, created_at, updated_at, aliases, mention_count, confidence, \
                  first_seen_at, last_seen_at, source_type, source_id, node_type, external_id) \
                  VALUES ('{}', '{}', '{}', 'concept', '', '', '', '{{}}', '{{}}', '{{}}', '{{}}', \
                          1700000000, 1700000000, '', 0, 1.0, '', '', '{}', '{}', '{}', '{}')",
-                id, kb_id, name, source_type, source_id, node_type, ext_id_str
+                id, kb_id, name, source_type, ext_id_str, node_type, ext_id_str
             ))
             .await
             .unwrap();

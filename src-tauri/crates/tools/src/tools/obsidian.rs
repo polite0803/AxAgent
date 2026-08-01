@@ -749,7 +749,7 @@ mod tests {
     #[test]
     fn test_split_frontmatter_with_yaml() {
         let content = "---\ntitle: Test\ntags: [a, b]\n---\n\nHello world";
-        let (fm, body) = split_frontmatter(content);
+        let (fm, body) = kit_split_frontmatter(content);
         assert_eq!(fm["title"], "Test");
         assert!(body.contains("Hello world"));
     }
@@ -757,7 +757,7 @@ mod tests {
     #[test]
     fn test_split_frontmatter_without_yaml() {
         let content = "Just plain markdown";
-        let (fm, body) = split_frontmatter(content);
+        let (fm, body) = kit_split_frontmatter(content);
         assert!(fm.is_object());
         assert_eq!(body, content);
     }
@@ -765,14 +765,14 @@ mod tests {
     #[test]
     fn test_extract_wikilinks() {
         let body = "See [[Project Plan]] and [[Work/Meeting#section|alias]] for details.";
-        let links = extract_wikilinks(body);
+        let links = kit_extract_wikilinks(body);
         assert_eq!(links, vec!["Project Plan", "Work/Meeting"]);
     }
 
     #[test]
     fn test_extract_inline_tags() {
         let content = "# Heading\n\ntext #foo and #bar/baz\n#tag_at_start";
-        let tags = extract_inline_tags(content);
+        let tags = kit_extract_inline_tags(content);
         assert!(tags.contains(&"foo".to_string()));
         assert!(tags.contains(&"bar/baz".to_string()));
         assert!(tags.contains(&"tag_at_start".to_string()));
@@ -784,7 +784,8 @@ mod tests {
         let vault = FsVaultSource::new(tmp.path()).unwrap();
         // 正常路径
         let p = vault.safe_join("note").unwrap();
-        assert!(p.starts_with(tmp.path()));
+        // safe_join 基于 canonicalize 后的 root 拼接，须用 vault_root() 断言（Windows 上 tmp.path() 与 canonical 路径可能大小写/短路径不一致）
+        assert!(p.starts_with(vault.vault_root()));
         assert_eq!(p.extension().unwrap(), "md");
 
         // 路径穿越
