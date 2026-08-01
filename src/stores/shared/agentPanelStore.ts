@@ -301,7 +301,7 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
         requestId: id,
         approved,
       }).catch((err) => {
-        console.error("[agent_permission_response] IPC 调用失败:", err);
+        console.error("[agent_permission_response] IPC call failed:", err);
       });
     }
   },

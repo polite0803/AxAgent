@@ -96,9 +96,7 @@ export function AgentUIRenderer() {
       <div className="flex items-center justify-center py-8">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("agent.uiRenderer.empty", {
-            defaultValue: "暂无 Agent 渲染的 UI。与 Agent 对话让它为你生成动态界面。",
-          })}
+          description={t("agent.uiRenderer.empty")}
         />
       </div>
     );
@@ -108,15 +106,13 @@ export function AgentUIRenderer() {
     <div className="agent-ui-renderer space-y-3 p-2">
       <div className="flex items-center justify-between mb-2 px-1">
         <span className="text-xs text-gray-500">
-          {t("agent.uiRenderer.title", {
-            defaultValue: "Agent 动态界面",
-          })}
+          {t("agent.uiRenderer.title")}
           <Tag color="blue" style={{ marginLeft: 4 }}>
             {schemas.length}
           </Tag>
         </span>
         <Tooltip
-          title={t("agent.uiRenderer.clearAll", { defaultValue: "清空全部" })}
+          title={t("agent.uiRenderer.clearAll")}
         >
           <DeleteOutlined
             className="text-gray-400 hover:text-red-500 cursor-pointer text-xs"
@@ -131,12 +127,8 @@ export function AgentUIRenderer() {
             <Alert
               key={entry.id}
               type="error"
-              message={t("agent.uiRenderer.invalidSchema", {
-                defaultValue: "无效的 UI Schema",
-              })}
-              description={t("agent.uiRenderer.invalidSchemaDesc", {
-                defaultValue: "Schema 缺少必要的 type 字段",
-              })}
+              message={t("agent.uiRenderer.invalidSchema")}
+              description={t("agent.uiRenderer.invalidSchemaDesc")}
               showIcon
             />
           );
@@ -155,7 +147,7 @@ export function AgentUIRenderer() {
                 </Tag>
               </span>
               <Tooltip
-                title={t("agent.uiRenderer.remove", { defaultValue: "移除" })}
+                title={t("agent.uiRenderer.remove")}
               >
                 <DeleteOutlined
                   className="text-gray-400 hover:text-red-500 cursor-pointer text-xs"

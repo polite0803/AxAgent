@@ -504,9 +504,9 @@ export function SettingsPage() {
     page: "settings",
     url: "/settings",
     quickActions: [
-      { id: "get-settings", description: "获取当前应用设置" },
-      { id: "save-settings", description: "保存应用设置（主题、语言等）" },
-      { id: "list-kb", description: "列出所有知识库" },
+      { id: "get-settings", description: "Get current app settings" },
+      { id: "save-settings", description: "Save app settings (theme, language, etc.)" },
+      { id: "list-kb", description: "List all knowledge bases" },
     ],
   });
 

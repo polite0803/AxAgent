@@ -30,9 +30,13 @@ export function ChatPage() {
     page: "chat",
     url: "/chat",
     quickActions: [
-      { id: "new-conversation", description: "创建新的对话会话" },
-      { id: "list-conversations", description: "列出所有历史会话" },
-      { id: "get-conversation", description: "查看指定会话的详情", params: { conversation_id: "string" } },
+      { id: "new-conversation", description: "Create a new conversation" },
+      { id: "list-conversations", description: "List all conversation history" },
+      {
+        id: "get-conversation",
+        description: "Get details of a specific conversation",
+        params: { conversation_id: "string" },
+      },
     ],
   });
 

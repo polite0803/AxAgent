@@ -93,10 +93,7 @@ export function PermissionGate() {
   };
 
   const confirmationTips = useMemo(
-    () =>
-      t("agent.permissionGate.tips", {
-        defaultValue: "Agent 请求执行一个写操作，请确认是否允许。此操作可能影响您的数据。",
-      }),
+    () => t("agent.permissionGate.tips"),
     [t],
   );
 
@@ -108,29 +105,27 @@ export function PermissionGate() {
       title={
         <Space>
           <ExclamationCircleOutlined style={{ color: "#faad14" }} />
-          <span>{t("agent.permissionGate.title", { defaultValue: "操作确认" })}</span>
+          <span>{t("agent.permissionGate.title")}</span>
           <Tag color="orange">{firstPending.toolName}</Tag>
         </Space>
       }
       onOk={handleApprove}
       onCancel={handleReject}
-      okText={t("agent.permissionGate.approve", { defaultValue: "允许" })}
-      cancelText={t("agent.permissionGate.reject", { defaultValue: "拒绝" })}
+      okText={t("agent.permissionGate.approve")}
+      cancelText={t("agent.permissionGate.reject")}
       footer={[
         <Button key="reject" danger onClick={handleReject}>
-          {t("agent.permissionGate.reject", { defaultValue: "拒绝" })}
+          {t("agent.permissionGate.reject")}
         </Button>,
         firstPending.allowBypass
           ? (
             <Button key="bypass" onClick={handleApproveAndBypass}>
-              {t("agent.permissionGate.approveAndBypass", {
-                defaultValue: "本次不再询问",
-              })}
+              {t("agent.permissionGate.approveAndBypass")}
             </Button>
           )
           : null,
         <Button key="approve" type="primary" onClick={handleApprove}>
-          {t("agent.permissionGate.approve", { defaultValue: "允许" })}
+          {t("agent.permissionGate.approve")}
         </Button>,
       ].filter(Boolean)}
     >
@@ -141,13 +136,13 @@ export function PermissionGate() {
         style={{ marginBottom: 16 }}
       />
       <Paragraph>
-        <Text strong>{t("agent.permissionGate.description", { defaultValue: "操作描述" })}：</Text>
+        <Text strong>{t("agent.permissionGate.description")}：</Text>
       </Paragraph>
       <Paragraph>{firstPending.description}</Paragraph>
       {firstPending.paramsSummary && (
         <>
           <Paragraph>
-            <Text strong>{t("agent.permissionGate.params", { defaultValue: "参数" })}：</Text>
+            <Text strong>{t("agent.permissionGate.params")}：</Text>
           </Paragraph>
           <pre
             style={{
