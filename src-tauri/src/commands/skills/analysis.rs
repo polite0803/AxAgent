@@ -100,6 +100,7 @@ pub async fn skill_analyze_frontend(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness

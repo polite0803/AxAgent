@@ -57,6 +57,8 @@ pub enum ProviderType {
     OpenClaw,
     Hermes,
     Ollama,
+    #[serde(rename = "llama_cpp")]
+    LlamaCpp,
 }
 
 impl ProviderType {
@@ -78,6 +80,7 @@ pub fn provider_registry_key(pt: &ProviderType) -> &'static str {
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     }
 }
 
@@ -201,12 +204,17 @@ impl ModelType {
 /// Auto-detect model type from model_id string.
 ///
 /// 使用更精确的匹配策略避免误判：
-/// - Embedding：text-embedding-* 或 embedding-* 前缀
+/// - Embedding：text-embedding-*、embedding-* 前缀，以及 bge 家族（bge-m3 等本地 GGUF）
 /// - Voice：tts-*, whisper-*, realtime 等明确语音模型标识
 /// - 其余为 Chat 类型
 pub fn detect_model_type(model_id: &str) -> ModelType {
     let id = model_id.to_lowercase();
-    if id.contains("text-embedding") || id.starts_with("embedding") || id.contains("-embedding") {
+    if id.contains("text-embedding")
+        || id.starts_with("embedding")
+        || id.contains("-embedding")
+        || id.contains("bge-")
+        || id.starts_with("bge")
+    {
         ModelType::Embedding
     } else if id.contains("tts-") || id.contains("whisper-") || id.contains("realtime") {
         ModelType::Voice

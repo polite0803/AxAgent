@@ -202,6 +202,28 @@ pub mod provider {
     pub const ADAPTER_NOT_FOUND: &str = "PROVIDER_ADAPTER_NOT_FOUND";
 }
 
+/// 本地模型（llama.cpp）服务管理错误码
+pub mod local_model {
+    /// 供应商不存在
+    pub const PROVIDER_NOT_FOUND: &str = "LOCAL_MODEL_PROVIDER_NOT_FOUND";
+    /// 状态探测失败
+    pub const STATUS_FAILED: &str = "LOCAL_MODEL_STATUS_FAILED";
+    /// 服务未在运行
+    pub const NOT_RUNNING: &str = "LOCAL_MODEL_NOT_RUNNING";
+    /// 启动失败（含启动超时）
+    pub const START_FAILED: &str = "LOCAL_MODEL_START_FAILED";
+    /// 停止失败
+    pub const STOP_FAILED: &str = "LOCAL_MODEL_STOP_FAILED";
+    /// 启动配置无效（可执行文件/模型文件不存在）
+    pub const INVALID_CONFIG: &str = "LOCAL_MODEL_INVALID_CONFIG";
+    /// 嵌入连通性测试失败
+    pub const EMBED_TEST_FAILED: &str = "LOCAL_MODEL_EMBED_TEST_FAILED";
+    /// 日志文件不存在
+    pub const LOG_NOT_FOUND: &str = "LOCAL_MODEL_LOG_NOT_FOUND";
+    /// 日志读取失败
+    pub const LOG_READ_FAILED: &str = "LOCAL_MODEL_LOG_READ_FAILED";
+}
+
 /// 搜索相关错误码
 pub mod search {
     /// 未配置端点

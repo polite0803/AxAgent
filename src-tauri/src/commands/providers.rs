@@ -251,6 +251,7 @@ pub async fn validate_provider_key(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness
@@ -443,6 +444,7 @@ pub async fn fetch_remote_models(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness
@@ -561,6 +563,7 @@ pub async fn test_model(
         ProviderType::OpenClaw => "openclaw",
         ProviderType::Hermes => "hermes",
         ProviderType::Ollama => "ollama",
+        ProviderType::LlamaCpp => "llama_cpp",
     };
     let adapter = state
         .harness

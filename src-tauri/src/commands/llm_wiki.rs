@@ -451,6 +451,9 @@ fn resolve_provider_adapter(
         ProviderType::OpenClaw => Ok(Arc::new(axagent_providers::openclaw::OpenClawAdapter::new())),
         ProviderType::Hermes => Ok(Arc::new(axagent_providers::hermes::HermesAdapter::new())),
         ProviderType::Ollama => Ok(Arc::new(axagent_providers::ollama::OllamaAdapter::new())),
+        ProviderType::LlamaCpp => {
+            Ok(Arc::new(axagent_providers::llama_cpp::LlamaCppAdapter::new()))
+        },
     }
 }
 

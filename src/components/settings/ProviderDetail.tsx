@@ -4,6 +4,7 @@ import { CopyButton } from "@/components/common/CopyButton";
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
 import { PasteButton } from "@/components/common/PasteButton";
 import { Tooltip } from "@/components/layout/Tooltip";
+import { LocalModelPanel } from "@/components/settings/LocalModelPanel";
 import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { invoke, logIpcError } from "@/lib/invoke";
@@ -123,6 +124,7 @@ const DEFAULT_PATHS: Record<ProviderType, string> = {
   openclaw: "/v1/chat/completions",
   hermes: "/v1/chat/completions",
   ollama: "/v1/chat/completions",
+  llama_cpp: "/v1/chat/completions",
 };
 
 const DEFAULT_HOSTS: Record<ProviderType, string> = {
@@ -133,6 +135,7 @@ const DEFAULT_HOSTS: Record<ProviderType, string> = {
   openclaw: "",
   hermes: "",
   ollama: "http://localhost:11434",
+  llama_cpp: "http://localhost:8091",
 };
 
 function deriveModelGroupName(model_id: string): string {
@@ -1353,6 +1356,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             </Space>
           )}
       </Card>
+
+      {/* 本地模型（llama.cpp）运行状态与启停管理 */}
+      {provider.provider_type === "llama_cpp" && (
+        <LocalModelPanel providerId={provider.id} apiHost={provider.api_host} />
+      )}
 
       {/* API Host + Path */}
       <Card title={t("settings.apiHost")} size="small">
@@ -3473,6 +3481,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 { label: "Anthropic", value: "anthropic" },
                 { label: "Gemini", value: "gemini" },
                 { label: "Ollama", value: "ollama" },
+                { label: "llama.cpp", value: "llama_cpp" },
               ]}
               popupMatchSelectWidth={false}
               style={{ width: "100%" }}
