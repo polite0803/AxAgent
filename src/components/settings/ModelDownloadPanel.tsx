@@ -324,7 +324,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
           prefix={<CloudDownloadOutlined />}
           value={hfEndpoint}
           onChange={(e) => setHfEndpoint(e.target.value)}
-          placeholder="https://huggingface.co"
+          placeholder={t("settings.localModel.hfEndpointPlaceholder")}
           style={{ flex: 1 }}
         />
         <Button
@@ -366,21 +366,21 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
           <Input
             value={filename}
             onChange={(e) => setFilename(e.target.value)}
-            placeholder="bge-m3.Q5_K_M.gguf"
+            placeholder={t("settings.localModel.filenamePlaceholder")}
           />
         </Form.Item>
         <Form.Item label={t("settings.localModel.hfRepo")} style={{ marginBottom: 8 }}>
           <Input
             value={hfRepo}
             onChange={(e) => setHfRepo(e.target.value)}
-            placeholder="gpustack/bge-m3-GGUF"
+            placeholder={t("settings.localModel.hfRepoPlaceholder")}
           />
         </Form.Item>
         <Form.Item label={t("settings.localModel.directUrl")} style={{ marginBottom: 8 }}>
           <Input
             value={directUrl}
             onChange={(e) => setDirectUrl(e.target.value)}
-            placeholder="https://hf-mirror.com/..."
+            placeholder={t("settings.localModel.directUrlPlaceholder")}
           />
         </Form.Item>
         <Space style={{ marginBottom: 4 }}>

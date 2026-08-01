@@ -319,7 +319,24 @@
     "permissionFullAccessWarningTitle": "⚠️ 完全访问模式",
     "permissionAcceptEditsWarningTitle": "⚠️ 接受编辑模式",
     "permissionFullAccessWarning": "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任所使用的模型和系统提示词。",
-    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。"
+    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。",
+    "uiRenderer": {
+      "clearAll": "すべてクリア",
+      "empty": "Agent がレンダリングした UI はまだありません。Agent とチャットして動的インターフェースを生成しましょう。",
+      "invalidSchema": "無効な UI スキーマ",
+      "invalidSchemaDesc": "スキーマに必要な type フィールドがありません",
+      "remove": "削除",
+      "title": "Agent 動的 UI"
+    },
+    "permissionGate": {
+      "approve": "許可",
+      "approveAndBypass": "今回は再度確認しない",
+      "description": "操作の説明",
+      "params": "パラメータ",
+      "reject": "拒否",
+      "tips": "Agent が書き込み操作を要求しています。許可するかどうか確認してください。この操作はデータに影響を与える可能性があります。",
+      "title": "操作の確認"
+    }
   },
   "agentGenerator": {
     "desc": "自然言語で必要なエージェントを記述...",
@@ -407,7 +424,8 @@
       "chat": "チャット",
       "execution": "実行",
       "nlGeneration": "NL生成",
-      "skill": "スキル"
+      "skill": "スキル",
+      "ui": "UI"
     },
     "chatComingSoon": "Agent 对话功能即将在此处呈现",
     "chatEmpty": "暂无消息"
@@ -6526,7 +6544,7 @@
     "markerPrefixDesc": "マーカープレフィックス（デフォルト CHAT2API、通常変更不要）",
     "title": "设置",
     "showDeveloperTools": "開発者ツールを表示",
-    "showDeveloperToolsDesc": "サイドバーに開発者ツールセクション（トレース/ベンチマーク/ファインチューニング/強化学習）を表示",
+    "showDeveloperToolsDesc": "チャットページ上部に開発ツールタブを表示（トレース/ベンチマーク/ファインチューニング/強化学習）",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "プロアクティブ",
@@ -6621,7 +6639,14 @@
       "refreshModelsFailed": "刷新模型列表失败",
       "noModels": "下载目录中暂无模型，请先下载",
       "hfRepo": "HuggingFace 仓库",
-      "directUrl": "直接下载链接（可选）"
+      "directUrl": "直接下载链接（可选）",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {
@@ -6663,7 +6688,8 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "開発者ツール"
+    "sectionDeveloper": "開発者ツール",
+    "agentPanel": "エージェントパネル"
   },
   "skill": {
     "abTest": {
@@ -6969,7 +6995,8 @@
       "all": "すべて",
       "knowledge": "ナレッジ",
       "memory": "メモリ",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "sources": "ソース"
     },
     "type": {
       "knowledge": "ナレッジ",

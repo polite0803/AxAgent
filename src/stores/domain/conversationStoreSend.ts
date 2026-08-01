@@ -22,6 +22,7 @@ import type {
 } from "@/types";
 import { useAgentStore } from "../feature/agentStore";
 import { useExecutionStore } from "../feature/executionStore";
+import { useAgentPanelStore } from "../shared/agentPanelStore";
 import { useMultiModelStore } from "./multiModelStore";
 import { getEffectiveThinkingBudget, usePreferenceStore } from "./preferenceStore";
 import {
@@ -1177,6 +1178,22 @@ export function createSendMethods(
         // We must NOT use the default 5-minute invoke timeout — the backend continues
         // running and we rely on agent-done/agent-error events for completion.
         // Setting timeoutMs=0 disables the invoke-level timeout entirely.
+
+        // 读取当前页面上下文注入到请求中
+        const agentContext = useAgentPanelStore.getState().agentContext;
+        const agentContextPayload = agentContext
+          ? {
+            page: agentContext.page,
+            url: agentContext.url,
+            quick_actions: agentContext.quickActions?.map((a) => ({
+              id: a.id,
+              description: a.description,
+              require_confirmation: a.requireConfirmation ?? false,
+            })) ?? [],
+            data: agentContext.data ?? null,
+          }
+          : undefined;
+
         const queryResponse = await invoke<{
           status?: string;
           conversationId: string;
@@ -1192,6 +1209,7 @@ export function createSendMethods(
               agentProfileId: conversation.agent_profile_id ?? undefined,
               systemPrompt: conversation.system_prompt ?? undefined,
               searchProviderId: searchProviderId ?? undefined,
+              agentContext: agentContextPayload,
             },
           },
           0,

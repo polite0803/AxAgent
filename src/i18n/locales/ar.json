@@ -319,7 +319,24 @@
     "permissionFullAccessWarningTitle": "⚠️ 完全访问模式",
     "permissionAcceptEditsWarningTitle": "⚠️ 接受编辑模式",
     "permissionFullAccessWarning": "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任所使用的模型和系统提示词。",
-    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。"
+    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。",
+    "uiRenderer": {
+      "clearAll": "مسح الكل",
+      "empty": "لا توجد واجهة معروضة من قبل الوكيل بعد. تحدث مع الوكيل لإنشاء واجهات ديناميكية.",
+      "invalidSchema": "مخطط واجهة غير صالح",
+      "invalidSchemaDesc": "المخطط يفتقر إلى حقل النوع المطلوب",
+      "remove": "إزالة",
+      "title": "الواجهة الديناميكية للوكيل"
+    },
+    "permissionGate": {
+      "approve": "سماح",
+      "approveAndBypass": "لا تسأل مرة أخرى هذا الوقت",
+      "description": "وصف العملية",
+      "params": "المعلمات",
+      "reject": "رفض",
+      "tips": "يطلب الوكيل تنفيذ عملية كتابة. يرجى التأكد مما إذا كنت تريد السماح بها. قد تؤثر هذه العملية على بياناتك.",
+      "title": "تأكيد العملية"
+    }
   },
   "agentGenerator": {
     "desc": "صف الوكيل الذي تحتاجه بلغة طبيعية...",
@@ -407,7 +424,8 @@
       "chat": "دردشة",
       "execution": "تنفيذ",
       "nlGeneration": "توليد اللغة الطبيعية",
-      "skill": "مهارات"
+      "skill": "مهارات",
+      "ui": "واجهة"
     },
     "chatComingSoon": "Agent 对话功能即将在此处呈现",
     "chatEmpty": "暂无消息"
@@ -6526,7 +6544,7 @@
     "markerPrefixDesc": "بادئة العلامة (الافتراضية CHAT2API، عادةً لا حاجة للتعديل)",
     "title": "设置",
     "showDeveloperTools": "إظهار أدوات المطوّر",
-    "showDeveloperToolsDesc": "إظهار قسم أدوات المطوّر (التتبع/قياس الأداء/الضبط/التعلم المعزز) في الشريط الجانبي",
+    "showDeveloperToolsDesc": "إظهار تبويب أدوات المطوّر في الشريط العلوي لصفحة المحادثة (تتبع/قياس الأداء/ضبط دقيق/تعلم معزز)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "استباقي",
@@ -6621,7 +6639,14 @@
       "refreshModelsFailed": "刷新模型列表失败",
       "noModels": "下载目录中暂无模型，请先下载",
       "hfRepo": "HuggingFace 仓库",
-      "directUrl": "直接下载链接（可选）"
+      "directUrl": "直接下载链接（可选）",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {
@@ -6663,7 +6688,8 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "أدوات المطوّر"
+    "sectionDeveloper": "أدوات المطوّر",
+    "agentPanel": "لوحة الوكيل"
   },
   "skill": {
     "abTest": {
@@ -6969,7 +6995,8 @@
       "all": "الكل",
       "knowledge": "المعرفة",
       "memory": "ذاكرة",
-      "wiki": "ويكي"
+      "wiki": "ويكي",
+      "sources": "المصادر"
     },
     "type": {
       "knowledge": "المعرفة",

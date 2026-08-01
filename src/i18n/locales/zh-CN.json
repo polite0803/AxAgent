@@ -159,7 +159,24 @@
     "permissionFullAccessWarningTitle": "⚠️ 完全访问模式",
     "permissionAcceptEditsWarningTitle": "⚠️ 接受编辑模式",
     "permissionFullAccessWarning": "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任所使用的模型和系统提示词。",
-    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。"
+    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。",
+    "uiRenderer": {
+      "clearAll": "清空全部",
+      "empty": "暂无 Agent 渲染的 UI。与 Agent 对话让它为你生成动态界面。",
+      "invalidSchema": "无效的 UI Schema",
+      "invalidSchemaDesc": "Schema 缺少必要的 type 字段",
+      "remove": "移除",
+      "title": "Agent 动态界面"
+    },
+    "permissionGate": {
+      "approve": "允许",
+      "approveAndBypass": "本次不再询问",
+      "description": "操作描述",
+      "params": "参数",
+      "reject": "拒绝",
+      "tips": "Agent 请求执行一个写操作，请确认是否允许。此操作可能影响您的数据。",
+      "title": "操作确认"
+    }
   },
   "agentGenerator": {
     "desc": "用自然语言描述你需要的智能体...",
@@ -247,7 +264,8 @@
       "chat": "对话",
       "execution": "执行追踪",
       "nlGeneration": "NL 生成",
-      "skill": "技能"
+      "skill": "技能",
+      "ui": "UI"
     },
     "chatComingSoon": "Agent 对话功能即将在此处呈现",
     "chatEmpty": "暂无消息"
@@ -5910,7 +5928,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "标记前缀（默认 CHAT2API，通常无需修改）",
     "showDeveloperTools": "显示开发者工具",
-    "showDeveloperToolsDesc": "在侧边栏显示开发者工具分组（追踪/基准测试/微调/强化学习）",
+    "showDeveloperToolsDesc": "在对话页顶栏显示开发工具 Tab（追踪/基准测试/微调/强化学习）",
     "loraFinetuneEnabled": "启用 LoRA 微调",
     "loraFinetuneEnabledDesc": "启用后可在开发者工具中使用 LoRA 模型微调功能",
     "proactiveBehavior": "主动能力",
@@ -6005,7 +6023,14 @@
       "refreshModelsFailed": "刷新模型列表失败",
       "noModels": "下载目录中暂无模型，请先下载",
       "hfRepo": "HuggingFace 仓库",
-      "directUrl": "直接下载链接（可选）"
+      "directUrl": "直接下载链接（可选）",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {
@@ -6047,7 +6072,8 @@
     "sectionInvestWorkspace": "投资工作区",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "开发者工具"
+    "sectionDeveloper": "开发者工具",
+    "agentPanel": "Agent 面板"
   },
   "skill": {
     "abTest": {
@@ -12828,5 +12854,41 @@
   },
   "paperOverview": {
     "title": "论文概览"
+  },
+  "multiAgent": {
+    "title": "多智能体协作",
+    "subtitle": "将复杂任务分派给专业角色协作完成",
+    "rolesTitle": "固定角色",
+    "refreshRoles": "刷新角色",
+    "noRoles": "暂无可用角色",
+    "selectRole": "选择角色",
+    "taskDescription": "任务描述",
+    "taskPlaceholder": "描述您需要完成的任务...",
+    "taskLabel": "任务",
+    "contextJsonOptional": "上下文 JSON（可选）",
+    "contextJsonPlaceholder": "输入上下文 JSON...",
+    "contextJsonInvalid": "JSON 格式无效",
+    "provider": "供应商",
+    "model": "模型",
+    "temperature": "温度",
+    "maxTokens": "最大 Token",
+    "delegateTitle": "委派任务",
+    "delegateBtn": "委派",
+    "delegateSuccess": "委派成功",
+    "delegateFailed": "委派失败",
+    "fillRequired": "请填写任务描述",
+    "success": "成功",
+    "failed": "失败",
+    "tokens": "Token",
+    "historyTitle": "委派历史",
+    "clearHistory": "清空历史",
+    "noHistory": "暂无委派记录",
+    "maxConcurrent": "最大并发",
+    "timeoutSec": "超时",
+    "responseLabel": "响应",
+    "temperatureStrict": "严格",
+    "temperatureDefault": "默认",
+    "temperatureDivergent": "发散",
+    "maxTokensDefault": "默认"
   }
 }

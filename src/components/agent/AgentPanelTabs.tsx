@@ -10,13 +10,20 @@ export function AgentPanelTabs() {
   const { t } = useTranslation();
   const activeTab = useAgentPanelStore((s) => s.activeTab);
   const setTab = useAgentPanelStore((s) => s.setTab);
+  const agentUISchemaCount = useAgentPanelStore((s) => s.agentUISchemas.length);
 
   const tabItems = useMemo(() => [
     { key: "chat" as AgentPanelTab, label: t("agentPanel.tabs.chat") },
     { key: "execution" as AgentPanelTab, label: t("agentPanel.tabs.execution") },
     { key: "skill" as AgentPanelTab, label: t("agentPanel.tabs.skill") },
+    {
+      key: "ui" as AgentPanelTab,
+      label: `${t("agentPanel.tabs.ui", { defaultValue: "UI" })}${
+        agentUISchemaCount > 0 ? ` (${agentUISchemaCount})` : ""
+      }`,
+    },
     { key: "nl-generation" as AgentPanelTab, label: t("agentPanel.tabs.nlGeneration") },
-  ], [t]);
+  ], [t, agentUISchemaCount]);
 
   return (
     <div className="px-2 pt-1 shrink-0">

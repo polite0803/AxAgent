@@ -6,6 +6,7 @@ import { ChatView } from "@/components/chat/ChatView";
 import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
 import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
+import { useAgentContext } from "@/hooks/useAgentContext";
 import { useConversationStore, useProviderStore, useSettingsStore, useTabStore, useUIStore } from "@/stores";
 import { theme } from "antd";
 import { ChevronLeft, ChevronRight, PanelRight } from "lucide-react";
@@ -23,6 +24,22 @@ const RIGHT_PANEL_DEFAULT = 320;
 export function ChatPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+
+  // ── Agent 上下文注入：告知 Agent 当前页面是聊天页 ──
+  useAgentContext({
+    page: "chat",
+    url: "/chat",
+    quickActions: [
+      { id: "new-conversation", description: "Create a new conversation" },
+      { id: "list-conversations", description: "List all conversation history" },
+      {
+        id: "get-conversation",
+        description: "Get details of a specific conversation",
+        params: { conversation_id: "string" },
+      },
+    ],
+  });
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const [dragging, setDragging] = useState(false);

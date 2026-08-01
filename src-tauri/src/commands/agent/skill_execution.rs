@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
 use crate::commands::agent::agent_err;
+use crate::commands::agent::payloads::AgentContextPayload;
 use crate::commands::error::ErrorResponse;
 use crate::commands::skills;
 use crate::commands::spawn_guard::catch_unwind_logged;
@@ -724,6 +725,7 @@ pub(super) fn build_agent_system_prompt(
     workspace_root: Option<&str>,
     output_language: Option<&str>,
     steer_instructions: Option<String>,
+    agent_context: Option<&AgentContextPayload>,
 ) -> Vec<String> {
     let mut prompts = Vec::new();
 
@@ -868,6 +870,47 @@ pub(super) fn build_agent_system_prompt(
             if !already_present {
                 prompts.push(axagent_kit::utils::build_output_language_directive(lang));
             }
+        }
+    }
+
+    // Inject frontend page context — tells Agent about the current UI page
+    if let Some(ctx) = agent_context {
+        if !ctx.page.is_empty() {
+            let mut context_section = format!(
+                "<frontend-context>\n# Current Page Context\n\nYou are currently interacting with the following page:\n\n- **Page**: {}\n- **URL**: {}\n",
+                ctx.page, ctx.url
+            );
+
+            // Inject quick actions
+            if !ctx.quick_actions.is_empty() {
+                context_section.push_str("\n## Available Quick Actions\n\nYou can suggest the following actions to the user:\n");
+                for action in &ctx.quick_actions {
+                    let confirmation_note = if action.require_confirmation {
+                        " (requires user confirmation)"
+                    } else {
+                        ""
+                    };
+                    context_section.push_str(&format!(
+                        "- **{}**: {}{}\n",
+                        action.id, action.description, confirmation_note
+                    ));
+                }
+            }
+
+            // Inject page data snapshot
+            if let Some(data) = &ctx.data {
+                if !data.is_null() {
+                    if let Ok(data_str) = serde_json::to_string_pretty(data) {
+                        context_section.push_str(&format!(
+                            "\n## Page Data Snapshot\n\nCurrent page data for reference:\n```json\n{}\n```\n",
+                            data_str
+                        ));
+                    }
+                }
+            }
+
+            context_section.push_str("\n</frontend-context>");
+            prompts.push(context_section);
         }
     }
 

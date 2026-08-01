@@ -30,9 +30,6 @@ function resolvePageLabel(pathname: string): string | null {
   if (pathname.startsWith("/settings")) {
     return "nav.settings";
   }
-  if (pathname.startsWith("/devtools/")) {
-    return "nav.devTools";
-  }
   if (pathname.startsWith("/llm-wiki")) {
     return "nav.wiki";
   }

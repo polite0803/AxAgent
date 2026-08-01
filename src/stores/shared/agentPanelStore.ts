@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { invoke } from "@/lib/invoke";
 import { create } from "zustand";
 
 /** Agent Panel 当前活跃标签页 */
-export type AgentPanelTab = "chat" | "execution" | "skill" | "nl-generation";
+export type AgentPanelTab = "chat" | "execution" | "skill" | "ui" | "nl-generation";
 
 /** 页面选中内容的元数据 */
 export interface AgentSelection {
@@ -20,6 +21,18 @@ export interface AgentRecentAction {
   detail?: string;
 }
 
+/** Agent 快捷操作 — 页面暴露给 Agent 的可执行操作 */
+export interface AgentQuickAction {
+  /** 操作唯一标识符 */
+  id: string;
+  /** 操作描述（给 Agent 看的） */
+  description: string;
+  /** 可选的参数定义 */
+  params?: Record<string, unknown>;
+  /** 是否需要用户确认（危险操作） */
+  requireConfirmation?: boolean;
+}
+
 /** Agent 页面上下文 */
 export interface AgentContext {
   /** 当前页面标识 */
@@ -30,6 +43,41 @@ export interface AgentContext {
   selection?: AgentSelection;
   /** 最近操作记录 */
   recentActions?: AgentRecentAction[];
+  /** 页面暴露给 Agent 的快捷操作列表 */
+  quickActions?: AgentQuickAction[];
+  /** 页面数据快照（供 Agent 参考的序列化数据） */
+  data?: Record<string, unknown>;
+  /** 上下文更新时间戳 */
+  updatedAt?: number;
+}
+
+/** Agent 待确认的写操作（PermissionGate） */
+export interface PendingConfirmation {
+  id: string;
+  /** 工具名称 */
+  toolName: string;
+  /** 操作描述 */
+  description: string;
+  /** 参数摘要 */
+  paramsSummary?: string;
+  /** 是否允许"本次不再询问" */
+  allowBypass?: boolean;
+  /** 超时时间戳（ms since epoch） */
+  expiresAt?: number;
+}
+
+/** Agent 动态渲染的 UI Schema 条目 */
+export interface AgentUISchemaEntry {
+  /** Schema 唯一 ID */
+  id: string;
+  /** 完整的 UISchema JSON */
+  schema: Record<string, unknown>;
+  /** 渲染目标容器 ID */
+  targetId?: string;
+  /** 创建时间戳 */
+  createdAt: number;
+  /** 更新时间戳 */
+  updatedAt: number;
 }
 
 /** 面板最小/最大/默认宽度 */
@@ -69,7 +117,7 @@ function loadPersistedMiniMode(): boolean {
 function loadPersistedTab(): AgentPanelTab {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_TAB);
-    if (raw === "chat" || raw === "execution" || raw === "skill" || raw === "nl-generation") {
+    if (raw === "chat" || raw === "execution" || raw === "skill" || raw === "ui" || raw === "nl-generation") {
       return raw;
     }
   } catch {
@@ -121,6 +169,12 @@ interface AgentPanelState {
   /** Agent 页面上下文 */
   agentContext: AgentContext | null;
 
+  /** 待确认的写操作队列 */
+  pendingConfirmations: PendingConfirmation[];
+
+  /** Agent 动态渲染的 UI Schema 列表 */
+  agentUISchemas: AgentUISchemaEntry[];
+
   // ── 方法 ──
 
   toggle(): void;
@@ -131,7 +185,34 @@ interface AgentPanelState {
   setDragging(dragging: boolean): void;
   toggleMiniMode(): void;
   setAgentContext(ctx: AgentContext): void;
+  /** 增量合并 Agent 上下文（保留未覆盖的字段） */
+  mergeAgentContext(ctx: Partial<AgentContext>): void;
   clearAgentContext(): void;
+
+  // ── PermissionGate ──
+
+  /** 添加待确认的写操作 */
+  addPendingConfirmation(confirmation: PendingConfirmation): void;
+  /** 批准待确认操作 */
+  resolveConfirmation(id: string, approved: boolean, bypass?: boolean): void;
+  /** 清空所有待确认操作 */
+  clearPendingConfirmations(): void;
+
+  // ── Agent UI 渲染 ──
+
+  /** 渲染新的 Agent UI Schema（或替换已存在的同名组件） */
+  renderAgentUI(schema: Record<string, unknown>, targetId?: string, replace?: boolean): void;
+  /** 更新已存在的 Agent UI Schema */
+  updateAgentUI(
+    schemaId: string,
+    operation: "replace" | "append" | "remove",
+    newSchema?: Record<string, unknown>,
+    path?: string,
+  ): void;
+  /** 移除指定的 Agent UI Schema */
+  removeAgentUI(schemaId: string): void;
+  /** 清空所有 Agent UI Schema */
+  clearAgentUI(): void;
 }
 
 export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
@@ -141,6 +222,8 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
   isMiniMode: loadPersistedMiniMode(),
   isDragging: false,
   agentContext: null,
+  pendingConfirmations: [],
+  agentUISchemas: [],
 
   toggle() {
     const { isOpen } = get();
@@ -180,10 +263,131 @@ export const useAgentPanelStore = create<AgentPanelState>((set, get) => ({
   },
 
   setAgentContext(ctx) {
-    set({ agentContext: ctx });
+    set({ agentContext: { ...ctx, updatedAt: Date.now() } });
+  },
+
+  mergeAgentContext(ctx) {
+    const current = get().agentContext;
+    if (current) {
+      set({ agentContext: { ...current, ...ctx, updatedAt: Date.now() } });
+    } else {
+      set({ agentContext: { ...ctx, page: "", url: "", updatedAt: Date.now() } });
+    }
   },
 
   clearAgentContext() {
     set({ agentContext: null });
+  },
+
+  // ── PermissionGate ──
+
+  addPendingConfirmation(confirmation) {
+    const { pendingConfirmations } = get();
+    set({
+      pendingConfirmations: [...pendingConfirmations, confirmation],
+    });
+  },
+
+  resolveConfirmation(id, approved, _bypass) {
+    const { pendingConfirmations } = get();
+    const target = pendingConfirmations.find((c) => c.id === id);
+    set({
+      pendingConfirmations: pendingConfirmations.filter((c) => c.id !== id),
+    });
+
+    // 通知后端权限确认结果
+    if (target) {
+      invoke<void>("agent_permission_response", {
+        requestId: id,
+        approved,
+      }).catch((err) => {
+        console.error("[agent_permission_response] IPC call failed:", err);
+      });
+    }
+  },
+
+  clearPendingConfirmations() {
+    set({ pendingConfirmations: [] });
+  },
+
+  // ── Agent UI 渲染 ──
+
+  renderAgentUI(schema, targetId, replace = true) {
+    const { agentUISchemas } = get();
+    const schemaId = String(schema.id ?? crypto.randomUUID());
+    const now = Date.now();
+
+    if (replace) {
+      const existingIndex = agentUISchemas.findIndex((e) => e.id === schemaId);
+      if (existingIndex >= 0) {
+        const updated = [...agentUISchemas];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          schema,
+          targetId,
+          updatedAt: now,
+        };
+        set({ agentUISchemas: updated });
+        return;
+      }
+    }
+
+    set({
+      agentUISchemas: [
+        ...agentUISchemas,
+        { id: schemaId, schema, targetId, createdAt: now, updatedAt: now },
+      ],
+    });
+  },
+
+  updateAgentUI(schemaId, operation, newSchema, _path) {
+    const { agentUISchemas } = get();
+    const now = Date.now();
+
+    if (operation === "remove") {
+      set({
+        agentUISchemas: agentUISchemas.filter((e) => e.id !== schemaId),
+      });
+      return;
+    }
+
+    const existingIndex = agentUISchemas.findIndex((e) => e.id === schemaId);
+    if (existingIndex < 0) { return; }
+
+    if (operation === "replace" && newSchema) {
+      const updated = [...agentUISchemas];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        schema: newSchema,
+        updatedAt: now,
+      };
+      set({ agentUISchemas: updated });
+    } else if (operation === "append" && newSchema) {
+      const updated = [...agentUISchemas];
+      const current = updated[existingIndex];
+      const currentChildren = Array.isArray(current.schema.children)
+        ? [...current.schema.children]
+        : [];
+      updated[existingIndex] = {
+        ...current,
+        schema: {
+          ...current.schema,
+          children: [...currentChildren, newSchema],
+        },
+        updatedAt: now,
+      };
+      set({ agentUISchemas: updated });
+    }
+  },
+
+  removeAgentUI(schemaId) {
+    const { agentUISchemas } = get();
+    set({
+      agentUISchemas: agentUISchemas.filter((e) => e.id !== schemaId),
+    });
+  },
+
+  clearAgentUI() {
+    set({ agentUISchemas: [] });
   },
 }));

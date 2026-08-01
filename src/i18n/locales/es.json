@@ -319,7 +319,24 @@
     "permissionFullAccessWarningTitle": "⚠️ 完全访问模式",
     "permissionAcceptEditsWarningTitle": "⚠️ 接受编辑模式",
     "permissionFullAccessWarning": "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任所使用的模型和系统提示词。",
-    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。"
+    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。",
+    "uiRenderer": {
+      "clearAll": "Limpiar todo",
+      "empty": "Aún no hay UI renderizada por el Agente. Chatee con el Agente para generar interfaces dinámicas.",
+      "invalidSchema": "Esquema de UI inválido",
+      "invalidSchemaDesc": "El esquema carece del campo de tipo requerido",
+      "remove": "Eliminar",
+      "title": "Interfaz dinámica del Agente"
+    },
+    "permissionGate": {
+      "approve": "Permitir",
+      "approveAndBypass": "No preguntar de nuevo esta vez",
+      "description": "Descripción de la operación",
+      "params": "Parámetros",
+      "reject": "Rechazar",
+      "tips": "El Agente solicita realizar una operación de escritura. Por favor confirme si desea permitirla. Esta operación puede afectar sus datos.",
+      "title": "Confirmación de operación"
+    }
   },
   "agentGenerator": {
     "desc": "Describa el agente que necesita en lenguaje natural...",
@@ -407,7 +424,8 @@
       "chat": "Chat",
       "execution": "Ejecución",
       "nlGeneration": "NL Gen",
-      "skill": "Habilidades"
+      "skill": "Habilidades",
+      "ui": "Interfaz"
     },
     "chatComingSoon": "Agent 对话功能即将在此处呈现",
     "chatEmpty": "暂无消息"
@@ -6526,7 +6544,7 @@
     "markerPrefixDesc": "Prefijo de marcador (predeterminado: CHAT2API, generalmente no es necesario modificar)",
     "title": "设置",
     "showDeveloperTools": "Mostrar herramientas de desarrollador",
-    "showDeveloperToolsDesc": "Mostrar la seccion de herramientas de desarrollador (Trazas/Benchmark/Ajuste/RL) en la barra lateral",
+    "showDeveloperToolsDesc": "Mostrar la pestaña de herramientas de desarrollo en la barra superior de la página de chat (Trace/Benchmark/Ajuste/RL)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "Proactivo",
@@ -6621,7 +6639,14 @@
       "refreshModelsFailed": "刷新模型列表失败",
       "noModels": "下载目录中暂无模型，请先下载",
       "hfRepo": "HuggingFace 仓库",
-      "directUrl": "直接下载链接（可选）"
+      "directUrl": "直接下载链接（可选）",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {
@@ -6663,7 +6688,8 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "Herramientas de desarrollador"
+    "sectionDeveloper": "Herramientas de desarrollador",
+    "agentPanel": "Panel de Agente"
   },
   "skill": {
     "abTest": {
@@ -6969,7 +6995,8 @@
       "all": "Todo",
       "knowledge": "Conocimiento",
       "memory": "Memoria",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "sources": "Fuentes"
     },
     "type": {
       "knowledge": "Conocimiento",

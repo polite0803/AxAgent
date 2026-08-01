@@ -6,10 +6,17 @@
 //! 发起统一搜索，前端无需关心源类型差异。
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::{common, knowledge_source as ks_err};
 use axagent_harness::search_sources::{KnowledgeSourceType, SearchResult};
 use axagent_search::sources::unified_sources;
 use serde::Deserialize;
 use tauri::State;
+
+/// 包装错误为带错误码的响应（与其它命令模块一致）。
+fn command_error(e: impl std::fmt::Display, code: &str) -> String {
+    ErrorResponse::err_with_detail(code, e.to_string())
+}
 
 /// 统一搜索请求参数
 #[derive(Debug, Deserialize)]
@@ -96,17 +103,25 @@ pub async fn unified_source_meta(
         "wiki" => KnowledgeSourceType::Wiki,
         "memory" => KnowledgeSourceType::Memory,
         "obsidian_vault" => KnowledgeSourceType::ObsidianVault,
-        other => return Err(format!("未知的源类型: {}", other)),
+        other => {
+            return Err(command_error(
+                format!("未知的源类型: {}", other),
+                ks_err::TYPE_UNSUPPORTED,
+            ));
+        },
     };
 
     let sources = unified_sources();
     for source in sources {
         if source.source_type() == target_type {
-            return source.get_source_meta(&source_id).await.map_err(|e| e.to_string());
+            return source
+                .get_source_meta(&source_id)
+                .await
+                .map_err(|e| command_error(e, ks_err::NOT_FOUND));
         }
     }
 
-    Err(format!("未找到类型为 {:?} 的已注册知识源", target_type))
+    Err(command_error(format!("未找到类型为 {:?} 的已注册知识源", target_type), ks_err::NOT_FOUND))
 }
 
 /// 反馈数据湖查询参数
@@ -130,7 +145,7 @@ pub async fn query_feedback_lake(
     request: FeedbackQueryRequest,
 ) -> Result<Vec<axagent_harness::FeedbackEvent>, String> {
     let lake = axagent_harness::feedback_data_lake::global_feedback_lake()
-        .ok_or_else(|| "反馈数据湖未注册".to_string())?;
+        .ok_or_else(|| command_error("反馈数据湖未注册", common::INTERNAL))?;
 
     let event_types = request.event_types.map(|types| {
         types
@@ -156,7 +171,7 @@ pub async fn query_feedback_lake(
         offset: request.offset,
     };
 
-    lake.query_feedback(filter).await.map_err(|e| e.to_string())
+    lake.query_feedback(filter).await.map_err(|e| command_error(e, common::INTERNAL))
 }
 
 /// 获取反馈统计
@@ -167,9 +182,9 @@ pub async fn get_feedback_stats(
     since: Option<i64>,
 ) -> Result<f64, String> {
     let lake = axagent_harness::feedback_data_lake::global_feedback_lake()
-        .ok_or_else(|| "反馈数据湖未注册".to_string())?;
+        .ok_or_else(|| command_error("反馈数据湖未注册", common::INTERNAL))?;
 
     lake.positive_feedback_rate(&knowledge_base_id, since.unwrap_or(0))
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| command_error(e, common::INTERNAL))
 }

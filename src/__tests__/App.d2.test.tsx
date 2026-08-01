@@ -141,6 +141,7 @@ vi.mock("@/hooks/useCommandPalette", () => ({
 vi.mock("@/stores", () => ({
   useUIStore: (selector: (state: typeof uiState) => unknown) => selector(uiState),
   useWorkspaceStore: (selector: (state: typeof workspaceState) => unknown) => selector(workspaceState),
+  useWorkspaceTabStore: (selector: (state: typeof workspaceState) => unknown) => selector(workspaceState),
   useSettingsStore: Object.assign(
     (selector: (state: typeof settingsState) => unknown) => selector(settingsState),
     {

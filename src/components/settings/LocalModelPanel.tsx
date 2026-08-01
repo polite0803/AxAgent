@@ -12,10 +12,11 @@
 import { ModelDownloadPanel } from "@/components/settings/ModelDownloadPanel";
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
-import type { EmbedTestResult, LocalModelStartConfig, LocalModelStatus } from "@/types";
+import type { EmbedTestResult, LocalFileModel, LocalModelStartConfig, LocalModelStatus } from "@/types";
 import { PlayCircleOutlined, PoweroffOutlined, ReloadOutlined, RobotOutlined, StopOutlined } from "@ant-design/icons";
 import {
   App,
+  AutoComplete,
   Badge,
   Button,
   Card,
@@ -43,7 +44,7 @@ const CONFIG_STORAGE_KEY = "localModel.startConfig";
 /** 默认启动配置 */
 const DEFAULT_CONFIG: LocalModelStartConfig = {
   serverExe: "llama-server",
-  modelPath: "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+  modelPath: "E:\\llama-models\\bge-m3.Q5_K_M.gguf",
   host: "127.0.0.1",
   port: 8091,
   alias: "bge-m3",
@@ -90,6 +91,9 @@ export function LocalModelPanel({
   const [logContent, setLogContent] = useState("");
   const [logLoading, setLogLoading] = useState(false);
   const [embedText, setEmbedText] = useState("");
+  // 启动表单：下载目录中的模型文件（用于 model_path 快速选择）
+  const [localModelFiles, setLocalModelFiles] = useState<LocalFileModel[]>([]);
+  const [downloadDir, setDownloadDir] = useState("");
   const [embedResult, setEmbedResult] = useState<EmbedTestResult | null>(null);
   const [embedLoading, setEmbedLoading] = useState(false);
   const [startConfig, setStartConfig] = useState<LocalModelStartConfig>(() => {
@@ -132,6 +136,22 @@ export function LocalModelPanel({
       void refreshRef.current();
     }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
+  }, [providerId]);
+
+  // 加载下载目录与本地模型文件（启动表单选路径用）
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [dir, files] = await Promise.all([
+          invoke<string>("local_model_get_download_dir"),
+          invoke<LocalFileModel[]>("local_model_list_local_models"),
+        ]);
+        setDownloadDir(dir);
+        setLocalModelFiles(files.filter((f) => !f.isDownloading));
+      } catch (e) {
+        logIpcError("local_model_list_local_models")(e);
+      }
+    })();
   }, [providerId]);
 
   const running = status?.running ?? false;
@@ -449,14 +469,20 @@ export function LocalModelPanel({
             <Input
               value={startConfig.serverExe}
               onChange={(e) => setStartConfig({ ...startConfig, serverExe: e.target.value })}
-              placeholder="llama-server"
+              placeholder={t("settings.localModel.serverExePlaceholder")}
             />
           </Form.Item>
           <Form.Item label={t("settings.localModel.modelPathLabel")} required>
-            <Input
+            <AutoComplete
               value={startConfig.modelPath}
-              onChange={(e) => setStartConfig({ ...startConfig, modelPath: e.target.value })}
-              placeholder="E:\\llama-models\\bge-m3-Q5_K_M.gguf"
+              onChange={(v) => setStartConfig({ ...startConfig, modelPath: v })}
+              placeholder={t("settings.localModel.modelPathPlaceholder")}
+              options={localModelFiles.map((f) => ({
+                label: `${downloadDir}\\${f.filename}`,
+                value: `${downloadDir}\\${f.filename}`,
+              }))}
+              filterOption={(inputValue, option) =>
+                String(option?.value ?? "").toLowerCase().includes(inputValue.toLowerCase())}
             />
           </Form.Item>
           <Space.Compact style={{ width: "100%" }}>
@@ -486,7 +512,7 @@ export function LocalModelPanel({
                   ...startConfig,
                   alias: e.target.value || null,
                 })}
-              placeholder="bge-m3"
+              placeholder={t("settings.localModel.aliasPlaceholder")}
             />
           </Form.Item>
           <Space.Compact style={{ width: "100%" }}>

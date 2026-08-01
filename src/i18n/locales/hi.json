@@ -319,7 +319,24 @@
     "permissionFullAccessWarningTitle": "⚠️ 完全访问模式",
     "permissionAcceptEditsWarningTitle": "⚠️ 接受编辑模式",
     "permissionFullAccessWarning": "Agent 将拥有完全访问权限，可以执行任何文件操作且不受路径限制。请确保你信任所使用的模型和系统提示词。",
-    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。"
+    "permissionAcceptEditsWarning": "Agent 将自动批准文件编辑操作，无需确认。请确保你了解潜在的安全风险。",
+    "uiRenderer": {
+      "clearAll": "सभी साफ़ करें",
+      "empty": "अभी कोई एजेंट-रेंडर्ड UI नहीं है। डायनामिक इंटरफ़ेस बनाने के लिए एजेंट से बात करें।",
+      "invalidSchema": "अमान्य UI स्कीमा",
+      "invalidSchemaDesc": "स्कीमा में आवश्यक प्रकार फ़ील्ड का अभाव है",
+      "remove": "हटाएं",
+      "title": "एजेंट डायनामिक UI"
+    },
+    "permissionGate": {
+      "approve": "अनुमति दें",
+      "approveAndBypass": "इस बार फिर से न पूछें",
+      "description": "ऑपरेशन विवरण",
+      "params": "पैरामीटर",
+      "reject": "अस्वीकार करें",
+      "tips": "एजेंट एक राइट ऑपरेशन करने का अनुरोध करता है। कृपया पुष्टि करें कि क्या आप इसे अनुमति देना चाहते हैं। यह ऑपरेशन आपके डेटा को प्रभावित कर सकता है।",
+      "title": "ऑपरेशन पुष्टि"
+    }
   },
   "agentGenerator": {
     "desc": "प्राकृतिक भाषा में आवश्यक एजेंट का वर्णन करें...",
@@ -407,7 +424,8 @@
       "chat": "चैट",
       "execution": "निष्पादन",
       "nlGeneration": "NL जनरेशन",
-      "skill": "कौशल"
+      "skill": "कौशल",
+      "ui": "इंटरफ़ेस"
     },
     "chatComingSoon": "Agent 对话功能即将在此处呈现",
     "chatEmpty": "暂无消息"
@@ -6524,7 +6542,7 @@
     "markerPrefixDesc": "मार्कर प्रीफ़िक्स (डिफ़ॉल्ट CHAT2API, आमतौर पर संशोधन की आवश्यकता नहीं)",
     "title": "设置",
     "showDeveloperTools": "डेवलपर टूल दिखाएं",
-    "showDeveloperToolsDesc": "साइडबार में डेवलपर टूल अनुभाग (ट्रेस/बेंचमार्क/फ़ाइन-ट्यून/आरएल) दिखाएं",
+    "showDeveloperToolsDesc": "चैट पेज की टॉप बार में डेवलपर टूल टैब दिखाएं (ट्रेस/बेंचमार्क/फाइन-ट्यून/आरएल)",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "सक्रिय",
@@ -6619,7 +6637,14 @@
       "refreshModelsFailed": "刷新模型列表失败",
       "noModels": "下载目录中暂无模型，请先下载",
       "hfRepo": "HuggingFace 仓库",
-      "directUrl": "直接下载链接（可选）"
+      "directUrl": "直接下载链接（可选）",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {
@@ -6661,7 +6686,8 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "डेवलपर टूल"
+    "sectionDeveloper": "डेवलपर टूल",
+    "agentPanel": "एजेंट पैनल"
   },
   "skill": {
     "abTest": {
@@ -6967,7 +6993,8 @@
       "all": "सभी",
       "knowledge": "ज्ञान",
       "memory": "स्मृति",
-      "wiki": "विकी"
+      "wiki": "विकी",
+      "sources": "स्रोत"
     },
     "type": {
       "knowledge": "ज्ञान",

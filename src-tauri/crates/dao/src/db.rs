@@ -451,6 +451,15 @@ pub fn get_builtin_providers() -> Vec<BuiltinProvider> {
                 ),
             ],
         },
+        // llama.cpp 本地推理供应商（内置但默认未启用）
+        // 模型列表由 `fetch_remote_models` 扫描下载目录的 *.gguf 填充
+        BuiltinProvider {
+            builtin_id: "llama_cpp",
+            name: "llama.cpp",
+            provider_type: ProviderType::LlamaCpp,
+            api_host: "http://localhost:8091",
+            models: vec![],
+        },
     ]
 }
 

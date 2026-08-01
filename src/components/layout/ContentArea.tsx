@@ -23,7 +23,6 @@ const LazyGatewayLinkPage = lazy(() =>
   }))
 );
 const LazySettingsPage = lazy(() => import("@/pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
-const LazyDevToolsPage = lazy(() => import("@/pages/DevTools/DevToolsPage").then((m) => ({ default: m.DevToolsPage })));
 const LazyIngestPage = lazy(() => import("@/pages/IngestPage").then((m) => ({ default: m.IngestPage })));
 const LazyWikiGraphPage = lazy(() => import("@/pages/WikiGraphPage").then((m) => ({ default: m.WikiGraphPage })));
 const LazyWikiEditPage = lazy(() => import("@/pages/WikiEditPage").then((m) => ({ default: m.WikiEditPage })));
@@ -34,7 +33,6 @@ const LazyLearningGraphPage = lazy(() =>
 const LazyDynamicPageViewer = lazy(() =>
   import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
 );
-const LazyMultiAgentPage = lazy(() => import("@/pages/MultiAgentPage").then((m) => ({ default: m.MultiAgentPage })));
 const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
 
 function PageLoader() {
@@ -286,43 +284,13 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH["replay-workbench"]} element={redirectToInvest("market-mainline")} />
           {/* /pipeline → pipeline tab（流程编排） */}
           <Route path={BUILTIN_PAGE_PATH.pipeline} element={redirectToInvest("pipeline")} />
-          {/* Multi-Agent 为通用功能（已迁移上游），保留独立路由，不并入投资 Tab */}
-          <Route
-            path={BUILTIN_PAGE_PATH.multiAgent}
-            element={
-              <PageContextProvider page="multi-agent">
-                <SafeLazyPage Page={LazyMultiAgentPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsBenchmark}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsToolRecommender}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsFineTune}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtoolsRlTraining}
-            element={<Navigate to={BUILTIN_PAGE_PATH.devtools} replace />}
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.devtools}
-            element={
-              <PageContextProvider page="devtools">
-                <SafeLazyPage Page={LazyDevToolsPage} />
-              </PageContextProvider>
-            }
-          />
+          {/* 开发工具已并入对话页「开发工具」Tab（见 WorkspaceSwitcher 门控），旧路由/子路由重定向到 /chat + state.tab */}
+          <Route path={BUILTIN_PAGE_PATH.devtools} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsBenchmark} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsToolRecommender} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsFineTune} element={redirectToChat("devtools")} />
+          <Route path={BUILTIN_PAGE_PATH.devtoolsRlTraining} element={redirectToChat("devtools")} />
           {/* 学习图 */}
           <Route
             path={BUILTIN_PAGE_PATH.learningGraph}

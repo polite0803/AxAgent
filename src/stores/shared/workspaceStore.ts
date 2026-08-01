@@ -13,7 +13,8 @@ export type WorkspaceTab =
   | "terminal"
   | "knowledge"
   | "files"
-  | "multiAgent";
+  | "multiAgent"
+  | "devtools";
 
 interface WorkspaceState {
   /** 当前激活的功能 Tab */

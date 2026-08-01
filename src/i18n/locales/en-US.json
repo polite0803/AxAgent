@@ -159,7 +159,24 @@
     "permissionFullAccessWarningTitle": "⚠️ Full Access Mode",
     "permissionAcceptEditsWarningTitle": "⚠️ Accept Edits Mode",
     "permissionFullAccessWarning": "The agent will have full access and can perform any file operation without path restrictions. Please ensure you trust the model and System Prompt used.",
-    "permissionAcceptEditsWarning": "The agent will automatically approve file edit operations without confirmation. Please ensure you understand the potential security risks."
+    "permissionAcceptEditsWarning": "The agent will automatically approve file edit operations without confirmation. Please ensure you understand the potential security risks.",
+    "uiRenderer": {
+      "clearAll": "Clear All",
+      "empty": "No Agent-rendered UI yet. Chat with the Agent to generate dynamic interfaces.",
+      "invalidSchema": "Invalid UI Schema",
+      "invalidSchemaDesc": "Schema is missing the required type field",
+      "remove": "Remove",
+      "title": "Agent Dynamic UI"
+    },
+    "permissionGate": {
+      "approve": "Allow",
+      "approveAndBypass": "Don't ask again this time",
+      "description": "Operation Description",
+      "params": "Parameters",
+      "reject": "Reject",
+      "tips": "Agent requests to perform a write operation. Please confirm whether to allow it. This operation may affect your data.",
+      "title": "Operation Confirmation"
+    }
   },
   "agentGenerator": {
     "desc": "Describe the agent you need in natural language...",
@@ -247,7 +264,8 @@
       "chat": "Chat",
       "execution": "Execution",
       "nlGeneration": "NL Gen",
-      "skill": "Skills"
+      "skill": "Skills",
+      "ui": "UI"
     },
     "chatComingSoon": "Agent chat will be available here soon",
     "chatEmpty": "No messages yet"
@@ -6180,7 +6198,7 @@
     "markerPrefixPlaceholder": "CHAT2API",
     "markerPrefixDesc": "Marker Prefix (Default CHAT2API, usually no need to modify)",
     "showDeveloperTools": "Show developer tools",
-    "showDeveloperToolsDesc": "Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar",
+    "showDeveloperToolsDesc": "Show the developer tools tab (Trace/Benchmark/Fine-Tune/RL) in the chat page top bar",
     "loraFinetuneEnabled": "Enable LoRA Fine-tuning",
     "loraFinetuneEnabledDesc": "Enable LoRA model fine-tuning in developer tools",
     "proactiveBehavior": "Proactive",
@@ -6275,7 +6293,14 @@
       "refreshModelsFailed": "Failed to refresh model list",
       "noModels": "No models in download directory yet",
       "hfRepo": "HuggingFace Repo",
-      "directUrl": "Direct URL (optional)"
+      "directUrl": "Direct URL (optional)",
+      "serverExePlaceholder": "llama-server",
+      "modelPathPlaceholder": "E:\\llama-models\\bge-m3-Q5_K_M.gguf",
+      "aliasPlaceholder": "bge-m3",
+      "hfEndpointPlaceholder": "https://huggingface.co",
+      "filenamePlaceholder": "bge-m3.Q5_K_M.gguf",
+      "hfRepoPlaceholder": "gpustack/bge-m3-GGUF",
+      "directUrlPlaceholder": "https://hf-mirror.com/..."
     }
   },
   "settingsPage": {
@@ -6317,7 +6342,8 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
-    "sectionDeveloper": "Developer Tools"
+    "sectionDeveloper": "Developer Tools",
+    "agentPanel": "Agent Panel"
   },
   "skill": {
     "abTest": {
@@ -6623,7 +6649,8 @@
       "all": "All",
       "knowledge": "Knowledge",
       "memory": "Memory",
-      "wiki": "Wiki"
+      "wiki": "Wiki",
+      "sources": "Sources"
     },
     "type": {
       "knowledge": "Knowledge",
