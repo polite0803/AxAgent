@@ -250,19 +250,31 @@ pub fn record_degradation(vendor: &str, method: &str, reason: &str) {
 /// **同时同步写入进程级全局**，使 `tokio::spawn` / `JoinSet::spawn`
 /// 出去的 future 通过 `current_as_of()` 也能读到截止日。
 ///
-/// 注意：本函数**故意不**在退出时恢复全局（让 spawn 的 future 仍然
-/// 读得到），调用方在合适的时机显式 `set_global_asof(None)` 即可。
-/// 如需 RAII 自动恢复，请使用 `enter_global_asof` + `as_of::AS_OF.scope` 组合。
+/// ⚠️ 2026-08-01 实锤修复：原实现"故意不恢复全局"，要求调用方显式
+/// `set_global_asof(None)` 清理，但实际 90% 调用方（backtest_reco_strategies、
+/// backtest_analysis、recommend_stocks 等）都没清理 → `GLOBAL_AS_OF` 永久残留
+/// as-of 上下文 → 之后用户在**同一进程**跑 Serenity 趋势智选时：
+/// `search_stock` 直接走 as-of 分支 `return Ok(vec![])`（空）、
+/// `get_industry_ranking` 走 as-of 分支查每日快照（凌晨无快照）+ vendor
+/// NoHistoricalSemantic 全跳过 → 也空 → 上游节点全空、0 候选。
+///
+/// 现改为 **RAII 语义：退出时恢复进入前的全局值**（与 `enter_global_asof`
+/// 一致）。安全性：f 内 spawn 出去且被 await 的任务在 f 退出前已执行完，
+/// 期间读得到全局；`stock_workflow/core.rs` 的 fire-and-forget spawn 在
+/// spawn 前捕获 `captured_asof`、spawn 内部自行 `with_optional_asof` 重新
+/// 设置，不受影响。嵌套调用 LIFO 正确（内层恢复外层值，外层恢复原值）。
 pub async fn with_optional_asof<F, T>(ctx: Option<AsOfContext>, f: F) -> T
 where
     F: std::future::Future<Output = T>,
 {
-    // 同步写全局，供 spawn 出去的子任务回退读取
-    set_global_asof(ctx);
-    match ctx {
+    // 记录进入前的全局值，退出时恢复（防泄漏到调用方之外的后续调用）
+    let prev = set_global_asof(ctx);
+    let result = match ctx {
         Some(c) => AS_OF.scope(Some(c), f).await,
         None => f.await,
-    }
+    };
+    let _ = set_global_asof(prev);
+    result
 }
 
 /// 消费并清空当前任务的降级日志。返回累积的降级条目。

@@ -78,7 +78,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     //      in 检查（Rhai map 无 get，此前一旦走该分支必 Function not found）；
     //      ③ serenity.rs candidates_raw 对 data-verifier 空数组结果 filter 回退
     //      a-candidate-mapper 原始输出。
-    const TEMPLATE_VERSION: i32 = 44;
+    const TEMPLATE_VERSION: i32 = 46;
 
     let now = chrono::Utc::now().timestamp_millis();
 
@@ -113,14 +113,14 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             items: None,
         }),
     };
-    let td_north = ToolDef {
-        name: "get_north_bound_flow".into(),
-        description: Some("获取北向资金流向".into()),
-        parameters: None,
-    };
     let td_dragon = ToolDef {
         name: "get_market_dragon_tiger".into(),
         description: Some("获取龙虎榜数据".into()),
+        parameters: None,
+    };
+    let td_north = ToolDef {
+        name: "get_north_bound_flow".into(),
+        description: Some("获取北向资金成交额（净流入2024-08起停披，返回成交额序列）".into()),
         parameters: None,
     };
     let td_fin = ToolDef {
@@ -473,8 +473,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
         td_industry,
         td_cls,
         td_concept,
-        td_north,
         td_dragon,
+        td_north,
         td_fin,
         td_quote,
         td_visits,
@@ -614,6 +614,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     }));
 
     // ── Phase 0: 数据采集工具（并行） ──
+    // 2026-08-01 v2 恢复 t-northbound：北向净流入 2024-08-16 起监管停披，但**成交额/领涨股
+    // 仍披露**（datacenter-web RPT_MUTUAL_DEAL_HISTORY，eastmoney get_north_bound_flow v3
+    // 已改返回成交额序列并标注 timestamp）。北向成交活跃度仍是有价值的资金面信号。
     let t_names = [
         ("t-industry-rank", "行业排名", "get_industry_ranking", "t-industry-rank", 240.0, 80.0),
         ("t-cls-flash", "实时快讯", "get_cls_flash", "t-cls-flash", 440.0, 80.0),

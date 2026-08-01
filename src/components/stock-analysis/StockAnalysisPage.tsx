@@ -450,6 +450,39 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
             <StockSearchBar />
             <div style={{ margin: "4px 16px 0 16px", display: "flex", gap: 8, alignItems: "center" }}>
               <AnalysisHistoryButton />
+              {
+                /* 工作区模式下 sa-header 隐藏（Shell 未提供替代），设置入口在此补充（2026-08-01）。
+                  打开后变 X 图标（与独立模式齿轮 toggle 行为一致，避免"打开了找不到关闭"）。 */
+              }
+              {isInWorkspace && (
+                <button
+                  type="button"
+                  className="text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{
+                    background: settingsOpen && !isMobile
+                      ? "var(--accent-bg, rgba(99,102,241,0.18))"
+                      : "rgba(255,255,255,0.06)",
+                    border: settingsOpen && !isMobile
+                      ? "1px solid var(--accent, #6366f1)"
+                      : "1px solid rgba(255,255,255,0.14)",
+                    color: settingsOpen && !isMobile ? "var(--accent, #a5b4fc)" : "inherit",
+                  }}
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  title={settingsOpen ? t("common.close") : t("stockAnalysis.settings.title")}
+                >
+                  {settingsOpen && !isMobile
+                    ? (
+                      <>
+                        <X size={12} /> {t("common.close")}
+                      </>
+                    )
+                    : (
+                      <>
+                        <Settings size={12} /> {t("stockAnalysis.settings.title")}
+                      </>
+                    )}
+                </button>
+              )}
               {/* Debug 面板切换按钮 — 始终可见 */}
               <button
                 className="text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
@@ -697,8 +730,11 @@ export function StockAnalysisPage({ embeddedInWorkspace }: { embeddedInWorkspace
                 </div>
               )}
 
-              {/* 数据源健康仪表盘 — 在所有状态下都可见 */}
-              {!isInWorkspace && !stockCode && (
+              {
+                /* 数据源健康仪表盘 — 所有模式下未选股时可见（2026-08-01 去掉 isInWorkspace 限制，
+                  工作区模式下此前完全看不到健康面板） */
+              }
+              {!stockCode && (
                 <div className="p-2">
                   <VendorHealthDashboard />
                 </div>

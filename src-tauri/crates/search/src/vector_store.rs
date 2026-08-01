@@ -726,7 +726,7 @@ impl VectorStore {
                 let dup = txn
                     .query_one_raw(Statement::from_sql_and_values(
                         self.be(),
-                        &format!(
+                        format!(
                             "SELECT 1 AS x FROM {name}_meta WHERE md5(content) = md5($1) LIMIT 1"
                         ),
                         vec![record.content.clone().into()],

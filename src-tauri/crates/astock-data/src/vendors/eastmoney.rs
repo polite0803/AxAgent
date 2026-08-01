@@ -1551,17 +1551,21 @@ impl StockVendor for EastMoneyVendor {
     }
 
     async fn get_cls_flash(&self) -> Result<Vec<ClsFlashItem>, DataError> {
-        // req_trace 为必填参数，使用当前毫秒时间戳
+        // 2026-08-01 修复：旧接口 getNewsByColumns?column=250（财联社快讯频道）已整体失效
+        // （curl 实测所有 column 均返回空 list）。改用东财 7x24 快讯接口 getFastNewsList：
+        //   - 参数必须 camelCase：pageSize（非 page_size）+ sortEnd（"YYYY-MM-DD HH:MM:SS"）
+        //   - 返回 data.fastNewsList，字段 summary/title/content/time
         let req_trace = chrono::Utc::now().timestamp_millis();
+        let now_cn = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
         let url = format!(
-            "https://np-listapi.eastmoney.com/comm/web/getNewsByColumns?client=web&biz=web_news_col&column=250&order=1&needInteractData=0&page_index=1&page_size=20&req_trace={req_trace}"
+            "https://np-listapi.eastmoney.com/comm/web/getFastNewsList?client=web&biz=web_7x24&fastColumn=102&page_index=1&pageSize=20&req_trace={req_trace}&sortEnd={now_cn}"
         );
 
         let resp = self.em_get(&url).await?;
 
         let json: Value = resp.json().await?;
 
-        let items = match json["data"]["list"].as_array() {
+        let items = match json["data"]["fastNewsList"].as_array() {
             Some(arr) => arr,
             None => match json["data"].as_array() {
                 Some(arr) => arr,
@@ -1572,16 +1576,25 @@ impl StockVendor for EastMoneyVendor {
         Ok(items
             .iter()
             .filter_map(|item| {
-                let title = item.get("title")?.as_str()?.to_string();
+                let title = item
+                    .get("title")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string())
+                    .or_else(|| {
+                        item.get("summary").and_then(|v| v.as_str()).map(|s| {
+                            s.chars().take(80).collect::<String>()
+                        })
+                    })?;
                 let content = item
-                    .get("digest")
+                    .get("summary")
                     .or_else(|| item.get("content"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
                 let publish_time = item
                     .get("showTime")
-                    .or_else(|| item.get("publish_time"))
+                    .or_else(|| item.get("time"))
                     .or_else(|| item.get("ctime"))
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
@@ -2353,118 +2366,65 @@ impl StockVendor for EastMoneyVendor {
     /// 监管暂停前最后 HISTORY_DAYS 个交易日(2024-08-16 之前)的数据,
     /// 用于历史趋势参考。同时在 timestamp 字段中标注"data_source=pre_policy_pause"
     /// 以便上层 LLM 知道这是政策暂停前的数据。
+    /// v3(2026-08-01) 修正：北向资金**净流入** 2024-08-16 起监管停披（kamt.kline f52 冻结为 0），
+    /// 但**成交额（DEAL_AMT）、领涨股、指数点位仍在披露**（datacenter-web RPT_MUTUAL_DEAL_HISTORY，
+    /// curl 实测 2026-07-31 沪/深股通均有数据）。
+    /// 旧实现只看 f52（净流入）→ 全 0 → 误判"北向资金失效"。现改用数据中心接口返回
+    /// **成交额序列**，timestamp 明确标注"净流入停披，此处为成交额"，不再伪造也不误删。
     async fn get_north_bound_flow(&self) -> Result<Option<NorthBoundFlow>, DataError> {
-        const HISTORY_DAYS: usize = 5;
-        // 监管暂停披露的日期:2024-08-16(此日起北向资金实时数据被冻结为 0)
-        const POLICY_PAUSE_DATE: &str = "2024-08-16";
-
-        // 拉取最近 HISTORY_DAYS 日数据
-        let url = format!(
-            "https://push2his.eastmoney.com/api/qt/kamt.kline/get?\
-            fields1=f1,f2,f3&fields2=f51,f52,f53,f54&klt=101&lmt={HISTORY_DAYS}"
-        );
-        let resp = self.em_get(&url).await?;
-        let json: Value = resp.json().await?;
-
-        let data = &json["data"];
-        if data.is_null() {
-            return Err(DataError::VendorError {
-                vendor: "eastmoney".into(),
-                message: "get_north_bound_flow 数据为空(kamt.kline/get 返回 data=null)".into(),
-            });
-        }
-
-        // 解析 "日期,净流入,余额,累计" 字符串数组,返回 Vec<(date, flow)> 按日期升序
-        let parse_kamt_all = |arr: &Value| -> Vec<(String, f64)> {
-            arr.as_array()
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|v| {
-                            let s = v.as_str()?;
-                            let parts: Vec<&str> = s.split(',').collect();
-                            let date = parts.first().copied()?.to_string();
-                            let flow = parts.get(1).and_then(|x| x.parse().ok()).unwrap_or(0.0);
-                            Some((date, flow))
-                        })
-                        .collect()
+        // 拉取指定互港通方向的最近 N 个交易日成交额（datacenter-web，按 TRADE_DATE 降序）
+        async fn fetch_deal_amt(
+            client: &EastMoneyVendor,
+            mutual_type: &str,
+            size: u32,
+        ) -> Result<Vec<(String, f64)>, DataError> {
+            let url = format!(
+                "https://datacenter-web.eastmoney.com/api/data/v1/get?\
+                reportName=RPT_MUTUAL_DEAL_HISTORY&columns=ALL&filter=(MUTUAL_TYPE%3D%22{mutual_type}%22)&\
+                pageSize={size}&sortColumns=TRADE_DATE&sortTypes=-1"
+            );
+            let resp = client.em_get(&url).await?;
+            let json: Value = resp.json().await?;
+            let rows = match json["result"]["data"].as_array() {
+                Some(arr) => arr,
+                None => return Ok(vec![]),
+            };
+            Ok(rows
+                .iter()
+                .filter_map(|r| {
+                    // TRADE_DATE 形如 "2026-07-31 00:00:00" → 取前 10 字符
+                    let date = r["TRADE_DATE"].as_str()?.chars().take(10).collect::<String>();
+                    // DEAL_AMT 单位：百万（东财口径，沪股通日成交 ~1500 亿 = 150000 百万）
+                    let deal_amt = r["DEAL_AMT"].as_f64().unwrap_or(0.0);
+                    Some((date, deal_amt))
                 })
-                .unwrap_or_default()
-        };
-
-        let sh_list = parse_kamt_all(&data["hk2sh"]);
-        let sz_list = parse_kamt_all(&data["hk2sz"]);
-
-        if sh_list.is_empty() {
-            return Err(DataError::VendorError {
-                vendor: "eastmoney".into(),
-                message: "get_north_bound_flow hk2sh 数组为空".into(),
-            });
+                .collect())
         }
 
-        // 检测是否所有最新数据都被冻结为 0(监管暂停后)
-        let all_zero =
-            sh_list.iter().all(|(_, f)| *f == 0.0) && sz_list.iter().all(|(_, f)| *f == 0.0);
+        let sh_list = fetch_deal_amt(self, "001", 6).await?; // 沪股通
+        let sz_list = fetch_deal_amt(self, "003", 6).await?; // 深股通
 
-        // 若被冻结,拉取监管暂停前最后 HISTORY_DAYS*2 日数据,筛出 pause 之前的最后 5 日
-        let (sh_list, sz_list, data_source_marker) = if all_zero {
-            tracing::info!(
-                "[eastmoney] 北向资金最近 {} 日数据全部为 0(监管层自 {} 起暂停披露实时数据),\
-                 回退拉取监管暂停前最后 {} 个交易日数据用于历史趋势参考",
-                HISTORY_DAYS,
-                POLICY_PAUSE_DATE,
-                HISTORY_DAYS
-            );
-            // 拉 30 日数据,筛选 < POLICY_PAUSE_DATE 的最后 HISTORY_DAYS 个交易日
-            let hist_url = format!(
-                "https://push2his.eastmoney.com/api/qt/kamt.kline/get?\
-                fields1=f1,f2,f3&fields2=f51,f52,f53,f54&klt=101&lmt=30"
-            );
-            let hist_resp = self.em_get(&hist_url).await?;
-            let hist_json: Value = hist_resp.json().await?;
-            let hist_data = &hist_json["data"];
-            if hist_data.is_null() {
-                return Err(DataError::VendorError {
-                    vendor: "eastmoney".into(),
-                    message: "get_north_bound_flow 历史数据为空(kamt.kline lmt=30)".into(),
-                });
-            }
-            let mut sh_hist = parse_kamt_all(&hist_data["hk2sh"]);
-            let mut sz_hist = parse_kamt_all(&hist_data["hk2sz"]);
-            // 筛选 < POLICY_PAUSE_DATE 的数据
-            sh_hist.retain(|(d, _)| d.as_str() < POLICY_PAUSE_DATE);
-            sz_hist.retain(|(d, _)| d.as_str() < POLICY_PAUSE_DATE);
-            // 取最后 HISTORY_DAYS 日
-            let sh_take: Vec<(String, f64)> = if sh_hist.len() > HISTORY_DAYS {
-                sh_hist.split_off(sh_hist.len() - HISTORY_DAYS)
-            } else {
-                sh_hist
-            };
-            let sz_take: Vec<(String, f64)> = if sz_hist.len() > HISTORY_DAYS {
-                sz_hist.split_off(sz_hist.len() - HISTORY_DAYS)
-            } else {
-                sz_hist
-            };
-            (sh_take, sz_take, "pre_policy_pause")
-        } else {
-            (sh_list, sz_list, "realtime")
-        };
+        if sh_list.is_empty() && sz_list.is_empty() {
+            return Ok(None);
+        }
 
-        // 按日期对齐 sh 和 sz(取两者都有数据的日期交集,按日期升序)
-        // 简化:假设 sh_list 和 sz_list 长度相同且日期对齐(EM 实际返回就是这样)
+        // 按日期对齐（两个接口均按 TRADE_DATE 降序返回，逐索引配对）
         let mut recent_history: Vec<NorthBoundFlowDaily> = Vec::with_capacity(sh_list.len());
-        for (i, (d, sh)) in sh_list.iter().enumerate() {
-            let sz = sz_list.get(i).map(|(_, f)| *f).unwrap_or(0.0);
+        for i in 0..sh_list.len().max(sz_list.len()).min(6) {
+            let (d_sh, sh_amt) = sh_list.get(i).cloned().unwrap_or_default();
+            let (d_sz, sz_amt) = sz_list.get(i).cloned().unwrap_or_default();
+            let date = if !d_sh.is_empty() { d_sh } else { d_sz };
+            if date.is_empty() {
+                continue;
+            }
             recent_history.push(NorthBoundFlowDaily {
-                date: d.clone(),
-                sh_flow: *sh,
-                sz_flow: sz,
-                total_flow: sh + sz,
+                date,
+                sh_flow: sh_amt,
+                sz_flow: sz_amt,
+                total_flow: sh_amt + sz_amt,
             });
         }
-        // recent_history 当前按日期升序,反转成"从新到旧"
-        recent_history.reverse();
 
-        // 主字段取最新一天(recent_history[0])
         let latest = recent_history.first().cloned().unwrap_or(NorthBoundFlowDaily {
             date: String::new(),
             sh_flow: 0.0,
@@ -2477,8 +2437,12 @@ impl StockVendor for EastMoneyVendor {
             sh_flow: latest.sh_flow,
             sz_flow: latest.sz_flow,
             total_flow: latest.total_flow,
-            // 标注数据来源,便于上层 LLM 知晓这是监管暂停前数据
-            timestamp: Some(data_source_marker.to_string()),
+            // 明确标注：北向净流入自 2024-08-16 监管停披，此处 sh_flow/sz_flow/total_flow
+            // 为"成交额"（单位百万），非净买入额——防止 LLM 误读为净流入。
+            timestamp: Some(
+                "deal_amt_in_million（北向净流入自2024-08-16监管停披，此字段为成交额非净流入）"
+                    .to_string(),
+            ),
             recent_history,
         }))
     }

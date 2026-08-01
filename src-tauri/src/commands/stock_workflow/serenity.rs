@@ -776,6 +776,12 @@ pub async fn run_serenity_screening(
                 "status": event.status,
                 "totalNodes": event.total_nodes,
                 "completedNodes": event.completed_nodes,
+                // 修复：透传节点真实输出与错误信息（与 stock_workflow/core.rs 的
+                // workflow-step-done 事件对齐）。此前只发 nodeId/status/counts，
+                // 前端 SerenityScreeningPanel 执行日志永远显示"执行完成，无输出内容"，
+                // 用户无法判断节点是否拿到真实数据。
+                "output": event.output,
+                "error": event.error,
             });
             let _ = app.emit("serenity-screening-step", payload);
         })
@@ -788,7 +794,7 @@ pub async fn run_serenity_screening(
     // （连续 8 轮日志"keyword="）。v17 已删除 ref_*_code，前缀白名单过时。
     // 更彻底的做法：模板 variables 全部注入（均为可编辑参数，无敏感字段）。
     let serenity_vars: Option<Vec<axagent_harness::workflow_types::Variable>> =
-        loaded.variables.map(|vars| vars);
+        loaded.variables;
     let opts = RunOptions {
         max_concurrent,
         step_timeout,

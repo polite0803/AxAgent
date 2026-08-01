@@ -393,6 +393,8 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "get_stock_money_flow",
             "get_stock_option_pcr",
             "get_stock_dragon_tiger",
+            // 2026-08-01 恢复 get_north_bound_flow：净流入停披但成交额仍披露（v3 返回成交额，
+            // timestamp 标注非净流入），北向成交活跃度仍是资金面信号。
             "get_north_bound_flow",
             "get_stock_margin_data",
             "get_stock_quote",
@@ -434,6 +436,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
             // 虽也有此工具，但 hot-money-tracker 的分析需要融资融券作为真金白银信号，
             // 且 lockup-watcher 不保证在 hot-money-tracker 之前运行。
             "get_stock_dragon_tiger",
+            // 2026-08-01 恢复 get_north_bound_flow（v3 返回成交额，净流入停披但成交额仍披露）
             "get_north_bound_flow",
             "get_stock_institutional_visits",
             "get_stock_margin_data",
@@ -544,6 +547,7 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "get_industry_ranking",
             "get_cls_flash",
             "get_stock_concept_blocks",
+            // 2026-08-01 恢复 get_north_bound_flow（v3 返回成交额，净流入停披但成交额仍披露）
             "get_north_bound_flow",
             "get_market_dragon_tiger",
             "search_stock",

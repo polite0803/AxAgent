@@ -210,9 +210,12 @@ impl VendorRouting {
                 "browser_eastmoney".into(),
                 "neodata".into(), // 末位兜底（美股/港股）
             ],
+            // 2026-08-01：push2his.eastmoney.com 在本机被连接拒绝（IPv4 快速 RST / IPv6 间歇），
+            // eastmoney 首选 kline 每次失败 → 累计降级 → 连累 dataapi/bkzj 等正常域名全被跳过
+            // （趋势智选全空链路）。tencent kline 一直健康，改首选；eastmoney 仅作 fallback。
             klines: vec![
-                "eastmoney".into(),
                 "tencent".into(),
+                "eastmoney".into(),
                 "xueqiu".into(),
                 "mootdx".into(),
                 "browser_eastmoney".into(),
@@ -303,12 +306,11 @@ impl VendorRouting {
             // 两个都失败 → 返回明确错误,前端不再被"假成功空数组"误导。
             earnings_calendar: vec!["eastmoney".into(), "browser_eastmoney".into()],
             social_sentiment: vec!["guba".into()],
-            industry_ranking: vec![
-                "eastmoney".into(),
-                "ths".into(),
-                "baidu_stock".into(),
-                "neodata".into(),
-            ],
+            // 2026-08-01 实锤：ths（data.10jqka.com.cn/dataapi/limit_up/industry_board → 404 死链）、
+            // baidu_stock（gushitong resource_id=5359 → 参数错误）、neodata（TOKEN_MISSING 无凭据）
+            // 三个 vendor 必失败且"空数据不降级"→ 永远霸占健康列表，把唯一可靠的 eastmoney
+            // 挤在轮询外（趋势智选全链空根因之一）。瘦身为 eastmoney + browser_eastmoney。
+            industry_ranking: vec!["eastmoney".into(), "browser_eastmoney".into()],
             cls_flash: vec!["eastmoney".into(), "browser_eastmoney".into(), "akshare".into()],
             north_bound_flow: vec![
                 "eastmoney".into(),
@@ -395,6 +397,7 @@ pub struct AStockClient {
     /// - 北向个股持仓明细自 2024-08 港交所停止披露，所有源永远空，
     ///   荐股 run 内对每只股票白打 3 源 × 重试链 = 数百次无效请求。
     /// - 非交易时段资金流向接口同样返回空，每只股票白打 2 源。
+    ///
     /// 冷却期内直接返回空结果，到期后自动恢复探测。
     empty_cooldown: Arc<Mutex<HashMap<String, i64>>>,
 }
@@ -664,6 +667,23 @@ impl AStockClient {
     /// - enabled_vendors 为 Some(set) → 只有 set 中的 vendor 启用
     fn is_vendor_enabled(&self, name: &str) -> bool {
         self.enabled_vendors.read().as_ref().is_none_or(|set| set.contains(name))
+    }
+
+    /// 检查 vendor 凭据是否已配置（async：读 tokio RwLock）。
+    /// 无凭据必失败的 vendor（neodata 需 token、iwencai 需 api_key）在路由入口剔除，
+    /// 避免每次调用都 TOKEN_MISSING/api_key not configured 失败 + 重试拖慢链路。
+    async fn vendor_has_credentials(&self, name: &str) -> bool {
+        match name {
+            "neodata" => {
+                if let Some(token) = self.neodata_token.as_ref() {
+                    !token.read().await.is_empty()
+                } else {
+                    false
+                }
+            },
+            "iwencai" => !self.iwencai_key.read().await.is_empty(),
+            _ => true,
+        }
     }
 
     /// 缺陷 D 修复: 注入 L2 磁盘缓存。
@@ -1209,7 +1229,20 @@ impl AStockClient {
         T: Send + 'static,
         for<'a> F: Fn(&'a str, &'a dyn StockVendor) -> BoxFuture<'a, Result<T, DataError>>,
     {
-        let vendor_names_list: Vec<String> = vendor_names.iter().map(|n| n.to_string()).collect();
+        // 2026-08-01：路由入口剔除"无凭据必失败"的 vendor（neodata 需 token、iwencai 需
+        // api_key）。此前它们在模板变量里没有 vendor_enabled_* 开关 → load_enabled_vendors
+        // 默认全部启用 → 每次调用都 TOKEN_MISSING/api_key not configured 失败 + 重试，
+        // 拖慢链路并污染健康窗口（趋势智选日志 neodata 8 次失败降级实锤）。
+        let mut vendor_names_list: Vec<String> = Vec::with_capacity(vendor_names.len());
+        for name in vendor_names {
+            if self.vendor_has_credentials(name).await {
+                vendor_names_list.push(name.to_string());
+            } else {
+                tracing::info!(
+                    "[astock-data] vendor '{name}' 无凭据（neodata/iwencai），从路由链剔除"
+                );
+            }
+        }
         let mut retry_count = 0u32;
 
         loop {
@@ -2548,6 +2581,49 @@ impl AStockClient {
             return Ok(vec![]);
         }
         // ── live 模式 ──
+        // FIX-2026-08-01: LLM 常把概念词/后缀词混进公司名再调 search_stock
+        // （如"方大炭素 石墨烯"、"国瓷材料 概念股"、"国瓷材料股份有限公司"）。
+        // 东财 searchadapter 是精确匹配，此类混合关键词实测全部返回空
+        // （curl 验证 TotalCount:0），整条 vendor 链随之空 → LLM 误判
+        // "该股票不存在" → Serenity 候选全灭。清洗出纯公司名片段后兜底重试。
+        let clean = clean_search_keyword(trimmed);
+        let attempts: Vec<&str> = if clean.is_empty() || clean == trimmed {
+            vec![trimmed]
+        } else {
+            vec![trimmed, clean.as_str()]
+        };
+        let mut last_err: Option<DataError> = None;
+        for attempt in attempts {
+            match self.search_stock_once(attempt).await {
+                Ok(r) if !r.is_empty() => return Ok(r),
+                Ok(_) => {
+                    last_err = Some(DataError::VendorError {
+                        vendor: "search_stock".into(),
+                        message: format!("搜索无结果: '{attempt}'"),
+                    });
+                },
+                Err(e) => {
+                    last_err = Some(e);
+                },
+            }
+            // 该词失败 → 负缓存 30s（与 search_stock_once 内检查对应）
+            let neg_key = format!("search_stock:neg::{}", attempt);
+            self.cache_set(neg_key, "1".to_string(), 30).await;
+        }
+        tracing::warn!(
+            "[search_stock] 所有尝试失败(keyword={}, clean={}): {last_err:?}",
+            trimmed,
+            clean
+        );
+        Ok(vec![])
+    }
+
+    /// 单次搜索尝试：正缓存(L1) + 负缓存 + vendor 链。
+    /// 由 `search_stock` 主流程按"原始关键词 → 清洗关键词"顺序调用。
+    async fn search_stock_once(
+        &self,
+        keyword: &str,
+    ) -> Result<Vec<StockSearchResult>, DataError> {
         // H1.1 修复:live 模式也添加 L1 缓存(搜索结果 60s 内变化不大,频繁搜索同关键词可命中缓存)
         // P2 修复(2026-07-25): 正缓存 TTL 从 60s 提到 300s(搜索结果变化慢,5 分钟足够);
         //                    新增负缓存(失败关键词 30s 内不重打全 vendor 链,避免 4-13s 串行延迟放大)。
@@ -2591,12 +2667,8 @@ impl AStockClient {
             },
             Err(e) => {
                 // H1.5 修复:不再静默吞错,记录 vendor 错误详情便于排查
-                tracing::warn!("[search_stock] 所有 vendor 失败(keyword={}): {e}", keyword);
-                // P2:负缓存 30s,避免相同失败关键词短时间内反复触发完整 vendor 链(单次最差 13s)
-                // 30s 是 trade-off:长则 vendor 恢复后用户感知慢,短则负缓存命中率低
-                let neg_key = format!("search_stock:neg::{}", keyword);
-                self.cache_set(neg_key, "1".to_string(), 30).await;
-                Ok(vec![])
+                tracing::warn!("[search_stock] vendor 链失败(keyword={}): {e}", keyword);
+                Err(e)
             },
         }
     }
@@ -4449,6 +4521,130 @@ fn news_date_key(s: &str) -> &str {
         &s[..10]
     } else {
         ""
+    }
+}
+
+/// 清洗 LLM 传入的搜索关键词，提取纯公司名片段。
+///
+/// 背景（2026-08-01 实锤）：Serenity 工作流的 LLM 常把概念词/后缀词混进
+/// 公司名再调用 `search_stock`，如"方大炭素 石墨烯"、"国瓷材料 概念股"、
+/// "国瓷材料股份有限公司"。东财 searchadapter 是**精确匹配**，混合关键词
+/// 实测全部返回空（`Data: null, TotalCount: 0`），整条 vendor 链随之空 →
+/// LLM 误判"该股票不存在" → 候选全灭。此处按「最长连续 CJK 片段 +
+/// 去尾部噪声词」提取纯名称，供 `search_stock` 兜底重试。
+///
+/// 清洗规则：
+/// 1. 已是数字代码/市场代码（600516 / 00700.HK / TSM.US）→ 原样返回
+/// 2. 取关键词中最长的连续 CJK 片段（"方大炭素 石墨烯" → "方大炭素"）
+/// 3. 若片段以公司后缀/查询意图词结尾则截断（"国瓷材料股份有限公司" → "国瓷材料"）
+fn clean_search_keyword(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    // 已是数字代码 / 市场代码 → 不洗
+    if trimmed.chars().all(|c| c.is_ascii_digit() || c == '.' || c == '-' || c == '_') {
+        return trimmed.to_string();
+    }
+    // 取最长连续 CJK 片段（含间隔号"·"）
+    let mut best = String::new();
+    let mut cur = String::new();
+    for c in trimmed.chars() {
+        if (0x4E00..=0x9FFF).contains(&(c as u32)) || c == '·' {
+            cur.push(c);
+        } else {
+            if cur.chars().count() > best.chars().count() {
+                best = cur.clone();
+            }
+            cur.clear();
+        }
+    }
+    if cur.chars().count() > best.chars().count() {
+        best = cur;
+    }
+    // 提取不到 CJK 片段（如 "00700.HK"、"TSM.US" 之外的字母串）→ 无可清洗内容，原样返回
+    if best.is_empty() {
+        return trimmed.to_string();
+    }
+    // 去尾部常见噪声词（长词优先，保证贪婪匹配）
+    const NOISE_SUFFIXES: &[&str] = &[
+        "股份有限公司",
+        "有限责任公司",
+        "股票代码",
+        "股票行情",
+        "有限公司",
+        "概念股",
+        "成分股",
+        "股票",
+        "股价",
+        "公司",
+        "集团",
+        "板块",
+        "概念",
+        "龙头",
+        "行情",
+        "股份",
+    ];
+    let mut name: &str = best.as_str();
+    loop {
+        let mut cut = false;
+        for suf in NOISE_SUFFIXES {
+            if name.len() > suf.len() && name.ends_with(suf) {
+                name = &name[..name.len() - suf.len()];
+                cut = true;
+                break;
+            }
+        }
+        if !cut {
+            break;
+        }
+    }
+    name.trim().to_string()
+}
+
+#[cfg(test)]
+mod clean_search_keyword_tests {
+    use super::clean_search_keyword;
+
+    #[test]
+    fn pure_name_unchanged() {
+        assert_eq!(clean_search_keyword("国瓷材料"), "国瓷材料");
+        assert_eq!(clean_search_keyword("方大炭素"), "方大炭素");
+        assert_eq!(clean_search_keyword("紫金矿业"), "紫金矿业");
+    }
+
+    #[test]
+    fn strips_query_suffix() {
+        assert_eq!(clean_search_keyword("国瓷材料 股票代码"), "国瓷材料");
+        assert_eq!(clean_search_keyword("方大炭素 概念股"), "方大炭素");
+        assert_eq!(clean_search_keyword("比亚迪 股票"), "比亚迪");
+    }
+
+    #[test]
+    fn strips_company_suffix() {
+        assert_eq!(clean_search_keyword("国瓷材料股份有限公司"), "国瓷材料");
+        assert_eq!(clean_search_keyword("国瓷材料有限公司"), "国瓷材料");
+        assert_eq!(clean_search_keyword("北方华创科技集团"), "北方华创科技");
+    }
+
+    #[test]
+    fn picks_first_cjk_segment_for_concept_mix() {
+        // "方大炭素 石墨烯" → 最长的连续 CJK 片段是"方大炭素"
+        assert_eq!(clean_search_keyword("方大炭素 石墨烯"), "方大炭素");
+        assert_eq!(clean_search_keyword("国瓷材料 石墨烯 陶瓷"), "国瓷材料");
+    }
+
+    #[test]
+    fn market_codes_passthrough() {
+        assert_eq!(clean_search_keyword("600516"), "600516");
+        assert_eq!(clean_search_keyword("00700.HK"), "00700.HK");
+        assert_eq!(clean_search_keyword("TSM.US"), "TSM.US");
+    }
+
+    #[test]
+    fn empty_input() {
+        assert_eq!(clean_search_keyword(""), "");
+        assert_eq!(clean_search_keyword("  "), "");
     }
 }
 

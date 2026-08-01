@@ -21,12 +21,12 @@ import {
 } from "@ant-design/icons";
 import {
   Alert,
+  App,
   Button,
   Card,
   Checkbox,
   Empty,
   InputNumber,
-  message,
   Modal,
   Progress,
   Space,
@@ -289,48 +289,213 @@ function nodeTitleKey(nodeId: string): string {
   return `serenityPanel.nodeTitles.${nodeId}`;
 }
 
-/// 从 Agent 节点输出中提取可读文本（content / params / raw）
-function summarizeOutput(output: unknown): string {
-  if (output == null) { return ""; }
-  if (typeof output === "string") {
-    const trimmed = output.trim();
-    // 超长文本截断预览
-    return trimmed.length > 500 ? trimmed.slice(0, 500) + "..." : trimmed;
+// ═══ 节点输出语义化渲染 ═══
+// 引擎 executor 输出形态（已实锤）：
+//   ToolNode  → { tool_name, result(JSON字符串), truncated, is_error, node_id }
+//   CodeNode  → { status:"executed", language, result(JSON), params, input_params, node_id }
+//   AgentNode → { content, thinking, tool_calls, usage, iterations, stopped_by_limit }
+
+/// 常见数据字段 → 中文列名（数据 schema 翻译，非 UI 文案，不走 i18n）
+const FIELD_LABEL_MAP: Record<string, string> = {
+  // 通用
+  stock_code: "代码",
+  stockCode: "代码",
+  stock_name: "名称",
+  stockName: "名称",
+  name: "名称",
+  code: "代码",
+  price: "现价",
+  change_pct: "涨跌幅",
+  changePct: "涨跌幅",
+  pct_chg: "涨跌幅",
+  status: "状态",
+  result: "结果",
+  params: "参数",
+  // 行业排名
+  industry: "行业",
+  industry_name: "行业",
+  industryName: "行业",
+  rank: "排名",
+  change_pct_3m: "近3月涨幅",
+  changePct3m: "近3月涨幅",
+  change_pct_1m: "近1月涨幅",
+  changePct1m: "近1月涨幅",
+  leading_stocks: "领涨股",
+  leadingStocks: "领涨股",
+  turnover: "换手率",
+  volume: "成交量",
+  avg_price: "均价",
+  // 北向资金
+  northbound_hold: "北向持股",
+  northboundHold: "北向持股",
+  hold_value: "持股市值",
+  holdValue: "持股市值",
+  // 趋势/信号
+  trend_name: "趋势",
+  trendName: "趋势",
+  confidence: "置信度",
+  score: "评分",
+  total_score: "总分",
+  totalScore: "总分",
+  // 财报
+  revenue: "营收",
+  net_profit: "净利润",
+  netProfit: "净利润",
+  gross_margin: "毛利率",
+  grossMargin: "毛利率",
+  pe: "PE",
+  pb: "PB",
+  roe: "ROE",
+};
+
+/** 节点输出分析结果：语义化渲染所需的最小结构化数据 */
+interface NodeOutputView {
+  kind: "tool" | "code" | "agent" | "json" | "text" | "empty";
+  /** 数组数据（表格渲染） */
+  table?: { columns: string[]; rows: Array<Record<string, unknown>> };
+  /** 展开态完整展示文本（JSON 美化或原文） */
+  jsonText: string;
+  /** 文本预览（agent 节点取 content 摘要） */
+  textPreview?: string;
+  /** 数组条数（折叠态摘要用） */
+  count?: number;
+  /** 对象有值字段数（折叠态摘要用） */
+  fieldCount?: number;
+}
+
+/** 宽松解析：字符串 → JSON；非 JSON 字符串或解析失败返回原文 */
+function looseParse(v: unknown): unknown {
+  if (typeof v !== "string") { return v; }
+  const t = v.trim();
+  if (!t.startsWith("{") && !t.startsWith("[")) { return v; }
+  try {
+    return JSON.parse(t);
+  } catch {
+    return v;
   }
-  if (typeof output === "number" || typeof output === "boolean") {
-    return String(output);
+}
+
+/** 提取数组行的列：保持首元素字段顺序，补充后续行的新字段 */
+function collectColumns(rows: Array<Record<string, unknown>>): string[] {
+  const cols: string[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    for (const k of Object.keys(r)) {
+      if (!seen.has(k)) {
+        seen.add(k);
+        cols.push(k);
+      }
+    }
   }
-  const obj = output as Record<string, unknown>;
-  // Agent 包装：{ content, params, thinking, ... }
-  if (typeof obj.content === "string" && obj.content.trim().length > 0) {
-    const c = obj.content.trim();
-    return c.length > 500 ? c.slice(0, 500) + "..." : c;
+  return cols;
+}
+
+/** 单元格清洗：null → "—"；number → 2 位小数；对象/数组 → 精简 JSON */
+function cellText(v: unknown): string {
+  if (v == null) { return "—"; }
+  if (typeof v === "number") {
+    return Number.isFinite(v) ? (Math.round(v * 100) / 100).toString() : String(v);
   }
-  if (obj.params && typeof obj.params === "object") {
-    const s = JSON.stringify(obj.params, null, 2);
-    return s.length > 500 ? s.slice(0, 500) + "..." : s;
+  if (typeof v === "boolean") { return v ? "是" : "否"; }
+  if (typeof v === "string") { return v.length > 60 ? v.slice(0, 60) + "…" : v; }
+  const s = JSON.stringify(v);
+  return s && s.length > 60 ? s.slice(0, 60) + "…" : (s ?? "—");
+}
+
+/** 分析节点输出 → 语义化视图（纯函数，不含 i18n 文案，文案在渲染处拼装） */
+function buildNodeOutputView(_nodeId: string, output: unknown): NodeOutputView {
+  const empty: NodeOutputView = { kind: "empty", jsonText: "" };
+  if (output == null) { return empty; }
+  if (typeof output === "string" && output.trim().length === 0) { return empty; }
+
+  // 1. 按包装结构解包 → payload + 节点类型
+  let kind: NodeOutputView["kind"] = "text";
+  let payload: unknown = output;
+  if (typeof output === "object" && !Array.isArray(output)) {
+    const o = output as Record<string, unknown>;
+    if (typeof o.tool_name === "string" && "result" in o) {
+      // ToolNode：result 可能是 ToolResult 形态 {content, truncated, is_error, ...}，
+      // content 才是工具数据（JSON 字符串）。再解一层。
+      kind = "tool";
+      let r = o.result;
+      if (r && typeof r === "object" && !Array.isArray(r)) {
+        const rr = r as Record<string, unknown>;
+        if (typeof rr.content === "string") { r = rr.content; }
+      }
+      payload = looseParse(r);
+    } else if (o.status === "executed" && "result" in o) {
+      // CodeNode：result 为 Rhai 脚本返回值
+      kind = "code";
+      payload = looseParse(o.result);
+    } else if (typeof o.content === "string") {
+      // AgentNode：content 为 LLM 输出（可能为 JSON 字符串）
+      kind = "agent";
+      payload = looseParse(o.content);
+    } else if ("result" in o) {
+      payload = looseParse(o.result);
+    }
+  } else if (typeof output === "string") {
+    const parsed = looseParse(output);
+    if (parsed !== output) {
+      kind = "json";
+      payload = parsed;
+    }
   }
-  // ToolNode 原始输出：尝试提取有意义的字段
-  if (Array.isArray(obj)) {
-    const s = JSON.stringify(obj, null, 2);
-    return s.length > 500 ? s.slice(0, 500) + "..." : s;
+
+  // 1.5 解包后为 null（如北向资金返回 "null"）→ 空数据语义
+  if (payload === null) {
+    return { kind, jsonText: "null", count: 0 };
   }
-  // 对象：提取前几个有值字段做摘要
-  const keys = Object.keys(obj).filter((k) => {
-    const v = obj[k];
-    return v != null && !(typeof v === "string" && v.trim().length === 0);
-  });
-  if (keys.length === 0) { return ""; }
-  // 少量字段直接 stringify，大量字段只取前几个
-  const summary: Record<string, unknown> = {};
-  for (const k of keys.slice(0, 8)) {
-    summary[k] = obj[k];
+
+  // 2. 数组 → 表格（元素为对象时）
+  if (Array.isArray(payload)) {
+    const rows = payload.filter(
+      (r): r is Record<string, unknown> => !!r && typeof r === "object" && !Array.isArray(r),
+    );
+    if (rows.length > 0) {
+      return {
+        kind,
+        table: { columns: collectColumns(rows), rows },
+        jsonText: JSON.stringify(payload, null, 2),
+        count: payload.length,
+      };
+    }
+    return { kind, jsonText: JSON.stringify(payload, null, 2), count: payload.length };
   }
-  const s = JSON.stringify(summary, null, 2);
-  return s.length > 500 ? s.slice(0, 500) + "..." : s;
+
+  // 3. 对象 → 键值/JSON 展示
+  if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    const keys = Object.keys(obj).filter((k) => {
+      const v = obj[k];
+      return v != null && !(typeof v === "string" && v.trim().length === 0);
+    });
+    // Agent 节点常输出 { summary, trends, ... }：摘要直接展示 summary 结论文本
+    let preview: string | undefined;
+    if (typeof obj.summary === "string" && obj.summary.trim().length > 0) {
+      preview = obj.summary.trim();
+    }
+    return {
+      kind,
+      jsonText: JSON.stringify(payload, null, 2),
+      fieldCount: keys.length,
+      textPreview: preview,
+    };
+  }
+
+  // 4. 纯文本
+  const text = String(payload).trim();
+  if (text.length === 0) { return empty; }
+  return { kind, jsonText: text, textPreview: text };
+}
+
+/** 截断辅助 */
+function truncateText(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + "…" : s;
 }
 
 export function SerenityScreeningPanel() {
+  const { message: messageApi } = App.useApp();
   const {
     running,
     setRunning,
@@ -752,9 +917,19 @@ export function SerenityScreeningPanel() {
                   styleFilter: "serenity,bottleneck",
                   limit: 50,
                 });
+                console.log("[SerenityHistory] list_reco_history returned:", list?.length, list);
                 setSerenityHistory(list ?? []);
-              } catch { /* */ }
-              setSerenityHistoryLoading(false);
+                if (!list || list.length === 0) {
+                  messageApi.warning(
+                    "趋势智选历史为空：list_reco_history 返回 0 行（可能是 DB 暂无风格为 serenity/bottleneck 的历史，或后端命令失败被静默）",
+                  );
+                }
+              } catch (e) {
+                console.error("[SerenityHistory] list_reco_history 调用失败", e);
+                messageApi.error(`后端调用失败: ${String(e)}`);
+              } finally {
+                setSerenityHistoryLoading(false);
+              }
             }}
           >
             {t("serenityPanel.serenityHistory.viewHistory")}
@@ -945,17 +1120,38 @@ export function SerenityScreeningPanel() {
           <Space orientation="vertical" className="w-full" size={4}>
             {steps.map((s, i) => {
               const isExpanded = expandedSteps.has(i);
+              // timeout 与 failed 同属失败类（此前 timeout 被渲染成蓝色 loading 图标）
+              const isFailed = s.status === "failed" || s.status === "timeout";
               const statusColor = s.status === "completed"
                 ? "green"
-                : s.status === "failed"
+                : isFailed
                 ? "red"
                 : "blue";
               const statusIcon = s.status === "completed"
                 ? <CheckCircleOutlined style={{ color: "#52c41a" }} />
-                : s.status === "failed"
+                : isFailed
                 ? <span style={{ color: "#ff4d4f" }}>✕</span>
                 : <LoadingOutlined style={{ color: "#1677ff" }} />;
-              const outputText = summarizeOutput(s.output);
+              // 节点输出语义化分析（ToolNode 表格 / CodeNode 计算 / AgentNode 文本）
+              const view = buildNodeOutputView(s.nodeId, s.output);
+              // 折叠态单行摘要：失败 → 错误信息；成功 → "类型 · 数据规模"
+              let summary = "";
+              if (isFailed) {
+                summary = s.error ? truncateText(s.error, 60) : "";
+              } else if (s.status === "completed" && view.kind !== "empty") {
+                const typeLabel = t(`serenityPanel.stepLogType.${view.kind}`);
+                // 摘要优先级：结论文本（summary）> 数组条数（空→"空数据"）> 字段数
+                const detail = view.textPreview
+                  ? truncateText(view.textPreview, 42)
+                  : view.count != null
+                  ? (view.count === 0
+                    ? t("serenityPanel.stepLogCountEmpty")
+                    : t("serenityPanel.stepLogCountSuffix", { count: view.count }))
+                  : view.fieldCount != null
+                  ? t("serenityPanel.stepLogFieldSuffix", { count: view.fieldCount })
+                  : "";
+                summary = detail ? `${typeLabel} · ${detail}` : typeLabel;
+              }
               return (
                 <div
                   key={`${s.nodeId}-${i}`}
@@ -966,21 +1162,30 @@ export function SerenityScreeningPanel() {
                     onClick={() => toggleStep(i)}
                   >
                     {statusIcon}
-                    <Text strong className="text-xs">
+                    <Text strong className="text-xs shrink-0">
                       {t(nodeTitleKey(s.nodeId))}
                     </Text>
-                    <Tag color={statusColor} className="text-xs">
+                    <Tag color={statusColor} className="text-xs shrink-0">
                       {s.status}
                     </Tag>
                     {s.elapsedMs != null && (
-                      <Text type="secondary" className="text-xs">
+                      <Text type="secondary" className="text-xs shrink-0">
                         {(s.elapsedMs / 1000).toFixed(1)}s
+                      </Text>
+                    )}
+                    {summary && (
+                      <Text
+                        type={isFailed ? "danger" : "secondary"}
+                        className="text-xs truncate flex-1 min-w-0"
+                        title={summary}
+                      >
+                        {summary}
                       </Text>
                     )}
                     <div className="flex-1" />
                     <Text
-                      type={outputText ? "secondary" : undefined}
-                      className="text-xs cursor-pointer"
+                      type={summary ? "secondary" : undefined}
+                      className="text-xs cursor-pointer shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleStep(i);
@@ -992,8 +1197,46 @@ export function SerenityScreeningPanel() {
                     </Text>
                   </div>
                   {isExpanded && (
-                    outputText
+                    isFailed && s.error
+                      ? <div className="mt-1 text-xs text-red-500 whitespace-pre-wrap break-all">{s.error}</div>
+                      : view.kind === "empty"
                       ? (
+                        <div className="mt-1 text-xs text-gray-400 italic">
+                          {s.status === "completed"
+                            ? t("serenityPanel.stepLogCompletedNoOutput")
+                            : s.status === "running"
+                            ? t("serenityPanel.stepLogRunning")
+                            : t("serenityPanel.stepLogNoDetail")}
+                        </div>
+                      )
+                      : view.table
+                      ? (
+                        <div
+                          className="mt-1 max-h-64 overflow-auto rounded p-1"
+                          style={{
+                            backgroundColor: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                          }}
+                        >
+                          <Table
+                            size="small"
+                            pagination={false}
+                            rowKey={(_, idx) => String(idx ?? 0)}
+                            scroll={{ x: "max-content" }}
+                            dataSource={view.table.rows}
+                            columns={view.table.columns.map((c) => ({
+                              title: FIELD_LABEL_MAP[c] ?? c,
+                              dataIndex: c,
+                              key: c,
+                              ellipsis: true,
+                              render: (v: unknown) => (
+                                <span title={typeof v === "string" ? v : undefined}>{cellText(v)}</span>
+                              ),
+                            }))}
+                          />
+                        </div>
+                      )
+                      : (
                         <pre
                           className="mt-1 max-h-48 overflow-auto rounded p-2 text-xs whitespace-pre-wrap break-all"
                           style={{
@@ -1002,21 +1245,10 @@ export function SerenityScreeningPanel() {
                             color: "rgba(230,230,230,0.9)",
                           }}
                         >
-                        {outputText.length > 2000
-                          ? outputText.slice(0, 2000) + "..."
-                          : outputText}
+                        {view.jsonText.length > 2000
+                          ? view.jsonText.slice(0, 2000) + "..."
+                          : view.jsonText}
                         </pre>
-                      )
-                      : s.error
-                      ? <div className="mt-1 text-xs text-red-500">{s.error}</div>
-                      : (
-                        <div className="mt-1 text-xs text-gray-400 italic">
-                          {s.status === "completed"
-                            ? t("serenityPanel.stepLogCompletedNoOutput")
-                            : s.status === "running"
-                            ? t("serenityPanel.stepLogRunning")
-                            : t("serenityPanel.stepLogNoDetail")}
-                        </div>
                       )
                   )}
                 </div>
@@ -1298,13 +1530,13 @@ export function SerenityScreeningPanel() {
                   setSerenityDeleting(true);
                   try {
                     await invoke("batch_delete_reco_history", { generatedAts: serenitySelected });
-                    message.success(
+                    messageApi.success(
                       t("serenityPanel.serenityHistory.deleteSuccess", { count: serenitySelected.length }),
                     );
                     setSerenityHistory((prev) => prev.filter((r) => !serenitySelected.includes(r.generatedAt)));
                     setSerenitySelected([]);
                   } catch (e) {
-                    message.error(String(e));
+                    messageApi.error(String(e));
                   }
                   setSerenityDeleting(false);
                 }}

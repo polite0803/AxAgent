@@ -109,6 +109,13 @@ pub struct VendorHealthConfig {
     pub degraded_threshold: u32,
     /// 降级后多久恢复尝试（秒）—— 窗口方案下作为降级尝试间隔的兜底
     pub recovery_interval_secs: u64,
+    /// sustained_failure（连接级反爬）降级后的探测间隔（秒）。
+    /// 2026-08-01 新增：此前 sustained 只按硬超时（1800s）恢复，期间首选
+    /// vendor 完全缺席——若健康列表里恰好都是"空实现/无凭据"的 vendor，
+    /// 整条链全空（AxInvest 趋势智选 2026-08-01 全链空实锤）。现在允许
+    /// 每 probe_interval 秒单飞探测一次，成功即经 record_success 自动恢复，
+    /// 失败则刷新 last_failure_at 顺延。兼顾防抖（不会每 30s 窗口白打）。
+    pub probe_interval_secs: u64,
     /// 是否记录 fallback 路径
     pub track_fallback_path: bool,
 }
@@ -120,6 +127,7 @@ impl Default for VendorHealthConfig {
             recovery_interval_secs: 1800, // 兜底恢复间隔 30 分钟（2026-07-31 从 300s 上调：
             // 连接级反爬封锁是持续环境故障，5 分钟太短，
             // 每轮荐股 run 都会先白打首选 vendor 才降级）
+            probe_interval_secs: 120, // sustained 降级探测间隔 2 分钟（2026-08-01 新增）
             track_fallback_path: true,
         }
     }
@@ -270,10 +278,13 @@ impl VendorHealthTracker {
                     match health.status {
                         VendorStatus::Healthy => true,
                         VendorStatus::Degraded => {
-                            // 持续故障（连接级反爬）：只按硬超时恢复，忽略窗口老化
+                            // 持续故障（连接级反爬）：硬超时恢复 + 探测恢复（probe_interval）
                             if health.sustained_failure {
                                 if let Some(last_fail) = health.last_failure_at {
-                                    return now - last_fail >= recovery_ms;
+                                    let probe_ms =
+                                        (self.config.probe_interval_secs * 1000) as i64;
+                                    return now - last_fail >= recovery_ms
+                                        || now - last_fail >= probe_ms;
                                 }
                                 return false;
                             }
@@ -384,10 +395,11 @@ impl VendorHealthTracker {
             match vendors.get(name.as_str()) {
                 Some(h) if h.status == VendorStatus::Healthy => healthy.push(name),
                 Some(h) if h.status == VendorStatus::Degraded => {
-                    // 持续故障（连接级反爬）：只按硬超时恢复，忽略窗口老化
+                    // 持续故障（连接级反爬）：硬超时恢复 + 探测恢复（probe_interval）
                     if h.sustained_failure {
                         if let Some(last_fail) = h.last_failure_at {
-                            if now - last_fail >= recovery_ms {
+                            let probe_ms = (self.config.probe_interval_secs * 1000) as i64;
+                            if now - last_fail >= recovery_ms || now - last_fail >= probe_ms {
                                 recoverable.push(name);
                             }
                         }
@@ -445,6 +457,7 @@ mod tests {
         let config = VendorHealthConfig {
             degraded_threshold: 3,
             recovery_interval_secs: 3600, // 长间隔，验证窗口恢复而非硬超时
+            probe_interval_secs: 3600,    // 长探测间隔，避免探测恢复干扰本测试
             track_fallback_path: true,
         };
         let tracker = VendorHealthTracker::new(config);
@@ -550,6 +563,8 @@ mod tests {
             degraded_threshold: 3,
             // 长恢复间隔，验证持续故障只按硬超时恢复
             recovery_interval_secs: 3600,
+            // 长探测间隔，避免探测恢复干扰本测试
+            probe_interval_secs: 3600,
             track_fallback_path: true,
         };
         let tracker = VendorHealthTracker::new(config);
@@ -578,10 +593,37 @@ mod tests {
         assert_eq!(healthy.len(), 1, "成功后应清除持续故障并恢复");
     }
 
+    /// 2026-08-01: sustained 降级在探测间隔到达后允许回归（首选 vendor 不再长期缺席）
+    #[tokio::test]
+    async fn sustained_failure_recovers_after_probe_interval() {
+        let config = VendorHealthConfig {
+            degraded_threshold: 3,
+            recovery_interval_secs: 3600, // 硬超时很长，验证探测路径而非硬超时
+            probe_interval_secs: 60,      // 探测间隔 60s
+            track_fallback_path: true,
+        };
+        let tracker = VendorHealthTracker::new(config);
+        // 连接级错误 3 次 → 降级 + sustained
+        for _ in 0..3 {
+            tracker.record_failure("blocked", "IncompleteMessage").await;
+        }
+        // 探测间隔未到 → 不恢复
+        let healthy = tracker.get_healthy_vendors(&["blocked".to_string()]).await;
+        assert!(healthy.is_empty(), "探测间隔未到不应恢复");
+        // 把 last_failure_at 拨到 90s 前（模拟探测间隔已过）
+        {
+            let mut vendors = tracker.vendors.write().await;
+            if let Some(h) = vendors.get_mut("blocked") {
+                h.last_failure_at = Some(chrono::Utc::now().timestamp_millis() - 90_000);
+            }
+        }
+        let healthy = tracker.get_healthy_vendors(&["blocked".to_string()]).await;
+        assert_eq!(healthy.len(), 1, "探测间隔过后应允许单飞探测恢复");
+    }
+
     /// 2026-07-31: 普通故障（如解析错误）仍随窗口老化恢复（不破坏原行为）
     #[tokio::test]
-    async fn normal_failure_still_recovers_on_window_aging() {
-        let config = VendorHealthConfig { degraded_threshold: 3, ..Default::default() };
+    async fn normal_failure_still_recovers_on_window_aging() {        let config = VendorHealthConfig { degraded_threshold: 3, ..Default::default() };
         let tracker = VendorHealthTracker::new(config);
         for _ in 0..3 {
             tracker.record_failure("flaky", "parse error").await;

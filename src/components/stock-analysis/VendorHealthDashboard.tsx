@@ -3,6 +3,11 @@
  *
  * 数据来源: get_vendor_health_all 后端命令
  * 覆盖: 在线状态 / 成功率 / 连续失败 / 窗口失败 / 最后错误 / 最后成功时间
+ *
+ * 2026-08-01 修复：原实现只渲染 health_tracker 已记录的 vendor，未被调用的
+ * vendor（ths/baidu_stock/iwencai/neodata/akshare/cninfo/mootdx/sina/xueqiu/
+ * guba/browser_eastmoney/international）完全隐藏——用户只见 1-2 个。
+ * 改为合并已知 vendor 列表（VENDOR_LABELS 全集），未调用的标"未探测"。
  */
 
 import { invoke } from "@/lib/invoke";
@@ -39,18 +44,111 @@ const VENDOR_LABELS: Record<string, string> = {
   international: "国际股票",
 };
 
-/** 状态颜色映射 */
 const STATUS_COLORS: Record<string, string> = {
   healthy: "#22c55e",
   degraded: "#eab308",
   disabled: "#ef4444",
+  untouched: "#6B7280",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   healthy: "正常",
   degraded: "降级",
   disabled: "已禁用",
+  untouched: "未探测",
 };
+
+interface VendorCardProps {
+  name: string;
+  status: "healthy" | "degraded" | "disabled" | "untouched";
+  totalSuccesses?: number;
+  totalFailures?: number;
+  consecutiveFailures?: number;
+  lastError?: string | null;
+  lastSuccessAt?: number | null;
+  lastFailureAt?: number | null;
+  formatTime: (ms: number | null | undefined) => string;
+  t: ReturnType<typeof useTranslation>["t"];
+}
+
+function VendorCard(props: VendorCardProps) {
+  const {
+    name,
+    status,
+    totalSuccesses,
+    totalFailures,
+    consecutiveFailures,
+    lastError,
+    lastSuccessAt,
+    lastFailureAt,
+    formatTime,
+    t,
+  } = props;
+  return (
+    <Tooltip
+      title={status === "untouched"
+        ? (
+          <div className="text-xs">
+            {t("stockAnalysis.settings.vendorUntouchedHint", "本运行周期未被调用，无健康数据")}
+          </div>
+        )
+        : (
+          <div className="text-xs space-y-1">
+            <div>
+              {t("stockAnalysis.settings.vendorTotalSuccess", "总成功")}: {(totalSuccesses ?? 0).toLocaleString()}
+            </div>
+            <div>
+              {t("stockAnalysis.settings.vendorTotalFailures", "总失败")}: {(totalFailures ?? 0).toLocaleString()}
+            </div>
+            <div>{t("stockAnalysis.settings.vendorConsecutiveFailures", "连续失败")}: {consecutiveFailures ?? 0}</div>
+            {lastError && (
+              <div className="text-red-300">{t("stockAnalysis.settings.vendorLastError", "最后错误")}: {lastError}</div>
+            )}
+          </div>
+        )}
+    >
+      <div
+        className="flex items-center justify-between p-2 rounded-md text-xs cursor-default"
+        style={{
+          backgroundColor: status === "healthy"
+            ? "rgba(34,197,94,0.08)"
+            : status === "degraded"
+            ? "rgba(234,179,8,0.08)"
+            : status === "disabled"
+            ? "rgba(239,68,68,0.08)"
+            : "rgba(107,114,128,0.06)",
+        }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: STATUS_COLORS[status] ?? "#6B7280" }}
+          />
+          <span className="text-gray-200 truncate">{name}</span>
+          <Tag
+            className="text-[10px] leading-none px-1 py-0"
+            color={STATUS_COLORS[status] ?? "default"}
+          >
+            {STATUS_LABELS[status] ?? status}
+          </Tag>
+        </div>
+        <div className="text-gray-500 text-[10px] text-right shrink-0 ml-2">
+          {status !== "untouched" && (
+            <>
+              <div>{t("stockAnalysis.settings.vendorLastSuccess", "成功")}: {formatTime(lastSuccessAt ?? null)}</div>
+              {lastFailureAt && (
+                <div className="text-red-400/60">
+                  {t("stockAnalysis.settings.vendorLastFailure", "失败")}: {formatTime(lastFailureAt)}
+                </div>
+              )}
+            </>
+          )}
+          {status === "untouched" && <div className="text-gray-600">-</div>}
+        </div>
+      </div>
+    </Tooltip>
+  );
+}
 
 export function VendorHealthDashboard() {
   const { t } = useTranslation();
@@ -82,8 +180,9 @@ export function VendorHealthDashboard() {
   const healthyCount = data.filter((d) => d.status === "healthy").length;
   const degradedCount = data.filter((d) => d.status === "degraded").length;
   const disabledCount = data.filter((d) => d.status === "disabled").length;
+  const untouchedCount = Object.keys(VENDOR_LABELS).length - data.length;
 
-  const formatTime = (ms: number | null): string => {
+  const formatTime = (ms: number | null | undefined): string => {
     if (!ms) { return "-"; }
     const d = new Date(ms);
     const now = Date.now();
@@ -108,6 +207,7 @@ export function VendorHealthDashboard() {
             <Tag color="green">{healthyCount} 正常</Tag>
             {degradedCount > 0 && <Tag color="orange">{degradedCount} 降级</Tag>}
             {disabledCount > 0 && <Tag color="red">{disabledCount} 禁用</Tag>}
+            {untouchedCount > 0 && <Tag>{untouchedCount} 未探测</Tag>}
           </div>
         </div>
       }
@@ -132,71 +232,35 @@ export function VendorHealthDashboard() {
         ? <div className="text-red-400 text-center py-4 text-sm">{error}</div>
         : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {data.map((vendor) => (
-              <Tooltip
-                key={vendor.name}
-                title={
-                  <div className="text-xs space-y-1">
-                    <div>
-                      {t("stockAnalysis.settings.vendorTotalSuccess", "总成功")}:{" "}
-                      {vendor.totalSuccesses.toLocaleString()}
-                    </div>
-                    <div>
-                      {t("stockAnalysis.settings.vendorTotalFailures", "总失败")}:{" "}
-                      {vendor.totalFailures.toLocaleString()}
-                    </div>
-                    <div>
-                      {t("stockAnalysis.settings.vendorConsecutiveFailures", "连续失败")}: {vendor.consecutiveFailures}
-                    </div>
-                    {vendor.lastError && (
-                      <div className="text-red-300">
-                        {t("stockAnalysis.settings.vendorLastError", "最后错误")}: {vendor.lastError}
-                      </div>
-                    )}
-                  </div>
-                }
-              >
-                <div
-                  className="flex items-center justify-between p-2 rounded-md text-xs cursor-default"
-                  style={{
-                    backgroundColor: vendor.status === "healthy"
-                      ? "rgba(34,197,94,0.08)"
-                      : vendor.status === "degraded"
-                      ? "rgba(234,179,8,0.08)"
-                      : "rgba(239,68,68,0.08)",
-                  }}
-                >
-                  {/* 左侧：名称 + 状态 */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: STATUS_COLORS[vendor.status] ?? "#6B7280" }}
-                    />
-                    <span className="text-gray-200 truncate">
-                      {VENDOR_LABELS[vendor.name] ?? vendor.name}
-                    </span>
-                    <Tag
-                      className="text-[10px] leading-none px-1 py-0"
-                      color={STATUS_COLORS[vendor.status] ?? "default"}
-                    >
-                      {STATUS_LABELS[vendor.status] ?? vendor.status}
-                    </Tag>
-                  </div>
-
-                  {/* 右侧：时间信息 */}
-                  <div className="text-gray-500 text-[10px] text-right shrink-0 ml-2">
-                    <div>
-                      {t("stockAnalysis.settings.vendorLastSuccess", "成功")}: {formatTime(vendor.lastSuccessAt)}
-                    </div>
-                    {vendor.lastFailureAt && (
-                      <div className="text-red-400/60">
-                        {t("stockAnalysis.settings.vendorLastFailure", "失败")}: {formatTime(vendor.lastFailureAt)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Tooltip>
-            ))}
+            {Object.entries(VENDOR_LABELS).map(([vendorName, label]) => {
+              const vendor = data.find((d) => d.name === vendorName);
+              if (vendor) {
+                return (
+                  <VendorCard
+                    key={vendorName}
+                    name={label}
+                    status={vendor.status}
+                    totalSuccesses={vendor.totalSuccesses}
+                    totalFailures={vendor.totalFailures}
+                    consecutiveFailures={vendor.consecutiveFailures}
+                    lastError={vendor.lastError}
+                    lastSuccessAt={vendor.lastSuccessAt}
+                    lastFailureAt={vendor.lastFailureAt}
+                    formatTime={formatTime}
+                    t={t}
+                  />
+                );
+              }
+              return (
+                <VendorCard
+                  key={vendorName}
+                  name={label}
+                  status="untouched"
+                  formatTime={formatTime}
+                  t={t}
+                />
+              );
+            })}
           </div>
         )}
     </Card>

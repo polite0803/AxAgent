@@ -34,6 +34,14 @@ pub async fn list_reco_history(
     // 运行时报错被前端 catch 静默 → 历史列表仍为空）。一次执行只对应一个 period，
     // 加 period 到 GROUP BY 不会拆分分组。
     let is_pg = db.get_database_backend() == sea_orm::DbBackend::Postgres;
+    tracing::info!(
+        "[list_reco_history] backend={:?} style_filter={:?} exclude_styles={:?} limit={:?} offset={:?}",
+        db.get_database_backend(),
+        style_filter,
+        exclude_styles,
+        limit,
+        offset
+    );
 
     let mut sql = if is_pg {
         String::from(
@@ -53,17 +61,21 @@ pub async fn list_reco_history(
     // style_filter 支持单个或多个（逗号分隔）——趋势智选面板同时认
     // 'serenity'（serenity-screening 工作流产物）和 'bottleneck'
     // （智能荐股内置 SerenityStrategy 产物，业务上都是"趋势智选"）。
+    // 注意：占位符编号必须用"已 push 的 values 数量"作基准（base），
+    // 不能边循环边用 values.len()——values 在循环后才 push，
+    // 旧实现生成 ($1,$1) 导致只匹配第一个风格（2026-08-01 实锤修复）。
     if let Some(ref style) = style_filter {
         let styles: Vec<String> =
             style.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if !styles.is_empty() {
+            let base = values.len();
             sql.push_str(" AND style IN (");
             for (i, _) in styles.iter().enumerate() {
                 if i > 0 {
                     sql.push(',');
                 }
                 if is_pg {
-                    sql.push_str(&format!("${}", values.len() + 1));
+                    sql.push_str(&format!("${}", base + i + 1));
                 } else {
                     sql.push('?');
                 }
@@ -78,17 +90,19 @@ pub async fn list_reco_history(
     // exclude_styles 同样支持逗号分隔多值（NOT IN）——
     // 智能荐股历史用 exclude_styles="serenity,bottleneck" 排除趋势智选专属产出，
     // 与趋势智选面板的 style_filter="serenity,bottleneck" 互为镜像，两个面板不重复。
+    // 占位符基准同样用已 push 的 values.len()（修复 ($1,$1) bug）。
     if let Some(ref style) = exclude_styles {
         let styles: Vec<String> =
             style.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
         if !styles.is_empty() {
+            let base = values.len();
             sql.push_str(" AND style NOT IN (");
             for (i, _) in styles.iter().enumerate() {
                 if i > 0 {
                     sql.push(',');
                 }
                 if is_pg {
-                    sql.push_str(&format!("${}", values.len() + 1));
+                    sql.push_str(&format!("${}", base + i + 1));
                 } else {
                     sql.push('?');
                 }
@@ -119,6 +133,7 @@ pub async fn list_reco_history(
         values.push((o as i64).into());
     }
 
+    let values_count = values.len();
     let backend = if is_pg {
         sea_orm::DbBackend::Postgres
     } else {
@@ -140,6 +155,13 @@ pub async fn list_reco_history(
             created_at: row.try_get::<String>("", "created_at").unwrap_or_default(),
         })
         .collect::<Vec<_>>();
+
+    tracing::info!(
+        "[list_reco_history] sql={:?} values_count={} items={}",
+        sql,
+        values_count,
+        items.len()
+    );
 
     Ok(items)
 }

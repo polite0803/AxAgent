@@ -14,7 +14,7 @@ import type {
   StyleKey,
 } from "@/types/stock-analysis";
 
-import { Alert, Button, Card, Checkbox, Collapse, Empty, message, Modal, Spin, Tabs, Tag, Tooltip } from "antd";
+import { Alert, App, Button, Card, Checkbox, Collapse, Empty, Modal, Spin, Tabs, Tag, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -797,6 +797,7 @@ function PickRow(
 
 /** 自动校准按钮：预览 → 确认 → 应用 */
 function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
+  const { message: messageApi } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [diff, setDiff] = useState<
@@ -828,7 +829,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
       setChecked(result.weights.map((w) => w.strategyId));
       setModalOpen(true);
     } catch (e) {
-      message.error(t("stockAnalysis.recommendation.calibratePreviewFailed") + String(e));
+      messageApi.error(t("stockAnalysis.recommendation.calibratePreviewFailed") + String(e));
     } finally {
       setLoading(false);
     }
@@ -839,7 +840,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
     if (applying) { return; }
     const selected = diff.filter((d) => checked.includes(d.strategyId));
     if (selected.length === 0) {
-      message.warning(t("stockAnalysis.stock-analysis_RecommendationPanel.002"));
+      messageApi.warning(t("stockAnalysis.stock-analysis_RecommendationPanel.002"));
       return;
     }
     // Bug 8 修复: 防御 weight 为 NaN / undefined,避免后端
@@ -854,7 +855,7 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
           && Number.isFinite(w.weight),
       );
     if (validPayload.length === 0) {
-      message.error(t("stockAnalysis.stock-analysis_RecommendationPanel.003"));
+      messageApi.error(t("stockAnalysis.stock-analysis_RecommendationPanel.003"));
       return;
     }
     setApplying(true);
@@ -862,13 +863,13 @@ function AutoCalibrateButton({ t }: { t: (key: string) => string }) {
       const result = await invoke<{ applied: number }>("apply_reco_weights", {
         weights: validPayload,
       });
-      message.success(t("stockAnalysis.recommendation.calibrateApplied") + " " + result.applied);
+      messageApi.success(t("stockAnalysis.recommendation.calibrateApplied") + " " + result.applied);
       setModalOpen(false);
     } catch (e) {
       // 后端在 weights=null 时返回 "请先调用 preview...",
       // 这里把后端字符串错误直接抛到 toast 之外加 prefix,便于排查
       const msg = typeof e === "string" ? e : e instanceof Error ? e.message : String(e);
-      message.error(`${t("stockAnalysis.recommendation.calibrateApplyFailed")}: ${msg}`);
+      messageApi.error(`${t("stockAnalysis.recommendation.calibrateApplyFailed")}: ${msg}`);
     } finally {
       setApplying(false);
     }
