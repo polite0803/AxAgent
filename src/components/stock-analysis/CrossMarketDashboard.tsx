@@ -17,7 +17,7 @@
 
 import { KLineChart } from "@/components/stock-analysis/KLineChart";
 import { useCrossMarketStore } from "@/stores";
-import { Button, Empty, Input, message, Select, Space, Statistic, Table, Tag, Typography } from "antd";
+import { App, Button, Empty, Input, Select, Space, Statistic, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -38,6 +38,7 @@ const DEFAULT_BENCHMARKS = ["SPX", "IXIC", "HSI", "000001.SH", "399006"];
 const DEFAULT_FOREX = ["USD/CNY", "HKD/CNY"];
 
 export function CrossMarketDashboard() {
+  const { message: messageApi } = App.useApp();
   const { t } = useTranslation();
   const {
     intlQuotes,
@@ -70,7 +71,7 @@ export function CrossMarketDashboard() {
   // 错误统一 toast
   useEffect(() => {
     if (error) {
-      message.error(error);
+      messageApi.error(error);
       clearError();
     }
   }, [error, clearError]);
@@ -78,12 +79,12 @@ export function CrossMarketDashboard() {
   const handleAddCode = async () => {
     const code = codeInput.trim();
     if (!code) {
-      message.warning(t("crossMarket.codeRequired"));
+      messageApi.warning(t("crossMarket.codeRequired"));
       return;
     }
     const q = await fetchIntlQuote(code, true);
     if (q) {
-      message.success(t("crossMarket.quoteLoaded", { code }));
+      messageApi.success(t("crossMarket.quoteLoaded", { code }));
       setActiveIntlCode(code);
       await fetchIntlKline(code, "daily", 120);
     }

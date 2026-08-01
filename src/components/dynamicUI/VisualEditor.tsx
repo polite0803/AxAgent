@@ -55,7 +55,7 @@ import {
   SnippetsOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
-import { Button, Collapse, Divider, Empty, Input, message, Select, Switch, Tag, Tooltip, Upload } from "antd";
+import { App, Button, Collapse, Divider, Empty, Input, Select, Switch, Tag, Tooltip, Upload } from "antd";
 import type { UploadProps } from "antd";
 import type { CollapseProps } from "antd/es/collapse";
 import * as React from "react";
@@ -2654,6 +2654,7 @@ const CATEGORY_ICON_MAP_BY_TYPE: Partial<Record<DynamicComponentType, string>> =
 
 export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: VisualEditorProps) {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const editorRef = useRef<HTMLDivElement>(null);
 
   // 内部 schema（启用持久化时优先从 localStorage 读取，否则用 propSchema）
@@ -2935,7 +2936,7 @@ export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: V
   const handleCopy = useCallback(() => {
     if (!selectedNode || isRootSelected) { return; }
     setClipboard(cloneSchema(selectedNode));
-    message.success(t("visualEditor.toolbar.copied"));
+    messageApi.success(t("visualEditor.toolbar.copied"));
   }, [selectedNode, isRootSelected, t]);
 
   const handleCut = useCallback(() => {
@@ -2943,7 +2944,7 @@ export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: V
     setClipboard(cloneSchema(selectedNode));
     commit((prev) => removeNodeById(prev, selectedId));
     setSelectedId(null);
-    message.success(t("visualEditor.toolbar.cutDone"));
+    messageApi.success(t("visualEditor.toolbar.cutDone"));
   }, [selectedNode, isRootSelected, selectedId, commit, t]);
 
   const handlePaste = useCallback(() => {
@@ -2964,7 +2965,7 @@ export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: V
     });
     // 选中新粘贴的根节点，便于继续操作
     setSelectedId(newSubtree.id);
-    message.success(t("visualEditor.toolbar.pasted"));
+    messageApi.success(t("visualEditor.toolbar.pasted"));
   }, [clipboard, selectedId, commit, t]);
 
   // ── 导入 / 导出 JSON ──
@@ -2979,7 +2980,7 @@ export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: V
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    message.success(t("visualEditor.toolbar.exported"));
+    messageApi.success(t("visualEditor.toolbar.exported"));
   }, [internalSchema, t]);
 
   const handleImport = useCallback((file: File) => {
@@ -2990,28 +2991,28 @@ export function VisualEditor({ schema: propSchema, onChange, persistenceKey }: V
         const parsed = JSON.parse(text) as UISchema;
         // 基础校验
         if (!parsed.type || !parsed.id || !parsed.version) {
-          message.error(t("visualEditor.toolbar.invalidJson"));
+          messageApi.error(t("visualEditor.toolbar.invalidJson"));
           return;
         }
         commit(() => parsed);
         setSelectedId(null);
-        message.success(t("visualEditor.toolbar.imported"));
+        messageApi.success(t("visualEditor.toolbar.imported"));
       } catch {
-        message.error(t("visualEditor.toolbar.invalidJson"));
+        messageApi.error(t("visualEditor.toolbar.invalidJson"));
       }
     };
     reader.onerror = () => {
-      message.error(t("visualEditor.toolbar.invalidJson"));
+      messageApi.error(t("visualEditor.toolbar.invalidJson"));
     };
     reader.readAsText(file);
   }, [commit, t]);
 
   // ── 事件预览测试 ──
-  // 在预览模式下点击组件触发 action 时，通过 message.info 展示触发的 action 详情
+  // 在预览模式下点击组件触发 action 时，通过 messageApi.info 展示触发的 action 详情
   // 让用户验证事件绑定是否正确，无需发布即可调试
   const handlePreviewAction = useCallback((action: DynamicAction) => {
     const detail = JSON.stringify(action.config, null, 2);
-    message.info({
+    messageApi.info({
       content: `${t("visualEditor.preview.actionTriggered")}: ${action.type}\n${detail}`,
       duration: 3,
     });

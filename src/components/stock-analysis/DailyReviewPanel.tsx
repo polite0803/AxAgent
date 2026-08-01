@@ -1,7 +1,8 @@
+import { List } from "@/components/common/AntdList";
 import { invoke } from "@/lib/invoke";
 import { useStockAnalysisStore } from "@/stores";
 import { ArrowRightOutlined, HistoryOutlined } from "@ant-design/icons";
-import { Button, Card, List, Spin, Tag, Tooltip } from "antd";
+import { Button, Card, Spin, Tag, Tooltip } from "antd";
 import { RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

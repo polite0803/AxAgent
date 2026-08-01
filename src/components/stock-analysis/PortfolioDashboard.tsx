@@ -1,7 +1,7 @@
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { ScheduledAnalysisPanel } from "@/components/stock-analysis/ScheduledAnalysisPanel";
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Col, message, Modal, Row, Spin, Statistic, Table, Tabs, Tag } from "antd";
+import { App, Button, Card, Col, Modal, Row, Spin, Statistic, Table, Tabs, Tag } from "antd";
 import { BarChart3, Calendar, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Upload, Wallet } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,6 +66,7 @@ export function PortfolioDashboard() {
 function HoldingsTab() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { message: messageApi } = App.useApp();
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -107,10 +108,10 @@ function HoldingsTab() {
   const handleDelete = async (id: string) => {
     try {
       await invoke("remove_portfolio_holding", { id });
-      message.success(t("common.deleted"));
+      messageApi.success(t("common.deleted"));
       loadHoldings();
     } catch {
-      message.error(t("common.error"));
+      messageApi.error(t("common.error"));
     }
   };
 
@@ -141,10 +142,10 @@ function HoldingsTab() {
           }
         }
         if (failed.length === 0) {
-          message.success(t("portfolio.importSuccess", { count: ok.length }));
+          messageApi.success(t("portfolio.importSuccess", { count: ok.length }));
         } else {
           // 部分失败时给出明细，让用户知道哪些成功、哪些失败
-          message.warning(
+          messageApi.warning(
             t("stockAnalysis.portfolio.importPartial", { ok: ok.length, failed: failed.length }),
           );
           console.warn("[PortfolioDashboard] VLM 导入部分失败:", failed);
@@ -153,10 +154,10 @@ function HoldingsTab() {
         setVlmRaw("");
         loadHoldings();
       } else {
-        message.error(t("portfolio.importFailed"));
+        messageApi.error(t("portfolio.importFailed"));
       }
     } catch (e) {
-      message.error(`${t("common.error")}: ${e}`);
+      messageApi.error(`${t("common.error")}: ${e}`);
     }
     setImportLoading(false);
   };
@@ -186,12 +187,12 @@ function HoldingsTab() {
           }
         }
       }
-      message.success(t("portfolio.importSuccess", { count }));
+      messageApi.success(t("portfolio.importSuccess", { count }));
       setImportModalOpen(false);
       setImportText("");
       loadHoldings();
     } catch (e) {
-      message.error(`${t("common.error")}: ${e}`);
+      messageApi.error(`${t("common.error")}: ${e}`);
     }
     setImportLoading(false);
   };

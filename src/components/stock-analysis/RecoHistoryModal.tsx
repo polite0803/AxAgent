@@ -1,6 +1,7 @@
+import { List } from "@/components/common/AntdList";
 import { invoke } from "@/lib/invoke";
 import { useStockAnalysisStore } from "@/stores/feature/stockAnalysisStore";
-import { Button, Card, Checkbox, Collapse, Empty, List, message, Modal, Table, Tag, Typography } from "antd";
+import { App, Button, Card, Checkbox, Collapse, Empty, Modal, Table, Tag, Typography } from "antd";
 const { Text } = Typography;
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,6 +46,7 @@ const STYLE_COLOR: Record<string, string> = {
 
 export function RecoHistoryModal() {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const startAnalysis = useStockAnalysisStore((s) => s.startAnalysis);
 
   // ── 历史列表 ──
@@ -150,13 +152,13 @@ export function RecoHistoryModal() {
                   setDeleting(true);
                   try {
                     await invoke("batch_delete_reco_history", { generatedAts: selected });
-                    message.success(
+                    messageApi.success(
                       t("stockAnalysis.recommendation.recoHistory.deleteSuccess", { count: selected.length }),
                     );
                     setData((prev) => prev.filter((r) => !selected.includes(r.generatedAt)));
                     setSelected([]);
                   } catch (e) {
-                    message.error(String(e));
+                    messageApi.error(String(e));
                   }
                   setDeleting(false);
                 }}

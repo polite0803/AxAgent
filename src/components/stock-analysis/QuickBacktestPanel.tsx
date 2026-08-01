@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Col, InputNumber, message, Row, Spin, Statistic, Table, Tag } from "antd";
+import { App, Button, Card, Col, InputNumber, Row, Spin, Statistic, Table, Tag } from "antd";
 import { BarChart3, Clock, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,6 +28,7 @@ interface QuickBacktestResult {
 /** 快速回测面板 — 借鉴 TradingAgents 采样+持有期模式 */
 export function QuickBacktestPanel() {
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
   const [stockCode, setStockCode] = useState("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -37,8 +38,8 @@ export function QuickBacktestPanel() {
   const [result, setResult] = useState<QuickBacktestResult | null>(null);
 
   const handleRun = async () => {
-    if (!stockCode.trim()) { return message.warning(t("stockAnalysis.searchPlaceholder")); }
-    if (!startDate || !endDate) { return message.warning(t("common.required")); }
+    if (!stockCode.trim()) { return messageApi.warning(t("stockAnalysis.searchPlaceholder")); }
+    if (!startDate || !endDate) { return messageApi.warning(t("common.required")); }
 
     setLoading(true);
     setResult(null);
@@ -55,12 +56,12 @@ export function QuickBacktestPanel() {
       });
       setResult(res);
       if (res.totalSamples === 0) {
-        message.info(t("stockAnalysis.backtest.noData"));
+        messageApi.info(t("stockAnalysis.backtest.noData"));
       } else {
-        message.success(t("stockAnalysis.backtest.completed", { count: res.totalSamples }));
+        messageApi.success(t("stockAnalysis.backtest.completed", { count: res.totalSamples }));
       }
     } catch (e) {
-      message.error(`${t("common.error")}: ${e}`);
+      messageApi.error(`${t("common.error")}: ${e}`);
     }
     setLoading(false);
   };

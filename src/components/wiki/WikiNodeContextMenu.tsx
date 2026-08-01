@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { CopyOutlined, DeleteOutlined } from "@ant-design/icons";
-import { Divider, message, Popconfirm, theme, Typography } from "antd";
+import { App, Divider, Popconfirm, theme, Typography } from "antd";
 import { Focus, GitGraph, Link2, PenLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -34,6 +34,7 @@ export function WikiNodeContextMenu({
 }: WikiNodeContextMenuProps) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
 
   if (!visible) {
     return null;
@@ -181,13 +182,13 @@ export function WikiNodeContextMenu({
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           onClick={() => {
             navigator.clipboard.writeText(nodeTitle).catch(() => {});
-            message.success(t("wiki.copied"));
+            messageApi.success(t("wiki.copied"));
             onClose();
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               navigator.clipboard.writeText(nodeTitle).catch(() => {});
-              message.success(t("wiki.copied"));
+              messageApi.success(t("wiki.copied"));
               onClose();
             }
           }}

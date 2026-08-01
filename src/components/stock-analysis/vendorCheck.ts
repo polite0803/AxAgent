@@ -1,5 +1,5 @@
 import { invoke } from "@/lib/invoke";
-import { message } from "antd";
+import { message } from "@/lib/toast";
 import i18next from "i18next";
 
 /** 面板 → 必需 vendor 列表（前端 UI 直接使用）*/
