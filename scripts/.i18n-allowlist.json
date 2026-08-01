@@ -1,8 +1,8 @@
 {
   "version": "2",
-  "generated": "2026-07-26",
-  "total_entries": 420,
-  "total_files": 420,
+  "generated": "2026-07-31",
+  "total_entries": 421,
+  "total_files": 421,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -240,7 +240,7 @@
     },
     {
       "file": "src/components/chat/DiffViewer.tsx",
-      "lines": "117,118",
+      "lines": "117,118,132",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -870,7 +870,7 @@
     },
     {
       "file": "src/components/shared/MonacoEditor.tsx",
-      "lines": "79,80",
+      "lines": "79,80,84",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -1970,6 +1970,12 @@
       "file": "src/pages/SkillsPage.tsx",
       "lines": "596,816,821,874",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/WikiEditorPage.tsx",
+      "lines": "231",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {

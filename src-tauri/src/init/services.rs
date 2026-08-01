@@ -1902,9 +1902,47 @@ fn start_cron_scheduler(state: &AppState) {
 
     let work_engine = state.work_engine.clone();
     let cron_store = state.cron_job_store.clone();
+    let sync_db = state.harness.db().clone();
     let mut executor = CronExecutor::new();
     executor.set_handler(move |job| {
-        if let Some(ref wf_id) = job.workflow_id {
+        // 知识源定时刷新：task_type = knowledge_source_fetch_all
+        if job.task_type.as_deref() == Some("knowledge_source_fetch_all") {
+            let store = cron_store.clone();
+            let db = sync_db.clone();
+            let job_id = job.id.clone();
+            let job_name = job.name.clone();
+            let recurring = job.recurring;
+            tokio::task::spawn(async move {
+                let started = axagent_runtime_core::cron_job::now_millis();
+                let results =
+                    crate::commands::knowledge_source::run_knowledge_source_sync(&db).await;
+                let errors = results.iter().filter(|r| r.action == "error").count();
+                let ok = results.len().saturating_sub(errors);
+                let result = axagent_runtime_core::TaskRunResult {
+                    success: errors == 0,
+                    output: Some(format!(
+                        "知识源同步完成: {} 成功, {} 失败, 共 {} 源",
+                        ok,
+                        errors,
+                        results.len()
+                    )),
+                    error: (errors > 0).then(|| format!("{errors} 个知识源抓取失败")).or(None),
+                    duration_ms: (axagent_runtime_core::cron_job::now_millis() - started) as u64,
+                    executed_at: started,
+                };
+                tracing::info!(
+                    "[CronScheduler] 知识源刷新任务 '{}' 完成: {:?}",
+                    job_name,
+                    result.output
+                );
+                store.record_run(&job_id, result).await;
+                if !recurring {
+                    let _ = store
+                        .set_status(&job_id, axagent_runtime_core::CronJobStatus::Disabled)
+                        .await;
+                }
+            });
+        } else if let Some(ref wf_id) = job.workflow_id {
             let engine = work_engine.clone();
             let store = cron_store.clone();
             let wf_id = wf_id.clone();

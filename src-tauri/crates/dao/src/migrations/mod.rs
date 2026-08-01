@@ -37,9 +37,10 @@ pub mod v110_fix_knowledge_json_columns;
 pub mod v111_retrieval_hits_feedback;
 pub mod v112_feedback_data_lake;
 pub mod v113_unified_knowledge_graph;
+pub mod v114_wiki_sources_schedule;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 113;
+pub const CURRENT_VERSION: i32 = 114;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -141,6 +142,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 113,
         description: "v113_unified_knowledge_graph: 扩展 knowledge_entities/knowledge_relations 表支持多源节点（wiki note/memory item/KB entity/Obsidian note）",
         up: |db| Box::pin(v113_unified_knowledge_graph::up(db)),
+    },
+    Migration {
+        version: 114,
+        description: "v114_wiki_sources_schedule: wiki_sources 新增 schedule_cron/last_fetched_at/status 字段，支撑知识源定时刷新与状态管理",
+        up: |db| Box::pin(v114_wiki_sources_schedule::up(db)),
     },
 ];
 
@@ -416,7 +422,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有 11 行（v100 + ... + v109 + v110）
+        // schema_version 表应有与 CURRENT_VERSION 对齐的行数（v100..v114）
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -427,8 +433,10 @@ mod tests {
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
         assert_eq!(
-            cnt, 12,
-            "schema_version should have 12 rows (v100 + v101 + v102 + v103 + v104 + v105 + v106 + v107 + v108 + v109 + v110 + v111)"
+            cnt,
+            CURRENT_VERSION - 99,
+            "schema_version should have {} rows (v100 + v101 + ... + v114)",
+            CURRENT_VERSION - 99
         );
     }
 

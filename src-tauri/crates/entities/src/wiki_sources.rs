@@ -16,6 +16,9 @@ pub struct Model {
     pub size_bytes: i64,
     pub content_hash: String,
     pub metadata_json: Option<Json>,
+    pub schedule_cron: Option<String>,
+    pub last_fetched_at: Option<i64>,
+    pub status: String,
     pub created_at: i64,
     pub updated_at: i64,
 }

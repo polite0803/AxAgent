@@ -40,6 +40,7 @@ import {
   Layers,
   Network,
   Plus,
+  Rss,
   Search,
   Settings,
   Sparkles,
@@ -51,6 +52,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { KnowledgeBaseDocuments } from "./KnowledgeBaseDocuments";
+import { KnowledgeSourceTab } from "./KnowledgeSourceTab";
 
 const { Text, Paragraph } = Typography;
 
@@ -1373,6 +1375,15 @@ function SourceManager() {
         </span>
       ),
     },
+    {
+      key: "sources",
+      label: (
+        <span className="flex items-center gap-1">
+          <Rss size={14} />
+          {t("sourceManager.tab.sources")}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -1427,6 +1438,7 @@ function SourceManager() {
           />
         )}
         {activeTab === "wiki" && <WikiTab onViewConfig={setConfigSource} onCreate={() => setCreateOpen(true)} />}
+        {activeTab === "sources" && <KnowledgeSourceTab />}
       </div>
 
       <SourceConfigModal
