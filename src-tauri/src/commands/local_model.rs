@@ -663,3 +663,395 @@ pub async fn local_model_logs(
     let tail: Vec<&str> = lines.iter().rev().take(max).rev().copied().collect();
     Ok(tail.join("\n"))
 }
+
+// ── 模型下载 ───────────────────────────────────────────────────────
+//
+// 下载目录可通过 UI 配置（settings `local_llama.download_dir`，默认
+// `~/.axagent/models`）；模型列表即扫描该目录下的 *.gguf 文件，
+// 与 llama.cpp 供应商的模型列表（refresh_models）打通。
+
+use axagent_search::model_downloader::{ModelDownloader, PresetModel, PresetModelType};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::LazyLock;
+use std::sync::Mutex as StdMutex;
+
+/// 下载任务状态表（filename → 任务）
+static DOWNLOAD_TASKS: LazyLock<StdMutex<HashMap<String, DownloadTaskInfo>>> =
+    LazyLock::new(|| StdMutex::new(HashMap::new()));
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadTaskInfo {
+    pub filename: String,
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
+    /// "downloading" | "done" | "failed"
+    pub status: String,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadRequest {
+    pub filename: String,
+    pub hf_repo: Option<String>,
+    pub direct_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalFileModel {
+    pub filename: String,
+    pub size_bytes: u64,
+    pub modified_at: Option<i64>,
+    /// "chat" | "embedding" | "voice"（detect_model_type 判定）
+    pub model_type: String,
+    /// 存在 .download 临时文件（正在下载）
+    pub is_downloading: bool,
+    pub download_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetModelDto {
+    pub filename: String,
+    pub hf_repo: Option<String>,
+    pub direct_url: Option<String>,
+    pub display_name: String,
+    pub size_bytes: u64,
+    pub model_type: String,
+    pub is_downloaded: bool,
+}
+
+/// 校验文件名安全（禁止路径分隔符与穿越）。
+fn validate_filename(filename: &str) -> Result<(), String> {
+    if filename.is_empty()
+        || filename.contains('/')
+        || filename.contains('\\')
+        || filename.contains("..")
+        || filename.contains(':')
+    {
+        return Err(ErrorResponse::err_with_detail(
+            lm_err::INVALID_CONFIG,
+            format!("非法文件名: {filename}"),
+        ));
+    }
+    Ok(())
+}
+
+/// 读取配置的下载目录（settings 持久化，默认 ~/.axagent/models）。
+pub(crate) async fn download_dir(db: &axagent_harness::DatabaseConnection) -> PathBuf {
+    match axagent_dao::repo::settings::get_setting(db, &format!("{SETTING_PREFIX}.download_dir"))
+        .await
+        .ok()
+        .flatten()
+        .filter(|s| !s.is_empty())
+    {
+        Some(dir) => PathBuf::from(dir),
+        None => {
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("models")
+        },
+    }
+}
+
+/// 读取配置的 HF 端点（默认 huggingface.co，可配 hf-mirror.com 等国内镜像）。
+async fn hf_endpoint(db: &axagent_harness::DatabaseConnection) -> String {
+    axagent_dao::repo::settings::get_setting(db, &format!("{SETTING_PREFIX}.hf_endpoint"))
+        .await
+        .ok()
+        .flatten()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "https://huggingface.co".to_string())
+}
+
+/// 扫描下载目录中的 *.gguf 文件（排除 .download 临时文件）。
+pub fn scan_gguf_files(dir: &Path) -> Vec<LocalFileModel> {
+    let mut out = Vec::new();
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return out,
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.to_ascii_lowercase().ends_with(".gguf") {
+            continue;
+        }
+        let meta = entry.metadata().ok();
+        let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+        let modified = meta.and_then(|m| m.modified().ok()).map(|t| {
+            t.duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+        });
+        let tmp_name = format!("{name}.download");
+        let tmp_size = dir.join(&tmp_name).metadata().map(|m| m.len()).unwrap_or(0);
+        let model_type = axagent_harness::types::provider_model::detect_model_type(&name);
+        out.push(LocalFileModel {
+            filename: name,
+            size_bytes: size,
+            modified_at: modified,
+            model_type: format!("{model_type}").to_lowercase(),
+            is_downloading: tmp_size > 0,
+            download_bytes: tmp_size,
+        });
+    }
+    out.sort_by(|a, b| a.filename.cmp(&b.filename));
+    out
+}
+
+/// 下载目录中的 GGUF 文件 → Provider 模型列表（供 refresh_models 使用）。
+pub fn scan_gguf_models(provider_id: &str, dir: &Path) -> Vec<axagent_harness::types::Model> {
+    scan_gguf_files(dir)
+        .into_iter()
+        .filter(|f| !f.is_downloading)
+        .map(|f| {
+            let model_type = axagent_harness::types::provider_model::detect_model_type(&f.filename);
+            let capabilities = match model_type {
+                axagent_harness::types::ModelType::Chat => {
+                    vec![axagent_harness::types::ModelCapability::TextChat]
+                },
+                axagent_harness::types::ModelType::Embedding => vec![],
+                axagent_harness::types::ModelType::Voice => {
+                    vec![axagent_harness::types::ModelCapability::RealtimeVoice]
+                },
+            };
+            axagent_harness::types::Model {
+                provider_id: provider_id.to_string(),
+                model_id: f.filename.clone(),
+                name: f.filename.clone(),
+                group_name: None,
+                model_type,
+                capabilities,
+                max_tokens: axagent_kit::model_knowledge::get_model_context_window(&f.filename),
+                max_output_tokens: None,
+                enabled: true,
+                param_overrides: None,
+                input_price_per_mtok: None,
+                output_price_per_mtok: None,
+            }
+        })
+        .collect()
+}
+
+/// 获取当前下载目录。
+#[tauri::command]
+pub async fn local_model_get_download_dir(state: State<'_, AppState>) -> Result<String, String> {
+    Ok(download_dir(state.harness.db()).await.to_string_lossy().to_string())
+}
+
+/// 设置下载目录（自动创建）。
+#[tauri::command]
+pub async fn local_model_set_download_dir(
+    state: State<'_, AppState>,
+    dir: String,
+) -> Result<String, String> {
+    let path = PathBuf::from(dir.trim());
+    if path.as_os_str().is_empty() {
+        return Err(ErrorResponse::err(lm_err::INVALID_CONFIG));
+    }
+    std::fs::create_dir_all(&path).map_err(|e| {
+        ErrorResponse::err_with_detail(lm_err::INVALID_CONFIG, format!("创建目录失败: {e}"))
+    })?;
+    axagent_dao::repo::settings::set_setting(
+        state.harness.db(),
+        &format!("{SETTING_PREFIX}.download_dir"),
+        &path.to_string_lossy(),
+    )
+    .await
+    .map_err(|e| command_error(e, lm_err::INVALID_CONFIG))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// 获取 HF 镜像端点。
+#[tauri::command]
+pub async fn local_model_get_hf_endpoint(state: State<'_, AppState>) -> Result<String, String> {
+    Ok(hf_endpoint(state.harness.db()).await)
+}
+
+/// 设置 HF 镜像端点（空值恢复默认 huggingface.co）。
+#[tauri::command]
+pub async fn local_model_set_hf_endpoint(
+    state: State<'_, AppState>,
+    endpoint: String,
+) -> Result<String, String> {
+    let ep = endpoint.trim().trim_end_matches('/').to_string();
+    let store = if ep.is_empty() || ep == "https://huggingface.co" {
+        String::new()
+    } else {
+        ep.clone()
+    };
+    axagent_dao::repo::settings::set_setting(
+        state.harness.db(),
+        &format!("{SETTING_PREFIX}.hf_endpoint"),
+        &store,
+    )
+    .await
+    .map_err(|e| command_error(e, lm_err::INVALID_CONFIG))?;
+    Ok(if store.is_empty() {
+        "https://huggingface.co".to_string()
+    } else {
+        ep
+    })
+}
+
+/// 列出下载目录中的本地模型（含下载中状态）。
+#[tauri::command]
+pub async fn local_model_list_local_models(
+    state: State<'_, AppState>,
+) -> Result<Vec<LocalFileModel>, String> {
+    let dir = download_dir(state.harness.db()).await;
+    Ok(scan_gguf_files(&dir))
+}
+
+/// 推荐模型清单（含已下载标记）。
+#[tauri::command]
+pub async fn local_model_get_presets(
+    state: State<'_, AppState>,
+) -> Result<Vec<PresetModelDto>, String> {
+    let dir = download_dir(state.harness.db()).await;
+    Ok(ModelDownloader::preset_models()
+        .into_iter()
+        .map(|p: PresetModel| PresetModelDto {
+            filename: p.filename.clone(),
+            hf_repo: p.hf_repo.clone(),
+            direct_url: p.direct_url.clone(),
+            display_name: p.display_name.clone(),
+            size_bytes: p.size_bytes,
+            model_type: match p.model_type {
+                PresetModelType::Reranker => "reranker".to_string(),
+                PresetModelType::Judge => "judge".to_string(),
+                PresetModelType::SparseEncoder => "sparse".to_string(),
+                PresetModelType::Embedding => "embedding".to_string(),
+            },
+            is_downloaded: dir.join(&p.filename).exists(),
+        })
+        .collect())
+}
+
+/// 发起模型下载（后台任务 + 进度可查询）。
+#[tauri::command]
+pub async fn local_model_download(
+    state: State<'_, AppState>,
+    request: DownloadRequest,
+) -> Result<DownloadTaskInfo, String> {
+    let db = state.harness.db();
+    validate_filename(&request.filename).map_err(|e| e)?;
+    if request.hf_repo.as_deref().unwrap_or("").is_empty()
+        && request.direct_url.as_deref().unwrap_or("").is_empty()
+    {
+        return Err(ErrorResponse::err_with_detail(
+            lm_err::INVALID_CONFIG,
+            "请提供 HF 仓库或直接下载链接",
+        ));
+    }
+    let dir = download_dir(db).await;
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        ErrorResponse::err_with_detail(lm_err::START_FAILED, format!("创建下载目录失败: {e}"))
+    })?;
+    let endpoint = hf_endpoint(db).await;
+
+    // 任务已存在（同文件正在下载）→ 直接返回
+    {
+        let tasks = DOWNLOAD_TASKS.lock().unwrap();
+        if let Some(t) = tasks.get(&request.filename)
+            && t.status == "downloading"
+        {
+            return Ok(t.clone());
+        }
+    }
+
+    let info = DownloadTaskInfo {
+        filename: request.filename.clone(),
+        downloaded_bytes: 0,
+        total_bytes: 0,
+        status: "downloading".to_string(),
+        error: None,
+    };
+    DOWNLOAD_TASKS.lock().unwrap().insert(request.filename.clone(), info.clone());
+
+    let dl = ModelDownloader::with_cache_dir(dir.clone());
+    let fname = request.filename.clone();
+    let fname_cb = fname.clone();
+    let repo = request.hf_repo.clone();
+    let url = request.direct_url.clone();
+    tokio::spawn(async move {
+        let result = dl
+            .download_with_progress(
+                &fname,
+                repo.as_deref(),
+                url.as_deref(),
+                &endpoint,
+                "",
+                Some(Box::new(move |downloaded, total| {
+                    if let Ok(mut tasks) = DOWNLOAD_TASKS.lock() {
+                        if let Some(t) = tasks.get_mut(&fname_cb) {
+                            t.downloaded_bytes = downloaded;
+                            t.total_bytes = total;
+                        }
+                    }
+                })),
+            )
+            .await;
+        let mut tasks = DOWNLOAD_TASKS.lock().unwrap();
+        match result {
+            Ok(path) => {
+                let t = tasks.entry(fname.clone()).or_insert_with(|| DownloadTaskInfo {
+                    filename: fname.clone(),
+                    downloaded_bytes: 0,
+                    total_bytes: 0,
+                    status: "done".to_string(),
+                    error: None,
+                });
+                t.status = "done".to_string();
+                t.downloaded_bytes = t.total_bytes.max(t.downloaded_bytes);
+                tracing::info!("[local_model] 模型下载完成: {}", path.display());
+            },
+            Err(e) => {
+                let t = tasks.entry(fname.clone()).or_insert_with(|| DownloadTaskInfo {
+                    filename: fname.clone(),
+                    downloaded_bytes: 0,
+                    total_bytes: 0,
+                    status: "failed".to_string(),
+                    error: Some(e.to_string()),
+                });
+                t.status = "failed".to_string();
+                t.error = Some(e.to_string());
+                tracing::error!("[local_model] 模型下载失败: {}", e);
+            },
+        }
+    });
+
+    Ok(info)
+}
+
+/// 查询所有下载任务进度（前端轮询）。
+#[tauri::command]
+pub async fn local_model_download_progress() -> Result<Vec<DownloadTaskInfo>, String> {
+    let tasks = DOWNLOAD_TASKS.lock().unwrap();
+    Ok(tasks.values().cloned().collect())
+}
+
+/// 删除本地模型文件（含 .download 残留）。
+#[tauri::command]
+pub async fn local_model_delete_local_model(
+    state: State<'_, AppState>,
+    filename: String,
+) -> Result<(), String> {
+    validate_filename(&filename)?;
+    let dir = download_dir(state.harness.db()).await;
+    let path = dir.join(&filename);
+    let canonical_base = dir.canonicalize().unwrap_or(dir.clone());
+    if path.exists() {
+        let canonical = path.canonicalize().map_err(|e| command_error(e, lm_err::STOP_FAILED))?;
+        if !canonical.starts_with(&canonical_base) {
+            return Err(ErrorResponse::err_with_detail(lm_err::INVALID_CONFIG, "路径穿越检测失败"));
+        }
+        std::fs::remove_file(&path).map_err(|e| command_error(e, lm_err::STOP_FAILED))?;
+    }
+    // 清理下载残留
+    let tmp = dir.join(format!("{filename}.download"));
+    if tmp.exists() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    DOWNLOAD_TASKS.lock().unwrap().remove(&filename);
+    Ok(())
+}

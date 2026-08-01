@@ -9,6 +9,7 @@
  * - 嵌入连通性测试
  * - 服务日志查看
  */
+import { ModelDownloadPanel } from "@/components/settings/ModelDownloadPanel";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type { EmbedTestResult, LocalModelStartConfig, LocalModelStatus } from "@/types";
 import { PlayCircleOutlined, PoweroffOutlined, ReloadOutlined, RobotOutlined, StopOutlined } from "@ant-design/icons";
@@ -430,6 +431,9 @@ export function LocalModelPanel({
           </Text>
         </Paragraph>
       )}
+
+      {/* ── 模型下载与本地模型库 ── */}
+      <ModelDownloadPanel providerId={providerId} />
 
       {/* ── 启动配置 Modal ── */}
       <Modal

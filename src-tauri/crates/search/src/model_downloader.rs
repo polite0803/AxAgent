@@ -12,7 +12,8 @@ pub struct ModelDownloader {
 
 /// 下载进度回调：`(downloaded_bytes, total_bytes)`。
 /// `total_bytes` 未知时为 0（分块传输等场景）。
-pub type ProgressCallback = Box<dyn Fn(u64, u64) + Send>;
+/// `Sync` 必须：async 下载 future 会在持有回调引用的状态下跨 await 移动。
+pub type ProgressCallback = Box<dyn Fn(u64, u64) + Send + Sync>;
 
 /// 预定义模型清单
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -179,7 +180,9 @@ impl ModelDownloader {
         on_progress: Option<ProgressCallback>,
     ) -> Result<PathBuf> {
         if let Some(url) = direct_url.filter(|u| !u.is_empty()) {
-            return self.download_direct(filename, url, expected_sha256, on_progress).await;
+            return self
+                .download_direct(filename, url, expected_sha256, on_progress.as_ref())
+                .await;
         }
         if let Some(repo) = hf_repo.filter(|r| !r.is_empty()) {
             let endpoint = if hf_endpoint.is_empty() {
@@ -188,7 +191,9 @@ impl ModelDownloader {
                 hf_endpoint.trim_end_matches('/')
             };
             let url = format!("{endpoint}/{repo}/resolve/main/{filename}");
-            return self.download_direct(filename, &url, expected_sha256, on_progress).await;
+            return self
+                .download_direct(filename, &url, expected_sha256, on_progress.as_ref())
+                .await;
         }
         Err(axagent_harness::core_error::AxAgentError::ModelDownload(
             "No download source provided".to_string(),
@@ -312,9 +317,10 @@ impl ModelDownloader {
         // 流式写入响应体，避免内存爆满
         use futures::StreamExt;
         use tokio::io::AsyncWriteExt;
-        let mut stream = response.bytes_stream();
-        // 总大小：续传时 = 已写入字节 + 响应剩余长度；否则 = 响应 Content-Length
+        // 总大小：续传时 = 已写入字节 + 响应剩余长度；否则 = 响应 Content-Length。
+        // 必须先于 bytes_stream() 读取（该方法会 move response）。
         let total_hint = response.content_length().unwrap_or(0);
+        let mut stream = response.bytes_stream();
         let base_len = tokio::fs::metadata(&tmp_path).await.map(|m| m.len()).unwrap_or(0);
         let mut downloaded = base_len;
         if let Some(cb) = on_progress {

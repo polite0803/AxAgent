@@ -1755,3 +1755,38 @@ export interface EmbedTestResult {
   elapsedMs: number;
   preview: number[];
 }
+
+// === Local Model Download ===
+
+export interface LocalFileModel {
+  filename: string;
+  sizeBytes: number;
+  modifiedAt: number | null;
+  modelType: string;
+  isDownloading: boolean;
+  downloadBytes: number;
+}
+
+export interface DownloadTaskInfo {
+  filename: string;
+  downloadedBytes: number;
+  totalBytes: number;
+  status: "downloading" | "done" | "failed";
+  error: string | null;
+}
+
+export interface DownloadRequest {
+  filename: string;
+  hfRepo?: string | null;
+  directUrl?: string | null;
+}
+
+export interface PresetModelDto {
+  filename: string;
+  hfRepo: string | null;
+  directUrl: string | null;
+  displayName: string;
+  sizeBytes: number;
+  modelType: string;
+  isDownloaded: boolean;
+}
