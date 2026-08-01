@@ -11,6 +11,7 @@ const TYPE_TO_PROVIDER: Record<string, string> = {
   anthropic: "anthropic",
   gemini: "google",
   ollama: "ollama",
+  llama_cpp: "ollama", // 共用 Ollama 视觉图标（llama.cpp 本地推理）
   custom: "openai",
 };
 
