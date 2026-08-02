@@ -3315,6 +3315,11 @@ pub async fn simple_chat_completion(
         response_format: None,
     };
 
-    let response = adapter.chat(&ctx, Arc::new(request)).await.map_err(|e| e.to_string())?;
+    let response = adapter.chat(&ctx, Arc::new(request)).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(response.content)
 }
