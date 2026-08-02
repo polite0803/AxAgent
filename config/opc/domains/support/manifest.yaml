@@ -1,0 +1,8 @@
+# Domain Pack: 客户支持（support）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: support
+name: 客户支持
+icon: 🧩
+description: 客户支持领域通用工作流（3 个）
+version: 1
+enabled: true

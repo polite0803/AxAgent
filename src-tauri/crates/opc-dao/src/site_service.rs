@@ -3,9 +3,7 @@
 //! 站点管理服务实现 — SeaORM CRUD for landing pages, blog posts, contacts
 
 use async_trait::async_trait;
-use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, QueryOrder, Set,
-};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryOrder, Set};
 
 use axagent_harness::util_fns::{gen_id, now_ts};
 use axagent_opc_entities::{opc_blog_posts, opc_contact_submissions, opc_landing_pages};

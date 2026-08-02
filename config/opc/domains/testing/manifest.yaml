@@ -1,0 +1,8 @@
+# Domain Pack: 质量测试（testing）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: testing
+name: 质量测试
+icon: 🧩
+description: 质量测试领域通用工作流（3 个）
+version: 1
+enabled: true

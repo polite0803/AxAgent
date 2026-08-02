@@ -1,0 +1,8 @@
+# Domain Pack: 付费投放（paidmedia）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: paidmedia
+name: 付费投放
+icon: 🧩
+description: 付费投放领域通用工作流（2 个）
+version: 1
+enabled: true

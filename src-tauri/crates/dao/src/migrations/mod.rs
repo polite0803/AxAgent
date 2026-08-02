@@ -63,9 +63,12 @@ pub mod v208_backfill_wiki_sync_queue_columns;
 pub mod v209_opc_tables;
 pub mod v210_opc_ext;
 pub mod v211_opc_industries;
+pub mod v212_opc_work_items;
+pub mod v213_opc_orgs;
+pub mod v214_opc_experience;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 211;
+pub const CURRENT_VERSION: i32 = 214;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -232,6 +235,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 211,
         description: "v211_opc_industries: OPC 行业注册表（opc_industries）——Industry Pack 扫描/启用/禁用/版本追踪",
         up: |db| Box::pin(v211_opc_industries::up(db)),
+    },
+    Migration {
+        version: 212,
+        description: "v212_opc_work_items: OPC 工作项表（opc_work_items）——Self-Run 状态机持久层（P3）",
+        up: |db| Box::pin(v212_opc_work_items::up(db)),
+    },
+    Migration {
+        version: 213,
+        description: "v213_opc_orgs: OPC 组织抽象表（opc_orgs / opc_org_roles / opc_org_employees / opc_talent_templates）——Self-Built（P3）",
+        up: |db| Box::pin(v213_opc_orgs::up(db)),
+    },
+    Migration {
+        version: 214,
+        description: "v214_opc_experience: OPC 经验闭环表（opc_experience_records / opc_playbooks）——Self-Grown（P3）",
+        up: |db| Box::pin(v214_opc_experience::up(db)),
     },
 ];
 

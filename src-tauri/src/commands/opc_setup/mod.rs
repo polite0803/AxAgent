@@ -19,12 +19,36 @@ pub use roles::{OPC_BUSINESS_ROLES, OPC_ROLES};
 // ── 编译期嵌入的专家提示词 ──────────────────────────────────────
 
 const EMBEDDED_PROMPTS: &[(&str, &str, &str)] = &[
-    ("ceo-business-strategist", "CEO/创始人", include_str!("../../../agency_experts/opc/ceo-business-strategist.md")),
-    ("cto-ai-engineer", "CTO/技术负责人", include_str!("../../../agency_experts/opc/cto-ai-engineer.md")),
-    ("cfo-financial-analyst", "CFO/财务负责人", include_str!("../../../agency_experts/opc/cfo-financial-analyst.md")),
-    ("coo-operations-manager", "COO/运营负责人", include_str!("../../../agency_experts/opc/coo-operations-manager.md")),
-    ("cmo-content-strategist", "CMO/增长负责人", include_str!("../../../agency_experts/opc/cmo-content-strategist.md")),
-    ("cpo-product-manager", "CPO/产品负责人", include_str!("../../../agency_experts/opc/cpo-product-manager.md")),
+    (
+        "ceo-business-strategist",
+        "CEO/创始人",
+        include_str!("../../../agency_experts/opc/ceo-business-strategist.md"),
+    ),
+    (
+        "cto-ai-engineer",
+        "CTO/技术负责人",
+        include_str!("../../../agency_experts/opc/cto-ai-engineer.md"),
+    ),
+    (
+        "cfo-financial-analyst",
+        "CFO/财务负责人",
+        include_str!("../../../agency_experts/opc/cfo-financial-analyst.md"),
+    ),
+    (
+        "coo-operations-manager",
+        "COO/运营负责人",
+        include_str!("../../../agency_experts/opc/coo-operations-manager.md"),
+    ),
+    (
+        "cmo-content-strategist",
+        "CMO/增长负责人",
+        include_str!("../../../agency_experts/opc/cmo-content-strategist.md"),
+    ),
+    (
+        "cpo-product-manager",
+        "CPO/产品负责人",
+        include_str!("../../../agency_experts/opc/cpo-product-manager.md"),
+    ),
 ];
 
 /// 专家 → 角色 映射
@@ -39,12 +63,84 @@ const EXPERT_ROLE_MAP: &[(&str, &str)] = &[
 
 /// Profile → 工具白名单
 const PROFILE_TOOLS: &[(&str, &[&str])] = &[
-    ("ceo-business-strategist", &["OpcGetDashboard","OpcGetFinancialReport","OpcListKpis","OpcListInvoices","OpcListCustomers","OpcListProjects","OpcSearchWiki"]),
-    ("cto-ai-engineer", &["OpcListProjects","OpcCreateProject","OpcAddMilestone","OpcListKpis","OpcRecordKpi","OpcSearchWiki","OpcSendNotification"]),
-    ("cfo-financial-analyst", &["OpcListInvoices","OpcCreateInvoice","OpcTransitionInvoice","OpcListCustomers","OpcGetDashboard","OpcGetFinancialReport","OpcRecordKpi","OpcListKpis","OpcSendNotification","OpcSearchWiki"]),
-    ("coo-operations-manager", &["OpcListProjects","OpcCreateProject","OpcAddMilestone","OpcListCustomers","OpcCreateCustomer","OpcListInvoices","OpcGetDashboard","OpcSendNotification","OpcSearchWiki"]),
-    ("cmo-content-strategist", &["OpcListCustomers","OpcCreateCustomer","OpcListBlogPosts","OpcCreateLandingPage","OpcListLandingPages","OpcGetDashboard","OpcSendNotification","OpcSearchWiki"]),
-    ("cpo-product-manager", &["OpcListProjects","OpcCreateProject","OpcAddMilestone","OpcListLandingPages","OpcCreateLandingPage","OpcListCustomers","OpcSearchWiki"]),
+    (
+        "ceo-business-strategist",
+        &[
+            "OpcGetDashboard",
+            "OpcGetFinancialReport",
+            "OpcListKpis",
+            "OpcListInvoices",
+            "OpcListCustomers",
+            "OpcListProjects",
+            "OpcSearchWiki",
+        ],
+    ),
+    (
+        "cto-ai-engineer",
+        &[
+            "OpcListProjects",
+            "OpcCreateProject",
+            "OpcAddMilestone",
+            "OpcListKpis",
+            "OpcRecordKpi",
+            "OpcSearchWiki",
+            "OpcSendNotification",
+        ],
+    ),
+    (
+        "cfo-financial-analyst",
+        &[
+            "OpcListInvoices",
+            "OpcCreateInvoice",
+            "OpcTransitionInvoice",
+            "OpcListCustomers",
+            "OpcGetDashboard",
+            "OpcGetFinancialReport",
+            "OpcRecordKpi",
+            "OpcListKpis",
+            "OpcSendNotification",
+            "OpcSearchWiki",
+        ],
+    ),
+    (
+        "coo-operations-manager",
+        &[
+            "OpcListProjects",
+            "OpcCreateProject",
+            "OpcAddMilestone",
+            "OpcListCustomers",
+            "OpcCreateCustomer",
+            "OpcListInvoices",
+            "OpcGetDashboard",
+            "OpcSendNotification",
+            "OpcSearchWiki",
+        ],
+    ),
+    (
+        "cmo-content-strategist",
+        &[
+            "OpcListCustomers",
+            "OpcCreateCustomer",
+            "OpcListBlogPosts",
+            "OpcCreateLandingPage",
+            "OpcListLandingPages",
+            "OpcGetDashboard",
+            "OpcSendNotification",
+            "OpcSearchWiki",
+        ],
+    ),
+    (
+        "cpo-product-manager",
+        &[
+            "OpcListProjects",
+            "OpcCreateProject",
+            "OpcAddMilestone",
+            "OpcListLandingPages",
+            "OpcCreateLandingPage",
+            "OpcListCustomers",
+            "OpcSearchWiki",
+        ],
+    ),
 ];
 
 /// 主入口：种子化所有 OPC 专家/角色/Profile
@@ -56,9 +152,16 @@ pub async fn ensure_opc_company_seeded(db: &DatabaseConnection) -> Result<(), St
     seed_opc_profiles(db).await?;
 
     // 2. 自动导入 agency-agents-src 下 227 个专家文件
-    let project_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or(std::path::Path::new("."));
+    let project_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap_or(std::path::Path::new("."));
     let experts_path = project_root.join("agency-agents-src");
-    match crate::commands::agency_expert::import_agency_experts_from_dir(db, &experts_path.to_string_lossy()).await {
+    match crate::commands::agency_expert::import_agency_experts_from_dir(
+        db,
+        &experts_path.to_string_lossy(),
+    )
+    .await
+    {
         Ok(result) => tracing::info!("[opc-company] 已导入 {} 个专家", result.count),
         Err(e) => tracing::warn!("[opc-company] 专家导入跳过: {}", e),
     }
@@ -75,7 +178,8 @@ async fn seed_opc_experts(db: &DatabaseConnection) -> Result<(), String> {
     let mut count = 0u32;
     for (id, name, content) in EMBEDDED_PROMPTS {
         let expert_id = format!("opc-{id}");
-        let domain = content.lines()
+        let domain = content
+            .lines()
             .skip_while(|l| !l.starts_with("domain:"))
             .nth(0)
             .and_then(|l| l.strip_prefix("domain:").map(|s| s.trim().to_string()))
@@ -128,10 +232,19 @@ async fn seed_opc_roles(db: &DatabaseConnection) -> Result<(), String> {
     let mut count = 0u32;
     for role in OPC_ROLES {
         agent_role::upsert_agent_role(
-            db, role.id, role.name, Some(role.description),
-            role.system_prompt, &[], &["Opc".into()],
-            role.max_concurrent, role.timeout_seconds, "opc-builtin",
-        ).await.map_err(|e| e.to_string())?;
+            db,
+            role.id,
+            role.name,
+            Some(role.description),
+            role.system_prompt,
+            &[],
+            &["Opc".into()],
+            role.max_concurrent,
+            role.timeout_seconds,
+            "opc-builtin",
+        )
+        .await
+        .map_err(|e| e.to_string())?;
         count += 1;
     }
     tracing::info!("[opc-company] 种子化 {count} 个 agent_roles");
@@ -146,10 +259,19 @@ async fn seed_opc_business_roles(db: &DatabaseConnection) -> Result<(), String> 
     let mut count = 0u32;
     for role in OPC_BUSINESS_ROLES {
         agent_role::upsert_agent_role(
-            db, role.id, role.name, Some(role.description),
-            role.system_prompt, &[], &["Opc".into()],
-            role.max_concurrent, role.timeout_seconds, "opc-builtin",
-        ).await.map_err(|e| e.to_string())?;
+            db,
+            role.id,
+            role.name,
+            Some(role.description),
+            role.system_prompt,
+            &[],
+            &["Opc".into()],
+            role.max_concurrent,
+            role.timeout_seconds,
+            "opc-builtin",
+        )
+        .await
+        .map_err(|e| e.to_string())?;
         count += 1;
     }
     tracing::info!("[opc-company] 种子化 {count} 个业务岗位 agent_roles");
@@ -163,18 +285,22 @@ async fn seed_opc_profiles(db: &DatabaseConnection) -> Result<(), String> {
         let profile_id = format!("opc-{role_id}-{expert_key}");
         let expert_id = format!("opc-{expert_key}");
 
-        let display_name = EMBEDDED_PROMPTS.iter()
-            .find(|(k,_,_)| k == &expert_key)
-            .map(|(_,n,_)| n.to_string())
+        let display_name = EMBEDDED_PROMPTS
+            .iter()
+            .find(|(k, _, _)| k == &expert_key)
+            .map(|(_, n, _)| n.to_string())
             .unwrap_or_else(|| expert_key.to_string());
 
-        let tools_json = PROFILE_TOOLS.iter()
-            .find(|(k,_)| k == &expert_key)
-            .map(|(_,tools)| serde_json::to_string(tools).unwrap_or_default());
+        let tools_json = PROFILE_TOOLS
+            .iter()
+            .find(|(k, _)| k == &expert_key)
+            .map(|(_, tools)| serde_json::to_string(tools).unwrap_or_default());
 
         let now = chrono::Utc::now().timestamp_millis();
         let existing = agent_profiles::Entity::find_by_id(&profile_id)
-            .one(db).await.map_err(|e| e.to_string())?;
+            .one(db)
+            .await
+            .map_err(|e| e.to_string())?;
 
         let am = agent_profiles::ActiveModel {
             id: Set(profile_id.clone()),

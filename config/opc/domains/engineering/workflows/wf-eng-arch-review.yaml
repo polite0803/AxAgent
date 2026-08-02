@@ -1,0 +1,20 @@
+# 工作流：架构评审
+id: wf-eng-arch-review
+name: 架构评审
+description: 后端架构师评审系统设计方案的可行性
+icon: "🏗️"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-design
+    title: 设计方案
+    prompt: 提交系统架构设计方案
+    inputs: {}
+  - id: a-review-arch
+    title: 架构评审
+    prompt: "评审: 技术选型、扩展性、性能、成本、安全"
+    inputs: {}
+  - id: a-finalize
+    title: 方案定稿
+    prompt: 根据评审意见修改方案并定稿
+    inputs: {}

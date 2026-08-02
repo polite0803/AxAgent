@@ -1,0 +1,20 @@
+# 工作流：ESG报告
+id: wf-spc-esg
+name: ESG报告
+description: 环境、社会和治理报告编制
+icon: "🌱"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-esg-collect
+    title: 数据收集
+    prompt: 收集环境、社会、治理数据
+    inputs: {}
+  - id: a-esg-measure
+    title: 指标计算
+    prompt: 计算ESG关键指标和评分
+    inputs: {}
+  - id: a-esg-report
+    title: 报告生成
+    prompt: 生成ESG报告和改善路线图
+    inputs: {}

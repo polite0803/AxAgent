@@ -1,0 +1,20 @@
+# 工作流：开发入职
+id: wf-eng-onboarding
+name: 开发入职
+description: 新项目环境搭建和开发指南
+icon: "📖"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-env-setup
+    title: 环境配置
+    prompt: 配置开发环境、安装依赖、初始化项目
+    inputs: {}
+  - id: a-doc-read
+    title: 文档阅读
+    prompt: 阅读项目文档、架构图、API文档
+    inputs: {}
+  - id: a-first-task
+    title: 首个任务
+    prompt: 完成首个开发任务验证环境
+    inputs: {}

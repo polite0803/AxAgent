@@ -1,0 +1,20 @@
+# 工作流：供应链优化
+id: wf-spc-supply-chain
+name: 供应链优化
+description: 分析和优化供应链效率
+icon: "📦"
+tags: [opc]
+profile_id: coo
+steps:
+  - id: a-sc-audit
+    title: 供应链审计
+    prompt: 审计采购、库存、物流各环节
+    inputs: {}
+  - id: a-sc-optimize
+    title: 优化方案
+    prompt: 制定降本增效方案
+    inputs: {}
+  - id: a-sc-implement
+    title: 实施
+    prompt: 实施优化并跟踪KPI
+    inputs: {}

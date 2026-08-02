@@ -1,0 +1,8 @@
+# Domain Pack: 安全（security）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: security
+name: 安全
+icon: 🧩
+description: 安全领域通用工作流（4 个）
+version: 1
+enabled: true

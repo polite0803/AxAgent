@@ -1,0 +1,20 @@
+# 工作流：无人机测绘
+id: wf-gis-drone
+name: 无人机测绘
+description: 无人机航拍数据处理和分析
+icon: "🛸"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-drone-plan
+    title: 飞行规划
+    prompt: 规划飞行路线和采集参数
+    inputs: {}
+  - id: a-drone-process
+    title: 数据处理
+    prompt: 处理航拍影像生成正射影像和DSM
+    inputs: {}
+  - id: a-drone-analyze
+    title: 分析
+    prompt: 从测绘数据提取信息
+    inputs: {}

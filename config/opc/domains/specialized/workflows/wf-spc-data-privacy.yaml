@@ -1,0 +1,20 @@
+# 工作流：数据隐私合规
+id: wf-spc-data-privacy
+name: 数据隐私合规
+description: GDPR/个保法合规审计和整改
+icon: "🔒"
+tags: [opc]
+profile_id: cfo
+steps:
+  - id: a-privacy-audit
+    title: 合规审计
+    prompt: 审计数据采集、存储、处理流程
+    inputs: {}
+  - id: a-privacy-gap
+    title: 差距分析
+    prompt: 识别合规差距和风险等级
+    inputs: {}
+  - id: a-privacy-fix
+    title: 整改实施
+    prompt: 实施整改措施并验证
+    inputs: {}

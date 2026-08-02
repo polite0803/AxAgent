@@ -1,0 +1,20 @@
+# 工作流：CI/CD配置
+id: wf-eng-ci-setup
+name: CI/CD配置
+description: 搭建持续集成/持续部署流水线
+icon: "🔄"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-ci-plan
+    title: 方案设计
+    prompt: "设计CI/CD架构: 构建、测试、部署阶段"
+    inputs: {}
+  - id: a-ci-config
+    title: 配置
+    prompt: 编写CI/CD配置文件并测试
+    inputs: {}
+  - id: a-ci-verify
+    title: 验证
+    prompt: 运行流水线确认各阶段正常
+    inputs: {}

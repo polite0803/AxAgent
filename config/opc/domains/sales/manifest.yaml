@@ -1,0 +1,8 @@
+# Domain Pack: 销售增长（sales）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: sales
+name: 销售增长
+icon: 🧩
+description: 销售增长领域通用工作流（5 个）
+version: 1
+enabled: true

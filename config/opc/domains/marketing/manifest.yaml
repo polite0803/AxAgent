@@ -1,0 +1,8 @@
+# Domain Pack: 市场营销（marketing）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: marketing
+name: 市场营销
+icon: 🧩
+description: 市场营销领域通用工作流（10 个）
+version: 1
+enabled: true

@@ -1,0 +1,8 @@
+# Domain Pack: 项目管理（pm）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: pm
+name: 项目管理
+icon: 🧩
+description: 项目管理领域通用工作流（3 个）
+version: 1
+enabled: true

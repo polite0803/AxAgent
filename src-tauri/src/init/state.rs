@@ -622,6 +622,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // ── Fleet 持久化仓库 ──
     let fleet_repository: Arc<dyn axagent_harness::fleet::FleetRepository> =
         Arc::new(axagent_trajectory::SeaOrmFleetRepository::new(sea_db.clone()));
+    // ── Fleet 意图分类 LLM（真实 Provider 实现，供 dispatcher 路由）──
+    let fleet_intent_llm: Arc<dyn axagent_harness::fleet::FleetIntentLlm> =
+        Arc::new(crate::commands::fleet::executor::ProviderFleetIntentLlm::new(harness.clone()));
     let tot_sessions: Arc<
         tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
     > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
@@ -1048,6 +1051,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         semantic_cache,
         prompt_cache,
         fleet_repository,
+        fleet_intent_llm,
         tot_sessions,
         planner_sessions,
         browser_client,

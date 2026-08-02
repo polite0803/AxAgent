@@ -110,7 +110,7 @@ pub mod session_share;
 // G18: 会话多格式导出（messages.jsonl / openai_dataset_jsonl / markdown / manifest_json）
 pub mod sessions_export;
 pub mod settings;
-pub mod simple_completion;
+// simple_chat_completion 完整实现在 agent/mod.rs（stub 已删）
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;

@@ -11,38 +11,64 @@ use axagent_harness::util_fns::now_ts;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 
-use super::{check_template_version, make_base, upsert_template, OPC_TEMPLATE_VERSION};
+use super::{OPC_TEMPLATE_VERSION, check_template_version, make_base, upsert_template};
 
 fn base(id: &str, title: &str, x: f64, y: f64) -> WorkflowNodeBase {
     make_base(id, title, "", x, y)
 }
 
-fn agent(id: &str, title: &str, profile: &str, prompt: &str, x: f64, y: f64, output_var: &str) -> WorkflowNode {
+fn agent(
+    id: &str,
+    title: &str,
+    profile: &str,
+    prompt: &str,
+    x: f64,
+    y: f64,
+    output_var: &str,
+) -> WorkflowNode {
     WorkflowNode::Agent(AgentNode {
         base: base(id, title, x, y),
         config: AgentNodeConfig {
-            system_prompt: prompt.into(), context_sources: vec![],
+            system_prompt: prompt.into(),
+            context_sources: vec![],
             output_var: output_var.into(),
-            model: None, temperature: None, max_tokens: None,
-            tools: vec![], exposed_tools: vec![],
+            model: None,
+            temperature: None,
+            max_tokens: None,
+            tools: vec![],
+            exposed_tools: vec![],
             output_mode: OutputMode::Json,
             agent_profile_id: Some(profile.into()),
-            max_tool_rounds: Some(10), execution_mode: None,
-            rag_source_ids: vec![], model_role: Some("opc-worker".to_string()),
+            max_tool_rounds: Some(10),
+            execution_mode: None,
+            rag_source_ids: vec![],
+            model_role: Some("opc-worker".to_string()),
             consistency_check: None,
-            hallucination_guard: Some(HallucinationGuardConfig { enabled: true, match_threshold: 0.4 }),
-                fallback_model: None,
-                task_scene: None,
-                stream_chunk_timeout_secs: None,
+            hallucination_guard: Some(HallucinationGuardConfig {
+                enabled: true,
+                match_threshold: 0.4,
+            }),
+            fallback_model: None,
+            task_scene: None,
+            stream_chunk_timeout_secs: None,
             input_mapping: std::collections::HashMap::new(),
         },
     })
 }
 
-fn agent_wim(id: &str, title: &str, profile: &str, prompt: &str, x: f64, y: f64, output_var: &str, im: Vec<(&str, &str)>) -> WorkflowNode {
+fn agent_wim(
+    id: &str,
+    title: &str,
+    profile: &str,
+    prompt: &str,
+    x: f64,
+    y: f64,
+    output_var: &str,
+    im: Vec<(&str, &str)>,
+) -> WorkflowNode {
     let mut node = agent(id, title, profile, prompt, x, y, output_var);
     if let WorkflowNode::Agent(ref mut a) = node {
-        a.config.input_mapping = im.into_iter().map(|(k,v)| (k.into(), v.into())).collect();
+        a.config.input_mapping = im.into_iter().map(|(k, v)| (k.into(), v.into())).collect();
     }
     node
 }
@@ -55,11 +81,27 @@ fn end(x: f64, y: f64) -> WorkflowNode {
 }
 
 fn edge(src: &str, tgt: &str) -> WorkflowEdge {
-    WorkflowEdge { id: format!("e-{src}-{tgt}"), source: src.into(), source_handle: None, target: tgt.into(), target_handle: None, edge_type: EdgeType::Direct, label: None }
+    WorkflowEdge {
+        id: format!("e-{src}-{tgt}"),
+        source: src.into(),
+        source_handle: None,
+        target: tgt.into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
+    }
 }
 
 fn edge_cond(src: &str, handle: &str, tgt: &str, etype: EdgeType) -> WorkflowEdge {
-    WorkflowEdge { id: format!("e-{src}-{handle}-{tgt}"), source: src.into(), source_handle: Some(handle.into()), target: tgt.into(), target_handle: None, edge_type: etype, label: None }
+    WorkflowEdge {
+        id: format!("e-{src}-{handle}-{tgt}"),
+        source: src.into(),
+        source_handle: Some(handle.into()),
+        target: tgt.into(),
+        target_handle: None,
+        edge_type: etype,
+        label: None,
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -79,7 +121,9 @@ fn edge_cond(src: &str, handle: &str, tgt: &str, etype: EdgeType) -> WorkflowEdg
 
 pub async fn seed_landing_page_workflow(db: &DatabaseConnection) -> Result<(), String> {
     let id = "prod-landing-page";
-    if !check_template_version(db, id, OPC_TEMPLATE_VERSION).await? { return Ok(()); }
+    if !check_template_version(db, id, OPC_TEMPLATE_VERSION).await? {
+        return Ok(());
+    }
     let now = now_ts();
 
     let mut nodes: Vec<WorkflowNode> = vec![];
@@ -96,8 +140,20 @@ pub async fn seed_landing_page_workflow(db: &DatabaseConnection) -> Result<(), S
         base: base("p-morning", "上午并行", 250.0, 120.0),
         config: ParallelNodeConfig {
             branches: vec![
-                Branch { id: "branch-content".into(), title: "Content Creator".into(), steps: vec!["a-content".into()], branch_timeout_ms: None, degrade_strategy: DegradeStrategy::default() },
-                Branch { id: "branch-design".into(), title: "UI Designer".into(), steps: vec!["a-design".into()], branch_timeout_ms: None, degrade_strategy: DegradeStrategy::default() },
+                Branch {
+                    id: "branch-content".into(),
+                    title: "Content Creator".into(),
+                    steps: vec!["a-content".into()],
+                    branch_timeout_ms: None,
+                    degrade_strategy: DegradeStrategy::default(),
+                },
+                Branch {
+                    id: "branch-design".into(),
+                    title: "UI Designer".into(),
+                    steps: vec!["a-design".into()],
+                    branch_timeout_ms: None,
+                    degrade_strategy: DegradeStrategy::default(),
+                },
             ],
             wait_for_all: true,
             timeout: Some(240),
@@ -151,10 +207,16 @@ pub async fn seed_landing_page_workflow(db: &DatabaseConnection) -> Result<(), S
     }));
 
     // 6a. Feedback loop: 回到前端修改
-    nodes.push(agent_wim("a-revise", "前端修改", "opc-cto-cto-ai-engineer",
+    nodes.push(agent_wim(
+        "a-revise",
+        "前端修改",
+        "opc-cto-cto-ai-engineer",
         "你的任务：按转化审查意见修改落地页。\n\n修改要求：解决审查报告中的所有 issue。",
-        450.0, 900.0, "revise_result",
-        vec![("page","a-frontend.result"),("feedback","a-growth.result")]));
+        450.0,
+        900.0,
+        "revise_result",
+        vec![("page", "a-frontend.result"), ("feedback", "a-growth.result")],
+    ));
 
     // 7. End
     nodes.push(end(250.0, 1040.0));
@@ -200,7 +262,9 @@ pub async fn seed_landing_page_workflow(db: &DatabaseConnection) -> Result<(), S
 
 pub async fn seed_startup_mvp_workflow(db: &DatabaseConnection) -> Result<(), String> {
     let id = "prod-startup-mvp";
-    if !check_template_version(db, id, OPC_TEMPLATE_VERSION).await? { return Ok(()); }
+    if !check_template_version(db, id, OPC_TEMPLATE_VERSION).await? {
+        return Ok(());
+    }
     let now = now_ts();
 
     let mut nodes: Vec<WorkflowNode> = vec![];
@@ -216,11 +280,26 @@ pub async fn seed_startup_mvp_workflow(db: &DatabaseConnection) -> Result<(), St
         base: base("p-week1", "第一周并行", 250.0, 120.0),
         config: ParallelNodeConfig {
             branches: vec![
-                Branch { id: "branch-sprint".into(), title: "Sprint Prioritizer".into(), steps: vec!["a-sprint".into()], branch_timeout_ms: None, degrade_strategy: DegradeStrategy::default() },
-                Branch { id: "branch-ux".into(), title: "UX Researcher".into(), steps: vec!["a-ux".into()], branch_timeout_ms: None, degrade_strategy: DegradeStrategy::default() },
+                Branch {
+                    id: "branch-sprint".into(),
+                    title: "Sprint Prioritizer".into(),
+                    steps: vec!["a-sprint".into()],
+                    branch_timeout_ms: None,
+                    degrade_strategy: DegradeStrategy::default(),
+                },
+                Branch {
+                    id: "branch-ux".into(),
+                    title: "UX Researcher".into(),
+                    steps: vec!["a-ux".into()],
+                    branch_timeout_ms: None,
+                    degrade_strategy: DegradeStrategy::default(),
+                },
             ],
-            wait_for_all: true, timeout: Some(360), aggregation: None,
-            auto_input_from_parent: true, sub_graph: None,
+            wait_for_all: true,
+            timeout: Some(360),
+            aggregation: None,
+            auto_input_from_parent: true,
+            sub_graph: None,
         },
     }));
 
@@ -312,10 +391,42 @@ pub async fn seed_startup_mvp_workflow(db: &DatabaseConnection) -> Result<(), St
         edge("a-reality-1", "a-growth"),
         edge("a-growth", "a-reality-2"),
         edge("a-reality-2", "s-gonogo"),
-        WorkflowEdge { id: "e-go".into(), source: "s-gonogo".into(), source_handle: Some("go".into()), target: "a-launch".into(), target_handle: None, edge_type: EdgeType::Direct, label: None },
-        WorkflowEdge { id: "e-nogo".into(), source: "s-gonogo".into(), source_handle: Some("no-go".into()), target: "a-postpone".into(), target_handle: None, edge_type: EdgeType::Direct, label: None },
-        WorkflowEdge { id: "e-launch-end".into(), source: "a-launch".into(), source_handle: None, target: "end".into(), target_handle: None, edge_type: EdgeType::Direct, label: None },
-        WorkflowEdge { id: "e-postpone-end".into(), source: "a-postpone".into(), source_handle: None, target: "end".into(), target_handle: None, edge_type: EdgeType::Direct, label: None },
+        WorkflowEdge {
+            id: "e-go".into(),
+            source: "s-gonogo".into(),
+            source_handle: Some("go".into()),
+            target: "a-launch".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+        WorkflowEdge {
+            id: "e-nogo".into(),
+            source: "s-gonogo".into(),
+            source_handle: Some("no-go".into()),
+            target: "a-postpone".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+        WorkflowEdge {
+            id: "e-launch-end".into(),
+            source: "a-launch".into(),
+            source_handle: None,
+            target: "end".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
+        WorkflowEdge {
+            id: "e-postpone-end".into(),
+            source: "a-postpone".into(),
+            source_handle: None,
+            target: "end".into(),
+            target_handle: None,
+            edge_type: EdgeType::Direct,
+            label: None,
+        },
     ];
 
     let data = WorkflowTemplateData {

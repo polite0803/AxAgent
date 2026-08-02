@@ -1,0 +1,8 @@
+# Domain Pack: 产品（product）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: product
+name: 产品
+icon: 🧩
+description: 产品领域通用工作流（3 个）
+version: 1
+enabled: true

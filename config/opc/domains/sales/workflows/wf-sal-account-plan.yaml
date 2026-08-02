@@ -1,0 +1,20 @@
+# 工作流：客户规划
+id: wf-sal-account-plan
+name: 客户规划
+description: 制定关键客户年度合作计划
+icon: "🤝"
+tags: [opc]
+profile_id: cmo
+steps:
+  - id: a-account-review
+    title: 客户回顾
+    prompt: 回顾合作历史、满意度、收入
+    inputs: {}
+  - id: a-account-plan
+    title: 年度计划
+    prompt: 制定年度目标、策略、里程碑
+    inputs: {}
+  - id: a-account-review-plan
+    title: 审核
+    prompt: 内部审核计划可行性
+    inputs: {}

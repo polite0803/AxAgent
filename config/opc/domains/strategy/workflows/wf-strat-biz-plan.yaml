@@ -1,0 +1,20 @@
+# 工作流：商业计划书
+id: wf-strat-biz-plan
+name: 商业计划书
+description: 编写完整商业计划书
+icon: "📄"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-bp-summary
+    title: 执行摘要
+    prompt: 撰写执行摘要和公司概述
+    inputs: {}
+  - id: a-bp-market
+    title: 市场分析
+    prompt: 市场分析、竞争分析、SWOT
+    inputs: {}
+  - id: a-bp-financial
+    title: 财务预测
+    prompt: 收入模型、成本、现金流预测
+    inputs: {}

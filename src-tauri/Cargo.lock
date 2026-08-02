@@ -794,6 +794,7 @@ dependencies = [
  "axagent-agent",
  "axagent-astock-data",
  "axagent-cache",
+ "axagent-company-runtime",
  "axagent-credential",
  "axagent-crypto",
  "axagent-dao",
@@ -950,6 +951,25 @@ dependencies = [
  "quick_cache",
  "serde",
  "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-company-runtime"
+version = "2.8.7"
+dependencies = [
+ "async-trait",
+ "axagent-dao",
+ "axagent-entities",
+ "axagent-harness",
+ "axagent-opc-entities",
+ "axagent-opc-types",
+ "chrono",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
  "tracing",
 ]
 

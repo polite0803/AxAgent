@@ -1,0 +1,20 @@
+# 工作流：项目申请
+id: wf-spc-grant
+name: 项目申请
+description: 撰写和提交项目申请
+icon: "📝"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-grant-research
+    title: 资金研究
+    prompt: 研究适合的项目和资助机构
+    inputs: {}
+  - id: a-grant-write
+    title: 申请撰写
+    prompt: 撰写项目申请书和预算
+    inputs: {}
+  - id: a-grant-submit
+    title: 提交
+    prompt: 最终审核并提交申请
+    inputs: {}

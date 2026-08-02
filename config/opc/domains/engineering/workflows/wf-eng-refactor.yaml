@@ -1,0 +1,20 @@
+# 工作流：代码重构
+id: wf-eng-refactor
+name: 代码重构
+description: 系统性地重构遗留代码提高可维护性
+icon: "🔧"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-analyze
+    title: 分析
+    prompt: 分析代码结构、识别坏味道、圈复杂度
+    inputs: {}
+  - id: a-plan
+    title: 重构计划
+    prompt: 制定重构方案和目标架构
+    inputs: {}
+  - id: a-execute
+    title: 执行重构
+    prompt: 逐步重构并保持测试通过
+    inputs: {}

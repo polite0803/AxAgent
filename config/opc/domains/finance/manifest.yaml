@@ -1,0 +1,8 @@
+# Domain Pack: 财务金融（finance）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: finance
+name: 财务金融
+icon: 🧩
+description: 财务金融领域通用工作流（3 个）
+version: 1
+enabled: true

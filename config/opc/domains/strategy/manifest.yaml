@@ -1,0 +1,8 @@
+# Domain Pack: 战略咨询（strategy）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: strategy
+name: 战略咨询
+icon: 🧩
+description: 战略咨询领域通用工作流（2 个）
+version: 1
+enabled: true

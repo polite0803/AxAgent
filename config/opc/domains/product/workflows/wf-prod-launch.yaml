@@ -1,0 +1,20 @@
+# 工作流：产品发布
+id: wf-prod-launch
+name: 产品发布
+description: 新产品/功能发布流程
+icon: "🚀"
+tags: [opc]
+profile_id: cpo
+steps:
+  - id: a-launch-plan
+    title: 发布计划
+    prompt: 制定发布计划和时间线
+    inputs: {}
+  - id: a-launch-prep
+    title: 发布准备
+    prompt: 准备发布说明、营销材料
+    inputs: {}
+  - id: a-launch-exec
+    title: 执行发布
+    prompt: 执行发布并监控指标
+    inputs: {}

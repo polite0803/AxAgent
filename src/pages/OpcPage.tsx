@@ -224,6 +224,24 @@ export function OpcPage() {
             ),
             children: <TalentMarketTab />,
           },
+          {
+            key: "market",
+            label: (
+              <span>
+                <RiseOutlined /> 市场包
+              </span>
+            ),
+            children: <MarketPackTab />,
+          },
+          {
+            key: "kanban",
+            label: (
+              <span>
+                <ProjectOutlined /> 看板
+              </span>
+            ),
+            children: <KanbanTab />,
+          },
         ]}
       />
     </div>
@@ -1958,6 +1976,255 @@ function TalentMarketTab() {
             )}
         </Row>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 看板（P3：WorkItem 状态机投影）
+// ══════════════════════════════════════════════════════════════════
+
+interface KanbanItem {
+  id: string;
+  title: string;
+  phase: string;
+  owner_role_id: string | null;
+  assignee_agent_id: string | null;
+  manager_role_id: string | null;
+  last_error: string | null;
+  deps: string[];
+  created_at: number;
+  updated_at: number;
+}
+
+type KanbanBoard = Record<string, KanbanItem[]>;
+
+const KANBAN_COLUMNS = ["待办", "进行中", "阻塞", "评审", "已完成", "终止"];
+
+function KanbanTab() {
+  const [board, setBoard] = useState<KanbanBoard>({});
+  const [loading, setLoading] = useState(false);
+  const [acting, setActing] = useState<string | null>(null);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    invoke<KanbanBoard>("opc_kanban_board")
+      .then(setBoard)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const act = async (id: string, cmd: string, extra?: Record<string, unknown>) => {
+    setActing(id);
+    try {
+      await invoke(cmd, { id, ...extra });
+      message.success(`操作成功: ${cmd}`);
+      refresh();
+    } catch (e) {
+      message.error(`${cmd} 失败: ${e}`);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  return (
+    <div>
+      <Space style={{ marginBottom: 12 }}>
+        <Button size="small" type="primary" icon={<ProjectOutlined />} onClick={refresh} loading={loading}>
+          刷新
+        </Button>
+        <Typography.Text type="secondary">
+          WorkItem 状态机：QUEUED → IN_PROGRESS ⇄ BLOCKED → REVIEW → APPROVED → DONE
+        </Typography.Text>
+      </Space>
+      <Row gutter={[12, 12]}>
+        {KANBAN_COLUMNS.map((col) => {
+          const items = board[col] ?? [];
+          return (
+            <Col key={col} span={4}>
+              <Card
+                size="small"
+                title={
+                  <Space>
+                    {col}
+                    <Tag color={col === "阻塞" ? "red" : col === "已完成" ? "green" : "blue"}>
+                      {items.length}
+                    </Tag>
+                  </Space>
+                }
+                style={{ minHeight: 200, background: col === "阻塞" ? "#fff2f0" : undefined }}
+              >
+                {items.length === 0
+                  ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="空" />
+                  : (
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      {items.map((it) => (
+                        <Card key={it.id} size="small" styles={{ body: { padding: 8 } }}>
+                          <Typography.Text strong style={{ fontSize: 12 }}>
+                            {it.title}
+                          </Typography.Text>
+                          <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
+                            <div>ID: {it.id}</div>
+                            <div>负责人: {it.owner_role_id ?? "-"}</div>
+                            {it.deps.length > 0 && <div>依赖: {it.deps.join(", ")}</div>}
+                            {it.last_error && <div style={{ color: "#cf1322" }}>⚠ {it.last_error}</div>}
+                          </div>
+                          <Space wrap style={{ marginTop: 6 }}>
+                            {it.phase === "QUEUED" && (
+                              <Button
+                                size="small"
+                                type="primary"
+                                loading={acting === it.id}
+                                onClick={() => act(it.id, "opc_work_item_start")}
+                              >
+                                认领
+                              </Button>
+                            )}
+                            {it.phase === "IN_PROGRESS" && (
+                              <Button
+                                size="small"
+                                loading={acting === it.id}
+                                onClick={() => act(it.id, "opc_work_item_review")}
+                              >
+                                提交评审
+                              </Button>
+                            )}
+                            {it.phase === "REVIEW" && (
+                              <Button
+                                size="small"
+                                type="primary"
+                                loading={acting === it.id}
+                                onClick={() => act(it.id, "opc_work_item_start")}
+                              >
+                                批准完成
+                              </Button>
+                            )}
+                            {it.phase !== "BLOCKED" && it.phase !== "DONE" && it.phase !== "APPROVED"
+                              && it.phase !== "FAILED" && it.phase !== "CANCELLED" && (
+                              <Button
+                                size="small"
+                                danger
+                                loading={acting === it.id}
+                                onClick={() => {
+                                  const reason = window.prompt("升级原因：", "需要人工介入");
+                                  if (reason !== null) { act(it.id, "opc_escalate_work_item", { reason }); }
+                                }}
+                              >
+                                升级
+                              </Button>
+                            )}
+                            {it.phase === "BLOCKED" && (
+                              <Button
+                                size="small"
+                                type="primary"
+                                loading={acting === it.id}
+                                onClick={() => act(it.id, "opc_work_item_unblock")}
+                              >
+                                解除阻塞
+                              </Button>
+                            )}
+                          </Space>
+                        </Card>
+                      ))}
+                    </Space>
+                  )}
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 市场包（P4-1：.opcip 行业包市场）
+// ══════════════════════════════════════════════════════════════════
+
+interface MarketPack {
+  id: string;
+  name: string;
+  icon: string;
+  version: number;
+  enabled: boolean;
+  installed: boolean;
+  path: string;
+}
+
+function MarketPackTab() {
+  const [packs, setPacks] = useState<MarketPack[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    invoke<MarketPack[]>("opc_market_list")
+      .then(setPacks)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return (
+    <div>
+      <Space style={{ marginBottom: 12 }}>
+        <Button size="small" type="primary" onClick={refresh} loading={loading}>
+          刷新市场
+        </Button>
+        <Typography.Text type="secondary">
+          行业数据资产包市场：每个行业独立安装/启用，安装后 seed 对应工作流模板
+        </Typography.Text>
+      </Space>
+      <Row gutter={[12, 12]}>
+        {packs.map((p) => (
+          <Col key={p.id} span={8}>
+            <Card
+              size="small"
+              title={
+                <Space>
+                  <span>{p.icon}</span>
+                  {p.name}
+                  <Tag color={p.installed ? "green" : "blue"}>
+                    {p.installed ? "已安装" : "未安装"}
+                  </Tag>
+                </Space>
+              }
+            >
+              <div style={{ fontSize: 12, color: "#888" }}>
+                <div>ID: {p.id}</div>
+                <div>版本: v{p.version}</div>
+                <div>启用: {p.enabled ? "是" : "否"}</div>
+              </div>
+              <Space style={{ marginTop: 8 }}>
+                <Button
+                  size="small"
+                  type={p.installed ? "default" : "primary"}
+                  disabled={p.installed}
+                  onClick={async () => {
+                    try {
+                      await invoke("opc_import_industry_pack", {
+                        archivePath: p.path,
+                      });
+                      message.success(`已安装: ${p.name}`);
+                      refresh();
+                    } catch (e) {
+                      message.error(`安装失败: ${e}`);
+                    }
+                  }}
+                >
+                  安装
+                </Button>
+              </Space>
+            </Card>
+          </Col>
+        ))}
+      </Row>
     </div>
   );
 }

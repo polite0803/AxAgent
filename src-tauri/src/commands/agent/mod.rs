@@ -11,7 +11,10 @@ use axagent_agent::{
 };
 use axagent_dao::repo::{conversation, message, provider, search_provider};
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
-use axagent_harness::types::{Attachment, ChatTool, ChatToolFunction, McpServer, MessageRole};
+use axagent_harness::types::{
+    Attachment, ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, McpServer,
+    MessageRole,
+};
 use axagent_harness::{
     ProviderAdapter, ProviderRequestContext, ToolDomain, resolve_base_url_for_type,
 };
@@ -1222,30 +1225,6 @@ pub async fn agent_query(
         info!("[agent] Registered {} Tauri command handlers", handler_count);
     }
 
-    // ── [AxInvest] 股票命令桥接器：股票业务命令注册为 Agent 可调用的工具 ──
-    // 本地专属扩展（stock_analysis_bridge.rs），上游无此模块；仅在此追加两处 extend。
-    {
-        use crate::commands::stock_analysis_bridge::{
-            build_stock_chat_tools, build_stock_command_handlers,
-        };
-        let stock_tools = build_stock_chat_tools();
-        let stock_tool_count = stock_tools.len();
-        chat_tools.extend(stock_tools);
-
-        let stock_handlers = build_stock_command_handlers(
-            app_state.astock_client.clone(),
-            app_state.harness.db().clone(),
-            app_state.cron_job_store.clone(),
-            app.clone(),
-        );
-        let stock_handler_count = stock_handlers.len();
-        for (tool_name, handler) in stock_handlers {
-            tool_registry.register_skill_tool(tool_name, handler);
-        }
-        info!("[agent][AxInvest] Added {} stock command tools to chat_tools", stock_tool_count);
-        info!("[agent][AxInvest] Registered {} stock command handlers", stock_handler_count);
-    }
-
     // Create API client with tool definitions, model ID and parameters
     // Also attach a streaming callback to emit text/thinking deltas in real-time
     // 语义缓存注入：仅当运行时开关开启时，把共享的 SemanticCache 作为 HarnessCache
@@ -1863,16 +1842,6 @@ pub async fn agent_query(
         .with_error_recovery(settings.error_recovery_enabled)
         .with_thought_chain(settings.thought_chain_enabled);
 
-    // [AxInvest] 股票写命令注入 ask 规则：触发 runtime 原生权限审批
-    // （agent-permission-request → 前端弹窗 → agent_approve 回传）。
-    // ask 规则命中优先于模式判断（PermissionPolicy::authorize_with_context）。
-    let stock_ask_rules: Vec<String> = crate::commands::stock_analysis_bridge::STOCK_WRITE_TOOLS
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
-    let permission_policy = PermissionPolicy::new(runtime_permission_mode)
-        .with_permission_rules_from_lists(Vec::new(), Vec::new(), stock_ask_rules);
-
     // P0-3：暂停桥接。创建共享 PauseState 并注册到 AppState，
     // agent_pause/agent_resume 命令通过它挂起/唤醒 runtime 循环（wait_while_paused）。
     let pause_state = Arc::new(axagent_runtime_core::PauseState::new());
@@ -1883,7 +1852,7 @@ pub async fn agent_query(
             session.session().clone(),
             Box::new(api_client),
             Box::new(tool_registry),
-            permission_policy,
+            PermissionPolicy::new(runtime_permission_mode),
             system_prompt,
             runtime_feature_config,
         )
@@ -3207,4 +3176,150 @@ pub async fn agent_steer(
     );
     state.steer_queue.lock().await.entry(conversation_id).or_default().push(instruction);
     Ok(())
+}
+
+/// 轻量级一次性文本补全请求：不写入会话历史、不触发 agent 引擎/工具循环。
+/// 供"AI 生成配置"等纯文本生成场景使用（前端 AgentGeneratorModal 等）。
+#[derive(Debug, Deserialize)]
+pub struct SimpleChatCompletionRequest {
+    pub conversation_id: String,
+    pub messages: Vec<SimpleChatMessage>,
+    pub temperature: Option<f64>,
+    pub max_tokens: Option<u32>,
+    /// 显式指定 provider（可选）；缺省按 会话记录 > 第一个启用 provider 回退
+    #[serde(default)]
+    pub provider_id: Option<String>,
+    /// 显式指定 model（可选）；缺省按 会话记录 > 第一个启用 model 回退
+    #[serde(default)]
+    pub model_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SimpleChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+/// 解析一次性补全的 provider/model：
+/// 1. 请求显式指定 → 2. 会话记录 → 3. 第一个启用的 provider + 第一个启用的 model
+async fn resolve_simple_completion_target(
+    app_state: &AppState,
+    input: &SimpleChatCompletionRequest,
+) -> Result<(String, String), String> {
+    if let (Some(p), Some(m)) = (&input.provider_id, &input.model_id) {
+        return Ok((p.clone(), m.clone()));
+    }
+    if let Ok(conv) =
+        conversation::get_conversation(app_state.harness.db(), &input.conversation_id).await
+    {
+        if !conv.provider_id.is_empty() && !conv.model_id.is_empty() {
+            return Ok((conv.provider_id, conv.model_id));
+        }
+    }
+    let providers = provider::list_providers(app_state.harness.db()).await.unwrap_or_default();
+    for p in providers {
+        if !p.enabled {
+            continue;
+        }
+        let models = provider::list_models_for_provider(app_state.harness.db(), &p.id)
+            .await
+            .unwrap_or_default();
+        if let Some(m) = models.into_iter().find(|m| m.enabled) {
+            return Ok((p.id, m.model_id));
+        }
+    }
+    Err("没有可用的 provider/model：请先在设置中启用提供商".to_string())
+}
+
+#[tauri::command]
+pub async fn simple_chat_completion(
+    app_state: State<'_, AppState>,
+    input: SimpleChatCompletionRequest,
+) -> Result<String, String> {
+    let (provider_id, model_id) = resolve_simple_completion_target(&app_state, &input).await?;
+
+    let prov = provider::get_provider(app_state.harness.db(), &provider_id).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let key =
+        provider::get_active_key(app_state.harness.db(), &provider_id).await.map_err(|e| {
+            String::from(ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, app_state.harness.master_key())
+        .map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let settings =
+        axagent_dao::repo::settings::get_settings(app_state.harness.db()).await.unwrap_or_default();
+    let ctx = ProviderRequestContext {
+        api_key,
+        key_id: key.id.clone(),
+        provider_id: prov.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
+        api_path: prov.api_path.clone(),
+        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
+            &prov.proxy_config,
+            &settings,
+        ),
+        custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    let adapter: Arc<dyn ProviderAdapter> = app_state
+        .harness
+        .get_adapter_for_provider(&prov)
+        .await
+        .ok_or_else(|| "没有可用的 provider 适配器".to_string())?;
+
+    let messages = input
+        .messages
+        .iter()
+        .map(|m| ChatMessage {
+            role: m.role.clone(),
+            content: ChatContent::Text(m.content.clone()),
+            tool_calls: None,
+            tool_call_id: None,
+            thinking: None,
+        })
+        .collect::<Vec<_>>();
+
+    let request = ChatRequest {
+        model: model_id,
+        messages,
+        stream: false,
+        temperature: input.temperature,
+        top_p: None,
+        max_tokens: input.max_tokens,
+        tools: None,
+        thinking_budget: None,
+        use_max_completion_tokens: None,
+        thinking_param_style: None,
+        api_mode: None,
+        instructions: None,
+        conversation: None,
+        previous_response_id: None,
+        store: None,
+        response_format: None,
+    };
+
+    let response = adapter.chat(&ctx, Arc::new(request)).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(response.content)
 }

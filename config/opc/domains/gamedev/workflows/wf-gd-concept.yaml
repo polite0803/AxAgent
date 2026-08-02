@@ -1,0 +1,20 @@
+# 工作流：游戏概念设计
+id: wf-gd-concept
+name: 游戏概念设计
+description: 从想法到完整的游戏设计文档
+icon: "🎮"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-gd-idea
+    title: 概念生成
+    prompt: 生成游戏核心玩法和概念
+    inputs: {}
+  - id: a-gd-design
+    title: 游戏设计
+    prompt: 设计游戏机制、关卡、角色
+    inputs: {}
+  - id: a-gd-doc
+    title: 文档
+    prompt: 编写游戏设计文档
+    inputs: {}

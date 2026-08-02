@@ -34,8 +34,7 @@ fn entity_to_dto(e: opc_projects::Model) -> OpcResult<Project> {
     let milestones: Vec<Milestone> = serde_json::from_str(&e.milestones_json)
         .map_err(|err| OpcError::Database(format!("parse milestones: {err}")))?;
 
-    let status = ProjectStatus::from_str(&e.status)
-        .map_err(OpcError::Validation)?;
+    let status = ProjectStatus::from_str(&e.status).map_err(OpcError::Validation)?;
 
     Ok(Project {
         id: e.id,

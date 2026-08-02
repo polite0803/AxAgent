@@ -1,0 +1,20 @@
+# 工作流：广告活动管理
+id: wf-pm-campaign
+name: 广告活动管理
+description: 规划、执行和优化付费广告活动
+icon: "📺"
+tags: [opc]
+profile_id: cmo
+steps:
+  - id: a-pm-plan
+    title: 广告规划
+    prompt: 确定目标受众、预算、渠道
+    inputs: {}
+  - id: a-pm-create
+    title: 广告制作
+    prompt: 制作广告创意和落地页
+    inputs: {}
+  - id: a-pm-optimize
+    title: 优化
+    prompt: 分析表现数据并优化
+    inputs: {}

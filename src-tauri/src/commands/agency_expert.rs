@@ -336,7 +336,8 @@ pub(crate) async fn import_agency_experts_from_dir(
         }
 
         let category = map_directory_to_category(&dir_name);
-        let md_files = std::fs::read_dir(&entry_path).map_err(|e| format!("读取目录失败: {}", e))?;
+        let md_files =
+            std::fs::read_dir(&entry_path).map_err(|e| format!("读取目录失败: {}", e))?;
 
         for md_entry in md_files {
             let md_entry = md_entry.map_err(|e| format!("读取文件失败: {}", e))?;
@@ -351,7 +352,7 @@ pub(crate) async fn import_agency_experts_from_dir(
                 Err(e) => {
                     errors.push(format!("读取文件失败 {}: {}", md_path.display(), e));
                     continue;
-                }
+                },
             };
 
             let (name, description, color, body) = parse_frontmatter(&content);
@@ -393,7 +394,11 @@ pub(crate) async fn import_agency_experts_from_dir(
             let model = agency_experts::ActiveModel {
                 id: Set(id.clone()),
                 name: Set(display_name),
-                description: Set(if description.is_empty() { None } else { Some(description) }),
+                description: Set(if description.is_empty() {
+                    None
+                } else {
+                    Some(description)
+                }),
                 category: Set(final_category),
                 system_prompt: Set(body),
                 color: Set(if color.is_empty() { None } else { Some(color) }),

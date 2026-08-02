@@ -1,0 +1,20 @@
+# 工作流：原型设计
+id: wf-des-prototype
+name: 原型设计
+description: 从线框图到交互原型
+icon: "🎨"
+tags: [opc]
+profile_id: cpo
+steps:
+  - id: a-proto-wireframe
+    title: 线框图
+    prompt: 绘制页面结构和布局线框图
+    inputs: {}
+  - id: a-proto-mockup
+    title: 高保真
+    prompt: 设计高保真模型和设计稿
+    inputs: {}
+  - id: a-proto-interact
+    title: 交互原型
+    prompt: 制作可点击交互原型
+    inputs: {}

@@ -1,0 +1,20 @@
+# 工作流：并购整合
+id: wf-spc-m-a
+name: 并购整合
+description: 并购后业务、团队、系统整合
+icon: "🤝"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-ma-audit
+    title: 尽调审计
+    prompt: 审计目标公司业务、技术、团队
+    inputs: {}
+  - id: a-ma-plan
+    title: 整合计划
+    prompt: 制定100天整合计划
+    inputs: {}
+  - id: a-ma-exec
+    title: 执行
+    prompt: 执行整合并监控关键指标
+    inputs: {}

@@ -1,0 +1,20 @@
+# 工作流：成本分析
+id: wf-fin-cost-analysis
+name: 成本分析
+description: 全面分析运营成本和优化空间
+icon: "📉"
+tags: [opc]
+profile_id: cfo
+steps:
+  - id: a-cost-collect
+    title: 采集
+    prompt: 采集各类成本数据
+    inputs: {}
+  - id: a-cost-analyze
+    title: 分析
+    prompt: 按类别、项目、客户分析成本
+    inputs: {}
+  - id: a-cost-optimize
+    title: 优化
+    prompt: 制定降本方案并评估影响
+    inputs: {}

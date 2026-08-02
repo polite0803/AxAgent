@@ -1,0 +1,20 @@
+# 工作流：性能测试
+id: wf-tst-perf
+name: 性能测试
+description: 负载测试和性能基准
+icon: "⚡"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-tperf-script
+    title: 测试脚本
+    prompt: 编写性能测试脚本和场景
+    inputs: {}
+  - id: a-tperf-run
+    title: 执行
+    prompt: 执行负载测试并监控
+    inputs: {}
+  - id: a-tperf-report
+    title: 报告
+    prompt: 输出性能报告和优化建议
+    inputs: {}

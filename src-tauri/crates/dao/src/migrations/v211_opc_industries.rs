@@ -18,9 +18,8 @@ CREATE TABLE IF NOT EXISTS opc_industries (
     updated_at INTEGER NOT NULL
 )"#;
 
-    let indices = [
-        "CREATE INDEX IF NOT EXISTS idx_opc_industries_enabled ON opc_industries(enabled)",
-    ];
+    let indices =
+        ["CREATE INDEX IF NOT EXISTS idx_opc_industries_enabled ON opc_industries(enabled)"];
 
     db.execute_unprepared(create_industries).await?;
     for stmt in &indices {

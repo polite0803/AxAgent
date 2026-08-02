@@ -4,6 +4,7 @@ members = [
   "crates/agent",
   "crates/astock-data",
   "crates/cache",
+  "crates/company-runtime",
   "crates/credential",
   "crates/crypto",
   "crates/dao",
@@ -130,6 +131,7 @@ async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
 axagent-astock-data = { path = "crates/astock-data" }
 axagent-cache = { path = "crates/cache" }
+axagent-company-runtime = { path = "crates/company-runtime" }
 axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }

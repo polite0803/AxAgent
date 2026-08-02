@@ -23,9 +23,7 @@ pub async fn seed_opc_knowledge(db: &DatabaseConnection) {
 /// 确保 OPC Wiki 存在，返回其 ID
 async fn ensure_opc_wiki(db: &DatabaseConnection) -> Option<String> {
     // 检查是否已存在
-    if let Ok(w) = wikis::Entity::find()
-        .filter(wikis::Column::Name.eq(OPC_WIKI_NAME))
-        .one(db).await
+    if let Ok(w) = wikis::Entity::find().filter(wikis::Column::Name.eq(OPC_WIKI_NAME)).one(db).await
     {
         if let Some(w) = w {
             tracing::info!("[opc-knowledge] Wiki already exists: {} ({})", w.name, w.id);
@@ -36,7 +34,9 @@ async fn ensure_opc_wiki(db: &DatabaseConnection) -> Option<String> {
     // 创建 OPC Wiki
     let input = wiki::CreateWikiInput {
         name: OPC_WIKI_NAME.to_string(),
-        description: Some("OPC 一人公司业务文档——合同模板、税务政策、运营 SOP、项目管理规范".to_string()),
+        description: Some(
+            "OPC 一人公司业务文档——合同模板、税务政策、运营 SOP、项目管理规范".to_string(),
+        ),
         root_path: "opc".to_string(),
         embedding_provider: None,
     };
@@ -88,8 +88,10 @@ async fn ensure_opc_memory(db: &DatabaseConnection) -> Option<String> {
 /// 播种初始 Wiki 页面
 async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
     let seed_pages: Vec<(&str, &str, &str)> = vec![
-        ("发票管理规范", "opc/invoice-policy",
-         r#"# 发票管理规范
+        (
+            "发票管理规范",
+            "opc/invoice-policy",
+            r#"# 发票管理规范
 
 ## 开票流程
 1. 确认客户信息完整（名称、税号、地址、银行账户）
@@ -108,9 +110,12 @@ async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
 - 逾期 30 天：升级处理
 
 参见 [[客户管理规范]] 和 [[项目管理流程]]
-"#),
-        ("客户管理规范", "opc/customer-policy",
-         r#"# 客户管理规范
+"#,
+        ),
+        (
+            "客户管理规范",
+            "opc/customer-policy",
+            r#"# 客户管理规范
 
 ## 客户状态定义
 | 状态 | 说明 | 下一步动作 |
@@ -129,9 +134,12 @@ async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
 - **Direct**：直接联系 — 高意向
 
 参见 [[发票管理规范]]
-"#),
-        ("项目管理流程", "opc/project-process",
-         r#"# 项目管理流程
+"#,
+        ),
+        (
+            "项目管理流程",
+            "opc/project-process",
+            r#"# 项目管理流程
 
 ## SOP 标准流程
 1. **项目规划** (Planning) — 明确范围、预算、时间线
@@ -151,9 +159,12 @@ async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
 - 项目结束时统计实际成本 vs 预算
 
 参见 [[发票管理规范]] 和 [[客户管理规范]]
-"#),
-        ("税务与合规指南", "opc/tax-guide",
-         r#"# 税务与合规指南
+"#,
+        ),
+        (
+            "税务与合规指南",
+            "opc/tax-guide",
+            r#"# 税务与合规指南
 
 ## 发票合规要求
 - 发票抬头必须与客户营业执照一致
@@ -173,9 +184,12 @@ async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
 - [ ] 收款确认（到账核实、账务记录）
 
 参见 [[发票管理规范]]
-"#),
-        ("客户沟通模板", "opc/communication-templates",
-         r#"# 客户沟通模板
+"#,
+        ),
+        (
+            "客户沟通模板",
+            "opc/communication-templates",
+            r#"# 客户沟通模板
 
 ## 新客户欢迎邮件
 ```
@@ -210,7 +224,8 @@ async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
 ```
 
 参见 [[发票管理规范]] 和 [[客户管理规范]]
-"#),
+"#,
+        ),
     ];
 
     for (title, file_path, content) in seed_pages {
@@ -218,8 +233,11 @@ async fn seed_opc_notes(db: &DatabaseConnection, wiki_id: &str) {
         let exists = notes::Entity::find()
             .filter(notes::Column::VaultId.eq(wiki_id))
             .filter(notes::Column::FilePath.eq(file_path))
-            .one(db).await
-            .ok().flatten().is_some();
+            .one(db)
+            .await
+            .ok()
+            .flatten()
+            .is_some();
 
         if exists {
             tracing::info!("[opc-knowledge] Note already exists: {file_path}");

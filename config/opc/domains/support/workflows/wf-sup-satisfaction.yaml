@@ -1,0 +1,20 @@
+# 工作流：客户满意度调查
+id: wf-sup-satisfaction
+name: 客户满意度调查
+description: 设计、发���和分析满意度调查
+icon: "📊"
+tags: [opc]
+profile_id: coo
+steps:
+  - id: a-sat-design
+    title: 设计
+    prompt: 设计调查问卷和评分体系
+    inputs: {}
+  - id: a-sat-send
+    title: 发送
+    prompt: 选择样本并发送调查
+    inputs: {}
+  - id: a-sat-analyze
+    title: 分析
+    prompt: 分析结果并制定改进计划
+    inputs: {}

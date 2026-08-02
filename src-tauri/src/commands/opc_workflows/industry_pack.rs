@@ -16,10 +16,14 @@ use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// 行业包根目录（相对仓库根）
 pub const INDUSTRIES_DIR: &str = "config/opc/industries";
+
+/// 领域包根目录（相对仓库根；与行业包同 schema，独立目录）
+pub const DOMAINS_DIR: &str = "config/opc/domains";
 
 // ── manifest.yaml schema ──────────────────────────────────────────
 
@@ -37,9 +41,15 @@ pub struct IndustryManifest {
     pub enabled: bool,
 }
 
-fn default_icon() -> String { "🏢".into() }
-fn default_version() -> i32 { 1 }
-fn default_true() -> bool { true }
+fn default_icon() -> String {
+    "🏢".into()
+}
+fn default_version() -> i32 {
+    1
+}
+fn default_true() -> bool {
+    true
+}
 
 // ── workflows/*.yaml schema ───────────────────────────────────────
 
@@ -75,6 +85,10 @@ pub struct IndustryStep {
     /// 例：{ "report": "a-report.result" }
     #[serde(default)]
     pub inputs: HashMap<String, String>,
+    /// 工具白名单：节点可调用的工具名（如 get_stock_quote / search_news）。
+    /// 空 = 不暴露任何工具。匹配 astock-data stock_mcp_tools 工具名。
+    #[serde(default)]
+    pub tools: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -92,9 +106,15 @@ pub struct IndustryApproval {
     pub timeout_action: String,
 }
 
-fn default_approval_message() -> String { "请审批。24小时超时自动拒绝。".into() }
-fn default_timeout() -> u64 { 86400 }
-fn default_timeout_action() -> String { "auto_reject".into() }
+fn default_approval_message() -> String {
+    "请审批。24小时超时自动拒绝。".into()
+}
+fn default_timeout() -> u64 {
+    86400
+}
+fn default_timeout_action() -> String {
+    "auto_reject".into()
+}
 
 // ── 包加载 ────────────────────────────────────────────────────────
 
@@ -104,12 +124,18 @@ pub fn scan_industry_packs(base_dir: &Path) -> Vec<IndustryManifest> {
     let Ok(entries) = std::fs::read_dir(base_dir) else { return out };
     for entry in entries.flatten() {
         let dir = entry.path();
-        if !dir.is_dir() { continue; }
+        if !dir.is_dir() {
+            continue;
+        }
         let manifest_path = dir.join("manifest.yaml");
         let Ok(raw) = std::fs::read_to_string(&manifest_path) else { continue };
         match serde_yaml::from_str::<IndustryManifest>(&raw) {
-            Ok(m) => { out.push(m); }
-            Err(e) => { tracing::warn!("[industry-pack] {} manifest 解析失败: {e}", dir.display()); }
+            Ok(m) => {
+                out.push(m);
+            },
+            Err(e) => {
+                tracing::warn!("[industry-pack] {} manifest 解析失败: {e}", dir.display());
+            },
         }
     }
     out
@@ -122,11 +148,17 @@ pub fn load_industry_workflows(industry_dir: &Path) -> Vec<IndustryWorkflow> {
     let Ok(entries) = std::fs::read_dir(&wf_dir) else { return out };
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().map(|e| e != "yaml" && e != "yml").unwrap_or(true) { continue; }
+        if path.extension().map(|e| e != "yaml" && e != "yml").unwrap_or(true) {
+            continue;
+        }
         let Ok(raw) = std::fs::read_to_string(&path) else { continue };
         match serde_yaml::from_str::<IndustryWorkflow>(&raw) {
-            Ok(w) => { out.push(w); }
-            Err(e) => { tracing::warn!("[industry-pack] {} 解析失败: {e}", path.display()); }
+            Ok(w) => {
+                out.push(w);
+            },
+            Err(e) => {
+                tracing::warn!("[industry-pack] {} 解析失败: {e}", path.display());
+            },
         }
     }
     out
@@ -166,7 +198,11 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
                 base: make_base(&step.id, &step.title, "", 250.0, y),
                 config: ApprovalNodeConfig {
                     message: cfg.message,
-                    approver: if cfg.approver.is_empty() { None } else { Some(cfg.approver) },
+                    approver: if cfg.approver.is_empty() {
+                        None
+                    } else {
+                        Some(cfg.approver)
+                    },
                     timeout_secs: cfg.timeout_secs,
                     timeout_action: cfg.timeout_action,
                     output_var: format!("{}_result", step.id),
@@ -177,6 +213,12 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
             for (k, v) in &step.inputs {
                 input_mapping.insert(k.clone(), v.clone());
             }
+            // 工具白名单：step.tools 声明的工具名 → ToolDef（从 stock_mcp_tools 匹配）
+            let node_tools = if step.tools.is_empty() {
+                vec![]
+            } else {
+                stock_tool_defs(&step.tools)
+            };
             WorkflowNode::Agent(AgentNode {
                 base: make_base(&step.id, &step.title, "", 250.0, y),
                 config: AgentNodeConfig {
@@ -186,8 +228,8 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
                     model: None,
                     temperature: None,
                     max_tokens: None,
-                    tools: vec![],
-                    exposed_tools: vec![],
+                    tools: node_tools.clone(),
+                    exposed_tools: node_tools.iter().map(|t| t.name.clone()).collect(),
                     output_mode: OutputMode::Json,
                     agent_profile_id: Some(w.profile_id.clone()),
                     max_tool_rounds: Some(10),
@@ -195,12 +237,15 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
                     rag_source_ids: vec![],
                     model_role: Some("opc-worker".to_string()),
                     consistency_check: None,
-                    hallucination_guard: Some(axagent_harness::hallucination_guard::HallucinationGuardConfig {
-                        enabled: true, match_threshold: 0.4,
-                    }),
-                        fallback_model: None,
-                        task_scene: None,
-                        stream_chunk_timeout_secs: None,
+                    hallucination_guard: Some(
+                        axagent_harness::hallucination_guard::HallucinationGuardConfig {
+                            enabled: true,
+                            match_threshold: 0.4,
+                        },
+                    ),
+                    fallback_model: None,
+                    task_scene: None,
+                    stream_chunk_timeout_secs: None,
                     input_mapping,
                 },
             })
@@ -221,13 +266,20 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
             id: w.id.clone(),
             name: w.name.clone(),
             description: Some(w.description.clone()),
-            icon: if w.icon.is_empty() { "📄".into() } else { w.icon.clone() },
+            icon: if w.icon.is_empty() {
+                "📄".into()
+            } else {
+                w.icon.clone()
+            },
             tags: w.tags.clone(),
             version,
             is_preset: true,
             is_editable: true,
             is_public: false,
-            trigger_config: Some(TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) }),
+            trigger_config: Some(TriggerConfig {
+                trigger_type: TriggerType::Manual,
+                config: serde_json::json!({}),
+            }),
             nodes,
             edges,
             input_schema: None,
@@ -282,13 +334,20 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
         id: w.id.clone(),
         name: w.name.clone(),
         description: Some(w.description.clone()),
-        icon: if w.icon.is_empty() { "📄".into() } else { w.icon.clone() },
+        icon: if w.icon.is_empty() {
+            "📄".into()
+        } else {
+            w.icon.clone()
+        },
         tags: w.tags.clone(),
         version,
         is_preset: true,
         is_editable: true,
         is_public: false,
-        trigger_config: Some(TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) }),
+        trigger_config: Some(TriggerConfig {
+            trigger_type: TriggerType::Manual,
+            config: serde_json::json!({}),
+        }),
         nodes,
         edges,
         input_schema: None,
@@ -305,28 +364,48 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
 
 fn edge(id: &str, src: &str, tgt: &str) -> WorkflowEdge {
     WorkflowEdge {
-        id: id.into(), source: src.into(), source_handle: None,
-        target: tgt.into(), target_handle: None,
-        edge_type: EdgeType::Direct, label: None,
+        id: id.into(),
+        source: src.into(),
+        source_handle: None,
+        target: tgt.into(),
+        target_handle: None,
+        edge_type: EdgeType::Direct,
+        label: None,
     }
 }
 
 fn cond_edge(id: &str, src: &str, tgt: &str, is_true: bool) -> WorkflowEdge {
     WorkflowEdge {
-        id: id.into(), source: src.into(),
-        source_handle: Some(if is_true { "true".into() } else { "false".into() }),
-        target: tgt.into(), target_handle: None,
-        edge_type: if is_true { EdgeType::ConditionTrue } else { EdgeType::ConditionFalse },
+        id: id.into(),
+        source: src.into(),
+        source_handle: Some(if is_true {
+            "true".into()
+        } else {
+            "false".into()
+        }),
+        target: tgt.into(),
+        target_handle: None,
+        edge_type: if is_true {
+            EdgeType::ConditionTrue
+        } else {
+            EdgeType::ConditionFalse
+        },
         label: None,
     }
 }
 
 fn make_base(id: &str, title: &str, desc: &str, x: f64, y: f64) -> WorkflowNodeBase {
     WorkflowNodeBase {
-        id: id.into(), title: title.into(), description: Some(desc.into()),
+        id: id.into(),
+        title: title.into(),
+        description: Some(desc.into()),
         position: Position { x, y },
-        retry: RetryConfig::default(), timeout: Some(300), enabled: true,
-        parent_id: None, compensation: None, continue_on_fail: false,
+        retry: RetryConfig::default(),
+        timeout: Some(300),
+        enabled: true,
+        parent_id: None,
+        compensation: None,
+        continue_on_fail: false,
     }
 }
 
@@ -373,7 +452,11 @@ pub async fn upsert_industry_registry(
 }
 
 /// 从 opc_industries 读取启用的行业（按 version 过滤需要 seed 的）。
-pub async fn enabled_industries(db: &DatabaseConnection) -> Result<Vec<axagent_opc_entities::opc_industries::Model>, String> {
+/// P2 export/install 命令使用，当前尚未接线。
+#[allow(dead_code)]
+pub async fn enabled_industries(
+    db: &DatabaseConnection,
+) -> Result<Vec<axagent_opc_entities::opc_industries::Model>, String> {
     use axagent_opc_entities::opc_industries;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
     opc_industries::Entity::find()
@@ -398,10 +481,8 @@ pub async fn ensure_opc_industries_seeded(
     for m in manifests {
         // 版本判断：读 DB 现有记录（seed 前，避免 registry upsert 自引用）
         let existing = opc_industries::Entity::find_by_id(&m.id).one(db).await.ok().flatten();
-        let already_seeded = existing
-            .as_ref()
-            .map(|e| e.version >= m.version && e.enabled == 1)
-            .unwrap_or(false);
+        let already_seeded =
+            existing.as_ref().map(|e| e.version >= m.version && e.enabled == 1).unwrap_or(false);
 
         // 注册表 upsert（记录当前包状态）
         upsert_industry_registry(db, &m).await?;
@@ -431,4 +512,181 @@ pub async fn ensure_opc_industries_seeded(
 /// 供测试/工具使用：给定行业 id 的包目录路径。
 pub fn industry_pack_dir(base_dir: &Path, id: &str) -> PathBuf {
     base_dir.join(id)
+}
+
+// ── .opcip 导出/导入 ─────────────────────────────────────────────
+//
+// .opcip = Industry Pack 的 zip 归档（manifest.yaml + workflows/*.yaml）。
+// 导出：打包行业目录 → zip 文件；导入：解包 → 注册 → seed。
+
+/// 导出行业包为 .opcip 归档。
+/// 返回生成的文件路径。
+pub async fn export_industry_pack(
+    base_dir: &Path,
+    id: &str,
+    out_dir: &Path,
+) -> Result<String, String> {
+    let src = industry_pack_dir(base_dir, id);
+    if !src.is_dir() {
+        return Err(format!("行业包不存在: {}", src.display()));
+    }
+
+    let file_path = out_dir.join(format!("{id}.opcip"));
+    let file = std::fs::File::create(&file_path).map_err(|e| format!("创建归档失败: {e}"))?;
+    let mut zip = zip::ZipWriter::new(file);
+    let opts = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+
+    // 递归打包目录（zip 内部用正斜杠相对路径）
+    fn add_dir(
+        zip: &mut zip::ZipWriter<std::fs::File>,
+        opts: &zip::write::SimpleFileOptions,
+        base: &Path,
+        dir: &Path,
+        prefix: &str,
+    ) -> Result<(), String> {
+        let entries = std::fs::read_dir(dir).map_err(|e| format!("读取目录失败: {e}"))?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            let zip_name = format!("{prefix}{name}");
+            if path.is_dir() {
+                add_dir(zip, opts, base, &path, &format!("{zip_name}/"))?;
+            } else {
+                let content = std::fs::read(&path).map_err(|e| format!("读取文件失败: {e}"))?;
+                zip.start_file(zip_name, *opts).map_err(|e| format!("写入归档失败: {e}"))?;
+                zip.write_all(&content).map_err(|e| format!("写入归档失败: {e}"))?;
+            }
+        }
+        Ok(())
+    }
+
+    // 打包：zip 内路径以 {id}/ 为前缀（如 "finance_invest/manifest.yaml"），
+    // 保证导入时能识别单一顶层行业目录。
+    add_dir(&mut zip, &opts, &src, &src, &format!("{id}/"))
+        .map_err(|e| format!("打包失败: {e}"))?;
+    zip.finish().map_err(|e| format!("归档完成失败: {e}"))?;
+    tracing::info!("[industry-pack] 导出 {id} → {}", file_path.display());
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+/// 导入 .opcip 行业包：解包到 app_dir/config/opc/industries/{id}/ 并注册 seed。
+/// 返回导入的行业 id。
+pub async fn import_industry_pack(
+    db: &DatabaseConnection,
+    app_dir: &Path,
+    archive_path: &Path,
+) -> Result<String, String> {
+    let file = std::fs::File::open(archive_path).map_err(|e| format!("打开归档失败: {e}"))?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("解析归档失败: {e}"))?;
+
+    // 目标目录：app_dir/config/opc/industries/{id}
+    let target_root = app_dir.join(INDUSTRIES_DIR);
+    std::fs::create_dir_all(&target_root).map_err(|e| format!("创建目录失败: {e}"))?;
+
+    // 解包所有条目，记录顶层目录（行业 id，通常只有一个）
+    let mut top_dirs: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let mut has_manifest = false;
+    for i in 0..zip.len() {
+        let mut entry = zip.by_index(i).map_err(|e| format!("读取条目失败: {e}"))?;
+        let entry_name = entry.name().to_string();
+        if entry.is_dir() {
+            continue;
+        }
+        // 顶层目录 = 行业 id（zip_name 形如 "finance_invest/manifest.yaml"）
+        let top = entry_name.split('/').next().unwrap_or("").to_string();
+        if top.is_empty() {
+            continue;
+        }
+        top_dirs.insert(top.clone());
+        if entry_name.ends_with("manifest.yaml") {
+            has_manifest = true;
+        }
+        let out_path = target_root.join(&entry_name);
+        if let Some(parent) = out_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
+        }
+        let mut out = std::fs::File::create(&out_path).map_err(|e| format!("创建文件失败: {e}"))?;
+        std::io::copy(&mut entry, &mut out).map_err(|e| format!("解包失败: {e}"))?;
+    }
+
+    if !has_manifest {
+        return Err("归档内未找到 manifest.yaml，不是有效的 .opcip 行业包".to_string());
+    }
+    if top_dirs.len() != 1 {
+        return Err(format!("归档应只含一个行业包目录，实际 {} 个: {top_dirs:?}", top_dirs.len()));
+    }
+    let id = top_dirs.into_iter().next().unwrap();
+    tracing::info!("[industry-pack] 导入 {id} → {}", target_root.display());
+
+    // 注册 + seed
+    let seeded = ensure_opc_industries_seeded(db, &target_root).await?;
+    if !seeded.contains(&id) {
+        // 包已存在且版本一致（已 seed），视为导入成功
+        tracing::info!("[industry-pack] {id} 已存在，跳过 seed");
+    }
+    Ok(id)
+}
+
+// ── 领域包 seed（Self-Built 通用领域工作流）─────────────────────
+//
+// 与行业包同 schema（manifest.yaml + workflows/*.yaml），独立目录
+// config/opc/domains/{domain}/。不建注册表——领域包启用/禁用由
+// manifest.enabled 控制，版本由 manifest.version 驱动 upsert 幂等。
+
+/// 扫描并 seed 全部启用的领域包。返回 seed 的领域 id 列表。
+pub async fn ensure_opc_domains_seeded(
+    db: &DatabaseConnection,
+    base_dir: &Path,
+) -> Result<Vec<String>, String> {
+    let manifests = scan_industry_packs(base_dir);
+    let mut seeded = Vec::new();
+
+    for m in manifests {
+        if !m.enabled {
+            tracing::info!("[domain-pack] {} 已禁用，跳过 seed", m.id);
+            continue;
+        }
+        let domain_dir = base_dir.join(&m.id);
+        let workflows = load_industry_workflows(&domain_dir);
+        for wf in &workflows {
+            let data = build_workflow_from_pack(wf, m.version);
+            super::upsert_template(db, data).await?;
+        }
+        tracing::info!(
+            "[domain-pack] {} seed 完成（{} 个工作流，v{}）",
+            m.id,
+            workflows.len(),
+            m.version
+        );
+        seeded.push(m.id.clone());
+    }
+    Ok(seeded)
+}
+
+// ── 股票工具白名单（P4-2：金融行业吃 astock-data 工具链）────────
+
+/// 从 astock-data stock_mcp_tools 匹配工具名 → ToolDef 列表。
+/// 工具已由 init/services.rs ToolResolver 接通执行路径（execute_mcp_tool），
+/// 工作流 AgentNode 只要 exposed_tools 含工具名即可调用。
+pub fn stock_tool_defs(names: &[String]) -> Vec<axagent_harness::workflow_types::ToolDef> {
+    let mut out = Vec::new();
+    for tool in axagent_astock_data::mcp_tools::stock_mcp_tools() {
+        let Some(name) = tool.get("name").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        if !names.iter().any(|n| n == name) {
+            continue;
+        }
+        let description = tool.get("description").and_then(|v| v.as_str()).map(|s| s.to_string());
+        // parameters：把 inputSchema json 转 ToolDef.parameters（JsonSchema）
+        let parameters =
+            tool.get("inputSchema").and_then(|v| serde_json::from_value(v.clone()).ok());
+        out.push(axagent_harness::workflow_types::ToolDef {
+            name: name.to_string(),
+            description,
+            parameters,
+        });
+    }
+    out
 }

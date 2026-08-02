@@ -7,8 +7,8 @@ use sea_orm::QuerySelect;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
 };
-use std::str::FromStr;
 use serde_json;
+use std::str::FromStr;
 // use tracing;
 
 use axagent_harness::util_fns::{gen_id, now_ts};
@@ -35,8 +35,7 @@ fn entity_to_dto(e: opc_invoices::Model) -> OpcResult<Invoice> {
     let line_items: Vec<InvoiceLineItem> = serde_json::from_str(&e.line_items_json)
         .map_err(|err| OpcError::Database(format!("parse line_items: {err}")))?;
 
-    let status = InvoiceStatus::from_str(&e.status)
-        .map_err(OpcError::Validation)?;
+    let status = InvoiceStatus::from_str(&e.status).map_err(OpcError::Validation)?;
 
     Ok(Invoice {
         id: e.id,
@@ -193,8 +192,7 @@ impl InvoiceService for DefaultInvoiceService {
             .map_err(|e| OpcError::Database(e.to_string()))?
             .ok_or_else(|| OpcError::NotFound(format!("invoice {id}")))?;
 
-        let current = InvoiceStatus::from_str(&entity.status)
-            .map_err(OpcError::Validation)?;
+        let current = InvoiceStatus::from_str(&entity.status).map_err(OpcError::Validation)?;
 
         if !current.can_transition_to(&target) {
             return Err(OpcError::InvalidStateTransition {

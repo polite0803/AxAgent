@@ -1,0 +1,20 @@
+# 工作流：无障碍审计
+id: wf-des-accessibility
+name: 无障碍审计
+description: 审计和修复产品无障碍问题
+icon: "♿"
+tags: [opc]
+profile_id: cpo
+steps:
+  - id: a-a11y-scan
+    title: 扫描
+    prompt: 使用工具扫描无障碍问题
+    inputs: {}
+  - id: a-a11y-report
+    title: 报告
+    prompt: 分类报告问题严重程度
+    inputs: {}
+  - id: a-a11y-fix
+    title: 修复
+    prompt: 优先级修复关键无障碍问题
+    inputs: {}

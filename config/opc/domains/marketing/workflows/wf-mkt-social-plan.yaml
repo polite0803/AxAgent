@@ -1,0 +1,20 @@
+# 工作流：社交媒体策略
+id: wf-mkt-social-plan
+name: 社交媒体策略
+description: 制定社交媒体系运营和内容日历
+icon: "📱"
+tags: [opc]
+profile_id: cmo
+steps:
+  - id: a-soc-audit
+    title: 账号审计
+    prompt: 审计现有社交账号和内容表现
+    inputs: {}
+  - id: a-soc-strategy
+    title: 策略制定
+    prompt: 确定平台、内容类型、发布频率
+    inputs: {}
+  - id: a-soc-calendar
+    title: 内容日历
+    prompt: 创建月度内容日历和排期
+    inputs: {}

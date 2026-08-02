@@ -132,9 +132,13 @@ export function drawChair(scene: Phaser.Scene, cx: number, cy: number): void {
   scene.add.rectangle(cx + 10, cy - 2, 2, 6, frame, 1).setStrokeStyle(1, outline, 0.7);
 }
 
-// ── 绿植 ──────────────────────────────────────────────
+// ── 绿植（Container 版，供摆动动画）──────────────────────────────────
 
-export function drawPlant(scene: Phaser.Scene, cx: number, cy: number): void {
+export function drawPlantContainer(
+  scene: Phaser.Scene,
+  cx: number,
+  cy: number,
+): Phaser.GameObjects.Container {
   const potColor = 0x8b4513;
   const potRim = 0xa0562a;
   const leafDark = 0x1b6b2f;
@@ -143,43 +147,53 @@ export function drawPlant(scene: Phaser.Scene, cx: number, cy: number): void {
   const leafBright = 0x5ec85e;
   const outline = 0x1a3a1a;
 
+  const parts: Phaser.GameObjects.GameObject[] = [];
+
   // 阴影
-  scene.add.ellipse(cx + 2, cy + 14, 16, 4, 0x000000, 0.2);
+  parts.push(scene.add.ellipse(2, 14, 16, 4, 0x000000, 0.2));
 
   // 花盆
-  const pot = scene.add.rectangle(cx, cy + 8, 14, 10, potColor, 1);
+  const pot = scene.add.rectangle(0, 8, 14, 10, potColor, 1);
   pot.setStrokeStyle(1, outline, 0.8);
+  parts.push(pot);
   // 花盆上沿
-  const rim = scene.add.rectangle(cx, cy + 4, 16, 3, potRim, 1);
+  const rim = scene.add.rectangle(0, 4, 16, 3, potRim, 1);
   rim.setStrokeStyle(1, outline, 0.7);
+  parts.push(rim);
   // 花盆纹理
-  scene.add.rectangle(cx - 4, cy + 10, 1, 4, darken(potColor, 0.3), 0.5);
-  scene.add.rectangle(cx + 3, cy + 9, 1, 5, darken(potColor, 0.3), 0.5);
+  parts.push(scene.add.rectangle(-4, 10, 1, 4, darken(potColor, 0.3), 0.5));
+  parts.push(scene.add.rectangle(3, 9, 1, 5, darken(potColor, 0.3), 0.5));
 
   // 茎
-  scene.add.rectangle(cx, cy, 1, 8, leafDark, 0.8);
-  scene.add.rectangle(cx - 3, cy + 2, 1, 6, leafDark, 0.6);
-  scene.add.rectangle(cx + 3, cy + 2, 1, 6, leafDark, 0.6);
+  parts.push(scene.add.rectangle(0, 0, 1, 8, leafDark, 0.8));
+  parts.push(scene.add.rectangle(-3, 2, 1, 6, leafDark, 0.6));
+  parts.push(scene.add.rectangle(3, 2, 1, 6, leafDark, 0.6));
 
   // 叶子（多层）
-  // 底层（深色）
-  const leaf1 = scene.add.rectangle(cx - 5, cy - 2, 8, 8, leafDark, 1);
+  const leaf1 = scene.add.rectangle(-5, -2, 8, 8, leafDark, 1);
   leaf1.setStrokeStyle(1, outline, 0.7);
-  const leaf2 = scene.add.rectangle(cx + 5, cy - 2, 8, 8, leafDark, 1);
+  parts.push(leaf1);
+  const leaf2 = scene.add.rectangle(5, -2, 8, 8, leafDark, 1);
   leaf2.setStrokeStyle(1, outline, 0.7);
+  parts.push(leaf2);
   // 中层
-  const leaf3 = scene.add.rectangle(cx - 3, cy - 6, 8, 8, leafMid, 1);
+  const leaf3 = scene.add.rectangle(-3, -6, 8, 8, leafMid, 1);
   leaf3.setStrokeStyle(1, outline, 0.6);
-  const leaf4 = scene.add.rectangle(cx + 3, cy - 6, 8, 8, leafMid, 1);
+  parts.push(leaf3);
+  const leaf4 = scene.add.rectangle(3, -6, 8, 8, leafMid, 1);
   leaf4.setStrokeStyle(1, outline, 0.6);
+  parts.push(leaf4);
   // 上层
-  const leaf5 = scene.add.rectangle(cx, cy - 9, 7, 7, leafLight, 1);
+  const leaf5 = scene.add.rectangle(0, -9, 7, 7, leafLight, 1);
   leaf5.setStrokeStyle(1, outline, 0.5);
+  parts.push(leaf5);
   // 顶部亮点
-  scene.add.rectangle(cx - 1, cy - 11, 3, 3, leafBright, 0.8);
+  parts.push(scene.add.rectangle(-1, -11, 3, 3, leafBright, 0.8));
   // 叶子高光
-  scene.add.rectangle(cx - 4, cy - 7, 2, 1, leafBright, 0.5);
-  scene.add.rectangle(cx + 4, cy - 7, 2, 1, leafBright, 0.4);
+  parts.push(scene.add.rectangle(-4, -7, 2, 1, leafBright, 0.5));
+  parts.push(scene.add.rectangle(4, -7, 2, 1, leafBright, 0.4));
+
+  return scene.add.container(cx, cy, parts);
 }
 
 // ── 白板 ──────────────────────────────────────────────
@@ -492,7 +506,7 @@ export function drawFurnitureItem(scene: Phaser.Scene, room: RoomRect, item: Roo
       drawChair(scene, cx, cy);
       break;
     case "plant":
-      drawPlant(scene, cx, cy);
+      drawPlantContainer(scene, cx, cy);
       break;
     case "whiteboard":
       drawWhiteboard(scene, cx, cy);

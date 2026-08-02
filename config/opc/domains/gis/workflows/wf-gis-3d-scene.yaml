@@ -1,0 +1,20 @@
+# 工作流：三维场景
+id: wf-gis-3d-scene
+name: 三维场景
+description: 构建三维地理场景和可视化
+icon: "🏔️"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-3d-data
+    title: 数据采集
+    prompt: 采集地形、影像和模型数据
+    inputs: {}
+  - id: a-3d-scene
+    title: 场景搭建
+    prompt: 构建三维场景和光照
+    inputs: {}
+  - id: a-3d-publish
+    title: 发布
+    prompt: 发布交互式三维场景
+    inputs: {}

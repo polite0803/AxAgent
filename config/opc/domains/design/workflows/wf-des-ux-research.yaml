@@ -1,0 +1,20 @@
+# 工作流：用户研究
+id: wf-des-ux-research
+name: 用户研究
+description: 用户访谈、可用性测试和洞察
+icon: "👥"
+tags: [opc]
+profile_id: cpo
+steps:
+  - id: a-ux-plan
+    title: 研究计划
+    prompt: 确定研究目标和用户招募标准
+    inputs: {}
+  - id: a-ux-conduct
+    title: 执行
+    prompt: 执行用户访谈或可用性测试
+    inputs: {}
+  - id: a-ux-report
+    title: 研究报告
+    prompt: 输出研究洞察和设计建议
+    inputs: {}

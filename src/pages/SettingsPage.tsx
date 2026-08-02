@@ -102,6 +102,9 @@ const LazyImageGenSettings = lazy(() =>
 const LazyThemeManager = lazy(() =>
   import("@/components/settings/ThemeManager").then((m) => ({ default: m.ThemeManager }))
 );
+const LazyAnimationSettings = lazy(() =>
+  import("@/components/settings/AnimationSettings").then((m) => ({ default: m.AnimationSettings }))
+);
 const LazyCronManager = lazy(() =>
   import("@/components/settings/CronManager").then((m) => ({ default: m.CronManager }))
 );
@@ -286,6 +289,11 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   theme: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyThemeManager />
+    </Suspense>
+  ),
+  animations: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyAnimationSettings />
     </Suspense>
   ),
   cron: () => (

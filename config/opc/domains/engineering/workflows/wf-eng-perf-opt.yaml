@@ -1,0 +1,20 @@
+# 工作流：性能优化
+id: wf-eng-perf-opt
+name: 性能优化
+description: 分析和优化系统性能瓶颈
+icon: "⚡"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-profile
+    title: 性能分析
+    prompt: profile代码、数据库查询、网络延迟
+    inputs: {}
+  - id: a-identify
+    title: 瓶颈识别
+    prompt: 识别性能瓶颈和根因分析
+    inputs: {}
+  - id: a-optimize
+    title: 优化实施
+    prompt: 实施优化并验证效果
+    inputs: {}

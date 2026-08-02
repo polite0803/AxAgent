@@ -1,0 +1,20 @@
+# 工作流：风险管理
+id: wf-pm-risk
+name: 风险管理
+description: 识别、评估和应对项目风险
+icon: "⚠️"
+tags: [opc]
+profile_id: coo
+steps:
+  - id: a-risk-identify
+    title: 风险识别
+    prompt: 识别技术和业务风险
+    inputs: {}
+  - id: a-risk-assess
+    title: 评估
+    prompt: 评估影响和概率
+    inputs: {}
+  - id: a-risk-respond
+    title: 应对
+    prompt: 制定风险应对策略
+    inputs: {}

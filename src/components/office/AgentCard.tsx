@@ -13,7 +13,8 @@
 
 import type { FleetMember, FleetMemberStatus } from "@/types";
 import { Tag, theme, Tooltip } from "antd";
-import { Bot, User } from "lucide-react";
+import { Bot, Trash2, User } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const STATUS_COLOR: Record<FleetMemberStatus, string> = {
@@ -134,11 +135,14 @@ export interface AgentCardProps {
   highlighted?: boolean;
   /** 点击卡片回调 */
   onClick?: (member: FleetMember) => void;
+  /** 移除成员回调（提供时悬停显示删除按钮） */
+  onRemove?: (member: FleetMember) => void;
 }
 
-export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
+export function AgentCard({ member, highlighted, onClick, onRemove }: AgentCardProps) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [hover, setHover] = useState(false);
 
   const formatTokens = (n: number) => {
     if (n >= 1_000_000) { return `${(n / 1_000_000).toFixed(1)}M`; }
@@ -164,6 +168,7 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
         transition: "all 0.15s",
       }}
       onMouseEnter={(e) => {
+        setHover(true);
         if (onClick) {
           (e.currentTarget as HTMLDivElement).style.background = highlighted
             ? `${token.colorPrimaryBg}`
@@ -171,6 +176,7 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
         }
       }}
       onMouseLeave={(e) => {
+        setHover(false);
         if (onClick) {
           (e.currentTarget as HTMLDivElement).style.background = highlighted
             ? `${token.colorPrimaryBg}`
@@ -271,6 +277,33 @@ export function AgentCard({ member, highlighted, onClick }: AgentCardProps) {
           {formatTokens(member.totalTokens)}
         </div>
       </div>
+      {/* 移除成员（悬停显示） */}
+      {onRemove && hover && (
+        <Tooltip title={t("office.removeMember.button")}>
+          <div
+            role="button"
+            aria-label={`remove-${member.agentSlug}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(member);
+            }}
+            style={{
+              flexShrink: 0,
+              width: 22,
+              height: 22,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 4,
+              color: token.colorError,
+              background: `${token.colorErrorBg}`,
+              cursor: "pointer",
+            }}
+          >
+            <Trash2 size={12} />
+          </div>
+        </Tooltip>
+      )}
     </div>
   );
 }

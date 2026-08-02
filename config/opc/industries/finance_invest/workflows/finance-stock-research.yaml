@@ -1,0 +1,41 @@
+# 金融行业工作流：个股投资研究（AxInvest 独有——吃 astock-data 工具链）
+# P4-2：CFO/研究员使用 A股行情/财报/研报/资金流工具做个股深度研究。
+# 工具已由 init/services.rs ToolResolver 接通（execute_mcp_tool），
+# 节点 tools 白名单声明后运行时可直接调用。
+id: workflow-finance-stock-research
+name: 个股投资研究
+description: A股个股深度研究：行情 → 财报 → 研报/资金流 → 估值 → 投资结论。基于 astock-data 真实数据。
+icon: "📊"
+tags: [finance, stock, astock, investment, opc]
+profile_id: opc-cfo-cfo-financial-analyst
+steps:
+  - id: a-search
+    title: 标的确认
+    prompt: 确认研究标的：使用 search_stock 搜索股票代码与名称。输出 JSON {stock_code, stock_name}
+    inputs: {}
+    tools: [search_stock]
+  - id: a-quote
+    title: 行情快照
+    prompt: 使用 get_stock_quote 获取 {stock_code} 实时行情（价格、涨跌幅、成交量），get_stock_kline 获取近期走势。输出 JSON {price, change_pct, volume, trend_summary}
+    inputs:
+      stock_code: a-search.result.stock_code
+    tools: [get_stock_quote, get_stock_kline]
+  - id: a-financials
+    title: 财务分析
+    prompt: 使用 get_stock_financials 获取营收、净利润、EPS、ROE、毛利率；get_fundamentals_report_markdown 获取预聚合基本面报告（健康度/估值带/安全边际）。输出 JSON {revenue, profit, eps, roe, gross_margin, health_score}
+    inputs:
+      stock_code: a-search.result.stock_code
+    tools: [get_stock_financials, get_fundamentals_report_markdown]
+  - id: a-flow
+    title: 资金与催化
+    prompt: 使用 get_stock_money_flow 分析主力资金流向，search_news 验证近期催化剂与行业趋势。输出 JSON {main_flow, catalyst_summary}
+    inputs:
+      stock_code: a-search.result.stock_code
+    tools: [get_stock_money_flow, search_news]
+  - id: a-report
+    title: 投资结论
+    prompt: 综合行情/财务/资金/催化生成投资结论：目标价位、风险等级、操作建议。基于实际数据，禁止编造。输出 JSON {target_price, risk_level, advice, confidence}
+    inputs:
+      financials: a-financials.result
+      flow: a-flow.result
+    tools: []

@@ -1,0 +1,20 @@
+# 工作流：代码审查流水线
+id: wf-eng-code-review
+name: 代码审查流水线
+description: AI工程师审查代码质量、安全、性能
+icon: "👀"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-submit
+    title: 提交代码
+    prompt: 评审者提交代码变更供审查
+    inputs: {}
+  - id: a-review
+    title: AI审查
+    prompt: "审查代码: 逻辑错误、安全漏洞、性能问题、最佳实践"
+    inputs: {}
+  - id: a-report
+    title: 审查报告
+    prompt: "生成审查报告: 严重程度排序、修改建议、自动修复"
+    inputs: {}

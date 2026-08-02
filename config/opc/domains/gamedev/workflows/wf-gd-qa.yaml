@@ -1,0 +1,20 @@
+# 工作流：游戏测试
+id: wf-gd-qa
+name: 游戏测试
+description: 全面测试游戏功能和体验
+icon: "🎮"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-gd-qa-functional
+    title: 功能测试
+    prompt: 测试游戏功能和系统
+    inputs: {}
+  - id: a-gd-qa-balance
+    title: 平衡测试
+    prompt: 测试数值平衡和难度曲线
+    inputs: {}
+  - id: a-gd-qa-ux
+    title: 体验测试
+    prompt: 测试用户体验和引导
+    inputs: {}

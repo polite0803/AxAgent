@@ -1,0 +1,20 @@
+# 工作流：合规审计
+id: wf-sec-compliance
+name: 合规审计
+description: 检查安全合规标准和差距
+icon: "✅"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-comp-standard
+    title: 标准对照
+    prompt: 确定适用的安全标准和框架
+    inputs: {}
+  - id: a-comp-audit
+    title: 审计
+    prompt: 逐项检查合规性
+    inputs: {}
+  - id: a-comp-report
+    title: 报告
+    prompt: 输出合规报告和整改计划
+    inputs: {}

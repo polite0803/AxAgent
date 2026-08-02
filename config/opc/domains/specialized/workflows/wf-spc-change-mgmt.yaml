@@ -1,0 +1,20 @@
+# 工作流：变更管理
+id: wf-spc-change-mgmt
+name: 变更管理
+description: "企业变革管理: 评估影响、制定沟通、执行"
+icon: "🔄"
+tags: [opc]
+profile_id: ceo
+steps:
+  - id: a-change-impact
+    title: 影响评估
+    prompt: 评估变革对组织、流程、人员的影响
+    inputs: {}
+  - id: a-change-plan
+    title: 实施计划
+    prompt: 制定分阶段变革实施和沟通计划
+    inputs: {}
+  - id: a-change-exec
+    title: 执行
+    prompt: 监督执行并收集反馈调整
+    inputs: {}

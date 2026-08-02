@@ -290,6 +290,8 @@ pub struct AppState {
     pub prompt_cache: Arc<PromptCache>,
     /// Fleet 持久化仓库
     pub fleet_repository: Arc<dyn FleetRepository>,
+    /// Fleet 意图分类 LLM（wiring 层注入真实实现，供 fleet_dispatch 路由与 LlmDispatcher 复用）
+    pub fleet_intent_llm: Arc<dyn axagent_harness::fleet::FleetIntentLlm>,
     /// Harness 容器（统一管理核心基础设施注入）
     pub harness: axagent_runtime::harness::RuntimeHarness,
     // Tree of Thoughts state

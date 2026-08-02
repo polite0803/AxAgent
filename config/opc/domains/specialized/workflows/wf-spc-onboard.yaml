@@ -1,0 +1,20 @@
+# 工作流：员工入职
+id: wf-spc-onboard
+name: 员工入职
+description: "新员工入职流程: 账号、文档、培训"
+icon: "📋"
+tags: [opc]
+profile_id: coo
+steps:
+  - id: a-onboard-plan
+    title: 入职计划
+    prompt: 制定入职计划和任务清单
+    inputs: {}
+  - id: a-onboard-setup
+    title: 环境搭建
+    prompt: 开通账号、配置设备、访问权限
+    inputs: {}
+  - id: a-onboard-orient
+    title: 入职引导
+    prompt: 公司介绍、团队介绍、首周任务
+    inputs: {}

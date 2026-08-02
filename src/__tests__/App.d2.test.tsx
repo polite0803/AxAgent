@@ -217,6 +217,7 @@ vi.mock("@/stores", () => ({
     () => ({ pruneInvalidTabs: vi.fn() }),
     { getState: () => ({ pruneInvalidTabs: vi.fn() }) },
   ),
+  initAnimationPreference: () => () => {},
 }));
 
 vi.mock("@/hooks/useKeyboardShortcuts", () => ({

@@ -1,0 +1,20 @@
+# 工作流：安全事件响应
+id: wf-sec-incident
+name: 安全事件响应
+description: 检测、分析和响应安全事件
+icon: "🚨"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-incident-detect
+    title: 检测
+    prompt: 确认安全事件类型和范围
+    inputs: {}
+  - id: a-incident-respond
+    title: 响应
+    prompt: 执行应急响应和止损措施
+    inputs: {}
+  - id: a-incident-review
+    title: 复盘
+    prompt: 事故复盘和改进计划
+    inputs: {}

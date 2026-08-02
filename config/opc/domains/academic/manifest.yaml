@@ -1,0 +1,8 @@
+# Domain Pack: 学术研究（academic）
+# 领域 = 数据资产包，非代码。与行业包同 schema，独立目录。
+id: academic
+name: 学术研究
+icon: 🧩
+description: 学术研究领域通用工作流（2 个）
+version: 1
+enabled: true

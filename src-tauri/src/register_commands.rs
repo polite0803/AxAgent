@@ -452,7 +452,7 @@ macro_rules! register_all_commands {
             commands::agent::agent_respond_ask,
             commands::agent::agent_backup_and_clear_sdk_context,
             commands::agent::agent_restore_sdk_context_from_backup,
-            commands::simple_completion::simple_chat_completion,
+            commands::agent::simple_chat_completion,
             commands::workflows::workflow_create,
             commands::workflows::workflow_execute,
             commands::workflows::workflow_get_status,
@@ -1231,6 +1231,8 @@ macro_rules! register_all_commands {
             commands::opc::opc_list_projects,
             commands::opc::opc_update_project,
             commands::opc::opc_delete_project,
+            commands::opc::opc_add_milestone,
+            commands::opc::opc_complete_milestone,
             commands::opc::opc_create_landing_page,
             commands::opc::opc_list_landing_pages,
             commands::opc::opc_publish_landing_page,
@@ -1245,6 +1247,17 @@ macro_rules! register_all_commands {
             commands::opc::opc_get_dashboard_summary,
             commands::opc::opc_get_financial_report,
             commands::opc::opc_get_investment_advice,
+            commands::opc::opc_export_industry_pack,
+            commands::opc::opc_import_industry_pack,
+            // ── Company Runtime：看板 + 升级链（P3）──
+            commands::opc::opc_kanban_board,
+            commands::opc::opc_work_item_start,
+            commands::opc::opc_work_item_review,
+            commands::opc::opc_escalate_work_item,
+            commands::opc::opc_work_item_unblock,
+            // ── P4-1：市场包 + 人才库导入 ──
+            commands::opc::opc_import_talent_library,
+            commands::opc::opc_market_list,
             // G14 DojoSDK 工具集（前端 IPC 入口）
             commands::dojo_sdk::dojo_sdk_execute_tool,
             commands::dojo_sdk::dojo_sdk_list_tools,
@@ -1377,7 +1390,7 @@ macro_rules! register_all_commands {
             commands::strategy_pack::get_user_strategy_packs_dir,
             commands::strategy_pack::count_builtin_strategy_packs,
             // ── 轻量级一次性对话补全（stub，供 AgentGeneratorModal 使用）──
-            commands::simple_completion::simple_chat_completion,
+            commands::agent::simple_chat_completion,
             // Fleet（多办公室 AI 团队）
             commands::fleet::fleet_add_member,
             commands::fleet::fleet_create,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke } from "@/lib/invoke";
+import { translateBackendError } from "@/lib/errorI18n";
+import { invoke, isTauri } from "@/lib/invoke";
 import type {
   AddMemberInput,
   CreateFleetInput,
@@ -22,7 +23,7 @@ interface OfficeState {
   activeFleetId: string | null;
   /** 按舰队 ID 索引的成员列表缓存 */
   membersByFleet: Record<string, FleetMember[]>;
-  /** 当前 dispatcher 事件流（前端 SSE 消费） */
+  /** 当前 dispatcher 事件流（Channel 实时追加） */
   dispatchEvents: DispatchEvent[];
   loading: boolean;
   error: string | null;
@@ -49,7 +50,40 @@ interface OfficeState {
   clearError: () => void;
 }
 
-export const useOfficeStore = create<OfficeState>((set, _get) => ({
+/** 把 dispatch 事件追加到事件流，并同步成员状态 / token 用量。 */
+function applyDispatchEvent(
+  set: (fn: (s: OfficeState) => Partial<OfficeState>) => void,
+  get: () => OfficeState,
+  evt: DispatchEvent,
+  fleetId: string,
+): void {
+  // 追加事件流
+  set((s) => ({ dispatchEvents: [...s.dispatchEvents, evt] }));
+
+  // 成员状态 / token 实时回写（驱动 Phaser 精灵动画）
+  if (evt.type === "agent_status" || evt.type === "token_usage") {
+    set((s) => {
+      const members = s.membersByFleet[fleetId] ?? [];
+      const next = members.map((m) => {
+        if (m.agentSlug !== evt.agentSlug) {
+          return m;
+        }
+        if (evt.type === "agent_status") {
+          return { ...m, status: evt.status };
+        }
+        return {
+          ...m,
+          todayTokens: m.todayTokens + evt.inputTokens + evt.outputTokens,
+          totalTokens: m.totalTokens + evt.inputTokens + evt.outputTokens,
+        };
+      });
+      return { membersByFleet: { ...s.membersByFleet, [fleetId]: next } };
+    });
+  }
+  void get;
+}
+
+export const useOfficeStore = create<OfficeState>((set, get) => ({
   fleets: [],
   activeFleetId: null,
   membersByFleet: {},
@@ -82,7 +116,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
       set((s) => ({ fleets: [...s.fleets, fleet] }));
       return fleet;
     } catch (e) {
-      const msg = String(e);
+      const msg = translateBackendError(e);
       set({ error: msg });
       console.warn(`[officeStore] createFleet failed: ${msg}`);
       return null;
@@ -97,7 +131,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
         fleets: s.fleets.map((f) => f.id === fleetId ? { ...f, status, updatedAt: Date.now() } : f),
       }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -113,7 +147,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
         return { fleets, membersByFleet, activeFleetId };
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -121,7 +155,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
     set({ error: null });
     // 缓存命中且非强制刷新时直接返回缓存
     if (!force) {
-      const cached = _get().membersByFleet[fleetId];
+      const cached = get().membersByFleet[fleetId];
       if (cached) {
         return cached;
       }
@@ -135,7 +169,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
       }));
       return members;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return [];
     }
   },
@@ -155,7 +189,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
       });
       return member;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -172,7 +206,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
         return { membersByFleet };
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -190,7 +224,7 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
         };
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -208,41 +242,69 @@ export const useOfficeStore = create<OfficeState>((set, _get) => ({
         };
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
   dispatch: async (input) => {
     set({ error: null, dispatchEvents: [] });
+    const fleetId = input.fleetId;
     try {
-      const events = await invoke<DispatchEvent[]>("fleet_dispatch", { input });
-      set({ dispatchEvents: events });
-      return events;
+      // 事件回传：Tauri 用 Channel（流式）；浏览器模式用 MockChannel 普通对象
+      // （Tauri Channel 构造依赖 __TAURI_INTERNALS__.transformCallback，浏览器模式会抛错）
+      if (isTauri()) {
+        const { Channel } = await import("@tauri-apps/api/core");
+        const channel = new Channel<DispatchEvent>();
+        channel.onmessage = (evt) => {
+          applyDispatchEvent(set, get, evt, fleetId);
+        };
+        await invoke<void>("fleet_dispatch", { input, onEvent: channel });
+      } else {
+        const mockChannel: { onmessage: (evt: DispatchEvent) => void } = {
+          onmessage: (evt) => {
+            applyDispatchEvent(set, get, evt, fleetId);
+          },
+        };
+        await invoke<void>("fleet_dispatch", { input, onEvent: mockChannel });
+      }
+      return get().dispatchEvents;
     } catch (e) {
       const errorEvent: DispatchEvent = {
         type: "error",
-        message: String(e),
+        message: translateBackendError(e),
       };
-      set({ dispatchEvents: [errorEvent], error: String(e) });
-      return [errorEvent];
+      applyDispatchEvent(set, get, errorEvent, fleetId);
+      return get().dispatchEvents;
     }
   },
 
   directMessage: async (input) => {
     set({ error: null, dispatchEvents: [] });
+    const fleetId = input.fleetId;
     try {
-      const events = await invoke<DispatchEvent[]>("fleet_direct_message", {
-        input,
-      });
-      set({ dispatchEvents: events });
-      return events;
+      if (isTauri()) {
+        const { Channel } = await import("@tauri-apps/api/core");
+        const channel = new Channel<DispatchEvent>();
+        channel.onmessage = (evt) => {
+          applyDispatchEvent(set, get, evt, fleetId);
+        };
+        await invoke<void>("fleet_direct_message", { input, onEvent: channel });
+      } else {
+        const mockChannel: { onmessage: (evt: DispatchEvent) => void } = {
+          onmessage: (evt) => {
+            applyDispatchEvent(set, get, evt, fleetId);
+          },
+        };
+        await invoke<void>("fleet_direct_message", { input, onEvent: mockChannel });
+      }
+      return get().dispatchEvents;
     } catch (e) {
       const errorEvent: DispatchEvent = {
         type: "error",
-        message: String(e),
+        message: translateBackendError(e),
       };
-      set({ dispatchEvents: [errorEvent], error: String(e) });
-      return [errorEvent];
+      applyDispatchEvent(set, get, errorEvent, fleetId);
+      return get().dispatchEvents;
     }
   },
 

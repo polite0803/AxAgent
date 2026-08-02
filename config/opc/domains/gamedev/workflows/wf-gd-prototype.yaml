@@ -1,0 +1,20 @@
+# 工作流：游戏原型
+id: wf-gd-prototype
+name: 游戏原型
+description: 快速搭建可玩原型验证核心机制
+icon: "🎮"
+tags: [opc]
+profile_id: cto
+steps:
+  - id: a-gd-proto-core
+    title: 核心机制
+    prompt: 实现核心玩法和控制
+    inputs: {}
+  - id: a-gd-proto-test
+    title: 玩法测试
+    prompt: 测试核心机制可玩性
+    inputs: {}
+  - id: a-gd-proto-iterate
+    title: 迭代
+    prompt: 根据测试反馈优化
+    inputs: {}

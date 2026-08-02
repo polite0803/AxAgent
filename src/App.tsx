@@ -45,6 +45,7 @@ import { setDefaultNavigate } from "@/lib/actionRouter";
 import { invoke, isTauri, listen } from "@/lib/invoke";
 import { message, setMessageInstance } from "@/lib/toast";
 import {
+  initAnimationPreference,
   useAgentPanelStore,
   useSettingsStore,
   useSkillStore,
@@ -208,6 +209,12 @@ function AppInner() {
   useGlobalShortcutManager();
   useGlobalOverlayScrollbars();
   useResponsive();
+
+  // 注册系统 prefers-reduced-motion 监听：系统"减少动态效果"状态变化实时同步到 animationStore
+  useEffect(() => {
+    const cleanup = initAnimationPreference();
+    return cleanup;
+  }, []);
 
   const handleCloseRequested = useCallback(() => {
     modal.confirm({

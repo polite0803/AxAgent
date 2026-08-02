@@ -74,6 +74,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   evolution: <Dna size={14} />,
   cloudWorkspace: <Cloud size={14} />,
   theme: <PaintBucket size={14} />,
+  animations: <Zap size={14} />,
   imageGen: <Image size={14} />,
   cron: <Timer size={14} />,
   dynamicPages: <LayoutDashboard size={14} />,
@@ -121,7 +122,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "promptTemplates",
     "searchProviders",
   ],
-  appearance: ["general", "display", "theme", "shortcuts"],
+  appearance: ["general", "display", "theme", "animations", "shortcuts"],
   extensions: [
     "tools",
     "skillsHub",
