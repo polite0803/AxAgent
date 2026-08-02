@@ -81,13 +81,16 @@ describe("animationStore", () => {
   describe("initAnimationPreference", () => {
     it("系统减少动态效果开启时，system 模式自动禁用动画", () => {
       // 模拟用户切换系统设置 → change 事件
-      let changeHandler: ((e: { matches: boolean }) => void) | null = null;
+      // 用对象容器持有回调，避免 TS 对闭包捕获 let 变量的 never 收窄
+      const holder: { handler: ((e: { matches: boolean }) => void) | null } = {
+        handler: null,
+      };
       Object.defineProperty(window, "matchMedia", {
         writable: true,
         value: vi.fn().mockImplementation(() => ({
           matches: false,
           addEventListener: vi.fn((_event: string, cb: () => void) => {
-            changeHandler = cb;
+            holder.handler = cb;
           }),
           removeEventListener: vi.fn(),
         })),
@@ -95,10 +98,10 @@ describe("animationStore", () => {
       const cleanup = initAnimationPreference();
       useAnimationStore.getState().setMode("system");
 
-      changeHandler?.({ matches: true });
+      holder.handler?.({ matches: true });
       expect(isAnimationEnabled()).toBe(false);
 
-      changeHandler?.({ matches: false });
+      holder.handler?.({ matches: false });
       expect(isAnimationEnabled()).toBe(true);
 
       cleanup();
