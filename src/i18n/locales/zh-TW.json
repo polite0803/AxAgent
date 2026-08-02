@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "沒有可用的模型提供商，請先在設定中設定",
     "FLEET_ROUTING_FAILED": "智慧路由呼叫失敗",
     "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
-    "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室"
+    "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室",
+    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "新增成員",
       "title": "新增成員",
+      "profileLabel": "從 AgentProfile 選擇",
+      "profilePlaceholder": "選擇角色+專家預設，自動填入名稱與職責（可清空後手動填寫）",
       "nameLabel": "顯示名稱",
       "namePlaceholder": "如：文案助手",
       "slugLabel": "Agent Slug",

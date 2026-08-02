@@ -61,11 +61,17 @@ function applyDispatchEvent(
   set((s) => ({ dispatchEvents: [...s.dispatchEvents, evt] }));
 
   // 成员状态 / token 实时回写（驱动 Phaser 精灵动画）
+  // 优先按 agentId（memberId）匹配 —— slug 可重复、LLM 路由可能错位，
+  // agentId 才是精灵与 FleetMember 一一映射的稳定键；agentSlug 仅作兜底。
   if (evt.type === "agent_status" || evt.type === "token_usage") {
     set((s) => {
       const members = s.membersByFleet[fleetId] ?? [];
+      // 存在 agentId 精确匹配时，只更新该成员，避免连带更新同名 slug 成员
+      const hasIdMatch = evt.agentId != null && members.some((m) => m.agentId === evt.agentId);
       const next = members.map((m) => {
-        if (m.agentSlug !== evt.agentSlug) {
+        const idMatch = evt.agentId != null && m.agentId === evt.agentId;
+        const slugMatch = m.agentSlug === evt.agentSlug;
+        if (!idMatch && (!slugMatch || hasIdMatch)) {
           return m;
         }
         if (evt.type === "agent_status") {

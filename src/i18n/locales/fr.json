@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "Aucun fournisseur de modèle disponible. Configurez-en un dans les paramètres",
     "FLEET_ROUTING_FAILED": "Échec de l'appel de routage intelligent",
     "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
-    "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau"
+    "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau",
+    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau"
   },
   "errorBoundary": {
     "copied": "Copié",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "Ajouter un membre",
       "title": "Ajouter un membre",
+      "profileLabel": "Choisir depuis AgentProfile",
+      "profilePlaceholder": "Choisissez un préréglage rôle+expert, remplit le nom et les fonctions (vider pour saisie manuelle)",
       "nameLabel": "Nom affiché",
       "namePlaceholder": "ex. Assistant rédaction",
       "slugLabel": "Slug d'agent",

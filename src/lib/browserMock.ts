@@ -57,11 +57,23 @@ interface FleetMember {
   agentSlug: string;
   displayName: string;
   role: string;
+  agentProfileId?: string;
   roomId: string;
   status: string;
   joinedAt: number;
   todayTokens: number;
   totalTokens: number;
+}
+
+/** 浏览器模式持久化的 AgentSession（与后端 agent_sessions 表 upsert 语义对齐） */
+interface MockAgentSession {
+  conversationId: string;
+  name: string | null;
+  metadata: Record<string, unknown> | null;
+  cwd: string | null;
+  permissionMode: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** 浏览器模式 Channel 形状（与 Tauri v2 Channel 的 onmessage 对齐） */
@@ -1264,12 +1276,98 @@ export async function handleCommand<T>(
       return undefined as T;
     }
     case "agent_get_session": {
-      // Browser mock: return null session (not yet initialized)
-      return null as T;
+      // 浏览器 mock：与会话层持久化对齐后端 upsert 语义（有则返回，无则创建）
+      const { conversationId } = (args ?? {}) as { conversationId?: string };
+      if (!conversationId) {
+        return null as T;
+      }
+      const sessions = getStore<MockAgentSession[]>("agent_sessions", []);
+      const existing = sessions.find((s) => s.conversationId === conversationId);
+      if (existing) {
+        existing.updatedAt = nowTs();
+        setStore("agent_sessions", sessions);
+        return {
+          conversationId: existing.conversationId,
+          name: existing.name,
+          metadata: existing.metadata,
+          createdAt: existing.createdAt,
+          lastActiveAt: existing.updatedAt,
+        } as T;
+      }
+      const createdAt = nowTs();
+      const created: MockAgentSession = {
+        conversationId,
+        name: null,
+        metadata: null,
+        cwd: null,
+        permissionMode: "default",
+        createdAt,
+        updatedAt: createdAt,
+      };
+      setStore("agent_sessions", [...sessions, created]);
+      return {
+        conversationId: created.conversationId,
+        name: created.name,
+        metadata: created.metadata,
+        createdAt: created.createdAt,
+        lastActiveAt: created.updatedAt,
+      } as T;
     }
     case "agent_update_session": {
-      // Browser mock: return no cwd (will trigger workspace creation)
-      return { cwd: null } as T;
+      // 浏览器 mock：持久化会话字段（cwd / permissionMode / name / metadata），模拟后端 upsert
+      const { conversationId, cwd, permissionMode, name, metadata } = (args ?? {}) as {
+        conversationId?: string;
+        cwd?: string | null;
+        permissionMode?: string | null;
+        name?: string | null;
+        metadata?: Record<string, unknown> | null;
+      };
+      if (!conversationId) {
+        return {
+          conversationId: "",
+          name: null,
+          metadata: null,
+          cwd: null,
+          permissionMode: "default",
+        } as T;
+      }
+      const sessions = getStore<MockAgentSession[]>("agent_sessions", []);
+      const now = nowTs();
+      let target = sessions.find((s) => s.conversationId === conversationId);
+      if (target) {
+        if (cwd !== undefined) {
+          target.cwd = cwd;
+        }
+        if (permissionMode !== undefined) {
+          target.permissionMode = permissionMode ?? "default";
+        }
+        if (name !== undefined) {
+          target.name = name;
+        }
+        if (metadata !== undefined) {
+          target.metadata = metadata;
+        }
+        target.updatedAt = now;
+      } else {
+        target = {
+          conversationId,
+          name: name ?? null,
+          metadata: metadata ?? null,
+          cwd: cwd ?? null,
+          permissionMode: permissionMode ?? "default",
+          createdAt: now,
+          updatedAt: now,
+        };
+        sessions.push(target);
+      }
+      setStore("agent_sessions", sessions);
+      return {
+        conversationId: target.conversationId,
+        name: target.name,
+        metadata: target.metadata,
+        cwd: target.cwd,
+        permissionMode: target.permissionMode,
+      } as T;
     }
     case "agent_ensure_workspace": {
       const workspacePath = "/mock/workspace/" + Date.now();
@@ -2256,13 +2354,24 @@ export async function handleCommand<T>(
       const input = (args as { input?: Partial<FleetMember> }).input ?? {};
       const fleetId = input.fleetId ?? "";
       const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
+      // 与后端一致：同舰队内 slug 必须唯一（路由与事件回写的键）
+      const slug = (input.agentSlug ?? "assistant").trim();
+      if (members.some((m) => m.agentSlug === slug)) {
+        throw new Error(
+          JSON.stringify({
+            code: "FLEET_SLUG_EXISTS",
+            params: { slug },
+          }),
+        );
+      }
       const member: FleetMember = {
         id: genId(),
         fleetId,
         agentId: input.agentId ?? genId(),
-        agentSlug: input.agentSlug ?? "assistant",
+        agentSlug: slug,
         displayName: input.displayName ?? "Assistant",
         role: input.role ?? "",
+        agentProfileId: input.agentProfileId ?? undefined,
         roomId: input.roomId ?? "workspace",
         status: "idle",
         joinedAt: nowTs(),
@@ -2329,7 +2438,7 @@ export async function handleCommand<T>(
         roomId: target.roomId,
         taskSummary: msg,
       });
-      push({ type: "agent_status", agentSlug: target.agentSlug, status: "busy" });
+      push({ type: "agent_status", agentSlug: target.agentSlug, agentId: target.agentId, status: "busy" });
       push({
         type: "agent_message",
         agentSlug: target.agentSlug,
@@ -2339,8 +2448,14 @@ export async function handleCommand<T>(
           message: msg,
         }),
       });
-      push({ type: "token_usage", agentSlug: target.agentSlug, inputTokens: 12, outputTokens: 34 });
-      push({ type: "agent_status", agentSlug: target.agentSlug, status: "idle" });
+      push({
+        type: "token_usage",
+        agentSlug: target.agentSlug,
+        agentId: target.agentId,
+        inputTokens: 12,
+        outputTokens: 34,
+      });
+      push({ type: "agent_status", agentSlug: target.agentSlug, agentId: target.agentId, status: "idle" });
       push({ type: "complete" });
       return undefined as T;
     }

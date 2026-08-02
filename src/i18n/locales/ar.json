@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "لا يوجد مزود نماذج متاح. قم بتكوينه في الإعدادات أولاً",
     "FLEET_ROUTING_FAILED": "فشل استدعاء التوجيه الذكي",
     "FLEET_EXECUTION_FAILED": "فشل العضو في تنفيذ المهمة",
-    "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب"
+    "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب",
+    "FLEET_SLUG_EXISTS": "يوجد عضو بهذا المعرف بالفعل في هذا المكتب"
   },
   "errorBoundary": {
     "copied": "تم النسخ",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "إضافة عضو",
       "title": "إضافة عضو",
+      "profileLabel": "الاختيار من AgentProfile",
+      "profilePlaceholder": "اختر قالب الدور+الخبير، يملأ الاسم والمسؤوليات تلقائيًا (امسح للكتابة يدويًا)",
       "nameLabel": "الاسم المعروض",
       "namePlaceholder": "مثال: مساعد كتابة",
       "slugLabel": "معرف الوكيل",

@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "कोई मॉडल प्रदाता उपलब्ध नहीं है। पहले सेटिंग्स में कॉन्फ़िगर करें",
     "FLEET_ROUTING_FAILED": "स्मार्ट रूटिंग कॉल विफल रही",
     "FLEET_EXECUTION_FAILED": "सदस्य कार्य निष्पादित करने में विफल रहा",
-    "FLEET_TARGET_NOT_IN_FLEET": "लक्ष्य सदस्य इस ऑफिस में मौजूद नहीं है"
+    "FLEET_TARGET_NOT_IN_FLEET": "लक्ष्य सदस्य इस ऑफिस में मौजूद नहीं है",
+    "FLEET_SLUG_EXISTS": "इस ऑफिस में इस slug वाला सदस्य पहले से मौजूद है"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "सदस्य जोड़ें",
       "title": "सदस्य जोड़ें",
+      "profileLabel": "AgentProfile से चुनें",
+      "profilePlaceholder": "भूमिका+विशेषज्ञ प्रीसेट चुनें, नाम और ज़िम्मेदारियाँ अपने आप भर जाएँगी (साफ़ करके मैन्युअल भरें)",
       "nameLabel": "प्रदर्शन नाम",
       "namePlaceholder": "जैसे: कॉपीराइटर",
       "slugLabel": "एजेंट स्लग",

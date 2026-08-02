@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "No hay proveedor de modelos disponible. Configúralo primero en Ajustes",
     "FLEET_ROUTING_FAILED": "Falló la llamada de enrutamiento inteligente",
     "FLEET_EXECUTION_FAILED": "El miembro no pudo ejecutar la tarea",
-    "FLEET_TARGET_NOT_IN_FLEET": "El miembro objetivo no existe en esta oficina"
+    "FLEET_TARGET_NOT_IN_FLEET": "El miembro objetivo no existe en esta oficina",
+    "FLEET_SLUG_EXISTS": "Ya existe un miembro con este slug en esta oficina"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "Agregar miembro",
       "title": "Agregar miembro",
+      "profileLabel": "Seleccionar de AgentProfile",
+      "profilePlaceholder": "Elija un ajuste de rol+experto; rellena nombre y funciones (vaciar para escribir manualmente)",
       "nameLabel": "Nombre mostrado",
       "namePlaceholder": "p. ej. Asistente de redacción",
       "slugLabel": "Slug del agente",

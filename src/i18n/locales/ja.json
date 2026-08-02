@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "利用可能なモデルプロバイダーがありません。設定で構成してください",
     "FLEET_ROUTING_FAILED": "スマートルーティング呼び出しに失敗しました",
     "FLEET_EXECUTION_FAILED": "メンバーのタスク実行に失敗しました",
-    "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません"
+    "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません",
+    "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "メンバー追加",
       "title": "メンバー追加",
+      "profileLabel": "AgentProfile から選択",
+      "profilePlaceholder": "役割+エキスパートのプリセットを選択。名前と職責を自動入力（クリアして手動入力も可）",
       "nameLabel": "表示名",
       "namePlaceholder": "例：コピーライター",
       "slugLabel": "エージェントスラッグ",

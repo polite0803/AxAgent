@@ -116,8 +116,10 @@ pub struct FleetMember {
     pub agent_slug: String,
     /// 显示名称
     pub display_name: String,
-    /// 角色描述（注入到 Dispatcher prompt）
+    /// 角色描述（注入到 Dispatcher prompt；与 agent_profile_id 二选一，均可）
     pub role: String,
+    /// 关联的 AgentProfile ID（AgentProfile = 角色 + 专家组合，定义成员智能体身份）
+    pub agent_profile_id: Option<String>,
     /// 房间 ID（前端 Phaser 渲染位置，如 "manager" / "meeting"）
     pub room_id: String,
     /// 成员状态
@@ -213,6 +215,8 @@ pub enum DispatchEvent {
     Process {
         /// agent slug
         agent_slug: String,
+        /// agent ID
+        agent_id: String,
         /// 状态描述
         status: String,
     },
@@ -231,6 +235,8 @@ pub enum DispatchEvent {
     AgentStatus {
         /// agent slug
         agent_slug: String,
+        /// agent ID
+        agent_id: String,
         /// 新状态
         status: FleetMemberStatus,
     },
@@ -239,6 +245,8 @@ pub enum DispatchEvent {
     TokenUsage {
         /// agent slug
         agent_slug: String,
+        /// agent ID
+        agent_id: String,
         /// 输入 token 数
         input_tokens: u64,
         /// 输出 token 数

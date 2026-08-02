@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "Kein Modellanbieter verfügbar. Bitte zuerst in den Einstellungen konfigurieren",
     "FLEET_ROUTING_FAILED": "Smart-Routing-Aufruf fehlgeschlagen",
     "FLEET_EXECUTION_FAILED": "Mitglied konnte die Aufgabe nicht ausführen",
-    "FLEET_TARGET_NOT_IN_FLEET": "Zielmitglied existiert nicht in diesem Büro"
+    "FLEET_TARGET_NOT_IN_FLEET": "Zielmitglied existiert nicht in diesem Büro",
+    "FLEET_SLUG_EXISTS": "In diesem Büro existiert bereits ein Mitglied mit diesem Slug"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "Mitglied hinzufügen",
       "title": "Mitglied hinzufügen",
+      "profileLabel": "Aus AgentProfile wählen",
+      "profilePlaceholder": "Voreinstellung Rolle+Experte wählen, füllt Name und Aufgaben automatisch aus (leeren für manuelle Eingabe)",
       "nameLabel": "Anzeigename",
       "namePlaceholder": "z. B. Texter",
       "slugLabel": "Agent-Slug",

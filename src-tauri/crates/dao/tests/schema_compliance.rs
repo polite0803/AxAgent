@@ -348,6 +348,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("agent_slug", "TEXT"),
             ("display_name", "TEXT"),
             ("role", "TEXT"),
+            ("agent_profile_id", "TEXT"),
             ("room_id", "TEXT"),
             ("status", "TEXT"),
             ("joined_at", "BIGINT"),

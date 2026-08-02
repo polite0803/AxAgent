@@ -38,9 +38,10 @@ pub mod v111_retrieval_hits_feedback;
 pub mod v112_feedback_data_lake;
 pub mod v113_unified_knowledge_graph;
 pub mod v114_wiki_sources_schedule;
+pub mod v115_fleet_member_agent_profile;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 114;
+pub const CURRENT_VERSION: i32 = 115;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -147,6 +148,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 114,
         description: "v114_wiki_sources_schedule: wiki_sources 新增 schedule_cron/last_fetched_at/status 字段，支撑知识源定时刷新与状态管理",
         up: |db| Box::pin(v114_wiki_sources_schedule::up(db)),
+    },
+    Migration {
+        version: 115,
+        description: "v115_fleet_member_agent_profile: 为 fleet_members 添加 agent_profile_id 字段，成员按 AgentProfile（角色+专家组合）定义智能体身份",
+        up: |db| Box::pin(v115_fleet_member_agent_profile::up(db)),
     },
 ];
 

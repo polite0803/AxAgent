@@ -2216,7 +2216,8 @@
     "FLEET_NO_PROVIDER": "No model provider available. Configure one in Settings first",
     "FLEET_ROUTING_FAILED": "Smart routing call failed",
     "FLEET_EXECUTION_FAILED": "Member failed to execute the task",
-    "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office"
+    "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office",
+    "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -3072,6 +3073,8 @@
     "addMember": {
       "button": "Add Member",
       "title": "Add Member",
+      "profileLabel": "Select from AgentProfile",
+      "profilePlaceholder": "Pick a role+expert preset, auto-fills name and duties (clear to fill manually)",
       "nameLabel": "Display Name",
       "namePlaceholder": "e.g. Copy Assistant",
       "slugLabel": "Agent Slug",

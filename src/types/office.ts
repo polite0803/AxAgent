@@ -60,8 +60,10 @@ export interface FleetMember {
   agentSlug: string;
   /** 显示名称 */
   displayName: string;
-  /** 角色描述（注入到 Dispatcher prompt） */
+  /** 角色描述（注入到 Dispatcher prompt；与 agentProfileId 二选一，均可） */
   role: string;
+  /** 关联的 AgentProfile ID（AgentProfile = 角色 + 专家组合，定义成员智能体身份） */
+  agentProfileId?: string;
   /** 房间 ID（前端 Phaser 渲染位置，如 "manager" / "meeting"） */
   roomId: string;
   /** 成员状态 */
@@ -79,10 +81,10 @@ export interface FleetMember {
 /** 调度事件 — Dispatcher 在路由与执行过程中产生的事件流 */
 export type DispatchEvent =
   | { type: "routing"; agentSlug: string; agentId: string; roomId: string; taskSummary: string }
-  | { type: "process"; agentSlug: string; status: string }
+  | { type: "process"; agentSlug: string; agentId: string; status: string }
   | { type: "agent_message"; agentSlug: string; agentId: string; content: string }
-  | { type: "agent_status"; agentSlug: string; status: FleetMemberStatus }
-  | { type: "token_usage"; agentSlug: string; inputTokens: number; outputTokens: number }
+  | { type: "agent_status"; agentSlug: string; agentId: string; status: FleetMemberStatus }
+  | { type: "token_usage"; agentSlug: string; agentId: string; inputTokens: number; outputTokens: number }
   | { type: "complete" }
   | { type: "error"; message: string };
 
@@ -120,6 +122,8 @@ export interface AddMemberInput {
   displayName: string;
   /** 角色描述 */
   role?: string;
+  /** 关联的 AgentProfile ID（定义成员智能体身份） */
+  agentProfileId?: string;
   /** 房间 ID（默认 "workspace"） */
   roomId?: string;
 }
