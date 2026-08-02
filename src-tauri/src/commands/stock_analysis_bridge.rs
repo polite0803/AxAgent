@@ -393,38 +393,68 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
             })
             .await
             .map_err(|e| format!("获取实时行情失败: {e}"))?;
-            serde_json::to_string_pretty(&quote).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&quote).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_get_hot_stocks" => {
             let data =
                 client.get_hot_stocks().await.map_err(|e| format!("获取热门股票失败: {e}"))?;
-            serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&data).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_get_industry_ranking" => {
             let data = client
                 .get_industry_ranking()
                 .await
                 .map_err(|e| format!("获取行业排名失败: {e}"))?;
-            serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&data).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_get_market_dragon_tiger" => {
             let data = client
                 .get_market_dragon_tiger()
                 .await
                 .map_err(|e| format!("获取龙虎榜失败: {e}"))?;
-            serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&data).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_get_north_bound_flow" => {
             let data = client
                 .get_north_bound_flow()
                 .await
                 .map_err(|e| format!("获取北向资金失败: {e}"))?;
-            serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&data).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_get_index_quotes" => {
             let data =
                 client.get_index_quotes().await.map_err(|e| format!("获取指数行情失败: {e}"))?;
-            serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&data).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_search" => {
             let keyword =
@@ -444,7 +474,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 Some("US") => results.into_iter().filter(|r| r.code.ends_with(".US")).collect(),
                 _ => results,
             };
-            serde_json::to_string_pretty(&filtered).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&filtered).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_search_news" => {
             let keyword =
@@ -457,7 +492,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 .search_news(keyword, limit)
                 .await
                 .map_err(|e| format!("搜索新闻失败: {e}"))?;
-            serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&data).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_list_watchlist" => {
             let items = watchlist_items::Entity::find()
@@ -465,7 +505,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 .all(db)
                 .await
                 .map_err(|e| format!("查询自选股列表失败: {e}"))?;
-            serde_json::to_string_pretty(&items).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&items).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         // ── 写操作（P2）：审批由 runtime 原生链路负责，此处仅执行 ──
         "stock_add_to_watchlist" => {
@@ -484,7 +529,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 updated_at: sea_orm::Set(now),
             };
             let saved = model.insert(db).await.map_err(|e| format!("添加自选股失败: {e}"))?;
-            serde_json::to_string_pretty(&saved).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&saved).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_remove_from_watchlist" => {
             let id = input["id"].as_str().ok_or_else(|| "缺少 id 参数".to_string())?;
@@ -492,8 +542,14 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 .exec(db)
                 .await
                 .map_err(|e| format!("移除自选股失败: {e}"))?;
-            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id }))
-                .map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id })).map_err(
+                |e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                },
+            )
         },
         "stock_add_portfolio_holding" => {
             let stock_code =
@@ -515,7 +571,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 updated_at: sea_orm::Set(now),
             };
             let saved = model.insert(db).await.map_err(|e| format!("添加持仓失败: {e}"))?;
-            serde_json::to_string_pretty(&saved).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&saved).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_remove_portfolio_holding" => {
             let id = input["id"].as_str().ok_or_else(|| "缺少 id 参数".to_string())?;
@@ -523,8 +584,14 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 .exec(db)
                 .await
                 .map_err(|e| format!("移除持仓失败: {e}"))?;
-            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id }))
-                .map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id })).map_err(
+                |e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                },
+            )
         },
         "stock_create_price_alert" => {
             let stock_code =
@@ -560,7 +627,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 updated_at: sea_orm::Set(now),
             };
             let saved = model.insert(db).await.map_err(|e| format!("创建价格提醒失败: {e}"))?;
-            serde_json::to_string_pretty(&saved).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&saved).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_toggle_trading_enabled" => {
             let enabled =
@@ -571,7 +643,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
             serde_json::to_string_pretty(
                 &serde_json::json!({ "success": true, "enabled": enabled }),
             )
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_create_stock_cron" => {
             let stock_code =
@@ -598,13 +675,24 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 "stock_code": stock_code,
                 "cron_expression": cron_expression,
             }))
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "stock_delete_stock_cron" => {
             let id = input["id"].as_str().ok_or_else(|| "缺少 id 参数".to_string())?;
             cron_job_store.remove(id).await;
-            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id }))
-                .map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id })).map_err(
+                |e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                },
+            )
         },
         // ── 动态 UI 渲染（P5）：emit agent-render-ui 事件，前端 AgentUIRenderer 渲染 ──
         "stock_render_ui" => {
@@ -630,7 +718,12 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 "action": "render",
                 "schemaId": schema_id,
             }))
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         other => {
             warn!("Unknown stock command: {}", other);

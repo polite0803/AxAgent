@@ -94,7 +94,12 @@ pub async fn opc_create_invoice(
     input: CreateInvoiceInput,
 ) -> Result<axagent_opc_types::Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
-    let result = svc.create_invoice(input).await.map_err(|e| e.to_string());
+    let result = svc.create_invoice(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    });
     if let Ok(ref inv) = result {
         record_opc_success(
             &state.trajectory_storage,
@@ -113,7 +118,12 @@ pub async fn opc_get_invoice(
     id: String,
 ) -> Result<axagent_opc_types::Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
-    svc.get_invoice(&id).await.map_err(|e| e.to_string())
+    svc.get_invoice(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -122,7 +132,12 @@ pub async fn opc_list_invoices(
     filter: InvoiceFilter,
 ) -> Result<Vec<axagent_opc_types::Invoice>, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
-    svc.list_invoices(filter).await.map_err(|e| e.to_string())
+    svc.list_invoices(filter).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -132,13 +147,23 @@ pub async fn opc_update_invoice(
     input: UpdateInvoiceInput,
 ) -> Result<axagent_opc_types::Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
-    svc.update_invoice(&id, input).await.map_err(|e| e.to_string())
+    svc.update_invoice(&id, input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn opc_delete_invoice(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
-    svc.delete_invoice(&id).await.map_err(|e| e.to_string())
+    svc.delete_invoice(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -150,7 +175,12 @@ pub async fn opc_transition_invoice(
     let status = InvoiceStatus::from_str(&target_status)
         .map_err(|_| format!("invalid invoice status: {target_status}"))?;
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
-    let result = svc.transition_status(&id, status).await.map_err(|e| e.to_string());
+    let result = svc.transition_status(&id, status).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    });
     if let Ok(ref inv) = result {
         record_opc_success(
             &state.trajectory_storage,
@@ -171,7 +201,12 @@ pub async fn opc_create_customer(
     input: CreateCustomerInput,
 ) -> Result<axagent_opc_types::Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
-    let result = svc.create_customer(input).await.map_err(|e| e.to_string());
+    let result = svc.create_customer(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    });
     if let Ok(ref c) = result {
         record_opc_success(
             &state.trajectory_storage,
@@ -190,7 +225,12 @@ pub async fn opc_get_customer(
     id: String,
 ) -> Result<axagent_opc_types::Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
-    svc.get_customer(&id).await.map_err(|e| e.to_string())
+    svc.get_customer(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -199,7 +239,12 @@ pub async fn opc_list_customers(
     filter: CustomerFilter,
 ) -> Result<Vec<axagent_opc_types::Customer>, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
-    svc.list_customers(filter).await.map_err(|e| e.to_string())
+    svc.list_customers(filter).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -209,13 +254,23 @@ pub async fn opc_update_customer(
     input: UpdateCustomerInput,
 ) -> Result<axagent_opc_types::Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
-    svc.update_customer(&id, input).await.map_err(|e| e.to_string())
+    svc.update_customer(&id, input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn opc_delete_customer(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
-    svc.delete_customer(&id).await.map_err(|e| e.to_string())
+    svc.delete_customer(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -224,7 +279,12 @@ pub async fn opc_find_customer_by_email(
     email: String,
 ) -> Result<Option<axagent_opc_types::Customer>, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
-    svc.find_by_email(&email).await.map_err(|e| e.to_string())
+    svc.find_by_email(&email).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Project Commands ──────────────────────────────────────────────
@@ -235,7 +295,12 @@ pub async fn opc_create_project(
     input: CreateProjectInput,
 ) -> Result<axagent_opc_types::Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    let result = svc.create_project(input).await.map_err(|e| e.to_string());
+    let result = svc.create_project(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    });
     if let Ok(ref p) = result {
         record_opc_success(
             &state.trajectory_storage,
@@ -254,7 +319,12 @@ pub async fn opc_get_project(
     id: String,
 ) -> Result<axagent_opc_types::Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    svc.get_project(&id).await.map_err(|e| e.to_string())
+    svc.get_project(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -263,7 +333,12 @@ pub async fn opc_list_projects(
     filter: ProjectFilter,
 ) -> Result<Vec<axagent_opc_types::Project>, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    svc.list_projects(filter).await.map_err(|e| e.to_string())
+    svc.list_projects(filter).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -273,13 +348,23 @@ pub async fn opc_update_project(
     input: UpdateProjectInput,
 ) -> Result<axagent_opc_types::Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    svc.update_project(&id, input).await.map_err(|e| e.to_string())
+    svc.update_project(&id, input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn opc_delete_project(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    svc.delete_project(&id).await.map_err(|e| e.to_string())
+    svc.delete_project(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -289,7 +374,12 @@ pub async fn opc_add_milestone(
     milestone: Milestone,
 ) -> Result<axagent_opc_types::Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    svc.add_milestone(&project_id, milestone).await.map_err(|e| e.to_string())
+    svc.add_milestone(&project_id, milestone).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -299,7 +389,12 @@ pub async fn opc_complete_milestone(
     milestone_id: String,
 ) -> Result<axagent_opc_types::Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
-    svc.complete_milestone(&project_id, &milestone_id).await.map_err(|e| e.to_string())
+    svc.complete_milestone(&project_id, &milestone_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Site / Landing Page Commands ────────────────────────────────────
@@ -310,7 +405,12 @@ pub async fn opc_create_landing_page(
     input: axagent_opc_types::CreateLandingPageInput,
 ) -> Result<axagent_opc_types::LandingPage, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.create_landing_page(input).await.map_err(|e| e.to_string())
+    svc.create_landing_page(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -318,7 +418,12 @@ pub async fn opc_list_landing_pages(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_opc_types::LandingPage>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.list_landing_pages().await.map_err(|e| e.to_string())
+    svc.list_landing_pages().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -327,7 +432,12 @@ pub async fn opc_publish_landing_page(
     id: String,
 ) -> Result<axagent_opc_types::LandingPage, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.publish_landing_page(&id).await.map_err(|e| e.to_string())
+    svc.publish_landing_page(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Blog Post Commands ──────────────────────────────────────────────
@@ -338,7 +448,12 @@ pub async fn opc_create_blog_post(
     input: axagent_opc_types::CreateBlogPostInput,
 ) -> Result<axagent_opc_types::BlogPost, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.create_blog_post(input).await.map_err(|e| e.to_string())
+    svc.create_blog_post(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -346,7 +461,12 @@ pub async fn opc_list_blog_posts(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_opc_types::BlogPost>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.list_blog_posts().await.map_err(|e| e.to_string())
+    svc.list_blog_posts().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -355,7 +475,12 @@ pub async fn opc_publish_blog_post(
     id: String,
 ) -> Result<axagent_opc_types::BlogPost, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.publish_blog_post(&id).await.map_err(|e| e.to_string())
+    svc.publish_blog_post(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Contact Commands ────────────────────────────────────────────────
@@ -365,13 +490,23 @@ pub async fn opc_list_contacts(
     state: State<'_, AppState>,
 ) -> Result<Vec<axagent_opc_types::ContactSubmission>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.list_contacts().await.map_err(|e| e.to_string())
+    svc.list_contacts().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
 pub async fn opc_mark_contact_read(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
-    svc.mark_contact_read(&id).await.map_err(|e| e.to_string())
+    svc.mark_contact_read(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Analytics Commands ──────────────────────────────────────────────
@@ -382,7 +517,12 @@ pub async fn opc_record_kpi(
     input: axagent_opc_types::CreateKpiInput,
 ) -> Result<axagent_opc_types::KpiRecord, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
-    svc.record_kpi(input).await.map_err(|e| e.to_string())
+    svc.record_kpi(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -392,7 +532,12 @@ pub async fn opc_list_kpis(
     limit: Option<u32>,
 ) -> Result<Vec<axagent_opc_types::KpiRecord>, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
-    svc.list_kpis(period, limit).await.map_err(|e| e.to_string())
+    svc.list_kpis(period, limit).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -402,7 +547,12 @@ pub async fn opc_list_revenue(
     limit: Option<u32>,
 ) -> Result<Vec<axagent_opc_types::RevenueRecord>, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
-    svc.list_revenue(category, limit).await.map_err(|e| e.to_string())
+    svc.list_revenue(category, limit).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -410,7 +560,12 @@ pub async fn opc_get_dashboard_summary(
     state: State<'_, AppState>,
 ) -> Result<axagent_opc_types::DashboardSummary, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
-    svc.get_dashboard_summary().await.map_err(|e| e.to_string())
+    svc.get_dashboard_summary().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── Finance Commands ────────────────────────────────────────────────
@@ -421,7 +576,12 @@ pub async fn opc_get_financial_report(
     period: String,
 ) -> Result<axagent_opc_types::FinancialReport, String> {
     let svc = DefaultFinanceService::new(state.harness.db().clone());
-    svc.get_financial_report(&period).await.map_err(|e| e.to_string())
+    svc.get_financial_report(&period).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[tauri::command]
@@ -430,7 +590,12 @@ pub async fn opc_get_investment_advice(
     period: String,
 ) -> Result<axagent_opc_types::InvestmentAdvice, String> {
     let svc = DefaultFinanceService::new(state.harness.db().clone());
-    let report = svc.get_financial_report(&period).await.map_err(|e| e.to_string())?;
+    let report = svc.get_financial_report(&period).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(svc.get_investment_advice(&report).await)
 }
 
@@ -480,7 +645,12 @@ pub async fn opc_kanban_board(state: State<'_, AppState>) -> Result<serde_json::
 
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
-    let items = svc.list_by_phase(None).await.map_err(|e| e.to_string())?;
+    let items = svc.list_by_phase(None).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut board: BTreeMap<String, Vec<serde_json::Value>> = BTreeMap::new();
     for it in &items {
@@ -500,7 +670,12 @@ pub async fn opc_kanban_board(state: State<'_, AppState>) -> Result<serde_json::
         });
         board.entry(col).or_default().push(entry);
     }
-    serde_json::to_value(board).map_err(|e| e.to_string())
+    serde_json::to_value(board).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 认领 work item（Start）。
@@ -512,8 +687,18 @@ pub async fn opc_work_item_start(
     use axagent_company_runtime::WorkItemService;
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
-    let model = svc.start(&id).await.map_err(|e| e.to_string())?;
-    serde_json::to_value(&model).map_err(|e| e.to_string())
+    let model = svc.start(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    serde_json::to_value(&model).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 提交评审（质量门前置，方案 A）：先跑一轮自改进评估，质量达标才允许进 REVIEW。
@@ -568,8 +753,18 @@ pub async fn opc_work_item_review(
     }
 
     // 5. 达标 → 进入 REVIEW
-    let model = svc.apply(&id, Transition::SubmitForReview).await.map_err(|e| e.to_string())?;
-    serde_json::to_value(&model).map_err(|e| e.to_string())
+    let model = svc.apply(&id, Transition::SubmitForReview).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    serde_json::to_value(&model).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 阻塞升级链：置 BLOCKED + 记录 last_error（原因），通知 manager。
@@ -585,14 +780,24 @@ pub async fn opc_escalate_work_item(
     let svc = WorkItemService::new(&db);
 
     // 1. 状态机置 BLOCKED
-    let model = svc.apply(&id, Transition::Block).await.map_err(|e| e.to_string())?;
+    let model = svc.apply(&id, Transition::Block).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 2. 记录 last_error（升级原因）
     let mut am: axagent_opc_entities::opc_work_items::ActiveModel = model.clone().into();
     am.last_error = sea_orm::Set(Some(reason.clone()));
     am.phase = sea_orm::Set(Phase::Blocked.as_str().to_string());
     am.updated_at = sea_orm::Set(chrono::Utc::now().timestamp());
-    let updated = am.update(&db).await.map_err(|e| e.to_string())?;
+    let updated = am.update(&db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     // 3. 通知 manager（rt-messaging 渠道；无 manager 则跳过并记日志）
     if let Some(mgr) = &updated.manager_role_id {
@@ -601,7 +806,12 @@ pub async fn opc_escalate_work_item(
         tracing::warn!("[opc-escalate] {} 无 manager_role_id，升级仅记录", updated.id);
     }
 
-    serde_json::to_value(&updated).map_err(|e| e.to_string())
+    serde_json::to_value(&updated).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 解除阻塞（Unblock）。
@@ -614,8 +824,18 @@ pub async fn opc_work_item_unblock(
     use axagent_company_runtime::work_item::Transition;
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
-    let model = svc.apply(&id, Transition::Unblock).await.map_err(|e| e.to_string())?;
-    serde_json::to_value(&model).map_err(|e| e.to_string())
+    let model = svc.apply(&id, Transition::Unblock).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    serde_json::to_value(&model).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── P4-1：人才库导入 + 市场包 ─────────────────────────────────
@@ -641,8 +861,18 @@ pub async fn opc_import_talent_library(
     let mut skipped: u32 = 0;
 
     // 遍历分类目录（跳过非专家目录）
-    for entry in std::fs::read_dir(&base).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
+    for entry in std::fs::read_dir(&base).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        let entry = entry.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         let dir = entry.path();
         if !dir.is_dir() {
             continue;
@@ -656,19 +886,39 @@ pub async fn opc_import_talent_library(
             continue;
         }
         // 读目录下每个 md 的 frontmatter（name/description）
-        for md in std::fs::read_dir(&dir).map_err(|e| e.to_string())? {
-            let md = md.map_err(|e| e.to_string())?;
+        for md in std::fs::read_dir(&dir).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })? {
+            let md = md.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             let md_path = md.path();
             if md_path.extension().and_then(|e| e.to_str()) != Some("md") {
                 continue;
             }
             let stem = md_path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-            let content = std::fs::read_to_string(&md_path).map_err(|e| e.to_string())?;
+            let content = std::fs::read_to_string(&md_path).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             let (name, description) = parse_frontmatter_brief(&content, &stem);
             let tid = format!("tt-{dir_name}-{stem}");
 
             // 幂等：已存在跳过
-            let existing = org.list_talent_templates(None).await.map_err(|e| e.to_string())?;
+            let existing = org.list_talent_templates(None).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             if existing.iter().any(|t| t.id == tid) {
                 skipped += 1;
                 continue;
@@ -684,7 +934,12 @@ pub async fn opc_import_talent_library(
                 tags: Some(vec![dir_name.clone()]),
             })
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
             imported += 1;
         }
     }
@@ -746,7 +1001,12 @@ pub async fn opc_market_list(state: State<'_, AppState>) -> Result<serde_json::V
             }));
         }
     }
-    serde_json::to_value(items).map_err(|e| e.to_string())
+    serde_json::to_value(items).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 // ── OPC 自改进循环（对接上游 Loop Engineering，参照 stock_analysis）──
@@ -802,7 +1062,12 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
 
     // 1. 找/建默认舰队
     let fleet_id = {
-        let fleets = fleet_repo.list_fleets(None).await.map_err(|e| e.to_string())?;
+        let fleets = fleet_repo.list_fleets(None).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         match fleets.into_iter().find(|f| f.name == "OPC 一人公司") {
             Some(f) => f.id,
             None => {
@@ -820,7 +1085,16 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
                         tags: vec!["opc".to_string()],
                     },
                 };
-                fleet_repo.create_fleet(fleet).await.map_err(|e| e.to_string())?.id
+                fleet_repo
+                    .create_fleet(fleet)
+                    .await
+                    .map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?
+                    .id
             },
         }
     };
@@ -833,7 +1107,12 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
         .map_err(|e| format!("查询员工失败: {e}"))?;
 
     // 已有成员（按 agent_slug 判重）
-    let members = fleet_repo.list_members(&fleet_id).await.map_err(|e| e.to_string())?;
+    let members = fleet_repo.list_members(&fleet_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let mut synced = 0u32;
     let mut updated = 0u32;
@@ -844,10 +1123,12 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
         match members.iter().find(|m| m.agent_slug == slug) {
             Some(existing) => {
                 if existing.status != status {
-                    fleet_repo
-                        .update_member_status(&existing.id, status)
-                        .await
-                        .map_err(|e| e.to_string())?;
+                    fleet_repo.update_member_status(&existing.id, status).await.map_err(|e| {
+                        String::from(crate::commands::error::ErrorResponse::from_error(
+                            e,
+                            crate::commands::error::ErrorCategory::Unrecoverable,
+                        ))
+                    })?;
                     updated += 1;
                 }
             },
@@ -865,13 +1146,27 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
                     today_tokens: 0,
                     total_tokens: 0,
                 };
-                fleet_repo.add_member(member).await.map_err(|e| e.to_string())?;
+                fleet_repo.add_member(member).await.map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
                 synced += 1;
             },
         }
     }
 
-    let total = fleet_repo.list_members(&fleet_id).await.map_err(|e| e.to_string())?.len();
+    let total = fleet_repo
+        .list_members(&fleet_id)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+        .len();
     Ok(serde_json::json!({
         "fleetId": fleet_id,
         "synced": synced,

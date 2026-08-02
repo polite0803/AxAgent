@@ -219,7 +219,12 @@ async fn seed_opc_experts(db: &DatabaseConnection) -> Result<(), String> {
             )
             .exec(db)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         count += 1;
     }
     tracing::info!("[opc-company] 种子化 {count} 个 agency_experts");
@@ -243,7 +248,12 @@ async fn seed_opc_roles(db: &DatabaseConnection) -> Result<(), String> {
             "opc-builtin",
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         count += 1;
     }
     tracing::info!("[opc-company] 种子化 {count} 个 agent_roles");
@@ -270,7 +280,12 @@ async fn seed_opc_business_roles(db: &DatabaseConnection) -> Result<(), String> 
             "opc-builtin",
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         count += 1;
     }
     tracing::info!("[opc-company] 种子化 {count} 个业务岗位 agent_roles");
@@ -296,10 +311,13 @@ async fn seed_opc_profiles(db: &DatabaseConnection) -> Result<(), String> {
             .map(|(_, tools)| serde_json::to_string(tools).unwrap_or_default());
 
         let now = chrono::Utc::now().timestamp_millis();
-        let existing = agent_profiles::Entity::find_by_id(&profile_id)
-            .one(db)
-            .await
-            .map_err(|e| e.to_string())?;
+        let existing =
+            agent_profiles::Entity::find_by_id(&profile_id).one(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
 
         let am = agent_profiles::ActiveModel {
             id: Set(profile_id.clone()),
@@ -328,9 +346,19 @@ async fn seed_opc_profiles(db: &DatabaseConnection) -> Result<(), String> {
         };
 
         if existing.is_some() {
-            am.update(db).await.map_err(|e| e.to_string())?;
+            am.update(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         } else {
-            am.insert(db).await.map_err(|e| e.to_string())?;
+            am.insert(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
         }
         count += 1;
     }
@@ -344,7 +372,12 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
         .filter(agency_experts::Column::IsEnabled.eq(1))
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let mut count = 0u32;
     for expert in &experts {
@@ -353,7 +386,12 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
         if agent_profiles::Entity::find_by_id(&profile_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?
             .is_some()
         {
             continue;
@@ -385,7 +423,12 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
             created_at: Set(now),
             updated_at: Set(now),
         };
-        am.insert(db).await.map_err(|e| e.to_string())?;
+        am.insert(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         count += 1;
     }
     tracing::info!("[opc-company] 批量创建 {count} 个专家 agent_profiles");
