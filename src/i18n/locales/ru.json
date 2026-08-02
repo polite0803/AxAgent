@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "Ошибка маршрутизации намерений LLM",
     "FLEET_EXECUTION_FAILED": "Ошибка выполнения агента",
     "FLEET_TARGET_NOT_IN_FLEET": "Цель маршрутизации не входит в офис",
+    "FLEET_SLUG_EXISTS": "Участник с таким slug уже существует в этом офисе",
     "GATEWAY_ALREADY_RUNNING": "Шлюз уже запущен",
     "GATEWAY_HTTP_UNAVAILABLE": "HTTP служба шлюза недоступна",
     "GATEWAY_LINK_NOT_FOUND": "Ссылка шлюза не найдена",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "Добавить участника",
       "button": "Добавить участника",
+      "profileLabel": "Выбрать из AgentProfile",
+      "profilePlaceholder": "Выберите пресет роль+эксперт, заполнит имя и обязанности (очистите для ручного ввода)",
       "selectAgent": "Выбрать из зарегистрированных SubAgent",
       "selectAgentPlaceholder": "Выберите SubAgent для автозаполнения",
       "agentId": "Agent ID",

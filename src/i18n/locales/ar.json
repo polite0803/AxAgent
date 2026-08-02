@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "فشل توجيه نوايا LLM",
     "FLEET_EXECUTION_FAILED": "فشل تنفيذ الوكيل",
     "FLEET_TARGET_NOT_IN_FLEET": "هدف التوجيه ليس ضمن أعضاء المكتب",
+    "FLEET_SLUG_EXISTS": "يوجد عضو بهذا المعرف بالفعل في هذا المكتب",
     "GATEWAY_ALREADY_RUNNING": "البوابة قيد التشغيل بالفعل",
     "GATEWAY_HTTP_UNAVAILABLE": "خدمة HTTP للبوابة غير متوفرة",
     "GATEWAY_LINK_NOT_FOUND": "رابط البوابة غير موجود",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "إضافة عضو",
       "button": "إضافة عضو",
+      "profileLabel": "الاختيار من AgentProfile",
+      "profilePlaceholder": "اختر قالب الدور+الخبير، يملأ الاسم والمسؤوليات تلقائيًا (امسح للكتابة يدويًا)",
       "selectAgent": "اختيار من SubAgents المسجلة",
       "selectAgentPlaceholder": "اختر SubAgent للتعبئة التلقائية",
       "agentId": "Agent ID",

@@ -1140,6 +1140,7 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
                     agent_slug: slug.clone(),
                     display_name: emp.employee_id.clone(),
                     role: slug.clone(),
+                    agent_profile_id: None,
                     room_id: "default".to_string(),
                     status,
                     joined_at: chrono::Utc::now().timestamp_millis(),

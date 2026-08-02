@@ -20,6 +20,8 @@ pub struct Model {
     pub display_name: String,
     /// 角色描述
     pub role: String,
+    /// 关联的 AgentProfile ID（NULL = 旧成员，回退自由文本 role）
+    pub agent_profile_id: Option<String>,
     /// 房间 ID（前端 Phaser 渲染位置）
     pub room_id: String,
     /// 成员状态：idle / busy / paused / error / offline

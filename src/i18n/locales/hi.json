@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "LLM इंटेंट रूटिंग विफल रही",
     "FLEET_EXECUTION_FAILED": "एजेंट निष्पादन विफल रहा",
     "FLEET_TARGET_NOT_IN_FLEET": "रूटिंग लक्ष्य कार्यालय में नहीं है",
+    "FLEET_SLUG_EXISTS": "इस ऑफिस में इस slug वाला सदस्य पहले से मौजूद है",
     "GATEWAY_ALREADY_RUNNING": "गेटवे पहले से चल रहा है",
     "GATEWAY_HTTP_UNAVAILABLE": "गेटवे HTTP सेवा अनुपलब्ध",
     "GATEWAY_LINK_NOT_FOUND": "गेटवे लिंक नहीं मिला",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "ऑफिस सदस्य जोड़ें",
       "button": "सदस्य जोड़ें",
+      "profileLabel": "AgentProfile से चुनें",
+      "profilePlaceholder": "भूमिका+विशेषज्ञ प्रीसेट चुनें, नाम और ज़िम्मेदारियाँ अपने आप भर जाएँगी (साफ़ करके मैन्युअल भरें)",
       "selectAgent": "पंजीकृत SubAgent से चुनें",
       "selectAgentPlaceholder": "स्वतः भरने के लिए SubAgent चुनें",
       "agentId": "Agent ID",

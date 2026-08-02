@@ -312,6 +312,7 @@ mod tests {
             agent_slug: "copywriter".to_string(),
             display_name: "文案".to_string(),
             role: "撰写产品文案".to_string(),
+            agent_profile_id: None,
             room_id: "showroom".to_string(),
             status: FleetMemberStatus::Idle,
             joined_at: 0,

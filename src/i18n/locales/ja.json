@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "LLM インテントルーティングに失敗しました",
     "FLEET_EXECUTION_FAILED": "エージェントの実行に失敗しました",
     "FLEET_TARGET_NOT_IN_FLEET": "ルーティング先がオフィスのメンバーではありません",
+    "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します",
     "GATEWAY_ALREADY_RUNNING": "ゲートウェイは既に実行中です",
     "GATEWAY_HTTP_UNAVAILABLE": "ゲートウェイHTTPサービスが利用できません",
     "GATEWAY_LINK_NOT_FOUND": "ゲートウェイリンクが見つかりません",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "オフィスメンバー追加",
       "button": "メンバー追加",
+      "profileLabel": "AgentProfile から選択",
+      "profilePlaceholder": "役割+エキスパートのプリセットを選択。名前と職責を自動入力（クリアして手動入力も可）",
       "selectAgent": "登録済み SubAgent から選択",
       "selectAgentPlaceholder": "SubAgent を選択して自動入力",
       "agentId": "Agent ID",

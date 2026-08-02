@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "LLM intent routing failed",
     "FLEET_EXECUTION_FAILED": "Agent execution failed",
     "FLEET_TARGET_NOT_IN_FLEET": "Routing target is not in the office",
+    "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office",
     "GATEWAY_ALREADY_RUNNING": "Gateway is already running",
     "GATEWAY_HTTP_UNAVAILABLE": "Gateway HTTP service unavailable",
     "GATEWAY_LINK_NOT_FOUND": "Gateway link not found",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "Add Office Member",
       "button": "Add Member",
+      "profileLabel": "Select from AgentProfile",
+      "profilePlaceholder": "Pick a role+expert preset, auto-fills name and duties (clear to fill manually)",
       "selectAgent": "Pick from registered SubAgents",
       "selectAgentPlaceholder": "Pick a SubAgent to autofill",
       "agentId": "Agent ID",

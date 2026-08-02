@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "LLM-Intent-Routing fehlgeschlagen",
     "FLEET_EXECUTION_FAILED": "Agentausführung fehlgeschlagen",
     "FLEET_TARGET_NOT_IN_FLEET": "Routing-Ziel ist nicht im Büro",
+    "FLEET_SLUG_EXISTS": "In diesem Büro existiert bereits ein Mitglied mit diesem Slug",
     "GATEWAY_ALREADY_RUNNING": "Gateway läuft bereits",
     "GATEWAY_HTTP_UNAVAILABLE": "Gateway-HTTP-Dienst nicht verfügbar",
     "GATEWAY_LINK_NOT_FOUND": "Gateway-Link nicht gefunden",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "Mitglied hinzufügen",
       "button": "Mitglied hinzufügen",
+      "profileLabel": "Aus AgentProfile wählen",
+      "profilePlaceholder": "Voreinstellung Rolle+Experte wählen, füllt Name und Aufgaben automatisch aus (leeren für manuelle Eingabe)",
       "selectAgent": "Aus registrierten SubAgents wählen",
       "selectAgentPlaceholder": "SubAgent wählen zum automatischen Ausfüllen",
       "agentId": "Agent ID",

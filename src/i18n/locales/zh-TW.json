@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "LLM 意圖路由呼叫失敗",
     "FLEET_EXECUTION_FAILED": "智能體執行失敗",
     "FLEET_TARGET_NOT_IN_FLEET": "路由目標不在成員清單中",
+    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員",
     "GATEWAY_ALREADY_RUNNING": "閘道已在執行",
     "GATEWAY_HTTP_UNAVAILABLE": "閘道 HTTP 服務不可用",
     "GATEWAY_LINK_NOT_FOUND": "閘道連結未找到",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "新增辦公室成員",
       "button": "新增成員",
+      "profileLabel": "從 AgentProfile 選擇",
+      "profilePlaceholder": "選擇角色+專家預設，自動填入名稱與職責（可清空後手動填寫）",
       "selectAgent": "從已註冊 SubAgent 選擇",
       "selectAgentPlaceholder": "選擇一個 SubAgent 自動填充",
       "agentId": "Agent ID",

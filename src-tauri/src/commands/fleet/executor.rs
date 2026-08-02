@@ -34,7 +34,10 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::fleet as fleet_err;
 use async_trait::async_trait;
 use axagent_agent::AxAgentApiClient;
+use axagent_dao::repo::agent_profile;
+use axagent_dao::repo::agent_role;
 use axagent_dao::repo::provider;
+use axagent_entities::agency_experts;
 use axagent_harness::fleet::{DispatchEvent, FleetIntentLlm, FleetMember, FleetMemberStatus};
 use axagent_harness::runtime_types::permissions::PermissionMode;
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
@@ -45,6 +48,7 @@ use axagent_runtime_core::ConversationRuntimeFactoryArgs;
 use axagent_runtime_core::RuntimeFeatureConfig;
 use axagent_runtime_core::create_conversation_runtime;
 use axagent_tools::registry::UnifiedToolRegistry;
+use sea_orm::EntityTrait;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tracing::{info, warn};
@@ -165,6 +169,54 @@ impl FleetIntentLlm for ProviderFleetIntentLlm {
     }
 }
 
+/// 解析成员关联的 AgentProfile，返回 (展示名, 组合系统提示词)。
+///
+/// AgentProfile = 角色（agent_role → `agent_roles.system_prompt`）+
+/// 专家（expert_id → `agency_experts.system_prompt`）组合而成。解析失败或
+/// 成员未关联 profile 时返回 `None`，由调用方回退自由文本 `role`。
+async fn resolve_member_profile(
+    harness: &RuntimeHarness,
+    member: &FleetMember,
+) -> Option<(String, String)> {
+    let profile_id = member.agent_profile_id.as_deref()?;
+    let profile = agent_profile::get_agent_profile(harness.db(), profile_id).await.ok()?;
+
+    let mut parts: Vec<String> = Vec::new();
+    // 专家提示词：专家系统提示词描述「我是谁 / 专业领域」
+    if let Some(expert_id) = profile.expert_id.as_deref() {
+        if let Ok(Some(exp)) = agency_experts::Entity::find_by_id(expert_id).one(harness.db()).await
+        {
+            let sp = exp.system_prompt.trim().to_string();
+            if !sp.is_empty() {
+                parts.push(sp);
+            }
+        }
+    }
+    // 角色提示词：角色系统提示词描述「在团队中扮演什么角色 / 职责」
+    if let Some(role_id) = profile.agent_role.as_deref() {
+        if let Ok(Some(role)) = agent_role::get_agent_role(harness.db(), role_id).await {
+            let sp = role.system_prompt.trim().to_string();
+            if !sp.is_empty() {
+                parts.push(sp);
+            }
+        }
+    }
+    // 兜底：描述 / 名称
+    if parts.is_empty() {
+        if let Some(desc) = profile.description.as_deref() {
+            let d = desc.trim().to_string();
+            if !d.is_empty() {
+                parts.push(d);
+            }
+        }
+    }
+    if parts.is_empty() {
+        parts.push(profile.name.clone());
+    }
+
+    Some((profile.name, parts.join("\n\n")))
+}
+
 /// 真实执行一个成员回合，产出事件流。
 ///
 /// - `member`: 目标成员（路由已确定）
@@ -184,6 +236,7 @@ pub async fn execute_fleet_turn(
         app_state.fleet_repository.update_member_status(&member.id, FleetMemberStatus::Busy).await;
     let busy_evt = DispatchEvent::AgentStatus {
         agent_slug: member.agent_slug.clone(),
+        agent_id: member.agent_id.clone(),
         status: FleetMemberStatus::Busy,
     };
     events.push(busy_evt.clone());
@@ -203,6 +256,7 @@ pub async fn execute_fleet_turn(
                 .await;
             let idle_evt = DispatchEvent::AgentStatus {
                 agent_slug: member.agent_slug.clone(),
+                agent_id: member.agent_id.clone(),
                 status: FleetMemberStatus::Error,
             };
             events.push(idle_evt.clone());
@@ -215,6 +269,13 @@ pub async fn execute_fleet_turn(
         },
     };
 
+    // ── 2.5 解析成员 AgentProfile（角色+专家组合），定义智能体身份 ──
+    let resolved_agent_profile = resolve_member_profile(&app_state.harness, member).await;
+    let role_label = resolved_agent_profile
+        .as_ref()
+        .map(|(name, _)| name.clone())
+        .unwrap_or_else(|| member.role.clone());
+
     // ── 3. 获取/创建 AgentSession（conversation_id = member.agent_id）──
     let conversation_id = member.agent_id.clone();
     let session = match app_state
@@ -222,7 +283,7 @@ pub async fn execute_fleet_turn(
         .get_or_create_session(resolved.provider_id.clone(), conversation_id.clone())
         .await
     {
-        Ok(s) => s,
+        Ok(s) => s.with_role(role_label),
         Err(e) => {
             let err_evt =
                 DispatchEvent::Error { message: format!("创建 Agent 会话失败: {e}") };
@@ -244,23 +305,26 @@ pub async fn execute_fleet_turn(
     let mut tool_registry = UnifiedToolRegistry::new();
     tool_registry.load_enabled_state(app_state.harness.db()).await;
 
-    // ── 5. 系统提示词：成员角色 + 办公室上下文 ──
+    // ── 5. 系统提示词：AgentProfile（角色+专家组合）优先，回退角色文本 ──
+    let base_prompt = match &resolved_agent_profile {
+        Some((_, prompt)) => prompt.clone(),
+        None => {
+            if member.role.is_empty() {
+                "(未设定角色)".to_string()
+            } else {
+                member.role.clone()
+            }
+        },
+    };
     let system_prompt = format!(
         "你是 AxAgent 办公室（Fleet）中的一名成员。\n\
          agent slug: {}\n\
          显示名: {}\n\
          角色职责: {}\n\
          当前房间: {}\n\n\
-         请基于你的角色职责，尽最大努力完成用户交给你的任务。\n\
+         请基于你的角色与职责，尽最大努力完成用户交给你的任务。\n\
          回答使用与用户相同的语言。",
-        member.agent_slug,
-        member.display_name,
-        if member.role.is_empty() {
-            "(未设定角色)"
-        } else {
-            &member.role
-        },
-        member.room_id,
+        member.agent_slug, member.display_name, base_prompt, member.room_id,
     );
 
     // ── 6. 构建 runtime 并执行回合 ──
@@ -319,6 +383,7 @@ pub async fn execute_fleet_turn(
                     app_state.fleet_repository.add_member_tokens(&member.id, total as u64).await;
                 let usage_evt = DispatchEvent::TokenUsage {
                     agent_slug: member.agent_slug.clone(),
+                    agent_id: member.agent_id.clone(),
                     input_tokens: input_tokens as u64,
                     output_tokens: output_tokens as u64,
                 };
@@ -345,6 +410,7 @@ pub async fn execute_fleet_turn(
                 .await;
             let err_status = DispatchEvent::AgentStatus {
                 agent_slug: member.agent_slug.clone(),
+                agent_id: member.agent_id.clone(),
                 status: FleetMemberStatus::Error,
             };
             events.push(err_status.clone());
@@ -362,6 +428,7 @@ pub async fn execute_fleet_turn(
         app_state.fleet_repository.update_member_status(&member.id, FleetMemberStatus::Idle).await;
     let idle_evt = DispatchEvent::AgentStatus {
         agent_slug: member.agent_slug.clone(),
+        agent_id: member.agent_id.clone(),
         status: FleetMemberStatus::Idle,
     };
     events.push(idle_evt.clone());

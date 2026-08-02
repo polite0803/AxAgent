@@ -167,9 +167,12 @@ pub struct AddMemberInput {
     pub agent_slug: String,
     /// 显示名称
     pub display_name: String,
-    /// 角色描述（注入到 Dispatcher prompt）
+    /// 角色描述（注入到 Dispatcher prompt；与 agent_profile_id 二选一，均可）
     #[serde(default)]
     pub role: String,
+    /// 关联的 AgentProfile ID（AgentProfile = 角色 + 专家组合，定义成员智能体身份）
+    #[serde(default)]
+    pub agent_profile_id: Option<String>,
     /// 房间 ID（前端 Phaser 渲染位置，如 "manager" / "meeting"）
     #[serde(default = "default_room_id")]
     pub room_id: String,
@@ -190,13 +193,27 @@ pub async fn fleet_add_member(
             .with_category(ErrorCategory::Validation)
             .with_detail("agent_slug 不能为空".to_string()));
     }
+    // 同舰队内 slug 唯一性校验：slug 是 Dispatcher 路由与前端事件回写的键，
+    // 重复会导致 DM 错配 / 事件状态回写到错误成员（精灵动画失真）。
+    let slug = input.agent_slug.trim().to_string();
+    let existing = app_state
+        .fleet_repository
+        .list_members(&input.fleet_id)
+        .await
+        .map_err(|e| ErrorResponse::from_error(e, ErrorCategory::General))?;
+    if existing.iter().any(|m| m.agent_slug == slug) {
+        return Err(ErrorResponse::new(fleet_err::SLUG_EXISTS)
+            .with_category(ErrorCategory::Validation)
+            .with_param("slug", slug.clone()));
+    }
     let member = FleetMember {
         id: uuid::Uuid::new_v4().to_string(),
         fleet_id: input.fleet_id,
         agent_id: input.agent_id,
-        agent_slug: input.agent_slug,
+        agent_slug: slug,
         display_name: input.display_name,
         role: input.role,
+        agent_profile_id: input.agent_profile_id,
         room_id: input.room_id,
         status: FleetMemberStatus::Idle,
         joined_at: chrono::Utc::now().timestamp_millis(),
@@ -305,24 +322,43 @@ pub async fn fleet_dispatch(
         return Err(ErrorResponse::new(fleet_err::ALL_MEMBERS_UNAVAILABLE));
     }
 
-    // 2. 真实 LLM 意图路由（wiring 层注入的 FleetIntentLlm）；失败时兜底到第一个可路由成员
+    // 2. 真实 LLM 意图路由（wiring 层注入的 FleetIntentLlm）；失败/未命中时兜底到第一个可路由成员
     let system_prompt = build_fleet_system_prompt(&routable);
     let user_prompt = build_fleet_user_prompt(&input.user_message, &input.history);
+    let mut fell_back = false;
     let target_slug = match app_state.fleet_intent_llm.route(&system_prompt, &user_prompt).await {
-        Ok(resp) => parse_route_response(&resp).and_then(|slug| {
-            routable.iter().find(|m| m.agent_slug == slug).map(|m| m.agent_slug.clone())
-        }),
-        Err(e) => {
-            warn!("[fleet] LLM 路由失败，兜底到首个成员: {e}");
-            None
+        Ok(resp) => {
+            match parse_route_response(&resp).and_then(|slug| resolve_target_slug(&routable, &slug))
+            {
+                Some(slug) => slug,
+                None => {
+                    fell_back = true;
+                    warn!("[fleet] LLM 路由未命中任何成员，兜底到首个成员");
+                    routable[0].agent_slug.clone()
+                },
+            }
         },
-    }
-    .unwrap_or_else(|| routable[0].agent_slug.clone());
+        Err(e) => {
+            fell_back = true;
+            warn!("[fleet] LLM 路由失败，兜底到首个成员: {e}");
+            routable[0].agent_slug.clone()
+        },
+    };
 
     let target = routable
         .into_iter()
         .find(|m| m.agent_slug == target_slug)
         .expect("target_slug 来自 routable，必然存在");
+
+    // 兜底时明确告知实际路由到的成员（避免静默错配，前端据此提示用户）
+    if fell_back {
+        let notice = DispatchEvent::Process {
+            agent_slug: target.agent_slug.clone(),
+            agent_id: target.agent_id.clone(),
+            status: format!("意图路由未命中，本次任务转派给成员「{}」", target.display_name),
+        };
+        send_event(&on_event, notice);
+    }
 
     // 3. 路由决策事件
     send_event(
@@ -467,4 +503,30 @@ fn parse_route_response(response: &str) -> Option<String> {
     let parsed: serde_json::Value = serde_json::from_str(json_str).ok()?;
     let slug = parsed.get("agent_slug")?.as_str()?.to_string();
     if slug.is_empty() { None } else { Some(slug) }
+}
+
+/// 将 LLM 返回的目标标识解析到实际成员 slug：精确 → 归一化 → 子串/显示名匹配。
+///
+/// LLM 自由文本可能返回带引号/大小写变体/显示名，直接 `==` 比对经常落空，
+/// 此处逐级容错后再兜底，减少"静默路由到第一个成员"的错配概率。
+fn resolve_target_slug(routable: &[FleetMember], raw_slug: &str) -> Option<String> {
+    // 1. 精确匹配
+    if let Some(m) = routable.iter().find(|m| m.agent_slug == raw_slug) {
+        return Some(m.agent_slug.clone());
+    }
+    // 2. 归一化匹配（去空白/引号，大小写不敏感）
+    let norm = |s: &str| s.trim().trim_matches('"').trim_matches('\'').to_lowercase();
+    let normalized = norm(raw_slug);
+    if let Some(m) = routable.iter().find(|m| norm(&m.agent_slug) == normalized) {
+        return Some(m.agent_slug.clone());
+    }
+    // 3. 子串 / 显示名匹配（LLM 可能返回 display_name 或别名）
+    routable
+        .iter()
+        .find(|m| {
+            norm(&m.agent_slug).contains(&normalized)
+                || normalized.contains(&norm(&m.agent_slug))
+                || norm(&m.display_name) == normalized
+        })
+        .map(|m| m.agent_slug.clone())
 }

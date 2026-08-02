@@ -563,4 +563,6 @@ pub mod fleet {
     pub const EXECUTION_FAILED: &str = "FLEET_EXECUTION_FAILED";
     /// 路由目标 slug 不在成员列表中
     pub const TARGET_NOT_IN_FLEET: &str = "FLEET_TARGET_NOT_IN_FLEET";
+    /// 同名 slug 的成员已存在（slug 是路由键，必须唯一）
+    pub const SLUG_EXISTS: &str = "FLEET_SLUG_EXISTS";
 }

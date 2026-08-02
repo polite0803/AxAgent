@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "Échec du routage des intentions LLM",
     "FLEET_EXECUTION_FAILED": "Échec de l'exécution de l'agent",
     "FLEET_TARGET_NOT_IN_FLEET": "La cible de routage n'est pas dans le bureau",
+    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau",
     "GATEWAY_ALREADY_RUNNING": "La passerelle est déjà en cours d'exécution",
     "GATEWAY_HTTP_UNAVAILABLE": "Service HTTP de la passerelle indisponible",
     "GATEWAY_LINK_NOT_FOUND": "Lien de passerelle introuvable",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "Ajouter un membre",
       "button": "Ajouter un membre",
+      "profileLabel": "Choisir depuis AgentProfile",
+      "profilePlaceholder": "Choisissez un préréglage rôle+expert, remplit le nom et les fonctions (vider pour saisie manuelle)",
       "selectAgent": "Choisir parmi les SubAgents enregistrés",
       "selectAgentPlaceholder": "Choisir un SubAgent pour remplir automatiquement",
       "agentId": "Agent ID",

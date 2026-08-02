@@ -20,7 +20,7 @@
  * 由 antd 内部管理 zIndex，避免受父级 overflow/transform 影响。
  */
 
-import { useOfficeStore } from "@/stores";
+import { useExpertStore, useOfficeStore } from "@/stores";
 import type { Fleet, FleetMember } from "@/types";
 import { App, Button, Dropdown, Empty, Input, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
 import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, UserPlus, Users, Zap } from "lucide-react";
@@ -199,6 +199,7 @@ export function OfficeTab() {
       displayName: "",
       agentSlug: "",
       role: "",
+      agentProfileId: "",
       roomId: currentTemplate.rooms[0]?.id ?? currentTemplate.defaultRoomId,
     };
 
@@ -232,6 +233,7 @@ export function OfficeTab() {
           agentSlug: slug,
           displayName: formState.displayName.trim() || slug,
           role: formState.role.trim(),
+          agentProfileId: formState.agentProfileId || undefined,
           roomId: formState.roomId,
         });
         if (member) {
@@ -581,7 +583,7 @@ function CreateFleetForm({
 
 // ── AddMemberForm ────────────────────────────────────────────────────
 // modal.confirm 的 content 用回调通信，避免 React 树内 state 频繁刷新 Modal
-type AddMemberField = "displayName" | "agentSlug" | "role" | "roomId";
+type AddMemberField = "displayName" | "agentSlug" | "role" | "agentProfileId" | "roomId";
 
 function AddMemberForm({
   roomOptions,
@@ -596,6 +598,7 @@ function AddMemberForm({
     displayName: "",
     agentSlug: "",
     role: "",
+    agentProfileId: "",
     roomId: roomOptions[0]?.value ?? "",
   });
 
@@ -604,8 +607,41 @@ function AddMemberForm({
     onFieldChange(field, value);
   };
 
+  // AgentProfile 预设（角色 + 专家组合）：选中后自动填充名称 / slug / 角色
+  const profileOptions = useExpertStore
+    .getState()
+    .getAllRoles()
+    .filter((p) => p.isEnabled)
+    .map((p) => ({ value: p.id, label: p.name }));
+
+  const handleProfileChange = (profileId: string) => {
+    const profile = useExpertStore.getState().getRoleById(profileId);
+    if (!profile) {
+      return;
+    }
+    setField("agentProfileId", profileId);
+    setField("displayName", profile.name);
+    setField("agentSlug", profile.id);
+    setField("role", profile.name);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.addMember.profileLabel")}
+        </div>
+        <Select
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          placeholder={t("office.addMember.profilePlaceholder")}
+          value={form.agentProfileId || undefined}
+          onChange={(v) => handleProfileChange(v ?? "")}
+          options={profileOptions}
+          style={{ width: "100%" }}
+        />
+      </div>
       <div>
         <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
           {t("office.addMember.nameLabel")}

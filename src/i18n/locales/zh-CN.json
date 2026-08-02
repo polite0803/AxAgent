@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "LLM 意图路由调用失败",
     "FLEET_EXECUTION_FAILED": "Agent 执行失败",
     "FLEET_TARGET_NOT_IN_FLEET": "路由目标不在成员列表中",
+    "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
     "GATEWAY_ALREADY_RUNNING": "网关已在运行",
     "GATEWAY_HTTP_UNAVAILABLE": "网关 HTTP 服务不可用",
     "GATEWAY_LINK_NOT_FOUND": "网关链接未找到",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "添加办公室成员",
       "button": "添加成员",
+      "profileLabel": "从 AgentProfile 选择",
+      "profilePlaceholder": "选择角色+专家预设，自动填充名称与职责（可清空后手动填写）",
       "selectAgent": "从已注册 SubAgent 选择",
       "selectAgentPlaceholder": "选择一个 SubAgent 自动填充",
       "agentId": "Agent ID",

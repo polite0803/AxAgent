@@ -57,11 +57,10 @@ test.describe("Office (Pixel Office)", () => {
     await addMemberBtn.click();
     const memberModal = page.locator(".ant-modal-wrap").last();
     await memberModal.waitFor({ timeout: 5000 });
-    const inputs = memberModal.locator("input");
-    // inputs[0]=显示名称, inputs[1]=slug, inputs[2]=角色
-    await inputs.nth(0).fill("文案助手");
-    await inputs.nth(1).fill("copywriter");
-    await inputs.nth(2).fill("撰写产品文案");
+    // 用 placeholder 精确定位字段（顶部有 AgentProfile 选择器，含内部 input，不能用索引）
+    await memberModal.getByPlaceholder("如：文案助手").fill("文案助手");
+    await memberModal.getByPlaceholder("唯一标识，用于路由（如 copywriter）").fill("copywriter");
+    await memberModal.getByPlaceholder("描述该成员的职责，将注入路由与执行提示词").fill("撰写产品文案");
     await memberModal.getByRole("button", { name: "添加成员" }).click();
     await expect(page.getByText("文案助手").first()).toBeVisible({ timeout: 10000 });
 

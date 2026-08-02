@@ -2339,6 +2339,7 @@
     "FLEET_ROUTING_FAILED": "Error en el enrutamiento de intenciones LLM",
     "FLEET_EXECUTION_FAILED": "Error en la ejecución del agente",
     "FLEET_TARGET_NOT_IN_FLEET": "El destino de enrutamiento no está en la oficina",
+    "FLEET_SLUG_EXISTS": "Ya existe un miembro con este slug en esta oficina",
     "GATEWAY_ALREADY_RUNNING": "La puerta de enlace ya está en ejecución",
     "GATEWAY_HTTP_UNAVAILABLE": "Servicio HTTP de puerta de enlace no disponible",
     "GATEWAY_LINK_NOT_FOUND": "Enlace de puerta de enlace no encontrado",
@@ -3644,6 +3645,8 @@
     "addMember": {
       "title": "Añadir miembro",
       "button": "Añadir miembro",
+      "profileLabel": "Seleccionar de AgentProfile",
+      "profilePlaceholder": "Elija un ajuste de rol+experto; rellena nombre y funciones (vaciar para escribir manualmente)",
       "selectAgent": "Elegir de SubAgents registrados",
       "selectAgentPlaceholder": "Elige un SubAgent para autocompletar",
       "agentId": "Agent ID",
