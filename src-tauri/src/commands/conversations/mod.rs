@@ -3111,6 +3111,8 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         prompt_cache: Arc::new(PromptCache::new()),
         fleet_repository: Arc::new(axagent_harness::fleet::NoopFleetRepository)
             as Arc<dyn axagent_harness::fleet::FleetRepository>,
+        fleet_intent_llm: Arc::new(axagent_harness::fleet::NoopFleetIntentLlm)
+            as Arc<dyn axagent_harness::fleet::FleetIntentLlm>,
         harness: axagent_runtime::harness::RuntimeHarness::new(
             axagent_runtime::harness::HarnessDeps {
                 persistence: Arc::new(axagent_dao::db::DbHandle {
