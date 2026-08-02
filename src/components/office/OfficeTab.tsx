@@ -23,7 +23,7 @@
 import { useOfficeStore } from "@/stores";
 import type { Fleet, FleetMember } from "@/types";
 import { App, Button, Dropdown, Empty, Input, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
-import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, Users, Zap } from "lucide-react";
+import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, UserPlus, Users, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentCard } from "./AgentCard";
@@ -49,7 +49,9 @@ export function OfficeTab() {
   const selectFleet = useOfficeStore((s) => s.selectFleet);
   const loadMembers = useOfficeStore((s) => s.loadMembers);
   const createFleet = useOfficeStore((s) => s.createFleet);
-  const updateMemberStatus = useOfficeStore((s) => s.updateMemberStatus);
+  const addMember = useOfficeStore((s) => s.addMember);
+  const deleteFleet = useOfficeStore((s) => s.deleteFleet);
+  const removeMember = useOfficeStore((s) => s.removeMember);
 
   const { modal, message: messageApi } = App.useApp();
 
@@ -81,19 +83,53 @@ export function OfficeTab() {
   // 转换为 SceneMember 给 Phaser 渲染
   const sceneMembers = useMemo(() => members.map(fleetMemberToSceneMember), [members]);
 
+  // 当前场景模板（用于房间选项 / 房间标签）
+  const currentTemplate = useMemo(
+    () =>
+      SCENE_TEMPLATES.find((tpl) => tpl.slug === activeFleet?.sceneTemplateSlug)
+        ?? SCENE_TEMPLATES[0],
+    [activeFleet?.sceneTemplateSlug],
+  );
+
+  // 房间 ID → i18n 展示名（Phaser 房间标签）
+  const roomLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    for (const room of currentTemplate.rooms) {
+      labels[room.id] = t(`office.room.${room.id}`);
+    }
+    return labels;
+  }, [currentTemplate, t]);
+
   // 切换 fleet 时清空 DM 目标
   useEffect(() => {
     setDmTarget(null);
     setRightTab("chat");
   }, [activeFleetId]);
 
-  const handleAgentClick = (agentSlug: string, memberId: string) => {
+  const handleAgentClick = (memberId: string) => {
     const m = members.find((x) => x.id === memberId);
     if (m) {
       setDmTarget(m);
       setRightTab("dm");
     }
-    void agentSlug;
+  };
+
+  /** 移除成员（带确认） */
+  const handleRemoveMember = (member: FleetMember) => {
+    if (!activeFleetId) {
+      return;
+    }
+    modal.confirm({
+      title: t("office.removeMember.title"),
+      content: t("office.removeMember.confirm", { name: member.displayName }),
+      okText: t("office.removeMember.button"),
+      cancelText: t("common.cancel"),
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        await removeMember(member.id, activeFleetId);
+        messageApi.success(t("office.removeMember.success"));
+      },
+    });
   };
 
   /**
@@ -146,22 +182,104 @@ export function OfficeTab() {
     });
   };
 
-  // Fleet 下拉菜单项
-  const fleetMenuItems = fleets.map((f) => ({
-    key: f.id,
-    label: (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minWidth: 200 }}>
-        <span>{f.name}</span>
-        <Tag
-          color={f.status === "active" ? "green" : f.status === "paused" ? "orange" : "default"}
-          style={{ fontSize: 10, margin: 0 }}
-        >
-          {t(`office.fleetStatus.${f.status}`)}
-        </Tag>
-      </div>
-    ),
-    onClick: () => selectFleet(f.id),
-  }));
+  /**
+   * 添加成员：弹窗填写 名称 / slug / 角色 / 房间。
+   * - agentId 由前端生成 UUID（作为会话键 conversation_id，执行时惰性创建 AgentSession）
+   * - slug 必填（路由标识）
+   */
+  const handleAddMember = () => {
+    if (!activeFleetId) {
+      return;
+    }
+    const formState = {
+      displayName: "",
+      agentSlug: "",
+      role: "",
+      roomId: currentTemplate.rooms[0]?.id ?? currentTemplate.defaultRoomId,
+    };
+
+    modal.confirm({
+      title: t("office.addMember.title"),
+      width: 480,
+      icon: <UserPlus size={18} />,
+      content: (
+        <AddMemberForm
+          roomOptions={currentTemplate.rooms.map((r) => ({
+            value: r.id,
+            label: t(`office.room.${r.id}`),
+          }))}
+          onFieldChange={(field, value) => {
+            formState[field] = value;
+          }}
+        />
+      ),
+      okText: t("office.addMember.button"),
+      cancelText: t("common.cancel"),
+      okButtonProps: { type: "primary" },
+      onOk: async () => {
+        const slug = formState.agentSlug.trim();
+        if (!slug) {
+          messageApi.warning(t("office.addMember.slugRequired"));
+          throw new Error("slug required");
+        }
+        const member = await addMember({
+          fleetId: activeFleetId,
+          agentId: crypto.randomUUID(),
+          agentSlug: slug,
+          displayName: formState.displayName.trim() || slug,
+          role: formState.role.trim(),
+          roomId: formState.roomId,
+        });
+        if (member) {
+          messageApi.success(t("office.addMember.success"));
+          return;
+        }
+        throw new Error("add member failed");
+      },
+    });
+  };
+
+  // Fleet 下拉菜单项（选择 + 删除）
+  const fleetMenuItems = [
+    ...fleets.map((f) => ({
+      key: f.id,
+      label: (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minWidth: 200 }}>
+          <span>{f.name}</span>
+          <Tag
+            color={f.status === "active" ? "green" : f.status === "paused" ? "orange" : "default"}
+            style={{ fontSize: 10, margin: 0 }}
+          >
+            {t(`office.fleetStatus.${f.status}`)}
+          </Tag>
+        </div>
+      ),
+      onClick: () => selectFleet(f.id),
+    })),
+    { type: "divider" as const },
+    {
+      key: "delete-active",
+      danger: true,
+      label: t("office.deleteFleet.button"),
+      disabled: !activeFleet,
+      onClick: () => {
+        if (!activeFleetId) {
+          return;
+        }
+        modal.confirm({
+          title: t("office.deleteFleet.title"),
+          content: t("office.deleteFleet.confirm", { name: activeFleet?.name ?? "" }),
+          okText: t("office.deleteFleet.button"),
+          cancelText: t("common.cancel"),
+          okButtonProps: { danger: true },
+          onOk: async () => {
+            await deleteFleet(activeFleetId);
+            messageApi.success(t("office.deleteFleet.success"));
+          },
+        });
+      },
+    },
+  ];
 
   // ── 内容区（loading 态显示 spinner，空态显示 Empty，正常显示 UI）──
   const contentArea = loading && fleets.length === 0
@@ -226,6 +344,12 @@ export function OfficeTab() {
               {t("office.createFleet.button")}
             </Button>
           </Tooltip>
+          {/* 添加成员按钮 */}
+          <Tooltip title={t("office.addMember.button")}>
+            <Button size="small" icon={<UserPlus size={14} />} onClick={handleAddMember}>
+              {t("office.addMember.button")}
+            </Button>
+          </Tooltip>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {t("office.memberCount", { count: members.length })}
           </Text>
@@ -251,9 +375,8 @@ export function OfficeTab() {
               <OfficeGame
                 sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
                 members={sceneMembers}
+                roomLabels={roomLabels}
                 onAgentClick={handleAgentClick}
-                width={800}
-                height={500}
               />
             )}
           </div>
@@ -367,8 +490,8 @@ export function OfficeTab() {
                       onClick={(member) => {
                         setDmTarget(member);
                         setRightTab("dm");
-                        void updateMemberStatus(member.id, member.status);
                       }}
+                      onRemove={handleRemoveMember}
                     />
                   </div>
                 ))}
@@ -439,6 +562,83 @@ function CreateFleetForm({
             SCENE_TEMPLATES.find((tpl) => tpl.slug === templateSlug)?.displayNameKey ?? "default_office"
           }_desc`)}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── AddMemberForm ────────────────────────────────────────────────────
+// modal.confirm 的 content 用回调通信，避免 React 树内 state 频繁刷新 Modal
+type AddMemberField = "displayName" | "agentSlug" | "role" | "roomId";
+
+function AddMemberForm({
+  roomOptions,
+  onFieldChange,
+}: {
+  roomOptions: Array<{ value: string; label: string }>;
+  onFieldChange: (field: AddMemberField, value: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { token } = theme.useToken();
+  const [form, setForm] = useState({
+    displayName: "",
+    agentSlug: "",
+    role: "",
+    roomId: roomOptions[0]?.value ?? "",
+  });
+
+  const setField = (field: AddMemberField, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    onFieldChange(field, value);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.addMember.nameLabel")}
+        </div>
+        <Input
+          autoFocus
+          placeholder={t("office.addMember.namePlaceholder")}
+          value={form.displayName}
+          onChange={(e) => setField("displayName", e.target.value)}
+          maxLength={64}
+        />
+      </div>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.addMember.slugLabel")}
+        </div>
+        <Input
+          placeholder={t("office.addMember.slugPlaceholder")}
+          value={form.agentSlug}
+          onChange={(e) => setField("agentSlug", e.target.value)}
+          onPressEnter={(e) => e.preventDefault()}
+          maxLength={64}
+        />
+      </div>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.addMember.roleLabel")}
+        </div>
+        <Input
+          placeholder={t("office.addMember.rolePlaceholder")}
+          value={form.role}
+          onChange={(e) => setField("role", e.target.value)}
+          maxLength={256}
+        />
+      </div>
+      <div>
+        <div style={{ marginBottom: 6, fontSize: 12, color: token.colorTextSecondary }}>
+          {t("office.addMember.roomLabel")}
+        </div>
+        <Select
+          value={form.roomId}
+          onChange={(v) => setField("roomId", v)}
+          options={roomOptions}
+          style={{ width: "100%" }}
+        />
       </div>
     </div>
   );

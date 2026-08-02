@@ -121,13 +121,12 @@ impl SubTaskDispatcher for RuntimeSubTaskDispatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_harness::workflow_types::AgentRole;
 
     fn make_request(id: &str) -> DispatchRequest {
         DispatchRequest {
             sub_task_id: id.to_string(),
             mission: format!("mission-{}", id),
-            role: AgentRole::Planner,
+            role: "planner".to_string(),
             system_prompt: None,
             tools: vec![],
             output_var: format!("out_{}", id),

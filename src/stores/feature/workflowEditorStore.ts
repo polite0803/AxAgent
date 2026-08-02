@@ -2739,15 +2739,23 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       const template = state.currentTemplate;
       const nodes = state.nodes;
       const edges = state.edges;
+      const unnamed = i18n.t("workflow.editor.unnamed");
 
-      let context = `当前工作流：${template?.name || "未命名"}（${nodes.length} 节点/${edges.length} 边）`;
+      let context = i18n.t("workflow.editor.context.currentWorkflow", {
+        name: template?.name || unnamed,
+        nodes: nodes.length,
+        edges: edges.length,
+      });
 
       // 尝试获取执行痕迹（从 tracerStore）
       try {
         const tracerState = useTracerStore.getState();
         if (tracerState.traces && tracerState.traces.length > 0) {
           const latest = tracerState.traces[tracerState.traces.length - 1];
-          context += `\n最近执行：${latest.trace_id || "未命名"}，耗时 ${latest.duration_ms ?? "?"}ms`;
+          context += i18n.t("workflow.editor.context.recentExecution", {
+            traceId: latest.trace_id || unnamed,
+            duration: latest.duration_ms ?? "?",
+          });
         }
       } catch { /* tracerStore not available */ }
 
@@ -2756,7 +2764,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const evoState = useEvolutionStore.getState();
         const runningEngines = Object.values(evoState.engines).filter((e) => e.running);
         if (runningEngines.length > 0) {
-          context += `\n运行中的进化引擎：${runningEngines.map((e) => e.displayName).join("、")}`;
+          context += i18n.t("workflow.editor.context.runningEngines", {
+            engines: runningEngines.map((e) => e.displayName).join("、"),
+          });
         }
       } catch { /* evolutionStore not available */ }
 

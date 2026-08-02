@@ -144,7 +144,68 @@ export const DEFAULT_OFFICE_TEMPLATE: OfficeSceneTemplate = {
   },
 };
 
-export const SCENE_TEMPLATES: OfficeSceneTemplate[] = [DEFAULT_OFFICE_TEMPLATE];
+/** 创业 LOFT 模板 — 开放空间 3 房间布局（验证 registerSceneTemplate 扩展点） */
+export const STARTUP_LOFT_TEMPLATE: OfficeSceneTemplate = {
+  slug: "startup_loft",
+  displayNameKey: "startup_loft",
+  canvasWidth: 800,
+  canvasHeight: 500,
+  defaultRoomId: "studio",
+  rooms: [
+    { id: "studio", nameKey: "studio", x: 40, y: 60, width: 460, height: 240, color: 0x0ea5e9 },
+    { id: "warroom", nameKey: "warroom", x: 540, y: 60, width: 220, height: 240, color: 0xf59e0b },
+    { id: "corner", nameKey: "corner", x: 40, y: 340, width: 720, height: 110, color: 0x8b5cf6 },
+  ],
+  furniture: {
+    studio: [
+      { kind: "desk", x: 90, y: 140 },
+      { kind: "chair", x: 90, y: 175 },
+      { kind: "desk", x: 220, y: 140 },
+      { kind: "chair", x: 220, y: 175 },
+      { kind: "desk", x: 350, y: 140 },
+      { kind: "chair", x: 350, y: 175 },
+      { kind: "shelf", x: 420, y: 90 },
+      { kind: "plant", x: 60, y: 90 },
+      { kind: "plant", x: 430, y: 230 },
+    ],
+    warroom: [
+      { kind: "whiteboard", x: 110, y: 80 },
+      { kind: "rug", x: 110, y: 140, w: 160, h: 80, color: 0xf59e0b },
+      { kind: "plant", x: 40, y: 100 },
+      { kind: "plant", x: 180, y: 200 },
+    ],
+    corner: [
+      { kind: "sofa", x: 200, y: 55 },
+      { kind: "plant", x: 60, y: 80 },
+      { kind: "plant", x: 660, y: 80 },
+      { kind: "rug", x: 360, y: 65, w: 260, h: 60, color: 0x8b5cf6 },
+    ],
+  },
+  decorations: {
+    studio: [
+      { kind: "window", x: 300, y: 5, w: 70, h: 40 },
+      { kind: "painting", x: 180, y: 5, w: 40, h: 30 },
+      { kind: "lamp", x: 20, y: 5 },
+      { kind: "lamp", x: 420, y: 5 },
+    ],
+    warroom: [
+      { kind: "window", x: 70, y: 5, w: 60, h: 30 },
+      { kind: "painting", x: 160, y: 5, w: 35, h: 25 },
+      { kind: "lamp", x: 10, y: 5 },
+    ],
+    corner: [
+      { kind: "window", x: 560, y: 5, w: 80, h: 28 },
+      { kind: "painting", x: 380, y: 5, w: 50, h: 25 },
+      { kind: "lamp", x: 20, y: 5 },
+      { kind: "lamp", x: 680, y: 5 },
+    ],
+  },
+};
+
+export const SCENE_TEMPLATES: OfficeSceneTemplate[] = [
+  DEFAULT_OFFICE_TEMPLATE,
+  STARTUP_LOFT_TEMPLATE,
+];
 
 export function registerSceneTemplate(template: OfficeSceneTemplate): void {
   if (!SCENE_TEMPLATES.some((t) => t.slug === template.slug)) {

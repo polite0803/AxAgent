@@ -18,6 +18,7 @@ use axagent_harness::types::{
 use axagent_harness::{
     ProviderAdapter, ProviderRequestContext, ToolDomain, resolve_base_url_for_type,
 };
+use axagent_runtime_core::ConversationRuntimeFactoryArgs;
 use axagent_runtime_core::create_conversation_runtime;
 use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;
 use axagent_storage::cloud_workspace::CloudWorkspace;
@@ -1847,14 +1848,16 @@ pub async fn agent_query(
     app_state.agent_pause_states.insert(conversation_id.clone(), pause_state.clone());
 
     let mut runtime = create_conversation_runtime(
-        session.session().clone(),
-        Box::new(api_client),
-        Box::new(tool_registry),
-        PermissionPolicy::new(runtime_permission_mode),
-        system_prompt,
-        runtime_feature_config,
-        crate::commands::multi_agent::get_global_hook_chain(),
-        Some(pause_state),
+        ConversationRuntimeFactoryArgs::new(
+            session.session().clone(),
+            Box::new(api_client),
+            Box::new(tool_registry),
+            PermissionPolicy::new(runtime_permission_mode),
+            system_prompt,
+            runtime_feature_config,
+        )
+        .with_hook_chain_option(crate::commands::multi_agent::get_global_hook_chain())
+        .with_pause_state(pause_state),
     );
 
     // 将 nudge 注入到运行时级 system_prompt（通过 <memory_context> 块在每次 LLM 调用前注入）
@@ -3312,6 +3315,11 @@ pub async fn simple_chat_completion(
         response_format: None,
     };
 
-    let response = adapter.chat(&ctx, Arc::new(request)).await.map_err(|e| e.to_string())?;
+    let response = adapter.chat(&ctx, Arc::new(request)).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(response.content)
 }

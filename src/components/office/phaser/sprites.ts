@@ -69,6 +69,8 @@ export interface AgentSprite {
   roomId: string;
   memberId: string;
   agentSlug: string;
+  /** 当前站立/行走落点 Y（动画整体位移的基准，创建/移动后更新） */
+  baseY: number;
   targetX?: number;
   targetY?: number;
   walkPhase: number;
@@ -184,7 +186,6 @@ export function createAgentSprite(
   const tie = hasTie
     ? scene.add.rectangle(0, -PX * 8.5, PX * 0.8, PX * 4, hslToHex((hashStr(agentSlug) + 180) % 360, 0.6, 0.4), 1)
     : scene.add.rectangle(0, -PX * 10, PX * 3, PX * 0.4, 0xffffff, 0.25);
-  tie.setVisible(hasTie || true); // 条纹总是显示
 
   // ── 衣领 ──
   const collar = scene.add.rectangle(0, -PX * 10.5, PX * 3, PX * 0.6, 0xffffff, 0.4);
@@ -305,6 +306,7 @@ export function createAgentSprite(
     roomId: "",
     memberId,
     agentSlug,
+    baseY: y,
     walkPhase: 0,
     jumpPhase: 0,
     armPhase: 0,
@@ -343,9 +345,9 @@ export function tickSpriteAnimation(sprite: AgentSprite, time: number, delta: nu
 
   switch (sprite.animation) {
     case "idle": {
-      // 轻微呼吸：整体上下 1px
+      // 轻微呼吸：以 baseY 为基准整体上下 1px（此前 (y-y) 恒 0 为死代码）
       const bob = Math.sin(time / 700) * 0.8;
-      sprite.container.y = sprite.container.y + (bob - (sprite.container.y - sprite.container.y)) * 0.05;
+      sprite.container.y = sprite.baseY + bob;
       // 复位手臂和腿
       sprite.armL.y = -PX * 8.5;
       sprite.armR.y = -PX * 8.5;
@@ -379,9 +381,9 @@ export function tickSpriteAnimation(sprite: AgentSprite, time: number, delta: nu
       sprite.armR.x = PX * 2.8 - armSwing * 1.5;
       sprite.armL.y = -PX * 8.5 - Math.max(0, -armSwing) * 1;
       sprite.armR.y = -PX * 8.5 - Math.max(0, armSwing) * 1;
-      // 整体上下弹动
+      // 整体上下弹动（以 baseY 为基准，修复死代码）
       const bob = Math.abs(Math.sin(sprite.walkPhase * 2)) * 1.5;
-      sprite.container.y = sprite.container.y - bob * 0.1;
+      sprite.container.y = sprite.baseY - bob;
       // 头部微微左右晃
       const headSway = Math.sin(sprite.walkPhase) * 0.5;
       sprite.head.x = headSway;
@@ -422,9 +424,9 @@ export function tickSpriteAnimation(sprite: AgentSprite, time: number, delta: nu
     }
     case "celebrating": {
       sprite.jumpPhase += dt * 6;
-      // 整体跳跃
+      // 整体跳跃（以 baseY 为基准，修复死代码）
       const jump = Math.abs(Math.sin(sprite.jumpPhase)) * -18;
-      sprite.container.y = sprite.container.y + (jump - (sprite.container.y - sprite.container.y)) * 0.2;
+      sprite.container.y = sprite.baseY + jump;
       // 跳跃时手臂上举
       const armRaise = Math.abs(Math.sin(sprite.jumpPhase)) * 3;
       sprite.armL.y = -PX * 8.5 - armRaise;

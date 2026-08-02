@@ -790,6 +790,7 @@ mod tests_conversation {
             )
                 as Arc<dyn AgentSessionRepository>)),
             agent_cancel_tokens: Arc::new(DashMap::new()),
+            agent_pause_states: Arc::new(DashMap::new()),
             agent_paused: Arc::new(Mutex::new(std::collections::HashSet::new())),
             running_agents: Arc::new(tokio::sync::RwLock::new(std::collections::HashSet::new())),
             steer_queue: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
@@ -901,6 +902,8 @@ mod tests_conversation {
             prompt_cache: Arc::new(PromptCache::new()),
             fleet_repository: Arc::new(axagent_harness::fleet::NoopFleetRepository)
                 as Arc<dyn axagent_harness::fleet::FleetRepository>,
+            fleet_intent_llm: Arc::new(axagent_harness::fleet::NoopFleetIntentLlm)
+                as Arc<dyn axagent_harness::fleet::FleetIntentLlm>,
             harness: axagent_runtime::harness::RuntimeHarness::new(
                 axagent_runtime::harness::HarnessDeps {
                     persistence: Arc::new(axagent_dao::db::DbHandle {

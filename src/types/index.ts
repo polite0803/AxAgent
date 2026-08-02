@@ -794,6 +794,7 @@ export type SettingsSection =
   | "notificationCenter"
   | "imageGen"
   | "theme"
+  | "animations"
   | "cron"
   | "dynamicPages"
   | "readingList"

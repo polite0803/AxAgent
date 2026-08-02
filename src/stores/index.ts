@@ -7,6 +7,12 @@ export { type TabItem, useTabStore } from "./shared/tabStore";
 export { useUIStore } from "./shared/uiStore";
 export { useWorkspaceStore, type WorkspaceTab } from "./shared/workspaceStore";
 
+export {
+  type AnimationMode,
+  initAnimationPreference,
+  isAnimationEnabled,
+  useAnimationStore,
+} from "./shared/animationStore";
 export { useBackendStatusStore } from "./shared/backendStatusStore";
 export { useErrorNotificationStore } from "./shared/errorNotificationStore";
 
