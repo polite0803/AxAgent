@@ -2313,7 +2313,7 @@ export async function handleCommand<T>(
       const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
       const push = (evt: unknown) => onEvent?.onmessage?.(evt);
       if (members.length === 0) {
-        push({ type: "error", message: "该办公室还没有任何成员" });
+        push({ type: "error", message: i18n.t("browserMock.fleetNoMembers") });
         return undefined as T;
       }
       // 直接 DM 时定位目标成员，否则取第一个
@@ -2334,7 +2334,10 @@ export async function handleCommand<T>(
         type: "agent_message",
         agentSlug: target.agentSlug,
         agentId: target.agentId,
-        content: `[浏览器模拟] ${target.displayName} 收到消息：${msg}`,
+        content: i18n.t("browserMock.fleetMessageReceived", {
+          name: target.displayName,
+          message: msg,
+        }),
       });
       push({ type: "token_usage", agentSlug: target.agentSlug, inputTokens: 12, outputTokens: 34 });
       push({ type: "agent_status", agentSlug: target.agentSlug, status: "idle" });

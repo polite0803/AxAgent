@@ -8346,7 +8346,9 @@
     "grepDesc": "Search file contents that match a regular expression.",
     "fileEditDesc": "Edit file via exact string replacement. Uses old_string/new_string to search and replace.",
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
-    "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation."
+    "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
+    "fleetNoMembers": "The office has no members yet",
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
   },
   "cancel": "Cancelar",
   "searchUtils": {
