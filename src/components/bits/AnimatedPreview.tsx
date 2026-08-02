@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import { BlurText } from "./BlurText";
+import { GradientText } from "./GradientText";
+import { ShinyText } from "./ShinyText";
 
 /**
- * 逐词浮现文本动画 —— 动画效果预览演示组件。
+ * 动画效果预览 —— 循环展示 react-bits 移植组件的实际效果。
  *
  * 设计要点：
- * - 纯 framer-motion 实现（项目已有依赖，无新增依赖）
+ * - 展示 3 个真实 react-bits 组件：BlurText（逐字浮现）/ GradientText（流动渐变）/ ShinyText（光泽扫过）
  * - 仅在动画启用时通过 lazy() 加载（见 AnimationSettings）
  * - 静态降级由消费方控制：动画关闭时渲染纯文本，不加载本组件
  */
@@ -16,44 +18,37 @@ interface AnimatedPreviewProps {
   text: string;
 }
 
-/** 将文本按空格拆分为词（保留空格作为词的一部分，避免单词粘连） */
-function splitWords(text: string): string[] {
-  return text.split(/(\s+)/).filter((part) => part.length > 0);
-}
+type PreviewEffect = "blur" | "gradient" | "shiny";
+
+const EFFECTS: PreviewEffect[] = ["blur", "gradient", "shiny"];
+
+const EFFECT_LABELS: Record<PreviewEffect, string> = {
+  blur: "BlurText",
+  gradient: "GradientText",
+  shiny: "ShinyText",
+};
 
 export function AnimatedPreview({ text }: AnimatedPreviewProps) {
-  const words = useMemo(() => splitWords(text), [text]);
+  const [effectIndex, setEffectIndex] = useState(0);
+
+  // 每 4 秒切换一次预览效果
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setEffectIndex((prev) => (prev + 1) % EFFECTS.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const effect = EFFECTS[effectIndex];
 
   return (
-    <motion.span
-      initial="hidden"
-      animate="visible"
-      transition={{ staggerChildren: 0.06 }}
-      style={{
-        display: "inline-block",
-        fontSize: 16,
-        fontWeight: 500,
-      }}
-      aria-label={text}
-    >
-      {words.map((word, index) => (
-        <motion.span
-          key={`${word}-${index}`}
-          variants={{
-            hidden: { opacity: 0, y: 10, filter: "blur(4px)" },
-            visible: {
-              opacity: 1,
-              y: 0,
-              filter: "blur(0px)",
-              transition: { duration: 0.45, ease: "easeOut" },
-            },
-          }}
-          style={{ display: "inline-block", whiteSpace: "pre" }}
-          aria-hidden="true"
-        >
-          {word}
-        </motion.span>
-      ))}
-    </motion.span>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 11, opacity: 0.6 }}>{EFFECT_LABELS[effect]}</span>
+      <div style={{ minHeight: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {effect === "blur" && <BlurText text={text} animateBy="words" delay={120} />}
+        {effect === "gradient" && <GradientText>{text}</GradientText>}
+        {effect === "shiny" && <ShinyText text={text} speed={3} />}
+      </div>
+    </div>
   );
 }
