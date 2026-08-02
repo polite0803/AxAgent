@@ -807,6 +807,9 @@ dependencies = [
  "axagent-migration",
  "axagent-notification",
  "axagent-npm",
+ "axagent-opc-dao",
+ "axagent-opc-entities",
+ "axagent-opc-types",
  "axagent-orchestrator",
  "axagent-plugins",
  "axagent-prompt-guard",
@@ -1210,6 +1213,44 @@ dependencies = [
  "tar",
  "thiserror 2.0.18",
  "tracing",
+]
+
+[[package]]
+name = "axagent-opc-dao"
+version = "2.8.7"
+dependencies = [
+ "async-trait",
+ "axagent-harness",
+ "axagent-opc-entities",
+ "axagent-opc-types",
+ "chrono",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-opc-entities"
+version = "2.8.7"
+dependencies = [
+ "axagent-harness",
+ "chrono",
+ "sea-orm",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-types"
+version = "2.8.7"
+dependencies = [
+ "async-trait",
+ "axagent-harness",
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

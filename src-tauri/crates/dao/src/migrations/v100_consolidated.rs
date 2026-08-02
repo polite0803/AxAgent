@@ -438,9 +438,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
         // agency_experts
         // P2-8: category 加 CHECK 约束（新部署生效；存量库靠应用层 validate_category 兜底）
+        // 白名单须与 opc_setup 种子化使用的值同步（含 opc-company / opc-experts）
         "CREATE TABLE IF NOT EXISTS agency_experts (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
-            category TEXT NOT NULL CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business')), \
+            category TEXT NOT NULL CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business','opc-company','opc-experts')), \
             system_prompt TEXT NOT NULL, color TEXT, \
             source_dir TEXT NOT NULL, is_enabled INTEGER NOT NULL DEFAULT 1, \
             imported_at BIGINT NOT NULL, recommended_workflows TEXT, recommended_tools TEXT, \
@@ -450,7 +451,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         // P1-5: expert_id 加 FK → agency_experts(id) ON DELETE SET NULL（专家被删除时 profile 保留）
         "CREATE TABLE IF NOT EXISTS agent_profiles (\
             id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
-            category TEXT NOT NULL DEFAULT 'general' CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business')), \
+            category TEXT NOT NULL DEFAULT 'general' CHECK (category IN ('general','development','security','data','finance','devops','design','writing','business','opc-company','opc-experts')), \
             icon TEXT NOT NULL DEFAULT '🤖', \
             agent_role TEXT, \
             source TEXT NOT NULL DEFAULT 'builtin', tags TEXT, \

@@ -119,6 +119,8 @@ pub mod sources;
 pub mod spawn_guard;
 pub mod stock_analysis;
 pub mod stock_analysis_bridge;
+#[cfg(test)]
+mod stock_analysis_bridge_tests;
 pub mod stock_analysis_setup;
 pub mod stock_pipeline;
 pub mod stock_workflow;
@@ -149,3 +151,7 @@ pub mod workflow_reflection;
 pub mod workflow_template;
 pub mod workflow_yaml;
 pub mod workflows;
+// ── OPC（AI 一人公司）─ 行业数据资产包 + 台账 ──
+pub mod opc;
+pub mod opc_setup;
+pub mod opc_workflows;

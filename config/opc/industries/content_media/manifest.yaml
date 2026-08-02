@@ -1,0 +1,8 @@
+# Industry Pack: 内容与媒体（content_media）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: content_media
+name: 内容营销流程
+icon: "📝"
+description: 选题策划 → 内容创作 → 落地页发布。CMO 视角，含博客和落地页创建。
+version: 1
+enabled: true

@@ -1,0 +1,24 @@
+# 工作流：软件开发流程
+id: workflow-software-dev
+name: 软件开发流程
+description: 一人公司软件开发：需求 → 架构 → 编码 → 测试。CTO 视角，含防幻觉。
+icon: "💻"
+tags: [dev, software, tech]
+profile_id: opc-cto-cto-ai-engineer
+steps:
+  - id: a-req
+    title: 需求分析
+    prompt: 分析需求，确定功能范围和技术约束。输出 JSON {requirements, scope, constraints}
+    inputs: {}
+  - id: a-arch
+    title: 架构设计
+    prompt: 设计系统架构，选择技术栈。输出 JSON {architecture, tech_stack, modules}
+    inputs: {}
+  - id: a-code
+    title: 编码实现
+    prompt: 按设计实现核心功能模块。输出 JSON {modules_implemented, code_summary, issues}
+    inputs: {}
+  - id: a-test
+    title: 测试验证
+    prompt: 编写测试用例，执行测试。输出 JSON {test_results, coverage, bugs}
+    inputs: {}

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { ImportExportModal } from "@/components/workflow/Templates/ImportExportModal";
+import { useAgentContext } from "@/hooks/useAgentContext";
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { MarketplaceStats, reviewApi, ReviewResponse } from "@/lib/reviewApi";
@@ -141,6 +142,18 @@ export function WorkflowMarketplace() {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const { token } = theme.useToken();
+
+  // ── Agent 上下文注入：告知 Agent 当前页面是工作流市场 ──
+  useAgentContext({
+    page: "workflow-marketplace",
+    url: "/marketplace",
+    quickActions: [
+      { id: "browse-templates", description: "浏览/搜索工作流模板市场" },
+      { id: "install-template", description: "安装工作流模板到本地", requireConfirmation: true },
+      { id: "import-template", description: "从本地文件导入工作流模板", requireConfirmation: true },
+    ],
+  });
+
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [templates, setTemplates] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(false);

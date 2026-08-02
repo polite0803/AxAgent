@@ -1,0 +1,8 @@
+# Industry Pack: 教育培训（education）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: education
+name: 教育培训流程
+icon: "🎓"
+description: 课程设计 → 内容制作 → 学员管理。COO + CMO 协作。
+version: 1
+enabled: true

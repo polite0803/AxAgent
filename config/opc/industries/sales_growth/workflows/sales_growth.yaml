@@ -1,0 +1,20 @@
+# 工作流：销售增长流程
+id: workflow-sales-growth
+name: 销售增长流程
+description: 线索获取 → 触达跟进 → 签约转化。CMO + CEO 交叉协作。
+icon: "🚀"
+tags: [sales, growth]
+profile_id: opc-cmo-cmo-content-strategist
+steps:
+  - id: a-lead
+    title: 线索获取
+    prompt: 使用 OpcListCustomers 分析现有客户数据，识别潜在客户。输出 JSON {leads, insights}
+    inputs: {}
+  - id: a-outreach
+    title: 触达跟进
+    prompt: 基于线索信息制定个触达方案。输出 JSON {strategy, channels, timeline}
+    inputs: {}
+  - id: a-close
+    title: 签约转化
+    prompt: 推动线索转化签约。使用 OpcCreateCustomer 创建客户记录。输出 JSON {conversions, next_steps}
+    inputs: {}

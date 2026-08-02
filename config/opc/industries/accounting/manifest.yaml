@@ -1,0 +1,8 @@
+# Industry Pack: 会计财务（accounting）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: accounting
+name: 会计财务流程
+icon: "🧾"
+description: 创建发票 → 审批(ApprovalNode) → 通知客户 → 登记KPI。CFO 视角。
+version: 1
+enabled: true

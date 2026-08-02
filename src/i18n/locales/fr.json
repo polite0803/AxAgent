@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "Le schéma est confronté au champ de type requis",
       "remove": "Supprimer",
       "title": "Interface dynamique de l'agent"
+    },
+    "stockUiHost": {
+      "title": "Analyse de l'agent",
+      "expand": "Déplier",
+      "collapse": "Replier",
+      "clear": "Effacer",
+      "remove": "Retirer"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "Recommandation d'outils",
       "fineTune": "Reglage fin",
       "rlTraining": "Entrainement RL"
-    }
+    },
+    "opc": "Entreprise Solo"
   },
   "invest": {
     "tab": {
@@ -6691,8 +6699,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "Outils de developpement",
-    "agentPanel": "Panneau d'agent"
+    "sectionDeveloper": "Outils de developpement"
   },
   "skill": {
     "abTest": {

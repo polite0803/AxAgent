@@ -6,7 +6,7 @@
 //! - 上游桥接器只收 `(db, app_handle)`；股票命令依赖 `Arc<AStockClient>` + `db`
 //! - 只读命令直接暴露给 Agent；写命令的权限审批**复用 runtime 原生链路**
 //!   （`PermissionPolicy` ask 规则 → `ChannelPermissionPrompter` emit
-//!    `agent-permission-request` → 前端弹窗 → `agent_approve` 回传），
+//!   `agent-permission-request` → 前端弹窗 → `agent_approve` 回传），
 //!   本模块不自行实现门控（上游 command_bridge 的 PermissionGate 是死代码）。
 //! - 直接调用 `AStockClient` 底层方法与 DAO，与 Tauri 命令共用同一份实现（零重复）
 //!
@@ -14,18 +14,20 @@
 //! 上游共享文件 `command_bridge.rs` 保持不动。
 
 use crate::commands::agent::command_bridge::TauriCommandToolDef;
-use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::AStockClient;
+use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_entities::{portfolio_holdings, price_alerts, watchlist_items};
 use axagent_harness::types::{ChatTool, ChatToolFunction};
-use axagent_tools::registry::SkillToolHandler;
 use axagent_tools::ToolError;
+use axagent_tools::registry::SkillToolHandler;
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::QueryOrder;
 use serde_json::Value;
 use std::sync::Arc;
+use tauri::AppHandle;
+use tauri::Emitter;
 use tracing::{debug, instrument, warn};
 
 /// 股票写命令名单（is_read_only=false）
@@ -233,6 +235,34 @@ pub fn build_stock_tool_defs() -> Vec<TauriCommandToolDef> {
             }),
             is_read_only: false,
         },
+        // ── 动态 UI 渲染（P5）：把股票数据渲染为前端组件 ──
+        TauriCommandToolDef {
+            name: "stock_render_ui",
+            description: "将股票数据渲染为前端 UI 组件，结果直接显示在股票工作区页面内（Agent 分析区）。\
+                接收 UISchema JSON：{version, id, type, props, children?}。\
+                ⚠️ target_id 必须传 \"stock-workspace\"，否则渲染会落到全局侧边栏而非股票页面。\
+                推荐形态：\
+                1) 行情卡片: type=Card, props={title:'贵州茅台 600519'}, children=[\
+                   {type:'List', props:{items:[{label:'最新价',value:'1350.6'},{label:'涨跌幅',value:'-0.82%'},{label:'成交额',value:'73.7亿'}]}}]\
+                2) 数据表格: type=Table, props={columns:[{title:'代码',dataIndex:'code'},{title:'名称',dataIndex:'name'},{title:'涨跌幅',dataIndex:'changePct'}],\
+                   dataSource:[{code:'600519',name:'贵州茅台',changePct:-0.82}]}\
+                3) 分析结论: type=Markdown, props={content:'## 结论\\n分析结果文本'}\
+                组件类型: Container/Row/Column/Grid/Card/Tabs/Accordion/Table/Chart/List/Dashboard/Markdown/Form。\
+                在股票分析、行情查询、回测结果等场景，主动调用本工具把结果渲染成可视化组件",
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "schema": {
+                        "type": "object",
+                        "description": "UISchema 定义，必含 version/id/type，可选 props/children",
+                    },
+                    "target_id": { "type": "string", "description": "渲染目标容器 ID，必须传 \"stock-workspace\" 才显示在股票工作区" },
+                    "replace": { "type": "boolean", "description": "可选，是否替换同名组件 (默认 true)" },
+                },
+                "required": ["schema"],
+            }),
+            is_read_only: true,
+        },
     ]
 }
 
@@ -261,15 +291,22 @@ pub fn build_stock_chat_tools() -> Vec<ChatTool> {
 /// 写工具经 `STOCK_WRITE_TOOLS` 注入 ask 规则后自动走
 /// `agent-permission-request` → 前端弹窗 → `agent_approve` 链路。
 /// 审批通过后 handler 才会执行，因此写命令分支是纯业务逻辑。
-pub fn build_stock_command_handlers(
+pub fn build_stock_command_handlers<R: tauri::Runtime>(
     client: Arc<AStockClient>,
     db: DatabaseConnection,
     cron_job_store: Arc<axagent_runtime_core::CronJobStore>,
+    app_handle: AppHandle<R>,
 ) -> Vec<(String, SkillToolHandler)> {
     let mut handlers = Vec::new();
 
     for def in build_stock_tool_defs() {
-        let handler = create_stock_handler(def.name, client.clone(), db.clone(), cron_job_store.clone());
+        let handler = create_stock_handler(
+            def.name,
+            client.clone(),
+            db.clone(),
+            cron_job_store.clone(),
+            app_handle.clone(),
+        );
         handlers.push((def.name.to_string(), handler));
     }
 
@@ -277,18 +314,19 @@ pub fn build_stock_command_handlers(
 }
 
 /// 创建单个股票命令的 handler
-fn create_stock_handler(
+fn create_stock_handler<R: tauri::Runtime>(
     command_name: &str,
     client: Arc<AStockClient>,
     db: DatabaseConnection,
     cron_job_store: Arc<axagent_runtime_core::CronJobStore>,
+    app_handle: AppHandle<R>,
 ) -> SkillToolHandler {
     let name = command_name.to_string();
     Box::new(move |input: &str| {
         let input_value: Value =
             serde_json::from_str(input).unwrap_or_else(|_| serde_json::json!({}));
 
-        execute_stock_command(&name, &input_value, &client, &db, &cron_job_store)
+        execute_stock_command(&name, &input_value, &client, &db, &cron_job_store, &app_handle)
     })
 }
 
@@ -297,31 +335,32 @@ fn create_stock_handler(
 /// 安全地从同步上下文进入异步 runtime（与上游 execute_command 同模式）：
 /// - 已在 tokio runtime 中 → Handle::current().block_on()
 /// - 不在 runtime 中 → 创建临时 current_thread runtime
-fn execute_stock_command(
+fn execute_stock_command<R: tauri::Runtime>(
     command_name: &str,
     input: &Value,
     client: &Arc<AStockClient>,
     db: &DatabaseConnection,
     cron_job_store: &Arc<axagent_runtime_core::CronJobStore>,
+    app_handle: &AppHandle<R>,
 ) -> Result<String, ToolError> {
     let client = client.clone();
     let db = db.clone();
     let cron_job_store = cron_job_store.clone();
+    let app_handle = app_handle.clone();
     let name = command_name.to_string();
 
     match tokio::runtime::Handle::try_current() {
-        Ok(handle) => {
-            handle.block_on(async {
-                dispatch_stock_command(&name, input, &client, &db, &cron_job_store).await
-            })
-        },
+        Ok(handle) => handle.block_on(async {
+            dispatch_stock_command(&name, input, &client, &db, &cron_job_store, &app_handle).await
+        }),
         Err(_) => {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .map_err(|_| ToolError::execution_failed(command_name))?;
             runtime.block_on(async {
-                dispatch_stock_command(&name, input, &client, &db, &cron_job_store).await
+                dispatch_stock_command(&name, input, &client, &db, &cron_job_store, &app_handle)
+                    .await
             })
         },
     }
@@ -329,39 +368,36 @@ fn execute_stock_command(
 }
 
 /// 命令分发 — 根据命令名调用 AStockClient 底层方法 / DAO
-#[instrument(skip(client, db, cron_job_store), fields(command = %command_name))]
-async fn dispatch_stock_command(
+#[instrument(skip(client, db, cron_job_store, app_handle), fields(command = %command_name))]
+async fn dispatch_stock_command<R: tauri::Runtime>(
     command_name: &str,
     input: &Value,
     client: &Arc<AStockClient>,
     db: &DatabaseConnection,
     cron_job_store: &Arc<axagent_runtime_core::CronJobStore>,
+    app_handle: &AppHandle<R>,
 ) -> Result<String, String> {
     debug!("Executing stock command: {}", command_name);
 
     match command_name {
         "stock_get_quote" => {
-            let stock_code = input["stock_code"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_code 参数".to_string())?;
+            let stock_code =
+                input["stock_code"].as_str().ok_or_else(|| "缺少 stock_code 参数".to_string())?;
             if stock_code.trim().is_empty() {
                 return Err("stock_code 不能为空".to_string());
             }
-            let as_of_ctx = AsOfContext::parse_optional(input["as_of_date"].as_str()).map_err(|e| {
-                format!("as_of_date 解析失败: {e}")
-            })?;
+            let as_of_ctx = AsOfContext::parse_optional(input["as_of_date"].as_str())
+                .map_err(|e| format!("as_of_date 解析失败: {e}"))?;
             let quote = as_of::with_optional_asof(as_of_ctx, async {
-                as_of::with_degradation_log(async {
-                    client.get_quote(stock_code).await
-                })
-                .await
+                as_of::with_degradation_log(async { client.get_quote(stock_code).await }).await
             })
             .await
             .map_err(|e| format!("获取实时行情失败: {e}"))?;
             serde_json::to_string_pretty(&quote).map_err(|e| e.to_string())
         },
         "stock_get_hot_stocks" => {
-            let data = client.get_hot_stocks().await.map_err(|e| format!("获取热门股票失败: {e}"))?;
+            let data =
+                client.get_hot_stocks().await.map_err(|e| format!("获取热门股票失败: {e}"))?;
             serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
         },
         "stock_get_industry_ranking" => {
@@ -386,21 +422,19 @@ async fn dispatch_stock_command(
             serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
         },
         "stock_get_index_quotes" => {
-            let data = client
-                .get_index_quotes()
-                .await
-                .map_err(|e| format!("获取指数行情失败: {e}"))?;
+            let data =
+                client.get_index_quotes().await.map_err(|e| format!("获取指数行情失败: {e}"))?;
             serde_json::to_string_pretty(&data).map_err(|e| e.to_string())
         },
         "stock_search" => {
-            let keyword = input["keyword"]
-                .as_str()
-                .ok_or_else(|| "缺少 keyword 参数".to_string())?;
+            let keyword =
+                input["keyword"].as_str().ok_or_else(|| "缺少 keyword 参数".to_string())?;
             if keyword.trim().is_empty() {
                 return Err("keyword 不能为空".to_string());
             }
             let market = input["market"].as_str();
-            let results = client.search_stock(keyword).await.map_err(|e| format!("搜索股票失败: {e}"))?;
+            let results =
+                client.search_stock(keyword).await.map_err(|e| format!("搜索股票失败: {e}"))?;
             let filtered = match market {
                 Some("A") => results
                     .into_iter()
@@ -413,9 +447,8 @@ async fn dispatch_stock_command(
             serde_json::to_string_pretty(&filtered).map_err(|e| e.to_string())
         },
         "stock_search_news" => {
-            let keyword = input["keyword"]
-                .as_str()
-                .ok_or_else(|| "缺少 keyword 参数".to_string())?;
+            let keyword =
+                input["keyword"].as_str().ok_or_else(|| "缺少 keyword 参数".to_string())?;
             if keyword.trim().is_empty() {
                 return Err("keyword 不能为空".to_string());
             }
@@ -436,12 +469,10 @@ async fn dispatch_stock_command(
         },
         // ── 写操作（P2）：审批由 runtime 原生链路负责，此处仅执行 ──
         "stock_add_to_watchlist" => {
-            let stock_code = input["stock_code"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_code 参数".to_string())?;
-            let stock_name = input["stock_name"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_name 参数".to_string())?;
+            let stock_code =
+                input["stock_code"].as_str().ok_or_else(|| "缺少 stock_code 参数".to_string())?;
+            let stock_name =
+                input["stock_name"].as_str().ok_or_else(|| "缺少 stock_name 参数".to_string())?;
             let notes = input["notes"].as_str().map(|s| s.to_string());
             let now = chrono::Utc::now().timestamp_millis();
             let model = watchlist_items::ActiveModel {
@@ -465,12 +496,10 @@ async fn dispatch_stock_command(
                 .map_err(|e| e.to_string())
         },
         "stock_add_portfolio_holding" => {
-            let stock_code = input["stock_code"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_code 参数".to_string())?;
-            let stock_name = input["stock_name"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_name 参数".to_string())?;
+            let stock_code =
+                input["stock_code"].as_str().ok_or_else(|| "缺少 stock_code 参数".to_string())?;
+            let stock_name =
+                input["stock_name"].as_str().ok_or_else(|| "缺少 stock_name 参数".to_string())?;
             let shares = input["shares"].as_f64().ok_or_else(|| "缺少 shares 参数".to_string())?;
             let avg_cost =
                 input["avg_cost"].as_f64().ok_or_else(|| "缺少 avg_cost 参数".to_string())?;
@@ -498,16 +527,15 @@ async fn dispatch_stock_command(
                 .map_err(|e| e.to_string())
         },
         "stock_create_price_alert" => {
-            let stock_code = input["stock_code"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_code 参数".to_string())?;
-            let stock_name = input["stock_name"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_name 参数".to_string())?;
+            let stock_code =
+                input["stock_code"].as_str().ok_or_else(|| "缺少 stock_code 参数".to_string())?;
+            let stock_name =
+                input["stock_name"].as_str().ok_or_else(|| "缺少 stock_name 参数".to_string())?;
             let condition =
                 input["condition"].as_str().ok_or_else(|| "缺少 condition 参数".to_string())?;
-            let target_price =
-                input["target_price"].as_f64().ok_or_else(|| "缺少 target_price 参数".to_string())?;
+            let target_price = input["target_price"]
+                .as_f64()
+                .ok_or_else(|| "缺少 target_price 参数".to_string())?;
 
             use axagent_stock_analysis::alert_mapping::{
                 condition_type_for, legacy_condition_to_alert_type,
@@ -535,22 +563,21 @@ async fn dispatch_stock_command(
             serde_json::to_string_pretty(&saved).map_err(|e| e.to_string())
         },
         "stock_toggle_trading_enabled" => {
-            let enabled = input["enabled"]
-                .as_bool()
-                .ok_or_else(|| "缺少 enabled 参数".to_string())?;
+            let enabled =
+                input["enabled"].as_bool().ok_or_else(|| "缺少 enabled 参数".to_string())?;
             axagent_dao::repo::settings::set_setting(db, "trading_enabled", &enabled.to_string())
                 .await
                 .map_err(|e| format!("切换交易功能失败: {e}"))?;
-            serde_json::to_string_pretty(&serde_json::json!({ "success": true, "enabled": enabled }))
-                .map_err(|e| e.to_string())
+            serde_json::to_string_pretty(
+                &serde_json::json!({ "success": true, "enabled": enabled }),
+            )
+            .map_err(|e| e.to_string())
         },
         "stock_create_stock_cron" => {
-            let stock_code = input["stock_code"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_code 参数".to_string())?;
-            let stock_name = input["stock_name"]
-                .as_str()
-                .ok_or_else(|| "缺少 stock_name 参数".to_string())?;
+            let stock_code =
+                input["stock_code"].as_str().ok_or_else(|| "缺少 stock_code 参数".to_string())?;
+            let stock_name =
+                input["stock_name"].as_str().ok_or_else(|| "缺少 stock_name 参数".to_string())?;
             let cron_expression = input["cron_expression"]
                 .as_str()
                 .ok_or_else(|| "缺少 cron_expression 参数".to_string())?;
@@ -578,6 +605,32 @@ async fn dispatch_stock_command(
             cron_job_store.remove(id).await;
             serde_json::to_string_pretty(&serde_json::json!({ "success": true, "id": id }))
                 .map_err(|e| e.to_string())
+        },
+        // ── 动态 UI 渲染（P5）：emit agent-render-ui 事件，前端 AgentUIRenderer 渲染 ──
+        "stock_render_ui" => {
+            let schema =
+                input["schema"].as_object().ok_or_else(|| "缺少 schema 参数".to_string())?;
+            let target_id = input["target_id"].as_str().map(|s| s.to_string());
+            let replace = input["replace"].as_bool().unwrap_or(true);
+            let schema_id = schema.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
+
+            let payload = serde_json::json!({
+                "schema": schema,
+                "targetId": target_id,
+                "replace": replace,
+            });
+            app_handle.emit("agent-render-ui", &payload).map_err(|e| {
+                warn!("[stock-bridge] 派发 UI 渲染事件失败: {}", e);
+                format!("派发 UI 渲染事件失败: {e}")
+            })?;
+
+            debug!("[stock-bridge] UI rendered: schemaId={}, replace={}", schema_id, replace);
+            serde_json::to_string_pretty(&serde_json::json!({
+                "success": true,
+                "action": "render",
+                "schemaId": schema_id,
+            }))
+            .map_err(|e| e.to_string())
         },
         other => {
             warn!("Unknown stock command: {}", other);

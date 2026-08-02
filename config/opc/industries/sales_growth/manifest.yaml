@@ -1,0 +1,8 @@
+# Industry Pack: 销售增长（sales_growth）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: sales_growth
+name: 销售增长流程
+icon: "🚀"
+description: 线索获取 → 触达跟进 → 签约转化。CMO + CEO 交叉协作。
+version: 1
+enabled: true

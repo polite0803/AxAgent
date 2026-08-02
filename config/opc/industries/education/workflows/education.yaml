@@ -1,0 +1,20 @@
+# 工作流：教育培训流程
+id: workflow-education
+name: 教育培训流程
+description: 课程设计 → 内容制作 → 学员管理。COO + CMO 协作。
+icon: "🎓"
+tags: [education, training]
+profile_id: opc-coo-coo-operations-manager
+steps:
+  - id: a-curriculum
+    title: 课程设计
+    prompt: 设计课程目标、大纲和评估方式。输出 JSON {title, objectives, modules, duration}
+    inputs: {}
+  - id: a-content
+    title: 内容制作
+    prompt: 制作课程内容讲义、练习和测验。输出 JSON {content_summary, modules_completed}
+    inputs: {}
+  - id: a-enroll
+    title: 学员管理
+    prompt: 使用 OpcCreateCustomer 创建学员信息，设置学习路径。输出 JSON {enrollment_id, student_count}
+    inputs: {}

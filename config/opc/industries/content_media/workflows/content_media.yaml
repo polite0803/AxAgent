@@ -1,0 +1,20 @@
+# 工作流：内容营销流程
+id: workflow-content-media
+name: 内容营销流程
+description: 选题策划 → 内容创作 → 落地页发布。CMO 视角，含博客和落地页创建。
+icon: "📝"
+tags: [content, media, marketing]
+profile_id: opc-cmo-cmo-content-strategist
+steps:
+  - id: a-topic
+    title: 选题策划
+    prompt: 分析市场和客户数据，策划内容主题。输出 JSON {topic, audience, outline}
+    inputs: {}
+  - id: a-create
+    title: 内容创作
+    prompt: 根据选题创作内容。使用 OpcCreateBlogPost 发布博客。输出 JSON {post_id, status, summary}
+    inputs: {}
+  - id: a-landing
+    title: 创建落地页
+    prompt: 使用 OpcCreateLandingPage 为内容创建落地页。输出 JSON {page_id, url, status}
+    inputs: {}

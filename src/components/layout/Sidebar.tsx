@@ -71,13 +71,6 @@ const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.invest,
     isPlugin: false,
   },
-  {
-    key: "multi-agent",
-    icon: <Icon icon="fluent:people-team-20-filled" size={17} />,
-    labelKey: "nav.multiAgent",
-    path: BUILTIN_PAGE_PATH.multiAgent,
-    isPlugin: false,
-  },
 ];
 
 interface SidebarSection {
@@ -308,7 +301,7 @@ export function Sidebar() {
     sections.push({
       key: "workspace",
       labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "chat" || n.key === "multi-agent"),
+      items: builtinNavItems.filter((n) => n.key === "chat"),
     });
 
     // 投资分组：7 个股票业务页面合并为 /invest 统一入口（InvestHub 内部 Tab 切换）

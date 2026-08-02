@@ -11,6 +11,7 @@ use axagent_harness::util_fns::now_ts;
 
 /// agent_profiles.category 合法枚举值。
 /// 与前端 `src/types/expert.ts` 的 `EXPERT_CATEGORY_KEYS` 保持一致。
+/// 含 opc-company / opc-experts：opc_setup 种子化写入（须与 v100 DDL CHECK 约束同步）
 const ALLOWED_CATEGORIES: &[&str] = &[
     "general",
     "development",
@@ -21,6 +22,8 @@ const ALLOWED_CATEGORIES: &[&str] = &[
     "design",
     "writing",
     "business",
+    "opc-company",
+    "opc-experts",
 ];
 
 /// 校验 category 是否在合法枚举值内。空字符串视为 "general"。

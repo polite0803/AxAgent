@@ -8,6 +8,7 @@ pub mod llm_providers;
 pub mod monitor_emitter;
 pub mod news_archive_sink;
 pub mod notification_adapters;
+pub mod opc_knowledge;
 pub mod plugins;
 pub mod services;
 pub mod state;

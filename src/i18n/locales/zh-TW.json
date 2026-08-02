@@ -172,6 +172,13 @@
       "invalidSchemaDesc": "Schema 缺少必要的 type 欄位",
       "remove": "移除",
       "title": "Agent 動態 UI"
+    },
+    "stockUiHost": {
+      "title": "Agent 分析",
+      "expand": "展開",
+      "collapse": "摺疊",
+      "clear": "清空",
+      "remove": "移除"
     }
   },
   "agentGenerator": {
@@ -3589,7 +3596,8 @@
       "toolRecommender": "工具推薦",
       "fineTune": "模型微調",
       "rlTraining": "強化學習訓練"
-    }
+    },
+    "opc": "一人公司"
   },
   "invest": {
     "tab": {
@@ -6345,8 +6353,7 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
-    "sectionDeveloper": "開發者工具",
-    "agentPanel": "代理面板"
+    "sectionDeveloper": "開發者工具"
   },
   "skill": {
     "abTest": {

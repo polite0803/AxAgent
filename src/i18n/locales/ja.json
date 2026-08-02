@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "スキーマに必要な type フィールドがありません",
       "remove": "削除",
       "title": "Agent 動的 UI"
+    },
+    "stockUiHost": {
+      "title": "Agent 分析",
+      "expand": "展開",
+      "collapse": "折りたたむ",
+      "clear": "クリア",
+      "remove": "削除"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "ツールレコメンダー",
       "fineTune": "ファインチューニング",
       "rlTraining": "強化学習トレーニング"
-    }
+    },
+    "opc": "一人会社"
   },
   "invest": {
     "tab": {
@@ -6691,8 +6699,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "開発者ツール",
-    "agentPanel": "エージェントパネル"
+    "sectionDeveloper": "開発者ツール"
   },
   "skill": {
     "abTest": {

@@ -172,6 +172,13 @@
       "invalidSchemaDesc": "Schema is missing the required type field",
       "remove": "Remove",
       "title": "Agent Dynamic UI"
+    },
+    "stockUiHost": {
+      "title": "Agent Analysis",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "clear": "Clear",
+      "remove": "Remove"
     }
   },
   "agentGenerator": {
@@ -3589,7 +3596,8 @@
       "toolRecommender": "Tool Recommender",
       "fineTune": "Fine-Tune",
       "rlTraining": "RL Training"
-    }
+    },
+    "opc": "One-Person Company"
   },
   "invest": {
     "tab": {
@@ -6345,8 +6353,7 @@
     "sectionInvestMonitor": "Monitor",
     "sectionInvestExecute": "Execute",
     "sectionInvestReview": "Review",
-    "sectionDeveloper": "Developer Tools",
-    "agentPanel": "Agent Panel"
+    "sectionDeveloper": "Developer Tools"
   },
   "skill": {
     "abTest": {

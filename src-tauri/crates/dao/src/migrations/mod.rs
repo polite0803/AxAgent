@@ -60,9 +60,12 @@ pub mod v205_market_mainline;
 pub mod v206_screenshot_diagnosis;
 pub mod v207_chat_run;
 pub mod v208_backfill_wiki_sync_queue_columns;
+pub mod v209_opc_tables;
+pub mod v210_opc_ext;
+pub mod v211_opc_industries;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 208;
+pub const CURRENT_VERSION: i32 = 211;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -214,6 +217,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 208,
         description: "v208_backfill_wiki_sync_queue_columns: 补全 wiki_sync_queue 表缺失的 created_at / processed_at 列（修复存量库 v100 PHASE 3.9 后加列未生效问题）",
         up: |db| Box::pin(v208_backfill_wiki_sync_queue_columns::up(db)),
+    },
+    Migration {
+        version: 209,
+        description: "v209_opc_tables: OPC 业务领域表（opc_invoices / opc_customers / opc_projects + 索引），来自 AxOPC v200 改号",
+        up: |db| Box::pin(v209_opc_tables::up(db)),
+    },
+    Migration {
+        version: 210,
+        description: "v210_opc_ext: OPC 扩展表（opc_landing_pages / opc_contact_submissions / opc_blog_posts / opc_kpi_records / opc_revenue_records），来自 AxOPC v201 改号",
+        up: |db| Box::pin(v210_opc_ext::up(db)),
+    },
+    Migration {
+        version: 211,
+        description: "v211_opc_industries: OPC 行业注册表（opc_industries）——Industry Pack 扫描/启用/禁用/版本追踪",
+        up: |db| Box::pin(v211_opc_industries::up(db)),
     },
 ];
 

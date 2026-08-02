@@ -4,21 +4,10 @@
 #![allow(clippy::collapsible_match)]
 #![allow(clippy::needless_borrow)]
 
-// ── Windows: 为 lib 单元测试 harness 链接 Common Controls v6 manifest ──
-//
-// 背景：cargo test --lib 生成的测试 EXE（rustc --test src\lib.rs）不继承
-// tauri_build 为主 bin 嵌入的 manifest 资源，也不被 build.rs 中的
-// `cargo:rustc-link-arg-tests` 覆盖（cargo 仅对 [[test]] 集成测试目标生效）。
-// 没有manifest → Windows 加载 comctl32.dll v5 → 缺少 v6 入口点 →
-// STATUS_ENTRYPOINT_NOT_FOUND (0xC0000139) 启动崩溃。
-//
-// 通过 `#[cfg(test)] #[link(name = "test-manifest")]` 在 lib 单元测试 harness
-// 编译时显式声明链接 test-manifest.lib（由 build.rs 中的
-// `embed_resource::compile_for_tests("test-manifest.rc", ...)` 生成）。
-// 主 bin 不声明此 link，因此不会与 tauri_build 的 resource.lib 产生 duplicate resource 冲突。
-#[cfg(all(test, target_os = "windows"))]
-#[link(name = "test-manifest")]
-unsafe extern "C" {}
+// ── Windows: lib 单元测试 manifest 处理（跟随上游 build.rs 方案） ──
+// 上游 build.rs 用 `cargo:rustc-link-arg=/MANIFESTINPUT` 对所有 target
+// （含 lib unit test harness）统一嵌入 Common Controls v6 manifest，
+// lib.rs 无需再声明 #[link(test-manifest)]（本地旧方案已删除）。
 
 mod android_utils;
 mod commands;
@@ -290,6 +279,31 @@ pub fn run() {
                 axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await
             }) {
                 tracing::error!("Session reset failed: {:?}", e);
+            }
+
+            // Seed OPC knowledge sources (Wiki + Memory) on first launch
+            {
+                let _ = tauri::async_runtime::block_on(async {
+                    init::opc_knowledge::seed_opc_knowledge(&sea_db).await;
+                });
+            }
+
+            // Seed OPC professional workflow templates（行业数据资产包驱动）
+            {
+                let _ = tauri::async_runtime::block_on(async {
+                    if let Err(e) = crate::commands::opc_workflows::ensure_opc_workflows_seeded(&sea_db, Some(&app_dir)).await {
+                        tracing::error!("[opc-workflows] Seed failed: {e}");
+                    }
+                });
+            }
+
+            // Seed OPC company architecture (CEO/CTO/CFO + expert profiles)
+            {
+                let _ = tauri::async_runtime::block_on(async {
+                    if let Err(e) = crate::commands::opc_setup::ensure_opc_company_seeded(&sea_db).await {
+                        tracing::error!("[opc-company] Seed failed: {e}");
+                    }
+                });
             }
 
             // Initialize pricing configuration from pricing.toml

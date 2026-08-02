@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "Dem Schema fehlt das erforderliche Typfeld",
       "remove": "Entfernen",
       "title": "Dynamische Agent-Oberfläche"
+    },
+    "stockUiHost": {
+      "title": "Agent-Analyse",
+      "expand": "Erweitern",
+      "collapse": "Einklappen",
+      "clear": "Leeren",
+      "remove": "Entfernen"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "Werkzeug-Empfehlung",
       "fineTune": "Feinabstimmung",
       "rlTraining": "RL-Training"
-    }
+    },
+    "opc": "Ein-Personen-Unternehmen"
   },
   "invest": {
     "tab": {
@@ -6691,8 +6699,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "Entwicklerwerkzeuge",
-    "agentPanel": "Agent-Panel"
+    "sectionDeveloper": "Entwicklerwerkzeuge"
   },
   "skill": {
     "abTest": {

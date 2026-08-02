@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { AgentStockUIHost } from "@/components/stock-analysis/AgentStockUIHost";
 import { UserModeToggle } from "@/components/stock-workspace/_shared/UserModeToggle";
 import { ContextSidebar } from "@/components/stock-workspace/ContextSidebar";
 import { DecisionHeroBar } from "@/components/stock-workspace/DecisionHeroBar";
@@ -212,6 +213,8 @@ export function StockWorkspaceShell() {
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           {renderView()}
         </div>
+        {/* [AxInvest] Agent 动态 UI 容器（移动端） */}
+        <AgentStockUIHost />
 
         {/* 底部 Tab Bar */}
         <MobileTabBar />
@@ -265,6 +268,8 @@ export function StockWorkspaceShell() {
           <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {renderView()}
           </div>
+          {/* [AxInvest] Agent 动态 UI 容器：跨视图常驻，只显示 targetId=stock-workspace 的渲染 */}
+          <AgentStockUIHost />
         </div>
 
         {/* 右栏：上下文侧栏 */}

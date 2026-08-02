@@ -1,0 +1,8 @@
+# Industry Pack: 行业咨询（industry_consulting）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: industry_consulting
+name: 行业咨询流程
+icon: "💼"
+description: 行业调研 → 方案设计 → 交付报告。CEO 视角，战略级分析。
+version: 1
+enabled: true

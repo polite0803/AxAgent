@@ -172,6 +172,13 @@
       "invalidSchemaDesc": "Schema 缺少必要的 type 字段",
       "remove": "移除",
       "title": "Agent 动态界面"
+    },
+    "stockUiHost": {
+      "title": "Agent 分析",
+      "expand": "展开",
+      "collapse": "折叠",
+      "clear": "清空",
+      "remove": "移除"
     }
   },
   "agentGenerator": {
@@ -3328,7 +3335,8 @@
       "toolRecommender": "工具推荐",
       "fineTune": "模型微调",
       "rlTraining": "强化学习训练"
-    }
+    },
+    "opc": "一人公司"
   },
   "invest": {
     "tab": {
@@ -3453,25 +3461,34 @@
     "portfolioSourceEventPlaceholder": "如：来自截图诊断 2026-01-01"
   },
   "multiAgent": {
+    "title": "多智能体协作",
     "subtitle": "将复杂任务分派给专业角色协作完成",
     "rolesTitle": "固定角色",
+    "refreshRoles": "刷新角色",
     "noRoles": "暂无可用角色",
     "selectRole": "选择角色",
+    "taskDescription": "任务描述",
     "taskPlaceholder": "描述您需要完成的任务...",
     "taskLabel": "任务",
     "contextJsonOptional": "上下文 JSON（可选）",
     "contextJsonPlaceholder": "输入上下文 JSON...",
     "contextJsonInvalid": "JSON 格式无效",
     "provider": "供应商",
+    "model": "模型",
+    "temperature": "温度",
     "maxTokens": "最大 Token",
     "delegateTitle": "委派任务",
     "delegateBtn": "委派",
     "delegateSuccess": "委派成功",
     "delegateFailed": "委派失败",
     "fillRequired": "请填写任务描述",
+    "success": "成功",
+    "failed": "失败",
+    "tokens": "Token",
     "historyTitle": "委派历史",
     "clearHistory": "清空历史",
     "noHistory": "暂无委派记录",
+    "maxConcurrent": "最大并发",
     "timeoutSec": "超时",
     "responseLabel": "响应",
     "temperatureStrict": "严格",
@@ -6075,8 +6092,7 @@
     "sectionInvestWorkspace": "投资工作区",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "开发者工具",
-    "agentPanel": "Agent 面板"
+    "sectionDeveloper": "开发者工具"
   },
   "skill": {
     "abTest": {
@@ -12865,41 +12881,5 @@
   },
   "paperOverview": {
     "title": "论文概览"
-  },
-  "multiAgent": {
-    "title": "多智能体协作",
-    "subtitle": "将复杂任务分派给专业角色协作完成",
-    "rolesTitle": "固定角色",
-    "refreshRoles": "刷新角色",
-    "noRoles": "暂无可用角色",
-    "selectRole": "选择角色",
-    "taskDescription": "任务描述",
-    "taskPlaceholder": "描述您需要完成的任务...",
-    "taskLabel": "任务",
-    "contextJsonOptional": "上下文 JSON（可选）",
-    "contextJsonPlaceholder": "输入上下文 JSON...",
-    "contextJsonInvalid": "JSON 格式无效",
-    "provider": "供应商",
-    "model": "模型",
-    "temperature": "温度",
-    "maxTokens": "最大 Token",
-    "delegateTitle": "委派任务",
-    "delegateBtn": "委派",
-    "delegateSuccess": "委派成功",
-    "delegateFailed": "委派失败",
-    "fillRequired": "请填写任务描述",
-    "success": "成功",
-    "failed": "失败",
-    "tokens": "Token",
-    "historyTitle": "委派历史",
-    "clearHistory": "清空历史",
-    "noHistory": "暂无委派记录",
-    "maxConcurrent": "最大并发",
-    "timeoutSec": "超时",
-    "responseLabel": "响应",
-    "temperatureStrict": "严格",
-    "temperatureDefault": "默认",
-    "temperatureDivergent": "发散",
-    "maxTokensDefault": "默认"
   }
 }

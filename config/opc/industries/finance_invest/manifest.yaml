@@ -1,0 +1,8 @@
+# Industry Pack: 金融投资（finance_invest）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: finance_invest
+name: 金融投资分析
+icon: "📈"
+description: 财务分析 → 投资建议。CFO 视角，基于实际经营数据生成可执行的财务建议。
+version: 1
+enabled: true

@@ -1,0 +1,8 @@
+# Industry Pack: AI 科技与研究（ai_research）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: ai_research
+name: AI 科技研究报告
+icon: "🤖"
+description: AI 技术与应用研究报告：需求分析 → 技术调研 → 原型验证 → 报告输出。CTO 视角，含防幻觉。
+version: 1
+enabled: true

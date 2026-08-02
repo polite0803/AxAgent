@@ -1,8 +1,8 @@
 {
   "version": "2",
   "generated": "2026-08-01",
-  "total_entries": 507,
-  "total_files": 507,
+  "total_entries": 514,
+  "total_files": 514,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -2472,7 +2472,7 @@
     },
     {
       "file": "src/pages/WorkflowMarketplace.tsx",
-      "lines": "16,17,21,29,37,46,162,263,265,274",
+      "lines": "16,17,21,29,37,46,162,263,265,274,151,152,153",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -3044,6 +3044,48 @@
       "file": "src/types/workflow.ts",
       "lines": "2,4,7,19,28,42,49,57,71,74,84,97,106,115,125,133,136,143,166,173,183,186,193,200,209",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/InvestPage.tsx",
+      "lines": "13,14,15,16",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/StockAnalysisPage.tsx",
+      "lines": "10,11,12,13,14",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/StockWorkspacePage.tsx",
+      "lines": "12,13,14,15,16,17",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/QuantLabPage.tsx",
+      "lines": "12,13,14,15",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/TradePage.tsx",
+      "lines": "10,11,12,13",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/MarketMainlinePage.tsx",
+      "lines": "12,13,14,15,16",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/CrossMarketPage.tsx",
+      "lines": "12,13,14,15",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
       "phase": 3
     }
   ]

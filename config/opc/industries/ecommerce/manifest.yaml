@@ -1,0 +1,8 @@
+# Industry Pack: 品牌电商（ecommerce）
+# 行业 = 数据资产包，非代码。manifest 版本号驱动 seed/升级。
+id: ecommerce
+name: 电商运营流程
+icon: "🛍️"
+description: 选品分析 → 上架落地页 → 客户管理。CPO + COO 交叉协作。
+version: 1
+enabled: true

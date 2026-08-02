@@ -1,0 +1,20 @@
+# 工作流：行业咨询流程
+id: workflow-industry-consulting
+name: 行业咨询流程
+description: 行业调研 → 方案设计 → 交付报告。CEO 视角，战略级分析。
+icon: "💼"
+tags: [consulting, strategy]
+profile_id: opc-ceo-ceo-business-strategist
+steps:
+  - id: a-research
+    title: 行业调研
+    prompt: 调研行业现状、趋势和竞争格局。输出 JSON {industry_overview, trends, opportunities}
+    inputs: {}
+  - id: a-analysis
+    title: 方案设计
+    prompt: 基于调研结果设计解决方案。输出 JSON {solution, roadmap, resources}
+    inputs: {}
+  - id: a-deliver
+    title: 交付报告
+    prompt: 生成咨询报告：发现、建议、行动计划。输出 Markdown 报告。
+    inputs: {}

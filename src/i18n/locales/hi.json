@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "स्कीमा में आवश्यक प्रकार फ़ील्ड का अभाव है",
       "remove": "हटाएं",
       "title": "एजेंट डायनामिक UI"
+    },
+    "stockUiHost": {
+      "title": "एजेंट विश्लेषण",
+      "expand": "विस्तार करें",
+      "collapse": "संक्षिप्त करें",
+      "clear": "साफ़ करें",
+      "remove": "हटाएं"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "टूल अनुशंसक",
       "fineTune": "फ़ाइन-ट्यून",
       "rlTraining": "आरएल प्रशिक्षण"
-    }
+    },
+    "opc": "वन-पर्सन कंपनी"
   },
   "invest": {
     "tab": {
@@ -6689,8 +6697,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "डेवलपर टूल",
-    "agentPanel": "एजेंट पैनल"
+    "sectionDeveloper": "डेवलपर टूल"
   },
   "skill": {
     "abTest": {

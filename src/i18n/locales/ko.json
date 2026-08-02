@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "스키마에 필요한 type 필드가 없습니다",
       "remove": "제거",
       "title": "에이전트 동적 UI"
+    },
+    "stockUiHost": {
+      "title": "Agent 분석",
+      "expand": "펼치기",
+      "collapse": "접기",
+      "clear": "지우기",
+      "remove": "제거"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "도구 추천",
       "fineTune": "파인튜닝",
       "rlTraining": "강화 학습 훈련"
-    }
+    },
+    "opc": "원맨 컴퍼니"
   },
   "invest": {
     "tab": {
@@ -6691,8 +6699,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "개발자 도구",
-    "agentPanel": "에이전트 패널"
+    "sectionDeveloper": "개발자 도구"
   },
   "skill": {
     "abTest": {

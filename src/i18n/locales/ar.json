@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "المخطط يفتقر إلى حقل النوع المطلوب",
       "remove": "إزالة",
       "title": "الواجهة الديناميكية للوكيل"
+    },
+    "stockUiHost": {
+      "title": "تحليل الوكيل",
+      "expand": "توسيع",
+      "collapse": "طي",
+      "clear": "مسح",
+      "remove": "إزالة"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "موصي الأدوات",
       "fineTune": "الضبط الدقيق",
       "rlTraining": "تدريب التعلم المعزز"
-    }
+    },
+    "opc": "شركة شخص واحد"
   },
   "invest": {
     "tab": {
@@ -6691,8 +6699,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "أدوات المطوّر",
-    "agentPanel": "لوحة الوكيل"
+    "sectionDeveloper": "أدوات المطوّر"
   },
   "skill": {
     "abTest": {

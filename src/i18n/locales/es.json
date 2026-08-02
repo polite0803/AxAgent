@@ -332,6 +332,13 @@
       "invalidSchemaDesc": "El esquema carece del campo de tipo requerido",
       "remove": "Eliminar",
       "title": "Interfaz dinámica del Agente"
+    },
+    "stockUiHost": {
+      "title": "Análisis del agente",
+      "expand": "Expandir",
+      "collapse": "Contraer",
+      "clear": "Limpiar",
+      "remove": "Quitar"
     }
   },
   "agentGenerator": {
@@ -3935,7 +3942,8 @@
       "toolRecommender": "Recomendador de herramientas",
       "fineTune": "Ajuste fino",
       "rlTraining": "Entrenamiento RL"
-    }
+    },
+    "opc": "Empresa Unipersonal"
   },
   "invest": {
     "tab": {
@@ -6691,8 +6699,7 @@
     "sectionInvest": "投资",
     "sectionPlugins": "插件",
     "sectionWork": "工作",
-    "sectionDeveloper": "Herramientas de desarrollador",
-    "agentPanel": "Panel de Agente"
+    "sectionDeveloper": "Herramientas de desarrollador"
   },
   "skill": {
     "abTest": {

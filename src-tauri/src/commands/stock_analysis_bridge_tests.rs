@@ -17,7 +17,9 @@
 //! 走临时 current_thread runtime 分支。普通 #[test] 无 runtime 上下文，
 //! 恰好复现该路径，无嵌套问题。
 
-use crate::commands::stock_analysis_bridge::{build_stock_chat_tools, build_stock_command_handlers};
+use crate::commands::stock_analysis_bridge::{
+    build_stock_chat_tools, build_stock_command_handlers,
+};
 use sea_orm::ConnectionTrait;
 
 /// 构造测试环境：真实 AStockClient + 临时文件 SQLite（同步入口，内部一次性 runtime）
@@ -32,10 +34,8 @@ fn test_env() -> (
     let client = std::sync::Arc::new(axagent_astock_data::AStockClient::new());
     let rt = tokio::runtime::Runtime::new().expect("创建测试 runtime 失败");
     let (db, _tmp_path) = rt.block_on(async {
-        let path = std::env::temp_dir().join(format!(
-            "axinvest_bridge_test_{}.db",
-            uuid::Uuid::new_v4()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("axinvest_bridge_test_{}.db", uuid::Uuid::new_v4()));
         // 与 dao::create_pool 相同的 URL 约定：sqlite:{path}?mode=rwc
         // （Windows 路径用正斜杠，避免 URL 解析问题）
         let url = format!("sqlite:{}?mode=rwc", path.to_string_lossy().replace('\\', "/"));
@@ -70,11 +70,8 @@ fn test_tool_defs_unique_and_registered() {
     assert_eq!(chat_tools.len(), defs.len(), "chat_tools 数量与工具定义一致");
 
     // 写命令全部声明 is_read_only=false，且均在 STOCK_WRITE_TOOLS 名单中
-    let mut write_tools: Vec<&str> = defs
-        .iter()
-        .filter(|d| !d.is_read_only)
-        .map(|d| d.name)
-        .collect();
+    let mut write_tools: Vec<&str> =
+        defs.iter().filter(|d| !d.is_read_only).map(|d| d.name).collect();
     write_tools.sort_unstable();
     let mut expected: Vec<&str> =
         crate::commands::stock_analysis_bridge::STOCK_WRITE_TOOLS.to_vec();
@@ -82,10 +79,8 @@ fn test_tool_defs_unique_and_registered() {
     assert_eq!(write_tools, expected, "is_read_only=false 的工具必须全部在 STOCK_WRITE_TOOLS");
 
     // P5: stock_render_ui 必须存在且为只读，schema 含推荐形态说明
-    let render = defs
-        .iter()
-        .find(|d| d.name == "stock_render_ui")
-        .expect("stock_render_ui 工具必须存在");
+    let render =
+        defs.iter().find(|d| d.name == "stock_render_ui").expect("stock_render_ui 工具必须存在");
     assert!(render.is_read_only, "stock_render_ui 应为只读工具（仅 emit 渲染事件）");
     assert!(render.description.contains("UISchema"), "描述应包含 UISchema 指引");
     assert!(render.input_schema["properties"]["schema"].is_object(), "schema 参数应为对象");
@@ -120,10 +115,7 @@ fn test_stock_get_quote_read_command() {
             let v: serde_json::Value =
                 serde_json::from_str(&json_str).expect("返回必须是合法 JSON");
             assert_eq!(v["code"], "600519", "返回的股票代码应匹配输入");
-            println!(
-                "stock_get_quote 返回: {}",
-                json_str.chars().take(200).collect::<String>()
-            );
+            println!("stock_get_quote 返回: {}", json_str.chars().take(200).collect::<String>());
         },
         Err(e) => {
             // 行情源可能因网络/非交易时段失败，此处不硬性断言成功，

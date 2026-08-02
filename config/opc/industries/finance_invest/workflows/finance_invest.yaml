@@ -1,0 +1,16 @@
+# 工作流：金融投资分析
+id: workflow-finance-invest
+name: 金融投资分析
+description: 财务分析 → 投资建议。CFO 视角，基于实际经营数据生成可执行的财务建议。
+icon: "📈"
+tags: [finance, investment]
+profile_id: opc-cfo-cfo-financial-analyst
+steps:
+  - id: a-report
+    title: 财务分析
+    prompt: 使用 OpcGetFinancialReport 和 OpcGetDashboard 生成财务状况分析。输出 JSON {revenue, profit, cashflow, risks}
+    inputs: {}
+  - id: a-advice
+    title: 投资建议
+    prompt: 基于财务分析生成投资建议：推荐金额、风险等级、建议说明。输出 JSON {recommended_amount, risk_level, advice}
+    inputs: {}

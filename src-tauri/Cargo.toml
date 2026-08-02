@@ -18,6 +18,9 @@ members = [
   "crates/migration",
   "crates/notification",
   "crates/npm",
+  "crates/opc-dao",
+  "crates/opc-entities",
+  "crates/opc-types",
   "crates/orchestrator",
   "crates/plugins",
   "crates/prompt-guard",
@@ -96,6 +99,9 @@ computer-use = ["axagent-kit/computer-use", "axagent-providers/computer-use"]
 ignored = [
   "axagent-astock-data",
   "axagent-notification",
+  "axagent-opc-dao",
+  "axagent-opc-entities",
+  "axagent-opc-types",
   "axagent-prompt-guard",
   "axagent-quant",
   "axagent-rt-dashboard",
@@ -137,6 +143,9 @@ axagent-mcp = { path = "crates/mcp" }
 axagent-migration = { path = "crates/migration" }
 axagent-notification = { path = "crates/notification" }
 axagent-npm = { path = "crates/npm" }
+axagent-opc-dao = { path = "crates/opc-dao" }
+axagent-opc-entities = { path = "crates/opc-entities" }
+axagent-opc-types = { path = "crates/opc-types" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }
 axagent-prompt-guard = { path = "crates/prompt-guard" }
@@ -235,6 +244,9 @@ split-debuginfo = "unpacked"
 anyhow = { workspace = true }
 axagent-agent = { path = "crates/agent", features = ["testing"] }
 criterion = { version = "0.8", features = ["html_reports"] }
+# 启用 tauri::test mock（mock_app/mock_context），供 stock_analysis_bridge_tests 使用。
+# feature 与主依赖合并：仅测试构建时额外编译 test 模块，生产构建无影响。
+tauri = { version = "2.11.5", features = ["test"] }
 
 [[bench]]
 name = "tool_exec_bench"
