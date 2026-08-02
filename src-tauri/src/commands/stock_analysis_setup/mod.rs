@@ -17,6 +17,10 @@ pub mod seed_serenity;
 pub mod seed_stock_analysis;
 pub mod seed_variables;
 
+// 仅测试构建：seed 工具声明 ↔ 运行时解析空间 一致性校验
+#[cfg(test)]
+mod seed_consistency_tests;
+
 // 股票分析专家/角色/Profile 自动种子化到 agency_experts/agent_roles/agent_profiles 表。
 // 使用 include_str! 编译期嵌入 .md 内容，打包后无需文件 I/O。
 

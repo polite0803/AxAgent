@@ -228,16 +228,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ),
         parameters: stock_code_params(),
     };
-    // Phase 3: 市场 Regime 识别(借鉴 TradingAgents-CN 自适应 prompt)
-    let td_regime = ToolDef {
-        name: "get_market_regime".into(),
-        description: Some(
-            "市场 Regime 识别:综合 20/60 日均线/布林带/波动率/连涨连跌, \
-             判定 Bull/Bear/Sideways/Volatile 并返回 prompt_bias"
-                .into(),
-        ),
-        parameters: stock_code_params(),
-    };
     let mut news_props = std::collections::HashMap::new();
     news_props.insert("stock_code".into(), sc_prop("6位股票代码"));
     news_props.insert("limit".into(), int_prop("新闻数量", Some(30)));
@@ -598,8 +588,6 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         ("get_stock_financials", td_fin.clone()),
         // Phase 2: 基本面报告(markdown)由 t-fundamentals-data 节点调用
         ("get_fundamentals_report_markdown", td_fundamentals_report.clone()),
-        // Phase 3: Regime 识别,由 t-regime-detect 节点调用
-        ("get_market_regime", td_regime.clone()),
         ("get_stock_news", td_news.clone()),
         ("get_stock_money_flow", td_mf.clone()),
         ("get_social_sentiment", td_social_sentiment.clone()),
