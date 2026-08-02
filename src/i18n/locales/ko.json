@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "오피스를 찾을 수 없습니다",
+    "FLEET_NAME_REQUIRED": "오피스 이름은 필수입니다",
+    "FLEET_NO_MEMBERS": "이 오피스에는 아직 구성원이 없습니다",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "모든 구성원을 사용할 수 없습니다 (일시정지/오류/오프라인)",
+    "FLEET_MEMBER_NOT_FOUND": "구성원을 찾을 수 없습니다",
+    "FLEET_NO_PROVIDER": "사용 가능한 모델 공급자가 없습니다. 설정에서 구성하세요",
+    "FLEET_ROUTING_FAILED": "스마트 라우팅 호출에 실패했습니다",
+    "FLEET_EXECUTION_FAILED": "구성원이 작업 실행에 실패했습니다",
+    "FLEET_TARGET_NOT_IN_FLEET": "대상 구성원이 이 오피스에 존재하지 않습니다"
   },
   "errorBoundary": {
     "copied": "복사됨",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "표준 오피스",
       "default_office_desc": "4개 방: 워크스페이스 / 회의실 / 라운지 / 매니저. 5-8명용.",
-      "workspace": "워크스페이스",
-      "meeting": "회의실",
-      "lounge": "라운지",
-      "manager": "매니저실"
+      "startup_loft": "스타트업 LOFT",
+      "startup_loft_desc": "개방형 LOFT 스타일, 빠른 스타트업 협업에 적합"
     },
     "chat": {
       "emptyHint": "아래에 메시지를 입력하면 Dispatcher가 적절한 agent로 라우팅합니다.",
@@ -3061,6 +3068,40 @@
       "colStatus": "상태",
       "colToday": "오늘 Token",
       "colTotal": "누적 Token"
+    },
+    "addMember": {
+      "button": "구성원 추가",
+      "title": "구성원 추가",
+      "nameLabel": "표시 이름",
+      "namePlaceholder": "예: 카피라이터",
+      "slugLabel": "에이전트 슬러그",
+      "slugPlaceholder": "라우팅에 사용되는 고유 ID (예: copywriter)",
+      "roleLabel": "역할",
+      "rolePlaceholder": "책임 설명. 라우팅/실행 프롬프트에 주입됨",
+      "roomLabel": "방",
+      "success": "구성원이 추가되었습니다",
+      "slugRequired": "에이전트 슬러그는 필수입니다"
+    },
+    "room": {
+      "workspace": "작업 공간",
+      "meeting": "회의실",
+      "lounge": "라운지",
+      "manager": "관리자 사무실",
+      "studio": "스튜디오",
+      "warroom": "워룸",
+      "corner": "코너 오피스"
+    },
+    "deleteFleet": {
+      "button": "오피스 삭제",
+      "title": "오피스 삭제",
+      "confirm": "오피스 \"{{name}}\"을(를) 삭제할까요? 모든 구성원도 삭제됩니다.",
+      "success": "오피스가 삭제되었습니다"
+    },
+    "removeMember": {
+      "button": "구성원 제거",
+      "title": "구성원 제거",
+      "confirm": "구성원 \"{{name}}\"을(를) 제거할까요?",
+      "success": "구성원이 제거되었습니다"
     }
   },
   "pasteButton": {

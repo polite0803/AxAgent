@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "Офис не найден",
+    "FLEET_NAME_REQUIRED": "Требуется название офиса",
+    "FLEET_NO_MEMBERS": "В этом офисе пока нет участников",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Все участники недоступны (пауза/ошибка/офлайн)",
+    "FLEET_MEMBER_NOT_FOUND": "Участник не найден",
+    "FLEET_NO_PROVIDER": "Нет доступного поставщика моделей. Сначала настройте его в параметрах",
+    "FLEET_ROUTING_FAILED": "Не удалось выполнить вызов умной маршрутизации",
+    "FLEET_EXECUTION_FAILED": "Участнику не удалось выполнить задачу",
+    "FLEET_TARGET_NOT_IN_FLEET": "Целевой участник не существует в этом офисе"
   },
   "errorBoundary": {
     "copied": "Скопировано",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "Стандартный офис",
       "default_office_desc": "4 комнаты: рабочая зона / переговорная / отдых / менеджер. Для 5-8 участников.",
-      "workspace": "Рабочая зона",
-      "meeting": "Переговорная",
-      "lounge": "Зона отдыха",
-      "manager": "Кабинет менеджера"
+      "startup_loft": "Лофт стартапа",
+      "startup_loft_desc": "Открытый лофт, идеален для быстрой командной работы"
     },
     "chat": {
       "emptyHint": "Введите сообщение ниже — диспетчер направит его нужному агенту.",
@@ -3061,6 +3068,40 @@
       "colStatus": "Статус",
       "colToday": "Сегодня токенов",
       "colTotal": "Всего токенов"
+    },
+    "addMember": {
+      "button": "Добавить участника",
+      "title": "Добавить участника",
+      "nameLabel": "Отображаемое имя",
+      "namePlaceholder": "напр. Копирайтер",
+      "slugLabel": "Слаг агента",
+      "slugPlaceholder": "Уникальный ID для маршрутизации (напр. copywriter)",
+      "roleLabel": "Роль",
+      "rolePlaceholder": "Опишите обязанности, вставляется в промпты",
+      "roomLabel": "Комната",
+      "success": "Участник добавлен",
+      "slugRequired": "Слаг агента обязателен"
+    },
+    "room": {
+      "workspace": "Рабочая зона",
+      "meeting": "Переговорная",
+      "lounge": "Лаунж",
+      "manager": "Кабинет менеджера",
+      "studio": "Студия",
+      "warroom": "Оперативная комната",
+      "corner": "Угловой кабинет"
+    },
+    "deleteFleet": {
+      "button": "Удалить офис",
+      "title": "Удалить офис",
+      "confirm": "Удалить офис «{{name}}»? Все участники также будут удалены.",
+      "success": "Офис удалён"
+    },
+    "removeMember": {
+      "button": "Удалить участника",
+      "title": "Удалить участника",
+      "confirm": "Удалить участника «{{name}}»?",
+      "success": "Участник удалён"
     }
   },
   "pasteButton": {

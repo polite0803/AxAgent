@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "لم يتم العثور على المكتب",
+    "FLEET_NAME_REQUIRED": "اسم المكتب مطلوب",
+    "FLEET_NO_MEMBERS": "لا يوجد أعضاء في هذا المكتب بعد",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "جميع الأعضاء غير متاحين (إيقاف مؤقت/خطأ/غير متصل)",
+    "FLEET_MEMBER_NOT_FOUND": "لم يتم العثور على العضو",
+    "FLEET_NO_PROVIDER": "لا يوجد مزود نماذج متاح. قم بتكوينه في الإعدادات أولاً",
+    "FLEET_ROUTING_FAILED": "فشل استدعاء التوجيه الذكي",
+    "FLEET_EXECUTION_FAILED": "فشل العضو في تنفيذ المهمة",
+    "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب"
   },
   "errorBoundary": {
     "copied": "تم النسخ",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "مكتب قياسي",
       "default_office_desc": "4 غرف: مساحة عمل / اجتماع / استراحة / مدير. مناسب لـ 5-8 أعضاء.",
-      "workspace": "مساحة العمل",
-      "meeting": "غرفة الاجتماع",
-      "lounge": "استراحة",
-      "manager": "غرفة المدير"
+      "startup_loft": "لوفت الشركات الناشئة",
+      "startup_loft_desc": "أسلوب لوفت مفتوح، مثالي للتعاون السريع بين الشركات الناشئة"
     },
     "chat": {
       "emptyHint": "اكتب رسالة أدناه — سيقوم الموزع بتوجيهها إلى الوكيل المناسب.",
@@ -3061,6 +3068,40 @@
       "colStatus": "الحالة",
       "colToday": "رموز اليوم",
       "colTotal": "إجمالي الرموز"
+    },
+    "addMember": {
+      "button": "إضافة عضو",
+      "title": "إضافة عضو",
+      "nameLabel": "الاسم المعروض",
+      "namePlaceholder": "مثال: مساعد كتابة",
+      "slugLabel": "معرف الوكيل",
+      "slugPlaceholder": "معرف فريد للتوجيه (مثال: copywriter)",
+      "roleLabel": "الدور",
+      "rolePlaceholder": "صف المسؤوليات، يُحقن في التوجيهات",
+      "roomLabel": "الغرفة",
+      "success": "تمت إضافة العضو",
+      "slugRequired": "معرف الوكيل مطلوب"
+    },
+    "room": {
+      "workspace": "مساحة العمل",
+      "meeting": "غرفة الاجتماعات",
+      "lounge": "الصالة",
+      "manager": "مكتب المدير",
+      "studio": "الاستوديو",
+      "warroom": "غرفة الحرب",
+      "corner": "مكتب الزاوية"
+    },
+    "deleteFleet": {
+      "button": "حذف المكتب",
+      "title": "حذف المكتب",
+      "confirm": "حذف المكتب «{{name}}»؟ سيتم حذف جميع أعضائه أيضاً.",
+      "success": "تم حذف المكتب"
+    },
+    "removeMember": {
+      "button": "إزالة العضو",
+      "title": "إزالة العضو",
+      "confirm": "إزالة العضو «{{name}}»؟",
+      "success": "تمت إزالة العضو"
     }
   },
   "pasteButton": {

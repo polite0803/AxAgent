@@ -22,7 +22,7 @@
 
 import type { FleetMember, FleetMemberStatus } from "@/types";
 import Phaser from "phaser";
-import { drawDecorationItem, drawFurnitureItem } from "./furniture";
+import { drawDecorationItem, drawFurnitureItem, drawPlantContainer } from "./furniture";
 import {
   distributeMembersInRoom,
   type OfficeSceneTemplate,
@@ -54,6 +54,8 @@ export interface OfficeSceneOptions {
   sceneTemplateSlug?: string;
   members: SceneMember[];
   onAgentClick?: (agentSlug: string, memberId: string) => void;
+  /** 房间 ID → 展示名（i18n），缺省回退 room.id */
+  roomLabels?: Record<string, string>;
 }
 
 export const OFFICE_SCENE_KEY = "OfficeScene";
@@ -62,14 +64,29 @@ export const OFFICE_SCENE_KEY = "OfficeScene";
 
 const TILE = 16;
 
+/** 相机拖拽阈值：位移超过该值视为拖拽，否则视为点击 */
+const DRAG_THRESHOLD = 5;
+/** 相机缩放范围 */
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 2.5;
+
 export class OfficeScene extends Phaser.Scene {
   private template!: OfficeSceneTemplate;
   private sprites = new Map<string, AgentSprite>();
   private rooms = new Map<string, RoomRect>();
   private onAgentClick?: (agentSlug: string, memberId: string) => void;
   private pendingMembers: SceneMember[] = [];
+  /** 房间 ID → 展示名（i18n） */
+  private roomLabels: Record<string, string> = {};
   /** 吊灯光晕引用（动画用） */
   private lampGlows: Phaser.GameObjects.Arc[] = [];
+  /** 植物容器引用（微摆动画用） */
+  private plants: Phaser.GameObjects.Container[] = [];
+  /** 成员上次同步的状态（diff 判断用） */
+  private lastStatus = new Map<string, FleetMemberStatus>();
+  // 相机拖拽状态
+  private camZoom = 1;
+  private dragStart: { x: number; y: number; sx: number; sy: number } | null = null;
 
   constructor() {
     super({ key: OFFICE_SCENE_KEY });
@@ -78,6 +95,7 @@ export class OfficeScene extends Phaser.Scene {
   setOptions(options: OfficeSceneOptions): void {
     this.template = resolveSceneTemplate(options.sceneTemplateSlug);
     this.onAgentClick = options.onAgentClick;
+    this.roomLabels = options.roomLabels ?? {};
     this.rooms.clear();
     for (const r of this.template.rooms) {
       this.rooms.set(r.id, r);
@@ -91,6 +109,7 @@ export class OfficeScene extends Phaser.Scene {
     this.drawFurniture();
     this.drawDecorations();
     this.drawRoomLabels();
+    this.setupCamera();
     for (const m of this.pendingMembers) {
       this.addMemberSprite(m);
     }
@@ -107,6 +126,68 @@ export class OfficeScene extends Phaser.Scene {
       const pulse = 0.06 + Math.sin(time / 800) * 0.03;
       glow.setAlpha(pulse);
     }
+    // 植物叶子微摆
+    for (const plant of this.plants) {
+      plant.rotation = Math.sin(time / 1200 + plant.x) * 0.04;
+    }
+  }
+
+  // ── 相机控制（缩放 / 拖拽 / 双击复位）──
+
+  private setupCamera(): void {
+    const cam = this.cameras.main;
+    const W = this.template.canvasWidth;
+    const H = this.template.canvasHeight;
+    cam.setBounds(0, 0, W, H);
+    this.camZoom = 1;
+
+    // 滚轮缩放（以指针位置为中心）
+    this.input.on(
+      "wheel",
+      (_pointer: Phaser.Input.Pointer, _objects: unknown, _dx: number, dy: number) => {
+        const target = Phaser.Math.Clamp(this.camZoom - dy * 0.001, ZOOM_MIN, ZOOM_MAX);
+        cam.zoomTo(target, 150);
+        this.camZoom = target;
+      },
+    );
+
+    // 拖拽平移（位移超过阈值才算拖拽，避免与成员点击冲突）
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.leftButtonDown()) { return; }
+      this.dragStart = { x: pointer.x, y: pointer.y, sx: cam.scrollX, sy: cam.scrollY };
+    });
+
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (!this.dragStart || !pointer.leftButtonDown()) { return; }
+      const dx = pointer.x - this.dragStart.x;
+      const dy = pointer.y - this.dragStart.y;
+      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+        cam.setScroll(this.dragStart.sx - dx / cam.zoom, this.dragStart.sy - dy / cam.zoom);
+      }
+    });
+
+    this.input.on("pointerup", () => {
+      this.dragStart = null;
+    });
+
+    // 双击复位到 1x 居中（手动检测，Phaser 无内置双击事件）
+    let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
+    this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      const now = this.time.now;
+      const nearLast = Math.hypot(pointer.x - lastTapX, pointer.y - lastTapY) < 10;
+      if (now - lastTapTime < 300 && nearLast) {
+        this.camZoom = 1;
+        cam.zoomTo(1, 200);
+        cam.centerOn(W / 2, H / 2);
+        lastTapTime = 0;
+        return;
+      }
+      lastTapTime = now;
+      lastTapX = pointer.x;
+      lastTapY = pointer.y;
+    });
   }
 
   // ── 同步接口 ──
@@ -120,6 +201,7 @@ export class OfficeScene extends Phaser.Scene {
     sprite.roomId = member.roomId;
     this.setupSpriteInteraction(sprite);
     this.sprites.set(member.memberId, sprite);
+    this.lastStatus.set(member.memberId, member.status);
     this.applyStatusAnimation(sprite, member.status);
   }
 
@@ -128,6 +210,7 @@ export class OfficeScene extends Phaser.Scene {
     if (!sprite) { return; }
     destroySprite(sprite);
     this.sprites.delete(memberId);
+    this.lastStatus.delete(memberId);
   }
 
   updateMemberStatus(memberId: string, status: FleetMemberStatus): void {
@@ -142,8 +225,9 @@ export class OfficeScene extends Phaser.Scene {
     const targetRoom = this.rooms.get(roomId);
     if (!sprite || !targetRoom) { return; }
     if (sprite.roomId === roomId) { return; }
-    sprite.roomId = roomId;
+    // 先按旧房间计数（避免把自己算进目标房间人数导致站位偏移）
     const sameRoomCount = this.countMembersInRoom(roomId);
+    sprite.roomId = roomId;
     const pos = this.findFreeSpot(targetRoom, sameRoomCount);
     if (pos.x < sprite.container.x) { setSpriteFacing(sprite, "left"); }
     else if (pos.x > sprite.container.x) { setSpriteFacing(sprite, "right"); }
@@ -157,6 +241,8 @@ export class OfficeScene extends Phaser.Scene {
       duration: 1500,
       ease: "Quad.easeInOut",
       onComplete: () => {
+        // 落点成为新的动画基准（呼吸/跳跃不再回跳）
+        sprite.baseY = pos.y;
         if (sprite.animation === "walking") { setSpriteAnimation(sprite, "idle"); }
       },
     });
@@ -176,11 +262,58 @@ export class OfficeScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Diff 增量同步成员（替代 clearAll + 全量重建）：
+   * - 新成员 → 添加精灵
+   * - 房间变化 → 行走动画迁移
+   * - 状态变化 → 更新状态点/光环/动画
+   * - 消失成员 → 销毁精灵
+   */
+  syncMembers(members: SceneMember[]): void {
+    const incoming = new Map<string, SceneMember>();
+    for (const m of members) {
+      incoming.set(m.memberId, m);
+    }
+
+    // 1. 删除已不在列表中的成员
+    for (const memberId of Array.from(this.sprites.keys())) {
+      if (!incoming.has(memberId)) {
+        this.removeMemberSprite(memberId);
+      }
+    }
+
+    // 2. 新增 / 更新
+    for (const m of members) {
+      const sprite = this.sprites.get(m.memberId);
+      if (!sprite) {
+        this.addMemberSprite(m);
+        continue;
+      }
+      // slug 变化 → 重建（外观由 slug 哈希决定）
+      if (sprite.agentSlug !== m.agentSlug) {
+        this.removeMemberSprite(m.memberId);
+        this.addMemberSprite(m);
+        continue;
+      }
+      // 房间变化 → 行走迁移
+      if (sprite.roomId !== m.roomId) {
+        this.moveMemberToRoom(m.memberId, m.roomId);
+      }
+      // 状态变化 → 更新动画
+      const prev = this.lastStatus.get(m.memberId);
+      if (prev !== m.status) {
+        this.lastStatus.set(m.memberId, m.status);
+        this.updateMemberStatus(m.memberId, m.status);
+      }
+    }
+  }
+
   clearAll(): void {
     for (const sprite of this.sprites.values()) {
       destroySprite(sprite);
     }
     this.sprites.clear();
+    this.lastStatus.clear();
   }
 
   // ── 绘制 ──
@@ -262,6 +395,12 @@ export class OfficeScene extends Phaser.Scene {
         return order(a.kind) - order(b.kind);
       });
       for (const item of sorted) {
+        // 植物用 Container 版绘制并收集引用（微摆动画）
+        if (item.kind === "plant") {
+          const c = drawPlantContainer(this, room.x + item.x, room.y + item.y);
+          this.plants.push(c);
+          continue;
+        }
         drawFurnitureItem(this, room, item);
       }
     }
@@ -295,8 +434,9 @@ export class OfficeScene extends Phaser.Scene {
       const labelY = y + 14;
       const labelBg = this.add.rectangle(labelX, labelY, labelW, labelH, 0xffffff, 0.95);
       labelBg.setStrokeStyle(1, this.darken(color, 0.2), 1);
-      // 文字
-      this.add.text(labelX, labelY, room.id, {
+      // 文字（优先 i18n 展示名，缺省回退 room.id）
+      const labelText = this.roomLabels[room.id] ?? room.id;
+      this.add.text(labelX, labelY, labelText, {
         fontFamily: "monospace",
         fontSize: "11px",
         color: `#${this.darken(color, 0.3).toString(16).padStart(6, "0")}`,
@@ -344,7 +484,17 @@ export class OfficeScene extends Phaser.Scene {
       new Phaser.Geom.Rectangle(-14, -48, 28, 48),
       Phaser.Geom.Rectangle.Contains,
     );
-    sprite.container.on("pointerup", () => {
+    // 记录按下位置，up 时位移过大的（相机拖拽中）不触发 DM
+    let downX = 0;
+    let downY = 0;
+    sprite.container.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      downX = pointer.x;
+      downY = pointer.y;
+    });
+    sprite.container.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      if (Math.hypot(pointer.x - downX, pointer.y - downY) > DRAG_THRESHOLD) {
+        return;
+      }
       this.onAgentClick?.(sprite.agentSlug, sprite.memberId);
     });
     sprite.container.on("pointerover", () => {

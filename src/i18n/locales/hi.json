@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "ऑफिस नहीं मिला",
+    "FLEET_NAME_REQUIRED": "ऑफिस का नाम आवश्यक है",
+    "FLEET_NO_MEMBERS": "इस ऑफिस में अभी कोई सदस्य नहीं है",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "सभी सदस्य अनुपलब्ध हैं (रोका/त्रुटि/ऑफ़लाइन)",
+    "FLEET_MEMBER_NOT_FOUND": "सदस्य नहीं मिला",
+    "FLEET_NO_PROVIDER": "कोई मॉडल प्रदाता उपलब्ध नहीं है। पहले सेटिंग्स में कॉन्फ़िगर करें",
+    "FLEET_ROUTING_FAILED": "स्मार्ट रूटिंग कॉल विफल रही",
+    "FLEET_EXECUTION_FAILED": "सदस्य कार्य निष्पादित करने में विफल रहा",
+    "FLEET_TARGET_NOT_IN_FLEET": "लक्ष्य सदस्य इस ऑफिस में मौजूद नहीं है"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "मानक कार्यालय",
       "default_office_desc": "4 कमरे: कार्यस्थल / बैठक / आराम / प्रबंधक। 5-8 सदस्यों के लिए।",
-      "workspace": "कार्यस्थल",
-      "meeting": "बैठक कक्ष",
-      "lounge": "आराम क्षेत्र",
-      "manager": "प्रबंधक कक्ष"
+      "startup_loft": "स्टार्टअप लॉफ्ट",
+      "startup_loft_desc": "खुला लॉफ्ट शैली, तेज़ स्टार्टअप सहयोग के लिए आदर्श"
     },
     "chat": {
       "emptyHint": "नीचे एक संदेश टाइप करें — डिस्पैचर इसे सही एजेंट को रूट करेगा।",
@@ -3061,6 +3068,40 @@
       "colStatus": "स्थिति",
       "colToday": "आज के टोकन",
       "colTotal": "कुल टोकन"
+    },
+    "addMember": {
+      "button": "सदस्य जोड़ें",
+      "title": "सदस्य जोड़ें",
+      "nameLabel": "प्रदर्शन नाम",
+      "namePlaceholder": "जैसे: कॉपीराइटर",
+      "slugLabel": "एजेंट स्लग",
+      "slugPlaceholder": "रूटिंग के लिए अद्वितीय ID (जैसे copywriter)",
+      "roleLabel": "भूमिका",
+      "rolePlaceholder": "जिम्मेदारियाँ बताएँ, प्रॉम्प्ट में इंजेक्ट होता है",
+      "roomLabel": "कमरा",
+      "success": "सदस्य जोड़ा गया",
+      "slugRequired": "एजेंट स्लग आवश्यक है"
+    },
+    "room": {
+      "workspace": "कार्यक्षेत्र",
+      "meeting": "बैठक कक्ष",
+      "lounge": "लाउंज",
+      "manager": "प्रबंधक कार्यालय",
+      "studio": "स्टूडियो",
+      "warroom": "वॉर रूम",
+      "corner": "कोने का कार्यालय"
+    },
+    "deleteFleet": {
+      "button": "ऑफिस हटाएँ",
+      "title": "ऑफिस हटाएँ",
+      "confirm": "ऑफिस \"{{name}}\" हटाएँ? इसके सभी सदस्य भी हटा दिए जाएँगे।",
+      "success": "ऑफिस हटा दिया गया"
+    },
+    "removeMember": {
+      "button": "सदस्य हटाएँ",
+      "title": "सदस्य हटाएँ",
+      "confirm": "सदस्य \"{{name}}\" हटाएँ?",
+      "success": "सदस्य हटा दिया गया"
     }
   },
   "pasteButton": {

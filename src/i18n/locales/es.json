@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "Oficina no encontrada",
+    "FLEET_NAME_REQUIRED": "El nombre de la oficina es obligatorio",
+    "FLEET_NO_MEMBERS": "Esta oficina aún no tiene miembros",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Todos los miembros no están disponibles (pausado/error/offline)",
+    "FLEET_MEMBER_NOT_FOUND": "Miembro no encontrado",
+    "FLEET_NO_PROVIDER": "No hay proveedor de modelos disponible. Configúralo primero en Ajustes",
+    "FLEET_ROUTING_FAILED": "Falló la llamada de enrutamiento inteligente",
+    "FLEET_EXECUTION_FAILED": "El miembro no pudo ejecutar la tarea",
+    "FLEET_TARGET_NOT_IN_FLEET": "El miembro objetivo no existe en esta oficina"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "Oficina estándar",
       "default_office_desc": "4 salas: área de trabajo / reunión / descanso / gerente. Para 5-8 miembros.",
-      "workspace": "Área de trabajo",
-      "meeting": "Sala de reuniones",
-      "lounge": "Descanso",
-      "manager": "Oficina del gerente"
+      "startup_loft": "Loft de startup",
+      "startup_loft_desc": "Estilo loft de espacio abierto, ideal para colaboración rápida"
     },
     "chat": {
       "emptyHint": "Escribe un mensaje abajo — el dispatcher lo enruta al agente adecuado.",
@@ -3061,6 +3068,40 @@
       "colStatus": "Estado",
       "colToday": "Tokens de hoy",
       "colTotal": "Tokens totales"
+    },
+    "addMember": {
+      "button": "Agregar miembro",
+      "title": "Agregar miembro",
+      "nameLabel": "Nombre mostrado",
+      "namePlaceholder": "p. ej. Asistente de redacción",
+      "slugLabel": "Slug del agente",
+      "slugPlaceholder": "ID único para enrutamiento (p. ej. copywriter)",
+      "roleLabel": "Rol",
+      "rolePlaceholder": "Describir responsabilidades, inyectado en los prompts",
+      "roomLabel": "Sala",
+      "success": "Miembro agregado",
+      "slugRequired": "El slug del agente es obligatorio"
+    },
+    "room": {
+      "workspace": "Espacio de trabajo",
+      "meeting": "Sala de reuniones",
+      "lounge": "Salón",
+      "manager": "Oficina del gerente",
+      "studio": "Estudio",
+      "warroom": "Sala de guerra",
+      "corner": "Oficina de esquina"
+    },
+    "deleteFleet": {
+      "button": "Eliminar oficina",
+      "title": "Eliminar oficina",
+      "confirm": "¿Eliminar la oficina \"{{name}}\"? También se eliminarán todos sus miembros.",
+      "success": "Oficina eliminada"
+    },
+    "removeMember": {
+      "button": "Quitar miembro",
+      "title": "Quitar miembro",
+      "confirm": "¿Quitar al miembro \"{{name}}\"?",
+      "success": "Miembro quitado"
     }
   },
   "pasteButton": {

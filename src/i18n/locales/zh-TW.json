@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "辦公室未找到",
+    "FLEET_NAME_REQUIRED": "辦公室名稱不能為空",
+    "FLEET_NO_MEMBERS": "該辦公室還沒有任何成員",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "辦公室所有成員均不可用（已暫停/錯誤/離線）",
+    "FLEET_MEMBER_NOT_FOUND": "成員未找到",
+    "FLEET_NO_PROVIDER": "沒有可用的模型提供商，請先在設定中設定",
+    "FLEET_ROUTING_FAILED": "智慧路由呼叫失敗",
+    "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
+    "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "標準辦公室",
       "default_office_desc": "4 房間布局：工位 / 會議室 / 休息區 / 經理室，適合 5-8 人團隊",
-      "workspace": "工位區",
-      "meeting": "會議室",
-      "lounge": "休息區",
-      "manager": "經理室"
+      "startup_loft": "創業 LOFT",
+      "startup_loft_desc": "開放空間 LOFT 風格，適合創業團隊快速協作"
     },
     "chat": {
       "emptyHint": "在下方輸入訊息，Dispatcher 將自動路由到合適的 agent。",
@@ -3061,6 +3068,40 @@
       "colStatus": "狀態",
       "colToday": "今日 Token",
       "colTotal": "累計 Token"
+    },
+    "addMember": {
+      "button": "新增成員",
+      "title": "新增成員",
+      "nameLabel": "顯示名稱",
+      "namePlaceholder": "如：文案助手",
+      "slugLabel": "Agent Slug",
+      "slugPlaceholder": "唯一識別碼，用於路由（如 copywriter）",
+      "roleLabel": "角色描述",
+      "rolePlaceholder": "描述該成員的職責，將注入路由與執行提示詞",
+      "roomLabel": "所在房間",
+      "success": "成員已新增",
+      "slugRequired": "Agent Slug 不能為空"
+    },
+    "room": {
+      "workspace": "工作區",
+      "meeting": "會議室",
+      "lounge": "休息區",
+      "manager": "主管辦公室",
+      "studio": "開放工作區",
+      "warroom": "作戰室",
+      "corner": "角落辦公室"
+    },
+    "deleteFleet": {
+      "button": "刪除辦公室",
+      "title": "刪除辦公室",
+      "confirm": "確定刪除辦公室「{{name}}」嗎？將同時刪除其所有成員。",
+      "success": "辦公室已刪除"
+    },
+    "removeMember": {
+      "button": "移除成員",
+      "title": "移除成員",
+      "confirm": "確定移除成員「{{name}}」嗎？",
+      "success": "成員已移除"
     }
   },
   "pasteButton": {

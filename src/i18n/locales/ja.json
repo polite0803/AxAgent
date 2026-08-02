@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "オフィスが見つかりません",
+    "FLEET_NAME_REQUIRED": "オフィス名は必須です",
+    "FLEET_NO_MEMBERS": "このオフィスにはまだメンバーがいません",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "すべてのメンバーが利用不可です（一時停止/エラー/オフライン）",
+    "FLEET_MEMBER_NOT_FOUND": "メンバーが見つかりません",
+    "FLEET_NO_PROVIDER": "利用可能なモデルプロバイダーがありません。設定で構成してください",
+    "FLEET_ROUTING_FAILED": "スマートルーティング呼び出しに失敗しました",
+    "FLEET_EXECUTION_FAILED": "メンバーのタスク実行に失敗しました",
+    "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "標準オフィス",
       "default_office_desc": "4 部屋: ワークスペース / 会議室 / ラウンジ / マネージャー。5-8 名向け。",
-      "workspace": "ワークスペース",
-      "meeting": "会議室",
-      "lounge": "ラウンジ",
-      "manager": "マネージャー室"
+      "startup_loft": "スタートアップ LOFT",
+      "startup_loft_desc": "オープンスペースのLOFT風、スタートアップの迅速な協働に最適"
     },
     "chat": {
       "emptyHint": "下にメッセージを入力 — Dispatcher が適切な agent に自動ルーティングします。",
@@ -3061,6 +3068,40 @@
       "colStatus": "ステータス",
       "colToday": "今日の Token",
       "colTotal": "累計 Token"
+    },
+    "addMember": {
+      "button": "メンバー追加",
+      "title": "メンバー追加",
+      "nameLabel": "表示名",
+      "namePlaceholder": "例：コピーライター",
+      "slugLabel": "エージェントスラッグ",
+      "slugPlaceholder": "ルーティングに使う一意 ID（例: copywriter）",
+      "roleLabel": "役割",
+      "rolePlaceholder": "責務の説明。ルーティング・実行プロンプトに注入",
+      "roomLabel": "部屋",
+      "success": "メンバーを追加しました",
+      "slugRequired": "エージェントスラッグは必須です"
+    },
+    "room": {
+      "workspace": "ワークスペース",
+      "meeting": "会議室",
+      "lounge": "ラウンジ",
+      "manager": "マネージャー室",
+      "studio": "スタジオ",
+      "warroom": "ウォールーム",
+      "corner": "コーナーオフィス"
+    },
+    "deleteFleet": {
+      "button": "オフィスを削除",
+      "title": "オフィスを削除",
+      "confirm": "オフィス「{{name}}」を削除しますか？メンバーもすべて削除されます。",
+      "success": "オフィスを削除しました"
+    },
+    "removeMember": {
+      "button": "メンバーを削除",
+      "title": "メンバーを削除",
+      "confirm": "メンバー「{{name}}」を削除しますか？",
+      "success": "メンバーを削除しました"
     }
   },
   "pasteButton": {

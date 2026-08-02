@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "Embedding connectivity test failed",
     "LOCAL_MODEL_LOG_NOT_FOUND": "Local model log file not found",
     "LOCAL_MODEL_LOG_READ_FAILED": "Failed to read local model log",
-    "LOCAL_MODEL_DELETE_FAILED": "Failed to delete local model file"
+    "LOCAL_MODEL_DELETE_FAILED": "Failed to delete local model file",
+    "FLEET_NOT_FOUND": "Office not found",
+    "FLEET_NAME_REQUIRED": "Office name is required",
+    "FLEET_NO_MEMBERS": "This office has no members yet",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "All members are unavailable (paused/error/offline)",
+    "FLEET_MEMBER_NOT_FOUND": "Member not found",
+    "FLEET_NO_PROVIDER": "No model provider available. Configure one in Settings first",
+    "FLEET_ROUTING_FAILED": "Smart routing call failed",
+    "FLEET_EXECUTION_FAILED": "Member failed to execute the task",
+    "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "Standard Office",
       "default_office_desc": "4 rooms: workspace / meeting / lounge / manager. Best for 5-8 members.",
-      "workspace": "Workspace",
-      "meeting": "Meeting Room",
-      "lounge": "Lounge",
-      "manager": "Manager Room"
+      "startup_loft": "Startup Loft",
+      "startup_loft_desc": "Open-space loft style, ideal for fast startup collaboration"
     },
     "chat": {
       "emptyHint": "Type a message below — the dispatcher will route it to the right agent.",
@@ -3061,6 +3068,40 @@
       "colStatus": "Status",
       "colToday": "Today Tokens",
       "colTotal": "Total Tokens"
+    },
+    "addMember": {
+      "button": "Add Member",
+      "title": "Add Member",
+      "nameLabel": "Display Name",
+      "namePlaceholder": "e.g. Copy Assistant",
+      "slugLabel": "Agent Slug",
+      "slugPlaceholder": "Unique id used for routing (e.g. copywriter)",
+      "roleLabel": "Role",
+      "rolePlaceholder": "Describe responsibilities, injected into routing & execution prompts",
+      "roomLabel": "Room",
+      "success": "Member added",
+      "slugRequired": "Agent Slug is required"
+    },
+    "room": {
+      "workspace": "Workspace",
+      "meeting": "Meeting Room",
+      "lounge": "Lounge",
+      "manager": "Manager Office",
+      "studio": "Studio",
+      "warroom": "War Room",
+      "corner": "Corner Office"
+    },
+    "deleteFleet": {
+      "button": "Delete Office",
+      "title": "Delete Office",
+      "confirm": "Delete office \"{{name}}\"? All its members will be removed too.",
+      "success": "Office deleted"
+    },
+    "removeMember": {
+      "button": "Remove Member",
+      "title": "Remove Member",
+      "confirm": "Remove member \"{{name}}\"?",
+      "success": "Member removed"
     }
   },
   "pasteButton": {

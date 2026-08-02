@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "Büro nicht gefunden",
+    "FLEET_NAME_REQUIRED": "Büroname ist erforderlich",
+    "FLEET_NO_MEMBERS": "Dieses Büro hat noch keine Mitglieder",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Alle Mitglieder sind nicht verfügbar (pausiert/Fehler/offline)",
+    "FLEET_MEMBER_NOT_FOUND": "Mitglied nicht gefunden",
+    "FLEET_NO_PROVIDER": "Kein Modellanbieter verfügbar. Bitte zuerst in den Einstellungen konfigurieren",
+    "FLEET_ROUTING_FAILED": "Smart-Routing-Aufruf fehlgeschlagen",
+    "FLEET_EXECUTION_FAILED": "Mitglied konnte die Aufgabe nicht ausführen",
+    "FLEET_TARGET_NOT_IN_FLEET": "Zielmitglied existiert nicht in diesem Büro"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "Standardbüro",
       "default_office_desc": "4 Räume: Arbeitsplatz / Besprechung / Lounge / Manager. Für 5-8 Mitglieder.",
-      "workspace": "Arbeitsbereich",
-      "meeting": "Besprechungsraum",
-      "lounge": "Lounge",
-      "manager": "Managerbüro"
+      "startup_loft": "Startup-Loft",
+      "startup_loft_desc": "Offenes Loft-Design, ideal für schnelle Startup-Zusammenarbeit"
     },
     "chat": {
       "emptyHint": "Gib unten eine Nachricht ein — der Dispatcher leitet sie an den richtigen Agenten weiter.",
@@ -3061,6 +3068,40 @@
       "colStatus": "Status",
       "colToday": "Tokens heute",
       "colTotal": "Tokens gesamt"
+    },
+    "addMember": {
+      "button": "Mitglied hinzufügen",
+      "title": "Mitglied hinzufügen",
+      "nameLabel": "Anzeigename",
+      "namePlaceholder": "z. B. Texter",
+      "slugLabel": "Agent-Slug",
+      "slugPlaceholder": "Eindeutige ID für Routing (z. B. copywriter)",
+      "roleLabel": "Rolle",
+      "rolePlaceholder": "Aufgaben beschreiben, in Routing-/Ausführungsprompt injiziert",
+      "roomLabel": "Raum",
+      "success": "Mitglied hinzugefügt",
+      "slugRequired": "Agent-Slug ist erforderlich"
+    },
+    "room": {
+      "workspace": "Arbeitsbereich",
+      "meeting": "Besprechungsraum",
+      "lounge": "Lounge",
+      "manager": "Büro des Managers",
+      "studio": "Studio",
+      "warroom": "War Room",
+      "corner": "Eckbüro"
+    },
+    "deleteFleet": {
+      "button": "Büro löschen",
+      "title": "Büro löschen",
+      "confirm": "Büro \"{{name}}\" löschen? Alle Mitglieder werden ebenfalls entfernt.",
+      "success": "Büro gelöscht"
+    },
+    "removeMember": {
+      "button": "Mitglied entfernen",
+      "title": "Mitglied entfernen",
+      "confirm": "Mitglied \"{{name}}\" entfernen?",
+      "success": "Mitglied entfernt"
     }
   },
   "pasteButton": {

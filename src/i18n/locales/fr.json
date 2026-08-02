@@ -2207,7 +2207,16 @@
     "LOCAL_MODEL_EMBED_TEST_FAILED": "嵌入连通性测试失败",
     "LOCAL_MODEL_LOG_NOT_FOUND": "本地模型日志文件不存在",
     "LOCAL_MODEL_LOG_READ_FAILED": "本地模型日志读取失败",
-    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败"
+    "LOCAL_MODEL_DELETE_FAILED": "删除本地模型文件失败",
+    "FLEET_NOT_FOUND": "Bureau introuvable",
+    "FLEET_NAME_REQUIRED": "Le nom du bureau est requis",
+    "FLEET_NO_MEMBERS": "Ce bureau n'a pas encore de membres",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Tous les membres sont indisponibles (en pause/erreur/hors ligne)",
+    "FLEET_MEMBER_NOT_FOUND": "Membre introuvable",
+    "FLEET_NO_PROVIDER": "Aucun fournisseur de modèle disponible. Configurez-en un dans les paramètres",
+    "FLEET_ROUTING_FAILED": "Échec de l'appel de routage intelligent",
+    "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
+    "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau"
   },
   "errorBoundary": {
     "copied": "Copié",
@@ -3021,10 +3030,8 @@
     "scene": {
       "default_office": "Bureau standard",
       "default_office_desc": "4 salles : espace de travail / réunion / repos / manager. Pour 5-8 membres.",
-      "workspace": "Espace de travail",
-      "meeting": "Salle de réunion",
-      "lounge": "Repos",
-      "manager": "Bureau du manager"
+      "startup_loft": "Loft Startup",
+      "startup_loft_desc": "Loft en espace ouvert, idéal pour la collaboration rapide de startup"
     },
     "chat": {
       "emptyHint": "Saisissez un message ci-dessous — le dispatcher le routera vers le bon agent.",
@@ -3061,6 +3068,40 @@
       "colStatus": "Statut",
       "colToday": "Tokens du jour",
       "colTotal": "Tokens totaux"
+    },
+    "addMember": {
+      "button": "Ajouter un membre",
+      "title": "Ajouter un membre",
+      "nameLabel": "Nom affiché",
+      "namePlaceholder": "ex. Assistant rédaction",
+      "slugLabel": "Slug d'agent",
+      "slugPlaceholder": "ID unique pour le routage (ex. copywriter)",
+      "roleLabel": "Rôle",
+      "rolePlaceholder": "Décrire les responsabilités, injecté dans les invites",
+      "roomLabel": "Pièce",
+      "success": "Membre ajouté",
+      "slugRequired": "Le slug d'agent est requis"
+    },
+    "room": {
+      "workspace": "Espace de travail",
+      "meeting": "Salle de réunion",
+      "lounge": "Salon",
+      "manager": "Bureau du manager",
+      "studio": "Studio",
+      "warroom": "Salle de guerre",
+      "corner": "Bureau d'angle"
+    },
+    "deleteFleet": {
+      "button": "Supprimer le bureau",
+      "title": "Supprimer le bureau",
+      "confirm": "Supprimer le bureau \"{{name}}\" ? Tous ses membres seront aussi supprimés.",
+      "success": "Bureau supprimé"
+    },
+    "removeMember": {
+      "button": "Retirer le membre",
+      "title": "Retirer le membre",
+      "confirm": "Retirer le membre \"{{name}}\" ?",
+      "success": "Membre retiré"
     }
   },
   "pasteButton": {

@@ -50,6 +50,25 @@ interface Fleet {
   metadata: Record<string, unknown>;
 }
 
+interface FleetMember {
+  id: string;
+  fleetId: string;
+  agentId: string;
+  agentSlug: string;
+  displayName: string;
+  role: string;
+  roomId: string;
+  status: string;
+  joinedAt: number;
+  todayTokens: number;
+  totalTokens: number;
+}
+
+/** 浏览器模式 Channel 形状（与 Tauri v2 Channel 的 onmessage 对齐） */
+interface MockChannel {
+  onmessage?: (evt: unknown) => void;
+}
+
 interface WorkflowTemplate {
   id: string;
   name: string;
@@ -2161,6 +2180,11 @@ export async function handleCommand<T>(
     case "fleet_list": {
       return getStore<Fleet[]>("fleets", []) as T;
     }
+    case "fleet_get": {
+      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      const fleet = getStore<Fleet[]>("fleets", []).find((f) => f.id === fleetId);
+      return (fleet ?? null) as T;
+    }
     case "fleet_create": {
       const input = (args as { input?: Partial<Fleet> }).input ?? {};
       const fleets = getStore<Fleet[]>("fleets", []);
@@ -2176,6 +2200,146 @@ export async function handleCommand<T>(
       fleets.push(fleet);
       setStore("fleets", fleets);
       return fleet as T;
+    }
+    case "fleet_update_status": {
+      const { fleetId, status } = args as { fleetId?: string; status?: string };
+      if (fleetId && status) {
+        const fleets = getStore<Fleet[]>("fleets", []);
+        setStore(
+          "fleets",
+          fleets.map((f) => (f.id === fleetId ? { ...f, status, updatedAt: nowTs() } : f)),
+        );
+      }
+      return undefined as T;
+    }
+    case "fleet_delete": {
+      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      setStore("fleets", getStore<Fleet[]>("fleets", []).filter((f) => f.id !== fleetId));
+      // 级联删除成员缓存
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`axagent_fleet_members:${fleetId}`)) {
+          localStorage.removeItem(key);
+        }
+      }
+      return undefined as T;
+    }
+    case "fleet_reset_daily_tokens": {
+      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
+      setStore(
+        `fleet_members:${fleetId}`,
+        members.map((m) => ({ ...m, todayTokens: 0 })),
+      );
+      return undefined as T;
+    }
+    case "fleet_list_members": {
+      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      return getStore<FleetMember[]>(`fleet_members:${fleetId}`, []) as T;
+    }
+    case "fleet_get_member": {
+      const memberId = (args as { memberId?: string }).memberId ?? "";
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith("axagent_fleet_members:")) {
+          continue;
+        }
+        const found = getStore<FleetMember[]>(key.replace("axagent_", ""), [])
+          .find((m) => m.id === memberId);
+        if (found) {
+          return found as T;
+        }
+      }
+      return null as T;
+    }
+    case "fleet_add_member": {
+      const input = (args as { input?: Partial<FleetMember> }).input ?? {};
+      const fleetId = input.fleetId ?? "";
+      const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
+      const member: FleetMember = {
+        id: genId(),
+        fleetId,
+        agentId: input.agentId ?? genId(),
+        agentSlug: input.agentSlug ?? "assistant",
+        displayName: input.displayName ?? "Assistant",
+        role: input.role ?? "",
+        roomId: input.roomId ?? "workspace",
+        status: "idle",
+        joinedAt: nowTs(),
+        todayTokens: 0,
+        totalTokens: 0,
+      };
+      members.push(member);
+      setStore(`fleet_members:${fleetId}`, members);
+      return member as T;
+    }
+    case "fleet_remove_member": {
+      const { memberId } = args as { memberId?: string };
+      if (memberId) {
+        // 遍历所有 fleet_members 存储，移除对应成员
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (!key || !key.startsWith("axagent_fleet_members:")) {
+            continue;
+          }
+          const members = getStore<FleetMember[]>(key.replace("axagent_", ""), []);
+          const next = members.filter((m) => m.id !== memberId);
+          setStore(key.replace("axagent_", ""), next);
+        }
+      }
+      return undefined as T;
+    }
+    case "fleet_update_member_status": {
+      const { memberId, status } = args as { memberId?: string; status?: string };
+      if (memberId && status) {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (!key || !key.startsWith("axagent_fleet_members:")) {
+            continue;
+          }
+          const members = getStore<FleetMember[]>(key.replace("axagent_", ""), []);
+          const next = members.map((m) => (m.id === memberId ? { ...m, status } : m));
+          setStore(key.replace("axagent_", ""), next);
+        }
+      }
+      return undefined as T;
+    }
+    case "fleet_dispatch":
+    case "fleet_direct_message": {
+      const input = (args as { input?: { fleetId?: string; userMessage?: string; agentSlug?: string } })
+        .input ?? {};
+      const onEvent = (args as { onEvent?: MockChannel }).onEvent;
+      const fleetId = input.fleetId ?? "";
+      const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
+      const push = (evt: unknown) => onEvent?.onmessage?.(evt);
+      if (members.length === 0) {
+        push({ type: "error", message: "该办公室还没有任何成员" });
+        return undefined as T;
+      }
+      // 直接 DM 时定位目标成员，否则取第一个
+      const target = (args as { input?: { agentSlug?: string } }).input?.agentSlug
+        ? members.find((m) => m.agentSlug === (args as { input?: { agentSlug?: string } }).input!.agentSlug)
+          ?? members[0]
+        : members[0];
+      const msg = input.userMessage ?? "";
+      push({
+        type: "routing",
+        agentSlug: target.agentSlug,
+        agentId: target.agentId,
+        roomId: target.roomId,
+        taskSummary: msg,
+      });
+      push({ type: "agent_status", agentSlug: target.agentSlug, status: "busy" });
+      push({
+        type: "agent_message",
+        agentSlug: target.agentSlug,
+        agentId: target.agentId,
+        content: `[浏览器模拟] ${target.displayName} 收到消息：${msg}`,
+      });
+      push({ type: "token_usage", agentSlug: target.agentSlug, inputTokens: 12, outputTokens: 34 });
+      push({ type: "agent_status", agentSlug: target.agentSlug, status: "idle" });
+      push({ type: "complete" });
+      return undefined as T;
     }
 
     // ── Phase 2: Artifacts ────────────────────────────────────────────

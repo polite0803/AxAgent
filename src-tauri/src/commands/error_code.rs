@@ -530,3 +530,25 @@ pub use axagent_harness::error_codes::wiki;
 // 故对应的 re-export 已删除（P0：删除死代码而非 allow）。
 pub use conversation as conv_err;
 pub use skill as skill_err;
+
+/// Fleet（多办公室 AI 团队）相关错误码
+pub mod fleet {
+    /// 舰队未找到
+    pub const NOT_FOUND: &str = "FLEET_NOT_FOUND";
+    /// 舰队名称为空
+    pub const NAME_REQUIRED: &str = "FLEET_NAME_REQUIRED";
+    /// 舰队无任何成员
+    pub const NO_MEMBERS: &str = "FLEET_NO_MEMBERS";
+    /// 舰队所有成员均不可用（已暂停/错误/离线）
+    pub const ALL_MEMBERS_UNAVAILABLE: &str = "FLEET_ALL_MEMBERS_UNAVAILABLE";
+    /// 成员未找到
+    pub const MEMBER_NOT_FOUND: &str = "FLEET_MEMBER_NOT_FOUND";
+    /// 没有可用的模型提供商
+    pub const NO_PROVIDER: &str = "FLEET_NO_PROVIDER";
+    /// LLM 意图路由调用失败
+    pub const ROUTING_FAILED: &str = "FLEET_ROUTING_FAILED";
+    /// Agent 执行失败
+    pub const EXECUTION_FAILED: &str = "FLEET_EXECUTION_FAILED";
+    /// 路由目标 slug 不在成员列表中
+    pub const TARGET_NOT_IN_FLEET: &str = "FLEET_TARGET_NOT_IN_FLEET";
+}
