@@ -279,6 +279,8 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(opc::OpcGetDashboardTool),
         std::sync::Arc::new(opc::OpcListLandingPagesTool),
         std::sync::Arc::new(opc::OpcListBlogPostsTool),
+        std::sync::Arc::new(opc::OpcCreateLandingPageTool),
+        std::sync::Arc::new(opc::OpcCreateBlogPostTool),
         std::sync::Arc::new(opc::OpcListContactsTool),
         std::sync::Arc::new(opc::OpcSendNotificationTool),
         std::sync::Arc::new(opc::OpcRecordKpiTool),

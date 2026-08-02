@@ -260,6 +260,8 @@ pub async fn seed_landing_page_workflow(db: &DatabaseConnection) -> Result<(), S
 //
 // 本实现将 4 周过程建模为 4 个阶段的 Workflow DAG。
 
+// nodes 由下方大量分支动态 push 构建，无法用 vec![] 字面量替代
+#[allow(clippy::vec_init_then_push)]
 pub async fn seed_startup_mvp_workflow(db: &DatabaseConnection) -> Result<(), String> {
     let id = "prod-startup-mvp";
     if !check_template_version(db, id, OPC_TEMPLATE_VERSION).await? {
@@ -267,7 +269,7 @@ pub async fn seed_startup_mvp_workflow(db: &DatabaseConnection) -> Result<(), St
     }
     let now = now_ts();
 
-    let mut nodes: Vec<WorkflowNode> = vec![];
+    let mut nodes: Vec<WorkflowNode> = Vec::new();
 
     // Phase 1: Discovery + Architecture
     nodes.push(WorkflowNode::Trigger(TriggerNode {

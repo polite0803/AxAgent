@@ -4,5 +4,5 @@ id: industry_consulting
 name: 行业咨询流程
 icon: "💼"
 description: 行业调研 → 方案设计 → 交付报告。CEO 视角，战略级分析。
-version: 1
+version: 3
 enabled: true

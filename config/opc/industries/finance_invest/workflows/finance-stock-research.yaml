@@ -2,40 +2,70 @@
 # P4-2：CFO/研究员使用 A股行情/财报/研报/资金流工具做个股深度研究。
 # 工具已由 init/services.rs ToolResolver 接通（execute_mcp_tool），
 # 节点 tools 白名单声明后运行时可直接调用。
+# v2: 增加错误处理、数据质量检查和置信度评估
 id: workflow-finance-stock-research
 name: 个股投资研究
 description: A股个股深度研究：行情 → 财报 → 研报/资金流 → 估值 → 投资结论。基于 astock-data 真实数据。
 icon: "📊"
 tags: [finance, stock, astock, investment, opc]
 profile_id: opc-cfo-cfo-financial-analyst
+
+# 全局错误处理配置
+error_handling:
+  retry: 2
+  timeout_seconds: 90
+  on_failure: 返回已获取的数据并标记不可用的数据维度
+
 steps:
+  # 步骤1：标的确认
   - id: a-search
     title: 标的确认
-    prompt: 确认研究标的：使用 search_stock 搜索股票代码与名称。输出 JSON {stock_code, stock_name}
-    inputs: {}
+    prompt: 确认研究标的：使用 search_stock 搜索股票代码与名称。若匹配多个结果，优先选择成交量最高的。输出 JSON {stock_code, stock_name, exchange}
+    inputs:
+      keyword: "{keyword}"
     tools: [search_stock]
+    on_error: 无法搜索到标的时返回提示，要求用户提供更精确的代码
+
+  # 步骤2：行情快照
   - id: a-quote
     title: 行情快照
-    prompt: 使用 get_stock_quote 获取 {stock_code} 实时行情（价格、涨跌幅、成交量），get_stock_kline 获取近期走势。输出 JSON {price, change_pct, volume, trend_summary}
+    prompt: 使用 get_stock_quote 获取 {stock_code} 实时行情（价格、涨跌幅、成交量、换手率），get_stock_kline 获取近60日走势并识别均线位置。输出 JSON {price, change_pct, volume, turnover_rate, trend_summary, ma_position}
     inputs:
       stock_code: a-search.result.stock_code
     tools: [get_stock_quote, get_stock_kline]
+
+  # 步骤3：财务分析
   - id: a-financials
     title: 财务分析
-    prompt: 使用 get_stock_financials 获取营收、净利润、EPS、ROE、毛利率；get_fundamentals_report_markdown 获取预聚合基本面报告（健康度/估值带/安全边际）。输出 JSON {revenue, profit, eps, roe, gross_margin, health_score}
+    prompt: 使用 get_stock_financials 获取最近4个季度的营收、净利润、EPS、ROE、毛利率变化趋势；get_fundamentals_report_markdown 获取预聚合基本面报告（健康度/估值带/安全边际）。输出 JSON {revenue, profit, eps, roe, gross_margin, health_score, valuation_band}
     inputs:
       stock_code: a-search.result.stock_code
     tools: [get_stock_financials, get_fundamentals_report_markdown]
+
+  # 步骤4：资金与催化
   - id: a-flow
     title: 资金与催化
-    prompt: 使用 get_stock_money_flow 分析主力资金流向，search_news 验证近期催化剂与行业趋势。输出 JSON {main_flow, catalyst_summary}
+    prompt: 使用 get_stock_money_flow 分析近5日主力资金流向（净流入/流出），search_news 验证近期催化剂（政策、业绩、行业趋势）。输出 JSON {main_flow_5d, catalyst_summary, sentiment_score}
     inputs:
       stock_code: a-search.result.stock_code
     tools: [get_stock_money_flow, search_news]
-  - id: a-report
-    title: 投资结论
-    prompt: 综合行情/财务/资金/催化生成投资结论：目标价位、风险等级、操作建议。基于实际数据，禁止编造。输出 JSON {target_price, risk_level, advice, confidence}
+
+  # 步骤5：数据质量评估
+  - id: a-quality
+    title: 数据质量评估
+    prompt: 评估所有数据源的完整性和时效性。检查行情是否为实时数据、财报是否为最新季度、资金流是否存在延迟。计算整体数据质量得分。输出 JSON {data_freshness, missing_dimensions, quality_score}
     inputs:
+      quote: a-quote.result
       financials: a-financials.result
       flow: a-flow.result
+
+  # 步骤6：投资结论
+  - id: a-report
+    title: 投资结论
+    prompt: 综合行情/财务/资金/催化生成投资结论。根据数据质量调整置信度：质量得分>80置信度不打折，60-80打0.9折，<60打0.7折。输出 JSON {target_price, risk_level, position_pct, advice, confidence, rationale}
+    inputs:
+      quote: a-quote.result
+      financials: a-financials.result
+      flow: a-flow.result
+      quality: a-quality.result
     tools: []

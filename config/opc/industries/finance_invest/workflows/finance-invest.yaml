@@ -1,18 +1,47 @@
 # 金融投资行业工作流
 # 从 AxOPC seed_industries.rs seed_finance_investment 反编译为纯数据。
+# v2: 重构为完整的 CFO 财务分析流程，增加数据验证、风险评估和决策分支
 id: workflow-finance-invest
 name: 金融投资分析
-description: 财务分析 → 投资建议。CFO 视角，基于实际经营数据生成可执行的财务建议。
+description: 财务分析 → 数据验证 → 风险评估 → 投资建议。CFO 视角，基于实际经营数据生成可执行的财务建议。
 icon: "📈"
 tags: [finance, investment, opc]
 profile_id: opc-cfo-cfo-financial-analyst
+
+# 全局错误处理配置
+error_handling:
+  retry: 2
+  timeout_seconds: 60
+  on_failure: 返回部分结果并标记数据质量问题
+
 steps:
+  # 步骤1：获取财务报表和运营数据
   - id: a-report
-    title: 财务分析
-    prompt: 使用 OpcGetFinancialReport 和 OpcGetDashboard 生成财务状况分析。输出 JSON {revenue, profit, cashflow, risks}
-    inputs: {}
-  - id: a-advice
-    title: 投资建议
-    prompt: 基于财务分析生成投资建议：推荐金额、风险等级、建议说明。输出 JSON {recommended_amount, risk_level, advice}
+    title: 财务数据获取
+    prompt: 使用 OpcGetFinancialReport({period}) 和 OpcGetDashboard 生成财务状况分析。输出 JSON {revenue, profit, cashflow, margins, assets, liabilities}
+    inputs:
+      period: "{period}"
+    tools: [OpcGetFinancialReport, OpcGetDashboard]
+
+  # 步骤2：数据完整性验证
+  - id: a-validate
+    title: 数据验证
+    prompt: 校验财务数据的完整性和合理性：检查关键字段是否缺失、数值是否异常（如负收入、跳变超过50%）。输出 JSON {is_valid, issues, quality_score}
     inputs:
       report: a-report.result
+
+  # 步骤3：风险量化评估
+  - id: a-risk
+    title: 风险评估
+    prompt: 基于财务数据计算风险指标：流动比率、资产负债率、现金流波动率、应收账款周转天数。评估整体风险等级。输出 JSON {risk_metrics, risk_level, risk_factors}
+    inputs:
+      report: a-report.result
+      validation: a-validate.result
+
+  # 步骤4：生成投资建议
+  - id: a-advice
+    title: 投资建议
+    prompt: 基于财务分析和风险评估生成投资建议。根据风险等级调整建议：低风险可建议增持，中风险建议观望，高风险建议减持。输出 JSON {recommended_amount, position_pct, risk_level, advice, rationale}
+    inputs:
+      report: a-report.result
+      risk: a-risk.result

@@ -87,8 +87,11 @@ test.describe("Time Travel / As-Of Mode", () => {
     const anchor = page.locator('[data-testid="page-time-anchor"]');
     await expect(anchor).toBeVisible({ timeout: 30000 });
     await dismissModals(page);
-    // PageTimeAnchor 使用 Segmented 组件，点"历史回放"选项触发 DatePicker
-    await anchor.locator(".ant-segmented-item").last().click({ force: true });
+    // 通过 data-testid 定位 Segmented，点击"历史回放"选项
+    const segmented = page.getByTestId("time-anchor-segmented");
+    await expect(segmented).toBeVisible({ timeout: 10000 });
+    // 直接点击 Segmented 中的最后一个选项（replay），不使用 force 模式
+    await segmented.locator("label.ant-segmented-item").last().click();
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
   });
@@ -96,13 +99,16 @@ test.describe("Time Travel / As-Of Mode", () => {
   test("picking a past date enters Replay mode and shows the Replay badge", async ({ page }) => {
     const anchor = page.locator('[data-testid="page-time-anchor"]');
     await dismissModals(page);
-    // 点 Segmented "历史回放" 选项
-    await anchor.locator(".ant-segmented-item").last().click({ force: true });
+    // 通过 data-testid 定位 Segmented，点击"历史回放"选项
+    const segmented = page.getByTestId("time-anchor-segmented");
+    await expect(segmented).toBeVisible({ timeout: 10000 });
+    // 直接点击 Segmented 中的最后一个选项（replay）
+    await segmented.locator("label.ant-segmented-item").last().click();
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
 
     // 点 DatePicker 容器打开日历面板，选一个过去日期
-    await picker.click({ force: true });
+    await picker.click();
     const calendar = page.locator(".ant-picker-dropdown").first();
     await expect(calendar).toBeVisible({ timeout: 5000 });
     await calendar.locator(".ant-picker-cell:not(.ant-picker-cell-disabled)").first().click();
@@ -142,7 +148,10 @@ test.describe("Time Travel / As-Of Mode", () => {
     });
 
     // Click the mode-switch — should open the confirm modal
-    await page.locator('[data-testid="page-time-anchor"]').click({ force: true });
+    // 点击 Segmented 的 live 选项，从 replay 切回 live
+    const segmented = page.getByTestId("time-anchor-segmented");
+    await expect(segmented).toBeVisible({ timeout: 10000 });
+    await segmented.locator("label.ant-segmented-item").first().click();
 
     // AntD Modal renders role="dialog" — verify one appears with a confirm copy
     const dialog = page.locator('[role="dialog"]').first();

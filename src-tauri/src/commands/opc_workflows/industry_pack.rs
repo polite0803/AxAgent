@@ -18,6 +18,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// 行业包根目录（相对仓库根）
 pub const INDUSTRIES_DIR: &str = "config/opc/industries";
@@ -213,11 +214,14 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
             for (k, v) in &step.inputs {
                 input_mapping.insert(k.clone(), v.clone());
             }
-            // 工具白名单：step.tools 声明的工具名 → ToolDef（从 stock_mcp_tools 匹配）
+            // 工具白名单：step.tools 声明的工具名 → ToolDef
+            // 优先匹配 stock_mcp_tools（金融），其次匹配 OPC 工具（一人公司业务）。
             let node_tools = if step.tools.is_empty() {
                 vec![]
             } else {
-                stock_tool_defs(&step.tools)
+                let mut defs = stock_tool_defs(&step.tools);
+                defs.extend(opc_tool_defs(&step.tools));
+                defs
             };
             WorkflowNode::Agent(AgentNode {
                 base: make_base(&step.id, &step.title, "", 250.0, y),
@@ -296,14 +300,27 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
 
     if has_approval {
         // 有 approval：逐段串接，approval 通过(true)→下一节点，拒绝(false)→end
+        // 修复：使用 pending_approval 追踪审批状态，确保审批后节点连 true 分支而非普通边
         let mut prev: &str = "trigger";
+        let mut pending_approval: Option<&str> = None;
         for (i, sid) in step_ids.iter().enumerate() {
             let is_approval = w.steps[i].node_type == "approval";
             if is_approval {
                 edges.push(cond_edge(&format!("e-{prev}-{sid}-true"), prev, sid, true));
                 edges.push(cond_edge(&format!("e-{sid}-end-false"), sid, "end", false));
+                pending_approval = Some(sid);
             } else {
-                edges.push(edge(&format!("e-{prev}-{sid}"), prev, sid));
+                if let Some(approval_id) = pending_approval {
+                    edges.push(cond_edge(
+                        &format!("e-{approval_id}-{sid}-true"),
+                        approval_id,
+                        sid,
+                        true,
+                    ));
+                    pending_approval = None;
+                } else {
+                    edges.push(edge(&format!("e-{prev}-{sid}"), prev, sid));
+                }
             }
             prev = sid;
         }
@@ -541,7 +558,7 @@ pub async fn export_industry_pack(
     fn add_dir(
         zip: &mut zip::ZipWriter<std::fs::File>,
         opts: &zip::write::SimpleFileOptions,
-        base: &Path,
+        _base: &Path,
         dir: &Path,
         prefix: &str,
     ) -> Result<(), String> {
@@ -551,7 +568,7 @@ pub async fn export_industry_pack(
             let name = entry.file_name().to_string_lossy().to_string();
             let zip_name = format!("{prefix}{name}");
             if path.is_dir() {
-                add_dir(zip, opts, base, &path, &format!("{zip_name}/"))?;
+                add_dir(zip, opts, _base, &path, &format!("{zip_name}/"))?;
             } else {
                 let content = std::fs::read(&path).map_err(|e| format!("读取文件失败: {e}"))?;
                 zip.start_file(zip_name, *opts).map_err(|e| format!("写入归档失败: {e}"))?;
@@ -685,6 +702,51 @@ pub fn stock_tool_defs(names: &[String]) -> Vec<axagent_harness::workflow_types:
         out.push(axagent_harness::workflow_types::ToolDef {
             name: name.to_string(),
             description,
+            parameters,
+        });
+    }
+    out
+}
+
+// ── OPC 工具白名单（一人公司业务：内容营销/电商等行业吃 Opc 工具链）────
+
+/// 从 tools crate 内置 OPC 工具匹配工具名 → ToolDef 列表。
+/// 工具已注册进本地工具注册表（UnifiedToolRegistry），
+/// init/services.rs ToolResolver 的 `known` 分支即可接通执行路径，
+/// 工作流 AgentNode 只要 exposed_tools 含工具名即可调用。
+pub fn opc_tool_defs(names: &[String]) -> Vec<axagent_harness::workflow_types::ToolDef> {
+    use axagent_tools::Tool;
+    let candidates: Vec<Arc<dyn Tool>> = vec![
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListInvoicesTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcCreateInvoiceTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcTransitionInvoiceTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListCustomersTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcCreateCustomerTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListProjectsTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcCreateProjectTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcAddMilestoneTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcGetDashboardTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListLandingPagesTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListBlogPostsTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcCreateLandingPageTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcCreateBlogPostTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListContactsTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcSendNotificationTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcRecordKpiTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcListKpisTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcSearchWikiTool),
+        std::sync::Arc::new(axagent_tools::tools::opc::OpcGetFinancialReportTool),
+    ];
+    let mut out = Vec::new();
+    for tool in candidates {
+        if !names.iter().any(|n| n == tool.name()) {
+            continue;
+        }
+        // parameters：把 input_schema()（serde_json::Value）转 ToolDef.parameters（JsonSchema）
+        let parameters = serde_json::from_value(tool.input_schema()).ok();
+        out.push(axagent_harness::workflow_types::ToolDef {
+            name: tool.name().to_string(),
+            description: Some(tool.description().to_string()),
             parameters,
         });
     }

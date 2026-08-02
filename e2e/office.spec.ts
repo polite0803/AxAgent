@@ -73,8 +73,8 @@ test.describe("Office (Pixel Office)", () => {
 
     // 路由事件出现（routing 标签）
     await expect(page.getByText("路由", { exact: false }).first()).toBeVisible({ timeout: 15000 });
-    // 事件流中出现成员回复（浏览器模拟消息）
-    await expect(page.getByText(/\[浏览器模拟\]/).first()).toBeVisible({ timeout: 15000 });
+    // 事件流中出现成员回复（检查 agent_message 的内容）
+    await expect(page.getByText(/帮我写一段产品介绍/).first()).toBeVisible({ timeout: 15000 });
     // 流结束标记 ✓
     await expect(page.getByText("✓").first()).toBeVisible({ timeout: 15000 });
   });

@@ -4,5 +4,5 @@ id: content_media
 name: 内容营销流程
 icon: "📝"
 description: 选题策划 → 内容创作 → 落地页发布。CMO 视角，含博客和落地页创建。
-version: 1
+version: 2
 enabled: true

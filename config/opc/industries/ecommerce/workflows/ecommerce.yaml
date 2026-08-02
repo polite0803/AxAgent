@@ -13,8 +13,14 @@ steps:
   - id: a-page
     title: 上架落地页
     prompt: 使用 OpcCreateLandingPage 创建产品落地页。输出 JSON {page_id, url}
-    inputs: {}
+    inputs:
+      content: a-product.result
+    tools:
+      - OpcCreateLandingPage
   - id: a-customer
     title: 客户管理
     prompt: 使用 OpcCreateCustomer 创建客户记录，关联产品信息。输出 JSON {customer_id, product_ref}
-    inputs: {}
+    inputs:
+      product_info: a-product.result
+    tools:
+      - OpcCreateCustomer

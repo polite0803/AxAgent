@@ -72,6 +72,7 @@ export function PageTimeAnchor() {
         size="small"
         value={isLive ? "live" : "replay"}
         onChange={onChangeMode}
+        data-testid="time-anchor-segmented"
         options={[
           {
             label: (

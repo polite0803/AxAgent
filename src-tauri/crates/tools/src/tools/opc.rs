@@ -1038,6 +1038,161 @@ impl Tool for OpcListContactsTool {
     }
 }
 
+pub struct OpcCreateLandingPageTool;
+
+#[async_trait]
+impl Tool for OpcCreateLandingPageTool {
+    fn name(&self) -> &str {
+        "OpcCreateLandingPage"
+    }
+    fn description(&self) -> &str {
+        "创建新的落地页。需要提供标题、slug 和正文内容，可选描述。创建后为草稿状态。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "title": { "type": "string", "description": "落地页标题" },
+                "slug": { "type": "string", "description": "URL slug（小写，空格自动转横线）" },
+                "description": { "type": "string", "description": "页面描述（可选）" },
+                "content": { "type": "string", "description": "页面正文内容（支持 Markdown）" }
+            },
+            "required": ["title", "slug", "content"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_opc_dao::DefaultSiteService;
+        use axagent_opc_types::{CreateLandingPageInput, SiteService};
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let title = input
+            .get("title")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: title"))?;
+        let slug = input
+            .get("slug")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: slug"))?;
+        let content = input
+            .get("content")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: content"))?;
+
+        let inp = CreateLandingPageInput {
+            title: title.to_string(),
+            slug: slug.to_string(),
+            description: input
+                .get("description")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            content: content.to_string(),
+        };
+
+        match svc.create_landing_page(inp).await {
+            Ok(lp) => Ok(ToolResult::success(format!(
+                "## 落地页创建成功\n\n- **标题**: {}\n- **Slug**: `{}`\n- **状态**: 📝 草稿\n- **ID**: `{}`",
+                lp.title, lp.slug, lp.id,
+            ))),
+            Err(e) => Err(ToolError::execution_failed(format!("创建落地页失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcCreateBlogPostTool;
+
+#[async_trait]
+impl Tool for OpcCreateBlogPostTool {
+    fn name(&self) -> &str {
+        "OpcCreateBlogPost"
+    }
+    fn description(&self) -> &str {
+        "创建新的博客文章。需要提供标题、slug 和正文内容，可选摘要和标签。创建后为草稿状态。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "title": { "type": "string", "description": "文章标题" },
+                "slug": { "type": "string", "description": "URL slug（小写，空格自动转横线）" },
+                "excerpt": { "type": "string", "description": "文章摘要（可选）" },
+                "content": { "type": "string", "description": "文章正文内容（支持 Markdown）" },
+                "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "标签列表（可选）"
+                }
+            },
+            "required": ["title", "slug", "content"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_opc_dao::DefaultSiteService;
+        use axagent_opc_types::{CreateBlogPostInput, SiteService};
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let title = input
+            .get("title")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: title"))?;
+        let slug = input
+            .get("slug")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: slug"))?;
+        let content = input
+            .get("content")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: content"))?;
+
+        let tags = input
+            .get("tags")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default();
+
+        let inp = CreateBlogPostInput {
+            title: title.to_string(),
+            slug: slug.to_string(),
+            excerpt: input.get("excerpt").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            content: content.to_string(),
+            tags,
+        };
+
+        match svc.create_blog_post(inp).await {
+            Ok(p) => Ok(ToolResult::success(format!(
+                "## 博客文章创建成功\n\n- **标题**: {}\n- **Slug**: `{}`\n- **标签**: {}\n- **状态**: 📝 草稿\n- **ID**: `{}`",
+                p.title,
+                p.slug,
+                if p.tags.is_empty() {
+                    "无".to_string()
+                } else {
+                    p.tags.join(", ")
+                },
+                p.id,
+            ))),
+            Err(e) => Err(ToolError::execution_failed(format!("创建博客文章失败: {e}"))),
+        }
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // 通知发送工具
 // ═══════════════════════════════════════════════════════════════════

@@ -525,7 +525,7 @@ mod tests {
         let max: i32 = read_max_version(&db).await.unwrap();
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
-        // schema_version 表应有与 CURRENT_VERSION 对齐的行数（v100..v114 + v200..v208）
+        // schema_version 表行数应与 MIGRATIONS 列表一一对应
         let count_row = db
             .query_one_raw(Statement::from_string(
                 DbBackend::Sqlite,
@@ -535,7 +535,11 @@ mod tests {
             .unwrap()
             .expect("count row");
         let cnt: i32 = count_row.try_get_by("cnt").unwrap();
-        assert_eq!(cnt, 24, "schema_version should have 24 rows (v100~v114 + v200~v208)");
+        assert_eq!(
+            cnt as usize,
+            MIGRATIONS.len(),
+            "schema_version rows should match MIGRATIONS.len()"
+        );
     }
 
     /// 防回归：v002 引入的索引必须真实存在。

@@ -180,8 +180,7 @@ async fn seed_opc_experts(db: &DatabaseConnection) -> Result<(), String> {
         let expert_id = format!("opc-{id}");
         let domain = content
             .lines()
-            .skip_while(|l| !l.starts_with("domain:"))
-            .nth(0)
+            .find(|l| l.starts_with("domain:"))
             .and_then(|l| l.strip_prefix("domain:").map(|s| s.trim().to_string()))
             .unwrap_or_default();
 

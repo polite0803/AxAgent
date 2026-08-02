@@ -195,7 +195,10 @@ mod tests {
             .await
             .unwrap();
         assert!(row.is_some(), "opc_industries 表应存在（v211 迁移）");
-        assert!(axagent_dao::migrations::CURRENT_VERSION >= 211);
+        // 编译期常量断言（clippy: assertions-on-constants）
+        const {
+            assert!(axagent_dao::migrations::CURRENT_VERSION >= 211);
+        }
     }
 
     #[tokio::test]

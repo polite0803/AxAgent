@@ -49,7 +49,7 @@ async fn record_opc_trajectory(
     };
 
     let trajectory = axagent_trajectory::Trajectory::new(
-        format!("opc_session"),
+        "opc_session".to_string(),
         "system".to_string(),
         format!("OPC:{op_name}"),
         format!("{op_name}: {entity_id}"),
@@ -500,7 +500,7 @@ pub async fn opc_kanban_board(state: State<'_, AppState>) -> Result<serde_json::
         });
         board.entry(col).or_default().push(entry);
     }
-    Ok(serde_json::to_value(board).map_err(|e| e.to_string())?)
+    serde_json::to_value(board).map_err(|e| e.to_string())
 }
 
 /// 认领 work item（Start）。
@@ -513,7 +513,7 @@ pub async fn opc_work_item_start(
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
     let model = svc.start(&id).await.map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(&model).map_err(|e| e.to_string())?)
+    serde_json::to_value(&model).map_err(|e| e.to_string())
 }
 
 /// 提交评审（质量门前置，方案 A）：先跑一轮自改进评估，质量达标才允许进 REVIEW。
@@ -569,7 +569,7 @@ pub async fn opc_work_item_review(
 
     // 5. 达标 → 进入 REVIEW
     let model = svc.apply(&id, Transition::SubmitForReview).await.map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(&model).map_err(|e| e.to_string())?)
+    serde_json::to_value(&model).map_err(|e| e.to_string())
 }
 
 /// 阻塞升级链：置 BLOCKED + 记录 last_error（原因），通知 manager。
@@ -601,7 +601,7 @@ pub async fn opc_escalate_work_item(
         tracing::warn!("[opc-escalate] {} 无 manager_role_id，升级仅记录", updated.id);
     }
 
-    Ok(serde_json::to_value(&updated).map_err(|e| e.to_string())?)
+    serde_json::to_value(&updated).map_err(|e| e.to_string())
 }
 
 /// 解除阻塞（Unblock）。
@@ -615,7 +615,7 @@ pub async fn opc_work_item_unblock(
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
     let model = svc.apply(&id, Transition::Unblock).await.map_err(|e| e.to_string())?;
-    Ok(serde_json::to_value(&model).map_err(|e| e.to_string())?)
+    serde_json::to_value(&model).map_err(|e| e.to_string())
 }
 
 // ── P4-1：人才库导入 + 市场包 ─────────────────────────────────
@@ -746,7 +746,7 @@ pub async fn opc_market_list(state: State<'_, AppState>) -> Result<serde_json::V
             }));
         }
     }
-    Ok(serde_json::to_value(items).map_err(|e| e.to_string())?)
+    serde_json::to_value(items).map_err(|e| e.to_string())
 }
 
 // ── OPC 自改进循环（对接上游 Loop Engineering，参照 stock_analysis）──

@@ -283,14 +283,14 @@ pub fn run() {
 
             // Seed OPC knowledge sources (Wiki + Memory) on first launch
             {
-                let _ = tauri::async_runtime::block_on(async {
+                tauri::async_runtime::block_on(async {
                     init::opc_knowledge::seed_opc_knowledge(&sea_db).await;
                 });
             }
 
             // Seed OPC professional workflow templates（行业数据资产包驱动）
             {
-                let _ = tauri::async_runtime::block_on(async {
+                tauri::async_runtime::block_on(async {
                     if let Err(e) = crate::commands::opc_workflows::ensure_opc_workflows_seeded(&sea_db, Some(&app_dir)).await {
                         tracing::error!("[opc-workflows] Seed failed: {e}");
                     }
@@ -299,7 +299,7 @@ pub fn run() {
 
             // Seed OPC company architecture (CEO/CTO/CFO + expert profiles)
             {
-                let _ = tauri::async_runtime::block_on(async {
+                tauri::async_runtime::block_on(async {
                     if let Err(e) = crate::commands::opc_setup::ensure_opc_company_seeded(&sea_db).await {
                         tracing::error!("[opc-company] Seed failed: {e}");
                     }
@@ -331,7 +331,7 @@ pub fn run() {
                         let roles = config_validator::parse_enabled_roles(&content);
                         if !roles.is_empty() {
                             let db = state.harness.db().clone();
-                            let _ = tauri::async_runtime::block_on(async {
+                            tauri::async_runtime::block_on(async {
                                 for r in &roles {
                                     let name = r.name.as_deref().unwrap_or("");
                                     let prompt = r.system_prompt.as_deref().unwrap_or("");
