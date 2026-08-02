@@ -440,16 +440,16 @@ mod tests {
                 let md_path = md.unwrap().path();
                 let stem = md_path.file_stem().unwrap().to_string_lossy().to_string();
                 let tid = format!("tt-{dir_name}-{stem}");
-                org.add_talent_template(
-                    &tid,
-                    &dir_name,
-                    &stem,
-                    "导入的专家",
-                    "agency-agents-src",
-                    Some(&[format!("{dir_name}/{stem}.md")]),
-                    None,
-                    Some(&[dir_name.clone()]),
-                )
+                org.add_talent_template(axagent_company_runtime::org::NewTalentTemplate {
+                    id: tid.clone(),
+                    category: dir_name.clone(),
+                    name: stem.clone(),
+                    description: "导入的专家".to_string(),
+                    source_repo: "agency-agents-src".to_string(),
+                    prompt_refs: Some(vec![format!("{dir_name}/{stem}.md")]),
+                    skill_refs: None,
+                    tags: Some(vec![dir_name.clone()]),
+                })
                 .await
                 .unwrap();
                 imported += 1;

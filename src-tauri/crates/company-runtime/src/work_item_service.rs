@@ -109,8 +109,10 @@ impl<'a> WorkItemService<'a> {
         event: Transition,
     ) -> crate::CompanyResult<opc_work_items::Model> {
         let existing = self.get(id).await?;
-        let current = Phase::from_str(&existing.phase)
-            .ok_or_else(|| crate::CompanyError::State(format!("未知 phase: {}", existing.phase)))?;
+        let current = existing
+            .phase
+            .parse::<Phase>()
+            .map_err(|e| crate::CompanyError::State(e.to_string()))?;
         let next =
             transition(current, event).map_err(|e| crate::CompanyError::State(e.to_string()))?;
 
@@ -129,10 +131,10 @@ impl<'a> WorkItemService<'a> {
         let deps: Vec<String> = serde_json::from_str(&item.deps_json)?;
         let mut out = Vec::new();
         for dep in deps {
-            if let Ok(m) = self.get(&dep).await {
-                if let Some(p) = Phase::from_str(&m.phase) {
-                    out.push(p);
-                }
+            if let Ok(m) = self.get(&dep).await
+                && let Ok(p) = m.phase.parse::<Phase>()
+            {
+                out.push(p);
             }
         }
         Ok(out)

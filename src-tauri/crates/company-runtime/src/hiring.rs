@@ -59,7 +59,15 @@ impl<'a> HiringService<'a> {
             let emp_id = format!("hired-{}-{}", tt.id, chrono::Utc::now().timestamp());
             // 新建员工绑定模板专家（source_repo 即 expert 来源）
             org_svc
-                .add_employee(&emp_id, org_id, &emp_id, role_id, Some(&tt.id), "active", None)
+                .add_employee(crate::org::NewEmployee {
+                    id: emp_id.clone(),
+                    org_id: org_id.to_string(),
+                    employee_id: emp_id.clone(),
+                    role_id: role_id.to_string(),
+                    expert_id: Some(tt.id.clone()),
+                    status: "active".to_string(),
+                    experience_ref: None,
+                })
                 .await?;
             return Ok(HireDecision {
                 employee_id: emp_id,
@@ -140,16 +148,16 @@ mod tests {
 
         // 添加人才模板 → hire（tags 含 cfo，命中角色拆词 token）
         org_svc
-            .add_talent_template(
-                "tt-fin",
-                "finance",
-                "金融分析师",
-                "财务报表分析",
-                "agency-agents-src",
-                None,
-                None,
-                Some(&["cfo".to_string(), "finance".to_string()]),
-            )
+            .add_talent_template(crate::org::NewTalentTemplate {
+                id: "tt-fin".to_string(),
+                category: "finance".to_string(),
+                name: "金融分析师".to_string(),
+                description: "财务报表分析".to_string(),
+                source_repo: "agency-agents-src".to_string(),
+                prompt_refs: None,
+                skill_refs: None,
+                tags: Some(vec!["cfo".to_string(), "finance".to_string()]),
+            })
             .await
             .unwrap();
         let d2 = hiring.decide("org-h", "opc-cfo-cfo-financial-analyst").await.unwrap();
@@ -167,15 +175,15 @@ mod tests {
         org_svc.create_org("org-r", "复用组织", "测试", "flat", None).await.unwrap();
         // 已有活跃员工（专家绑定）→ 复用优先于 hire
         org_svc
-            .add_employee(
-                "emp-exist",
-                "org-r",
-                "emp-exist",
-                "opc-cfo-cfo-financial-analyst",
-                Some("opc-cfo"),
-                "active",
-                None,
-            )
+            .add_employee(crate::org::NewEmployee {
+                id: "emp-exist".to_string(),
+                org_id: "org-r".to_string(),
+                employee_id: "emp-exist".to_string(),
+                role_id: "opc-cfo-cfo-financial-analyst".to_string(),
+                expert_id: Some("opc-cfo".to_string()),
+                status: "active".to_string(),
+                experience_ref: None,
+            })
             .await
             .unwrap();
 

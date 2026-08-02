@@ -236,65 +236,19 @@ mod tests {
     }
 }
 
-// ── SelfImprovingRound trait（本地定义，不进 harness）────────────
-
-/// AI Agent 自改进循环抽象（生成 → 评估 → 改进 → 再生成）。
-///
-/// 方案文档 §3.4：补 Loop Engineering 缺口——Reflector 输出桥接回
-/// 工作循环；Synthesizing→Finished 前有质量门。trait 定义在本地 crate
-/// （company-runtime），不进 harness；基座后续若有 ExperiencePool
-/// 由 trait 实现方对接。
-/// 本地 crate trait，仅自用，允许 async fn in trait。
-#[allow(async_fn_in_trait)]
-pub trait SelfImprovingRound {
-    /// 输入：一次 round 的原始输出（生成物）。
-    type Output;
-
-    /// 评估：返回质量信号 + 反思内容。
-    /// `role_id` 用于归因隔离（只评估拥有该 work item 的角色）。
-    async fn evaluate(
-        &self,
-        role_id: &str,
-        work_item_id: &str,
-        output: &Self::Output,
-    ) -> crate::CompanyResult<RoundEvaluation>;
-
-    /// 改进：基于评估生成改进后的输出（None = 质量达标，无需改进）。
-    async fn improve(
-        &self,
-        output: &Self::Output,
-        evaluation: &RoundEvaluation,
-    ) -> crate::CompanyResult<Option<Self::Output>>;
-}
-
-/// Round 评估结果。
-#[derive(Debug, Clone)]
-pub struct RoundEvaluation {
-    /// 质量分 0.0-1.0。
-    pub quality: f64,
-    /// 是否达标（≥ threshold 即通过质量门）。
-    pub passed: bool,
-    /// 反思内容（写入经验记录）。
-    pub reflection: String,
-    /// 经验信号。
-    pub signal: Signal,
-}
-
-impl RoundEvaluation {
-    pub fn new(quality: f64, threshold: f64, reflection: impl Into<String>) -> Self {
-        let passed = quality >= threshold;
-        Self {
-            quality,
-            passed,
-            reflection: reflection.into(),
-            signal: if passed {
-                Signal::Success
-            } else {
-                Signal::Feedback
-            },
-        }
-    }
-}
+// ── 自改进循环（对接上游 harness 契约，本地不重复定义）───────────
+//
+// `SelfImprovingRound` trait 与 `RoundEvaluation`/`RoundResult`/`NextAction`
+// 的权威定义在 **axagent-harness**（self_improving_loop.rs，lib.rs 已
+// pub export）；通用执行器 `SelfImprovementExecutor` 在 axagent-agent
+// （consumer）。业务实现方直接 `impl harness::self_improving_loop::SelfImprovingRound`
+// 注入领域评估逻辑（参考 stock_analysis.rs 的 `StockAnalysisRound`）。
+//
+// 2026-08-02 修正：P3 曾在此本地定义同名 trait/struct（照搬方案文档
+// "定义在本地 crate 不进 harness"），违反"共享类型权威在 harness"铁律，
+// 且字段与上游不兼容（upstream 实际早已实现整套 Loop Engineering）。
+// 已删除本地定义，改用上游契约。
+use axagent_harness::self_improving_loop::RoundEvaluation;
 
 /// 质量门服务：将 RoundEvaluation 落库为经验记录（防污染归因）。
 pub struct QualityGateService<'a> {
@@ -307,6 +261,7 @@ impl<'a> QualityGateService<'a> {
     }
 
     /// 质量门：评估结果 → 经验记录（仅当 role_id 拥有 work_item 时写入）。
+    /// `threshold` 为质量门槛：`evaluation.score >= threshold` 即通过。
     /// 返回是否通过质量门。
     pub async fn apply(
         &self,
@@ -314,20 +269,37 @@ impl<'a> QualityGateService<'a> {
         work_item_id: &str,
         owner_role_id: &str,
         evaluation: &RoundEvaluation,
+        threshold: f64,
     ) -> crate::CompanyResult<bool> {
         let exp = ExperienceService::new(self.db);
         // 归因铁律校验
         exp.validate_attribution(role_id, work_item_id, owner_role_id).await?;
+        // 质量门判定 + 经验信号映射（harness RoundEvaluation 无 passed/signal，
+        // 由本层按 score 与 threshold 计算）
+        let passed = evaluation.score >= threshold;
+        let signal = if passed {
+            Signal::Success
+        } else {
+            Signal::Feedback
+        };
+        let mut reflection = evaluation.raw_assessment.clone();
+        if !evaluation.gaps.is_empty() {
+            if !reflection.is_empty() {
+                reflection.push('\n');
+            }
+            reflection.push_str("不足: ");
+            reflection.push_str(&evaluation.gaps.join("; "));
+        }
         // 落库经验
         exp.record(
             &format!("gate-{work_item_id}-{}", chrono::Utc::now().timestamp()),
             role_id,
             work_item_id,
-            evaluation.signal,
-            &evaluation.reflection,
+            signal,
+            &reflection,
         )
         .await?;
-        Ok(evaluation.passed)
+        Ok(passed)
     }
 }
 
@@ -335,24 +307,36 @@ impl<'a> QualityGateService<'a> {
 mod quality_gate_tests {
     use super::*;
 
+    /// 构造 harness 版 RoundEvaluation（字段全 pub，字面量构造）。
+    fn eval(score: f64, raw: &str) -> RoundEvaluation {
+        RoundEvaluation {
+            score,
+            confidence: 0.9,
+            gaps: vec![],
+            strengths: vec![],
+            raw_assessment: raw.to_string(),
+            next_direction: None,
+        }
+    }
+
     #[tokio::test]
     async fn quality_gate_attribution_and_pass() {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
         let gate = QualityGateService::new(db);
 
-        // 归因正确 + 达标 → 通过 + 落库经验
-        let ev = RoundEvaluation::new(0.9, 0.7, "分析结构清晰，结论可执行");
-        let passed = gate.apply("role-cfo", "wi-1", "role-cfo", &ev).await.unwrap();
+        // 归因正确 + 达标（score 0.9 >= 0.7）→ 通过 + 落库经验
+        let ev = eval(0.9, "分析结构清晰，结论可执行");
+        let passed = gate.apply("role-cfo", "wi-1", "role-cfo", &ev, 0.7).await.unwrap();
         assert!(passed);
 
         // 归因污染 → 拒绝
-        let ev2 = RoundEvaluation::new(0.5, 0.7, "CTO 尝试写入 CFO 的经验");
-        assert!(gate.apply("role-cto", "wi-1", "role-cfo", &ev2).await.is_err());
+        let ev2 = eval(0.5, "CTO 尝试写入 CFO 的经验");
+        assert!(gate.apply("role-cto", "wi-1", "role-cfo", &ev2, 0.7).await.is_err());
 
-        // 未达标 → 不通过但记录 feedback
-        let ev3 = RoundEvaluation::new(0.4, 0.7, "缺数据支撑");
-        let passed3 = gate.apply("role-cfo", "wi-2", "role-cfo", &ev3).await.unwrap();
+        // 未达标（score 0.4 < 0.7）→ 不通过但记录 feedback
+        let ev3 = eval(0.4, "缺数据支撑");
+        let passed3 = gate.apply("role-cfo", "wi-2", "role-cfo", &ev3, 0.7).await.unwrap();
         assert!(!passed3);
 
         // 经验记录已写入（晋升阈值用）
@@ -363,11 +347,18 @@ mod quality_gate_tests {
 
     #[tokio::test]
     async fn quality_gate_signal_mapping() {
-        let ok = RoundEvaluation::new(0.9, 0.7, "达标");
-        assert_eq!(ok.signal, Signal::Success);
-        assert!(ok.passed);
-        let bad = RoundEvaluation::new(0.3, 0.7, "不达标");
-        assert_eq!(bad.signal, Signal::Feedback);
-        assert!(!bad.passed);
+        // score >= threshold → 通过（Success），否则不通过（Feedback）
+        assert!(eval(0.9, "达标").score >= 0.7);
+        assert!(eval(0.3, "不达标").score < 0.7);
+
+        let h = axagent_dao::db::create_test_pool().await.unwrap();
+        let db = &h.conn;
+        let gate = QualityGateService::new(db);
+        // 达标 → 落 Success 经验
+        let ok = eval(0.9, "达标");
+        assert!(gate.apply("role-cfo", "wi-3", "role-cfo", &ok, 0.7).await.unwrap());
+        // 未达标 → 落 Feedback 经验
+        let bad = eval(0.3, "不达标");
+        assert!(!gate.apply("role-cfo", "wi-4", "role-cfo", &bad, 0.7).await.unwrap());
     }
 }

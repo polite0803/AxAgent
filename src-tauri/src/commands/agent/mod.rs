@@ -53,6 +53,9 @@ use skill_execution::{
 };
 
 pub mod command_bridge;
+use crate::commands::stock_analysis_bridge::{
+    STOCK_WRITE_TOOLS, build_stock_chat_tools, build_stock_command_handlers,
+};
 use command_bridge::{build_chat_tools as build_tauri_command_chat_tools, build_command_handlers};
 
 /// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
@@ -1225,6 +1228,28 @@ pub async fn agent_query(
         info!("[agent] Registered {} Tauri command handlers", handler_count);
     }
 
+    // ── 股票命令桥接器：AxInvest 本地股票命令注册为 Agent 可调用工具 ──
+    // 对齐上游 Tauri 命令桥接器；股票命令依赖 AStockClient + cron_job_store，
+    // 写命令经 STOCK_WRITE_TOOLS 注入 ask 规则（见下）走权限审批，不在此处门控。
+    {
+        let stock_tools = build_stock_chat_tools();
+        let stock_tool_count = stock_tools.len();
+        chat_tools.extend(stock_tools);
+
+        let stock_handlers = build_stock_command_handlers(
+            app_state.astock_client.clone(),
+            app_state.harness.db().clone(),
+            app_state.cron_job_store.clone(),
+            app.clone(),
+        );
+        let stock_handler_count = stock_handlers.len();
+        for (tool_name, handler) in stock_handlers {
+            tool_registry.register_skill_tool(tool_name, handler);
+        }
+        info!("[agent] Added {} stock command tools to chat_tools", stock_tool_count);
+        info!("[agent] Registered {} stock command handlers", stock_handler_count);
+    }
+
     // Create API client with tool definitions, model ID and parameters
     // Also attach a streaming callback to emit text/thinking deltas in real-time
     // 语义缓存注入：仅当运行时开关开启时，把共享的 SemanticCache 作为 HarnessCache
@@ -1852,7 +1877,11 @@ pub async fn agent_query(
             session.session().clone(),
             Box::new(api_client),
             Box::new(tool_registry),
-            PermissionPolicy::new(runtime_permission_mode),
+            PermissionPolicy::new(runtime_permission_mode).with_permission_rules_from_lists(
+                Vec::new(),
+                Vec::new(),
+                STOCK_WRITE_TOOLS.iter().map(|name| name.to_string()).collect(),
+            ),
             system_prompt,
             runtime_feature_config,
         )

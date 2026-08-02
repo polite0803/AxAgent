@@ -15,14 +15,14 @@ pub mod error;
 pub mod experience;
 pub mod hiring;
 pub mod org;
+pub mod self_improving;
 pub mod work_item;
 pub mod work_item_service;
 
 pub use error::{CompanyError, CompanyResult};
-pub use experience::{
-    ExperienceService, QualityGateService, RoundEvaluation, SelfImprovingRound, Signal,
-};
+pub use experience::{ExperienceService, QualityGateService, Signal};
 pub use hiring::HiringService;
 pub use org::OrgService;
+pub use self_improving::OpcWorkItemRound;
 pub use work_item::{ManagementMode, Phase, Transition, TransitionError};
 pub use work_item_service::{NewWorkItem, WorkItemService};

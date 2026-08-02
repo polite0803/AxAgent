@@ -18,6 +18,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 /// WorkItem 生命周期阶段。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,6 +102,8 @@ pub enum TransitionError {
     Illegal { from: Phase, event: Transition },
     #[error("终态不可转换: {phase:?}")]
     Terminal { phase: Phase },
+    #[error("无法解析 phase: {input:?}")]
+    Parse { input: String },
 }
 
 impl fmt::Display for Phase {
@@ -125,21 +128,6 @@ impl Phase {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Phase> {
-        match s {
-            "QUEUED" => Some(Phase::Queued),
-            "IN_PROGRESS" => Some(Phase::InProgress),
-            "WAITING_FOR_CHILDREN" => Some(Phase::WaitingForChildren),
-            "BLOCKED" => Some(Phase::Blocked),
-            "REVIEW" => Some(Phase::Review),
-            "APPROVED" => Some(Phase::Approved),
-            "DONE" => Some(Phase::Done),
-            "FAILED" => Some(Phase::Failed),
-            "CANCELLED" => Some(Phase::Cancelled),
-            _ => None,
-        }
-    }
-
     pub fn is_terminal(&self) -> bool {
         DONE_PHASES.contains(self)
     }
@@ -153,6 +141,25 @@ impl Phase {
             Phase::Review => "评审",
             Phase::Approved | Phase::Done => "已完成",
             Phase::Failed | Phase::Cancelled => "终止",
+        }
+    }
+}
+
+impl FromStr for Phase {
+    type Err = TransitionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "QUEUED" => Ok(Phase::Queued),
+            "IN_PROGRESS" => Ok(Phase::InProgress),
+            "WAITING_FOR_CHILDREN" => Ok(Phase::WaitingForChildren),
+            "BLOCKED" => Ok(Phase::Blocked),
+            "REVIEW" => Ok(Phase::Review),
+            "APPROVED" => Ok(Phase::Approved),
+            "DONE" => Ok(Phase::Done),
+            "FAILED" => Ok(Phase::Failed),
+            "CANCELLED" => Ok(Phase::Cancelled),
+            _ => Err(TransitionError::Parse { input: s.to_string() }),
         }
     }
 }
@@ -312,9 +319,9 @@ mod tests {
             Phase::WaitingForChildren,
         ] {
             let s = p.as_str();
-            assert_eq!(Phase::from_str(s), Some(p));
+            assert_eq!(s.parse::<Phase>().ok(), Some(p));
         }
-        assert_eq!(Phase::from_str("BOGUS"), None);
+        assert_eq!("BOGUS".parse::<Phase>().ok(), None);
     }
 
     /// 看板列映射

@@ -1,3 +1,4 @@
+import { OfficeTab as FleetOfficeTab } from "@/components/office/OfficeTab";
 import { invoke } from "@/lib/invoke";
 import {
   DeleteOutlined,
@@ -13,6 +14,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import {
+  Alert,
   Button,
   Card,
   Col,
@@ -38,6 +40,7 @@ import {
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
 
@@ -111,51 +114,60 @@ interface Project {
   updated_at: number;
 }
 
-// ── 状态标签映射 ──────────────────────────────────────────────────
+// ── 状态标签翻译函数 ─────────────────────────────────────────────
 
-const STATUS_MAP: Record<string, { color: string; label: string }> = {
-  draft: { color: "default", label: "草稿" },
-  sent: { color: "blue", label: "已发送" },
-  paid: { color: "green", label: "已收款" },
-  overdue: { color: "red", label: "逾期" },
-  cancelled: { color: "default", label: "已取消" },
-  refunded: { color: "orange", label: "已退款" },
+function getInvoiceStatusKey(status: string): string {
+  return `opc.invoiceStatus.${status}`;
+}
+
+function getCustomerStatusKey(status: string): string {
+  return `opc.customerStatus.${status}`;
+}
+
+function getProjectStatusKey(status: string): string {
+  return `opc.projectStatus.${status}`;
+}
+
+function getSourceKey(source: string): string {
+  return `opc.source.${source}`;
+}
+
+const STATUS_COLOR_MAP: Record<string, string> = {
+  draft: "default",
+  sent: "blue",
+  paid: "green",
+  overdue: "red",
+  cancelled: "default",
+  refunded: "orange",
 };
 
-const CUST_STATUS: Record<string, { color: string; label: string }> = {
-  lead: { color: "default", label: "线索" },
-  prospect: { color: "blue", label: "潜在" },
-  active: { color: "green", label: "活跃" },
-  inactive: { color: "default", label: "非活跃" },
-  churned: { color: "red", label: "流失" },
+const CUST_STATUS_COLOR_MAP: Record<string, string> = {
+  lead: "default",
+  prospect: "blue",
+  active: "green",
+  inactive: "default",
+  churned: "red",
 };
 
-const PROJ_STATUS: Record<string, { color: string; label: string }> = {
-  planning: { color: "blue", label: "规划中" },
-  active: { color: "green", label: "进行中" },
-  paused: { color: "orange", label: "暂停" },
-  completed: { color: "default", label: "已完成" },
-  cancelled: { color: "red", label: "已取消" },
-};
-
-const SOURCE_MAP: Record<string, string> = {
-  Referral: "推荐",
-  Website: "网站",
-  SocialMedia: "社交媒体",
-  Marketplace: "市场",
-  Direct: "直接",
+const PROJ_STATUS_COLOR_MAP: Record<string, string> = {
+  planning: "blue",
+  active: "green",
+  paused: "orange",
+  completed: "default",
+  cancelled: "red",
 };
 
 // ── 主页面 ───────────────────────────────────────────────────────
 
 export function OpcPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState("dashboard");
 
   return (
     <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
       <Title level={3} style={{ marginBottom: 16 }}>
         <FileTextOutlined style={{ marginRight: 8 }} />
-        OPC — 一人公司管理面板
+        {t("opc.title")}
       </Title>
       <Tabs
         activeKey={tab}
@@ -165,7 +177,7 @@ export function OpcPage() {
             key: "dashboard",
             label: (
               <span>
-                <RiseOutlined /> 仪表盘
+                <RiseOutlined /> {t("opc.nav.dashboard")}
               </span>
             ),
             children: <DashboardTab />,
@@ -174,7 +186,7 @@ export function OpcPage() {
             key: "invoices",
             label: (
               <span>
-                <DollarOutlined /> 发票
+                <DollarOutlined /> {t("opc.nav.invoices")}
               </span>
             ),
             children: <InvoicesTab />,
@@ -183,7 +195,7 @@ export function OpcPage() {
             key: "customers",
             label: (
               <span>
-                <TeamOutlined /> 客户
+                <TeamOutlined /> {t("opc.nav.customers")}
               </span>
             ),
             children: <CustomersTab />,
@@ -192,7 +204,7 @@ export function OpcPage() {
             key: "projects",
             label: (
               <span>
-                <ProjectOutlined /> 项目
+                <ProjectOutlined /> {t("opc.nav.projects")}
               </span>
             ),
             children: <ProjectsTab />,
@@ -201,7 +213,7 @@ export function OpcPage() {
             key: "sites",
             label: (
               <span>
-                <FileTextOutlined /> 站点
+                <FileTextOutlined /> {t("opc.nav.sites")}
               </span>
             ),
             children: <SitesTab />,
@@ -210,16 +222,16 @@ export function OpcPage() {
             key: "office",
             label: (
               <span>
-                <TeamOutlined /> 办公室
+                <TeamOutlined /> {t("opc.nav.office")}
               </span>
             ),
-            children: <OfficeTab />,
+            children: <OpcOfficeTab />,
           },
           {
             key: "talent",
             label: (
               <span>
-                <SearchOutlined /> 人才市场
+                <SearchOutlined /> {t("opc.nav.talent")}
               </span>
             ),
             children: <TalentMarketTab />,
@@ -228,7 +240,7 @@ export function OpcPage() {
             key: "market",
             label: (
               <span>
-                <RiseOutlined /> 市场包
+                <RiseOutlined /> {t("opc.nav.market")}
               </span>
             ),
             children: <MarketPackTab />,
@@ -237,7 +249,7 @@ export function OpcPage() {
             key: "kanban",
             label: (
               <span>
-                <ProjectOutlined /> 看板
+                <ProjectOutlined /> {t("opc.nav.kanban")}
               </span>
             ),
             children: <KanbanTab />,
@@ -253,6 +265,7 @@ export function OpcPage() {
 // ══════════════════════════════════════════════════════════════════
 
 function DashboardTab() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<
     {
@@ -277,37 +290,49 @@ function DashboardTab() {
   }, []);
 
   if (loading) { return <Spin size="large" style={{ display: "block", margin: "80px auto" }} />; }
-  if (!summary) { return <Empty description="无法加载仪表盘" />; }
+  if (!summary) { return <Empty description={t("opc.dashboard.loadFailed")} />; }
 
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="总收入" value={summary.total_revenue} prefix="¥" precision={2} />
+            <Statistic title={t("opc.dashboard.totalRevenue")} value={summary.total_revenue} prefix="¥" precision={2} />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="发票总数" value={summary.total_invoices} prefix={<FileTextOutlined />} />
+            <Statistic
+              title={t("opc.dashboard.totalInvoices")}
+              value={summary.total_invoices}
+              prefix={<FileTextOutlined />}
+            />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="活跃客户" value={summary.total_customers} prefix={<TeamOutlined />} />
+            <Statistic
+              title={t("opc.dashboard.activeCustomers")}
+              value={summary.total_customers}
+              prefix={<TeamOutlined />}
+            />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="活跃项目" value={summary.active_projects} prefix={<ProjectOutlined />} />
+            <Statistic
+              title={t("opc.dashboard.activeProjects")}
+              value={summary.active_projects}
+              prefix={<ProjectOutlined />}
+            />
           </Card>
         </Col>
       </Row>
       <Row gutter={16}>
         <Col span={12}>
-          <Card title="KPI 指标" size="small">
+          <Card title={t("opc.dashboard.kpiTitle")} size="small">
             {summary.recent_kpis.length === 0
-              ? <Empty description="暂无 KPI" />
+              ? <Empty description={t("opc.dashboard.noKpi")} />
               : (
                 <Timeline
                   items={summary.recent_kpis.slice(0, 5).map((kpi) => ({
@@ -323,7 +348,7 @@ function DashboardTab() {
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="快速操作" size="small">
+          <Card title={t("opc.dashboard.quickActionsTitle")} size="small">
             <Space direction="vertical" style={{ width: "100%" }}>
               <Button
                 type="primary"
@@ -331,21 +356,21 @@ function DashboardTab() {
                 icon={<DollarOutlined />}
                 onClick={() => window.dispatchEvent(new CustomEvent("opc-switch-tab", { detail: "invoices" }))}
               >
-                管理发票
+                {t("opc.dashboard.manageInvoices")}
               </Button>
               <Button
                 block
                 icon={<TeamOutlined />}
                 onClick={() => window.dispatchEvent(new CustomEvent("opc-switch-tab", { detail: "customers" }))}
               >
-                管理客户
+                {t("opc.dashboard.manageCustomers")}
               </Button>
               <Button
                 block
                 icon={<ProjectOutlined />}
                 onClick={() => window.dispatchEvent(new CustomEvent("opc-switch-tab", { detail: "projects" }))}
               >
-                管理项目
+                {t("opc.dashboard.manageProjects")}
               </Button>
             </Space>
           </Card>
@@ -360,6 +385,7 @@ function DashboardTab() {
 // ══════════════════════════════════════════════════════════════════
 
 function InvoicesTab() {
+  const { t } = useTranslation();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -401,78 +427,84 @@ function InvoicesTab() {
           notes: values.notes || "",
         },
       });
-      message.success("发票创建成功");
+      message.success(t("opc.invoice.created"));
       setModalOpen(false);
       form.resetFields();
       load();
     } catch (e) {
-      message.error(`创建失败: ${e}`);
+      message.error(t("opc.common.createFailed", { error: String(e) }));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await invoke("opc_delete_invoice", { id });
-      message.success("发票已删除");
+      message.success(t("opc.invoice.deleted"));
       load();
     } catch (e) {
-      message.error(`删除失败: ${e}`);
+      message.error(t("opc.common.deleteFailed", { error: String(e) }));
     }
   };
 
   const handleTransition = async (id: string, status: string) => {
     try {
       await invoke("opc_transition_invoice", { id, targetStatus: status });
-      message.success("状态已更新");
+      message.success(t("opc.invoice.statusUpdated"));
       setTransitionOpen(false);
       setTransitionInvoice(null);
       load();
     } catch (e) {
-      message.error(`状态变更失败: ${e}`);
+      message.error(t("opc.invoice.statusUpdateFailed", { error: String(e) }));
     }
   };
 
   const nextStatuses = (status: string): Array<{ value: string; label: string }> => {
     const map: Record<string, Array<{ value: string; label: string }>> = {
-      draft: [{ value: "sent", label: "发送" }, { value: "cancelled", label: "取消" }],
-      sent: [{ value: "paid", label: "标记已收款" }, { value: "overdue", label: "标记逾期" }, {
+      draft: [{ value: "sent", label: t("opc.invoice.actionSend") }, {
         value: "cancelled",
-        label: "取消",
+        label: t("opc.invoice.actionCancel"),
       }],
-      overdue: [{ value: "paid", label: "标记已收款" }, { value: "cancelled", label: "取消" }],
-      paid: [{ value: "refunded", label: "退款" }],
+      sent: [{ value: "paid", label: t("opc.invoice.actionMarkPaid") }, {
+        value: "overdue",
+        label: t("opc.invoice.actionMarkOverdue"),
+      }, { value: "cancelled", label: t("opc.invoice.actionCancel") }],
+      overdue: [{ value: "paid", label: t("opc.invoice.actionMarkPaid") }, {
+        value: "cancelled",
+        label: t("opc.invoice.actionCancel"),
+      }],
+      paid: [{ value: "refunded", label: t("opc.invoice.actionRefund") }],
     };
     return map[status] || [];
   };
 
   const columns = [
-    { title: "编号", dataIndex: "invoice_number", key: "number", width: 180 },
+    { title: t("opc.invoice.columnNumber"), dataIndex: "invoice_number", key: "number", width: 180 },
     {
-      title: "金额",
+      title: t("opc.invoice.columnAmount"),
       key: "total",
       render: (_: unknown, r: Invoice) => `¥${r.total.toFixed(2)}`,
       sorter: (a: Invoice, b: Invoice) => a.total - b.total,
     },
     {
-      title: "状态",
+      title: t("opc.invoice.columnStatus"),
       key: "status",
       render: (_: unknown, r: Invoice) => {
-        const s = STATUS_MAP[r.status] || { color: "default", label: r.status };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const color = STATUS_COLOR_MAP[r.status] || "default";
+        return <Tag color={color}>{t(getInvoiceStatusKey(r.status))}</Tag>;
       },
     },
     {
-      title: "到期日",
+      title: t("opc.invoice.columnDue"),
       key: "due",
       render: (_: unknown, r: Invoice) => r.due_at ? new Date(r.due_at * 1000).toLocaleDateString() : "-",
     },
     {
-      title: "创建时间",
+      title: t("opc.invoice.columnCreated"),
       key: "created",
       render: (_: unknown, r: Invoice) => new Date(r.created_at * 1000).toLocaleString(),
     },
     {
-      title: "操作",
+      title: t("opc.common.actions"),
       key: "actions",
       width: 200,
       render: (_: unknown, r: Invoice) => (
@@ -486,10 +518,10 @@ function InvoicesTab() {
                 setTransitionOpen(true);
               }}
             >
-              流转
+              {t("opc.invoice.transition")}
             </Button>
           )}
-          <Popconfirm title="确认删除此发票？" onConfirm={() => handleDelete(r.id)}>
+          <Popconfirm title={t("opc.invoice.confirmDelete")} onConfirm={() => handleDelete(r.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -510,7 +542,7 @@ function InvoicesTab() {
               setModalOpen(true);
             }}
           >
-            新建发票
+            {t("opc.invoice.newInvoice")}
           </Button>
         }
       >
@@ -526,7 +558,7 @@ function InvoicesTab() {
 
       {/* 新建发票 Modal */}
       <Modal
-        title="新建发票"
+        title={t("opc.invoice.newInvoice")}
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => {
@@ -534,14 +566,18 @@ function InvoicesTab() {
           form.resetFields();
         }}
         width={640}
-        okText="创建"
-        cancelText="取消"
+        okText={t("opc.common.create")}
+        cancelText={t("opc.common.cancel")}
       >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item name="customer_id" label="客户" rules={[{ required: true, message: "请选择客户" }]}>
+          <Form.Item
+            name="customer_id"
+            label={t("opc.invoice.customerLabel")}
+            rules={[{ required: true, message: t("opc.invoice.customerRequired") }]}
+          >
             <Select
               showSearch
-              placeholder="选择客户"
+              placeholder={t("opc.invoice.customerPlaceholder")}
               optionFilterProp="label"
               options={customers.map((c) => ({ value: c.id, label: `${c.name} (${c.email})` }))}
             />
@@ -550,7 +586,7 @@ function InvoicesTab() {
             name="line_items"
             rules={[{
               validator: async (_, items) => {
-                if (!items?.length) { throw new Error("至少需要一个行项目"); }
+                if (!items?.length) { throw new Error(t("opc.invoice.needItem")); }
               },
             }]}
           >
@@ -558,19 +594,37 @@ function InvoicesTab() {
               <>
                 {fields.map(({ key, name, ...rest }) => (
                   <Space key={key} style={{ display: "flex", marginBottom: 8 }} align="baseline" {...rest}>
-                    <Form.Item name={[name, "description"]} rules={[{ required: true, message: "描述" }]} noStyle>
-                      <Input placeholder="描述" style={{ width: 180 }} />
+                    <Form.Item
+                      name={[name, "description"]}
+                      rules={[{ required: true, message: t("opc.common.description") }]}
+                      noStyle
+                    >
+                      <Input placeholder={t("opc.common.description")} style={{ width: 180 }} />
                     </Form.Item>
-                    <Form.Item name={[name, "quantity"]} rules={[{ required: true, message: "数量" }]} noStyle>
-                      <InputNumber placeholder="数量" min={1} style={{ width: 80 }} />
+                    <Form.Item
+                      name={[name, "quantity"]}
+                      rules={[{ required: true, message: t("opc.invoice.quantity") }]}
+                      noStyle
+                    >
+                      <InputNumber placeholder={t("opc.invoice.quantity")} min={1} style={{ width: 80 }} />
                     </Form.Item>
-                    <Form.Item name={[name, "unit_price"]} rules={[{ required: true, message: "单价" }]} noStyle>
-                      <InputNumber placeholder="单价" min={0} precision={2} prefix="¥" style={{ width: 120 }} />
+                    <Form.Item
+                      name={[name, "unit_price"]}
+                      rules={[{ required: true, message: t("opc.invoice.unitPrice") }]}
+                      noStyle
+                    >
+                      <InputNumber
+                        placeholder={t("opc.invoice.unitPrice")}
+                        min={0}
+                        precision={2}
+                        prefix="¥"
+                        style={{ width: 120 }}
+                      />
                     </Form.Item>
                     <Form.Item name={[name, "tax_rate"]} noStyle>
                       <Select
                         style={{ width: 80 }}
-                        placeholder="税率"
+                        placeholder={t("opc.invoice.taxRate")}
                         options={[
                           { value: 0, label: "0%" },
                           { value: 0.03, label: "3%" },
@@ -593,15 +647,15 @@ function InvoicesTab() {
                   onClick={() => add({ description: "", quantity: 1, unit_price: 0, tax_rate: 0 })}
                   icon={<PlusOutlined />}
                 >
-                  添加行项目
+                  {t("opc.invoice.addLineItem")}
                 </Button>
               </>
             )}
           </Form.List>
-          <Form.Item name="due_at" label="到期日">
+          <Form.Item name="due_at" label={t("opc.invoice.dueAtLabel")}>
             <DatePicker style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="notes" label="备注">
+          <Form.Item name="notes" label={t("opc.common.notes")}>
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
@@ -609,7 +663,7 @@ function InvoicesTab() {
 
       {/* 状态流转 Modal */}
       <Modal
-        title="发票状态流转"
+        title={t("opc.invoice.transitionTitle")}
         open={transitionOpen}
         onCancel={() => {
           setTransitionOpen(false);
@@ -621,16 +675,20 @@ function InvoicesTab() {
         {transitionInvoice && (
           <div>
             <Descriptions size="small" column={1}>
-              <Descriptions.Item label="编号">{transitionInvoice.invoice_number}</Descriptions.Item>
-              <Descriptions.Item label="当前状态">
-                <Tag color={STATUS_MAP[transitionInvoice.status]?.color}>
-                  {STATUS_MAP[transitionInvoice.status]?.label}
+              <Descriptions.Item label={t("opc.invoice.numberLabel")}>
+                {transitionInvoice.invoice_number}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("opc.invoice.currentStatus")}>
+                <Tag color={STATUS_COLOR_MAP[transitionInvoice.status] || "default"}>
+                  {t(getInvoiceStatusKey(transitionInvoice.status))}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="金额">¥{transitionInvoice.total.toFixed(2)}</Descriptions.Item>
+              <Descriptions.Item label={t("opc.invoice.amountLabel")}>
+                ¥{transitionInvoice.total.toFixed(2)}
+              </Descriptions.Item>
             </Descriptions>
             <Divider />
-            <Text strong>选择目标状态：</Text>
+            <Text strong>{t("opc.invoice.selectTargetStatus")}</Text>
             <div style={{ marginTop: 12 }}>
               {nextStatuses(transitionInvoice.status).map((ns) => (
                 <Button
@@ -654,6 +712,7 @@ function InvoicesTab() {
 // ══════════════════════════════════════════════════════════════════
 
 function CustomersTab() {
+  const { t } = useTranslation();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -684,56 +743,61 @@ function CustomersTab() {
       };
       if (editing) {
         await invoke("opc_update_customer", { id: editing.id, input: payload });
-        message.success("客户已更新");
+        message.success(t("opc.customer.updated"));
       } else {
         await invoke("opc_create_customer", { input: payload });
-        message.success("客户创建成功");
+        message.success(t("opc.customer.created"));
       }
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
       load();
     } catch (e) {
-      message.error(`操作失败: ${e}`);
+      message.error(t("opc.common.opFailed", { error: String(e) }));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await invoke("opc_delete_customer", { id });
-      message.success("客户已删除");
+      message.success(t("opc.customer.deleted"));
       load();
     } catch (e) {
-      message.error(`删除失败: ${e}`);
+      message.error(t("opc.common.deleteFailed", { error: String(e) }));
     }
   };
 
   const columns = [
-    { title: "名称", dataIndex: "name", key: "name" },
-    { title: "邮箱", dataIndex: "email", key: "email" },
-    { title: "公司", dataIndex: "company", key: "company", render: (v: string | null) => v || "-" },
+    { title: t("opc.customer.columnName"), dataIndex: "name", key: "name" },
+    { title: t("opc.customer.columnEmail"), dataIndex: "email", key: "email" },
     {
-      title: "状态",
+      title: t("opc.customer.columnCompany"),
+      dataIndex: "company",
+      key: "company",
+      render: (v: string | null) => v || "-",
+    },
+    {
+      title: t("opc.customer.columnStatus"),
       key: "status",
       render: (_: unknown, r: Customer) => {
-        const s = CUST_STATUS[r.status] || { color: "default", label: r.status };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const color = CUST_STATUS_COLOR_MAP[r.status] || "default";
+        return <Tag color={color}>{t(getCustomerStatusKey(r.status))}</Tag>;
       },
     },
     {
-      title: "来源",
+      title: t("opc.customer.columnSource"),
       key: "source",
-      render: (_: unknown, r: Customer) => r.source ? (SOURCE_MAP[r.source] || r.source) : "-",
+      render: (_: unknown, r: Customer) => r.source ? t(getSourceKey(r.source)) : "-",
     },
     {
-      title: "累计消费",
+      title: t("opc.customer.columnRevenue"),
       key: "revenue",
       render: (_: unknown, r: Customer) => `¥${r.total_revenue.toFixed(2)}`,
       sorter: (a: Customer, b: Customer) => a.total_revenue - b.total_revenue,
     },
-    { title: "发票数", dataIndex: "invoice_count", key: "count", width: 80 },
+    { title: t("opc.customer.columnInvoiceCount"), dataIndex: "invoice_count", key: "count", width: 80 },
     {
-      title: "操作",
+      title: t("opc.common.actions"),
       key: "actions",
       width: 120,
       render: (_: unknown, r: Customer) => (
@@ -754,7 +818,7 @@ function CustomersTab() {
               setModalOpen(true);
             }}
           />
-          <Popconfirm title="确认删除此客户？" onConfirm={() => handleDelete(r.id)}>
+          <Popconfirm title={t("opc.customer.confirmDelete")} onConfirm={() => handleDelete(r.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -776,7 +840,7 @@ function CustomersTab() {
               setModalOpen(true);
             }}
           >
-            新建客户
+            {t("opc.customer.newCustomer")}
           </Button>
         }
       >
@@ -791,7 +855,7 @@ function CustomersTab() {
       </Card>
 
       <Modal
-        title={editing ? "编辑客户" : "新建客户"}
+        title={editing ? t("opc.customer.editTitle") : t("opc.customer.newCustomer")}
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => {
@@ -799,36 +863,44 @@ function CustomersTab() {
           setEditing(null);
           form.resetFields();
         }}
-        okText={editing ? "更新" : "创建"}
-        cancelText="取消"
+        okText={editing ? t("opc.common.update") : t("opc.common.create")}
+        cancelText={t("opc.common.cancel")}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item name="name" label="姓名" rules={[{ required: true, message: "请输入姓名" }]}>
+          <Form.Item
+            name="name"
+            label={t("opc.customer.nameLabel")}
+            rules={[{ required: true, message: t("opc.customer.nameRequired") }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="邮箱" rules={[{ required: true, type: "email", message: "请输入有效邮箱" }]}>
+          <Form.Item
+            name="email"
+            label={t("opc.customer.emailLabel")}
+            rules={[{ required: true, type: "email", message: t("opc.customer.emailRequired") }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="phone" label="电话">
+          <Form.Item name="phone" label={t("opc.customer.phoneLabel")}>
             <Input />
           </Form.Item>
-          <Form.Item name="company" label="公司">
+          <Form.Item name="company" label={t("opc.customer.companyLabel")}>
             <Input />
           </Form.Item>
-          <Form.Item name="source" label="来源">
+          <Form.Item name="source" label={t("opc.customer.sourceLabel")}>
             <Select
               allowClear
-              placeholder="选择来源"
+              placeholder={t("opc.customer.sourcePlaceholder")}
               options={[
-                { value: "Referral", label: "推荐" },
-                { value: "Website", label: "网站" },
-                { value: "SocialMedia", label: "社交媒体" },
-                { value: "Marketplace", label: "市场" },
-                { value: "Direct", label: "直接" },
+                { value: "Referral", label: t("opc.source.Referral") },
+                { value: "Website", label: t("opc.source.Website") },
+                { value: "SocialMedia", label: t("opc.source.SocialMedia") },
+                { value: "Marketplace", label: t("opc.source.Marketplace") },
+                { value: "Direct", label: t("opc.source.Direct") },
               ]}
             />
           </Form.Item>
-          <Form.Item name="notes" label="备注">
+          <Form.Item name="notes" label={t("opc.common.notes")}>
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
@@ -842,6 +914,7 @@ function CustomersTab() {
 // ══════════════════════════════════════════════════════════════════
 
 function ProjectsTab() {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -881,27 +954,27 @@ function ProjectsTab() {
       };
       if (editing) {
         await invoke("opc_update_project", { id: editing.id, input: payload });
-        message.success("项目已更新");
+        message.success(t("opc.project.updated"));
       } else {
         await invoke("opc_create_project", { input: payload });
-        message.success("项目创建成功");
+        message.success(t("opc.project.created"));
       }
       setModalOpen(false);
       setEditing(null);
       form.resetFields();
       load();
     } catch (e) {
-      message.error(`操作失败: ${e}`);
+      message.error(t("opc.common.opFailed", { error: String(e) }));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await invoke("opc_delete_project", { id });
-      message.success("项目已删除");
+      message.success(t("opc.project.deleted"));
       load();
     } catch (e) {
-      message.error(`删除失败: ${e}`);
+      message.error(t("opc.common.deleteFailed", { error: String(e) }));
     }
   };
 
@@ -919,7 +992,7 @@ function ProjectsTab() {
           status: "Pending",
         },
       });
-      message.success("里程碑已添加");
+      message.success(t("opc.project.milestoneAdded"));
       setMilestoneOpen(false);
       milestoneForm.resetFields();
       // 刷新项目详情
@@ -927,7 +1000,7 @@ function ProjectsTab() {
       setDetailProject(updated);
       load();
     } catch (e) {
-      message.error(`添加失败: ${e}`);
+      message.error(t("opc.project.milestoneAddFailed", { error: String(e) }));
     }
   };
 
@@ -935,27 +1008,27 @@ function ProjectsTab() {
     if (!detailProject) { return; }
     try {
       await invoke("opc_complete_milestone", { projectId: detailProject.id, milestoneId });
-      message.success("里程碑已完成");
+      message.success(t("opc.project.milestoneCompleted"));
       const updated = await invoke<Project>("opc_get_project", { id: detailProject.id });
       setDetailProject(updated);
       load();
     } catch (e) {
-      message.error(`操作失败: ${e}`);
+      message.error(t("opc.common.opFailed", { error: String(e) }));
     }
   };
 
   const columns = [
-    { title: "项目名称", dataIndex: "title", key: "title" },
+    { title: t("opc.project.columnTitle"), dataIndex: "title", key: "title" },
     {
-      title: "状态",
+      title: t("opc.project.columnStatus"),
       key: "status",
       render: (_: unknown, r: Project) => {
-        const s = PROJ_STATUS[r.status] || { color: "default", label: r.status };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const color = PROJ_STATUS_COLOR_MAP[r.status] || "default";
+        return <Tag color={color}>{t(getProjectStatusKey(r.status))}</Tag>;
       },
     },
     {
-      title: "里程碑",
+      title: t("opc.project.columnMilestones"),
       key: "milestones",
       render: (_: unknown, r: Project) => {
         const done = r.milestones.filter((m) => m.status === "Completed").length;
@@ -963,18 +1036,18 @@ function ProjectsTab() {
       },
     },
     {
-      title: "预算",
+      title: t("opc.project.columnBudget"),
       key: "budget",
       render: (_: unknown, r: Project) => r.budget ? `¥${r.budget.toFixed(2)}` : "-",
       sorter: (a: Project, b: Project) => (a.budget || 0) - (b.budget || 0),
     },
     {
-      title: "截止日期",
+      title: t("opc.project.columnDeadline"),
       key: "deadline",
       render: (_: unknown, r: Project) => r.deadline ? new Date(r.deadline * 1000).toLocaleDateString() : "-",
     },
     {
-      title: "操作",
+      title: t("opc.common.actions"),
       key: "actions",
       width: 160,
       render: (_: unknown, r: Project) => (
@@ -987,7 +1060,7 @@ function ProjectsTab() {
               setDetailOpen(true);
             }}
           >
-            详情
+            {t("opc.project.details")}
           </Button>
           <Button
             size="small"
@@ -1005,7 +1078,7 @@ function ProjectsTab() {
               setModalOpen(true);
             }}
           />
-          <Popconfirm title="确认删除此项目？" onConfirm={() => handleDelete(r.id)}>
+          <Popconfirm title={t("opc.project.confirmDelete")} onConfirm={() => handleDelete(r.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -1027,7 +1100,7 @@ function ProjectsTab() {
               setModalOpen(true);
             }}
           >
-            新建项目
+            {t("opc.project.newProject")}
           </Button>
         }
       >
@@ -1043,7 +1116,7 @@ function ProjectsTab() {
 
       {/* 新建/编辑项目 Modal */}
       <Modal
-        title={editing ? "编辑项目" : "新建项目"}
+        title={editing ? t("opc.project.editTitle") : t("opc.project.newProject")}
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => {
@@ -1052,31 +1125,35 @@ function ProjectsTab() {
           form.resetFields();
         }}
         width={560}
-        okText={editing ? "更新" : "创建"}
-        cancelText="取消"
+        okText={editing ? t("opc.common.update") : t("opc.common.create")}
+        cancelText={t("opc.common.cancel")}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item name="title" label="项目名称" rules={[{ required: true, message: "请输入项目名称" }]}>
+          <Form.Item
+            name="title"
+            label={t("opc.project.titleLabel")}
+            rules={[{ required: true, message: t("opc.project.titleRequired") }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="description" label="描述">
+          <Form.Item name="description" label={t("opc.common.description")}>
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Form.Item name="customer_id" label="关联客户">
+          <Form.Item name="customer_id" label={t("opc.project.customerLabel")}>
             <Select
               allowClear
-              placeholder="选择客户（可选）"
+              placeholder={t("opc.project.customerPlaceholder")}
               optionFilterProp="label"
               options={customers.map((c) => ({ value: c.id, label: `${c.name} (${c.email})` }))}
             />
           </Form.Item>
-          <Form.Item name="budget" label="预算">
+          <Form.Item name="budget" label={t("opc.project.budgetLabel")}>
             <InputNumber min={0} precision={2} prefix="¥" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="deadline" label="截止日期">
+          <Form.Item name="deadline" label={t("opc.common.dueDate")}>
             <DatePicker style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="notes" label="备注">
+          <Form.Item name="notes" label={t("opc.common.notes")}>
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
@@ -1096,20 +1173,24 @@ function ProjectsTab() {
         {detailProject && (
           <div>
             <Descriptions size="small" column={1}>
-              <Descriptions.Item label="状态">
-                <Tag color={PROJ_STATUS[detailProject.status]?.color}>{PROJ_STATUS[detailProject.status]?.label}</Tag>
+              <Descriptions.Item label={t("opc.project.columnStatus")}>
+                <Tag color={PROJ_STATUS_COLOR_MAP[detailProject.status] || "default"}>
+                  {t(getProjectStatusKey(detailProject.status))}
+                </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="描述">{detailProject.description || "-"}</Descriptions.Item>
-              <Descriptions.Item label="预算">
+              <Descriptions.Item label={t("opc.common.description")}>
+                {detailProject.description || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("opc.project.budgetLabel")}>
                 {detailProject.budget ? `¥${detailProject.budget.toFixed(2)}` : "-"}
               </Descriptions.Item>
-              <Descriptions.Item label="截止日期">
+              <Descriptions.Item label={t("opc.common.dueDate")}>
                 {detailProject.deadline ? new Date(detailProject.deadline * 1000).toLocaleDateString() : "-"}
               </Descriptions.Item>
             </Descriptions>
             <Divider />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <Text strong>里程碑 ({detailProject.milestones.length})</Text>
+              <Text strong>{t("opc.project.milestonesTitle", { count: detailProject.milestones.length })}</Text>
               <Button
                 size="small"
                 icon={<PlusOutlined />}
@@ -1118,11 +1199,11 @@ function ProjectsTab() {
                   setMilestoneOpen(true);
                 }}
               >
-                添加里程碑
+                {t("opc.project.addMilestone")}
               </Button>
             </div>
             {detailProject.milestones.length === 0
-              ? <Empty description="暂无里程碑" />
+              ? <Empty description={t("opc.project.noMilestones")} />
               : (
                 <Timeline
                   items={detailProject.milestones.map((m) => ({
@@ -1137,7 +1218,7 @@ function ProjectsTab() {
                               type="link"
                               onClick={() => handleCompleteMilestone(m.id)}
                             >
-                              完成
+                              {t("opc.project.complete")}
                             </Button>
                           )}
                         </div>
@@ -1146,7 +1227,9 @@ function ProjectsTab() {
                         </div>
                         <div>
                           <Text type="secondary" style={{ fontSize: 12 }}>
-                            {m.due_at ? `截止: ${new Date(m.due_at * 1000).toLocaleDateString()}` : ""}
+                            {m.due_at
+                              ? t("opc.project.dueBy", { date: new Date(m.due_at * 1000).toLocaleDateString() })
+                              : ""}
                           </Text>
                         </div>
                       </div>
@@ -1160,24 +1243,28 @@ function ProjectsTab() {
 
       {/* 添加里程碑 Modal */}
       <Modal
-        title="添加里程碑"
+        title={t("opc.project.milestoneModalTitle")}
         open={milestoneOpen}
         onOk={() => milestoneForm.submit()}
         onCancel={() => {
           setMilestoneOpen(false);
           milestoneForm.resetFields();
         }}
-        okText="添加"
-        cancelText="取消"
+        okText={t("opc.project.milestoneOkAdd")}
+        cancelText={t("opc.common.cancel")}
       >
         <Form form={milestoneForm} layout="vertical" onFinish={handleAddMilestone}>
-          <Form.Item name="title" label="标题" rules={[{ required: true, message: "请输入里程碑标题" }]}>
+          <Form.Item
+            name="title"
+            label={t("opc.project.milestoneTitleLabel")}
+            rules={[{ required: true, message: t("opc.project.milestoneTitleRequired") }]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="description" label="描述">
+          <Form.Item name="description" label={t("opc.common.description")}>
             <Input.TextArea rows={2} />
           </Form.Item>
-          <Form.Item name="due_at" label="截止日期">
+          <Form.Item name="due_at" label={t("opc.common.dueDate")}>
             <DatePicker style={{ width: "100%" }} />
           </Form.Item>
         </Form>
@@ -1220,6 +1307,7 @@ interface _ContactSubmission {
 }
 
 function SitesTab() {
+  const { t } = useTranslation();
   const [subTab, setSubTab] = useState("landing");
   return (
     <Tabs
@@ -1227,15 +1315,16 @@ function SitesTab() {
       onChange={setSubTab}
       size="small"
       items={[
-        { key: "landing", label: "落地页", children: <_LandingPagesPanel /> },
-        { key: "blog", label: "博客", children: <_BlogPostsPanel /> },
-        { key: "contacts", label: "联系表单", children: <_ContactsPanel /> },
+        { key: "landing", label: t("opc.site.tabLanding"), children: <_LandingPagesPanel /> },
+        { key: "blog", label: t("opc.site.tabBlog"), children: <_BlogPostsPanel /> },
+        { key: "contacts", label: t("opc.site.tabContacts"), children: <_ContactsPanel /> },
       ]}
     />
   );
 }
 
 function _LandingPagesPanel() {
+  const { t } = useTranslation();
   const [pages, setPages] = useState<_LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -1261,44 +1350,45 @@ function _LandingPagesPanel() {
           content: "",
         },
       });
-      message.success("落地页已创建");
+      message.success(t("opc.site.landingCreated"));
       setModalOpen(false);
       form.resetFields();
       load();
     } catch (e) {
-      message.error(`创建失败: ${e}`);
+      message.error(t("opc.common.createFailed", { error: String(e) }));
     }
   };
 
   const handlePublish = async (id: string) => {
     try {
       await invoke("opc_publish_landing_page", { id });
-      message.success("已发布");
+      message.success(t("opc.site.published"));
       load();
     } catch (e) {
-      message.error(`发布失败: ${e}`);
+      message.error(t("opc.site.publishFailed", { error: String(e) }));
     }
   };
 
   const columns = [
-    { title: "标题", dataIndex: "title", key: "title" },
-    { title: "Slug", dataIndex: "slug", key: "slug" },
+    { title: t("opc.site.columnTitle"), dataIndex: "title", key: "title" },
+    { title: t("opc.site.columnSlug"), dataIndex: "slug", key: "slug" },
     {
-      title: "状态",
+      title: t("opc.site.columnStatus"),
       key: "status",
-      render: (_: unknown, r: _LandingPage) => r.published ? <Tag color="green">已发布</Tag> : <Tag>草稿</Tag>,
+      render: (_: unknown, r: _LandingPage) =>
+        r.published ? <Tag color="green">{t("opc.site.published")}</Tag> : <Tag>{t("opc.site.draftTag")}</Tag>,
     },
     {
-      title: "创建时间",
+      title: t("opc.site.columnCreated"),
       key: "created",
       render: (_: unknown, r: _LandingPage) => new Date(r.created_at * 1000).toLocaleDateString(),
     },
     {
-      title: "操作",
+      title: t("opc.common.actions"),
       key: "actions",
       width: 100,
       render: (_: unknown, r: _LandingPage) =>
-        !r.published && <Button size="small" onClick={() => handlePublish(r.id)}>发布</Button>,
+        !r.published && <Button size="small" onClick={() => handlePublish(r.id)}>{t("opc.site.publish")}</Button>,
     },
   ];
 
@@ -1314,7 +1404,7 @@ function _LandingPagesPanel() {
             setModalOpen(true);
           }}
         >
-          新建落地页
+          {t("opc.site.newLanding")}
         </Button>
       }
     >
@@ -1327,24 +1417,24 @@ function _LandingPagesPanel() {
         pagination={{ pageSize: 20 }}
       />
       <Modal
-        title="新建落地页"
+        title={t("opc.site.landingModalTitle")}
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => {
           setModalOpen(false);
           form.resetFields();
         }}
-        okText="创建"
-        cancelText="取消"
+        okText={t("opc.common.create")}
+        cancelText={t("opc.common.cancel")}
       >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item name="title" label="标题" rules={[{ required: true }]}>
+          <Form.Item name="title" label={t("opc.site.titleLabel")} rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="slug" label="Slug" rules={[{ required: true }]}>
-            <Input placeholder="my-page" />
+          <Form.Item name="slug" label={t("opc.site.slugLabel")} rules={[{ required: true }]}>
+            <Input placeholder={t("opc.site.landingSlugPlaceholder")} />
           </Form.Item>
-          <Form.Item name="description" label="描述">
+          <Form.Item name="description" label={t("opc.common.description")}>
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
@@ -1354,6 +1444,7 @@ function _LandingPagesPanel() {
 }
 
 function _BlogPostsPanel() {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<_BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -1378,41 +1469,46 @@ function _BlogPostsPanel() {
           tags: values.tags ? ((values.tags as string).split(",").map((s) => s.trim()).filter(Boolean)) : [],
         },
       });
-      message.success("文章已创建");
+      message.success(t("opc.site.postCreated"));
       setModalOpen(false);
       form.resetFields();
       load();
     } catch (e) {
-      message.error(`创建失败: ${e}`);
+      message.error(t("opc.common.createFailed", { error: String(e) }));
     }
   };
 
   const handlePublish = async (id: string) => {
     try {
       await invoke("opc_publish_blog_post", { id });
-      message.success("已发布");
+      message.success(t("opc.site.published"));
       load();
     } catch (e) {
-      message.error(`发布失败: ${e}`);
+      message.error(t("opc.site.publishFailed", { error: String(e) }));
     }
   };
 
   const columns = [
-    { title: "标题", dataIndex: "title", key: "title" },
-    { title: "Slug", dataIndex: "slug", key: "slug" },
+    { title: t("opc.site.columnTitle"), dataIndex: "title", key: "title" },
+    { title: t("opc.site.columnSlug"), dataIndex: "slug", key: "slug" },
     {
-      title: "状态",
+      title: t("opc.site.columnStatus"),
       key: "status",
-      render: (_: unknown, r: _BlogPost) => r.published ? <Tag color="green">已发布</Tag> : <Tag>草稿</Tag>,
+      render: (_: unknown, r: _BlogPost) =>
+        r.published ? <Tag color="green">{t("opc.site.published")}</Tag> : <Tag>{t("opc.site.draftTag")}</Tag>,
     },
-    { title: "阅读", dataIndex: "view_count", key: "views", width: 60 },
-    { title: "标签", key: "tags", render: (_: unknown, r: _BlogPost) => r.tags.map((t) => <Tag key={t}>{t}</Tag>) },
+    { title: t("opc.site.columnViews"), dataIndex: "view_count", key: "views", width: 60 },
     {
-      title: "操作",
+      title: t("opc.site.columnTags"),
+      key: "tags",
+      render: (_: unknown, r: _BlogPost) => r.tags.map((t) => <Tag key={t}>{t}</Tag>),
+    },
+    {
+      title: t("opc.common.actions"),
       key: "actions",
       width: 100,
       render: (_: unknown, r: _BlogPost) =>
-        !r.published && <Button size="small" onClick={() => handlePublish(r.id)}>发布</Button>,
+        !r.published && <Button size="small" onClick={() => handlePublish(r.id)}>{t("opc.site.publish")}</Button>,
     },
   ];
 
@@ -1428,7 +1524,7 @@ function _BlogPostsPanel() {
             setModalOpen(true);
           }}
         >
-          新建文章
+          {t("opc.site.newPost")}
         </Button>
       }
     >
@@ -1441,28 +1537,28 @@ function _BlogPostsPanel() {
         pagination={{ pageSize: 20 }}
       />
       <Modal
-        title="新建文章"
+        title={t("opc.site.postModalTitle")}
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => {
           setModalOpen(false);
           form.resetFields();
         }}
-        okText="创建"
-        cancelText="取消"
+        okText={t("opc.common.create")}
+        cancelText={t("opc.common.cancel")}
       >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item name="title" label="标题" rules={[{ required: true }]}>
+          <Form.Item name="title" label={t("opc.site.titleLabel")} rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="slug" label="Slug" rules={[{ required: true }]}>
-            <Input placeholder="my-article" />
+          <Form.Item name="slug" label={t("opc.site.slugLabel")} rules={[{ required: true }]}>
+            <Input placeholder={t("opc.site.postSlugPlaceholder")} />
           </Form.Item>
-          <Form.Item name="excerpt" label="摘要">
+          <Form.Item name="excerpt" label={t("opc.site.excerptLabel")}>
             <Input.TextArea rows={2} />
           </Form.Item>
-          <Form.Item name="tags" label="标签（逗号分隔）">
-            <Input placeholder="tech, rust, opc" />
+          <Form.Item name="tags" label={t("opc.site.tagsLabel")}>
+            <Input placeholder={t("opc.site.tagsPlaceholder")} />
           </Form.Item>
         </Form>
       </Modal>
@@ -1471,6 +1567,7 @@ function _BlogPostsPanel() {
 }
 
 function _ContactsPanel() {
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<_ContactSubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1489,31 +1586,32 @@ function _ContactsPanel() {
       await invoke("opc_mark_contact_read", { id });
       load();
     } catch (e) {
-      message.error(`操作失败: ${e}`);
+      message.error(t("opc.common.opFailed", { error: String(e) }));
     }
   };
 
   const columns = [
-    { title: "姓名", dataIndex: "name", key: "name" },
-    { title: "邮箱", dataIndex: "email", key: "email" },
-    { title: "消息", dataIndex: "message", key: "message", ellipsis: true, width: 300 },
-    { title: "来源", dataIndex: "source", key: "source" },
+    { title: t("opc.site.contactColumnName"), dataIndex: "name", key: "name" },
+    { title: t("opc.site.contactColumnEmail"), dataIndex: "email", key: "email" },
+    { title: t("opc.site.contactColumnMessage"), dataIndex: "message", key: "message", ellipsis: true, width: 300 },
+    { title: t("opc.site.contactColumnSource"), dataIndex: "source", key: "source" },
     {
-      title: "状态",
+      title: t("opc.site.contactColumnStatus"),
       key: "status",
-      render: (_: unknown, r: _ContactSubmission) => r.read ? <Tag>已读</Tag> : <Tag color="orange">未读</Tag>,
+      render: (_: unknown, r: _ContactSubmission) =>
+        r.read ? <Tag>{t("opc.site.readTag")}</Tag> : <Tag color="orange">{t("opc.site.unreadTag")}</Tag>,
     },
     {
-      title: "时间",
+      title: t("opc.site.contactColumnTime"),
       key: "created",
       render: (_: unknown, r: _ContactSubmission) => new Date(r.created_at * 1000).toLocaleString(),
     },
     {
-      title: "操作",
+      title: t("opc.common.actions"),
       key: "actions",
       width: 80,
       render: (_: unknown, r: _ContactSubmission) =>
-        !r.read && <Button size="small" onClick={() => handleMarkRead(r.id)}>标已读</Button>,
+        !r.read && <Button size="small" onClick={() => handleMarkRead(r.id)}>{t("opc.site.markRead")}</Button>,
     },
   ];
 
@@ -1531,292 +1629,139 @@ function _ContactsPanel() {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════
-// 可视化办公室
-// ══════════════════════════════════════════════════════════════════
-
-interface OfficeWorker {
-  id: string;
-  role: string;
-  name: string;
-  icon: string;
-  color: string;
-  status: "working" | "idle" | "busy" | "offline";
-  currentTask: string;
-  completedToday: number;
-  stats: { label: string; value: string }[];
-}
-
-const OFFICE_WORKERS: OfficeWorker[] = [
-  {
-    id: "financial-clerk",
-    role: "opc_financial_clerk",
-    name: "财务专员",
-    icon: "💰",
-    color: "#52c41a",
-    status: "working",
-    currentTask: "处理待开发票",
-    completedToday: 3,
-    stats: [{ label: "本月开票", value: "12 张" }, { label: "催款", value: "2 笔" }],
-  },
-  {
-    id: "operations-manager",
-    role: "opc_operations_manager",
-    name: "运营经理",
-    icon: "📋",
-    color: "#1890ff",
-    status: "working",
-    currentTask: "项目里程碑检查",
-    completedToday: 2,
-    stats: [{ label: "活跃项目", value: "5 个" }, { label: "里程碑", value: "8 个" }],
-  },
-  {
-    id: "sales-rep",
-    role: "opc_sales_rep",
-    name: "销售代表",
-    icon: "🤝",
-    color: "#722ed1",
-    status: "idle",
-    currentTask: "等待新线索分配",
-    completedToday: 1,
-    stats: [{ label: "本月客户", value: "3 位" }, { label: "线索", value: "2 条" }],
-  },
-  {
-    id: "business-analyst",
-    role: "opc_business_analyst",
-    name: "业务分析师",
-    icon: "📊",
-    color: "#fa8c16",
-    status: "busy",
-    currentTask: "生成季度运营报告",
-    completedToday: 0,
-    stats: [{ label: "KPI 数", value: "6 个" }, { label: "报告", value: "2 份" }],
-  },
-];
-
-function OfficeTab() {
-  const [hovered, setHovered] = useState<string | null>(null);
-
-  const statusLabel: Record<string, { color: string; label: string }> = {
-    working: { color: "#52c41a", label: "工作中" },
-    idle: { color: "#faad14", label: "待命中" },
-    busy: { color: "#f5222d", label: "忙碌" },
-    offline: { color: "#d9d9d9", label: "离线" },
-  };
-
-  return (
-    <div>
-      {/* 办公室布局 */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-          borderRadius: 12,
-          padding: 24,
-          minHeight: 420,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* 地板网格 */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-            opacity: 0.5,
-          }}
-        />
-        {/* 部门区域 */}
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, letterSpacing: 2, textTransform: "uppercase" }}>
-            OPC 办公区 · {new Date().toLocaleDateString("zh-CN", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </Text>
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            {OFFICE_WORKERS.map((worker) => (
-              <Col span={6} key={worker.id}>
-                <Card
-                  size="small"
-                  hoverable
-                  onMouseEnter={() => setHovered(worker.id)}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{
-                    background: hovered === worker.id ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)",
-                    border: `1px solid ${worker.color}40`,
-                    borderRadius: 12,
-                    backdropFilter: "blur(8px)",
-                    transition: "all 0.3s",
-                    transform: hovered === worker.id ? "translateY(-4px)" : "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  {/* 工位头部 */}
-                  <div style={{ textAlign: "center", marginBottom: 12 }}>
-                    {/* 桌面图标 */}
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 12,
-                        background: `${worker.color}20`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 24,
-                        margin: "0 auto 8px",
-                        border: `2px solid ${worker.color}`,
-                      }}
-                    >
-                      {worker.icon}
-                    </div>
-                    {/* 状态指示灯 */}
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "2px 8px",
-                        borderRadius: 10,
-                        background: `${statusLabel[worker.status].color}20`,
-                        fontSize: 11,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: statusLabel[worker.status].color,
-                          animation: worker.status === "working" ? "pulse 2s infinite" : "none",
-                        } as React.CSSProperties}
-                      />
-                      <span style={{ color: statusLabel[worker.status].color }}>
-                        {statusLabel[worker.status].label}
-                      </span>
-                    </div>
-                  </div>
-                  {/* 姓名 */}
-                  <div style={{ textAlign: "center", color: "#fff", fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
-                    {worker.name}
-                  </div>
-                  {/* 当前任务 */}
-                  <div
-                    style={{
-                      textAlign: "center",
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.5)",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {worker.currentTask}
-                  </div>
-                  {/* 统计 */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-around",
-                      borderTop: "1px solid rgba(255,255,255,0.08)",
-                      paddingTop: 8,
-                    }}
-                  >
-                    {worker.stats.map((s, i) => (
-                      <div key={i} style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{s.value}</div>
-                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </div>
-      </div>
-
-      {/* 底部快速操作 */}
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col span={12}>
-          <Card size="small" title="团队动态" style={{ fontSize: 13 }}>
-            <Timeline
-              items={[
-                { color: "green", children: "财务专员 创建了一份发票 (INV-20260717-0003)" },
-                { color: "blue", children: "运营经理 完成了项目里程碑 #2" },
-                { color: "orange", children: "业务分析师 记录了 KPI：月收入 ¥25,000" },
-                { color: "default", children: "销售代表 添加了新客户：张三" },
-              ]}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card size="small" title="快捷操作" style={{ fontSize: 13 }}>
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <Button
-                type="primary"
-                block
-                ghost
-                icon={<DollarOutlined />}
-                onClick={() => window.dispatchEvent(new CustomEvent("opc-switch-tab", { detail: "invoices" }))}
-              >
-                去发票模块 — 财务专员
-              </Button>
-              <Button
-                block
-                ghost
-                icon={<TeamOutlined />}
-                onClick={() => window.dispatchEvent(new CustomEvent("opc-switch-tab", { detail: "customers" }))}
-              >
-                去客户模块 — 销售代表
-              </Button>
-              <Button
-                block
-                ghost
-                icon={<ProjectOutlined />}
-                onClick={() => window.dispatchEvent(new CustomEvent("opc-switch-tab", { detail: "projects" }))}
-              >
-                去项目模块 — 运营经理
-              </Button>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-// 人才市场
-// ══════════════════════════════════════════════════════════════════
-
 interface TalentRole {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   category: string;
   icon: string;
 }
 
-const TALENT_CATEGORIES: Record<string, { label: string; icon: string }> = {
-  engineering: { label: "工程开发", icon: "💻" },
-  design: { label: "设计", icon: "🎨" },
-  finance: { label: "金融", icon: "💰" },
-  marketing: { label: "营销", icon: "📢" },
-  sales: { label: "销售", icon: "🤝" },
-  product: { label: "产品", icon: "📋" },
-  security: { label: "安全", icon: "🔒" },
-  data: { label: "数据", icon: "📊" },
-  devops: { label: "运维", icon: "🚀" },
-  testing: { label: "测试", icon: "🧪" },
-  support: { label: "支持", icon: "🎧" },
-  academic: { label: "学术", icon: "🎓" },
+const TALENT_CATEGORIES: Record<string, { labelKey: string; icon: string }> = {
+  engineering: { labelKey: "opc.talent.catEngineering", icon: "💻" },
+  design: { labelKey: "opc.talent.catDesign", icon: "🎨" },
+  finance: { labelKey: "opc.talent.catFinance", icon: "💰" },
+  marketing: { labelKey: "opc.talent.catMarketing", icon: "📢" },
+  sales: { labelKey: "opc.talent.catSales", icon: "🤝" },
+  product: { labelKey: "opc.talent.catProduct", icon: "📋" },
+  security: { labelKey: "opc.talent.catSecurity", icon: "🔒" },
+  data: { labelKey: "opc.talent.catData", icon: "📊" },
+  devops: { labelKey: "opc.talent.catDevops", icon: "🚀" },
+  testing: { labelKey: "opc.talent.catTesting", icon: "🧪" },
+  support: { labelKey: "opc.talent.catSupport", icon: "🎧" },
+  academic: { labelKey: "opc.talent.catAcademic", icon: "🎓" },
 };
 
+const TALENT_ROLES: TalentRole[] = [
+  {
+    id: "ai-engineer",
+    nameKey: "opc.talent.roleAiEngineer",
+    descriptionKey: "opc.talent.roleAiEngineerDesc",
+    category: "engineering",
+    icon: "🤖",
+  },
+  {
+    id: "backend-architect",
+    nameKey: "opc.talent.roleBackendArchitect",
+    descriptionKey: "opc.talent.roleBackendArchitectDesc",
+    category: "engineering",
+    icon: "🏗️",
+  },
+  {
+    id: "frontend-developer",
+    nameKey: "opc.talent.roleFrontendDev",
+    descriptionKey: "opc.talent.roleFrontendDevDesc",
+    category: "engineering",
+    icon: "🖥️",
+  },
+  {
+    id: "devops-engineer",
+    nameKey: "opc.talent.roleDevops",
+    descriptionKey: "opc.talent.roleDevopsDesc",
+    category: "engineering",
+    icon: "🚀",
+  },
+  {
+    id: "code-reviewer",
+    nameKey: "opc.talent.roleCodeReviewer",
+    descriptionKey: "opc.talent.roleCodeReviewerDesc",
+    category: "engineering",
+    icon: "👀",
+  },
+  {
+    id: "financial-analyst",
+    nameKey: "opc.talent.roleFinancialAnalyst",
+    descriptionKey: "opc.talent.roleFinancialAnalystDesc",
+    category: "finance",
+    icon: "📈",
+  },
+  {
+    id: "accountant",
+    nameKey: "opc.talent.roleAccountant",
+    descriptionKey: "opc.talent.roleAccountantDesc",
+    category: "finance",
+    icon: "🧾",
+  },
+  {
+    id: "security-expert",
+    nameKey: "opc.talent.roleSecurityExpert",
+    descriptionKey: "opc.talent.roleSecurityExpertDesc",
+    category: "security",
+    icon: "🛡️",
+  },
+  {
+    id: "data-scientist",
+    nameKey: "opc.talent.roleDataScientist",
+    descriptionKey: "opc.talent.roleDataScientistDesc",
+    category: "data",
+    icon: "📊",
+  },
+  {
+    id: "seo-specialist",
+    nameKey: "opc.talent.roleSeoSpecialist",
+    descriptionKey: "opc.talent.roleSeoSpecialistDesc",
+    category: "marketing",
+    icon: "🔍",
+  },
+  {
+    id: "sales-engineer",
+    nameKey: "opc.talent.roleSalesEngineer",
+    descriptionKey: "opc.talent.roleSalesEngineerDesc",
+    category: "sales",
+    icon: "🤝",
+  },
+  {
+    id: "product-manager",
+    nameKey: "opc.talent.roleProductManager",
+    descriptionKey: "opc.talent.roleProductManagerDesc",
+    category: "product",
+    icon: "📋",
+  },
+  {
+    id: "ux-designer",
+    nameKey: "opc.talent.roleUxDesigner",
+    descriptionKey: "opc.talent.roleUxDesignerDesc",
+    category: "design",
+    icon: "🎨",
+  },
+  {
+    id: "qa-engineer",
+    nameKey: "opc.talent.roleQaEngineer",
+    descriptionKey: "opc.talent.roleQaEngineerDesc",
+    category: "testing",
+    icon: "🧪",
+  },
+  {
+    id: "tech-support",
+    nameKey: "opc.talent.roleTechSupport",
+    descriptionKey: "opc.talent.roleTechSupportDesc",
+    category: "support",
+    icon: "🎧",
+  },
+];
+
 function TalentMarketTab() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
@@ -1824,47 +1769,7 @@ function TalentMarketTab() {
   const [loading] = useState(true);
 
   // 预置人才列表（扫描 agency-agents 的 fallback）
-  const allRoles: TalentRole[] = [
-    {
-      id: "ai-engineer",
-      name: "AI 工程师",
-      description: "AI/LLM 应用开发、模型微调、RAG 系统",
-      category: "engineering",
-      icon: "🤖",
-    },
-    {
-      id: "backend-architect",
-      name: "后端架构师",
-      description: "系统架构、API 设计、数据库优化",
-      category: "engineering",
-      icon: "🏗️",
-    },
-    {
-      id: "frontend-developer",
-      name: "前端开发",
-      description: "React/Vue 前端、UI 实现",
-      category: "engineering",
-      icon: "🖥️",
-    },
-    {
-      id: "devops-engineer",
-      name: "DevOps",
-      description: "CI/CD、容器化、云基础设施",
-      category: "engineering",
-      icon: "🚀",
-    },
-    { id: "code-reviewer", name: "代码审查官", description: "代码质量、安全审计", category: "engineering", icon: "👀" },
-    { id: "financial-analyst", name: "金融分析师", description: "财务报表、投资评估", category: "finance", icon: "📈" },
-    { id: "accountant", name: "会计师", description: "记账、税务、合规", category: "finance", icon: "🧾" },
-    { id: "security-expert", name: "安全专家", description: "渗透测试、安全加固", category: "security", icon: "🛡️" },
-    { id: "data-scientist", name: "数据科学家", description: "数据分析、机器学习", category: "data", icon: "📊" },
-    { id: "seo-specialist", name: "SEO 专家", description: "SEO、内容策略", category: "marketing", icon: "🔍" },
-    { id: "sales-engineer", name: "销售工程师", description: "方案演示、客户关系", category: "sales", icon: "🤝" },
-    { id: "product-manager", name: "产品经理", description: "需求分析、PRD", category: "product", icon: "📋" },
-    { id: "ux-designer", name: "UX 设计师", description: "交互设计、用户研究", category: "design", icon: "🎨" },
-    { id: "qa-engineer", name: "QA 工程师", description: "自动化测试、集成测试", category: "testing", icon: "🧪" },
-    { id: "tech-support", name: "技术支持", description: "客户支持、故障排查", category: "support", icon: "🎧" },
-  ];
+  const allRoles: TalentRole[] = TALENT_ROLES;
 
   // 加载已导入的角色
   useEffect(() => {
@@ -1877,10 +1782,10 @@ function TalentMarketTab() {
     setImporting(roleId);
     try {
       await invoke("import_agency_experts", { request: { path: "agency-agents-src" } });
-      message.success(`已招聘: ${allRoles.find((r) => r.id === roleId)?.name}`);
+      message.success(t("opc.talent.hireSuccess", { name: t(allRoles.find((r) => r.id === roleId)?.nameKey || "") }));
       setImportedIds((prev) => new Set(prev).add(roleId));
     } catch (e) {
-      message.error(`招聘失败: ${e}`);
+      message.error(t("opc.talent.hireFailed", { error: String(e) }));
     } finally {
       setImporting(null);
     }
@@ -1888,7 +1793,7 @@ function TalentMarketTab() {
 
   const filtered = allRoles.filter((r) => {
     if (category && r.category !== category) { return false; }
-    if (search && !r.name.includes(search) && !r.description.includes(search)) { return false; }
+    if (search && !t(r.nameKey).includes(search) && !t(r.descriptionKey).includes(search)) { return false; }
     return true;
   });
 
@@ -1899,7 +1804,7 @@ function TalentMarketTab() {
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={8}>
           <Input.Search
-            placeholder="搜索人才..."
+            placeholder={t("opc.talent.searchPlaceholder")}
             allowClear
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -1908,7 +1813,7 @@ function TalentMarketTab() {
         <Col span={16}>
           <Space wrap>
             <Button size="small" type={category === null ? "primary" : "default"} onClick={() => setCategory(null)}>
-              全部
+              {t("opc.talent.all")}
             </Button>
             {categories.map((cat) => (
               <Button
@@ -1917,7 +1822,7 @@ function TalentMarketTab() {
                 type={category === cat ? "primary" : "default"}
                 onClick={() => setCategory(cat)}
               >
-                {TALENT_CATEGORIES[cat]?.icon} {TALENT_CATEGORIES[cat]?.label}
+                {TALENT_CATEGORIES[cat]?.icon} {TALENT_CATEGORIES[cat] ? t(TALENT_CATEGORIES[cat].labelKey) : cat}
               </Button>
             ))}
           </Space>
@@ -1928,7 +1833,7 @@ function TalentMarketTab() {
           {filtered.length === 0
             ? (
               <Col span={24}>
-                <Empty description="未找到匹配的人才" />
+                <Empty description={t("opc.talent.noMatch")} />
               </Col>
             )
             : (
@@ -1942,7 +1847,7 @@ function TalentMarketTab() {
                       style={{ height: "100%" }}
                       actions={[
                         isImported
-                          ? <Tag color="green">✅ 已入职</Tag>
+                          ? <Tag color="green">{t("opc.talent.onboarded")}</Tag>
                           : (
                             <Button
                               type="primary"
@@ -1950,21 +1855,23 @@ function TalentMarketTab() {
                               loading={importing === role.id}
                               onClick={() => handleHire(role.id)}
                             >
-                              招聘
+                              {t("opc.talent.hire")}
                             </Button>
                           ),
                       ]}
                     >
                       <Card.Meta
                         avatar={<div style={{ fontSize: 28 }}>{role.icon}</div>}
-                        title={<span style={{ fontSize: 13 }}>{role.name}</span>}
+                        title={<span style={{ fontSize: 13 }}>{t(role.nameKey)}</span>}
                         description={
                           <div>
                             <Tag>
-                              {TALENT_CATEGORIES[role.category]?.icon} {TALENT_CATEGORIES[role.category]?.label}
+                              {TALENT_CATEGORIES[role.category]?.icon} {TALENT_CATEGORIES[role.category]
+                                ? t(TALENT_CATEGORIES[role.category].labelKey)
+                                : role.category}
                             </Tag>
                             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>
-                              {role.description}
+                              {t(role.descriptionKey)}
                             </div>
                           </div>
                         }
@@ -1999,12 +1906,33 @@ interface KanbanItem {
 
 type KanbanBoard = Record<string, KanbanItem[]>;
 
-const KANBAN_COLUMNS = ["待办", "进行中", "阻塞", "评审", "已完成", "终止"];
+/** 自改进循环结果（run_self_improving_opc_work_item 返回） */
+interface SirResult {
+  text: string;
+  totalRounds: number;
+  finalScore: number;
+  confidence: number;
+  strengths: string[];
+  gaps: string[];
+}
+
+const KANBAN_COLUMNS = [
+  "opc.kanban.colTodo",
+  "opc.kanban.colInProgress",
+  "opc.kanban.colBlocked",
+  "opc.kanban.colReview",
+  "opc.kanban.colDone",
+  "opc.kanban.colCancelled",
+];
 
 function KanbanTab() {
+  const { t } = useTranslation();
   const [board, setBoard] = useState<KanbanBoard>({});
   const [loading, setLoading] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
+  const [sirRunning, setSirRunning] = useState(false);
+  const [sirResult, setSirResult] = useState<SirResult | null>(null);
+  const [sirModalOpen, setSirModalOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -2022,12 +1950,31 @@ function KanbanTab() {
     setActing(id);
     try {
       await invoke(cmd, { id, ...extra });
-      message.success(`操作成功: ${cmd}`);
+      message.success(t("opc.kanban.opSuccess", { cmd }));
       refresh();
     } catch (e) {
-      message.error(`${cmd} 失败: ${e}`);
+      message.error(t("opc.kanban.opFailed", { cmd, error: String(e) }));
     } finally {
       setActing(null);
+    }
+  };
+
+  /** 运行自改进循环（对接上游 Loop Engineering） */
+  const runSIR = async (id: string) => {
+    setActing(id);
+    setSirRunning(true);
+    try {
+      const result = await invoke<SirResult>("run_self_improving_opc_work_item", {
+        task: id,
+        maxRounds: 3,
+      });
+      setSirResult(result);
+      setSirModalOpen(true);
+    } catch (e) {
+      message.error(t("opc.kanban.sirRunFailed", { error: String(e) }));
+    } finally {
+      setActing(null);
+      setSirRunning(false);
     }
   };
 
@@ -2035,31 +1982,38 @@ function KanbanTab() {
     <div>
       <Space style={{ marginBottom: 12 }}>
         <Button size="small" type="primary" icon={<ProjectOutlined />} onClick={refresh} loading={loading}>
-          刷新
+          {t("opc.kanban.refresh")}
         </Button>
         <Typography.Text type="secondary">
-          WorkItem 状态机：QUEUED → IN_PROGRESS ⇄ BLOCKED → REVIEW → APPROVED → DONE
+          {t("opc.kanban.machineDesc")}
         </Typography.Text>
       </Space>
       <Row gutter={[12, 12]}>
         {KANBAN_COLUMNS.map((col) => {
           const items = board[col] ?? [];
+          const colLabel = t(col);
           return (
             <Col key={col} span={4}>
               <Card
                 size="small"
                 title={
                   <Space>
-                    {col}
-                    <Tag color={col === "阻塞" ? "red" : col === "已完成" ? "green" : "blue"}>
+                    {colLabel}
+                    <Tag
+                      color={colLabel === t("opc.kanban.colBlocked")
+                        ? "red"
+                        : colLabel === t("opc.kanban.colDone")
+                        ? "green"
+                        : "blue"}
+                    >
                       {items.length}
                     </Tag>
                   </Space>
                 }
-                style={{ minHeight: 200, background: col === "阻塞" ? "#fff2f0" : undefined }}
+                style={{ minHeight: 200, background: colLabel === t("opc.kanban.colBlocked") ? "#fff2f0" : undefined }}
               >
                 {items.length === 0
-                  ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="空" />
+                  ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("opc.kanban.empty")} />
                   : (
                     <Space direction="vertical" style={{ width: "100%" }}>
                       {items.map((it) => (
@@ -2069,11 +2023,21 @@ function KanbanTab() {
                           </Typography.Text>
                           <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
                             <div>ID: {it.id}</div>
-                            <div>负责人: {it.owner_role_id ?? "-"}</div>
-                            {it.deps.length > 0 && <div>依赖: {it.deps.join(", ")}</div>}
+                            <div>{t("opc.kanban.owner", { id: it.owner_role_id ?? "-" })}</div>
+                            {it.deps.length > 0 && <div>{t("opc.kanban.deps", { deps: it.deps.join(", ") })}</div>}
                             {it.last_error && <div style={{ color: "#cf1322" }}>⚠ {it.last_error}</div>}
                           </div>
                           <Space wrap style={{ marginTop: 6 }}>
+                            <Button
+                              size="small"
+                              icon={<ProjectOutlined />}
+                              loading={acting === it.id && sirRunning}
+                              disabled={sirRunning && acting !== it.id}
+                              onClick={() => runSIR(it.id)}
+                              title={t("opc.kanban.sir")}
+                            >
+                              {sirRunning && acting === it.id ? t("opc.kanban.sirRunning") : t("opc.kanban.sir")}
+                            </Button>
                             {it.phase === "QUEUED" && (
                               <Button
                                 size="small"
@@ -2081,7 +2045,7 @@ function KanbanTab() {
                                 loading={acting === it.id}
                                 onClick={() => act(it.id, "opc_work_item_start")}
                               >
-                                认领
+                                {t("opc.kanban.claim")}
                               </Button>
                             )}
                             {it.phase === "IN_PROGRESS" && (
@@ -2090,7 +2054,7 @@ function KanbanTab() {
                                 loading={acting === it.id}
                                 onClick={() => act(it.id, "opc_work_item_review")}
                               >
-                                提交评审
+                                {t("opc.kanban.submitReview")}
                               </Button>
                             )}
                             {it.phase === "REVIEW" && (
@@ -2100,7 +2064,7 @@ function KanbanTab() {
                                 loading={acting === it.id}
                                 onClick={() => act(it.id, "opc_work_item_start")}
                               >
-                                批准完成
+                                {t("opc.kanban.approveDone")}
                               </Button>
                             )}
                             {it.phase !== "BLOCKED" && it.phase !== "DONE" && it.phase !== "APPROVED"
@@ -2110,11 +2074,14 @@ function KanbanTab() {
                                 danger
                                 loading={acting === it.id}
                                 onClick={() => {
-                                  const reason = window.prompt("升级原因：", "需要人工介入");
+                                  const reason = window.prompt(
+                                    t("opc.kanban.escalateReason"),
+                                    t("opc.kanban.escalateDefault"),
+                                  );
                                   if (reason !== null) { act(it.id, "opc_escalate_work_item", { reason }); }
                                 }}
                               >
-                                升级
+                                {t("opc.kanban.escalate")}
                               </Button>
                             )}
                             {it.phase === "BLOCKED" && (
@@ -2124,7 +2091,7 @@ function KanbanTab() {
                                 loading={acting === it.id}
                                 onClick={() => act(it.id, "opc_work_item_unblock")}
                               >
-                                解除阻塞
+                                {t("opc.kanban.unblock")}
                               </Button>
                             )}
                           </Space>
@@ -2137,6 +2104,51 @@ function KanbanTab() {
           );
         })}
       </Row>
+
+      {/* 自改进循环结果 Modal */}
+      <Modal
+        open={sirModalOpen}
+        title={t("opc.kanban.sirTitle")}
+        onCancel={() => setSirModalOpen(false)}
+        footer={null}
+        width={720}
+      >
+        {sirResult && (
+          <div>
+            <Descriptions size="small" column={3} bordered style={{ marginBottom: 12 }}>
+              <Descriptions.Item label={t("opc.kanban.sirScore")}>
+                {(sirResult.finalScore * 100).toFixed(1)}%
+              </Descriptions.Item>
+              <Descriptions.Item label={t("opc.kanban.sirRounds")}>
+                {sirResult.totalRounds}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("opc.kanban.sirAccept")}>
+                {sirResult.finalScore >= 0.85 ? "✅" : "⏳"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("opc.kanban.sirStrengths")} span={3}>
+                {sirResult.strengths.length > 0 ? sirResult.strengths.join("；") : "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("opc.kanban.sirGaps")} span={3}>
+                {sirResult.gaps.length > 0 ? sirResult.gaps.join("；") : "-"}
+              </Descriptions.Item>
+            </Descriptions>
+            <pre
+              style={{
+                maxHeight: 320,
+                overflow: "auto",
+                fontSize: 12,
+                background: "rgba(0,0,0,0.03)",
+                padding: 12,
+                borderRadius: 6,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {sirResult.text}
+            </pre>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -2156,6 +2168,7 @@ interface MarketPack {
 }
 
 function MarketPackTab() {
+  const { t } = useTranslation();
   const [packs, setPacks] = useState<MarketPack[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -2175,10 +2188,10 @@ function MarketPackTab() {
     <div>
       <Space style={{ marginBottom: 12 }}>
         <Button size="small" type="primary" onClick={refresh} loading={loading}>
-          刷新市场
+          {t("opc.market.refresh")}
         </Button>
         <Typography.Text type="secondary">
-          行业数据资产包市场：每个行业独立安装/启用，安装后 seed 对应工作流模板
+          {t("opc.market.subtitle")}
         </Typography.Text>
       </Space>
       <Row gutter={[12, 12]}>
@@ -2191,15 +2204,15 @@ function MarketPackTab() {
                   <span>{p.icon}</span>
                   {p.name}
                   <Tag color={p.installed ? "green" : "blue"}>
-                    {p.installed ? "已安装" : "未安装"}
+                    {p.installed ? t("opc.market.installed") : t("opc.market.notInstalled")}
                   </Tag>
                 </Space>
               }
             >
               <div style={{ fontSize: 12, color: "#888" }}>
                 <div>ID: {p.id}</div>
-                <div>版本: v{p.version}</div>
-                <div>启用: {p.enabled ? "是" : "否"}</div>
+                <div>{t("opc.market.version", { version: p.version })}</div>
+                <div>{t("opc.market.enabled", { value: p.enabled ? t("opc.market.yes") : t("opc.market.no") })}</div>
               </div>
               <Space style={{ marginTop: 8 }}>
                 <Button
@@ -2211,14 +2224,14 @@ function MarketPackTab() {
                       await invoke("opc_import_industry_pack", {
                         archivePath: p.path,
                       });
-                      message.success(`已安装: ${p.name}`);
+                      message.success(t("opc.market.installSuccess", { name: p.name }));
                       refresh();
                     } catch (e) {
-                      message.error(`安装失败: ${e}`);
+                      message.error(t("opc.market.installFailed", { error: String(e) }));
                     }
                   }}
                 >
-                  安装
+                  {t("opc.market.install")}
                 </Button>
               </Space>
             </Card>
@@ -2227,4 +2240,36 @@ function MarketPackTab() {
       </Row>
     </div>
   );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 办公室 tab（方案 B）：挂载时同步 OPC 角色进 Fleet，渲染上游舰队办公室
+// ══════════════════════════════════════════════════════════════════
+
+/** 上游舰队办公室（真实 Agent 状态 + Phaser 场景）。AxOPC 静态版已退役。 */
+function OpcOfficeTab() {
+  const { t } = useTranslation();
+  const [ready, setReady] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke("opc_sync_fleet")
+      .then(() => setReady(true))
+      .catch((e) => {
+        console.error("[opc-sync-fleet] failed", e);
+        setErr(String(e));
+      });
+  }, []);
+
+  if (err) {
+    return <Alert type="warning" message={t("opc.office.syncFailed", { error: String(err) })} />;
+  }
+  if (!ready) {
+    return (
+      <div style={{ padding: 48, textAlign: "center" }}>
+        <Spin tip={t("opc.office.syncTip")} />
+      </div>
+    );
+  }
+  return <FleetOfficeTab />;
 }

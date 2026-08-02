@@ -324,6 +324,39 @@ pub fn run() {
                 let roles_path = config_dir.join("agent_roles.yaml");
                 if roles_path.exists() {
                     config_validator::validate_agent_roles(&roles_path.to_string_lossy());
+
+                    // 将 YAML 中启用的角色 upsert 到 agent_roles 表
+                    // （AxInvest 本地：OPC 角色 opc_financial_clerk 等由此入 DB）
+                    if let Ok(content) = std::fs::read_to_string(&roles_path) {
+                        let roles = config_validator::parse_enabled_roles(&content);
+                        if !roles.is_empty() {
+                            let db = state.harness.db().clone();
+                            let _ = tauri::async_runtime::block_on(async {
+                                for r in &roles {
+                                    let name = r.name.as_deref().unwrap_or("");
+                                    let prompt = r.system_prompt.as_deref().unwrap_or("");
+                                    let tools: Vec<String> =
+                                        r.allowed_tools.clone().unwrap_or_default();
+                                    let max_conc = r.max_concurrent.unwrap_or(1) as i32;
+                                    let timeout = r.timeout_seconds.unwrap_or(600) as i64;
+
+                                    match axagent_dao::repo::agent_role::upsert_agent_role(
+                                        &db, name, name, None, prompt, &tools, &[], max_conc,
+                                        timeout, "file:agent_roles.yaml",
+                                    )
+                                    .await
+                                    {
+                                        Ok(_) => {
+                                            tracing::info!("[opc] Seeded agent role: {name}")
+                                        }
+                                        Err(e) => tracing::warn!(
+                                            "[opc] Failed to seed role {name}: {e}"
+                                        ),
+                                    }
+                                }
+                            });
+                        }
+                    }
                 }
             }
 
@@ -468,6 +501,47 @@ pub fn run() {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
                 }
             });
+            // 注入 OPC 通知发送 channel + 后台 worker（AxInvest 本地薄补丁：
+            // OPC 台账工具 OpcSendNotification 经 8 渠道消息网关发送）
+            {
+                let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+                axagent_tools::tools::opc::set_opc_notify_tx(tx);
+
+                let pm = state.platform_manager.clone();
+                let db = state.harness.db().clone();
+                tauri::async_runtime::spawn(async move {
+                    while let Some(notif) = rx.recv().await {
+                        let config =
+                            axagent_dao::repo::platform_config::get_platform_config(&db).await;
+                        match pm.get_adapter(&notif.platform).await {
+                            Some(adapter) => {
+                                if let Err(e) = adapter
+                                    .send_message(&config, &notif.chat_id, &notif.message, None)
+                                    .await
+                                {
+                                    tracing::error!(
+                                        "[opc-notify] {}/{}: {e}",
+                                        notif.platform,
+                                        notif.chat_id
+                                    );
+                                } else {
+                                    tracing::info!(
+                                        "[opc-notify] Sent via {} to {}",
+                                        notif.platform,
+                                        notif.chat_id
+                                    );
+                                }
+                            }
+                            None => tracing::warn!(
+                                "[opc-notify] Platform {} not available",
+                                notif.platform
+                            ),
+                        }
+                    }
+                });
+                tracing::info!("[opc] Started OPC notify worker");
+            }
+
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
             android_utils::mark_startup_phase("setup_complete");

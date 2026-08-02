@@ -1,6 +1,6 @@
 {
   "version": "2",
-  "generated": "2026-08-01",
+  "generated": "2026-08-02",
   "total_entries": 514,
   "total_files": 514,
   "entries": [
@@ -612,7 +612,7 @@
     },
     {
       "file": "src/components/office/AgentCard.tsx",
-      "lines": "4,6,24,26,69,79,95,113,116,117,120,123,124,132",
+      "lines": "4,6,24,26,69,79,95,113,114,116,117,118,120,121,123,124,125,132",
       "reason": "历史硬编码基线 + 硬编码中文字符串",
       "phase": 3
     },
@@ -1062,7 +1062,7 @@
     },
     {
       "file": "src/components/stock-analysis/CrossMarketDashboard.tsx",
-      "lines": "136",
+      "lines": "136,137",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -1080,7 +1080,7 @@
     },
     {
       "file": "src/components/stock-analysis/DecisionBanner.tsx",
-      "lines": "197,198,199,200,201,203,204,205,206,207,208,209,210,211,213,214,215,216,228,234,238,244,255,261,1240,1245,1253,1272,1281,1366,1376,1381,1545,1559,1571,1577,1578,1579,1580,1581,1592,1594,1595,1639,1642,1646,1657,1718,1720,1721,1723,1725,1727,1753,1755,1759,1764,1768,1769,1770,1771,1779,1785,1786,1787,1788,1789,1790,1791,1792,1804,1806,1808,1809",
+      "lines": "197,198,199,200,201,203,204,205,206,207,208,209,210,211,213,214,215,216,228,234,238,244,255,261,1240,1245,1253,1272,1281,1366,1376,1381,1545,1559,1571,1577,1578,1579,1580,1581,1592,1594,1595,1639,1642,1646,1657,1718,1720,1721,1723,1725,1727,1753,1755,1759,1764,1768,1769,1770,1771,1779,1785,1786,1787,1788,1789,1790,1791,1792,1804,1806,1808,1809,1923,1926,1930,1958",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串；含 fallback 分析师生成 JSON 数据/旧版降级文字/调试信息）",
       "phase": 3
     },
@@ -1152,7 +1152,7 @@
     },
     {
       "file": "src/components/stock-analysis/EvidenceCitationPanel.tsx",
-      "lines": "58,75,84,94,105,112,123,129,135,154,155,163,166",
+      "lines": "58,75,84,94,105,112,123,129,135,154,155,163,166,167,175,178",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -1206,7 +1206,7 @@
     },
     {
       "file": "src/components/stock-analysis/PortfolioDashboard.tsx",
-      "lines": "108,150,230",
+      "lines": "108,150,151,230",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -1224,7 +1224,7 @@
     },
     {
       "file": "src/components/stock-analysis/RecoHistoryModal.tsx",
-      "lines": "76",
+      "lines": "76,91",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -1260,7 +1260,7 @@
     },
     {
       "file": "src/components/stock-analysis/SerenityScreeningPanel.tsx",
-      "lines": "490,514,577,601,676,702,996,1022,1150,1291",
+      "lines": "301,302,303,304,305,306,307,308,309,310,311,312,313,315,316,317,318,319,320,321,322,323,324,325,326,327,329,330,331,332,334,335,336,337,338,339,341,342,343,344,345,399,490,514,577,601,653,676,702,762,821,867,924,928,929,954,996,1022,1150,1291,1341,1495",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -1314,7 +1314,7 @@
     },
     {
       "file": "src/components/stock-analysis/VendorHealthDashboard.tsx",
-      "lines": "26,27,28,29,30,31,32,35,37,38,39,50,51,52,68,91,92,106,108,109,110,120,141,145,149,153,189,193",
+      "lines": "26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,42,43,44,50,51,52,55,56,57,58,68,91,92,98,101,103,105,106,108,109,110,120,138,141,145,149,153,166,189,190,191,193,205,207,208,209,210,220",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -2136,7 +2136,7 @@
     },
     {
       "file": "src/lib/browserMock.ts",
-      "lines": "127,128,138,684,685,686,818,1196,1212,1219,1225,1337,1585,1594,1603,1620,1629,1638,1655,1675,1684,1693,1710,1719,1728,1745",
+      "lines": "127,128,138,684,685,686,818,1196,1212,1219,1225,1337,1585,1594,1603,1620,1629,1638,1655,1675,1684,1693,1710,1719,1728,1745,2091,3222,3223,3242,3243,3262,3263,3282,3283,3302,3303,3322,3323,3342,3343,3362,3363,3382,3383",
       "reason": "历史硬编码基线 + 硬编码中文字符串",
       "phase": 3
     },
@@ -2399,6 +2399,12 @@
       "phase": 3
     },
     {
+      "file": "src/pages/CrossMarketPage.tsx",
+      "lines": "12,13,14,15",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
       "file": "src/pages/DashboardPage.tsx",
       "lines": "37,39,291,296,314,315,325,338,344,359,361,472,489,499,736",
       "reason": "硬编码中文字符串",
@@ -2417,6 +2423,18 @@
       "phase": 3
     },
     {
+      "file": "src/pages/InvestPage.tsx",
+      "lines": "13,14,15,16",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/MarketMainlinePage.tsx",
+      "lines": "12,13,14,15,16",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
       "file": "src/pages/PersonaPage.tsx",
       "lines": "49,58,70,157,166,169,176,189,195,402,495",
       "reason": "硬编码中文字符串",
@@ -2426,6 +2444,12 @@
       "file": "src/pages/PipelinePage/PipelinePage.tsx",
       "lines": "51",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/QuantLabPage.tsx",
+      "lines": "12,13,14,15",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
       "phase": 3
     },
     {
@@ -2453,6 +2477,24 @@
       "phase": 3
     },
     {
+      "file": "src/pages/StockAnalysisPage.tsx",
+      "lines": "10,11,12,13,14",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/StockWorkspacePage.tsx",
+      "lines": "12,13,14,15,16,17",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/TradePage.tsx",
+      "lines": "10,11,12,13",
+      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
+      "phase": 3
+    },
+    {
       "file": "src/pages/WikiEditorPage.tsx",
       "lines": "231",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
@@ -2472,7 +2514,7 @@
     },
     {
       "file": "src/pages/WorkflowMarketplace.tsx",
-      "lines": "16,17,21,29,37,46,162,263,265,274,151,152,153",
+      "lines": "16,17,21,29,37,46,151,152,153,162,263,265,274",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -3044,48 +3086,6 @@
       "file": "src/types/workflow.ts",
       "lines": "2,4,7,19,28,42,49,57,71,74,84,97,106,115,125,133,136,143,166,173,183,186,193,200,209",
       "reason": "硬编码中文字符串",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/InvestPage.tsx",
-      "lines": "13,14,15,16",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/StockAnalysisPage.tsx",
-      "lines": "10,11,12,13,14",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/StockWorkspacePage.tsx",
-      "lines": "12,13,14,15,16,17",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/QuantLabPage.tsx",
-      "lines": "12,13,14,15",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/TradePage.tsx",
-      "lines": "10,11,12,13",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/MarketMainlinePage.tsx",
-      "lines": "12,13,14,15,16",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
-      "phase": 3
-    },
-    {
-      "file": "src/pages/CrossMarketPage.tsx",
-      "lines": "12,13,14,15",
-      "reason": "Agent 快捷操作元数据（useAgentContext description，非 UI 文本）",
       "phase": 3
     }
   ]

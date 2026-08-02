@@ -1637,10 +1637,13 @@ version = "2.8.7"
 dependencies = [
  "async-trait",
  "axagent-astock-data",
+ "axagent-dao",
  "axagent-document-parser",
  "axagent-harness",
  "axagent-kit",
  "axagent-mcp",
+ "axagent-opc-dao",
+ "axagent-opc-types",
  "axagent-providers",
  "axagent-search",
  "base64 0.22.1",

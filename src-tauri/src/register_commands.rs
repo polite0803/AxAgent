@@ -1258,6 +1258,10 @@ macro_rules! register_all_commands {
             // ── P4-1：市场包 + 人才库导入 ──
             commands::opc::opc_import_talent_library,
             commands::opc::opc_market_list,
+            // ── 自改进循环（对接上游 Loop Engineering）──
+            commands::opc::run_self_improving_opc_work_item,
+            // ── 方案 B：OPC 角色进 Fleet（办公室真实状态）──
+            commands::opc::opc_sync_fleet,
             // G14 DojoSDK 工具集（前端 IPC 入口）
             commands::dojo_sdk::dojo_sdk_execute_tool,
             commands::dojo_sdk::dojo_sdk_list_tools,

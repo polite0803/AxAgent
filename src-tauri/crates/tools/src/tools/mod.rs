@@ -40,6 +40,7 @@ pub mod multi_agent;
 pub mod network;
 pub mod obsidian;
 pub mod ocr;
+pub mod opc;
 pub mod personality;
 pub mod plan;
 pub mod push_notification;
@@ -266,6 +267,24 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(rpc::RpcCallTool),
         // ── 迁移工具 ──
         std::sync::Arc::new(migration_tool::MigrationTool),
+        // ── OPC 一人公司业务 ──
+        std::sync::Arc::new(opc::OpcListInvoicesTool),
+        std::sync::Arc::new(opc::OpcCreateInvoiceTool),
+        std::sync::Arc::new(opc::OpcTransitionInvoiceTool),
+        std::sync::Arc::new(opc::OpcListCustomersTool),
+        std::sync::Arc::new(opc::OpcCreateCustomerTool),
+        std::sync::Arc::new(opc::OpcListProjectsTool),
+        std::sync::Arc::new(opc::OpcCreateProjectTool),
+        std::sync::Arc::new(opc::OpcAddMilestoneTool),
+        std::sync::Arc::new(opc::OpcGetDashboardTool),
+        std::sync::Arc::new(opc::OpcListLandingPagesTool),
+        std::sync::Arc::new(opc::OpcListBlogPostsTool),
+        std::sync::Arc::new(opc::OpcListContactsTool),
+        std::sync::Arc::new(opc::OpcSendNotificationTool),
+        std::sync::Arc::new(opc::OpcRecordKpiTool),
+        std::sync::Arc::new(opc::OpcListKpisTool),
+        std::sync::Arc::new(opc::OpcSearchWikiTool),
+        std::sync::Arc::new(opc::OpcGetFinancialReportTool),
         // ── 金融计算工具 ──
         std::sync::Arc::new(finance::CalcMaxDrawdownTool),
         std::sync::Arc::new(finance::CalcSharpeRatioTool),

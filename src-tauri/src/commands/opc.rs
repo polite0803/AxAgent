@@ -484,7 +484,7 @@ pub async fn opc_kanban_board(state: State<'_, AppState>) -> Result<serde_json::
 
     let mut board: BTreeMap<String, Vec<serde_json::Value>> = BTreeMap::new();
     for it in &items {
-        let phase = Phase::from_str(&it.phase).unwrap_or(Phase::Queued);
+        let phase = it.phase.parse::<Phase>().unwrap_or(Phase::Queued);
         let col = phase.kanban_column().to_string();
         let entry = serde_json::json!({
             "id": it.id,
@@ -516,16 +516,58 @@ pub async fn opc_work_item_start(
     Ok(serde_json::to_value(&model).map_err(|e| e.to_string())?)
 }
 
-/// 提交评审（SubmitForReview）。
+/// 提交评审（质量门前置，方案 A）：先跑一轮自改进评估，质量达标才允许进 REVIEW。
+///
+/// 流程：执行一轮 OpcWorkItemRound → 5 维规则评估 → 评估经 QualityGateService
+/// 落经验（归因+信号）→ score >= 0.80 才 apply(SubmitForReview)；未达标返回
+/// 缺口清单（前端展示原因），产出无法进入评审流。
 #[tauri::command]
 pub async fn opc_work_item_review(
     state: State<'_, AppState>,
     id: String,
 ) -> Result<serde_json::Value, String> {
-    use axagent_company_runtime::WorkItemService;
     use axagent_company_runtime::work_item::Transition;
+    use axagent_company_runtime::{OpcWorkItemRound, QualityGateService, WorkItemService};
+    use axagent_harness::self_improving_loop::SelfImprovingRound;
+
+    const QUALITY_THRESHOLD: f64 = 0.80;
+
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
+
+    // 1. 加载 work item（拿 owner 做归因）
+    let item = svc.get(&id).await.map_err(|e| format!("加载 work item 失败: {e}"))?;
+
+    // 2. 质量门前置：跑一轮自改进评估
+    let mut round = OpcWorkItemRound::new(db.clone());
+    let result =
+        round.execute_round(&id, None).await.map_err(|e| format!("自改进评估失败: {e}"))?;
+    let evaluation =
+        round.evaluate_round(&id, &result).await.map_err(|e| format!("自改进评估失败: {e}"))?;
+
+    // 3. 评估落经验（归因铁律：评估者=owner，写入 owner 档案）
+    if let Some(owner) = &item.owner_role_id {
+        if !owner.is_empty() {
+            let gate = QualityGateService::new(&db);
+            let _ = gate.apply(owner, &id, owner, &evaluation, QUALITY_THRESHOLD).await;
+        }
+    }
+
+    // 4. 质量门判定
+    if evaluation.score < QUALITY_THRESHOLD {
+        let pct = evaluation.score * 100.0;
+        return Err(format!(
+            "质量门未通过（{pct:.0}% < {}%）。缺口：{}",
+            QUALITY_THRESHOLD * 100.0,
+            if evaluation.gaps.is_empty() {
+                "综合质量不足".to_string()
+            } else {
+                evaluation.gaps.join("；")
+            }
+        ));
+    }
+
+    // 5. 达标 → 进入 REVIEW
     let model = svc.apply(&id, Transition::SubmitForReview).await.map_err(|e| e.to_string())?;
     Ok(serde_json::to_value(&model).map_err(|e| e.to_string())?)
 }
@@ -631,16 +673,16 @@ pub async fn opc_import_talent_library(
                 skipped += 1;
                 continue;
             }
-            org.add_talent_template(
-                &tid,
-                &dir_name,
-                &name,
-                &description,
-                "agency-agents-src",
-                Some(&[format!("agency-agents-src/{dir_name}/{stem}.md")]),
-                None,
-                Some(&[dir_name.clone()]),
-            )
+            org.add_talent_template(axagent_company_runtime::org::NewTalentTemplate {
+                id: tid.clone(),
+                category: dir_name.clone(),
+                name: name.clone(),
+                description: description.clone(),
+                source_repo: "agency-agents-src".to_string(),
+                prompt_refs: Some(vec![format!("agency-agents-src/{dir_name}/{stem}.md")]),
+                skill_refs: None,
+                tags: Some(vec![dir_name.clone()]),
+            })
             .await
             .map_err(|e| e.to_string())?;
             imported += 1;
@@ -705,4 +747,163 @@ pub async fn opc_market_list(state: State<'_, AppState>) -> Result<serde_json::V
         }
     }
     Ok(serde_json::to_value(items).map_err(|e| e.to_string())?)
+}
+
+// ── OPC 自改进循环（对接上游 Loop Engineering，参照 stock_analysis）──
+
+/// 自改进 WorkItem 循环：OPC 领域实现 OpcWorkItemRound（company-runtime）
+/// 通过上游 harness::SelfImprovingRound trait + agent::SelfImprovementExecutor
+/// 跑"执行 → 自评估 → 收敛/改进"回合制闭环。返回最终产出 + 评估分 + 轮次。
+#[tauri::command]
+pub async fn run_self_improving_opc_work_item(
+    state: State<'_, AppState>,
+    task: String,
+    max_rounds: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    use axagent_agent::self_improvement_executor::{
+        SelfImprovementConfig, SelfImprovementExecutor,
+    };
+
+    let db = state.harness.db().clone();
+    let round = axagent_company_runtime::OpcWorkItemRound::new(db);
+    let config = SelfImprovementConfig::new(
+        max_rounds.unwrap_or(3),
+        0.80, // 收敛阈值：评估分高于此值直接 Accept
+        3,    // 连续无进展多少次后 Escalate
+    );
+    let mut executor = SelfImprovementExecutor::new(Box::new(round), config);
+
+    match executor.run(&task).await {
+        Ok(output) => Ok(serde_json::json!({
+            "text": output.text,
+            "totalRounds": output.total_rounds,
+            "finalScore": output.final_evaluation.score,
+            "confidence": output.final_evaluation.confidence,
+            "strengths": output.final_evaluation.strengths,
+            "gaps": output.final_evaluation.gaps,
+        })),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+// ── 方案 B：OPC 角色进 Fleet（办公室接真实 Agent 状态）────────────
+
+/// 同步 OPC 员工为舰队成员（幂等）：扫描 opc_org_employees(active) →
+/// 注册/更新到 Fleet，成员状态由该角色最新 work item phase 驱动。
+/// 办公室（Fleet 视图）从此显示真实角色状态，与看板形成"人/事"互补。
+#[tauri::command]
+pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    use axagent_harness::fleet::{Fleet, FleetMember, FleetMetadata, FleetStatus};
+    use axagent_opc_entities::opc_org_employees;
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+    let db = state.harness.db().clone();
+    let fleet_repo = state.fleet_repository.clone();
+
+    // 1. 找/建默认舰队
+    let fleet_id = {
+        let fleets = fleet_repo.list_fleets(None).await.map_err(|e| e.to_string())?;
+        match fleets.into_iter().find(|f| f.name == "OPC 一人公司") {
+            Some(f) => f.id,
+            None => {
+                let fleet = Fleet {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    name: "OPC 一人公司".to_string(),
+                    scene_template_slug: None,
+                    status: FleetStatus::Active,
+                    created_at: chrono::Utc::now().timestamp_millis(),
+                    updated_at: chrono::Utc::now().timestamp_millis(),
+                    metadata: FleetMetadata {
+                        description: "一人公司 6 角色（OpenOPC 三机制）".to_string(),
+                        max_members: 16,
+                        strategy: None,
+                        tags: vec!["opc".to_string()],
+                    },
+                };
+                fleet_repo.create_fleet(fleet).await.map_err(|e| e.to_string())?.id
+            },
+        }
+    };
+
+    // 2. 扫描 active 员工
+    let employees = opc_org_employees::Entity::find()
+        .filter(opc_org_employees::Column::Status.eq("active"))
+        .all(&db)
+        .await
+        .map_err(|e| format!("查询员工失败: {e}"))?;
+
+    // 已有成员（按 agent_slug 判重）
+    let members = fleet_repo.list_members(&fleet_id).await.map_err(|e| e.to_string())?;
+
+    let mut synced = 0u32;
+    let mut updated = 0u32;
+
+    for emp in &employees {
+        let slug = emp.role_id.clone();
+        let status = opc_role_member_status(&db, &slug).await;
+        match members.iter().find(|m| m.agent_slug == slug) {
+            Some(existing) => {
+                if existing.status != status {
+                    fleet_repo
+                        .update_member_status(&existing.id, status)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    updated += 1;
+                }
+            },
+            None => {
+                let member = FleetMember {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    fleet_id: fleet_id.clone(),
+                    agent_id: emp.employee_id.clone(),
+                    agent_slug: slug.clone(),
+                    display_name: emp.employee_id.clone(),
+                    role: slug.clone(),
+                    room_id: "default".to_string(),
+                    status,
+                    joined_at: chrono::Utc::now().timestamp_millis(),
+                    today_tokens: 0,
+                    total_tokens: 0,
+                };
+                fleet_repo.add_member(member).await.map_err(|e| e.to_string())?;
+                synced += 1;
+            },
+        }
+    }
+
+    let total = fleet_repo.list_members(&fleet_id).await.map_err(|e| e.to_string())?.len();
+    Ok(serde_json::json!({
+        "fleetId": fleet_id,
+        "synced": synced,
+        "updatedStatus": updated,
+        "totalMembers": total,
+    }))
+}
+
+/// 角色成员状态：由该角色最新 work item 的 phase 驱动。
+/// IN_PROGRESS/REVIEW/APPROVED → Busy；BLOCKED/FAILED → Error；其余/无任务 → Idle。
+async fn opc_role_member_status(
+    db: &sea_orm::DatabaseConnection,
+    role_id: &str,
+) -> axagent_harness::fleet::FleetMemberStatus {
+    use axagent_harness::fleet::FleetMemberStatus;
+    use axagent_opc_entities::opc_work_items;
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
+
+    let latest = opc_work_items::Entity::find()
+        .filter(opc_work_items::Column::OwnerRoleId.eq(role_id))
+        .order_by_desc(opc_work_items::Column::UpdatedAt)
+        .one(db)
+        .await
+        .ok()
+        .flatten();
+
+    match latest {
+        Some(w) => match w.phase.as_str() {
+            "IN_PROGRESS" | "REVIEW" | "APPROVED" => FleetMemberStatus::Busy,
+            "BLOCKED" | "FAILED" => FleetMemberStatus::Error,
+            _ => FleetMemberStatus::Idle,
+        },
+        None => FleetMemberStatus::Idle,
+    }
 }
