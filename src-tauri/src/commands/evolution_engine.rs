@@ -916,6 +916,7 @@ pub async fn get_sandbox_policy(state: State<'_, AppState>) -> Result<serde_json
     }
     #[cfg(target_os = "android")]
     {
+        let _ = &state;
         Ok(serde_json::json!({
             "allowedTools": [],
             "maxSteps": 0,
@@ -969,6 +970,7 @@ pub async fn run_sandbox_validate_step(
     }
     #[cfg(target_os = "android")]
     {
+        let _ = (&state, &action);
         Ok(serde_json::json!({
             "stepOrder": step_order,
             "tool": tool,

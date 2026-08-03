@@ -13,6 +13,7 @@
 //! - MultiAgentTriggerHook 在 pre_llm_call 中自动委派
 
 use crate::AppState;
+#[cfg(not(mobile))]
 use crate::commands::screen_vision::build_vision_context;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
@@ -76,6 +77,12 @@ pub struct DelegateTaskRunnerImpl {
 
 #[async_trait::async_trait]
 impl DelegateTaskRunner for DelegateTaskRunnerImpl {
+    #[cfg(mobile)]
+    async fn delegate(&self, _input: DelegateTaskInput) -> Result<DelegateTaskResult, String> {
+        Err("Multi-Agent 委派在移动端不可用".to_string())
+    }
+
+    #[cfg(not(mobile))]
     async fn delegate(&self, input: DelegateTaskInput) -> Result<DelegateTaskResult, String> {
         validate_role(&input.role_name)?;
 

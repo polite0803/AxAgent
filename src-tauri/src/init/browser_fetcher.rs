@@ -5,13 +5,19 @@
 //! 将浏览器自动化客户端的 HTTP 请求能力包装为 astock-data 中定义的
 //! `BrowserHttpFetch` trait 接口，供 `browser_eastmoney` vendor
 //! 在浏览器内核中执行请求以绕过 EastMoney JA3 TLS 封锁。
+//!
+//! 移动端（android / iOS）不支持 Playwright，整个模块被门控掉，
+//! 由 `state.rs` 在移动端注入 `None` fetcher。
 
+#[cfg(not(mobile))]
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use axagent_astock_data::vendors::browser_eastmoney::BrowserHttpFetch;
+#[cfg(not(mobile))]
 use axagent_kit::browser_automation::PlaywrightClient;
 use serde_json::Value;
+#[cfg(not(mobile))]
 use tokio::sync::Mutex;
 
 /// 将 `Arc<Mutex<Option<PlaywrightClient>>>` 包装为 `BrowserHttpFetch`。
@@ -22,10 +28,12 @@ use tokio::sync::Mutex;
 /// **懒启动**：首次调用 `fetch_json` / `fetch_text` 时自动通过 `PlaywrightClient::launch()`
 /// 启动浏览器实例，与 `commands::browser::ensure_browser_client()` 行为一致。
 /// 这保证了 vendor_health_prober 等后台路径也能触发浏览器初始化。
+#[cfg(not(mobile))]
 pub struct PlaywrightBrowserFetcher {
     client: Arc<Mutex<Option<PlaywrightClient>>>,
 }
 
+#[cfg(not(mobile))]
 impl PlaywrightBrowserFetcher {
     pub fn new(client: Arc<Mutex<Option<PlaywrightClient>>>) -> Self {
         Self { client }
@@ -49,6 +57,7 @@ impl PlaywrightBrowserFetcher {
     }
 }
 
+#[cfg(not(mobile))]
 #[async_trait]
 impl BrowserHttpFetch for PlaywrightBrowserFetcher {
     /// 通过浏览器 fetch API 发送 HTTP GET 请求。
@@ -67,5 +76,24 @@ impl BrowserHttpFetch for PlaywrightBrowserFetcher {
         let mut guard = self.client.lock().await;
         let client = guard.as_mut().ok_or_else(|| "browser not initialized".to_string())?;
         client.http_get_via_browser(url).await.map_err(|e| e.to_string())
+    }
+}
+
+/// 移动端（android / iOS）的浏览器 fetch 空实现：直接返回"不可用"错误。
+///
+/// 供 `state.rs` 在移动端注入 `AStockClient`，保持 `BrowserHttpFetch` trait
+/// 注入路径一致，运行时 vendor 若尝试使用浏览器内核会得到明确的错误提示。
+#[cfg(mobile)]
+pub struct NoopBrowserFetcher;
+
+#[cfg(mobile)]
+#[async_trait]
+impl BrowserHttpFetch for NoopBrowserFetcher {
+    async fn fetch_json(&self, _url: &str, _headers: &[(&str, &str)]) -> Result<Value, String> {
+        Err("移动端不支持浏览器内核 fetch（Playwright 不可用）".to_string())
+    }
+
+    async fn fetch_text(&self, _url: &str) -> Result<Value, String> {
+        Err("移动端不支持浏览器内核 fetch（Playwright 不可用）".to_string())
     }
 }

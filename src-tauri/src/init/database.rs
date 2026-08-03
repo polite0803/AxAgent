@@ -33,7 +33,11 @@ pub fn restrict_file_permissions(path: &Path) -> Result<(), String> {
             );
         }
     }
-    #[cfg(not(any(unix, windows)))]
+    #[cfg(mobile)]
+    {
+        let _ = path; // 移动端无文件权限细化需求
+    }
+    #[cfg(all(not(mobile), not(unix), not(windows)))]
     {
         let _ = path; // unsupported platform, skip
     }

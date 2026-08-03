@@ -882,14 +882,22 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     ));
     // 注入浏览器 HTTP fetch 能力（Playwright 绕过 EastMoney JA3 封锁）
     use axagent_astock_data::vendors::browser_eastmoney::BrowserHttpFetch;
+    #[cfg(not(mobile))]
     let browser_fetcher: Arc<dyn BrowserHttpFetch> = Arc::new(
         crate::init::browser_fetcher::PlaywrightBrowserFetcher::new(browser_client.clone()),
     );
+    #[cfg(mobile)]
+    let browser_fetcher: Arc<dyn BrowserHttpFetch> =
+        Arc::new(crate::init::browser_fetcher::NoopBrowserFetcher);
+    #[cfg(not(mobile))]
     let astock_client = Arc::new(
         axagent_astock_data::AStockClient::new()
             .with_news_archive_sink(news_sink)
             .with_browser_fetcher(browser_fetcher),
     );
+    #[cfg(mobile)]
+    let astock_client =
+        Arc::new(axagent_astock_data::AStockClient::new().with_news_archive_sink(news_sink));
     // 注册到 tools crate 全局状态，供 finance.rs 中的数据 API 工具（get_north_bound_flow 等）使用
     axagent_tools::global_state::set_astock_client(astock_client.clone());
 

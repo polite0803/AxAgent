@@ -25,13 +25,17 @@
 //! 7. 返回完整诊断记录给前端
 
 use crate::AppState;
+#[cfg(not(mobile))]
 use axagent_harness::LlmCallConfig;
+#[cfg(not(mobile))]
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ContentPart, ImageUrl};
 use axagent_stock_analysis::screenshot_diagnosis::{
-    self, CreateScreenshotDiagnosisInput, RiskDiagnosis, ScreenshotPosition,
-    UpdateScreenshotDiagnosisInput,
+    self, CreateScreenshotDiagnosisInput, UpdateScreenshotDiagnosisInput,
 };
+#[cfg(not(mobile))]
+use axagent_stock_analysis::screenshot_diagnosis::{RiskDiagnosis, ScreenshotPosition};
 use serde::{Deserialize, Serialize};
+#[cfg(not(mobile))]
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tauri::State;
@@ -136,6 +140,7 @@ async fn llm_extract_positions(
 }
 
 /// 从 LLM 输出中解析 positions JSON 数组（支持 ```json 围栏 / 裸 JSON）
+#[cfg(not(mobile))]
 fn parse_positions_from_llm_output(raw: &str) -> Result<Vec<ScreenshotPosition>, String> {
     // 1. 尝试提取 ```json 围栏
     let json_str = if let Some(start) = raw.find("```json") {
