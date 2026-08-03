@@ -6129,7 +6129,21 @@
       "url": "URL",
       "urlInvalid": "URL 形式が無効です",
       "urlRequired": "URL を入力してください",
-      "web": "ウェブ"
+      "web": "ウェブ",
+      "confirmImport": "インポートを確認",
+      "fileName": "ファイル名",
+      "fileSize": "サイズ",
+      "fileType": "タイプ",
+      "failedCount": "{count}件が失敗",
+      "failedFiles": "失敗したファイル",
+      "folderContext": "相対パス",
+      "folderEmpty": "フォルダにインポート可能なファイルが見つかりません",
+      "folderImportFailed": "インポートに失敗しました",
+      "folderImportSuccess": "{count}件のファイルがインポートされました",
+      "importedCount": "{count}件がインポートされました",
+      "previewFolder": "フォルダをプレビュー",
+      "previewFound": "{count}件のインポート可能なファイルが見つかりました",
+      "previewResult": "プレビュー結果 ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "ソース「{{title}}」とそのレコードを削除します。関連ノートの内容は保持されますが、source_refs の参照はクリーンアップされます。",
@@ -6177,7 +6191,9 @@
       "fileUploaded": "ファイルがアップロードされました",
       "ingestError": "インポート失敗",
       "ingestSuccess": "インポート成功",
-      "uploadError": "アップロード失敗"
+      "uploadError": "アップロード失敗",
+      "importError": "インポートに失敗しました",
+      "previewError": "プレビューに失敗しました"
     },
     "llmNote": "LLM ノート",
     "localGraph": "ローカルグラフ",

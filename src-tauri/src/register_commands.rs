@@ -902,6 +902,8 @@ macro_rules! register_all_commands {
             commands::llm_wiki::wiki_get_capacity_info,
             commands::llm_wiki::llm_wiki_get_purpose,
             commands::llm_wiki::llm_wiki_update_purpose,
+            commands::llm_wiki::llm_wiki_import_folder,
+            commands::llm_wiki::llm_wiki_import_folder_preview,
             // Knowledge source commands (知识库增长更新入口)
             commands::knowledge_source::fetch_url_to_wiki,
             commands::knowledge_source::knowledge_source_list,

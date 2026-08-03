@@ -6129,7 +6129,21 @@
       "url": "URL",
       "urlInvalid": "Formato de URL no válido",
       "urlRequired": "La URL es obligatoria",
-      "web": "Web"
+      "web": "Web",
+      "confirmImport": "Confirmar importación",
+      "fileName": "Nombre del archivo",
+      "fileSize": "Tamaño",
+      "fileType": "Tipo",
+      "failedCount": "{count} fallidos",
+      "failedFiles": "Archivos fallidos",
+      "folderContext": "Ruta relativa",
+      "folderEmpty": "No se encontraron archivos importables en la carpeta",
+      "folderImportFailed": "Importación fallida",
+      "folderImportSuccess": "Se importaron {count} archivos con éxito",
+      "importedCount": "{count} importados",
+      "previewFolder": "Vista previa de carpeta",
+      "previewFound": "Se encontraron {count} archivos importables",
+      "previewResult": "Resultado de vista previa ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "Se eliminará la fuente «{{title}}» y su registro. El contenido de las notas asociadas se conservará, pero se limpiarán las referencias en source_refs.",
@@ -6177,7 +6191,9 @@
       "fileUploaded": "Archivo subido",
       "ingestError": "Error al importar",
       "ingestSuccess": "Importado con éxito",
-      "uploadError": "Error al subir"
+      "uploadError": "Error al subir",
+      "importError": "Importación fallida",
+      "previewError": "Vista previa fallida"
     },
     "llmNote": "Nota LLM",
     "localGraph": "Grafo local",

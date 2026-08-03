@@ -365,11 +365,11 @@ impl IngestQueue {
         Ok(task_ids)
     }
 
-    fn get_relative_path(base: &std::path::Path, full: &std::path::Path) -> std::path::PathBuf {
+    pub fn get_relative_path(base: &std::path::Path, full: &std::path::Path) -> std::path::PathBuf {
         full.strip_prefix(base).map(|p| p.to_path_buf()).unwrap_or_else(|_| full.to_path_buf())
     }
 
-    fn infer_type(path: &std::path::Path) -> crate::ingest_pipeline::IngestSourceType {
+    pub fn infer_type(path: &std::path::Path) -> crate::ingest_pipeline::IngestSourceType {
         let extension =
             path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()).unwrap_or_default();
 

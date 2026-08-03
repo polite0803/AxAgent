@@ -6129,7 +6129,21 @@
       "url": "URL",
       "urlInvalid": "अमान्य URL प्रारूप",
       "urlRequired": "URL आवश्यक है",
-      "web": "वेब"
+      "web": "वेब",
+      "confirmImport": "इम्पोर्ट की पुष्टि करें",
+      "fileName": "फ़ाइल का नाम",
+      "fileSize": "आकार",
+      "fileType": "प्रकार",
+      "failedCount": "{count} विफल",
+      "failedFiles": "विफल फ़ाइलें",
+      "folderContext": "सापेक्ष पथ",
+      "folderEmpty": "फ़ोल्डर में कोई आयात योग्य फ़ाइल नहीं मिली",
+      "folderImportFailed": "इम्पोर्ट विफल",
+      "folderImportSuccess": "{count} फ़ाइलें सफलतापूर्वक आयात की गई",
+      "importedCount": "{count} आयातित",
+      "previewFolder": "फ़ोल्डर पूर्वावलोकन",
+      "previewFound": "{count} आयात योग्य फ़ाइलें मिलीं",
+      "previewResult": "पूर्वावलोकन परिणाम ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "स्रोत «{{title}}» और उसका रिकॉर्ड हटाया जाएगा। संबंधित नोट सामग्री बनी रहेगी, लेकिन source_refs संदर्भ साफ़ कर दिए जाएंगे।",
@@ -6177,7 +6191,9 @@
       "fileUploaded": "फ़ाइल अपलोड की गई",
       "ingestError": "आयात विफल",
       "ingestSuccess": "सफलतापूर्वक आयात किया गया",
-      "uploadError": "अपलोड विफल"
+      "uploadError": "अपलोड विफल",
+      "importError": "इम्पोर्ट विफल",
+      "previewError": "पूर्वावलोकन विफल"
     },
     "llmNote": "LLM नोट",
     "localGraph": "स्थानीय ग्राफ़",

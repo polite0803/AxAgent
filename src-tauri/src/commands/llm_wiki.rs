@@ -3,7 +3,8 @@
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_agent::{
-    ingest_pipeline, lint_checker, purpose_manager, query_engine, schema_manager, wiki_compiler,
+    ingest_pipeline, ingest_queue, lint_checker, purpose_manager, query_engine,
+    schema_manager, wiki_compiler,
 };
 use axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository;
 use axagent_dao::repo::note_repository::DaoNoteRepository;
@@ -1491,4 +1492,192 @@ pub async fn llm_wiki_update_purpose(
     let wiki_repo: Arc<dyn WikiRepository> =
         Arc::new(DaoWikiRepository::new(Arc::new(state.harness.db().clone())));
     purpose_manager::PurposeManager::save(&*wiki_repo, &wiki_id, &content).await
+}
+
+// ── 文件夹递归导入 ────────────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderImportInput {
+    pub wiki_id: String,
+    pub folder_path: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FolderImportPreviewOutput {
+    pub file_name: String,
+    pub file_path: String,
+    pub folder_context: String,
+    pub file_type: String,
+    pub estimated_size: u64,
+}
+
+impl From<ingest_queue::FolderImportPreviewItem> for FolderImportPreviewOutput {
+    fn from(item: ingest_queue::FolderImportPreviewItem) -> Self {
+        Self {
+            file_name: item.file_name,
+            file_path: item.file_path,
+            folder_context: item.folder_context,
+            file_type: format!("{:?}", item.file_type),
+            estimated_size: item.estimated_size,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct FolderImportResultOutput {
+    pub task_ids: Vec<String>,
+    pub imported_count: usize,
+    pub failed_files: Vec<String>,
+}
+
+/// 预览文件夹内容（不执行实际导入）
+#[tauri::command]
+pub async fn llm_wiki_import_folder_preview(
+    state: State<'_, AppState>,
+    folder_path: String,
+) -> Result<Vec<FolderImportPreviewOutput>, String> {
+    let db = Arc::new(state.harness.db().clone());
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(db.clone()));
+    let wiki_source_repo: Arc<dyn WikiSourceRepository> =
+        Arc::new(DaoWikiSourceRepository::new(db.clone()));
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(db));
+    let pipeline = Arc::new(ingest_pipeline::IngestPipeline::new(
+        wiki_repo,
+        wiki_source_repo,
+        note_repo,
+    ));
+    let queue = ingest_queue::IngestQueue::new(pipeline, String::new());
+
+    let items = queue.get_folder_import_preview(&folder_path).await?;
+    Ok(items.into_iter().map(FolderImportPreviewOutput::from).collect())
+}
+
+/// 递归导入文件夹中所有文件到 Wiki
+#[tauri::command]
+pub async fn llm_wiki_import_folder(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    input: FolderImportInput,
+) -> Result<FolderImportResultOutput, String> {
+    let db = Arc::new(state.harness.db().clone());
+    let wiki_repo: Arc<dyn WikiRepository> = Arc::new(DaoWikiRepository::new(db.clone()));
+    let wiki_source_repo: Arc<dyn WikiSourceRepository> =
+        Arc::new(DaoWikiSourceRepository::new(db.clone()));
+    let note_repo: Arc<dyn NoteRepository> = Arc::new(DaoNoteRepository::new(db.clone()));
+    let pipeline = Arc::new(ingest_pipeline::IngestPipeline::new(
+        wiki_repo,
+        wiki_source_repo,
+        note_repo,
+    ));
+
+    let app_data_dir = crate::paths::axagent_home();
+    let queue_dir = format!("{}/wiki_{}/import_queue", app_data_dir.display(), input.wiki_id);
+    let queue = ingest_queue::IngestQueue::new(pipeline, queue_dir);
+
+    let task_ids = queue.import_folder(&input.wiki_id, &input.folder_path).await?;
+    let total = task_ids.len();
+
+    let mut imported_count = 0usize;
+    let mut failed_files = Vec::new();
+    let mut all_note_ids: Vec<String> = Vec::new();
+
+    // 逐个处理导入任务
+    for task_id in &task_ids {
+        let result = queue.process_next().await;
+        match result {
+            Some(ingest_result) => {
+                all_note_ids.extend(ingest_result.generated_note_ids);
+                imported_count += 1;
+            },
+            None => {
+                if let Some(task) = queue.get_task(task_id).await {
+                    let err_msg = task
+                        .error_message
+                        .unwrap_or_else(|| "Unknown error".to_string());
+                    failed_files.push(format!("{}: {}", task.source.path, err_msg));
+                } else {
+                    failed_files.push(task_id.clone());
+                }
+            },
+        }
+    }
+
+    // 为已导入的文件触发向量索引
+    if !all_note_ids.is_empty() {
+        if let Ok(wiki) = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id).await
+        {
+            if wiki.embedding_provider.is_some() {
+                let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
+                let db = state.harness.db().clone();
+                let master_key = state.harness.master_key_owned();
+                let vector_store = state.vector_store.clone();
+                let wiki_id = input.wiki_id.clone();
+                let app_for_emit = app.clone();
+                let note_ids = all_note_ids.clone();
+
+                tokio::spawn(catch_unwind_logged(
+                    "llm_wiki.import_folder_indexing",
+                    async move {
+                        for note_id in &note_ids {
+                            let note_result = axagent_dao::repo::note::get_note(&db, note_id).await;
+                            if let Ok(note) = note_result {
+                                let collection_id = format!("wiki_{}", wiki_id);
+                                let _ = vector_store
+                                    .delete_document_embeddings(&collection_id, note_id)
+                                    .await;
+
+                                let index_result = crate::indexing::index_source(
+                                    &db,
+                                    &master_key,
+                                    &vector_store,
+                                    &container,
+                                    note_id,
+                                    &note.content,
+                                    None,
+                                    None,
+                                )
+                                .await;
+
+                                let (success, error_msg) = match &index_result {
+                                    Ok(_) => (true, None),
+                                    Err(e) => {
+                                        tracing::error!(
+                                            "Wiki folder import indexing failed for {}: {}",
+                                            note_id,
+                                            e
+                                        );
+                                        (false, Some(e.to_string()))
+                                    },
+                                };
+                                let _ = app_for_emit.emit(
+                                    "wiki-note-indexed",
+                                    serde_json::json!({
+                                        "noteId": note_id,
+                                        "success": success,
+                                        "error": error_msg,
+                                    }),
+                                );
+                            }
+                        }
+
+                        let _ = app_for_emit.emit(
+                            "wiki-folder-import-complete",
+                            serde_json::json!({
+                                "wikiId": wiki_id,
+                                "importedCount": note_ids.len(),
+                            }),
+                        );
+                    },
+                ));
+            }
+        }
+    }
+
+    let _ = total; // 避免未使用警告
+    Ok(FolderImportResultOutput {
+        task_ids,
+        imported_count,
+        failed_files,
+    })
 }

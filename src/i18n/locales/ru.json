@@ -6129,7 +6129,21 @@
       "url": "URL",
       "urlInvalid": "Неверный формат URL",
       "urlRequired": "URL обязателен",
-      "web": "Веб"
+      "web": "Веб",
+      "confirmImport": "Подтвердить импорт",
+      "fileName": "Имя файла",
+      "fileSize": "Размер",
+      "fileType": "Тип",
+      "failedCount": "{count} не удалось",
+      "failedFiles": "Неудачные файлы",
+      "folderContext": "Относительный путь",
+      "folderEmpty": "В папке не найдено файлов для импорта",
+      "folderImportFailed": "Импорт не удался",
+      "folderImportSuccess": "Успешно импортировано {count} файлов",
+      "importedCount": "{count} импортировано",
+      "previewFolder": "Предварительный просмотр папки",
+      "previewFound": "Найдено {count} файлов для импорта",
+      "previewResult": "Результат предварительного просмотра ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "Источник «{{title}}» и его запись будут удалены. Содержимое связанных заметок будет сохранено, но ссылки source_refs будут очищены.",
@@ -6177,7 +6191,9 @@
       "fileUploaded": "Файл загружен",
       "ingestError": "Импорт не удался",
       "ingestSuccess": "Успешно импортировано",
-      "uploadError": "Не удалось загрузить"
+      "uploadError": "Не удалось загрузить",
+      "importError": "Импорт не удался",
+      "previewError": "Предварительный просмотр не удался"
     },
     "llmNote": "Заметка LLM",
     "localGraph": "Локальный граф",

@@ -2,9 +2,10 @@
 
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
-import { IngestResult, useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import type { FolderImportPreviewItem, FolderImportResult, IngestResult } from "@/types";
 import { DeleteOutlined, FileTextOutlined, FolderOutlined, LinkOutlined, UploadOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input, Progress, Select, Space, Typography, Upload } from "antd";
+import { Button, Card, Form, Input, Progress, Select, Space, Table, Tag, Typography, Upload } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -18,14 +19,16 @@ interface IngestPanelProps {
 
 export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   const { t } = useTranslation();
-  const { ingestSource } = useLlmWikiStore();
+  const { ingestSource, importFolderPreview, importFolder } = useLlmWikiStore();
   const [form] = Form.useForm();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<IngestResult[]>([]);
-  const [ingestType, setIngestType] = useState<"file" | "url" | "folder">(
-    "file",
-  );
+  const [ingestType, setIngestType] = useState<"file" | "url" | "folder">("file");
+  const [previewItems, setPreviewItems] = useState<FolderImportPreviewItem[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<FolderImportResult | null>(null);
 
   const handleIngest = async (values: {
     sourceType: string;
@@ -102,9 +105,97 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
     return false;
   };
 
+  const handlePreviewFolder = async () => {
+    const path = form.getFieldValue("path");
+    if (!path) {
+      message.warning(t("wiki.llm.folderPathRequired"));
+      return;
+    }
+
+    setPreviewLoading(true);
+    setPreviewItems([]);
+    setImportResult(null);
+
+    try {
+      const items = await importFolderPreview(path);
+      setPreviewItems(items);
+      if (items.length === 0) {
+        message.info(t("wiki.llm.folderEmpty"));
+      } else {
+        message.success(t("wiki.llm.previewFound", { count: items.length }));
+      }
+    } catch (e) {
+      message.error(t("wiki.llm.previewError", { error: String(e) }));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleImportFolder = async () => {
+    if (previewItems.length === 0) { return; }
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const path = form.getFieldValue("path");
+      const result = await importFolder(wikiId, path);
+
+      if (result) {
+        setImportResult(result);
+        if (result.imported_count > 0) {
+          message.success(
+            t("wiki.llm.folderImportSuccess", { count: result.imported_count }),
+          );
+          onClose?.();
+        } else {
+          message.warning(t("wiki.llm.folderImportFailed"));
+        }
+      }
+    } catch (e) {
+      message.error(t("wiki.llm.importError", { error: String(e) }));
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const removeResult = (index: number) => {
     setResults((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const previewColumns = [
+    {
+      title: t("wiki.llm.fileName"),
+      dataIndex: "file_name",
+      key: "file_name",
+      ellipsis: true,
+    },
+    {
+      title: t("wiki.llm.folderContext"),
+      dataIndex: "folder_context",
+      key: "folder_context",
+      ellipsis: true,
+      render: (v: string) => v || "-",
+    },
+    {
+      title: t("wiki.llm.fileType"),
+      dataIndex: "file_type",
+      key: "file_type",
+      width: 100,
+      render: (v: string) => <Tag>{v}</Tag>,
+    },
+    {
+      title: t("wiki.llm.fileSize"),
+      dataIndex: "estimated_size",
+      key: "estimated_size",
+      width: 100,
+      render: (v: number) => {
+        if (v < 1024) { return `${v} B`; }
+        if (v < 1024 * 1024) { return `${(v / 1024).toFixed(1)} KB`; }
+        return `${(v / 1024 / 1024).toFixed(1)} MB`;
+      },
+    },
+  ];
 
   return (
     <Space orientation="vertical" size="large" style={{ width: "100%" }}>
@@ -114,6 +205,8 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
             value={ingestType}
             onChange={(v) => {
               setIngestType(v);
+              setPreviewItems([]);
+              setImportResult(null);
               form.resetFields(["path", "url", "title"]);
             }}
             options={[
@@ -124,23 +217,25 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
           />
         </Form.Item>
 
-        <Form.Item
-          name="sourceType"
-          label={t("wiki.ingest.sourceType")}
-          rules={[
-            { required: true, message: t("wiki.ingest.sourceTypeRequired") },
-          ]}
-        >
-          <Select
-            options={[
-              { label: t("wiki.ingest.markdown"), value: "markdown" },
-              { label: t("wiki.ingest.pdf"), value: "pdf" },
-              { label: t("wiki.ingest.docx"), value: "docx" },
-              { label: t("wiki.ingest.web"), value: "web" },
-              { label: t("wiki.ingest.notion"), value: "notion" },
+        {ingestType !== "folder" && (
+          <Form.Item
+            name="sourceType"
+            label={t("wiki.ingest.sourceType")}
+            rules={[
+              { required: true, message: t("wiki.ingest.sourceTypeRequired") },
             ]}
-          />
-        </Form.Item>
+          >
+            <Select
+              options={[
+                { label: t("wiki.ingest.markdown"), value: "markdown" },
+                { label: t("wiki.ingest.pdf"), value: "pdf" },
+                { label: t("wiki.ingest.docx"), value: "docx" },
+                { label: t("wiki.ingest.web"), value: "web" },
+                { label: t("wiki.ingest.notion"), value: "notion" },
+              ]}
+            />
+          </Form.Item>
+        )}
 
         {ingestType === "file" && (
           <>
@@ -188,36 +283,112 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
         )}
 
         {ingestType === "folder" && (
-          <Form.Item
-            name="path"
-            label={t("wiki.ingest.folderPath")}
-            rules={[
-              { required: true, message: t("wiki.ingest.folderPathRequired") },
-            ]}
-          >
-            <Input
+          <>
+            <Form.Item
               name="path"
-              prefix={<FolderOutlined />}
-              placeholder={t("wiki.ingest.folderPathPlaceholder")}
-            />
+              label={t("wiki.ingest.folderPath")}
+              rules={[
+                { required: true, message: t("wiki.ingest.folderPathRequired") },
+              ]}
+            >
+              <Input
+                name="path"
+                prefix={<FolderOutlined />}
+                placeholder={t("wiki.ingest.folderPathPlaceholder")}
+              />
+            </Form.Item>
+
+            <Space>
+              <Button
+                onClick={handlePreviewFolder}
+                loading={previewLoading}
+                icon={<FolderOutlined />}
+              >
+                {t("wiki.ingest.previewFolder")}
+              </Button>
+            </Space>
+
+            {previewItems.length > 0 && (
+              <Card
+                size="small"
+                title={t("wiki.ingest.previewResult", { count: previewItems.length })}
+                extra={importResult
+                  ? (
+                    <Tag color={importResult.failed_files.length > 0 ? "orange" : "green"}>
+                      {t("wiki.ingest.importedCount", {
+                        count: importResult.imported_count,
+                      })}
+                      {importResult.failed_files.length > 0
+                        && ` (${
+                          t("wiki.ingest.failedCount", {
+                            count: importResult.failed_files.length,
+                          })
+                        })`}
+                    </Tag>
+                  )
+                  : null}
+                style={{ marginTop: 12 }}
+              >
+                <Table
+                  dataSource={previewItems}
+                  columns={previewColumns}
+                  rowKey="file_path"
+                  size="small"
+                  pagination={{ pageSize: 10, size: "small" }}
+                  scroll={{ y: 300 }}
+                />
+
+                {importResult?.failed_files.length && (
+                  <div style={{ marginTop: 12 }}>
+                    <Text type="danger" style={{ fontSize: 12 }}>
+                      {t("wiki.ingest.failedFiles")}:
+                    </Text>
+                    <ul style={{ paddingLeft: 16, margin: "4px 0 0" }}>
+                      {importResult.failed_files.map((f, i) => (
+                        <li key={i}>
+                          <Text type="danger" style={{ fontSize: 12 }}>{f}</Text>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {!importResult && (
+                  <Button
+                    type="primary"
+                    block
+                    loading={importing}
+                    icon={<UploadOutlined />}
+                    onClick={handleImportFolder}
+                    style={{ marginTop: 12 }}
+                  >
+                    {t("wiki.ingest.confirmImport")}
+                  </Button>
+                )}
+              </Card>
+            )}
+          </>
+        )}
+
+        {ingestType !== "folder" && (
+          <Form.Item name="title" label={t("wiki.ingest.title")}>
+            <Input name="title" placeholder={t("wiki.ingest.titlePlaceholder")} />
           </Form.Item>
         )}
 
-        <Form.Item name="title" label={t("wiki.ingest.title")}>
-          <Input name="title" placeholder={t("wiki.ingest.titlePlaceholder")} />
-        </Form.Item>
-
         {uploading && <Progress percent={progress} status="active" />}
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          loading={uploading}
-          block
-          icon={<UploadOutlined />}
-        >
-          {t("wiki.ingest.start")}
-        </Button>
+        {ingestType !== "folder" && (
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={uploading}
+            block
+            icon={<UploadOutlined />}
+          >
+            {t("wiki.ingest.start")}
+          </Button>
+        )}
       </Form>
 
       {results.length > 0 && (
@@ -225,8 +396,20 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
           <div className="divide-y divide-gray-100">
             {results.map((item, index) => (
               <div key={index} style={{ padding: "12px 0" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 12,
+                    }}
+                  >
                     <div>
                       <FileTextOutlined />
                     </div>
