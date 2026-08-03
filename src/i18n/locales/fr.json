@@ -3647,6 +3647,13 @@
       "button": "Ajouter un membre",
       "profileLabel": "Choisir depuis AgentProfile",
       "profilePlaceholder": "Choisissez un préréglage rôle+expert, remplit le nom et les fonctions (vider pour saisie manuelle)",
+      "nameLabel": "Nom affiché",
+      "namePlaceholder": "ex. Assistant rédaction",
+      "slugLabel": "Slug d'agent",
+      "slugPlaceholder": "ID unique pour le routage (ex. copywriter)",
+      "roleLabel": "Rôle",
+      "roomLabel": "Pièce",
+      "slugRequired": "Le slug d'agent est requis",
       "selectAgent": "Choisir parmi les SubAgents enregistrés",
       "selectAgentPlaceholder": "Choisir un SubAgent pour remplir automatiquement",
       "agentId": "Agent ID",
@@ -4165,6 +4172,26 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "industries": {
+      "ai_research": "AI Research",
+      "software_dev": "Software Development",
+      "finance_invest": "Finance & Investment",
+      "sales_growth": "Sales Growth",
+      "content_media": "Content & Media",
+      "industry_consulting": "Industry Consulting",
+      "accounting": "Accounting",
+      "ecommerce": "E-Commerce",
+      "education": "Education"
+    },
+    "industry": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "version": "Version {{version}}",
+      "workflows": "Industry Workflows",
+      "noWorkflows": "No workflows for this industry",
+      "loadFailed": "Failed to load industry: {{error}}",
+      "notFound": "Industry not found"
     }
   },
   "pasteButton": {

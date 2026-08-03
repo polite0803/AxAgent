@@ -3647,6 +3647,13 @@
       "button": "新增成員",
       "profileLabel": "從 AgentProfile 選擇",
       "profilePlaceholder": "選擇角色+專家預設，自動填入名稱與職責（可清空後手動填寫）",
+      "nameLabel": "顯示名稱",
+      "namePlaceholder": "如：文案助手",
+      "slugLabel": "Agent Slug",
+      "slugPlaceholder": "唯一識別碼，用於路由（如 copywriter）",
+      "roleLabel": "角色描述",
+      "roomLabel": "所在房間",
+      "slugRequired": "Agent Slug 不能為空",
       "selectAgent": "從已註冊 SubAgent 選擇",
       "selectAgentPlaceholder": "選擇一個 SubAgent 自動填充",
       "agentId": "Agent ID",
@@ -4165,6 +4172,26 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "industries": {
+      "ai_research": "AI Research",
+      "software_dev": "Software Development",
+      "finance_invest": "Finance & Investment",
+      "sales_growth": "Sales Growth",
+      "content_media": "Content & Media",
+      "industry_consulting": "Industry Consulting",
+      "accounting": "Accounting",
+      "ecommerce": "E-Commerce",
+      "education": "Education"
+    },
+    "industry": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "version": "Version {{version}}",
+      "workflows": "Industry Workflows",
+      "noWorkflows": "No workflows for this industry",
+      "loadFailed": "Failed to load industry: {{error}}",
+      "notFound": "Industry not found"
     }
   },
   "pasteButton": {

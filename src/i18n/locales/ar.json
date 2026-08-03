@@ -3647,6 +3647,13 @@
       "button": "إضافة عضو",
       "profileLabel": "الاختيار من AgentProfile",
       "profilePlaceholder": "اختر قالب الدور+الخبير، يملأ الاسم والمسؤوليات تلقائيًا (امسح للكتابة يدويًا)",
+      "nameLabel": "الاسم المعروض",
+      "namePlaceholder": "مثال: مساعد كتابة",
+      "slugLabel": "معرف الوكيل",
+      "slugPlaceholder": "معرف فريد للتوجيه (مثال: copywriter)",
+      "roleLabel": "الدور",
+      "roomLabel": "الغرفة",
+      "slugRequired": "معرف الوكيل مطلوب",
       "selectAgent": "اختيار من SubAgents المسجلة",
       "selectAgentPlaceholder": "اختر SubAgent للتعبئة التلقائية",
       "agentId": "Agent ID",
@@ -4165,6 +4172,26 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "industries": {
+      "ai_research": "AI Research",
+      "software_dev": "Software Development",
+      "finance_invest": "Finance & Investment",
+      "sales_growth": "Sales Growth",
+      "content_media": "Content & Media",
+      "industry_consulting": "Industry Consulting",
+      "accounting": "Accounting",
+      "ecommerce": "E-Commerce",
+      "education": "Education"
+    },
+    "industry": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "version": "Version {{version}}",
+      "workflows": "Industry Workflows",
+      "noWorkflows": "No workflows for this industry",
+      "loadFailed": "Failed to load industry: {{error}}",
+      "notFound": "Industry not found"
     }
   },
   "pasteButton": {

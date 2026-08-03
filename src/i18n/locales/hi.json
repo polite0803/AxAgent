@@ -3647,6 +3647,13 @@
       "button": "सदस्य जोड़ें",
       "profileLabel": "AgentProfile से चुनें",
       "profilePlaceholder": "भूमिका+विशेषज्ञ प्रीसेट चुनें, नाम और ज़िम्मेदारियाँ अपने आप भर जाएँगी (साफ़ करके मैन्युअल भरें)",
+      "nameLabel": "प्रदर्शन नाम",
+      "namePlaceholder": "जैसे: कॉपीराइटर",
+      "slugLabel": "एजेंट स्लग",
+      "slugPlaceholder": "रूटिंग के लिए अद्वितीय ID (जैसे copywriter)",
+      "roleLabel": "भूमिका",
+      "roomLabel": "कमरा",
+      "slugRequired": "एजेंट स्लग आवश्यक है",
       "selectAgent": "पंजीकृत SubAgent से चुनें",
       "selectAgentPlaceholder": "स्वतः भरने के लिए SubAgent चुनें",
       "agentId": "Agent ID",
@@ -4165,6 +4172,26 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "industries": {
+      "ai_research": "AI Research",
+      "software_dev": "Software Development",
+      "finance_invest": "Finance & Investment",
+      "sales_growth": "Sales Growth",
+      "content_media": "Content & Media",
+      "industry_consulting": "Industry Consulting",
+      "accounting": "Accounting",
+      "ecommerce": "E-Commerce",
+      "education": "Education"
+    },
+    "industry": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "version": "Version {{version}}",
+      "workflows": "Industry Workflows",
+      "noWorkflows": "No workflows for this industry",
+      "loadFailed": "Failed to load industry: {{error}}",
+      "notFound": "Industry not found"
     }
   },
   "pasteButton": {

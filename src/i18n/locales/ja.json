@@ -3647,6 +3647,13 @@
       "button": "メンバー追加",
       "profileLabel": "AgentProfile から選択",
       "profilePlaceholder": "役割+エキスパートのプリセットを選択。名前と職責を自動入力（クリアして手動入力も可）",
+      "nameLabel": "表示名",
+      "namePlaceholder": "例：コピーライター",
+      "slugLabel": "エージェントスラッグ",
+      "slugPlaceholder": "ルーティングに使う一意 ID（例: copywriter）",
+      "roleLabel": "役割",
+      "roomLabel": "部屋",
+      "slugRequired": "エージェントスラッグは必須です",
       "selectAgent": "登録済み SubAgent から選択",
       "selectAgentPlaceholder": "SubAgent を選択して自動入力",
       "agentId": "Agent ID",
@@ -4165,6 +4172,26 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "industries": {
+      "ai_research": "AI Research",
+      "software_dev": "Software Development",
+      "finance_invest": "Finance & Investment",
+      "sales_growth": "Sales Growth",
+      "content_media": "Content & Media",
+      "industry_consulting": "Industry Consulting",
+      "accounting": "Accounting",
+      "ecommerce": "E-Commerce",
+      "education": "Education"
+    },
+    "industry": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "version": "Version {{version}}",
+      "workflows": "Industry Workflows",
+      "noWorkflows": "No workflows for this industry",
+      "loadFailed": "Failed to load industry: {{error}}",
+      "notFound": "Industry not found"
     }
   },
   "pasteButton": {

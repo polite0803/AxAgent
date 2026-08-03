@@ -3647,6 +3647,13 @@
       "button": "添加成员",
       "profileLabel": "从 AgentProfile 选择",
       "profilePlaceholder": "选择角色+专家预设，自动填充名称与职责（可清空后手动填写）",
+      "nameLabel": "显示名称",
+      "namePlaceholder": "如：文案助手",
+      "slugLabel": "Agent Slug",
+      "slugPlaceholder": "唯一标识，用于路由（如 copywriter）",
+      "roleLabel": "角色描述",
+      "roomLabel": "所在房间",
+      "slugRequired": "Agent Slug 不能为空",
       "selectAgent": "从已注册 SubAgent 选择",
       "selectAgentPlaceholder": "选择一个 SubAgent 自动填充",
       "agentId": "Agent ID",
@@ -3849,6 +3856,26 @@
       "talent": "人才市场",
       "market": "市场包",
       "kanban": "看板"
+    },
+    "industries": {
+      "ai_research": "人工智能研究",
+      "software_dev": "软件开发",
+      "finance_invest": "金融投资",
+      "sales_growth": "销售增长",
+      "content_media": "内容媒体",
+      "industry_consulting": "行业咨询",
+      "accounting": "会计",
+      "ecommerce": "电商",
+      "education": "教育"
+    },
+    "industry": {
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "version": "版本 {{version}}",
+      "workflows": "行业工作流",
+      "noWorkflows": "该行业暂无工作流",
+      "loadFailed": "加载行业失败: {{error}}",
+      "notFound": "行业不存在"
     },
     "common": {
       "cancel": "取消",

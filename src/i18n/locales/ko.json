@@ -3647,6 +3647,13 @@
       "button": "멤버 추가",
       "profileLabel": "AgentProfile에서 선택",
       "profilePlaceholder": "역할+전문가 프리셋 선택, 이름과 책임 자동 입력 (비우면 수동 입력)",
+      "nameLabel": "표시 이름",
+      "namePlaceholder": "예: 카피라이터",
+      "slugLabel": "에이전트 슬러그",
+      "slugPlaceholder": "라우팅에 사용되는 고유 ID (예: copywriter)",
+      "roleLabel": "역할",
+      "roomLabel": "방",
+      "slugRequired": "에이전트 슬러그는 필수입니다",
       "selectAgent": "등록된 SubAgent에서 선택",
       "selectAgentPlaceholder": "SubAgent를 선택하여 자동 채우기",
       "agentId": "Agent ID",
@@ -4165,6 +4172,26 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "industries": {
+      "ai_research": "AI Research",
+      "software_dev": "Software Development",
+      "finance_invest": "Finance & Investment",
+      "sales_growth": "Sales Growth",
+      "content_media": "Content & Media",
+      "industry_consulting": "Industry Consulting",
+      "accounting": "Accounting",
+      "ecommerce": "E-Commerce",
+      "education": "Education"
+    },
+    "industry": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "version": "Version {{version}}",
+      "workflows": "Industry Workflows",
+      "noWorkflows": "No workflows for this industry",
+      "loadFailed": "Failed to load industry: {{error}}",
+      "notFound": "Industry not found"
     }
   },
   "pasteButton": {
