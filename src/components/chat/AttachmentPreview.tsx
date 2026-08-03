@@ -116,7 +116,7 @@ export function AttachmentPreview({
     return (
       <Tag
         icon={<AlertCircle size={12} />}
-        color="error"
+        color="red"
         style={{ margin: 0, cursor: "pointer" }}
         onClick={showMissingModal}
       >

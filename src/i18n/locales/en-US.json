@@ -7962,7 +7962,21 @@
       "url": "URL",
       "urlInvalid": "Invalid URL format",
       "urlRequired": "URL is required",
-      "web": "Web"
+      "web": "Web",
+      "confirmImport": "Confirm Import",
+      "fileName": "File Name",
+      "fileSize": "Size",
+      "fileType": "Type",
+      "failedCount": "{count} failed",
+      "failedFiles": "Failed Files",
+      "folderContext": "Relative Path",
+      "folderEmpty": "No importable files found in folder",
+      "folderImportFailed": "Import failed",
+      "folderImportSuccess": "Successfully imported {count} files",
+      "importedCount": "{count} imported",
+      "previewFolder": "Preview Folder",
+      "previewFound": "Found {count} importable files",
+      "previewResult": "Preview Result ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "Will delete source \"{{title}}\" and its record. Associated note content will be retained, but source_refs references will be cleaned.",
@@ -8008,8 +8022,10 @@
       "createWiki": "Create Wiki",
       "deleteSuccess": "Deleted successfully",
       "fileUploaded": "File uploaded",
+      "importError": "Import failed",
       "ingestError": "Import failed",
       "ingestSuccess": "Imported successfully",
+      "previewError": "Preview failed",
       "uploadError": "Upload failed"
     },
     "llmNote": "LLM Note",

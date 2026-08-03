@@ -7962,7 +7962,21 @@
       "url": "URL",
       "urlInvalid": "Ungültiges URL-Format",
       "urlRequired": "URL ist erforderlich",
-      "web": "Web"
+      "web": "Web",
+      "confirmImport": "Import bestätigen",
+      "fileName": "Dateiname",
+      "fileSize": "Größe",
+      "fileType": "Typ",
+      "failedCount": "{count} fehlgeschlagen",
+      "failedFiles": "Fehlgeschlagene Dateien",
+      "folderContext": "Relativer Pfad",
+      "folderEmpty": "Keine importierbaren Dateien im Ordner gefunden",
+      "folderImportFailed": "Import fehlgeschlagen",
+      "folderImportSuccess": "{count} Dateien erfolgreich importiert",
+      "importedCount": "{count} importiert",
+      "previewFolder": "Ordner vorschauen",
+      "previewFound": "{count} importierbare Dateien gefunden",
+      "previewResult": "Vorschau-Ergebnis ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "Quelle „{{title}}\" und ihr Eintrag werden gelöscht. Zugehörige Notizinhalte bleiben erhalten, aber source_refs-Referenzen werden bereinigt.",
@@ -8010,7 +8024,9 @@
       "fileUploaded": "Datei hochgeladen",
       "ingestError": "Import fehlgeschlagen",
       "ingestSuccess": "Erfolgreich importiert",
-      "uploadError": "Hochladen fehlgeschlagen"
+      "uploadError": "Hochladen fehlgeschlagen",
+      "importError": "Import fehlgeschlagen",
+      "previewError": "Vorschau fehlgeschlagen"
     },
     "llmNote": "LLM-Notiz",
     "localGraph": "Lokaler Graph",

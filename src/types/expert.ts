@@ -70,7 +70,7 @@ export interface ExpertRole {
   searchEnabled?: boolean;
 
   // Agent 权限控制
-  /** @deprecated 使用 AgentProfile 替代 */
+  /** 推荐权限模式 */
   recommendPermissionMode?: import("./agent").AgentBehaviorMode;
 
   /** 推荐的工具名称列表（导入时自动解析匹配） */
@@ -79,7 +79,7 @@ export interface ExpertRole {
   activeDomains?: string[];
   /** 推荐的工作流模板 ID 列表（导入时自动解析并创建） */
   recommendedWorkflows?: string[];
-  /** @deprecated 指向对应的 AgentProfile ID，用于向后兼容过渡 */
+  /** 关联的 AgentProfile ID */
   agentProfileId?: string;
 
   // ── 资历与归属（对齐后端 AgencyExpertDto 扩展字段） ──

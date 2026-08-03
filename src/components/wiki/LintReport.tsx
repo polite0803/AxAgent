@@ -148,7 +148,7 @@ export function LintReport({ wikiId }: LintReportProps) {
             {warningCount > 0 && <Tag color="orange">{warningCount} warnings</Tag>}
             {infoCount > 0 && <Tag color="blue">{infoCount} info</Tag>}
             {record.issues.length === 0 && (
-              <Tag icon={<CheckCircleOutlined />} color="success">
+              <Tag icon={<CheckCircleOutlined />} color="green">
                 {t("wiki.lint.noIssues")}
               </Tag>
             )}

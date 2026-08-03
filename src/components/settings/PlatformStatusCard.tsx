@@ -64,7 +64,7 @@ export function PlatformStatusCard() {
                   )
                   : s.connected
                   ? (
-                    <Tag icon={<CheckCircle size={14} />} color="success">
+                    <Tag icon={<CheckCircle size={14} />} color="green">
                       {t("settings.platform.statusConnected")}
                     </Tag>
                   )

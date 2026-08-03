@@ -89,7 +89,7 @@ export function AgentSkillTab() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 pt-2 pb-1 shrink-0">
-        <Input.Search
+        <Input
           size="small"
           placeholder={t("common.search")}
           value={search}
@@ -109,7 +109,7 @@ export function AgentSkillTab() {
                 {skill.enabled
                   ? (
                     <Tag
-                      color="success"
+                      color="green"
                       style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px", marginInlineEnd: 0 }}
                     >
                       <CheckCircleOutlined /> {t("common.enabled")}

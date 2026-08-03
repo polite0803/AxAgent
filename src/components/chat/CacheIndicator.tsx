@@ -39,7 +39,7 @@ export function CacheIndicator({
       <Tooltip title={t("cacheIndicator.pendingChanges")}>
         <Tag
           icon={<AlertTriangle size={12} />}
-          color="warning"
+          color="orange"
           style={{ margin: 0 }}
           data-testid="cache-indicator"
         >

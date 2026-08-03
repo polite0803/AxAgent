@@ -111,7 +111,7 @@ function TraceSnapshot({ traceId, tree, totalTokens, spanCount, errorCount }: Tr
         <Descriptions.Item label={t("debugPanel.trace")}>{traceId.slice(0, 12)}...</Descriptions.Item>
         <Descriptions.Item label={t("debugPanel.spans")}>
           <Tag>{spanCount}</Tag>
-          {errorCount > 0 && <Tag color="error">{errorCount} errors</Tag>}
+          {errorCount > 0 && <Tag color="red">{errorCount} errors</Tag>}
         </Descriptions.Item>
         <Descriptions.Item label={t("debugPanel.tokens")}>
           <Tag>{formatTraceTokens(totalTokens)}</Tag>
@@ -912,11 +912,11 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       width: 150,
       render: (_: unknown, r: NodeDiagnostic) => (
         <Space size={4} wrap>
-          {r.isOrphan && <Tag color="warning">{t("workflow.debug.orphan")}</Tag>}
-          {r.isDeadEnd && <Tag color="error">{t("workflow.debug.deadEnd")}</Tag>}
-          {r.toolMissing !== undefined && <Tag color="error">Tool: {r.toolMissing}</Tag>}
-          {r.promptEmpty && <Tag color="warning">{t("workflow.debug.noPrompt")}</Tag>}
-          {r.issueCount === 0 && <Tag color="success">OK</Tag>}
+          {r.isOrphan && <Tag color="orange">{t("workflow.debug.orphan")}</Tag>}
+          {r.isDeadEnd && <Tag color="red">{t("workflow.debug.deadEnd")}</Tag>}
+          {r.toolMissing !== undefined && <Tag color="red">Tool: {r.toolMissing}</Tag>}
+          {r.promptEmpty && <Tag color="orange">{t("workflow.debug.noPrompt")}</Tag>}
+          {r.issueCount === 0 && <Tag color="green">OK</Tag>}
         </Space>
       ),
     },
@@ -1186,17 +1186,17 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                   <Space size="small" className="mb-2">
                     <Tag>{info.diagnostics.length} nodes</Tag>
                     {totalIssues > 0
-                      ? <Tag color="error">{totalIssues} issues</Tag>
-                      : <Tag color="success">clean</Tag>}
-                    {info.cycles > 0 && <Tag color="error">{info.cycles} cycles</Tag>}
-                    {info.unreachable > 0 && <Tag color="warning">{info.unreachable} unreachable</Tag>}
-                    {info.templateExists === false && <Tag color="error">NOT FOUND</Tag>}
+                      ? <Tag color="red">{totalIssues} issues</Tag>
+                      : <Tag color="green">clean</Tag>}
+                    {info.cycles > 0 && <Tag color="red">{info.cycles} cycles</Tag>}
+                    {info.unreachable > 0 && <Tag color="orange">{info.unreachable} unreachable</Tag>}
+                    {info.templateExists === false && <Tag color="red">NOT FOUND</Tag>}
                   </Space>
                   {(info.mappingIssues && info.mappingIssues.length > 0) && (
                     <div className="mb-2">
                       {info.mappingIssues.map((issue: string, i: number) => (
                         // FIXME: 映射问题无稳定唯一标识，使用前缀+索引
-                        <Tag key={`mapping-${i}`} color="warning" className="mb-1">{issue}</Tag>
+                        <Tag key={`mapping-${i}`} color="orange" className="mb-1">{issue}</Tag>
                       ))}
                     </div>
                   )}
@@ -1375,7 +1375,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                 {t("workflow.debug.nodeRecords")}
                 <Tag>{nodeRecords.length}</Tag>
                 {nodeRecords.filter((r) => r.status === "failed").length > 0 && (
-                  <Tag color="error">
+                  <Tag color="red">
                     {nodeRecords.filter((r) => r.status === "failed").length} failed
                   </Tag>
                 )}
@@ -1689,7 +1689,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         <Space>
           <BugOutlined />
           <Title level={5} className="m-0">{t("workflow.debug.title")}</Title>
-          {activeTab === "static" && issuesWithCode > 0 && <Tag color="error">{issuesWithCode} issues</Tag>}
+          {activeTab === "static" && issuesWithCode > 0 && <Tag color="red">{issuesWithCode} issues</Tag>}
           {activeTab === "runtime" && isDebugRunning && (
             <Badge
               status="processing"

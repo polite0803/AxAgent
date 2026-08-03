@@ -7962,7 +7962,21 @@
       "url": "URL",
       "urlInvalid": "URL 格式無效",
       "urlRequired": "請輸入 URL",
-      "web": "網頁"
+      "web": "網頁",
+      "confirmImport": "確認導入",
+      "fileName": "檔案名稱",
+      "fileSize": "大小",
+      "fileType": "類型",
+      "failedCount": "失敗 {count} 個",
+      "failedFiles": "失敗檔案",
+      "folderContext": "相對路徑",
+      "folderEmpty": "資料夾中沒有可導入的檔案",
+      "folderImportFailed": "導入失敗",
+      "folderImportSuccess": "成功導入 {count} 個檔案",
+      "importedCount": "已導入 {count} 個",
+      "previewFolder": "預覽資料夾",
+      "previewFound": "發現 {count} 個可導入檔案",
+      "previewResult": "預覽結果 ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "將刪除源「{{title}}」及其記錄。關聯筆記內容將保留，但 source_refs 引用會被清理。",
@@ -8010,7 +8024,9 @@
       "fileUploaded": "文件已上傳",
       "ingestError": "導入失敗",
       "ingestSuccess": "導入成功",
-      "uploadError": "上傳失敗"
+      "uploadError": "上傳失敗",
+      "importError": "導入失敗",
+      "previewError": "預覽失敗"
     },
     "llmNote": "LLM 筆記",
     "localGraph": "本地圖譜",

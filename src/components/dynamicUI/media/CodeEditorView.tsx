@@ -6,7 +6,7 @@ import { lazy, Suspense } from "react";
 
 /**
  * 代码编辑器，基于 Monaco Editor。
- * 如果 Monaco Editor 不可用，降级到 Ant Design Input.TextArea。
+ * 如果 Monaco Editor 不可用，降级到 Ant Design TextArea。
  */
 export const CodeEditorView: React.FC<DynamicUIProps> = ({ schema }) => {
   const {

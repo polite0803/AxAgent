@@ -17,9 +17,6 @@ export interface ImprovementSuggestion {
   expectedImprovement: string;
 }
 
-/** @deprecated 使用 ImprovementSuggestion */
-export type ImprovementSuggestionItem = ImprovementSuggestion;
-
 // ── Component ──
 
 interface ImprovementSuggestionProps {

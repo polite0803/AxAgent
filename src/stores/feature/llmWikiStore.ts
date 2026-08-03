@@ -4,6 +4,8 @@ import { invoke } from "@/lib/invoke";
 import type {
   CompiledPage,
   CompileResult,
+  FolderImportPreviewItem,
+  FolderImportResult,
   IngestResult,
   LintIssue,
   LintResult,
@@ -21,6 +23,8 @@ import { create } from "zustand";
 export type {
   CompiledPage,
   CompileResult,
+  FolderImportPreviewItem,
+  FolderImportResult,
   IngestResult,
   LintIssue,
   LintResult,
@@ -92,6 +96,14 @@ interface LlmWikiState {
   autoFix: (wikiId: string, noteId?: string) => Promise<string[] | null>;
   askQuestion: (wikiId: string, question: string) => Promise<string | null>;
   processSyncPending: (wikiId: string) => Promise<number | null>;
+
+  importFolderPreview: (
+    folderPath: string,
+  ) => Promise<FolderImportPreviewItem[]>;
+  importFolder: (
+    wikiId: string,
+    folderPath: string,
+  ) => Promise<FolderImportResult | null>;
 }
 
 export const useLlmWikiStore = create<LlmWikiState>((set) => ({
@@ -309,6 +321,32 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
   processSyncPending: async (wikiId) => {
     try {
       return await invoke<number>("wiki_sync_process_pending", { wikiId });
+    } catch (e) {
+      set({ error: String(e) });
+      return null;
+    }
+  },
+
+  importFolderPreview: async (folderPath) => {
+    try {
+      const items = await invoke<FolderImportPreviewItem[]>(
+        "llm_wiki_import_folder_preview",
+        { folderPath },
+      );
+      return items;
+    } catch (e) {
+      set({ error: String(e) });
+      return [];
+    }
+  },
+
+  importFolder: async (wikiId, folderPath) => {
+    try {
+      const result = await invoke<FolderImportResult>(
+        "llm_wiki_import_folder",
+        { wikiId, folderPath },
+      );
+      return result;
     } catch (e) {
       set({ error: String(e) });
       return null;

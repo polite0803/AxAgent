@@ -903,7 +903,9 @@ pub async fn get_coevolution_status(
 
 /// 获取沙箱执行器当前策略配置。
 #[command]
-pub async fn get_sandbox_policy(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+pub async fn get_sandbox_policy(
+    #[allow(unused_variables)] state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
     #[cfg(not(target_os = "android"))]
     {
         let policy = state.sandbox_executor.policy();
@@ -930,10 +932,10 @@ pub async fn get_sandbox_policy(state: State<'_, AppState>) -> Result<serde_json
 /// 验证一个步骤是否在沙箱策略允许范围内。
 #[command]
 pub async fn run_sandbox_validate_step(
-    state: State<'_, AppState>,
+    #[allow(unused_variables)] state: State<'_, AppState>,
     step_order: usize,
     tool: Option<String>,
-    action: String,
+    #[allow(unused_variables)] action: String,
 ) -> Result<serde_json::Value, String> {
     #[cfg(not(target_os = "android"))]
     {

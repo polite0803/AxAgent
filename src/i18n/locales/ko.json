@@ -7962,7 +7962,21 @@
       "url": "URL",
       "urlInvalid": "잘못된 URL 형식",
       "urlRequired": "URL은 필수입니다",
-      "web": "웹"
+      "web": "웹",
+      "confirmImport": "가져오기 확인",
+      "fileName": "파일명",
+      "fileSize": "크기",
+      "fileType": "유형",
+      "failedCount": "{count}개 실패",
+      "failedFiles": "실패한 파일",
+      "folderContext": "상대 경로",
+      "folderEmpty": "폴더에서 가져올 수 있는 파일을 찾을 수 없습니다",
+      "folderImportFailed": "가져오기 실패",
+      "folderImportSuccess": "{count}개 파일이 성공적으로 가져와졌습니다",
+      "importedCount": "{count}개 가져옴",
+      "previewFolder": "폴더 미리보기",
+      "previewFound": "{count}개의 가져올 수 있는 파일을 찾았습니다",
+      "previewResult": "미리보기 결과 ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "소스 «{{title}}»와 그 레코드를 삭제합니다. 관련 노트 내용은 보존되지만 source_refs 참조는 정리됩니다.",
@@ -8010,7 +8024,9 @@
       "fileUploaded": "파일이 업로드되었습니다",
       "ingestError": "가져오기 실패",
       "ingestSuccess": "가져오기에 성공했습니다",
-      "uploadError": "업로드 실패"
+      "uploadError": "업로드 실패",
+      "importError": "가져오기 실패",
+      "previewError": "미리보기 실패"
     },
     "llmNote": "LLM 노트",
     "localGraph": "로컬 그래프",

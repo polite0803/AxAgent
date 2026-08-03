@@ -7962,7 +7962,21 @@
       "url": "URL",
       "urlInvalid": "تنسيق URL غير صالح",
       "urlRequired": "URL مطلوب",
-      "web": "ويب"
+      "web": "ويب",
+      "confirmImport": "تأكيد الاستيراد",
+      "fileName": "اسم الملف",
+      "fileSize": "الحجم",
+      "fileType": "النوع",
+      "failedCount": "{count} فشلت",
+      "failedFiles": "الملفات الفاشلة",
+      "folderContext": "المسار النسبي",
+      "folderEmpty": "لم يتم العثور على ملفات قابلة للاستيراد في المجلد",
+      "folderImportFailed": "فشل الاستيراد",
+      "folderImportSuccess": "تم استيراد {count} ملفات بنجاح",
+      "importedCount": "{count} تم استيرادها",
+      "previewFolder": "معاينة المجلد",
+      "previewFound": "تم العثور على {count} ملفات قابلة للاستيراد",
+      "previewResult": "نتيجة المعاينة ({count})"
     },
     "ingestSource": {
       "deleteConfirmContent": "سيتم حذف المصدر «{{title}}» وسجله. سيتم الاحتفاظ بمحتوى الملاحظات المرتبطة، ولكن سيتم تنظيف مراجع source_refs.",
@@ -8010,7 +8024,9 @@
       "fileUploaded": "تم رفع الملف",
       "ingestError": "فشل الاستيراد",
       "ingestSuccess": "تم الاستيراد بنجاح",
-      "uploadError": "فشل الرفع"
+      "uploadError": "فشل الرفع",
+      "importError": "فشل الاستيراد",
+      "previewError": "فشل المعاينة"
     },
     "llmNote": "ملاحظة LLM",
     "localGraph": "رسم بياني محلي",

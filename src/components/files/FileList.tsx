@@ -166,7 +166,7 @@ export function FileList({
         if (record.missing) {
           return (
             <span className="flex items-center gap-1">
-              <Tag color="error" variant="filled">
+              <Tag color="red" variant="filled">
                 {t("files.missing")}
               </Tag>
               {onDelete && (

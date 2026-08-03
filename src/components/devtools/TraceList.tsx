@@ -3,7 +3,7 @@
 import { useFormatCny } from "@/stores";
 import { useTracerStore } from "@/stores/devtools/tracerStore";
 import type { TraceSummary } from "@/types";
-import { Card, DatePicker, Input, Space, Tag, Typography } from "antd";
+import { Button, Card, DatePicker, Input, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -96,15 +96,33 @@ export function TraceList() {
   return (
     <div className="p-3">
       <Space orientation="vertical" className="w-full mb-4">
-        <Input.Search
-          placeholder={t("devtools.searchTraceId")}
-          onSearch={(value) => {
-            const next = { ...filter, trace_id: value || undefined };
-            setFilter(next);
-            loadTraces(next);
-          }}
-          allowClear
-        />
+        <Space.Compact className="w-full">
+          <Input
+            placeholder={t("devtools.searchTraceId")}
+            onPressEnter={(e) => {
+              const value = (e.target as HTMLInputElement).value;
+              const next = { ...filter, trace_id: value || undefined };
+              setFilter(next);
+              loadTraces(next);
+            }}
+            onClear={() => {
+              const next = { ...filter, trace_id: undefined };
+              setFilter(next);
+              loadTraces(next);
+            }}
+            allowClear
+          />
+          <Button
+            type="primary"
+            onClick={() => {
+              const next = { ...filter, trace_id: undefined };
+              setFilter(next);
+              loadTraces(next);
+            }}
+          >
+            {t("common.search")}
+          </Button>
+        </Space.Compact>
         <DatePicker.RangePicker
           className="w-full"
           onChange={(dates) => {

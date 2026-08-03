@@ -44,12 +44,12 @@ export function CronResultMessage({
           <span>{t("cronResult.prefix", { jobName })}</span>
           {success
             ? (
-              <Tag color="success" icon={<CheckCircle size={12} />}>
+              <Tag color="green" icon={<CheckCircle size={12} />}>
                 {t("cronResult.success")}
               </Tag>
             )
             : (
-              <Tag color="error" icon={<XCircle size={12} />}>
+              <Tag color="red" icon={<XCircle size={12} />}>
                 {t("cronResult.failed")}
               </Tag>
             )}

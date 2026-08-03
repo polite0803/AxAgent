@@ -168,3 +168,17 @@ export type CapacityInfo = {
   usagePercent: number;
   wikiChunkCounts: Record<string, number>;
 };
+
+export type FolderImportPreviewItem = {
+  file_name: string;
+  file_path: string;
+  folder_context: string;
+  file_type: string;
+  estimated_size: number;
+};
+
+export type FolderImportResult = {
+  task_ids: string[];
+  imported_count: number;
+  failed_files: string[];
+};

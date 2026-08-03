@@ -794,7 +794,7 @@ export function CloudWorkspaceSelector() {
                     >
                       {backendLabel}
                     </Tag>
-                    <Tag icon={<CheckCircle size={12} />} color="success">
+                    <Tag icon={<CheckCircle size={12} />} color="green">
                       {t("cloudWorkspace.active")}
                     </Tag>
                   </Space>
