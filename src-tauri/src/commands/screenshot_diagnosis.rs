@@ -40,9 +40,9 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use tauri::State;
 
-// 复用 commands/screen_vision 的 VisionContext / build_vision_context
+// 复用 provider_ctx 的 VisionContext / build_vision_context
 #[cfg(not(mobile))]
-use crate::commands::screen_vision::{VisionContext, build_vision_context};
+use crate::commands::provider_ctx::{VisionContext, build_vision_context};
 
 // ── LLM 调用辅助 ─────────────────────────────────────────────────────────
 
