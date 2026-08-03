@@ -77,12 +77,12 @@ pub mod parallel_execution;
 pub mod personality;
 pub mod plan;
 pub mod platform_integration;
-pub mod provider_ctx;
 pub mod plugin;
 pub mod proactive;
 pub mod profile;
 pub mod prompt_templates;
 pub mod provider_balance;
+pub mod provider_ctx;
 pub mod providers;
 #[cfg(not(mobile))]
 pub mod pty;

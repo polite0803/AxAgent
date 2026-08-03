@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::AppState;
-use crate::commands::provider_ctx::{build_vision_context, VisionContext};
+use crate::commands::provider_ctx::{VisionContext, build_vision_context};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ScreenAnalysisResult {
