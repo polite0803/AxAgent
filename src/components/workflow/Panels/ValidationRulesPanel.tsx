@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 const { Text } = Typography;
-const { TextArea } = Input;
+const {} = Input;
 
 export type RuleType = "json_schema" | "path_assertion" | "threshold";
 export type ThresholdMetric = "duration_ms" | "token_count" | "node_count" | "retry_count";
@@ -291,7 +291,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                   <Text type="secondary" style={{ fontSize: 10, display: "block", marginBottom: 2 }}>
                     {t("workflow.validation.schema")}
                   </Text>
-                  <TextArea
+                  <Input.TextArea
                     rows={6}
                     size="small"
                     value={rule.schema}

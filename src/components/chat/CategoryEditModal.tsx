@@ -9,7 +9,7 @@ import { FolderOpen } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
+const {} = Input;
 
 export interface CategoryEditFormData {
   name: string;
@@ -208,7 +208,7 @@ export function CategoryEditModal({
           style={{ maxWidth: 340 }}
         />
 
-        <TextArea
+        <Input.TextArea
           placeholder={t("chat.categorySystemPromptPlaceholder")}
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}

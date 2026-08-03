@@ -6,7 +6,7 @@ import { Check, Edit3, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
+const {} = Input;
 const { Text, Paragraph } = Typography;
 
 const AGENT_GENERATE_META_PROMPT = `你是一个智能体配置生成器。根据用户的自然语言描述，生成 JSON 格式的智能体定义。
@@ -142,7 +142,7 @@ export function AgentGeneratorModal({
         ? (
           <div className="flex flex-col gap-4">
             <Text type="secondary">{t("agentGenerator.desc")}</Text>
-            <TextArea
+            <Input.TextArea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t("agentGenerator.placeholder")}

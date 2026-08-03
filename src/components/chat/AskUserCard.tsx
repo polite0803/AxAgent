@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
-const { TextArea } = Input;
+const {} = Input;
 
 interface AskUserCardProps {
   askId: string;
@@ -205,7 +205,7 @@ const AskUserCard: React.FC<AskUserCardProps> = ({
         {!hasOptions || !isSingleChoice
           ? (
             <div>
-              <TextArea
+              <Input.TextArea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value.slice(0, MAX_CHARS))}
                 placeholder={hasOptions

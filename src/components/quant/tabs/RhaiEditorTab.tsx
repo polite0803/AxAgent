@@ -8,7 +8,7 @@ import { useStrategyStore } from "@/stores/feature/quant";
 import { DEFAULT_RHAI_TEMPLATE } from "@/types";
 
 const { Text, Paragraph } = Typography;
-const { TextArea } = Input;
+const {} = Input;
 
 export function RhaiEditorTab() {
   const { message } = App.useApp();
@@ -66,7 +66,7 @@ export function RhaiEditorTab() {
             />
           </Form.Item>
           <Form.Item label={t("quant.rhai.source")}>
-            <TextArea
+            <Input.TextArea
               value={script}
               onChange={(e) => setScript(e.target.value)}
               autoSize={{ minRows: 14, maxRows: 30 }}

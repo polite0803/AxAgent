@@ -10257,7 +10257,9 @@
     "grepDesc": "在文件中搜索匹配正则表达式的内容。",
     "fileEditDesc": "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。",
     "deleteFileDesc": "删除指定路径的文件。此操作不可逆。",
-    "bashDesc": "执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。"
+    "bashDesc": "执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。",
+    "fleetMessageReceived": "{{name}} 收到: {{message}}",
+    "fleetNoMembers": "办公室暂无成员，无法派遣任务"
   },
   "cancel": "取消",
   "searchUtils": {

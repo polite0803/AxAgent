@@ -11,7 +11,7 @@ import { App, Button, Empty, Input, Progress, Select, Space, Tabs, Typography } 
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
+const {} = Input;
 const { Text } = Typography;
 
 type GenerationMode = "skill" | "ui";
@@ -142,7 +142,7 @@ export function AgentWfTab() {
       />
 
       <div style={{ padding: "0 12px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
-        <TextArea
+        <Input.TextArea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={mode === "skill"

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import "./lib/devAntdSuppress";
+
 import { addCollection } from "@iconify/react";
 import React from "react";
 import ReactDOM from "react-dom/client";

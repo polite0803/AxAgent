@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 
-const { TextArea } = Input;
+const {} = Input;
 
 export function ConversationSettings() {
   const { t } = useTranslation();
@@ -27,7 +27,7 @@ export function ConversationSettings() {
         >
           {t("settings.defaultSystemPromptDesc")}
         </div>
-        <TextArea
+        <Input.TextArea
           value={settings.default_system_prompt ?? ""}
           onChange={(e) => saveSettings({ default_system_prompt: e.target.value || null })}
           placeholder={t("settings.defaultSystemPromptPlaceholder")}

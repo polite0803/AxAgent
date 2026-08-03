@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
-const { TextArea } = Input;
+const {} = Input;
 
 // 默认 prompt 已移至 i18n locale keys:
 // settings.titleSummaryPromptDefault / settings.compressionPromptDefault
@@ -169,7 +169,7 @@ function ModelParamsModal({
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
             {t("settings.promptLabel")}
           </div>
-          <TextArea
+          <Input.TextArea
             rows={4}
             value={(settings[promptKey] as string | null)
               ?? (defaultPrompt || t("settings.titleSummaryPromptDefault"))}

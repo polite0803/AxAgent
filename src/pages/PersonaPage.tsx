@@ -32,7 +32,7 @@ import { Plus, Save, Sparkles, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
+const {} = Input;
 const { Title, Text, Paragraph } = Typography;
 
 export function PersonaPage() {
@@ -311,7 +311,7 @@ export function PersonaPage() {
               children: (
                 <div>
                   <Text type="secondary">{t("settings.persona.identity.description")}</Text>
-                  <TextArea
+                  <Input.TextArea
                     value={selected.identity}
                     onChange={(e) => setSelected({ ...selected, identity: e.target.value })}
                     rows={6}
@@ -336,7 +336,7 @@ export function PersonaPage() {
               children: (
                 <div>
                   <Text type="secondary">{t("settings.persona.user.description")}</Text>
-                  <TextArea
+                  <Input.TextArea
                     value={selected.user}
                     onChange={(e) => setSelected({ ...selected, user: e.target.value })}
                     rows={6}
@@ -518,7 +518,7 @@ export function PersonaPage() {
             <Text type="secondary" style={{ marginLeft: 8 }}>
               {t("settings.persona.soul.description")}
             </Text>
-            <TextArea
+            <Input.TextArea
               value={newSoul}
               onChange={(e) => setNewSoul(e.target.value)}
               rows={6}
@@ -531,7 +531,7 @@ export function PersonaPage() {
             <Text type="secondary" style={{ marginLeft: 8 }}>
               {t("settings.persona.identity.description")}
             </Text>
-            <TextArea
+            <Input.TextArea
               value={newIdentity}
               onChange={(e) => setNewIdentity(e.target.value)}
               rows={4}
@@ -544,7 +544,7 @@ export function PersonaPage() {
             <Text type="secondary" style={{ marginLeft: 8 }}>
               {t("settings.persona.user.description")}
             </Text>
-            <TextArea
+            <Input.TextArea
               value={newUser}
               onChange={(e) => setNewUser(e.target.value)}
               rows={4}

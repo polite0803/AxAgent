@@ -51,7 +51,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 const { Title, Paragraph, Text } = Typography;
-const { TextArea } = Input;
+const {} = Input;
 
 const CATEGORIES = ["form", "dashboard", "report", "custom"];
 
@@ -661,7 +661,7 @@ export function DynamicUIManagerPage() {
             <Input placeholder={t("dynamicUIManager.titlePlaceholder")} />
           </Form.Item>
           <Form.Item name="description" label={t("dynamicUIManager.description")}>
-            <TextArea rows={2} placeholder={t("dynamicUIManager.descPlaceholder")} />
+            <Input.TextArea rows={2} placeholder={t("dynamicUIManager.descPlaceholder")} />
           </Form.Item>
           <Form.Item name="category" label={t("dynamicUIManager.category")}>
             <Select
@@ -772,7 +772,7 @@ export function DynamicUIManagerPage() {
           {editorMode === "json"
             ? (
               <>
-                <TextArea
+                <Input.TextArea
                   rows={12}
                   value={jsonSchemaText}
                   onChange={(e) => setJsonSchemaText(e.target.value)}

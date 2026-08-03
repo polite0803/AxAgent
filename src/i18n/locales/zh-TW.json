@@ -10257,7 +10257,9 @@
     "grepDesc": "在檔案中搜尋符合正規表示式的內容。",
     "fileEditDesc": "精確編輯檔案（字串取代）。透過 old_string/new_string 搜尋取代。",
     "deleteFileDesc": "刪除指定路徑的檔案。此操作不可逆。",
-    "bashDesc": "執行 shell 命令。適用：執行測試、建構、git 操作。危險命令需權限確認。"
+    "bashDesc": "執行 shell 命令。適用：執行測試、建構、git 操作。危險命令需權限確認。",
+    "fleetMessageReceived": "{{name}} 收到: {{message}}",
+    "fleetNoMembers": "办公室暂无成员，无法派遣任务"
   },
   "cancel": "取消",
   "searchUtils": {
