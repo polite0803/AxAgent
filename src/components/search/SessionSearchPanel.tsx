@@ -212,17 +212,25 @@ export function SessionSearchPanel({
       <div style={{ padding: "8px 0" }}>
         <Space orientation="vertical" style={{ width: "100%" }} size="middle">
           <Space style={{ width: "100%" }}>
-            <Input.Search
-              placeholder={t("search.placeholder")}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onSearch={handleSearch}
-              onPressEnter={handleKeyPress}
-              style={{ flex: 1 }}
-              size="large"
-              loading={isSearching}
-              allowClear
-            />
+            <Space.Compact style={{ flex: 1 }}>
+              <Input
+                placeholder={t("search.placeholder")}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onPressEnter={handleKeyPress}
+                style={{ flex: 1 }}
+                size="large"
+                allowClear
+              />
+              <Button
+                type="primary"
+                size="large"
+                loading={isSearching}
+                onClick={handleSearch}
+              >
+                {t("common.search")}
+              </Button>
+            </Space.Compact>
             <Tooltip title={t("search.filters")}>
               <Button
                 icon={<Filter size={16} />}
@@ -235,7 +243,7 @@ export function SessionSearchPanel({
           {showFilters && (
             <Card size="small" style={{ marginBottom: 8 }}>
               <Space
-                direction="vertical"
+                orientation="vertical"
                 style={{ width: "100%" }}
                 size="small"
               >

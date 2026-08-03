@@ -358,12 +358,12 @@ function HistoryItem({ entry }: HistoryItemProps) {
             </Text>
             {entry.success
               ? (
-                <Tag icon={<CheckCircleOutlined />} color="success">
+                <Tag icon={<CheckCircleOutlined />} color="green">
                   {t("multiAgent.success")}
                 </Tag>
               )
               : (
-                <Tag icon={<CloseCircleOutlined />} color="error">
+                <Tag icon={<CloseCircleOutlined />} color="red">
                   {t("multiAgent.failed")}
                 </Tag>
               )}

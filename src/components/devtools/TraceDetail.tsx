@@ -152,29 +152,43 @@ export function TraceDetail() {
         </Row>
       </div>
 
-      <Tabs defaultActiveKey="tree" className="flex-1 overflow-hidden px-4">
-        <Tabs.TabPane tab={t("devtools.callTree")} key="tree">
-          <div className="flex h-full">
-            <div className="flex-1 overflow-auto pr-4">
-              <SpanTree spans={tree} />
-            </div>
-            {selectedSpan && (
-              <div className="w-96 border-l border-zinc-200 pl-4 overflow-auto">
-                <SpanDetail span={selectedSpan} />
+      <Tabs
+        defaultActiveKey="tree"
+        className="flex-1 overflow-hidden px-4"
+        items={[
+          {
+            key: "tree",
+            label: t("devtools.callTree"),
+            children: (
+              <div className="flex h-full">
+                <div className="flex-1 overflow-auto pr-4">
+                  <SpanTree spans={tree} />
+                </div>
+                {selectedSpan && (
+                  <div className="w-96 border-l border-zinc-200 pl-4 overflow-auto">
+                    <SpanDetail span={selectedSpan} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t("devtools.timeline")} key="timeline">
-          <Timeline spans={trace.spans} />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t("devtools.costAnalysis")} key="cost">
-          {metrics && <CostChart metrics={metrics} />}
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t("devtools.durationAnalysis")} key="duration">
-          {metrics && <DurationChart metrics={metrics} />}
-        </Tabs.TabPane>
-      </Tabs>
+            ),
+          },
+          {
+            key: "timeline",
+            label: t("devtools.timeline"),
+            children: <Timeline spans={trace.spans} />,
+          },
+          {
+            key: "cost",
+            label: t("devtools.costAnalysis"),
+            children: metrics ? <CostChart metrics={metrics} /> : null,
+          },
+          {
+            key: "duration",
+            label: t("devtools.durationAnalysis"),
+            children: metrics ? <DurationChart metrics={metrics} /> : null,
+          },
+        ]}
+      />
     </div>
   );
 }

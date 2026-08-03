@@ -118,48 +118,55 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
         </Col>
       </Row>
 
-      <Tabs defaultActiveKey="tasks">
-        <Tabs.TabPane tab={t("benchmark.taskDetails")} key="tasks">
-          <Table
-            dataSource={report.task_breakdown}
-            columns={columns}
-            rowKey="task_id"
-            size="small"
-            pagination={false}
-            expandable={{
-              expandedRowRender: (record) => (
-                <div className="p-2">
-                  <h4 className="font-medium mb-2">
-                    {t("benchmark.scoreDetails")}
-                  </h4>
-                  <Table
-                    dataSource={record.criteria_scores}
-                    columns={criteriaColumns}
-                    rowKey="name"
-                    size="small"
-                    pagination={false}
-                  />
-                </div>
-              ),
-            }}
-          />
-        </Tabs.TabPane>
-
-        <Tabs.TabPane
-          tab={t("benchmark.recommendations")}
-          key="recommendations"
-        >
-          <Card>
-            <ul className="list-disc pl-5">
-              {report.recommendations.map((rec, _idx) => (
-                <li key={rec} className="mb-2">
-                  {rec}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </Tabs.TabPane>
-      </Tabs>
+      <Tabs
+        defaultActiveKey="tasks"
+        items={[
+          {
+            key: "tasks",
+            label: t("benchmark.taskDetails"),
+            children: (
+              <Table
+                dataSource={report.task_breakdown}
+                columns={columns}
+                rowKey="task_id"
+                size="small"
+                pagination={false}
+                expandable={{
+                  expandedRowRender: (record) => (
+                    <div className="p-2">
+                      <h4 className="font-medium mb-2">
+                        {t("benchmark.scoreDetails")}
+                      </h4>
+                      <Table
+                        dataSource={record.criteria_scores}
+                        columns={criteriaColumns}
+                        rowKey="name"
+                        size="small"
+                        pagination={false}
+                      />
+                    </div>
+                  ),
+                }}
+              />
+            ),
+          },
+          {
+            key: "recommendations",
+            label: t("benchmark.recommendations"),
+            children: (
+              <Card>
+                <ul className="list-disc pl-5">
+                  {report.recommendations.map((rec, _idx) => (
+                    <li key={rec} className="mb-2">
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

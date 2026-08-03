@@ -5,7 +5,6 @@ import { Alert, Button, Card, Divider, Input, Progress, Space, Spin, Tag, Typogr
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 
 export function ToolRecommendationPanel() {
@@ -58,7 +57,7 @@ export function ToolRecommendationPanel() {
         <Space orientation="vertical" style={{ width: "100%" }} size="large">
           <div>
             <Title level={5}>{t("recommendation.taskDescription")}</Title>
-            <TextArea
+            <Input.TextArea
               placeholder={t("devtools.toolRecommender.taskPlaceholder")}
               value={localTask}
               onChange={(e) => setLocalTask(e.target.value)}

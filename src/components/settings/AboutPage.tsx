@@ -4,7 +4,7 @@ import logoUrl from "@/assets/image/logo.png";
 import { useUpdateChecker } from "@/hooks/useUpdateChecker";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import { useOnboardingStore, useSettingsStore } from "@/stores";
-import { Button, Divider, InputNumber, Switch, Tag, Typography } from "antd";
+import { Button, Divider, InputNumber, Space, Switch, Tag, Typography } from "antd";
 import { Activity, GraduationCap, RefreshCw, Terminal } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -231,15 +231,25 @@ export function AboutPage() {
         <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:updateCheckInterval">
           <span>{t("settings.updateCheckInterval")}</span>
-          <InputNumber
-            id="about-page-inputnumber-1"
-            min={1}
-            max={1440}
-            value={updateCheckInterval}
-            onChange={(val) => val != null && saveSettings({ update_check_interval: val })}
-            style={{ width: 100 }}
-            addonAfter={t("settings.minutes")}
-          />
+          <Space.Compact>
+            <InputNumber
+              id="about-page-inputnumber-1"
+              min={1}
+              max={1440}
+              value={updateCheckInterval}
+              onChange={(val) => val != null && saveSettings({ update_check_interval: val })}
+              style={{ width: 72 }}
+            />
+            <span
+              style={{
+                padding: "0 8px",
+                color: "var(--ant-color-text-secondary)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t("settings.minutes")}
+            </span>
+          </Space.Compact>
         </div>
         <Divider style={{ margin: "4px 0" }} />
         <div style={rowStyle} className="flex items-center justify-between" data-search-key="about:showDeveloperTools">

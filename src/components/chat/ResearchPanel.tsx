@@ -17,7 +17,6 @@ import { ResearchSources } from "./ResearchSources";
 import { getSourceTypeName, type SearchResult } from "./researchUtils";
 
 const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input;
 
 type ResearchPhase =
   | "planning"
@@ -349,7 +348,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
           <Paragraph type="secondary" className="mb-4">
             {t("research.inputHint")}
           </Paragraph>
-          <TextArea
+          <Input.TextArea
             placeholder={t("research.topicPlaceholder")}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}

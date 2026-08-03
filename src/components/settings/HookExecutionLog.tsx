@@ -161,12 +161,12 @@ export function HookExecutionLog({ maxItems }: HookExecutionLogProps) {
       render: (status: string) =>
         status === "success"
           ? (
-            <Tag color="success" style={{ fontSize: 12 }}>
+            <Tag color="green" style={{ fontSize: 12 }}>
               {t("hookLog.success")}
             </Tag>
           )
           : (
-            <Tag color="error" style={{ fontSize: 12 }}>
+            <Tag color="red" style={{ fontSize: 12 }}>
               {t("hookLog.failed")}
             </Tag>
           ),

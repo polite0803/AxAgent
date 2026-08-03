@@ -205,8 +205,10 @@ export function QualityScore({
         trigger="click"
         placement="bottomRight"
         arrow={false}
-        overlayInnerStyle={{ padding: "8px 10px" }}
-        overlayStyle={{ width: 260, maxWidth: "90vw" }}
+        styles={{
+          root: { width: 260, maxWidth: "90vw" },
+          container: { padding: "8px 10px" },
+        }}
         content={
           <div style={{ width: "100%" }}>
             {/* 顶部：标题 + 刷新 */}
@@ -414,7 +416,7 @@ function QualityScorePanel({
   const percent = Math.round(details.score * 100);
 
   const content = (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
       <div className="flex items-center gap-3">
         <Progress
           type="circle"

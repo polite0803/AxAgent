@@ -324,12 +324,12 @@ export function WebDavSync() {
             <Text type="secondary" style={{ fontSize: 12 }}>
               {t("backup.webdav.lastSync")}: {formattedLastSyncTime} {syncStatus.lastSyncStatus === "success"
                 ? (
-                  <Tag color="success" style={{ marginLeft: 4 }}>
+                  <Tag color="green" style={{ marginLeft: 4 }}>
                     ✓
                   </Tag>
                 )
                 : (
-                  <Tag color="error" style={{ marginLeft: 4 }}>
+                  <Tag color="red" style={{ marginLeft: 4 }}>
                     ✗
                   </Tag>
                 )}
@@ -459,8 +459,8 @@ export function WebDavSync() {
             <Button onClick={handleTestConnection} loading={testing}>
               {t("backup.webdav.testConnection")}
             </Button>
-            {testResult === "success" && <Tag color="success">{t("backup.webdav.testSuccess")}</Tag>}
-            {testResult === "error" && <Tag color="error">{t("backup.webdav.testFailed")}</Tag>}
+            {testResult === "success" && <Tag color="green">{t("backup.webdav.testSuccess")}</Tag>}
+            {testResult === "error" && <Tag color="red">{t("backup.webdav.testFailed")}</Tag>}
           </div>
 
           <Divider />
@@ -515,13 +515,23 @@ export function WebDavSync() {
               name="maxRemoteBackups"
               label={t("backup.webdav.maxBackups")}
             >
-              <InputNumber
-                name="maxRemoteBackups"
-                min={1}
-                max={100}
-                style={{ width: 120 }}
-                addonAfter={t("backup.webdav.perDevice")}
-              />
+              <Space.Compact>
+                <InputNumber
+                  name="maxRemoteBackups"
+                  min={1}
+                  max={100}
+                  style={{ width: 96 }}
+                />
+                <span
+                  style={{
+                    padding: "0 8px",
+                    color: "var(--ant-color-text-secondary)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {t("backup.webdav.perDevice")}
+                </span>
+              </Space.Compact>
             </Form.Item>
           </div>
           <Form.Item name="includeDocuments" valuePropName="checked">

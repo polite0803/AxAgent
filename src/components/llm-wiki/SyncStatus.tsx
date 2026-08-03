@@ -160,8 +160,10 @@ export function SyncStatus({
         trigger="click"
         placement="bottomRight"
         arrow={false}
-        overlayInnerStyle={{ padding: "8px 10px" }}
-        overlayStyle={{ width: 280, maxWidth: "90vw" }}
+        styles={{
+          root: { width: 280, maxWidth: "90vw" },
+          container: { padding: "8px 10px" },
+        }}
         content={
           <div style={{ width: "100%" }}>
             {/* 顶部：标题 + 刷新 */}
@@ -278,7 +280,7 @@ export function SyncStatus({
                         <Space size={3}>
                           {item.retryCount > 0 && (
                             <Tag
-                              color="warning"
+                              color="orange"
                               style={{ fontSize: 9, margin: 0, lineHeight: "14px", padding: "0 3px" }}
                             >
                               {item.retryCount}
@@ -400,7 +402,7 @@ function SyncStatusPanel({
   standalone,
 }: SyncStatusPanelProps) {
   const content = (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
       <div>
         <Row gutter={12}>
           <Col span={8}>
@@ -494,7 +496,7 @@ function SyncStatusPanel({
                   <Space size={4}>
                     {item.retryCount > 0 && (
                       <Tooltip title={t("wiki.sync.retryCount", { count: item.retryCount })}>
-                        <Tag color="warning" style={{ fontSize: 10 }}>{item.retryCount}</Tag>
+                        <Tag color="orange" style={{ fontSize: 10 }}>{item.retryCount}</Tag>
                       </Tooltip>
                     )}
                     <Text type="secondary" style={{ fontSize: 10 }}>

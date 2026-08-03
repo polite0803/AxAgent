@@ -788,7 +788,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
         }
         if (record.has_embedding) {
           return (
-            <Tag color="success" style={{ fontSize: 12 }}>
+            <Tag color="green" style={{ fontSize: 12 }}>
               {t("settings.knowledge.indexStatusReady")}
             </Tag>
           );

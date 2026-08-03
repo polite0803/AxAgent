@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { DynamicUIRenderer } from "./DynamicUIRenderer";
 
 const { Text } = Typography;
-const { TextArea } = Input;
 
 // DUI-P2-04: 默认 schema 文本根据当前语言动态生成，避免硬编码中文
 function buildDefaultSchema(t: (key: string) => string): UISchema {
@@ -105,7 +104,7 @@ export const DynamicUIPreview: React.FC = () => {
           className="flex-1 min-w-0"
           styles={{ body: { flex: 1, padding: 0 } }}
         >
-          <TextArea
+          <Input.TextArea
             value={schemaText}
             onChange={(e) => setSchemaText(e.target.value)}
             className="font-mono text-xs w-full h-full resize-none"

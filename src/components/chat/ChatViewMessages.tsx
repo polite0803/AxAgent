@@ -1746,7 +1746,7 @@ export function useChatViewMessages({
                     && msg.parent_message_id === multiModelParentId
                   ) && (
                   <Tag
-                    color="warning"
+                    color="orange"
                     style={{
                       fontSize: 12,
                       margin: 0,

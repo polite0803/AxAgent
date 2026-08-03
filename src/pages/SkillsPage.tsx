@@ -459,6 +459,7 @@ export function SkillsPage() {
   const [marketplaceSource, setMarketplaceSource] = useState<
     "skillhub" | "github"
   >("skillhub");
+  const [marketplaceInput, setMarketplaceInput] = useState("");
   const marketplaceQueryRef = useRef("");
   const marketplaceLoaded = useRef(false);
   const [marketplaceDetailOpen, setMarketplaceDetailOpen] = useState(false);
@@ -1136,16 +1137,36 @@ export function SkillsPage() {
               { value: "stars", label: t("skills.sortStars") },
             ]}
           />
-          <Input.Search
+          <Input
             placeholder={t("skills.searchMarketplace")}
-            loading={marketplaceLoading}
-            onSearch={(q) => {
+            value={marketplaceInput}
+            onChange={(e) => setMarketplaceInput(e.target.value)}
+            onPressEnter={() => {
+              const q = marketplaceInput;
               marketplaceQueryRef.current = q;
               marketplaceLoaded.current = true;
               searchMarketplace(q, marketplaceSource, sortOrder);
             }}
-            enterButton
+            onClear={() => {
+              setMarketplaceInput("");
+              marketplaceQueryRef.current = "";
+              marketplaceLoaded.current = true;
+              searchMarketplace("", marketplaceSource, sortOrder);
+            }}
+            allowClear
           />
+          <Button
+            type="primary"
+            loading={marketplaceLoading}
+            onClick={() => {
+              const q = marketplaceInput;
+              marketplaceQueryRef.current = q;
+              marketplaceLoaded.current = true;
+              searchMarketplace(q, marketplaceSource, sortOrder);
+            }}
+          >
+            {t("common.search")}
+          </Button>
         </Space.Compact>
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: "0 4px" }}>

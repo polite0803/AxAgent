@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useSettingsStore } from "@/stores";
-import { Divider, InputNumber, Switch, Typography } from "antd";
+import { Divider, InputNumber, Space, Switch, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
@@ -71,14 +71,24 @@ export function ProactiveSettings() {
               {t("settings.closedLoopIntervalDesc")}
             </Text>
           </div>
-          <InputNumber
-            min={1}
-            max={120}
-            value={closedLoopInterval}
-            onChange={(val) => val != null && saveSettings({ closed_loop_interval_minutes: val })}
-            style={{ width: 100 }}
-            addonAfter={t("settings.minutes")}
-          />
+          <Space.Compact>
+            <InputNumber
+              min={1}
+              max={120}
+              value={closedLoopInterval}
+              onChange={(val) => val != null && saveSettings({ closed_loop_interval_minutes: val })}
+              style={{ width: 72 }}
+            />
+            <span
+              style={{
+                padding: "0 8px",
+                color: "var(--ant-color-text-secondary)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t("settings.minutes")}
+            </span>
+          </Space.Compact>
         </div>
       </SettingsGroup>
     </div>

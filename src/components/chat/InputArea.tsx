@@ -3253,7 +3253,7 @@ export function InputArea() {
         okText={t("multiAgent.delegateBtn")}
         destroyOnHidden
       >
-        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
           <div>
             <Typography.Text type="secondary">{t("multiAgent.selectRole")}</Typography.Text>
             <Segmented

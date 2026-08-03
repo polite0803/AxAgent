@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { message } from "@/lib/toast";
-import { Divider, Input, InputNumber, theme } from "antd";
+import { Divider, Input, InputNumber, Space, theme } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
@@ -80,15 +80,25 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.timeout")}
         </label>
-        <InputNumber
-          value={config.timeout_secs}
-          onChange={(v) => setCfg("timeout_secs", v ?? 30)}
-          size="small"
-          style={{ width: "100%" }}
-          min={1}
-          max={300}
-          addonAfter="s"
-        />
+        <Space.Compact>
+          <InputNumber
+            value={config.timeout_secs}
+            onChange={(v) => setCfg("timeout_secs", v ?? 30)}
+            size="small"
+            style={{ width: "calc(100% - 28px)" }}
+            min={1}
+            max={300}
+          />
+          <span
+            style={{
+              padding: "0 8px",
+              color: "var(--ant-color-text-secondary)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            s
+          </span>
+        </Space.Compact>
       </div>
       <div>
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>

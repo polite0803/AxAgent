@@ -7,7 +7,6 @@ import { Button, Input, Progress, Space, Tag, Typography } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
 const { Text, Title } = Typography;
 
 interface NLParserPanelProps {
@@ -59,7 +58,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
         <Text strong style={{ display: "block", marginBottom: 6 }}>{t("workflow.nlParser.naturalLanguageDesc")}</Text>
-        <TextArea
+        <Input.TextArea
           rows={5}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -71,7 +70,7 @@ export function NLParserPanel({ onApply }: NLParserPanelProps) {
 
       <div>
         <Text strong style={{ display: "block", marginBottom: 6 }}>{t("workflow.nlParser.constraintsOptional")}</Text>
-        <TextArea
+        <Input.TextArea
           rows={2}
           value={constraints}
           onChange={(e) => setConstraints(e.target.value)}

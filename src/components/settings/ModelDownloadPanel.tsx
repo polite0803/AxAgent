@@ -206,7 +206,7 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
           return (
             <Space size={6}>
               <Text>{v}</Text>
-              <Tag color="error">{t("settings.localModel.downloadFailed")}</Tag>
+              <Tag color="red">{t("settings.localModel.downloadFailed")}</Tag>
             </Space>
           );
         }
@@ -251,10 +251,10 @@ export function ModelDownloadPanel({ providerId }: { providerId: string }) {
           );
         }
         if (task?.status === "done") {
-          return <Tag color="success">{t("settings.localModel.downloadDone")}</Tag>;
+          return <Tag color="green">{t("settings.localModel.downloadDone")}</Tag>;
         }
         if (task?.status === "failed") {
-          return <Tag color="error">{t("settings.localModel.downloadFailed")}</Tag>;
+          return <Tag color="red">{t("settings.localModel.downloadFailed")}</Tag>;
         }
         return <Tag>{t("settings.localModel.ready")}</Tag>;
       },

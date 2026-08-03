@@ -96,7 +96,7 @@ function StatusTag({
   switch (displayStatus) {
     case "connected":
       return (
-        <Tag color="success">
+        <Tag color="green">
           {connectedProtocol === "https"
             ? t("gateway.cliConnectedHttps")
             : connectedProtocol === "http"
@@ -107,7 +107,7 @@ function StatusTag({
     case "not_connected":
       return <Tag color="default">{t("gateway.cliNotConnected")}</Tag>;
     case "not_installed":
-      return <Tag color="error">{t("gateway.cliNotInstalled")}</Tag>;
+      return <Tag color="red">{t("gateway.cliNotInstalled")}</Tag>;
     default:
       return null;
   }

@@ -189,7 +189,7 @@ const ActionDiffItem: React.FC<ActionDiffItemProps> = ({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Tag color={color}>{label}</Tag>
-          {applied && <Tag color="success">{t("workflow.aiPanel.diffPreview.applied")}</Tag>}
+          {applied && <Tag color="green">{t("workflow.aiPanel.diffPreview.applied")}</Tag>}
         </div>
         <Button
           size="small"

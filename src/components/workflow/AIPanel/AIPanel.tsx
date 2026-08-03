@@ -18,8 +18,6 @@ import { ActionDiffPreview } from "./ActionDiffPreview";
 import { EvolutionTab } from "./EvolutionTab";
 import { NLParseResultView } from "./NLParseResultView";
 
-const { TextArea } = Input;
-
 interface AIPanelProps {
   onGenerateWorkflow: (
     prompt: string,
@@ -496,7 +494,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           background: token.colorBgElevated,
         }}
       >
-        <TextArea
+        <Input.TextArea
           id="a-i-panel-chat-input"
           placeholder={t("workflow.aiPanel.chatPlaceholder")}
           value={chatInput}
@@ -542,7 +540,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         <label style={{ display: "block", color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
           {t("workflow.aiPanel.describeWorkflow")}
         </label>
-        <TextArea
+        <Input.TextArea
           id="a-i-panel-input-textarea-70"
           placeholder={t("workflow.aiPanel.generatePlaceholder")}
           value={generatePrompt}
@@ -609,7 +607,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         <label style={{ display: "block", color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
           {t("workflow.aiPanel.enterAgentPrompt")}
         </label>
-        <TextArea
+        <Input.TextArea
           id="a-i-panel-input-textarea-71"
           placeholder={t("workflow.aiPanel.optimizePlaceholder")}
           value={optimizePrompt}
@@ -725,7 +723,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         <label style={{ display: "block", color: token.colorTextSecondary, fontSize: 12, marginBottom: 8 }}>
           {t("workflow.aiPanel.describeContext")}
         </label>
-        <TextArea
+        <Input.TextArea
           id="a-i-panel-input-textarea-72"
           placeholder={t("workflow.aiPanel.recommendPlaceholder")}
           value={recommendContext}

@@ -6,7 +6,6 @@ import { App as AntdApp, Button, Input, Space, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const { TextArea } = Input;
 const { Text } = Typography;
 
 /** 反馈记录条目 */
@@ -85,7 +84,7 @@ export function FeedbackCollector({ traceId }: FeedbackCollectorProps) {
 
       {rating === "dislike" && (
         <div style={{ marginTop: 12 }}>
-          <TextArea
+          <Input.TextArea
             rows={3}
             placeholder={t("trace.feedback.commentPlaceholder")}
             value={comment}

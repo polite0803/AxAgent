@@ -13,7 +13,7 @@
 //! - MultiAgentTriggerHook 在 pre_llm_call 中自动委派
 
 use crate::AppState;
-use crate::commands::screen_vision::build_vision_context;
+use crate::commands::provider_ctx::build_vision_context;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{DelegateTaskInput, DelegateTaskResult, DelegateTaskRunner};

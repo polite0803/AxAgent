@@ -153,14 +153,21 @@ export function PluginMarketplace() {
         </div>
 
         <div className="mb-3">
-          <Input.Search
-            placeholder={t("chat.plugins.marketplace.installPlaceholder")}
-            enterButton={t("chat.plugins.marketplace.install")}
-            loading={searchLoading}
-            value={installInput}
-            onChange={(e) => setInstallInput(e.target.value)}
-            onSearch={handleSearchInstall}
-          />
+          <Space.Compact>
+            <Input
+              placeholder={t("chat.plugins.marketplace.installPlaceholder")}
+              value={installInput}
+              onChange={(e) => setInstallInput(e.target.value)}
+              onPressEnter={handleSearchInstall}
+            />
+            <Button
+              type="primary"
+              loading={searchLoading}
+              onClick={handleSearchInstall}
+            >
+              {t("chat.plugins.marketplace.install")}
+            </Button>
+          </Space.Compact>
         </div>
 
         {loading && plugins.length === 0 && (

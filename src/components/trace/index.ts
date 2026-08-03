@@ -12,7 +12,6 @@ export type {
 } from "./BottleneckAnalyzer";
 
 export { ImprovementSuggestion } from "./ImprovementSuggestion";
-export type { ImprovementSuggestionItem } from "./ImprovementSuggestion";
 
 export { FeedbackCollector } from "./FeedbackCollector";
 export type { FeedbackEntry } from "./FeedbackCollector";

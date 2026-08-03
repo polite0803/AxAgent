@@ -1069,10 +1069,12 @@ function GraphViewInner({
           trigger="click"
           placement="bottomLeft"
           arrow={false}
-          overlayInnerStyle={{ padding: "12px 14px" }}
-          overlayStyle={{ width: 280 }}
+          styles={{
+            root: { width: 280 },
+            container: { padding: "12px 14px" },
+          }}
           content={
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <Typography.Text strong style={{ fontSize: 12 }}>{t("wiki.graph.filters")}</Typography.Text>
                 <Segmented
@@ -1167,10 +1169,12 @@ function GraphViewInner({
           trigger="click"
           placement="bottomRight"
           arrow={false}
-          overlayInnerStyle={{ padding: "10px 14px" }}
-          overlayStyle={{ width: 180 }}
+          styles={{
+            root: { width: 180 },
+            container: { padding: "10px 14px" },
+          }}
           content={
-            <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={4} style={{ width: "100%" }}>
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>{t("wiki.graph.stats")}</Typography.Text>
               <Typography.Text style={{ fontSize: 12 }}>
                 {t("wiki.graph.nodes")}: {stats.visible}/{stats.total}
@@ -1224,7 +1228,7 @@ function GraphViewInner({
           trigger="click"
           placement="topRight"
           arrow={false}
-          overlayInnerStyle={{ padding: "10px 14px" }}
+          styles={{ container: { padding: "10px 14px" } }}
           content={
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11 }}>
               {(Object.keys(edgeTypeStyles) as GraphEdgeType[]).map((et) => {
