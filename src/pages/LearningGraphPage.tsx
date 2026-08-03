@@ -605,7 +605,7 @@ export function LearningGraphPage() {
             >
               <Alert
                 type="error"
-                message={t("learningGraph.title")}
+                title={t("learningGraph.title")}
                 description={errorMsg}
                 showIcon
                 action={

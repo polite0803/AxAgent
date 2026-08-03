@@ -573,7 +573,7 @@ export function WikiGraphPage() {
             : graphLoading
             ? (
               <div className="h-full flex items-center justify-center">
-                <Spin size="large" tip={t("wiki.graph.loading")} />
+                <Spin size="large" description={t("wiki.graph.loading")} />
               </div>
             )
             : !graphData || graphData.nodes.length === 0

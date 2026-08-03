@@ -160,7 +160,7 @@ export function DynamicUIStandalone({
 
   if (error || !schema) {
     // DUI-P1-01: Alert 用 message 而非 title（Ant Design 规范），并使用 i18n
-    return <Alert type="error" message={error || t("dynamicUI.schemaNotFound")} showIcon />;
+    return <Alert type="error" title={error || t("dynamicUI.schemaNotFound")} showIcon />;
   }
 
   return (

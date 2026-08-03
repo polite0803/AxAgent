@@ -150,7 +150,7 @@ export function AgentGeneratorModal({
             {error && (
               <Alert
                 type="error"
-                message={error}
+                title={error}
                 showIcon
                 closable
                 onClose={() => setError(null)}
@@ -170,7 +170,7 @@ export function AgentGeneratorModal({
             </div>
             {generating && (
               <div className="flex justify-center py-4">
-                <Spin tip={t("agentGenerator.generating")} />
+                <Spin description={t("agentGenerator.generating")} />
               </div>
             )}
           </div>
@@ -179,7 +179,7 @@ export function AgentGeneratorModal({
           <div className="flex flex-col gap-4">
             <Alert
               type="success"
-              message={t("agentGenerator.generatedTitle")}
+              title={t("agentGenerator.generatedTitle")}
               description={t("agentGenerator.generatedDesc")}
               showIcon
             />

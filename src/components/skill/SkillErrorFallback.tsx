@@ -87,7 +87,7 @@ export function SkillErrorFallback({
     <Alert
       type="error"
       showIcon
-      message={t("skill.loadFailed", { name: skillName })}
+      title={t("skill.loadFailed", { name: skillName })}
       description={error}
       action={onRetry && (
         <Button size="small" onClick={onRetry} icon={<RefreshCw size={12} />}>

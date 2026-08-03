@@ -457,7 +457,7 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
             justifyContent: "center",
           }}
         >
-          <Spin tip={t("workflow.versionHistory.loading")} />
+          <Spin description={t("workflow.versionHistory.loading")} />
         </div>
       )}
     </Modal>

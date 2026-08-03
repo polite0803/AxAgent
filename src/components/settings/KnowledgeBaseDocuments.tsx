@@ -1942,7 +1942,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
               <Alert
                 type={importResult.errorCount > 0 ? "warning" : "success"}
                 showIcon
-                message={t("settings.knowledge.importDone", {
+                title={t("settings.knowledge.importDone", {
                   imported: importResult.importedCount,
                   skipped: importResult.skippedCount,
                   error: importResult.errorCount,

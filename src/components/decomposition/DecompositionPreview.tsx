@@ -94,7 +94,7 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                   type="warning"
                   showIcon
                   style={{ marginBottom: 16 }}
-                  message={t("decomposition.unresolvedDeps")}
+                  title={t("decomposition.unresolvedDeps")}
                 />
               )}
 

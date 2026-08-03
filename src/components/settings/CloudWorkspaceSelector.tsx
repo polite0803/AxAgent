@@ -927,7 +927,7 @@ export function CloudWorkspaceSelector() {
         {connectionStatus === "success" && (
           <Alert
             type="success"
-            message={t("cloudWorkspace.connectionSuccess")}
+            title={t("cloudWorkspace.connectionSuccess")}
             showIcon
             style={{ marginBottom: 16 }}
           />
@@ -935,7 +935,7 @@ export function CloudWorkspaceSelector() {
         {connectionStatus === "failed" && (
           <Alert
             type="error"
-            message={t("cloudWorkspace.connectionFailed")}
+            title={t("cloudWorkspace.connectionFailed")}
             showIcon
             style={{ marginBottom: 16 }}
           />

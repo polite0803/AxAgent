@@ -172,7 +172,7 @@ export function LocalToolSettings() {
 
       {error && (
         <Alert
-          message={error}
+          title={error}
           type="error"
           showIcon
           className="mb-4"

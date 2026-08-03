@@ -35,7 +35,7 @@ function RechartsNotInstalled() {
   const { t } = useTranslation();
   return (
     <Alert
-      message={t("dynamicUI.rechartsRequired")}
+      title={t("dynamicUI.rechartsRequired")}
       description={t("dynamicUI.rechartsInstallHint")}
       type="warning"
       showIcon
@@ -47,7 +47,7 @@ function ChartLoading() {
   const { t } = useTranslation();
   return (
     <Alert
-      message={t("dynamicUI.loadingChart")}
+      title={t("dynamicUI.loadingChart")}
       type="info"
       showIcon
     />

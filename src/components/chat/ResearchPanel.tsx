@@ -411,7 +411,7 @@ export function ResearchPanel({ className }: ResearchPanelProps) {
 
           {error && (
             <Alert
-              message={t("research.error")}
+              title={t("research.error")}
               description={error}
               type="error"
               showIcon

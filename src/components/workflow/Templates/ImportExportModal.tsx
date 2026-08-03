@@ -163,7 +163,7 @@ function BatchImportN8n({
         <Alert
           style={{ marginTop: 8 }}
           type={result.errors.length > 0 ? "warning" : "success"}
-          message={
+          title={
             <div style={{ fontSize: 12 }}>
               <div>
                 {t("workflow.importExport.n8nResult", {
@@ -288,7 +288,7 @@ function BatchImportFolder({
         <Alert
           style={{ marginTop: 8 }}
           type={result.errors.length > 0 ? "warning" : "success"}
-          message={
+          title={
             <div style={{ fontSize: 12 }}>
               <div>
                 {t("workflow.importExport.batchResult", {
@@ -726,7 +726,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
               type="warning"
               closable
               onClose={() => setImportWarnings([])}
-              message={
+              title={
                 <div style={{ fontSize: 12 }}>
                   {/* warning strings appended sequentially, safe to use index as key */}
                   {importWarnings.map((w, i) => <div key={`${w.slice(0, 20)}-${i}`}>{w}</div>)}

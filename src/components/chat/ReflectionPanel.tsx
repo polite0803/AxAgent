@@ -130,7 +130,7 @@ function AnalysisSection({
   return (
     <Alert
       type={type}
-      message={
+      title={
         <div className="flex items-center gap-2">
           {icon}
           <Text strong>{title}</Text>
@@ -368,7 +368,7 @@ export function ReflectionPanel({
       <Card size="small" className="reflection-panel">
         <Alert
           type="error"
-          message={t("reflection.reflectError")}
+          title={t("reflection.reflectError")}
           description={error}
         />
         <Button
@@ -514,7 +514,7 @@ export function ReflectionPanel({
                 <Alert
                   key={suggestion}
                   type="info"
-                  message={suggestion}
+                  title={suggestion}
                   className="mb-2"
                   icon={<Lightbulb size={14} />}
                 />
@@ -531,7 +531,7 @@ export function ReflectionPanel({
                 <Alert
                   key={suggestion}
                   type="warning"
-                  message={suggestion}
+                  title={suggestion}
                   className="mb-2"
                 />
               ))}
@@ -552,7 +552,7 @@ export function ReflectionPanel({
 
           <Alert
             type="info"
-            message={t("reflection.summary")}
+            title={t("reflection.summary")}
             description={reflection.overall_summary}
             className="mt-4"
           />

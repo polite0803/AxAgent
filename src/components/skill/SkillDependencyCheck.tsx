@@ -107,7 +107,7 @@ export function SkillDependencyCheck() {
         type="success"
         showIcon
         icon={<CheckCircle size={14} />}
-        message={t("skill.deps.allSatisfied")}
+        title={t("skill.deps.allSatisfied")}
         style={{ marginBottom: 16 }}
       />
     );
@@ -133,7 +133,7 @@ export function SkillDependencyCheck() {
           type={report.satisfied ? "success" : "warning"}
           showIcon
           icon={report.satisfied ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-          message={
+          title={
             <span>
               <Typography.Text strong>{report.skillName}</Typography.Text>
               <Badge

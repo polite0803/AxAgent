@@ -190,7 +190,7 @@ export function GatewaySettings() {
         <Alert
           type="warning"
           showIcon
-          message={t("gateway.settingsLockedTitle")}
+          title={t("gateway.settingsLockedTitle")}
           description={t("gateway.settingsLockedDesc")}
           action={
             <Button danger size="small" onClick={handleStopNow}>
@@ -357,7 +357,7 @@ export function GatewaySettings() {
               type="warning"
               showIcon
               icon={<ShieldAlert size={16} />}
-              message={t("gateway.sslWarning")}
+              title={t("gateway.sslWarning")}
               description={t("gateway.sslWarningDesc")}
               style={{ marginBottom: 12 }}
             />
@@ -453,7 +453,7 @@ export function GatewaySettings() {
                   <Alert
                     type="error"
                     showIcon
-                    message={t("gateway.sslSelfSignWarning")}
+                    title={t("gateway.sslSelfSignWarning")}
                     style={{ marginBottom: 8 }}
                   />
                   <Button

@@ -35,7 +35,7 @@ export const DataTable: React.FC<DynamicUIProps> = ({
     return (
       <Alert
         type="error"
-        message={t("dynamicUI.dataLoadFailed")}
+        title={t("dynamicUI.dataLoadFailed")}
         description={dataError.message}
         showIcon
       />
