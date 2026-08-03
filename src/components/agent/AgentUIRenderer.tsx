@@ -127,7 +127,7 @@ export function AgentUIRenderer() {
             <Alert
               key={entry.id}
               type="error"
-              message={t("agent.uiRenderer.invalidSchema")}
+              title={t("agent.uiRenderer.invalidSchema")}
               description={t("agent.uiRenderer.invalidSchemaDesc")}
               showIcon
             />

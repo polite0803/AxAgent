@@ -89,7 +89,7 @@ export function AnimationSettings() {
             <Alert
               type={systemPrefersReducedMotion ? "info" : "success"}
               showIcon
-              message={systemStatusText}
+              title={systemStatusText}
               style={{ fontSize: 12 }}
             />
           </div>

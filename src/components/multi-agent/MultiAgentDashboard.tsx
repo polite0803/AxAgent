@@ -253,7 +253,7 @@ function DelegateForm({ roles, onSubmit, submitting }: DelegateFormProps) {
           {jsonError && (
             <Alert
               type="error"
-              message={jsonError}
+              title={jsonError}
               style={{ marginTop: 4 }}
               showIcon
             />
@@ -404,7 +404,7 @@ function HistoryItem({ entry }: HistoryItemProps) {
           : (
             <Alert
               type="error"
-              message={entry.error ?? "Unknown error"}
+              title={entry.error ?? "Unknown error"}
               showIcon
             />
           )}
@@ -543,7 +543,7 @@ export function MultiAgentDashboard() {
         {store.error && (
           <Alert
             type="error"
-            message={store.error}
+            title={store.error}
             style={{ marginBottom: 8 }}
             showIcon
             closable
