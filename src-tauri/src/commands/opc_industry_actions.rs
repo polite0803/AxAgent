@@ -885,7 +885,12 @@ pub async fn opc_list_industries() -> Result<serde_json::Value, String> {
             })
         })
         .collect();
-    serde_json::to_value(list).map_err(|e| e.to_string())
+    serde_json::to_value(list).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业完整配置（含操作和工作流）
@@ -893,7 +898,12 @@ pub async fn opc_list_industries() -> Result<serde_json::Value, String> {
 pub async fn opc_get_industry_config(industry_id: String) -> Result<serde_json::Value, String> {
     let config =
         get_industry_config(&industry_id).ok_or_else(|| format!("行业不存在: {industry_id}"))?;
-    serde_json::to_value(config).map_err(|e| e.to_string())
+    serde_json::to_value(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业操作的执行配置（用于前端调用）
@@ -904,7 +914,12 @@ pub async fn opc_get_action_config(
 ) -> Result<serde_json::Value, String> {
     let action = get_action_config(&industry_id, &action_key)
         .ok_or_else(|| format!("操作不存在: {industry_id}/{action_key}"))?;
-    serde_json::to_value(action).map_err(|e| e.to_string())
+    serde_json::to_value(action).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业工作流配置
@@ -915,7 +930,12 @@ pub async fn opc_get_workflow_config(
 ) -> Result<serde_json::Value, String> {
     let workflow = get_workflow_config(&industry_id, &workflow_id)
         .ok_or_else(|| format!("工作流不存在: {industry_id}/{workflow_id}"))?;
-    serde_json::to_value(workflow).map_err(|e| e.to_string())
+    serde_json::to_value(workflow).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 构建带行业上下文的对话 prompt
@@ -964,7 +984,12 @@ pub async fn opc_list_industry_actions(industry_id: String) -> Result<serde_json
             })
         })
         .collect();
-    serde_json::to_value(actions).map_err(|e| e.to_string())
+    serde_json::to_value(actions).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业所有工作流列表
@@ -985,7 +1010,12 @@ pub async fn opc_list_industry_workflows(industry_id: String) -> Result<serde_js
             })
         })
         .collect();
-    serde_json::to_value(workflows).map_err(|e| e.to_string())
+    serde_json::to_value(workflows).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[cfg(test)]

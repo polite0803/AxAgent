@@ -652,6 +652,7 @@ function AddMemberForm({
           value={form.displayName}
           onChange={(e) => setField("displayName", e.target.value)}
           maxLength={64}
+          data-testid="office-member-display-name"
         />
       </div>
       <div>
@@ -664,6 +665,7 @@ function AddMemberForm({
           onChange={(e) => setField("agentSlug", e.target.value)}
           onPressEnter={(e) => e.preventDefault()}
           maxLength={64}
+          data-testid="office-member-agent-slug"
         />
       </div>
       <div>
@@ -675,6 +677,7 @@ function AddMemberForm({
           value={form.role}
           onChange={(e) => setField("role", e.target.value)}
           maxLength={256}
+          data-testid="office-member-role"
         />
       </div>
       <div>

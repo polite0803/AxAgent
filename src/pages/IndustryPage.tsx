@@ -204,6 +204,9 @@ export function IndustryPage() {
 
   const config = useMemo(() => INDUSTRY_CONFIGS[industryId], [industryId]);
 
+  // i18n key 转换: ai-research → ai_research
+  const industryKey = industryId.replace(/-/g, "_");
+
   // 生成 i18n key 前缀
   const actionsPrefix = `opc.industry.actions.${industryId}`;
   const workflowsPrefix = `opc.industry.workflows.${industryId}`;
@@ -285,7 +288,7 @@ export function IndustryPage() {
 
     try {
       const conv = await createConversation(
-        `${wfName} - 执行`,
+        t("opc.industry.executeSuffix", { name: wfName }),
         settings.default_model_id,
         settings.default_provider_id,
       );
@@ -300,7 +303,7 @@ export function IndustryPage() {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <Spin size="large" tip={t("common.loading")} />
+        <Spin size="large" description={t("common.loading")} />
       </div>
     );
   }
@@ -319,15 +322,15 @@ export function IndustryPage() {
       <div style={{ marginBottom: 24 }}>
         <Title level={3} style={{ marginBottom: 8 }}>
           <span style={{ fontSize: 28, marginRight: 12 }}>{manifest.icon}</span>
-          {manifest.name}
+          {t(`opc.industries.${industryKey}`)}
         </Title>
-        <Paragraph type="secondary">{manifest.description}</Paragraph>
+        <Paragraph type="secondary">{t(`opc.industries.${industryKey}_desc`)}</Paragraph>
       </div>
 
       {/* 专属操作入口 */}
       <Card
         style={{ marginBottom: 24 }}
-        bodyStyle={{ padding: 20 }}
+        styles={{ body: { padding: 20 } }}
       >
         <Title level={5} style={{ marginBottom: 16 }}>
           <ThunderboltOutlined style={{ marginRight: 8 }} />
@@ -345,7 +348,7 @@ export function IndustryPage() {
                   border: "1px solid var(--color-border)",
                   transition: "all 0.2s",
                 }}
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
               >
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <div

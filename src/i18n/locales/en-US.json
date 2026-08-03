@@ -3866,7 +3866,16 @@
       "industry_consulting": "Industry Consulting",
       "accounting": "Accounting",
       "ecommerce": "E-Commerce",
-      "education": "Education"
+      "education": "Education",
+      "ai_research_desc": "AI Technology \\& Application Research",
+      "software_dev_desc": "Software Development",
+      "finance_invest_desc": "Financial Investment",
+      "sales_growth_desc": "Sales Growth",
+      "content_media_desc": "Content Media",
+      "industry_consulting_desc": "Industry Consulting",
+      "accounting_desc": "Accounting",
+      "ecommerce_desc": "E-commerce",
+      "education_desc": "Education"
     },
     "industry": {
       "enabled": "Enabled",
@@ -4177,7 +4186,8 @@
             "description": "Generate teaching materials"
           }
         }
-      }
+      },
+      "executeSuffix": "{{name}} - Execute"
     },
     "common": {
       "cancel": "Cancel",

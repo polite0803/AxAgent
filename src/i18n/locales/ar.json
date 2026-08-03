@@ -4182,7 +4182,16 @@
       "industry_consulting": "Industry Consulting",
       "accounting": "Accounting",
       "ecommerce": "E-Commerce",
-      "education": "Education"
+      "education": "Education",
+      "ai_research_desc": "أبحاث الذكاء الاصطناعي والتطبيقات",
+      "software_dev_desc": "تطوير البرمجيات",
+      "finance_invest_desc": "الاستثمار المالي",
+      "sales_growth_desc": "نمو المبيعات",
+      "content_media_desc": "وسائط المحتوى",
+      "industry_consulting_desc": "الاستشارات الصناعية",
+      "accounting_desc": "المحاسبة",
+      "ecommerce_desc": "التجارة الإلكترونية",
+      "education_desc": "التعليم"
     },
     "industry": {
       "enabled": "Enabled",
@@ -4493,7 +4502,8 @@
           }
         }
       },
-      "workflowTag": "Workflow"
+      "workflowTag": "Workflow",
+      "executeSuffix": "{{name}} - تنفيذ"
     }
   },
   "pasteButton": {

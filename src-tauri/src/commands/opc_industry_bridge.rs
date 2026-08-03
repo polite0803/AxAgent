@@ -267,14 +267,24 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                     })
                 })
                 .collect();
-            serde_json::to_string_pretty(&list).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&list).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_get_industry_config" => {
             let industry_id =
                 input["industry_id"].as_str().ok_or_else(|| "缺少 industry_id 参数".to_string())?;
             let config = get_industry_config(industry_id)
                 .ok_or_else(|| format!("行业不存在: {industry_id}"))?;
-            serde_json::to_string_pretty(&config).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&config).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_get_action_config" => {
             let industry_id =
@@ -283,7 +293,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 input["action_key"].as_str().ok_or_else(|| "缺少 action_key 参数".to_string())?;
             let action = get_action_config(industry_id, action_key)
                 .ok_or_else(|| format!("操作不存在: {industry_id}/{action_key}"))?;
-            serde_json::to_string_pretty(&action).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&action).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_get_workflow_config" => {
             let industry_id =
@@ -292,7 +307,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 input["workflow_id"].as_str().ok_or_else(|| "缺少 workflow_id 参数".to_string())?;
             let workflow = get_workflow_config(industry_id, workflow_id)
                 .ok_or_else(|| format!("工作流不存在: {industry_id}/{workflow_id}"))?;
-            serde_json::to_string_pretty(&workflow).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&workflow).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_build_industry_prompt" => {
             let industry_id =
@@ -318,7 +338,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 "actionLabel": action.label,
                 "industryId": industry_id,
             });
-            serde_json::to_string_pretty(&result).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&result).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_list_industry_actions" => {
             let industry_id =
@@ -339,7 +364,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                     })
                 })
                 .collect();
-            serde_json::to_string_pretty(&actions).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&actions).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_list_industry_workflows" => {
             let industry_id =
@@ -359,7 +389,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                     })
                 })
                 .collect();
-            serde_json::to_string_pretty(&workflows).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&workflows).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_render_ui" => {
             let schema =
@@ -388,7 +423,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 "action": "render",
                 "schemaId": schema_id,
             }))
-            .map_err(|e| e.to_string())
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_execute_industry_action" => {
             let industry_id =
@@ -398,7 +438,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
             let user_input = input["user_input"].as_str();
 
             let result = execute_industry_action(industry_id, action_key, user_input)?;
-            serde_json::to_string_pretty(&result).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&result).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         "opc_create_industry_workflow" => {
             let industry_id =
@@ -408,7 +453,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
             let custom_name = input["custom_name"].as_str();
 
             let result = create_industry_workflow(industry_id, workflow_id, custom_name)?;
-            serde_json::to_string_pretty(&result).map_err(|e| e.to_string())
+            serde_json::to_string_pretty(&result).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
         },
         other => {
             warn!("Unknown OPC industry command: {}", other);

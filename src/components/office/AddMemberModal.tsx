@@ -171,7 +171,10 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
           label={t("office.addMember.agentId")}
           rules={[{ required: true, message: t("office.addMember.agentIdRequired") }]}
         >
-          <Input placeholder={t("office.addMember.agentIdPlaceholder")} />
+          <Input
+            placeholder={t("office.addMember.agentIdPlaceholder")}
+            data-testid="office-member-agent-id"
+          />
         </Form.Item>
 
         <Form.Item
@@ -179,7 +182,10 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
           label={t("office.addMember.agentSlug")}
           rules={[{ required: true, message: t("office.addMember.agentSlugRequired") }]}
         >
-          <Input placeholder={t("office.addMember.agentSlugPlaceholder")} />
+          <Input
+            placeholder={t("office.addMember.agentSlugPlaceholder")}
+            data-testid="office-member-agent-slug"
+          />
         </Form.Item>
 
         <Form.Item
@@ -187,7 +193,10 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
           label={t("office.addMember.displayName")}
           rules={[{ required: true, message: t("office.addMember.displayNameRequired") }]}
         >
-          <Input placeholder={t("office.addMember.displayNamePlaceholder")} />
+          <Input
+            placeholder={t("office.addMember.displayNamePlaceholder")}
+            data-testid="office-member-display-name"
+          />
         </Form.Item>
 
         {/* BusinessRole 快捷填充 */}
@@ -213,6 +222,7 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
           <Input.TextArea
             rows={3}
             placeholder={t("office.addMember.rolePlaceholder")}
+            data-testid="office-member-role"
           />
         </Form.Item>
 

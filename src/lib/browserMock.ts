@@ -728,6 +728,9 @@ const DEFAULT_SETTINGS = {
   backup_interval_hours: 24,
   content_safety_enabled: true,
   last_selected_conversation_id: null,
+  onboarding_completed: true,
+  onboarding_wizard_dismissed: true,
+  onboarding_tutorial_completed: true,
 };
 
 // ── Command Handler ─────────────────────────────────────────────────────

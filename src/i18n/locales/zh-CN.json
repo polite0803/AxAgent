@@ -3859,14 +3859,23 @@
     },
     "industries": {
       "ai_research": "人工智能研究",
+      "ai_research_desc": "AI 技术与应用研究：需求分析 → 技术调研 → 原型验证 → 报告输出",
       "software_dev": "软件开发",
+      "software_dev_desc": "软件开发全流程：需求分析 → 架构设计 → 编码实现 → 测试部署",
       "finance_invest": "金融投资",
+      "finance_invest_desc": "投资分析与决策：市场分析 → 财务建模 → 风险评估 → 投资建议",
       "sales_growth": "销售增长",
+      "sales_growth_desc": "销售增长策略：市场定位 → 客户画像 → 获客策略 → 转化优化",
       "content_media": "内容媒体",
+      "content_media_desc": "内容创作与传播：选题策划 → 内容生产 → 多平台分发 → 效果追踪",
       "industry_consulting": "行业咨询",
+      "industry_consulting_desc": "行业洞察与咨询：行业扫描 → 竞品分析 → 战略建议 → 落地规划",
       "accounting": "会计",
+      "accounting_desc": "财务会计与税务：账务处理 → 税务申报 → 财务报表 → 审计支持",
       "ecommerce": "电商",
-      "education": "教育"
+      "ecommerce_desc": "电商运营全流程：选品策略 → 店铺运营 → 营销推广 → 客户管理",
+      "education": "教育",
+      "education_desc": "教育产品与服务：课程设计 → 内容开发 → 学员运营 → 效果评估"
     },
     "industry": {
       "enabled": "已启用",
@@ -4014,6 +4023,7 @@
       "exclusiveActions": "专属操作",
       "exclusiveWorkflows": "专属工作流",
       "workflowTag": "工作流",
+      "executeSuffix": "{{name}} - 执行",
       "actions": {
         "ai-research": {
           "ai-paper": {

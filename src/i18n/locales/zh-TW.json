@@ -4182,7 +4182,16 @@
       "industry_consulting": "Industry Consulting",
       "accounting": "Accounting",
       "ecommerce": "E-Commerce",
-      "education": "Education"
+      "education": "Education",
+      "ai_research_desc": "AI 技術與應用研究",
+      "software_dev_desc": "軟體開發",
+      "finance_invest_desc": "金融投資",
+      "sales_growth_desc": "銷售成長",
+      "content_media_desc": "內容媒體",
+      "industry_consulting_desc": "產業諮詢",
+      "accounting_desc": "會計",
+      "ecommerce_desc": "電商",
+      "education_desc": "教育"
     },
     "industry": {
       "enabled": "Enabled",
@@ -4493,7 +4502,8 @@
           }
         }
       },
-      "workflowTag": "Workflow"
+      "workflowTag": "Workflow",
+      "executeSuffix": "{{name}} - 執行"
     }
   },
   "pasteButton": {

@@ -73,17 +73,13 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
       >
         <Card size="small" title={t("link.routingPolicy")}>
           <Form.Item name="route_strategy" label={t("link.routeStrategy")}>
-            <Select>
-              <Select.Option value="round_robin">
-                {t("link.roundRobin")}
-              </Select.Option>
-              <Select.Option value="least_latency">
-                {t("link.leastLatency")}
-              </Select.Option>
-              <Select.Option value="weighted">
-                {t("link.weighted")}
-              </Select.Option>
-            </Select>
+            <Select
+              options={[
+                { value: "round_robin", label: t("link.roundRobin") },
+                { value: "least_latency", label: t("link.leastLatency") },
+                { value: "weighted", label: t("link.weighted") },
+              ]}
+            />
           </Form.Item>
           <Form.Item
             name="model_fallback_enabled"
@@ -126,12 +122,12 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
 
         <Card size="small" title={t("link.keyManagement")}>
           <Form.Item name="key_rotation_strategy" label={t("link.keyRotation")}>
-            <Select>
-              <Select.Option value="sequential">
-                {t("link.sequential")}
-              </Select.Option>
-              <Select.Option value="random">{t("link.random")}</Select.Option>
-            </Select>
+            <Select
+              options={[
+                { value: "sequential", label: t("link.sequential") },
+                { value: "random", label: t("link.random") },
+              ]}
+            />
           </Form.Item>
           <Form.Item
             name="key_failover_enabled"

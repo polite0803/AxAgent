@@ -1,20 +1,37 @@
 import { expect, test } from "@playwright/test";
 
 async function dismissModals(page: import("@playwright/test").Page) {
-  let closed = false;
-  if (await page.locator(".ant-modal-close").first().isVisible({ timeout: 1000 }).catch(() => false)) {
-    await page.locator(".ant-modal-close").first().click();
-    closed = true;
+  // 循环关闭所有可能出现的 Modal，防止延迟渲染的弹窗漏掉
+  for (let i = 0; i < 3; i++) {
+    let dismissed = false;
+    // 优先关闭 WelcomeWizard（带 footer=null，只有 skip 按钮可关）
+    try {
+      if (await page.getByTestId("onboarding-skip").isVisible({ timeout: 1500 }).catch(() => false)) {
+        await page.getByTestId("onboarding-skip").click();
+        dismissed = true;
+      }
+    } catch {}
+    // 关闭其他带 close 按钮的 Modal
+    try {
+      if (await page.locator(".ant-modal-close").first().isVisible({ timeout: 1000 }).catch(() => false)) {
+        await page.locator(".ant-modal-close").first().click();
+        dismissed = true;
+      }
+    } catch {}
+    // 关闭带 OK 按钮的 Modal
+    try {
+      const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
+      if (await okBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await okBtn.click();
+        dismissed = true;
+      }
+    } catch {}
+    if (!dismissed) { break; }
+    await page.waitForTimeout(300);
   }
-  const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
-  if (await okBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await okBtn.click();
-    closed = true;
-  }
-  if (closed) {
-    await page.locator(".ant-modal-wrap").first().waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
-  }
-  await page.waitForTimeout(200);
+  // 等待所有 Modal 消失
+  await page.locator(".ant-modal-wrap").first().waitFor({ state: "hidden", timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(300);
 }
 
 /**
@@ -87,11 +104,13 @@ test.describe("Time Travel / As-Of Mode", () => {
     const anchor = page.locator('[data-testid="page-time-anchor"]');
     await expect(anchor).toBeVisible({ timeout: 30000 });
     await dismissModals(page);
+    // 再次确认无 Modal 阻塞后再交互
+    await expect(page.locator(".ant-modal-wrap").first()).toBeHidden({ timeout: 3000 }).catch(() => {});
     // 通过 data-testid 定位 Segmented，点击"历史回放"选项
     const segmented = page.getByTestId("time-anchor-segmented");
     await expect(segmented).toBeVisible({ timeout: 10000 });
-    // 直接点击 Segmented 中的最后一个选项（replay），不使用 force 模式
-    await segmented.locator("label.ant-segmented-item").last().click();
+    // 使用 force 避免被意外浮层拦截
+    await segmented.locator("label.ant-segmented-item").last().click({ force: true });
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
   });
@@ -99,11 +118,13 @@ test.describe("Time Travel / As-Of Mode", () => {
   test("picking a past date enters Replay mode and shows the Replay badge", async ({ page }) => {
     const anchor = page.locator('[data-testid="page-time-anchor"]');
     await dismissModals(page);
+    // 再次确认无 Modal 阻塞后再交互
+    await expect(page.locator(".ant-modal-wrap").first()).toBeHidden({ timeout: 3000 }).catch(() => {});
     // 通过 data-testid 定位 Segmented，点击"历史回放"选项
     const segmented = page.getByTestId("time-anchor-segmented");
     await expect(segmented).toBeVisible({ timeout: 10000 });
-    // 直接点击 Segmented 中的最后一个选项（replay）
-    await segmented.locator("label.ant-segmented-item").last().click();
+    // 使用 force 避免被意外浮层拦截
+    await segmented.locator("label.ant-segmented-item").last().click({ force: true });
     const picker = page.locator('[data-testid="asof-date-picker"]');
     await expect(picker).toBeVisible({ timeout: 10000 });
 

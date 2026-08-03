@@ -180,13 +180,17 @@ export function PriceAlertPanel() {
               <Input placeholder={t("stockAnalysis.alert.name")} style={{ width: 72 }} size="small" />
             </Form.Item>
             <Form.Item name="condition" initialValue="above" noStyle>
-              <Select style={{ width: 80 }} size="small">
-                <Select.Option value="above">{t("stockAnalysis.alert.conditionAbove")}</Select.Option>
-                <Select.Option value="below">{t("stockAnalysis.alert.conditionBelow")}</Select.Option>
-                <Select.Option value="change_up">{t("stockAnalysis.alert.conditionUp")}</Select.Option>
-                <Select.Option value="change_down">{t("stockAnalysis.alert.conditionDown")}</Select.Option>
-                <Select.Option value="volume_spike">{t("stockAnalysis.alert.conditionVolume")}</Select.Option>
-              </Select>
+              <Select
+                style={{ width: 80 }}
+                size="small"
+                options={[
+                  { value: "above", label: t("stockAnalysis.alert.conditionAbove") },
+                  { value: "below", label: t("stockAnalysis.alert.conditionBelow") },
+                  { value: "change_up", label: t("stockAnalysis.alert.conditionUp") },
+                  { value: "change_down", label: t("stockAnalysis.alert.conditionDown") },
+                  { value: "volume_spike", label: t("stockAnalysis.alert.conditionVolume") },
+                ]}
+              />
             </Form.Item>
           </div>
           <div className="flex gap-1">

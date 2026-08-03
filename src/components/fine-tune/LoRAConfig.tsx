@@ -86,13 +86,14 @@ export function LoRAConfig() {
             label={t("loraConfig.dataset")}
             rules={[{ required: true, message: "Please select a dataset" }]}
           >
-            <Select placeholder={t("devtools.fineTune.selectDataset")}>
-              {datasets.map((dataset) => (
-                <Select.Option key={dataset.id} value={dataset.id}>
-                  {dataset.name} ({dataset.num_samples} samples)
-                </Select.Option>
-              ))}
-            </Select>
+            <Select
+              placeholder={t("devtools.fineTune.selectDataset")}
+              options={datasets.map((dataset) => ({
+                key: dataset.id,
+                value: dataset.id,
+                label: `${dataset.name} (${dataset.num_samples} samples)`,
+              }))}
+            />
           </Form.Item>
 
           <Form.Item
@@ -100,13 +101,14 @@ export function LoRAConfig() {
             label={t("loraConfig.baseModel")}
             rules={[{ required: true, message: "Please select a base model" }]}
           >
-            <Select placeholder={t("devtools.fineTune.selectBaseModel")}>
-              {baseModels.map((model) => (
-                <Select.Option key={model.model_id} value={model.model_id}>
-                  {model.name} ({model.size_gb} GB)
-                </Select.Option>
-              ))}
-            </Select>
+            <Select
+              placeholder={t("devtools.fineTune.selectBaseModel")}
+              options={baseModels.map((model) => ({
+                key: model.model_id,
+                value: model.model_id,
+                label: `${model.name} (${model.size_gb} GB)`,
+              }))}
+            />
           </Form.Item>
 
           <Divider>LoRA Parameters</Divider>

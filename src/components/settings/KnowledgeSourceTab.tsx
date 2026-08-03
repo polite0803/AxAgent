@@ -377,7 +377,7 @@ export function KnowledgeSourceTab() {
         open={githubOpen}
         onCancel={() => setGithubOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={githubForm} layout="vertical" onFinish={handleGithubImport}>
           <Form.Item
@@ -408,7 +408,7 @@ export function KnowledgeSourceTab() {
         open={sitemapOpen}
         onCancel={() => setSitemapOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={sitemapForm} layout="vertical" onFinish={handleSitemap}>
           <Form.Item
@@ -432,7 +432,7 @@ export function KnowledgeSourceTab() {
         open={editSource !== null}
         onCancel={() => setEditSource(null)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={editForm} layout="vertical" onFinish={handleEdit} initialValues={{ status: "active" }}>
           <Form.Item
@@ -486,7 +486,7 @@ export function KnowledgeSourceTab() {
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form<CreateKnowledgeSourceInput>
           form={form}

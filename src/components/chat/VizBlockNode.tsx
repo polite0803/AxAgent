@@ -68,7 +68,7 @@ export function VizBlockNode(props: NodeComponentProps<VizBlockNodeData>) {
   }
 
   return (
-    <Card size="small" style={{ margin: "8px 0" }} bodyStyle={{ padding: 12 }}>
+    <Card size="small" style={{ margin: "8px 0" }} styles={{ body: { padding: 12 } }}>
       <VizBlockRenderer block={parsed.block} />
     </Card>
   );

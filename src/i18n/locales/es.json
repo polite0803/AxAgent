@@ -4182,7 +4182,16 @@
       "industry_consulting": "Industry Consulting",
       "accounting": "Accounting",
       "ecommerce": "E-Commerce",
-      "education": "Education"
+      "education": "Education",
+      "ai_research_desc": "Investigación de IA y aplicaciones",
+      "software_dev_desc": "Desarrollo de software",
+      "finance_invest_desc": "Inversión financiera",
+      "sales_growth_desc": "Crecimiento de ventas",
+      "content_media_desc": "Medios de contenido",
+      "industry_consulting_desc": "Consultoría industrial",
+      "accounting_desc": "Contabilidad",
+      "ecommerce_desc": "Comercio electrónico",
+      "education_desc": "Educación"
     },
     "industry": {
       "enabled": "Enabled",
@@ -4493,7 +4502,8 @@
           }
         }
       },
-      "workflowTag": "Workflow"
+      "workflowTag": "Workflow",
+      "executeSuffix": "{{name}} - Ejecutar"
     }
   },
   "pasteButton": {
