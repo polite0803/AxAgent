@@ -57,6 +57,18 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   "cross-market": "/cross-market",
   // G5 Multi-Agent 固定角色 pool
   multiAgent: "/multi-agent",
+  // OPC 一人公司管理
+  opc: "/opc",
+  // OPC 9 大垂直行业入口
+  opcIndustryAiResearch: "/opc/industries/ai-research",
+  opcIndustrySoftwareDev: "/opc/industries/software-dev",
+  opcIndustryFinanceInvest: "/opc/industries/finance-invest",
+  opcIndustrySalesGrowth: "/opc/industries/sales-growth",
+  opcIndustryContentMedia: "/opc/industries/content-media",
+  opcIndustryIndustryConsulting: "/opc/industries/industry-consulting",
+  opcIndustryAccounting: "/opc/industries/accounting",
+  opcIndustryEcommerce: "/opc/industries/ecommerce",
+  opcIndustryEducation: "/opc/industries/education",
   // 以下为历史兼容入口 / devtools 等次要路由，同样收归此处以消除散写硬编码
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",

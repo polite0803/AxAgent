@@ -34,6 +34,7 @@ const LazyDynamicPageViewer = lazy(() =>
   import("@/pages/DynamicPageViewer").then((m) => ({ default: m.DynamicPageViewer }))
 );
 const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
+const LazyIndustryPage = lazy(() => import("@/pages/IndustryPage").then((m) => ({ default: m.IndustryPage })));
 
 function PageLoader() {
   return (
@@ -238,6 +239,93 @@ export const ContentArea = memo(function ContentArea() {
             element={
               <PageContextProvider page="invest">
                 <SafeLazyPage Page={LazyInvestPage} />
+              </PageContextProvider>
+            }
+          />
+          {/* OPC 一人公司管理 — 根路径重定向到第一个行业 */}
+          <Route
+            path={BUILTIN_PAGE_PATH.opc}
+            element={<Navigate to={BUILTIN_PAGE_PATH.opcIndustryAiResearch} replace />}
+          />
+          {/* OPC 9 大垂直行业路由 */}
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryAiResearch}
+            element={
+              <PageContextProvider page="opc-industry-ai-research">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustrySoftwareDev}
+            element={
+              <PageContextProvider page="opc-industry-software-dev">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryFinanceInvest}
+            element={
+              <PageContextProvider page="opc-industry-finance-invest">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustrySalesGrowth}
+            element={
+              <PageContextProvider page="opc-industry-sales-growth">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryContentMedia}
+            element={
+              <PageContextProvider page="opc-industry-content-media">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryIndustryConsulting}
+            element={
+              <PageContextProvider page="opc-industry-industry-consulting">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryAccounting}
+            element={
+              <PageContextProvider page="opc-industry-accounting">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryEcommerce}
+            element={
+              <PageContextProvider page="opc-industry-ecommerce">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryEducation}
+            element={
+              <PageContextProvider page="opc-industry-education">
+                <SafeLazyPage Page={LazyIndustryPage} />
+              </PageContextProvider>
+            }
+          />
+          {/* OPC 行业动态路由 — 支持 /opc/industries/:industryId 格式 */}
+          <Route
+            path={`${BUILTIN_PAGE_PATH.opc}/industries/:industryId`}
+            element={
+              <PageContextProvider page="opc">
+                <SafeLazyPage Page={LazyIndustryPage} />
               </PageContextProvider>
             }
           />

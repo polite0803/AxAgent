@@ -1262,6 +1262,14 @@ macro_rules! register_all_commands {
             commands::opc::run_self_improving_opc_work_item,
             // ── 方案 B：OPC 角色进 Fleet（办公室真实状态）──
             commands::opc::opc_sync_fleet,
+            // ── OPC 9 大行业专属操作命令 ──
+            commands::opc_industry_actions::opc_list_industries,
+            commands::opc_industry_actions::opc_get_industry_config,
+            commands::opc_industry_actions::opc_get_action_config,
+            commands::opc_industry_actions::opc_get_workflow_config,
+            commands::opc_industry_actions::opc_build_industry_prompt,
+            commands::opc_industry_actions::opc_list_industry_actions,
+            commands::opc_industry_actions::opc_list_industry_workflows,
             // G14 DojoSDK 工具集（前端 IPC 入口）
             commands::dojo_sdk::dojo_sdk_execute_tool,
             commands::dojo_sdk::dojo_sdk_list_tools,

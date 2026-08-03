@@ -19,7 +19,25 @@ import {
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Sun, User } from "lucide-react";
+import {
+  Code,
+  Cpu,
+  DollarSign,
+  Globe,
+  GraduationCap,
+  LineChart,
+  MessageSquare,
+  Moon,
+  PieChart,
+  Pin,
+  PinOff,
+  RotateCcw,
+  ShoppingBag,
+  Sun,
+  TrendingUp,
+  User,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -69,6 +87,70 @@ const builtinNavItems: NavItem[] = [
     icon: <LineChart size={17} />,
     labelKey: "nav.invest",
     path: BUILTIN_PAGE_PATH.invest,
+    isPlugin: false,
+  },
+  // OPC 一人公司管理 — 9 大垂直行业入口
+  {
+    key: "opc-industry-ai-research",
+    icon: <Cpu size={17} />,
+    labelKey: "opc.industries.ai_research",
+    path: BUILTIN_PAGE_PATH.opcIndustryAiResearch,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-software-dev",
+    icon: <Code size={17} />,
+    labelKey: "opc.industries.software_dev",
+    path: BUILTIN_PAGE_PATH.opcIndustrySoftwareDev,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-finance-invest",
+    icon: <TrendingUp size={17} />,
+    labelKey: "opc.industries.finance_invest",
+    path: BUILTIN_PAGE_PATH.opcIndustryFinanceInvest,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-sales-growth",
+    icon: <DollarSign size={17} />,
+    labelKey: "opc.industries.sales_growth",
+    path: BUILTIN_PAGE_PATH.opcIndustrySalesGrowth,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-content-media",
+    icon: <MessageSquare size={17} />,
+    labelKey: "opc.industries.content_media",
+    path: BUILTIN_PAGE_PATH.opcIndustryContentMedia,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-industry-consulting",
+    icon: <Users size={17} />,
+    labelKey: "opc.industries.industry_consulting",
+    path: BUILTIN_PAGE_PATH.opcIndustryIndustryConsulting,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-accounting",
+    icon: <PieChart size={17} />,
+    labelKey: "opc.industries.accounting",
+    path: BUILTIN_PAGE_PATH.opcIndustryAccounting,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-ecommerce",
+    icon: <ShoppingBag size={17} />,
+    labelKey: "opc.industries.ecommerce",
+    path: BUILTIN_PAGE_PATH.opcIndustryEcommerce,
+    isPlugin: false,
+  },
+  {
+    key: "opc-industry-education",
+    icon: <GraduationCap size={17} />,
+    labelKey: "opc.industries.education",
+    path: BUILTIN_PAGE_PATH.opcIndustryEducation,
     isPlugin: false,
   },
 ];
@@ -309,6 +391,13 @@ export function Sidebar() {
       key: "invest",
       labelKey: "sidebar.sectionInvest",
       items: builtinNavItems.filter((n) => n.key === "invest"),
+    });
+
+    // OPC 一人公司管理
+    sections.push({
+      key: "opc",
+      labelKey: "nav.opc",
+      items: builtinNavItems.filter((n) => n.key.startsWith("opc-")),
     });
 
     return sections.filter((s) => s.items.length > 0);

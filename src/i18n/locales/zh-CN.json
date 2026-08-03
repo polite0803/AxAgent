@@ -3872,10 +3872,312 @@
       "enabled": "已启用",
       "disabled": "已禁用",
       "version": "版本 {{version}}",
-      "workflows": "行业工作流",
+      "workflows": {
+        "ai-research": {
+          "wf-ai-research-1": {
+            "name": "AI 技术调研",
+            "description": "技术扫描 → 论文分析 → 趋势预测"
+          },
+          "wf-ai-research-2": {
+            "name": "LLM 选型评估",
+            "description": "需求分析 → 模型对比 → 选型建议"
+          },
+          "wf-ai-research-3": {
+            "name": "AI 产品分析",
+            "description": "竞品扫描 → 功能拆解 → 差异化定位"
+          }
+        },
+        "software-dev": {
+          "wf-sd-1": {
+            "name": "代码重构",
+            "description": "代码扫描 → 问题识别 → 重构方案 → 验证"
+          },
+          "wf-sd-2": {
+            "name": "技术选型",
+            "description": "需求分析 → 方案对比 → 选型建议"
+          },
+          "wf-sd-3": {
+            "name": "性能优化",
+            "description": "性能分析 → 瓶颈定位 → 优化方案 → 验证"
+          }
+        },
+        "finance-invest": {
+          "wf-fi-1": {
+            "name": "A股深度研究",
+            "description": "行情分析 → 财报解读 → 估值模型 → 投资建议"
+          },
+          "wf-fi-2": {
+            "name": "行业对比分析",
+            "description": "行业扫描 → 对标选择 → 对比分析 → 结论"
+          },
+          "wf-fi-3": {
+            "name": "投资组合优化",
+            "description": "持仓分析 → 风险评估 → 配置建议 → 调仓方案"
+          }
+        },
+        "sales-growth": {
+          "wf-sg-1": {
+            "name": "获客策略优化",
+            "description": "渠道分析 → 预算分配 → 内容优化 → ROI 提升"
+          },
+          "wf-sg-2": {
+            "name": "转化提升方案",
+            "description": "漏斗诊断 → 页面优化 → A/B 测试 → 转化率提升"
+          },
+          "wf-sg-3": {
+            "name": "客户留存计划",
+            "description": "流失分析 → 留存策略 → 忠诚度计划 → 复购提升"
+          }
+        },
+        "content-media": {
+          "wf-cm-1": {
+            "name": "爆款内容生成",
+            "description": "选题策划 → 标题优化 → 内容撰写 → 发布建议"
+          },
+          "wf-cm-2": {
+            "name": "多平台适配",
+            "description": "内容分析 → 平台对比 → 格式适配 → 发布策略"
+          },
+          "wf-cm-3": {
+            "name": "IP 打造方案",
+            "description": "定位分析 → 人设设计 → 内容规划 → 增长策略"
+          }
+        },
+        "industry-consulting": {
+          "wf-ic-1": {
+            "name": "行业扫描",
+            "description": "市场调研 → 竞争分析 → 趋势预测 → 机会识别"
+          },
+          "wf-ic-2": {
+            "name": "进入评估",
+            "description": "市场规模 → 竞争强度 → 盈利模式 → 进入建议"
+          },
+          "wf-ic-3": {
+            "name": "战略规划",
+            "description": "愿景定位 → 业务设计 → 路线图 → KPI 设定"
+          }
+        },
+        "accounting": {
+          "wf-ac-1": {
+            "name": "税务优化",
+            "description": "业务分析 → 政策匹配 → 方案设计 → 实施建议"
+          },
+          "wf-ac-2": {
+            "name": "财务健康诊断",
+            "description": "指标计算 → 同业对比 → 问题识别 → 改进方案"
+          },
+          "wf-ac-3": {
+            "name": "成本控制",
+            "description": "成本拆解 → 效率分析 → 优化方案 → 执行计划"
+          }
+        },
+        "ecommerce": {
+          "wf-ec-1": {
+            "name": "爆款打造",
+            "description": "选品分析 → 卖点提炼 → 页面优化 → 流量引爆"
+          },
+          "wf-ec-2": {
+            "name": "竞品监控",
+            "description": "竞品识别 → 价格监控 → 活动分析 → 策略调整"
+          },
+          "wf-ec-3": {
+            "name": "大促策划",
+            "description": "目标设定 → 选品策略 → 流量规划 → 执行方案"
+          }
+        },
+        "education": {
+          "wf-ed-1": {
+            "name": "课程体系设计",
+            "description": "需求分析 → 大纲设计 → 内容规划 → 评估方案"
+          },
+          "wf-ed-2": {
+            "name": "学习路径规划",
+            "description": "水平评估 → 目标设定 → 路径规划 → 资源匹配"
+          },
+          "wf-ed-3": {
+            "name": "教学内容开发",
+            "description": "知识点梳理 → 内容撰写 → 案例设计 → 练习生成"
+          }
+        }
+      },
       "noWorkflows": "该行业暂无工作流",
       "loadFailed": "加载行业失败: {{error}}",
-      "notFound": "行业不存在"
+      "notFound": "行业不存在",
+      "quickActions": "快速操作",
+      "startConversation": "启动行业对话",
+      "createWorkflow": "创建行业工作流",
+      "presetWorkflows": "行业预设工作流",
+      "createFirstWorkflow": "创建第一个工作流",
+      "useWorkflow": "使用此工作流",
+      "useThisWorkflow": "使用此工作流",
+      "noProviderConfig": "请先配置默认 AI 提供商",
+      "exclusiveActions": "专属操作",
+      "exclusiveWorkflows": "专属工作流",
+      "workflowTag": "工作流",
+      "actions": {
+        "ai-research": {
+          "ai-paper": {
+            "label": "AI 论文调研",
+            "description": "扫描最新 AI 论文并提取关键技术"
+          },
+          "ai-benchmark": {
+            "label": "模型性能对比",
+            "description": "对比主流 LLM 模型的基准测试结果"
+          },
+          "ai-app": {
+            "label": "AI 应用场景分析",
+            "description": "分析 AI 在特定业务场景的落地机会"
+          },
+          "ai-report": {
+            "label": "生成 AI 研究报告",
+            "description": "一键生成行业 AI 研究报告"
+          }
+        },
+        "software-dev": {
+          "sd-code-review": {
+            "label": "代码审查",
+            "description": "分析代码质量并提供改进建议"
+          },
+          "sd-arch": {
+            "label": "架构设计咨询",
+            "description": "提供系统架构设计方案"
+          },
+          "sd-api-doc": {
+            "label": "API 文档生成",
+            "description": "自动生成 API 接口文档"
+          },
+          "sd-bug": {
+            "label": "Bug 分析修复",
+            "description": "快速定位和解决技术问题"
+          }
+        },
+        "finance-invest": {
+          "fi-stock": {
+            "label": "个股分析",
+            "description": "深度分析单只股票的投资价值"
+          },
+          "fi-financial": {
+            "label": "财报解读",
+            "description": "解读企业财务报表关键指标"
+          },
+          "fi-valuation": {
+            "label": "估值计算",
+            "description": "使用 DCF 等模型计算合理估值"
+          },
+          "fi-risk": {
+            "label": "风险评估",
+            "description": "评估投资的主要风险因素"
+          }
+        },
+        "sales-growth": {
+          "sg-lead": {
+            "label": "客户画像",
+            "description": "构建理想客户画像"
+          },
+          "sg-funnel": {
+            "label": "转化漏斗分析",
+            "description": "诊断销售转化漏斗瓶颈"
+          },
+          "sg-copy": {
+            "label": "销售文案生成",
+            "description": "生成高转化率的销售文案"
+          },
+          "sg-competitor": {
+            "label": "竞品销售策略",
+            "description": "分析竞品的销售策略和打法"
+          }
+        },
+        "content-media": {
+          "cm-article": {
+            "label": "文章写作",
+            "description": "生成高质量文章内容"
+          },
+          "cm-seo": {
+            "label": "SEO 优化",
+            "description": "优化内容的搜索引擎排名"
+          },
+          "cm-video": {
+            "label": "视频脚本",
+            "description": "创作短视频或直播脚本"
+          },
+          "cm-calendar": {
+            "label": "内容日历",
+            "description": "规划月度内容发布日历"
+          }
+        },
+        "industry-consulting": {
+          "ic-report": {
+            "label": "行业报告",
+            "description": "生成行业深度研究报告"
+          },
+          "ic-market": {
+            "label": "市场预测",
+            "description": "预测市场规模和增长趋势"
+          },
+          "ic-entry": {
+            "label": "进入策略",
+            "description": "制定市场进入策略"
+          },
+          "ic-competitor": {
+            "label": "竞品分析",
+            "description": "深度分析竞争对手"
+          }
+        },
+        "accounting": {
+          "ac-tax": {
+            "label": "税务筹划",
+            "description": "合法优化税务方案"
+          },
+          "ac-report": {
+            "label": "报表解读",
+            "description": "解读财务报表关键数据"
+          },
+          "ac-cost": {
+            "label": "成本分析",
+            "description": "分析成本结构和优化空间"
+          },
+          "ac-budget": {
+            "label": "预算规划",
+            "description": "制定年度预算方案"
+          }
+        },
+        "ecommerce": {
+          "ec-product": {
+            "label": "选品分析",
+            "description": "分析选品市场潜力"
+          },
+          "ec-price": {
+            "label": "定价策略",
+            "description": "制定产品定价策略"
+          },
+          "ec-promote": {
+            "label": "营销方案",
+            "description": "生成电商营销推广方案"
+          },
+          "ec-shop": {
+            "label": "店铺诊断",
+            "description": "诊断店铺运营问题"
+          }
+        },
+        "education": {
+          "ed-course": {
+            "label": "课程设计",
+            "description": "设计专业课程体系"
+          },
+          "ed-knowledge": {
+            "label": "知识图谱",
+            "description": "构建领域知识图谱"
+          },
+          "ed-path": {
+            "label": "学习路径",
+            "description": "规划个性化学习路径"
+          },
+          "ed-content": {
+            "label": "教材生成",
+            "description": "生成教学材料和习题"
+          }
+        }
+      }
     },
     "common": {
       "cancel": "取消",

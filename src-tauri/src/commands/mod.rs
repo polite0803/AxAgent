@@ -153,5 +153,7 @@ pub mod workflow_yaml;
 pub mod workflows;
 // ── OPC（AI 一人公司）─ 行业数据资产包 + 台账 ──
 pub mod opc;
+pub mod opc_industry_actions;
+pub mod opc_industry_bridge;
 pub mod opc_setup;
 pub mod opc_workflows;

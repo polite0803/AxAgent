@@ -3872,10 +3872,312 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "version": "Version {{version}}",
-      "workflows": "Industry Workflows",
+      "workflows": {
+        "ai-research": {
+          "wf-ai-research-1": {
+            "name": "AI Tech Research",
+            "description": "Tech Scan → Paper Analysis → Trend Forecast"
+          },
+          "wf-ai-research-2": {
+            "name": "LLM Selection",
+            "description": "Requirements → Model Comparison → Selection"
+          },
+          "wf-ai-research-3": {
+            "name": "AI Product Analysis",
+            "description": "Competitor Scan → Feature Breakdown → Positioning"
+          }
+        },
+        "software-dev": {
+          "wf-sd-1": {
+            "name": "Code Refactoring",
+            "description": "Code Scan → Issue ID → Refactor → Verify"
+          },
+          "wf-sd-2": {
+            "name": "Tech Selection",
+            "description": "Requirements → Comparison → Recommendation"
+          },
+          "wf-sd-3": {
+            "name": "Performance Opt",
+            "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          }
+        },
+        "finance-invest": {
+          "wf-fi-1": {
+            "name": "A-Share Research",
+            "description": "Market → Financials → Valuation → Recommendation"
+          },
+          "wf-fi-2": {
+            "name": "Industry Comparison",
+            "description": "Industry Scan → Benchmark → Compare → Conclusion"
+          },
+          "wf-fi-3": {
+            "name": "Portfolio Optimization",
+            "description": "Holdings → Risk → Allocation → Rebalance"
+          }
+        },
+        "sales-growth": {
+          "wf-sg-1": {
+            "name": "Acquisition Strategy",
+            "description": "Channel → Budget → Content → ROI"
+          },
+          "wf-sg-2": {
+            "name": "Conversion Boost",
+            "description": "Funnel → Page → A/B Test → Conversion"
+          },
+          "wf-sg-3": {
+            "name": "Customer Retention",
+            "description": "Churn → Retention → Loyalty → Repurchase"
+          }
+        },
+        "content-media": {
+          "wf-cm-1": {
+            "name": "Viral Content",
+            "description": "Topic → Title → Write → Publish"
+          },
+          "wf-cm-2": {
+            "name": "Platform Adapt",
+            "description": "Content → Platform → Format → Strategy"
+          },
+          "wf-cm-3": {
+            "name": "IP Building",
+            "description": "Positioning → Persona → Planning → Growth"
+          }
+        },
+        "industry-consulting": {
+          "wf-ic-1": {
+            "name": "Industry Scan",
+            "description": "Research → Competition → Trends → Opportunities"
+          },
+          "wf-ic-2": {
+            "name": "Entry Assessment",
+            "description": "Market → Competition → Profitability → Entry"
+          },
+          "wf-ic-3": {
+            "name": "Strategic Plan",
+            "description": "Vision → Business → Roadmap → KPIs"
+          }
+        },
+        "accounting": {
+          "wf-ac-1": {
+            "name": "Tax Optimization",
+            "description": "Business → Policy → Design → Implement"
+          },
+          "wf-ac-2": {
+            "name": "Financial Health",
+            "description": "Metrics → Benchmark → Issues → Improve"
+          },
+          "wf-ac-3": {
+            "name": "Cost Control",
+            "description": "Breakdown → Efficiency → Optimize → Execute"
+          }
+        },
+        "ecommerce": {
+          "wf-ec-1": {
+            "name": "Viral Product",
+            "description": "Selection → Highlights → Page → Traffic"
+          },
+          "wf-ec-2": {
+            "name": "Competitor Monitor",
+            "description": "Identify → Price → Campaign → Adjust"
+          },
+          "wf-ec-3": {
+            "name": "Promo Planning",
+            "description": "Goals → Selection → Traffic → Execute"
+          }
+        },
+        "education": {
+          "wf-ed-1": {
+            "name": "Course Design",
+            "description": "Needs → Outline → Content → Assessment"
+          },
+          "wf-ed-2": {
+            "name": "Learning Path",
+            "description": "Assessment → Goals → Path → Resources"
+          },
+          "wf-ed-3": {
+            "name": "Content Development",
+            "description": "Knowledge → Write → Cases → Exercises"
+          }
+        }
+      },
       "noWorkflows": "No workflows for this industry",
       "loadFailed": "Failed to load industry: {{error}}",
-      "notFound": "Industry not found"
+      "notFound": "Industry not found",
+      "quickActions": "Quick Actions",
+      "startConversation": "Start Industry Conversation",
+      "createWorkflow": "Create Industry Workflow",
+      "presetWorkflows": "Industry Preset Workflows",
+      "createFirstWorkflow": "Create First Workflow",
+      "useWorkflow": "Use This Workflow",
+      "useThisWorkflow": "Use This Workflow",
+      "noProviderConfig": "Please configure a default AI provider first",
+      "exclusiveActions": "Exclusive Actions",
+      "exclusiveWorkflows": "Exclusive Workflows",
+      "workflowTag": "Workflow",
+      "actions": {
+        "ai-research": {
+          "ai-paper": {
+            "label": "AI Paper Research",
+            "description": "Scan latest AI papers and extract key technologies"
+          },
+          "ai-benchmark": {
+            "label": "Model Benchmark",
+            "description": "Compare mainstream LLM benchmark results"
+          },
+          "ai-app": {
+            "label": "AI Application Analysis",
+            "description": "Analyze AI application opportunities in scenarios"
+          },
+          "ai-report": {
+            "label": "Generate AI Report",
+            "description": "One-click AI industry research report"
+          }
+        },
+        "software-dev": {
+          "sd-code-review": {
+            "label": "Code Review",
+            "description": "Analyze code quality and provide suggestions"
+          },
+          "sd-arch": {
+            "label": "Architecture Consulting",
+            "description": "Provide system architecture design"
+          },
+          "sd-api-doc": {
+            "label": "API Documentation",
+            "description": "Auto-generate API documentation"
+          },
+          "sd-bug": {
+            "label": "Bug Analysis",
+            "description": "Quickly locate and resolve technical issues"
+          }
+        },
+        "finance-invest": {
+          "fi-stock": {
+            "label": "Stock Analysis",
+            "description": "Deep analysis of stock investment value"
+          },
+          "fi-financial": {
+            "label": "Financial Report",
+            "description": "解读企业财务报表关键指标"
+          },
+          "fi-valuation": {
+            "label": "Valuation",
+            "description": "Calculate fair value using DCF models"
+          },
+          "fi-risk": {
+            "label": "Risk Assessment",
+            "description": "Assess major investment risk factors"
+          }
+        },
+        "sales-growth": {
+          "sg-lead": {
+            "label": "Customer Profile",
+            "description": "Build ideal customer profile"
+          },
+          "sg-funnel": {
+            "label": "Funnel Analysis",
+            "description": "Diagnose conversion funnel bottlenecks"
+          },
+          "sg-copy": {
+            "label": "Sales Copy",
+            "description": "Generate high-conversion sales copy"
+          },
+          "sg-competitor": {
+            "label": "Competitor Sales",
+            "description": "Analyze competitor sales strategies"
+          }
+        },
+        "content-media": {
+          "cm-article": {
+            "label": "Article Writing",
+            "description": "Generate high-quality articles"
+          },
+          "cm-seo": {
+            "label": "SEO Optimization",
+            "description": "Optimize content search rankings"
+          },
+          "cm-video": {
+            "label": "Video Script",
+            "description": "Create short video or live scripts"
+          },
+          "cm-calendar": {
+            "label": "Content Calendar",
+            "description": "Plan monthly content publishing"
+          }
+        },
+        "industry-consulting": {
+          "ic-report": {
+            "label": "Industry Report",
+            "description": "Generate in-depth industry reports"
+          },
+          "ic-market": {
+            "label": "Market Forecast",
+            "description": "Forecast market size and trends"
+          },
+          "ic-entry": {
+            "label": "Entry Strategy",
+            "description": "Develop market entry strategy"
+          },
+          "ic-competitor": {
+            "label": "Competitor Analysis",
+            "description": "Deep analysis of competitors"
+          }
+        },
+        "accounting": {
+          "ac-tax": {
+            "label": "Tax Planning",
+            "description": "Legally optimize tax plans"
+          },
+          "ac-report": {
+            "label": "Report Reading",
+            "description": "Read key financial report data"
+          },
+          "ac-cost": {
+            "label": "Cost Analysis",
+            "description": "Analyze cost structure and optimization"
+          },
+          "ac-budget": {
+            "label": "Budget Planning",
+            "description": "Create annual budget plan"
+          }
+        },
+        "ecommerce": {
+          "ec-product": {
+            "label": "Product Selection",
+            "description": "Analyze product market potential"
+          },
+          "ec-price": {
+            "label": "Pricing Strategy",
+            "description": "Develop product pricing strategy"
+          },
+          "ec-promote": {
+            "label": "Marketing Plan",
+            "description": "Generate e-commerce marketing plan"
+          },
+          "ec-shop": {
+            "label": "Shop Diagnosis",
+            "description": "Diagnose shop operation issues"
+          }
+        },
+        "education": {
+          "ed-course": {
+            "label": "Course Design",
+            "description": "Design professional course system"
+          },
+          "ed-knowledge": {
+            "label": "Knowledge Graph",
+            "description": "Build domain knowledge graph"
+          },
+          "ed-path": {
+            "label": "Learning Path",
+            "description": "Plan personalized learning path"
+          },
+          "ed-content": {
+            "label": "Content Generation",
+            "description": "Generate teaching materials"
+          }
+        }
+      }
     },
     "common": {
       "cancel": "Cancel",

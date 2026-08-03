@@ -1,4 +1,3 @@
-import { OfficeTab as FleetOfficeTab } from "@/components/office/OfficeTab";
 import { invoke } from "@/lib/invoke";
 import {
   DeleteOutlined,
@@ -14,7 +13,6 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import {
-  Alert,
   Button,
   Card,
   Col,
@@ -41,6 +39,7 @@ import {
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -159,9 +158,29 @@ const PROJ_STATUS_COLOR_MAP: Record<string, string> = {
 
 // ── 主页面 ───────────────────────────────────────────────────────
 
+const OPC_TABS = [
+  { key: "dashboard", labelKey: "opc.nav.dashboard", icon: <RiseOutlined />, component: DashboardTab },
+  { key: "invoices", labelKey: "opc.nav.invoices", icon: <DollarOutlined />, component: InvoicesTab },
+  { key: "customers", labelKey: "opc.nav.customers", icon: <TeamOutlined />, component: CustomersTab },
+  { key: "projects", labelKey: "opc.nav.projects", icon: <ProjectOutlined />, component: ProjectsTab },
+  { key: "sites", labelKey: "opc.nav.sites", icon: <FileTextOutlined />, component: SitesTab },
+  { key: "talent", labelKey: "opc.nav.talent", icon: <SearchOutlined />, component: TalentMarketTab },
+  { key: "market", labelKey: "opc.nav.market", icon: <RiseOutlined />, component: MarketPackTab },
+  { key: "kanban", labelKey: "opc.nav.kanban", icon: <ProjectOutlined />, component: KanbanTab },
+];
+
 export function OpcPage() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState("dashboard");
+  const navigate = useNavigate();
+  const params = useParams();
+  const initialTab = params?.tab || "dashboard";
+  const [tab, setTab] = useState(initialTab);
+
+  const handleTabChange = useCallback((key: string) => {
+    setTab(key);
+    // 同步 URL
+    navigate(`/opc/${key}`, { replace: true });
+  }, [navigate]);
 
   return (
     <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
@@ -171,91 +190,30 @@ export function OpcPage() {
       </Title>
       <Tabs
         activeKey={tab}
-        onChange={setTab}
-        items={[
-          {
-            key: "dashboard",
-            label: (
-              <span>
-                <RiseOutlined /> {t("opc.nav.dashboard")}
-              </span>
-            ),
-            children: <DashboardTab />,
-          },
-          {
-            key: "invoices",
-            label: (
-              <span>
-                <DollarOutlined /> {t("opc.nav.invoices")}
-              </span>
-            ),
-            children: <InvoicesTab />,
-          },
-          {
-            key: "customers",
-            label: (
-              <span>
-                <TeamOutlined /> {t("opc.nav.customers")}
-              </span>
-            ),
-            children: <CustomersTab />,
-          },
-          {
-            key: "projects",
-            label: (
-              <span>
-                <ProjectOutlined /> {t("opc.nav.projects")}
-              </span>
-            ),
-            children: <ProjectsTab />,
-          },
-          {
-            key: "sites",
-            label: (
-              <span>
-                <FileTextOutlined /> {t("opc.nav.sites")}
-              </span>
-            ),
-            children: <SitesTab />,
-          },
-          {
-            key: "office",
-            label: (
-              <span>
-                <TeamOutlined /> {t("opc.nav.office")}
-              </span>
-            ),
-            children: <OpcOfficeTab />,
-          },
-          {
-            key: "talent",
-            label: (
-              <span>
-                <SearchOutlined /> {t("opc.nav.talent")}
-              </span>
-            ),
-            children: <TalentMarketTab />,
-          },
-          {
-            key: "market",
-            label: (
-              <span>
-                <RiseOutlined /> {t("opc.nav.market")}
-              </span>
-            ),
-            children: <MarketPackTab />,
-          },
-          {
-            key: "kanban",
-            label: (
-              <span>
-                <ProjectOutlined /> {t("opc.nav.kanban")}
-              </span>
-            ),
-            children: <KanbanTab />,
-          },
-        ]}
+        onChange={handleTabChange}
+        items={OPC_TABS.map((item) => ({
+          key: item.key,
+          label: (
+            <span>
+              {item.icon} {t(item.labelKey)}
+            </span>
+          ),
+          children: <item.component />,
+        }))}
       />
+    </div>
+  );
+}
+
+/** OPC 子页面包装器 — 用于路由 /opc/:tab */
+export function OpcSubPage() {
+  const params = useParams();
+  const tab = params?.tab || "dashboard";
+  const Component = OPC_TABS.find((item) => item.key === tab)?.component || DashboardTab;
+
+  return (
+    <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
+      <Component />
     </div>
   );
 }
@@ -2240,36 +2198,4 @@ function MarketPackTab() {
       </Row>
     </div>
   );
-}
-
-// ══════════════════════════════════════════════════════════════════
-// 办公室 tab（方案 B）：挂载时同步 OPC 角色进 Fleet，渲染上游舰队办公室
-// ══════════════════════════════════════════════════════════════════
-
-/** 上游舰队办公室（真实 Agent 状态 + Phaser 场景）。AxOPC 静态版已退役。 */
-function OpcOfficeTab() {
-  const { t } = useTranslation();
-  const [ready, setReady] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    invoke("opc_sync_fleet")
-      .then(() => setReady(true))
-      .catch((e) => {
-        console.error("[opc-sync-fleet] failed", e);
-        setErr(String(e));
-      });
-  }, []);
-
-  if (err) {
-    return <Alert type="warning" message={t("opc.office.syncFailed", { error: String(err) })} />;
-  }
-  if (!ready) {
-    return (
-      <div style={{ padding: 48, textAlign: "center" }}>
-        <Spin tip={t("opc.office.syncTip")} />
-      </div>
-    );
-  }
-  return <FleetOfficeTab />;
 }

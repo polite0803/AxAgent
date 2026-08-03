@@ -53,6 +53,9 @@ use skill_execution::{
 };
 
 pub mod command_bridge;
+use crate::commands::opc_industry_bridge::{
+    build_opc_industry_chat_tools, build_opc_industry_handlers,
+};
 use crate::commands::stock_analysis_bridge::{
     STOCK_WRITE_TOOLS, build_stock_chat_tools, build_stock_command_handlers,
 };
@@ -1248,6 +1251,22 @@ pub async fn agent_query(
         }
         info!("[agent] Added {} stock command tools to chat_tools", stock_tool_count);
         info!("[agent] Registered {} stock command handlers", stock_handler_count);
+    }
+
+    // ── OPC 行业命令桥接器：AxInvest 本地行业命令注册为 Agent 可调用工具 ──
+    // 所有行业命令均为只读操作（获取配置、生成 prompt 等），无需权限审批。
+    {
+        let opc_industry_tools = build_opc_industry_chat_tools();
+        let opc_industry_tool_count = opc_industry_tools.len();
+        chat_tools.extend(opc_industry_tools);
+
+        let opc_industry_handlers = build_opc_industry_handlers(app.clone());
+        let opc_industry_handler_count = opc_industry_handlers.len();
+        for (tool_name, handler) in opc_industry_handlers {
+            tool_registry.register_skill_tool(tool_name, handler);
+        }
+        info!("[agent] Added {} OPC industry tools to chat_tools", opc_industry_tool_count);
+        info!("[agent] Registered {} OPC industry handlers", opc_industry_handler_count);
     }
 
     // Create API client with tool definitions, model ID and parameters

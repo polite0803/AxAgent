@@ -4404,6 +4404,258 @@ export async function handleCommand<T>(
         elapsedMs: 0,
       } as T;
 
+    // ── OPC Industries ──────────────────────────────────────────────
+    case "opc_get_industry_pack": {
+      const industryId = (args as { industry_id?: string })?.industry_id || "";
+      const industryManifests: Record<string, {
+        id: string;
+        name: string;
+        icon: string;
+        description: string;
+        version: number;
+        enabled: boolean;
+      }> = {
+        "ai-research": {
+          id: "ai_research",
+          name: "人工智能研究",
+          icon: "🤖",
+          description: "AI 技术与应用研究报告：需求分析 → 技术调研 → 原型验证 → 报告输出",
+          version: 1,
+          enabled: true,
+        },
+        "software-dev": {
+          id: "software_dev",
+          name: "软件开发",
+          icon: "💻",
+          description: "软件开发全流程：需求分析 → 架构设计 → 编码实现 → 测试部署",
+          version: 1,
+          enabled: true,
+        },
+        "finance-invest": {
+          id: "finance_invest",
+          name: "金融投资",
+          icon: "📈",
+          description: "投资分析与决策：市场分析 → 财务建模 → 风险评估 → 投资建议",
+          version: 1,
+          enabled: true,
+        },
+        "sales-growth": {
+          id: "sales_growth",
+          name: "销售增长",
+          icon: "🚀",
+          description: "销售增长策略：市场定位 → 客户画像 → 获客策略 → 转化优化",
+          version: 1,
+          enabled: true,
+        },
+        "content-media": {
+          id: "content_media",
+          name: "内容媒体",
+          icon: "📝",
+          description: "内容创作与传播：选题策划 → 内容生产 → 多平台分发 → 效果追踪",
+          version: 1,
+          enabled: true,
+        },
+        "industry-consulting": {
+          id: "industry_consulting",
+          name: "行业咨询",
+          icon: "💼",
+          description: "行业洞察与咨询：行业扫描 → 竞品分析 → 战略建议 → 落地规划",
+          version: 1,
+          enabled: true,
+        },
+        "accounting": {
+          id: "accounting",
+          name: "会计",
+          icon: "💰",
+          description: "财务会计与税务：账务处理 → 税务申报 → 财务报表 → 审计支持",
+          version: 1,
+          enabled: true,
+        },
+        "ecommerce": {
+          id: "ecommerce",
+          name: "电商",
+          icon: "🛒",
+          description: "电商运营全流程：选品策略 → 店铺运营 → 营销推广 → 客户管理",
+          version: 1,
+          enabled: true,
+        },
+        "education": {
+          id: "education",
+          name: "教育",
+          icon: "🎓",
+          description: "教育产品与服务：课程设计 → 内容开发 → 学员运营 → 效果评估",
+          version: 1,
+          enabled: true,
+        },
+      };
+
+      const manifest = industryManifests[industryId] || industryManifests["ai-research"];
+      const workflows = getStore<any[]>("workflow_templates", []).filter(
+        (w: any) => w.tags?.includes("opc") && w.tags?.some((t: string) => t.includes(industryId.replace("-", ""))),
+      );
+
+      return {
+        manifest,
+        workflows: workflows.length > 0 ? workflows : [
+          {
+            id: `workflow-${industryId}`,
+            name: `${manifest.name}分析流程`,
+            description: `${manifest.description}`,
+            version: "1",
+          },
+        ],
+      } as T;
+    }
+
+    case "opc_list_industries": {
+      const industries = [
+        {
+          id: "ai-research",
+          name: "人工智能研究",
+          icon: "🤖",
+          description: "AI 技术调研、模型评测、应用场景分析",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "software-dev",
+          name: "软件开发",
+          icon: "💻",
+          description: "代码审查、架构设计、API 文档、Bug 分析",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "finance-invest",
+          name: "金融投资",
+          icon: "📈",
+          description: "个股分析、财报解读、估值计算、风险评估",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "sales-growth",
+          name: "销售增长",
+          icon: "🚀",
+          description: "客户画像、转化漏斗、销售文案、竞品策略",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "content-media",
+          name: "内容媒体",
+          icon: "📝",
+          description: "文章写作、SEO 优化、视频脚本、内容日历",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "industry-consulting",
+          name: "行业咨询",
+          icon: "💼",
+          description: "行业报告、市场预测、进入策略、竞品分析",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "accounting",
+          name: "会计",
+          icon: "💰",
+          description: "税务筹划、报表解读、成本分析、预算规划",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "ecommerce",
+          name: "电商",
+          icon: "🛒",
+          description: "选品分析、定价策略、营销方案、店铺诊断",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+        {
+          id: "education",
+          name: "教育",
+          icon: "🎓",
+          description: "课程设计、知识图谱、学习路径、教材生成",
+          actionCount: 4,
+          workflowCount: 3,
+        },
+      ];
+      return industries as unknown as T;
+    }
+
+    case "opc_build_industry_prompt": {
+      const industryId = (args as { industry_id?: string })?.industry_id || "ai-research";
+      const actionKey = (args as { action_key?: string })?.action_key || "ai-paper";
+
+      const promptConfigs: Record<string, Record<string, { systemPrompt: string; userPrompt: string; label: string }>> =
+        {
+          "ai-research": {
+            "ai-paper": {
+              systemPrompt: "你是一位资深的 AI 研究员，擅长追踪前沿技术论文。",
+              userPrompt: "请帮我调研最近一个月 AI 领域的重要论文和技术突破。",
+              label: "AI 论文调研",
+            },
+            "ai-benchmark": {
+              systemPrompt: "你是一位 AI 模型评测专家。",
+              userPrompt: "请对比分析主流大模型在中文场景下的性能表现。",
+              label: "模型性能对比",
+            },
+            "ai-application": {
+              systemPrompt: "你是一位 AI 应用咨询顾问。",
+              userPrompt: "请分析 AI 技术在特定行业的应用机会。",
+              label: "AI 应用场景分析",
+            },
+            "ai-report": {
+              systemPrompt: "你是一位专业的 AI 行业分析师。",
+              userPrompt: "请生成一份 AI 技术研究报告。",
+              label: "生成 AI 研究报告",
+            },
+          },
+          "software-dev": {
+            "sd-code-review": {
+              systemPrompt: "你是一位资深代码审查专家。",
+              userPrompt: "请帮我审查代码，关注代码质量和最佳实践。",
+              label: "代码审查",
+            },
+            "sd-architecture": {
+              systemPrompt: "你是一位资深软件架构师。",
+              userPrompt: "请对系统架构进行评估并提供改进建议。",
+              label: "架构设计咨询",
+            },
+            "sd-api-doc": {
+              systemPrompt: "你是一位技术文档撰写专家。",
+              userPrompt: "请为代码生成完整的 API 文档。",
+              label: "API 文档生成",
+            },
+            "sd-bug": {
+              systemPrompt: "你是一位资深调试专家。",
+              userPrompt: "请帮我分析错误信息，定位根因并提供修复方案。",
+              label: "Bug 分析修复",
+            },
+          },
+        };
+
+      const industryPrompts = promptConfigs[industryId] || promptConfigs["ai-research"];
+      const action = industryPrompts[actionKey] || industryPrompts["ai-paper"];
+
+      return {
+        systemPrompt: action.systemPrompt,
+        userPrompt: action.userPrompt,
+        actionKey,
+        actionLabel: action.label,
+        industryId,
+      } as unknown as T;
+    }
+
+    case "opc_list_industry_actions":
+    case "opc_list_industry_workflows":
+    case "opc_get_action_config":
+    case "opc_get_workflow_config": {
+      return [] as unknown as T;
+    }
+
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       // SAFE: browser mock fallback for unhandled commands — returns empty placeholder matching generic T
