@@ -4,7 +4,7 @@
   "version": "2.8.4",
   "identifier": "top.axinvest.desktop",
   "productName": "AxAgent",
-  "version": "2.8.7",
+  "version": "2.8.8",
   "identifier": "top.axagent.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",

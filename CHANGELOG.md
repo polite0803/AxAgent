@@ -1,58 +1,37 @@
 # Changelog
 
 All notable changes to AxAgent will be documented in this file.
+## [v2.8.7] - 2026-07-24
 
-## [v2.8.2] - 2026-07-09
+### ✨ New Features
+- 翻译 10 个目标语言未翻译及中文泄漏的 key
+- 文档导出工具能力扩展（数学公式/图表/Mermaid 流程图）
+- 成本展示由 USD 改为 CNY，支持自定义汇率
+- 大规模功能增强——Gateway OpenAI API 扩展、新 LLM 提供商、插件沙箱、Event Bus、后台任务
+- P3 改进——路径验证统一与无障碍增强
 
-### 📦 Miscellaneous
-- 版本号对齐：前端 `package.json` 与 Rust workspace 统一至 `2.8.2`
-- 文档重构：重写 README.md 与 CHANGELOG.md，反映当前 Harness 架构（31 个 crate）与 v2.8 功能集
-
-## [v2.8.0] - 2026-07-01
-
-### 🚀 Features
-- Dashboard / 看板页面：总对话数、消息数、Token 消耗、Gateway 状态、Agent 活动统计
-- 侧栏导航新增 chat（对话）和 dashboard（看板）入口
-- 默认首页从 /knowledge 改为 /dashboard
-- 多 Agent 协同：Debate 闭环（LCS 收敛检测）、Swarm↔Workflow 集成、Aggregator LLM 摘要补完
-- CRDT 完善：向量时钟（VectorClock）、因果依赖检查、收敛检测
-- EventBus 跨 Engine 联通：基于 tokio::broadcast 的 GlobalEventBus
-- ExecutionState.variables 类型安全：Schema 校验 + set_variable_safe()
-- Orchestrator LLM 驱动分解回调、master_key 注入
-- Parallel 分支同步屏障修复（JoinSet 并发执行 + All/Any/Race/Majority 聚合策略）
-
-### 🛠️ Improvements
-- removeCrossorigin 中间件移至 build.rollupOptions.plugins (Vite 8 兼容)
-- 导航项重新分组（Tools 分区）
-
-### 📦 Dependencies
-- @tauri-apps/plugin-http 2.5.3 → 2.5.4
-- @tauri-apps/api 2.9.1 → 2.9.2
-
-## [v2.7.0] - 2026-06-23
 
 ### 🐛 Bug Fixes
-- gateway→dao 生产依赖修复：gateway→kit（dao re-export shim）
-- marketplace_handlers.rs import 路径同步更新
+- 移除破坏 antd v6 Tabs 隐藏机制的内联 CSS hack
+- workflow_executions.total_time_ms 类型对齐 BIGINT (i32→i64)
+- 补齐 settings.markerPrefixPlaceholder / markerPrefixDesc 到全部 10 个目标语言
+- mermaid PDF test CI failure + box-drawing CID font fallback
+- 修复 CI 两项失败——CJK PDF 字体乱码 + i18n 硬编码
+- pdf_math_test 添加 CJK 字体 guard，消除并行测试的 OnceLock 干扰
+- 去掉 pdf_math_test 的 #[cfg(windows)]，仅保留运行时 guard 避免死代码警告
+- pdf_template_test 含 CJK 文本的测试添加 msyh.ttc 运行时 guard
+- storage_migration messages::ActiveModel 缺 quoted_message_id 字段
+- map(..).flatten() → and_then(..) on Option
+- 修复 cargo audit 漏洞并补全 quoted_message_id 字段
+- ignore quick-xml 0.30.0 RUSTSEC-2026-0194/0195 (xcb transitive, 桌面场景不可利用)
+- 为 react_engine_extended_tests 添加 TestLlmProvider mock，注入 with_reasoning_provider()
 
-### 🔨 Refactoring
-- Volcengine DeepSeek 适配：reasoning_content 字段标准化
-- 全路径引用 vs use 导入检查方法改进
-
-### 🚀 Features
-- LLM 工具链集成：工具调用链追踪增强
-- 容器节点端口折叠（4+ 入边/出边自动折叠）
-- SubWorkflow 子图边渲染（展开态 edge 注入）
-
-### 🐛 Bug Fixes
-- WorkEngine::new 必传 ProviderRegistry 编译期强制
-- cargo fmt
-- 允许 crypto.rs clippy::result_large_err（AxAgentError 来自 harness）
-- 修复 axagent-kit 缺少 libc 依赖
 
 ### 📦 Miscellaneous
-- 升级版本号至 2.6.0
-- 合并上游更新
+- 新增 db 类型一致性审计脚本
+- bump version to v2.8.7
 
-### 🔨 Refactoring
-- core 200→0 逻辑文件，拆出 9 个 crate，harness 架构合规
+
+### 🔧 CI / Build
+- 合并 clippy 两阶段——axagent-disk-cache / axagent-rt-theme 在 rust 1.97 下已不再触发 ICE
+
