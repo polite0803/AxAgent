@@ -21,6 +21,7 @@ impl RlExperienceDao {
     }
 
     /// 插入一条 RL 经验记录
+    #[allow(clippy::too_many_arguments)]
     pub async fn insert_experience(
         &self,
         id: &str,
@@ -95,6 +96,7 @@ impl RlExperienceDao {
     }
 
     /// 初始化或更新行业训练统计
+    #[allow(clippy::too_many_arguments)]
     pub async fn upsert_training_stats(
         &self,
         industry_id: &str,

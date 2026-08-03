@@ -3858,17 +3858,17 @@
       "kanban": "看板"
     },
     "common": {
-      "cancel": "取消",
-      "create": "创建",
-      "update": "更新",
-      "add": "添加",
-      "actions": "操作",
-      "notes": "备注",
-      "description": "描述",
-      "dueDate": "截止日期",
-      "createFailed": "创建失败: {{error}}",
-      "deleteFailed": "删除失败: {{error}}",
-      "opFailed": "操作失败: {{error}}"
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "add": "Add",
+      "actions": "Actions",
+      "notes": "Notes",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "createFailed": "Create failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "opFailed": "Operation failed: {{error}}"
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4503,7 +4503,15 @@
         }
       },
       "workflowTag": "Workflow",
-      "executeSuffix": "{{name}} - Ejecutar"
+      "executeSuffix": "{{name}} - Ejecutar",
+      "learning": {
+        "actions": {
+          "viewConfig": "Ver configuración",
+          "refreshConfig": "Actualizar configuración",
+          "loadFailed": "No se pudo cargar la configuración de aprendizaje: {{error}}",
+          "configNotFound": "Configuración de aprendizaje no encontrada"
+        }
+      }
     },
     "learning": {
       "title": "Configuración de aprendizaje y evolución",
@@ -4587,19 +4595,6 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
-    },
-    "common": {
-      "cancel": "Cancel",
-      "create": "Create",
-      "update": "Update",
-      "add": "Add",
-      "actions": "Actions",
-      "notes": "Notes",
-      "description": "Description",
-      "dueDate": "Due Date",
-      "createFailed": "Create failed: {{error}}",
-      "deleteFailed": "Delete failed: {{error}}",
-      "opFailed": "Operation failed: {{error}}"
     }
   },
   "pasteButton": {

@@ -653,7 +653,7 @@ export function IndustryPage() {
           : (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t("opc.industry.learning.actions.loadFailed", { error: "配置未找到" })}
+              description={t("opc.industry.learning.actions.configNotFound")}
             />
           )}
       </Card>
@@ -664,7 +664,7 @@ export function IndustryPage() {
         title={
           <span>
             <FundProjectionScreenOutlined style={{ marginRight: 8 }} />
-            {t("opc.rl.panelTitle", "强化学习面板")}
+            {t("opc.rl.panelTitle")}
           </span>
         }
       >

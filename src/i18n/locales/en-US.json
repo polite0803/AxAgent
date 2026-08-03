@@ -4187,7 +4187,15 @@
           }
         }
       },
-      "executeSuffix": "{{name}} - Execute"
+      "executeSuffix": "{{name}} - Execute",
+      "learning": {
+        "actions": {
+          "viewConfig": "View config",
+          "refreshConfig": "Refresh config",
+          "loadFailed": "Failed to load learning config: {{error}}",
+          "configNotFound": "Learning config not found"
+        }
+      }
     },
     "learning": {
       "title": "Learning & Evolution Config",

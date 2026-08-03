@@ -989,6 +989,9 @@ mod tests_conversation {
                     Arc::new(axagent_astock_data::AStockClient::new()),
                 ),
             )),
+            stock_adaptive_engine: Arc::new(
+                axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine::new(),
+            ),
             stock_monitor: std::sync::OnceLock::new(),
             cross_stock_aggregator: std::sync::OnceLock::new(),
             quote_watcher: std::sync::OnceLock::new(),

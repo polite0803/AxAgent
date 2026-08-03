@@ -72,11 +72,11 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
             <Space>
               <ThunderboltOutlined style={{ fontSize: 20, color: "#722ed1" }} />
               <Title level={compact ? 5 : 4} style={{ margin: 0 }}>
-                {t("opc.rl.panelTitle", "强化学习面板")}
+                {t("opc.rl.panelTitle")}
               </Title>
               {config?.reinforcement_learning_enabled
-                ? <Tag color="green">{t("opc.rl.enabled", "已启用")}</Tag>
-                : <Tag color="default">{t("opc.rl.disabled", "未启用")}</Tag>}
+                ? <Tag color="green">{t("opc.rl.enabled")}</Tag>
+                : <Tag color="default">{t("opc.rl.disabled")}</Tag>}
             </Space>
           </Col>
           <Col>
@@ -87,7 +87,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
                 loading={rlLoading}
                 size={compact ? "small" : "middle"}
               >
-                {t("opc.rl.refresh", "刷新")}
+                {t("opc.rl.refresh")}
               </Button>
               {industryId && (
                 <Button
@@ -97,7 +97,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
                   disabled={!config?.reinforcement_learning_enabled}
                   size={compact ? "small" : "middle"}
                 >
-                  {t("opc.rl.optimize", "策略优化")}
+                  {t("opc.rl.optimize")}
                 </Button>
               )}
             </Space>
@@ -109,7 +109,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
           <Col xs={12} md={6}>
             <Card size={compact ? "small" : "default"}>
               <Statistic
-                title={t("opc.rl.totalExperiences", "总经验数")}
+                title={t("opc.rl.totalExperiences")}
                 value={stats.total_experiences}
                 prefix={<BarChartOutlined />}
               />
@@ -118,7 +118,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
           <Col xs={12} md={6}>
             <Card size={compact ? "small" : "default"}>
               <Statistic
-                title={t("opc.rl.industryCount", "行业数")}
+                title={t("opc.rl.industryCount")}
                 value={stats.industry_count}
               />
             </Card>
@@ -126,7 +126,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
           <Col xs={12} md={6}>
             <Card size={compact ? "small" : "default"}>
               <Statistic
-                title={t("opc.rl.avgReward", "平均奖励")}
+                title={t("opc.rl.avgReward")}
                 value={stats.avg_reward.toFixed(3)}
                 valueStyle={{
                   color: stats.avg_reward >= 0.6 ? "#3f8600" : stats.avg_reward >= 0.3 ? "#d48806" : "#cf1322",
@@ -138,7 +138,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
           <Col xs={12} md={6}>
             <Card size={compact ? "small" : "default"}>
               <Statistic
-                title={t("opc.rl.successRate", "成功率")}
+                title={t("opc.rl.successRate")}
                 value={stats.success_rate.toFixed(1)}
                 suffix="%"
                 prefix={stats.success_rate >= 70
@@ -157,7 +157,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
             title={
               <Space>
                 <BulbOutlined style={{ color: "#faad14" }} />
-                <span>{t("opc.rl.policyUpdate", "策略优化结果")}</span>
+                <span>{t("opc.rl.policyUpdate")}</span>
               </Space>
             }
             size={compact ? "small" : "default"}
@@ -171,7 +171,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
           title={
             <Space>
               <ThunderboltOutlined />
-              <span>{t("opc.rl.autoLearningHistory", "自动学习闭环历史")}</span>
+              <span>{t("opc.rl.autoLearningHistory")}</span>
               <Tag>{autoLearningHistory.length}</Tag>
             </Space>
           }
@@ -180,7 +180,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
           {autoLearningHistory.length === 0
             ? (
               <Empty
-                description={t("opc.rl.noHistory", "尚无学习历史")}
+                description={t("opc.rl.noHistory")}
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
               />
             )
@@ -212,28 +212,28 @@ function PolicyUpdateContent({
     : <MinusOutlined style={{ color: "#8c8c8c" }} />;
 
   const trendLabel = update.reward_trend === "improving"
-    ? t("opc.rl.trendImproving", "上升")
+    ? t("opc.rl.trendImproving")
     : update.reward_trend === "declining"
-    ? t("opc.rl.trendDeclining", "下降")
-    : t("opc.rl.trendStable", "稳定");
+    ? t("opc.rl.trendDeclining")
+    : t("opc.rl.trendStable");
 
   return (
     <Space direction="vertical" size={compact ? "small" : "middle"} style={{ width: "100%" }}>
       <Row gutter={16}>
         <Col span={8}>
-          <Text type="secondary">{t("opc.rl.experiencesUsed", "使用经验")}</Text>
+          <Text type="secondary">{t("opc.rl.experiencesUsed")}</Text>
           <div>
             <Text strong>{update.experiences_used}</Text>
           </div>
         </Col>
         <Col span={8}>
-          <Text type="secondary">{t("opc.rl.rewardTrend", "奖励趋势")}</Text>
+          <Text type="secondary">{t("opc.rl.rewardTrend")}</Text>
           <div>
             {trendIcon} <Text strong>{trendLabel}</Text>
           </div>
         </Col>
         <Col span={8}>
-          <Text type="secondary">{t("opc.rl.avgReward", "平均奖励")}</Text>
+          <Text type="secondary">{t("opc.rl.avgReward")}</Text>
           <div>
             <Text strong>{update.avg_reward.toFixed(3)}</Text>
           </div>
@@ -242,7 +242,7 @@ function PolicyUpdateContent({
 
       {update.suggested_adjustments.length > 0 && (
         <div>
-          <Text type="secondary">{t("opc.rl.suggestions", "优化建议")}:</Text>
+          <Text type="secondary">{t("opc.rl.suggestions")}:</Text>
           <div style={{ marginTop: 8 }}>
             <Space wrap>
               {update.suggested_adjustments.map((s, i) => (
@@ -257,8 +257,8 @@ function PolicyUpdateContent({
 
       {update.reflection_threshold !== undefined && (
         <Alert
-          message={t("opc.rl.thresholdAdjusted", "反思阈值调整")}
-          description={t("opc.rl.newThreshold", "新阈值") + `: ${update.reflection_threshold.toFixed(2)}`}
+          message={t("opc.rl.thresholdAdjusted")}
+          description={t("opc.rl.newThreshold") + `: ${update.reflection_threshold.toFixed(2)}`}
           type="info"
           showIcon
         />
@@ -266,10 +266,10 @@ function PolicyUpdateContent({
 
       {update.evolution_trigger_adjusted !== undefined && (
         <Alert
-          message={t("opc.rl.evolutionTriggerAdjusted", "进化触发条件调整")}
+          message={t("opc.rl.evolutionTriggerAdjusted")}
           description={update.evolution_trigger_adjusted
-            ? t("opc.rl.moreAggressive", "更积极触发进化")
-            : t("opc.rl.moreConservative", "更保守触发进化")}
+            ? t("opc.rl.moreAggressive")
+            : t("opc.rl.moreConservative")}
           type="warning"
           showIcon
         />
@@ -302,11 +302,11 @@ function AutoLearningResultItem({
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "success":
-        return t("opc.rl.statusSuccess", "成功");
+        return t("opc.rl.statusSuccess");
       case "failed":
-        return t("opc.rl.statusFailed", "失败");
+        return t("opc.rl.statusFailed");
       case "skipped":
-        return t("opc.rl.statusSkipped", "跳过");
+        return t("opc.rl.statusSkipped");
       default:
         return status;
     }
@@ -330,7 +330,7 @@ function AutoLearningResultItem({
         <Row gutter={8}>
           <Col>
             <Tag color={getStatusColor(result.reflection.status)}>
-              {t("opc.rl.reflection", "反思")}: {getStatusLabel(result.reflection.status)}
+              {t("opc.rl.reflection")}: {getStatusLabel(result.reflection.status)}
             </Tag>
             {result.reflection.quality_score !== undefined && (
               <Progress
@@ -343,21 +343,21 @@ function AutoLearningResultItem({
           {result.evolution && (
             <Col>
               <Tag color={getStatusColor(result.evolution.status)}>
-                {t("opc.rl.evolution", "进化")}: {getStatusLabel(result.evolution.status)}
+                {t("opc.rl.evolution")}: {getStatusLabel(result.evolution.status)}
               </Tag>
             </Col>
           )}
           {result.self_improvement && (
             <Col>
               <Tag color={getStatusColor(result.self_improvement.status)}>
-                {t("opc.rl.selfImprovement", "自改进")}: {getStatusLabel(result.self_improvement.status)}
+                {t("opc.rl.selfImprovement")}: {getStatusLabel(result.self_improvement.status)}
               </Tag>
             </Col>
           )}
           {result.reinforcement_learning && (
             <Col>
               <Tag color={getStatusColor(result.reinforcement_learning.status)}>
-                {t("opc.rl.rl", "RL")}: {getStatusLabel(result.reinforcement_learning.status)}
+                {t("opc.rl.rl")}: {getStatusLabel(result.reinforcement_learning.status)}
               </Tag>
             </Col>
           )}

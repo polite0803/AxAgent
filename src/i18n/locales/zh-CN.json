@@ -4236,7 +4236,8 @@
         "actions": {
           "viewConfig": "查看配置",
           "refreshConfig": "刷新配置",
-          "loadFailed": "加载学习配置失败: {{error}}"
+          "loadFailed": "加载学习配置失败: {{error}}",
+          "configNotFound": "配置未找到"
         }
       }
     },
