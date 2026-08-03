@@ -1,0 +1,45 @@
+# 销售增长 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - user_feedback
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 4
+      min_usages: 3
+      success_threshold: 0.5
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 6
+      min_usages: 5
+      success_threshold: 0.45
+
+self_improvement:
+  enabled: true
+  max_rounds: 4
+  convergence_threshold: 0.8
+  escalate_threshold: 2
+
+reinforcement_learning:
+  enabled: true
+  reward_model: sales_conversion_reward
+  auto_train_threshold: 80
+  learning_rate: 0.03
+  gamma: 0.85
+  epsilon: 0.2
+  reward_weights:
+    quality: 0.25
+    efficiency: 0.35
+    cost: 0.15
+    innovation: 0.1
+    satisfaction: 0.15
+  optimization_goals:
+    - conversion_rate
+    - customer_engagement

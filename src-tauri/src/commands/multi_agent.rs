@@ -16,6 +16,7 @@ use crate::AppState;
 #[cfg(not(mobile))]
 use crate::commands::provider_ctx::build_vision_context;
 use axagent_dao::repo::agent_role;
+#[cfg(not(mobile))]
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{DelegateTaskInput, DelegateTaskResult, DelegateTaskRunner};
 use serde::{Deserialize, Serialize};
@@ -71,7 +72,9 @@ use crate::commands::multi_agent_setup::seed_multi_agent_roles::{
 /// 持有 `AppState` 中需要的资源（db / master_key），
 /// 由 `init_delegate_task_runner()` 创建并注入到 tools crate。
 pub struct DelegateTaskRunnerImpl {
+    #[cfg_attr(mobile, allow(dead_code))]
     pub db: sea_orm::DatabaseConnection,
+    #[cfg_attr(mobile, allow(dead_code))]
     pub master_key: [u8; 32],
 }
 
@@ -173,6 +176,7 @@ pub fn init_delegate_task_runner(db: sea_orm::DatabaseConnection, master_key: [u
 // ── 原有的 validate_role + Tauri 命令 ──────────────────────────────────
 
 /// 校验 role_name 是否为 G5 固定角色
+#[cfg(not(mobile))]
 fn validate_role(role_name: &str) -> Result<(), String> {
     match role_name {
         ROLE_ANALYST | ROLE_IMPLEMENTER | ROLE_REVIEWER => Ok(()),

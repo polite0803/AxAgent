@@ -4504,6 +4504,102 @@
       },
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - تنفيذ"
+    },
+    "learning": {
+      "title": "إعداد التعلم والتطور",
+      "subtitle": "إدارة قدرات التفكير والتطور والتحسين الذاتي والتعلم المعزز للصناعة",
+      "version": "إصدار الإعداد",
+      "reflection": {
+        "label": "التفكير",
+        "description": "قم بتقييم جودة تنفيذ سير العمل واقترح تحسينات",
+        "enabled": "مفعّل",
+        "disabled": "غير مفعّل",
+        "trigger": "تفعيل التفكير",
+        "triggerDesc": "قم بتحليل نتائج سير العمل الحالي",
+        "triggerSuccess": "تم تفعيل التفكير",
+        "triggerFailed": "فشل التفكير: {{error}}",
+        "notEnabled": "التفكير غير مفعّل لهذه الصناعة"
+      },
+      "evolution": {
+        "label": "تطور سير العمل",
+        "description": "قم بتحسين هيكل سير العمل تلقائياً عند الفشل المتكرر أو انخفاض الكفاءة",
+        "enabled": "مفعّل",
+        "disabled": "غير مفعّل",
+        "trigger": "تفعيل التطور",
+        "triggerDesc": "حاول تحسين هيكل سير العمل الحالي",
+        "triggerSuccess": "تم تفعيل التطور",
+        "triggerFailed": "فشل التطور: {{error}}",
+        "notEnabled": "التطور غير مفعّل لهذه الصناعة",
+        "reasonRequired": "يرجى تقديم سبب للتطور"
+      },
+      "selfImprovement": {
+        "label": "التحسين الذاتي",
+        "description": "قم بتحسين المعلمات والاستراتيجيات تلقائياً بناءً على بيانات التنفيذ التاريخية",
+        "enabled": "مفعّل",
+        "disabled": "غير مفعّل",
+        "trigger": "تشغيل التحسين الذاتي",
+        "triggerDesc": "ابدأ عملية التحسين الذاتي لتحسين أداء الصناعة",
+        "triggerSuccess": "تم بدء التحسين الذاتي",
+        "triggerFailed": "فشل التحسين الذاتي: {{error}}",
+        "notEnabled": "التحسين الذاتي غير مفعّل لهذه الصناعة",
+        "targetRequired": "يرجى تحديد هدف التحسين"
+      },
+      "reinforcementLearning": {
+        "label": "التعلم المعزز",
+        "description": "تراكم الخبرة من خلال مجموعة الخبرة لتحسين نماذج اتخاذ القرار",
+        "enabled": "مفعّل",
+        "disabled": "غير مفعّل"
+      },
+      "actions": {
+        "viewConfig": "عرض الإعداد",
+        "refreshConfig": "تحديث الإعداد",
+        "loadFailed": "فشل تحميل إعداد التعلم: {{error}}"
+      }
+    },
+    "rl": {
+      "panelTitle": "Reinforcement Learning Panel",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "refresh": "Refresh",
+      "optimize": "Optimize Policy",
+      "totalExperiences": "Total Experiences",
+      "industryCount": "Industry Count",
+      "avgReward": "Avg Reward",
+      "successRate": "Success Rate",
+      "policyUpdate": "Policy Update Result",
+      "experiencesUsed": "Experiences Used",
+      "rewardTrend": "Reward Trend",
+      "trendImproving": "Improving",
+      "trendDeclining": "Declining",
+      "trendStable": "Stable",
+      "suggestions": "Optimization Suggestions",
+      "thresholdAdjusted": "Reflection Threshold Adjusted",
+      "newThreshold": "New Threshold",
+      "evolutionTriggerAdjusted": "Evolution Trigger Adjusted",
+      "moreAggressive": "More aggressive evolution triggering",
+      "moreConservative": "More conservative evolution triggering",
+      "autoLearningHistory": "Auto Learning History",
+      "noHistory": "No learning history yet",
+      "reflection": "Reflection",
+      "evolution": "Evolution",
+      "selfImprovement": "Self-Improvement",
+      "rl": "RL",
+      "statusSuccess": "Success",
+      "statusFailed": "Failed",
+      "statusSkipped": "Skipped"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "add": "Add",
+      "actions": "Actions",
+      "notes": "Notes",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "createFailed": "Create failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "opFailed": "Operation failed: {{error}}"
     }
   },
   "pasteButton": {

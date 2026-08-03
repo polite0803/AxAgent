@@ -4504,6 +4504,102 @@
       },
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - 執行"
+    },
+    "learning": {
+      "title": "學習與進化設定",
+      "subtitle": "管理產業反思、進化、自我改善和強化學習能力",
+      "version": "設定版本",
+      "reflection": {
+        "label": "反思",
+        "description": "評估工作流執行品質並生成改善建議",
+        "enabled": "已啟用",
+        "disabled": "已停用",
+        "trigger": "觸發反思",
+        "triggerDesc": "分析當前工作流結果",
+        "triggerSuccess": "反思已觸發",
+        "triggerFailed": "反思失敗：{{error}}",
+        "notEnabled": "此產業未啟用反思功能"
+      },
+      "evolution": {
+        "label": "工作流進化",
+        "description": "當工作流重複失敗或效率低下時自動優化結構",
+        "enabled": "已啟用",
+        "disabled": "已停用",
+        "trigger": "觸發進化",
+        "triggerDesc": "嘗試優化當前工作流結構",
+        "triggerSuccess": "進化已觸發",
+        "triggerFailed": "進化失敗：{{error}}",
+        "notEnabled": "此產業未啟用進化功能",
+        "reasonRequired": "請提供進化原因"
+      },
+      "selfImprovement": {
+        "label": "自我改善",
+        "description": "根據歷史執行資料自動優化參數和策略",
+        "enabled": "已啟用",
+        "disabled": "已停用",
+        "trigger": "執行自我改善",
+        "triggerDesc": "啟動自我改善流程以優化產業績效",
+        "triggerSuccess": "自我改善已啟動",
+        "triggerFailed": "自我改善失敗：{{error}}",
+        "notEnabled": "此產業未啟用自我改善功能",
+        "targetRequired": "請指定改善目標"
+      },
+      "reinforcementLearning": {
+        "label": "強化學習",
+        "description": "透過經驗池積累經驗以優化決策模型",
+        "enabled": "已啟用",
+        "disabled": "已停用"
+      },
+      "actions": {
+        "viewConfig": "檢視設定",
+        "refreshConfig": "重新整理設定",
+        "loadFailed": "載入學習設定失敗：{{error}}"
+      }
+    },
+    "rl": {
+      "panelTitle": "Reinforcement Learning Panel",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "refresh": "Refresh",
+      "optimize": "Optimize Policy",
+      "totalExperiences": "Total Experiences",
+      "industryCount": "Industry Count",
+      "avgReward": "Avg Reward",
+      "successRate": "Success Rate",
+      "policyUpdate": "Policy Update Result",
+      "experiencesUsed": "Experiences Used",
+      "rewardTrend": "Reward Trend",
+      "trendImproving": "Improving",
+      "trendDeclining": "Declining",
+      "trendStable": "Stable",
+      "suggestions": "Optimization Suggestions",
+      "thresholdAdjusted": "Reflection Threshold Adjusted",
+      "newThreshold": "New Threshold",
+      "evolutionTriggerAdjusted": "Evolution Trigger Adjusted",
+      "moreAggressive": "More aggressive evolution triggering",
+      "moreConservative": "More conservative evolution triggering",
+      "autoLearningHistory": "Auto Learning History",
+      "noHistory": "No learning history yet",
+      "reflection": "Reflection",
+      "evolution": "Evolution",
+      "selfImprovement": "Self-Improvement",
+      "rl": "RL",
+      "statusSuccess": "Success",
+      "statusFailed": "Failed",
+      "statusSkipped": "Skipped"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "add": "Add",
+      "actions": "Actions",
+      "notes": "Notes",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "createFailed": "Create failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "opFailed": "Operation failed: {{error}}"
     }
   },
   "pasteButton": {

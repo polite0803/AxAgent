@@ -442,6 +442,19 @@ pub use rl::{
     RLConfig, RLEngine, RLTrainer, RewardWeights, TrainingEpisode, TrainingReport, TrainingStep,
     TrajectoryRewardEngine,
 };
+
+// ── P0: 代码验收引擎契约 ──
+pub mod code_verifier;
+pub use code_verifier::{
+    CodeChange, CodeVerificationResult, CodeVerifierPort, DiffHunk, VerificationSeverity,
+};
+
+// ── P1: 动态路由引擎契约 ──
+pub mod route_engine;
+pub use route_engine::{
+    HardGate, HardGateCriteria, HardGateStatus, NodeExecutionResult, RouteContext, RouteDecision,
+    RouteDecisionType, RouteEngine, RouteRule, RouteStrategy,
+};
 pub mod dream;
 pub use dream::{
     ConsolidationDataProvider, ConsolidationSuggestion, ContrastivePair, DistilledKnowledge,

@@ -88,6 +88,7 @@ pub mod proactive;
 pub mod profile;
 pub mod prompt_templates;
 pub mod provider_balance;
+#[cfg(not(mobile))]
 pub mod provider_ctx;
 pub mod providers;
 #[cfg(not(mobile))]

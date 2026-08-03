@@ -463,6 +463,7 @@ pub async fn screenshot_diagnosis_to_paper_portfolio(
 
 #[cfg(mobile)]
 #[tauri::command]
+#[allow(dead_code)]
 pub async fn screenshot_diagnosis_create_from_image(
     _state: State<'_, AppState>,
     _image_base64: String,

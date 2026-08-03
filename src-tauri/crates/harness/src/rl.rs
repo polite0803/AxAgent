@@ -257,3 +257,71 @@ pub trait RLTrainer: Send + Sync {
     async fn train_episode(&self, episode: TrainingEpisode) -> Result<TrainingReport, String>;
     async fn get_progress(&self) -> Result<TrainingReport, String>;
 }
+
+// ── OPC 行业 RL 经验持久化契约 ─────────────────────────────────────
+
+/// OPC RL 经验记录 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RlExperienceRecord {
+    pub id: String,
+    pub industry_id: String,
+    pub workflow_id: String,
+    pub timestamp_ms: i64,
+    pub quality_score: f64,
+    pub efficiency_score: f64,
+    pub cost_score: f64,
+    pub innovation_score: f64,
+    pub satisfaction_score: f64,
+    pub total_reward: f64,
+    pub step_count: i32,
+    pub success: bool,
+    pub metadata: String,
+}
+
+/// OPC RL 行业训练统计 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RlIndustryStats {
+    pub industry_id: String,
+    pub total_experiences: i32,
+    pub total_reward: f64,
+    pub avg_reward: f64,
+    pub success_rate: f64,
+    pub last_trained_at: Option<i64>,
+    pub policy_updated_at: Option<i64>,
+    pub optimization_goals: Vec<String>,
+}
+
+/// OPC RL 经验持久化存储契约
+///
+/// consumer crate（orchestrator）通过此 trait 持久化 RL 经验，
+/// 由 implementor crate（dao）提供 SQLite 实现。
+#[async_trait]
+pub trait RlExperienceStore: Send + Sync {
+    /// 保存一条 RL 经验记录
+    async fn save_experience(&self, record: &RlExperienceRecord) -> Result<(), String>;
+
+    /// 查询指定行业的经验列表（按时间倒序）
+    async fn get_experiences(
+        &self,
+        industry_id: &str,
+        limit: Option<u64>,
+    ) -> Result<Vec<RlExperienceRecord>, String>;
+
+    /// 查询指定行业的经验数量
+    async fn count_experiences(&self, industry_id: &str) -> Result<u64, String>;
+
+    /// 获取全局统计（所有行业）
+    async fn get_global_stats(&self) -> Result<Vec<RlIndustryStats>, String>;
+
+    /// 获取指定行业统计
+    async fn get_industry_stats(
+        &self,
+        industry_id: &str,
+    ) -> Result<Option<RlIndustryStats>, String>;
+
+    /// 更新行业训练统计
+    async fn upsert_stats(&self, stats: &RlIndustryStats) -> Result<(), String>;
+
+    /// 清除指定行业的所有经验
+    async fn clear_experiences(&self, industry_id: &str) -> Result<(), String>;
+}

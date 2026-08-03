@@ -4504,6 +4504,102 @@
       },
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - Выполнить"
+    },
+    "learning": {
+      "title": "Конфигурация обучения и эволюции",
+      "subtitle": "Управляйте возможностями рефлексии, эволюции, самосовершенствования и обучения с подкреплением в отрасли",
+      "version": "Версия конфигурации",
+      "reflection": {
+        "label": "Рефлексия",
+        "description": "Оцените качество выполнения workflow и сгенерируйте предложения по улучшению",
+        "enabled": "Включено",
+        "disabled": "Отключено",
+        "trigger": "Запустить рефлексию",
+        "triggerDesc": "Проанализируйте текущие результаты workflow",
+        "triggerSuccess": "Рефлексия запущена",
+        "triggerFailed": "Ошибка рефлексии: {{error}}",
+        "notEnabled": "Рефлексия не включена для этой отрасли"
+      },
+      "evolution": {
+        "label": "Эволюция workflow",
+        "description": "Автоматически оптимизируйте структуру workflow при повторных сбоях или низкой эффективности",
+        "enabled": "Включено",
+        "disabled": "Отключено",
+        "trigger": "Запустить эволюцию",
+        "triggerDesc": "Попробуйте оптимизировать текущую структуру workflow",
+        "triggerSuccess": "Эволюция запущена",
+        "triggerFailed": "Ошибка эволюции: {{error}}",
+        "notEnabled": "Эволюция не включена для этой отрасли",
+        "reasonRequired": "Укажите причину для эволюции"
+      },
+      "selfImprovement": {
+        "label": "Самосовершенствование",
+        "description": "Автоматически оптимизируйте параметры и стратегии на основе исторических данных выполнения",
+        "enabled": "Включено",
+        "disabled": "Отключено",
+        "trigger": "Запустить самосовершенствование",
+        "triggerDesc": "Начните процесс самосовершенствования для оптимизации производительности отрасли",
+        "triggerSuccess": "Самосовершенствование запущено",
+        "triggerFailed": "Ошибка самосовершенствования: {{error}}",
+        "notEnabled": "Самосовершенствование не включено для этой отрасли",
+        "targetRequired": "Укажите цель улучшения"
+      },
+      "reinforcementLearning": {
+        "label": "Обучение с подкреплением",
+        "description": "Накопите опыт через пул опыта для оптимизации моделей принятия решений",
+        "enabled": "Включено",
+        "disabled": "Отключено"
+      },
+      "actions": {
+        "viewConfig": "Просмотреть конфигурацию",
+        "refreshConfig": "Обновить конфигурацию",
+        "loadFailed": "Ошибка загрузки конфигурации обучения: {{error}}"
+      }
+    },
+    "rl": {
+      "panelTitle": "Reinforcement Learning Panel",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "refresh": "Refresh",
+      "optimize": "Optimize Policy",
+      "totalExperiences": "Total Experiences",
+      "industryCount": "Industry Count",
+      "avgReward": "Avg Reward",
+      "successRate": "Success Rate",
+      "policyUpdate": "Policy Update Result",
+      "experiencesUsed": "Experiences Used",
+      "rewardTrend": "Reward Trend",
+      "trendImproving": "Improving",
+      "trendDeclining": "Declining",
+      "trendStable": "Stable",
+      "suggestions": "Optimization Suggestions",
+      "thresholdAdjusted": "Reflection Threshold Adjusted",
+      "newThreshold": "New Threshold",
+      "evolutionTriggerAdjusted": "Evolution Trigger Adjusted",
+      "moreAggressive": "More aggressive evolution triggering",
+      "moreConservative": "More conservative evolution triggering",
+      "autoLearningHistory": "Auto Learning History",
+      "noHistory": "No learning history yet",
+      "reflection": "Reflection",
+      "evolution": "Evolution",
+      "selfImprovement": "Self-Improvement",
+      "rl": "RL",
+      "statusSuccess": "Success",
+      "statusFailed": "Failed",
+      "statusSkipped": "Skipped"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "add": "Add",
+      "actions": "Actions",
+      "notes": "Notes",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "createFailed": "Create failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "opFailed": "Operation failed: {{error}}"
     }
   },
   "pasteButton": {

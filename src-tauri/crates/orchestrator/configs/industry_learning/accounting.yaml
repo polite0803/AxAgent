@@ -1,0 +1,46 @@
+# 会计 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - task_failure
+    - approval_rejected
+
+evolution:
+  workflow_evolver:
+    enabled: false
+    auto_trigger:
+      consecutive_failures: 2
+      min_usages: 20
+      success_threshold: 0.8
+  skill_evolver:
+    enabled: false
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 30
+      success_threshold: 0.75
+
+self_improvement:
+  enabled: false
+  max_rounds: 2
+  convergence_threshold: 0.98
+  escalate_threshold: 1
+
+reinforcement_learning:
+  enabled: false
+  reward_model: accounting_compliance_reward
+  auto_train_threshold: 300
+  learning_rate: 0.005
+  gamma: 0.95
+  epsilon: 0.05
+  reward_weights:
+    quality: 0.4
+    efficiency: 0.15
+    cost: 0.3
+    innovation: 0.05
+    satisfaction: 0.1
+  optimization_goals:
+    - compliance_accuracy
+    - cost_reduction

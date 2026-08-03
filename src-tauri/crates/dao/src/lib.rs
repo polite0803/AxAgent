@@ -27,6 +27,7 @@ pub mod platform_adapter_impl;
 pub mod platform_config_repository;
 pub mod provider_repository;
 pub mod repo;
+pub mod rl_experience_store;
 pub mod search_sources_impl;
 pub mod settings_repository;
 pub mod stored_file_repository;

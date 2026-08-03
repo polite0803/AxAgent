@@ -842,6 +842,154 @@ export interface GeneratedToolInfo {
   createdAt: number;
 }
 
+// === Industry Learning Config ===
+
+/** 行业学习配置视图（从后端 YAML 解析而来） */
+export interface IndustryLearningConfig {
+  version: number;
+  industry_id: string;
+  industry_name: string;
+  reflection_enabled: boolean;
+  evolution_enabled: boolean;
+  self_improvement_enabled: boolean;
+  reinforcement_learning_enabled: boolean;
+  config_path: string;
+}
+
+/** 行业学习配置列表项（用于列表展示） */
+export interface IndustryLearningConfigSummary {
+  version: number;
+  industry_id: string;
+  industry_name: string;
+  reflection_enabled: boolean;
+  evolution_enabled: boolean;
+  self_improvement_enabled: boolean;
+  reinforcement_learning_enabled: boolean;
+  config_path: string;
+}
+
+/** 反思请求参数 */
+export interface ReflectOnWorkflowParams {
+  industry_id: string;
+  workflow_id: string;
+  workflow_result: Record<string, unknown>;
+}
+
+/** 进化请求参数 */
+export interface EvolveWorkflowParams {
+  industry_id: string;
+  workflow_id: string;
+  reason: string;
+}
+
+/** 自我改进请求参数 */
+export interface RunSelfImprovementParams {
+  industry_id: string;
+  target: string;
+}
+
+// === Reinforcement Learning ===
+
+/** RL 经验记录 — 单次工作流执行的经验数据 */
+export interface RLExperience {
+  id: string;
+  industry_id: string;
+  workflow_id: string;
+  timestamp_ms: number;
+  quality_score: number;
+  efficiency_score: number;
+  cost_score: number;
+  innovation_score: number;
+  satisfaction_score: number;
+  total_reward: number;
+  step_count: number;
+  success: boolean;
+  metadata: Record<string, unknown>;
+}
+
+/** RL 策略优化结果 */
+export interface RLPolicyUpdate {
+  industry_id: string;
+  experiences_used: number;
+  avg_reward: number;
+  reward_trend: "improving" | "declining" | "stable" | string;
+  suggested_adjustments: string[];
+  quality_weights_optimized?: Array<[string, number]>;
+  reflection_threshold?: number;
+  evolution_trigger_adjusted?: boolean;
+}
+
+/** RL 经验池统计 */
+export interface ExperiencePoolStats {
+  total_experiences: number;
+  industry_count: number;
+  oldest_timestamp_ms?: number;
+  newest_timestamp_ms?: number;
+  avg_reward: number;
+  success_rate: number;
+}
+
+/** RL 奖励权重配置 */
+export interface RewardWeightConfig {
+  quality: number;
+  efficiency: number;
+  cost: number;
+  innovation: number;
+  satisfaction: number;
+}
+
+/** 强化学习配置 */
+export interface ReinforcementLearningConfig {
+  enabled: boolean;
+  reward_model?: string;
+  auto_train_threshold: number;
+  learning_rate: number;
+  gamma: number;
+  epsilon: number;
+  reward_weights: RewardWeightConfig;
+  optimization_goals: string[];
+}
+
+/** RL 经验记录请求参数 */
+export interface RecordRLExperienceParams {
+  industry_id: string;
+  workflow_id: string;
+  quality_score: number;
+  workflow_result: Record<string, unknown>;
+}
+
+/** RL 策略优化请求参数 */
+export interface TriggerRLOptimizationParams {
+  industry_id: string;
+}
+
+/** 自动学习闭环触发结果 */
+export interface AutoLearningResult {
+  reflection: {
+    status: "success" | "skipped" | "failed";
+    quality_score?: number;
+    message?: string;
+  };
+  evolution?: {
+    status: "success" | "skipped" | "failed";
+    reason?: string;
+    message?: string;
+  };
+  self_improvement?: {
+    status: "success" | "skipped" | "failed";
+    target?: string;
+    message?: string;
+  };
+  reinforcement_learning?: {
+    status: "success" | "skipped" | "failed";
+    experience_recorded?: boolean;
+    pool_size?: number;
+    policy_optimized?: boolean;
+    message?: string;
+  };
+  triggered_at: number;
+}
+
 // === Files Module ===
 export type FileCategory = "images" | "files" | "backups";
 

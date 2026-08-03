@@ -1,0 +1,46 @@
+# 行业咨询 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - task_failure
+    - user_feedback
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 5
+      success_threshold: 0.6
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 5
+      min_usages: 10
+      success_threshold: 0.5
+
+self_improvement:
+  enabled: true
+  max_rounds: 4
+  convergence_threshold: 0.85
+  escalate_threshold: 2
+
+reinforcement_learning:
+  enabled: false
+  reward_model: consulting_quality_reward
+  auto_train_threshold: 150
+  learning_rate: 0.01
+  gamma: 0.9
+  epsilon: 0.1
+  reward_weights:
+    quality: 0.4
+    efficiency: 0.2
+    cost: 0.15
+    innovation: 0.1
+    satisfaction: 0.15
+  optimization_goals:
+    - analysis_quality
+    - strategic_value

@@ -5,6 +5,10 @@
 //! 为 9 个垂直行业的操作入口提供后端配置和 prompt 生成。
 
 use serde::{Deserialize, Serialize};
+use tauri::State;
+
+use crate::AppState;
+use axagent_orchestrator::{ReinforcementLearningConfig, RewardWeightConfig};
 
 /// 行业操作类型
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1066,4 +1070,591 @@ mod tests {
     fn test_unknown_action_returns_none() {
         assert!(get_action_config("ai-research", "nonexistent").is_none());
     }
+}
+
+// ── 学习配置 ──────────────────────────────────────────────────
+
+/// 行业学习配置
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct IndustryLearningConfigView {
+    pub version: u32,
+    pub industry_id: String,
+    pub industry_name: String,
+    pub reflection_enabled: bool,
+    pub evolution_enabled: bool,
+    pub self_improvement_enabled: bool,
+    pub reinforcement_learning_enabled: bool,
+    /// 完整的强化学习配置
+    pub reinforcement_learning: axagent_orchestrator::ReinforcementLearningConfig,
+    pub config_path: String,
+}
+
+/// 获取行业学习配置
+pub fn get_industry_learning_config(industry_id: &str) -> Option<IndustryLearningConfigView> {
+    let industry_names: std::collections::HashMap<&str, &str> = [
+        ("ai-research", "人工智能研究"),
+        ("software-dev", "软件开发"),
+        ("finance-invest", "金融投资"),
+        ("sales-growth", "销售增长"),
+        ("content-media", "内容媒体"),
+        ("industry-consulting", "行业咨询"),
+        ("accounting", "会计"),
+        ("ecommerce", "电商运营"),
+        ("education", "教育"),
+    ]
+    .into();
+
+    let file_name = match industry_id {
+        "ai-research" => "ai_research.yaml",
+        "software-dev" => "software_dev.yaml",
+        "finance-invest" => "finance_invest.yaml",
+        "sales-growth" => "sales_growth.yaml",
+        "content-media" => "content_media.yaml",
+        "industry-consulting" => "industry_consulting.yaml",
+        "accounting" => "accounting.yaml",
+        "ecommerce" => "ecommerce.yaml",
+        "education" => "education.yaml",
+        _ => return None,
+    };
+
+    let config_path = format!("configs/industry_learning/{}", file_name);
+
+    let content = match std::fs::read_to_string(&config_path) {
+        Ok(c) => c,
+        Err(_) => {
+            tracing::warn!("学习配置文件不存在: {}", config_path);
+            return None;
+        },
+    };
+
+    let parsed: serde_json::Value = match serde_yaml::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!("解析学习配置失败: {}, 错误: {}", config_path, e);
+            return None;
+        },
+    };
+
+    let industry_name = industry_names.get(industry_id).unwrap_or(&industry_id).to_string();
+    let version = parsed.get("version").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
+    let reflection_enabled = parsed
+        .get("reflection")
+        .and_then(|r| r.get("enabled"))
+        .and_then(|e| e.as_bool())
+        .unwrap_or(true);
+    let evolution_enabled = parsed
+        .get("evolution")
+        .and_then(|e| e.get("workflow_evolver"))
+        .and_then(|w| w.get("enabled"))
+        .and_then(|e| e.as_bool())
+        .unwrap_or(false);
+    let self_improvement_enabled = parsed
+        .get("self_improvement")
+        .and_then(|s| s.get("enabled"))
+        .and_then(|e| e.as_bool())
+        .unwrap_or(false);
+    let reinforcement_learning_enabled = parsed
+        .get("reinforcement_learning")
+        .and_then(|r| r.get("enabled"))
+        .and_then(|e| e.as_bool())
+        .unwrap_or(false);
+
+    // 解析完整的强化学习配置
+    let reinforcement_learning: axagent_orchestrator::ReinforcementLearningConfig = parsed
+        .get("reinforcement_learning")
+        .and_then(|r| {
+            serde_json::from_value::<axagent_orchestrator::ReinforcementLearningConfig>(r.clone())
+                .ok()
+        })
+        .unwrap_or_default();
+
+    Some(IndustryLearningConfigView {
+        version,
+        industry_id: industry_id.to_string(),
+        industry_name,
+        reflection_enabled,
+        evolution_enabled,
+        self_improvement_enabled,
+        reinforcement_learning_enabled,
+        reinforcement_learning,
+        config_path,
+    })
+}
+
+/// 获取所有行业学习配置列表
+pub fn get_all_industry_learning_configs() -> Vec<IndustryLearningConfigView> {
+    let industry_ids = [
+        "ai-research",
+        "software-dev",
+        "finance-invest",
+        "sales-growth",
+        "content-media",
+        "industry-consulting",
+        "accounting",
+        "ecommerce",
+        "education",
+    ];
+
+    industry_ids.iter().filter_map(|id| get_industry_learning_config(id)).collect()
+}
+
+// ── Tauri 命令（学习配置） ──────────────────────────────────
+
+/// 获取行业学习配置
+#[tauri::command]
+pub async fn opc_get_learning_config(industry_id: String) -> Result<serde_json::Value, String> {
+    let config = get_industry_learning_config(&industry_id)
+        .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
+    serde_json::to_value(config).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 获取所有行业学习配置
+#[tauri::command]
+pub async fn opc_list_learning_configs() -> Result<serde_json::Value, String> {
+    let configs = get_all_industry_learning_configs();
+    serde_json::to_value(configs).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 触发工作流反思
+#[tauri::command]
+pub async fn opc_reflect_on_workflow(
+    state: State<'_, AppState>,
+    industry_id: String,
+    workflow_id: String,
+    workflow_result: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let config = get_industry_learning_config(&industry_id)
+        .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
+
+    if !config.reflection_enabled {
+        return Err(format!("行业 {} 的反思功能未启用", industry_id));
+    }
+
+    // 获取行业适配器
+    let registry = state.learning.industry_adapter_registry.lock().await;
+    let adapter =
+        registry.get(&industry_id).ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+
+    let template = adapter.reflection_template().clone();
+    drop(registry);
+
+    // 构建反思请求
+    let request = axagent_orchestrator::ReflectionRequest {
+        industry_id: industry_id.clone(),
+        workflow_id: workflow_id.clone(),
+        workflow_result: workflow_result.clone(),
+        ..Default::default()
+    };
+
+    // 调用学习引擎
+    let engine = &state.learning.industry_learning_engine;
+    let result = engine.reflect_on_workflow(&template, &request).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    serde_json::to_value(result).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 触发工作流进化
+#[tauri::command]
+pub async fn opc_evolve_workflow(
+    state: State<'_, AppState>,
+    industry_id: String,
+    workflow_id: String,
+    reason: String,
+) -> Result<serde_json::Value, String> {
+    let config = get_industry_learning_config(&industry_id)
+        .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
+
+    if !config.evolution_enabled {
+        return Err(format!("行业 {} 的进化功能未启用", industry_id));
+    }
+
+    // 获取行业适配器
+    let registry = state.learning.industry_adapter_registry.lock().await;
+    let adapter =
+        registry.get(&industry_id).ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+
+    let constraints = adapter.evolution_constraints().clone();
+    drop(registry);
+
+    // 构建进化请求
+    let request = axagent_orchestrator::EvolutionRequest {
+        industry_id: industry_id.clone(),
+        workflow_id: workflow_id.clone(),
+        reason: reason.clone(),
+    };
+
+    // 调用学习引擎
+    let engine = &state.learning.industry_learning_engine;
+    let result = engine.evolve_workflow(&constraints, &request).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    serde_json::to_value(result).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 执行自我改进
+#[tauri::command]
+pub async fn opc_run_self_improvement(
+    state: State<'_, AppState>,
+    industry_id: String,
+    target: String,
+) -> Result<serde_json::Value, String> {
+    let config = get_industry_learning_config(&industry_id)
+        .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
+
+    if !config.self_improvement_enabled {
+        return Err(format!("行业 {} 的自我改进功能未启用", industry_id));
+    }
+
+    // 构建自我改进请求
+    let request = axagent_orchestrator::SelfImprovementRequest {
+        industry_id: industry_id.clone(),
+        target: target.clone(),
+    };
+
+    // 调用学习引擎
+    let engine = &state.learning.industry_learning_engine;
+    let result = engine.run_self_improvement(&request).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    serde_json::to_value(result).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 触发行业学习闭环（自动模式）
+///
+/// 根据行业配置自动触发反思、进化和自我改进。
+/// 通常在工作流执行完成后调用，实现 "执行 → 反思 → 进化 → 改进" 的闭环。
+#[tauri::command]
+pub async fn opc_trigger_industry_learning(
+    state: State<'_, AppState>,
+    industry_id: String,
+    workflow_id: String,
+    workflow_result: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let config = get_industry_learning_config(&industry_id)
+        .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
+
+    // 获取行业适配器
+    let registry = state.learning.industry_adapter_registry.lock().await;
+    let adapter =
+        registry.get(&industry_id).ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+
+    let template = adapter.reflection_template().clone();
+    let constraints = adapter.evolution_constraints().clone();
+    let rl_config_from_adapter = adapter.learning_config().reinforcement_learning.clone();
+    drop(registry);
+
+    let engine = &state.learning.industry_learning_engine;
+    let mut last_quality_score: f64 = 0.0;
+
+    let mut reflection_result = serde_json::json!({
+        "status": "skipped",
+    });
+    let mut evolution_result: Option<serde_json::Value> = None;
+    let mut self_improvement_result: Option<serde_json::Value> = None;
+    let mut rl_result: Option<serde_json::Value> = None;
+
+    // 1. 触发反思（如果启用）
+    if config.reflection_enabled {
+        let request = axagent_orchestrator::ReflectionRequest {
+            industry_id: industry_id.clone(),
+            workflow_id: workflow_id.clone(),
+            workflow_result: workflow_result.clone(),
+            ..Default::default()
+        };
+
+        match engine.reflect_on_workflow(&template, &request).await {
+            Ok(result) => {
+                let quality_score = result.quality_score;
+                last_quality_score = quality_score / 100.0; // 转换为 0.0-1.0 范围
+                reflection_result = serde_json::json!({
+                    "status": "success",
+                    "quality_score": quality_score / 100.0,
+                    "message": result.summary,
+                });
+
+                // 如果质量分数低于 70，自动触发进化
+                if quality_score < 70.0 && config.evolution_enabled {
+                    let evolution_request = axagent_orchestrator::EvolutionRequest {
+                        industry_id: industry_id.clone(),
+                        workflow_id: workflow_id.clone(),
+                        reason: format!("质量分数较低 ({:.2})，触发进化优化", quality_score),
+                    };
+
+                    match engine.evolve_workflow(&constraints, &evolution_request).await {
+                        Ok(evo_result) => {
+                            evolution_result = Some(serde_json::json!({
+                                "status": "success",
+                                "reason": format!("质量分数较低 ({:.2})，触发进化优化", quality_score),
+                                "message": evo_result.message,
+                            }));
+                        },
+                        Err(e) => {
+                            evolution_result = Some(serde_json::json!({
+                                "status": "failed",
+                                "reason": format!("质量分数较低 ({:.2})，触发进化优化", quality_score),
+                                "message": format!("进化失败: {}", e),
+                            }));
+                        },
+                    }
+                }
+            },
+            Err(e) => {
+                reflection_result = serde_json::json!({
+                    "status": "failed",
+                    "message": format!("反思失败: {}", e),
+                });
+            },
+        }
+    }
+
+    // 2. 触发自我改进（如果启用且反思未失败）
+    if config.self_improvement_enabled && reflection_result["status"] != "failed" {
+        let improvement_request = axagent_orchestrator::SelfImprovementRequest {
+            industry_id: industry_id.clone(),
+            target: format!("workflow_{}_optimization", workflow_id),
+        };
+
+        match engine.run_self_improvement(&improvement_request).await {
+            Ok(result) => {
+                self_improvement_result = Some(serde_json::json!({
+                    "status": "success",
+                    "target": improvement_request.target,
+                    "message": result.message,
+                }));
+            },
+            Err(e) => {
+                self_improvement_result = Some(serde_json::json!({
+                    "status": "failed",
+                    "target": improvement_request.target,
+                    "message": format!("自我改进失败: {}", e),
+                }));
+            },
+        }
+    }
+
+    // 3. 触发强化学习（如果启用）
+    let rl_config = rl_config_from_adapter;
+    if rl_config.enabled {
+        // 读取 YAML 配置中的完整 RL 参数
+        let full_rl_config = load_rl_config(&industry_id).unwrap_or(rl_config);
+
+        match engine
+            .run_reinforcement_learning(
+                &industry_id,
+                &workflow_id,
+                last_quality_score,
+                &workflow_result,
+                &full_rl_config,
+            )
+            .await
+        {
+            Ok(rl_data) => {
+                let has_experience =
+                    rl_data.get("experienceRecorded").map_or(false, |v| !v.is_null());
+                let pool_size = rl_data.get("poolSize").and_then(|v| v.as_u64()).unwrap_or(0);
+                let policy_optimized =
+                    rl_data.get("policyOptimized").and_then(|v| v.as_bool()).unwrap_or(false);
+                rl_result = Some(serde_json::json!({
+                    "status": "success",
+                    "experience_recorded": has_experience,
+                    "pool_size": pool_size,
+                    "policy_optimized": policy_optimized,
+                    "message": format!("RL 状态: {}", rl_data["status"]),
+                }));
+            },
+            Err(e) => {
+                rl_result = Some(serde_json::json!({
+                    "status": "failed",
+                    "message": format!("强化学习失败: {}", e),
+                }));
+            },
+        }
+    }
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
+
+    Ok(serde_json::json!({
+        "reflection": reflection_result,
+        "evolution": evolution_result,
+        "self_improvement": self_improvement_result,
+        "reinforcement_learning": rl_result,
+        "triggered_at": now,
+    }))
+}
+
+// ── RL 辅助函数 ──────────────────────────────────────────
+
+/// 从 YAML 文件加载完整的 RL 配置
+pub(crate) fn load_rl_config(industry_id: &str) -> Option<ReinforcementLearningConfig> {
+    let file_name = match industry_id {
+        "ai-research" => "ai_research.yaml",
+        "software-dev" => "software_dev.yaml",
+        "finance-invest" => "finance_invest.yaml",
+        "sales-growth" => "sales_growth.yaml",
+        "content-media" => "content_media.yaml",
+        "industry-consulting" => "industry_consulting.yaml",
+        "accounting" => "accounting.yaml",
+        "ecommerce" => "ecommerce.yaml",
+        "education" => "education.yaml",
+        _ => return None,
+    };
+
+    let config_path = format!("configs/industry_learning/{}", file_name);
+    let content = std::fs::read_to_string(&config_path).ok()?;
+    let parsed: serde_json::Value = serde_yaml::from_str(&content).ok()?;
+
+    let rl_section = parsed.get("reinforcement_learning")?;
+
+    let enabled = rl_section.get("enabled").and_then(|e| e.as_bool()).unwrap_or(false);
+    let reward_model = rl_section.get("reward_model").and_then(|r| r.as_str()).map(String::from);
+    let auto_train_threshold =
+        rl_section.get("auto_train_threshold").and_then(|t| t.as_u64()).unwrap_or(50) as usize;
+    let learning_rate = rl_section.get("learning_rate").and_then(|l| l.as_f64()).unwrap_or(0.01);
+    let gamma = rl_section.get("gamma").and_then(|g| g.as_f64()).unwrap_or(0.95);
+    let epsilon = rl_section.get("epsilon").and_then(|e| e.as_f64()).unwrap_or(0.1);
+
+    let reward_weights = rl_section
+        .get("reward_weights")
+        .and_then(|w| {
+            let quality = w.get("quality").and_then(|v| v.as_f64()).unwrap_or(0.35);
+            let efficiency = w.get("efficiency").and_then(|v| v.as_f64()).unwrap_or(0.25);
+            let cost = w.get("cost").and_then(|v| v.as_f64()).unwrap_or(0.15);
+            let innovation = w.get("innovation").and_then(|v| v.as_f64()).unwrap_or(0.15);
+            let satisfaction = w.get("satisfaction").and_then(|v| v.as_f64()).unwrap_or(0.1);
+            Some(RewardWeightConfig { quality, efficiency, cost, innovation, satisfaction })
+        })
+        .unwrap_or_default();
+
+    let optimization_goals = rl_section
+        .get("optimization_goals")
+        .and_then(|g| g.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+
+    Some(ReinforcementLearningConfig {
+        enabled,
+        reward_model,
+        auto_train_threshold,
+        learning_rate,
+        gamma,
+        epsilon,
+        reward_weights,
+        optimization_goals,
+    })
+}
+
+// ── RL Tauri 命令 ──────────────────────────────────────────
+
+/// 获取经验池统计信息
+#[tauri::command]
+pub async fn opc_get_rl_stats(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let engine = &state.learning.industry_learning_engine;
+    let stats = engine.get_experience_pool_stats().await;
+    serde_json::to_value(stats).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 手动触发 RL 策略优化
+#[tauri::command]
+pub async fn opc_trigger_rl_optimization(
+    state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let rl_config = load_rl_config(&industry_id)
+        .ok_or_else(|| format!("行业 {} 的 RL 配置不存在", industry_id))?;
+
+    if !rl_config.enabled {
+        return Err(format!("行业 {} 的强化学习未启用", industry_id));
+    }
+
+    let engine = &state.learning.industry_learning_engine;
+    let result = engine.optimize_policy(&industry_id, &rl_config).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    serde_json::to_value(result).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 手动记录一条工作流执行经验
+#[tauri::command]
+pub async fn opc_record_rl_experience(
+    state: State<'_, AppState>,
+    industry_id: String,
+    workflow_id: String,
+    quality_score: f64,
+    workflow_result: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let rl_config = load_rl_config(&industry_id)
+        .ok_or_else(|| format!("行业 {} 的 RL 配置不存在", industry_id))?;
+
+    let engine = &state.learning.industry_learning_engine;
+    let experience = engine
+        .record_experience(&industry_id, &workflow_id, quality_score, &workflow_result, &rl_config)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+    serde_json::to_value(experience).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }

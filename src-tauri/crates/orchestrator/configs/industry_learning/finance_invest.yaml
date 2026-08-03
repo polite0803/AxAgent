@@ -1,0 +1,48 @@
+# 金融投资 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - task_failure
+    - user_feedback
+    - approval_passed
+    - approval_rejected
+
+evolution:
+  workflow_evolver:
+    enabled: false
+    auto_trigger:
+      consecutive_failures: 2
+      min_usages: 10
+      success_threshold: 0.7
+  skill_evolver:
+    enabled: false
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 20
+      success_threshold: 0.6
+
+self_improvement:
+  enabled: false
+  max_rounds: 2
+  convergence_threshold: 0.95
+  escalate_threshold: 1
+
+reinforcement_learning:
+  enabled: true
+  reward_model: finance_risk_reward
+  auto_train_threshold: 200
+  learning_rate: 0.005
+  gamma: 0.95
+  epsilon: 0.05
+  reward_weights:
+    quality: 0.3
+    efficiency: 0.15
+    cost: 0.3
+    innovation: 0.1
+    satisfaction: 0.15
+  optimization_goals:
+    - risk_control
+    - return_optimization

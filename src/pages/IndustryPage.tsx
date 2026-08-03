@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { RLLearningPanel } from "@/components/opc/RLLearningPanel";
 import { invoke } from "@/lib/invoke";
-import { useConversationStore, useSettingsStore } from "@/stores";
+import { evolveWorkflow, reflectOnWorkflow, runSelfImprovement } from "@/lib/opcLearning";
+import { useConversationStore, useIndustryLearningStore, useSettingsStore } from "@/stores";
+import type { IndustryLearningConfig } from "@/types";
 import {
   ApiOutlined,
   AuditOutlined,
   BookOutlined,
   BugOutlined,
+  BulbOutlined,
   CalculatorOutlined,
   CodeOutlined,
   CodeSandboxOutlined,
@@ -23,6 +27,7 @@ import {
   SearchOutlined,
   ShopOutlined,
   SolutionOutlined,
+  SyncOutlined,
   TagOutlined,
   ThunderboltOutlined,
   TrophyOutlined,
@@ -198,9 +203,12 @@ export function IndustryPage() {
 
   const [loading, setLoading] = useState(true);
   const [manifest, setManifest] = useState<IndustryManifest | null>(null);
+  const [learningConfig, setLearningConfig] = useState<IndustryLearningConfig | null>(null);
+  const [learningLoading, setLearningLoading] = useState(false);
 
   const createConversation = useConversationStore((s) => s.createConversation);
   const settings = useSettingsStore((s) => s.settings);
+  const learningStore = useIndustryLearningStore();
 
   const config = useMemo(() => INDUSTRY_CONFIGS[industryId], [industryId]);
 
@@ -234,6 +242,81 @@ export function IndustryPage() {
 
     loadIndustry();
   }, [industryId, message, t]);
+
+  // 加载行业学习配置
+  useEffect(() => {
+    if (!industryId) {
+      return;
+    }
+    const loadLearning = async () => {
+      setLearningLoading(true);
+      try {
+        const config = await learningStore.loadConfig(industryId);
+        setLearningConfig(config);
+      } catch {
+        setLearningConfig(null);
+      } finally {
+        setLearningLoading(false);
+      }
+    };
+    loadLearning();
+  }, [industryId, learningStore]);
+
+  /** 触发反思 */
+  const handleReflect = async () => {
+    if (!learningConfig?.reflection_enabled) {
+      message.warning(t("opc.industry.learning.reflection.notEnabled"));
+      return;
+    }
+    try {
+      message.loading({ content: t("opc.industry.learning.reflection.triggerDesc"), key: "reflect" });
+      await reflectOnWorkflow({
+        industry_id: industryId,
+        workflow_id: `industry_${industryId}`,
+        workflow_result: { status: "manual_triggered" },
+      });
+      message.success({ content: t("opc.industry.learning.reflection.triggerSuccess"), key: "reflect" });
+    } catch (e) {
+      message.error(t("opc.industry.learning.reflection.triggerFailed", { error: String(e) }));
+    }
+  };
+
+  /** 触发进化 */
+  const handleEvolve = async () => {
+    if (!learningConfig?.evolution_enabled) {
+      message.warning(t("opc.industry.learning.evolution.notEnabled"));
+      return;
+    }
+    try {
+      message.loading({ content: t("opc.industry.learning.evolution.triggerDesc"), key: "evolve" });
+      await evolveWorkflow({
+        industry_id: industryId,
+        workflow_id: `industry_${industryId}`,
+        reason: "manual_optimization",
+      });
+      message.success({ content: t("opc.industry.learning.evolution.triggerSuccess"), key: "evolve" });
+    } catch (e) {
+      message.error(t("opc.industry.learning.evolution.triggerFailed", { error: String(e) }));
+    }
+  };
+
+  /** 执行自我改进 */
+  const handleSelfImprove = async () => {
+    if (!learningConfig?.self_improvement_enabled) {
+      message.warning(t("opc.industry.learning.selfImprovement.notEnabled"));
+      return;
+    }
+    try {
+      message.loading({ content: t("opc.industry.learning.selfImprovement.triggerDesc"), key: "selfImprove" });
+      await runSelfImprovement({
+        industry_id: industryId,
+        target: "overall_performance",
+      });
+      message.success({ content: t("opc.industry.learning.selfImprovement.triggerSuccess"), key: "selfImprove" });
+    } catch (e) {
+      message.error(t("opc.industry.learning.selfImprovement.triggerFailed", { error: String(e) }));
+    }
+  };
 
   /** 执行行业操作 - 调用后端命令获取真实 prompt */
   const handleAction = async (action: ActionItem) => {
@@ -418,6 +501,174 @@ export function IndustryPage() {
             </Col>
           ))}
         </Row>
+      </Card>
+
+      {/* 学习与进化配置面板 */}
+      <Card
+        title={
+          <span>
+            <BulbOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.learning.title")}
+          </span>
+        }
+        extra={
+          <Button
+            size="small"
+            icon={<SyncOutlined spin={learningLoading} />}
+            onClick={() => learningStore.clearCache()}
+          >
+            {t("opc.industry.learning.actions.refreshConfig")}
+          </Button>
+        }
+      >
+        <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+          {t("opc.industry.learning.subtitle")}
+        </Paragraph>
+
+        {learningLoading && !learningConfig
+          ? (
+            <div style={{ textAlign: "center", padding: 24 }}>
+              <Spin tip={t("opc.industry.learning.actions.loadFailed", { error: "..." })} />
+            </div>
+          )
+          : learningConfig
+          ? (
+            <Row gutter={[16, 16]}>
+              {/* 版本信息 */}
+              <Col span={24}>
+                <Space>
+                  <Text type="secondary">{t("opc.industry.learning.version")}:</Text>
+                  <Tag color="blue">v{learningConfig.version}</Tag>
+                </Space>
+              </Col>
+
+              {/* 反思评估 */}
+              <Col xs={24} sm={12} md={6}>
+                <Card size="small" style={{ height: "100%" }}>
+                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <Space>
+                      <ExperimentOutlined />
+                      <strong>{t("opc.industry.learning.reflection.label")}</strong>
+                      <Tag color={learningConfig.reflection_enabled ? "green" : "default"}>
+                        {learningConfig.reflection_enabled
+                          ? t("opc.industry.learning.reflection.enabled")
+                          : t("opc.industry.learning.reflection.disabled")}
+                      </Tag>
+                    </Space>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {t("opc.industry.learning.reflection.description")}
+                    </Text>
+                    <Button
+                      size="small"
+                      icon={<BulbOutlined />}
+                      onClick={handleReflect}
+                      disabled={!learningConfig.reflection_enabled}
+                      block
+                    >
+                      {t("opc.industry.learning.reflection.trigger")}
+                    </Button>
+                  </Space>
+                </Card>
+              </Col>
+
+              {/* 工作流进化 */}
+              <Col xs={24} sm={12} md={6}>
+                <Card size="small" style={{ height: "100%" }}>
+                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <Space>
+                      <ThunderboltOutlined />
+                      <strong>{t("opc.industry.learning.evolution.label")}</strong>
+                      <Tag color={learningConfig.evolution_enabled ? "green" : "default"}>
+                        {learningConfig.evolution_enabled
+                          ? t("opc.industry.learning.evolution.enabled")
+                          : t("opc.industry.learning.evolution.disabled")}
+                      </Tag>
+                    </Space>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {t("opc.industry.learning.evolution.description")}
+                    </Text>
+                    <Button
+                      size="small"
+                      icon={<SyncOutlined />}
+                      onClick={handleEvolve}
+                      disabled={!learningConfig.evolution_enabled}
+                      block
+                    >
+                      {t("opc.industry.learning.evolution.trigger")}
+                    </Button>
+                  </Space>
+                </Card>
+              </Col>
+
+              {/* 自我改进 */}
+              <Col xs={24} sm={12} md={6}>
+                <Card size="small" style={{ height: "100%" }}>
+                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <Space>
+                      <RocketOutlined />
+                      <strong>{t("opc.industry.learning.selfImprovement.label")}</strong>
+                      <Tag color={learningConfig.self_improvement_enabled ? "green" : "default"}>
+                        {learningConfig.self_improvement_enabled
+                          ? t("opc.industry.learning.selfImprovement.enabled")
+                          : t("opc.industry.learning.selfImprovement.disabled")}
+                      </Tag>
+                    </Space>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {t("opc.industry.learning.selfImprovement.description")}
+                    </Text>
+                    <Button
+                      size="small"
+                      icon={<PlayCircleOutlined />}
+                      onClick={handleSelfImprove}
+                      disabled={!learningConfig.self_improvement_enabled}
+                      block
+                    >
+                      {t("opc.industry.learning.selfImprovement.trigger")}
+                    </Button>
+                  </Space>
+                </Card>
+              </Col>
+
+              {/* 强化学习 */}
+              <Col xs={24} sm={12} md={6}>
+                <Card size="small" style={{ height: "100%" }}>
+                  <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                    <Space>
+                      <FundProjectionScreenOutlined />
+                      <strong>{t("opc.industry.learning.reinforcementLearning.label")}</strong>
+                      <Tag color={learningConfig.reinforcement_learning_enabled ? "green" : "default"}>
+                        {learningConfig.reinforcement_learning_enabled
+                          ? t("opc.industry.learning.reinforcementLearning.enabled")
+                          : t("opc.industry.learning.reinforcementLearning.disabled")}
+                      </Tag>
+                    </Space>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {t("opc.industry.learning.reinforcementLearning.description")}
+                    </Text>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.learning.actions.loadFailed", { error: "配置未找到" })}
+            />
+          )}
+      </Card>
+
+      {/* RL 强化学习面板 */}
+      <Card
+        style={{ marginTop: 16 }}
+        title={
+          <span>
+            <FundProjectionScreenOutlined style={{ marginRight: 8 }} />
+            {t("opc.rl.panelTitle", "强化学习面板")}
+          </span>
+        }
+      >
+        <RLLearningPanel industryId={industryId} />
       </Card>
     </div>
   );

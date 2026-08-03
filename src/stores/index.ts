@@ -18,6 +18,7 @@ export { useErrorNotificationStore } from "./shared/errorNotificationStore";
 
 export { useDecompositionStore } from "./feature/decompositionStore";
 export { useDynamicUIStore } from "./feature/dynamicUIStore";
+export { useIndustryLearningStore } from "./feature/industryLearningStore";
 export { useKnowledgeSourceStore } from "./feature/knowledgeSourceStore";
 export { useLlmWikiStore } from "./feature/llmWikiStore";
 export { useProactiveStore } from "./feature/proactiveStore";

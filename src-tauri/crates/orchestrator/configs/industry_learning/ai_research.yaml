@@ -1,0 +1,46 @@
+# AI 科技研究 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - task_failure
+    - user_feedback
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 5
+      success_threshold: 0.6
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 5
+      min_usages: 10
+      success_threshold: 0.5
+
+self_improvement:
+  enabled: true
+  max_rounds: 3
+  convergence_threshold: 0.85
+  escalate_threshold: 2
+
+reinforcement_learning:
+  enabled: false
+  reward_model: ai_research_reward
+  auto_train_threshold: 50
+  learning_rate: 0.02
+  gamma: 0.9
+  epsilon: 0.15
+  reward_weights:
+    quality: 0.35
+    efficiency: 0.2
+    cost: 0.1
+    innovation: 0.25
+    satisfaction: 0.1
+  optimization_goals:
+    - research_quality
+    - innovation_discovery

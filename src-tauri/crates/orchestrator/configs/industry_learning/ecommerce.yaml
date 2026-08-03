@@ -1,0 +1,45 @@
+# 电商 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - user_feedback
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 4
+      min_usages: 3
+      success_threshold: 0.5
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 5
+      min_usages: 5
+      success_threshold: 0.45
+
+self_improvement:
+  enabled: true
+  max_rounds: 5
+  convergence_threshold: 0.75
+  escalate_threshold: 3
+
+reinforcement_learning:
+  enabled: true
+  reward_model: ecommerce_conversion_reward
+  auto_train_threshold: 70
+  learning_rate: 0.03
+  gamma: 0.85
+  epsilon: 0.2
+  reward_weights:
+    quality: 0.2
+    efficiency: 0.35
+    cost: 0.2
+    innovation: 0.1
+    satisfaction: 0.15
+  optimization_goals:
+    - sales_conversion
+    - profit_margin

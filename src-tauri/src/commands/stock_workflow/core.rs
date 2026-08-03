@@ -14,6 +14,7 @@ use axagent_entities::stock_reflections;
 use axagent_harness::workflow_types::Variable;
 use axagent_rt_workflow::work_engine::{ProgressCallback, RunOptions, StepProgressEvent};
 use axagent_stock_analysis::blackboard::build_blackboard_snapshot;
+use axagent_stock_analysis::stock_reflection::{AnalysisStepResult, StockAnalysisOutcome};
 use sea_orm::DatabaseConnection;
 use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -632,6 +633,8 @@ pub(crate) async fn run_stock_workflow_inner(
     let monitor_for_spawn = state.stock_monitor.get().cloned();
     // P2-1: 克隆 TriggerManager，供决策落库后发布 decision.completed 事件
     let trigger_mgr_for_spawn = state.work_engine.trigger_manager.clone();
+    // 克隆自适应引擎，供工作流完成后触发自适应闭环
+    let adaptive_engine_for_spawn = state.stock_adaptive_engine.clone();
     tokio::spawn(async move {
         // P3 修复: 在 spawn 内恢复 AS_OF + DEGRADATION_LOG 作用域
         as_of::with_optional_asof(captured_asof, async {
@@ -1099,6 +1102,26 @@ pub(crate) async fn run_stock_workflow_inner(
                         {
                             tracing::error!("[DB] Failed 状态下保存分析结果失败: {e}");
                         }
+                        // 触发自适应闭环（降级模式，异步执行）
+                        {
+                            let engine = Arc::clone(&adaptive_engine_for_spawn);
+                            let stock_code_clone = stock_code.clone();
+                            let aid_clone = aid.clone();
+                            let wf_id_clone = wf_id.clone();
+                            let result_clone = result.clone();
+                            tokio::spawn(async move {
+                                trigger_adaptive_cycle(
+                                    &engine,
+                                    &stock_code_clone,
+                                    &aid_clone,
+                                    &wf_id_clone,
+                                    &result_clone,
+                                    "hold",
+                                    0.5,
+                                    "降级模式：部分分析步骤失败",
+                                ).await;
+                            });
+                        }
                         // 版本化模式：不再删旧行/改 ID，直接用新行 ID emit
                         if let Err(e) = app_h.emit(
                             "workflow-completed",
@@ -1536,6 +1559,36 @@ pub(crate) async fn run_stock_workflow_inner(
                             }
                         }
 
+
+                        // 触发自适应闭环（异步，不阻塞主流程）
+                        // 工作流完成后自动执行反思→诊断→进化→验证→应用
+                        {
+                            let decision_text = mem_action.as_deref().unwrap_or("hold").to_string();
+                            let confidence_val = mem_dj
+                                .as_ref()
+                                .and_then(|dj| serde_json::from_str::<serde_json::Value>(dj).ok())
+                                .and_then(|v| v.get("confidence").cloned())
+                                .and_then(|c| c.as_f64())
+                                .unwrap_or(0.7) as f32;
+                            let rationale_text = mem_reasoning.as_deref().unwrap_or("").to_string();
+                            let engine = Arc::clone(&adaptive_engine_for_spawn);
+                            let stock_code_clone = stock_code.clone();
+                            let aid_clone = aid.clone();
+                            let wf_id_clone = wf_id.clone();
+                            let result_clone = result.clone();
+                            tokio::spawn(async move {
+                                trigger_adaptive_cycle(
+                                    &engine,
+                                    &stock_code_clone,
+                                    &aid_clone,
+                                    &wf_id_clone,
+                                    &result_clone,
+                                    &decision_text,
+                                    confidence_val,
+                                    &rationale_text,
+                                ).await;
+                            });
+                        }
                         // DB 写入完成后再 emit，避免前端 extract_evidence_citations 读到空数据
                         if let Err(e) = app_h.emit(
                             "workflow-completed",
@@ -2341,4 +2394,136 @@ pub(crate) async fn sync_lesson_application_outcomes(db: &sea_orm::DatabaseConne
         );
     }
     updated
+}
+
+// ── 自适应闭环集成 ──────────────────────────────────────
+
+/// 从工作流结果构建 StockAnalysisOutcome
+///
+/// 将 Workflow 的执行结果映射到反思引擎所需的输入结构
+fn build_outcome_from_workflow(
+    workflow: &axagent_harness::workflow_types::Workflow,
+    stock_code: &str,
+    analysis_id: &str,
+    execution_id: &str,
+    decision: &str,
+    confidence: f32,
+    decision_rationale: &str,
+) -> StockAnalysisOutcome {
+    let step_results: Vec<AnalysisStepResult> = workflow
+        .results
+        .iter()
+        .map(|(node_id, result)| {
+            let node_state = workflow.node_states.get(node_id);
+            let status = node_state
+                .map(|s| format!("{:?}", s.status).to_lowercase())
+                .unwrap_or_else(|| "unknown".to_string());
+            let duration_ms = node_state
+                .and_then(|s| {
+                    let start = s.started_at?;
+                    let end = s.completed_at?;
+                    Some((end - start) as u64)
+                })
+                .unwrap_or(0);
+            let error = if status == "failed" || status == "timeout" {
+                node_state.and_then(|s| s.error.clone())
+            } else {
+                None
+            };
+            let output_summary = if result.is_string() {
+                Some(result.as_str().unwrap_or("").to_string())
+            } else {
+                Some(serde_json::to_string(result).unwrap_or_default())
+            };
+            let attempts = node_state.map(|s| s.attempts).unwrap_or(1);
+
+            AnalysisStepResult {
+                step_id: node_id.clone(),
+                step_name: node_id.clone(),
+                node_type: "workflow_node".to_string(),
+                status,
+                duration_ms,
+                attempts,
+                error,
+                output_summary,
+            }
+        })
+        .collect();
+
+    let success =
+        matches!(workflow.status, axagent_harness::workflow_types::WorkflowStatus::Completed);
+
+    let duration_ms =
+        workflow.completed_at.zip(Some(workflow.created_at)).map(|(c, s)| c - s).unwrap_or(0);
+
+    StockAnalysisOutcome {
+        analysis_id: analysis_id.to_string(),
+        stock_code: stock_code.to_string(),
+        execution_id: execution_id.to_string(),
+        step_results,
+        decision: decision.to_string(),
+        confidence,
+        decision_rationale: decision_rationale.to_string(),
+        signals: Vec::new(),
+        success,
+        error: if success {
+            None
+        } else {
+            Some("workflow failed".to_string())
+        },
+        duration_ms,
+    }
+}
+
+/// 异步触发自适应闭环
+///
+/// 在工作流完成后异步执行反思→诊断→进化→验证→应用的完整闭环，
+/// 不阻塞主流程，失败仅记录日志
+pub(crate) async fn trigger_adaptive_cycle(
+    adaptive_engine: &Arc<axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine>,
+    stock_code: &str,
+    analysis_id: &str,
+    execution_id: &str,
+    workflow: &axagent_harness::workflow_types::Workflow,
+    decision: &str,
+    confidence: f32,
+    decision_rationale: &str,
+) {
+    let outcome = build_outcome_from_workflow(
+        workflow,
+        stock_code,
+        analysis_id,
+        execution_id,
+        decision,
+        confidence,
+        decision_rationale,
+    );
+
+    let engine = adaptive_engine.clone();
+    let stock_code = stock_code.to_string();
+    let analysis_id = analysis_id.to_string();
+
+    // 异步执行自适应闭环，不阻塞主流程
+    let result = engine.run_adaptive_cycle(&outcome).await;
+
+    // 根据自适应状态记录日志
+    let status_str = format!("{:?}", result.adaptation_status);
+    tracing::info!(
+        "[adaptive] 自适应闭环完成: stock={}, analysis={}, status={}, 改进={}",
+        stock_code,
+        analysis_id,
+        status_str,
+        result.improvement_summary
+    );
+
+    // 如果触发了进化，记录关键信息
+    if result.evolution_result.is_some() {
+        if let Some(config) = &result.applied_config {
+            tracing::info!(
+                "[adaptive] 新配置已应用: ewma_alpha={:.4}, lookback_days={}",
+                config.ewma_alpha,
+                config.lookback_days
+            );
+        }
+    }
 }

@@ -40,7 +40,7 @@
 
 use std::collections::HashMap;
 
-use rand::{Rng, seq::SliceRandom};
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::skill_evolution::EvolutionConfig;
@@ -107,16 +107,12 @@ pub struct NumericEvolutionEngine {
 impl NumericEvolutionEngine {
     /// Create a new numeric evolution engine
     pub fn new(config: EvolutionConfig, param_defs: Vec<ParamDef>) -> Self {
-        Self {
-            config,
-            param_defs,
-            population: None,
-        }
+        Self { config, param_defs, population: None }
     }
 
     /// Initialize population by sampling random parameter values within defined ranges
     pub fn initialize(&mut self) {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut individuals: Vec<NumericGenome> = Vec::with_capacity(self.config.population_size);
 
         for _ in 0..self.config.population_size {
@@ -125,10 +121,7 @@ impl NumericEvolutionEngine {
                 let val = sample_param(&mut rng, def);
                 params.insert(def.name.clone(), val);
             }
-            individuals.push(NumericGenome {
-                params,
-                fitness: 0.0,
-            });
+            individuals.push(NumericGenome { params, fitness: 0.0 });
         }
 
         self.population = Some(NumericPopulation {
@@ -180,11 +173,8 @@ impl NumericEvolutionEngine {
         let pop = self.population.as_mut().unwrap();
 
         // Sort by fitness descending
-        pop.individuals.sort_by(|a, b| {
-            b.fitness
-                .partial_cmp(&a.fitness)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        pop.individuals
+            .sort_by(|a, b| b.fitness.partial_cmp(&a.fitness).unwrap_or(std::cmp::Ordering::Equal));
 
         // Elite preservation: top N survive unchanged
         let elite: Vec<NumericGenome> =
@@ -197,7 +187,7 @@ impl NumericEvolutionEngine {
             let parent1 = tournament_select_numeric(&pop.individuals, 3);
             let parent2 = tournament_select_numeric(&pop.individuals, 3);
 
-            let mut child = if rand::thread_rng().r#gen::<f64>() < self.config.crossover_rate {
+            let mut child = if rand::rng().random::<f64>() < self.config.crossover_rate {
                 blx_alpha_crossover(&parent1, &parent2, &self.param_defs, 0.5)
             } else {
                 parent1.clone()
@@ -224,10 +214,7 @@ impl NumericEvolutionEngine {
             self.initialize();
         }
 
-        let mut best_ever = NumericGenome {
-            params: HashMap::new(),
-            fitness: f64::MIN,
-        };
+        let mut best_ever = NumericGenome { params: HashMap::new(), fitness: f64::MIN };
 
         for generation_idx in 0..self.config.max_generations {
             self.evolve_generation(&fitness_fn);
@@ -235,10 +222,10 @@ impl NumericEvolutionEngine {
             let pop = self.population.as_ref().unwrap();
 
             // Track best ever
-            if pop.best_fitness > best_ever.fitness {
-                if let Some(best) = pop.individuals.first() {
-                    best_ever = best.clone();
-                }
+            if pop.best_fitness > best_ever.fitness
+                && let Some(best) = pop.individuals.first()
+            {
+                best_ever = best.clone();
             }
 
             // Early convergence check (only after we have enough history)
@@ -319,7 +306,7 @@ impl NumericEvolutionEngine {
 
 /// Sample a random parameter value within bounds
 fn sample_param(rng: &mut impl Rng, def: &ParamDef) -> f64 {
-    let val = rng.r#gen::<f64>() * (def.max - def.min) + def.min;
+    let val = rng.random::<f64>() * (def.max - def.min) + def.min;
     quantize(val, def.step, def.min, def.max)
 }
 
@@ -340,16 +327,13 @@ fn tournament_select_numeric(
     tournament_size: usize,
 ) -> NumericGenome {
     if population.is_empty() {
-        return NumericGenome {
-            params: HashMap::new(),
-            fitness: 0.0,
-        };
+        return NumericGenome { params: HashMap::new(), fitness: 0.0 };
     }
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let size = population.len().min(tournament_size);
     let indices: Vec<usize> = (0..population.len()).collect();
-    let selected: Vec<usize> = indices.choose_multiple(&mut rng, size).cloned().collect();
+    let selected: Vec<usize> = indices.sample(&mut rng, size).cloned().collect();
 
     if selected.is_empty() {
         return population[0].clone();
@@ -379,7 +363,7 @@ fn blx_alpha_crossover(
     param_defs: &[ParamDef],
     alpha: f64,
 ) -> NumericGenome {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut child_params = HashMap::with_capacity(param_defs.len());
 
     for def in param_defs {
@@ -393,23 +377,20 @@ fn blx_alpha_crossover(
         let low = (min_v - alpha * d).max(def.min);
         let high = (max_v + alpha * d).min(def.max);
 
-        let val = rng.r#gen::<f64>() * (high - low) + low;
+        let val = rng.random::<f64>() * (high - low) + low;
         child_params.insert(def.name.clone(), quantize(val, def.step, def.min, def.max));
     }
 
-    NumericGenome {
-        params: child_params,
-        fitness: 0.0,
-    }
+    NumericGenome { params: child_params, fitness: 0.0 }
 }
 
 /// Gaussian mutation: for each parameter, add Gaussian noise with
 /// standard deviation = 10% of the parameter range.
 fn mutate_numeric(genome: &mut NumericGenome, mutation_rate: f64, param_defs: &[ParamDef]) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     for def in param_defs {
-        if rng.r#gen::<f64>() >= mutation_rate {
+        if rng.random::<f64>() >= mutation_rate {
             continue;
         }
 
@@ -418,9 +399,10 @@ fn mutate_numeric(genome: &mut NumericGenome, mutation_rate: f64, param_defs: &[
         let sigma = range * 0.1; // 10% of range as noise scale
 
         // Box-Muller Gaussian noise
-        let u1: f64 = rng.r#gen();
-        let u2: f64 = rng.r#gen();
-        let noise = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos() * sigma;
+        let u1: f64 = rng.random();
+        let u2: f64 = rng.random();
+        let noise =
+            (-2.0_f64 * u1.ln()).sqrt() * (2.0_f64 * std::f64::consts::PI * u2).cos() * sigma;
 
         let mutated = quantize(current + noise, def.step, def.min, def.max);
         genome.params.insert(def.name.clone(), mutated);
@@ -435,27 +417,14 @@ mod tests {
 
     fn simple_param_defs() -> Vec<ParamDef> {
         vec![
-            ParamDef {
-                name: "x".to_string(),
-                min: -10.0,
-                max: 10.0,
-                step: 0.0,
-            },
-            ParamDef {
-                name: "y".to_string(),
-                min: -10.0,
-                max: 10.0,
-                step: 0.0,
-            },
+            ParamDef { name: "x".to_string(), min: -10.0, max: 10.0, step: 0.0 },
+            ParamDef { name: "y".to_string(), min: -10.0, max: 10.0, step: 0.0 },
         ]
     }
 
     #[test]
     fn initialize_population_has_correct_size() {
-        let config = EvolutionConfig {
-            population_size: 20,
-            ..Default::default()
-        };
+        let config = EvolutionConfig { population_size: 20, ..Default::default() };
         let mut engine = NumericEvolutionEngine::new(config, simple_param_defs());
         engine.initialize();
 
@@ -576,18 +545,9 @@ mod tests {
     #[test]
     fn tournament_select_returns_best() {
         let pop = vec![
-            NumericGenome {
-                params: HashMap::new(),
-                fitness: 10.0,
-            },
-            NumericGenome {
-                params: HashMap::new(),
-                fitness: 50.0,
-            },
-            NumericGenome {
-                params: HashMap::new(),
-                fitness: 30.0,
-            },
+            NumericGenome { params: HashMap::new(), fitness: 10.0 },
+            NumericGenome { params: HashMap::new(), fitness: 50.0 },
+            NumericGenome { params: HashMap::new(), fitness: 30.0 },
         ];
         let result = tournament_select_numeric(&pop, 3);
         // Should pick the best from 3 random selections

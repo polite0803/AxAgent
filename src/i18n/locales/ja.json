@@ -4504,6 +4504,102 @@
       },
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - 実行"
+    },
+    "learning": {
+      "title": "学習と進化設定",
+      "subtitle": "業界のリフレクション、進化、自己改善、強化学習機能を管理します",
+      "version": "設定バージョン",
+      "reflection": {
+        "label": "リフレクション",
+        "description": "ワークフロー実行品質を評価し、改善提案を生成します",
+        "enabled": "有効",
+        "disabled": "無効",
+        "trigger": "リフレクション実行",
+        "triggerDesc": "現在のワークフロー結果を分析します",
+        "triggerSuccess": "リフレクションが実行されました",
+        "triggerFailed": "リフレクションの実行に失敗しました: {{error}}",
+        "notEnabled": "この業界ではリフレクションが有効化されていません"
+      },
+      "evolution": {
+        "label": "ワークフロー進化",
+        "description": "繰り返し失敗または効率が低い場合にワークフロー構造を自動最適化します",
+        "enabled": "有効",
+        "disabled": "無効",
+        "trigger": "進化実行",
+        "triggerDesc": "現在のワークフロー構造を最適化します",
+        "triggerSuccess": "進化が実行されました",
+        "triggerFailed": "進化の実行に失敗しました: {{error}}",
+        "notEnabled": "この業界では進化が有効化されていません",
+        "reasonRequired": "進化の理由を入力してください"
+      },
+      "selfImprovement": {
+        "label": "自己改善",
+        "description": "過去の実行データに基づいてパラメータと戦略を自動最適化します",
+        "enabled": "有効",
+        "disabled": "無効",
+        "trigger": "自己改善実行",
+        "triggerDesc": "業界のパフォーマンスを最適化するために自己改善プロセスを開始します",
+        "triggerSuccess": "自己改善が開始されました",
+        "triggerFailed": "自己改善の実行に失敗しました: {{error}}",
+        "notEnabled": "この業界では自己改善が有効化されていません",
+        "targetRequired": "改善目標を指定してください"
+      },
+      "reinforcementLearning": {
+        "label": "強化学習",
+        "description": "経験プールを通じて経験を蓄積し、意思決定モデルを最適化します",
+        "enabled": "有効",
+        "disabled": "無効"
+      },
+      "actions": {
+        "viewConfig": "設定を表示",
+        "refreshConfig": "設定を更新",
+        "loadFailed": "学習設定の読み込みに失敗しました: {{error}}"
+      }
+    },
+    "rl": {
+      "panelTitle": "Reinforcement Learning Panel",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "refresh": "Refresh",
+      "optimize": "Optimize Policy",
+      "totalExperiences": "Total Experiences",
+      "industryCount": "Industry Count",
+      "avgReward": "Avg Reward",
+      "successRate": "Success Rate",
+      "policyUpdate": "Policy Update Result",
+      "experiencesUsed": "Experiences Used",
+      "rewardTrend": "Reward Trend",
+      "trendImproving": "Improving",
+      "trendDeclining": "Declining",
+      "trendStable": "Stable",
+      "suggestions": "Optimization Suggestions",
+      "thresholdAdjusted": "Reflection Threshold Adjusted",
+      "newThreshold": "New Threshold",
+      "evolutionTriggerAdjusted": "Evolution Trigger Adjusted",
+      "moreAggressive": "More aggressive evolution triggering",
+      "moreConservative": "More conservative evolution triggering",
+      "autoLearningHistory": "Auto Learning History",
+      "noHistory": "No learning history yet",
+      "reflection": "Reflection",
+      "evolution": "Evolution",
+      "selfImprovement": "Self-Improvement",
+      "rl": "RL",
+      "statusSuccess": "Success",
+      "statusFailed": "Failed",
+      "statusSkipped": "Skipped"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "add": "Add",
+      "actions": "Actions",
+      "notes": "Notes",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "createFailed": "Create failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "opFailed": "Operation failed: {{error}}"
     }
   },
   "pasteButton": {

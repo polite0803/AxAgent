@@ -67,9 +67,10 @@ pub mod v211_opc_industries;
 pub mod v212_opc_work_items;
 pub mod v213_opc_orgs;
 pub mod v214_opc_experience;
+pub mod v215_opc_rl_experience;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 214;
+pub const CURRENT_VERSION: i32 = 215;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -256,6 +257,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 214,
         description: "v214_opc_experience: OPC 经验闭环表（opc_experience_records / opc_playbooks）——Self-Grown（P3）",
         up: |db| Box::pin(v214_opc_experience::up(db)),
+    },
+    Migration {
+        version: 215,
+        description: "v215_opc_rl_experience: OPC 强化学习经验持久化表（opc_rl_experiences / opc_rl_training_stats）——RL 闭环",
+        up: |db| Box::pin(v215_opc_rl_experience::up(db)),
     },
 ];
 

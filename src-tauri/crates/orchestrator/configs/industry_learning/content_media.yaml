@@ -1,0 +1,46 @@
+# 内容媒体 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - user_feedback
+    - approval_passed
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 3
+      success_threshold: 0.55
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 4
+      min_usages: 5
+      success_threshold: 0.5
+
+self_improvement:
+  enabled: true
+  max_rounds: 5
+  convergence_threshold: 0.75
+  escalate_threshold: 3
+
+reinforcement_learning:
+  enabled: true
+  reward_model: content_engagement_reward
+  auto_train_threshold: 60
+  learning_rate: 0.02
+  gamma: 0.9
+  epsilon: 0.15
+  reward_weights:
+    quality: 0.3
+    efficiency: 0.2
+    cost: 0.1
+    innovation: 0.25
+    satisfaction: 0.15
+  optimization_goals:
+    - content_quality
+    - audience_engagement

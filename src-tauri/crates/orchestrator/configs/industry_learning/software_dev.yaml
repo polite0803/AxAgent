@@ -1,0 +1,47 @@
+# 软件开发 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - task_failure
+    - user_feedback
+    - approval_rejected
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 5
+      success_threshold: 0.65
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 4
+      min_usages: 8
+      success_threshold: 0.55
+
+self_improvement:
+  enabled: true
+  max_rounds: 5
+  convergence_threshold: 0.9
+  escalate_threshold: 3
+
+reinforcement_learning:
+  enabled: true
+  reward_model: software_dev_reward
+  auto_train_threshold: 100
+  learning_rate: 0.02
+  gamma: 0.9
+  epsilon: 0.15
+  reward_weights:
+    quality: 0.4
+    efficiency: 0.3
+    cost: 0.1
+    innovation: 0.1
+    satisfaction: 0.1
+  optimization_goals:
+    - code_quality
+    - execution_efficiency

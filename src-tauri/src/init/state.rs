@@ -15,11 +15,14 @@ use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, LearningEngineState, SandboxExecutorField, ToolState};
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 use axagent_dao::repo::feedback_data_lake::FeedbackDataLakeDao;
+use axagent_dao::rl_experience_store::RlExperienceStoreImpl;
 use axagent_dao::search_sources_impl::{
     MemoryUnifiedSource, ObsidianUnifiedSource, RagUnifiedSource, WikiUnifiedSource,
 };
 use axagent_harness::AgentSessionRepository;
 use axagent_harness::feedback_data_lake::register_feedback_lake;
+use axagent_orchestrator::industry_adapters::create_all_adapters;
+use axagent_orchestrator::{IndustryAdapterRegistry, IndustryLearningEngine};
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
@@ -809,11 +812,25 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
 
     // ── M1: 新子状态分解 — 学习引擎与工具创建器 ──
+    // 初始化 OPC 行业适配器注册表
+    let mut industry_registry = IndustryAdapterRegistry::new();
+    for adapter in create_all_adapters() {
+        industry_registry.register(adapter);
+    }
+    let industry_adapter_registry = Arc::new(Mutex::new(industry_registry));
+
+    // 初始化 OPC 行业学习引擎（LLM 端口可选，未配置时使用规则回退；
+    // RL 经验持久化存储注入 SQLite 实现，确保状态跨重启持久化）
+    let rl_store = Arc::new(RlExperienceStoreImpl::new(Arc::new(sea_db.clone())));
+    let industry_learning_engine = Arc::new(IndustryLearningEngine::new().with_rl_store(rl_store));
+
     let learning_state = LearningEngineState::new(
         text_grad_engine.clone(),
         intrinsic_motivation.clone(),
         coevolution_env.clone(),
         process_reward_model.clone(),
+        industry_learning_engine,
+        industry_adapter_registry,
     );
     let tool_state = ToolState::new(auto_tool_creator.clone());
 
@@ -887,7 +904,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         crate::init::browser_fetcher::PlaywrightBrowserFetcher::new(browser_client.clone()),
     );
     #[cfg(mobile)]
-    let browser_fetcher: Arc<dyn BrowserHttpFetch> =
+    let _browser_fetcher: Arc<dyn BrowserHttpFetch> =
         Arc::new(crate::init::browser_fetcher::NoopBrowserFetcher);
     #[cfg(not(mobile))]
     let astock_client = Arc::new(
@@ -936,6 +953,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             Arc::new(sea_db.clone()),
             astock_client.clone(),
         )));
+
+    // ── 股票业务自适应引擎（Reflection + Evolution + Orchestration 闭环）──
+    // 整合反思、进化、编排三者为统一的自适应闭环系统，
+    // 工作流完成后自动触发自适应循环，实现参数/流程自我优化。
+    let stock_adaptive_engine =
+        Arc::new(axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine::new());
+    tracing::info!("[init] 股票自适应引擎已初始化");
+
     // 2.7 P1:从持久化 settings 读取遥测级别初值,构造共享句柄。
     // `save_settings` 命令在用户修改级别后会更新此句柄;`FilteringSink`
     // 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
@@ -1084,6 +1109,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         session_share_manager,
         astock_client,
         trading_engine,
+        stock_adaptive_engine,
         execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(Arc::new(
             sea_db.clone(),
         )),

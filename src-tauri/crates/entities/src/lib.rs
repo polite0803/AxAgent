@@ -130,6 +130,8 @@ pub mod fund_transfers;
 pub mod lesson_applications;
 pub mod market_mainlines;
 pub mod news_archive;
+pub mod opc_rl_experience;
+pub mod opc_rl_training_stats;
 pub mod paper_portfolios;
 pub mod paper_positions;
 pub mod portfolio_correlation_snapshot;

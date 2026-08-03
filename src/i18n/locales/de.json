@@ -4504,6 +4504,102 @@
       },
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - Ausführen"
+    },
+    "learning": {
+      "title": "Lern- und Evolutionskonfiguration",
+      "subtitle": "Verwalten Sie Branchenreflexion, Evolution, Selbstverbesserung und Verstärkungslernfunktionen",
+      "version": "Konfigurationsversion",
+      "reflection": {
+        "label": "Reflexion",
+        "description": "Bewerten Sie die Workflow-Ausführungsqualität und generieren Sie Verbesserungsvorschläge",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "trigger": "Reflexion auslösen",
+        "triggerDesc": "Analysieren Sie die aktuellen Workflow-Ergebnisse",
+        "triggerSuccess": "Reflexion ausgelöst",
+        "triggerFailed": "Reflexion fehlgeschlagen: {{error}}",
+        "notEnabled": "Reflexion ist für diese Branche nicht aktiviert"
+      },
+      "evolution": {
+        "label": "Workflow-Evolution",
+        "description": "Optimieren Sie automatisch die Workflow-Struktur bei wiederholten Fehlern oder geringer Effizienz",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "trigger": "Evolution auslösen",
+        "triggerDesc": "Versuchen Sie, die aktuelle Workflow-Struktur zu optimieren",
+        "triggerSuccess": "Evolution ausgelöst",
+        "triggerFailed": "Evolution fehlgeschlagen: {{error}}",
+        "notEnabled": "Evolution ist für diese Branche nicht aktiviert",
+        "reasonRequired": "Bitte geben Sie einen Grund für die Evolution an"
+      },
+      "selfImprovement": {
+        "label": "Selbstverbesserung",
+        "description": "Optimieren Sie automatisch Parameter und Strategien basierend auf historischen Ausführungsdaten",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "trigger": "Selbstverbesserung ausführen",
+        "triggerDesc": "Starten Sie den Selbstverbesserungsprozess, um die Branchenleistung zu optimieren",
+        "triggerSuccess": "Selbstverbesserung gestartet",
+        "triggerFailed": "Selbstverbesserung fehlgeschlagen: {{error}}",
+        "notEnabled": "Selbstverbesserung ist für diese Branche nicht aktiviert",
+        "targetRequired": "Bitte geben Sie ein Verbesserungsziel an"
+      },
+      "reinforcementLearning": {
+        "label": "Verstärkungslernen",
+        "description": "Sammeln Sie Erfahrungen über den Erfahrungspool, um Entscheidungsmodelle zu optimieren",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert"
+      },
+      "actions": {
+        "viewConfig": "Konfiguration anzeigen",
+        "refreshConfig": "Konfiguration aktualisieren",
+        "loadFailed": "Laden der Lernkonfiguration fehlgeschlagen: {{error}}"
+      }
+    },
+    "rl": {
+      "panelTitle": "Reinforcement Learning Panel",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "refresh": "Refresh",
+      "optimize": "Optimize Policy",
+      "totalExperiences": "Total Experiences",
+      "industryCount": "Industry Count",
+      "avgReward": "Avg Reward",
+      "successRate": "Success Rate",
+      "policyUpdate": "Policy Update Result",
+      "experiencesUsed": "Experiences Used",
+      "rewardTrend": "Reward Trend",
+      "trendImproving": "Improving",
+      "trendDeclining": "Declining",
+      "trendStable": "Stable",
+      "suggestions": "Optimization Suggestions",
+      "thresholdAdjusted": "Reflection Threshold Adjusted",
+      "newThreshold": "New Threshold",
+      "evolutionTriggerAdjusted": "Evolution Trigger Adjusted",
+      "moreAggressive": "More aggressive evolution triggering",
+      "moreConservative": "More conservative evolution triggering",
+      "autoLearningHistory": "Auto Learning History",
+      "noHistory": "No learning history yet",
+      "reflection": "Reflection",
+      "evolution": "Evolution",
+      "selfImprovement": "Self-Improvement",
+      "rl": "RL",
+      "statusSuccess": "Success",
+      "statusFailed": "Failed",
+      "statusSkipped": "Skipped"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "add": "Add",
+      "actions": "Actions",
+      "notes": "Notes",
+      "description": "Description",
+      "dueDate": "Due Date",
+      "createFailed": "Create failed: {{error}}",
+      "deleteFailed": "Delete failed: {{error}}",
+      "opFailed": "Operation failed: {{error}}"
     }
   },
   "pasteButton": {

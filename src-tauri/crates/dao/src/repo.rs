@@ -39,6 +39,7 @@ pub mod provider;
 pub mod reading_list_items;
 pub mod reading_lists;
 pub mod retrieval_hit;
+pub mod rl_experience;
 pub mod search_provider;
 pub mod settings;
 pub mod skill;

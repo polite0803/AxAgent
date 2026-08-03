@@ -1,0 +1,46 @@
+# 教育 - 学习配置
+version: 1
+
+reflection:
+  enabled: true
+  auto_reflect_on:
+    - workflow_complete
+    - user_feedback
+    - approval_passed
+
+evolution:
+  workflow_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 3
+      min_usages: 5
+      success_threshold: 0.6
+  skill_evolver:
+    enabled: true
+    auto_trigger:
+      consecutive_failures: 4
+      min_usages: 8
+      success_threshold: 0.5
+
+self_improvement:
+  enabled: true
+  max_rounds: 4
+  convergence_threshold: 0.8
+  escalate_threshold: 2
+
+reinforcement_learning:
+  enabled: true
+  reward_model: education_learning_reward
+  auto_train_threshold: 100
+  learning_rate: 0.015
+  gamma: 0.9
+  epsilon: 0.12
+  reward_weights:
+    quality: 0.35
+    efficiency: 0.2
+    cost: 0.1
+    innovation: 0.15
+    satisfaction: 0.2
+  optimization_goals:
+    - learning_outcome
+    - student_satisfaction

@@ -331,6 +331,10 @@ pub struct AppState {
     pub astock_client: Arc<axagent_astock_data::AStockClient>,
     /// 交易引擎（持仓 / 回测 / 组合风险）
     pub trading_engine: Arc<TokioRwLock<axagent_stock_analysis::trading::TradingEngine>>,
+    /// 股票业务自适应引擎（反思+进化+编排闭环）
+    /// 工作流完成后自动触发自适应循环，实现参数/流程自我优化
+    pub stock_adaptive_engine:
+        Arc<axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine>,
     /// 执行桥接器（量化信号→实盘交易）
     pub execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState,
     /// 实时监控器（T+0 / 盘口 / 异常波动），可选

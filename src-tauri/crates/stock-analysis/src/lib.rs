@@ -11,6 +11,7 @@ pub mod decision_tracker;
 pub mod evidence_citation;
 pub mod evidence_weight;
 pub mod evolution_drift;
+pub mod evolution_optimizer;
 pub mod exit_recommend;
 pub mod factor_analysis;
 pub mod hit_rate_backtest;
@@ -82,3 +83,37 @@ pub use notification_channel::{
 // 在 wiring 层配合 axagent_agent::SelfImprovementExecutor 驱动多轮分析。
 pub mod stock_analysis_round;
 pub use stock_analysis_round::{AnalysisError as StockAnalysisRoundError, StockAnalysisRound};
+
+// ── 股票行业编排（Orchestrator 集成）──
+// 对接 axagent-orchestrator 的 IndustryAdapter trait，
+// 为股票业务提供动态编排、反思、进化能力。
+pub mod stock_orchestration;
+pub use stock_orchestration::{
+    create_stock_industry_adapter, register_stock_adapter, StockIndustryAdapter,
+};
+
+// ── 股票业务反思引擎（WorkflowReflector 集成）──
+// 将 axagent-trajectory 的 WorkflowReflectorImpl 集成到股票业务，
+// 提供领域特定的反思维度、报告生成和进化触发判定。
+pub mod stock_reflection;
+pub use stock_reflection::{
+    AnalysisStepResult, DimensionScores, StockAnalysisOutcome, StockReflectionEngine,
+    StockReflectionReport, StockReflectionWeights,
+};
+
+// ── 股票业务自我进化闭环（NumericEvolution + WorkflowEvolver 集成）──
+// 基于反思结果驱动参数进化和流程进化，形成反思→诊断→进化→验证闭环。
+pub mod stock_self_evolution;
+pub use stock_self_evolution::{
+    EvolutionHistory, EvolutionPlan, EvolutionTrigger, EvolutionType, StockEvolutionResult,
+    StockSelfEvolutionEngine,
+};
+
+// ── 股票业务自适应引擎（Reflection + Evolution + Orchestration 整合）──
+// 将反思、进化、编排三者整合为统一的自适应闭环系统，
+// 实现分析→反思→诊断→进化→验证→应用的完整自适应流程。
+pub mod stock_adaptive_engine;
+pub use stock_adaptive_engine::{
+    AdaptationRecord, AdaptationStatus, AdaptiveEngineConfig, AdaptiveResult, EvolutionValidator,
+    StockAdaptiveEngine, ValidationResult,
+};

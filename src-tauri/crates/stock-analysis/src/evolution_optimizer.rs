@@ -42,7 +42,7 @@ pub struct EvolutionResult {
 }
 
 /// 参数定义：用于 NumericEvolutionEngine 的参数搜索空间
-fn param_defs() -> Vec<ParamDef> {
+pub fn param_defs() -> Vec<ParamDef> {
     vec![
         ParamDef {
             name: "ewma_alpha".to_string(),
@@ -66,26 +66,12 @@ fn param_defs() -> Vec<ParamDef> {
 }
 
 /// 从 NumericGenome 解码为 WeightDecayConfig
-fn decode_config(genome: &NumericGenome) -> WeightDecayConfig {
+pub fn decode_config(genome: &NumericGenome) -> WeightDecayConfig {
     WeightDecayConfig {
-        ewma_alpha: genome
-            .params
-            .get("ewma_alpha")
-            .copied()
-            .unwrap_or(0.3)
-            .clamp(0.01, 0.99),
-        lookback_days: genome
-            .params
-            .get("lookback_days")
-            .copied()
-            .unwrap_or(30.0)
-            .round() as u32,
-        sample_saturation: genome
-            .params
-            .get("sample_saturation")
-            .copied()
-            .unwrap_or(20.0)
-            .round() as u32,
+        ewma_alpha: genome.params.get("ewma_alpha").copied().unwrap_or(0.3).clamp(0.01, 0.99),
+        lookback_days: genome.params.get("lookback_days").copied().unwrap_or(30.0).round() as u32,
+        sample_saturation: genome.params.get("sample_saturation").copied().unwrap_or(20.0).round()
+            as u32,
     }
 }
 
@@ -93,17 +79,15 @@ fn decode_config(genome: &NumericGenome) -> WeightDecayConfig {
 ///
 /// 适应度 = Σ (weight * win_rate * confidence) 对所有 (strategy, period)
 /// 分数越高表示该参数组合对历史数据拟合越好。
-fn make_fitness_fn<'a>(
+pub fn make_fitness_fn<'a>(
     history: &'a [crate::weight_decay::StrategyPerformanceRow],
     current_weights: &'a HashMap<(String, String), f64>,
 ) -> impl Fn(&NumericGenome) -> f64 + 'a {
     // 预计算默认配置的分数作为基准
     let default = WeightDecayConfig::default();
     let default_map = compute_adjusted_weights(history, &default, current_weights);
-    let default_score: f64 = default_map
-        .values()
-        .map(|aw| aw.new_weight * aw.win_rate * aw.confidence)
-        .sum();
+    let default_score: f64 =
+        default_map.values().map(|aw| aw.new_weight * aw.win_rate * aw.confidence).sum();
 
     move |genome: &NumericGenome| {
         let cfg = decode_config(genome);
@@ -119,10 +103,8 @@ fn make_fitness_fn<'a>(
         }
 
         // 核心适应度：加权和
-        let total_score: f64 = result
-            .values()
-            .map(|aw| aw.new_weight * aw.win_rate * aw.confidence)
-            .sum();
+        let total_score: f64 =
+            result.values().map(|aw| aw.new_weight * aw.win_rate * aw.confidence).sum();
 
         // 惩罚项：样本太少
         let min_sample = result.values().map(|aw| aw.sample_size).min().unwrap_or(0);
@@ -179,6 +161,7 @@ pub async fn run_evolution(
             use_llm_mutation: false,
             use_execution_validation: false,
             validation_rounds: 0,
+            ..Default::default()
         },
         param_defs(),
     );
@@ -304,6 +287,7 @@ mod tests {
                 ("sample_saturation".to_string(), 1.0),
             ]
             .into(),
+            fitness: 0.0,
         };
         let bad_score = fn_fitness(&bad_genome);
         assert!(bad_score < score, "极端参数应比默认差: bad={} default={}", bad_score, score);

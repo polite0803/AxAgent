@@ -304,10 +304,17 @@ jobs:
   # 前 9 次尝试用 RUSTFLAGS/env var/ld.lld wrapper 修都失败（rustc 强制注入
   # -fuse-ld=lld -B<sysroot>/gcc-ld/）。native ARM64 runner 是唯一可靠方案。
   # GitHub 2025-01-16 推出 ARM64 runner，对 public repo 免费。
+  #
+  # OOM 备注：ARM64 runner 内存较小，Rust 巨型工程并行编译易被杀（runner 收到
+  # shutdown signal）。降低 cargo 并行度可避免被 OOM 杀掉。
   release-linux-arm:
     name: Build (aarch64-unknown-linux-gnu)
     needs: [resolve-tag, check-version, draft-release-notes]
     runs-on: ubuntu-24.04-arm
+    env:
+      # 限制 Rust 并行编译的代码单元数，避免 ARM64 runner OOM
+      # （runner 收到 shutdown signal 即被 OOM 杀掉）
+      CARGO_BUILD_JOBS: 2
     steps:
       - uses: actions/checkout@v5
         with:
@@ -493,6 +500,9 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # 限制 Gradle 堆内存 + Rust 并行度，避免 Android 交叉构建 OOM（runner 被杀）
+          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
+          CARGO_BUILD_JOBS: 2
 
       - name: Build Android AAB (for Play Store)
         if: matrix.abi == 'arm64-v8a'
@@ -506,6 +516,8 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
+          CARGO_BUILD_JOBS: 2
 
       - name: Upload APK and AAB to release
         run: |

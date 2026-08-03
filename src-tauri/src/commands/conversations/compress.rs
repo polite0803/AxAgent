@@ -1162,6 +1162,10 @@ mod tests_conversation {
                     axagent_trajectory::ProcessRewardModel::default()
                         .with_default_provider("general"),
                 )),
+                Arc::new(axagent_orchestrator::IndustryLearningEngine::new()),
+                Arc::new(tokio::sync::Mutex::new(
+                    axagent_orchestrator::IndustryAdapterRegistry::new(),
+                )),
             ),
             tool: crate::state::ToolState::new(Arc::new(tokio::sync::Mutex::new(
                 axagent_trajectory::AutoToolCreator::new(

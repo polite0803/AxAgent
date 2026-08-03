@@ -4187,7 +4187,90 @@
             "description": "生成教学材料和习题"
           }
         }
+      },
+      "learning": {
+        "title": "学习与进化配置",
+        "subtitle": "管理行业的反思、进化、自我改进和强化学习能力",
+        "version": "配置版本",
+        "reflection": {
+          "label": "反思评估",
+          "description": "对工作流执行结果进行质量评估，生成改进建议",
+          "enabled": "已启用",
+          "disabled": "已禁用",
+          "trigger": "触发反思",
+          "triggerDesc": "对当前工作流结果进行反思分析",
+          "triggerSuccess": "反思已触发",
+          "triggerFailed": "反思触发失败: {{error}}",
+          "notEnabled": "该行业的反思功能未启用"
+        },
+        "evolution": {
+          "label": "工作流进化",
+          "description": "当工作流多次失败或效率低下时，自动优化结构",
+          "enabled": "已启用",
+          "disabled": "已禁用",
+          "trigger": "触发进化",
+          "triggerDesc": "尝试优化当前工作流结构",
+          "triggerSuccess": "工作流进化已触发",
+          "triggerFailed": "进化触发失败: {{error}}",
+          "notEnabled": "该行业的进化功能未启用",
+          "reasonRequired": "请提供进化原因"
+        },
+        "selfImprovement": {
+          "label": "自我改进",
+          "description": "基于历史执行数据自动优化参数和策略",
+          "enabled": "已启用",
+          "disabled": "已禁用",
+          "trigger": "执行自我改进",
+          "triggerDesc": "启动自我改进流程，优化行业表现",
+          "triggerSuccess": "自我改进流程已启动",
+          "triggerFailed": "自我改进失败: {{error}}",
+          "notEnabled": "该行业的自我改进功能未启用",
+          "targetRequired": "请指定改进目标"
+        },
+        "reinforcementLearning": {
+          "label": "强化学习",
+          "description": "通过经验池积累优化决策模型",
+          "enabled": "已启用",
+          "disabled": "已禁用"
+        },
+        "actions": {
+          "viewConfig": "查看配置",
+          "refreshConfig": "刷新配置",
+          "loadFailed": "加载学习配置失败: {{error}}"
+        }
       }
+    },
+    "rl": {
+      "panelTitle": "强化学习面板",
+      "enabled": "已启用",
+      "disabled": "未启用",
+      "refresh": "刷新",
+      "optimize": "策略优化",
+      "totalExperiences": "总经验数",
+      "industryCount": "行业数",
+      "avgReward": "平均奖励",
+      "successRate": "成功率",
+      "policyUpdate": "策略优化结果",
+      "experiencesUsed": "使用经验",
+      "rewardTrend": "奖励趋势",
+      "trendImproving": "上升",
+      "trendDeclining": "下降",
+      "trendStable": "稳定",
+      "suggestions": "优化建议",
+      "thresholdAdjusted": "反思阈值调整",
+      "newThreshold": "新阈值",
+      "evolutionTriggerAdjusted": "进化触发条件调整",
+      "moreAggressive": "更积极触发进化",
+      "moreConservative": "更保守触发进化",
+      "autoLearningHistory": "自动学习闭环历史",
+      "noHistory": "尚无学习历史",
+      "reflection": "反思",
+      "evolution": "进化",
+      "selfImprovement": "自改进",
+      "rl": "RL",
+      "statusSuccess": "成功",
+      "statusFailed": "失败",
+      "statusSkipped": "跳过"
     },
     "common": {
       "cancel": "取消",

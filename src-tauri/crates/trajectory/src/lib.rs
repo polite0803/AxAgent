@@ -50,6 +50,7 @@ mod memory_provider;
 mod memory_providers;
 #[allow(dead_code)]
 mod nudge;
+pub mod numeric_evolution;
 mod parallel_execution;
 mod pattern;
 mod proactive_assistant;
@@ -63,7 +64,7 @@ mod skill;
 #[allow(dead_code)]
 mod skill_decomposition;
 #[allow(dead_code)]
-mod skill_evolution;
+pub mod skill_evolution;
 #[allow(dead_code)]
 mod skill_proposal;
 mod skills_hub_adapter;
@@ -181,7 +182,12 @@ pub use skill_decomposition::{
     CompositeSkillData, DecompositionResult, SkillDecomposer, ToolResolver,
 };
 
+pub use skill_evolution::EvolutionConfig;
 pub use skill_evolution::SkillEvolutionEngine;
+
+pub use numeric_evolution::{
+    NumericEvolutionEngine, NumericEvolutionStats, NumericGenome, ParamDef,
+};
 
 pub use skill_proposal::SkillProposalService;
 
