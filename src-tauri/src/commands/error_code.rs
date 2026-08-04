@@ -582,6 +582,8 @@ pub mod device_sync {
     pub const INSUFFICIENT_TRUST_LEVEL: &str = "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL";
     /// 设备权限不存在
     pub const PERMISSIONS_NOT_FOUND: &str = "DEVICE_SYNC_PERMISSIONS_NOT_FOUND";
+    /// 设备未初始化
+    pub const DEVICE_NOT_INITIALIZED: &str = "DEVICE_SYNC_DEVICE_NOT_INITIALIZED";
 
     // ─── 权限管理 ────────────────────────────────────────────────────
     /// 权限不足
