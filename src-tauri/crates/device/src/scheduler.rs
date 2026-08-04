@@ -437,7 +437,7 @@ mod tests {
 
         // 初始化设备权限
         {
-            let mut store = permission_store.write().await;
+            let store = permission_store.write().await;
             store
                 .init_device_permissions("device-1", axagent_harness::device_sync::TrustLevel::Full)
                 .await;

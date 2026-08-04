@@ -161,7 +161,7 @@ mod tests {
     async fn setup_checker() -> PermissionChecker {
         let store = Arc::new(RwLock::new(PermissionStore::new()));
         {
-            let mut s = store.write().await;
+            let s = store.write().await;
             s.init_device_permissions("device-1", TrustLevel::Full).await;
             s.init_device_permissions("device-2", TrustLevel::Standard).await;
         }

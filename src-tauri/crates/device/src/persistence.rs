@@ -227,7 +227,6 @@ impl<T: Clone> CachedStore<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
 
     #[tokio::test]
     async fn test_persistence_config() {

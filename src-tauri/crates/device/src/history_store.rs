@@ -244,6 +244,7 @@ impl Default for HistoryStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory_storage::MemorySyncStorage;
     use axagent_harness::device_sync::{SyncDirection, SyncResult, SyncType};
 
     fn create_test_history_entry() -> SyncHistoryEntry {
