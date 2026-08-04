@@ -701,7 +701,7 @@ mod tests {
     #[test]
     fn engine_creation_default() {
         let engine = StockAdaptiveEngine::new();
-        assert_eq!(engine.config.auto_evolve, true);
+        assert!(engine.config.auto_evolve);
         assert_eq!(engine.config.max_consecutive_evolutions, 3);
     }
 
@@ -713,7 +713,7 @@ mod tests {
             ..Default::default()
         };
         let engine = StockAdaptiveEngine::with_config(config);
-        assert_eq!(engine.config.auto_evolve, false);
+        assert!(!engine.config.auto_evolve);
         assert_eq!(engine.config.max_consecutive_evolutions, 5);
     }
 
