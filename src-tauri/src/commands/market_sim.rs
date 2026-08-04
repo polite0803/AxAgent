@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 use axagent_market_sim::{
     ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel, SimResult,
     ValueAgent,
@@ -28,7 +29,6 @@ use axagent_market_sim::{
     monte_carlo::{MonteCarloEngine, ScenarioConfig, ScenarioType},
 };
 use axagent_quant::{BollStrategy, MaCrossStrategy, MacdStrategy, RsiStrategy, TurtleStrategy};
-use agent_macro::agent_command;
 
 /// 前端传入的模拟请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]

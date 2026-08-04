@@ -2712,10 +2712,7 @@ mod tests {
         let config = DomainMappingConfig::default();
 
         // 检查是否包含 invest 工具域映射
-        let invest_mapping = config
-            .mappings
-            .iter()
-            .find(|m| m.tool_domain == "invest");
+        let invest_mapping = config.mappings.iter().find(|m| m.tool_domain == "invest");
         assert!(invest_mapping.is_some(), "应该包含 invest 工具域映射");
 
         let invest_mapping = invest_mapping.unwrap();
@@ -2746,10 +2743,7 @@ mod tests {
         assert!(opc_mapping.is_some(), "应该包含 opc 工具域映射");
 
         let opc_mapping = opc_mapping.unwrap();
-        assert!(
-            opc_mapping.command_domains.contains(&CommandDomain::Opc),
-            "opc 映射应包含 Opc 域"
-        );
+        assert!(opc_mapping.command_domains.contains(&CommandDomain::Opc), "opc 映射应包含 Opc 域");
     }
 
     /// 测试 DomainMappingConfig 包含 quant 和 portfolio 独立工具域映射
@@ -2774,28 +2768,13 @@ mod tests {
         let resolved = config.resolve_command_domains(&active_domains);
 
         // 应该包含默认域
-        assert!(
-            resolved.contains(&CommandDomain::Core),
-            "应该包含 Core 默认域"
-        );
+        assert!(resolved.contains(&CommandDomain::Core), "应该包含 Core 默认域");
 
         // 应该包含 invest 映射的业务域
-        assert!(
-            resolved.contains(&CommandDomain::Invest),
-            "应该包含 Invest 域"
-        );
-        assert!(
-            resolved.contains(&CommandDomain::Quant),
-            "应该包含 Quant 域"
-        );
-        assert!(
-            resolved.contains(&CommandDomain::MarketSim),
-            "应该包含 MarketSim 域"
-        );
-        assert!(
-            resolved.contains(&CommandDomain::Portfolio),
-            "应该包含 Portfolio 域"
-        );
+        assert!(resolved.contains(&CommandDomain::Invest), "应该包含 Invest 域");
+        assert!(resolved.contains(&CommandDomain::Quant), "应该包含 Quant 域");
+        assert!(resolved.contains(&CommandDomain::MarketSim), "应该包含 MarketSim 域");
+        assert!(resolved.contains(&CommandDomain::Portfolio), "应该包含 Portfolio 域");
     }
 
     /// 测试 resolve_command_domains 方法正确解析 opc 工具域
@@ -2819,10 +2798,7 @@ mod tests {
         let resolved = config.resolve_command_domains(&active_domains);
 
         // 空输入应该返回默认域
-        assert!(
-            resolved.contains(&CommandDomain::Core),
-            "空输入应返回 Core 默认域"
-        );
+        assert!(resolved.contains(&CommandDomain::Core), "空输入应返回 Core 默认域");
     }
 
     /// 测试 CommandRegistry 可以创建和查询
@@ -2831,10 +2807,7 @@ mod tests {
         let registry = CommandRegistry::from_registry();
 
         // 注册表应该成功创建
-        assert!(
-            !registry.is_empty() || registry.is_empty(),
-            "注册表应该成功创建（即使为空）"
-        );
+        assert!(!registry.is_empty() || registry.is_empty(), "注册表应该成功创建（即使为空）");
 
         // 测试 len 方法
         let _count = registry.len();
@@ -2865,14 +2838,8 @@ mod tests {
         let index_string = registry.build_index_string(&domains);
 
         // 验证索引字符串包含预期的格式
-        assert!(
-            index_string.contains("可用后端命令"),
-            "索引字符串应包含标题"
-        );
-        assert!(
-            index_string.contains("execute_tauri_command"),
-            "索引字符串应包含调用说明"
-        );
+        assert!(index_string.contains("可用后端命令"), "索引字符串应包含标题");
+        assert!(index_string.contains("execute_tauri_command"), "索引字符串应包含调用说明");
     }
 
     /// 测试 CommandCache 基本操作
@@ -2965,10 +2932,7 @@ mod tests {
 
         // 验证返回值
         assert!(!index.is_empty(), "预加载的索引不应为空");
-        assert!(
-            hit_rate >= 0.0 && hit_rate <= 1.0,
-            "命中率应在 0 到 1 之间"
-        );
+        assert!(hit_rate >= 0.0 && hit_rate <= 1.0, "命中率应在 0 到 1 之间");
     }
 
     /// 测试 build_command_index_string 便捷函数

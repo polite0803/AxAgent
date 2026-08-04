@@ -73,9 +73,14 @@ fn generate_domain_document(
     doc.push_str(&format!("> 命令数量: {}\n\n", commands.len()));
 
     // 安全级别统计
-    let safe_count = commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Safe).count();
-    let caution_count = commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Caution).count();
-    let dangerous_count = commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Dangerous).count();
+    let safe_count =
+        commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Safe).count();
+    let caution_count =
+        commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Caution).count();
+    let dangerous_count = commands
+        .iter()
+        .filter(|c| c.safety == agent_command_types::CommandSafety::Dangerous)
+        .count();
 
     doc.push_str("## 安全级别分布\n\n");
     doc.push_str("| 级别 | 数量 | 说明 |\n");
@@ -125,10 +130,7 @@ fn generate_domain_document(
             get_safety_display_name(cmd.safety),
             cmd.safety.as_str()
         ));
-        doc.push_str(&format!(
-            "- **调用模式**: {}\n\n",
-            get_call_mode_display_name(cmd.call_mode)
-        ));
+        doc.push_str(&format!("- **调用模式**: {}\n\n", get_call_mode_display_name(cmd.call_mode)));
     }
 
     doc

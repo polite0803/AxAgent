@@ -1,5 +1,4 @@
 use super::decision::QualityPrecheckResult;
-use agent_macro::agent_command;
 use super::decision::{
     build_dashboard_from_workflow_result, compute_decision_agreement, data_quality_precheck,
     extract_decision_fields, extract_decision_json, extract_llm_decision_json,
@@ -8,6 +7,7 @@ use super::decision::{
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_entities::price_alerts;
 use axagent_entities::stock_analyses;

@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::AppState;
-use axagent_orchestrator::{ReinforcementLearningConfig, RewardWeightConfig};
 use agent_macro::agent_command;
+use axagent_orchestrator::{ReinforcementLearningConfig, RewardWeightConfig};
 
 /// 行业操作类型
 #[derive(Debug, Clone, Serialize, Deserialize)]

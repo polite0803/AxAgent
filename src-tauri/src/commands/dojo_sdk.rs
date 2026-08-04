@@ -19,6 +19,7 @@
 //! 完成注册。注册后所有 MCP 工具调用 `dojo_*` / `sector_precomputed_*` 都会路由到这里。
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_astock_data::mcp_tools::DojoSdkExecutor;
 use axagent_harness::plan_types::{
     Phase, PhaseStatus, PlannedTask, ReplanAction, ReplanReason, TaskStatus,
@@ -28,7 +29,6 @@ use axagent_quant::{
     BacktestConfig, BacktestEngine, BollStrategy, MaCrossStrategy, MacdStrategy, MatcherConfig,
     RsiStrategy, TurtleStrategy,
 };
-use agent_macro::agent_command;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};

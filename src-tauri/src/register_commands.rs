@@ -1102,18 +1102,18 @@ macro_rules! register_all_commands {
             // G5 Multi-Agent 固定角色 pool
             commands::multi_agent::delegate_task,
             commands::multi_agent::list_multi_agent_roles,
-            
+
             // G14 DojoSDK 工具集（前端 IPC 入口）
             commands::dojo_sdk::dojo_sdk_execute_tool,
             commands::dojo_sdk::dojo_sdk_list_tools,
             commands::dojo_sdk::dojo_sdk_is_ready,
-            
+
             // 荐股定时推送任务
             commands::recommendation_cron::create_recommendation_cron,
             commands::recommendation_cron::list_recommendation_crons,
             commands::recommendation_cron::toggle_recommendation_cron,
             commands::recommendation_cron::delete_recommendation_cron,
-            
+
             // ── 股票工作流命令（用子模块完整路径，Tauri 宏生成的 __cmd__ 符号在子模块中）──
             commands::stock_workflow::reco_history::batch_delete_reco_history,
             commands::stock_workflow::reco_history::delete_serenity_pick,
@@ -1136,7 +1136,7 @@ macro_rules! register_all_commands {
             commands::stock_workflow::misc::get_cross_stock_aggregator_buffer,
             commands::stock_workflow::misc::get_sector_coherence_report,
             commands::stock_workflow::misc::scan_sector_coherence,
-            
+
             // ── 轻量级一次性对话补全（stub，供 AgentGeneratorModal 使用）──
             commands::agent::simple_chat_completion,
             // Fleet（多办公室 AI 团队）
