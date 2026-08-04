@@ -124,7 +124,7 @@ export function EncryptionSettingsPanel() {
                     label: (
                       <Space>
                         <SafetyCertificateOutlined />
-                        AES-256-GCM (推荐)
+                        {`AES-256-GCM ${t("deviceSync.encryption.recommended")}`}
                       </Space>
                     ),
                   },

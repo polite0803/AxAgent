@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "成员执行任务失败",
     "FLEET_TARGET_NOT_IN_FLEET": "目标成员不存在于该办公室",
     "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
+    "DEVICE_NOT_INITIALIZED": "设备未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "设备未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "设备已配对",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "设备未配对",
@@ -9020,7 +9021,8 @@
       "testSuccess": "加密测试成功",
       "testFailed": "加密测试失败",
       "lastEncryptedTitle": "上次加密时间",
-      "errorTitle": "加密错误"
+      "errorTitle": "加密错误",
+      "recommended": "(推荐)"
     },
     "realtime": {
       "title": "实时推送状态",
@@ -9116,6 +9118,24 @@
     "strategy_last_write_wins": "最后写入胜出",
     "strategy_keep_local": "保留本地",
     "strategy_keep_remote": "保留远程",
-    "strategy_keep_both": "保留双方"
+    "strategy_keep_both": "保留双方",
+    "trust": {
+      "backup_only": "仅备份",
+      "standard": "标准",
+      "full": "完全信任",
+      "backup_only_desc": "仅用于备份，不可同步",
+      "standard_desc": "可同步对话和设置",
+      "full_desc": "完整同步所有数据"
+    },
+    "entity": {
+      "conversation": "会话",
+      "message": "消息",
+      "setting": "设置",
+      "file": "文件",
+      "wiki": "Wiki",
+      "knowledge": "知识库",
+      "agent": "智能体",
+      "workflow": "工作流"
+    }
   }
 }

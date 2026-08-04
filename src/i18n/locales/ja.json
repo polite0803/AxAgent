@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "メンバーのタスク実行に失敗しました",
     "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません",
     "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します",
+    "DEVICE_NOT_INITIALIZED": "デバイスが初期化されていません",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "デバイスが見つかりません",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "デバイスは既にペアリングされています",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "デバイスはペアリングされていません",
@@ -9020,7 +9021,8 @@
       "testSuccess": "暗号化テスト成功",
       "testFailed": "暗号化テスト失敗",
       "lastEncryptedTitle": "最終暗号化時間",
-      "errorTitle": "暗号化エラー"
+      "errorTitle": "暗号化エラー",
+      "recommended": "(推奨)"
     },
     "realtime": {
       "title": "リアルタイムプッシュ状態",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "最後の書き込みが勝つ",
     "strategy_keep_local": "ローカルを保持",
     "strategy_keep_remote": "リモートを保持",
-    "strategy_keep_both": "両方を保持"
+    "strategy_keep_both": "両方を保持",
+    "trust": {
+      "backup_only": "バックアップのみ",
+      "standard": "標準",
+      "full": "完全信頼",
+      "backup_only_desc": "バックアップのみ、同期不可",
+      "standard_desc": "会話と設定を同期可能",
+      "full_desc": "すべてのデータを完全同期"
+    },
+    "entity": {
+      "conversation": "会話",
+      "message": "メッセージ",
+      "setting": "設定",
+      "file": "ファイル",
+      "wiki": "Wiki",
+      "knowledge": "ナレッジベース",
+      "agent": "エージェント",
+      "workflow": "ワークフロー"
+    }
   }
 }

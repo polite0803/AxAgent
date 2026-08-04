@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
     "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室",
     "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員",
+    "DEVICE_NOT_INITIALIZED": "裝置未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "裝置未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "裝置已配對",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "裝置未配對",
@@ -9020,7 +9021,8 @@
       "testSuccess": "加密測試成功",
       "testFailed": "加密測試失敗",
       "lastEncryptedTitle": "上次加密時間",
-      "errorTitle": "加密錯誤"
+      "errorTitle": "加密錯誤",
+      "recommended": "(推薦)"
     },
     "realtime": {
       "title": "即時推送狀態",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "最後寫入勝出",
     "strategy_keep_local": "保留本地",
     "strategy_keep_remote": "保留遠端",
-    "strategy_keep_both": "保留雙方"
+    "strategy_keep_both": "保留雙方",
+    "trust": {
+      "backup_only": "僅備份",
+      "standard": "標準",
+      "full": "完全信任",
+      "backup_only_desc": "僅用於備份，不可同步",
+      "standard_desc": "可同步對話和設定",
+      "full_desc": "完整同步所有資料"
+    },
+    "entity": {
+      "conversation": "對話",
+      "message": "訊息",
+      "setting": "設定",
+      "file": "檔案",
+      "wiki": "Wiki",
+      "knowledge": "知識庫",
+      "agent": "智能體",
+      "workflow": "工作流"
+    }
   }
 }

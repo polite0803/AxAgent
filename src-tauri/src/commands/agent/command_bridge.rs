@@ -2386,7 +2386,7 @@ fn resolve_command_path(short_name: &str) -> Result<String, String> {
 
 /// 构造命令调用参数
 fn build_invoke_args(args: &Value) -> Option<&Value> {
-    if args.is_null() || (args.is_object() && args.as_object().map_or(true, |m| m.is_empty())) {
+    if args.is_null() || (args.is_object() && args.as_object().is_none_or(|m| m.is_empty())) {
         None
     } else {
         Some(args)

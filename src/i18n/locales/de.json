@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "Mitglied konnte die Aufgabe nicht ausführen",
     "FLEET_TARGET_NOT_IN_FLEET": "Zielmitglied existiert nicht in diesem Büro",
     "FLEET_SLUG_EXISTS": "In diesem Büro existiert bereits ein Mitglied mit diesem Slug",
+    "DEVICE_NOT_INITIALIZED": "Gerät nicht initialisiert",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Gerät nicht gefunden",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Gerät bereits gekoppelt",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Gerät nicht gekoppelt",
@@ -9020,7 +9021,8 @@
       "testSuccess": "Verschlüsselungstest erfolgreich",
       "testFailed": "Verschlüsselungstest fehlgeschlagen",
       "lastEncryptedTitle": "Letzter Verschlüsselungszeitpunkt",
-      "errorTitle": "Verschlüsselungsfehler"
+      "errorTitle": "Verschlüsselungsfehler",
+      "recommended": "(Empfohlen)"
     },
     "realtime": {
       "title": "Echtzeit-Push-Status",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "Letzter Schreibzugriff gewinnt",
     "strategy_keep_local": "Lokal behalten",
     "strategy_keep_remote": "Remote behalten",
-    "strategy_keep_both": "Beide behalten"
+    "strategy_keep_both": "Beide behalten",
+    "trust": {
+      "backup_only": "Nur Backup",
+      "standard": "Standard",
+      "full": "Vollvertrauen",
+      "backup_only_desc": "Nur für Backup, keine Synchronisation",
+      "standard_desc": "Synchronisierung von Gesprächen und Einstellungen",
+      "full_desc": "Vollständige Synchronisierung aller Daten"
+    },
+    "entity": {
+      "conversation": "Gespräch",
+      "message": "Nachricht",
+      "setting": "Einstellung",
+      "file": "Datei",
+      "wiki": "Wiki",
+      "knowledge": "Wissensdatenbank",
+      "agent": "Agent",
+      "workflow": "Arbeitsablauf"
+    }
   }
 }

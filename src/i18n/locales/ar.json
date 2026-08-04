@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "فشل العضو في تنفيذ المهمة",
     "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب",
     "FLEET_SLUG_EXISTS": "يوجد عضو بهذا المعرف بالفعل في هذا المكتب",
+    "DEVICE_NOT_INITIALIZED": "الجهاز غير مهيأ",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "الجهاز غير موجود",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "الجهاز مقترن بالفعل",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "الجهاز غير مقترن",
@@ -9020,7 +9021,8 @@
       "testSuccess": "اختبار التشفير ناجح",
       "testFailed": "فشل اختبار التشفير",
       "lastEncryptedTitle": "آخر وقت للتشفير",
-      "errorTitle": "خطأ في التشفير"
+      "errorTitle": "خطأ في التشفير",
+      "recommended": "(موصى به)"
     },
     "realtime": {
       "title": "حالة الدفع في الوقت الفعلي",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "آخر كتابة يفوز",
     "strategy_keep_local": "الاحتفاظ بالمحلي",
     "strategy_keep_remote": "الاحتفاظ بالبعيد",
-    "strategy_keep_both": "الاحتفاظ بالكليهما"
+    "strategy_keep_both": "الاحتفاظ بالكليهما",
+    "trust": {
+      "backup_only": "نسخ احتياطي فقط",
+      "standard": "قياسي",
+      "full": "ثقة كاملة",
+      "backup_only_desc": "للنسخ الاحتياطي فقط، لا يمكن المزامنة",
+      "standard_desc": "يمكنه مزامنة المحادثات والإعدادات",
+      "full_desc": "مزامنة كاملة لجميع البيانات"
+    },
+    "entity": {
+      "conversation": "محادثة",
+      "message": "رسالة",
+      "setting": "إعداد",
+      "file": "ملف",
+      "wiki": "Wiki",
+      "knowledge": "قاعدة معرفة",
+      "agent": "وكيل",
+      "workflow": "سير العمل"
+    }
   }
 }

@@ -26,26 +26,23 @@ import { SyncPolicyPanel } from "./SyncPolicyPanel";
 const { Title, Text, Paragraph } = Typography;
 
 /** 信任级别配置 */
-const TRUST_LEVEL_CONFIG: Record<
-  TrustLevel,
-  { label: string; color: string; description: string }
-> = {
+const getTrustLevelConfig = (t: (key: string) => string) => ({
   backup_only: {
-    label: "仅备份",
+    label: t("deviceSync.trust.backup_only"),
     color: "default",
-    description: "仅用于备份，不可同步",
+    description: t("deviceSync.trust.backup_only_desc"),
   },
   standard: {
-    label: "标准",
+    label: t("deviceSync.trust.standard"),
     color: "blue",
-    description: "可同步对话和设置",
+    description: t("deviceSync.trust.standard_desc"),
   },
   full: {
-    label: "完全信任",
+    label: t("deviceSync.trust.full"),
     color: "green",
-    description: "完整同步所有数据",
+    description: t("deviceSync.trust.full_desc"),
   },
-};
+});
 
 /** 设备类型图标 */
 function DeviceIcon({ type }: { type: string }) {
@@ -288,8 +285,8 @@ export function DeviceSyncPanel() {
                     title={
                       <Space>
                         {device.name}
-                        <Tag color={TRUST_LEVEL_CONFIG[device.trust_level].color}>
-                          {TRUST_LEVEL_CONFIG[device.trust_level].label}
+                        <Tag color={getTrustLevelConfig(t)[device.trust_level].color}>
+                          {getTrustLevelConfig(t)[device.trust_level].label}
                         </Tag>
                       </Space>
                     }
@@ -475,7 +472,7 @@ export function DeviceSyncPanel() {
           </Card>
           <Paragraph>{t("deviceSync.selectTrustLevel")}:</Paragraph>
           <Row gutter={[8, 8]}>
-            {Object.entries(TRUST_LEVEL_CONFIG).map(([level, config]) => (
+            {Object.entries(getTrustLevelConfig(t)).map(([level, config]) => (
               <Col span={8} key={level}>
                 <Button
                   block

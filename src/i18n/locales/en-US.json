@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "Member failed to execute the task",
     "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office",
     "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office",
+    "DEVICE_NOT_INITIALIZED": "Device not initialized",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Device not found",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Device already paired",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Device not paired",
@@ -9020,7 +9021,8 @@
       "testSuccess": "Encryption test successful",
       "testFailed": "Encryption test failed",
       "lastEncryptedTitle": "Last Encryption Time",
-      "errorTitle": "Encryption Error"
+      "errorTitle": "Encryption Error",
+      "recommended": "(Recommended)"
     },
     "realtime": {
       "title": "Real-time Push Status",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "Last Write Wins",
     "strategy_keep_local": "Keep Local",
     "strategy_keep_remote": "Keep Remote",
-    "strategy_keep_both": "Keep Both"
+    "strategy_keep_both": "Keep Both",
+    "trust": {
+      "backup_only": "Backup Only",
+      "standard": "Standard",
+      "full": "Full Trust",
+      "backup_only_desc": "Backup only, cannot sync",
+      "standard_desc": "Can sync conversations and settings",
+      "full_desc": "Full sync of all data"
+    },
+    "entity": {
+      "conversation": "Conversation",
+      "message": "Message",
+      "setting": "Settings",
+      "file": "File",
+      "wiki": "Wiki",
+      "knowledge": "Knowledge Base",
+      "agent": "Agent",
+      "workflow": "Workflow"
+    }
   }
 }

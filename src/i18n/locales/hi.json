@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "सदस्य कार्य निष्पादित करने में विफल रहा",
     "FLEET_TARGET_NOT_IN_FLEET": "लक्ष्य सदस्य इस ऑफिस में मौजूद नहीं है",
     "FLEET_SLUG_EXISTS": "इस ऑफिस में इस slug वाला सदस्य पहले से मौजूद है",
+    "DEVICE_NOT_INITIALIZED": "डिवाइस इनिशियलाइज़ नहीं हुआ",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "डिवाइस नहीं मिला",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "डिवाइस पहले से पेयर है",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "डिवाइस पेयर नहीं है",
@@ -9020,7 +9021,8 @@
       "testSuccess": "एन्क्रिप्शन परीक्षण सफल",
       "testFailed": "एन्क्रिप्शन परीक्षण विफल",
       "lastEncryptedTitle": "अंतिम एन्क्रिप्शन समय",
-      "errorTitle": "एन्क्रिप्शन त्रुटि"
+      "errorTitle": "एन्क्रिप्शन त्रुटि",
+      "recommended": "(अनुशंसित)"
     },
     "realtime": {
       "title": "रियल-टाइम पुश स्थिति",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "अंतिम लेख जीतता है",
     "strategy_keep_local": "स्थानीय रखें",
     "strategy_keep_remote": "रिमोट रखें",
-    "strategy_keep_both": "दोनों रखें"
+    "strategy_keep_both": "दोनों रखें",
+    "trust": {
+      "backup_only": "केवल बैकअप",
+      "standard": "मानक",
+      "full": "पूर्ण भरोसा",
+      "backup_only_desc": "केवल बैकअप के लिए, सिंक नहीं",
+      "standard_desc": "बातचीत और सेटिंग्स सिंक कर सकते हैं",
+      "full_desc": "सभी डेटा का पूर्ण सिंक"
+    },
+    "entity": {
+      "conversation": "बातचीत",
+      "message": "संदेश",
+      "setting": "सेटिंग",
+      "file": "फ़ाइल",
+      "wiki": "Wiki",
+      "knowledge": "ज्ञान कोष",
+      "agent": "एजेंट",
+      "workflow": "वर्कफ़्लो"
+    }
   }
 }

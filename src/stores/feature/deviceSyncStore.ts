@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import type {
   AuditLogEntry,
@@ -456,7 +457,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   pushChanges: async (changes) => {
     const deviceId = get().localDeviceId;
     if (!deviceId) {
-      set({ error: "设备未初始化" });
+      set({ error: i18n.t("error.DEVICE_NOT_INITIALIZED") });
       return [];
     }
     try {
@@ -480,7 +481,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   pullChanges: async (sinceTimestamp) => {
     const deviceId = get().localDeviceId;
     if (!deviceId) {
-      set({ error: "设备未初始化" });
+      set({ error: i18n.t("error.DEVICE_NOT_INITIALIZED") });
       return [];
     }
     try {
@@ -499,7 +500,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   resolveConflict: async (conflictId, strategy) => {
     const deviceId = get().localDeviceId;
     if (!deviceId) {
-      set({ error: "设备未初始化" });
+      set({ error: i18n.t("error.DEVICE_NOT_INITIALIZED") });
       return;
     }
     try {
@@ -523,7 +524,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   getSyncStatus: async () => {
     const deviceId = get().localDeviceId;
     if (!deviceId) {
-      set({ error: "设备未初始化" });
+      set({ error: i18n.t("error.DEVICE_NOT_INITIALIZED") });
       return null;
     }
     try {

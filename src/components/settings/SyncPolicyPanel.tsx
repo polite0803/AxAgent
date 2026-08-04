@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useDeviceSyncStore } from "@/stores";
-import type { ConflictResolutionStrategy, EntityType, SyncPolicyUpdate } from "@/types";
+import type { SyncPolicyUpdate } from "@/types";
 import { SaveOutlined, SettingOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Checkbox, Col, Form, InputNumber, message, Row, Select, Space, Switch, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /** 实体类型选项 */
-const ENTITY_TYPE_OPTIONS: { value: EntityType; label: string }[] = [
-  { value: "conversation", label: "会话" },
-  { value: "message", label: "消息" },
-  { value: "setting", label: "设置" },
-  { value: "file", label: "文件" },
-  { value: "wiki", label: "Wiki" },
-  { value: "knowledge", label: "知识库" },
-  { value: "agent", label: "智能体" },
-  { value: "workflow", label: "工作流" },
+const getEntityTypeOptions = (t: (key: string) => string) => [
+  { value: "conversation", label: t("deviceSync.entity.conversation") },
+  { value: "message", label: t("deviceSync.entity.message") },
+  { value: "setting", label: t("deviceSync.entity.setting") },
+  { value: "file", label: t("deviceSync.entity.file") },
+  { value: "wiki", label: t("deviceSync.entity.wiki") },
+  { value: "knowledge", label: t("deviceSync.entity.knowledge") },
+  { value: "agent", label: t("deviceSync.entity.agent") },
+  { value: "workflow", label: t("deviceSync.entity.workflow") },
 ];
 
 /** 冲突解决策略选项 */
-const STRATEGY_OPTIONS: { value: ConflictResolutionStrategy; label: string }[] = [
-  { value: "last_write_wins", label: "最后写入胜出" },
-  { value: "keep_local", label: "保留本地" },
-  { value: "keep_remote", label: "保留远程" },
-  { value: "keep_both", label: "保留双方" },
+const getStrategyOptions = (t: (key: string) => string) => [
+  { value: "last_write_wins", label: t("deviceSync.strategy_last_write_wins") },
+  { value: "keep_local", label: t("deviceSync.strategy_keep_local") },
+  { value: "keep_remote", label: t("deviceSync.strategy_keep_remote") },
+  { value: "keep_both", label: t("deviceSync.strategy_keep_both") },
 ];
 
 /** 同步策略配置面板 */
@@ -129,7 +129,7 @@ export function SyncPolicyPanel() {
                   rules={[{ required: true }]}
                 >
                   <Select>
-                    {STRATEGY_OPTIONS.map((opt) => (
+                    {getStrategyOptions(t).map((opt) => (
                       <Select.Option key={opt.value} value={opt.value}>
                         {opt.label}
                       </Select.Option>
@@ -196,7 +196,7 @@ export function SyncPolicyPanel() {
             >
               <Checkbox.Group>
                 <Row gutter={[16, 8]}>
-                  {ENTITY_TYPE_OPTIONS.map((opt) => (
+                  {getEntityTypeOptions(t).map((opt) => (
                     <Col span={8} key={opt.value}>
                       <Checkbox value={opt.value}>{opt.label}</Checkbox>
                     </Col>

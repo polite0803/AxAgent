@@ -25,10 +25,10 @@ import { useTranslation } from "react-i18next";
 const { Title, Text } = Typography;
 
 /** 信任级别选项 */
-const TRUST_LEVEL_OPTIONS = [
-  { value: "backup_only", label: "仅备份", color: "default" },
-  { value: "standard", label: "标准", color: "blue" },
-  { value: "full", label: "完全信任", color: "green" },
+const getTrustLevelOptions = (t: (key: string) => string) => [
+  { value: "backup_only", label: t("deviceSync.trust.backup_only"), color: "default" },
+  { value: "standard", label: t("deviceSync.trust.standard"), color: "blue" },
+  { value: "full", label: t("deviceSync.trust.full"), color: "green" },
 ];
 
 /** 权限编辑弹窗 */
@@ -115,7 +115,7 @@ function PermissionEditModal({
             onChange={setTrustLevel}
             style={{ width: "100%", marginBottom: 16 }}
           >
-            {TRUST_LEVEL_OPTIONS.map((opt) => (
+            {getTrustLevelOptions(t).map((opt) => (
               <Select.Option key={opt.value} value={opt.value}>
                 <Tag color={opt.color}>{opt.label}</Tag>
               </Select.Option>
@@ -219,7 +219,7 @@ export function DevicePermissionsPanel() {
       key: "trust_level",
       width: 120,
       render: (level: string) => {
-        const opt = TRUST_LEVEL_OPTIONS.find((o) => o.value === level);
+        const opt = getTrustLevelOptions(t).find((o) => o.value === level);
         return <Tag color={opt?.color || "default"}>{opt?.label || level}</Tag>;
       },
     },

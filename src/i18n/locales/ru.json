@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "Участнику не удалось выполнить задачу",
     "FLEET_TARGET_NOT_IN_FLEET": "Целевой участник не существует в этом офисе",
     "FLEET_SLUG_EXISTS": "Участник с таким slug уже существует в этом офисе",
+    "DEVICE_NOT_INITIALIZED": "Устройство не инициализировано",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Устройство не найдено",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Устройство уже сопряжено",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Устройство не сопряжено",
@@ -9020,7 +9021,8 @@
       "testSuccess": "Тест шифрования успешен",
       "testFailed": "Ошибка теста шифрования",
       "lastEncryptedTitle": "Последнее время шифрования",
-      "errorTitle": "Ошибка шифрования"
+      "errorTitle": "Ошибка шифрования",
+      "recommended": "(Рекомендуется)"
     },
     "realtime": {
       "title": "Статус реальной передачи",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "Последняя запись побеждает",
     "strategy_keep_local": "Сохранить локальную",
     "strategy_keep_remote": "Сохранить удаленную",
-    "strategy_keep_both": "Сохранить обе"
+    "strategy_keep_both": "Сохранить обе",
+    "trust": {
+      "backup_only": "Только резервная копия",
+      "standard": "Стандарт",
+      "full": "Полное доверие",
+      "backup_only_desc": "Только для резервной копии, без синхронизации",
+      "standard_desc": "Синхронизация разговоров и настроек",
+      "full_desc": "Полная синхронизация всех данных"
+    },
+    "entity": {
+      "conversation": "Разговор",
+      "message": "Сообщение",
+      "setting": "Настройка",
+      "file": "Файл",
+      "wiki": "Wiki",
+      "knowledge": "База знаний",
+      "agent": "Агент",
+      "workflow": "Рабочий процесс"
+    }
   }
 }

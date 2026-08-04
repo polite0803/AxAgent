@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "구성원이 작업 실행에 실패했습니다",
     "FLEET_TARGET_NOT_IN_FLEET": "대상 구성원이 이 오피스에 존재하지 않습니다",
     "FLEET_SLUG_EXISTS": "이 오피스에 동일한 slug의 구성원이 이미 있습니다",
+    "DEVICE_NOT_INITIALIZED": "기기가 초기화되지 않았습니다",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "장치를 찾을 수 없습니다",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "장치가 이미 페어링되었습니다",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "장치가 페어링되지 않았습니다",
@@ -9020,7 +9021,8 @@
       "testSuccess": "암호화 테스트 성공",
       "testFailed": "암호화 테스트 실패",
       "lastEncryptedTitle": "최종 암호화 시간",
-      "errorTitle": "암호화 오류"
+      "errorTitle": "암호화 오류",
+      "recommended": "(권장)"
     },
     "realtime": {
       "title": "실시간 푸시 상태",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "마지막 쓰기 우선",
     "strategy_keep_local": "로컬 유지",
     "strategy_keep_remote": "원격 유지",
-    "strategy_keep_both": "둘 다 유지"
+    "strategy_keep_both": "둘 다 유지",
+    "trust": {
+      "backup_only": "백업만",
+      "standard": "표준",
+      "full": "완전 신뢰",
+      "backup_only_desc": "백업만 사용, 동기화 불가",
+      "standard_desc": "대화 및 설정 동기화 가능",
+      "full_desc": "모든 데이터 완전 동기화"
+    },
+    "entity": {
+      "conversation": "대화",
+      "message": "메시지",
+      "setting": "설정",
+      "file": "파일",
+      "wiki": "Wiki",
+      "knowledge": "지식 베이스",
+      "agent": "에이전트",
+      "workflow": "워크플로우"
+    }
   }
 }

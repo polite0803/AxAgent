@@ -2218,6 +2218,7 @@
     "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
     "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau",
     "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau",
+    "DEVICE_NOT_INITIALIZED": "Appareil non initialisé",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Appareil non trouvé",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Appareil déjà jumelé",
     "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Appareil non jumelé",
@@ -9020,7 +9021,8 @@
       "testSuccess": "Test de chiffrement réussi",
       "testFailed": "Échec du test de chiffrement",
       "lastEncryptedTitle": "Dernière heure de chiffrement",
-      "errorTitle": "Erreur de chiffrement"
+      "errorTitle": "Erreur de chiffrement",
+      "recommended": "(Recommandé)"
     },
     "realtime": {
       "title": "État de la mise à jour en temps réel",
@@ -9114,6 +9116,24 @@
     "strategy_last_write_wins": "Dernière écriture prioritaire",
     "strategy_keep_local": "Garder local",
     "strategy_keep_remote": "Garder distant",
-    "strategy_keep_both": "Garder les deux"
+    "strategy_keep_both": "Garder les deux",
+    "trust": {
+      "backup_only": "Sauvegarde uniquement",
+      "standard": "Standard",
+      "full": "Confiance totale",
+      "backup_only_desc": "Sauvegarde uniquement, pas de synchronisation",
+      "standard_desc": "Synchroniser conversations et paramètres",
+      "full_desc": "Synchronisation complète de toutes les données"
+    },
+    "entity": {
+      "conversation": "Conversation",
+      "message": "Message",
+      "setting": "Paramètre",
+      "file": "Fichier",
+      "wiki": "Wiki",
+      "knowledge": "Base de connaissances",
+      "agent": "Agent",
+      "workflow": "Flux de travail"
+    }
   }
 }

@@ -1118,6 +1118,19 @@ fn platform_suffix() -> &'static str {
     {
         "ubuntu-x64"
     }
+    #[cfg(target_os = "android")]
+    {
+        "android"
+    }
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "linux",
+        target_os = "android"
+    )))]
+    {
+        "unknown"
+    }
 }
 
 /// 安装包文件扩展名
