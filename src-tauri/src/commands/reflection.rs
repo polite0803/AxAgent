@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_agent::{Reflection, TaskExecutionRecord};
 use chrono::Utc;
 use tauri::State;
 
+#[agent_command(domain = reflection, safety = Caution, call_mode = StateInput, description = "对任务执行进行反思")]
 #[tauri::command]
 pub async fn reflect_on_task(
     state: State<'_, AppState>,
@@ -31,18 +33,21 @@ pub async fn reflect_on_task(
     Ok(reflection)
 }
 
+#[agent_command(domain = reflection, safety = Safe, call_mode = StateOnly, description = "获取反思历史")]
 #[tauri::command]
 pub async fn get_reflection_history(state: State<'_, AppState>) -> Result<Vec<Reflection>, String> {
     let history = state.reflector.get_history().await;
     Ok(history)
 }
 
+#[agent_command(domain = reflection, safety = Dangerous, call_mode = StateOnly, description = "清空反思历史")]
 #[tauri::command]
 pub async fn clear_reflection_history(state: State<'_, AppState>) -> Result<(), String> {
     state.reflector.clear_history().await;
     Ok(())
 }
 
+#[agent_command(domain = reflection, safety = Safe, call_mode = StateInput, description = "获取反思洞察")]
 #[tauri::command]
 pub async fn get_reflection_insights(
     state: State<'_, AppState>,
@@ -62,6 +67,7 @@ pub async fn get_reflection_insights(
     Ok(insights)
 }
 
+#[agent_command(domain = reflection, safety = Safe, call_mode = StateInput, description = "搜索反思洞察")]
 #[tauri::command]
 pub async fn search_reflection_insights(
     state: State<'_, AppState>,
@@ -72,6 +78,7 @@ pub async fn search_reflection_insights(
     Ok(insights)
 }
 
+#[agent_command(domain = reflection, safety = Safe, call_mode = StateOnly, description = "获取洞察统计")]
 #[tauri::command]
 pub async fn get_reflection_insight_stats(
     state: State<'_, AppState>,

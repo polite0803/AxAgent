@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_harness::types::*;
 use axagent_harness::{
@@ -110,6 +111,7 @@ async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, 
     Ok(ResolvedProvider { model_id: model_id.to_string(), ctx, adapter })
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "列出记忆命名空间")]
 #[tauri::command]
 pub async fn list_memory_namespaces(
     state: State<'_, AppState>,
@@ -122,6 +124,7 @@ pub async fn list_memory_namespaces(
     })
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "创建记忆命名空间")]
 #[tauri::command]
 pub async fn create_memory_namespace(
     state: State<'_, AppState>,
@@ -135,6 +138,7 @@ pub async fn create_memory_namespace(
     })
 }
 
+#[agent_command(domain = memory, safety = Dangerous, call_mode = StateOnly, description = "删除记忆命名空间")]
 #[tauri::command]
 pub async fn delete_memory_namespace(state: State<'_, AppState>, id: String) -> Result<(), String> {
     validate_container_id(&id, "namespace_id")?;
@@ -173,6 +177,7 @@ pub async fn delete_memory_namespace(state: State<'_, AppState>, id: String) -> 
     })
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "更新记忆命名空间")]
 #[tauri::command]
 pub async fn update_memory_namespace(
     state: State<'_, AppState>,
@@ -187,6 +192,7 @@ pub async fn update_memory_namespace(
     })
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "列出记忆项")]
 #[tauri::command]
 pub async fn list_memory_items(
     state: State<'_, AppState>,
@@ -211,6 +217,7 @@ pub async fn list_memory_items(
     })
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "添加记忆项")]
 #[tauri::command]
 pub async fn add_memory_item(
     app: AppHandle,
@@ -282,6 +289,7 @@ pub async fn add_memory_item(
     }
 }
 
+#[agent_command(domain = memory, safety = Dangerous, call_mode = StateOnly, description = "删除记忆项")]
 #[tauri::command]
 pub async fn delete_memory_item(
     state: State<'_, AppState>,
@@ -308,6 +316,7 @@ pub async fn delete_memory_item(
     })
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "更新记忆项")]
 #[tauri::command]
 pub async fn update_memory_item(
     app: AppHandle,
@@ -378,6 +387,7 @@ pub async fn update_memory_item(
     Ok(item)
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "搜索记忆")]
 #[tauri::command]
 pub async fn search_memory(
     state: State<'_, AppState>,
@@ -450,6 +460,7 @@ pub async fn search_memory(
     Ok(results)
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "重建记忆索引")]
 #[tauri::command]
 pub async fn rebuild_memory_index(
     app: AppHandle,
@@ -513,6 +524,7 @@ pub async fn rebuild_memory_index(
     Ok(())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "自动提取增量记忆")]
 #[tauri::command]
 pub async fn auto_extract_incremental_memories(
     app: AppHandle,
@@ -776,6 +788,7 @@ pub async fn auto_extract_incremental_memories(
     }))
 }
 
+#[agent_command(domain = memory, safety = Dangerous, call_mode = StateOnly, description = "清空记忆索引")]
 #[tauri::command]
 pub async fn clear_memory_index(
     state: State<'_, AppState>,
@@ -814,6 +827,7 @@ pub async fn clear_memory_index(
     Ok(())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "重索引记忆项")]
 #[tauri::command]
 pub async fn reindex_memory_item(
     app: AppHandle,
@@ -864,6 +878,7 @@ pub async fn reindex_memory_item(
     Ok(())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "同步工作记忆到命名空间")]
 #[tauri::command]
 pub async fn sync_working_memory_to_namespace(
     app: AppHandle,
@@ -953,6 +968,7 @@ pub async fn sync_working_memory_to_namespace(
     Ok(synced)
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "重排序记忆命名空间")]
 #[tauri::command]
 pub async fn reorder_memory_namespaces(
     state: State<'_, AppState>,
@@ -968,6 +984,7 @@ pub async fn reorder_memory_namespaces(
     )
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "提升记忆条目")]
 #[tauri::command]
 pub async fn promote_memory_entry(
     state: State<'_, AppState>,
@@ -978,6 +995,7 @@ pub async fn promote_memory_entry(
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "降级记忆条目")]
 #[tauri::command]
 pub async fn demote_memory_entry(
     state: State<'_, AppState>,
@@ -988,6 +1006,7 @@ pub async fn demote_memory_entry(
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "去重添加记忆")]
 #[tauri::command]
 pub async fn add_memory_with_dedup(
     state: State<'_, AppState>,
@@ -999,6 +1018,7 @@ pub async fn add_memory_with_dedup(
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "应用记忆衰减")]
 #[tauri::command]
 pub async fn apply_memory_decay_tick(
     state: State<'_, AppState>,
@@ -1008,6 +1028,7 @@ pub async fn apply_memory_decay_tick(
     Ok(serde_json::json!({ "evicted_count": evicted }))
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "搜索工作记忆")]
 #[tauri::command]
 pub async fn search_working_memories(
     state: State<'_, AppState>,
@@ -1019,6 +1040,7 @@ pub async fn search_working_memories(
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "更新记忆重要性")]
 #[tauri::command]
 pub async fn update_memory_importance(
     state: State<'_, AppState>,
@@ -1030,6 +1052,7 @@ pub async fn update_memory_importance(
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取记忆层级统计")]
 #[tauri::command]
 pub async fn get_memory_tier_stats(
     state: State<'_, AppState>,
@@ -1039,6 +1062,7 @@ pub async fn get_memory_tier_stats(
     Ok(serde_json::to_value(usage).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "提取对话实体")]
 #[tauri::command]
 pub async fn extract_conversation_entities(
     state: State<'_, AppState>,
@@ -1174,6 +1198,7 @@ pub async fn extract_conversation_entities(
     }))
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "图搜索记忆")]
 #[tauri::command]
 pub async fn graph_search_memories(
     state: State<'_, AppState>,
@@ -1185,6 +1210,7 @@ pub async fn graph_search_memories(
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "消歧记忆实体")]
 #[tauri::command]
 pub async fn disambiguate_memory_entities(
     state: State<'_, AppState>,
@@ -1194,6 +1220,7 @@ pub async fn disambiguate_memory_entities(
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "列出知识图谱")]
 #[tauri::command]
 pub async fn list_knowledge_graph(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ms = state.memory_service.read().await;
@@ -1216,6 +1243,7 @@ pub async fn list_knowledge_graph(state: State<'_, AppState>) -> Result<serde_js
     }))
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "按时间搜索记忆")]
 #[tauri::command]
 pub async fn search_memories_by_time(
     state: State<'_, AppState>,
@@ -1228,6 +1256,7 @@ pub async fn search_memories_by_time(
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取时间分组记忆")]
 #[tauri::command]
 pub async fn get_memories_time_grouped(
     state: State<'_, AppState>,
@@ -1237,6 +1266,7 @@ pub async fn get_memories_time_grouped(
     Ok(serde_json::to_value(groups).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "解释性搜索记忆")]
 #[tauri::command]
 pub async fn search_memories_explained(
     state: State<'_, AppState>,
@@ -1248,6 +1278,7 @@ pub async fn search_memories_explained(
     Ok(serde_json::to_value(results).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取记忆来源")]
 #[tauri::command]
 pub async fn get_memory_provenance(
     state: State<'_, AppState>,
@@ -1277,6 +1308,7 @@ pub async fn get_memory_provenance(
     }
 }
 
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "发现记忆聚类")]
 #[tauri::command]
 pub async fn find_memory_clusters(
     state: State<'_, AppState>,
@@ -1287,6 +1319,7 @@ pub async fn find_memory_clusters(
     Ok(serde_json::to_value(clusters).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "合并记忆聚类")]
 #[tauri::command]
 pub async fn consolidate_memory_cluster(
     _app: AppHandle,
@@ -1358,6 +1391,7 @@ pub async fn consolidate_memory_cluster(
     Ok(serde_json::to_value(result).unwrap_or_default())
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "提交记忆反馈")]
 #[tauri::command]
 pub async fn submit_memory_feedback(
     state: State<'_, AppState>,
@@ -1407,6 +1441,7 @@ async fn check_semantic_duplicate(
     None
 }
 
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "提取对话记忆")]
 #[tauri::command]
 pub async fn extract_conversation_memories(
     app: AppHandle,
@@ -1655,6 +1690,7 @@ async fn update_conversation_memory_status(
 // ---------------------------------------------------------------------------
 
 /// 列出命名空间中的所有共享记忆条目
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "列出共享记忆")]
 #[tauri::command]
 pub async fn shared_memory_list(
     app_state: State<'_, AppState>,
@@ -1666,6 +1702,7 @@ pub async fn shared_memory_list(
 }
 
 /// 获取指定共享记忆条目
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取共享记忆")]
 #[tauri::command]
 pub async fn shared_memory_get(
     app_state: State<'_, AppState>,
@@ -1688,6 +1725,7 @@ pub async fn shared_memory_get(
 }
 
 /// 获取共享记忆统计信息
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取共享记忆统计")]
 #[tauri::command]
 pub async fn shared_memory_stats(
     app_state: State<'_, AppState>,
@@ -1703,6 +1741,7 @@ pub async fn shared_memory_stats(
 }
 
 /// 手动刷新记忆（前端触发）
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "刷新记忆")]
 #[tauri::command]
 pub async fn memory_flush(
     app_state: State<'_, AppState>,
@@ -1728,6 +1767,7 @@ pub async fn memory_flush(
 
 /// 三层记忆系统：晋升用户 namespace 中的 memory item 到下一 tier。
 /// 与 trajectory 的 promote_memory_entry 区别：本命令操作 memory_items 表，覆盖所有 namespace。
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "提升用户记忆项")]
 #[tauri::command]
 pub async fn promote_user_memory_item(
     state: State<'_, AppState>,
@@ -1742,6 +1782,7 @@ pub async fn promote_user_memory_item(
 }
 
 /// 三层记忆系统：降级用户 namespace 中的 memory item 到下一 tier。
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "降级用户记忆项")]
 #[tauri::command]
 pub async fn demote_user_memory_item(
     state: State<'_, AppState>,
@@ -1756,6 +1797,7 @@ pub async fn demote_user_memory_item(
 }
 
 /// 三层记忆系统：记录访问并可能触发自动晋升。
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "记录用户记忆访问")]
 #[tauri::command]
 pub async fn record_user_memory_access(
     state: State<'_, AppState>,
@@ -1775,6 +1817,7 @@ pub async fn record_user_memory_access(
 ///
 /// Reflector 自动沉淀的经验默认未确认（confirmed=0），
 /// 用户审核后调用此命令标记为已确认，之后才能晋升到 core 层。
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "确认记忆项")]
 #[tauri::command]
 pub async fn confirm_memory_item(
     state: State<'_, AppState>,
@@ -1790,6 +1833,7 @@ pub async fn confirm_memory_item(
 
 /// 三层记忆系统：手动触发一次全表衰减 tick（通常由定时器调用，此命令供管理员/调试用）。
 /// 返回 { expiredDeleted, lowScoreDeleted, capacityEvicted }
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "应用用户记忆衰减")]
 #[tauri::command]
 pub async fn apply_user_memory_decay_tick(
     state: State<'_, AppState>,
@@ -1815,6 +1859,7 @@ pub async fn apply_user_memory_decay_tick(
 ///
 /// 导出后，文件级 `scan_relevant_files` 检索即可取用到这些经验，
 /// 即使向量嵌入未配置也能通过 TF 关键词匹配检索。
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "导出记忆到项目文件")]
 #[tauri::command]
 pub async fn export_memories_to_project(
     state: State<'_, AppState>,
@@ -1882,6 +1927,7 @@ pub async fn export_memories_to_project(
 ///
 /// 扫描最近的对话消息，提取工具执行结果自动沉淀为 Memory 条目。
 /// 这是"Agent 执行→知识沉淀"闭环的核心机制。
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "存储工具结果到记忆")]
 #[tauri::command]
 pub async fn deposit_tool_results_to_memory(
     state: State<'_, AppState>,

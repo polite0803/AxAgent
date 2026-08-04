@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_agent::tool_recommender::patterns::{UsagePattern, UsagePatternDB};
 use axagent_agent::tool_recommender::{ContextAnalyzer, ToolRecommendation, ToolRecommender};
 use serde::{Deserialize, Serialize};
@@ -54,6 +55,7 @@ fn task_context_to_result(recommendation: ToolRecommendation) -> RecommendationR
     }
 }
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateInput, description = "分析任务需求")]
 #[command]
 pub fn analyze_task(task_description: String) -> Result<RecommendationResult, String> {
     let analyzer = ContextAnalyzer::new();
@@ -79,6 +81,7 @@ pub fn get_tool_recommendations(
     Ok(task_context_to_result(recommendation))
 }
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateOnly, description = "获取可用工具列表")]
 #[command]
 pub fn get_available_tools() -> Result<Vec<ToolInfo>, String> {
     let recommender = ToolRecommender::new();
@@ -105,6 +108,7 @@ pub struct ToolInfo {
     pub categories: Vec<String>,
 }
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateInput, description = "按分类获取工具")]
 #[command]
 pub fn get_tools_by_category(category: String) -> Result<Vec<ToolInfo>, String> {
     let recommender = ToolRecommender::new();
@@ -123,6 +127,7 @@ pub fn get_tools_by_category(category: String) -> Result<Vec<ToolInfo>, String> 
     Ok(tools)
 }
 
+#[agent_command(domain = tool, safety = Caution, call_mode = StateInput, description = "记录工具使用情况")]
 #[command]
 pub fn record_tool_usage(
     user_id: String,

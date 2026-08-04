@@ -8,6 +8,7 @@
 //! 真实命令路径上。
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_crypto::decrypt_key;
 use axagent_dao::repo::provider;
 use axagent_entities::provider_keys;
@@ -103,6 +104,7 @@ pub struct LlmDiagnoseRequest {
 /// - `summary` / `issues` / `suggestions` 为诊断内容
 /// - `fixes` 顶层数组 — 由系统通过 `dedup_fixes` 去重后用于批应用
 /// - `auto_apply` 标志 — true 时要求调用方配置 apply-with-validation hook
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "LLM增强诊断工作流")]
 #[tauri::command]
 pub async fn llm_diagnose_workflow(
     state: State<'_, AppState>,
@@ -297,6 +299,7 @@ pub struct ApplyDiagnosticFixesResult {
 /// - 原 6 种(set_node_field / delete_node / delete_edge / enable_retry /
 ///   set_timeout / remove_debater_step)不走后端 apply,仅记录在结果里
 ///   (`client_fix_count`),前端看到 > 0 时主动走本地 store 路径
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "批量应用诊断修复")]
 #[tauri::command]
 pub async fn apply_diagnostic_fixes(
     state: State<'_, AppState>,

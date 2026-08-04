@@ -323,6 +323,8 @@ pub struct AppState {
     #[cfg(target_os = "android")]
     pub sandbox_executor: Arc<()>,
     pub sync_engine: Option<Arc<SyncEngine>>,
+    /// 设备同步状态（多设备配对、同步引擎）
+    pub device_sync_state: Arc<tokio::sync::RwLock<crate::commands::device_sync::DeviceSyncState>>,
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub credential_manager: Arc<CredentialManager>,

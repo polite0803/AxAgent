@@ -972,6 +972,9 @@ mod tests_conversation {
             #[cfg(target_os = "android")]
             sandbox_executor: Arc::new(()),
             sync_engine: None,
+            device_sync_state: Arc::new(tokio::sync::RwLock::new(
+                crate::commands::device_sync::DeviceSyncState::new("test-device".to_string()),
+            )),
             plugin_manager: Arc::new(tokio::sync::RwLock::new(
                 axagent_plugins::PluginManager::new(axagent_plugins::PluginManagerConfig::new(
                     temp_dir.clone(),

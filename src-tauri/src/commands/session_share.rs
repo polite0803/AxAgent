@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::app_state::{ShareParticipant, SharePermissions, ShareSessionRecord};
+use agent_macro::agent_command;
 use serde::Serialize;
 use tauri::State;
 
@@ -45,6 +46,7 @@ fn generate_invite_code() -> String {
 // ─── Tauri 命令 ───
 
 /// 创建共享会话（或使用已有 conversation_id 更新权限），返回邀请码
+#[agent_command(domain = session, safety = Caution, call_mode = StateInput, description = "创建共享会话")]
 #[tauri::command]
 pub async fn create_share_session(
     state: State<'_, AppState>,
@@ -79,6 +81,7 @@ pub async fn create_share_session(
 }
 
 /// 通过邀请码加入共享会话
+#[agent_command(domain = session, safety = Caution, call_mode = StateInput, description = "加入共享会话")]
 #[tauri::command]
 pub async fn join_share_session(
     state: State<'_, AppState>,
@@ -115,6 +118,7 @@ pub async fn join_share_session(
 }
 
 /// 获取会话的参与者列表
+#[agent_command(domain = session, safety = Safe, call_mode = StateInput, description = "列出共享会话参与者")]
 #[tauri::command]
 pub async fn list_share_participants(
     state: State<'_, AppState>,

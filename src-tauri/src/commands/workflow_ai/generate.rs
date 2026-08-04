@@ -6,10 +6,12 @@ use super::helpers::{
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
+use agent_macro::agent_command;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "根据自然语言生成工作流")]
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn generate_workflow_from_prompt(
@@ -172,6 +174,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
     parse_llm_response(&prompt, &response.content, &resolved.model_id)
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "优化智能体提示词")]
 #[tauri::command]
 pub async fn optimize_agent_prompt(
     state: State<'_, AppState>,
@@ -252,6 +255,7 @@ Output ONLY the optimized prompt text, without any explanation or meta-commentar
     Ok(response.content)
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "推荐工作流节点类型")]
 #[tauri::command]
 pub async fn recommend_nodes(
     state: State<'_, AppState>,
@@ -613,6 +617,7 @@ pub struct AlternativeUI {
 }
 
 /// NL2Skill：从自然语言生成技能定义
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "从自然语言生成技能定义")]
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn generate_skill_from_prompt(
@@ -723,6 +728,7 @@ pub async fn generate_skill_from_prompt(
 }
 
 /// NL2UI：从自然语言生成动态 UI Schema
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "从自然语言生成UI Schema")]
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn generate_ui_from_prompt(

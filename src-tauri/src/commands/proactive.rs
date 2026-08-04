@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_trajectory::ProactiveSuggestionType;
 use axagent_trajectory::{
     ContextFeatures, ContextPredictor, PredictionResult as TrajectoryPredictionResult,
@@ -343,6 +344,7 @@ impl Default for ProactiveService {
     }
 }
 
+#[agent_command(domain = proactive, safety = Safe, call_mode = StateOnly, description = "列出主动建议")]
 #[tauri::command]
 pub async fn proactive_list_suggestions(
     state: State<'_, AppState>,
@@ -351,6 +353,7 @@ pub async fn proactive_list_suggestions(
     Ok(service.get_suggestions())
 }
 
+#[agent_command(domain = proactive, safety = Caution, call_mode = StateInput, description = "刷新主动建议")]
 #[tauri::command]
 pub async fn proactive_refresh_suggestions(
     state: State<'_, AppState>,
@@ -363,6 +366,7 @@ pub async fn proactive_refresh_suggestions(
     Ok(service.refresh_suggestions(features))
 }
 
+#[agent_command(domain = proactive, safety = Safe, call_mode = StateInput, description = "预测上下文意图")]
 #[tauri::command]
 pub async fn proactive_predict(
     state: State<'_, AppState>,
@@ -375,6 +379,7 @@ pub async fn proactive_predict(
     Ok(service.predict(features))
 }
 
+#[agent_command(domain = proactive, safety = Dangerous, call_mode = StateInput, description = "丢弃主动建议")]
 #[tauri::command]
 pub async fn proactive_dismiss_suggestion(
     state: State<'_, AppState>,
@@ -384,6 +389,7 @@ pub async fn proactive_dismiss_suggestion(
     Ok(service.dismiss_suggestion(&id))
 }
 
+#[agent_command(domain = proactive, safety = Caution, call_mode = StateInput, description = "接受主动建议")]
 #[tauri::command]
 pub async fn proactive_accept_suggestion(
     state: State<'_, AppState>,
@@ -393,6 +399,7 @@ pub async fn proactive_accept_suggestion(
     Ok(service.accept_suggestion(&id))
 }
 
+#[agent_command(domain = proactive, safety = Caution, call_mode = StateInput, description = "延后主动建议")]
 #[tauri::command]
 pub async fn proactive_snooze_suggestion(
     state: State<'_, AppState>,
@@ -403,6 +410,7 @@ pub async fn proactive_snooze_suggestion(
     Ok(service.snooze_suggestion(&id, duration))
 }
 
+#[agent_command(domain = proactive, safety = Caution, call_mode = StateInput, description = "启用或停用主动服务")]
 #[tauri::command]
 pub async fn proactive_set_enabled(
     state: State<'_, AppState>,
@@ -413,6 +421,7 @@ pub async fn proactive_set_enabled(
     Ok(true)
 }
 
+#[agent_command(domain = proactive, safety = Caution, call_mode = StateInput, description = "更新主动服务配置")]
 #[tauri::command]
 pub async fn proactive_update_config(
     state: State<'_, AppState>,
@@ -423,6 +432,7 @@ pub async fn proactive_update_config(
     Ok(true)
 }
 
+#[agent_command(domain = proactive, safety = Safe, call_mode = StateInput, description = "预取预测结果")]
 #[tauri::command]
 pub async fn proactive_prefetch(
     state: State<'_, AppState>,
@@ -432,6 +442,7 @@ pub async fn proactive_prefetch(
     Ok(service.prefetch_for_predictions(&predictions))
 }
 
+#[agent_command(domain = proactive, safety = Safe, call_mode = StateInput, description = "列出学习洞察")]
 #[tauri::command]
 pub async fn list_insights(
     state: State<'_, AppState>,

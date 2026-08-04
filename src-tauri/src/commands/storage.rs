@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
 use crate::commands::error_code::storage_path as storage_path_err;
+use agent_macro::agent_command;
 use axagent_storage::storage_inventory::{self, StorageInventory};
 use axagent_storage::storage_paths;
 use serde::Serialize;
@@ -11,11 +12,13 @@ use serde_json;
 use std::path::PathBuf;
 use tauri::State;
 
+#[agent_command(domain = storage, safety = Safe, call_mode = Manual, description = "获取存储目录信息")]
 #[tauri::command]
 pub async fn get_storage_inventory() -> Result<StorageInventory, String> {
     Ok(storage_inventory::scan_storage())
 }
 
+#[agent_command(domain = storage, safety = Safe, call_mode = Manual, description = "打开存储目录")]
 #[tauri::command]
 pub async fn open_storage_directory(app: tauri::AppHandle) -> Result<(), String> {
     let root = storage_paths::documents_root();
@@ -38,6 +41,7 @@ pub struct ChangeDocumentsRootResult {
 
 /// Validate a candidate documents root directory.
 /// Returns (is_empty, exists, writable).
+#[agent_command(domain = storage, safety = Safe, call_mode = Manual, description = "验证文档根目录")]
 #[tauri::command]
 pub async fn validate_documents_root(path: String) -> Result<ValidateResult, String> {
     let target = PathBuf::from(&path);
@@ -91,6 +95,7 @@ pub struct ValidateResult {
 
 /// Change the documents root to `new_path`.
 /// If `migrate` is true, copies all files from the current root.
+#[agent_command(domain = storage, safety = Caution, call_mode = StateInput, description = "更改文档根目录")]
 #[tauri::command]
 pub async fn change_documents_root(
     state: State<'_, AppState>,
@@ -203,6 +208,7 @@ pub async fn change_documents_root(
 }
 
 /// Reset documents root back to the platform default.
+#[agent_command(domain = storage, safety = Caution, call_mode = StateOnly, description = "重置文档根目录")]
 #[tauri::command]
 pub async fn reset_documents_root(state: State<'_, AppState>) -> Result<(), String> {
     let db = state.harness.db();
@@ -239,6 +245,7 @@ fn validate_secure_key(key: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[agent_command(domain = storage, safety = Caution, call_mode = StateInput, description = "安全存储键值")]
 #[tauri::command]
 pub async fn secure_store(
     _state: State<'_, AppState>,
@@ -283,6 +290,7 @@ pub async fn secure_store(
 }
 
 /// 解密之前通过 secure_store 存储的值。
+#[agent_command(domain = storage, safety = Safe, call_mode = StateInput, description = "安全获取键值")]
 #[tauri::command]
 pub async fn secure_get(
     _state: State<'_, AppState>,
@@ -322,6 +330,7 @@ pub async fn secure_get(
 }
 
 /// 删除一个 secure storage 键值对。
+#[agent_command(domain = storage, safety = Dangerous, call_mode = StateInput, description = "安全删除键值")]
 #[tauri::command]
 pub async fn secure_remove(_state: State<'_, AppState>, key: String) -> Result<(), String> {
     let dir = dirs::data_local_dir()

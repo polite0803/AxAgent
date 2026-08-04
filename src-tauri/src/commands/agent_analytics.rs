@@ -2,9 +2,11 @@
 
 use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory};
+use agent_macro::agent_command;
 use axagent_trajectory::TrajectoryQuery;
 use tauri::State;
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "轨迹统计")]
 #[tauri::command]
 pub async fn trajectory_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let stats = app_state
@@ -16,6 +18,7 @@ pub async fn trajectory_stats(app_state: State<'_, AppState>) -> Result<serde_js
         .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "轨迹列表")]
 #[tauri::command]
 pub async fn trajectory_list(
     app_state: State<'_, AppState>,
@@ -31,6 +34,7 @@ pub async fn trajectory_list(
     Ok(trajectories.iter().filter_map(|t| serde_json::to_value(t).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取轨迹详情")]
 #[tauri::command]
 pub async fn get_trajectory_detail(
     app_state: State<'_, AppState>,
@@ -50,6 +54,7 @@ pub async fn get_trajectory_detail(
         .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "模式统计")]
 #[tauri::command]
 pub async fn pattern_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let pl = app_state.pattern_learner.read().await;
@@ -58,6 +63,7 @@ pub async fn pattern_stats(app_state: State<'_, AppState>) -> Result<serde_json:
         .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "闭环状态")]
 #[tauri::command]
 pub async fn closed_loop_status(
     app_state: State<'_, AppState>,
@@ -74,6 +80,7 @@ pub async fn closed_loop_status(
     }))
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "强化学习配置")]
 #[tauri::command]
 pub async fn rl_config(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let rl = app_state.rl_engine.read().await;
@@ -83,6 +90,7 @@ pub async fn rl_config(app_state: State<'_, AppState>) -> Result<serde_json::Val
     }))
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "导出训练数据")]
 #[tauri::command]
 pub async fn rl_export_training_data(
     app_state: State<'_, AppState>,
@@ -104,6 +112,7 @@ pub async fn rl_export_training_data(
     Ok(entries.iter().filter_map(|e| serde_json::to_value(e).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "计算奖励")]
 #[tauri::command]
 pub async fn rl_compute_rewards(
     app_state: State<'_, AppState>,
@@ -145,6 +154,7 @@ pub async fn rl_compute_rewards(
 // ---------------------------------------------------------------------------
 
 /// 记录反馈信号用于 RealTimeLearning
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "记录反馈")]
 #[tauri::command]
 pub async fn record_feedback(
     app_state: State<'_, AppState>,

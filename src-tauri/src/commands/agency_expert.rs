@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::expert as expert_err;
+use agent_macro::agent_command;
 use axagent_dao::repo::provider::{self as provider_repo, get_active_key};
 use axagent_dao::repo::settings::get_settings;
 use axagent_entities::agency_experts;
@@ -301,164 +302,32 @@ fn generate_workflow_ids(expert_id: &str, workflows: &[RecommendedWorkflow]) -> 
         .collect()
 }
 
+/// 从指定目录导入机构专家（供种子化等非 Tauri 命令场景调用）。
 pub(crate) async fn import_agency_experts_from_dir(
     db: &sea_orm::DatabaseConnection,
     path: &str,
 ) -> Result<ImportResult, String> {
-    let base_path = std::path::Path::new(path);
-
-    if !base_path.exists() || !base_path.is_dir() {
-        return Err(format!("路径不存在或不是目录: {}", path));
-    }
-
-    let now = chrono::Utc::now().timestamp();
-    let mut count: u32 = 0;
-    let mut workflows_created: u32 = 0;
-    let mut tools_matched: u32 = 0;
-    let mut errors: Vec<String> = Vec::new();
-
-    let entries = std::fs::read_dir(base_path).map_err(|e| format!("读取目录失败: {}", e))?;
-
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("读取条目失败: {}", e))?;
-        let entry_path = entry.path();
-        if !entry_path.is_dir() {
-            continue;
-        }
-
-        let dir_name = entry_path.file_name().unwrap_or_default().to_string_lossy().to_string();
-        if dir_name.starts_with('.')
-            || dir_name == "scripts"
-            || dir_name == "examples"
-            || dir_name == "integrations"
-        {
-            continue;
-        }
-
-        let category = map_directory_to_category(&dir_name);
-        let md_files =
-            std::fs::read_dir(&entry_path).map_err(|e| format!("读取目录失败: {}", e))?;
-
-        for md_entry in md_files {
-            let md_entry = md_entry.map_err(|e| format!("读取文件失败: {}", e))?;
-            let md_path = md_entry.path();
-            if md_path.extension().is_none_or(|ext| ext != "md") {
-                continue;
-            }
-
-            let file_stem = md_path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-            let content = match std::fs::read_to_string(&md_path) {
-                Ok(c) => c,
-                Err(e) => {
-                    errors.push(format!("读取文件失败 {}: {}", md_path.display(), e));
-                    continue;
-                },
-            };
-
-            let (name, description, color, body) = parse_frontmatter(&content);
-            let display_name = if name.is_empty() {
-                file_stem
-                    .strip_prefix(&format!("{}-", dir_name))
-                    .unwrap_or(&file_stem)
-                    .replace('-', " ")
-            } else {
-                name.clone()
-            };
-
-            if display_name.trim().is_empty() {
-                continue;
-            }
-
-            let id = format!("agency-{}-{}", dir_name, file_stem);
-            let final_category = map_color_to_category(&color).unwrap_or(category).to_string();
-
-            // 解析推荐工作流与工具
-            let parsed_workflows = parse_workflow_from_prompt(&body, &id);
-            let created_wf_ids = generate_workflow_ids(&id, &parsed_workflows);
-            workflows_created += created_wf_ids.len() as u32;
-
-            let parsed_tools = parse_tools_from_prompt(&body);
-            tools_matched += parsed_tools.len() as u32;
-
-            let recommended_workflows_json = if created_wf_ids.is_empty() {
-                None
-            } else {
-                Some(serde_json::to_string(&created_wf_ids).unwrap_or_default())
-            };
-            let recommended_tools_json = if parsed_tools.is_empty() {
-                None
-            } else {
-                Some(serde_json::to_string(&parsed_tools).unwrap_or_default())
-            };
-
-            let model = agency_experts::ActiveModel {
-                id: Set(id.clone()),
-                name: Set(display_name),
-                description: Set(if description.is_empty() {
-                    None
-                } else {
-                    Some(description)
-                }),
-                category: Set(final_category),
-                system_prompt: Set(body),
-                color: Set(if color.is_empty() { None } else { Some(color) }),
-                source_dir: Set(dir_name.clone()),
-                is_enabled: Set(1),
-                imported_at: Set(now),
-                recommended_workflows: Set(recommended_workflows_json),
-                recommended_tools: Set(recommended_tools_json),
-                active_domains: Set(None),
-                // 新增字段：导入时不解析，保留为 None，由前端编辑时填充
-                seniority: Set(None),
-                specialties: Set(None),
-                parent_role_id: Set(None),
-                success_rate: Set(None),
-                avg_latency_ms: Set(None),
-                avg_token_cost: Set(None),
-            };
-
-            // 使用 UPSERT 支持重复导入：已存在的记录会被更新
-            // 注意：UPSERT 不更新新增字段（seniority/specialties/parent_role_id 等），
-            // 避免导入时覆盖用户已编辑的值
-            match agency_experts::Entity::insert(model)
-                .on_conflict(
-                    sea_orm::sea_query::OnConflict::column(agency_experts::Column::Id)
-                        .update_columns([
-                            agency_experts::Column::Name,
-                            agency_experts::Column::Description,
-                            agency_experts::Column::Category,
-                            agency_experts::Column::SystemPrompt,
-                            agency_experts::Column::Color,
-                            agency_experts::Column::SourceDir,
-                            agency_experts::Column::ImportedAt,
-                            agency_experts::Column::RecommendedWorkflows,
-                            agency_experts::Column::RecommendedTools,
-                        ])
-                        .to_owned(),
-                )
-                .exec(db)
-                .await
-            {
-                Ok(_) => count += 1,
-                Err(e) => errors.push(format!("插入失败 {}: {}", id, e)),
-            }
-        }
-    }
-
-    Ok(ImportResult { count, workflows_created, tools_matched, errors })
+    import_experts_impl(db, Path::new(path)).await
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "导入机构专家")]
 #[tauri::command]
 pub async fn import_agency_experts(
     state: State<'_, AppState>,
     request: ImportAgencyExpertsRequest,
 ) -> Result<ImportResult, String> {
     let db = state.harness.db();
-    let path = Path::new(&request.path);
+    import_experts_impl(db, Path::new(&request.path)).await
+}
 
+/// 核心导入实现：从目录扫描 .md 文件并 UPSERT 到 agency_experts 表。
+async fn import_experts_impl(
+    db: &sea_orm::DatabaseConnection,
+    path: &Path,
+) -> Result<ImportResult, String> {
     if !path.exists() || !path.is_dir() {
         return Err(ErrorResponse::new(expert_err::READ_DIR_FAILED)
-            .with_detail(format!("路径不存在或不是目录: {}", request.path))
+            .with_detail(format!("路径不存在或不是目录: {}", path.display()))
             .to_string());
     }
 
@@ -617,6 +486,7 @@ pub async fn import_agency_experts(
     Ok(ImportResult { count, workflows_created, tools_matched, errors })
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "列出机构专家")]
 #[tauri::command]
 pub async fn list_agency_experts(
     state: State<'_, AppState>,
@@ -711,6 +581,7 @@ fn extract_json_from_text(text: &str) -> Result<serde_json::Value, String> {
     Err("No JSON found in response".to_string())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "提取专家结构")]
 #[tauri::command]
 pub async fn extract_expert_structure(
     state: State<'_, AppState>,
@@ -882,6 +753,7 @@ pub async fn extract_expert_structure(
     Ok(ExtractExpertStructureResult { workflows, tools })
 }
 
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateOnly, description = "清空机构专家")]
 #[tauri::command]
 pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportResult, String> {
     let db = state.harness.db();
@@ -921,6 +793,7 @@ pub struct UpdateExpertRequest {
     pub avg_token_cost: Option<i64>,
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "更新机构专家")]
 #[tauri::command]
 pub async fn update_agency_expert(
     state: State<'_, AppState>,
@@ -1011,6 +884,7 @@ pub struct DeleteExpertRequest {
     pub id: String,
 }
 
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateInput, description = "删除机构专家")]
 #[tauri::command]
 pub async fn delete_agency_expert(
     state: State<'_, AppState>,
@@ -1023,6 +897,7 @@ pub async fn delete_agency_expert(
     Ok(())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "导出机构专家")]
 #[tauri::command]
 pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String, String> {
     let db = state.harness.db();

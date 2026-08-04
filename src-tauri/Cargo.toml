@@ -2,12 +2,16 @@
 members = [
   ".",
   "crates/agent",
+  "crates/agent-command-types",
+  "crates/agent-macro",
   "crates/astock-data",
   "crates/cache",
   "crates/company-runtime",
+  "crates/crdt",
   "crates/credential",
   "crates/crypto",
   "crates/dao",
+  "crates/device",
   "crates/disk-cache",
   "crates/document-parser",
   "crates/entities",
@@ -45,7 +49,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.8.8"
+version = "2.8.9"
 edition = "2024"
 license = "AGPL-3.0-only"
 
@@ -81,7 +85,7 @@ xcap = "0.9.6"
 
 [package]
 name = "axagent"
-version = "2.8.8"
+version = "2.8.9"
 authors = ["刘小平 <polite0803@outlook.com>"]
 default-run = "AxInvest"
 edition = "2024"
@@ -127,6 +131,8 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+agent-command-types = { path = "crates/agent-command-types" }
+agent-macro = { path = "crates/agent-macro" }
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
 axagent-astock-data = { path = "crates/astock-data" }
@@ -135,6 +141,8 @@ axagent-company-runtime = { path = "crates/company-runtime" }
 axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
+axagent-device = { path = "crates/device" }
+axagent-disk-cache = { path = "crates/disk-cache" }
 axagent-document-parser = { path = "crates/document-parser" }
 axagent-entities = { path = "crates/entities" }
 axagent-gateway = { path = "crates/gateway" }
@@ -171,9 +179,11 @@ chrono = { workspace = true }
 dashmap = { workspace = true }
 dirs = "6"
 feed-rs = "2"
+flate2 = "1"
 futures = "0.3"
 hex = { workspace = true }
 hostname = "0.4"
+inventory = "0.3"
 lazy_static = { workspace = true }
 notify = "9.0.0-rc.4"
 open = "5"
@@ -188,6 +198,7 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 sha2 = { workspace = true }
 sysinfo = "0.39"
+tar = "0.4"
 tauri = { version = "2.11.5", features = ["tray-icon", "image-png", "devtools"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
@@ -206,6 +217,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "chrono"] }
 urlencoding = "2"
 uuid = { workspace = true }
+walkdir = "2"
 zip = "8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

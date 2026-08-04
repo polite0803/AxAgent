@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_harness::types::{BranchComparison, ConversationBranch, WorkspaceSnapshot};
 use tauri::State;
 
@@ -11,6 +12,7 @@ fn err_to_string(e: axagent_harness::core_error::AxAgentError) -> String {
     String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
 }
 
+#[agent_command(domain = git, safety = Safe, call_mode = StateInput, description = "列出会话分支")]
 #[tauri::command]
 pub async fn list_branches(
     state: State<'_, AppState>,
@@ -21,6 +23,7 @@ pub async fn list_branches(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = git, safety = Caution, call_mode = StateInput, description = "分叉会话")]
 #[tauri::command]
 pub async fn fork_conversation(
     state: State<'_, AppState>,
@@ -43,6 +46,7 @@ pub async fn fork_conversation(
 /// - `common_prefix`:两条分支共享的前缀消息(从会话起点到分叉点)
 /// - `only_in_a` / `only_in_b`:仅在某条分支中存在的消息
 /// - `diverge_at`:分叉点消息 ID
+#[agent_command(domain = git, safety = Safe, call_mode = StateInput, description = "对比分支差异")]
 #[tauri::command]
 pub async fn compare_branches(
     state: State<'_, AppState>,
@@ -66,6 +70,7 @@ pub async fn compare_branches(
 ///   `conversations.workspace_snapshot_json` 反序列化
 /// - `branches`:从 `conversation_branches` 表实时拼装
 /// - `active_branch_id`:从 `conversations.active_branch_id` 读取
+#[agent_command(domain = git, safety = Safe, call_mode = StateInput, description = "获取工作区快照")]
 #[tauri::command]
 pub async fn get_workspace_snapshot(
     state: State<'_, AppState>,
@@ -110,6 +115,7 @@ pub async fn get_workspace_snapshot(
 ///    持久化进 JSON 会与表数据脱节)
 /// 2. 序列化剩余字段为 JSON,写入 `conversations.workspace_snapshot_json`
 /// 3. 若 `active_branch_id` 字段不为 None,同步更新 `conversations.active_branch_id`
+#[agent_command(domain = git, safety = Caution, call_mode = StateInput, description = "更新工作区快照")]
 #[tauri::command]
 pub async fn update_workspace_snapshot(
     state: State<'_, AppState>,

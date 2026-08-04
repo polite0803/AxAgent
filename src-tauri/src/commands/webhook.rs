@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::platform as platform_err;
+use agent_macro::agent_command;
 use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription, assert_url_safe};
 use tauri::State;
 
@@ -33,6 +34,7 @@ impl From<WebhookSubscription> for WebhookSubscriptionResponse {
     }
 }
 
+#[agent_command(domain = webhook, safety = Safe, call_mode = StateOnly, description = "列出 Webhook 订阅")]
 #[tauri::command]
 pub async fn webhook_list_subscriptions(
     state: State<'_, AppState>,
@@ -47,6 +49,7 @@ pub async fn webhook_list_subscriptions(
     Ok(subscriptions.into_iter().map(Into::into).collect())
 }
 
+#[agent_command(domain = webhook, safety = Caution, call_mode = StateInput, description = "创建 Webhook 订阅")]
 #[tauri::command]
 pub async fn webhook_create_subscription(
     state: State<'_, AppState>,
@@ -76,6 +79,7 @@ pub async fn webhook_create_subscription(
     Ok(subscription.into())
 }
 
+#[agent_command(domain = webhook, safety = Dangerous, call_mode = StateInput, description = "删除 Webhook 订阅")]
 #[tauri::command]
 pub async fn webhook_delete_subscription(
     state: State<'_, AppState>,
@@ -90,6 +94,7 @@ pub async fn webhook_delete_subscription(
     manager.unsubscribe(&subscription_id).await
 }
 
+#[agent_command(domain = webhook, safety = Caution, call_mode = StateInput, description = "切换 Webhook 订阅启用状态")]
 #[tauri::command]
 pub async fn webhook_toggle_subscription(
     state: State<'_, AppState>,
@@ -105,6 +110,7 @@ pub async fn webhook_toggle_subscription(
     manager.set_enabled(&subscription_id, enabled).await
 }
 
+#[agent_command(domain = webhook, safety = Safe, call_mode = StateInput, description = "测试 Webhook 订阅")]
 #[tauri::command]
 pub async fn webhook_test_subscription(
     state: State<'_, AppState>,
@@ -119,6 +125,7 @@ pub async fn webhook_test_subscription(
     manager.test_subscription(&subscription_id).await
 }
 
+#[agent_command(domain = webhook, safety = Caution, call_mode = StateOnly, description = "重新加载 Webhook 订阅")]
 #[tauri::command]
 pub async fn webhook_reload(state: State<'_, AppState>) -> Result<(), String> {
     let manager = state.webhook_subscription_manager.as_ref().ok_or_else(|| {

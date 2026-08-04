@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_harness::types::*;
 use tauri::State;
@@ -31,6 +32,7 @@ async fn resolve_link_api_key(
     }
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "列出网关链接")]
 #[tauri::command]
 pub async fn list_gateway_links(state: State<'_, AppState>) -> Result<Vec<GatewayLink>, String> {
     axagent_dao::repo::gateway_link::list_gateway_links(state.harness.db()).await.map_err(|e| {
@@ -41,6 +43,7 @@ pub async fn list_gateway_links(state: State<'_, AppState>) -> Result<Vec<Gatewa
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "创建网关链接")]
 #[tauri::command]
 pub async fn create_gateway_link(
     state: State<'_, AppState>,
@@ -86,6 +89,7 @@ pub async fn create_gateway_link(
         })
 }
 
+#[agent_command(domain = gateway, safety = Dangerous, call_mode = StateInput, description = "删除网关链接")]
 #[tauri::command]
 pub async fn delete_gateway_link(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::gateway_link::delete_gateway_link(state.harness.db(), &id).await.map_err(
@@ -98,6 +102,7 @@ pub async fn delete_gateway_link(state: State<'_, AppState>, id: String) -> Resu
     )
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "切换网关链接启用状态")]
 #[tauri::command]
 pub async fn toggle_gateway_link(
     state: State<'_, AppState>,
@@ -114,6 +119,7 @@ pub async fn toggle_gateway_link(
         })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "连接网关链接")]
 #[tauri::command]
 pub async fn connect_gateway_link(
     state: State<'_, AppState>,
@@ -145,6 +151,7 @@ pub async fn connect_gateway_link(
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "断开网关链接")]
 #[tauri::command]
 pub async fn disconnect_gateway_link(
     state: State<'_, AppState>,
@@ -160,6 +167,7 @@ pub async fn disconnect_gateway_link(
     )
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "更新网关链接状态")]
 #[tauri::command]
 pub async fn update_gateway_link_status(
     state: State<'_, AppState>,
@@ -186,6 +194,7 @@ pub async fn update_gateway_link_status(
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "更新网关同步设置")]
 #[tauri::command]
 pub async fn update_gateway_link_sync_settings(
     state: State<'_, AppState>,
@@ -208,6 +217,7 @@ pub async fn update_gateway_link_sync_settings(
     })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateInput, description = "获取网关模型同步列表")]
 #[tauri::command]
 pub async fn get_gateway_link_model_syncs(
     state: State<'_, AppState>,
@@ -223,6 +233,7 @@ pub async fn get_gateway_link_model_syncs(
         })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "推送模型到网关")]
 #[tauri::command]
 pub async fn push_gateway_link_models(
     state: State<'_, AppState>,
@@ -256,6 +267,7 @@ pub async fn push_gateway_link_models(
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "同步所有网关模型")]
 #[tauri::command]
 pub async fn sync_all_gateway_link_models(
     state: State<'_, AppState>,
@@ -287,6 +299,7 @@ pub async fn sync_all_gateway_link_models(
     })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateInput, description = "获取网关技能同步列表")]
 #[tauri::command]
 pub async fn get_gateway_link_skill_syncs(
     state: State<'_, AppState>,
@@ -318,6 +331,7 @@ pub async fn get_gateway_link_skill_syncs(
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "推送技能到网关")]
 #[tauri::command]
 pub async fn push_gateway_link_skills(
     state: State<'_, AppState>,
@@ -351,6 +365,7 @@ pub async fn push_gateway_link_skills(
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "同步所有网关技能")]
 #[tauri::command]
 pub async fn sync_all_gateway_link_skills(
     state: State<'_, AppState>,
@@ -382,6 +397,7 @@ pub async fn sync_all_gateway_link_skills(
     })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateInput, description = "获取网关策略")]
 #[tauri::command]
 pub async fn get_gateway_link_policy(
     state: State<'_, AppState>,
@@ -397,6 +413,7 @@ pub async fn get_gateway_link_policy(
         })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "保存网关策略")]
 #[tauri::command]
 pub async fn save_gateway_link_policy(
     state: State<'_, AppState>,
@@ -413,6 +430,7 @@ pub async fn save_gateway_link_policy(
         })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateInput, description = "获取网关活动记录")]
 #[tauri::command]
 pub async fn get_gateway_link_activities(
     state: State<'_, AppState>,
@@ -428,6 +446,7 @@ pub async fn get_gateway_link_activities(
         })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateInput, description = "创建网关会话")]
 #[tauri::command]
 pub async fn create_gateway_conversation(
     state: State<'_, AppState>,

@@ -33,6 +33,8 @@ use tokio_util::sync::CancellationToken;
 /// 失败时返回结构化错误，由调用方决定如何处理（错误展示 / 重试 / 退出）。
 /// 不再 `process::exit(1)`——harness 架构要求启动错误可被前端感知。
 pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, String> {
+    // 命令元数据已通过 inventory 在编译时自动收集，无需手动初始化
+
     let DatabaseInitResult { db_handle, master_key, db_path, app_dir, .. } = db_result;
 
     // 初始化 RLOptimizer 共享状态（优先从文件加载，自动持久化）
@@ -239,6 +241,24 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     platform_manager.set_message_callback(platform_bridge.clone()).await;
 
     let sync_engine = create_sync_engine(&sea_db, &app_settings).await;
+
+    // ── 设备同步状态初始化 ──
+    let local_device_id = axagent_device::manager::DeviceManagerImpl::create_local_device(
+        "This Device".to_string(),
+        hostname_or_uuid(),
+        std::env::consts::OS.to_string(),
+        env!("CARGO_PKG_VERSION").to_string(),
+    )
+    .device_id;
+    // 使用数据库存储（支持 PostgreSQL/SQLite 双数据库）
+    let sync_storage = Arc::new(axagent_dao::SyncStorageDb::new(sea_db.clone()));
+    let device_sync_state = Arc::new(tokio::sync::RwLock::new(
+        crate::commands::device_sync::DeviceSyncState::with_storage(
+            local_device_id,
+            sync_storage as Arc<dyn axagent_harness::device_sync::SyncStorage>,
+        )
+        .await,
+    ));
 
     let config_home = app_dir.clone();
     let mut plugin_config = PluginManagerConfig::new(config_home.clone());
@@ -1103,6 +1123,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         #[cfg(target_os = "android")]
         sandbox_executor: Arc::new(()),
         sync_engine,
+        device_sync_state,
         plugin_manager,
         file_authorizer,
         credential_manager,

@@ -22,6 +22,7 @@ use crate::commands::error_code::common as common_err;
 use crate::commands::error_code::file as file_err;
 use crate::commands::error_code::security as sec_err;
 use crate::commands::error_code::storage as storage_err;
+use agent_macro::agent_command;
 
 /// 目录条目（与前端 DirEntry 对齐，camelCase 序列化）
 #[derive(Debug, Clone, Serialize)]
@@ -108,6 +109,12 @@ fn modified_secs(meta: &std::fs::Metadata) -> Option<i64> {
 
 /// 列出指定目录下的文件和文件夹，按名称排序（目录优先）。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "列出指定目录下的文件和文件夹"
+)]
 pub async fn list_directory(path: String) -> Result<Vec<DirEntry>, String> {
     validate_path_input(&path).map_err(err_to_string)?;
     let abs = canonicalize_path(&path).map_err(err_to_string)?;
@@ -166,6 +173,12 @@ pub async fn list_directory(path: String) -> Result<Vec<DirEntry>, String> {
 
 /// 重命名文件或文件夹（仅修改最后一段名称，不允许跨目录移动）。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Caution,
+    call_mode = Manual,
+    description = "重命名文件或文件夹"
+)]
 pub async fn rename_entry(old_path: String, new_name: String) -> Result<(), String> {
     validate_path_input(&old_path).map_err(err_to_string)?;
     validate_new_name(&new_name).map_err(err_to_string)?;
@@ -195,6 +208,12 @@ pub async fn rename_entry(old_path: String, new_name: String) -> Result<(), Stri
 
 /// 移动文件/文件夹到目标目录。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Caution,
+    call_mode = Manual,
+    description = "移动文件或文件夹到目标目录"
+)]
 pub async fn move_entry(src_path: String, dst_dir: String) -> Result<(), String> {
     validate_path_input(&src_path).map_err(err_to_string)?;
     validate_path_input(&dst_dir).map_err(err_to_string)?;
@@ -233,6 +252,12 @@ pub async fn move_entry(src_path: String, dst_dir: String) -> Result<(), String>
 
 /// 创建目录（含父目录）。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Caution,
+    call_mode = Manual,
+    description = "创建目录（含父目录）"
+)]
 pub async fn create_directory(path: String) -> Result<(), String> {
     validate_path_input(&path).map_err(err_to_string)?;
     let abs = canonicalize_path(&path).map_err(err_to_string)?;
@@ -242,6 +267,12 @@ pub async fn create_directory(path: String) -> Result<(), String> {
 
 /// 删除文件或目录（recursive=true 时递归删除目录）。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Dangerous,
+    call_mode = Manual,
+    description = "删除文件或目录"
+)]
 pub async fn delete_entry(path: String, recursive: bool) -> Result<(), String> {
     validate_path_input(&path).map_err(err_to_string)?;
     let abs = canonicalize_path(&path).map_err(err_to_string)?;
@@ -271,6 +302,12 @@ pub async fn delete_entry(path: String, recursive: bool) -> Result<(), String> {
 
 /// 获取文件/目录的详细信息。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "获取文件或目录的详细信息"
+)]
 pub async fn get_file_info(path: String) -> Result<FileInfo, String> {
     validate_path_input(&path).map_err(err_to_string)?;
     let abs = canonicalize_path(&path).map_err(err_to_string)?;
@@ -310,6 +347,12 @@ const TEXT_PREVIEW_MAX_BYTES: u64 = 100 * 1024;
 ///
 /// 仅用于文本类文件预览，非 UTF-8 文件返回错误。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "读取文本文件内容用于预览"
+)]
 pub async fn read_text_file(path: String) -> Result<String, String> {
     validate_path_input(&path).map_err(err_to_string)?;
     let abs = canonicalize_path(&path).map_err(err_to_string)?;
@@ -369,6 +412,12 @@ pub async fn read_text_file(path: String) -> Result<String, String> {
 ///
 /// 供前端初始化 FileTreeView 的根路径使用。
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "获取默认文件浏览器根目录路径"
+)]
 pub async fn get_documents_root() -> Result<String, String> {
     let root = axagent_storage::storage_paths::documents_root();
     Ok(root.to_string_lossy().to_string())

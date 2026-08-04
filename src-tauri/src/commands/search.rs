@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::search as search_err;
@@ -8,6 +10,7 @@ use axagent_search::search::{SearchServiceConfig, execute_search_with_config};
 use tauri::command;
 
 /// 列出所有搜索提供商
+#[agent_command(domain = search, safety = Safe, call_mode = StateOnly, description = "列出所有搜索提供商")]
 #[command]
 pub async fn list_search_providers(
     state: tauri::State<'_, AppState>,
@@ -23,6 +26,7 @@ pub async fn list_search_providers(
 }
 
 /// 获取单个搜索提供商
+#[agent_command(domain = search, safety = Safe, call_mode = StateInput, description = "获取单个搜索提供商详情")]
 #[command]
 pub async fn get_search_provider(
     state: tauri::State<'_, AppState>,
@@ -39,6 +43,7 @@ pub async fn get_search_provider(
 }
 
 /// 创建搜索提供商
+#[agent_command(domain = search, safety = Caution, call_mode = StateInput, description = "创建新的搜索提供商")]
 #[command]
 pub async fn create_search_provider(
     state: tauri::State<'_, AppState>,
@@ -69,6 +74,7 @@ pub async fn create_search_provider(
 }
 
 /// 更新搜索提供商
+#[agent_command(domain = search, safety = Caution, call_mode = StateInput, description = "更新已有搜索提供商配置")]
 #[command]
 pub async fn update_search_provider(
     state: tauri::State<'_, AppState>,
@@ -98,6 +104,7 @@ pub async fn update_search_provider(
 }
 
 /// 删除搜索提供商
+#[agent_command(domain = search, safety = Dangerous, call_mode = StateInput, description = "删除指定搜索提供商")]
 #[command]
 pub async fn delete_search_provider(
     state: tauri::State<'_, AppState>,
@@ -147,6 +154,7 @@ async fn get_search_api_key(
 }
 
 /// 测试搜索提供商网络连通性（仅验证端点可达）
+#[agent_command(domain = search, safety = Safe, call_mode = StateInput, description = "测试搜索提供商网络连通性")]
 #[command]
 pub async fn test_search_provider(
     state: tauri::State<'_, AppState>,
@@ -204,6 +212,7 @@ pub async fn test_search_provider(
 
 /// 执行搜索
 /// 通过 search crate 统一执行，当 provider 无效或未配置时自动降级到 DuckDuckGo。
+#[agent_command(domain = search, safety = Safe, call_mode = StateInput, description = "执行搜索并返回结果")]
 #[command]
 pub async fn execute_search(
     state: tauri::State<'_, AppState>,

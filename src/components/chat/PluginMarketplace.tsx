@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { message } from "@/lib/toast";
-import { InstallOutcomeDto, PluginManifestDto, PluginSummaryDto } from "@/types";
+import { usePluginStore } from "@/stores";
+import type { PluginManifestDto } from "@/types";
 import { Badge, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography } from "antd";
 import { CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -11,75 +12,46 @@ const { Text, Title } = Typography;
 
 export function PluginMarketplace() {
   const { t } = useTranslation();
-  const [plugins, setPlugins] = useState<PluginSummaryDto[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [installing, setInstalling] = useState<string | null>(null);
+
+  // 从 usePluginStore 获取状态和方法
+  const plugins = usePluginStore((s) => s.plugins);
+  const loading = usePluginStore((s) => s.loading);
+  const installing = usePluginStore((s) => s.installing);
+  const validating = usePluginStore((s) => s.validating);
+  const loadPlugins = usePluginStore((s) => s.loadPlugins);
+  const validateSource = usePluginStore((s) => s.validateSource);
+  const installPlugin = usePluginStore((s) => s.installPlugin);
+  const enablePlugin = usePluginStore((s) => s.enablePlugin);
+  const disablePlugin = usePluginStore((s) => s.disablePlugin);
+  const uninstallPlugin = usePluginStore((s) => s.uninstallPlugin);
+
+  // 组件本地 UI 状态（不适合放入全局 Store 的交互状态）
   const [installInput, setInstallInput] = useState("");
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [confirmManifest, setConfirmManifest] = useState<PluginManifestDto | null>(
-    null,
-  );
+  const [confirmManifest, setConfirmManifest] = useState<PluginManifestDto | null>(null);
   const [confirmSource, setConfirmSource] = useState("");
 
-  const fetchPlugins = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { invoke, logIpcError } = await import("@/lib/invoke");
-      const data = await invoke<PluginSummaryDto[]>("plugin_list").catch((e) => {
-        if (import.meta.env.DEV) {
-          logIpcError("Failed to fetch plugins")(e);
-        }
-        return [];
-      });
-      setPlugins(data);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // 初始化加载插件列表
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const { invoke, logIpcError } = await import("@/lib/invoke");
-        const data = await invoke<PluginSummaryDto[]>("plugin_list").catch((e) => {
-          if (import.meta.env.DEV) {
-            logIpcError("Failed to fetch plugins")(e);
-          }
-          return [];
-        });
-        setPlugins(data);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    loadPlugins();
+  }, [loadPlugins]);
+
+  const handleRefresh = useCallback(() => {
+    loadPlugins();
+  }, [loadPlugins]);
 
   const handleSearchInstall = async () => {
     const source = installInput.trim();
     if (!source) {
       return;
     }
-    setSearchLoading(true);
-    try {
-      const { invoke } = await import("@/lib/invoke");
-      const manifest = await invoke<PluginManifestDto>("plugin_validate_source", {
-        source,
-      });
+
+    const manifest = await validateSource(source);
+    if (manifest) {
       setConfirmManifest(manifest);
       setConfirmSource(source);
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(
-        t("chat.plugins.marketplace.validateFailed", { error: errMsg }),
-      );
-    } finally {
-      setSearchLoading(false);
+    } else {
+      // validateSource 在 store 中已经处理了错误日志
+      // 这里可以根据需要补充提示
     }
   };
 
@@ -87,13 +59,9 @@ export function PluginMarketplace() {
     if (!confirmSource) {
       return;
     }
-    setInstalling(confirmSource);
-    setConfirmManifest(null);
-    try {
-      const { invoke } = await import("@/lib/invoke");
-      const result = await invoke<InstallOutcomeDto>("plugin_install", {
-        source: confirmSource,
-      });
+
+    const result = await installPlugin(confirmSource);
+    if (result) {
       message.success(
         t("chat.plugins.marketplace.installSuccess", {
           id: result.plugin_id,
@@ -102,38 +70,22 @@ export function PluginMarketplace() {
       );
       setInstallInput("");
       setConfirmSource("");
-      await fetchPlugins();
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      message.error(
-        t("chat.plugins.marketplace.installFailed", { error: errMsg }),
-      );
-    } finally {
-      setInstalling(null);
+      setConfirmManifest(null);
+    } else {
+      // installPlugin 在 store 中已经处理了错误日志
     }
   };
 
   const handleToggle = async (pluginId: string, enable: boolean) => {
-    try {
-      const { invoke } = await import("@/lib/invoke");
-      await invoke(enable ? "plugin_enable" : "plugin_disable", { pluginId });
-      await fetchPlugins();
-    } catch {
-      // ignore
+    if (enable) {
+      await enablePlugin(pluginId);
+    } else {
+      await disablePlugin(pluginId);
     }
   };
 
   const handleUninstall = async (pluginId: string) => {
-    setInstalling(pluginId);
-    try {
-      const { invoke } = await import("@/lib/invoke");
-      await invoke("plugin_uninstall", { pluginId });
-      await fetchPlugins();
-    } catch {
-      // ignore
-    } finally {
-      setInstalling(null);
-    }
+    await uninstallPlugin(pluginId);
   };
 
   return (
@@ -147,7 +99,7 @@ export function PluginMarketplace() {
             </Title>
             <Badge count={plugins.length} size="small" />
           </Space>
-          <Button size="small" onClick={fetchPlugins} loading={loading}>
+          <Button size="small" onClick={handleRefresh} loading={loading}>
             {t("chat.plugins.marketplace.refresh")}
           </Button>
         </div>
@@ -162,7 +114,7 @@ export function PluginMarketplace() {
             />
             <Button
               type="primary"
-              loading={searchLoading}
+              loading={validating}
               onClick={handleSearchInstall}
             >
               {t("chat.plugins.marketplace.install")}

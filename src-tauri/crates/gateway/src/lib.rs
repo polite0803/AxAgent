@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 pub mod auth;
+pub mod device_signal;
 pub mod handlers;
 pub mod marketplace_handlers;
 pub mod metrics;

@@ -13,6 +13,7 @@
 //! - `get_retrieval_feedback_stats`：查询反馈统计（RAG 自适应优化的输入）
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_dao::repo::retrieval_hit::{
     self, FEEDBACK_IRRELEVANT, FEEDBACK_NEGATIVE, FEEDBACK_POSITIVE, FeedbackStats, RetrievalHit,
 };
@@ -35,6 +36,7 @@ fn validate_feedback(fb: Option<&str>) -> Result<(), String> {
 }
 
 /// 按消息 ID 列出检索命中（前端展示引用列表 + 反馈 UI）。
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "按消息列出检索命中")]
 #[tauri::command]
 pub async fn list_retrieval_hits_by_message(
     state: State<'_, AppState>,
@@ -49,6 +51,7 @@ pub async fn list_retrieval_hits_by_message(
 }
 
 /// 按会话 ID 列出检索命中（会话级分析、反馈统计）。
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "按会话列出检索命中")]
 #[tauri::command]
 pub async fn list_retrieval_hits_by_conversation(
     state: State<'_, AppState>,
@@ -71,6 +74,7 @@ pub async fn list_retrieval_hits_by_conversation(
 /// - `"negative"`：负反馈（引用错误/不相关）
 /// - `"irrelevant"`：标记无关
 /// - `None`：清除反馈
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "更新检索命中反馈")]
 #[tauri::command]
 pub async fn update_retrieval_hit_feedback(
     state: State<'_, AppState>,
@@ -99,6 +103,7 @@ pub struct FeedbackStatsQuery {
 }
 
 /// 查询反馈统计（RAG 自适应优化的输入）。
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "获取检索反馈统计")]
 #[tauri::command]
 pub async fn get_retrieval_feedback_stats(
     state: State<'_, AppState>,
@@ -123,6 +128,7 @@ pub async fn get_retrieval_feedback_stats(
 /// 前端 CiteRefNode 只有 (message_id, document_id, chunk_ref)，
 /// 没有直接的 hit_id。本命令封装"按引用查找 + 更新反馈"两步操作，
 /// 让前端一次调用完成反馈提交。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "按引用更新检索反馈")]
 #[tauri::command]
 pub async fn update_retrieval_hit_feedback_by_ref(
     state: State<'_, AppState>,

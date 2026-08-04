@@ -611,3 +611,11 @@ pub use vault::{
     KbKind, LinkHit, NoteContent, NoteHit, NoteRef, OBSIDIAN_TOOL_NAMES, TagCount, VaultBinding,
     VaultError, VaultSource,
 };
+
+// ── 设备同步契约（多端同步/管理的核心类型） ──
+pub mod device_sync;
+pub use device_sync::{
+    ChangeLogEntry, ChangeOperation, ConflictInfo, ConflictResolutionStrategy, DeviceInfo,
+    DeviceManager, DeviceSyncStatus, DeviceType, EntityType, PairingCode, PairingRequest,
+    PairingResponse, SyncEngine, SyncResult, TrustLevel, VersionVectorEntry,
+};

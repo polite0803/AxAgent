@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 #[cfg(not(target_os = "android"))]
 use axagent_kit::browser_automation::{
     ExtractedElement, NavigateResult, PlaywrightClient, ScreenshotResult, validate_browser_url,
@@ -36,6 +38,7 @@ async fn ensure_browser_client(state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateInput, description = "浏览器导航到指定URL")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_navigate(
@@ -63,6 +66,7 @@ pub async fn browser_navigate(
     })
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = StateInput, description = "浏览器页面截图")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_screenshot(
@@ -80,6 +84,7 @@ pub async fn browser_screenshot(
     })
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateInput, description = "浏览器点击元素")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Result<(), String> {
@@ -94,6 +99,7 @@ pub async fn browser_click(state: State<'_, AppState>, selector: String) -> Resu
     })
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateInput, description = "浏览器填充表单")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_fill(
@@ -112,6 +118,7 @@ pub async fn browser_fill(
     })
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateInput, description = "浏览器输入文本")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_type(
@@ -130,6 +137,7 @@ pub async fn browser_type(
     })
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = StateInput, description = "浏览器提取元素文本")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_extract_text(
@@ -147,6 +155,7 @@ pub async fn browser_extract_text(
     })
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = StateInput, description = "浏览器提取所有元素")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_extract_all(
@@ -164,6 +173,7 @@ pub async fn browser_extract_all(
     })
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = StateOnly, description = "浏览器获取页面内容")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, String> {
@@ -178,6 +188,7 @@ pub async fn browser_get_content(state: State<'_, AppState>) -> Result<String, S
     })
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateInput, description = "浏览器等待元素")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_wait_for(
@@ -196,6 +207,7 @@ pub async fn browser_wait_for(
     })
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateInput, description = "浏览器选择选项")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_select(
@@ -214,6 +226,7 @@ pub async fn browser_select(
     })
 }
 
+#[agent_command(domain = browser, safety = Caution, call_mode = StateOnly, description = "关闭浏览器")]
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
 pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
@@ -229,66 +242,77 @@ pub async fn browser_close(state: State<'_, AppState>) -> Result<(), String> {
     Ok(())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器导航（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_navigate(_url: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器截图（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_screenshot(_full_page: Option<bool>) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器点击元素（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_click(_selector: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器填充表单（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_fill(_selector: String, _value: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器输入文本（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_type(_selector: String, _text: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器提取文本（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_extract_text(_selector: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器提取元素（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_extract_all(_selector: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器获取内容（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_get_content() -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器等待元素（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_wait_for(_selector: String, _timeout: Option<u32>) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "浏览器选择选项（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_select(_selector: String, _value: String) -> Result<(), String> {
     Err("Browser automation is not available on Android".to_string())
 }
 
+#[agent_command(domain = browser, safety = Safe, call_mode = Manual, description = "关闭浏览器（Android 不可用）")]
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub async fn browser_close() -> Result<(), String> {

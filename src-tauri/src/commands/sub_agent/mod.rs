@@ -3,10 +3,12 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
+use agent_macro::agent_command;
 use serde_json::Value;
 use tauri::State;
 
 /// 列出注册表中所有子代理
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "列出所有子代理")]
 #[tauri::command]
 pub async fn sub_agent_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
     let registry = app_state.sub_agent_registry.read().await;
@@ -15,6 +17,7 @@ pub async fn sub_agent_list(app_state: State<'_, AppState>) -> Result<Vec<Value>
 }
 
 /// 按 ID 获取指定子代理
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取指定子代理")]
 #[tauri::command]
 pub async fn sub_agent_get(
     app_state: State<'_, AppState>,
@@ -31,6 +34,7 @@ pub async fn sub_agent_get(
 }
 
 /// 获取父代理的子代理
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取子代理的子节点")]
 #[tauri::command]
 pub async fn sub_agent_get_children(
     app_state: State<'_, AppState>,
@@ -42,6 +46,7 @@ pub async fn sub_agent_get_children(
 }
 
 /// 获取代理的待处理消息
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取子代理待处理消息")]
 #[tauri::command]
 pub async fn sub_agent_get_messages(
     app_state: State<'_, AppState>,

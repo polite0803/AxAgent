@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 /// 将自然语言描述的定时任务转换为 cron 表达式。
 /// 基于规则匹配，无需 LLM 调用。
+#[agent_command(domain = scheduled_task, safety = Safe, call_mode = StateInput, description = "自然语言转 Cron 表达式")]
 #[tauri::command]
 pub async fn nl_to_cron(natural_language: String) -> Result<String, String> {
     let text = natural_language.trim().to_lowercase();

@@ -153,6 +153,14 @@ pub mod strategy_weight_history;
 pub mod trades;
 pub mod watchlist_items;
 
+// Sync entities
+pub mod sync_audit_log;
+pub mod sync_change_log;
+pub mod sync_device;
+pub mod sync_history;
+pub mod sync_permission;
+pub mod sync_policy;
+
 // Paper Overview Engine + Reading List & Queue
 pub mod paper_overviews;
 pub mod reading_list_items;

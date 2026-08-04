@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use tauri::State;
 
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateOnly, description = "列出对话分类")]
 #[tauri::command]
 pub async fn list_conversation_categories(
     state: State<'_, AppState>,
@@ -18,6 +20,7 @@ pub async fn list_conversation_categories(
         })
 }
 
+#[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "创建对话分类")]
 #[tauri::command]
 pub async fn create_conversation_category(
     state: State<'_, AppState>,
@@ -36,6 +39,7 @@ pub async fn create_conversation_category(
     })
 }
 
+#[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "更新对话分类")]
 #[tauri::command]
 pub async fn update_conversation_category(
     state: State<'_, AppState>,
@@ -56,6 +60,7 @@ pub async fn update_conversation_category(
     })
 }
 
+#[agent_command(domain = conversations, safety = Dangerous, call_mode = StateInput, description = "删除对话分类")]
 #[tauri::command]
 pub async fn delete_conversation_category(
     state: State<'_, AppState>,
@@ -71,6 +76,7 @@ pub async fn delete_conversation_category(
         })
 }
 
+#[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "重新排序对话分类")]
 #[tauri::command]
 pub async fn reorder_conversation_categories(
     state: State<'_, AppState>,
@@ -89,6 +95,7 @@ pub async fn reorder_conversation_categories(
     })
 }
 
+#[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "设置对话分类折叠状态")]
 #[tauri::command]
 pub async fn set_conversation_category_collapsed(
     state: State<'_, AppState>,

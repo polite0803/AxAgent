@@ -9,6 +9,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
+use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -32,6 +33,7 @@ pub struct HooksConfigDto {
     pub hooks: Vec<HookStateDto>,
 }
 
+#[agent_command(domain = hooks, safety = Safe, call_mode = StateOnly, description = "获取钩子配置")]
 #[tauri::command]
 pub async fn get_hooks_config(state: State<'_, AppState>) -> Result<HooksConfigDto, String> {
     let db = state.harness.db();
@@ -48,6 +50,7 @@ pub async fn get_hooks_config(state: State<'_, AppState>) -> Result<HooksConfigD
     }
 }
 
+#[agent_command(domain = hooks, safety = Caution, call_mode = StateInput, description = "保存钩子配置")]
 #[tauri::command]
 pub async fn save_hooks_config(
     state: State<'_, AppState>,

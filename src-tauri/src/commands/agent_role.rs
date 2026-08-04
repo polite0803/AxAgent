@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::AgentRoleDef;
 use serde::Serialize;
@@ -16,6 +17,7 @@ pub struct ImportAgentRolesResult {
 }
 
 /// 列出所有 AgentRole（内置 + 导入）
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "列出所有 AgentRole")]
 #[tauri::command]
 pub async fn list_agent_roles(
     app_state: State<'_, AppState>,
@@ -30,6 +32,7 @@ pub async fn list_agent_roles(
 }
 
 /// 从 Open Agent Spec 目录导入 AgentRole
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "从目录导入 AgentRole")]
 #[tauri::command]
 pub async fn import_agent_roles(
     app_state: State<'_, AppState>,
@@ -105,6 +108,7 @@ pub async fn import_agent_roles(
 }
 
 /// 快速更新 AgentRole 的 system_prompt
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "更新 AgentRole 提示词")]
 #[tauri::command]
 pub async fn update_agent_role(
     app_state: State<'_, AppState>,
@@ -135,6 +139,7 @@ pub async fn update_agent_role(
 }
 
 /// 删除导入的 AgentRole（builtin 不可删除）
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateInput, description = "删除 AgentRole")]
 #[tauri::command]
 pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Result<(), String> {
     let role = agent_role::get_agent_role(app_state.harness.db(), &id)
@@ -160,6 +165,7 @@ pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Re
 }
 
 /// 保存（创建/更新）AgentRole — 前端角色编辑器的后端入口。
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "保存 AgentRole")]
 #[tauri::command]
 pub async fn save_agent_role(
     app_state: State<'_, AppState>,

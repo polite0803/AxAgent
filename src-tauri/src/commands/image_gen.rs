@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_credential::CredentialType;
 use axagent_providers::image_gen::{
     DallEProvider, FluxProvider, ImageGenProvider, ImageGenRequest, ImageGenResponse,
@@ -40,6 +41,7 @@ async fn resolve_api_key(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[agent_command(domain = image_gen, safety = Safe, call_mode = StateInput, description = "生成图像")]
 #[command]
 pub async fn generate_image(
     state: State<'_, AppState>,

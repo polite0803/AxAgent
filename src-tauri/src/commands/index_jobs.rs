@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_dao::repo::index_jobs::{
     self, INDEX_JOB_STATUS_CANCELLED, INDEX_JOB_STATUS_COMPLETED, INDEX_JOB_STATUS_FAILED,
     INDEX_JOB_STATUS_PENDING, INDEX_JOB_STATUS_PROCESSING, IndexJob, JOB_TYPE_INDEX_DOCUMENT,
@@ -19,6 +20,7 @@ pub struct IndexQueueStats {
     pub failed: u64,
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "列出索引任务")]
 #[tauri::command]
 pub async fn index_jobs_list(
     state: State<'_, AppState>,
@@ -68,6 +70,7 @@ pub async fn index_jobs_list(
     Ok(models.into_iter().map(index_jobs::model_to_job).collect())
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "获取索引任务统计")]
 #[tauri::command]
 pub async fn index_jobs_stats(state: State<'_, AppState>) -> Result<IndexQueueStats, String> {
     let db = state.harness.db();
@@ -102,6 +105,7 @@ pub async fn index_jobs_stats(state: State<'_, AppState>) -> Result<IndexQueueSt
     Ok(IndexQueueStats { pending, running, completed, failed })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = Manual, description = "重试索引任务")]
 #[tauri::command]
 pub async fn index_jobs_retry(
     state: State<'_, AppState>,
@@ -127,6 +131,7 @@ pub async fn index_jobs_retry(
     Ok(job)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = Manual, description = "取消索引任务")]
 #[tauri::command]
 pub async fn index_jobs_cancel(
     state: State<'_, AppState>,
@@ -152,6 +157,7 @@ pub async fn index_jobs_cancel(
     Ok(job)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "重试所有失败任务")]
 #[tauri::command]
 pub async fn index_jobs_retry_all_failed(state: State<'_, AppState>) -> Result<u64, String> {
     let jobs = index_jobs::list_retryable_failed_jobs(state.harness.db()).await.map_err(|e| {
@@ -167,6 +173,7 @@ pub async fn index_jobs_retry_all_failed(state: State<'_, AppState>) -> Result<u
     Ok(count)
 }
 
+#[agent_command(domain = knowledge, safety = Dangerous, call_mode = StateOnly, description = "清除已完成任务")]
 #[tauri::command]
 pub async fn index_jobs_clear_completed(state: State<'_, AppState>) -> Result<u64, String> {
     index_jobs::cleanup_completed_jobs(state.harness.db(), 0).await.map_err(|e| {
@@ -177,6 +184,7 @@ pub async fn index_jobs_clear_completed(state: State<'_, AppState>) -> Result<u6
     })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = Manual, description = "重建集合索引")]
 #[tauri::command]
 pub async fn index_jobs_reindex_collection(
     app: AppHandle,

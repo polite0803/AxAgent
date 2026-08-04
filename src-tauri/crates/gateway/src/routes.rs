@@ -176,7 +176,9 @@ pub fn create_router(state: GatewayAppState) -> Router {
             post(call_mcp_tool),
         )
         // P3: WebSocket 行情推送（受 auth_middleware 保护）
-        .route("/v1/stock/quote/stream", get(stock_quote_stream_handler));
+        .route("/v1/stock/quote/stream", get(stock_quote_stream_handler))
+        // 设备同步信令 WebSocket
+        .route("/v1/device/signal/ws", get(crate::device_signal::device_signal_ws_handler));
 
     // ACP (Agent Communication Protocol) 路由 — 受 acp_enabled 门控。
     // 启用时注册会话管理 / prompt / WebSocket 端点，供外部工具/IDE 调用。

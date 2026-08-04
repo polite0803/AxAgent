@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::dashboard as dashboard_err;
+use agent_macro::agent_command;
 use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
 use axagent_runtime::dashboard_registry::DashboardPluginInfo;
 use sea_orm::entity::prelude::*;
@@ -14,6 +15,7 @@ fn default_plugins_dir() -> PathBuf {
     axagent_storage::storage_paths::documents_root().join("dashboard-plugins")
 }
 
+#[agent_command(domain = dashboard, safety = Safe, call_mode = StateOnly, description = "列出仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_list_plugins(
     state: State<'_, AppState>,
@@ -22,6 +24,7 @@ pub async fn dashboard_list_plugins(
     Ok(registry.list_plugins().await)
 }
 
+#[agent_command(domain = dashboard, safety = Caution, call_mode = StateInput, description = "注册仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_register_plugin(
     state: State<'_, AppState>,
@@ -48,6 +51,7 @@ pub async fn dashboard_register_plugin(
     registry.register(Box::new(plugin)).await
 }
 
+#[agent_command(domain = dashboard, safety = Dangerous, call_mode = StateInput, description = "注销仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_unregister_plugin(
     state: State<'_, AppState>,
@@ -57,6 +61,7 @@ pub async fn dashboard_unregister_plugin(
     registry.unregister(&plugin_id).await
 }
 
+#[agent_command(domain = dashboard, safety = Caution, call_mode = StateInput, description = "启用仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_enable_plugin(
     state: State<'_, AppState>,
@@ -66,6 +71,7 @@ pub async fn dashboard_enable_plugin(
     registry.enable(&plugin_id).await
 }
 
+#[agent_command(domain = dashboard, safety = Caution, call_mode = StateInput, description = "禁用仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_disable_plugin(
     state: State<'_, AppState>,
@@ -75,6 +81,7 @@ pub async fn dashboard_disable_plugin(
     registry.disable(&plugin_id).await
 }
 
+#[agent_command(domain = dashboard, safety = Safe, call_mode = StateInput, description = "渲染仪表盘面板")]
 #[tauri::command]
 pub async fn dashboard_render_panel(
     state: State<'_, AppState>,
@@ -92,12 +99,14 @@ pub async fn dashboard_render_panel(
     })
 }
 
+#[agent_command(domain = dashboard, safety = Caution, call_mode = StateOnly, description = "重新加载仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_reload_plugins(state: State<'_, AppState>) -> Result<(), String> {
     let registry = state.dashboard_registry.as_ref().ok_or("Dashboard registry not initialized")?;
     registry.reload().await
 }
 
+#[agent_command(domain = dashboard, safety = Safe, call_mode = Manual, description = "打开仪表盘插件目录")]
 #[tauri::command]
 pub async fn dashboard_open_plugins_folder(app: tauri::AppHandle) -> Result<(), String> {
     let dir = default_plugins_dir();
@@ -111,6 +120,7 @@ pub async fn dashboard_open_plugins_folder(app: tauri::AppHandle) -> Result<(), 
     })
 }
 
+#[agent_command(domain = dashboard, safety = Caution, call_mode = StateInput, description = "安装仪表盘插件")]
 #[tauri::command]
 pub async fn dashboard_install_plugin(
     state: State<'_, AppState>,
@@ -195,6 +205,7 @@ pub struct DashboardStats {
     pub today_tokens: i64,
 }
 
+#[agent_command(domain = dashboard, safety = Safe, call_mode = StateOnly, description = "获取仪表盘统计数据")]
 #[tauri::command]
 pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<DashboardStats, String> {
     let db = state.harness.db();
@@ -348,6 +359,7 @@ pub async fn get_dashboard_stats(state: State<'_, AppState>) -> Result<Dashboard
 }
 
 /// 按提供商统计网关使用量。成本数据由 agent_sessions 跟踪，此处仅返回用量。
+#[agent_command(domain = dashboard, safety = Safe, call_mode = StateOnly, description = "按提供商统计用量")]
 #[tauri::command]
 pub async fn get_cost_by_provider(
     state: State<'_, AppState>,
@@ -392,6 +404,7 @@ pub async fn get_cost_by_provider(
     Ok(results)
 }
 
+#[agent_command(domain = dashboard, safety = Safe, call_mode = StateInput, description = "获取使用量趋势")]
 #[tauri::command]
 pub async fn get_usage_trend(
     state: State<'_, AppState>,

@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::paths::axagent_home;
+use agent_macro::agent_command;
 use axagent_trajectory::{Skill, SkillsHubAdapter};
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -15,6 +16,7 @@ pub struct SkillsHubReviewResult {
     pub message: String,
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "审查隔离区技能")]
 #[tauri::command]
 pub async fn skills_hub_review(
     state: State<'_, AppState>,
@@ -185,6 +187,7 @@ pub struct SkillExportResult {
 }
 
 /// 导出本地 skill 为可发布的格式（Hermes JSON + manifest 摘要）
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "导出技能为可发布格式")]
 #[tauri::command]
 pub async fn skills_hub_export(skill_name: String) -> Result<SkillExportResult, String> {
     let home = dirs::home_dir().ok_or("无法确定 home 目录")?;
@@ -249,6 +252,7 @@ pub async fn skills_hub_export(skill_name: String) -> Result<SkillExportResult, 
     })
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "导入技能清单")]
 #[tauri::command]
 pub async fn skills_hub_import(manifest_json: String) -> Result<Skill, String> {
     let mut adapter = SkillsHubAdapter::new();

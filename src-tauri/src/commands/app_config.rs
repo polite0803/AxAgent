@@ -7,8 +7,10 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
+use agent_macro::agent_command;
 use tauri::State;
 
+#[agent_command(domain = settings, safety = Safe, call_mode = StateOnly, description = "获取应用配置")]
 #[tauri::command]
 pub async fn get_app_config(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let db = state.harness.db();
@@ -23,6 +25,7 @@ pub async fn get_app_config(state: State<'_, AppState>) -> Result<serde_json::Va
     }
 }
 
+#[agent_command(domain = settings, safety = Caution, call_mode = StateInput, description = "保存应用配置")]
 #[tauri::command]
 pub async fn save_app_config(
     state: State<'_, AppState>,
@@ -72,6 +75,7 @@ pub async fn read_self_improvement_flags(
 ///
 /// 前端 `appConfigStore.toggleFeature` 在 saveConfig 后调用本命令,
 /// 把最新 flag 值推送到后端 SessionManager。
+#[agent_command(domain = settings, safety = Caution, call_mode = StateInput, description = "设置自我改进标志")]
 #[tauri::command]
 pub async fn set_self_improvement_flags(
     state: State<'_, AppState>,

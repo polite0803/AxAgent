@@ -7,6 +7,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
+use agent_macro::agent_command;
 use serde::Deserialize;
 use std::sync::OnceLock;
 use std::sync::atomic::AtomicBool;
@@ -126,6 +127,7 @@ pub fn init_pricing_config(app: &tauri::AppHandle) {
 
 /// M6: Expose pricing availability status to the UI layer.
 /// Returns true if pricing.toml was loaded successfully, false if heuristic fallback is active.
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "查询定价配置是否可用")]
 #[tauri::command]
 pub fn is_pricing_available() -> bool {
     PRICING_AVAILABLE.load(std::sync::atomic::Ordering::Acquire)

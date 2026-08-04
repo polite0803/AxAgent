@@ -6,6 +6,7 @@
 //! 单用户桌面场景下「市场」= 本地工作流模板 + 本地技能目录的统一浏览。
 //! 评分/评论 CRUD 走 `MarketplaceService` trait（`get_marketplace_item_stats` 复用其 `get_stats`）。
 
+use agent_macro::agent_command;
 use axagent_dao::marketplace_service::{MarketplaceCatalogServiceImpl, MarketplaceServiceImpl};
 use axagent_harness::marketplace::{CatalogItem, CatalogPage, CatalogQuery, MarketplaceStats};
 use axagent_harness::{MarketplaceCatalogService, MarketplaceService};
@@ -22,6 +23,7 @@ fn err_to_string(e: ErrorResponse) -> String {
 }
 
 /// 浏览市场目录：合并本地工作流模板与本地技能。
+#[agent_command(domain = marketplace, safety = Safe, call_mode = StateInput, description = "浏览市场目录")]
 #[tauri::command]
 pub async fn list_marketplace_catalog(
     state: State<'_, AppState>,
@@ -38,6 +40,7 @@ pub async fn list_marketplace_catalog(
 }
 
 /// 按 ID + 类型查单个目录条目。
+#[agent_command(domain = marketplace, safety = Safe, call_mode = StateInput, description = "获取市场目录条目")]
 #[tauri::command]
 pub async fn get_marketplace_item(
     state: State<'_, AppState>,
@@ -55,6 +58,7 @@ pub async fn get_marketplace_item(
 }
 
 /// 安装模板：在 `workflow_marketplace` 表 upsert 记录并置 `is_public = true`。
+#[agent_command(domain = marketplace, safety = Caution, call_mode = StateInput, description = "安装市场模板")]
 #[tauri::command]
 pub async fn install_marketplace_template(
     state: State<'_, AppState>,
@@ -71,6 +75,7 @@ pub async fn install_marketplace_template(
 }
 
 /// 卸载模板：置 `workflow_marketplace.is_public = false`。
+#[agent_command(domain = marketplace, safety = Caution, call_mode = StateInput, description = "卸载市场模板")]
 #[tauri::command]
 pub async fn uninstall_marketplace_template(
     state: State<'_, AppState>,
@@ -87,6 +92,7 @@ pub async fn uninstall_marketplace_template(
 }
 
 /// 发布模板：更新 `workflow_marketplace` 表的 `category` 和 `tags` 字段。
+#[agent_command(domain = marketplace, safety = Caution, call_mode = StateInput, description = "发布市场模板")]
 #[tauri::command]
 pub async fn publish_marketplace_template(
     state: State<'_, AppState>,
@@ -109,6 +115,7 @@ pub async fn publish_marketplace_template(
 /// 获取目录条目的评分统计（评论数 + 平均分）。
 ///
 /// 复用 `MarketplaceService::get_stats` 实现，目录条目 ID 即 `marketplace_id`。
+#[agent_command(domain = marketplace, safety = Safe, call_mode = StateInput, description = "获取条目评分统计")]
 #[tauri::command]
 pub async fn get_marketplace_item_stats(
     state: State<'_, AppState>,

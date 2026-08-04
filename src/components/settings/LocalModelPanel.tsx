@@ -12,8 +12,22 @@
 import { ModelDownloadPanel } from "@/components/settings/ModelDownloadPanel";
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
-import type { EmbedTestResult, LocalFileModel, LocalModelStartConfig, LocalModelStatus } from "@/types";
-import { PlayCircleOutlined, PoweroffOutlined, ReloadOutlined, RobotOutlined, StopOutlined } from "@ant-design/icons";
+import type {
+  EmbedTestResult,
+  LlamaCppInstallStatus,
+  LlamaCppVersionInfo,
+  LocalFileModel,
+  LocalModelStartConfig,
+  LocalModelStatus,
+} from "@/types";
+import {
+  CloudDownloadOutlined,
+  PlayCircleOutlined,
+  PoweroffOutlined,
+  ReloadOutlined,
+  RobotOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
 import {
   App,
   AutoComplete,
@@ -27,6 +41,7 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
+  Progress,
   Space,
   Switch,
   Tag,
@@ -96,6 +111,11 @@ export function LocalModelPanel({
   const [downloadDir, setDownloadDir] = useState("");
   const [embedResult, setEmbedResult] = useState<EmbedTestResult | null>(null);
   const [embedLoading, setEmbedLoading] = useState(false);
+  const [serverExists, setServerExists] = useState<boolean | null>(null);
+  const [installStatus, setInstallStatus] = useState<LlamaCppInstallStatus | null>(null);
+  const [latestVersion, setLatestVersion] = useState<LlamaCppVersionInfo | null>(null);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const [startConfig, setStartConfig] = useState<LocalModelStartConfig>(() => {
     try {
       const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
@@ -154,8 +174,103 @@ export function LocalModelPanel({
     })();
   }, [providerId]);
 
+  // 检测 llama-server 是否已安装
+  useEffect(() => {
+    void (async () => {
+      try {
+        // 1. 检查当前配置的 serverExe 是否存在
+        const path = await invoke<string | null>("local_model_check_server", {
+          serverExe: startConfig.serverExe,
+        });
+        setServerExists(path != null);
+
+        // 2. 检查安装状态
+        const status = await invoke<LlamaCppInstallStatus>("local_model_get_install_status");
+        setInstallStatus(status);
+
+        // 如果已安装但路径未在配置中，自动设置
+        if (status.installed && status.executablePath) {
+          const currentPath = startConfig.serverExe;
+          // 如果当前配置的路径不存在，但已安装版本的路径存在，则自动更新
+          const currentExists = path != null;
+          if (!currentExists && status.executablePath !== currentPath) {
+            const newConfig = { ...startConfig, serverExe: status.executablePath };
+            setStartConfig(newConfig);
+            localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(newConfig));
+            setServerExists(true);
+          }
+        }
+      } catch (e) {
+        logIpcError("local_model_check_server")(e);
+      }
+    })();
+  }, [providerId, startConfig.serverExe]);
+
+  // 安装进度轮询
+  useEffect(() => {
+    if (!installing) { return; }
+    const timer = setInterval(async () => {
+      try {
+        const status = await invoke<LlamaCppInstallStatus>("local_model_get_install_status");
+        setInstallStatus(status);
+        if (!status.isDownloading) {
+          setInstalling(false);
+          if (status.installed && status.executablePath) {
+            // 安装成功，更新配置
+            const newConfig = { ...startConfig, serverExe: status.executablePath };
+            setStartConfig(newConfig);
+            localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(newConfig));
+            setServerExists(true);
+            message.success(t("settings.localModel.installSuccess"));
+          } else if (status.downloadError) {
+            message.error(status.downloadError);
+          }
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [installing, startConfig, message, t]);
+
   const running = status?.running ?? false;
   const health = status?.health ?? "unknown";
+
+  const handleCheckUpdate = useCallback(async () => {
+    try {
+      const version = await invoke<LlamaCppVersionInfo>("local_model_get_latest_version");
+      setLatestVersion(version);
+      setInstallModalOpen(true);
+    } catch (e) {
+      showBackendError(message, e, { context: "local_model_get_latest_version" });
+    }
+  }, [message]);
+
+  const handleInstall = useCallback(async () => {
+    if (!latestVersion) {
+      await handleCheckUpdate();
+      return;
+    }
+    setInstalling(true);
+    setInstallModalOpen(false);
+    setInstallStatus({
+      installed: false,
+      version: null,
+      installPath: null,
+      executablePath: null,
+      isDownloading: true,
+      downloadProgress: 0,
+      downloadError: null,
+    });
+    try {
+      await invoke<LlamaCppInstallStatus>("local_model_install_server", {
+        tag: latestVersion.tag,
+      });
+    } catch (e) {
+      setInstalling(false);
+      showBackendError(message, e, { context: "local_model_install_server" });
+    }
+  }, [latestVersion, message, handleCheckUpdate]);
 
   const handleStart = useCallback(async () => {
     try {
@@ -265,6 +380,19 @@ export function LocalModelPanel({
       size="small"
       extra={
         <Space>
+          {serverExists === false && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<CloudDownloadOutlined />}
+              loading={installing}
+              onClick={() => void handleCheckUpdate()}
+            >
+              {installing
+                ? t("settings.localModel.installing")
+                : t("settings.localModel.install")}
+            </Button>
+          )}
           <Button
             icon={<ReloadOutlined />}
             size="small"
@@ -325,6 +453,44 @@ export function LocalModelPanel({
           {status?.memoryMb != null
             ? `${status.memoryMb} MB`
             : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label={t("settings.localModel.serverStatus")}>
+          {installing && installStatus?.isDownloading
+            ? (
+              <Space direction="vertical" size={4} style={{ width: 200 }}>
+                <Text type="warning" style={{ fontSize: 12 }}>
+                  {t("settings.localModel.installing")}
+                </Text>
+                <Progress
+                  percent={Math.round(installStatus.downloadProgress ?? 0)}
+                  size="small"
+                  style={{ margin: 0 }}
+                />
+              </Space>
+            )
+            : serverExists == null
+            ? <Text type="secondary">{t("common.loading")}</Text>
+            : serverExists
+            ? (
+              <Tag color="success">
+                {installStatus?.version
+                  ? `v${installStatus.version}`
+                  : t("settings.localModel.serverInstalled")}
+              </Tag>
+            )
+            : (
+              <Space>
+                <Tag color="error">{t("settings.localModel.serverMissing")}</Tag>
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<CloudDownloadOutlined />}
+                  onClick={() => void handleCheckUpdate()}
+                >
+                  {t("settings.localModel.install")}
+                </Button>
+              </Space>
+            )}
         </Descriptions.Item>
       </Descriptions>
 
@@ -466,11 +632,34 @@ export function LocalModelPanel({
       >
         <Form layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item label={t("settings.localModel.serverExe")} required>
-            <Input
-              value={startConfig.serverExe}
-              onChange={(e) => setStartConfig({ ...startConfig, serverExe: e.target.value })}
-              placeholder={t("settings.localModel.serverExePlaceholder")}
-            />
+            <Space.Compact style={{ width: "100%" }}>
+              <Input
+                value={startConfig.serverExe}
+                onChange={(e) => setStartConfig({ ...startConfig, serverExe: e.target.value })}
+                placeholder={t("settings.localModel.serverExePlaceholder")}
+                style={{ flex: 1 }}
+              />
+              {serverExists === false && !installing && (
+                <Button
+                  icon={<CloudDownloadOutlined />}
+                  onClick={() => void handleCheckUpdate()}
+                >
+                  {t("settings.localModel.install")}
+                </Button>
+              )}
+            </Space.Compact>
+            {serverExists === false && (
+              <Text type="warning" style={{ fontSize: 12 }}>
+                {t("settings.localModel.serverNotFoundHint")}
+              </Text>
+            )}
+            {installing && installStatus?.isDownloading && (
+              <Progress
+                percent={Math.round(installStatus.downloadProgress ?? 0)}
+                status="active"
+                style={{ marginTop: 8 }}
+              />
+            )}
           </Form.Item>
           <Form.Item label={t("settings.localModel.modelPathLabel")} required>
             <AutoComplete
@@ -587,6 +776,52 @@ export function LocalModelPanel({
         >
           {logLoading ? t("common.loading") : logContent}
         </pre>
+      </Modal>
+
+      {/* ── 安装版本信息 Modal ── */}
+      <Modal
+        title={t("settings.localModel.installTitle")}
+        open={installModalOpen}
+        onCancel={() => setInstallModalOpen(false)}
+        onOk={() => void handleInstall()}
+        okText={t("settings.localModel.install")}
+        cancelText={t("common.cancel")}
+        confirmLoading={installing}
+        width={480}
+      >
+        {latestVersion
+          ? (
+            <Descriptions column={1} size="small" style={{ marginTop: 8 }}>
+              <Descriptions.Item label={t("settings.localModel.versionTag")}>
+                <Tag color="blue">{latestVersion.tag}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label={t("settings.localModel.versionName")}>
+                {latestVersion.name}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("settings.localModel.publishedAt")}>
+                {latestVersion.publishedAt}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("settings.localModel.fileSize")}>
+                {latestVersion.fileSize
+                  ? formatBytes(latestVersion.fileSize)
+                  : "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("settings.localModel.downloadUrl")}>
+                <Text
+                  copyable
+                  code
+                  style={{ fontSize: 11, wordBreak: "break-all" }}
+                >
+                  {latestVersion.downloadUrl}
+                </Text>
+              </Descriptions.Item>
+            </Descriptions>
+          )
+          : (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <Text type="secondary">{t("settings.localModel.fetchingVersion")}</Text>
+            </div>
+          )}
       </Modal>
     </Card>
   );

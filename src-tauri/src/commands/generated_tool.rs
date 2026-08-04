@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -20,6 +22,7 @@ pub struct GeneratedToolInfo {
     pub created_at: i64,
 }
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateOnly, description = "列出所有已生成的工具")]
 #[tauri::command]
 pub async fn list_generated_tools(
     state: State<'_, AppState>,
@@ -44,6 +47,7 @@ pub async fn list_generated_tools(
         .collect())
 }
 
+#[agent_command(domain = tool, safety = Dangerous, call_mode = StateInput, description = "删除指定的已生成工具")]
 #[tauri::command]
 pub async fn delete_generated_tool(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let db: &DatabaseConnection = state.harness.db();

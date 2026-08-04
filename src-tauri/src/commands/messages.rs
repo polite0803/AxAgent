@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use tauri::State;
 
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateInput, description = "列出对话消息")]
 #[tauri::command]
 pub async fn list_messages(
     state: State<'_, AppState>,
@@ -19,6 +21,7 @@ pub async fn list_messages(
     )
 }
 
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateInput, description = "分页列出对话消息")]
 #[tauri::command]
 pub async fn list_messages_page(
     state: State<'_, AppState>,
@@ -41,6 +44,7 @@ pub async fn list_messages_page(
     })
 }
 
+#[agent_command(domain = conversations, safety = Dangerous, call_mode = StateInput, description = "删除消息")]
 #[tauri::command]
 pub async fn delete_message(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::message::delete_message(state.harness.db(), &id).await.map_err(|e| {
@@ -51,6 +55,7 @@ pub async fn delete_message(state: State<'_, AppState>, id: String) -> Result<()
     })
 }
 
+#[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "更新消息内容")]
 #[tauri::command]
 pub async fn update_message_content(
     state: State<'_, AppState>,
@@ -67,6 +72,7 @@ pub async fn update_message_content(
         })
 }
 
+#[agent_command(domain = conversations, safety = Dangerous, call_mode = StateInput, description = "清空对话消息")]
 #[tauri::command]
 pub async fn clear_conversation_messages(
     state: State<'_, AppState>,
@@ -94,6 +100,7 @@ pub async fn clear_conversation_messages(
     Ok(rows)
 }
 
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateInput, description = "导出对话")]
 #[tauri::command]
 pub async fn export_conversation(
     state: State<'_, AppState>,
@@ -146,6 +153,7 @@ pub async fn export_conversation(
     }
 }
 
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateInput, description = "获取对话统计信息")]
 #[tauri::command]
 pub async fn get_conversation_stats(
     state: State<'_, AppState>,

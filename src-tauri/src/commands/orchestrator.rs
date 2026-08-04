@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::app_state::AppState;
+use agent_macro::agent_command;
 use axagent_harness::streaming::{AgentStreamChunk, AgentStreamReporter};
 use axagent_harness::workflow_types::WorkflowNode;
 use axagent_orchestrator::{DynamicSubGraph, OrchestrationStrategy, OrchestratorExecutor};
@@ -138,6 +139,7 @@ pub struct OrchestrateResult {
 }
 
 /// 接收自然语言使命描述，经 Orchestrator 分解为子任务 DAG 并返回。
+#[agent_command(domain = "orchestrator", safety = Safe, call_mode = StateInput, description = "将使命分解为子任务工作流")]
 #[tauri::command]
 pub async fn orchestrate_mission(
     state: State<'_, AppState>,
@@ -192,6 +194,7 @@ pub async fn orchestrate_mission(
 ///
 /// 返回一个 Tauri channel，前端可通过 `invoke` + `onEvent` 持续接收 `AgentStreamChunk`。
 /// 每次调用创建独立的订阅，互不干扰。
+#[agent_command(domain = "orchestrator", safety = Safe, call_mode = StateInput, description = "订阅编排器流式输出")]
 #[tauri::command]
 pub async fn subscribe_orchestrator_stream(
     state: State<'_, AppState>,

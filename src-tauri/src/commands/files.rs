@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_dao::repo::stored_file::StoredFile;
 use axagent_storage::file_authorizer::{
     AuthorizationRequest, AuthorizationResponse, PermissionLevel,
@@ -8,6 +9,7 @@ use axagent_storage::file_authorizer::{
 use serde::Serialize;
 use tauri::{Emitter, State};
 
+#[agent_command(domain = files, safety = Caution, call_mode = StateOnly, description = "上传文件")]
 #[tauri::command]
 pub async fn upload_file(
     state: State<'_, AppState>,
@@ -60,6 +62,7 @@ pub async fn upload_file(
     Ok(stored)
 }
 
+#[agent_command(domain = files, safety = Safe, call_mode = StateOnly, description = "下载文件")]
 #[tauri::command]
 pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Result<String, String> {
     use base64::Engine;
@@ -84,6 +87,7 @@ pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Resul
     Ok(base64::engine::general_purpose::STANDARD.encode(&data))
 }
 
+#[agent_command(domain = files, safety = Safe, call_mode = StateOnly, description = "列出文件")]
 #[tauri::command]
 pub async fn list_files(
     state: State<'_, AppState>,
@@ -102,6 +106,7 @@ pub async fn list_files(
     })
 }
 
+#[agent_command(domain = files, safety = Dangerous, call_mode = StateOnly, description = "删除文件")]
 #[tauri::command]
 pub async fn delete_file(state: State<'_, AppState>, file_id: String) -> Result<(), String> {
     let file_store = axagent_storage::file_store::FileStore::new();
@@ -109,6 +114,7 @@ pub async fn delete_file(state: State<'_, AppState>, file_id: String) -> Result<
         .await
 }
 
+#[agent_command(domain = files, safety = Caution, call_mode = StateOnly, description = "请求文件访问授权")]
 /// 文件访问授权
 #[tauri::command]
 pub async fn file_authorize(
@@ -119,6 +125,7 @@ pub async fn file_authorize(
     Ok(response)
 }
 
+#[agent_command(domain = files, safety = Safe, call_mode = StateOnly, description = "检查文件授权状态")]
 /// 检查文件是否有授权
 #[tauri::command]
 pub async fn file_check_authorization(
@@ -129,6 +136,7 @@ pub async fn file_check_authorization(
     Ok(state.file_authorizer.check_authorization(&path, &level).await)
 }
 
+#[agent_command(domain = files, safety = Caution, call_mode = StateOnly, description = "撤销文件授权")]
 /// 撤销文件授权
 #[tauri::command]
 pub async fn file_revoke_authorization(
@@ -148,6 +156,7 @@ pub struct FilePermissionRequestEvent {
     pub reason: String,
 }
 
+#[agent_command(domain = files, safety = Caution, call_mode = StateOnly, description = "请求文件访问权限")]
 /// 请求文件访问权限——向后端事件系统发送请求，触发前端弹窗
 #[tauri::command]
 pub async fn request_file_permission(

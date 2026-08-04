@@ -17,6 +17,7 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 #[cfg(test)]
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 #[cfg(test)]
@@ -41,6 +42,7 @@ use tauri::State;
 
 // ── Tauri command delegates (#[tauri::command] must be in mod.rs for generate_handler! to find __cmd__ items) ──
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "发送消息到对话")]
 #[tauri::command]
 pub async fn send_message(
     app: tauri::AppHandle,
@@ -50,6 +52,7 @@ pub async fn send_message(
     streaming::send_message(app, state, params).await
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "重新生成消息")]
 #[tauri::command]
 pub async fn regenerate_message(
     app: tauri::AppHandle,
@@ -59,6 +62,7 @@ pub async fn regenerate_message(
     streaming::regenerate_message(app, state, params).await
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "用指定模型重新生成消息")]
 #[tauri::command]
 pub async fn regenerate_with_model(
     app: tauri::AppHandle,
@@ -68,6 +72,7 @@ pub async fn regenerate_with_model(
     streaming::regenerate_with_model(app, state, params).await
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateInput, description = "列出消息版本历史")]
 #[tauri::command]
 pub async fn list_message_versions(
     state: State<'_, AppState>,
@@ -77,6 +82,7 @@ pub async fn list_message_versions(
     compress::list_message_versions(state, conversation_id, parent_message_id).await
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "切换消息版本")]
 #[tauri::command]
 pub async fn switch_message_version(
     state: State<'_, AppState>,
@@ -87,6 +93,7 @@ pub async fn switch_message_version(
     compress::switch_message_version(state, conversation_id, parent_message_id, message_id).await
 }
 
+#[agent_command(domain = conversation, safety = Dangerous, call_mode = StateInput, description = "删除消息组")]
 #[tauri::command]
 pub async fn delete_message_group(
     state: State<'_, AppState>,
@@ -96,6 +103,7 @@ pub async fn delete_message_group(
     compress::delete_message_group(state, conversation_id, user_message_id).await
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "压缩对话上下文")]
 #[tauri::command]
 pub async fn compress_context(
     app: tauri::AppHandle,
@@ -105,6 +113,7 @@ pub async fn compress_context(
     compress::compress_context(app, state, conversation_id).await
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateInput, description = "获取压缩摘要")]
 #[tauri::command]
 pub async fn get_compression_summary(
     state: State<'_, AppState>,
@@ -113,6 +122,7 @@ pub async fn get_compression_summary(
     compress::get_compression_summary(state, conversation_id).await
 }
 
+#[agent_command(domain = conversation, safety = Dangerous, call_mode = StateInput, description = "删除压缩摘要")]
 #[tauri::command]
 pub async fn delete_compression(
     state: State<'_, AppState>,
@@ -121,6 +131,7 @@ pub async fn delete_compression(
     compress::delete_compression(state, conversation_id).await
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "发送系统消息")]
 #[tauri::command]
 pub async fn send_system_message(
     state: State<'_, AppState>,
@@ -661,6 +672,12 @@ pub(crate) fn chat_message_from_message(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "列出所有对话"
+)]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
     axagent_dao::repo::conversation::list_conversations(state.harness.db()).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -671,6 +688,12 @@ pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conver
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "创建新对话"
+)]
 pub async fn create_conversation(
     state: State<'_, AppState>,
     title: String,
@@ -694,6 +717,7 @@ pub async fn create_conversation(
     })
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "更新对话信息")]
 #[tauri::command]
 pub async fn update_conversation(
     state: State<'_, AppState>,
@@ -746,6 +770,12 @@ async fn cancel_and_cleanup_agent(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Dangerous,
+    call_mode = StateInput,
+    description = "删除对话（不可恢复）"
+)]
 pub async fn delete_conversation(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -861,6 +891,7 @@ pub async fn delete_conversation(
     Ok(())
 }
 
+#[agent_command(domain = conversation, safety = Dangerous, call_mode = StateInput, description = "批量删除对话")]
 #[tauri::command]
 pub async fn batch_delete_conversations(
     app: tauri::AppHandle,
@@ -991,6 +1022,7 @@ pub async fn batch_delete_conversations(
     Ok(deleted)
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "分支对话")]
 #[tauri::command]
 pub async fn branch_conversation(
     state: State<'_, AppState>,
@@ -1068,6 +1100,12 @@ async fn delete_conversation_with_attachments_using(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "搜索对话"
+)]
 pub async fn search_conversations(
     state: State<'_, AppState>,
     query: String,
@@ -1082,6 +1120,7 @@ pub async fn search_conversations(
     )
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "切换对话置顶状态")]
 #[tauri::command]
 pub async fn toggle_pin_conversation(
     state: State<'_, AppState>,
@@ -1095,6 +1134,7 @@ pub async fn toggle_pin_conversation(
     })
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "切换对话归档状态")]
 #[tauri::command]
 pub async fn toggle_archive_conversation(
     state: State<'_, AppState>,
@@ -1108,6 +1148,7 @@ pub async fn toggle_archive_conversation(
     })
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "归档对话到知识库")]
 #[tauri::command]
 pub async fn archive_conversation_to_knowledge_base(
     app: tauri::AppHandle,
@@ -1194,6 +1235,12 @@ pub async fn archive_conversation_to_knowledge_base(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "列出所有已归档的对话"
+)]
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {
@@ -1208,6 +1255,7 @@ pub async fn list_archived_conversations(
 }
 
 /// 工作流型会话归档：将执行结果写回原始工作流模板
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "归档工作流会话")]
 #[tauri::command]
 pub async fn archive_workflow_session(
     state: State<'_, AppState>,
@@ -2310,6 +2358,7 @@ pub(crate) async fn generate_ai_title_with(
     }
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "重新生成对话标题")]
 #[tauri::command]
 pub async fn regenerate_conversation_title(
     app: tauri::AppHandle,
@@ -2469,6 +2518,7 @@ pub async fn regenerate_conversation_title(
     Ok(())
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "取消流式消息生成")]
 #[tauri::command]
 pub async fn cancel_stream(
     state: State<'_, AppState>,
@@ -3179,6 +3229,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         #[cfg(target_os = "android")]
         sandbox_executor: Arc::new(()),
         sync_engine: None,
+        device_sync_state: Arc::new(tokio::sync::RwLock::new(
+            crate::commands::device_sync::DeviceSyncState::new("test-device".to_string()),
+        )),
         // stock_monitor / astock_client / trading_engine 已在另一分支维护
         plugin_manager: Arc::new(tokio::sync::RwLock::new(axagent_plugins::PluginManager::new(
             axagent_plugins::PluginManagerConfig::new(temp_dir.clone()),

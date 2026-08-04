@@ -19,6 +19,7 @@
 //! 协议层 ChatAction 的 `data` 字段在这里展开。
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
 use axagent_harness::workflow_types::*;
@@ -45,6 +46,7 @@ use tauri::State;
 ///
 /// ## 性能
 /// `name` 拆分为 (var_name, sub_path) 只走一次 split_once,不重复扫描。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "更新工作流变量")]
 #[tauri::command]
 pub async fn apply_update_variable(
     state: State<'_, AppState>,
@@ -133,6 +135,7 @@ fn apply_value_path(
 /// 从 `workflow_template_versions` 读取指定版本,覆盖回 `workflow_template` 当前行
 ///
 /// 该操作是破坏性的(覆盖当前 version+1),但不会删除版本历史。
+#[agent_command(domain = workflow, safety = Dangerous, call_mode = StateInput, description = "回滚到指定版本")]
 #[tauri::command]
 pub async fn apply_rollback_to_version(
     state: State<'_, AppState>,
@@ -208,6 +211,7 @@ pub async fn apply_rollback_to_version(
 ///
 /// `mappings` 数组完整覆盖旧值(不合并)。
 /// 节点不存在或不是 sub-workflow 类型 → 报错。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "更新子工作流输入映射")]
 #[tauri::command]
 pub async fn apply_update_input_mapping(
     state: State<'_, AppState>,
@@ -299,6 +303,7 @@ pub struct EditAssetFileResult {
 ///
 /// ## 字符编码
 /// 文件按 UTF-8 读取/写入;非 UTF-8 文件返回错误。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "编辑工作流资产文件")]
 #[tauri::command]
 pub async fn apply_edit_asset_file(
     state: State<'_, AppState>,
@@ -496,6 +501,7 @@ pub struct ApplyDiffValidationResult {
 /// - 单条 action 的回滚目前 best-effort:仅 rollback_to_version 可严格保证可回滚;
 ///   其它 action(update_variable / edit_asset_file / update_input_mapping)的精确回滚
 ///   需要在 action apply 前先 snapshot template 状态,留待下轮实现
+#[agent_command(domain = workflow, safety = Dangerous, call_mode = Manual, description = "批量应用变更并验证")]
 #[tauri::command]
 pub async fn apply_diff_with_validation(
     state: State<'_, AppState>,

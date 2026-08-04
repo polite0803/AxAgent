@@ -10,6 +10,7 @@
 
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
+use agent_macro::agent_command;
 use axagent_dao::repo::workflow_execution_stats as db_repo;
 use axagent_dao::repo::workflow_execution_stats::TemplateEffectSummary;
 use axagent_harness::repo_dtos::WorkflowExecutionStatsDto;
@@ -34,6 +35,7 @@ pub struct RecordExecutionInput {
 ///
 /// 通常在工作流执行完成（成功/失败/取消）后由前端调用，把执行结果落库。
 /// `id` 由调用方生成（建议用 uuid），避免 dao 层重复生成。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "记录工作流执行效果数据")]
 #[tauri::command]
 pub async fn record_workflow_execution(
     state: State<'_, AppState>,
@@ -68,6 +70,7 @@ pub async fn record_workflow_execution(
 }
 
 /// 查询某模板最近的执行记录（按 created_at 倒序）。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "查询模板执行记录")]
 #[tauri::command]
 pub async fn get_workflow_stats_by_template(
     state: State<'_, AppState>,
@@ -83,6 +86,7 @@ pub async fn get_workflow_stats_by_template(
 }
 
 /// 按 mission_hash 查询执行记录（按 created_at 倒序）。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "按mission查询执行记录")]
 #[tauri::command]
 pub async fn get_workflow_stats_by_mission(
     state: State<'_, AppState>,
@@ -97,6 +101,7 @@ pub async fn get_workflow_stats_by_mission(
 }
 
 /// 模板效果聚合统计（成功率/平均延迟/平均 token/平均评分）。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取模板效果汇总")]
 #[tauri::command]
 pub async fn get_template_effect_summary(
     state: State<'_, AppState>,

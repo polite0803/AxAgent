@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_kit::permission::ensure_computer_control_granted;
 use axagent_kit::screen_vision::UIElementInfo;
 use serde::{Deserialize, Serialize};
@@ -63,6 +64,7 @@ fn map_actions_to_info(
         .collect()
 }
 
+#[agent_command(domain = vision, safety = Safe, call_mode = StateInput, description = "分析屏幕内容")]
 #[tauri::command]
 pub async fn analyze_screen(
     state: State<'_, AppState>,
@@ -96,6 +98,7 @@ pub async fn analyze_screen(
     })
 }
 
+#[agent_command(domain = vision, safety = Safe, call_mode = StateInput, description = "分析图片")]
 #[tauri::command]
 pub async fn analyze_image(
     state: State<'_, AppState>,
@@ -130,6 +133,7 @@ pub async fn analyze_image(
         .map_err(|e| format!("Image analysis failed: {}", e))
 }
 
+#[agent_command(domain = vision, safety = Safe, call_mode = StateInput, description = "在屏幕上查找元素")]
 #[tauri::command]
 pub async fn find_element_on_screen(
     state: State<'_, AppState>,
@@ -154,6 +158,7 @@ pub async fn find_element_on_screen(
     .map_err(|e| format!("Element search failed: {}", e))
 }
 
+#[agent_command(domain = vision, safety = Safe, call_mode = StateInput, description = "建议屏幕操作")]
 #[tauri::command]
 pub async fn suggest_screen_action(
     state: State<'_, AppState>,
@@ -182,6 +187,7 @@ pub async fn suggest_screen_action(
     Ok(map_actions_to_info(&analysis.suggested_actions, &analysis.elements))
 }
 
+#[agent_command(domain = vision, safety = Caution, call_mode = Manual, description = "点击指定屏幕坐标")]
 #[tauri::command]
 pub async fn click_element_at_position(
     x: f64,
@@ -204,6 +210,7 @@ pub async fn click_element_at_position(
     Ok(())
 }
 
+#[agent_command(domain = vision, safety = Caution, call_mode = Manual, description = "执行视觉操作（点击/双击/右键/输入/悬停）")]
 #[tauri::command]
 pub async fn execute_vision_action(
     action_type: String,

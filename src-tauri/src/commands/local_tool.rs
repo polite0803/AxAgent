@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::agent::resolve_profile_tool_context;
+use agent_macro::agent_command;
 use axagent_harness::ToolDomain;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -94,6 +95,7 @@ fn to_local_group(
 // 否则返回全局已启用工具数（兼容旧调用方）。
 // 筛选语义与 `agent_query` 一致（共享 `resolve_profile_tool_context`）。
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateInput, description = "获取已启用工具数量")]
 #[tauri::command]
 pub async fn get_tool_count(
     state: State<'_, AppState>,
@@ -159,6 +161,7 @@ pub async fn get_tool_count(
 
 // ── 列出所有工具（含单工具启用状态） ──
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateOnly, description = "列出本地工具")]
 #[tauri::command]
 pub async fn list_local_tools(
     state: State<'_, AppState>,
@@ -171,6 +174,7 @@ pub async fn list_local_tools(
 
 // ── 切换工具分类启禁 ──
 
+#[agent_command(domain = tool, safety = Caution, call_mode = StateInput, description = "切换工具分组启用")]
 #[tauri::command]
 pub async fn toggle_local_tool_group(
     state: State<'_, AppState>,
@@ -196,6 +200,7 @@ pub async fn toggle_local_tool_group(
 
 // ── 切换单个工具启禁 ──
 
+#[agent_command(domain = tool, safety = Caution, call_mode = StateInput, description = "切换单个工具启用")]
 #[tauri::command]
 pub async fn toggle_single_tool(
     state: State<'_, AppState>,

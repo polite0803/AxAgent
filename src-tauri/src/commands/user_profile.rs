@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_trajectory::{
     CodeSample, MessageSample, StyleApplier, StyleExtractor, StyleVectorizer, UserProfile,
 };
@@ -150,6 +151,7 @@ fn profile_to_response(_profile: &UserProfile) -> TrajectoryProfileResponse {
 }
 
 /// Get user profile (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Safe, call_mode = StateOnly, description = "获取用户档案")]
 #[tauri::command]
 pub async fn get_user_profile(
     app_state: State<'_, AppState>,
@@ -159,6 +161,7 @@ pub async fn get_user_profile(
 }
 
 /// Update user profile (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "更新用户档案")]
 #[tauri::command]
 pub async fn update_user_profile(
     app_state: State<'_, AppState>,
@@ -220,6 +223,7 @@ pub async fn update_user_profile(
 }
 
 /// Clear user profile data (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Dangerous, call_mode = StateOnly, description = "清除用户档案数据")]
 #[tauri::command]
 pub async fn clear_user_profile_data(app_state: State<'_, AppState>) -> Result<(), String> {
     let mut profile = app_state.user_profile.write().await;
@@ -353,6 +357,7 @@ fn default_style_profile() -> UserStyleProfileResponse {
 }
 
 /// Get style profile (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Safe, call_mode = StateInput, description = "获取风格档案")]
 #[tauri::command]
 pub async fn style_get_profile(
     _app_state: State<'_, AppState>,
@@ -363,6 +368,7 @@ pub async fn style_get_profile(
 }
 
 /// Apply code style (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "应用代码风格")]
 #[tauri::command]
 pub async fn style_apply_code(
     app_state: State<'_, AppState>,
@@ -390,6 +396,7 @@ pub async fn style_apply_code(
 }
 
 /// Apply document style (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "应用文档风格")]
 #[tauri::command]
 pub async fn style_apply_document(
     app_state: State<'_, AppState>,
@@ -417,6 +424,7 @@ pub async fn style_apply_document(
 }
 
 /// Learn from code samples (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "从代码学习风格")]
 #[tauri::command]
 pub async fn style_learn_code(
     app_state: State<'_, AppState>,
@@ -441,6 +449,7 @@ pub async fn style_learn_code(
 }
 
 /// Learn from messages (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "从消息学习风格")]
 #[tauri::command]
 pub async fn style_learn_messages(
     app_state: State<'_, AppState>,
@@ -471,6 +480,7 @@ pub async fn style_learn_messages(
 }
 
 /// Export style profile (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Safe, call_mode = StateInput, description = "导出风格档案")]
 #[tauri::command]
 pub async fn style_export_profile(
     app_state: State<'_, AppState>,
@@ -487,6 +497,7 @@ pub async fn style_export_profile(
 }
 
 /// Import style profile (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "导入风格档案")]
 #[tauri::command]
 pub async fn style_import_profile(
     app_state: State<'_, AppState>,
@@ -506,6 +517,7 @@ pub async fn style_import_profile(
 }
 
 /// Get style stats (compatible with frontend store)
+#[agent_command(domain = user_profile, safety = Safe, call_mode = StateOnly, description = "获取风格统计")]
 #[tauri::command]
 pub async fn style_get_stats(
     app_state: State<'_, AppState>,
@@ -520,6 +532,7 @@ pub async fn style_get_stats(
 // ---------------------------------------------------------------------------
 
 /// 获取当前用户配置
+#[agent_command(domain = user_profile, safety = Safe, call_mode = StateOnly, description = "获取用户档案")]
 #[tauri::command]
 pub async fn user_profile_get(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let profile = app_state.user_profile.read().await;
@@ -527,6 +540,7 @@ pub async fn user_profile_get(app_state: State<'_, AppState>) -> Result<serde_js
 }
 
 /// 更新用户配置偏好
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "设置用户偏好")]
 #[tauri::command]
 pub async fn user_profile_set_preference(
     app_state: State<'_, AppState>,
@@ -539,6 +553,7 @@ pub async fn user_profile_set_preference(
 }
 
 /// 设置领域专业水平
+#[agent_command(domain = user_profile, safety = Caution, call_mode = StateInput, description = "设置用户专长")]
 #[tauri::command]
 pub async fn user_profile_set_expertise(
     app_state: State<'_, AppState>,
@@ -560,6 +575,7 @@ pub async fn user_profile_set_expertise(
 }
 
 /// 导出用户配置为 USER.md
+#[agent_command(domain = user_profile, safety = Safe, call_mode = StateOnly, description = "导出用户档案为 Markdown")]
 #[tauri::command]
 pub async fn user_profile_export_md(app_state: State<'_, AppState>) -> Result<String, String> {
     let profile = app_state.user_profile.read().await;

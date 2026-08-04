@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
 use crate::commands::spawn_guard::panic_message;
+use agent_macro::agent_command;
 use axagent_entities::background_tasks;
 use chrono::Utc;
 use futures::FutureExt;
@@ -140,6 +141,7 @@ async fn update_status(
     Ok(())
 }
 
+#[agent_command(domain = system, safety = Caution, call_mode = StateInput, description = "创建后台任务")]
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn spawn_background_task(
@@ -392,6 +394,7 @@ pub async fn spawn_background_task(
     Ok(id)
 }
 
+#[agent_command(domain = system, safety = Safe, call_mode = StateOnly, description = "列出后台任务")]
 #[tauri::command]
 pub async fn list_background_tasks(
     state: State<'_, AppState>,
@@ -409,6 +412,7 @@ pub async fn list_background_tasks(
     Ok(tasks.into_iter().map(Into::into).collect())
 }
 
+#[agent_command(domain = system, safety = Safe, call_mode = StateInput, description = "获取后台任务输出")]
 #[tauri::command]
 pub async fn get_background_task_output(
     state: State<'_, AppState>,
@@ -430,6 +434,7 @@ pub async fn get_background_task_output(
     Ok(task.into())
 }
 
+#[agent_command(domain = system, safety = Caution, call_mode = StateInput, description = "停止后台任务")]
 #[tauri::command]
 pub async fn stop_background_task(
     state: State<'_, AppState>,

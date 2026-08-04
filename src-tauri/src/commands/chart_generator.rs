@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ChatResponse};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::openai::OpenAIAdapter;
@@ -15,6 +16,7 @@ pub struct ChartGenResult {
     pub title: String,
 }
 
+#[agent_command(domain = chart, safety = Safe, call_mode = Manual, description = "根据自然语言描述生成ECharts图表配置")]
 #[allow(clippy::too_many_arguments)]
 #[command]
 pub async fn generate_chart_config(

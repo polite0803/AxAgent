@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
+use agent_macro::agent_command;
 use axagent_crypto::{decrypt_key, encrypt_key};
 use axagent_dao::repo::{backup, settings as settings_repo};
 use axagent_storage::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};
@@ -14,8 +15,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::panic::AssertUnwindSafe;
 use std::path::Path;
 use std::path::PathBuf;
-use tauri::Emitter;
-use tauri::State;
+use tauri::{Emitter, State};
 
 #[derive(Default)]
 struct RestoreCleanup {
@@ -73,12 +73,14 @@ impl Drop for WebdavTempCleanup {
 }
 
 /// Get WebDAV configuration (password decrypted).
+#[agent_command(domain = storage, safety = Safe, call_mode = StateOnly, description = "获取 WebDAV 配置")]
 #[tauri::command]
 pub async fn get_webdav_config(state: State<'_, AppState>) -> Result<WebDavConfig, String> {
     get_webdav_config_from_db(state.harness.db(), state.harness.master_key()).await
 }
 
 /// Save WebDAV configuration (password encrypted).
+#[agent_command(domain = storage, safety = Caution, call_mode = StateInput, description = "保存 WebDAV 配置")]
 #[tauri::command]
 pub async fn save_webdav_config(
     state: State<'_, AppState>,
@@ -141,6 +143,7 @@ pub async fn save_webdav_config(
 }
 
 /// Test WebDAV connection without requiring saved config.
+#[agent_command(domain = storage, safety = Safe, call_mode = Manual, description = "检查 WebDAV 连接")]
 #[tauri::command]
 pub async fn webdav_check_connection(config: WebDavConfig) -> Result<bool, String> {
     let client = WebDavClient::new(config).map_err(|e| {
@@ -158,12 +161,14 @@ pub async fn webdav_check_connection(config: WebDavConfig) -> Result<bool, Strin
 }
 
 /// Create a backup and upload it to WebDAV.
+#[agent_command(domain = storage, safety = Caution, call_mode = StateOnly, description = "创建 WebDAV 备份")]
 #[tauri::command]
 pub async fn webdav_backup(state: State<'_, AppState>) -> Result<String, String> {
     do_webdav_backup_impl(state.harness.db(), state.harness.master_key(), &state.app_data_dir).await
 }
 
 /// List remote backups on WebDAV server.
+#[agent_command(domain = storage, safety = Safe, call_mode = StateOnly, description = "列出 WebDAV 备份")]
 #[tauri::command]
 pub async fn webdav_list_backups(
     state: State<'_, AppState>,
@@ -187,6 +192,7 @@ pub async fn webdav_list_backups(
 }
 
 /// Restore from a remote WebDAV backup.
+#[agent_command(domain = storage, safety = Caution, call_mode = StateInput, description = "从 WebDAV 恢复备份")]
 #[tauri::command]
 pub async fn webdav_restore(
     app: tauri::AppHandle,
@@ -368,6 +374,7 @@ pub async fn webdav_restore(
 }
 
 /// Delete a remote backup file.
+#[agent_command(domain = storage, safety = Dangerous, call_mode = StateInput, description = "删除 WebDAV 备份")]
 #[tauri::command]
 pub async fn webdav_delete_backup(
     state: State<'_, AppState>,
@@ -389,6 +396,7 @@ pub async fn webdav_delete_backup(
 }
 
 /// Get WebDAV sync status (last sync time and result).
+#[agent_command(domain = storage, safety = Safe, call_mode = StateOnly, description = "获取 WebDAV 同步状态")]
 #[tauri::command]
 pub async fn get_webdav_sync_status(
     state: State<'_, AppState>,
@@ -417,6 +425,7 @@ pub async fn get_webdav_sync_status(
 }
 
 /// Restart the WebDAV auto-sync scheduler based on current settings.
+#[agent_command(domain = storage, safety = Caution, call_mode = StateOnly, description = "重启 WebDAV 同步")]
 #[tauri::command]
 pub async fn restart_webdav_sync(
     app: tauri::AppHandle,

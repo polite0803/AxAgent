@@ -7,6 +7,7 @@
 //! 2. `deep_research_topic`  — 多轮 Web 搜索 + 差距分析 + 交叉验证的深度研究
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_agent::deep_research::{DeepResearchConfig, DeepResearcher};
 use axagent_agent::ingest_pipeline::IngestPipeline;
 use axagent_agent::noop_kit::NoopHtmlCleaner;
@@ -154,6 +155,7 @@ fn research_system_prompt(topic: &Option<String>) -> String {
     )
 }
 
+#[agent_command(domain = research, safety = Safe, call_mode = StateInput, description = "根据对话历史生成结构化研究报告")]
 #[tauri::command]
 pub async fn generate_research_report(
     state: State<'_, AppState>,
@@ -349,6 +351,7 @@ pub async fn generate_research_report(
 /// 3. 覆盖率分析与知识差距识别
 /// 4. 多轮迭代填补差距
 /// 5. 来源交叉验证与矛盾检测
+#[agent_command(domain = research, safety = Caution, call_mode = StateInput, description = "多轮深度研究，通过Web搜索和差距分析进行调研")]
 #[tauri::command]
 pub async fn deep_research_topic(
     state: State<'_, AppState>,

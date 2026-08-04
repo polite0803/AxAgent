@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use crate::AppState;
 use axagent_trajectory::{
     ExecutionResult, ExecutionStrategy, ParallelExecutionVerifier, ParallelTask,
@@ -7,6 +9,7 @@ use axagent_trajectory::{
 };
 use tauri::State;
 
+#[agent_command(domain = execution, safety = Caution, call_mode = StateInput, description = "创建并行执行任务")]
 #[tauri::command]
 pub async fn create_parallel_execution(
     state: State<'_, AppState>,
@@ -25,6 +28,7 @@ pub async fn create_parallel_execution(
     })
 }
 
+#[agent_command(domain = execution, safety = Safe, call_mode = StateInput, description = "获取单个并行执行详情")]
 #[tauri::command]
 pub async fn get_parallel_execution(
     state: State<'_, AppState>,
@@ -34,6 +38,7 @@ pub async fn get_parallel_execution(
     Ok(service.get_execution(&execution_id).await)
 }
 
+#[agent_command(domain = execution, safety = Safe, call_mode = StateOnly, description = "列出所有并行执行任务")]
 #[tauri::command]
 pub async fn list_parallel_executions(
     state: State<'_, AppState>,
@@ -42,6 +47,7 @@ pub async fn list_parallel_executions(
     Ok(service.list_executions().await)
 }
 
+#[agent_command(domain = execution, safety = Safe, call_mode = StateInput, description = "获取下一个待处理的任务")]
 #[tauri::command]
 pub async fn get_next_pending_task(
     state: State<'_, AppState>,
@@ -51,6 +57,7 @@ pub async fn get_next_pending_task(
     Ok(service.get_next_pending_task(&execution_id).await)
 }
 
+#[agent_command(domain = execution, safety = Caution, call_mode = StateInput, description = "更新任务执行结果")]
 #[tauri::command]
 pub async fn update_task_result(
     state: State<'_, AppState>,
@@ -65,6 +72,7 @@ pub async fn update_task_result(
         .ok_or_else(|| "Failed to update task result".to_string())
 }
 
+#[agent_command(domain = execution, safety = Caution, call_mode = StateInput, description = "更新任务错误信息")]
 #[tauri::command]
 pub async fn update_task_error(
     state: State<'_, AppState>,
@@ -79,6 +87,7 @@ pub async fn update_task_error(
         .ok_or_else(|| "Failed to update task error".to_string())
 }
 
+#[agent_command(domain = execution, safety = Caution, call_mode = StateInput, description = "取消并行执行任务")]
 #[tauri::command]
 pub async fn cancel_parallel_execution(
     state: State<'_, AppState>,
@@ -91,6 +100,7 @@ pub async fn cancel_parallel_execution(
         .ok_or_else(|| "Failed to cancel execution".to_string())
 }
 
+#[agent_command(domain = execution, safety = Safe, call_mode = StateInput, description = "获取执行结果")]
 #[tauri::command]
 pub async fn get_execution_result(
     state: State<'_, AppState>,
@@ -100,6 +110,7 @@ pub async fn get_execution_result(
     Ok(service.get_execution_result(&execution_id).await)
 }
 
+#[agent_command(domain = execution, safety = Dangerous, call_mode = StateInput, description = "删除并行执行任务")]
 #[tauri::command]
 pub async fn delete_parallel_execution(
     state: State<'_, AppState>,
@@ -109,6 +120,7 @@ pub async fn delete_parallel_execution(
     Ok(service.delete_execution(&execution_id).await)
 }
 
+#[agent_command(domain = execution, safety = Caution, call_mode = StateInput, description = "启动并行执行任务")]
 #[tauri::command]
 pub async fn start_parallel_execution(
     state: State<'_, AppState>,
@@ -119,6 +131,7 @@ pub async fn start_parallel_execution(
 }
 
 /// 验证一次并行执行的结果
+#[agent_command(domain = execution, safety = Safe, call_mode = StateInput, description = "验证并行执行结果")]
 #[tauri::command]
 pub async fn verify_parallel_execution(
     state: State<'_, AppState>,
@@ -136,6 +149,7 @@ pub async fn verify_parallel_execution(
 }
 
 /// 检查并应用超时（将超时任务标记为 Timeout）
+#[agent_command(domain = execution, safety = Safe, call_mode = StateInput, description = "检查并行执行中的超时任务")]
 #[tauri::command]
 pub async fn check_parallel_timeouts(
     state: State<'_, AppState>,

@@ -6,6 +6,7 @@
 
 use crate::app_state::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
+use agent_macro::agent_command;
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::prompt_provider::PromptLang;
 use axagent_harness::util_fns::truncate_to_char_boundary;
@@ -29,6 +30,7 @@ fn err_to_string(e: AxAgentError) -> String {
 
 /// 图查询增强：根据查询关键词检索 KB 内实体，扩展 1-hop 邻居关系，
 /// 返回可直接注入 RAG context 的文本片段。
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "知识图谱增强搜索")]
 #[tauri::command]
 pub async fn graph_enhanced_search(
     state: State<'_, AppState>,
@@ -61,6 +63,7 @@ pub async fn graph_enhanced_search(
 /// 注意：本命令只负责 DB 写入；LLM 抽取由 wiring 层（agent crate）完成，
 /// 调用方需要先把 chunks 通过 LLM 抽取为 [`ExtractedEntity`] / [`ExtractedRelation`]，
 /// 再调用本命令持久化。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "批量写入实体和关系")]
 #[tauri::command]
 pub async fn batch_upsert_entities_and_relations(
     state: State<'_, AppState>,
@@ -90,6 +93,7 @@ pub async fn batch_upsert_entities_and_relations(
 /// 6. 解析 JSON（清理 markdown fences）→ `ExtractedEntity` / `ExtractedRelation`
 /// 7. 调用 `batch_upsert_entities_and_relations` 写入 DB
 /// 8. 返回 `ExtractEntitiesResult`
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "从文档抽取实体")]
 #[tauri::command]
 pub async fn extract_entities_from_documents(
     state: State<'_, AppState>,
@@ -342,6 +346,7 @@ struct RelationPayload {
 /// - 输入是 vault_id 而非 knowledge_base_id
 /// - 数据源是 notes 表而非 vector_store chunks
 /// - 输出写入到 vault 对应的知识图谱
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "从Wiki笔记抽取实体")]
 #[tauri::command]
 pub async fn extract_entities_from_wiki(
     state: State<'_, AppState>,
@@ -483,6 +488,7 @@ pub async fn extract_entities_from_wiki(
 }
 
 /// 手动触发知识库实体抽取（同步执行，返回抽取计数供前端展示）
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "手动触发知识库实体抽取")]
 #[tauri::command]
 pub async fn extract_entities_for_kb(
     state: State<'_, AppState>,
@@ -535,6 +541,7 @@ pub async fn extract_entities_for_kb(
 ///
 /// 解决三套实体系统各自为政的问题。
 /// 合并策略：保留最早创建的实体作为"主实体"，合并其他实体的 aliases、description、关系引用。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "合并重复实体")]
 #[tauri::command]
 pub async fn merge_duplicate_entities(
     state: State<'_, AppState>,
@@ -557,6 +564,7 @@ pub struct MemoryToKnowledgeResult {
     pub failures: usize,
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "同步记忆到知识图谱")]
 #[tauri::command]
 pub async fn sync_memory_to_knowledge_graph(
     state: State<'_, AppState>,

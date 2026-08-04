@@ -3,10 +3,12 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::mcp as mcp_err;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "列出MCP服务器")]
 #[tauri::command]
 pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServer>, String> {
     axagent_dao::repo::mcp_server::list_mcp_servers(state.harness.db()).await.map_err(|e| {
@@ -17,6 +19,7 @@ pub async fn list_mcp_servers(state: State<'_, AppState>) -> Result<Vec<McpServe
     })
 }
 
+#[agent_command(domain = mcp, safety = Caution, call_mode = StateOnly, description = "创建MCP服务器")]
 #[tauri::command]
 pub async fn create_mcp_server(
     state: State<'_, AppState>,
@@ -30,6 +33,7 @@ pub async fn create_mcp_server(
     })
 }
 
+#[agent_command(domain = mcp, safety = Caution, call_mode = StateOnly, description = "更新MCP服务器")]
 #[tauri::command]
 pub async fn update_mcp_server(
     state: State<'_, AppState>,
@@ -46,6 +50,7 @@ pub async fn update_mcp_server(
     )
 }
 
+#[agent_command(domain = mcp, safety = Dangerous, call_mode = StateOnly, description = "删除MCP服务器")]
 #[tauri::command]
 pub async fn delete_mcp_server(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::mcp_server::delete_mcp_server(state.harness.db(), &id).await.map_err(|e| {
@@ -56,6 +61,7 @@ pub async fn delete_mcp_server(state: State<'_, AppState>, id: String) -> Result
     })
 }
 
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "测试MCP服务器")]
 #[tauri::command]
 pub async fn test_mcp_server(
     state: State<'_, AppState>,
@@ -193,6 +199,7 @@ pub async fn test_mcp_server(
     })?
 }
 
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "列出MCP工具")]
 #[tauri::command]
 pub async fn list_mcp_tools(
     state: State<'_, AppState>,
@@ -208,6 +215,7 @@ pub async fn list_mcp_tools(
         })
 }
 
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "发现MCP工具")]
 #[tauri::command]
 pub async fn discover_mcp_tools(
     state: State<'_, AppState>,
@@ -246,6 +254,7 @@ pub async fn discover_mcp_tools(
     Ok(tools)
 }
 
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "列出工具执行记录")]
 #[tauri::command]
 pub async fn list_tool_executions(
     state: State<'_, AppState>,
@@ -264,6 +273,7 @@ pub async fn list_tool_executions(
 /// Hot-reload an MCP server's tools into the active agent session.
 /// Discovers tools from the server and emits an event so the frontend
 /// can update its tool list without restarting the application.
+#[agent_command(domain = mcp, safety = Caution, call_mode = StateOnly, description = "热重载MCP服务器")]
 #[tauri::command]
 pub async fn hot_reload_mcp_server(
     app: tauri::AppHandle,
@@ -398,6 +408,7 @@ pub struct DiscoveredMcpServer {
     pub transport: String,
 }
 
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "发现可用MCP服务器")]
 #[tauri::command]
 pub async fn discover_available_mcp_servers() -> Result<Vec<DiscoveredMcpServer>, String> {
     let mut servers: Vec<DiscoveredMcpServer> = Vec::new();
@@ -469,6 +480,7 @@ pub async fn discover_available_mcp_servers() -> Result<Vec<DiscoveredMcpServer>
 
 /// 手动为 MCP 服务器写入 OAuth 凭据（适用于使用静态 Bearer Token /
 /// Personal Access Token 的服务器，或外部已完成授权后回填）。
+#[agent_command(domain = mcp, safety = Caution, call_mode = StateOnly, description = "存储MCP OAuth令牌")]
 #[tauri::command]
 pub async fn store_mcp_oauth_token(
     server_id: String,
@@ -505,6 +517,7 @@ pub async fn store_mcp_oauth_token(
 }
 
 /// 为受保护的 MCP 服务器发起 OAuth 2.1 (PKCE) 授权，返回需用户在浏览器打开的 URL。
+#[agent_command(domain = mcp, safety = Caution, call_mode = StateOnly, description = "开始MCP OAuth授权")]
 #[tauri::command]
 pub async fn begin_mcp_oauth_authorization(
     server_id: String,
@@ -525,6 +538,7 @@ pub async fn begin_mcp_oauth_authorization(
 }
 
 /// 用授权码（浏览器回调所得）兑换并持久化 OAuth token。
+#[agent_command(domain = mcp, safety = Caution, call_mode = StateOnly, description = "完成MCP OAuth授权")]
 #[tauri::command]
 pub async fn complete_mcp_oauth_authorization(
     server_id: String,
@@ -551,6 +565,7 @@ fn discover_mcp_config_paths() -> Vec<std::path::PathBuf> {
 // ── H1: MCP Resources support ──
 
 /// List all resources from an MCP server.
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "列出MCP资源")]
 #[tauri::command]
 pub async fn list_mcp_resources(
     state: State<'_, AppState>,
@@ -603,6 +618,7 @@ pub async fn list_mcp_resources(
 }
 
 /// Read a specific resource from an MCP server.
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "读取MCP资源")]
 #[tauri::command]
 pub async fn read_mcp_resource(
     state: State<'_, AppState>,
@@ -652,6 +668,7 @@ pub async fn read_mcp_resource(
 // ── H1: MCP Prompts support ──
 
 /// List all prompts from an MCP server.
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "列出MCP提示词")]
 #[tauri::command]
 pub async fn list_mcp_prompts(
     state: State<'_, AppState>,
@@ -704,6 +721,7 @@ pub async fn list_mcp_prompts(
 }
 
 /// Render a prompt from an MCP server with the given arguments.
+#[agent_command(domain = mcp, safety = Safe, call_mode = StateOnly, description = "获取MCP提示词")]
 #[tauri::command]
 pub async fn get_mcp_prompt(
     state: State<'_, AppState>,

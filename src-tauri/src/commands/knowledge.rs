@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_entities::{
     knowledge_bases, knowledge_documents, knowledge_entities, knowledge_relations,
@@ -101,6 +102,7 @@ fn collect_importable_files(
 }
 
 #[tauri::command]
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识库")]
 pub async fn list_knowledge_bases(
     state: State<'_, AppState>,
 ) -> Result<Vec<KnowledgeBase>, String> {
@@ -112,6 +114,7 @@ pub async fn list_knowledge_bases(
     })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "创建知识库")]
 #[tauri::command]
 pub async fn create_knowledge_base(
     state: State<'_, AppState>,
@@ -127,6 +130,7 @@ pub async fn create_knowledge_base(
     )
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "更新知识库")]
 #[tauri::command]
 pub async fn update_knowledge_base(
     state: State<'_, AppState>,
@@ -143,6 +147,7 @@ pub async fn update_knowledge_base(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Dangerous, call_mode = StateOnly, description = "删除知识库")]
 #[tauri::command]
 pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Result<(), String> {
     // 校验 base_id 格式，防止 SQL 注入（与 list_memory_items 一致的规则）
@@ -177,6 +182,7 @@ pub async fn delete_knowledge_base(state: State<'_, AppState>, id: String) -> Re
 ///
 /// 用法场景：用户先创建了一个普通 KB，后来决定让它指向 Obsidian vault。
 /// 转换后该 KB 不再走 RAG 索引，agent 通过 9 个 `obsidian_*` 工具直接读写。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "连接Obsidian Vault")]
 #[tauri::command]
 pub async fn kb_connect_vault(
     state: State<'_, AppState>,
@@ -232,6 +238,7 @@ pub async fn kb_connect_vault(
     Ok(updated)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "断开Obsidian Vault")]
 /// 解除 KB 的 Obsidian vault 绑定，转换回默认 Indexed 类型
 #[tauri::command]
 pub async fn kb_disconnect_vault(
@@ -256,6 +263,7 @@ pub async fn kb_disconnect_vault(
     Ok(updated)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "重排序知识库")]
 #[tauri::command]
 pub async fn reorder_knowledge_bases(
     state: State<'_, AppState>,
@@ -271,6 +279,7 @@ pub async fn reorder_knowledge_bases(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识库文档")]
 #[tauri::command]
 pub async fn list_knowledge_documents(
     state: State<'_, AppState>,
@@ -284,6 +293,7 @@ pub async fn list_knowledge_documents(
     })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "添加知识库文档")]
 #[tauri::command]
 pub async fn add_knowledge_document(
     app: AppHandle,
@@ -362,6 +372,7 @@ pub async fn add_knowledge_document(
 ///
 /// 仅收录 document-parser 支持的类型；其余文件计入 `skipped`。
 /// 若知识库配置了 embedding 提供方，每个文档会被标记为 pending 并入队索引任务。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "导入目录到知识库")]
 #[tauri::command]
 pub async fn import_knowledge_directory(
     app: AppHandle,
@@ -482,6 +493,7 @@ pub async fn import_knowledge_directory(
     Ok(result)
 }
 
+#[agent_command(domain = knowledge, safety = Dangerous, call_mode = StateOnly, description = "删除知识库文档")]
 #[tauri::command]
 pub async fn delete_knowledge_document(
     state: State<'_, AppState>,
@@ -500,6 +512,7 @@ pub async fn delete_knowledge_document(
     })
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "搜索知识库")]
 #[tauri::command]
 pub async fn search_knowledge_base(
     state: State<'_, AppState>,
@@ -546,6 +559,7 @@ pub async fn search_knowledge_base(
     Ok(results)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "重建知识库索引")]
 #[tauri::command]
 pub async fn rebuild_knowledge_index(
     app: AppHandle,
@@ -740,6 +754,7 @@ pub async fn rebuild_knowledge_index(
     Ok(())
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识库容器")]
 #[tauri::command]
 pub async fn list_knowledge_containers(
     state: State<'_, AppState>,
@@ -784,6 +799,7 @@ pub async fn list_knowledge_containers(
     Ok(containers)
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识图谱实体")]
 #[tauri::command]
 pub async fn list_knowledge_entities(
     state: State<'_, AppState>,
@@ -799,6 +815,7 @@ pub async fn list_knowledge_entities(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "创建知识图谱实体")]
 #[tauri::command]
 pub async fn create_knowledge_entity(
     state: State<'_, AppState>,
@@ -814,6 +831,7 @@ pub async fn create_knowledge_entity(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识图谱属性")]
 #[tauri::command]
 pub async fn list_knowledge_attributes(
     state: State<'_, AppState>,
@@ -829,6 +847,7 @@ pub async fn list_knowledge_attributes(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "创建知识图谱属性")]
 #[tauri::command]
 pub async fn create_knowledge_attribute(
     state: State<'_, AppState>,
@@ -844,6 +863,7 @@ pub async fn create_knowledge_attribute(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识图谱关系")]
 #[tauri::command]
 pub async fn list_knowledge_relations(
     state: State<'_, AppState>,
@@ -859,6 +879,7 @@ pub async fn list_knowledge_relations(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "创建知识图谱关系")]
 #[tauri::command]
 pub async fn create_knowledge_relation(
     state: State<'_, AppState>,
@@ -874,6 +895,7 @@ pub async fn create_knowledge_relation(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识图谱流程")]
 #[tauri::command]
 pub async fn list_knowledge_flows(
     state: State<'_, AppState>,
@@ -889,6 +911,7 @@ pub async fn list_knowledge_flows(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "创建知识图谱流程")]
 #[tauri::command]
 pub async fn create_knowledge_flow(
     state: State<'_, AppState>,
@@ -904,6 +927,7 @@ pub async fn create_knowledge_flow(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识图谱接口")]
 #[tauri::command]
 pub async fn list_knowledge_interfaces(
     state: State<'_, AppState>,
@@ -919,6 +943,7 @@ pub async fn list_knowledge_interfaces(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "创建知识图谱接口")]
 #[tauri::command]
 pub async fn create_knowledge_interface(
     state: State<'_, AppState>,
@@ -934,6 +959,7 @@ pub async fn create_knowledge_interface(
         })
 }
 
+#[agent_command(domain = knowledge, safety = Dangerous, call_mode = StateOnly, description = "清空知识库索引")]
 #[tauri::command]
 pub async fn clear_knowledge_index(
     state: State<'_, AppState>,
@@ -973,6 +999,7 @@ pub async fn clear_knowledge_index(
     Ok(())
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识文档分块")]
 #[tauri::command]
 pub async fn list_knowledge_document_chunks(
     state: State<'_, AppState>,
@@ -988,6 +1015,7 @@ pub async fn list_knowledge_document_chunks(
     })
 }
 
+#[agent_command(domain = knowledge, safety = Dangerous, call_mode = StateOnly, description = "删除知识分块")]
 #[tauri::command]
 pub async fn delete_knowledge_chunk(
     state: State<'_, AppState>,
@@ -1003,6 +1031,7 @@ pub async fn delete_knowledge_chunk(
     })
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "更新知识分块")]
 #[tauri::command]
 pub async fn update_knowledge_chunk(
     app: AppHandle,
@@ -1076,6 +1105,7 @@ pub async fn update_knowledge_chunk(
     Ok(())
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "添加知识分块")]
 #[tauri::command]
 pub async fn add_knowledge_chunk(
     app: AppHandle,
@@ -1154,6 +1184,7 @@ pub async fn add_knowledge_chunk(
     Ok(chunk_id_result)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "重索引知识分块")]
 #[tauri::command]
 pub async fn reindex_knowledge_chunk(
     app: AppHandle,
@@ -1274,6 +1305,7 @@ pub async fn reindex_knowledge_chunk(
     Ok(())
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "重建知识文档索引")]
 /// Rebuild the index for a single document (re-embed its chunks only).
 #[tauri::command]
 pub async fn rebuild_knowledge_document(

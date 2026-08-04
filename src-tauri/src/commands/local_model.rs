@@ -13,8 +13,9 @@
 //! `managed` 字段标记该进程是否由本应用托管（settings 中记录 PID 匹配）。
 
 use crate::AppState;
-use crate::commands::error::ErrorResponse;
+use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::local_model as lm_err;
+use agent_macro::agent_command;
 use axagent_harness::core_error::Result as HarnessResult;
 use axagent_harness::types::*;
 use serde::{Deserialize, Serialize};
@@ -340,6 +341,7 @@ fn command_error(e: impl std::fmt::Display, code: &str) -> String {
 // ── 命令 ───────────────────────────────────────────────────────────
 
 /// 查询本地模型服务运行状态。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "查询本地模型服务状态")]
 #[tauri::command]
 pub async fn local_model_status(
     state: State<'_, AppState>,
@@ -352,6 +354,7 @@ pub async fn local_model_status(
 }
 
 /// 托管启动 llama-server 子进程。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "启动本地模型服务")]
 #[tauri::command]
 pub async fn local_model_start(
     state: State<'_, AppState>,
@@ -490,6 +493,7 @@ pub async fn local_model_start(
 }
 
 /// 停止本地模型服务。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "停止本地模型服务")]
 #[tauri::command]
 pub async fn local_model_stop(
     state: State<'_, AppState>,
@@ -593,6 +597,7 @@ fn process_alive(pid: u32) -> bool {
 }
 
 /// 嵌入连通性测试。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "本地模型嵌入测试")]
 #[tauri::command]
 pub async fn local_model_embed_test(
     state: State<'_, AppState>,
@@ -643,6 +648,7 @@ pub async fn local_model_embed_test(
 }
 
 /// 读取服务日志尾部。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "读取本地模型日志")]
 #[tauri::command]
 pub async fn local_model_logs(
     state: State<'_, AppState>,
@@ -840,12 +846,14 @@ pub fn scan_gguf_models(provider_id: &str, dir: &Path) -> Vec<axagent_harness::t
 }
 
 /// 获取当前下载目录。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取模型下载目录")]
 #[tauri::command]
 pub async fn local_model_get_download_dir(state: State<'_, AppState>) -> Result<String, String> {
     Ok(download_dir(state.harness.db()).await.to_string_lossy().to_string())
 }
 
 /// 设置下载目录（自动创建）。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "设置模型下载目录")]
 #[tauri::command]
 pub async fn local_model_set_download_dir(
     state: State<'_, AppState>,
@@ -869,12 +877,14 @@ pub async fn local_model_set_download_dir(
 }
 
 /// 获取 HF 镜像端点。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取 HF 镜像端点")]
 #[tauri::command]
 pub async fn local_model_get_hf_endpoint(state: State<'_, AppState>) -> Result<String, String> {
     Ok(hf_endpoint(state.harness.db()).await)
 }
 
 /// 设置 HF 镜像端点（空值恢复默认 huggingface.co）。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "设置 HF 镜像端点")]
 #[tauri::command]
 pub async fn local_model_set_hf_endpoint(
     state: State<'_, AppState>,
@@ -901,6 +911,7 @@ pub async fn local_model_set_hf_endpoint(
 }
 
 /// 列出下载目录中的本地模型（含下载中状态）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "列出本地模型文件")]
 #[tauri::command]
 pub async fn local_model_list_local_models(
     state: State<'_, AppState>,
@@ -910,6 +921,7 @@ pub async fn local_model_list_local_models(
 }
 
 /// 推荐模型清单（含已下载标记）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取推荐模型列表")]
 #[tauri::command]
 pub async fn local_model_get_presets(
     state: State<'_, AppState>,
@@ -935,6 +947,7 @@ pub async fn local_model_get_presets(
 }
 
 /// 发起模型下载（后台任务 + 进度可查询）。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "下载模型文件")]
 #[tauri::command]
 pub async fn local_model_download(
     state: State<'_, AppState>,
@@ -1031,6 +1044,7 @@ pub async fn local_model_download(
 }
 
 /// 查询所有下载任务进度（前端轮询）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "查询下载任务进度")]
 #[tauri::command]
 pub async fn local_model_download_progress() -> Result<Vec<DownloadTaskInfo>, String> {
     let tasks = DOWNLOAD_TASKS.lock().unwrap();
@@ -1038,6 +1052,7 @@ pub async fn local_model_download_progress() -> Result<Vec<DownloadTaskInfo>, St
 }
 
 /// 删除本地模型文件（含 .download 残留）。
+#[agent_command(domain = model, safety = Dangerous, call_mode = StateInput, description = "删除本地模型文件")]
 #[tauri::command]
 pub async fn local_model_delete_local_model(
     state: State<'_, AppState>,
@@ -1060,5 +1075,494 @@ pub async fn local_model_delete_local_model(
         let _ = std::fs::remove_file(&tmp);
     }
     DOWNLOAD_TASKS.lock().unwrap().remove(&filename);
+    Ok(())
+}
+
+// ── llama.cpp 安装管理 ────────────────────────────────────────────
+//
+// 检测系统中是否存在 llama-server，并提供从 GitHub Releases 自动下载安装的能力。
+// 安装路径: {app_data_dir}/llama-cpp/
+// 版本检测: 通过 GitHub API 获取最新 release 标签
+
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// GitHub API: llama.cpp 最新 release
+const LLAMA_CPP_LATEST_API: &str =
+    "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest";
+/// 下载 URL 模板: {tag} 替换为版本号
+#[allow(dead_code)]
+const LLAMA_CPP_DOWNLOAD_TEMPLATE: &str = "https://github.com/ggml-org/llama.cpp/releases/download/{tag}/llama-{tag}-bin-{platform}.{ext}";
+
+/// 平台标识符（用于构建下载文件名）
+fn platform_suffix() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        "win-x64"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        #[cfg(target_arch = "aarch64")]
+        {
+            "macos-arm64"
+        }
+        #[cfg(not(target_arch = "aarch64"))]
+        {
+            "macos-x64"
+        }
+    }
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    {
+        "ubuntu-arm64"
+    }
+    #[cfg(all(target_os = "linux", not(target_arch = "aarch64")))]
+    {
+        "ubuntu-x64"
+    }
+    #[cfg(target_os = "android")]
+    {
+        "android"
+    }
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "linux",
+        target_os = "android"
+    )))]
+    {
+        "unknown"
+    }
+}
+
+/// 安装包文件扩展名
+fn package_ext() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        "zip"
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        "tar.gz"
+    }
+}
+
+/// 查找可执行文件：先检查绝对路径，再在 PATH 中搜索。
+fn find_executable(name_or_path: &str) -> Option<PathBuf> {
+    let path = Path::new(name_or_path);
+    if path.is_absolute() && path.is_file() {
+        return Some(path.to_path_buf());
+    }
+    // 如果包含路径分隔符，说明是相对路径
+    if name_or_path.contains('/') || name_or_path.contains('\\') {
+        let canonical = std::env::current_dir().ok()?.join(name_or_path);
+        if canonical.is_file() {
+            return Some(canonical);
+        }
+        return None;
+    }
+    // 在 PATH 中搜索
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        let candidate = dir.join(name_or_path);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+        #[cfg(windows)]
+        {
+            let exe = dir.join(format!("{name_or_path}.exe"));
+            if exe.is_file() {
+                return Some(exe);
+            }
+        }
+    }
+    None
+}
+
+/// 安装目录: {app_data_dir}/llama-cpp/
+fn install_dir(app_data_dir: &Path) -> PathBuf {
+    app_data_dir.join("llama-cpp")
+}
+
+/// 版本信息 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LlamaCppVersionInfo {
+    pub tag: String,
+    pub name: String,
+    pub published_at: String,
+    pub download_url: String,
+    pub file_name: String,
+    pub file_size: Option<u64>,
+}
+
+/// 安装状态 DTO
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LlamaCppInstallStatus {
+    pub installed: bool,
+    pub version: Option<String>,
+    pub install_path: Option<String>,
+    pub executable_path: Option<String>,
+    pub is_downloading: bool,
+    pub download_progress: Option<f64>,
+    pub download_error: Option<String>,
+}
+
+/// 正在进行的安装任务
+struct InstallTask {
+    tag: String,
+    downloaded_bytes: AtomicU64,
+    total_bytes: AtomicU64,
+}
+
+static INSTALL_TASKS: LazyLock<StdMutex<HashMap<String, InstallTask>>> =
+    LazyLock::new(|| StdMutex::new(HashMap::new()));
+
+/// 检测 llama-server 是否存在。
+/// 支持绝对路径、相对路径或纯名称（在 PATH 中搜索）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "检测 llama-server 是否存在")]
+#[tauri::command]
+pub async fn local_model_check_server(server_exe: String) -> Result<Option<String>, String> {
+    match find_executable(&server_exe) {
+        Some(path) => Ok(Some(path.to_string_lossy().to_string())),
+        None => Ok(None),
+    }
+}
+
+/// 获取 llama.cpp 最新版本信息（用于前端展示下载选项）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取 llama.cpp 最新版本")]
+#[tauri::command]
+pub async fn local_model_get_latest_version() -> Result<LlamaCppVersionInfo, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| command_error(e, lm_err::DOWNLOAD_FAILED))?;
+
+    let resp = client
+        .get(LLAMA_CPP_LATEST_API)
+        .header("User-Agent", "AxAgent-llama-installer")
+        .send()
+        .await
+        .map_err(|e| command_error(e, lm_err::DOWNLOAD_FAILED))?;
+
+    if !resp.status().is_success() {
+        return Err(ErrorResponse::err_with_detail(
+            lm_err::DOWNLOAD_FAILED,
+            format!("GitHub API 请求失败: HTTP {}", resp.status()),
+        ));
+    }
+
+    let data: serde_json::Value =
+        resp.json().await.map_err(|e| command_error(e, lm_err::DOWNLOAD_FAILED))?;
+
+    let tag = data.get("tag_name").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let name = data.get("name").and_then(|v| v.as_str()).unwrap_or(&tag).to_string();
+    let published_at = data.get("published_at").and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+    let platform = platform_suffix();
+    let ext = package_ext();
+    let file_name = format!("llama-{tag}-bin-{platform}.{ext}");
+    let download_url =
+        format!("https://github.com/ggml-org/llama.cpp/releases/download/{tag}/{file_name}");
+
+    // 估算文件大小: 从 assets 中查找匹配的文件
+    let file_size = data.get("assets").and_then(|a| a.as_array()).and_then(|assets| {
+        assets
+            .iter()
+            .find(|asset| {
+                asset.get("name").and_then(|n| n.as_str()).map(|n| n == file_name).unwrap_or(false)
+            })
+            .and_then(|asset| asset.get("size"))
+            .and_then(|s| s.as_u64())
+    });
+
+    Ok(LlamaCppVersionInfo { tag, name, published_at, download_url, file_name, file_size })
+}
+
+/// 下载并安装 llama.cpp（后台异步任务）。
+/// 安装完成后返回可执行文件路径。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "安装 llama.cpp")]
+#[tauri::command]
+pub async fn local_model_install_server(
+    state: State<'_, AppState>,
+    tag: String,
+) -> Result<LlamaCppInstallStatus, String> {
+    // 检查是否正在安装
+    {
+        let tasks = INSTALL_TASKS.lock().unwrap();
+        if let Some(task) = tasks.get("current") {
+            if !task.tag.is_empty() {
+                return Err(ErrorResponse::err(lm_err::INSTALL_IN_PROGRESS));
+            }
+        }
+    }
+
+    let app_data = state.app_data_dir.clone();
+    let install_dir = install_dir(&app_data);
+    std::fs::create_dir_all(&install_dir).map_err(|e| {
+        ErrorResponse::err_with_detail(lm_err::INSTALL_FAILED, format!("创建安装目录失败: {e}"))
+    })?;
+
+    let platform = platform_suffix();
+    let ext = package_ext();
+    let file_name = format!("llama-{tag}-bin-{platform}.{ext}");
+    let download_url =
+        format!("https://github.com/ggml-org/llama.cpp/releases/download/{tag}/{file_name}");
+
+    let task = InstallTask {
+        tag: tag.clone(),
+        downloaded_bytes: AtomicU64::new(0),
+        total_bytes: AtomicU64::new(0),
+    };
+    INSTALL_TASKS.lock().unwrap().insert("current".to_string(), task);
+
+    let install_dir_clone = install_dir.clone();
+    let tag_clone = tag.clone();
+    let filename_clone = file_name.clone();
+    let url_clone = download_url.clone();
+
+    tokio::spawn(async move {
+        let result = async {
+            let client = reqwest::Client::new();
+            let resp = client
+                .get(&url_clone)
+                .header("User-Agent", "AxAgent-llama-installer")
+                .send()
+                .await
+                .map_err(|e| format!("下载请求失败: {e}"))?;
+
+            if !resp.status().is_success() {
+                return Err(format!("下载失败: HTTP {}", resp.status()));
+            }
+
+            let total_size = resp.content_length().unwrap_or(0);
+            {
+                let tasks = INSTALL_TASKS.lock().unwrap();
+                if let Some(task) = tasks.get("current") {
+                    task.total_bytes.store(total_size, Ordering::Relaxed);
+                }
+            }
+
+            let download_path = install_dir_clone.join(&filename_clone);
+            let mut file = std::fs::File::create(&download_path)
+                .map_err(|e| format!("创建下载文件失败: {e}"))?;
+
+            let mut downloaded: u64 = 0;
+            let mut stream = resp.bytes_stream();
+            use futures::StreamExt;
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(|e| format!("下载流读取失败: {e}"))?;
+                file.write_all(&chunk).map_err(|e| format!("写入下载文件失败: {e}"))?;
+                downloaded += chunk.len() as u64;
+                {
+                    let tasks = INSTALL_TASKS.lock().unwrap();
+                    if let Some(task) = tasks.get("current") {
+                        task.downloaded_bytes.store(downloaded, Ordering::Relaxed);
+                    }
+                }
+            }
+            drop(file);
+
+            // 解压
+            let extract_dir = install_dir_clone.join(format!("llama-{tag_clone}"));
+            std::fs::create_dir_all(&extract_dir).map_err(|e| format!("创建解压目录失败: {e}"))?;
+
+            extract_archive(&download_path, &extract_dir).map_err(|e| format!("解压失败: {e}"))?;
+
+            // 查找 llama-server 可执行文件
+            let server_exe = find_llama_server(&extract_dir)
+                .ok_or_else(|| "解压完成但未找到 llama-server 可执行文件".to_string())?;
+
+            // 记录安装信息
+            #[cfg(not(windows))]
+            let installed_exe = install_dir_clone.join("llama-server");
+            #[cfg(windows)]
+            let installed_exe = install_dir_clone.join("llama-server.exe");
+
+            // 复制或创建符号链接
+            if server_exe != installed_exe {
+                if installed_exe.exists() {
+                    let _ = std::fs::remove_file(&installed_exe);
+                }
+                std::fs::copy(&server_exe, &installed_exe)
+                    .map_err(|e| format!("复制可执行文件失败: {e}"))?;
+            }
+
+            // 保存版本信息
+            let version_file = install_dir_clone.join("version.txt");
+            std::fs::write(&version_file, &tag_clone)
+                .map_err(|e| format!("写入版本信息失败: {e}"))?;
+
+            // 清理下载包
+            let _ = std::fs::remove_file(&download_path);
+
+            tracing::info!(
+                "[local_model] llama.cpp {} 安装完成: {}",
+                tag_clone,
+                installed_exe.display()
+            );
+
+            Ok(installed_exe.to_string_lossy().to_string())
+        }
+        .await;
+
+        // 清理安装任务
+        {
+            let mut tasks = INSTALL_TASKS.lock().unwrap();
+            tasks.remove("current");
+        }
+
+        if let Err(ref e) = result {
+            tracing::error!("[local_model] llama.cpp 安装失败: {}", e);
+        }
+    });
+
+    Ok(LlamaCppInstallStatus {
+        installed: false,
+        version: None,
+        install_path: Some(install_dir.to_string_lossy().to_string()),
+        executable_path: None,
+        is_downloading: true,
+        download_progress: Some(0.0),
+        download_error: None,
+    })
+}
+
+/// 查询当前安装状态（是否已安装、版本、下载进度）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "查询 llama.cpp 安装状态")]
+#[tauri::command]
+pub async fn local_model_get_install_status(
+    state: State<'_, AppState>,
+) -> Result<LlamaCppInstallStatus, String> {
+    let app_data = state.app_data_dir.clone();
+    let dir = install_dir(&app_data);
+
+    // 检查是否已安装
+    #[cfg(windows)]
+    let exe_path = dir.join("llama-server.exe");
+    #[cfg(not(windows))]
+    let exe_path = dir.join("llama-server");
+
+    let installed = exe_path.is_file();
+
+    // 读取版本
+    let version = if installed {
+        let version_file = dir.join("version.txt");
+        std::fs::read_to_string(version_file).ok().map(|v| v.trim().to_string())
+    } else {
+        None
+    };
+
+    // 检查下载进度
+    let (is_downloading, progress, error) = {
+        let tasks = INSTALL_TASKS.lock().unwrap();
+        if let Some(task) = tasks.get("current") {
+            let downloaded = task.downloaded_bytes.load(Ordering::Relaxed);
+            let total = task.total_bytes.load(Ordering::Relaxed);
+            let p = if total > 0 {
+                downloaded as f64 / total as f64 * 100.0
+            } else {
+                0.0
+            };
+            (true, Some(p), None)
+        } else {
+            (false, None, None)
+        }
+    };
+
+    Ok(LlamaCppInstallStatus {
+        installed,
+        version,
+        install_path: Some(dir.to_string_lossy().to_string()),
+        executable_path: installed.then(|| exe_path.to_string_lossy().to_string()),
+        is_downloading,
+        download_progress: progress,
+        download_error: error,
+    })
+}
+
+/// 从已安装的路径获取 llama-server 可执行文件路径。
+#[allow(dead_code)]
+pub fn installed_server_path(app_data_dir: &Path) -> Option<PathBuf> {
+    let dir = install_dir(app_data_dir);
+    #[cfg(windows)]
+    let exe = dir.join("llama-server.exe");
+    #[cfg(not(windows))]
+    let exe = dir.join("llama-server");
+    if exe.is_file() { Some(exe) } else { None }
+}
+
+// ── 辅助函数 ──────────────────────────────────────────────────────
+
+use std::io::Write;
+
+/// 从解压目录中递归查找 llama-server 可执行文件
+fn find_llama_server(dir: &Path) -> Option<PathBuf> {
+    #[cfg(windows)]
+    let target = "llama-server.exe";
+    #[cfg(not(windows))]
+    let target = "llama-server";
+
+    for entry in walkdir::WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
+        if entry.file_name().to_string_lossy() == target {
+            return Some(entry.into_path());
+        }
+    }
+    None
+}
+
+/// 解压归档文件（zip / tar.gz）
+fn extract_archive(archive_path: &Path, dest: &Path) -> Result<(), String> {
+    let ext = archive_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+
+    match ext {
+        "zip" => extract_zip(archive_path, dest),
+        "gz" => extract_tar_gz(archive_path, dest),
+        _ => Err(format!("不支持的归档格式: {ext}")),
+    }
+}
+
+fn extract_zip(archive_path: &Path, dest: &Path) -> Result<(), String> {
+    let file = std::fs::File::open(archive_path)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| {
+            String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+        })?;
+        let out_path = dest.join(file.mangled_name());
+
+        if file.is_dir() {
+            std::fs::create_dir_all(&out_path).map_err(|e| {
+                String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+            })?;
+        } else {
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+                })?;
+            }
+            let mut outfile = std::fs::File::create(&out_path).map_err(|e| {
+                String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+            })?;
+            std::io::copy(&mut file, &mut outfile).map_err(|e| {
+                String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+            })?;
+        }
+    }
+    Ok(())
+}
+
+fn extract_tar_gz(archive_path: &Path, dest: &Path) -> Result<(), String> {
+    use flate2::read::GzDecoder;
+
+    let file = std::fs::File::open(archive_path)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
+    let decoder = GzDecoder::new(file);
+    let mut archive = tar::Archive::new(decoder);
+    archive
+        .unpack(dest)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
     Ok(())
 }

@@ -1,0 +1,29 @@
+[package]
+name = "axagent-device"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Device management and multi-device sync implementation"
+
+[dependencies]
+aes-gcm = "0.11"
+async-trait = "0.1"
+axagent-harness = { path = "../harness" }
+base64 = "0.22"
+chrono = { workspace = true, features = ["serde"] }
+generic-array = "1"
+hex = "0.4"
+pbkdf2 = "0.13"
+rand = "0.8"
+reqwest = { workspace = true, features = ["json"] }
+sea-orm = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = "0.11"
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+[dev-dependencies]
+tempfile = "3"

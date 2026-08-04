@@ -3,10 +3,12 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::proxy as proxy_err;
+use agent_macro::agent_command;
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::Manager;
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "最小化窗口")]
 #[tauri::command]
 pub async fn minimize_window(window: tauri::Window) -> Result<(), String> {
     window.minimize().map_err(|e| {
@@ -17,6 +19,7 @@ pub async fn minimize_window(window: tauri::Window) -> Result<(), String> {
     })
 }
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "切换窗口最大化状态")]
 #[tauri::command]
 pub async fn toggle_maximize_window(window: tauri::Window) -> Result<(), String> {
     if window.is_maximized().map_err(|e| {
@@ -41,6 +44,7 @@ pub async fn toggle_maximize_window(window: tauri::Window) -> Result<(), String>
     }
 }
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "设置窗口置顶")]
 #[tauri::command]
 pub async fn set_always_on_top(window: tauri::Window, enabled: bool) -> Result<(), String> {
     window.set_always_on_top(enabled).map_err(|e| {
@@ -51,6 +55,7 @@ pub async fn set_always_on_top(window: tauri::Window, enabled: bool) -> Result<(
     })
 }
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "设置关闭到托盘")]
 #[tauri::command]
 pub async fn set_close_to_tray(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let state = app.state::<AppState>();
@@ -58,6 +63,7 @@ pub async fn set_close_to_tray(app: tauri::AppHandle, enabled: bool) -> Result<(
     Ok(())
 }
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "应用启动设置")]
 #[tauri::command]
 pub async fn apply_startup_settings(
     window: tauri::Window,
@@ -76,12 +82,14 @@ pub async fn apply_startup_settings(
     Ok(())
 }
 
+#[agent_command(domain = desktop, safety = Dangerous, call_mode = Manual, description = "强制退出应用")]
 #[tauri::command]
 pub async fn force_quit(app: tauri::AppHandle) -> Result<(), String> {
     app.exit(0);
     Ok(())
 }
 
+#[agent_command(domain = desktop, safety = Safe, call_mode = Manual, description = "获取桌面端能力")]
 #[tauri::command]
 pub async fn get_desktop_capabilities() -> Result<serde_json::Value, String> {
     Ok(serde_json::json!([
@@ -99,6 +107,7 @@ pub struct DesktopNotificationResult {
     pub method: String, // "native" | "log"
 }
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "发送桌面通知")]
 #[tauri::command]
 pub async fn send_desktop_notification(
     app: tauri::AppHandle,
@@ -125,6 +134,7 @@ pub async fn send_desktop_notification(
     Ok(DesktopNotificationResult { sent: false, method: "log".to_string() })
 }
 
+#[agent_command(domain = desktop, safety = Safe, call_mode = Manual, description = "获取窗口状态")]
 #[tauri::command]
 pub async fn get_window_state() -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({
@@ -136,6 +146,7 @@ pub async fn get_window_state() -> Result<serde_json::Value, String> {
 }
 
 /// SECURITY: 仅在调试构建中开放 DevTools 命令，防止生产环境中通过 IPC 调用打开 DevTools。
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "打开开发者工具")]
 #[cfg(debug_assertions)]
 #[tauri::command]
 pub async fn open_devtools(webview_window: tauri::WebviewWindow) -> Result<(), String> {
@@ -143,12 +154,14 @@ pub async fn open_devtools(webview_window: tauri::WebviewWindow) -> Result<(), S
     Ok(())
 }
 
+#[agent_command(domain = desktop, safety = Caution, call_mode = Manual, description = "打开开发者工具")]
 #[cfg(not(debug_assertions))]
 #[tauri::command]
 pub async fn open_devtools() -> Result<(), String> {
     Err("DevTools are disabled in release builds".to_string())
 }
 
+#[agent_command(domain = desktop, safety = Safe, call_mode = Manual, description = "测试代理连接")]
 #[tauri::command]
 pub async fn test_proxy(
     _proxy_type: String,
@@ -201,6 +214,7 @@ pub async fn test_proxy(
     }
 }
 
+#[agent_command(domain = desktop, safety = Safe, call_mode = Manual, description = "列出系统字体")]
 #[tauri::command]
 #[cfg(not(target_os = "android"))]
 pub async fn list_system_fonts() -> Result<Vec<String>, String> {

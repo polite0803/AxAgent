@@ -6,6 +6,8 @@
 //! ReminderManager 实例以 once_cell::sync::OnceLock 方式持有，线程安全。
 //! 数据持久化到 JSON 文件，应用重启后自动恢复。
 
+use agent_macro::agent_command;
+
 use axagent_trajectory::{Reminder, ReminderManager, ReminderNotification, ReminderRecurrence};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -102,6 +104,7 @@ pub struct CreateReminderInput {
 
 // ── Commands ───────────────────────────────────────────────────────
 
+#[agent_command(domain = reminder, safety = Caution, call_mode = StateInput, description = "创建新提醒")]
 #[tauri::command]
 pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem, String> {
     // 输入验证
@@ -170,6 +173,7 @@ pub async fn reminder_create(input: CreateReminderInput) -> Result<ReminderItem,
     Ok(result)
 }
 
+#[agent_command(domain = reminder, safety = Safe, call_mode = StateOnly, description = "列出所有提醒")]
 #[tauri::command]
 pub async fn reminder_list() -> Result<ReminderListResult, String> {
     let mgr = manager().await.lock().await;
@@ -184,6 +188,7 @@ pub async fn reminder_list() -> Result<ReminderListResult, String> {
     Ok(ReminderListResult { active, completed, pending_notifications })
 }
 
+#[agent_command(domain = reminder, safety = Caution, call_mode = StateInput, description = "标记提醒为已完成")]
 #[tauri::command]
 pub async fn reminder_complete(id: String) -> Result<ReminderItem, String> {
     let mut mgr = manager().await.lock().await;
@@ -192,6 +197,7 @@ pub async fn reminder_complete(id: String) -> Result<ReminderItem, String> {
     Ok(ReminderItem::from(&r))
 }
 
+#[agent_command(domain = reminder, safety = Caution, call_mode = StateInput, description = "推迟提醒时间（贪睡）")]
 #[tauri::command]
 pub async fn reminder_snooze(
     id: String,
@@ -203,6 +209,7 @@ pub async fn reminder_snooze(
     Ok(ReminderItem::from(&r))
 }
 
+#[agent_command(domain = reminder, safety = Dangerous, call_mode = StateInput, description = "删除指定提醒")]
 #[tauri::command]
 pub async fn reminder_delete(id: String) -> Result<(), String> {
     let mut mgr = manager().await.lock().await;
@@ -211,6 +218,7 @@ pub async fn reminder_delete(id: String) -> Result<(), String> {
     Ok(())
 }
 
+#[agent_command(domain = reminder, safety = Caution, call_mode = StateInput, description = "更新提醒内容")]
 #[tauri::command]
 pub async fn reminder_update(
     id: String,
@@ -241,6 +249,7 @@ pub struct AcknowledgeResult {
     pub notification_id: String,
 }
 
+#[agent_command(domain = reminder, safety = Caution, call_mode = StateInput, description = "确认通知已读")]
 #[tauri::command]
 pub async fn reminder_acknowledge(notification_id: String) -> Result<AcknowledgeResult, String> {
     let mut mgr = manager().await.lock().await;
@@ -249,6 +258,7 @@ pub async fn reminder_acknowledge(notification_id: String) -> Result<Acknowledge
     Ok(AcknowledgeResult { acknowledged: true, notification_id })
 }
 
+#[agent_command(domain = reminder, safety = Caution, call_mode = StateOnly, description = "清理已完成的提醒历史")]
 #[tauri::command]
 pub async fn reminder_cleanup() -> Result<u64, String> {
     let mut mgr = manager().await.lock().await;

@@ -6,6 +6,7 @@
 //! 错误用 ErrorResponse 包装带错误码。
 
 use crate::commands::error::{ErrorCategory, ErrorResponse};
+use agent_macro::agent_command;
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::types::*;
 use tauri::State;
@@ -19,6 +20,7 @@ fn err_to_string(e: AxAgentError) -> String {
 
 // ── Paper Overview ──────────────────────────────────────────────────────
 
+#[agent_command(domain = paper, safety = Safe, call_mode = StateInput, description = "按知识库列出论文概览")]
 #[tauri::command]
 pub async fn list_paper_overviews_by_kb(
     state: State<'_, AppState>,
@@ -29,6 +31,7 @@ pub async fn list_paper_overviews_by_kb(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Safe, call_mode = StateInput, description = "获取论文概览详情")]
 #[tauri::command]
 pub async fn get_paper_overview(
     state: State<'_, AppState>,
@@ -37,6 +40,7 @@ pub async fn get_paper_overview(
     axagent_dao::repo::paper_overviews::get(state.harness.db(), &id).await.map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Safe, call_mode = StateInput, description = "按文档获取论文概览")]
 #[tauri::command]
 pub async fn get_paper_overview_by_document(
     state: State<'_, AppState>,
@@ -47,6 +51,7 @@ pub async fn get_paper_overview_by_document(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "创建论文概览")]
 #[tauri::command]
 pub async fn create_paper_overview(
     state: State<'_, AppState>,
@@ -57,6 +62,7 @@ pub async fn create_paper_overview(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "更新论文概览")]
 #[tauri::command]
 pub async fn update_paper_overview(
     state: State<'_, AppState>,
@@ -68,6 +74,7 @@ pub async fn update_paper_overview(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "按文档插入或更新论文概览")]
 #[tauri::command]
 pub async fn upsert_paper_overview_by_document(
     state: State<'_, AppState>,
@@ -78,6 +85,7 @@ pub async fn upsert_paper_overview_by_document(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Dangerous, call_mode = StateInput, description = "删除论文概览")]
 #[tauri::command]
 pub async fn delete_paper_overview(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::paper_overviews::delete(state.harness.db(), &id).await.map_err(err_to_string)
@@ -85,11 +93,13 @@ pub async fn delete_paper_overview(state: State<'_, AppState>, id: String) -> Re
 
 // ── Reading List ────────────────────────────────────────────────────────
 
+#[agent_command(domain = paper, safety = Safe, call_mode = StateOnly, description = "列出阅读列表")]
 #[tauri::command]
 pub async fn list_reading_lists(state: State<'_, AppState>) -> Result<Vec<ReadingList>, String> {
     axagent_dao::repo::reading_lists::list_all(state.harness.db()).await.map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "创建阅读列表")]
 #[tauri::command]
 pub async fn create_reading_list(
     state: State<'_, AppState>,
@@ -98,6 +108,7 @@ pub async fn create_reading_list(
     axagent_dao::repo::reading_lists::create(state.harness.db(), input).await.map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "更新阅读列表")]
 #[tauri::command]
 pub async fn update_reading_list(
     state: State<'_, AppState>,
@@ -109,11 +120,13 @@ pub async fn update_reading_list(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Dangerous, call_mode = StateInput, description = "删除阅读列表")]
 #[tauri::command]
 pub async fn delete_reading_list(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::reading_lists::delete(state.harness.db(), &id).await.map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "重新排序阅读列表")]
 #[tauri::command]
 pub async fn reorder_reading_lists(
     state: State<'_, AppState>,
@@ -124,6 +137,7 @@ pub async fn reorder_reading_lists(
 
 // ── Reading List Items ──────────────────────────────────────────────────
 
+#[agent_command(domain = paper, safety = Safe, call_mode = StateInput, description = "列出阅读列表项")]
 #[tauri::command]
 pub async fn list_reading_list_items(
     state: State<'_, AppState>,
@@ -137,6 +151,7 @@ pub async fn list_reading_list_items(
     .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "创建阅读列表项")]
 #[tauri::command]
 pub async fn create_reading_list_item(
     state: State<'_, AppState>,
@@ -147,6 +162,7 @@ pub async fn create_reading_list_item(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "更新阅读列表项")]
 #[tauri::command]
 pub async fn update_reading_list_item(
     state: State<'_, AppState>,
@@ -158,6 +174,7 @@ pub async fn update_reading_list_item(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Dangerous, call_mode = StateInput, description = "删除阅读列表项")]
 #[tauri::command]
 pub async fn delete_reading_list_item(
     state: State<'_, AppState>,
@@ -168,6 +185,7 @@ pub async fn delete_reading_list_item(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "设置阅读列表项状态")]
 #[tauri::command]
 pub async fn set_reading_list_item_status(
     state: State<'_, AppState>,
@@ -179,6 +197,7 @@ pub async fn set_reading_list_item_status(
         .map_err(err_to_string)
 }
 
+#[agent_command(domain = paper, safety = Caution, call_mode = StateInput, description = "重新排序阅读列表项")]
 #[tauri::command]
 pub async fn reorder_reading_list_items(
     state: State<'_, AppState>,
@@ -218,6 +237,7 @@ pub struct PaperQAPreparedContext {
 ///
 /// 前端调用此命令后，把 `suggested_prompt` 作为用户消息发送给 LLM即可。
 /// 检索范围自动限制在 `document_id` 对应的单篇论文内（多文档协同的特例）。
+#[agent_command(domain = paper, safety = Safe, call_mode = StateInput, description = "准备论文问答上下文")]
 #[tauri::command]
 pub async fn prepare_paper_qa_context(
     state: State<'_, AppState>,
@@ -332,6 +352,7 @@ If the context doesn't contain enough information, say so explicitly."
 /// 1. 加载文档所有 chunks，拼接为完整文本（截断到 max_chars）
 /// 2. 构造结构化抽取 prompt，要求 LLM 返回 JSON
 /// 3. 前端拿到 prompt 后调用 LLM，解析 JSON，调用 upsert_paper_overview_by_document
+#[agent_command(domain = paper, safety = Safe, call_mode = StateInput, description = "生成论文概览提示词")]
 #[tauri::command]
 pub async fn generate_paper_overview_prompt(
     state: State<'_, AppState>,

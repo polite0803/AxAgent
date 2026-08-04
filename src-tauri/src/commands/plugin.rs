@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use tauri::{State, command};
 use tracing::warn;
 
 use crate::app_state::AppState;
 
+#[agent_command(domain = plugin, safety = Safe, call_mode = StateOnly, description = "列出所有插件")]
 #[command]
 pub async fn plugin_list(state: State<'_, AppState>) -> Result<Vec<PluginSummaryDto>, String> {
     let plugin_manager = state.plugin_manager.clone();
@@ -39,6 +42,7 @@ pub async fn plugin_list(state: State<'_, AppState>) -> Result<Vec<PluginSummary
     .map_err(|e| format!("plugin list task panicked: {e}"))?
 }
 
+#[agent_command(domain = plugin, safety = Safe, call_mode = StateInput, description = "验证插件源并获取元数据")]
 #[command]
 pub async fn plugin_validate_source(
     state: State<'_, AppState>,
@@ -109,6 +113,7 @@ pub async fn plugin_validate_source(
 /// SECURITY (S9): 远程插件源（Git URL、npm 包）安装时无 SHA-256 完整性校验或签名验证。
 /// 用户应从可信源（如官方 AxHub 市场）安装插件，避免安装来源不明的远程插件。
 /// 前端应在安装前通过 `plugin_validate_source` 验证插件元数据。
+#[agent_command(domain = plugin, safety = Caution, call_mode = StateInput, description = "安装插件")]
 #[command]
 pub async fn plugin_install(
     state: State<'_, AppState>,
@@ -144,6 +149,7 @@ pub async fn plugin_install(
     .map_err(|e| format!("plugin install task panicked: {e}"))?
 }
 
+#[agent_command(domain = plugin, safety = Caution, call_mode = StateInput, description = "启用指定插件")]
 #[command]
 pub async fn plugin_enable(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
     let plugin_manager = state.plugin_manager.clone();
@@ -160,6 +166,7 @@ pub async fn plugin_enable(state: State<'_, AppState>, plugin_id: String) -> Res
     .map_err(|e| format!("plugin enable task panicked: {e}"))?
 }
 
+#[agent_command(domain = plugin, safety = Caution, call_mode = StateInput, description = "禁用指定插件")]
 #[command]
 pub async fn plugin_disable(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
     let plugin_manager = state.plugin_manager.clone();
@@ -176,6 +183,7 @@ pub async fn plugin_disable(state: State<'_, AppState>, plugin_id: String) -> Re
     .map_err(|e| format!("plugin disable task panicked: {e}"))?
 }
 
+#[agent_command(domain = plugin, safety = Dangerous, call_mode = StateInput, description = "卸载指定插件")]
 #[command]
 pub async fn plugin_uninstall(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
     let plugin_manager = state.plugin_manager.clone();
@@ -192,6 +200,7 @@ pub async fn plugin_uninstall(state: State<'_, AppState>, plugin_id: String) -> 
     .map_err(|e| format!("plugin uninstall task panicked: {e}"))?
 }
 
+#[agent_command(domain = plugin, safety = Caution, call_mode = StateInput, description = "更新指定插件")]
 #[command]
 pub async fn plugin_update(
     state: State<'_, AppState>,

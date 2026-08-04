@@ -47,6 +47,7 @@ export { useCacheStore } from "./feature/cacheStore";
 export { useCategoryStore } from "./feature/categoryStore";
 export { useContextSourceStore } from "./feature/contextSourceStore";
 export { formatCny, useCurrencyStore, useFormatCny } from "./feature/currencyStore";
+export { useDeviceSyncStore } from "./feature/deviceSyncStore";
 export { setupDreamEventListeners, useDreamStore } from "./feature/dreamStore";
 export { useEvolutionStore } from "./feature/evolutionStore";
 export type { ABTestResult, EngineLog, EngineStatus, EvolutionEvent, SkillVersion } from "./feature/evolutionStore";

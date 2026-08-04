@@ -2,6 +2,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::terminal as terminal_err;
+use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -22,6 +23,7 @@ pub struct SystemInfo {
     pub network_status: String,
 }
 
+#[agent_command(domain = terminal, safety = Safe, call_mode = StateOnly, description = "获取Git分支")]
 #[tauri::command]
 pub async fn git_get_branch() -> Result<String, String> {
     let output = axagent_kit::utils::cmd("git")
@@ -37,6 +39,7 @@ pub async fn git_get_branch() -> Result<String, String> {
     Ok(branch)
 }
 
+#[agent_command(domain = terminal, safety = Safe, call_mode = StateOnly, description = "获取Git状态")]
 #[tauri::command]
 pub async fn git_status() -> Result<GitStatusInfo, String> {
     let branch = match git_get_branch().await {
@@ -105,6 +108,7 @@ async fn get_ahead_behind() -> (u32, u32) {
     (ahead, behind)
 }
 
+#[agent_command(domain = terminal, safety = Safe, call_mode = StateOnly, description = "获取系统信息")]
 #[tauri::command]
 pub async fn system_get_info() -> Result<SystemInfo, String> {
     let cpu_usage = get_cpu_usage();
@@ -174,6 +178,7 @@ fn get_network_status() -> String {
     }
 }
 
+#[agent_command(domain = terminal, safety = Safe, call_mode = StateOnly, description = "路径补全")]
 #[tauri::command]
 pub async fn path_complete(partial_path: String) -> Result<Vec<String>, String> {
     // 安全检查：拒绝空路径
@@ -261,6 +266,7 @@ pub async fn path_complete(partial_path: String) -> Result<Vec<String>, String> 
     Ok(results)
 }
 
+#[agent_command(domain = terminal, safety = Safe, call_mode = StateOnly, description = "获取终端会话状态")]
 #[tauri::command]
 pub async fn session_get_status(_session_id: String) -> Result<serde_json::Value, String> {
     // 会话状态功能待后续与 agent 会话系统集成

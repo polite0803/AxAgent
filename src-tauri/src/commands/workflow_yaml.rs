@@ -4,12 +4,14 @@
 //! Delegates to `rt_workflow::yaml_io` for serialization/deserialization.
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_rt_workflow::workflow_engine::Workflow;
 use axagent_rt_workflow::yaml_io::{
     WorkflowYamlMetadata, YamlIoError, export_workflow_yaml as io_export,
     import_workflow_yaml as io_import,
 };
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "导出工作流为YAML")]
 #[tauri::command]
 pub async fn export_workflow_yaml(
     _app: tauri::AppHandle,
@@ -35,6 +37,7 @@ pub async fn export_workflow_yaml(
     })
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "从YAML导入工作流")]
 #[tauri::command]
 pub async fn import_workflow_yaml(
     _app: tauri::AppHandle,

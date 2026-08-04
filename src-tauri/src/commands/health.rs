@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -30,6 +31,7 @@ pub struct ServiceHealthCheck {
     pub message: Option<String>,
 }
 
+#[agent_command(domain = health, safety = Safe, call_mode = StateOnly, description = "获取服务健康状态")]
 #[tauri::command]
 pub async fn get_service_health(
     app: tauri::AppHandle,

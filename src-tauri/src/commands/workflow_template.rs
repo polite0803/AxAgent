@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::workflow as workflow_err;
+use agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
 use axagent_harness::workflow_types::*;
@@ -57,6 +58,7 @@ fn model_to_active_model(
     }
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "列出工作流模板")]
 #[tauri::command]
 pub async fn list_workflow_templates(
     state: State<'_, AppState>,
@@ -73,6 +75,7 @@ pub async fn list_workflow_templates(
     Ok(templates.into_iter().map(workflow_template_response_from_model).collect())
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取单个工作流模板详情")]
 #[tauri::command]
 pub async fn get_workflow_template(
     state: State<'_, AppState>,
@@ -89,6 +92,7 @@ pub async fn get_workflow_template(
     Ok(template.map(workflow_template_response_from_model))
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "创建新工作流模板")]
 #[tauri::command]
 pub async fn create_workflow_template(
     state: State<'_, AppState>,
@@ -156,6 +160,7 @@ pub async fn create_workflow_template(
     Ok(template.id)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "更新工作流模板")]
 #[tauri::command]
 pub async fn update_workflow_template(
     state: State<'_, AppState>,
@@ -295,6 +300,7 @@ pub async fn update_workflow_template(
     Ok(updated)
 }
 
+#[agent_command(domain = workflow, safety = Dangerous, call_mode = StateInput, description = "删除工作流模板")]
 #[tauri::command]
 pub async fn delete_workflow_template(
     state: State<'_, AppState>,
@@ -319,6 +325,7 @@ pub async fn delete_workflow_template(
     Ok(deleted)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "复制工作流模板")]
 #[tauri::command]
 pub async fn duplicate_workflow_template(
     state: State<'_, AppState>,
@@ -374,6 +381,7 @@ pub async fn duplicate_workflow_template(
     Ok(new_template.id)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateOnly, description = "初始化预置工作流模板")]
 #[tauri::command]
 pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, String> {
     use axagent_kit::preset_templates::{
@@ -402,6 +410,7 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
     Ok(presets.len())
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取模板版本列表")]
 #[tauri::command]
 pub async fn get_template_versions(
     state: State<'_, AppState>,
@@ -417,6 +426,7 @@ pub async fn get_template_versions(
     Ok(versions)
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取指定版本的模板")]
 #[tauri::command]
 pub async fn get_template_by_version(
     state: State<'_, AppState>,
@@ -440,6 +450,7 @@ pub struct ValidateWorkflowInput {
     pub edges: Vec<WorkflowEdge>,
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "校验工作流模板结构")]
 #[tauri::command]
 pub async fn validate_workflow_template(
     _state: State<'_, AppState>,
@@ -812,6 +823,7 @@ pub async fn validate_workflow_template(
     Ok(ValidationResult { is_valid, errors, warnings })
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "导出工作流模板")]
 #[tauri::command]
 pub async fn export_workflow_template(
     state: State<'_, AppState>,
@@ -1939,6 +1951,7 @@ async fn do_import_workflow(
     }))
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "导入工作流模板JSON")]
 #[tauri::command]
 pub async fn import_workflow_template(
     state: State<'_, AppState>,
@@ -1961,6 +1974,7 @@ fn collect_json_files(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>
     }
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "批量导入n8n目录中的工作流")]
 #[tauri::command]
 pub async fn import_n8n_directory(
     state: State<'_, AppState>,
@@ -2039,6 +2053,7 @@ pub async fn import_n8n_directory(
 }
 
 /// 批量导入目录下所有 JSON 工作流模板文件
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "批量导入目录中的工作流模板")]
 #[tauri::command]
 pub async fn import_workflow_directory(
     state: tauri::State<'_, AppState>,

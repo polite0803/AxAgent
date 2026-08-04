@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_harness::repo_dtos::WorkflowExecutionData;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
@@ -82,6 +83,7 @@ impl From<WorkflowExecutionData> for ExecutionSummaryResponse {
 
 // ── Commands ──
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "启动工作流执行")]
 #[tauri::command]
 pub async fn start_workflow_execution(
     state: State<'_, AppState>,
@@ -97,6 +99,7 @@ pub async fn start_workflow_execution(
     })
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "暂停工作流执行")]
 #[tauri::command]
 pub async fn pause_workflow_execution(
     state: State<'_, AppState>,
@@ -112,6 +115,7 @@ pub async fn pause_workflow_execution(
     Ok(true)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "恢复工作流执行")]
 #[tauri::command]
 pub async fn resume_workflow_execution(
     state: State<'_, AppState>,
@@ -127,6 +131,7 @@ pub async fn resume_workflow_execution(
     Ok(true)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "取消工作流执行")]
 #[tauri::command]
 pub async fn cancel_workflow_execution(
     state: State<'_, AppState>,
@@ -142,6 +147,7 @@ pub async fn cancel_workflow_execution(
     Ok(true)
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取工作流执行状态")]
 #[tauri::command]
 pub async fn get_workflow_execution_status(
     state: State<'_, AppState>,
@@ -168,6 +174,7 @@ pub async fn get_workflow_execution_status(
     })
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "列出工作流执行记录")]
 #[tauri::command]
 pub async fn list_workflow_executions(
     state: State<'_, AppState>,
@@ -222,6 +229,7 @@ const DEBUGGABLE_NODE_TYPES: &[&str] = &[
 /// 巨大 JSON 触发 OOM。
 const MAX_DEBUG_INPUT_BYTES: usize = 64 * 1024;
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = Manual, description = "执行单个工作流节点")]
 #[tauri::command]
 pub async fn execute_workflow_node(
     state: State<'_, AppState>,
@@ -278,6 +286,7 @@ pub async fn execute_workflow_node(
     }
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "列出节点执行器类型")]
 #[tauri::command]
 pub async fn list_node_executor_types(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let engine = &*state.work_engine;
@@ -286,6 +295,7 @@ pub async fn list_node_executor_types(state: State<'_, AppState>) -> Result<Vec<
 
 // ── Debug Commands ──
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = Manual, description = "调试运行工作流")]
 #[tauri::command]
 pub async fn debug_run_workflow(
     app: tauri::AppHandle,
@@ -508,6 +518,7 @@ pub async fn debug_run_workflow(
     Ok(execution_id)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "设置工作流断点")]
 #[tauri::command]
 pub async fn set_workflow_breakpoints(
     state: State<'_, AppState>,
@@ -523,6 +534,7 @@ pub async fn set_workflow_breakpoints(
     Ok(true)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "恢复断点执行")]
 #[tauri::command]
 pub async fn resume_workflow_breakpoint(
     state: State<'_, AppState>,
@@ -532,6 +544,7 @@ pub async fn resume_workflow_breakpoint(
     Ok(true)
 }
 
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "单步执行断点")]
 #[tauri::command]
 pub async fn step_workflow_breakpoint(
     state: State<'_, AppState>,
@@ -549,6 +562,7 @@ pub async fn step_workflow_breakpoint(
 /// - `approved = false` → 取消整个 execution（复用 `cancel_workflow_execution` 路径）
 /// - `modified_iteratee` + `iteratee_var` → 可选地把当前迭代的 iteratee 改写成
 ///   新值，body 节点在 resume 后看到的就是修改后的版本
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "恢复循环迭代")]
 #[tauri::command]
 pub async fn resume_loop_iteration(
     state: State<'_, AppState>,
@@ -573,6 +587,7 @@ pub async fn resume_loop_iteration(
 /// 前端订阅某次执行的 partial_result 流式事件（每次 Loop 迭代完成一条）。
 /// 返回 broadcast::Receiver 的订阅句柄；调用方用 `invoke` 拿到的是
 /// `(Vec<PartialResultEvent>, ReceiverId)` 形式的事件流。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "加载循环检查点")]
 #[tauri::command]
 pub async fn load_loop_checkpoint(
     state: State<'_, AppState>,
@@ -598,6 +613,7 @@ pub async fn load_loop_checkpoint(
 
 /// 列出所有待审批的工作流审批请求。
 /// 可选按 execution_id 过滤。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "列出待审批请求")]
 #[tauri::command]
 pub async fn list_pending_approvals(
     state: State<'_, AppState>,
@@ -648,6 +664,7 @@ pub async fn list_pending_approvals(
 
 /// 批准或拒绝一个审批请求。
 /// 决策后恢复对应工作流的执行。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "批准或拒绝审批")]
 #[tauri::command]
 pub async fn resume_approval(
     state: State<'_, AppState>,
@@ -708,6 +725,7 @@ pub async fn resume_approval(
 }
 
 /// 取消（撤回）一个审批请求。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "取消审批请求")]
 #[tauri::command]
 pub async fn cancel_approval(
     state: State<'_, AppState>,

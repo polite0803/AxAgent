@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_migration::{DetectedPlatform, MigrationReport};
 use serde::Deserialize;
 use std::path::Path;
 use tauri::State;
 
+#[agent_command(domain = system, safety = Safe, call_mode = StateOnly, description = "检测可迁移平台")]
 #[tauri::command]
 pub async fn migration_detect(
     _state: State<'_, AppState>,
@@ -18,6 +20,7 @@ pub struct MigrationPreviewPayload {
     pub platform: String,
 }
 
+#[agent_command(domain = system, safety = Safe, call_mode = StateInput, description = "预览迁移项目")]
 #[tauri::command]
 pub async fn migration_preview(
     payload: MigrationPreviewPayload,
@@ -37,6 +40,7 @@ pub struct MigrationExecutePayload {
     pub overwrite: bool,
 }
 
+#[agent_command(domain = system, safety = Caution, call_mode = StateInput, description = "执行数据迁移")]
 #[tauri::command]
 pub async fn migration_execute(
     payload: MigrationExecutePayload,
@@ -49,6 +53,7 @@ pub async fn migration_execute(
     }
 }
 
+#[agent_command(domain = system, safety = Safe, call_mode = StateOnly, description = "列出迁移备份")]
 #[tauri::command]
 pub async fn migration_list_backups(
     _state: State<'_, AppState>,
@@ -61,6 +66,7 @@ pub struct MigrationRollbackPayload {
     pub backup_id: String,
 }
 
+#[agent_command(domain = system, safety = Caution, call_mode = StateInput, description = "回滚迁移")]
 #[tauri::command]
 pub async fn migration_rollback(
     payload: MigrationRollbackPayload,

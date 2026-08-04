@@ -12,6 +12,7 @@
 //! 前端按 `t("error.${code}")` 翻译,详见 `commands/error_code.rs::workflow_reflection`。
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{EvolutionStats, WorkflowModification};
 use axagent_harness::workflow_optimization::WorkflowSuggestion;
@@ -63,6 +64,7 @@ fn wrap_err<T, E: std::fmt::Display>(
 ///
 /// 输入:工作流模板 + 反思结果(由 WorkEngine 钩子产生并持久化,前端从 trajectory_storage 查询)。
 /// 输出:`Vec<WorkflowSuggestion>`,前端可展示或选择性 apply。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "基于反思生成优化建议")]
 #[tauri::command]
 pub async fn workflow_optimize_suggest(
     state: State<'_, AppState>,
@@ -78,6 +80,7 @@ pub async fn workflow_optimize_suggest(
 ///
 /// 调用方决定是否持久化:可由人工审核后调用 `workflow_template::update_workflow_template`,
 /// 或由 wiring 层自动应用(需配置 auto_apply_threshold,此处 MVP 不自动应用)。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "应用优化建议到模板")]
 #[tauri::command]
 pub async fn workflow_optimize_apply(
     state: State<'_, AppState>,
@@ -95,6 +98,7 @@ pub async fn workflow_optimize_apply(
 /// - evolved genome(进化后的工作流基因组)
 /// - changes(变异操作列表)
 /// - validation(沙箱验证结果,MVP 不实际验证)
+#[agent_command(domain = workflow, safety = Caution, call_mode = Manual, description = "触发工作流模板进化")]
 #[tauri::command]
 pub async fn workflow_evolve_template(
     state: State<'_, AppState>,
@@ -107,6 +111,7 @@ pub async fn workflow_evolve_template(
 }
 
 /// 查询工作流进化器的统计信息(当前代数、最佳 / 平均适应度、是否收敛)。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "查询进化器统计信息")]
 #[tauri::command]
 pub async fn workflow_evolution_stats(
     state: State<'_, AppState>,
@@ -115,6 +120,7 @@ pub async fn workflow_evolution_stats(
 }
 
 /// 查询进化器是否正在执行(用于前端防重入)。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "查询进化器是否运行中")]
 #[tauri::command]
 pub async fn workflow_evolution_is_running(state: State<'_, AppState>) -> Result<bool, String> {
     wrap_err(state.workflow_evolver.is_running().await, wf_reflect_err::EVOLVE_FAILED)
@@ -125,6 +131,7 @@ pub async fn workflow_evolution_is_running(state: State<'_, AppState>) -> Result
 /// 注意:`should_auto_evolve` 依赖 evolver 内部的 `recent_reflections` 历史,
 /// 该历史目前由 wiring 层在 WorkEngine 反思钩子中调用 `record_reflection` 写入。
 /// 若该机制未启用,本命令始终返回 false。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "查询是否应自动触发进化")]
 #[tauri::command]
 pub async fn workflow_should_auto_evolve(
     state: State<'_, AppState>,

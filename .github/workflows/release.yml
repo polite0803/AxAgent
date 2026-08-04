@@ -489,8 +489,9 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build:skip-typecheck
 
-      - name: Build Android APK
+      - name: Limit Gradle memory (prevent runner OOM)
         run: |
+<<<<<<< HEAD
           cd src-tauri
           npx tauri android build \
             --target ${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }} \
@@ -503,14 +504,27 @@ jobs:
           # 限制 Gradle 堆内存 + Rust 并行度，避免 Android 交叉构建 OOM（runner 被杀）
           ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
           CARGO_BUILD_JOBS: 2
+=======
+          if [ -f src-tauri/gen/android/gradle.properties ]; then
+            grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
+              || echo 'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
+              >> src-tauri/gen/android/gradle.properties
+          fi
+>>>>>>> upstream/master
 
-      - name: Build Android AAB (for Play Store)
-        if: matrix.abi == 'arm64-v8a'
+      # 注：APK 与 AAB 在同一次 `tauri android build` 中产出（--apk --aab），
+      # 避免为 AAB 单独再启动一次完整的 gradle 构建。此前分两步构建导致
+      # arm64-v8a job 二次 gradle 内存峰值叠加，触发 "runner lost communication"
+      # (OOM)。仅 arm64-v8a 需要 AAB（Play Store）。
+      - name: Build Android APK + AAB
         run: |
           cd src-tauri
-          npx tauri android build \
-            --target aarch64 \
-            --aab
+          TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
+          if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
+            npx tauri android build --target "$TARGET" --apk --aab
+          else
+            npx tauri android build --target "$TARGET" --apk
+          fi
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
