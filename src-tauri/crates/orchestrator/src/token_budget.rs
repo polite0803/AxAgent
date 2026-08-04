@@ -207,10 +207,10 @@ impl IndustryTokenBudgetManager {
 
         if pct >= 95 {
             BudgetDecision::CompactRequired { current_pct: pct }
-        } else if pct >= config.dry_leaf_threshold_pct {
-            BudgetDecision::DryLeafSeparationRecommended { current_pct: pct }
         } else if pct >= config.compact_threshold_pct {
             BudgetDecision::CompactRecommended { current_pct: pct }
+        } else if pct >= config.dry_leaf_threshold_pct {
+            BudgetDecision::DryLeafSeparationRecommended { current_pct: pct }
         } else {
             BudgetDecision::Proceed
         }
@@ -367,14 +367,14 @@ impl IndustryTokenBudgetManager {
             .collect();
 
         // 按得分排序
-        scored_leaves.sort_by(|a, b| b.1.cmp(&a.1));
+        scored_leaves.sort_by_key(|b| std::cmp::Reverse(b.1));
 
         scored_leaves.into_iter().take(limit).map(|(leaf, _)| leaf.clone()).collect()
     }
 
-    /// 估算消息 token 数
+    /// 估算消息 token 数（使用字符数/4的启发式估算）
     pub fn estimate_message_tokens(messages: &[String]) -> u32 {
-        messages.iter().map(|m| (m.len() as u32 / 4).max(1)).sum()
+        messages.iter().map(|m| (m.chars().count() as u32 / 4).max(1)).sum()
     }
 
     /// 获取行业统计信息
@@ -402,10 +402,10 @@ impl IndustryTokenBudgetManager {
     /// 清理过期的干叶条目（保留最近 N 条）
     pub async fn cleanup_old_leaves(&self, industry_id: &str, keep_count: usize) {
         let mut dry_leaves = self.dry_leaves.lock().await;
-        if let Some(leaves) = dry_leaves.get_mut(industry_id) {
-            if leaves.len() > keep_count {
-                leaves.drain(..leaves.len() - keep_count);
-            }
+        if let Some(leaves) = dry_leaves.get_mut(industry_id)
+            && leaves.len() > keep_count
+        {
+            leaves.drain(..leaves.len() - keep_count);
         }
     }
 }
@@ -421,12 +421,13 @@ pub struct IndustryTokenStats {
 
 /// 生成简短摘要
 fn generate_brief_summary(text: &str) -> String {
-    let max_len = 100;
+    let max_chars = 100;
     let cleaned = text.trim().replace('\n', " ");
-    if cleaned.len() <= max_len {
+    if cleaned.chars().count() <= max_chars {
         cleaned
     } else {
-        format!("{}...", &cleaned[..max_len.min(cleaned.len())])
+        let truncated: String = cleaned.chars().take(max_chars).collect();
+        format!("{}...", truncated)
     }
 }
 
@@ -561,21 +562,24 @@ mod tests {
             .register_industry(
                 "test",
                 IndustryTokenConfig {
-                    context_window: 100_000,
-                    dry_leaf_threshold_pct: 10, // 低阈值以便测试
+                    context_window: 2_000,     // 较小的上下文窗口便于测试
+                    dry_leaf_threshold_pct: 1, // 极低阈值以便测试
                     ..Default::default()
                 },
             )
             .await;
 
+        // 每条消息约 40-50 字符，7 条共约 300 字符 ≈ 75 tokens
+        // 75/2000 = 3.75% > 1% 阈值
         let messages = vec![
-            "历史消息 A".to_string(),
-            "历史消息 B".to_string(),
-            "历史消息 C".to_string(),
-            "历史消息 D".to_string(),
-            "活跃消息 1".to_string(),
-            "活跃消息 2".to_string(),
-            "活跃消息 3".to_string(),
+            "历史消息 A - 这是一段关于系统架构设计的详细讨论，包括微服务架构、数据库选择"
+                .to_string(),
+            "历史消息 B - 讨论了API接口设计、数据模型定义、错误处理机制和性能优化".to_string(),
+            "历史消息 C - 分析了现有代码库的技术债务，提出了重构方案和测试覆盖提升".to_string(),
+            "历史消息 D - 总结了前三个版本的功能迭代过程，记录了关键决策和经验教训".to_string(),
+            "活跃消息 1 - 当前任务：实现新的用户认证功能".to_string(),
+            "活跃消息 2 - 需要支持OAuth2.0和JWT两种认证方式".to_string(),
+            "活跃消息 3 - 需要考虑安全性和性能平衡".to_string(),
         ];
 
         let (active, leaves) = manager.separate_dry_leaves("test", "session-1", &messages).await;
@@ -588,10 +592,24 @@ mod tests {
     #[tokio::test]
     async fn test_retrieve_dry_leaves() {
         let manager = IndustryTokenBudgetManager::new();
-        manager.register_industry("test", IndustryTokenConfig::default()).await;
+        manager
+            .register_industry(
+                "test",
+                IndustryTokenConfig {
+                    context_window: 100,       // 非常小的上下文窗口便于测试
+                    dry_leaf_threshold_pct: 1, // 极低阈值以便测试
+                    ..Default::default()
+                },
+            )
+            .await;
 
-        let messages =
-            vec!["关于人工智能和机器学习的讨论".to_string(), "深度学习模型训练方法".to_string()];
+        // 使用至少 4 条消息以确保有历史消息被分离为干叶
+        let messages = vec![
+            "关于人工智能和机器学习的讨论".to_string(),
+            "深度学习模型训练方法".to_string(),
+            "数据预处理和特征工程".to_string(),
+            "模型架构设计和超参数调优".to_string(),
+        ];
 
         let (_, leaves) = manager.separate_dry_leaves("test", "session-1", &messages).await;
 

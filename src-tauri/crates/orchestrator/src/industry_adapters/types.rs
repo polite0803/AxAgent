@@ -763,6 +763,22 @@ pub struct PresetWorkflowStep {
     /// 步骤顺序（越小越先执行）
     #[serde(default)]
     pub order: u32,
+    /// 是否使用多智能体协作
+    #[serde(default)]
+    pub multi_agent: bool,
+    /// 多智能体协作模式（swarm/debate/blackboard）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coordination_mode: Option<String>,
+    /// 多智能体最大协作轮数
+    #[serde(default = "default_preset_max_rounds")]
+    pub max_rounds: u32,
+    /// 是否支持并行执行（与其他步骤并行）
+    #[serde(default)]
+    pub parallel_supported: bool,
+}
+
+fn default_preset_max_rounds() -> u32 {
+    3
 }
 
 impl PresetWorkflowStep {
@@ -778,6 +794,10 @@ impl PresetWorkflowStep {
             is_skeleton: true,
             is_optional: false,
             order,
+            multi_agent: false,
+            coordination_mode: None,
+            max_rounds: 3,
+            parallel_supported: false,
         }
     }
 
@@ -793,7 +813,41 @@ impl PresetWorkflowStep {
             is_skeleton: false,
             is_optional: true,
             order,
+            multi_agent: false,
+            coordination_mode: None,
+            max_rounds: 3,
+            parallel_supported: false,
         }
+    }
+
+    /// 设置为 Swarm 多智能体模式
+    pub fn with_swarm(mut self, max_rounds: u32) -> Self {
+        self.multi_agent = true;
+        self.coordination_mode = Some("swarm".to_string());
+        self.max_rounds = max_rounds;
+        self
+    }
+
+    /// 设置为 Debate 多智能体模式
+    pub fn with_debate(mut self, max_rounds: u32) -> Self {
+        self.multi_agent = true;
+        self.coordination_mode = Some("debate".to_string());
+        self.max_rounds = max_rounds;
+        self
+    }
+
+    /// 设置为 Blackboard 多智能体模式
+    pub fn with_blackboard(mut self, max_rounds: u32) -> Self {
+        self.multi_agent = true;
+        self.coordination_mode = Some("blackboard".to_string());
+        self.max_rounds = max_rounds;
+        self
+    }
+
+    /// 支持并行执行
+    pub fn with_parallel(mut self) -> Self {
+        self.parallel_supported = true;
+        self
     }
 
     /// 添加依赖
@@ -813,6 +867,14 @@ impl PresetWorkflowStep {
 ///
 /// 每个行业可以定义自己的标准工作流步骤模板。
 /// 这些步骤作为"骨架"，AI 可根据任务动态添加可选步骤。
+///
+/// # 多智能体协作策略
+///
+/// - **编码**: Swarm 模式（多个开发者协作实现）
+/// - **代码审查**: Debate 模式（Reviewer vs Implementer 辩论）
+/// - **测试**: Blackboard 模式（QA 团队共享测试结果）
+/// - **编码 + 文档**: 支持并行执行
+/// - **审查 + 安全审计**: 支持并行执行
 pub fn get_software_dev_preset_steps() -> Vec<PresetWorkflowStep> {
     vec![
         // ── 骨架步骤（参考 WorkflowX 十步）──
@@ -830,9 +892,20 @@ pub fn get_software_dev_preset_steps() -> Vec<PresetWorkflowStep> {
             "架构师",
             2,
         )
-        .with_dependency("requirements"),
-        PresetWorkflowStep::skeleton("coding", "编码实现", "功能实现与代码编写", "开发工程师", 3)
-            .with_dependency("architecture"),
+        .with_dependency("requirements")
+        .with_debate(2), // 架构师之间辩论技术选型
+        // 编码步骤: Swarm 模式 + 支持与文档并行
+        PresetWorkflowStep::skeleton(
+            "coding",
+            "编码实现",
+            "功能实现与代码编写",
+            "开发工程师",
+            3,
+        )
+        .with_dependency("architecture")
+        .with_swarm(3) // Swarm 协作: 多个开发者分工实现
+        .with_parallel(), // 可以与文档编写并行
+        // 代码审查: Debate 模式（Reviewer vs Implementer）
         PresetWorkflowStep::skeleton(
             "code_review",
             "代码审查",
@@ -840,9 +913,13 @@ pub fn get_software_dev_preset_steps() -> Vec<PresetWorkflowStep> {
             "Code Reviewer",
             4,
         )
-        .with_dependency("coding"),
+        .with_dependency("coding")
+        .with_debate(2) // Debate: Reviewer 提出问题, Implementer 辩护
+        .with_parallel(), // 可以与安全审计并行
+        // 测试: Blackboard 模式（QA 团队共享测试结果）
         PresetWorkflowStep::skeleton("testing", "测试验证", "单元测试、集成测试", "测试工程师", 5)
-            .with_dependency("coding"),
+            .with_dependency("coding")
+            .with_blackboard(2), // Blackboard: 多个测试用例结果汇总
         PresetWorkflowStep::skeleton(
             "deployment",
             "部署上线",
@@ -852,6 +929,7 @@ pub fn get_software_dev_preset_steps() -> Vec<PresetWorkflowStep> {
         )
         .with_dependencies(&["code_review", "testing"]),
         // ── 可选步骤（AI 可根据任务动态添加）──
+        // 安全审计: 与代码审查并行, Swarm 模式, 依赖 coding 完成
         PresetWorkflowStep::optional(
             "security_audit",
             "安全审计",
@@ -859,23 +937,30 @@ pub fn get_software_dev_preset_steps() -> Vec<PresetWorkflowStep> {
             "安全工程师",
             4,
         )
-        .with_dependency("code_review"),
+        .with_dependency("coding")
+        .with_swarm(2) // 多个安全扫描器并行
+        .with_parallel(),
+        // 性能优化: 与代码审查并行, 依赖 coding 完成
         PresetWorkflowStep::optional(
             "performance_opt",
             "性能优化",
             "性能分析与优化建议",
             "性能工程师",
-            5,
+            4,
         )
-        .with_dependency("code_review"),
+        .with_dependency("coding")
+        .with_parallel(),
+        // 文档编写: 与代码审查并行, 依赖 coding 完成
         PresetWorkflowStep::optional(
             "documentation",
             "文档编写",
             "API 文档、技术文档",
             "技术写作者",
-            5,
+            4,
         )
-        .with_dependency("coding"),
+        .with_dependency("coding")
+        .with_parallel(),
+        // 监控配置: 与部署并行
         PresetWorkflowStep::optional(
             "monitoring_setup",
             "监控配置",

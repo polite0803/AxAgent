@@ -489,10 +489,10 @@ impl IndustryLearningEngine {
             metadata: metadata_str,
         };
 
-        if let Some(ref store) = self.rl_store {
-            if let Err(e) = store.save_experience(&db_record).await {
-                warn!("RL 经验持久化失败，回退到内存存储: {}", e);
-            }
+        if let Some(ref store) = self.rl_store
+            && let Err(e) = store.save_experience(&db_record).await
+        {
+            warn!("RL 经验持久化失败，回退到内存存储: {}", e);
         }
 
         // 2. 同时维护内存回退池（保持向后兼容）
@@ -576,31 +576,31 @@ impl IndustryLearningEngine {
     /// 从数据库或内存获取行业经验列表
     async fn get_industry_experiences(&self, industry_id: &str) -> Vec<RLExperience> {
         // 优先从数据库查询
-        if let Some(ref store) = self.rl_store {
-            if let Ok(records) = store.get_experiences(industry_id, Some(200)).await {
-                return records
-                    .into_iter()
-                    .map(|r| {
-                        let metadata: serde_json::Value =
-                            serde_json::from_str(&r.metadata).unwrap_or_default();
-                        RLExperience {
-                            id: r.id,
-                            industry_id: r.industry_id,
-                            workflow_id: r.workflow_id,
-                            timestamp_ms: r.timestamp_ms as u64,
-                            quality_score: r.quality_score,
-                            efficiency_score: r.efficiency_score,
-                            cost_score: r.cost_score,
-                            innovation_score: r.innovation_score,
-                            satisfaction_score: r.satisfaction_score,
-                            total_reward: r.total_reward,
-                            step_count: r.step_count as u32,
-                            success: r.success,
-                            metadata,
-                        }
-                    })
-                    .collect();
-            }
+        if let Some(ref store) = self.rl_store
+            && let Ok(records) = store.get_experiences(industry_id, Some(200)).await
+        {
+            return records
+                .into_iter()
+                .map(|r| {
+                    let metadata: serde_json::Value =
+                        serde_json::from_str(&r.metadata).unwrap_or_default();
+                    RLExperience {
+                        id: r.id,
+                        industry_id: r.industry_id,
+                        workflow_id: r.workflow_id,
+                        timestamp_ms: r.timestamp_ms as u64,
+                        quality_score: r.quality_score,
+                        efficiency_score: r.efficiency_score,
+                        cost_score: r.cost_score,
+                        innovation_score: r.innovation_score,
+                        satisfaction_score: r.satisfaction_score,
+                        total_reward: r.total_reward,
+                        step_count: r.step_count as u32,
+                        success: r.success,
+                        metadata,
+                    }
+                })
+                .collect();
         }
 
         // 回退到内存存储
@@ -610,10 +610,10 @@ impl IndustryLearningEngine {
 
     /// 获取行业经验数量
     async fn get_industry_experience_count(&self, industry_id: &str) -> u64 {
-        if let Some(ref store) = self.rl_store {
-            if let Ok(count) = store.count_experiences(industry_id).await {
-                return count;
-            }
+        if let Some(ref store) = self.rl_store
+            && let Ok(count) = store.count_experiences(industry_id).await
+        {
+            return count;
         }
 
         let pools = self.experience_pools.lock().await;
@@ -850,53 +850,50 @@ impl IndustryLearningEngine {
     /// 优先从数据库查询，如果不可用则回退到内存存储。
     pub async fn get_experience_pool_stats(&self) -> ExperiencePoolStats {
         // 优先从数据库查询全局统计
-        if let Some(ref store) = self.rl_store {
-            if let Ok(stats_list) = store.get_global_stats().await {
-                if !stats_list.is_empty() {
-                    let total: usize =
-                        stats_list.iter().map(|s| s.total_experiences as usize).sum();
-                    let industry_count = stats_list.len();
-                    let avg_reward = if total > 0 {
-                        stats_list.iter().map(|s| s.total_reward).sum::<f64>() / total as f64
-                    } else {
-                        0.0
-                    };
-                    let success_rate = if total > 0 {
-                        stats_list.iter().map(|s| s.success_rate).sum::<f64>()
-                            / industry_count as f64
-                    } else {
-                        0.0
-                    };
+        if let Some(ref store) = self.rl_store
+            && let Ok(stats_list) = store.get_global_stats().await
+            && !stats_list.is_empty()
+        {
+            let total: usize = stats_list.iter().map(|s| s.total_experiences as usize).sum();
+            let industry_count = stats_list.len();
+            let avg_reward = if total > 0 {
+                stats_list.iter().map(|s| s.total_reward).sum::<f64>() / total as f64
+            } else {
+                0.0
+            };
+            let success_rate = if total > 0 {
+                stats_list.iter().map(|s| s.success_rate).sum::<f64>() / industry_count as f64
+            } else {
+                0.0
+            };
 
-                    // 获取时间戳范围
-                    let mut min_ts: Option<u64> = None;
-                    let mut max_ts: Option<u64> = None;
-                    for stats in &stats_list {
-                        if let Some(last) = stats.last_trained_at {
-                            let ts = last as u64;
-                            match (min_ts, max_ts) {
-                                (Some(min), Some(max)) => {
-                                    min_ts = Some(min.min(ts));
-                                    max_ts = Some(max.max(ts));
-                                },
-                                _ => {
-                                    min_ts = Some(ts);
-                                    max_ts = Some(ts);
-                                },
-                            }
-                        }
+            // 获取时间戳范围
+            let mut min_ts: Option<u64> = None;
+            let mut max_ts: Option<u64> = None;
+            for stats in &stats_list {
+                if let Some(last) = stats.last_trained_at {
+                    let ts = last as u64;
+                    match (min_ts, max_ts) {
+                        (Some(min), Some(max)) => {
+                            min_ts = Some(min.min(ts));
+                            max_ts = Some(max.max(ts));
+                        },
+                        _ => {
+                            min_ts = Some(ts);
+                            max_ts = Some(ts);
+                        },
                     }
-
-                    return ExperiencePoolStats {
-                        total_experiences: total,
-                        industry_count,
-                        oldest_timestamp_ms: min_ts,
-                        newest_timestamp_ms: max_ts,
-                        avg_reward,
-                        success_rate,
-                    };
                 }
             }
+
+            return ExperiencePoolStats {
+                total_experiences: total,
+                industry_count,
+                oldest_timestamp_ms: min_ts,
+                newest_timestamp_ms: max_ts,
+                avg_reward,
+                success_rate,
+            };
         }
 
         // 回退到内存存储

@@ -306,9 +306,13 @@ mod tests {
 
     fn create_test_context(industry_id: &str) -> IndustryContext {
         IndustryContext {
-            industry_id: industry_id.to_string(),
-            industry_name: format!("测试行业-{}", industry_id),
-            description: "测试上下文".to_string(),
+            session_id: Some(format!("session-{}", industry_id)),
+            user_id: Some("test-user".to_string()),
+            workspace_id: Some("test-workspace".to_string()),
+            inputs: serde_json::json!({"industry": industry_id}),
+            history: vec![],
+            knowledge_ids: vec![],
+            metadata: serde_json::Value::Null,
         }
     }
 

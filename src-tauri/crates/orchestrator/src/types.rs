@@ -135,6 +135,18 @@ pub struct SubTask {
     /// Populated by the decomposer or caller. Empty = no tool access.
     #[serde(default)]
     pub tools: Vec<ToolDef>,
+    /// 是否使用多智能体协作
+    #[serde(default)]
+    pub multi_agent: bool,
+    /// 多智能体协作模式（swarm/debate/blackboard）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coordination_mode: Option<String>,
+    /// 多智能体最大协作轮数
+    #[serde(default)]
+    pub max_rounds: u32,
+    /// 是否支持并行执行
+    #[serde(default)]
+    pub parallel_supported: bool,
 }
 
 impl SubTask {
@@ -155,11 +167,29 @@ impl SubTask {
             attempts: 0,
             max_retries: 3,
             tools: Vec::new(),
+            multi_agent: false,
+            coordination_mode: None,
+            max_rounds: 3,
+            parallel_supported: false,
         }
     }
 
     pub fn with_dependencies(mut self, deps: Vec<String>) -> Self {
         self.dependencies = deps;
+        self
+    }
+
+    /// 设置为多智能体模式
+    pub fn with_multi_agent(mut self, mode: &str, max_rounds: u32) -> Self {
+        self.multi_agent = true;
+        self.coordination_mode = Some(mode.to_string());
+        self.max_rounds = max_rounds;
+        self
+    }
+
+    /// 支持并行执行
+    pub fn with_parallel(mut self) -> Self {
+        self.parallel_supported = true;
         self
     }
 }

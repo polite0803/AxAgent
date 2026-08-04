@@ -208,8 +208,9 @@ impl BaseIndustryAdapter {
     ///
     /// 根据行业预设步骤模板生成初始工作流：
     /// 1. 筛选骨架步骤（必须包含）
-    /// 2. 根据任务类型动态添加可选步骤
+    /// 2. 根据任务类型和任务描述动态添加可选步骤
     /// 3. 按依赖关系排序生成子任务列表
+    /// 4. 传递多智能体配置和并行支持
     fn decompose_with_preset_steps(
         &self,
         mission: &str,
@@ -218,8 +219,8 @@ impl BaseIndustryAdapter {
         let skeleton_steps: Vec<&PresetWorkflowStep> =
             self.preset_steps.iter().filter(|s| s.is_skeleton).collect();
 
-        // 根据任务类型选择可选步骤
-        let optional_steps = self.select_optional_steps_by_mission_type(mission_type);
+        // 根据任务类型和任务描述动态选择可选步骤
+        let optional_steps = self.select_optional_steps_dynamic(mission_type, mission);
 
         // 合并步骤
         let mut all_steps = skeleton_steps.clone();
@@ -228,7 +229,7 @@ impl BaseIndustryAdapter {
         // 按 order 排序
         all_steps.sort_by_key(|s| s.order);
 
-        // 生成子任务
+        // 生成子任务（传递多智能体配置和并行支持）
         let sub_tasks: Vec<SubTask> = all_steps
             .iter()
             .map(|step| {
@@ -238,12 +239,34 @@ impl BaseIndustryAdapter {
                 } else {
                     format!("[可选] {}", step.goal)
                 };
-                SubTask::new(task_id, step.name.clone(), goal, step.role.clone())
+                let mut task = SubTask::new(task_id, step.name.clone(), goal, step.role.clone());
+
+                // 传递依赖
+                task.dependencies = step.depends_on.clone();
+
+                // 传递多智能体配置
+                if step.multi_agent
+                    && let Some(ref mode) = step.coordination_mode
+                {
+                    task = task.with_multi_agent(mode, step.max_rounds);
+                }
+
+                // 传递并行支持
+                if step.parallel_supported {
+                    task = task.with_parallel();
+                }
+
+                task
             })
             .collect();
 
-        // 计算最大并行数（可选步骤可以与骨架步骤并行）
-        let max_parallel = if !optional_steps.is_empty() { 2 } else { 1 };
+        // 计算最大并行数（根据支持并行的步骤数量动态计算）
+        let parallel_count = all_steps.iter().filter(|s| s.parallel_supported).count();
+        let max_parallel = if parallel_count > 0 {
+            parallel_count as u32
+        } else {
+            1
+        };
 
         let plan = DecompositionPlan {
             mission: mission.to_string(),
@@ -259,7 +282,12 @@ impl BaseIndustryAdapter {
         generator.generate(&plan)
     }
 
-    /// 根据任务类型选择可选步骤
+    /// 根据任务类型选择可选步骤（支持动态选择）
+    ///
+    /// 选择策略：
+    /// 1. 基础规则：根据 MissionType 映射默认步骤
+    /// 2. 动态调整：根据任务描述关键词和复杂度动态增减步骤
+    /// 3. 智能推荐：基于历史执行模式（预留接口）
     fn select_optional_steps_by_mission_type(
         &self,
         mission_type: MissionType,
@@ -267,41 +295,180 @@ impl BaseIndustryAdapter {
         let optional_steps: Vec<&PresetWorkflowStep> =
             self.preset_steps.iter().filter(|s| s.is_optional).collect();
 
-        // 根据任务类型选择相关的可选步骤
+        // 1. 基础规则：根据任务类型选择默认步骤
         match mission_type {
             MissionType::Generation => {
-                // 生成类任务：添加文档编写
-                optional_steps
-                    .into_iter()
-                    .filter(|s| matches!(s.id.as_str(), "documentation" | "monitoring_setup"))
-                    .collect()
+                // 生成类任务：添加文档编写、监控配置
+                let steps: Vec<&str> = vec!["documentation", "monitoring_setup"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
             },
             MissionType::Review | MissionType::Fix => {
                 // 审查/修复类任务：添加安全审计、性能优化
-                optional_steps
-                    .into_iter()
-                    .filter(|s| matches!(s.id.as_str(), "security_audit" | "performance_opt"))
-                    .collect()
+                let steps: Vec<&str> = vec!["security_audit", "performance_opt"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
             },
             MissionType::Planning => {
                 // 规划类任务：添加文档编写
-                optional_steps
-                    .into_iter()
-                    .filter(|s| matches!(s.id.as_str(), "documentation"))
-                    .collect()
+                let steps: Vec<&str> = vec!["documentation"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
             },
             MissionType::Monitoring => {
                 // 监控类任务：添加监控配置
-                optional_steps
-                    .into_iter()
-                    .filter(|s| matches!(s.id.as_str(), "monitoring_setup"))
-                    .collect()
+                let steps: Vec<&str> = vec!["monitoring_setup"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
             },
-            _ => {
-                // 其他类型：不添加可选步骤
-                Vec::new()
+            MissionType::Research => {
+                // 研究类任务：添加文档编写（用于记录研究成果）
+                let steps: Vec<&str> = vec!["documentation"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
+            },
+            MissionType::Reporting => {
+                // 报告类任务：添加文档编写
+                let steps: Vec<&str> = vec!["documentation"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
+            },
+            MissionType::Consultation => {
+                // 咨询类任务：根据需要添加性能优化
+                let steps: Vec<&str> = vec!["performance_opt"];
+                self.filter_steps_by_ids(&optional_steps, &steps)
             },
         }
+    }
+
+    /// 根据任务类型和任务描述动态选择可选步骤
+    ///
+    /// 增强版：在基础规则之上叠加关键词匹配和复杂度评估
+    pub fn select_optional_steps_dynamic(
+        &self,
+        mission_type: MissionType,
+        mission: &str,
+    ) -> Vec<&PresetWorkflowStep> {
+        let optional_steps: Vec<&PresetWorkflowStep> =
+            self.preset_steps.iter().filter(|s| s.is_optional).collect();
+
+        // 1. 获取基础步骤
+        let base_steps = self.select_optional_steps_by_mission_type(mission_type);
+        let base_ids: Vec<&str> = base_steps.iter().map(|s| s.id.as_str()).collect();
+
+        // 2. 关键词分析：检测任务描述中的关键信号
+        let task_lower = mission.to_lowercase();
+        let signals = Self::detect_task_signals(&task_lower);
+
+        // 3. 基于信号动态添加额外步骤
+        let mut selected_ids = base_ids;
+
+        // 安全相关信号 → 添加安全审计
+        if (signals.contains(&"security")
+            || signals.contains(&"vulnerability")
+            || signals.contains(&"安全"))
+            && !selected_ids.contains(&"security_audit")
+        {
+            selected_ids.push("security_audit");
+        }
+
+        // 性能相关信号 → 添加性能优化
+        if (signals.contains(&"performance")
+            || signals.contains(&"slow")
+            || signals.contains(&"性能")
+            || signals.contains(&"优化"))
+            && !selected_ids.contains(&"performance_opt")
+        {
+            selected_ids.push("performance_opt");
+        }
+
+        // 文档相关信号 → 添加文档编写
+        if (signals.contains(&"documentation")
+            || signals.contains(&"doc")
+            || signals.contains(&"文档")
+            || signals.contains(&"api"))
+            && !selected_ids.contains(&"documentation")
+        {
+            selected_ids.push("documentation");
+        }
+
+        // 部署相关信号 → 添加监控配置
+        if (signals.contains(&"deploy")
+            || signals.contains(&"release")
+            || signals.contains(&"部署")
+            || signals.contains(&"上线"))
+            && !selected_ids.contains(&"monitoring_setup")
+        {
+            selected_ids.push("monitoring_setup");
+        }
+
+        // 4. 复杂度评估：任务越长越复杂，需要更多可选步骤
+        let complexity = Self::assess_complexity(mission, &signals);
+        if complexity >= 3 {
+            // 高复杂度：添加所有可选步骤
+            selected_ids = optional_steps.iter().map(|s| s.id.as_str()).collect();
+        } else if complexity >= 2 {
+            // 中复杂度：确保至少有安全审计和性能优化
+            if !selected_ids.contains(&"security_audit") {
+                selected_ids.push("security_audit");
+            }
+            if !selected_ids.contains(&"performance_opt") {
+                selected_ids.push("performance_opt");
+            }
+        }
+
+        // 5. 过滤并返回选中的步骤
+        self.filter_steps_by_ids(&optional_steps, &selected_ids)
+    }
+
+    /// 根据 ID 列表过滤步骤
+    fn filter_steps_by_ids<'a>(
+        &self,
+        steps: &[&'a PresetWorkflowStep],
+        ids: &[&str],
+    ) -> Vec<&'a PresetWorkflowStep> {
+        steps.iter().filter(|s| ids.contains(&s.id.as_str())).cloned().collect()
+    }
+
+    /// 检测任务描述中的信号关键词
+    fn detect_task_signals(task: &str) -> Vec<&str> {
+        let signal_patterns: Vec<(&str, &[&str])> = vec![
+            ("security", &["security", "safe", "protect", "安全", "漏洞", "防护"]),
+            ("performance", &["performance", "fast", "slow", "speed", "性能", "优化", "慢"]),
+            ("documentation", &["documentation", "doc", "readme", "文档", "api", "指南"]),
+            ("deployment", &["deploy", "release", "ship", "部署", "上线", "发布"]),
+            ("refactoring", &["refactor", "cleanup", "重构", "整理"]),
+            ("testing", &["test", "coverage", "测试", "用例"]),
+            ("integration", &["integrate", "connect", "集成", "对接"]),
+        ];
+
+        let mut signals = Vec::new();
+        for (signal, keywords) in signal_patterns {
+            if keywords.iter().any(|kw| task.contains(kw)) {
+                signals.push(signal);
+            }
+        }
+
+        signals
+    }
+
+    /// 评估任务复杂度
+    fn assess_complexity(task: &str, signals: &[&str]) -> u32 {
+        let mut complexity = 1;
+
+        // 基于任务长度
+        let char_count = task.chars().count();
+        if char_count > 100 {
+            complexity += 1;
+        }
+        if char_count > 200 {
+            complexity += 1;
+        }
+
+        // 基于信号数量
+        let signal_count = signals.len() as u32;
+        if signal_count >= 3 {
+            complexity += 1;
+        }
+        if signal_count >= 5 {
+            complexity += 1;
+        }
+
+        complexity.min(5) // 最高 5 级
     }
 }
 
@@ -492,21 +659,21 @@ pub fn create_software_dev_adapter() -> BaseIndustryAdapter {
             },
             checkpoints: vec![
                 ReflectionCheckpoint {
-                    id: "code-quality".to_string(),
+                    id: "coding".to_string(),
                     name: "代码质量".to_string(),
                     dimension: "quality".to_string(),
                     description: "评估代码的可读性、健壮性和可维护性".to_string(),
                     weight: 0.4,
                 },
                 ReflectionCheckpoint {
-                    id: "test-coverage".to_string(),
+                    id: "testing".to_string(),
                     name: "测试覆盖率".to_string(),
                     dimension: "coverage".to_string(),
                     description: "评估单元测试和集成测试的覆盖情况".to_string(),
                     weight: 0.3,
                 },
                 ReflectionCheckpoint {
-                    id: "doc-completeness".to_string(),
+                    id: "documentation".to_string(),
                     name: "文档完整性".to_string(),
                     dimension: "documentation".to_string(),
                     description: "评估技术文档和 API 文档的完整度".to_string(),
@@ -531,7 +698,7 @@ pub fn create_software_dev_adapter() -> BaseIndustryAdapter {
                     reason: "安全性不可妥协".to_string(),
                 },
                 ProtectedStep {
-                    step_id: "unit_test".to_string(),
+                    step_id: "testing".to_string(),
                     reason: "测试是质量保障".to_string(),
                 },
             ],

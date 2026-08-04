@@ -332,6 +332,11 @@ pub struct MultiAgentNodeConfig {
     /// 最大协作轮数
     #[serde(default = "default_multi_agent_rounds")]
     pub max_rounds: u32,
+    /// 输入映射：从上游节点输出/变量映射到当前任务的输入参数
+    ///
+    /// 格式: { "target_field": "$node.source_node_id.source_field" } 或 { "target_field": "$variables.var_name" }
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_mapping: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]

@@ -19,8 +19,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, EdgeType, OutputMode, Position, RetryConfig, SubGraph,
-    WorkflowEdge, WorkflowNode, WorkflowNodeBase,
+    AgentNode, AgentNodeConfig, EdgeType, MultiAgentNode, MultiAgentNodeConfig, OutputMode,
+    Position, RetryConfig, SubGraph, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
 };
 
 use crate::types::{DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask};
@@ -76,8 +76,8 @@ impl DynamicSubGraph {
         &mut self,
         plan: &DecompositionPlan,
     ) -> Result<GeneratedSubGraph, OrchestrationError> {
-        // 1. Build Agent nodes for each sub-task
-        let nodes = plan.sub_tasks.iter().map(|st| self.build_agent_node(st)).collect::<Vec<_>>();
+        // 1. Build nodes for each sub-task (agent or multi-agent)
+        let nodes = plan.sub_tasks.iter().map(|st| self.build_node(st)).collect::<Vec<_>>();
 
         // 2. Build edges based on strategy and declared dependencies
         let edges = self.build_edges(plan, &nodes)?;
@@ -91,8 +91,17 @@ impl DynamicSubGraph {
         Ok(GeneratedSubGraph { id, nodes, edges, plan: plan.clone() })
     }
 
+    /// Build a node for a sub-task (dispatches to agent or multi-agent)
+    fn build_node(&mut self, sub_task: &SubTask) -> WorkflowNode {
+        if sub_task.multi_agent {
+            self.build_multi_agent_node(sub_task)
+        } else {
+            self.build_single_agent_node(sub_task)
+        }
+    }
+
     /// Build a single Agent node for a sub-task.
-    fn build_agent_node(&mut self, sub_task: &SubTask) -> WorkflowNode {
+    fn build_single_agent_node(&mut self, sub_task: &SubTask) -> WorkflowNode {
         self.counter += 1;
 
         let base = WorkflowNodeBase {
@@ -143,6 +152,42 @@ impl DynamicSubGraph {
         WorkflowNode::Agent(AgentNode { base, config })
     }
 
+    /// Build a MultiAgent node for a sub-task.
+    fn build_multi_agent_node(&mut self, sub_task: &SubTask) -> WorkflowNode {
+        self.counter += 1;
+
+        let base = WorkflowNodeBase {
+            id: sub_task.id.clone(),
+            title: format!("[多智能体] {}", sub_task.name),
+            description: Some(sub_task.description.clone()),
+            position: Position::default(),
+            retry: RetryConfig {
+                enabled: true,
+                max_retries: sub_task.max_retries,
+                ..Default::default()
+            },
+            timeout: Some(900), // 多智能体需要更多时间
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: false,
+        };
+
+        let mode = sub_task.coordination_mode.clone().unwrap_or_else(|| "swarm".to_string());
+
+        let config = MultiAgentNodeConfig {
+            task: sub_task.description.clone(),
+            role: Some(sub_task.role.clone()),
+            model: None,
+            output_var: sub_task.output_var.clone(),
+            mode,
+            max_rounds: sub_task.max_rounds,
+            input_mapping: None,
+        };
+
+        WorkflowNode::MultiAgent(MultiAgentNode { base, config })
+    }
+
     /// Build edges encoding dependency ordering.
     fn build_edges(
         &mut self,
@@ -177,14 +222,13 @@ impl DynamicSubGraph {
         // Apply strategy-level topology when no explicit deps
         match plan.strategy {
             OrchestrationStrategy::Ordered | OrchestrationStrategy::Pipeline => {
-                // Add implicit serial edges between sub-tasks that have no explicit deps
+                // Add implicit serial edges between sub-tasks that have no existing incoming edges
                 let mut prev_id: Option<&str> = None;
                 for st in &plan.sub_tasks {
                     if let Some(prev) = prev_id {
-                        // Only add if no existing edge connects them
-                        let already_connected =
-                            edges.iter().any(|e| e.source == prev && e.target == st.id);
-                        if !already_connected && st.dependencies.is_empty() {
+                        // Check if this step already has incoming edges
+                        let has_incoming = edges.iter().any(|e| e.target == st.id);
+                        if !has_incoming {
                             self.counter += 1;
                             edges.push(WorkflowEdge {
                                 id: format!("edge_{}", self.counter),
