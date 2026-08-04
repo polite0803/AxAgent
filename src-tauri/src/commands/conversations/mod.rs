@@ -3229,9 +3229,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         sandbox_executor: Arc::new(()),
         sync_engine: None,
         device_sync_state: Arc::new(tokio::sync::RwLock::new(
-            crate::commands::device_sync::DeviceSyncState::new(
-                "test-device".to_string(),
-            ),
+            crate::commands::device_sync::DeviceSyncState::new("test-device".to_string()),
         )),
         // stock_monitor / astock_client / trading_engine 已在另一分支维护
         plugin_manager: Arc::new(tokio::sync::RwLock::new(axagent_plugins::PluginManager::new(
