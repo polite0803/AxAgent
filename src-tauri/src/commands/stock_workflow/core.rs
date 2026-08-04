@@ -1,4 +1,5 @@
 use super::decision::QualityPrecheckResult;
+use agent_macro::agent_command;
 use super::decision::{
     build_dashboard_from_workflow_result, compute_decision_agreement, data_quality_precheck,
     extract_decision_fields, extract_decision_json, extract_llm_decision_json,
@@ -26,6 +27,7 @@ use tauri::{Emitter, State};
 ///
 /// - 默认：生成新 UUID 并 INSERT 新 `stock_analyses` 行（fresh start）。
 /// - 重跑分析场景：传入 `parent_analysis_id` 指向原始记录，新建独立行保留历史版本。
+#[agent_command(domain = invest, safety = Caution, call_mode = StateInput, description = "启动股票分析工作流")]
 #[tauri::command]
 pub async fn run_stock_workflow(
     app: tauri::AppHandle,
@@ -1638,6 +1640,7 @@ pub(crate) async fn run_stock_workflow_inner(
 }
 
 /// 取消正在运行的股票分析工作流
+#[agent_command(domain = invest, safety = Caution, call_mode = StateInput, description = "取消正在运行的股票分析工作流")]
 #[tauri::command]
 pub async fn cancel_stock_workflow(
     state: State<'_, AppState>,

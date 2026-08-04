@@ -28,6 +28,7 @@ use axagent_market_sim::{
     monte_carlo::{MonteCarloEngine, ScenarioConfig, ScenarioType},
 };
 use axagent_quant::{BollStrategy, MaCrossStrategy, MacdStrategy, RsiStrategy, TurtleStrategy};
+use agent_macro::agent_command;
 
 /// 前端传入的模拟请求参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,6 +191,7 @@ fn build_default_agents(
 /// 运行市场模拟
 ///
 /// 接受模拟请求参数，创建 DES 内核 + Agent，运行后返回统计结果。
+#[agent_command(domain = market_sim, safety = Caution, call_mode = StateInput, description = "运行市场模拟")]
 #[tauri::command]
 pub fn market_sim_run(request: SimRunRequest) -> Result<SimRunResult, String> {
     let config = SimConfig {
@@ -217,12 +219,14 @@ pub fn market_sim_run(request: SimRunRequest) -> Result<SimRunResult, String> {
 }
 
 /// 返回市场模拟支持的 Agent 类型列表
+#[agent_command(domain = market_sim, safety = Safe, call_mode = StateInput, description = "获取支持的 Agent 类型")]
 #[tauri::command]
 pub fn market_sim_agent_types() -> Vec<&'static str> {
     vec!["exchange", "market_maker", "momentum", "value", "noise"]
 }
 
 /// 返回默认模拟参数建议
+#[agent_command(domain = market_sim, safety = Safe, call_mode = StateInput, description = "获取默认模拟参数")]
 #[tauri::command]
 pub fn market_sim_defaults() -> serde_json::Value {
     serde_json::json!({
@@ -285,6 +289,7 @@ pub struct McScenarioResultItem {
 }
 
 /// 运行蒙特卡洛多场景模拟
+#[agent_command(domain = market_sim, safety = Caution, call_mode = StateInput, description = "运行蒙特卡洛模拟")]
 #[tauri::command]
 pub fn market_sim_run_mc(request: McSimRequest) -> Result<McSimResult, String> {
     let ref_price = request.reference_price;
@@ -390,6 +395,7 @@ pub struct QuantSimRunResult {
 }
 
 /// 运行量化策略模拟（在 DES 市场环境中运行 quant crate 策略）
+#[agent_command(domain = market_sim, safety = Caution, call_mode = StateInput, description = "运行量化策略模拟")]
 #[tauri::command]
 pub fn market_sim_run_strategy(request: QuantSimRequest) -> Result<QuantSimRunResult, String> {
     let strategy: Box<dyn axagent_quant::Strategy> = match request.strategy_name.as_str() {

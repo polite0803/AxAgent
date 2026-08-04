@@ -16,6 +16,7 @@
 //!   2. QuantStrategyAgent 已就绪
 //!   3. WalkForward 基线评分已建立 (MaCross 5/20: 9 folds, Sharpe=-7.14, MaxDD=10.16%)
 
+use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 
 use axagent_market_sim::{
@@ -289,6 +290,7 @@ fn run_des_simulation(
 // ── Tauri 命令 ────────────────────────────────────────────────────────────────
 
 /// 运行 Walk-Forward + DES 对比
+#[agent_command(domain = "workflow", safety = Safe, call_mode = StateOnly, description =  "运行Walk-Forward与DES对比")]
 #[tauri::command]
 pub fn wf_des_integration(request: WfDesRequest) -> Result<WfDesReport, String> {
     if request.klines.is_empty() {

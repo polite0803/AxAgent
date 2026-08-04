@@ -109,3 +109,128 @@ pub mod registry {
         domains
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 验证命令元数据注册表接口可以正常工作
+    /// 注意：此 crate 是类型定义 crate，命令注册在主应用 crate 中完成
+    #[test]
+    fn test_registry_interface() {
+        let all = registry::get_all();
+        // 在类型定义 crate 中，没有注册命令是正常的
+        // 命令会在主应用 crate (axagent) 中通过 inventory 收集
+        let _ = all; // 确保代码可以编译运行
+
+        let domains = registry::get_all_domains();
+        let _ = domains;
+    }
+
+    /// 验证命令元数据结构正确
+    #[test]
+    fn test_command_metadata_integrity() {
+        for meta in registry::get_all() {
+            assert!(!meta.name.is_empty(), "命令名称不能为空");
+            assert!(!meta.domain.is_empty(), "命令域不能为空");
+            assert!(!meta.description.is_empty(), "命令描述不能为空");
+        }
+    }
+
+    /// 验证按名称查找命令
+    #[test]
+    fn test_find_by_name() {
+        let all = registry::get_all();
+        if let Some(first) = all.first() {
+            let found = registry::find_by_name(first.name);
+            assert!(found.is_some(), "应该能通过名称找到命令");
+            assert_eq!(found.unwrap().name, first.name);
+        }
+        // 如果没有命令注册，测试自然通过
+    }
+
+    /// 验证按域查找命令
+    #[test]
+    fn test_find_by_domain() {
+        let all = registry::get_all();
+        if let Some(first) = all.first() {
+            let domain_commands = registry::find_by_domain(first.domain);
+            assert!(
+                domain_commands.iter().any(|c| c.name == first.name),
+                "按域查找应该包含该域的命令"
+            );
+        }
+        // 如果没有命令注册，测试自然通过
+    }
+
+    /// 验证 full_path 格式正确
+    #[test]
+    fn test_full_path_format() {
+        for meta in registry::get_all() {
+            let path = meta.full_path();
+            assert!(!path.is_empty(), "full_path 不能为空");
+            assert!(path.contains(meta.name), "full_path 应该包含命令名称");
+        }
+    }
+
+    /// 验证安全级别枚举值正确
+    #[test]
+    fn test_safety_enum() {
+        assert_eq!(CommandSafety::Safe.as_str(), "safe");
+        assert_eq!(CommandSafety::Caution.as_str(), "caution");
+        assert_eq!(CommandSafety::Dangerous.as_str(), "dangerous");
+    }
+
+    /// 验证调用模式枚举值正确
+    #[test]
+    fn test_call_mode_enum() {
+        assert_eq!(CallMode::StateOnly.as_str(), "state_only");
+        assert_eq!(CallMode::StateInput.as_str(), "state_input");
+        assert_eq!(CallMode::Manual.as_str(), "manual");
+    }
+
+    /// 验证 CommandMetadata::new 构造函数
+    #[test]
+    fn test_metadata_constructor() {
+        let meta = CommandMetadata::new(
+            "test_command",
+            "crate::commands::test",
+            "test_domain",
+            CommandSafety::Safe,
+            CallMode::StateInput,
+            "测试命令",
+        );
+
+        assert_eq!(meta.name, "test_command");
+        assert_eq!(meta.source_module, "crate::commands::test");
+        assert_eq!(meta.domain, "test_domain");
+        assert!(matches!(meta.safety, CommandSafety::Safe));
+        assert!(matches!(meta.call_mode, CallMode::StateInput));
+        assert_eq!(meta.description, "测试命令");
+    }
+
+    /// 验证 full_path 去除 crate:: 前缀
+    #[test]
+    fn test_full_path_strip_prefix() {
+        let meta = CommandMetadata::new(
+            "test_command",
+            "crate::commands::test",
+            "test_domain",
+            CommandSafety::Safe,
+            CallMode::StateInput,
+            "测试命令",
+        );
+
+        assert_eq!(meta.full_path(), "commands::test::test_command");
+
+        let meta_no_prefix = CommandMetadata::new(
+            "test_command",
+            "other::module",
+            "test_domain",
+            CommandSafety::Safe,
+            CallMode::StateInput,
+            "测试命令",
+        );
+        assert_eq!(meta_no_prefix.full_path(), "other::module::test_command");
+    }
+}

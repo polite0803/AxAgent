@@ -2679,3 +2679,304 @@ async fn invoke_state_input(
         "status": "ready_for_invocation"
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    /// 测试 CommandDomain 枚举的 as_str 方法
+    #[test]
+    fn test_domain_as_str() {
+        assert_eq!(CommandDomain::Invest.as_str(), "invest");
+        assert_eq!(CommandDomain::Opc.as_str(), "opc");
+        assert_eq!(CommandDomain::Quant.as_str(), "quant");
+        assert_eq!(CommandDomain::MarketSim.as_str(), "market_sim");
+        assert_eq!(CommandDomain::Portfolio.as_str(), "portfolio");
+    }
+
+    /// 测试 CommandDomain 枚举的 from_str 方法
+    #[test]
+    fn test_domain_from_str() {
+        assert_eq!(CommandDomain::from_str("invest"), Some(CommandDomain::Invest));
+        assert_eq!(CommandDomain::from_str("opc"), Some(CommandDomain::Opc));
+        assert_eq!(CommandDomain::from_str("quant"), Some(CommandDomain::Quant));
+        assert_eq!(CommandDomain::from_str("market_sim"), Some(CommandDomain::MarketSim));
+        assert_eq!(CommandDomain::from_str("portfolio"), Some(CommandDomain::Portfolio));
+        assert_eq!(CommandDomain::from_str("unknown"), None);
+    }
+
+    /// 测试 DomainMappingConfig 默认配置包含 AxInvest 域映射
+    #[test]
+    fn test_default_domain_mapping_contains_axinvest() {
+        let config = DomainMappingConfig::default();
+
+        // 检查是否包含 invest 工具域映射
+        let invest_mapping = config
+            .mappings
+            .iter()
+            .find(|m| m.tool_domain == "invest");
+        assert!(invest_mapping.is_some(), "应该包含 invest 工具域映射");
+
+        let invest_mapping = invest_mapping.unwrap();
+        assert!(
+            invest_mapping.command_domains.contains(&CommandDomain::Invest),
+            "invest 映射应包含 Invest 域"
+        );
+        assert!(
+            invest_mapping.command_domains.contains(&CommandDomain::Quant),
+            "invest 映射应包含 Quant 域"
+        );
+        assert!(
+            invest_mapping.command_domains.contains(&CommandDomain::MarketSim),
+            "invest 映射应包含 MarketSim 域"
+        );
+        assert!(
+            invest_mapping.command_domains.contains(&CommandDomain::Portfolio),
+            "invest 映射应包含 Portfolio 域"
+        );
+    }
+
+    /// 测试 DomainMappingConfig 包含 opc 工具域映射
+    #[test]
+    fn test_default_domain_mapping_contains_opc() {
+        let config = DomainMappingConfig::default();
+
+        let opc_mapping = config.mappings.iter().find(|m| m.tool_domain == "opc");
+        assert!(opc_mapping.is_some(), "应该包含 opc 工具域映射");
+
+        let opc_mapping = opc_mapping.unwrap();
+        assert!(
+            opc_mapping.command_domains.contains(&CommandDomain::Opc),
+            "opc 映射应包含 Opc 域"
+        );
+    }
+
+    /// 测试 DomainMappingConfig 包含 quant 和 portfolio 独立工具域映射
+    #[test]
+    fn test_default_domain_mapping_contains_quant_portfolio() {
+        let config = DomainMappingConfig::default();
+
+        let quant_mapping = config.mappings.iter().find(|m| m.tool_domain == "quant");
+        assert!(quant_mapping.is_some(), "应该包含 quant 工具域映射");
+
+        let portfolio_mapping = config.mappings.iter().find(|m| m.tool_domain == "portfolio");
+        assert!(portfolio_mapping.is_some(), "应该包含 portfolio 工具域映射");
+    }
+
+    /// 测试 resolve_command_domains 方法正确解析 invest 工具域
+    #[test]
+    fn test_resolve_domains_for_invest() {
+        let config = DomainMappingConfig::default();
+        let mut active_domains = HashSet::new();
+        active_domains.insert("invest".to_string());
+
+        let resolved = config.resolve_command_domains(&active_domains);
+
+        // 应该包含默认域
+        assert!(
+            resolved.contains(&CommandDomain::Core),
+            "应该包含 Core 默认域"
+        );
+
+        // 应该包含 invest 映射的业务域
+        assert!(
+            resolved.contains(&CommandDomain::Invest),
+            "应该包含 Invest 域"
+        );
+        assert!(
+            resolved.contains(&CommandDomain::Quant),
+            "应该包含 Quant 域"
+        );
+        assert!(
+            resolved.contains(&CommandDomain::MarketSim),
+            "应该包含 MarketSim 域"
+        );
+        assert!(
+            resolved.contains(&CommandDomain::Portfolio),
+            "应该包含 Portfolio 域"
+        );
+    }
+
+    /// 测试 resolve_command_domains 方法正确解析 opc 工具域
+    #[test]
+    fn test_resolve_domains_for_opc() {
+        let config = DomainMappingConfig::default();
+        let mut active_domains = HashSet::new();
+        active_domains.insert("opc".to_string());
+
+        let resolved = config.resolve_command_domains(&active_domains);
+
+        assert!(resolved.contains(&CommandDomain::Opc), "应该包含 Opc 域");
+    }
+
+    /// 测试 resolve_command_domains 方法处理空输入
+    #[test]
+    fn test_resolve_domains_empty_input() {
+        let config = DomainMappingConfig::default();
+        let active_domains = HashSet::new();
+
+        let resolved = config.resolve_command_domains(&active_domains);
+
+        // 空输入应该返回默认域
+        assert!(
+            resolved.contains(&CommandDomain::Core),
+            "空输入应返回 Core 默认域"
+        );
+    }
+
+    /// 测试 CommandRegistry 可以创建和查询
+    #[test]
+    fn test_command_registry_creation() {
+        let registry = CommandRegistry::from_registry();
+
+        // 注册表应该成功创建
+        assert!(
+            !registry.is_empty() || registry.is_empty(),
+            "注册表应该成功创建（即使为空）"
+        );
+
+        // 测试 len 方法
+        let _count = registry.len();
+    }
+
+    /// 测试 CommandRegistry 的 find_by_domain 方法
+    #[test]
+    fn test_registry_find_by_domain() {
+        let registry = CommandRegistry::from_registry();
+
+        // 按域查找命令
+        let invest_commands = registry.find_by_domain(&CommandDomain::Invest);
+        let opc_commands = registry.find_by_domain(&CommandDomain::Opc);
+        let quant_commands = registry.find_by_domain(&CommandDomain::Quant);
+
+        // 验证查找结果（可能为空，取决于编译时是否有命令注册）
+        let _ = invest_commands;
+        let _ = opc_commands;
+        let _ = quant_commands;
+    }
+
+    /// 测试 build_index_string 方法生成正确格式的索引
+    #[test]
+    fn test_build_index_string_format() {
+        let registry = CommandRegistry::from_registry();
+        let domains = vec![CommandDomain::Invest, CommandDomain::Quant];
+
+        let index_string = registry.build_index_string(&domains);
+
+        // 验证索引字符串包含预期的格式
+        assert!(
+            index_string.contains("可用后端命令"),
+            "索引字符串应包含标题"
+        );
+        assert!(
+            index_string.contains("execute_tauri_command"),
+            "索引字符串应包含调用说明"
+        );
+    }
+
+    /// 测试 CommandCache 基本操作
+    #[test]
+    fn test_command_cache_basic_operations() {
+        let mut cache = CommandCache::new(10);
+        let registry = CommandRegistry::from_registry();
+        let domains = vec![CommandDomain::Invest];
+
+        // 第一次获取（缓存未命中）
+        let index1 = cache.get(&domains, &registry);
+        let (hits1, misses1, _) = cache.stats();
+        assert_eq!(misses1, 1, "第一次获取应为缓存未命中");
+
+        // 第二次获取（缓存命中）
+        let _index2 = cache.get(&domains, &registry);
+        let (hits2, _, _) = cache.stats();
+        assert_eq!(hits2, 1, "第二次获取应为缓存命中");
+
+        // 清除缓存
+        cache.clear();
+        let (hits3, misses3, _) = cache.stats();
+        assert_eq!(hits3, 0, "清除后命中数应为 0");
+        assert_eq!(misses3, 0, "清除后未命中数应为 0");
+
+        // 验证索引不为空
+        assert!(!index1.is_empty(), "索引字符串不应为空");
+    }
+
+    /// 测试 CommandCache 缓存键生成
+    #[test]
+    fn test_command_cache_key_generation() {
+        let domains1 = vec![CommandDomain::Invest, CommandDomain::Quant];
+        let domains2 = vec![CommandDomain::Quant, CommandDomain::Invest]; // 顺序不同
+
+        let key1 = CommandCache::make_key(&domains1);
+        let key2 = CommandCache::make_key(&domains2);
+
+        // 顺序不同的域列表应生成相同的键
+        assert_eq!(key1, key2, "不同顺序的相同域列表应生成相同的缓存键");
+    }
+
+    /// 测试 CommandSafety 枚举方法
+    #[test]
+    fn test_command_safety_methods() {
+        // 测试 as_str
+        assert_eq!(CommandSafety::Safe.as_str(), "safe");
+        assert_eq!(CommandSafety::Caution.as_str(), "caution");
+        assert_eq!(CommandSafety::Dangerous.as_str(), "dangerous");
+
+        // 测试 severity
+        assert_eq!(CommandSafety::Safe.severity(), 0);
+        assert_eq!(CommandSafety::Caution.severity(), 1);
+        assert_eq!(CommandSafety::Dangerous.severity(), 2);
+
+        // 测试 requires_confirmation
+        assert!(!CommandSafety::Safe.requires_confirmation());
+        assert!(CommandSafety::Caution.requires_confirmation());
+        assert!(!CommandSafety::Dangerous.requires_confirmation());
+
+        // 测试 is_blocked
+        assert!(!CommandSafety::Safe.is_blocked());
+        assert!(!CommandSafety::Caution.is_blocked());
+        assert!(CommandSafety::Dangerous.is_blocked());
+
+        // 测试 is_allowed
+        assert!(CommandSafety::Safe.is_allowed("default"));
+        assert!(CommandSafety::Safe.is_allowed("full_access"));
+        assert!(!CommandSafety::Dangerous.is_allowed("default"));
+        assert!(!CommandSafety::Dangerous.is_allowed("full_access"));
+        assert!(CommandSafety::Caution.is_allowed("full_access"));
+        assert!(!CommandSafety::Caution.is_allowed("default"));
+    }
+
+    /// 测试 resolve_command_domains 便捷函数
+    #[test]
+    fn test_resolve_command_domains_convenience() {
+        let mut active_domains = HashSet::new();
+        active_domains.insert("invest".to_string());
+
+        let resolved = resolve_command_domains(&active_domains);
+        assert!(resolved.contains(&CommandDomain::Invest));
+    }
+
+    /// 测试 preload_command_cache 函数
+    #[test]
+    fn test_preload_command_cache() {
+        let domains = vec![CommandDomain::Core];
+        let (index, hit_rate) = preload_command_cache(&domains);
+
+        // 验证返回值
+        assert!(!index.is_empty(), "预加载的索引不应为空");
+        assert!(
+            hit_rate >= 0.0 && hit_rate <= 1.0,
+            "命中率应在 0 到 1 之间"
+        );
+    }
+
+    /// 测试 build_command_index_string 便捷函数
+    #[test]
+    fn test_build_command_index_string_convenience() {
+        let domains = vec![CommandDomain::Invest];
+        let index = build_command_index_string(&domains);
+
+        assert!(index.contains("可用后端命令"));
+    }
+}

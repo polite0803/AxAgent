@@ -17,12 +17,14 @@
 //! - `market_mainline_delete_by_date` —— 清除某日所有主线
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_stock_analysis::market_mainline::{
     self, BatchUpsertInput, BatchUpsertResult, CreateMainlineInput, UpdateMainlineInput,
 };
 use tauri::State;
 
 /// 创建单条市场主线
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateInput, description = "创建市场主线")]
 #[tauri::command]
 pub async fn market_mainline_create(
     state: State<'_, AppState>,
@@ -37,6 +39,7 @@ pub async fn market_mainline_create(
 }
 
 /// 按 ID 获取主线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取主线详情")]
 #[tauri::command]
 pub async fn market_mainline_get(
     state: State<'_, AppState>,
@@ -51,6 +54,7 @@ pub async fn market_mainline_get(
 }
 
 /// 列出某日所有主线（按强度降序）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "按日期列出主线")]
 #[tauri::command]
 pub async fn market_mainline_list_by_date(
     state: State<'_, AppState>,
@@ -65,6 +69,7 @@ pub async fn market_mainline_list_by_date(
 }
 
 /// 列出最近 N 天的主线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出最近主线")]
 #[tauri::command]
 pub async fn market_mainline_list_recent(
     state: State<'_, AppState>,
@@ -80,6 +85,7 @@ pub async fn market_mainline_list_recent(
 }
 
 /// 按状态过滤主线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "按状态列出主线")]
 #[tauri::command]
 pub async fn market_mainline_list_by_status(
     state: State<'_, AppState>,
@@ -94,6 +100,7 @@ pub async fn market_mainline_list_by_status(
 }
 
 /// 按主题大类过滤主线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "按主题列出主线")]
 #[tauri::command]
 pub async fn market_mainline_list_by_category(
     state: State<'_, AppState>,
@@ -110,6 +117,7 @@ pub async fn market_mainline_list_by_category(
 }
 
 /// 更新主线（部分字段）
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateInput, description = "更新主线")]
 #[tauri::command]
 pub async fn market_mainline_update(
     state: State<'_, AppState>,
@@ -124,6 +132,7 @@ pub async fn market_mainline_update(
 }
 
 /// 归档主线（status=archived）
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateInput, description = "归档主线")]
 #[tauri::command]
 pub async fn market_mainline_archive(
     state: State<'_, AppState>,
@@ -138,6 +147,7 @@ pub async fn market_mainline_archive(
 }
 
 /// 批量 upsert 主线（工作流 persist_to_db 节点用）
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateInput, description = "批量写入主线")]
 #[tauri::command]
 pub async fn market_mainline_batch_upsert(
     state: State<'_, AppState>,
@@ -152,6 +162,7 @@ pub async fn market_mainline_batch_upsert(
 }
 
 /// 清除某日所有主线（管理用，慎调）
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateInput, description = "删除指定日期主线")]
 #[tauri::command]
 pub async fn market_mainline_delete_by_date(
     state: State<'_, AppState>,

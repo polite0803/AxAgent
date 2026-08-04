@@ -1,6 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 use axagent_astock_data::as_of::AsOfContext;
 use axagent_entities::stock_analyses;
 use axagent_harness::workflow_types::{JsonSchema, Variable, WorkflowEdge, WorkflowNode};
@@ -1416,6 +1417,7 @@ pub(crate) fn extract_verdict_from_text(text: &str) -> Option<serde_json::Value>
 /// 从已有分析的 `blackboard_snapshot` 中读取缓存的所有上游节点输出，
 /// 注入 portfolio-mgr 的 Rhai 脚本中重新计算决策。
 /// 适用于：修改 portfolio-mgr.rhai 公式后快速验证，无需等待完整 DAG。
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "重运行股票决策计算")]
 #[tauri::command]
 pub async fn rerun_decision(
     state: State<'_, AppState>,

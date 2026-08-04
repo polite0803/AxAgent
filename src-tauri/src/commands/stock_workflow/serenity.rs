@@ -2,6 +2,7 @@ use super::decision::{load_and_inject_template, parse_asof_param, resolve_runtim
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 use axagent_astock_data::as_of::{self};
 use axagent_entities::reco_picks;
 use axagent_harness::response_normalizer::ResponseNormalizer;
@@ -724,6 +725,7 @@ fn serenity_extract_from_node(raw: &serde_json::Value) -> serde_json::Value {
 ///   - 不需要 stock_code 输入（自驱动，从市场数据发现趋势）
 ///   - 不写 stock_analyses 表
 ///   - 返回候选股清单（而非单只股票的分析结论）
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "运行Serenity瓶颈筛选工作流")]
 #[tauri::command]
 pub async fn run_serenity_screening(
     app: tauri::AppHandle,
@@ -1225,6 +1227,7 @@ pub async fn run_serenity_screening(
 /// 刷新 Serenity 候选的退出信号（Phase 3 持续监控）
 /// 加载最近一次 Serenity 筛选的候选列表，逐个检查退出条件
 /// 支持 as_of_date 参数用于回放模式
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "刷新Serenity退出信号")]
 #[tauri::command]
 pub async fn refresh_serenity_exit_signals(
     state: State<'_, AppState>,
@@ -1326,6 +1329,7 @@ async fn do_refresh_exit_signals(state: &State<'_, AppState>) -> Result<serde_js
 }
 
 /// 刷新 Serenity 回馈闭环：跟踪推荐表现、验证催化剂、调优权重
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "刷新Serenity回馈闭环")]
 #[tauri::command]
 pub async fn refresh_serenity_feedback(
     state: State<'_, AppState>,

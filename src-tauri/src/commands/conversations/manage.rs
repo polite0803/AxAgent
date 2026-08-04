@@ -1,4 +1,5 @@
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 use axagent_harness::types::conversation::ChatStreamChunk;
 use axagent_harness::types::conversation::MessageRole;
 use axagent_harness::types::function_call::ToolCall;
@@ -22,6 +23,7 @@ use crate::commands::conversations::sync_context_sources;
 use super::messages::{get_thinking_block_end, get_thinking_block_start, strip_disabled_thinking_content, strip_disabled_thinking_delta, strip_think_tags};
 use crate::commands::error::ErrorResponse;
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "列出会话列表")]
 #[tauri::command]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
     axagent_dao::repo::conversation::list_conversations(state.harness.db())
@@ -29,6 +31,7 @@ pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conver
         .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "创建新会话")]
 #[tauri::command]
 pub async fn create_conversation(
     state: State<'_, AppState>,
@@ -48,6 +51,7 @@ pub async fn create_conversation(
     .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "更新会话信息")]
 #[tauri::command]
 pub async fn update_conversation(
     state: State<'_, AppState>,
@@ -72,11 +76,13 @@ pub async fn update_conversation(
     Ok(updated)
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateOnly, description = "删除单个会话")]
 #[tauri::command]
 pub async fn delete_conversation(state: State<'_, AppState>, id: String) -> Result<(), String> {
     delete_conversation_with_attachments(state.harness.db(), &id).await
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateOnly, description = "批量删除会话")]
 #[tauri::command]
 pub async fn batch_delete_conversations(
     state: State<'_, AppState>,
@@ -106,6 +112,7 @@ pub async fn batch_delete_conversations(
     Ok(deleted)
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "分支会话")]
 #[tauri::command]
 pub async fn branch_conversation(
     state: State<'_, AppState>,
@@ -163,6 +170,7 @@ pub(super) async fn delete_conversation_with_attachments_using(
         .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "搜索会话")]
 #[tauri::command]
 pub async fn search_conversations(
     state: State<'_, AppState>,
@@ -173,6 +181,7 @@ pub async fn search_conversations(
         .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "切换会话置顶状态")]
 #[tauri::command]
 pub async fn toggle_pin_conversation(
     state: State<'_, AppState>,
@@ -183,6 +192,7 @@ pub async fn toggle_pin_conversation(
         .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "切换会话归档状态")]
 #[tauri::command]
 pub async fn toggle_archive_conversation(
     state: State<'_, AppState>,
@@ -193,6 +203,7 @@ pub async fn toggle_archive_conversation(
         .map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))
 }
 
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateOnly, description = "归档会话到知识库")]
 #[tauri::command]
 pub async fn archive_conversation_to_knowledge_base(
     app: tauri::AppHandle,
@@ -268,6 +279,7 @@ pub async fn archive_conversation_to_knowledge_base(
     Ok(updated_conv)
 }
 
+#[agent_command(domain = conversation, safety = Safe, call_mode = StateOnly, description = "列出已归档会话")]
 #[tauri::command]
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
@@ -278,6 +290,7 @@ pub async fn list_archived_conversations(
 }
 
 /// 工作流型会话归档：将执行结果写回原始工作流模板
+#[agent_command(domain = conversation, safety = Caution, call_mode = StateOnly, description = "归档工作流会话")]
 #[tauri::command]
 pub async fn archive_workflow_session(
     state: State<'_, AppState>,

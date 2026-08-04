@@ -112,6 +112,7 @@ pub async fn run_recommendation_cron(
 
 // ── Tauri 命令：荐股定时任务 CRUD ──
 
+use agent_macro::agent_command;
 use axagent_runtime_core::{CronJob, CronJobStatus};
 use serde::Serialize;
 use tauri::State;
@@ -174,6 +175,7 @@ impl RecoCronJobResponse {
 ///
 /// - 配置以 JSON 写入 `CronJob.prompt`，由 `run_recommendation_cron` 在执行时解析
 /// - task_type = "stock-recommendation"，不绑定 workflow
+#[agent_command(domain = "core", safety = Caution, call_mode = StateOnly, description =  "创建荐股定时任务")]
 #[tauri::command]
 pub async fn create_recommendation_cron(
     state: State<'_, AppState>,
@@ -204,6 +206,7 @@ pub async fn create_recommendation_cron(
 }
 
 /// 列出所有荐股定时任务
+#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "列出荐股定时任务")]
 #[tauri::command]
 pub async fn list_recommendation_crons(
     state: State<'_, AppState>,
@@ -217,6 +220,7 @@ pub async fn list_recommendation_crons(
 }
 
 /// 启停荐股定时任务
+#[agent_command(domain = "core", safety = Caution, call_mode = StateOnly, description =  "启停荐股定时任务")]
 #[tauri::command]
 pub async fn toggle_recommendation_cron(
     state: State<'_, AppState>,
@@ -238,6 +242,7 @@ pub async fn toggle_recommendation_cron(
 }
 
 /// 删除荐股定时任务
+#[agent_command(domain = "core", safety = Caution, call_mode = StateOnly, description =  "删除荐股定时任务")]
 #[tauri::command]
 pub async fn delete_recommendation_cron(
     state: State<'_, AppState>,

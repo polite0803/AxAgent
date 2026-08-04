@@ -101,8 +101,8 @@ fn collect_importable_files(
     Ok(())
 }
 
-#[tauri::command]
 #[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识库")]
+#[tauri::command]
 pub async fn list_knowledge_bases(
     state: State<'_, AppState>,
 ) -> Result<Vec<KnowledgeBase>, String> {
@@ -1448,6 +1448,7 @@ pub async fn rebuild_knowledge_document(
 ///
 /// 导入 CSV（stock/concept/industry/executive + 关系）和 wiki_pages 到 DB。
 /// 幂等：已存在的记录会被跳过。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "导入lemonhu开源股票知识库")]
 #[tauri::command]
 pub async fn import_lemonhu_knowledge(
     state: State<'_, AppState>,
@@ -1929,6 +1930,7 @@ pub struct SyncDirectoryResult {
 /// - **更新**：文件在 KB 中且 mtime 晚于文档时间 → 删旧文档 + 加新文档 + 入队索引
 /// - **删除**：文档在 KB 中但对应文件不存在磁盘 → `delete_knowledge_document`
 /// - **跳过**：文件在 KB 中且 mtime 未变 → 跳过
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "同步项目知识源目录")]
 #[tauri::command]
 pub async fn sync_project_knowledge_sources(
     app: AppHandle,
@@ -2281,6 +2283,7 @@ pub struct ProjectKnowledgeImportResult {
 ///   - 创建模式：新 Wiki/KB 直接写入该字段；复用已有 Wiki/KB 时若与现有不同则更新。
 ///   - 更新模式：传入时与现有不同则更新；不传则保持现状。
 ///   - 返回 `embedding_changed=true` 时前端应提示用户重建索引。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "导入项目知识源")]
 #[tauri::command]
 pub async fn import_project_knowledge_sources(
     app: AppHandle,

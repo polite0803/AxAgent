@@ -38,6 +38,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
+use agent_macro::agent_command;
 use crate::commands::error_code::stock_workflow as wf_err;
 
 /// 回测运行请求（对齐前端 `BacktestRunRequest`）
@@ -145,6 +146,7 @@ pub struct WalkForwardFoldResponse {
 /// 运行回测
 ///
 /// 流程：插入 pending → 加载策略 → 拉 K 线 → 跑引擎 → 落库（completed/failed）
+#[agent_command(domain = quant, safety = Caution, call_mode = StateInput, description = "执行量化回测")]
 #[tauri::command]
 pub async fn quant_backtest_run(
     state: State<'_, AppState>,
@@ -234,6 +236,7 @@ pub async fn quant_backtest_run(
 }
 
 /// 按 runId 读取回测运行记录
+#[agent_command(domain = quant, safety = Safe, call_mode = StateInput, description = "获取回测运行记录")]
 #[tauri::command]
 pub async fn quant_run_get(
     state: State<'_, AppState>,
@@ -457,6 +460,7 @@ fn kline_to_bar(
 // ── 策略列表 ──
 
 /// 列出所有量化策略（内置 + Rhai 注册）
+#[agent_command(domain = quant, safety = Safe, call_mode = StateInput, description = "列出量化策略")]
 #[tauri::command]
 pub async fn quant_strategies_list(
     state: State<'_, AppState>,
@@ -482,6 +486,7 @@ pub struct RegisterRhaiRequest {
     pub upsert: bool,
 }
 
+#[agent_command(domain = quant, safety = Caution, call_mode = StateInput, description = "注册 Rhai 策略")]
 #[tauri::command]
 pub async fn quant_strategy_register_rhai(
     state: State<'_, AppState>,
@@ -560,6 +565,7 @@ pub struct MetricsCompareResponse {
     pub best_by: HashMap<String, String>,
 }
 
+#[agent_command(domain = quant, safety = Safe, call_mode = StateInput, description = "对比回测指标")]
 #[tauri::command]
 pub async fn quant_metrics_compare(
     state: State<'_, AppState>,

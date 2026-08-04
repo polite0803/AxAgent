@@ -67,6 +67,7 @@ pub fn analyze_task(task_description: String) -> Result<RecommendationResult, St
     Ok(task_context_to_result(recommendation))
 }
 
+#[agent_command(domain = tool, safety = Safe, call_mode = StateInput, description = "获取工具推荐")]
 #[command]
 pub fn get_tool_recommendations(
     task_description: String,

@@ -1,12 +1,14 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 use axagent_entities::stock_analyses;
 use axagent_harness::{ToolContext, ToolRegistry};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use tauri::State;
 
 /// 将 Markdown 文本导出为 Word (.docx) 文件，通过 ToolRegistry 调用 ExportWordTool
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "导出Markdown为Word文档")]
 #[tauri::command]
 pub async fn export_md_to_docx(
     state: State<'_, AppState>,
@@ -31,6 +33,7 @@ pub async fn export_md_to_docx(
 }
 
 /// 将 Markdown 文本导出为 PowerPoint (.pptx) 文件，通过 ToolRegistry 调用 ExportPptxTool
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "导出Markdown为PPT文档")]
 #[tauri::command]
 pub async fn export_md_to_pptx(
     state: State<'_, AppState>,
@@ -55,6 +58,7 @@ pub async fn export_md_to_pptx(
 }
 
 /// 记录用户对决策的信任选择（公式 vs LLM），存储到 decision_json.userTrustDecision。
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "记录用户决策信任选择")]
 #[tauri::command]
 pub async fn record_decision_trust(
     state: State<'_, AppState>,
@@ -96,6 +100,7 @@ pub async fn record_decision_trust(
 }
 
 /// 查询决策回测分析：返回所有有 outcome 的分析记录的比较数据。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "查询决策回测分析")]
 #[tauri::command]
 pub async fn query_decision_backtest(
     state: State<'_, AppState>,
@@ -151,6 +156,7 @@ pub async fn query_decision_backtest(
 // ───────────────────────────────────────────────────────────────────────────
 
 /// P3-4: 查询跨股票信号聚合器的当前配置
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "获取跨股票信号聚合器配置")]
 #[tauri::command]
 pub async fn get_cross_stock_aggregator_config(
     state: State<'_, AppState>,
@@ -167,6 +173,7 @@ pub async fn get_cross_stock_aggregator_config(
 }
 
 /// P3-4: 热更新跨股票信号聚合器配置
+#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "热更新跨股票聚合器配置")]
 #[tauri::command]
 pub async fn set_cross_stock_aggregator_config(
     state: State<'_, AppState>,
@@ -182,6 +189,7 @@ pub async fn set_cross_stock_aggregator_config(
 }
 
 /// P3-4: 查询聚合器缓冲区快照（调试用）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "查询聚合器缓冲区快照")]
 #[tauri::command]
 pub async fn get_cross_stock_aggregator_buffer(
     state: State<'_, AppState>,
@@ -199,6 +207,7 @@ pub async fn get_cross_stock_aggregator_buffer(
 ///
 /// 调用方需提供 `concept_id`（如 "concept_ai"），后端通过 ConceptIndex 查询成员股票，
 /// 批量拉取实时行情，调用 `compute_sector_coherence` 生成报告。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "计算指定板块联动报告")]
 #[tauri::command]
 pub async fn get_sector_coherence_report(
     state: State<'_, AppState>,
@@ -240,6 +249,7 @@ pub async fn get_sector_coherence_report(
 ///
 /// 返回按联动强度（coherence 绝对值）降序排列的报告列表，
 /// 调用方可据此快速识别"异动板块"。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "批量扫描板块联动情况")]
 #[tauri::command]
 pub async fn scan_sector_coherence(
     state: State<'_, AppState>,

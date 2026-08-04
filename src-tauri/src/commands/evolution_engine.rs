@@ -9,6 +9,7 @@
 //! 替代旧版的纯内存模拟。
 
 use crate::AppState;
+use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -240,6 +241,7 @@ async fn collect_real_stats(state: &AppState) -> HashMap<String, serde_json::Val
 // ── Commands ──
 
 /// 获取所有进化引擎的实时状态（对接真实引擎）。
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取所有进化引擎实时状态")]
 #[command]
 pub async fn get_all_engine_status(
     state: State<'_, AppState>,
@@ -277,6 +279,7 @@ pub async fn get_all_engine_status(
 }
 
 /// 启动指定引擎。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "启动指定进化引擎")]
 #[command]
 pub async fn start_engine(state: State<'_, AppState>, engine_name: String) -> Result<(), String> {
     let mut runtime = engine_runtime().lock().await;
@@ -348,6 +351,7 @@ pub async fn start_engine(state: State<'_, AppState>, engine_name: String) -> Re
 }
 
 /// 停止指定引擎。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "停止指定进化引擎")]
 #[command]
 pub async fn stop_engine(state: State<'_, AppState>, engine_name: String) -> Result<(), String> {
     let mut runtime = engine_runtime().lock().await;
@@ -377,6 +381,7 @@ pub async fn stop_engine(state: State<'_, AppState>, engine_name: String) -> Res
 }
 
 /// 更新引擎配置。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "更新引擎配置")]
 #[command]
 pub async fn update_engine_config(
     engine_name: String,
@@ -408,6 +413,7 @@ pub async fn update_engine_config(
 }
 
 /// 获取指定引擎的日志。
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateInput, description = "获取指定引擎日志")]
 #[command]
 pub async fn get_engine_logs(
     engine_name: String,
@@ -435,6 +441,7 @@ pub async fn get_engine_logs(
 ///
 /// 从 TrajectoryStorage 采集最近的轨迹作为测试数据，运行一代进化，
 /// 返回进化后的最佳技能基因组。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行技能进化一代")]
 #[command]
 pub async fn run_skill_evolution_generation(
     state: State<'_, AppState>,
@@ -490,6 +497,7 @@ pub async fn run_skill_evolution_generation(
 ///
 /// 构建一个包含 prompt_tool_memory 的计算图，通过 LLM 反向传播梯度，
 /// 优化提示词内容。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行文本梯度优化")]
 #[command]
 pub async fn run_text_grad_optimize(
     state: State<'_, AppState>,
@@ -555,6 +563,7 @@ pub async fn run_text_grad_optimize(
 /// 1. 从 TrajectoryStorage 收集最近轨迹
 /// 2. 经验回放 → 模式提取 → 知识蒸馏
 /// 3. 持久化到 wiki_repo / pattern_repo
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行梦境整合")]
 #[command]
 pub async fn run_dream_consolidation(
     state: State<'_, AppState>,
@@ -584,6 +593,7 @@ pub async fn run_dream_consolidation(
 /// 1. 从 TrajectoryStorage 收集最近轨迹，提取工具使用模式
 /// 2. 调用 AutoToolCreator::create_tool_from_pattern 生成工具代码
 /// 3. 返回候选工具供前端确认注册
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行自动工具创建")]
 #[command]
 pub async fn run_auto_tool_create(
     state: State<'_, AppState>,
@@ -654,6 +664,7 @@ pub async fn run_auto_tool_create(
 ///
 /// 调用 ProcessRewardModel::compute_trajectory_rewards，
 /// 返回每步的奖励向量和聚合奖励。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行奖励模型分析")]
 #[command]
 pub async fn run_process_reward_analysis(
     state: State<'_, AppState>,
@@ -713,6 +724,7 @@ pub async fn run_process_reward_analysis(
 /// 运行内在动机分析（新颖性 + 学习进度 + 信息增益）。
 ///
 /// 扫描最近轨迹，计算状态空间的新颖性分布和学习进度曲线。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行内在动机分析")]
 #[command]
 pub async fn run_intrinsic_motivation_analysis(
     state: State<'_, AppState>,
@@ -805,6 +817,7 @@ pub async fn run_intrinsic_motivation_analysis(
 // ---------------------------------------------------------------------------
 
 /// 运行协同进化：根据近期轨迹表现自适应调整难度，生成新任务。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行协同进化周期")]
 #[command]
 pub async fn run_coevolution_cycle(
     state: State<'_, AppState>,
@@ -857,6 +870,7 @@ pub async fn run_coevolution_cycle(
 }
 
 /// 获取 Coevolution 引擎当前状态。
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取协同进化引擎状态")]
 #[command]
 pub async fn get_coevolution_status(
     state: State<'_, AppState>,
@@ -902,6 +916,7 @@ pub async fn get_coevolution_status(
 // ---------------------------------------------------------------------------
 
 /// 获取沙箱执行器当前策略配置。
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取沙箱执行策略配置")]
 #[command]
 pub async fn get_sandbox_policy(
     #[allow(unused_variables)] state: State<'_, AppState>,
@@ -930,6 +945,7 @@ pub async fn get_sandbox_policy(
 }
 
 /// 验证一个步骤是否在沙箱策略允许范围内。
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "验证沙箱执行步骤")]
 #[command]
 pub async fn run_sandbox_validate_step(
     #[allow(unused_variables)] state: State<'_, AppState>,

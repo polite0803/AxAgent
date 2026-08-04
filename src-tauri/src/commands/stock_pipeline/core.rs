@@ -8,6 +8,7 @@
 //!
 //! 反思阶段由现有 6h cron 接力（hindsight_date = analysis_date + expected_holding_days）。
 
+use agent_macro::agent_command;
 use std::sync::Arc;
 
 use axagent_entities::{portfolio_holdings, reco_picks, stock_analyses, stock_pipeline_runs};
@@ -653,6 +654,7 @@ fn build_summary(
 // ── Tauri 命令 ──
 
 /// 手动触发股票管道
+#[agent_command(domain = invest, safety = Caution, call_mode = StateInput, description = "手动触发股票管道")]
 #[tauri::command]
 pub async fn run_stock_pipeline(
     app: AppHandle,
@@ -688,6 +690,7 @@ pub async fn run_stock_pipeline(
 }
 
 /// 查询管道执行历史
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "查询管道执行历史")]
 #[tauri::command]
 pub async fn get_pipeline_history(
     state: State<'_, AppState>,
@@ -723,6 +726,7 @@ pub async fn get_pipeline_history(
 }
 
 /// 查询单次管道执行详情
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "查询单次管道执行详情")]
 #[tauri::command]
 pub async fn get_pipeline_run_detail(
     state: State<'_, AppState>,

@@ -42,6 +42,7 @@ use tauri::State;
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 
 /// 跑决策回测请求参数
 #[derive(Debug, Deserialize)]
@@ -80,6 +81,7 @@ pub struct RunDecisionBacktestResponse {
 /// 3. 用 `build_pick_validation` 构建 PickValidation
 /// 4. 若 dry_run=false，写 decision_validations 表
 /// 5. 聚合所有 validations → HitRateReport
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "跑决策回测")]
 #[tauri::command]
 pub async fn run_decision_backtest(
     state: State<'_, AppState>,
@@ -362,6 +364,7 @@ pub struct DecisionValidationItem {
     pub data_source: String,
 }
 
+#[agent_command(domain = "quant", safety = Safe, call_mode = StateInput, description = "列出决策验证记录")]
 #[tauri::command]
 pub async fn list_decision_validations(
     state: State<'_, AppState>,
@@ -422,6 +425,7 @@ pub async fn list_decision_validations(
 }
 
 /// 聚合报告 —— 基于已写入的 decision_validations 重新计算
+#[agent_command(domain = "quant", safety = Safe, call_mode = StateInput, description = "计算验证报告")]
 #[tauri::command]
 pub async fn compute_validation_report(
     state: State<'_, AppState>,

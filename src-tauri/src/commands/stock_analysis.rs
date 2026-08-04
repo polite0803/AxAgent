@@ -3680,6 +3680,7 @@ pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> 
 }
 
 /// 获取所有数据源的实时健康状态
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取所有数据源健康状态")]
 #[tauri::command]
 pub async fn get_vendor_health_all(
     state: State<'_, AppState>,
@@ -3688,6 +3689,7 @@ pub async fn get_vendor_health_all(
 }
 
 /// P3-B5(F): 获取 vendor fallback 日志，用于前端调试"为什么 X 数据用了 Y vendor"
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取数据源Fallback日志")]
 #[tauri::command]
 pub async fn get_vendor_fallback_log(
     state: State<'_, AppState>,
@@ -3925,6 +3927,7 @@ pub async fn sweep_daily_snapshots(state: State<'_, AppState>) -> Result<String,
 /// 可选 `as_of_date` 触发时间旅行模式：as_of_date 之前的数据用于回测，
 /// 之后的数据被严格屏蔽。
 /// 响应见 [RecoResponse]
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "智能荐股")]
 #[tauri::command]
 pub async fn recommend_stocks(
     state: State<'_, AppState>,
@@ -4033,6 +4036,7 @@ pub async fn recommend_stocks(
 /// 1. 查 reco_picks 表:按 period 过滤,取最新 generated_at 对应的所有行
 /// 2. 反序列化每行 pick_data → RecoPick
 /// 3. 按 style 分组,组装 RecoResponse,mode = "cached"
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "读取缓存荐股结果")]
 #[tauri::command]
 pub async fn get_cached_recommendation(
     state: State<'_, AppState>,
@@ -4146,6 +4150,7 @@ fn parse_iso8601_to_millis(s: &str) -> Option<i64> {
 }
 
 /// 失效荐股缓存（设置页保存 vendor 后由前端调用）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "失效荐股缓存")]
 #[tauri::command]
 pub fn invalidate_recommendation_cache() {
     recommender::invalidate_cache();
@@ -4169,6 +4174,7 @@ pub struct LatestAnalysisSummary {
 /// 查询个股最近一次已完成分析的决策摘要
 ///
 /// 若 `as_of_date` 不为 None 则只返回到该日期为止的分析（时间旅行兼容）。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "查询个股最近分析摘要")]
 #[tauri::command]
 pub async fn get_latest_analysis_for_stock(
     state: tauri::State<'_, AppState>,
@@ -4226,6 +4232,7 @@ pub async fn get_latest_analysis_for_stock(
 ///
 /// 一次 SQL 查询返回 HashMap，key 为 stock_code。
 /// `as_of_date` 语义同 `get_latest_analysis_for_stock`。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "批量查询个股最近分析摘要")]
 #[tauri::command]
 pub async fn get_latest_analyses_for_stocks(
     state: tauri::State<'_, AppState>,
@@ -4306,6 +4313,7 @@ fn extract_template_vars(
 ///
 /// 到点时遍历用户自选股列表，对每只股票执行 `run_single_stock_analysis`。
 /// 后端 CronExecutor 通过 `task_type = "watchlist-scan"` 路由。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "创建自选股扫描定时任务")]
 #[tauri::command]
 pub async fn create_watchlist_scan_cron(
     state: State<'_, AppState>,
@@ -4329,6 +4337,7 @@ pub async fn create_watchlist_scan_cron(
 }
 
 /// 列出所有自选股扫描定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出自选股扫描定时任务")]
 #[tauri::command]
 pub async fn list_watchlist_scan_crons(
     state: State<'_, AppState>,
@@ -4342,6 +4351,7 @@ pub async fn list_watchlist_scan_crons(
 }
 
 /// 启停自选股扫描定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "开关自选股扫描定时任务")]
 #[tauri::command]
 pub async fn toggle_watchlist_scan_cron(
     state: State<'_, AppState>,
@@ -4363,6 +4373,7 @@ pub async fn toggle_watchlist_scan_cron(
 }
 
 /// 删除自选股扫描定时任务
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除自选股扫描定时任务")]
 #[tauri::command]
 pub async fn delete_watchlist_scan_cron(
     state: State<'_, AppState>,
@@ -4381,6 +4392,7 @@ pub async fn delete_watchlist_scan_cron(
 /// - `cron_expression`: cron 表达式，默认 "0 6 * * *"
 /// - `min_confidence_threshold`: 触发反思的最低置信度（0=全部触发）
 /// - `reflection_depth`: "light"(简要) 或 "deep"(详细推理链)
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "创建决策校验定时任务")]
 #[tauri::command]
 pub async fn create_validate_decisions_cron(
     state: State<'_, AppState>,
@@ -4407,6 +4419,7 @@ pub async fn create_validate_decisions_cron(
 }
 
 /// 列出所有决策校验定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出决策校验定时任务")]
 #[tauri::command]
 pub async fn list_validate_decisions_crons(
     state: State<'_, AppState>,
@@ -4420,6 +4433,7 @@ pub async fn list_validate_decisions_crons(
 }
 
 /// 启停决策校验定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "开关决策校验定时任务")]
 #[tauri::command]
 pub async fn toggle_validate_decisions_cron(
     state: State<'_, AppState>,
@@ -4441,6 +4455,7 @@ pub async fn toggle_validate_decisions_cron(
 }
 
 /// 删除决策校验定时任务
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除决策校验定时任务")]
 #[tauri::command]
 pub async fn delete_validate_decisions_cron(
     state: State<'_, AppState>,
@@ -4454,6 +4469,7 @@ pub async fn delete_validate_decisions_cron(
 ///
 /// 收市后 18:00 执行: `0 18 * * *`
 /// 每个 pending row 到达持仓期后自动 resolve，无需手动触发。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "创建批量反思定时任务")]
 #[tauri::command]
 pub async fn create_batch_reflection_cron(
     state: State<'_, AppState>,
@@ -4478,6 +4494,7 @@ pub async fn create_batch_reflection_cron(
 }
 
 /// 列出所有批量反思定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出批量反思定时任务")]
 #[tauri::command]
 pub async fn list_batch_reflection_crons(
     state: State<'_, AppState>,
@@ -4491,6 +4508,7 @@ pub async fn list_batch_reflection_crons(
 }
 
 /// 启停批量反思定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "开关批量反思定时任务")]
 #[tauri::command]
 pub async fn toggle_batch_reflection_cron(
     state: State<'_, AppState>,
@@ -4512,6 +4530,7 @@ pub async fn toggle_batch_reflection_cron(
 }
 
 /// 删除批量反思定时任务
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除批量反思定时任务")]
 #[tauri::command]
 pub async fn delete_batch_reflection_cron(
     state: State<'_, AppState>,
@@ -4522,6 +4541,7 @@ pub async fn delete_batch_reflection_cron(
 }
 
 /// 查询反思复盘记录列表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "查询反思复盘记录列表")]
 #[tauri::command]
 pub async fn list_reflections(
     state: State<'_, AppState>,
@@ -4569,6 +4589,7 @@ pub async fn list_reflections(
 }
 
 /// 删除单条反思记录
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除反思记录")]
 #[tauri::command]
 pub async fn delete_reflection(
     state: State<'_, AppState>,
@@ -4586,6 +4607,7 @@ pub async fn delete_reflection(
 }
 
 /// 手动触发反思复盘工作流（在前端复盘 tab 点击"开始反思"时调用）
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "手动触发反思复盘")]
 #[tauri::command]
 pub async fn run_reflection_now(
     state: State<'_, AppState>,
@@ -4651,6 +4673,7 @@ pub async fn run_reflection_now(
 }
 
 /// 获取某只股票最近未处理的参数调整建议
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取参数调整建议")]
 #[tauri::command]
 pub async fn list_param_suggestions(
     state: State<'_, AppState>,
@@ -4694,6 +4717,7 @@ pub async fn list_param_suggestions(
 }
 
 /// 应用用户选中的参数调整建议到 stock-analysis 模板变量
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "应用参数调整建议")]
 #[tauri::command]
 pub async fn apply_param_suggestions(
     state: State<'_, AppState>,
@@ -4779,6 +4803,7 @@ pub async fn apply_param_suggestions(
 }
 
 // ── Path 1: WFO 参数校准 ──
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "校准组合管理参数")]
 #[tauri::command]
 pub async fn calibrate_portfolio_mgr_params(
     state: State<'_, AppState>,
@@ -4853,6 +4878,7 @@ pub async fn calibrate_portfolio_mgr_params(
 } // ── R1 复盘→进化：EvolutionDriftPanel 命令 ──
 
 /// 查询进化漂移仪表盘（前端 EvolutionDriftPanel 主页用）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "查询进化漂移仪表盘")]
 #[tauri::command]
 pub async fn get_evolution_drift_dashboard(
     state: State<'_, AppState>,
@@ -4863,6 +4889,7 @@ pub async fn get_evolution_drift_dashboard(
 }
 
 /// 拉取某条 (strategy, period) 的权重时间线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取权重时间线")]
 #[tauri::command]
 pub async fn get_evolution_drift_timeline(
     state: State<'_, AppState>,
@@ -4881,6 +4908,7 @@ pub async fn get_evolution_drift_timeline(
 }
 
 /// 拉取近期决策一致性分数趋势（Phase 3: 双视角一致性趋势图）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取一致性分数历史")]
 #[tauri::command]
 pub async fn get_agreement_score_history(
     state: State<'_, AppState>,
@@ -4918,6 +4946,7 @@ pub async fn get_agreement_score_history(
 }
 
 /// 手动触发权重重算（用户在前端 EvolutionDriftPanel 点"立即重算"时使用）
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "手动重算策略权重")]
 #[tauri::command]
 pub async fn manual_recalc_strategy_weights(
     state: State<'_, AppState>,
@@ -4942,6 +4971,7 @@ pub async fn manual_recalc_strategy_weights(
 
 /// 把"当前生效的策略权重"组装成 reco_strategy_weights JSON,
 /// 由前端 recommendStocks 时一并传给模板 vars。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取荐股策略权重")]
 #[tauri::command]
 pub async fn get_reco_strategy_weights(
     state: State<'_, AppState>,
@@ -4960,6 +4990,7 @@ pub async fn get_reco_strategy_weights(
 // ─── P2-6: RealtimeMonitor T+0 自动重跑配置 ───
 
 /// 查询 T+0 配置
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "查询T+0配置")]
 #[tauri::command]
 pub async fn get_t0_config(
     state: State<'_, AppState>,
@@ -4971,6 +5002,7 @@ pub async fn get_t0_config(
 }
 
 /// 更新 T+0 配置
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "更新T+0配置")]
 #[tauri::command]
 pub async fn set_t0_config(
     state: State<'_, AppState>,
@@ -4989,6 +5021,7 @@ pub async fn set_t0_config(
 ///
 /// 前端分析页面生成 consensus 时调用此命令替代简单阈值投票。
 /// 传入市场环境信息、分析师报告、历史权重，返回每个分析师的最终权重和共识结果。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "计算证据质量权重")]
 #[tauri::command]
 pub fn compute_evidence_weights(
     request: EvidenceWeightRequest,
@@ -5002,6 +5035,7 @@ pub fn compute_evidence_weights(
 ///
 /// 输入回测参与记录，输出每位分析师的表现分析、趋势判断和 Prompt 调整建议。
 /// 前端 BacktestPanel 完成回测后调用此命令，展示分析和调整建议。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "分析回测反馈")]
 #[tauri::command]
 pub fn analyze_backtest_feedback(
     participations: Vec<backtest_feedback::AnalysisParticipation>,
@@ -5015,6 +5049,7 @@ pub fn analyze_backtest_feedback(
 /// 解析自然语言分析意图
 ///
 /// 输入"调研茅台短线""分析宁德时代中线"等自然语言，返回结构化分析请求参数。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "解析自然语言分析意图")]
 #[tauri::command]
 pub fn parse_analysis_intent(
     input: String,
@@ -5034,6 +5069,7 @@ pub fn parse_analysis_intent(
 /// 2. 前端将 VLM 返回的文本传入本命令
 /// 3. 后端解析并返回结构化持仓列表
 /// 4. 前端确认后逐条调用 add_portfolio_holding
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "解析VLM持仓截图")]
 #[tauri::command]
 pub fn parse_vlm_portfolio_screenshot(
     raw_vlm_output: String,
@@ -5044,6 +5080,7 @@ pub fn parse_vlm_portfolio_screenshot(
 /// 解析 CSV 交易记录文件（不写入数据库，仅预览）
 ///
 /// 支持 通达信/东方财富/通用 CSV 格式，自动识别中文列名。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "解析CSV交易记录")]
 #[tauri::command]
 pub fn parse_trades_csv(
     file_path: String,
@@ -5055,6 +5092,7 @@ pub fn parse_trades_csv(
 ///
 /// 内部调用 `batch_import_trades`：写入 trades 表 + 同步更新 portfolio_holdings。
 /// 支持查重（同股票+同方向+同日期+同价格+同数量跳过）。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "批量导入交易记录")]
 #[tauri::command]
 pub async fn import_trades(
     state: State<'_, AppState>,
@@ -5072,6 +5110,7 @@ pub async fn import_trades(
 /// 批量导入 VLM 识别的持仓
 ///
 /// 一步完成：解析 VLM 输出 → 批量写入 portfolio_holdings
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "批量导入VLM持仓")]
 #[tauri::command]
 pub async fn import_portfolio_from_vlm(
     state: State<'_, AppState>,
@@ -5188,6 +5227,7 @@ pub struct QuickBacktestResult {
 /// 快速回测：采样运行 + 持有期模拟
 ///
 /// 使用 as-of 模式回放历史数据，在每个采样日运行分析，然后查看持有期后的价格表现。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "快速回测")]
 #[tauri::command]
 pub async fn quick_backtest(
     state: State<'_, AppState>,
@@ -5333,6 +5373,7 @@ pub async fn quick_backtest(
 /// 列出所有可用的股票分析工具名称（用于 Agent 配置页工具选择列表）
 ///
 /// P2-8: 合并 G3 产业链工具（来自 axagent_stock_analysis::mcp_tools）。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "列出股票分析工具")]
 #[tauri::command]
 pub async fn list_stock_tools() -> Result<Vec<String>, String> {
     let mut tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
@@ -5345,6 +5386,7 @@ pub async fn list_stock_tools() -> Result<Vec<String>, String> {
 }
 
 /// 获取限售解禁时间表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取限售解禁时间表")]
 #[tauri::command]
 pub async fn get_lockup_schedule(
     state: State<'_, AppState>,
@@ -5358,6 +5400,7 @@ pub async fn get_lockup_schedule(
 }
 
 /// 获取分红记录
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取分红记录")]
 #[tauri::command]
 pub async fn get_dividend_records(
     state: State<'_, AppState>,
@@ -5371,6 +5414,7 @@ pub async fn get_dividend_records(
 }
 
 /// 获取股票财务数据（对比面板使用）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取股票财务数据")]
 #[tauri::command]
 pub async fn get_stock_financials(
     state: State<'_, AppState>,
@@ -5384,6 +5428,7 @@ pub async fn get_stock_financials(
 }
 
 /// 演化漂移重算（EvolutionDriftPanel 重算按钮）
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "演化漂移重算")]
 #[tauri::command]
 pub async fn stock_evolution_recalc(
     state: State<'_, AppState>,
@@ -5424,6 +5469,7 @@ pub async fn stock_evolution_recalc(
 ///
 /// 返回最终分析报告 + 评估分数 + 轮次信息。
 /// 即使中途出错也会返回已完成的回合记录（`partial: true`），便于前端展示部分结果。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "运行自改进股票分析循环")]
 #[tauri::command]
 pub async fn run_self_improving_stock_analysis(
     state: State<'_, AppState>,

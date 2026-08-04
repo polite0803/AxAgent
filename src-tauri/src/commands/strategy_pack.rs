@@ -9,6 +9,7 @@
 //! 命令设计为无状态：每次调用直接从内存（内置）或文件系统（用户）加载，
 //! 不在 AppState 中维护全局注册表，避免状态同步复杂度。
 
+use agent_macro::agent_command;
 use std::path::PathBuf;
 
 use axagent_harness::strategy_pack::{StrategyPackManifest, StrategyPackSpec};
@@ -305,6 +306,7 @@ fn load_user_packs() -> Vec<(StrategyPackInfo, StrategyPackSpec)> {
 }
 
 /// 列出所有策略包（内置 + 用户）
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "列出所有策略包")]
 #[tauri::command]
 pub async fn list_strategy_packs(
     _state: State<'_, AppState>,
@@ -320,6 +322,7 @@ pub async fn list_strategy_packs(
 ///
 /// - `source` = "builtin" 时从内置加载
 /// - `source` = "user" 时从用户目录加载
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "获取策略包详情")]
 #[tauri::command]
 pub async fn get_strategy_pack_detail(
     _state: State<'_, AppState>,
@@ -360,6 +363,7 @@ pub async fn get_strategy_pack_detail(
 /// 校验 YAML 策略包内容（不保存，仅返回解析结果或错误）
 ///
 /// 前端编辑器实时校验用
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "校验策略包YAML内容")]
 #[tauri::command]
 pub async fn validate_strategy_pack_yaml(
     _state: State<'_, AppState>,
@@ -386,6 +390,7 @@ pub async fn validate_strategy_pack_yaml(
 }
 
 /// 保存用户策略包到 `~/Documents/axagent/strategy_packs/<id>.yaml`
+#[agent_command(domain = invest, safety = Caution, call_mode = StateInput, description = "保存用户策略包")]
 #[tauri::command]
 pub async fn save_user_strategy_pack(
     _state: State<'_, AppState>,
@@ -420,6 +425,7 @@ pub async fn save_user_strategy_pack(
 }
 
 /// 删除用户策略包
+#[agent_command(domain = invest, safety = Dangerous, call_mode = StateInput, description = "删除用户策略包")]
 #[tauri::command]
 pub async fn delete_user_strategy_pack(
     _state: State<'_, AppState>,
@@ -445,6 +451,7 @@ pub async fn delete_user_strategy_pack(
 }
 
 /// 获取用户策略包目录路径（前端用于打开文件夹）
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "获取用户策略包目录路径")]
 #[tauri::command]
 pub async fn get_user_strategy_packs_dir(_state: State<'_, AppState>) -> Result<String, String> {
     let dir = user_packs_dir();
@@ -453,6 +460,7 @@ pub async fn get_user_strategy_packs_dir(_state: State<'_, AppState>) -> Result<
 }
 
 /// 内置策略包总数（前端展示用）
+#[agent_command(domain = invest, safety = Safe, call_mode = StateInput, description = "统计内置策略包总数")]
 #[tauri::command]
 pub async fn count_builtin_strategy_packs(_state: State<'_, AppState>) -> Result<usize, String> {
     Ok(BUILTIN_PACKS.len())

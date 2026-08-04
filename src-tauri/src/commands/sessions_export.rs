@@ -17,6 +17,7 @@
 
 use std::path::PathBuf;
 
+use agent_macro::agent_command;
 use crate::AppState;
 use axagent_harness::types::{Conversation, Message, MessageRole};
 use serde::{Deserialize, Serialize};
@@ -101,6 +102,7 @@ pub struct ConversationManifestEntry {
 // ── Tauri 命令 ───────────────────────────────────────────────────────────
 
 /// 导出单个会话为指定格式
+#[agent_command(domain = "conversation", safety = Caution, call_mode = StateOnly, description =  "导出单个会话")]
 #[tauri::command]
 pub async fn export_session(
     state: State<'_, AppState>,
@@ -171,6 +173,7 @@ pub async fn export_session(
 }
 
 /// 批量导出多个会话（每会话一个文件，返回 zip 路径或目录路径）
+#[agent_command(domain = "conversation", safety = Caution, call_mode = StateOnly, description =  "批量导出多个会话")]
 #[tauri::command]
 pub async fn export_sessions_batch(
     state: State<'_, AppState>,
@@ -203,6 +206,7 @@ pub async fn export_sessions_batch(
 }
 
 /// 仅导出 manifest（不包含消息正文，体积小）
+#[agent_command(domain = "conversation", safety = Caution, call_mode = StateOnly, description =  "导出会话清单")]
 #[tauri::command]
 pub async fn export_sessions_manifest(
     state: State<'_, AppState>,
