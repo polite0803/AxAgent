@@ -110,12 +110,7 @@ impl SyncEncryptor {
     /// 从密码派生密钥（使用 PBKDF2）
     pub fn from_password(password: &str, salt: &[u8]) -> Self {
         let mut key = [0u8; 32];
-        pbkdf2_hmac::<Sha256>(
-            password.as_bytes(),
-            salt,
-            PBKDF2_ITERATIONS,
-            &mut key,
-        );
+        pbkdf2_hmac::<Sha256>(password.as_bytes(), salt, PBKDF2_ITERATIONS, &mut key);
 
         Self { key }
     }
@@ -150,23 +145,16 @@ impl SyncEncryptor {
         let ciphertext_b64 = BASE64.encode(&ciphertext);
         let nonce_b64 = BASE64.encode(nonce_bytes);
 
-        Ok(EncryptedSyncData::new(
-            ciphertext_b64,
-            nonce_b64,
-            String::new(),
-            None,
-        ))
+        Ok(EncryptedSyncData::new(ciphertext_b64, nonce_b64, String::new(), None))
     }
 
     /// 解密数据
     pub fn decrypt(&self, data: &EncryptedSyncData) -> Result<String, String> {
-        let ciphertext = BASE64
-            .decode(&data.ciphertext)
-            .map_err(|e| format!("Base64 decode failed: {}", e))?;
+        let ciphertext =
+            BASE64.decode(&data.ciphertext).map_err(|e| format!("Base64 decode failed: {}", e))?;
 
-        let nonce_bytes = BASE64
-            .decode(&data.nonce)
-            .map_err(|e| format!("Base64 decode failed: {}", e))?;
+        let nonce_bytes =
+            BASE64.decode(&data.nonce).map_err(|e| format!("Base64 decode failed: {}", e))?;
 
         let nonce_array: [u8; NONCE_SIZE] = nonce_bytes
             .try_into()
@@ -180,8 +168,7 @@ impl SyncEncryptor {
             .decrypt(&nonce, ciphertext.as_slice())
             .map_err(|e| format!("Decryption failed: {}", e))?;
 
-        String::from_utf8(plaintext)
-            .map_err(|e| format!("UTF-8 decode failed: {}", e))
+        String::from_utf8(plaintext).map_err(|e| format!("UTF-8 decode failed: {}", e))
     }
 
     /// 获取密钥哈希（用于密钥验证）
@@ -201,9 +188,7 @@ impl KeyExchangeHelper {
     pub fn generate_pairing_code() -> String {
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        (0..6)
-            .map(|_| rng.gen_range('0'..='9'))
-            .collect()
+        (0..6).map(|_| rng.gen_range('0'..='9')).collect()
     }
 
     /// 验证配对码强度
@@ -215,18 +200,14 @@ impl KeyExchangeHelper {
     }
 
     /// 从设备信息派生同步密钥
-    pub fn derive_sync_key(
-        device_id: &str,
-        pairing_code: &str,
-        master_key: &[u8; 32],
-    ) -> [u8; 32] {
+    pub fn derive_sync_key(device_id: &str, pairing_code: &str, master_key: &[u8; 32]) -> [u8; 32] {
         let mut hasher = Sha256::new();
         hasher.update(b"axagent-device-sync-key-derivation-v1");
         hasher.update(device_id.as_bytes());
         hasher.update(pairing_code.as_bytes());
         hasher.update(master_key);
         let hash = hasher.finalize();
-        
+
         let mut key = [0u8; 32];
         key.copy_from_slice(&hash);
         key
@@ -246,10 +227,10 @@ mod tests {
         let salt = test_salt();
         let encryptor = SyncEncryptor::from_password("test-password", &salt);
         let plaintext = r#"{"key": "value", "number": 42}"#;
-        
+
         let encrypted = encryptor.encrypt(plaintext).expect("加密应成功");
         let decrypted = encryptor.decrypt(&encrypted).expect("解密应成功");
-        
+
         assert_eq!(decrypted, plaintext);
     }
 
@@ -258,9 +239,9 @@ mod tests {
         let salt = test_salt();
         let enc1 = SyncEncryptor::from_password("password1", &salt);
         let enc2 = SyncEncryptor::from_password("password2", &salt);
-        
+
         let encrypted = enc1.encrypt("test").unwrap();
-        
+
         // 用错误密码解密应失败
         assert!(enc2.decrypt(&encrypted).is_err());
     }
@@ -271,7 +252,7 @@ mod tests {
         let enc1 = SyncEncryptor::from_password("same-password", &salt);
         let enc2 = SyncEncryptor::from_password("same-password", &salt);
         let enc3 = SyncEncryptor::from_password("different-password", &salt);
-        
+
         // 相同密码应产生相同哈希
         assert_eq!(enc1.key_hash(), enc2.key_hash());
         // 不同密码应产生不同哈希
@@ -282,7 +263,7 @@ mod tests {
     fn test_salt_generation() {
         let salt1 = SyncEncryptor::generate_salt();
         let salt2 = SyncEncryptor::generate_salt();
-        
+
         assert_eq!(salt1.len(), SALT_SIZE);
         assert_eq!(salt2.len(), SALT_SIZE);
         assert_ne!(salt1, salt2); // 每次生成的盐值应不同
@@ -302,7 +283,7 @@ mod tests {
         let key1 = KeyExchangeHelper::derive_sync_key("device1", "123456", &[0u8; 32]);
         let key2 = KeyExchangeHelper::derive_sync_key("device1", "123456", &[0u8; 32]);
         let key3 = KeyExchangeHelper::derive_sync_key("device2", "123456", &[0u8; 32]);
-        
+
         assert_eq!(key1, key2);
         assert_ne!(key1, key3);
     }

@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useState } from "react";
-import { Button, Card, Col, Input, List, Modal, Row, Space, Tag, Typography, message } from "antd";
 import {
   CloudOutlined,
   DesktopOutlined,
@@ -12,16 +10,18 @@ import {
   SyncOutlined,
   TableOutlined,
 } from "@ant-design/icons";
+import { Button, Card, Col, Input, List, message, Modal, Row, Space, Tag, Typography } from "antd";
+import { useState } from "react";
 
 import { useDeviceSyncStore } from "@/stores";
+import type { ConflictInfo, DeviceInfo, TrustLevel } from "@/types";
+import { useTranslation } from "react-i18next";
 import { ConflictDetailModal } from "./ConflictDetailModal";
 import { DevicePermissionsPanel } from "./DevicePermissionsPanel";
 import { EncryptionSettingsPanel } from "./EncryptionSettingsPanel";
 import { RealtimePushPanel } from "./RealtimePushPanel";
 import { SyncHistoryPanel } from "./SyncHistoryPanel";
 import { SyncPolicyPanel } from "./SyncPolicyPanel";
-import type { ConflictInfo, DeviceInfo, TrustLevel } from "@/types";
-import { useTranslation } from "react-i18next";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -114,7 +114,7 @@ export function DeviceSyncPanel() {
 
   /** 接受配对 */
   const handleAcceptPairing = async (trustLevel: TrustLevel) => {
-    if (!currentPairingRequest) return;
+    if (!currentPairingRequest) { return; }
     const response = await deviceSyncStore.acceptPairing(
       currentPairingRequest,
       trustLevel,
@@ -211,16 +211,13 @@ export function DeviceSyncPanel() {
         >
           <Row gutter={[16, 16]}>
             <Col span={6}>
-              <Text strong>{t("deviceSync.connectedDevices")}:</Text>{" "}
-              {syncStatus.connected_devices}
+              <Text strong>{t("deviceSync.connectedDevices")}:</Text> {syncStatus.connected_devices}
             </Col>
             <Col span={6}>
-              <Text strong>{t("deviceSync.pendingChanges")}:</Text>{" "}
-              {syncStatus.pending_changes}
+              <Text strong>{t("deviceSync.pendingChanges")}:</Text> {syncStatus.pending_changes}
             </Col>
             <Col span={6}>
-              <Text strong>{t("deviceSync.lastSync")}:</Text>{" "}
-              {syncStatus.last_sync_at
+              <Text strong>{t("deviceSync.lastSync")}:</Text> {syncStatus.last_sync_at
                 ? new Date(syncStatus.last_sync_at).toLocaleString()
                 : t("deviceSync.never")}
             </Col>
@@ -250,64 +247,65 @@ export function DeviceSyncPanel() {
 
       {/* 已配对设备列表 */}
       <Card title={t("deviceSync.pairedDevices")} style={{ marginBottom: 16 }}>
-        {devices.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 24 }}>
-            <Text type="secondary">{t("deviceSync.noDevices")}</Text>
-          </div>
-        ) : (
-          <List
-            dataSource={devices}
-            renderItem={(device: DeviceInfo) => (
-              <List.Item
-                actions={[
-                  <Button
-                    size="small"
-                    onClick={() => handleIncrementalSync(device.device_id)}
-                    loading={isSyncing}
-                  >
-                    {t("deviceSync.incrementalSync")}
-                  </Button>,
-                  <Button
-                    size="small"
-                    type="primary"
-                    onClick={() => handleFullSync(device.device_id)}
-                    loading={isSyncing}
-                  >
-                    {t("deviceSync.fullSync")}
-                  </Button>,
-                  <Button
-                    size="small"
-                    danger
-                    onClick={() => handleUnpair(device.device_id)}
-                  >
-                    {t("deviceSync.unpair")}
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={<DeviceIcon type={device.device_type} />}
-                  title={
-                    <Space>
-                      {device.name}
-                      <Tag color={TRUST_LEVEL_CONFIG[device.trust_level].color}>
-                        {TRUST_LEVEL_CONFIG[device.trust_level].label}
-                      </Tag>
-                    </Space>
-                  }
-                  description={
-                    <Space direction="vertical" size={4}>
-                      <Text type="secondary">{device.hostname}</Text>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {t("deviceSync.lastActive")}:{" "}
-                        {new Date(device.last_active_at).toLocaleString()}
-                      </Text>
-                    </Space>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
+        {devices.length === 0
+          ? (
+            <div style={{ textAlign: "center", padding: 24 }}>
+              <Text type="secondary">{t("deviceSync.noDevices")}</Text>
+            </div>
+          )
+          : (
+            <List
+              dataSource={devices}
+              renderItem={(device: DeviceInfo) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      size="small"
+                      onClick={() => handleIncrementalSync(device.device_id)}
+                      loading={isSyncing}
+                    >
+                      {t("deviceSync.incrementalSync")}
+                    </Button>,
+                    <Button
+                      size="small"
+                      type="primary"
+                      onClick={() => handleFullSync(device.device_id)}
+                      loading={isSyncing}
+                    >
+                      {t("deviceSync.fullSync")}
+                    </Button>,
+                    <Button
+                      size="small"
+                      danger
+                      onClick={() => handleUnpair(device.device_id)}
+                    >
+                      {t("deviceSync.unpair")}
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<DeviceIcon type={device.device_type} />}
+                    title={
+                      <Space>
+                        {device.name}
+                        <Tag color={TRUST_LEVEL_CONFIG[device.trust_level].color}>
+                          {TRUST_LEVEL_CONFIG[device.trust_level].label}
+                        </Tag>
+                      </Space>
+                    }
+                    description={
+                      <Space direction="vertical" size={4}>
+                        <Text type="secondary">{device.hostname}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {t("deviceSync.lastActive")}: {new Date(device.last_active_at).toLocaleString()}
+                        </Text>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
       </Card>
 
       {/* 待解决冲突 */}
@@ -396,26 +394,28 @@ export function DeviceSyncPanel() {
           </Button>,
         ]}
       >
-        {currentPairingCode ? (
-          <div style={{ textAlign: "center", padding: 16 }}>
-            <QrcodeOutlined style={{ fontSize: 48, color: "#1890ff" }} />
-            <Title level={2} style={{ margin: "16px 0" }}>
-              {currentPairingCode.code}
-            </Title>
-            <Text type="secondary">
-              {t("deviceSync.codeExpiresAt", {
-                time: new Date(currentPairingCode.expires_at).toLocaleTimeString(),
-              })}
-            </Text>
-            <Paragraph type="secondary" style={{ marginTop: 16 }}>
-              {t("deviceSync.enterCodeOnOtherDevice")}
-            </Paragraph>
-          </div>
-        ) : (
-          <div style={{ textAlign: "center", padding: 24 }}>
-            <Text>{t("deviceSync.generatingCode")}</Text>
-          </div>
-        )}
+        {currentPairingCode
+          ? (
+            <div style={{ textAlign: "center", padding: 16 }}>
+              <QrcodeOutlined style={{ fontSize: 48, color: "#1890ff" }} />
+              <Title level={2} style={{ margin: "16px 0" }}>
+                {currentPairingCode.code}
+              </Title>
+              <Text type="secondary">
+                {t("deviceSync.codeExpiresAt", {
+                  time: new Date(currentPairingCode.expires_at).toLocaleTimeString(),
+                })}
+              </Text>
+              <Paragraph type="secondary" style={{ marginTop: 16 }}>
+                {t("deviceSync.enterCodeOnOtherDevice")}
+              </Paragraph>
+            </div>
+          )
+          : (
+            <div style={{ textAlign: "center", padding: 24 }}>
+              <Text>{t("deviceSync.generatingCode")}</Text>
+            </div>
+          )}
       </Modal>
 
       {/* 验证配对码弹窗 */}

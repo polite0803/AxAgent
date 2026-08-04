@@ -6,6 +6,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::spawn_guard::SpawnGuard;
 
+use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -43,6 +44,7 @@ pub struct ConversationWorkflowPreview {
 // ── 命令函数 ──
 
 /// 从节点和边的 JSON 创建新工作流 DAG
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "创建新工作流DAG")]
 #[tauri::command]
 pub async fn workflow_create(
     app_state: State<'_, AppState>,
@@ -73,6 +75,7 @@ pub async fn workflow_create(
 /// `max_concurrent`：最大并发节点数（None 使用默认值 3）。
 /// 暴露给前端用于按场景调节吞吐：CPU 密集型工作流降低并发避免压垮本机，
 /// IO 密集型工作流可提高并发缩短端到端时延。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "执行工作流")]
 #[tauri::command]
 pub async fn workflow_execute(
     app: tauri::AppHandle,
@@ -176,6 +179,7 @@ pub async fn workflow_execute(
 }
 
 /// 获取工作流状态
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取工作流状态")]
 #[tauri::command]
 pub async fn workflow_get_status(
     app_state: State<'_, AppState>,
@@ -200,6 +204,7 @@ pub async fn workflow_get_status(
 }
 
 /// 取消正在执行的工作流
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "取消正在执行的工作流")]
 #[tauri::command]
 pub async fn workflow_cancel(
     app_state: State<'_, AppState>,
@@ -221,6 +226,7 @@ pub async fn workflow_cancel(
 }
 
 /// 列出所有工作流
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "列出所有工作流")]
 #[tauri::command]
 pub async fn workflow_list(app_state: State<'_, AppState>) -> Result<Vec<Value>, String> {
     let workflows = app_state.work_engine.list_workflows().await.map_err(|e| {
@@ -237,6 +243,7 @@ pub async fn workflow_list(app_state: State<'_, AppState>) -> Result<Vec<Value>,
 ///
 /// 可观测性用途：前端轮询此接口渲染"正在执行的工作流"列表，
 /// 配合 `workflow_cancel_execution` 实现按 execution_id 取消。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "列出当前活跃执行的工作流")]
 #[tauri::command]
 pub async fn workflow_list_active_executions(
     app_state: State<'_, AppState>,
@@ -246,6 +253,7 @@ pub async fn workflow_list_active_executions(
 }
 
 /// 获取工作流步骤详情（用于 DAG 可视化）
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取工作流步骤详情")]
 #[tauri::command]
 pub async fn workflow_get_steps(
     app_state: State<'_, AppState>,
@@ -266,6 +274,7 @@ pub async fn workflow_get_steps(
 }
 
 /// 从对话工具执行记录获取工作流预览
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取对话工作流预览")]
 #[tauri::command]
 pub async fn get_conversation_workflow_preview(
     app_state: State<'_, AppState>,

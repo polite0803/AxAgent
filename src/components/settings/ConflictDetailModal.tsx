@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect, useState } from "react";
-import { Descriptions, Modal, Space, Tag, Typography, Button, Row, Col, Divider } from "antd";
-import {
-  CloudOutlined,
-  DesktopOutlined,
-  MobileOutlined,
-  WarningOutlined,
-} from "@ant-design/icons";
 import type { ConflictInfo, ConflictResolutionStrategy } from "@/types";
+import { CloudOutlined, DesktopOutlined, MobileOutlined, WarningOutlined } from "@ant-design/icons";
+import { Button, Col, Descriptions, Divider, Modal, Row, Space, Tag, Typography } from "antd";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
@@ -64,7 +59,7 @@ export function ConflictDetailModal({
     }
   }, [open]);
 
-  if (!conflict) return null;
+  if (!conflict) { return null; }
 
   const handleResolve = async (strategy: ConflictResolutionStrategy) => {
     setResolving(true);

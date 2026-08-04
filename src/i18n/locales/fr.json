@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "Échec de l'appel de routage intelligent",
     "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
     "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau",
-    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau"
+    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "Appareil non trouvé",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Appareil déjà jumelé",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Appareil non jumelé",
+    "DEVICE_SYNC_DEVICE_DISABLED": "Appareil désactivé",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "Code de jumelage invalide",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "Code de jumelage expiré",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "Niveau de confiance insuffisant",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "Autorisations de l'appareil introuvables",
+    "DEVICE_SYNC_PERMISSION_DENIED": "Autorisation refusée",
+    "DEVICE_SYNC_FAILED": "Échec de la synchronisation",
+    "DEVICE_SYNC_TIMEOUT": "Délai d'attente de la synchronisation",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "Échec de la détection des conflits",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "Échec de la résolution des conflits",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "Enregistrement de conflit introuvable",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "Synchronisation déjà en cours",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "Aucune modification à synchroniser",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "Échec du chiffrement",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "Échec du déchiffrement",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "Le mot de passe est requis pour le chiffrement",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "Le mot de passe de chiffrement ne peut pas être vide",
+    "DEVICE_SYNC_SALT_REQUIRED": "Le sel est requis pour le déchiffrement",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Échec de l'opération de stockage",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Échec de l'opération de stratégie"
   },
   "errorBoundary": {
     "copied": "Copié",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

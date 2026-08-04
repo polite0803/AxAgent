@@ -3,6 +3,7 @@
 //! 上下文 token 占用分解，为前端 ContextClassificationBar 提供数据。
 
 use crate::AppState;
+use agent_macro::agent_command;
 use serde::Serialize;
 use tauri::State;
 
@@ -77,6 +78,7 @@ async fn count_messages_by_role(
     Ok((total, user_count, tool_count, prompt_total + completion_total))
 }
 
+#[agent_command(domain = context, safety = Safe, call_mode = StateInput, description = "获取上下文 token 占用分解")]
 #[tauri::command]
 pub async fn get_context_breakdown(
     state: State<'_, AppState>,

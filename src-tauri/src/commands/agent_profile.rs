@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory};
+use agent_macro::agent_command;
 use axagent_dao::repo::agent_profile;
 use axagent_harness::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -15,6 +16,7 @@ pub struct ImportAgentProfilesResult {
 }
 
 /// 列出所有智能体能力集
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "列出智能体能力集")]
 #[tauri::command]
 pub async fn list_agent_profiles(
     app_state: State<'_, AppState>,
@@ -27,6 +29,7 @@ pub async fn list_agent_profiles(
 }
 
 /// 根据 ID 获取智能体能力集
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取智能体能力集详情")]
 #[tauri::command]
 pub async fn get_agent_profile(
     app_state: State<'_, AppState>,
@@ -39,6 +42,7 @@ pub async fn get_agent_profile(
 }
 
 /// 创建新的智能体能力集
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "创建智能体能力集")]
 #[tauri::command]
 pub async fn create_agent_profile(
     app_state: State<'_, AppState>,
@@ -75,6 +79,7 @@ pub async fn create_agent_profile(
 }
 
 /// 更新智能体能力集
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "更新智能体能力集")]
 #[tauri::command]
 pub async fn update_agent_profile(
     app_state: State<'_, AppState>,
@@ -99,6 +104,7 @@ pub async fn update_agent_profile(
 }
 
 /// 删除智能体能力集
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateInput, description = "删除智能体能力集")]
 #[tauri::command]
 pub async fn delete_agent_profile(
     app_state: State<'_, AppState>,
@@ -114,6 +120,7 @@ pub async fn delete_agent_profile(
 ///
 /// 修复问题 13：导入时显式赋 "executor" 作为 agent_role，并确保 DB 中存在该 role。
 /// 原实现 agent_role 留空，导致所有从 agency 导入的 profile 永远没有 role 提示词。
+#[agent_command(domain = agent, safety = Caution, call_mode = StateOnly, description = "从机构专家导入能力集")]
 #[tauri::command]
 pub async fn import_agent_profiles_from_agency(
     app_state: State<'_, AppState>,
@@ -220,6 +227,7 @@ async fn ensure_default_executor_role(db: &sea_orm::DatabaseConnection) {
 
 /// 确保 AgentProfile 在 DB 中存在（选择 Expert/Role 时自动调用）
 /// 如果已有同 ID profile 则跳过，否则创建最小 profile（仅绑定 expert_id）
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "确保 AgentProfile 存在")]
 #[tauri::command]
 pub async fn ensure_agent_profile(
     app_state: State<'_, AppState>,

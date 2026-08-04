@@ -47,7 +47,8 @@ fn sync_type_to_str(t: &SyncType) -> &str {
 
 /// 从实体模型转换为领域模型
 fn model_to_history_entry(model: &sync_history::Model) -> SyncHistoryEntry {
-    let result: SyncResult = serde_json::from_str(&model.result).unwrap_or_else(|_| SyncResult::default());
+    let result: SyncResult =
+        serde_json::from_str(&model.result).unwrap_or_else(|_| SyncResult::default());
     let conflicts: Vec<ConflictInfo> = serde_json::from_str(&model.conflicts).unwrap_or_default();
 
     let started_at = chrono::DateTime::from_timestamp(model.started_at / 1000, 0)
@@ -82,7 +83,8 @@ pub async fn add_history_entry(db: &DatabaseConnection, entry: &SyncHistoryEntry
         .unwrap_or(now);
 
     let result_json = serde_json::to_string(&entry.result).unwrap_or_default();
-    let conflicts_json = serde_json::to_string(&entry.conflicts).unwrap_or_else(|_| "[]".to_string());
+    let conflicts_json =
+        serde_json::to_string(&entry.conflicts).unwrap_or_else(|_| "[]".to_string());
 
     sync_history::Entity::insert(sync_history::ActiveModel {
         id: Set(entry.id.clone()),
@@ -134,10 +136,7 @@ pub async fn get_history_by_time_range(
 }
 
 /// 删除旧的历史记录
-pub async fn delete_old_history(
-    db: &DatabaseConnection,
-    before_timestamp: i64,
-) -> Result<u64> {
+pub async fn delete_old_history(db: &DatabaseConnection, before_timestamp: i64) -> Result<u64> {
     let result = sync_history::Entity::delete_many()
         .filter(sync_history::Column::CompletedAt.lt(before_timestamp))
         .exec(db)
@@ -160,8 +159,7 @@ pub async fn get_sync_stats(db: &DatabaseConnection, device_id: &str) -> Result<
     let successful = rows
         .iter()
         .filter(|r| {
-            let result: SyncResult =
-                serde_json::from_str(&r.result).unwrap_or_default();
+            let result: SyncResult = serde_json::from_str(&r.result).unwrap_or_default();
             result.success
         })
         .count() as u64;

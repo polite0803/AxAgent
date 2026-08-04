@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use sea_orm::EntityTrait;
 use tauri::State;
 
 /// 获取学习图数据（技能 + 记忆 + 洞察的节点/边关系）。
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "获取学习图数据")]
 #[tauri::command]
 pub async fn get_learning_graph(
     app_state: State<'_, AppState>,

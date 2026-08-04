@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "스마트 라우팅 호출에 실패했습니다",
     "FLEET_EXECUTION_FAILED": "구성원이 작업 실행에 실패했습니다",
     "FLEET_TARGET_NOT_IN_FLEET": "대상 구성원이 이 오피스에 존재하지 않습니다",
-    "FLEET_SLUG_EXISTS": "이 오피스에 동일한 slug의 구성원이 이미 있습니다"
+    "FLEET_SLUG_EXISTS": "이 오피스에 동일한 slug의 구성원이 이미 있습니다",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "장치를 찾을 수 없습니다",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "장치가 이미 페어링되었습니다",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "장치가 페어링되지 않았습니다",
+    "DEVICE_SYNC_DEVICE_DISABLED": "장치가 비활성화되었습니다",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "페어링 코드가 유효하지 않습니다",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "페어링 코드가 만료되었습니다",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "신뢰 수준이 충분하지 않습니다",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "장치 권한을 찾을 수 없습니다",
+    "DEVICE_SYNC_PERMISSION_DENIED": "권한이 거부되었습니다",
+    "DEVICE_SYNC_FAILED": "동기화 실패",
+    "DEVICE_SYNC_TIMEOUT": "동기화 시간 초과",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "충돌 감지 실패",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "충돌 해결 실패",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "충돌 기록을 찾을 수 없습니다",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "동기화가 이미 진행 중입니다",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "동기화할 변경 사항이 없습니다",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "암호화 실패",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "복호화 실패",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "암호화에는 비밀번호가 필요합니다",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "암호화 비밀번호는 비워둘 수 없습니다",
+    "DEVICE_SYNC_SALT_REQUIRED": "복호화에는 솔트가 필요합니다",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "저장소 작업 실패",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "정책 작업 실패"
   },
   "errorBoundary": {
     "copied": "복사됨",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

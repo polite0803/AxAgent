@@ -1,24 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useState } from "react";
-import {
-  Card,
-  Switch,
-  Select,
-  Input,
-  Button,
-  Space,
-  Typography,
-  Alert,
-  message,
-} from "antd";
-import {
-  LockOutlined,
-  SafetyCertificateOutlined,
-  KeyOutlined,
-} from "@ant-design/icons";
-import { useTranslation } from "react-i18next";
 import { useDeviceSyncStore } from "@/stores/feature/deviceSyncStore";
+import { KeyOutlined, LockOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Input, message, Select, Space, Switch, Typography } from "antd";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 

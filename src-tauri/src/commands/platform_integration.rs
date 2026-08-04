@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
@@ -40,11 +41,13 @@ pub struct PlatformSession {
 
 // ── 配置命令 ──
 
+#[agent_command(domain = platform, safety = Safe, call_mode = StateOnly, description = "获取平台配置")]
 #[tauri::command]
 pub async fn get_platform_config(state: State<'_, AppState>) -> Result<PlatformConfig, String> {
     Ok(axagent_dao::repo::platform_config::get_platform_config(state.harness.db()).await)
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "更新平台配置")]
 #[tauri::command]
 pub async fn update_platform_config(
     state: State<'_, AppState>,
@@ -68,6 +71,7 @@ pub async fn update_platform_config(
 
 // ── 消息处理命令 ──
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "处理 Telegram 消息")]
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn process_telegram_message(
@@ -99,6 +103,7 @@ pub async fn process_telegram_message(
     }))
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "处理 Discord 消息")]
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn process_discord_message(
@@ -130,6 +135,7 @@ pub async fn process_discord_message(
     }))
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = Manual, description = "处理通用平台消息")]
 #[tauri::command]
 pub async fn process_platform_message(
     platform: String,
@@ -144,6 +150,7 @@ pub async fn process_platform_message(
 
 // ── 发送命令 ──
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "发送平台消息")]
 #[tauri::command]
 pub async fn send_platform_message(
     state: State<'_, AppState>,
@@ -171,6 +178,7 @@ pub async fn send_platform_message(
     })
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "发送 Telegram 消息")]
 #[tauri::command]
 pub async fn send_telegram_message(
     state: State<'_, AppState>,
@@ -199,6 +207,7 @@ pub async fn send_telegram_message(
     )
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "发送 Discord 消息")]
 #[tauri::command]
 pub async fn send_discord_message(
     state: State<'_, AppState>,
@@ -240,6 +249,7 @@ pub async fn send_discord_message(
 
 // ── 会话管理命令 ──
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "创建平台会话")]
 #[tauri::command]
 pub async fn create_platform_session(
     state: State<'_, AppState>,
@@ -274,6 +284,7 @@ pub async fn create_platform_session(
     })
 }
 
+#[agent_command(domain = platform, safety = Safe, call_mode = StateOnly, description = "获取活跃平台会话")]
 #[tauri::command]
 pub async fn get_active_sessions(
     state: State<'_, AppState>,
@@ -301,6 +312,7 @@ pub async fn get_active_sessions(
     Ok(sessions)
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "停用平台会话")]
 #[tauri::command]
 pub async fn deactivate_platform_session(
     state: State<'_, AppState>,
@@ -323,6 +335,7 @@ pub async fn deactivate_platform_session(
 
 // ── 状态与协调命令 ──
 
+#[agent_command(domain = platform, safety = Safe, call_mode = StateOnly, description = "获取平台适配器状态")]
 #[tauri::command]
 pub async fn get_platform_statuses(
     state: State<'_, AppState>,
@@ -331,6 +344,7 @@ pub async fn get_platform_statuses(
     Ok(state.platform_manager.get_statuses(&config).await)
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateOnly, description = "协调平台适配器")]
 #[tauri::command]
 pub async fn reconcile_platforms(
     state: State<'_, AppState>,
@@ -346,6 +360,7 @@ pub async fn reconcile_platforms(
 
 // ── API Server 命令 ──
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateInput, description = "启动 API 服务器")]
 #[tauri::command]
 pub async fn start_api_server(
     app: tauri::AppHandle,
@@ -423,6 +438,7 @@ pub async fn start_api_server(
     Ok(())
 }
 
+#[agent_command(domain = platform, safety = Caution, call_mode = StateOnly, description = "停止 API 服务器")]
 #[tauri::command]
 pub async fn stop_api_server(state: State<'_, AppState>) -> Result<(), String> {
     let mut handle_guard = state.api_server_handle.lock().await;

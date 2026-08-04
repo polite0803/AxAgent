@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use tauri::AppHandle;
 use tauri::State;
 
 #[tauri::command]
+#[agent_command(
+    domain = settings,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "获取应用设置"
+)]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
     let mut settings =
         axagent_dao::repo::settings::get_settings(state.harness.db()).await.map_err(|e| {
@@ -23,6 +30,12 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, Str
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = settings,
+    safety = Caution,
+    call_mode = StateOnly,
+    description = "保存应用设置"
+)]
 pub async fn save_settings(
     app: AppHandle,
     state: State<'_, AppState>,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use sea_orm::{ConnectionTrait, DbBackend, Statement, Value};
 use tauri::State;
 
@@ -16,6 +17,7 @@ pub struct SessionSearchResult {
 /// 全文搜索会话消息
 ///
 /// 支持：regex / case_sensitive / session_filter / date_from / date_to / offset / limit
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateInput, description = "搜索对话会话消息")]
 #[tauri::command]
 pub async fn session_search(
     state: State<'_, AppState>,

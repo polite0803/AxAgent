@@ -15,6 +15,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::local_model as lm_err;
+use agent_macro::agent_command;
 use axagent_harness::core_error::Result as HarnessResult;
 use axagent_harness::types::*;
 use serde::{Deserialize, Serialize};
@@ -340,6 +341,7 @@ fn command_error(e: impl std::fmt::Display, code: &str) -> String {
 // ── 命令 ───────────────────────────────────────────────────────────
 
 /// 查询本地模型服务运行状态。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "查询本地模型服务状态")]
 #[tauri::command]
 pub async fn local_model_status(
     state: State<'_, AppState>,
@@ -352,6 +354,7 @@ pub async fn local_model_status(
 }
 
 /// 托管启动 llama-server 子进程。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "启动本地模型服务")]
 #[tauri::command]
 pub async fn local_model_start(
     state: State<'_, AppState>,
@@ -490,6 +493,7 @@ pub async fn local_model_start(
 }
 
 /// 停止本地模型服务。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "停止本地模型服务")]
 #[tauri::command]
 pub async fn local_model_stop(
     state: State<'_, AppState>,
@@ -593,6 +597,7 @@ fn process_alive(pid: u32) -> bool {
 }
 
 /// 嵌入连通性测试。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "本地模型嵌入测试")]
 #[tauri::command]
 pub async fn local_model_embed_test(
     state: State<'_, AppState>,
@@ -643,6 +648,7 @@ pub async fn local_model_embed_test(
 }
 
 /// 读取服务日志尾部。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "读取本地模型日志")]
 #[tauri::command]
 pub async fn local_model_logs(
     state: State<'_, AppState>,
@@ -840,12 +846,14 @@ pub fn scan_gguf_models(provider_id: &str, dir: &Path) -> Vec<axagent_harness::t
 }
 
 /// 获取当前下载目录。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取模型下载目录")]
 #[tauri::command]
 pub async fn local_model_get_download_dir(state: State<'_, AppState>) -> Result<String, String> {
     Ok(download_dir(state.harness.db()).await.to_string_lossy().to_string())
 }
 
 /// 设置下载目录（自动创建）。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "设置模型下载目录")]
 #[tauri::command]
 pub async fn local_model_set_download_dir(
     state: State<'_, AppState>,
@@ -869,12 +877,14 @@ pub async fn local_model_set_download_dir(
 }
 
 /// 获取 HF 镜像端点。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取 HF 镜像端点")]
 #[tauri::command]
 pub async fn local_model_get_hf_endpoint(state: State<'_, AppState>) -> Result<String, String> {
     Ok(hf_endpoint(state.harness.db()).await)
 }
 
 /// 设置 HF 镜像端点（空值恢复默认 huggingface.co）。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "设置 HF 镜像端点")]
 #[tauri::command]
 pub async fn local_model_set_hf_endpoint(
     state: State<'_, AppState>,
@@ -901,6 +911,7 @@ pub async fn local_model_set_hf_endpoint(
 }
 
 /// 列出下载目录中的本地模型（含下载中状态）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "列出本地模型文件")]
 #[tauri::command]
 pub async fn local_model_list_local_models(
     state: State<'_, AppState>,
@@ -910,6 +921,7 @@ pub async fn local_model_list_local_models(
 }
 
 /// 推荐模型清单（含已下载标记）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取推荐模型列表")]
 #[tauri::command]
 pub async fn local_model_get_presets(
     state: State<'_, AppState>,
@@ -935,6 +947,7 @@ pub async fn local_model_get_presets(
 }
 
 /// 发起模型下载（后台任务 + 进度可查询）。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "下载模型文件")]
 #[tauri::command]
 pub async fn local_model_download(
     state: State<'_, AppState>,
@@ -1031,6 +1044,7 @@ pub async fn local_model_download(
 }
 
 /// 查询所有下载任务进度（前端轮询）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "查询下载任务进度")]
 #[tauri::command]
 pub async fn local_model_download_progress() -> Result<Vec<DownloadTaskInfo>, String> {
     let tasks = DOWNLOAD_TASKS.lock().unwrap();
@@ -1038,6 +1052,7 @@ pub async fn local_model_download_progress() -> Result<Vec<DownloadTaskInfo>, St
 }
 
 /// 删除本地模型文件（含 .download 残留）。
+#[agent_command(domain = model, safety = Dangerous, call_mode = StateInput, description = "删除本地模型文件")]
 #[tauri::command]
 pub async fn local_model_delete_local_model(
     state: State<'_, AppState>,
@@ -1191,6 +1206,7 @@ static INSTALL_TASKS: LazyLock<StdMutex<HashMap<String, InstallTask>>> =
 
 /// 检测 llama-server 是否存在。
 /// 支持绝对路径、相对路径或纯名称（在 PATH 中搜索）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateInput, description = "检测 llama-server 是否存在")]
 #[tauri::command]
 pub async fn local_model_check_server(server_exe: String) -> Result<Option<String>, String> {
     match find_executable(&server_exe) {
@@ -1200,6 +1216,7 @@ pub async fn local_model_check_server(server_exe: String) -> Result<Option<Strin
 }
 
 /// 获取 llama.cpp 最新版本信息（用于前端展示下载选项）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "获取 llama.cpp 最新版本")]
 #[tauri::command]
 pub async fn local_model_get_latest_version() -> Result<LlamaCppVersionInfo, String> {
     let client = reqwest::Client::builder()
@@ -1250,6 +1267,7 @@ pub async fn local_model_get_latest_version() -> Result<LlamaCppVersionInfo, Str
 
 /// 下载并安装 llama.cpp（后台异步任务）。
 /// 安装完成后返回可执行文件路径。
+#[agent_command(domain = model, safety = Caution, call_mode = StateInput, description = "安装 llama.cpp")]
 #[tauri::command]
 pub async fn local_model_install_server(
     state: State<'_, AppState>,
@@ -1397,6 +1415,7 @@ pub async fn local_model_install_server(
 }
 
 /// 查询当前安装状态（是否已安装、版本、下载进度）。
+#[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "查询 llama.cpp 安装状态")]
 #[tauri::command]
 pub async fn local_model_get_install_status(
     state: State<'_, AppState>,

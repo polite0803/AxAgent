@@ -8,13 +8,11 @@
 use std::time::Duration;
 
 use reqwest::Client;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
-use axagent_harness::device_sync::{
-    ChangeLogEntry, ConflictInfo, SyncResult,
-};
+use axagent_harness::device_sync::{ChangeLogEntry, ConflictInfo, SyncResult};
 
 /// 传输配置
 #[derive(Debug, Clone)]
@@ -29,11 +27,7 @@ pub struct TransportConfig {
 
 impl Default for TransportConfig {
     fn default() -> Self {
-        Self {
-            remote_url: String::new(),
-            session_token: None,
-            timeout_secs: 30,
-        }
+        Self { remote_url: String::new(), session_token: None, timeout_secs: 30 }
     }
 }
 
@@ -51,10 +45,7 @@ impl SyncTransport {
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-        Ok(Self {
-            config: RwLock::new(config),
-            client,
-        })
+        Ok(Self { config: RwLock::new(config), client })
     }
 
     /// 更新配置
@@ -84,24 +75,15 @@ impl SyncTransport {
 
         drop(config);
 
-        let response = request
-            .send()
-            .await
-            .map_err(|e| format!("HTTP request failed: {}", e))?;
+        let response = request.send().await.map_err(|e| format!("HTTP request failed: {}", e))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_body = response.text().await.unwrap_or_default();
-            return Err(format!(
-                "HTTP {} error: {}",
-                status, error_body
-            ));
+            return Err(format!("HTTP {} error: {}", status, error_body));
         }
 
-        response
-            .json::<R>()
-            .await
-            .map_err(|e| format!("Failed to parse response: {}", e))
+        response.json::<R>().await.map_err(|e| format!("Failed to parse response: {}", e))
     }
 
     /// 推送变更日志到远程设备
@@ -113,10 +95,7 @@ impl SyncTransport {
     }
 
     /// 从远程设备拉取变更日志
-    pub async fn pull_changes(
-        &self,
-        since_timestamp: u64,
-    ) -> Result<Vec<ChangeLogEntry>, String> {
+    pub async fn pull_changes(&self, since_timestamp: u64) -> Result<Vec<ChangeLogEntry>, String> {
         self.post("/api/sync/pull", &since_timestamp).await
     }
 
@@ -131,11 +110,7 @@ impl SyncTransport {
     }
 
     /// 解决冲突
-    pub async fn resolve_conflict(
-        &self,
-        conflict_id: &str,
-        strategy: &str,
-    ) -> Result<(), String> {
+    pub async fn resolve_conflict(&self, conflict_id: &str, strategy: &str) -> Result<(), String> {
         #[derive(Serialize)]
         struct ResolveRequest {
             conflict_id: String,
@@ -164,10 +139,7 @@ impl SyncTransport {
 
         drop(config);
 
-        let response = request
-            .send()
-            .await
-            .map_err(|e| format!("Ping failed: {}", e))?;
+        let response = request.send().await.map_err(|e| format!("Ping failed: {}", e))?;
 
         Ok(response.status().is_success())
     }

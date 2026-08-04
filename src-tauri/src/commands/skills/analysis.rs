@@ -3,12 +3,14 @@ use super::install::skills_dir;
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill_err;
+use agent_macro::agent_command;
 use axagent_crypto::decrypt_key;
 use axagent_harness::types::provider_model::ProviderType;
 use axagent_harness::types::settings_chat::ChatContent;
 use axagent_harness::types::{ChatMessage, ChatRequest};
 use tauri::State;
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "使用AI分析技能前端配置")]
 #[tauri::command]
 pub async fn skill_analyze_frontend(
     state: State<'_, AppState>,
@@ -321,6 +323,7 @@ fn extract_json(content: &str) -> &str {
 }
 
 /// 读取技能目录下的资源文件内容（用于 HTML/JS/CSS 等静态资源）
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "读取技能资源文件")]
 #[tauri::command]
 pub fn skill_read_asset(name: String, file_name: String) -> Result<String, ErrorResponse> {
     // P1 #3: 对 name 参数增加路径遍历校验（防止 ../../ 跳出 skills 目录）

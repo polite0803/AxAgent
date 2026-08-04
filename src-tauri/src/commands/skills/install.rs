@@ -6,6 +6,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
 use crate::commands::error_code::skill_op_err;
 use crate::paths::axagent_home;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use axagent_trajectory::{HermesMetadata, Skill, SkillMetadata};
 use std::collections::HashMap;
@@ -102,6 +103,7 @@ lazy_static::lazy_static! {
         tokio::sync::Mutex::new(MarketplaceSearchCache::new(SEARCH_CACHE_TTL_SECS));
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "列出所有已安装技能")]
 #[tauri::command]
 pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, String> {
     // P2 #7: 使用 SkillState 中缓存的 PluginManager，避免每次完整重建
@@ -192,6 +194,7 @@ pub async fn list_skills(state: State<'_, AppState>) -> Result<Vec<SkillInfo>, S
     Ok(result)
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "获取单个技能详情")]
 #[tauri::command]
 pub async fn get_skill(
     state: State<'_, AppState>,
@@ -331,6 +334,7 @@ pub(crate) fn collect_markdown_files(dir: &Path, depth: u32) -> std::io::Result<
     Ok(files)
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "启用或禁用技能")]
 #[tauri::command]
 pub async fn toggle_skill(
     app: tauri::AppHandle,
@@ -356,6 +360,7 @@ pub async fn toggle_skill(
     Ok(())
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "安装新技能")]
 #[tauri::command]
 pub async fn install_skill(
     app: tauri::AppHandle,
@@ -833,6 +838,7 @@ pub struct SkillVersion {
     pub commit: String,
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "获取技能版本历史")]
 #[tauri::command]
 pub async fn get_skill_versions(skill_name: String) -> Result<Vec<SkillVersion>, String> {
     let skill_dir = skills_dir().join(&skill_name);
@@ -873,6 +879,7 @@ pub async fn get_skill_versions(skill_name: String) -> Result<Vec<SkillVersion>,
     Ok(versions)
 }
 
+#[agent_command(domain = skills, safety = Dangerous, call_mode = StateInput, description = "回滚技能到指定版本")]
 #[tauri::command]
 pub async fn rollback_skill(skill_name: String, target_version: String) -> Result<String, String> {
     let skill_dir = skills_dir().join(&skill_name);
@@ -1102,6 +1109,7 @@ pub struct UninstallResult {
     pub detail: Option<String>,
 }
 
+#[agent_command(domain = skills, safety = Dangerous, call_mode = StateInput, description = "卸载指定技能")]
 #[tauri::command]
 pub async fn uninstall_skill(
     app: tauri::AppHandle,
@@ -1176,6 +1184,7 @@ pub async fn uninstall_skill(
     Ok(results)
 }
 
+#[agent_command(domain = skills, safety = Dangerous, call_mode = StateInput, description = "卸载技能组")]
 #[tauri::command]
 pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
     validate_skill_name(&group)?;
@@ -1218,6 +1227,7 @@ fn read_skill_domain_from_frontmatter(skill_root: Option<&std::path::Path>) -> O
     parsed.get("domain").and_then(|v| v.as_str()).map(|s| s.to_string())
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "设置技能领域标签")]
 #[tauri::command]
 pub async fn skill_set_domain(name: String, domain: String) -> Result<String, ErrorResponse> {
     // Validate domain value

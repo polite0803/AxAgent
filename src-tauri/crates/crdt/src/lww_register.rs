@@ -25,12 +25,7 @@ pub struct LWWRegister {
 impl LWWRegister {
     /// 创建新的 LWWRegister
     pub fn new(site_id: String) -> Self {
-        Self {
-            value: None,
-            timestamp: 0,
-            site_id,
-            logical_clock: 0,
-        }
+        Self { value: None, timestamp: 0, site_id, logical_clock: 0 }
     }
 
     /// 获取当前值
@@ -69,7 +64,10 @@ impl LWWRegister {
         if timestamp == self.timestamp && logical_clock > self.logical_clock {
             return true;
         }
-        if timestamp == self.timestamp && logical_clock == self.logical_clock && site_id > &self.site_id {
+        if timestamp == self.timestamp
+            && logical_clock == self.logical_clock
+            && site_id > &self.site_id
+        {
             return true;
         }
         false

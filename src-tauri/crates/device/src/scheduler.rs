@@ -156,11 +156,8 @@ impl SyncScheduler {
 
         if queue.len() >= self.config.max_queue_size {
             // 队列已满，尝试移除最低优先级的任务
-            if let Some(lowest_idx) = queue
-                .iter()
-                .enumerate()
-                .min_by_key(|(_, t)| t.priority.weight())
-                .map(|(i, _)| i)
+            if let Some(lowest_idx) =
+                queue.iter().enumerate().min_by_key(|(_, t)| t.priority.weight()).map(|(i, _)| i)
             {
                 queue.remove(lowest_idx);
             } else {
@@ -270,10 +267,7 @@ impl SyncScheduler {
         SchedulerStatus {
             is_running: *self.running.read().await,
             pending_tasks: queue.len(),
-            urgent_tasks: queue
-                .iter()
-                .filter(|t| t.priority == SyncPriority::Urgent)
-                .count(),
+            urgent_tasks: queue.iter().filter(|t| t.priority == SyncPriority::Urgent).count(),
             failed_tasks: queue.iter().filter(|t| !t.can_retry()).count(),
         }
     }
@@ -315,9 +309,7 @@ impl SyncScheduler {
 
         for mut task in pending {
             // 检查设备权限
-            let permission_result = permission_checker
-                .check_pull(&task.target_device_id)
-                .await;
+            let permission_result = permission_checker.check_pull(&task.target_device_id).await;
 
             if !permission_result.is_allowed() {
                 history_store
@@ -357,10 +349,7 @@ impl SyncScheduler {
                             "scheduler",
                             sync_result.success,
                             serde_json::to_string(sync_result).ok(),
-                            sync_result
-                                .error_message
-                                .as_ref()
-                                .map(|s| s.to_string()),
+                            sync_result.error_message.as_ref().map(|s| s.to_string()),
                         )
                         .await;
 
@@ -449,7 +438,8 @@ mod tests {
         // 初始化设备权限
         {
             let mut store = permission_store.write().await;
-            store.init_device_permissions("device-1", axagent_harness::device_sync::TrustLevel::Full)
+            store
+                .init_device_permissions("device-1", axagent_harness::device_sync::TrustLevel::Full)
                 .await;
         }
 
@@ -476,10 +466,7 @@ mod tests {
     async fn test_add_urgent_task() {
         let scheduler = setup_scheduler().await;
 
-        scheduler
-            .add_urgent_task("device-1".to_string(), SyncType::Incremental)
-            .await
-            .unwrap();
+        scheduler.add_urgent_task("device-1".to_string(), SyncType::Incremental).await.unwrap();
 
         let status = scheduler.get_status().await;
         assert_eq!(status.urgent_tasks, 1);
@@ -510,10 +497,7 @@ mod tests {
             )
             .await
             .unwrap();
-        scheduler
-            .add_urgent_task("device-1".to_string(), SyncType::Full)
-            .await
-            .unwrap();
+        scheduler.add_urgent_task("device-1".to_string(), SyncType::Full).await.unwrap();
         scheduler
             .add_task(
                 SyncTask::new("device-1".to_string(), SyncType::Incremental)

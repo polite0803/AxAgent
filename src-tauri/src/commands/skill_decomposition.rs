@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 use tauri::State;
 
 use crate::app_state::AppState;
+use agent_macro::agent_command;
 
 #[derive(Debug, Clone)]
 pub struct CachedDecomposition {
@@ -344,6 +345,7 @@ fn get_plugin_tool_names() -> Result<Vec<String>, String> {
 
 // ── Commands ──
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "预览技能分解结果")]
 #[tauri::command]
 pub async fn preview_decomposition(
     state: State<'_, AppState>,
@@ -447,6 +449,7 @@ pub async fn preview_decomposition(
     })
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "确认分解并创建工作流")]
 #[tauri::command]
 pub async fn confirm_decomposition(
     state: State<'_, AppState>,
@@ -507,6 +510,7 @@ pub async fn confirm_decomposition(
     }))
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "生成缺失的工具定义")]
 #[tauri::command]
 pub async fn generate_missing_tool(
     _state: State<'_, AppState>,
@@ -548,6 +552,7 @@ pub async fn generate_missing_tool(
     }))
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "检查工具语义匹配")]
 #[tauri::command]
 pub async fn check_tool_semantic_matches(
     state: State<'_, AppState>,
@@ -582,6 +587,7 @@ pub async fn check_tool_semantic_matches(
     Ok(ToolSemanticCheckResponse { matches: all_matches })
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "使用LLM升级工具定义")]
 #[tauri::command]
 pub async fn upgrade_tool_with_llm(
     state: State<'_, AppState>,
@@ -798,6 +804,7 @@ pub struct MarketplaceSkillContent {
 
 const SKILL_FILENAMES: [&str; 4] = ["SKILL.md", "skill.md", "README.md", "readme.md"];
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "获取市场技能内容")]
 #[tauri::command]
 pub async fn get_marketplace_skill_content(
     repo: String,

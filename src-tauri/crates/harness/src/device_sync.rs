@@ -118,6 +118,12 @@ pub struct ChangeLogEntry {
     pub version_vector: Vec<VersionVectorEntry>,
     /// 变更数据（JSON）
     pub data: Option<String>,
+    /// 已同步到的目标设备 ID 列表
+    #[serde(default)]
+    pub synced_to: Vec<String>,
+    /// 是否已同步
+    #[serde(default)]
+    pub is_synced: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -169,8 +175,23 @@ pub struct ConflictInfo {
     pub local_data: Option<String>,
     /// 远程数据快照（JSON）
     pub remote_data: Option<String>,
+    /// 本地数据时间戳（Unix epoch ms）
+    #[serde(default)]
+    pub local_timestamp: u64,
+    /// 远程数据时间戳（Unix epoch ms）
+    #[serde(default)]
+    pub remote_timestamp: u64,
     /// 冲突发生时间
     pub detected_at: String,
+    /// 是否已解决
+    #[serde(default)]
+    pub resolved: bool,
+    /// 解决策略（已解决的冲突）
+    #[serde(default)]
+    pub resolution_applied: Option<String>,
+    /// 解决时间（已解决的冲突）
+    #[serde(default)]
+    pub resolved_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -268,16 +289,11 @@ pub trait SyncEngine: Send + Sync {
     async fn incremental_sync(&self, device_id: &str) -> Result<SyncResult, String>;
 
     /// 推送变更日志
-    async fn push_changes(
-        &self,
-        changes: Vec<ChangeLogEntry>,
-    ) -> Result<Vec<ConflictInfo>, String>;
+    async fn push_changes(&self, changes: Vec<ChangeLogEntry>)
+    -> Result<Vec<ConflictInfo>, String>;
 
     /// 拉取变更日志
-    async fn pull_changes(
-        &self,
-        since_timestamp: u64,
-    ) -> Result<Vec<ChangeLogEntry>, String>;
+    async fn pull_changes(&self, since_timestamp: u64) -> Result<Vec<ChangeLogEntry>, String>;
 
     /// 解决冲突
     async fn resolve_conflict(
@@ -475,6 +491,25 @@ pub enum AuditAction {
     EncryptionDisabled,
 }
 
+impl std::fmt::Display for AuditAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DeviceRegistered => write!(f, "device_registered"),
+            Self::DevicePaired => write!(f, "device_paired"),
+            Self::DeviceUnpaired => write!(f, "device_unpaired"),
+            Self::SyncStarted => write!(f, "sync_started"),
+            Self::SyncCompleted => write!(f, "sync_completed"),
+            Self::SyncFailed => write!(f, "sync_failed"),
+            Self::ConflictDetected => write!(f, "conflict_detected"),
+            Self::ConflictResolved => write!(f, "conflict_resolved"),
+            Self::PolicyUpdated => write!(f, "policy_updated"),
+            Self::PermissionChanged => write!(f, "permission_changed"),
+            Self::EncryptionEnabled => write!(f, "encryption_enabled"),
+            Self::EncryptionDisabled => write!(f, "encryption_disabled"),
+        }
+    }
+}
+
 // ─── 信令消息类型（WebSocket 实时推送）──────────────────────────────────
 
 /// 信令消息类型（客户端 → 服务端）
@@ -486,21 +521,11 @@ pub enum SyncSignal {
     /// 设备下线
     DeviceOffline { device_id: String },
     /// 请求同步
-    SyncRequest {
-        device_id: String,
-        since_timestamp: Option<u64>,
-    },
+    SyncRequest { device_id: String, since_timestamp: Option<u64> },
     /// 推送变更
-    PushChanges {
-        device_id: String,
-        changes: Vec<ChangeLogEntry>,
-    },
+    PushChanges { device_id: String, changes: Vec<ChangeLogEntry> },
     /// 请求解决冲突
-    ResolveConflict {
-        device_id: String,
-        conflict_id: String,
-        strategy: ConflictResolutionStrategy,
-    },
+    ResolveConflict { device_id: String, conflict_id: String, strategy: ConflictResolutionStrategy },
     /// 心跳
     Ping { device_id: String },
     /// 注册设备
@@ -512,44 +537,21 @@ pub enum SyncSignal {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SyncSignalResponse {
     /// 设备已上线
-    DeviceOnlineAck {
-        device_id: String,
-        timestamp: u64,
-    },
+    DeviceOnlineAck { device_id: String, timestamp: u64 },
     /// 设备已下线
-    DeviceOfflineAck {
-        device_id: String,
-        timestamp: u64,
-    },
+    DeviceOfflineAck { device_id: String, timestamp: u64 },
     /// 同步请求响应
-    SyncResponse {
-        device_id: String,
-        result: SyncResult,
-    },
+    SyncResponse { device_id: String, result: SyncResult },
     /// 接收变更
-    ChangesReceived {
-        device_id: String,
-        changes_count: u64,
-        conflicts: Vec<ConflictInfo>,
-    },
+    ChangesReceived { device_id: String, changes_count: u64, conflicts: Vec<ConflictInfo> },
     /// 拉取变更
-    PullChanges {
-        device_id: String,
-        changes: Vec<ChangeLogEntry>,
-    },
+    PullChanges { device_id: String, changes: Vec<ChangeLogEntry> },
     /// 冲突已解决
-    ConflictResolved {
-        device_id: String,
-        conflict_id: String,
-        success: bool,
-    },
+    ConflictResolved { device_id: String, conflict_id: String, success: bool },
     /// 心跳响应
     Pong { device_id: String },
     /// 错误
-    Error {
-        code: String,
-        message: String,
-    },
+    Error { code: String, message: String },
 }
 
 /// 信令服务 Trait
@@ -563,10 +565,7 @@ pub trait SignalService: Send + Sync {
     ) -> Result<(), String>;
 
     /// 广播信令消息到所有在线设备
-    async fn broadcast_signal(
-        &self,
-        signal: SyncSignalResponse,
-    ) -> Result<(), String>;
+    async fn broadcast_signal(&self, signal: SyncSignalResponse) -> Result<(), String>;
 
     /// 设备上线
     async fn mark_online(&self, device_id: &str, connection_id: &str) -> Result<(), String>;
@@ -702,4 +701,84 @@ pub trait SyncStorage: Send + Sync {
         action: &str,
         limit: Option<u64>,
     ) -> Result<Vec<AuditLogEntry>, String>;
+}
+
+// ─── 远程云存储（WebDAV/S3） ────────────────────────────────────────────
+
+/// 远程存储配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteStorageConfig {
+    /// 存储类型
+    pub storage_type: RemoteStorageType,
+    /// 服务器地址（WebDAV URL 或 S3 endpoint）
+    pub endpoint: String,
+    /// 访问凭据
+    pub credentials: RemoteStorageCredentials,
+    /// 存储桶/根路径
+    pub bucket_or_path: String,
+    /// 是否启用
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+/// 远程存储类型
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RemoteStorageType {
+    /// WebDAV 存储
+    Webdav,
+    /// Amazon S3 兼容存储
+    S3,
+    /// 本地文件系统（用于测试）
+    Local,
+}
+
+/// 远程存储访问凭据
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteStorageCredentials {
+    /// 访问密钥
+    pub access_key: String,
+    /// 密钥/密码
+    pub secret_key: String,
+    /// 可选的会话令牌
+    #[serde(default)]
+    pub session_token: Option<String>,
+}
+
+/// 远程存储 trait，用于云同步备份
+#[async_trait::async_trait]
+pub trait RemoteStorage: Send + Sync {
+    /// 上传数据到远程存储
+    async fn upload(&self, path: &str, data: &[u8]) -> Result<(), String>;
+
+    /// 从远程存储下载数据
+    async fn download(&self, path: &str) -> Result<Vec<u8>, String>;
+
+    /// 列出远程存储中的文件
+    async fn list(&self, prefix: &str) -> Result<Vec<RemoteFileInfo>, String>;
+
+    /// 删除远程存储中的文件
+    async fn delete(&self, path: &str) -> Result<(), String>;
+
+    /// 检查远程存储连通性
+    async fn health_check(&self) -> Result<bool, String>;
+
+    /// 获取远程存储配置
+    fn config(&self) -> &RemoteStorageConfig;
+}
+
+/// 远程文件信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteFileInfo {
+    /// 文件路径
+    pub path: String,
+    /// 文件大小（字节）
+    pub size: u64,
+    /// 最后修改时间（Unix epoch ms）
+    pub last_modified: u64,
+    /// 内容类型
+    pub content_type: Option<String>,
 }

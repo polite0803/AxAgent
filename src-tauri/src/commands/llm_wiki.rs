@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 use axagent_agent::{
     ingest_pipeline, ingest_queue, lint_checker, purpose_manager, query_engine, schema_manager,
     wiki_compiler,
@@ -88,6 +89,7 @@ impl From<axagent_entities::wiki_operations::Model> for WikiOperationOutput {
     }
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateOnly, description = "列出所有知识库")]
 #[tauri::command]
 pub async fn llm_wiki_list(state: State<'_, AppState>) -> Result<Vec<WikiOutput>, String> {
     let wikis = axagent_entities::wikis::Entity::find()
@@ -113,6 +115,7 @@ pub struct CreateWikiInput {
     pub embedding_provider: Option<String>,
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "创建新 Wiki")]
 #[tauri::command]
 pub async fn llm_wiki_create(
     state: State<'_, AppState>,
@@ -145,6 +148,7 @@ pub async fn llm_wiki_create(
     })
 }
 
+#[agent_command(domain = wiki, safety = Dangerous, call_mode = StateInput, description = "删除 Wiki")]
 #[tauri::command]
 pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Result<(), String> {
     let collection_id = format!("wiki_{}", wiki_id);
@@ -166,6 +170,7 @@ pub async fn llm_wiki_delete(state: State<'_, AppState>, wiki_id: String) -> Res
 /// - note 本身保留（内容仍可查看），向量也保留（仍可检索）。
 /// - 若 note 的 source_refs 仅包含该 source_id，则 note 仍保留（避免误删用户内容）。
 /// - wiki_pages.source_ids 是编译产物，下次重新编译会自动更新，此处不清理。
+#[agent_command(domain = wiki, safety = Dangerous, call_mode = StateInput, description = "删除 Wiki 数据源")]
 #[tauri::command]
 pub async fn llm_wiki_delete_source(
     state: State<'_, AppState>,
@@ -266,6 +271,7 @@ pub async fn llm_wiki_delete_source(
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 操作历史列表")]
 #[tauri::command]
 pub async fn llm_wiki_operations_list(
     state: State<'_, AppState>,
@@ -309,6 +315,7 @@ pub struct IngestResultOutput {
     pub title: String,
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "摄取 Wiki 文件内容")]
 #[tauri::command]
 pub async fn llm_wiki_ingest(
     app: tauri::AppHandle,
@@ -522,6 +529,7 @@ async fn build_llm_adapter(
     Ok((adapter, ctx, model_id))
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "编译 Wiki 索引")]
 #[tauri::command]
 pub async fn llm_wiki_compile(
     app: tauri::AppHandle,
@@ -690,6 +698,7 @@ pub struct PageResultOutput {
     pub link_paths: Vec<String>,
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "查询 Wiki RAG 知识库")]
 #[tauri::command]
 pub async fn llm_wiki_query(
     state: State<'_, AppState>,
@@ -823,6 +832,7 @@ impl query_engine::VectorSearch for WikiVectorSearchAdapter {
     }
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "对 Wiki 笔记执行 lint 检查")]
 #[tauri::command]
 pub async fn llm_wiki_lint(
     _state: State<'_, AppState>,
@@ -840,6 +850,7 @@ pub async fn llm_wiki_lint(
     checker.lint_note(&note_id).await
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki 笔记质量评分")]
 #[tauri::command]
 pub async fn llm_wiki_lint_update_score(
     _state: State<'_, AppState>,
@@ -857,6 +868,7 @@ pub async fn llm_wiki_lint_update_score(
     checker.update_quality_score(&note_id).await
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki Schema 定义")]
 #[tauri::command]
 pub async fn llm_wiki_get_schema(
     state: State<'_, AppState>,
@@ -881,6 +893,7 @@ pub struct ValidateFrontmatterInput {
     pub frontmatter: serde_json::Map<String, serde_json::Value>,
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "验证 Wiki 笔记 frontmatter")]
 #[tauri::command]
 pub async fn llm_wiki_validate_frontmatter(
     state: State<'_, AppState>,
@@ -898,6 +911,7 @@ pub async fn llm_wiki_validate_frontmatter(
     })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "创建 Wiki Schema 新版本")]
 #[tauri::command]
 pub async fn llm_wiki_create_schema_version(
     state: State<'_, AppState>,
@@ -924,6 +938,7 @@ pub struct UpdateSchemaInput {
     pub content: String,
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki Schema")]
 #[tauri::command]
 pub async fn llm_wiki_update_schema(
     state: State<'_, AppState>,
@@ -966,6 +981,7 @@ pub async fn llm_wiki_update_schema(
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Dangerous, call_mode = StateInput, description = "删除 Wiki Schema 版本")]
 #[tauri::command]
 pub async fn llm_wiki_delete_schema(
     state: State<'_, AppState>,
@@ -993,6 +1009,7 @@ pub async fn llm_wiki_delete_schema(
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "对 Wiki 库执行 lint 检查")]
 #[tauri::command]
 pub async fn llm_wiki_lint_vault(
     _state: State<'_, AppState>,
@@ -1010,6 +1027,7 @@ pub async fn llm_wiki_lint_vault(
     checker.lint_vault(&wiki_id).await
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "自动修复 Wiki lint 问题")]
 #[tauri::command]
 pub async fn llm_wiki_auto_fix(
     _state: State<'_, AppState>,
@@ -1028,6 +1046,7 @@ pub async fn llm_wiki_auto_fix(
     checker.auto_fix(&wiki_id, note_id.as_deref()).await
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "向 Wiki 提问并获取回答")]
 #[tauri::command]
 pub async fn llm_wiki_ask(
     state: State<'_, AppState>,
@@ -1073,6 +1092,7 @@ pub struct WriteBase64Input {
     pub source_type: String,
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "将 Base64 内容写入 Wiki 文件")]
 #[tauri::command]
 pub async fn write_base64_to_file(
     state: State<'_, AppState>,
@@ -1154,6 +1174,7 @@ fn base64_decode(encoded: &str) -> Result<Vec<u8>, String> {
     })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "处理 Wiki 待同步队列项")]
 #[tauri::command]
 pub async fn wiki_sync_process_pending(
     state: State<'_, AppState>,
@@ -1237,6 +1258,7 @@ pub async fn wiki_sync_process_pending(
     Ok(processed)
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "创建 Wiki 同步队列项")]
 #[tauri::command]
 pub async fn wiki_sync_enqueue(
     state: State<'_, AppState>,
@@ -1273,6 +1295,7 @@ pub async fn wiki_sync_enqueue(
     Ok(result.last_insert_id)
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 同步队列状态")]
 #[tauri::command]
 pub async fn wiki_sync_get_queue(
     state: State<'_, AppState>,
@@ -1299,6 +1322,7 @@ pub async fn wiki_sync_get_queue(
         })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "处理单个 Wiki 同步队列项")]
 #[tauri::command]
 pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Result<(), String> {
     let model = wiki_sync_queue::Entity::find_by_id(queue_id)
@@ -1447,6 +1471,7 @@ async fn process_sync_event(
     }
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "检查 Wiki RAG 容量")]
 #[tauri::command]
 pub async fn wiki_check_capacity(
     state: State<'_, AppState>,
@@ -1460,6 +1485,7 @@ pub async fn wiki_check_capacity(
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 容量信息")]
 #[tauri::command]
 pub async fn wiki_get_capacity_info(
     state: State<'_, AppState>,
@@ -1473,6 +1499,7 @@ pub async fn wiki_get_capacity_info(
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 目的描述")]
 #[tauri::command]
 pub async fn llm_wiki_get_purpose(
     state: State<'_, AppState>,
@@ -1483,6 +1510,7 @@ pub async fn llm_wiki_get_purpose(
     purpose_manager::PurposeManager::load(&*wiki_repo, &wiki_id).await
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki 目的描述")]
 #[tauri::command]
 pub async fn llm_wiki_update_purpose(
     state: State<'_, AppState>,
@@ -1532,6 +1560,7 @@ pub struct FolderImportResultOutput {
 }
 
 /// 预览文件夹内容（不执行实际导入）
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "预览文件夹内容（不执行实际导入）")]
 #[tauri::command]
 pub async fn llm_wiki_import_folder_preview(
     state: State<'_, AppState>,
@@ -1551,6 +1580,7 @@ pub async fn llm_wiki_import_folder_preview(
 }
 
 /// 递归导入文件夹中所有文件到 Wiki
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "递归导入文件夹中所有文件到 Wiki")]
 #[tauri::command]
 pub async fn llm_wiki_import_folder(
     app: tauri::AppHandle,

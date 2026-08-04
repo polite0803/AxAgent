@@ -91,6 +91,26 @@ pub enum SyncErrorCode {
     SerializationFailed,
     /// 数据反序列化失败
     DeserializationFailed,
+
+    // ─── 冲突处理 ──────────────────────────────────────────────────────
+    /// 冲突未找到
+    ConflictNotFound,
+
+    // ─── 加密验证 ──────────────────────────────────────────────────────
+    /// 需要密码
+    PasswordRequired,
+    /// 密码为空
+    PasswordEmpty,
+    /// 需要盐值
+    SaltRequired,
+
+    // ─── 策略管理 ──────────────────────────────────────────────────────
+    /// 策略操作失败
+    PolicyOperationFailed,
+
+    // ─── 权限管理（扩展） ──────────────────────────────────────────────
+    /// 权限未找到
+    PermissionsNotFound,
 }
 
 impl SyncErrorCode {
@@ -107,35 +127,42 @@ impl SyncErrorCode {
 
             Self::PermissionDenied
             | Self::PermissionNotConfigured
-            | Self::DeviceNotRegistered => ErrorCategory::Permission,
+            | Self::DeviceNotRegistered
+            | Self::PermissionsNotFound => ErrorCategory::Permission,
 
             Self::SyncFailed
             | Self::SyncTimeout
             | Self::ConflictDetectionFailed
             | Self::ConflictResolutionFailed
+            | Self::ConflictNotFound
             | Self::SyncAlreadyInProgress
             | Self::NoChangesToSync => ErrorCategory::Sync,
 
             Self::EncryptionFailed
             | Self::DecryptionFailed
             | Self::KeyDerivationFailed
-            | Self::InvalidEncryptedData => ErrorCategory::Encryption,
+            | Self::InvalidEncryptedData
+            | Self::PasswordRequired
+            | Self::PasswordEmpty
+            | Self::SaltRequired => ErrorCategory::Encryption,
 
-            Self::ConnectionFailed
-            | Self::TransportTimeout
-            | Self::InvalidDataFormat => ErrorCategory::Transport,
+            Self::ConnectionFailed | Self::TransportTimeout | Self::InvalidDataFormat => {
+                ErrorCategory::Transport
+            },
 
-            Self::CrdtDocumentNotFound
-            | Self::CrdtTransformFailed
-            | Self::CrdtMergeFailed => ErrorCategory::Crdt,
+            Self::CrdtDocumentNotFound | Self::CrdtTransformFailed | Self::CrdtMergeFailed => {
+                ErrorCategory::Crdt
+            },
 
-            Self::SchedulerQueueFull
-            | Self::SchedulerAlreadyRunning
-            | Self::TaskNotFound => ErrorCategory::Scheduler,
+            Self::SchedulerQueueFull | Self::SchedulerAlreadyRunning | Self::TaskNotFound => {
+                ErrorCategory::Scheduler
+            },
 
             Self::StorageOperationFailed
             | Self::SerializationFailed
             | Self::DeserializationFailed => ErrorCategory::Storage,
+
+            Self::PolicyOperationFailed => ErrorCategory::Sync,
         }
     }
 
@@ -153,11 +180,13 @@ impl SyncErrorCode {
             Self::PermissionDenied => "权限不足",
             Self::PermissionNotConfigured => "权限未配置",
             Self::DeviceNotRegistered => "设备未注册",
+            Self::PermissionsNotFound => "权限未找到",
 
             Self::SyncFailed => "同步失败",
             Self::SyncTimeout => "同步超时",
             Self::ConflictDetectionFailed => "冲突检测失败",
             Self::ConflictResolutionFailed => "冲突解决失败",
+            Self::ConflictNotFound => "冲突未找到",
             Self::SyncAlreadyInProgress => "同步已在进行中",
             Self::NoChangesToSync => "无待同步变更",
 
@@ -165,6 +194,9 @@ impl SyncErrorCode {
             Self::DecryptionFailed => "解密失败",
             Self::KeyDerivationFailed => "密钥派生失败",
             Self::InvalidEncryptedData => "无效的加密数据",
+            Self::PasswordRequired => "需要提供密码",
+            Self::PasswordEmpty => "密码不能为空",
+            Self::SaltRequired => "需要提供盐值",
 
             Self::ConnectionFailed => "网络连接失败",
             Self::TransportTimeout => "传输超时",
@@ -181,6 +213,60 @@ impl SyncErrorCode {
             Self::StorageOperationFailed => "存储操作失败",
             Self::SerializationFailed => "数据序列化失败",
             Self::DeserializationFailed => "数据反序列化失败",
+
+            Self::PolicyOperationFailed => "策略操作失败",
+        }
+    }
+
+    /// 转换为错误码字符串（供前端国际化使用）
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::DeviceNotFound => "DEVICE_SYNC_DEVICE_NOT_FOUND",
+            Self::DeviceAlreadyPaired => "DEVICE_SYNC_DEVICE_ALREADY_PAIRED",
+            Self::DeviceNotPaired => "DEVICE_SYNC_DEVICE_NOT_PAIRED",
+            Self::DeviceDisabled => "DEVICE_SYNC_DEVICE_DISABLED",
+            Self::InvalidPairingCode => "DEVICE_SYNC_INVALID_PAIRING_CODE",
+            Self::PairingCodeExpired => "DEVICE_SYNC_PAIRING_CODE_EXPIRED",
+            Self::InsufficientTrustLevel => "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL",
+
+            Self::PermissionDenied => "DEVICE_SYNC_PERMISSION_DENIED",
+            Self::PermissionNotConfigured => "DEVICE_SYNC_PERMISSION_NOT_CONFIGURED",
+            Self::DeviceNotRegistered => "DEVICE_SYNC_DEVICE_NOT_REGISTERED",
+            Self::PermissionsNotFound => "DEVICE_SYNC_PERMISSIONS_NOT_FOUND",
+
+            Self::SyncFailed => "DEVICE_SYNC_FAILED",
+            Self::SyncTimeout => "DEVICE_SYNC_TIMEOUT",
+            Self::ConflictDetectionFailed => "DEVICE_SYNC_CONFLICT_DETECTION_FAILED",
+            Self::ConflictResolutionFailed => "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED",
+            Self::ConflictNotFound => "DEVICE_SYNC_CONFLICT_NOT_FOUND",
+            Self::SyncAlreadyInProgress => "DEVICE_SYNC_ALREADY_IN_PROGRESS",
+            Self::NoChangesToSync => "DEVICE_SYNC_NO_CHANGES_TO_SYNC",
+
+            Self::EncryptionFailed => "DEVICE_SYNC_ENCRYPTION_FAILED",
+            Self::DecryptionFailed => "DEVICE_SYNC_DECRYPTION_FAILED",
+            Self::KeyDerivationFailed => "DEVICE_SYNC_KEY_DERIVATION_FAILED",
+            Self::InvalidEncryptedData => "DEVICE_SYNC_INVALID_ENCRYPTED_DATA",
+            Self::PasswordRequired => "DEVICE_SYNC_PASSWORD_REQUIRED",
+            Self::PasswordEmpty => "DEVICE_SYNC_PASSWORD_EMPTY",
+            Self::SaltRequired => "DEVICE_SYNC_SALT_REQUIRED",
+
+            Self::ConnectionFailed => "DEVICE_SYNC_CONNECTION_FAILED",
+            Self::TransportTimeout => "DEVICE_SYNC_TRANSPORT_TIMEOUT",
+            Self::InvalidDataFormat => "DEVICE_SYNC_INVALID_DATA_FORMAT",
+
+            Self::CrdtDocumentNotFound => "DEVICE_SYNC_CRDT_DOCUMENT_NOT_FOUND",
+            Self::CrdtTransformFailed => "DEVICE_SYNC_CRDT_TRANSFORM_FAILED",
+            Self::CrdtMergeFailed => "DEVICE_SYNC_CRDT_MERGE_FAILED",
+
+            Self::SchedulerQueueFull => "DEVICE_SYNC_SCHEDULER_QUEUE_FULL",
+            Self::SchedulerAlreadyRunning => "DEVICE_SYNC_SCHEDULER_ALREADY_RUNNING",
+            Self::TaskNotFound => "DEVICE_SYNC_TASK_NOT_FOUND",
+
+            Self::StorageOperationFailed => "DEVICE_SYNC_STORAGE_OPERATION_FAILED",
+            Self::SerializationFailed => "DEVICE_SYNC_SERIALIZATION_FAILED",
+            Self::DeserializationFailed => "DEVICE_SYNC_DESERIALIZATION_FAILED",
+
+            Self::PolicyOperationFailed => "DEVICE_SYNC_POLICY_OPERATION_FAILED",
         }
     }
 }
@@ -235,12 +321,7 @@ impl SyncError {
 
     /// 创建带自定义消息的错误
     pub fn with_message(code: SyncErrorCode, message: impl Into<String>) -> Self {
-        Self {
-            category: code.category(),
-            message: message.into(),
-            code,
-            params: None,
-        }
+        Self { category: code.category(), message: message.into(), code, params: None }
     }
 
     /// 创建带参数的错误
@@ -299,15 +380,15 @@ mod tests {
 
     #[test]
     fn test_error_code_category() {
-        assert_eq!(
-            SyncErrorCode::DeviceNotFound.category(),
-            ErrorCategory::Device
-        );
-        assert_eq!(
-            SyncErrorCode::PermissionDenied.category(),
-            ErrorCategory::Permission
-        );
+        assert_eq!(SyncErrorCode::DeviceNotFound.category(), ErrorCategory::Device);
+        assert_eq!(SyncErrorCode::PermissionDenied.category(), ErrorCategory::Permission);
         assert_eq!(SyncErrorCode::SyncFailed.category(), ErrorCategory::Sync);
+    }
+
+    #[test]
+    fn test_error_code_as_str() {
+        assert_eq!(SyncErrorCode::DeviceNotFound.as_str(), "DEVICE_SYNC_DEVICE_NOT_FOUND");
+        assert_eq!(SyncErrorCode::PermissionDenied.as_str(), "DEVICE_SYNC_PERMISSION_DENIED");
     }
 
     #[test]

@@ -10,6 +10,7 @@ use tauri::State;
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::file as file_err;
+use agent_macro::agent_command;
 
 // ── Shared row type sent to the frontend ─────────────────────────────────────
 
@@ -238,6 +239,12 @@ fn mime_from_extension(path: &str) -> &'static str {
 // ── Tauri command wrappers ────────────────────────────────────────────────────
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "检查附件文件是否存在"
+)]
 pub async fn check_attachment_exists(file_path: String) -> Result<bool, String> {
     if file_path.is_empty() {
         return Ok(false);
@@ -247,6 +254,12 @@ pub async fn check_attachment_exists(file_path: String) -> Result<bool, String> 
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "读取附件预览（base64）"
+)]
 pub async fn read_attachment_preview(file_path: String) -> Result<String, String> {
     if file_path.is_empty() {
         return Err("file_path is empty".to_string());
@@ -259,6 +272,12 @@ pub async fn read_attachment_preview(file_path: String) -> Result<String, String
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Caution,
+    call_mode = Manual,
+    description = "保存头像文件到存储"
+)]
 pub async fn save_avatar_file(data: String, mime_type: String) -> Result<String, String> {
     use axagent_storage::file_store::FileStore;
     let bytes = base64::engine::general_purpose::STANDARD
@@ -272,6 +291,12 @@ pub async fn save_avatar_file(data: String, mime_type: String) -> Result<String,
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "解析附件的绝对路径"
+)]
 pub async fn resolve_attachment_path(file_path: String) -> Result<String, ErrorResponse> {
     if file_path.is_empty() {
         return Err(ErrorResponse::new(file_err::PATH_EMPTY));
@@ -280,6 +305,12 @@ pub async fn resolve_attachment_path(file_path: String) -> Result<String, ErrorR
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "在系统文件管理器中显示附件"
+)]
 pub async fn reveal_attachment_file(
     app: tauri::AppHandle,
     file_path: String,
@@ -320,6 +351,12 @@ fn open_attachment_file_validate(file_path: &str) -> Result<String, ErrorRespons
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "使用系统默认程序打开附件"
+)]
 pub async fn open_attachment_file(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
     let abs = open_attachment_file_validate(&file_path)?;
     use tauri_plugin_opener::OpenerExt;
@@ -332,6 +369,12 @@ pub async fn open_attachment_file(app: tauri::AppHandle, file_path: String) -> R
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "按分类列出文件页面条目"
+)]
 pub async fn list_files_page_entries(
     state: State<'_, AppState>,
     category: String,
@@ -399,6 +442,12 @@ pub async fn list_files_page_entries(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "打开文件页面条目"
+)]
 pub async fn open_files_page_entry(app: tauri::AppHandle, path: String) -> Result<(), String> {
     validate_path_for_open(&path)?;
     // 路径遍历防护：canonicalize 后必须落在 documents 根目录之内，
@@ -424,6 +473,12 @@ pub async fn open_files_page_entry(app: tauri::AppHandle, path: String) -> Resul
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Safe,
+    call_mode = Manual,
+    description = "在系统资源管理器中显示文件"
+)]
 pub async fn reveal_files_page_entry(app: tauri::AppHandle, path: String) -> Result<(), String> {
     validate_path_for_open(&path)?;
     // 路径遍历防护：canonicalize 后必须落在 documents 根目录之内，
@@ -449,6 +504,12 @@ pub async fn reveal_files_page_entry(app: tauri::AppHandle, path: String) -> Res
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = files,
+    safety = Dangerous,
+    call_mode = StateInput,
+    description = "清理丢失的文件页面条目（删除引用）"
+)]
 pub async fn cleanup_missing_files_page_entry(
     state: State<'_, AppState>,
     entry_id: String,

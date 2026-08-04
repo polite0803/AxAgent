@@ -26,9 +26,6 @@ use tauri::Emitter;
 use tauri::Manager;
 use tracing::{debug, instrument, warn};
 
-// 包含 build.rs 生成的命令路径映射
-include!(concat!(env!("OUT_DIR"), "/generated_command_index.rs"));
-
 /// Tauri 命令工具的元数据定义
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -90,47 +87,6 @@ impl CommandSafety {
     pub fn is_blocked(&self) -> bool {
         matches!(self, CommandSafety::Dangerous)
     }
-}
-
-/// 从命令名推断安全级别
-fn infer_safety_from_name(name: &str) -> CommandSafety {
-    let lower = name.to_lowercase();
-
-    // Dangerous: 删除/危险操作
-    if lower.contains("delete")
-        || lower.contains("remove")
-        || lower.contains("drop")
-        || lower.contains("dangerous")
-        || lower.contains("force_quit")
-        || lower.contains("clear_all")
-        || lower.contains("wipe")
-        || lower.contains("format")
-    {
-        return CommandSafety::Dangerous;
-    }
-
-    // Caution: 写入/修改操作
-    let caution_patterns = [
-        "create", "save", "update", "add", "register", "install",
-        "enable", "disable", "set_", "toggle", "import", "export",
-        "execute", "submit", "publish", "send_", "start_", "stop_",
-        "restart", "connect", "disconnect", "sync", "backup", "restore",
-        "download", "upload", "generate", "compile", "optimize",
-        "evolve", "train", "learn", "auto_", "apply_", "approve",
-        "reject", "grant", "revoke", "confirm", "resolve", "reorder",
-        "reindex", "rebuild", "refresh", "reload", "resume", "pause",
-        "schedule", "spawn", "delegate", "dispatch", "subscribe", "emit",
-        "render",
-    ];
-
-    for pattern in &caution_patterns {
-        if lower.starts_with(pattern) || lower.contains(pattern) {
-            return CommandSafety::Caution;
-        }
-    }
-
-    // Safe: 只读查询操作
-    CommandSafety::Safe
 }
 
 /// 命令元数据（用于命令索引）
@@ -197,174 +153,9 @@ impl CommandDomain {
     }
 }
 
-/// 静态命令索引（Phase 1: 硬编码，Phase 2 将改为动态生成）
-pub const COMMAND_INDEX: &[CommandMetadata] = &[
-    // ── Settings ──
-    CommandMetadata {
-        name: "get_settings",
-        description: "获取应用设置",
-        domain: CommandDomain::Settings,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "save_settings",
-        description: "保存应用设置",
-        domain: CommandDomain::Settings,
-        safety: CommandSafety::Caution,
-    },
-    // ── Conversation ──
-    CommandMetadata {
-        name: "list_conversations",
-        description: "列出会话列表",
-        domain: CommandDomain::Conversation,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "get_conversation",
-        description: "获取会话详情",
-        domain: CommandDomain::Conversation,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "create_conversation",
-        description: "创建新会话",
-        domain: CommandDomain::Conversation,
-        safety: CommandSafety::Caution,
-    },
-    CommandMetadata {
-        name: "delete_conversation",
-        description: "删除会话",
-        domain: CommandDomain::Conversation,
-        safety: CommandSafety::Dangerous,
-    },
-    CommandMetadata {
-        name: "update_conversation",
-        description: "更新会话信息",
-        domain: CommandDomain::Conversation,
-        safety: CommandSafety::Caution,
-    },
-    // ── Knowledge ──
-    CommandMetadata {
-        name: "list_knowledge_bases",
-        description: "列出知识库",
-        domain: CommandDomain::Knowledge,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "search_knowledge_base",
-        description: "搜索知识库内容",
-        domain: CommandDomain::Knowledge,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "create_knowledge_base",
-        description: "创建知识库",
-        domain: CommandDomain::Knowledge,
-        safety: CommandSafety::Caution,
-    },
-    CommandMetadata {
-        name: "add_knowledge_document",
-        description: "添加知识文档",
-        domain: CommandDomain::Knowledge,
-        safety: CommandSafety::Caution,
-    },
-    // ── Memory ──
-    CommandMetadata {
-        name: "list_memories",
-        description: "列出记忆条目",
-        domain: CommandDomain::Memory,
-        safety: CommandSafety::Safe,
-    },
-    // ── Provider ──
-    CommandMetadata {
-        name: "list_providers",
-        description: "列出 LLM 提供商",
-        domain: CommandDomain::Provider,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "create_provider",
-        description: "创建 LLM 提供商",
-        domain: CommandDomain::Provider,
-        safety: CommandSafety::Caution,
-    },
-    CommandMetadata {
-        name: "test_model",
-        description: "测试模型连接",
-        domain: CommandDomain::Provider,
-        safety: CommandSafety::Safe,
-    },
-    // ── Gateway ──
-    CommandMetadata {
-        name: "get_gateway_status",
-        description: "获取网关状态",
-        domain: CommandDomain::Gateway,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "start_gateway",
-        description: "启动网关",
-        domain: CommandDomain::Gateway,
-        safety: CommandSafety::Caution,
-    },
-    CommandMetadata {
-        name: "stop_gateway",
-        description: "停止网关",
-        domain: CommandDomain::Gateway,
-        safety: CommandSafety::Dangerous,
-    },
-    // ── Workflow ──
-    CommandMetadata {
-        name: "workflow_list",
-        description: "列出工作流",
-        domain: CommandDomain::Workflow,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "workflow_create",
-        description: "创建工作流",
-        domain: CommandDomain::Workflow,
-        safety: CommandSafety::Caution,
-    },
-    CommandMetadata {
-        name: "workflow_execute",
-        description: "执行工作流",
-        domain: CommandDomain::Workflow,
-        safety: CommandSafety::Caution,
-    },
-    // ── MCP ──
-    CommandMetadata {
-        name: "list_mcp_servers",
-        description: "列出 MCP 服务器",
-        domain: CommandDomain::Mcp,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "create_mcp_server",
-        description: "创建 MCP 服务器",
-        domain: CommandDomain::Mcp,
-        safety: CommandSafety::Caution,
-    },
-    // ── Skill ──
-    CommandMetadata {
-        name: "list_skills",
-        description: "列出技能",
-        domain: CommandDomain::Skill,
-        safety: CommandSafety::Safe,
-    },
-    CommandMetadata {
-        name: "install_skill",
-        description: "安装技能",
-        domain: CommandDomain::Skill,
-        safety: CommandSafety::Caution,
-    },
-];
-
 // ── Command Registry (Phase 3) ──────────────────────────────────────────
 
 /// 命令注册中心 — 支持动态注册和按需加载
-///
-/// 替代静态 COMMAND_INDEX，支持运行时扩展命令集
 #[derive(Debug, Clone)]
 pub struct CommandRegistry {
     /// 所有已注册的命令元数据
@@ -374,62 +165,53 @@ pub struct CommandRegistry {
 }
 
 impl CommandRegistry {
-    /// 从静态索引和生成的索引创建注册中心
-    pub fn from_static_index() -> Self {
-        let mut commands = COMMAND_INDEX.to_vec();
+    /// 从宏注册表创建注册中心
+    ///
+    /// 所有命令都通过 #[agent_command] 宏注册，元数据由宏在编译时收集。
+    pub fn from_registry() -> Self {
+        let macro_commands = agent_command_types::registry::get_all();
 
-        // 将生成的索引数据转换为 CommandMetadata
-        for (name, path, domain_str) in COMMAND_METADATA {
-            let name_str = *name;
-            if !commands.iter().any(|c| c.name == name_str) {
-                let domain = match *domain_str {
-                    "knowledge" => CommandDomain::Knowledge,
-                    "workflow" => CommandDomain::Workflow,
-                    "provider" => CommandDomain::Provider,
-                    "gateway" => CommandDomain::Gateway,
-                    "mcp" => CommandDomain::Mcp,
-                    "skill" => CommandDomain::Skill,
-                    "conversation" => CommandDomain::Conversation,
-                    "message" => CommandDomain::Message,
-                    "memory" => CommandDomain::Memory,
-                    "settings" => CommandDomain::Settings,
-                    _ => CommandDomain::Core,
-                };
-
-                // 根据命令名推断安全级别
-                let safety = infer_safety_from_name(name_str);
-
-                commands.push(CommandMetadata {
-                    name: name_str,
-                    description: *path,
-                    domain,
-                    safety,
-                });
-            }
+        let mut commands = Vec::with_capacity(macro_commands.len());
+        for mc in &macro_commands {
+            let domain = Self::map_domain(mc.domain);
+            let safety = Self::map_safety(mc.safety);
+            commands.push(CommandMetadata {
+                name: mc.name,
+                description: mc.description,
+                domain,
+                safety,
+            });
         }
 
         let name_index =
             commands.iter().enumerate().map(|(i, cmd)| (cmd.name.to_string(), i)).collect();
+
+        debug!("CommandRegistry: {} commands from macro registry", commands.len());
+
         Self { commands, name_index }
     }
 
-    /// 创建空的注册中心
-    pub fn empty() -> Self {
-        Self { commands: Vec::new(), name_index: std::collections::HashMap::new() }
+    fn map_domain(domain_str: &str) -> CommandDomain {
+        match domain_str {
+            "knowledge" => CommandDomain::Knowledge,
+            "workflow" => CommandDomain::Workflow,
+            "provider" => CommandDomain::Provider,
+            "gateway" => CommandDomain::Gateway,
+            "mcp" => CommandDomain::Mcp,
+            "skill" => CommandDomain::Skill,
+            "conversation" => CommandDomain::Conversation,
+            "message" => CommandDomain::Message,
+            "memory" => CommandDomain::Memory,
+            "settings" => CommandDomain::Settings,
+            _ => CommandDomain::Core,
+        }
     }
 
-    /// 注册新命令
-    pub fn register(&mut self, metadata: CommandMetadata) {
-        let name = metadata.name.to_string();
-        let idx = self.commands.len();
-        self.commands.push(metadata);
-        self.name_index.insert(name, idx);
-    }
-
-    /// 批量注册命令
-    pub fn register_batch(&mut self, metadatas: Vec<CommandMetadata>) {
-        for meta in metadatas {
-            self.register(meta);
+    fn map_safety(s: agent_command_types::CommandSafety) -> CommandSafety {
+        match s {
+            agent_command_types::CommandSafety::Safe => CommandSafety::Safe,
+            agent_command_types::CommandSafety::Caution => CommandSafety::Caution,
+            agent_command_types::CommandSafety::Dangerous => CommandSafety::Dangerous,
         }
     }
 
@@ -502,7 +284,7 @@ impl CommandRegistry {
 
 impl Default for CommandRegistry {
     fn default() -> Self {
-        Self::from_static_index()
+        Self::from_registry()
     }
 }
 
@@ -615,39 +397,6 @@ pub fn preload_command_cache(domains: &[CommandDomain]) -> (String, f64) {
     let index = cache.get(domains, &registry);
     let hit_rate = cache.hit_rate();
     (index, hit_rate)
-}
-
-/// 创建空注册表并注册命令
-///
-/// 演示如何使用 CommandRegistry 的动态注册功能
-pub fn create_registry_with_custom_commands() -> CommandRegistry {
-    let mut registry = CommandRegistry::empty();
-
-    // 注册单个命令
-    registry.register(CommandMetadata {
-        name: "custom_command",
-        description: "自定义命令",
-        domain: CommandDomain::Core,
-        safety: CommandSafety::Safe,
-    });
-
-    // 批量注册命令
-    registry.register_batch(vec![
-        CommandMetadata {
-            name: "batch_command_1",
-            description: "批量命令1",
-            domain: CommandDomain::Knowledge,
-            safety: CommandSafety::Caution,
-        },
-        CommandMetadata {
-            name: "batch_command_2",
-            description: "批量命令2",
-            domain: CommandDomain::Workflow,
-            safety: CommandSafety::Dangerous,
-        },
-    ]);
-
-    registry
 }
 
 // ── Domain Mapping Configuration (Phase 2) ──────────────────────────────
@@ -1469,10 +1218,8 @@ impl CommandDispatcher {
         db: &DatabaseConnection,
         app_handle: &AppHandle,
     ) -> Result<String, String> {
-        let handler = self
-            .handlers
-            .get(command)
-            .ok_or_else(|| format!("命令 '{}' 未注册。", command))?;
+        let handler =
+            self.handlers.get(command).ok_or_else(|| format!("命令 '{}' 未注册。", command))?;
         handler.execute(args, db, app_handle).await
     }
 
@@ -1489,11 +1236,6 @@ impl CommandDispatcher {
     /// 检查是否为空
     pub fn is_empty(&self) -> bool {
         self.handlers.is_empty()
-    }
-
-    /// 获取所有已注册的命令名
-    pub fn registered_commands(&self) -> Vec<String> {
-        self.handlers.keys().cloned().collect()
     }
 }
 
@@ -1520,10 +1262,11 @@ impl CommandHandler for SettingsCommandHandler {
 
         match action {
             "get" => {
-                let settings = axagent_dao::repo::settings::get_settings(db).await.map_err(|e| {
-                    warn!("Failed to get settings: {}", e);
-                    format!("获取设置失败: {}", e)
-                })?;
+                let settings =
+                    axagent_dao::repo::settings::get_settings(db).await.map_err(|e| {
+                        warn!("Failed to get settings: {}", e);
+                        format!("获取设置失败: {}", e)
+                    })?;
                 serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())
             },
             "save" => {
@@ -1692,9 +1435,8 @@ impl CommandHandler for AgentUICommandHandler {
 
         match action {
             "render" => {
-                let schema = args["schema"]
-                    .as_object()
-                    .ok_or_else(|| "缺少 schema 参数".to_string())?;
+                let schema =
+                    args["schema"].as_object().ok_or_else(|| "缺少 schema 参数".to_string())?;
                 let target_id = args["target_id"].as_str().map(|s| s.to_string());
                 let replace = args["replace"].as_bool().unwrap_or(true);
                 let schema_id = schema.get("id").and_then(|v| v.as_str()).unwrap_or("unknown");
@@ -1720,12 +1462,10 @@ impl CommandHandler for AgentUICommandHandler {
                 .to_string())
             },
             "update" => {
-                let operation = args["operation"]
-                    .as_str()
-                    .ok_or_else(|| "缺少 operation 参数".to_string())?;
-                let schema_id = args["schema_id"]
-                    .as_str()
-                    .ok_or_else(|| "缺少 schema_id 参数".to_string())?;
+                let operation =
+                    args["operation"].as_str().ok_or_else(|| "缺少 operation 参数".to_string())?;
+                let schema_id =
+                    args["schema_id"].as_str().ok_or_else(|| "缺少 schema_id 参数".to_string())?;
                 let new_schema = args["new_schema"].as_object();
                 let path = args["path"].as_str().map(|s| s.to_string());
 
@@ -1752,9 +1492,8 @@ impl CommandHandler for AgentUICommandHandler {
                 .to_string())
             },
             "remove" => {
-                let schema_id = args["schema_id"]
-                    .as_str()
-                    .ok_or_else(|| "缺少 schema_id 参数".to_string())?;
+                let schema_id =
+                    args["schema_id"].as_str().ok_or_else(|| "缺少 schema_id 参数".to_string())?;
 
                 let payload = serde_json::json!({
                     "schemaId": schema_id,
@@ -1796,18 +1535,16 @@ impl CommandHandler for ProviderCommandHandler {
 
         match action {
             "list" | "list_providers" => {
-                let providers = axagent_dao::repo::provider::list_providers(db)
-                    .await
-                    .map_err(|e| {
+                let providers =
+                    axagent_dao::repo::provider::list_providers(db).await.map_err(|e| {
                         warn!("Failed to list providers: {}", e);
                         format!("列出提供商失败: {}", e)
                     })?;
                 serde_json::to_string_pretty(&providers).map_err(|e| e.to_string())
             },
             "list_merged" => {
-                let providers = axagent_dao::repo::provider::list_providers_merged(db)
-                    .await
-                    .map_err(|e| {
+                let providers =
+                    axagent_dao::repo::provider::list_providers_merged(db).await.map_err(|e| {
                         warn!("Failed to list merged providers: {}", e);
                         format!("列出合并提供商失败: {}", e)
                     })?;
@@ -1879,7 +1616,10 @@ impl CommandHandler for MessageCommandHandler {
                 let messages = axagent_dao::repo::message::list_messages(db, conversation_id)
                     .await
                     .map_err(|e| {
-                        warn!("Failed to list messages for conversation {}: {}", conversation_id, e);
+                        warn!(
+                            "Failed to list messages for conversation {}: {}",
+                            conversation_id, e
+                        );
                         format!("列出消息失败: {}", e)
                     })?;
                 serde_json::to_string_pretty(&messages).map_err(|e| e.to_string())
@@ -1908,16 +1648,13 @@ impl CommandHandler for MessageCommandHandler {
                     .as_str()
                     .ok_or_else(|| "缺少 message_id 参数".to_string())?;
                 let limit = args["limit"].as_u64().unwrap_or(50).to_string();
-                let versions = axagent_dao::repo::message::list_message_versions(
-                    db,
-                    message_id,
-                    &limit,
-                )
-                .await
-                .map_err(|e| {
-                    warn!("Failed to list versions for message {}: {}", message_id, e);
-                    format!("列出消息版本失败: {}", e)
-                })?;
+                let versions =
+                    axagent_dao::repo::message::list_message_versions(db, message_id, &limit)
+                        .await
+                        .map_err(|e| {
+                            warn!("Failed to list versions for message {}: {}", message_id, e);
+                            format!("列出消息版本失败: {}", e)
+                        })?;
                 serde_json::to_string_pretty(&versions).map_err(|e| e.to_string())
             },
             _ => Err(format!("未知的消息操作: {}", action)),
@@ -1989,9 +1726,9 @@ impl CommandHandler for AgentCommandHandler {
                 let roles = axagent_dao::repo::business_role::list_business_roles(db, None)
                     .await
                     .map_err(|e| {
-                        warn!("Failed to list business roles: {}", e);
-                        format!("列出业务角色失败: {}", e)
-                    })?;
+                    warn!("Failed to list business roles: {}", e);
+                    format!("列出业务角色失败: {}", e)
+                })?;
                 serde_json::to_string_pretty(&roles).map_err(|e| e.to_string())
             },
             _ => Err(format!("未知的智能体操作: {}", action)),
@@ -2016,9 +1753,8 @@ impl CommandHandler for MCPCommandHandler {
 
         match action {
             "list" | "list_servers" => {
-                let servers = axagent_dao::repo::mcp_server::list_mcp_servers(db)
-                    .await
-                    .map_err(|e| {
+                let servers =
+                    axagent_dao::repo::mcp_server::list_mcp_servers(db).await.map_err(|e| {
                         warn!("Failed to list MCP servers: {}", e);
                         format!("列出 MCP 服务器失败: {}", e)
                     })?;
@@ -2029,9 +1765,8 @@ impl CommandHandler for MCPCommandHandler {
                 serde_json::to_string_pretty(&servers).map_err(|e| e.to_string())
             },
             "list_tools" => {
-                let server_id = args["server_id"]
-                    .as_str()
-                    .ok_or_else(|| "缺少 server_id 参数".to_string())?;
+                let server_id =
+                    args["server_id"].as_str().ok_or_else(|| "缺少 server_id 参数".to_string())?;
                 let tools = axagent_dao::repo::mcp_server::list_tools_for_server(db, server_id)
                     .await
                     .map_err(|e| {
@@ -2066,9 +1801,8 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                     .as_str()
                     .or_else(|| args["knowledge_base_id"].as_str())
                     .ok_or_else(|| "缺少 kb_id 参数".to_string())?;
-                let documents = axagent_dao::repo::knowledge::list_documents(db, kb_id)
-                    .await
-                    .map_err(|e| {
+                let documents =
+                    axagent_dao::repo::knowledge::list_documents(db, kb_id).await.map_err(|e| {
                         warn!("Failed to list documents for KB {}: {}", kb_id, e);
                         format!("列出文档失败: {}", e)
                     })?;
@@ -2079,12 +1813,13 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                     .as_str()
                     .or_else(|| args["knowledge_base_id"].as_str())
                     .ok_or_else(|| "缺少 kb_id 参数".to_string())?;
-                let entities = axagent_dao::repo::knowledge_graph::list_knowledge_entities(db, kb_id)
-                    .await
-                    .map_err(|e| {
-                        warn!("Failed to list entities for KB {}: {}", kb_id, e);
-                        format!("列出知识实体失败: {}", e)
-                    })?;
+                let entities =
+                    axagent_dao::repo::knowledge_graph::list_knowledge_entities(db, kb_id)
+                        .await
+                        .map_err(|e| {
+                            warn!("Failed to list entities for KB {}: {}", kb_id, e);
+                            format!("列出知识实体失败: {}", e)
+                        })?;
                 serde_json::to_string_pretty(&entities).map_err(|e| e.to_string())
             },
             "list_relations" => {
@@ -2092,9 +1827,10 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                     .as_str()
                     .or_else(|| args["knowledge_base_id"].as_str())
                     .ok_or_else(|| "缺少 kb_id 参数".to_string())?;
-                let relations = axagent_dao::repo::knowledge_graph::list_knowledge_relations(db, kb_id)
-                    .await
-                    .map_err(|e| {
+                let relations =
+                    axagent_dao::repo::knowledge_graph::list_knowledge_relations(db, kb_id)
+                        .await
+                        .map_err(|e| {
                         warn!("Failed to list relations for KB {}: {}", kb_id, e);
                         format!("列出知识关系失败: {}", e)
                     })?;
@@ -2133,19 +1869,15 @@ impl CommandHandler for ArtifactCommandHandler {
             "list" => {
                 let conversation_id = args["conversation_id"].as_str();
                 let artifacts = if let Some(conv_id) = conversation_id {
-                    axagent_dao::repo::artifact::list_artifacts(db, conv_id)
-                        .await
-                        .map_err(|e| {
-                            warn!("Failed to list artifacts for conversation {}: {}", conv_id, e);
-                            format!("列出产物失败: {}", e)
-                        })?
+                    axagent_dao::repo::artifact::list_artifacts(db, conv_id).await.map_err(|e| {
+                        warn!("Failed to list artifacts for conversation {}: {}", conv_id, e);
+                        format!("列出产物失败: {}", e)
+                    })?
                 } else {
-                    axagent_dao::repo::artifact::list_artifacts(db, "")
-                        .await
-                        .map_err(|e| {
-                            warn!("Failed to list artifacts: {}", e);
-                            format!("列出产物失败: {}", e)
-                        })?
+                    axagent_dao::repo::artifact::list_artifacts(db, "").await.map_err(|e| {
+                        warn!("Failed to list artifacts: {}", e);
+                        format!("列出产物失败: {}", e)
+                    })?
                 };
                 serde_json::to_string_pretty(&artifacts).map_err(|e| e.to_string())
             },
@@ -2220,15 +1952,12 @@ impl CommandHandler for WorkflowCommandHandler {
                     .or_else(|| args["id"].as_str())
                     .ok_or_else(|| "缺少 execution_id 参数".to_string())?;
                 let execution =
-                    axagent_dao::repo::workflow_execution::get_workflow_execution(
-                        db,
-                        execution_id,
-                    )
-                    .await
-                    .map_err(|e| {
-                        warn!("Failed to get workflow execution {}: {}", execution_id, e);
-                        format!("获取工作流执行失败: {}", e)
-                    })?;
+                    axagent_dao::repo::workflow_execution::get_workflow_execution(db, execution_id)
+                        .await
+                        .map_err(|e| {
+                            warn!("Failed to get workflow execution {}: {}", execution_id, e);
+                            format!("获取工作流执行失败: {}", e)
+                        })?;
                 serde_json::to_string_pretty(&execution).map_err(|e| e.to_string())
             },
             _ => Err(format!("未知的工作流操作: {}", action)),
@@ -2269,9 +1998,8 @@ impl CommandHandler for BackupCommandHandler {
 
         match action {
             "list" => {
-                let backups = axagent_dao::repo::backup::list_backups(db, &encoder)
-                    .await
-                    .map_err(|e| {
+                let backups =
+                    axagent_dao::repo::backup::list_backups(db, &encoder).await.map_err(|e| {
                         warn!("Failed to list backups: {}", e);
                         format!("列出备份失败: {}", e)
                     })?;
@@ -2285,9 +2013,9 @@ impl CommandHandler for BackupCommandHandler {
                 let backup = axagent_dao::repo::backup::get_backup(db, backup_id, &encoder)
                     .await
                     .map_err(|e| {
-                        warn!("Failed to get backup {}: {}", backup_id, e);
-                        format!("获取备份失败: {}", e)
-                    })?;
+                    warn!("Failed to get backup {}: {}", backup_id, e);
+                    format!("获取备份失败: {}", e)
+                })?;
                 serde_json::to_string_pretty(&backup).map_err(|e| e.to_string())
             },
             _ => Err(format!("未知的备份操作: {}", action)),
@@ -2312,18 +2040,16 @@ impl CommandHandler for GatewayCommandHandler {
 
         match action {
             "list_keys" => {
-                let keys = axagent_dao::repo::gateway_key::list_gateway_keys(db)
-                    .await
-                    .map_err(|e| {
+                let keys =
+                    axagent_dao::repo::gateway_key::list_gateway_keys(db).await.map_err(|e| {
                         warn!("Failed to list gateway keys: {}", e);
                         format!("列出网关密钥失败: {}", e)
                     })?;
                 serde_json::to_string_pretty(&keys).map_err(|e| e.to_string())
             },
             "list_links" => {
-                let links = axagent_dao::repo::gateway_link::list_gateway_links(db)
-                    .await
-                    .map_err(|e| {
+                let links =
+                    axagent_dao::repo::gateway_link::list_gateway_links(db).await.map_err(|e| {
                         warn!("Failed to list gateway links: {}", e);
                         format!("列出网关链接失败: {}", e)
                     })?;
@@ -2332,12 +2058,13 @@ impl CommandHandler for GatewayCommandHandler {
             "list_request_logs" => {
                 let limit = args["limit"].as_u64().unwrap_or(50);
                 let offset = args["offset"].as_u64().unwrap_or(0);
-                let logs = axagent_dao::repo::gateway_request_log::list_request_logs(db, limit, offset)
-                    .await
-                    .map_err(|e| {
-                        warn!("Failed to list request logs: {}", e);
-                        format!("列出请求日志失败: {}", e)
-                    })?;
+                let logs =
+                    axagent_dao::repo::gateway_request_log::list_request_logs(db, limit, offset)
+                        .await
+                        .map_err(|e| {
+                            warn!("Failed to list request logs: {}", e);
+                            format!("列出请求日志失败: {}", e)
+                        })?;
                 serde_json::to_string_pretty(&logs).map_err(|e| e.to_string())
             },
             _ => Err(format!("未知的网关操作: {}", action)),
@@ -2488,267 +2215,111 @@ pub fn build_default_dispatcher() -> CommandDispatcher {
 }
 
 /// 列出所有可用的命令
+///
+/// 优先从宏注册表获取，补充 build.rs 索引
 pub fn list_available_commands() -> Vec<String> {
-    let dispatcher = build_default_dispatcher();
-    let mut commands = vec![
-        "get_settings".to_string(),
-        "save_settings".to_string(),
-    ];
+    let mut commands: Vec<String> = agent_command_types::registry::get_all()
+        .iter()
+        .map(|mc| mc.name.to_string())
+        .collect();
 
-    // 从 COMMAND_PATH_MAP 中提取所有命令名
-    let all_commands: Vec<String> = COMMAND_PATH_MAP.iter().map(|(name, _)| name.to_string()).collect();
-    debug!("Total commands in path map: {}", all_commands.len());
-
-    // 合并去重
-    commands.extend(all_commands);
     commands.sort();
     commands.dedup();
 
-    debug!("Available commands: {:?}", commands);
-    debug!("Total registered: {}", dispatcher.len());
+    debug!("Available commands: {} (all from macro registry)", commands.len());
     commands
 }
 
-/// 代理命令分发器 — 通过命令处理器系统执行所有命令
+/// 代理命令分发器
 ///
-/// ## 三层分发架构
-///
-/// 1. **专用 Handler**（优先）：在 build_default_dispatcher 中注册的
-///    特定领域处理器，提供最优性能和错误处理
-///
-/// 2. **GenericCommandHandler**（回退）：对于没有专用 Handler 的命令，
-///    使用通用处理器尝试通过参数推断自动调用
-///
-/// 3. **错误诊断**（最终回退）：如果通用处理器也无法调用，
-///    返回详细的诊断信息和指导
-///
-/// 这种分层设计确保：现有命令有最佳体验，新命令能自动暴露，
-/// 开发者有清晰的升级路径。
+/// 统一分发流程：宏注册表元数据查询 → 专用 Handler → 通用调用
 async fn dispatch_proxy_command(
     command: &str,
     args: &Value,
     db: &DatabaseConnection,
     app_handle: &AppHandle,
 ) -> Result<String, String> {
-    debug!("Proxy dispatching command: {}", command);
+    debug!("Dispatching command: {}", command);
 
-    // 架构说明：
-    // 1. GenericCommandHandler 是首选路径，由 build.rs 自动生成
-    //    - State-only 命令可直接调用
-    //    - 其他命令返回结构化诊断信息
-    // 2. 专用 Handler 作为覆盖，用于需要特殊处理的命令
-    // 3. 错误诊断作为最终回退
+    // 从宏注册表查询元数据
+    if let Some(meta) = agent_command_types::registry::find_by_name(command) {
+        debug!(
+            "Macro registry hit: {} (domain={}, call_mode={:?}, safety={:?})",
+            command, meta.domain, meta.call_mode, meta.safety
+        );
 
-    // 第一层：尝试 build.rs 生成的通用派发器
-    {
-        let generic = GenericCommandHandler;
-        let mut generic_args = args.clone();
-        if !generic_args.get("command").is_some() {
-            generic_args["command"] = Value::String(command.to_string());
-            generic_args["args"] = args.clone();
+        // Manual 模式返回诊断信息
+        if meta.call_mode == agent_command_types::CallMode::Manual {
+            return Err(format!(
+                "命令 '{}' 标记为 Manual 模式，需要创建专用 Handler。\n\
+                 \n\
+                 ## 命令元数据\n\
+                 - 领域: {}\n\
+                 - 安全级别: {:?}\n\
+                 - 描述: {}",
+                command, meta.domain, meta.safety, meta.description
+            ));
         }
 
-        match generic.execute(&generic_args, db, app_handle).await {
-            Ok(result) => {
-                debug!("Generic handler succeeded for: {}", command);
-                return Ok(result);
-            },
-            Err(e) => {
-                // 通用派发器返回了结构化错误（可能是需要手动实现）
-                debug!("Generic handler returned for {}: {}", command, e);
-
-                // 如果错误表明命令需要手动实现，继续到专用 Handler
-                // 如果错误是 State-only 调用失败，则直接返回
-                if e.contains("需要手动实现") {
-                    // 命令在 COMMAND_PATH_MAP 中存在但不是 State-only
-                    // 继续尝试专用 Handler
-                } else if e.contains("未在") {
-                    // 命令不在 COMMAND_PATH_MAP 中
-                    // 可能是新命令，继续尝试专用 Handler
-                } else {
-                    // 真正的调用错误，直接返回
-                    return Err(e);
-                }
-            },
-        }
+        // StateOnly / StateInput 模式：直接调用
+        return invoke_command_by_path(command, args, db, app_handle).await;
     }
 
-    // 第二层：尝试专用 Handler（用于覆盖通用派发器的复杂场景）
-    let dispatcher = build_default_dispatcher();
+    // 宏注册表未找到，尝试通用调用
+    debug!("Command '{}' not in macro registry, trying generic invoke", command);
+    invoke_command_by_path(command, args, db, app_handle).await
+}
 
+/// 通过路径映射调用命令
+async fn invoke_command_by_path(
+    command: &str,
+    args: &Value,
+    db: &DatabaseConnection,
+    app_handle: &AppHandle,
+) -> Result<String, String> {
+    // 检查专用 Handler
+    let dispatcher = build_default_dispatcher();
     if dispatcher.contains(command) {
         debug!("Found dedicated handler for: {}", command);
         return dispatcher.dispatch(command, args, db, app_handle).await;
     }
 
-    // 第三层：返回详细诊断
-    let registry = CommandRegistry::default();
-    let available_handler_count = dispatcher.len();
-    let available_commands = dispatcher.registered_commands();
-
-    if let Some(meta) = registry.find_by_name(command) {
-        // 命令在索引中存在，但无法自动调用
-        Err(format!(
-            "命令 '{}' 已注册但无法自动调用。\n\
-             \n\
-             ## 命令元数据\n\
-             - 领域: {}\n\
-             - 安全级别: {}\n\
-             - 描述: {}\n\
-             \n\
-             ## 解决方案\n\
-             1. **专用 Handler**：在 command_bridge.rs 中实现 CommandHandler\n\
-             2. **遵循 State-only 模式**：如果命令仅需 State 参数，build.rs 会自动支持\n\
-             3. **简化命令签名**：使用 `fn(state: State<AppState>) -> Result<T, String>` 模式\n\
-             \n\
-             当前已实现专用 Handler 数量: {}",
-            command,
-            meta.domain.as_str(),
-            meta.safety.as_str(),
-            meta.description,
-            available_handler_count
-        ))
-    } else {
-        // 命令不在索引中（可能未在 register_commands.rs 注册）
-        Err(format!(
-            "命令 '{}' 不在已知命令列表中。\n\
-             \n\
-             ## 排查步骤\n\
-             1. 确认命令已在 register_commands.rs 中注册\n\
-             2. 重新编译项目（cargo build / cargo check）\n\
-             3. 使用 list_available_commands 查看所有可用命令\n\
-             \n\
-             当前已实现专用 Handler: {:?}",
-            command,
-            available_commands
-        ))
-    }
-}
-
-// ── Generic Command Handler (Primary Path) ────────────────────
-
-/// 通用命令处理器（首选路径）
-///
-/// 此处理器是命令派发的主入口，使用 `#[agent_command]` 宏注册表进行动态调用。
-///
-/// # 工作原理
-///
-/// 1. `#[agent_command]` 宏在编译时收集命令元数据到 `agent_command_types::registry`
-/// 2. GenericCommandHandler 从注册表查找命令元数据
-/// 3. 根据元数据中的 `CallMode` 选择调用方式：
-///    - `StateOnly`：直接调用（只读查询）
-///    - `StateInput`：带参数调用（写入操作）
-///    - `Manual`：需要手动实现 Handler
-///
-/// # 三层架构
-///
-/// dispatch_proxy_command 的调用优先级：
-/// 1. **GenericCommandHandler**（本结构体）：基于宏注册表的通用派发器
-///    - StateOnly 命令 → 直接调用
-///    - StateInput 命令 → 带参数调用
-///    - Manual 命令 → 返回诊断信息，指导专用 Handler 实现
-/// 2. **专用 Handler**：实现了 CommandHandler 的自定义处理器
-///    - 用于覆盖通用派发器的复杂场景
-/// 3. **诊断**：返回详细的命令信息和解决方案
-///    - 用于覆盖通用派发器的复杂场景
-/// 3. **错误诊断**：返回结构化错误信息和实现指导
-///
-/// # 对 fork 用户的零配置支持
-///
-/// 新增命令后：
-/// 1. 在 `register_commands.rs` 中注册命令
-/// 2. 重新编译（build.rs 自动生成新的派发代码）
-/// 3. 如果命令遵循 State-only 模式，立即可被 Agent 调用
-/// 4. 如果命令需要特殊参数，GenericCommandHandler 返回诊断信息
-///    指导创建专用 Handler
-///
-/// # 专用 Handler 覆盖
-///
-/// 对于需要特殊处理的命令（如复杂参数转换、日志记录、
-/// 权限检查等），创建专用 Handler：
-/// ```rust
-/// pub struct MyCommandHandler;
-/// #[async_trait::async_trait]
-/// impl CommandHandler for MyCommandHandler {
-///     async fn execute(...) -> Result<String, String> { ... }
-/// }
-/// ```
-///
-/// 专用 Handler 在 `build_default_dispatcher()` 中注册，
-/// 会在 GenericCommandHandler 之后被尝试（作为覆盖）。
-pub struct GenericCommandHandler;
-
-#[async_trait::async_trait]
-impl CommandHandler for GenericCommandHandler {
-    async fn execute(
-        &self,
-        args: &Value,
-        db: &DatabaseConnection,
-        app_handle: &AppHandle,
-    ) -> Result<String, String> {
-        // args 中包含 "command" 字段标识要执行的命令
-        let command_name = args
-            .get("command")
-            .and_then(|c| c.as_str())
-            .or_else(|| args.get("_command").and_then(|c| c.as_str()))
-            .ok_or_else(|| "GenericCommandHandler 需要 command 参数".to_string())?;
-
-        let command_args = args.get("args").cloned().unwrap_or(Value::Null);
-
-        // 第一优先级：使用 #[agent_command] 宏注册表进行元数据查询
-        // 宏注册表用于：命令发现、安全检查、调用模式判断
-        if let Some(meta) = agent_command_types::registry::get_by_name(command_name) {
-            debug!(
-                "Command found in macro registry: {} (domain={}, call_mode={:?}, safety={:?})",
-                command_name, meta.domain, meta.call_mode, meta.safety
-            );
-
-            // 根据 CallMode 决定是否允许自动调用
-            match meta.call_mode {
-                agent_command_types::CallMode::Manual => {
-                    // Manual 模式需要手动实现
-                    return Err(format!(
-                        "命令 '{}' 标记为 Manual 模式，需要创建专用 Handler。\n\
-                         \n\
-                         ## 命令元数据\n\
-                         - 领域: {}\n\
-                         - 安全级别: {:?}\n\
-                         - 描述: {}\n\
-                         \n\
-                         ## 解决方案\n\
-                         在 command_bridge.rs 中实现 CommandHandler",
-                        command_name,
-                        meta.domain,
-                        meta.safety,
-                        meta.description
-                    ));
-                },
-                _ => {
-                    // StateOnly 和 StateInput 模式都可以尝试自动调用
-                    // 继续使用 build.rs 生成的机制进行实际调用
-                    debug!("Attempting auto-dispatch for {} via build.rs index", command_name);
-                },
+    // 通用命令调用
+    match try_invoke_command(command, args, app_handle, db).await {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            // 返回诊断信息
+            let registry = CommandRegistry::from_registry();
+            if let Some(meta) = registry.find_by_name(command) {
+                Err(format!(
+                    "命令 '{}' 已注册但调用失败。\n\
+                     \n\
+                     ## 命令元数据\n\
+                     - 领域: {}\n\
+                     - 安全级别: {}\n\
+                     - 描述: {}\n\
+                     \n\
+                     ## 错误详情\n\
+                     {}",
+                    command,
+                    meta.domain.as_str(),
+                    meta.safety.as_str(),
+                    meta.description,
+                    e
+                ))
+            } else {
+                Err(format!(
+                    "命令 '{}' 不在已知命令列表中。\n\
+                     \n\
+                     ## 排查步骤\n\
+                     1. 确认命令已在 register_commands.rs 中注册\n\
+                     2. 使用 list_available_commands 查看所有可用命令\n\
+                     3. 添加 #[agent_command] 宏标注以获得精确元数据\n                     \n\
+                     原始错误: {}",
+                    command, e
+                ))
             }
-        } else {
-            // 命令不在宏注册表中
-            debug!(
-                "Command '{}' not found in macro registry, will try build.rs index",
-                command_name
-            );
-        }
-
-        // 实际的命令调用使用 build.rs 生成的机制
-        // 宏注册表仅提供元数据，实际调用通过路径查找
-        match try_invoke_command(command_name, &command_args, app_handle, db).await {
-            Ok(result) => Ok(result),
-            Err(e) => {
-                warn!(
-                    "Command dispatch failed for {}: {}",
-                    command_name, e
-                );
-                Err(e)
-            }
-        }
+        },
     }
 }
 
@@ -2761,15 +2332,15 @@ impl CommandHandler for GenericCommandHandler {
 ///
 /// # 工作原理
 ///
-/// 1. 从 COMMAND_PATH_MAP 查找命令完整路径
+/// 1. 从宏注册表查找命令元数据（包含 full_path）
 /// 2. 将 serde_json::Value 参数传递给命令
 /// 3. 返回序列化的结果
 ///
 /// # 对 fork 用户的指导
 ///
 /// 新增命令后：
-/// 1. 在 register_commands.rs 中注册命令
-/// 2. 重新编译项目（build.rs 会自动生成新索引）
+/// 1. 在 #[tauri::command] 上添加 #[agent_command] 宏标注
+/// 2. 重新编译项目（宏会自动收集元数据）
 /// 3. 命令可被此函数自动调用
 pub async fn try_invoke_command(
     short_name: &str,
@@ -2783,14 +2354,12 @@ pub async fn try_invoke_command(
     // 调用命令
     match invoke_command_direct(&full_path, args, app_handle).await {
         Ok(result) => Ok(serde_json::to_string_pretty(&result).map_err(|e| e.to_string())?),
-        Err(e) => {
-            Err(format!(
-                "命令调用失败: {}\n\
+        Err(e) => Err(format!(
+            "命令调用失败: {}\n\
                  命令路径: {}\n\
                  命令参数: {}",
-                e, full_path, args
-            ))
-        }
+            e, full_path, args
+        )),
     }
 }
 
@@ -2801,17 +2370,17 @@ fn resolve_command_path(short_name: &str) -> Result<String, String> {
         return Ok(short_name.to_string());
     }
 
-    // 从映射表查找
-    for (name, path) in COMMAND_PATH_MAP {
-        if *name == short_name {
-            return Ok(path.to_string());
-        }
+    // 从宏注册表查找 full_path
+    if let Some(meta) = agent_command_types::registry::find_by_name(short_name) {
+        // 去除 crate:: 前缀，Tauri 命令路径不需要
+        let path = meta.full_path();
+        return Ok(path);
     }
 
     Err(format!(
         "未找到命令 '{}'。可能原因：\n\
          1. 命令名称拼写错误\n\
-         2. 命令未在 register_commands.rs 中注册\n\
+         2. 命令未添加 #[agent_command] 宏标注\n\
          3. 需要重新编译项目（cargo build）",
         short_name
     ))
@@ -2827,65 +2396,32 @@ fn build_invoke_args(args: &Value) -> Option<&Value> {
 }
 
 /// 通过直接引用调用 Tauri 命令
-///
-/// 由于 Tauri 2.x 不支持 AppHandle::invoke，我们需要为每个命令
-/// 创建一个直接调用的包装函数。这些函数由 build.rs 生成并包含。
-///
-/// 这里我们使用一个简化的方式：
-/// 1. 通过命令路径查找对应的调用函数
-/// 2. 如果找不到，返回需要手动实现的错误
 async fn invoke_command_direct(
     full_path: &str,
     args: &Value,
     app_handle: &AppHandle,
 ) -> Result<Value, String> {
-    // 检查命令是否存在
-    let cmd_exists = ALL_COMMAND_PATHS.contains(&full_path);
-    if !cmd_exists {
-        return Err(format!(
-            "命令 '{}' 不存在。\n\
-             可能原因：\n\
-             1. 命令未在 register_commands.rs 中注册\n\
-             2. 需要重新编译项目（cargo build）",
-            full_path
-        ));
-    }
+    // 从宏注册表获取命令元数据
+    let cmd_name = full_path.split("::").last().unwrap_or(full_path);
 
-    // 从 COMMAND_TYPES 获取命令类型
-    let cmd_type = COMMAND_TYPES
-        .iter()
-        .find(|(name, _)| {
-            full_path.split("::").last().map_or(false, |n| n == *name)
-        })
-        .map(|(_, t)| *t)
-        .unwrap_or("unknown");
+    let meta = agent_command_types::registry::find_by_name(cmd_name)
+        .ok_or_else(|| format!("命令 '{}' 未在宏注册表中找到", full_path))?;
 
-    // 根据命令类型选择调用方式
-    match cmd_type {
-        "state_only" => {
-            // State-only 命令：只有 state 参数
+    // 根据 call_mode 选择调用方式
+    match meta.call_mode {
+        agent_command_types::CallMode::StateOnly => {
             invoke_state_only(full_path, app_handle).await
-        }
-        "state_input" => {
-            // State+Input 命令：有 state + input 参数
+        },
+        agent_command_types::CallMode::StateInput => {
             let invoke_args = build_invoke_args(args);
             invoke_state_input(full_path, invoke_args, app_handle).await
-        }
-        _ => {
-            // unknown 类型：需要手动实现
+        },
+        agent_command_types::CallMode::Manual => {
             Err(format!(
-                "命令 '{}' 的调用类型未知（基于命名推断）。\n\
-                 \n\
-                 ## 解决方案\n\
-                 此命令的命名不符合标准模式，系统无法自动推断调用方式。\n\
-                 \n\
-                 请在 command_bridge.rs 的 invoke_command_unknown 函数中\n\
-                 添加对此命令的特殊处理逻辑。\n\
-                 \n\
-                 命令路径: {}",
-                full_path, full_path
+                "命令 '{}' 标记为 Manual 模式，需要专用 Handler。\n命令路径: {}",
+                cmd_name, full_path
             ))
-        }
+        },
     }
 }
 

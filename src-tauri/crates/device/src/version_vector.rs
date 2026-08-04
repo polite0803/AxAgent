@@ -71,12 +71,8 @@ impl VersionVector {
         let mut has_strict = false; // 存在严格不等
 
         // 检查所有设备
-        let all_devices: std::collections::HashSet<_> = self
-            .entries
-            .keys()
-            .chain(other.entries.keys())
-            .cloned()
-            .collect();
+        let all_devices: std::collections::HashSet<_> =
+            self.entries.keys().chain(other.entries.keys()).cloned().collect();
 
         for device_id in &all_devices {
             let a = self.get(device_id);

@@ -2,6 +2,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
+use agent_macro::agent_command;
 use axagent_runtime::theme_engine::{Theme, ThemeEngine, ThemeMetadata, XTermTheme};
 use std::sync::Arc;
 use tauri::State;
@@ -11,6 +12,7 @@ pub struct ThemeState {
     pub engine: ThemeEngine,
 }
 
+#[agent_command(domain = theme, safety = Safe, call_mode = StateOnly, description = "列出所有主题")]
 #[tauri::command]
 pub async fn list_themes(
     state: State<'_, Arc<RwLock<ThemeState>>>,
@@ -19,6 +21,7 @@ pub async fn list_themes(
     Ok(state.engine.list_themes())
 }
 
+#[agent_command(domain = theme, safety = Safe, call_mode = StateInput, description = "获取指定主题")]
 #[tauri::command]
 pub async fn get_theme(
     state: State<'_, Arc<RwLock<ThemeState>>>,
@@ -30,6 +33,7 @@ pub async fn get_theme(
     })
 }
 
+#[agent_command(domain = theme, safety = Safe, call_mode = StateInput, description = "获取 XTerm 主题")]
 #[tauri::command]
 pub async fn get_xterm_theme(
     state: State<'_, Arc<RwLock<ThemeState>>>,
@@ -42,6 +46,7 @@ pub async fn get_xterm_theme(
     Ok(theme.to_xterm_theme())
 }
 
+#[agent_command(domain = theme, safety = Caution, call_mode = StateInput, description = "保存主题")]
 #[tauri::command]
 pub async fn save_theme(
     state: State<'_, Arc<RwLock<ThemeState>>>,
@@ -51,6 +56,7 @@ pub async fn save_theme(
     state.engine.save_theme(&theme)
 }
 
+#[agent_command(domain = theme, safety = Dangerous, call_mode = StateInput, description = "删除主题")]
 #[tauri::command]
 pub async fn delete_theme(
     state: State<'_, Arc<RwLock<ThemeState>>>,
@@ -60,6 +66,7 @@ pub async fn delete_theme(
     state.engine.delete_theme(&name)
 }
 
+#[agent_command(domain = theme, safety = Safe, call_mode = StateOnly, description = "加载用户主题")]
 #[tauri::command]
 pub async fn load_user_themes(
     state: State<'_, Arc<RwLock<ThemeState>>>,

@@ -562,3 +562,64 @@ pub mod fleet {
     /// 同名 slug 的成员已存在（slug 是路由键，必须唯一）
     pub const SLUG_EXISTS: &str = "FLEET_SLUG_EXISTS";
 }
+
+/// 设备同步（Device Sync）相关错误码
+pub mod device_sync {
+    // ─── 设备管理 ────────────────────────────────────────────────────
+    /// 设备未找到
+    pub const DEVICE_NOT_FOUND: &str = "DEVICE_SYNC_DEVICE_NOT_FOUND";
+    /// 设备已配对
+    pub const DEVICE_ALREADY_PAIRED: &str = "DEVICE_SYNC_DEVICE_ALREADY_PAIRED";
+    /// 设备未配对
+    pub const DEVICE_NOT_PAIRED: &str = "DEVICE_SYNC_DEVICE_NOT_PAIRED";
+    /// 设备已禁用
+    pub const DEVICE_DISABLED: &str = "DEVICE_SYNC_DEVICE_DISABLED";
+    /// 配对码无效
+    pub const INVALID_PAIRING_CODE: &str = "DEVICE_SYNC_INVALID_PAIRING_CODE";
+    /// 配对码已过期
+    pub const PAIRING_CODE_EXPIRED: &str = "DEVICE_SYNC_PAIRING_CODE_EXPIRED";
+    /// 信任级别不足
+    pub const INSUFFICIENT_TRUST_LEVEL: &str = "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL";
+    /// 设备权限不存在
+    pub const PERMISSIONS_NOT_FOUND: &str = "DEVICE_SYNC_PERMISSIONS_NOT_FOUND";
+
+    // ─── 权限管理 ────────────────────────────────────────────────────
+    /// 权限不足
+    pub const PERMISSION_DENIED: &str = "DEVICE_SYNC_PERMISSION_DENIED";
+
+    // ─── 同步操作 ────────────────────────────────────────────────────
+    /// 同步失败
+    pub const SYNC_FAILED: &str = "DEVICE_SYNC_FAILED";
+    /// 同步超时
+    pub const SYNC_TIMEOUT: &str = "DEVICE_SYNC_TIMEOUT";
+    /// 冲突检测失败
+    pub const CONFLICT_DETECTION_FAILED: &str = "DEVICE_SYNC_CONFLICT_DETECTION_FAILED";
+    /// 冲突解决失败
+    pub const CONFLICT_RESOLUTION_FAILED: &str = "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED";
+    /// 冲突记录不存在
+    pub const CONFLICT_NOT_FOUND: &str = "DEVICE_SYNC_CONFLICT_NOT_FOUND";
+    /// 同步已在进行中
+    pub const SYNC_ALREADY_IN_PROGRESS: &str = "DEVICE_SYNC_ALREADY_IN_PROGRESS";
+    /// 无待同步变更
+    pub const NO_CHANGES_TO_SYNC: &str = "DEVICE_SYNC_NO_CHANGES_TO_SYNC";
+
+    // ─── 加密 ────────────────────────────────────────────────────────
+    /// 加密失败
+    pub const ENCRYPTION_FAILED: &str = "DEVICE_SYNC_ENCRYPTION_FAILED";
+    /// 解密失败
+    pub const DECRYPTION_FAILED: &str = "DEVICE_SYNC_DECRYPTION_FAILED";
+    /// 加密必须提供密码
+    pub const PASSWORD_REQUIRED: &str = "DEVICE_SYNC_PASSWORD_REQUIRED";
+    /// 加密密码不能为空
+    pub const PASSWORD_EMPTY: &str = "DEVICE_SYNC_PASSWORD_EMPTY";
+    /// 解密需要提供盐值
+    pub const SALT_REQUIRED: &str = "DEVICE_SYNC_SALT_REQUIRED";
+
+    // ─── 存储 ────────────────────────────────────────────────────────
+    /// 存储操作失败
+    pub const STORAGE_OPERATION_FAILED: &str = "DEVICE_SYNC_STORAGE_OPERATION_FAILED";
+
+    // ─── 策略 ────────────────────────────────────────────────────────
+    /// 策略操作失败
+    pub const POLICY_OPERATION_FAILED: &str = "DEVICE_SYNC_POLICY_OPERATION_FAILED";
+}

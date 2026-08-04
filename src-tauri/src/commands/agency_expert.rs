@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::expert as expert_err;
+use agent_macro::agent_command;
 use axagent_dao::repo::provider::{self as provider_repo, get_active_key};
 use axagent_dao::repo::settings::get_settings;
 use axagent_entities::agency_experts;
@@ -301,6 +302,7 @@ fn generate_workflow_ids(expert_id: &str, workflows: &[RecommendedWorkflow]) -> 
         .collect()
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "导入机构专家")]
 #[tauri::command]
 pub async fn import_agency_experts(
     state: State<'_, AppState>,
@@ -470,6 +472,7 @@ pub async fn import_agency_experts(
     Ok(ImportResult { count, workflows_created, tools_matched, errors })
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "列出机构专家")]
 #[tauri::command]
 pub async fn list_agency_experts(
     state: State<'_, AppState>,
@@ -564,6 +567,7 @@ fn extract_json_from_text(text: &str) -> Result<serde_json::Value, String> {
     Err("No JSON found in response".to_string())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "提取专家结构")]
 #[tauri::command]
 pub async fn extract_expert_structure(
     state: State<'_, AppState>,
@@ -735,6 +739,7 @@ pub async fn extract_expert_structure(
     Ok(ExtractExpertStructureResult { workflows, tools })
 }
 
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateOnly, description = "清空机构专家")]
 #[tauri::command]
 pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportResult, String> {
     let db = state.harness.db();
@@ -774,6 +779,7 @@ pub struct UpdateExpertRequest {
     pub avg_token_cost: Option<i64>,
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "更新机构专家")]
 #[tauri::command]
 pub async fn update_agency_expert(
     state: State<'_, AppState>,
@@ -864,6 +870,7 @@ pub struct DeleteExpertRequest {
     pub id: String,
 }
 
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateInput, description = "删除机构专家")]
 #[tauri::command]
 pub async fn delete_agency_expert(
     state: State<'_, AppState>,
@@ -876,6 +883,7 @@ pub async fn delete_agency_expert(
     Ok(())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "导出机构专家")]
 #[tauri::command]
 pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String, String> {
     let db = state.harness.db();

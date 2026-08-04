@@ -60,11 +60,12 @@ fn parse_entity_type(s: &str) -> EntityType {
 
 /// 将 Sea-ORM 模型转换为 SyncPolicy
 fn model_to_sync_policy(model: &sync_policy::Model) -> SyncPolicy {
-    let sync_scope: Vec<EntityType> = serde_json::from_str::<Vec<String>>(&model.allowed_entity_types)
-        .unwrap_or_default()
-        .into_iter()
-        .map(|s| parse_entity_type(&s))
-        .collect();
+    let sync_scope: Vec<EntityType> =
+        serde_json::from_str::<Vec<String>>(&model.allowed_entity_types)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|s| parse_entity_type(&s))
+            .collect();
 
     let updated_at = chrono::DateTime::from_timestamp(model.updated_at / 1000, 0)
         .map(|dt| dt.format("%Y-%m-%dT%H:%M:%SZ").to_string())
@@ -89,7 +90,8 @@ fn model_to_sync_policy(model: &sync_policy::Model) -> SyncPolicy {
 pub async fn save_policy(db: &DatabaseConnection, policy: &SyncPolicy) -> Result<()> {
     let now = chrono::Utc::now().timestamp_millis();
 
-    let sync_scope: Vec<String> = policy.sync_scope.iter().map(|et| entity_type_to_str(et).to_string()).collect();
+    let sync_scope: Vec<String> =
+        policy.sync_scope.iter().map(|et| entity_type_to_str(et).to_string()).collect();
     let sync_scope_json = serde_json::to_string(&sync_scope).unwrap_or_default();
     let conflict_strategy_str = conflict_strategy_to_str(&policy.conflict_strategy);
 
@@ -134,10 +136,8 @@ pub async fn get_all_policies(db: &DatabaseConnection) -> Result<Vec<SyncPolicy>
 
 /// 获取启用的策略
 pub async fn get_enabled_policies(db: &DatabaseConnection) -> Result<Vec<SyncPolicy>> {
-    let rows = sync_policy::Entity::find()
-        .filter(sync_policy::Column::IsEnabled.eq(true))
-        .all(db)
-        .await?;
+    let rows =
+        sync_policy::Entity::find().filter(sync_policy::Column::IsEnabled.eq(true)).all(db).await?;
     Ok(rows.iter().map(model_to_sync_policy).collect())
 }
 

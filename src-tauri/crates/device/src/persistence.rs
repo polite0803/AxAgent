@@ -10,8 +10,7 @@ use std::path::PathBuf;
 use tokio::sync::RwLock;
 
 use axagent_harness::device_sync::{
-    AuditLogEntry, ChangeLogEntry, DeviceInfo, DevicePermissions, SyncHistoryEntry,
-    SyncPolicy,
+    AuditLogEntry, ChangeLogEntry, DeviceInfo, DevicePermissions, SyncHistoryEntry, SyncPolicy,
 };
 
 /// 持久化存储路径配置
@@ -79,8 +78,7 @@ impl PersistentStore {
 
     /// 保存设备列表
     pub async fn save_devices(&self, devices: &[DeviceInfo]) -> Result<(), String> {
-        self.save_json(&self.config.devices_path(), &devices.to_vec())
-            .await
+        self.save_json(&self.config.devices_path(), &devices.to_vec()).await
     }
 
     // ─── 变更日志存储 ────────────────────────────────────────────────────
@@ -95,8 +93,7 @@ impl PersistentStore {
 
     /// 保存变更日志
     pub async fn save_change_log(&self, entries: &[ChangeLogEntry]) -> Result<(), String> {
-        self.save_json(&self.config.change_log_path(), &entries.to_vec())
-            .await
+        self.save_json(&self.config.change_log_path(), &entries.to_vec()).await
     }
 
     // ─── 同步策略存储 ────────────────────────────────────────────────────
@@ -111,8 +108,7 @@ impl PersistentStore {
 
     /// 保存策略列表
     pub async fn save_policies(&self, policies: &[SyncPolicy]) -> Result<(), String> {
-        self.save_json(&self.config.policies_path(), &policies.to_vec())
-            .await
+        self.save_json(&self.config.policies_path(), &policies.to_vec()).await
     }
 
     // ─── 历史记录存储 ────────────────────────────────────────────────────
@@ -127,8 +123,7 @@ impl PersistentStore {
 
     /// 保存同步历史
     pub async fn save_history(&self, history: &[SyncHistoryEntry]) -> Result<(), String> {
-        self.save_json(&self.config.history_path(), &history.to_vec())
-            .await
+        self.save_json(&self.config.history_path(), &history.to_vec()).await
     }
 
     /// 加载审计日志
@@ -153,8 +148,7 @@ impl PersistentStore {
         &self,
         permissions: &HashMap<String, DevicePermissions>,
     ) -> Result<(), String> {
-        self.save_json(&self.config.permissions_path(), permissions)
-            .await
+        self.save_json(&self.config.permissions_path(), permissions).await
     }
 
     // ─── 内部工具方法 ─────────────────────────────────────────────────────
@@ -175,17 +169,13 @@ impl PersistentStore {
             return Ok(None);
         }
 
-        let data: T = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+        let data: T =
+            serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
         Ok(Some(data))
     }
 
-    async fn save_json<T: serde::Serialize>(
-        &self,
-        path: &PathBuf,
-        data: &T,
-    ) -> Result<(), String> {
+    async fn save_json<T: serde::Serialize>(&self, path: &PathBuf, data: &T) -> Result<(), String> {
         self.ensure_dir().await?;
 
         let content = serde_json::to_string_pretty(data)
@@ -214,11 +204,7 @@ pub struct CachedStore<T> {
 
 impl<T: Clone> CachedStore<T> {
     pub fn new(persistence: PersistentStore) -> Self {
-        Self {
-            inner: RwLock::new(None),
-            persistence,
-            config_fn: Box::new(PathBuf::new),
-        }
+        Self { inner: RwLock::new(None), persistence, config_fn: Box::new(PathBuf::new) }
     }
 
     pub fn persistence(&self) -> &PersistentStore {

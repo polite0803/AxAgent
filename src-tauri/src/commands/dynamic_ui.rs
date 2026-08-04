@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use axagent_entities::dynamic_ui_form_data::Column as FormDataColumn;
 use axagent_entities::dynamic_ui_form_data::{
     ActiveModel as FormDataActiveModel, Entity as FormDataEntity, Model as FormDataModel,
@@ -242,6 +244,7 @@ async fn cleanup_old_versions(
 
 // ── Schema CRUD ──
 
+#[agent_command(domain = "dynamic_ui", safety = Safe, call_mode = StateInput, description = "列出动态UI Schema")]
 #[tauri::command]
 pub async fn list_dynamic_ui_schemas(
     state: State<'_, AppState>,
@@ -258,6 +261,7 @@ pub async fn list_dynamic_ui_schemas(
     Ok(models.into_iter().map(model_to_dto).collect())
 }
 
+#[agent_command(domain = "dynamic_ui", safety = Safe, call_mode = StateInput, description = "获取动态UI Schema详情")]
 #[tauri::command]
 pub async fn get_dynamic_ui_schema(
     state: State<'_, AppState>,
@@ -272,6 +276,7 @@ pub async fn get_dynamic_ui_schema(
     Ok(model_to_dto(model))
 }
 
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "创建动态UI Schema")]
 #[tauri::command]
 pub async fn create_dynamic_ui_schema(
     state: State<'_, AppState>,
@@ -304,6 +309,7 @@ pub async fn create_dynamic_ui_schema(
     Ok(model_to_dto(model))
 }
 
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "更新动态UI Schema")]
 #[tauri::command]
 pub async fn update_dynamic_ui_schema(
     state: State<'_, AppState>,
@@ -380,6 +386,7 @@ pub async fn update_dynamic_ui_schema(
     Ok(model_to_dto(updated))
 }
 
+#[agent_command(domain = "dynamic_ui", safety = Dangerous, call_mode = StateInput, description = "删除动态UI Schema")]
 #[tauri::command]
 pub async fn delete_dynamic_ui_schema(
     state: State<'_, AppState>,
@@ -425,6 +432,7 @@ pub async fn delete_dynamic_ui_schema(
 // ── 版本管理命令 ──
 
 /// 查询指定 schema 的所有版本历史
+#[agent_command(domain = "dynamic_ui", safety = Safe, call_mode = StateInput, description = "列出Schema版本历史")]
 #[tauri::command]
 pub async fn list_dynamic_ui_schema_versions(
     state: State<'_, AppState>,
@@ -457,6 +465,7 @@ pub async fn list_dynamic_ui_schema_versions(
 }
 
 /// 获取指定版本的详细信息
+#[agent_command(domain = "dynamic_ui", safety = Safe, call_mode = StateInput, description = "获取Schema版本详情")]
 #[tauri::command]
 pub async fn get_dynamic_ui_schema_version(
     state: State<'_, AppState>,
@@ -472,6 +481,7 @@ pub async fn get_dynamic_ui_schema_version(
 }
 
 /// 回滚到指定版本（会创建当前版本的快照，然后覆盖 schema）
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "回滚Schema到指定版本")]
 #[tauri::command]
 pub async fn restore_dynamic_ui_schema_version(
     state: State<'_, AppState>,
@@ -540,6 +550,7 @@ pub async fn restore_dynamic_ui_schema_version(
 
 // ── 表单数据命令（不变） ──
 
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "保存动态UI表单数据")]
 #[tauri::command]
 pub async fn save_dynamic_ui_form_data(
     state: State<'_, AppState>,
@@ -575,6 +586,7 @@ pub async fn save_dynamic_ui_form_data(
     Ok(form_data_model_to_dto(model))
 }
 
+#[agent_command(domain = "dynamic_ui", safety = Safe, call_mode = StateInput, description = "获取动态UI表单数据")]
 #[tauri::command]
 pub async fn get_dynamic_ui_form_data(
     state: State<'_, AppState>,
@@ -592,6 +604,7 @@ pub async fn get_dynamic_ui_form_data(
     Ok(model.map(form_data_model_to_dto))
 }
 
+#[agent_command(domain = "dynamic_ui", safety = Dangerous, call_mode = StateInput, description = "删除动态UI表单数据")]
 #[tauri::command]
 pub async fn delete_dynamic_ui_form_data(
     state: State<'_, AppState>,
@@ -661,6 +674,7 @@ fn strip_code_fence(text: &str) -> String {
 ///
 /// 优先调用首个启用的 LLM provider 进行精准编辑；未配置 provider 或调用失败时返回错误，
 /// 由前端 `nl2ui-edit.ts` 降级为本地重新生成。
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "AI编辑动态UI Schema")]
 #[tauri::command]
 pub async fn edit_dynamic_ui_schema_nl(
     state: State<'_, AppState>,
@@ -777,6 +791,7 @@ UI Schema 节点结构（每个节点都是一个 JSON 对象）：
 ///
 /// 优先调用首个启用的 LLM provider 进行生成；未配置 provider 或调用失败时返回错误，
 /// 由前端 `nl2ui.ts` 降级为本地规则生成。
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "AI生成动态UI Schema")]
 #[tauri::command]
 pub async fn generate_dynamic_ui_schema_nl(
     state: State<'_, AppState>,
@@ -871,6 +886,7 @@ fn pin_model_to_dto(model: PinModel) -> DynamicUIPinDTO {
 }
 
 /// 列出所有导航钉入配置
+#[agent_command(domain = "dynamic_ui", safety = Safe, call_mode = StateOnly, description = "列出导航钉入配置")]
 #[tauri::command]
 pub async fn list_dynamic_ui_pins(
     state: State<'_, AppState>,
@@ -889,6 +905,7 @@ pub async fn list_dynamic_ui_pins(
 ///
 /// - `position` 未提供时，自动取该分组内当前最大排序位 + 1（追加到末尾）。
 /// - 已存在同名 schema 的钉入时，覆盖其 title/group_name/position。
+#[agent_command(domain = "dynamic_ui", safety = Caution, call_mode = StateInput, description = "钉入动态页面到导航")]
 #[tauri::command]
 pub async fn pin_dynamic_ui_schema(
     state: State<'_, AppState>,
@@ -951,6 +968,7 @@ pub async fn pin_dynamic_ui_schema(
 }
 
 /// 取消钉入（移除导航配置）
+#[agent_command(domain = "dynamic_ui", safety = Dangerous, call_mode = StateInput, description = "取消导航钉入")]
 #[tauri::command]
 pub async fn unpin_dynamic_ui_schema(
     state: State<'_, AppState>,

@@ -18,10 +18,7 @@ pub enum PermissionCheckResult {
     /// 允许操作
     Allowed,
     /// 权限不足
-    Denied {
-        reason: String,
-        required_permission: PermissionType,
-    },
+    Denied { reason: String, required_permission: PermissionType },
     /// 设备未注册
     DeviceNotRegistered,
     /// 设备已被禁用
@@ -34,10 +31,7 @@ impl PermissionCheckResult {
     }
 
     pub fn denied(reason: impl Into<String>, permission: PermissionType) -> Self {
-        PermissionCheckResult::Denied {
-            reason: reason.into(),
-            required_permission: permission,
-        }
+        PermissionCheckResult::Denied { reason: reason.into(), required_permission: permission }
     }
 }
 
@@ -69,8 +63,7 @@ impl PermissionChecker {
 
     /// 检查设备是否可以解决冲突
     pub async fn check_resolve_conflicts(&self, device_id: &str) -> PermissionCheckResult {
-        self.check_permission(device_id, PermissionType::ResolveConflicts)
-            .await
+        self.check_permission(device_id, PermissionType::ResolveConflicts).await
     }
 
     /// 检查设备是否可以管理其他设备
@@ -106,7 +99,7 @@ impl PermissionChecker {
                 } else {
                     PermissionCheckResult::Allowed
                 }
-            }
+            },
         }
     }
 
@@ -169,10 +162,8 @@ mod tests {
         let store = Arc::new(RwLock::new(PermissionStore::new()));
         {
             let mut s = store.write().await;
-            s.init_device_permissions("device-1", TrustLevel::Full)
-                .await;
-            s.init_device_permissions("device-2", TrustLevel::Standard)
-                .await;
+            s.init_device_permissions("device-1", TrustLevel::Full).await;
+            s.init_device_permissions("device-2", TrustLevel::Standard).await;
         }
         PermissionChecker::new(store)
     }

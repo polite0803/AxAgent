@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "Smart-Routing-Aufruf fehlgeschlagen",
     "FLEET_EXECUTION_FAILED": "Mitglied konnte die Aufgabe nicht ausführen",
     "FLEET_TARGET_NOT_IN_FLEET": "Zielmitglied existiert nicht in diesem Büro",
-    "FLEET_SLUG_EXISTS": "In diesem Büro existiert bereits ein Mitglied mit diesem Slug"
+    "FLEET_SLUG_EXISTS": "In diesem Büro existiert bereits ein Mitglied mit diesem Slug",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "Gerät nicht gefunden",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Gerät bereits gekoppelt",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Gerät nicht gekoppelt",
+    "DEVICE_SYNC_DEVICE_DISABLED": "Gerät deaktiviert",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "Ungültiger Kopplungscode",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "Kopplungscode abgelaufen",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "Nicht ausreichende Vertrauensstufe",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "Geräteberechtigungen nicht gefunden",
+    "DEVICE_SYNC_PERMISSION_DENIED": "Zugriff verweigert",
+    "DEVICE_SYNC_FAILED": "Synchronisierung fehlgeschlagen",
+    "DEVICE_SYNC_TIMEOUT": "Synchronisierungszeitüberschreitung",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "Konflikterkennung fehlgeschlagen",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "Konfliktlösung fehlgeschlagen",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "Konfliktaufzeichnung nicht gefunden",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "Synchronisierung bereits im Gange",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "Keine Änderungen zu synchronisieren",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "Verschlüsselung fehlgeschlagen",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "Entschlüsselung fehlgeschlagen",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "Passwort für Verschlüsselung erforderlich",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "Verschlüsselungspasswort darf nicht leer sein",
+    "DEVICE_SYNC_SALT_REQUIRED": "Salz für Entschlüsselung erforderlich",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Speichervorgang fehlgeschlagen",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Richtlinienvorgang fehlgeschlagen"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

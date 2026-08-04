@@ -28,9 +28,7 @@ pub struct VersionVector {
 impl VersionVector {
     /// 创建空版本向量
     pub fn new() -> Self {
-        Self {
-            entries: HashMap::new(),
-        }
+        Self { entries: HashMap::new() }
     }
 
     /// 从条目列表创建
@@ -46,10 +44,7 @@ impl VersionVector {
     pub fn to_entries(&self) -> Vec<VVEntry> {
         self.entries
             .iter()
-            .map(|(site_id, counter)| VVEntry {
-                site_id: site_id.clone(),
-                counter: *counter,
-            })
+            .map(|(site_id, counter)| VVEntry { site_id: site_id.clone(), counter: *counter })
             .collect()
     }
 
@@ -74,10 +69,7 @@ impl VersionVector {
 
     /// 检查是否包含另一个版本向量（所有条目 >= 另一个的对应条目）
     pub fn contains(&self, other: &VersionVector) -> bool {
-        other
-            .entries
-            .iter()
-            .all(|(site_id, counter)| self.get(site_id) >= *counter)
+        other.entries.iter().all(|(site_id, counter)| self.get(site_id) >= *counter)
     }
 
     /// 检查是否与另一个版本向量并发（互不包含）
@@ -98,11 +90,8 @@ impl VersionVector {
 
 impl std::fmt::Display for VersionVector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let entries: Vec<String> = self
-            .entries
-            .iter()
-            .map(|(k, v)| format!("{}:{}", k, v))
-            .collect();
+        let entries: Vec<String> =
+            self.entries.iter().map(|(k, v)| format!("{}:{}", k, v)).collect();
         write!(f, "[{}]", entries.join(", "))
     }
 }

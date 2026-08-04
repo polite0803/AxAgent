@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use tauri::command;
 
@@ -30,6 +31,7 @@ pub struct EvolutionStats {
     pub llm_provider_connected: bool,
 }
 
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取进化统计")]
 #[command]
 pub async fn get_evolution_stats(
     state: tauri::State<'_, AppState>,
@@ -147,6 +149,7 @@ pub async fn get_evolution_stats(
 // ---------------------------------------------------------------------------
 
 /// 获取学习到的模式（高价值和失败模式）
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateInput, description = "获取学习模式列表")]
 #[tauri::command]
 pub async fn pattern_list(
     app_state: tauri::State<'_, AppState>,
@@ -194,6 +197,7 @@ pub async fn pattern_list(
 }
 
 /// 获取跨会话洞察
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取跨会话洞察")]
 #[tauri::command]
 pub async fn cross_session_insights(
     app_state: tauri::State<'_, AppState>,
@@ -208,6 +212,7 @@ pub async fn cross_session_insights(
 // ---------------------------------------------------------------------------
 
 /// 启动指定技能的进化
+#[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "启动技能进化")]
 #[tauri::command]
 pub async fn skill_evolution_start(
     app_state: tauri::State<'_, AppState>,
@@ -273,6 +278,7 @@ pub async fn skill_evolution_start(
 }
 
 /// 获取当前技能进化状态
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取技能进化状态")]
 #[tauri::command]
 pub async fn skill_evolution_status(
     app_state: tauri::State<'_, AppState>,
@@ -286,6 +292,7 @@ pub async fn skill_evolution_status(
 }
 
 /// 获取当前自适应状态
+#[agent_command(domain = evolution, safety = Safe, call_mode = StateOnly, description = "获取自适应状态")]
 #[tauri::command]
 pub async fn adaptation_status(
     app_state: tauri::State<'_, AppState>,

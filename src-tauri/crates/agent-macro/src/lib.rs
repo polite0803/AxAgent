@@ -2,6 +2,8 @@
 
 //! Agent 命令宏 - 为 Tauri 命令添加元数据
 //!
+//! 自动生成 `full_path`（通过 `module_path!()` + 函数名拼接），无需手动指定。
+//!
 //! # 使用方式
 //!
 //! ```rust,ignore
@@ -19,7 +21,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Token};
+use syn::{Token, parse_macro_input};
 
 /// 命令元数据属性宏
 #[proc_macro_attribute]
@@ -28,7 +30,6 @@ pub fn agent_command(attr: TokenStream, item: TokenStream) -> TokenStream {
     let cmd = parse_macro_input!(item as syn::ItemFn);
     let cmd_name = &cmd.sig.ident;
 
-    let domain = &args.domain;
     let safety = &args.safety;
     let call_mode = &args.call_mode;
     let description = &args.description;
@@ -38,6 +39,8 @@ pub fn agent_command(attr: TokenStream, item: TokenStream) -> TokenStream {
         &format!("__AGENT_META_{}", cmd_name.to_string().to_uppercase()),
         cmd_name.span(),
     );
+
+    let domain_lit = syn::LitStr::new(&args.domain, proc_macro2::Span::call_site());
 
     let expanded = quote! {
         // 保留原始命令实现
@@ -49,7 +52,8 @@ pub fn agent_command(attr: TokenStream, item: TokenStream) -> TokenStream {
         pub const #meta_const_name: agent_command_types::CommandMetadata =
             agent_command_types::CommandMetadata::new(
                 stringify!(#cmd_name),
-                stringify!(#domain),
+                module_path!(),
+                #domain_lit,
                 agent_command_types::CommandSafety::#safety,
                 agent_command_types::CallMode::#call_mode,
                 #description,
@@ -64,7 +68,7 @@ pub fn agent_command(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 /// 命令参数解析
 struct AgentCommandArgs {
-    domain: syn::Ident,
+    domain: String,
     safety: syn::Ident,
     call_mode: syn::Ident,
     description: syn::LitStr,
@@ -83,14 +87,44 @@ impl syn::parse::Parse for AgentCommandArgs {
 
             match key.to_string().as_str() {
                 "domain" => {
-                    let value: syn::Ident = input.parse()?;
-                    domain = Some(value);
-                }
+                    // 支持字符串字面量 "agent" 和标识符 agent 两种形式
+                    let value: syn::Expr = input.parse()?;
+                    let domain_str = match &value {
+                        syn::Expr::Lit(lit) => {
+                            if let syn::Lit::Str(s) = &lit.lit {
+                                s.value()
+                            } else {
+                                return Err(syn::Error::new(
+                                    proc_macro2::Span::call_site(),
+                                    "domain 必须是字符串字面量或标识符",
+                                ));
+                            }
+                        },
+                        syn::Expr::Path(path) => {
+                            path.path
+                                .get_ident()
+                                .map(|id| id.to_string())
+                                .ok_or_else(|| {
+                                    syn::Error::new(
+                                        proc_macro2::Span::call_site(),
+                                        "domain 必须是字符串字面量或标识符",
+                                    )
+                                })?
+                        },
+                        _ => {
+                            return Err(syn::Error::new(
+                                proc_macro2::Span::call_site(),
+                                "domain 必须是字符串字面量或标识符",
+                            ));
+                        },
+                    };
+                    domain = Some(domain_str);
+                },
                 "safety" => {
                     let value: syn::Ident = input.parse()?;
                     let s = value.to_string();
                     match s.as_str() {
-                        "Safe" | "Caution" | "Dangerous" => {}
+                        "Safe" | "Caution" | "Dangerous" => {},
                         _ => {
                             return Err(syn::Error::new(
                                 value.span(),
@@ -99,15 +133,15 @@ impl syn::parse::Parse for AgentCommandArgs {
                                     s
                                 ),
                             ));
-                        }
+                        },
                     }
                     safety = Some(value);
-                }
+                },
                 "call_mode" => {
                     let value: syn::Ident = input.parse()?;
                     let s = value.to_string();
                     match s.as_str() {
-                        "StateOnly" | "StateInput" | "Manual" => {}
+                        "StateOnly" | "StateInput" | "Manual" => {},
                         _ => {
                             return Err(syn::Error::new(
                                 value.span(),
@@ -116,20 +150,20 @@ impl syn::parse::Parse for AgentCommandArgs {
                                     s
                                 ),
                             ));
-                        }
+                        },
                     }
                     call_mode = Some(value);
-                }
+                },
                 "description" => {
                     let value: syn::LitStr = input.parse()?;
                     description = Some(value);
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!("未知的命令属性: '{}'", other),
                     ));
-                }
+                },
             }
 
             if !input.is_empty() {
@@ -137,24 +171,16 @@ impl syn::parse::Parse for AgentCommandArgs {
             }
         }
 
-        let domain = domain.ok_or_else(|| {
-            syn::Error::new(proc_macro2::Span::call_site(), "缺少 'domain' 参数")
-        })?;
-        let safety = safety.ok_or_else(|| {
-            syn::Error::new(proc_macro2::Span::call_site(), "缺少 'safety' 参数")
-        })?;
+        let domain = domain
+            .ok_or_else(|| syn::Error::new(proc_macro2::Span::call_site(), "缺少 'domain' 参数"))?;
+        let safety = safety
+            .ok_or_else(|| syn::Error::new(proc_macro2::Span::call_site(), "缺少 'safety' 参数"))?;
         let call_mode = call_mode.ok_or_else(|| {
             syn::Error::new(proc_macro2::Span::call_site(), "缺少 'call_mode' 参数")
         })?;
-        let description = description.unwrap_or_else(|| {
-            syn::LitStr::new("", proc_macro2::Span::call_site())
-        });
+        let description =
+            description.unwrap_or_else(|| syn::LitStr::new("", proc_macro2::Span::call_site()));
 
-        Ok(AgentCommandArgs {
-            domain,
-            safety,
-            call_mode,
-            description,
-        })
+        Ok(AgentCommandArgs { domain, safety, call_mode, description })
     }
 }

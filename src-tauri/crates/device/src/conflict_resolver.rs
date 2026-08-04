@@ -37,7 +37,8 @@ impl ConflictResolver {
         let mut conflicts = Vec::new();
 
         // 按 (entity_type, entity_id) 分组
-        let mut entity_changes: HashMap<(EntityType, String), Vec<&ChangeLogEntry>> = HashMap::new();
+        let mut entity_changes: HashMap<(EntityType, String), Vec<&ChangeLogEntry>> =
+            HashMap::new();
         for change in changes {
             let key = (change.entity_type, change.entity_id.clone());
             entity_changes.entry(key).or_default().push(change);
@@ -71,7 +72,12 @@ impl ConflictResolver {
                             remote_vector: entries[j].version_vector.clone(),
                             local_data: entries[i].data.clone(),
                             remote_data: entries[j].data.clone(),
+                            local_timestamp: entries[i].timestamp,
+                            remote_timestamp: entries[j].timestamp,
                             detected_at: chrono::Utc::now().to_rfc3339(),
+                            resolved: false,
+                            resolution_applied: None,
+                            resolved_at: None,
                         });
                     }
                 }
@@ -86,48 +92,79 @@ impl ConflictResolver {
         conflict: &ConflictInfo,
         strategy: ConflictResolutionStrategy,
     ) -> ResolutionResult {
+        let now = chrono::Utc::now().to_rfc3339();
+        let conflict_id = Uuid::new_v4().to_string();
+
         match strategy {
             ConflictResolutionStrategy::KeepLocal => ResolutionResult {
                 resolved_data: conflict.local_data.clone(),
                 resolution_applied: "keep_local".to_string(),
-                conflict_id: Uuid::new_v4().to_string(),
+                conflict_id,
+                resolved_at: now,
             },
             ConflictResolutionStrategy::KeepRemote => ResolutionResult {
                 resolved_data: conflict.remote_data.clone(),
                 resolution_applied: "keep_remote".to_string(),
-                conflict_id: Uuid::new_v4().to_string(),
+                conflict_id,
+                resolved_at: now,
             },
             ConflictResolutionStrategy::LastWriteWins => {
-                // 根据时间戳选择最近的（在实际使用中需要时间戳信息）
-                // 这里简化为保留本地
+                // 比较时间戳，选择较新的版本
+                let (resolved_data, applied) =
+                    if conflict.local_timestamp >= conflict.remote_timestamp {
+                        (conflict.local_data.clone(), "last_write_wins_local")
+                    } else {
+                        (conflict.remote_data.clone(), "last_write_wins_remote")
+                    };
                 ResolutionResult {
-                    resolved_data: conflict.local_data.clone(),
-                    resolution_applied: "last_write_wins".to_string(),
-                    conflict_id: Uuid::new_v4().to_string(),
+                    resolved_data,
+                    resolution_applied: applied.to_string(),
+                    conflict_id,
+                    resolved_at: now,
                 }
-            }
-            ConflictResolutionStrategy::KeepBoth => ResolutionResult {
-                resolved_data: None, // 需要手动合并
-                resolution_applied: "keep_both".to_string(),
-                conflict_id: Uuid::new_v4().to_string(),
+            },
+            ConflictResolutionStrategy::KeepBoth => {
+                // 保留双方数据，组合成标记版本
+                let merged = match (&conflict.local_data, &conflict.remote_data) {
+                    (Some(local), Some(remote)) => {
+                        Some(format!(r#"{{"local":{},"remote":{},"_merged":true}}"#, local, remote))
+                    },
+                    (Some(local), None) => Some(local.clone()),
+                    (None, Some(remote)) => Some(remote.clone()),
+                    (None, None) => None,
+                };
+                ResolutionResult {
+                    resolved_data: merged,
+                    resolution_applied: "keep_both".to_string(),
+                    conflict_id,
+                    resolved_at: now,
+                }
             },
             ConflictResolutionStrategy::CustomMerge => ResolutionResult {
-                resolved_data: None, // 需要自定义合并逻辑
+                resolved_data: None,
                 resolution_applied: "custom_merge".to_string(),
-                conflict_id: Uuid::new_v4().to_string(),
+                conflict_id,
+                resolved_at: now,
             },
         }
     }
 
     /// 自动解决冲突（用于后台同步）
     pub fn auto_resolve(changes: &[ChangeLogEntry]) -> AutoResolveResult {
+        Self::auto_resolve_with_strategy(changes, ConflictResolutionStrategy::LastWriteWins)
+    }
+
+    /// 使用指定策略自动解决冲突
+    pub fn auto_resolve_with_strategy(
+        changes: &[ChangeLogEntry],
+        default_strategy: ConflictResolutionStrategy,
+    ) -> AutoResolveResult {
         let conflicts = Self::detect_conflicts(changes);
         let mut resolved = Vec::new();
         let mut unresolved = Vec::new();
 
         for conflict in &conflicts {
-            // 自动使用 LastWriteWins 策略
-            let result = Self::resolve(conflict, ConflictResolutionStrategy::LastWriteWins);
+            let result = Self::resolve(conflict, default_strategy);
             if result.resolved_data.is_some() {
                 resolved.push(result);
             } else {
@@ -149,6 +186,7 @@ pub struct ResolutionResult {
     pub resolved_data: Option<String>,
     pub resolution_applied: String,
     pub conflict_id: String,
+    pub resolved_at: String,
 }
 
 /// 自动解决结果
@@ -177,11 +215,10 @@ mod tests {
             operation: ChangeOperation::Update,
             timestamp: chrono::Utc::now().timestamp_millis() as u64,
             device_id: device_id.to_string(),
-            version_vector: vec![VersionVectorEntry {
-                device_id: device_id.to_string(),
-                counter,
-            }],
+            version_vector: vec![VersionVectorEntry { device_id: device_id.to_string(), counter }],
             data: data.map(|s| s.to_string()),
+            synced_to: vec![],
+            is_synced: false,
         }
     }
 
@@ -224,7 +261,12 @@ mod tests {
             }],
             local_data: Some("local-data".to_string()),
             remote_data: Some("remote-data".to_string()),
+            local_timestamp: 1000,
+            remote_timestamp: 2000,
             detected_at: chrono::Utc::now().to_rfc3339(),
+            resolved: false,
+            resolution_applied: None,
+            resolved_at: None,
         };
 
         let result = ConflictResolver::resolve(&conflict, ConflictResolutionStrategy::KeepLocal);

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_harness::types::{Message, MessageRole};
 use axagent_trajectory::{
     CodeSample, CommentStyle as ExtCommentStyle, DetailLevel, DocumentStyleProfile,
@@ -20,6 +21,7 @@ pub struct PersonalityInfo {
     pub is_active: bool,
 }
 
+#[agent_command(domain = personality, safety = Safe, call_mode = StateOnly, description = "列出所有人格")]
 #[tauri::command]
 pub async fn personality_list(_state: State<'_, AppState>) -> Result<Vec<PersonalityInfo>, String> {
     let active =
@@ -52,6 +54,7 @@ pub async fn personality_list(_state: State<'_, AppState>) -> Result<Vec<Persona
         .collect())
 }
 
+#[agent_command(domain = personality, safety = Safe, call_mode = StateInput, description = "获取人格详情")]
 #[tauri::command]
 pub async fn personality_get(
     name: String,
@@ -65,6 +68,7 @@ pub async fn personality_get(
     })
 }
 
+#[agent_command(domain = personality, safety = Caution, call_mode = StateInput, description = "切换激活人格")]
 #[tauri::command]
 pub async fn personality_switch(name: String, _state: State<'_, AppState>) -> Result<(), String> {
     axagent_agent::personality::PersonalityManager::set_active(&name).map_err(|e| {
@@ -75,6 +79,7 @@ pub async fn personality_switch(name: String, _state: State<'_, AppState>) -> Re
     })
 }
 
+#[agent_command(domain = personality, safety = Safe, call_mode = StateOnly, description = "获取当前激活人格")]
 #[tauri::command]
 pub async fn personality_current(
     _state: State<'_, AppState>,
@@ -95,6 +100,7 @@ pub struct PersonalityCreatePayload {
     pub version: Option<String>,
 }
 
+#[agent_command(domain = personality, safety = Caution, call_mode = StateInput, description = "创建新人格")]
 #[tauri::command]
 pub async fn personality_create(
     payload: PersonalityCreatePayload,
@@ -125,6 +131,7 @@ pub struct PersonalityCreateBootstrapPayload {
     pub user: Option<String>,
 }
 
+#[agent_command(domain = personality, safety = Caution, call_mode = StateInput, description = "创建引导人格")]
 #[tauri::command]
 pub async fn personality_create_bootstrap(
     payload: PersonalityCreateBootstrapPayload,
@@ -147,6 +154,7 @@ pub async fn personality_create_bootstrap(
     })
 }
 
+#[agent_command(domain = personality, safety = Caution, call_mode = StateInput, description = "更新人格身份")]
 #[tauri::command]
 pub async fn personality_update_identity(
     name: String,
@@ -161,6 +169,7 @@ pub async fn personality_update_identity(
     })
 }
 
+#[agent_command(domain = personality, safety = Caution, call_mode = StateInput, description = "更新人格用户画像")]
 #[tauri::command]
 pub async fn personality_update_user(
     name: String,
@@ -175,6 +184,7 @@ pub async fn personality_update_user(
     })
 }
 
+#[agent_command(domain = personality, safety = Dangerous, call_mode = StateInput, description = "删除人格")]
 #[tauri::command]
 pub async fn personality_delete(name: String, _state: State<'_, AppState>) -> Result<(), String> {
     axagent_agent::personality::PersonalityManager::delete(&name).map_err(|e| {
@@ -216,6 +226,7 @@ pub struct AutoLearnResult {
 /// 3. 调用 trajectory 的 StyleExtractor + StyleVectorizer 提取风格
 /// 4. 更新 AppState.user_profile 的 coding_style 与 communication 字段
 /// 5. 通过 UserProfile::to_user_md() 回写到当前激活的 Personality 的 USER.md
+#[agent_command(domain = personality, safety = Caution, call_mode = StateInput, description = "从对话自动学习人格")]
 #[tauri::command]
 pub async fn personality_auto_learn_from_conversation(
     state: State<'_, AppState>,

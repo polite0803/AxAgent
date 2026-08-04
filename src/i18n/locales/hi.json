@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "स्मार्ट रूटिंग कॉल विफल रही",
     "FLEET_EXECUTION_FAILED": "सदस्य कार्य निष्पादित करने में विफल रहा",
     "FLEET_TARGET_NOT_IN_FLEET": "लक्ष्य सदस्य इस ऑफिस में मौजूद नहीं है",
-    "FLEET_SLUG_EXISTS": "इस ऑफिस में इस slug वाला सदस्य पहले से मौजूद है"
+    "FLEET_SLUG_EXISTS": "इस ऑफिस में इस slug वाला सदस्य पहले से मौजूद है",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "डिवाइस नहीं मिला",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "डिवाइस पहले से पेयर है",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "डिवाइस पेयर नहीं है",
+    "DEVICE_SYNC_DEVICE_DISABLED": "डिवाइस अक्षम है",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "अमान्य पेयरिंग कोड",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "पेयरिंग कोड समाप्त हो गया",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "अपर्याप्त विश्वास स्तर",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "डिवाइस अनुमतियाँ नहीं मिलीं",
+    "DEVICE_SYNC_PERMISSION_DENIED": "अनुमति अस्वीकृत",
+    "DEVICE_SYNC_FAILED": "सिंक्रनाइज़ेशन विफल",
+    "DEVICE_SYNC_TIMEOUT": "सिंक्रनाइज़ेशन टाइमआउट",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "विरोध पहचान विफल",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "विरोध समाधान विफल",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "विरोध रिकॉर्ड नहीं मिला",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "सिंक्रनाइज़ेशन पहले से चल रहा है",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "सिंक करने के लिए कोई बदलाव नहीं",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "एन्क्रिप्शन विफल",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "डिक्रिप्शन विफल",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "एन्क्रिप्शन के लिए पासवर्ड आवश्यक",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "एन्क्रिप्शन पासवर्ड खाली नहीं हो सकता",
+    "DEVICE_SYNC_SALT_REQUIRED": "डिक्रिप्शन के लिए सॉल्ट आवश्यक",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "स्टोरेज ऑपरेशन विफल",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "पॉलिसी ऑपरेशन विफल"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

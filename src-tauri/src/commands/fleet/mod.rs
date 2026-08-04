@@ -37,6 +37,7 @@ use axagent_harness::fleet::{
     FleetStatus,
 };
 use serde::{Deserialize, Serialize};
+use agent_macro::agent_command;
 use tauri::State;
 use tracing::warn;
 
@@ -46,6 +47,7 @@ use executor::execute_fleet_turn;
 // ── 舰队 CRUD ────────────────────────────────────────────────────────
 
 /// 列出所有舰队（可选状态过滤）
+#[agent_command(domain = fleet, safety = Safe, call_mode = StateInput, description = "列出所有舰队")]
 #[tauri::command]
 pub async fn fleet_list(
     app_state: State<'_, AppState>,
@@ -59,6 +61,7 @@ pub async fn fleet_list(
 }
 
 /// 获取舰队详情
+#[agent_command(domain = fleet, safety = Safe, call_mode = StateInput, description = "获取舰队详情")]
 #[tauri::command]
 pub async fn fleet_get(
     app_state: State<'_, AppState>,
@@ -85,6 +88,7 @@ pub struct CreateFleetInput {
 }
 
 /// 创建舰队
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "创建舰队")]
 #[tauri::command]
 pub async fn fleet_create(
     app_state: State<'_, AppState>,
@@ -114,6 +118,7 @@ pub async fn fleet_create(
 }
 
 /// 更新舰队状态
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "更新舰队状态")]
 #[tauri::command]
 pub async fn fleet_update_status(
     app_state: State<'_, AppState>,
@@ -128,6 +133,7 @@ pub async fn fleet_update_status(
 }
 
 /// 删除舰队（级联删除成员）
+#[agent_command(domain = fleet, safety = Dangerous, call_mode = StateInput, description = "删除舰队")]
 #[tauri::command]
 pub async fn fleet_delete(
     app_state: State<'_, AppState>,
@@ -143,6 +149,7 @@ pub async fn fleet_delete(
 // ── 成员管理 ─────────────────────────────────────────────────────────
 
 /// 列出舰队所有成员
+#[agent_command(domain = fleet, safety = Safe, call_mode = StateInput, description = "列出舰队所有成员")]
 #[tauri::command]
 pub async fn fleet_list_members(
     app_state: State<'_, AppState>,
@@ -183,6 +190,7 @@ fn default_room_id() -> String {
 }
 
 /// 添加成员到舰队
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "添加成员到舰队")]
 #[tauri::command]
 pub async fn fleet_add_member(
     app_state: State<'_, AppState>,
@@ -228,6 +236,7 @@ pub async fn fleet_add_member(
 }
 
 /// 获取单个成员
+#[agent_command(domain = fleet, safety = Safe, call_mode = StateInput, description = "获取单个成员详情")]
 #[tauri::command]
 pub async fn fleet_get_member(
     app_state: State<'_, AppState>,
@@ -241,6 +250,7 @@ pub async fn fleet_get_member(
 }
 
 /// 更新成员状态
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "更新成员状态")]
 #[tauri::command]
 pub async fn fleet_update_member_status(
     app_state: State<'_, AppState>,
@@ -255,6 +265,7 @@ pub async fn fleet_update_member_status(
 }
 
 /// 移除成员
+#[agent_command(domain = fleet, safety = Dangerous, call_mode = StateInput, description = "移除成员")]
 #[tauri::command]
 pub async fn fleet_remove_member(
     app_state: State<'_, AppState>,
@@ -268,6 +279,7 @@ pub async fn fleet_remove_member(
 }
 
 /// 重置舰队所有成员今日 token（每日定时任务调用）
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "重置舰队所有成员今日token")]
 #[tauri::command]
 pub async fn fleet_reset_daily_tokens(
     app_state: State<'_, AppState>,
@@ -299,6 +311,7 @@ pub struct DispatchInput {
 ///
 /// 事件通过 `Channel<DispatchEvent>` 流式回传：
 /// `Routing → AgentStatus(busy) → [Process/AgentMessage/TokenUsage]* → AgentStatus(idle) → Complete`。
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "群聊智能路由分派执行")]
 #[tauri::command]
 pub async fn fleet_dispatch(
     app_state: State<'_, AppState>,
@@ -398,6 +411,7 @@ pub struct DirectMessageInput {
     pub history: Vec<DispatchChatMessage>,
 }
 
+#[agent_command(domain = fleet, safety = Caution, call_mode = StateInput, description = "直接发送消息给指定agent")]
 #[tauri::command]
 pub async fn fleet_direct_message(
     app_state: State<'_, AppState>,

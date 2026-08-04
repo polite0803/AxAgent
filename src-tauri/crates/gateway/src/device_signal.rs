@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axagent_harness::device_sync::{
-    ChangeLogEntry, ConflictInfo, SyncResult, SyncSignal, SyncSignalResponse, SignalService,
+    ChangeLogEntry, ConflictInfo, SignalService, SyncResult, SyncSignal, SyncSignalResponse,
 };
 use axum::{
     extract::{
@@ -65,13 +65,8 @@ impl DeviceSignalService {
                     timestamp: chrono::Utc::now().timestamp_millis() as u64,
                 })
             },
-            SyncSignal::Ping { device_id } => {
-                Ok(SyncSignalResponse::Pong { device_id })
-            },
-            SyncSignal::SyncRequest {
-                device_id,
-                since_timestamp,
-            } => {
+            SyncSignal::Ping { device_id } => Ok(SyncSignalResponse::Pong { device_id }),
+            SyncSignal::SyncRequest { device_id, since_timestamp } => {
                 let _changes: Vec<ChangeLogEntry> = Vec::new();
                 let result = SyncResult {
                     success: true,
@@ -83,10 +78,7 @@ impl DeviceSignalService {
                     duration_ms: 0,
                 };
                 let _ = since_timestamp;
-                Ok(SyncSignalResponse::SyncResponse {
-                    device_id,
-                    result,
-                })
+                Ok(SyncSignalResponse::SyncResponse { device_id, result })
             },
             SyncSignal::PushChanges { device_id, changes } => {
                 let conflicts: Vec<ConflictInfo> = Vec::new();
@@ -103,17 +95,9 @@ impl DeviceSignalService {
                     conflicts,
                 })
             },
-            SyncSignal::ResolveConflict {
-                device_id,
-                conflict_id,
-                strategy,
-            } => {
+            SyncSignal::ResolveConflict { device_id, conflict_id, strategy } => {
                 let _ = strategy;
-                Ok(SyncSignalResponse::ConflictResolved {
-                    device_id,
-                    conflict_id,
-                    success: true,
-                })
+                Ok(SyncSignalResponse::ConflictResolved { device_id, conflict_id, success: true })
             },
             SyncSignal::RegisterDevice { device } => {
                 let _ = device;
@@ -160,17 +144,12 @@ impl SignalService for DeviceSignalService {
         signal: SyncSignalResponse,
     ) -> Result<(), String> {
         if let Some(tx) = self.get_sender(target_device_id).await {
-            tx.send(signal)
-                .await
-                .map_err(|e| format!("Failed to send signal: {}", e))?;
+            tx.send(signal).await.map_err(|e| format!("Failed to send signal: {}", e))?;
         }
         Ok(())
     }
 
-    async fn broadcast_signal(
-        &self,
-        signal: SyncSignalResponse,
-    ) -> Result<(), String> {
+    async fn broadcast_signal(&self, signal: SyncSignalResponse) -> Result<(), String> {
         let connections = self.connections.read().await;
         for conn in connections.values() {
             let _ = conn.tx.send(signal.clone()).await;
@@ -334,10 +313,7 @@ async fn handle_signal(
     if let Some(service) = signal_service {
         match service.handle_client_message(connection_id, signal).await {
             Ok(response) => response,
-            Err(e) => SyncSignalResponse::Error {
-                code: "SIGNAL_ERROR".to_string(),
-                message: e,
-            },
+            Err(e) => SyncSignalResponse::Error { code: "SIGNAL_ERROR".to_string(), message: e },
         }
     } else {
         SyncSignalResponse::Error {

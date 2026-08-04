@@ -5,11 +5,13 @@ use super::install::{
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::State;
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateOnly, description = "创建并打开技能目录")]
 #[tauri::command]
 pub async fn open_skills_dir() -> Result<(), String> {
     let dir = skills_dir();
@@ -22,6 +24,7 @@ pub async fn open_skills_dir() -> Result<(), String> {
     open::that(&dir).map_err(|e| format!("Failed to open directory: {}", e))
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "打开指定技能所在目录")]
 #[tauri::command]
 pub async fn open_skill_dir(path: String) -> Result<(), String> {
     let p = std::path::Path::new(&path);
@@ -160,6 +163,7 @@ async fn check_github_update(
     Some((latest_sha[..7.min(latest_sha.len())].to_string(), latest_sha.to_string()))
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "搜索技能市场")]
 #[tauri::command]
 pub async fn search_marketplace(
     query: String,
@@ -400,6 +404,7 @@ async fn search_skillhub_marketplace(
     Ok(results)
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "获取技能市场分类列表")]
 #[tauri::command]
 pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, String> {
     let url = "https://skillshub.wtf/api/v1/categories";
@@ -446,6 +451,7 @@ pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, St
     Ok(categories)
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "检查已安装技能更新")]
 #[tauri::command]
 pub async fn check_skill_updates() -> Result<Vec<SkillUpdateInfo>, String> {
     let skills_path = skills_dir();
@@ -570,6 +576,7 @@ pub(crate) fn validate_and_read_skill_md(name: &str) -> Result<(PathBuf, String)
 }
 
 /// Patch an existing skill by appending a note
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "为技能追加补丁内容")]
 #[tauri::command]
 pub async fn skill_patch(name: String, content: String) -> Result<String, ErrorResponse> {
     let (canonical_path, existing) = validate_and_read_skill_md(&name)?;
@@ -590,6 +597,7 @@ pub async fn skill_patch(name: String, content: String) -> Result<String, ErrorR
 }
 
 /// Edit an existing skill by replacing the body (preserving frontmatter)
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "编辑技能内容")]
 #[tauri::command]
 pub async fn skill_edit(name: String, content: String) -> Result<String, ErrorResponse> {
     let (canonical_path, existing) = validate_and_read_skill_md(&name)?;
@@ -625,6 +633,7 @@ pub(crate) fn find_frontmatter_end(content: &str) -> Option<usize> {
     Some(offset + 3 + second + 4) // +3(first ---) + second(pos) + 4(len of "\n---")
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "获取技能提案列表")]
 #[tauri::command]
 pub async fn get_skill_proposals(
     state: State<'_, AppState>,
@@ -633,6 +642,7 @@ pub async fn get_skill_proposals(
     Ok(service.get_proposals())
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "根据提案创建技能")]
 #[tauri::command]
 pub async fn create_skill_from_proposal(
     state: State<'_, AppState>,
@@ -671,6 +681,7 @@ pub struct SkillCreateCheckResult {
     pub message: String,
 }
 
+#[agent_command(domain = skills, safety = Safe, call_mode = StateInput, description = "检查相似技能")]
 #[tauri::command]
 pub async fn skill_check_similar(
     state: State<'_, AppState>,
@@ -729,6 +740,7 @@ pub async fn skill_check_similar(
     })
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "创建新技能")]
 #[tauri::command]
 pub async fn skill_create(
     state: State<'_, AppState>,
@@ -819,6 +831,7 @@ fn escape_yaml_value(value: &str) -> String {
     }
 }
 
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "升级或创建技能")]
 #[tauri::command]
 pub async fn skill_upgrade_or_create(
     state: State<'_, AppState>,
@@ -888,6 +901,7 @@ pub async fn skill_upgrade_or_create(
 }
 
 /// 设置技能的 manifest 配置。写入或替换 skill-manifest.json。
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "设置技能清单配置")]
 #[tauri::command]
 pub async fn skill_set_manifest(
     name: String,

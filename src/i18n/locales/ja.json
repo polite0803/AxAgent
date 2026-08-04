@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "スマートルーティング呼び出しに失敗しました",
     "FLEET_EXECUTION_FAILED": "メンバーのタスク実行に失敗しました",
     "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません",
-    "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します"
+    "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "デバイスが見つかりません",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "デバイスは既にペアリングされています",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "デバイスはペアリングされていません",
+    "DEVICE_SYNC_DEVICE_DISABLED": "デバイスが無効化されています",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "ペアリングコードが無効です",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "ペアリングコードの有効期限が切れています",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "信頼レベルが不足しています",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "デバイス権限が見つかりません",
+    "DEVICE_SYNC_PERMISSION_DENIED": "権限が拒否されました",
+    "DEVICE_SYNC_FAILED": "同期に失敗しました",
+    "DEVICE_SYNC_TIMEOUT": "同期タイムアウト",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "競合の検出に失敗しました",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "競合の解決に失敗しました",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "競合レコードが見つかりません",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "同期は既に進行中です",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "同期する変更がありません",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "暗号化に失敗しました",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "復号に失敗しました",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "暗号化にはパスワードが必要です",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "暗号化パスワードは空にできません",
+    "DEVICE_SYNC_SALT_REQUIRED": "復号にはソルトが必要です",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "ストレージ操作に失敗しました",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "ポリシー操作に失敗しました"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

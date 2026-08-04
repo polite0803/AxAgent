@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
+use agent_macro::agent_command;
 use axagent_dao::repo::backup;
 use axagent_dao::repo::settings::get_settings;
 use axagent_harness::types::*;
@@ -17,6 +18,7 @@ use tauri::Emitter;
 use tauri::State;
 use tokio::sync::Mutex;
 
+#[agent_command(domain = backup, safety = Safe, call_mode = StateOnly, description = "列出备份")]
 #[tauri::command]
 pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupManifest>, String> {
     backup::list_backups(state.harness.db(), &DefaultPathEncoder).await.map_err(|e| {
@@ -27,6 +29,7 @@ pub async fn list_backups(state: State<'_, AppState>) -> Result<Vec<BackupManife
     })
 }
 
+#[agent_command(domain = backup, safety = Caution, call_mode = StateInput, description = "创建备份")]
 #[tauri::command]
 pub async fn create_backup(
     state: State<'_, AppState>,
@@ -50,6 +53,7 @@ pub async fn create_backup(
         })
 }
 
+#[agent_command(domain = backup, safety = Dangerous, call_mode = StateInput, description = "恢复备份")]
 #[tauri::command]
 pub async fn restore_backup(
     app: tauri::AppHandle,
@@ -128,6 +132,7 @@ pub async fn restore_backup(
     }
 }
 
+#[agent_command(domain = backup, safety = Dangerous, call_mode = StateInput, description = "删除备份")]
 #[tauri::command]
 pub async fn delete_backup(state: State<'_, AppState>, backup_id: String) -> Result<(), String> {
     backup::delete_backup(state.harness.db(), &backup_id, &DefaultPathEncoder).await.map_err(|e| {
@@ -138,6 +143,7 @@ pub async fn delete_backup(state: State<'_, AppState>, backup_id: String) -> Res
     })
 }
 
+#[agent_command(domain = backup, safety = Dangerous, call_mode = StateInput, description = "批量删除备份")]
 #[tauri::command]
 pub async fn batch_delete_backups(
     state: State<'_, AppState>,
@@ -153,6 +159,7 @@ pub async fn batch_delete_backups(
         })
 }
 
+#[agent_command(domain = backup, safety = Safe, call_mode = StateOnly, description = "获取备份设置")]
 #[tauri::command]
 pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBackupSettings, String> {
     let settings = get_settings(state.harness.db()).await.map_err(|e| {
@@ -173,6 +180,7 @@ pub async fn get_backup_settings(state: State<'_, AppState>) -> Result<AutoBacku
     })
 }
 
+#[agent_command(domain = backup, safety = Caution, call_mode = StateInput, description = "更新备份设置")]
 #[tauri::command]
 pub async fn update_backup_settings(
     app: tauri::AppHandle,
@@ -334,6 +342,7 @@ pub struct UploadBackupToCloudRequest {
     pub backup_id: String,
 }
 
+#[agent_command(domain = backup, safety = Caution, call_mode = StateInput, description = "上传备份到云端")]
 #[tauri::command]
 pub async fn upload_backup_to_cloud(
     state: State<'_, AppState>,
@@ -389,6 +398,7 @@ pub struct CloudBackupEntry {
     pub etag: Option<String>,
 }
 
+#[agent_command(domain = backup, safety = Safe, call_mode = StateInput, description = "列出云端备份")]
 #[tauri::command]
 pub async fn list_cloud_backups(
     state: State<'_, AppState>,
@@ -420,6 +430,7 @@ pub struct DownloadCloudBackupRequest {
     pub cloud_key: String,
 }
 
+#[agent_command(domain = backup, safety = Caution, call_mode = StateInput, description = "从云端下载备份")]
 #[tauri::command]
 pub async fn download_cloud_backup(
     state: State<'_, AppState>,

@@ -71,6 +71,8 @@ fn model_to_change_log_entry(model: &sync_change_log::Model) -> ChangeLogEntry {
         device_id: model.device_id.clone(),
         version_vector,
         data: Some(model.data.clone()),
+        synced_to: _synced_to,
+        is_synced: model.is_synced,
     }
 }
 
@@ -106,8 +108,7 @@ pub async fn batch_add_change_logs(
     let models: Vec<sync_change_log::ActiveModel> = entries
         .iter()
         .map(|entry| {
-            let synced_to =
-                serde_json::to_string(&Vec::<String>::new()).unwrap_or_default();
+            let synced_to = serde_json::to_string(&Vec::<String>::new()).unwrap_or_default();
             sync_change_log::ActiveModel {
                 id: Set(entry.id.clone()),
                 device_id: Set(entry.device_id.clone()),

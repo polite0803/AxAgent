@@ -6,6 +6,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
+use agent_macro::agent_command;
 use axagent_runtime_core::{CronJob, CronJobStatus, ExecutionRecord, TaskConfig};
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -156,6 +157,7 @@ pub struct CreateTaskInput {
     pub config: Option<TaskConfigDto>,
 }
 
+#[agent_command(domain = scheduled_task, safety = Safe, call_mode = StateOnly, description = "列出定时任务")]
 #[tauri::command]
 pub async fn list_scheduled_tasks(
     state: State<'_, AppState>,
@@ -165,6 +167,7 @@ pub async fn list_scheduled_tasks(
     Ok(jobs.iter().map(cron_to_dto).collect())
 }
 
+#[agent_command(domain = scheduled_task, safety = Safe, call_mode = StateInput, description = "获取定时任务详情")]
 #[tauri::command]
 pub async fn get_scheduled_task(
     state: State<'_, AppState>,
@@ -175,6 +178,7 @@ pub async fn get_scheduled_task(
     Ok(job.as_ref().map(cron_to_dto))
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "创建定时任务")]
 #[tauri::command]
 pub async fn create_scheduled_task(
     state: State<'_, AppState>,
@@ -211,6 +215,7 @@ pub async fn create_scheduled_task(
     Ok(cron_to_dto(&job))
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "更新定时任务")]
 #[tauri::command]
 pub async fn update_scheduled_task(
     state: State<'_, AppState>,
@@ -249,6 +254,7 @@ pub async fn update_scheduled_task(
     Ok(())
 }
 
+#[agent_command(domain = scheduled_task, safety = Dangerous, call_mode = StateInput, description = "删除定时任务")]
 #[tauri::command]
 pub async fn delete_scheduled_task(
     state: State<'_, AppState>,
@@ -259,6 +265,7 @@ pub async fn delete_scheduled_task(
     Ok(())
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "暂停定时任务")]
 #[tauri::command]
 pub async fn pause_scheduled_task(
     state: State<'_, AppState>,
@@ -269,6 +276,7 @@ pub async fn pause_scheduled_task(
     Ok(())
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "恢复定时任务")]
 #[tauri::command]
 pub async fn resume_scheduled_task(
     state: State<'_, AppState>,
@@ -279,6 +287,7 @@ pub async fn resume_scheduled_task(
     Ok(())
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "手动执行定时任务")]
 #[tauri::command]
 pub async fn execute_scheduled_task(
     state: State<'_, AppState>,
@@ -344,6 +353,7 @@ pub async fn execute_scheduled_task(
     })
 }
 
+#[agent_command(domain = scheduled_task, safety = Safe, call_mode = StateOnly, description = "获取定时任务模板")]
 #[tauri::command]
 pub async fn get_scheduled_task_templates(
     state: State<'_, AppState>,
@@ -373,6 +383,7 @@ pub async fn get_scheduled_task_templates(
     Ok(templates)
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "创建每日摘要任务")]
 #[tauri::command]
 pub async fn create_daily_summary_task(
     state: State<'_, AppState>,
@@ -392,6 +403,7 @@ pub async fn create_daily_summary_task(
     Ok(cron_to_dto(&job))
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "创建备份任务")]
 #[tauri::command]
 pub async fn create_backup_task(
     state: State<'_, AppState>,
@@ -411,6 +423,7 @@ pub async fn create_backup_task(
     Ok(cron_to_dto(&job))
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateInput, description = "创建清理任务")]
 #[tauri::command]
 pub async fn create_cleanup_task(
     state: State<'_, AppState>,
@@ -430,6 +443,7 @@ pub async fn create_cleanup_task(
     Ok(cron_to_dto(&job))
 }
 
+#[agent_command(domain = scheduled_task, safety = Caution, call_mode = StateOnly, description = "从数据库加载定时任务")]
 #[tauri::command]
 pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<usize, String> {
     let count = state.cron_job_store.reload_from_db().await;
@@ -437,6 +451,7 @@ pub async fn load_scheduled_tasks_from_db(state: State<'_, AppState>) -> Result<
     Ok(count)
 }
 
+#[agent_command(domain = scheduled_task, safety = Safe, call_mode = StateInput, description = "获取任务执行历史")]
 #[tauri::command]
 pub async fn get_task_execution_history(
     state: State<'_, AppState>,

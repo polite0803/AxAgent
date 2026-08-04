@@ -44,6 +44,12 @@ pub async fn create_provider(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "更新提供商配置"
+)]
 pub async fn update_provider(
     state: State<'_, AppState>,
     id: String,
@@ -68,6 +74,12 @@ pub async fn update_provider(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Dangerous,
+    call_mode = StateInput,
+    description = "删除提供商配置"
+)]
 pub async fn delete_provider(state: State<'_, AppState>, id: String) -> Result<(), String> {
     // Virtual built-in providers have no DB row — deletion is a no-op (they'll reappear)
     if id.starts_with("builtin_") {
@@ -82,6 +94,12 @@ pub async fn delete_provider(state: State<'_, AppState>, id: String) -> Result<(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "切换提供商启用状态"
+)]
 pub async fn toggle_provider(
     state: State<'_, AppState>,
     id: String,
@@ -106,6 +124,12 @@ pub async fn toggle_provider(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "添加提供商 API 密钥"
+)]
 pub async fn add_provider_key(
     state: State<'_, AppState>,
     provider_id: String,
@@ -143,6 +167,12 @@ pub async fn add_provider_key(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "更新提供商 API 密钥"
+)]
 pub async fn update_provider_key(
     state: State<'_, AppState>,
     key_id: String,
@@ -173,6 +203,12 @@ pub async fn update_provider_key(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Dangerous,
+    call_mode = StateInput,
+    description = "删除提供商 API 密钥"
+)]
 pub async fn delete_provider_key(state: State<'_, AppState>, key_id: String) -> Result<(), String> {
     axagent_dao::repo::provider::delete_provider_key(state.harness.db(), &key_id).await.map_err(
         |e| {
@@ -185,6 +221,12 @@ pub async fn delete_provider_key(state: State<'_, AppState>, key_id: String) -> 
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "切换密钥启用状态"
+)]
 pub async fn toggle_provider_key(
     state: State<'_, AppState>,
     key_id: String,
@@ -203,6 +245,12 @@ pub async fn toggle_provider_key(
 /// SECURITY (C1): 仅返回密钥前缀用于 UI 展示，禁止返回完整明文密钥。
 /// 若前端需要验证密钥有效性，请使用 `validate_provider_key` 命令。
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "获取密钥前缀用于 UI 展示"
+)]
 pub async fn get_decrypted_provider_key(
     state: State<'_, AppState>,
     key_id: String,
@@ -226,6 +274,12 @@ pub async fn get_decrypted_provider_key(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "验证提供商密钥有效性"
+)]
 pub async fn validate_provider_key(
     state: State<'_, AppState>,
     key_id: String,
@@ -329,6 +383,12 @@ pub async fn validate_provider_key(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "保存提供商模型列表"
+)]
 pub async fn save_models(
     state: State<'_, AppState>,
     provider_id: String,
@@ -354,6 +414,12 @@ pub async fn save_models(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "切换模型启用状态"
+)]
 pub async fn toggle_model(
     state: State<'_, AppState>,
     provider_id: String,
@@ -380,6 +446,12 @@ pub async fn toggle_model(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "更新模型参数配置"
+)]
 pub async fn update_model_params(
     state: State<'_, AppState>,
     provider_id: String,
@@ -411,6 +483,12 @@ pub async fn update_model_params(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "从远端获取可用模型列表"
+)]
 pub async fn fetch_remote_models(
     state: State<'_, AppState>,
     provider_id: String,
@@ -536,6 +614,12 @@ pub async fn fetch_remote_models(
 /// Test a single model's availability by sending a minimal chat request.
 /// Returns latency in milliseconds on success.
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "测试模型可用性并返回延迟"
+)]
 pub async fn test_model(
     state: State<'_, AppState>,
     provider_id: String,
@@ -650,6 +734,12 @@ pub async fn test_model(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "重新排序提供商列表"
+)]
 pub async fn reorder_providers(
     state: State<'_, AppState>,
     provider_ids: Vec<String>,

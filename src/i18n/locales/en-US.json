@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "Smart routing call failed",
     "FLEET_EXECUTION_FAILED": "Member failed to execute the task",
     "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office",
-    "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office"
+    "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "Device not found",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Device already paired",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Device not paired",
+    "DEVICE_SYNC_DEVICE_DISABLED": "Device disabled",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "Invalid pairing code",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "Pairing code expired",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "Insufficient trust level",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "Device permissions not found",
+    "DEVICE_SYNC_PERMISSION_DENIED": "Permission denied",
+    "DEVICE_SYNC_FAILED": "Sync failed",
+    "DEVICE_SYNC_TIMEOUT": "Sync timeout",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "Conflict detection failed",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "Conflict resolution failed",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "Conflict record not found",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "Sync already in progress",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "No changes to sync",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "Encryption failed",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "Decryption failed",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "Password is required for encryption",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "Encryption password cannot be empty",
+    "DEVICE_SYNC_SALT_REQUIRED": "Salt is required for decryption",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Storage operation failed",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Policy operation failed"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

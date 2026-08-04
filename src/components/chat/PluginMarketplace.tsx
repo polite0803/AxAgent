@@ -44,7 +44,7 @@ export function PluginMarketplace() {
     if (!source) {
       return;
     }
-    
+
     const manifest = await validateSource(source);
     if (manifest) {
       setConfirmManifest(manifest);
@@ -59,7 +59,7 @@ export function PluginMarketplace() {
     if (!confirmSource) {
       return;
     }
-    
+
     const result = await installPlugin(confirmSource);
     if (result) {
       message.success(

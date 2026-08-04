@@ -20,6 +20,7 @@ use super::helpers::{
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
+use agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::workflow_types::WorkflowTemplateData;
@@ -140,6 +141,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 /// 3. 未命中 → 调 LLM 生成 nodes/edges → 落库（填充 mission_hash）→ 返回 template_id
 ///
 /// 运行时执行工作流时不再调用此命令，直接使用已落库的 template。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "编译mission为工作流模板")]
 #[tauri::command]
 #[tracing::instrument(skip(state))]
 pub async fn compile_mission_to_template(

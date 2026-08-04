@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect, useState } from "react";
+import { useDeviceSyncStore } from "@/stores";
+import type { DevicePermissions, PermissionUpdate } from "@/types";
+import { EditOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
   Card,
   Col,
   Descriptions,
+  message,
   Modal,
   Row,
   Select,
@@ -15,14 +18,8 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
-import {
-  EditOutlined,
-  SafetyCertificateOutlined,
-} from "@ant-design/icons";
-import { useDeviceSyncStore } from "@/stores";
-import type { DevicePermissions, PermissionUpdate } from "@/types";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Title, Text } = Typography;
@@ -69,7 +66,7 @@ function PermissionEditModal({
   }, [permissions]);
 
   const handleSave = async () => {
-    if (!permissions) return;
+    if (!permissions) { return; }
     setSaving(true);
     try {
       const update: PermissionUpdate = {
@@ -180,8 +177,7 @@ function PermissionEditModal({
 export function DevicePermissionsPanel() {
   const { t } = useTranslation();
   const deviceSyncStore = useDeviceSyncStore();
-  const [editingPermissions, setEditingPermissions] =
-    useState<DevicePermissions | null>(null);
+  const [editingPermissions, setEditingPermissions] = useState<DevicePermissions | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
@@ -194,7 +190,7 @@ export function DevicePermissionsPanel() {
   };
 
   const handleSave = async (update: PermissionUpdate) => {
-    if (!editingPermissions) return;
+    if (!editingPermissions) { return; }
     try {
       await deviceSyncStore.updateDevicePermissions(
         editingPermissions.device_id,
@@ -246,9 +242,7 @@ export function DevicePermissionsPanel() {
       dataIndex: "updated_at",
       key: "updated_at",
       width: 160,
-      render: (date: string) => (
-        <Text type="secondary">{new Date(date).toLocaleString()}</Text>
-      ),
+      render: (date: string) => <Text type="secondary">{new Date(date).toLocaleString()}</Text>,
     },
     {
       title: t("common.operation"),
@@ -286,22 +280,24 @@ export function DevicePermissionsPanel() {
         </Space>
       }
     >
-      {permissionsList.length === 0 ? (
-        <Alert
-          message={t("deviceSync.noPermissions")}
-          description={t("deviceSync.noPermissionsDescription")}
-          type="info"
-          showIcon
-        />
-      ) : (
-        <Table
-          columns={columns}
-          dataSource={permissionsList}
-          rowKey="device_id"
-          size="small"
-          pagination={false}
-        />
-      )}
+      {permissionsList.length === 0
+        ? (
+          <Alert
+            message={t("deviceSync.noPermissions")}
+            description={t("deviceSync.noPermissionsDescription")}
+            type="info"
+            showIcon
+          />
+        )
+        : (
+          <Table
+            columns={columns}
+            dataSource={permissionsList}
+            rowKey="device_id"
+            size="small"
+            pagination={false}
+          />
+        )}
 
       <PermissionEditModal
         open={modalOpen}

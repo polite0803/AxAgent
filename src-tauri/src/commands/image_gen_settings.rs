@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_credential::{Credential, CredentialType};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -67,6 +68,7 @@ async fn load_api_key(
     }
 }
 
+#[agent_command(domain = image_gen, safety = Safe, call_mode = StateOnly, description = "获取图像生成配置")]
 #[command]
 pub async fn get_image_gen_config(state: State<'_, AppState>) -> Result<ImageGenConfig, String> {
     let path = get_image_gen_config_path();
@@ -104,6 +106,7 @@ pub async fn get_image_gen_config(state: State<'_, AppState>) -> Result<ImageGen
     Ok(config)
 }
 
+#[agent_command(domain = image_gen, safety = Caution, call_mode = StateInput, description = "保存图像生成配置")]
 #[command]
 pub async fn save_image_gen_config(
     state: State<'_, AppState>,

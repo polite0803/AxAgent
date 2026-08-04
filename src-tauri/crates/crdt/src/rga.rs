@@ -61,12 +61,7 @@ pub struct RGA {
 impl RGA {
     /// 创建新的 RGA
     pub fn new(site_id: String) -> Self {
-        Self {
-            entries: Vec::new(),
-            head_id: None,
-            site_id,
-            logical_clock: 0,
-        }
+        Self { entries: Vec::new(), head_id: None, site_id, logical_clock: 0 }
     }
 
     /// 获取可见元素列表

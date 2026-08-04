@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::app_state::AppState;
+use agent_macro::agent_command;
 use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
@@ -20,18 +21,21 @@ fn registry() -> &'static Mutex<DatasetRegistry> {
     DATASET_REGISTRY.get_or_init(|| Mutex::new(DatasetRegistry::new()))
 }
 
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateOnly, description = "列出评测基准")]
 #[command]
 pub fn evaluator_list_benchmarks() -> Result<Vec<Benchmark>, String> {
     let s = suite().blocking_lock();
     Ok(s.all().into_iter().cloned().collect())
 }
 
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateInput, description = "获取单个评测基准")]
 #[command]
 pub fn evaluator_get_benchmark(benchmark_id: String) -> Result<Option<Benchmark>, String> {
     let s = suite().blocking_lock();
     Ok(s.get(&benchmark_id).cloned())
 }
 
+#[agent_command(domain = evaluator, safety = Caution, call_mode = StateInput, description = "运行评测基准")]
 #[command]
 pub async fn evaluator_run_benchmark(
     state: State<'_, AppState>,
@@ -60,18 +64,21 @@ pub async fn evaluator_run_benchmark(
     Ok(runner.run_benchmark(&benchmark).await)
 }
 
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateInput, description = "生成评测报告")]
 #[command]
 pub fn evaluator_generate_report(result: BenchmarkResult) -> Result<BenchmarkReport, String> {
     let generator = ReportGenerator::new();
     Ok(generator.generate(&result))
 }
 
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateOnly, description = "列出数据集")]
 #[command]
 pub fn evaluator_list_datasets() -> Result<Vec<Dataset>, String> {
     let r = registry().blocking_lock();
     Ok(r.all_datasets().into_iter().cloned().collect())
 }
 
+#[agent_command(domain = evaluator, safety = Caution, call_mode = StateInput, description = "导入数据集")]
 #[command]
 pub fn evaluator_import_dataset(path: String) -> Result<Dataset, String> {
     let loader = DatasetLoader::new();
@@ -95,6 +102,7 @@ pub fn evaluator_import_dataset(path: String) -> Result<Dataset, String> {
     Ok(dataset)
 }
 
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateInput, description = "导出评测报告")]
 #[command]
 pub fn evaluator_export_report(report: BenchmarkReport, format: String) -> Result<String, String> {
     let generator = ReportGenerator::new();
@@ -215,6 +223,7 @@ async fn resolve_benchmark_provider(
     }
 }
 
+#[agent_command(domain = evaluator, safety = Caution, call_mode = StateInput, description = "运行 A/B 测试")]
 #[command]
 pub async fn evaluator_run_ab_test(
     state: State<'_, AppState>,
@@ -356,6 +365,7 @@ pub async fn evaluator_run_ab_test(
     Ok(result)
 }
 
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateInput, description = "获取 A/B 测试结果")]
 #[command]
 pub fn evaluator_get_ab_results(skill_id: String) -> Result<Option<AbTestReport>, String> {
     // 通过 skill_id 遍历查找最近一次测试报告

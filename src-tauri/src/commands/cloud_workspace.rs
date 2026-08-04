@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use axagent_storage::cloud_storage::{
     BackendType, CloudStorageConfig, S3Config, S3ProviderPreset, WebDavConfig,
 };
@@ -95,6 +97,7 @@ fn device_id() -> String {
 }
 
 /// List S3 provider presets available for configuration.
+#[agent_command(domain = "cloud", safety = Safe, call_mode = Manual, description = "列出云存储提供商预设")]
 #[tauri::command]
 pub fn list_cloud_provider_presets() -> Vec<CloudProviderPresetDto> {
     let presets = S3ProviderPreset::all_presets();
@@ -140,6 +143,7 @@ fn build_cloud_workspace(
 }
 
 /// List directory contents on a cloud workspace.
+#[agent_command(domain = "cloud", safety = Safe, call_mode = StateInput, description = "列出云工作区目录内容")]
 #[tauri::command]
 pub async fn list_cloud_directory(
     state: State<'_, AppState>,
@@ -168,6 +172,7 @@ pub async fn list_cloud_directory(
 }
 
 /// Sync a cloud workspace: bidirectional sync with conflict detection.
+#[agent_command(domain = "cloud", safety = Caution, call_mode = StateInput, description = "同步云工作区")]
 #[tauri::command]
 pub async fn sync_cloud_workspace(
     state: State<'_, AppState>,
@@ -208,6 +213,7 @@ pub async fn sync_cloud_workspace(
 }
 
 /// Push local cache changes back to cloud with conflict detection.
+#[agent_command(domain = "cloud", safety = Caution, call_mode = StateInput, description = "推送本地变更到云")]
 #[tauri::command]
 pub async fn push_cloud_workspace_changes(
     state: State<'_, AppState>,
@@ -248,6 +254,7 @@ pub async fn push_cloud_workspace_changes(
 }
 
 /// Get pending conflicts for a workspace.
+#[agent_command(domain = "cloud", safety = Safe, call_mode = StateInput, description = "获取云工作区待处理冲突")]
 #[tauri::command]
 pub async fn get_cloud_conflicts(
     state: State<'_, AppState>,
@@ -275,6 +282,7 @@ pub async fn get_cloud_conflicts(
 }
 
 /// Resolve a specific conflict.
+#[agent_command(domain = "cloud", safety = Caution, call_mode = StateInput, description = "解决云冲突")]
 #[tauri::command]
 pub async fn resolve_cloud_conflict(
     state: State<'_, AppState>,
@@ -296,6 +304,7 @@ pub async fn resolve_cloud_conflict(
 }
 
 /// Set the conflict resolution strategy for a workspace.
+#[agent_command(domain = "cloud", safety = Caution, call_mode = StateInput, description = "设置云冲突解决策略")]
 #[tauri::command]
 pub async fn set_cloud_conflict_strategy(
     state: State<'_, AppState>,
@@ -331,6 +340,7 @@ pub struct CheckCloudConnectionRequest {
     pub path: Option<String>,
 }
 
+#[agent_command(domain = "cloud", safety = Safe, call_mode = Manual, description = "检查云存储连接")]
 #[tauri::command]
 pub async fn check_cloud_connection(config: CheckCloudConnectionRequest) -> Result<bool, String> {
     let backend_type = match config.storage_type.as_str() {

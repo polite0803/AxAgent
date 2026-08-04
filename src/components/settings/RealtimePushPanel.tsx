@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect } from "react";
-import { Card, Button, Space, Tag, List, Empty, Spin, message } from "antd";
-import {
-  CloudSyncOutlined,
-  ThunderboltOutlined,
-  ReloadOutlined,
-  DisconnectOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
-  SyncOutlined,
-} from "@ant-design/icons";
-import { useTranslation } from "react-i18next";
 import { useDeviceSyncStore } from "@/stores/feature/deviceSyncStore";
 import type { SyncSignal } from "@/types";
+import {
+  CheckCircleOutlined,
+  CloudSyncOutlined,
+  DisconnectOutlined,
+  ReloadOutlined,
+  SyncOutlined,
+  ThunderboltOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
+import { Button, Card, Empty, List, message, Space, Spin, Tag } from "antd";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * 实时推送状态面板组件
@@ -163,8 +163,7 @@ export function RealtimePushPanel() {
           >
             <Space direction="vertical">
               <span>
-                <strong>{t("deviceSync.realtime.connectionId")}:</strong>{" "}
-                <code>{realtimePush.ws_connection_id}</code>
+                <strong>{t("deviceSync.realtime.connectionId")}:</strong> <code>{realtimePush.ws_connection_id}</code>
               </span>
               {realtimePush.last_signal_at && (
                 <span>
@@ -190,30 +189,32 @@ export function RealtimePushPanel() {
         {/* 待处理信令 */}
         <div>
           <h4>{t("deviceSync.realtime.pendingSignals")} ({realtimePush.pending_signals.length})</h4>
-          {realtimePush.pending_signals.length === 0 ? (
-            <Empty
-              description={t("deviceSync.realtime.noPendingSignals")}
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          ) : (
-            <List
-              size="small"
-              bordered
-              dataSource={realtimePush.pending_signals.slice(-5).reverse()}
-              renderItem={(signal) => (
-                <List.Item>
-                  <Space>
-                    <Tag color="blue">{signal.type}</Tag>
-                    {signal.device_id && (
-                      <span style={{ color: "#8c8c8c", fontSize: 12 }}>
-                        {signal.device_id}
-                      </span>
-                    )}
-                  </Space>
-                </List.Item>
-              )}
-            />
-          )}
+          {realtimePush.pending_signals.length === 0
+            ? (
+              <Empty
+                description={t("deviceSync.realtime.noPendingSignals")}
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            )
+            : (
+              <List
+                size="small"
+                bordered
+                dataSource={realtimePush.pending_signals.slice(-5).reverse()}
+                renderItem={(signal) => (
+                  <List.Item>
+                    <Space>
+                      <Tag color="blue">{signal.type}</Tag>
+                      {signal.device_id && (
+                        <span style={{ color: "#8c8c8c", fontSize: 12 }}>
+                          {signal.device_id}
+                        </span>
+                      )}
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            )}
         </div>
 
         {/* 无设备提示 */}

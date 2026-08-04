@@ -122,9 +122,7 @@ pub async fn get_permissions_by_device(
 }
 
 /// 获取所有权限配置
-pub async fn get_all_permissions(
-    db: &DatabaseConnection,
-) -> Result<Vec<DevicePermissions>> {
+pub async fn get_all_permissions(db: &DatabaseConnection) -> Result<Vec<DevicePermissions>> {
     let rows = sync_permission::Entity::find().all(db).await?;
     Ok(rows.iter().map(model_to_device_permissions).collect())
 }

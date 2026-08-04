@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
+
 use axagent_runtime::profile_manager::ProfileManager;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
 
+#[agent_command(domain = profile, safety = Safe, call_mode = StateOnly, description = "列出所有配置档案")]
 #[tauri::command]
 pub async fn profile_list(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,
@@ -18,6 +21,7 @@ pub async fn profile_list(
     })
 }
 
+#[agent_command(domain = profile, safety = Caution, call_mode = StateInput, description = "创建新配置档案")]
 #[tauri::command]
 pub async fn profile_create(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,
@@ -33,6 +37,7 @@ pub async fn profile_create(
     })
 }
 
+#[agent_command(domain = profile, safety = Dangerous, call_mode = StateInput, description = "删除指定配置档案")]
 #[tauri::command]
 pub async fn profile_delete(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,
@@ -47,6 +52,7 @@ pub async fn profile_delete(
     })
 }
 
+#[agent_command(domain = profile, safety = Caution, call_mode = StateInput, description = "切换活动配置档案")]
 #[tauri::command]
 pub async fn profile_switch(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,
@@ -61,6 +67,7 @@ pub async fn profile_switch(
     })
 }
 
+#[agent_command(domain = profile, safety = Safe, call_mode = StateOnly, description = "获取当前活动配置档案")]
 #[tauri::command]
 pub async fn profile_active(
     manager: State<'_, Arc<Mutex<ProfileManager>>>,

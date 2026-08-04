@@ -2,6 +2,7 @@
 
 use std::sync::OnceLock;
 
+use agent_macro::agent_command;
 use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 
 const QUICKBAR_LABEL: &str = "quickbar";
@@ -29,6 +30,7 @@ fn quickbar_url(app: &AppHandle) -> WebviewUrl {
     }
 }
 
+#[agent_command(domain = quickbar, safety = Caution, call_mode = StateOnly, description = "显示快捷栏窗口")]
 #[tauri::command]
 pub async fn show_quickbar(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(QUICKBAR_LABEL) {
@@ -72,6 +74,7 @@ pub async fn show_quickbar(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[agent_command(domain = quickbar, safety = Caution, call_mode = StateOnly, description = "隐藏快捷栏窗口")]
 #[tauri::command]
 pub async fn hide_quickbar(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(QUICKBAR_LABEL) {

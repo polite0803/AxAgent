@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::louvain;
 use axagent_dao::repo::note::{
@@ -157,6 +158,7 @@ pub struct BacklinkInfo {
     pub snippets: Vec<String>,
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "列出 Wiki 下的笔记")]
 #[tauri::command]
 pub async fn wiki_notes_list(
     state: State<'_, AppState>,
@@ -172,6 +174,7 @@ pub async fn wiki_notes_list(
 
 /// 更新 Wiki 元数据，目前主要用于修改 embedding_provider。
 /// 仅当字段非空时才更新对应列。
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki 信息")]
 #[tauri::command]
 pub async fn update_wiki(
     state: State<'_, AppState>,
@@ -221,6 +224,7 @@ pub struct WikiUpdateResult {
 
 /// 删除 Wiki 容器：清理向量集合 + 删除数据库记录。
 /// 与 `delete_knowledge_base` / `delete_memory_namespace` 行为对齐。
+#[agent_command(domain = wiki, safety = Dangerous, call_mode = StateInput, description = "删除 Wiki")]
 #[tauri::command]
 pub async fn delete_wiki(state: State<'_, AppState>, id: String) -> Result<(), String> {
     validate_container_id(&id, "wiki_id")?;
@@ -239,6 +243,7 @@ pub async fn delete_wiki(state: State<'_, AppState>, id: String) -> Result<(), S
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 笔记")]
 #[tauri::command]
 pub async fn wiki_notes_get(state: State<'_, AppState>, id: String) -> Result<Note, String> {
     axagent_dao::repo::note::get_note(state.harness.db(), &id).await.map_err(|e| {
@@ -249,6 +254,7 @@ pub async fn wiki_notes_get(state: State<'_, AppState>, id: String) -> Result<No
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "按路径获取 Wiki 笔记")]
 #[tauri::command]
 pub async fn wiki_notes_get_by_path(
     state: State<'_, AppState>,
@@ -265,6 +271,7 @@ pub async fn wiki_notes_get_by_path(
         })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "创建 Wiki 笔记")]
 #[tauri::command]
 pub async fn wiki_notes_create(
     app: AppHandle,
@@ -321,6 +328,7 @@ pub async fn wiki_notes_create(
     Ok(note)
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki 笔记")]
 #[tauri::command]
 pub async fn wiki_notes_update(
     app: AppHandle,
@@ -423,6 +431,7 @@ pub async fn wiki_notes_update(
     Ok(updated)
 }
 
+#[agent_command(domain = wiki, safety = Dangerous, call_mode = StateInput, description = "删除 Wiki 笔记")]
 #[tauri::command]
 pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     // 删除前先取出 vault_id，用于清理向量嵌入和失效图谱缓存
@@ -489,6 +498,7 @@ pub async fn wiki_notes_delete(state: State<'_, AppState>, id: String) -> Result
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "重建 Wiki 索引")]
 #[tauri::command]
 pub async fn rebuild_wiki_index(
     app: AppHandle,
@@ -562,6 +572,7 @@ pub async fn rebuild_wiki_index(
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取笔记链接列表")]
 #[tauri::command]
 pub async fn wiki_notes_get_links(
     state: State<'_, AppState>,
@@ -575,6 +586,7 @@ pub async fn wiki_notes_get_links(
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取笔记反向链接")]
 #[tauri::command]
 pub async fn wiki_notes_get_backlinks(
     state: State<'_, AppState>,
@@ -679,6 +691,7 @@ fn extract_link_context_snippets(
     snippets
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "同步笔记链接关系")]
 #[tauri::command]
 pub async fn wiki_notes_sync_links(
     state: State<'_, AppState>,
@@ -696,6 +709,7 @@ pub async fn wiki_notes_sync_links(
         })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "搜索 Wiki 笔记")]
 #[tauri::command]
 pub async fn wiki_notes_search(
     state: State<'_, AppState>,
@@ -1014,6 +1028,7 @@ fn extract_highlight_snippet(
     snippet
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 图谱数据")]
 #[tauri::command]
 pub async fn get_wiki_graph(
     state: State<'_, AppState>,
@@ -1027,6 +1042,7 @@ pub async fn get_wiki_graph(
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "Wiki 社区发现")]
 #[tauri::command]
 pub async fn wiki_graph_communities(
     state: State<'_, AppState>,
@@ -1055,6 +1071,7 @@ pub async fn wiki_graph_communities(
 /// - 在 Wiki 笔记图谱基础上追加知识图谱实体节点（type="entity"）和关系边（type="reference"）
 /// - 实体节点 ID 加 "entity:" 前缀确保与笔记 ID 不冲突
 /// - 空知识库不影响原有图谱显示
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 图谱（缓存）")]
 #[tauri::command]
 pub async fn get_wiki_graph_cached(
     state: State<'_, AppState>,
@@ -1128,6 +1145,7 @@ pub async fn get_wiki_graph_cached(
 }
 
 /// 带缓存的社区检测：优先读缓存，未命中则跑 Louvain 并写缓存。
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取 Wiki 社区发现（缓存）")]
 #[tauri::command]
 pub async fn wiki_graph_communities_cached(
     state: State<'_, AppState>,
@@ -1190,6 +1208,7 @@ pub async fn wiki_graph_communities_cached(
 }
 
 /// 手动失效缓存（前端在导入/批量编辑后可调用）。
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "失效 Wiki 图谱缓存")]
 #[tauri::command]
 pub async fn invalidate_wiki_graph_cache(
     state: State<'_, AppState>,
@@ -1205,6 +1224,7 @@ pub async fn invalidate_wiki_graph_cache(
         })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "同步笔记到知识库")]
 #[tauri::command]
 pub async fn sync_note_to_knowledge_base(
     app: AppHandle,
@@ -1287,6 +1307,7 @@ pub async fn sync_note_to_knowledge_base(
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "同步知识库文档到 Wiki")]
 #[tauri::command]
 pub async fn sync_knowledge_document_to_wiki(
     app: AppHandle,
@@ -1355,6 +1376,7 @@ pub async fn sync_knowledge_document_to_wiki(
     Ok(())
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取笔记版本历史")]
 #[tauri::command]
 pub async fn wiki_note_versions(
     state: State<'_, AppState>,
@@ -1368,6 +1390,7 @@ pub async fn wiki_note_versions(
     })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "获取笔记特定版本")]
 #[tauri::command]
 pub async fn wiki_note_get_version(
     state: State<'_, AppState>,
@@ -1381,6 +1404,7 @@ pub async fn wiki_note_get_version(
     })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "恢复笔记历史版本")]
 #[tauri::command]
 pub async fn wiki_note_restore_version(
     app: AppHandle,
@@ -1442,6 +1466,7 @@ pub async fn wiki_note_restore_version(
     Ok(updated)
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "列出 Wiki 模板")]
 #[tauri::command]
 pub async fn wiki_template_list(
     state: State<'_, AppState>,
@@ -1455,6 +1480,7 @@ pub async fn wiki_template_list(
     })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "创建 Wiki 模板")]
 #[tauri::command]
 pub async fn wiki_template_create(
     state: State<'_, AppState>,
@@ -1468,6 +1494,7 @@ pub async fn wiki_template_create(
     })
 }
 
+#[agent_command(domain = wiki, safety = Dangerous, call_mode = StateInput, description = "删除 Wiki 模板")]
 #[tauri::command]
 pub async fn wiki_template_delete(state: State<'_, AppState>, id: String) -> Result<(), String> {
     wiki::delete_wiki_template(state.harness.db(), &id).await.map_err(|e| {
@@ -1478,6 +1505,7 @@ pub async fn wiki_template_delete(state: State<'_, AppState>, id: String) -> Res
     })
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "从模板创建笔记")]
 #[tauri::command]
 pub async fn wiki_note_create_from_template(
     app: AppHandle,
@@ -1531,6 +1559,7 @@ pub async fn wiki_note_create_from_template(
     Ok(note)
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "创建每日笔记")]
 #[tauri::command]
 pub async fn wiki_create_daily_note(
     app: AppHandle,
@@ -1587,6 +1616,7 @@ pub struct ExportStats {
     pub failed: usize,
 }
 
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "导入 Obsidian Vault 到 Wiki")]
 #[tauri::command]
 pub async fn wiki_import_obsidian_vault(
     app: AppHandle,
@@ -1709,6 +1739,7 @@ pub struct KnowledgeMdImportStats {
 /// 将 KNOWLEDGE.md（精炼知识源）导入为 Wiki 笔记。
 /// 按 `## ` 标题分割章节，每个章节创建一条笔记。
 /// 自动触发向量索引，使知识可通过 RAG 管道检索。
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "导入 Knowledge.md 到 Wiki")]
 #[tauri::command]
 pub async fn wiki_import_knowledge_md(
     app: AppHandle,
@@ -1855,6 +1886,7 @@ fn parse_frontmatter(raw: &str) -> (serde_yaml::Value, String) {
     (frontmatter, body.to_string())
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "导出 Wiki 为 Markdown")]
 #[tauri::command]
 pub async fn wiki_export_markdown(
     state: State<'_, AppState>,
@@ -1934,6 +1966,7 @@ pub async fn wiki_export_markdown(
     Ok(ExportStats { exported, failed })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "导出 Wiki 为 HTML")]
 #[tauri::command]
 pub async fn wiki_export_html(
     state: State<'_, AppState>,
@@ -2054,6 +2087,7 @@ li {{ padding: 4px 0; }}
     Ok(ExportStats { exported, failed })
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "导出笔记为 HTML")]
 #[tauri::command]
 pub async fn wiki_note_export_html(
     state: State<'_, AppState>,
@@ -2182,6 +2216,7 @@ pub struct AutoConnectResult {
     pub elapsed_ms: u64,
 }
 
+#[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "自动连接 Wiki")]
 #[tauri::command]
 pub async fn auto_connect_wiki(
     state: State<'_, AppState>,

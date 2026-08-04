@@ -8,6 +8,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::{common, knowledge_source as ks_err};
+use agent_macro::agent_command;
 use axagent_harness::search_sources::{KnowledgeSourceType, SearchResult};
 use axagent_search::sources::unified_sources;
 use serde::Deserialize;
@@ -35,6 +36,7 @@ pub struct UnifiedSearchRequest {
 /// 统一搜索 Tauri 命令
 ///
 /// 遍历所有已注册的统一知识源，按条件搜索并聚合结果。
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "统一知识源搜索")]
 #[tauri::command]
 pub async fn unified_knowledge_search(
     _state: State<'_, AppState>,
@@ -92,6 +94,7 @@ pub async fn unified_knowledge_search(
 }
 
 /// 查询指定源的元数据
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "查询知识源元数据")]
 #[tauri::command]
 pub async fn unified_source_meta(
     _state: State<'_, AppState>,
@@ -139,6 +142,7 @@ pub struct FeedbackQueryRequest {
 }
 
 /// 查询反馈数据湖
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "查询反馈数据湖")]
 #[tauri::command]
 pub async fn query_feedback_lake(
     _state: State<'_, AppState>,
@@ -175,6 +179,7 @@ pub async fn query_feedback_lake(
 }
 
 /// 获取反馈统计
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "获取反馈统计")]
 #[tauri::command]
 pub async fn get_feedback_stats(
     _state: State<'_, AppState>,

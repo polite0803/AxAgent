@@ -6,6 +6,7 @@ use axagent_providers::openai::OpenAIAdapter;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+use agent_macro::agent_command;
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,6 +16,7 @@ pub struct ChartGenResult {
     pub title: String,
 }
 
+#[agent_command(domain = chart, safety = Safe, call_mode = Manual, description = "根据自然语言描述生成ECharts图表配置")]
 #[allow(clippy::too_many_arguments)]
 #[command]
 pub async fn generate_chart_config(

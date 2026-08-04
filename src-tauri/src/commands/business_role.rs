@@ -8,6 +8,8 @@
 //!
 //! 二者通过 `agent_profiles.business_role_id` + `agent_profiles.agent_role` 同时关联。
 
+use agent_macro::agent_command;
+
 use crate::AppState;
 use axagent_dao::repo::business_role;
 use axagent_harness::repo_dtos::BusinessRoleDto;
@@ -15,6 +17,7 @@ use serde::Deserialize;
 use tauri::State;
 
 /// 列出所有业务岗位
+#[agent_command(domain = "agent", safety = Safe, call_mode = StateInput, description = "列出所有业务岗位")]
 #[tauri::command]
 pub async fn list_business_roles(
     app_state: State<'_, AppState>,
@@ -31,6 +34,7 @@ pub async fn list_business_roles(
 }
 
 /// 查询业务岗位树（按 sort_order 排序，前端按 reports_to 自行构造树）
+#[agent_command(domain = "agent", safety = Safe, call_mode = StateOnly, description = "查询业务岗位树")]
 #[tauri::command]
 pub async fn list_business_role_tree(
     app_state: State<'_, AppState>,
@@ -44,6 +48,7 @@ pub async fn list_business_role_tree(
 }
 
 /// 获取单个业务岗位
+#[agent_command(domain = "agent", safety = Safe, call_mode = StateInput, description = "获取单个业务岗位")]
 #[tauri::command]
 pub async fn get_business_role(
     app_state: State<'_, AppState>,
@@ -78,6 +83,7 @@ pub struct SaveBusinessRoleInput {
 }
 
 /// 保存（创建/更新）业务岗位
+#[agent_command(domain = "agent", safety = Caution, call_mode = StateInput, description = "保存业务岗位")]
 #[tauri::command]
 pub async fn save_business_role(
     app_state: State<'_, AppState>,
@@ -112,6 +118,7 @@ pub async fn save_business_role(
 }
 
 /// 删除业务岗位（builtin 不可删除；有下属岗位时拒绝删除）
+#[agent_command(domain = "agent", safety = Dangerous, call_mode = StateInput, description = "删除业务岗位")]
 #[tauri::command]
 pub async fn delete_business_role(
     app_state: State<'_, AppState>,

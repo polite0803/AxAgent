@@ -5,6 +5,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::onboarding as onboarding_err;
+use agent_macro::agent_command;
 use axagent_dao::repo::provider::{
     add_provider_key, create_provider, list_providers, toggle_provider,
 };
@@ -76,6 +77,7 @@ fn detect_single_key(env_var: &str, provider_type: &str) -> Option<DetectedApiKe
 // ── Tauri 命令 ──
 
 /// 检测本地 Ollama 是否可用
+#[agent_command(domain = onboarding, safety = Safe, call_mode = Manual, description = "检测本地 Ollama 可用性")]
 #[tauri::command]
 pub async fn detect_ollama_availability(
     ollama_host: Option<String>,
@@ -144,6 +146,7 @@ pub async fn detect_ollama_availability(
 }
 
 /// 检测环境变量中的 API Key
+#[agent_command(domain = onboarding, safety = Safe, call_mode = Manual, description = "检测环境变量中的 API Key")]
 #[tauri::command]
 pub async fn detect_api_keys() -> Result<Vec<DetectedApiKey>, String> {
     let keys: Vec<DetectedApiKey> = KEY_ENV_VARS
@@ -154,6 +157,7 @@ pub async fn detect_api_keys() -> Result<Vec<DetectedApiKey>, String> {
 }
 
 /// 应用快速预设
+#[agent_command(domain = onboarding, safety = Caution, call_mode = StateInput, description = "应用快速启动预设")]
 #[tauri::command]
 pub async fn apply_quick_start_preset(
     app_state: State<'_, AppState>,

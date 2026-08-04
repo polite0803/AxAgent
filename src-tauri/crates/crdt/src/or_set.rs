@@ -21,10 +21,7 @@ pub struct ORSet {
 impl ORSet {
     /// 创建新的 ORSet
     pub fn new(site_id: String) -> Self {
-        Self {
-            elements: HashMap::new(),
-            site_id,
-        }
+        Self { elements: HashMap::new(), site_id }
     }
 
     /// 获取当前元素集合
@@ -38,10 +35,7 @@ impl ORSet {
 
     /// 检查元素是否存在
     pub fn contains(&self, element: &str) -> bool {
-        self.elements
-            .get(element)
-            .map(|tags| !tags.is_empty())
-            .unwrap_or(false)
+        self.elements.get(element).map(|tags| !tags.is_empty()).unwrap_or(false)
     }
 
     /// 添加元素（本地操作）
@@ -53,10 +47,7 @@ impl ORSet {
 
     /// 使用特定标签添加元素
     fn add_with_tag(&mut self, element: String, tag: String) {
-        self.elements
-            .entry(element)
-            .or_default()
-            .insert(tag);
+        self.elements.entry(element).or_default().insert(tag);
     }
 
     /// 移除元素（移除该元素的所有标签）
@@ -96,17 +87,12 @@ impl ORSet {
 
     /// 获取快照
     pub fn snapshot(&self) -> ORSetSnapshot {
-        ORSetSnapshot {
-            elements: self.elements.clone(),
-        }
+        ORSetSnapshot { elements: self.elements.clone() }
     }
 
     /// 从快照恢复
     pub fn from_snapshot(snapshot: ORSetSnapshot, site_id: String) -> Self {
-        Self {
-            elements: snapshot.elements,
-            site_id,
-        }
+        Self { elements: snapshot.elements, site_id }
     }
 }
 

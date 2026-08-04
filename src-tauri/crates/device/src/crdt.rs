@@ -50,9 +50,7 @@ pub enum OperationType {
 
 impl Clone for CrdtEngine {
     fn clone(&self) -> Self {
-        Self {
-            documents: self.documents.clone(),
-        }
+        Self { documents: self.documents.clone() }
     }
 }
 
@@ -300,7 +298,12 @@ mod tests {
         engine.create_document("doc-1", "Hello World");
 
         let op = engine
-            .apply_local_operation("doc-1", "client-1", OperationType::Insert { text: "Beautiful ".to_string() }, 6)
+            .apply_local_operation(
+                "doc-1",
+                "client-1",
+                OperationType::Insert { text: "Beautiful ".to_string() },
+                6,
+            )
             .unwrap();
 
         assert_eq!(op.id, 0);
@@ -326,7 +329,12 @@ mod tests {
 
         // 客户端1在位置6插入
         engine
-            .apply_local_operation("doc-1", "client-1", OperationType::Insert { text: "Beautiful ".to_string() }, 6)
+            .apply_local_operation(
+                "doc-1",
+                "client-1",
+                OperationType::Insert { text: "Beautiful ".to_string() },
+                6,
+            )
             .unwrap();
 
         // 客户端2也在位置6插入（模拟并发），使用不同的 ID 避免去重
@@ -353,7 +361,12 @@ mod tests {
         engine.create_document("doc-1", "Hello World");
 
         let op = engine
-            .apply_local_operation("doc-1", "client-1", OperationType::Insert { text: "Test".to_string() }, 0)
+            .apply_local_operation(
+                "doc-1",
+                "client-1",
+                OperationType::Insert { text: "Test".to_string() },
+                0,
+            )
             .unwrap();
 
         // 尝试再次应用相同的操作

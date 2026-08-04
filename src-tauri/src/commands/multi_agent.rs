@@ -14,6 +14,7 @@
 
 use crate::AppState;
 use crate::commands::provider_ctx::build_vision_context;
+use agent_macro::agent_command;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{DelegateTaskInput, DelegateTaskResult, DelegateTaskRunner};
@@ -180,6 +181,7 @@ fn validate_role(role_name: &str) -> Result<(), String> {
 ///
 /// 委托给 `DelegateTaskRunnerImpl.delegate()` 实现，确保 Tauri 命令与
 /// Tool 走同一套业务逻辑。错误统一使用 `ErrorResponse` + 错误码。
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "委派任务给多智能体角色")]
 #[tauri::command]
 pub async fn delegate_task(
     state: State<'_, AppState>,
@@ -202,6 +204,7 @@ pub async fn delegate_task(
 }
 
 /// 列出 G5 Multi-Agent 固定角色（前端 UI 用）
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "列出多智能体固定角色")]
 #[tauri::command]
 pub async fn list_multi_agent_roles(
     state: State<'_, AppState>,

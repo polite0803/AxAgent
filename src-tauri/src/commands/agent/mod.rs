@@ -6,6 +6,7 @@ use crate::commands::error_code::agent as agent_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 use axagent_agent::{
     AxAgentApiClient, DefaultToTReasoningProvider, FallbackProviderAdapter, TreeOfThoughtsEngine,
 };
@@ -55,8 +56,8 @@ use skill_execution::{
 pub mod command_bridge;
 use command_bridge::{
     CommandCache, CommandRegistry, build_chat_tools as build_tauri_command_chat_tools,
-    build_command_handlers, build_command_index_string, create_registry_with_custom_commands,
-    preload_command_cache, resolve_command_domains,
+    build_command_handlers, build_command_index_string, preload_command_cache,
+    resolve_command_domains,
 };
 
 /// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
@@ -504,6 +505,7 @@ fn build_streaming_api_client(
     }))
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "执行智能体查询")]
 #[tauri::command]
 pub async fn agent_query(
     app: AppHandle,
@@ -1698,10 +1700,6 @@ pub async fn agent_query(
     // 验证 build_command_index_string 函数
     let _verified_index = build_command_index_string(&command_domains);
 
-    // 验证动态注册功能
-    let custom_registry = create_registry_with_custom_commands();
-    info!("[agent] Custom registry created with {} commands", custom_registry.len());
-
     let (hits, misses, cache_size) = command_cache.stats();
     info!(
         "[agent] Command index injected: {} domains, {} chars (cache: {} hits, {} misses, {} entries, preload_hit_rate: {:.1}%)",
@@ -2516,6 +2514,7 @@ pub async fn agent_query(
 }
 
 /// Approve or reject a pending plan (P0-2 plan confirmation gate)
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "审批或拒绝待确认的计划")]
 #[tauri::command]
 pub async fn agent_approve_plan(
     app_state: State<'_, AppState>,
@@ -2539,6 +2538,7 @@ pub async fn agent_approve_plan(
 }
 
 /// Approve a permission request
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "审批或拒绝工具权限请求")]
 #[tauri::command]
 pub async fn agent_approve(
     app_state: State<'_, AppState>,
@@ -2604,6 +2604,7 @@ pub async fn agent_approve(
 }
 
 /// Respond to an ask request
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "响应用户提问请求")]
 #[tauri::command]
 pub async fn agent_respond_ask(
     app_state: State<'_, AppState>,
@@ -2689,6 +2690,7 @@ pub(crate) async fn cancel_agent_internal(
 }
 
 /// Cancel an agent task
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "取消正在执行的智能体任务")]
 #[tauri::command]
 pub async fn agent_cancel(
     app: AppHandle,
@@ -2710,6 +2712,7 @@ pub async fn agent_cancel(
 
 /// Check if an agent is currently running for a conversation.
 /// Used by the frontend after page refresh to detect orphaned agent runs.
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "查询智能体是否正在运行")]
 #[tauri::command]
 pub async fn agent_is_running(
     app_state: State<'_, AppState>,
@@ -2721,6 +2724,7 @@ pub async fn agent_is_running(
 
 /// Pause a running agent. The agent loop checks the paused set before each iteration;
 /// when paused it sleeps until resumed or cancelled.
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "暂停正在运行的智能体")]
 #[tauri::command]
 pub async fn agent_pause(
     app: AppHandle,
@@ -2759,6 +2763,7 @@ pub async fn agent_pause(
 }
 
 /// Resume a paused agent.
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "恢复已暂停的智能体")]
 #[tauri::command]
 pub async fn agent_resume(
     app: AppHandle,
@@ -2799,6 +2804,7 @@ pub async fn agent_resume(
 
 /// Check if an agent is paused. An agent is only considered paused if it is
 /// both in the paused set AND still running (to filter out stale entries).
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "查询智能体是否处于暂停状态")]
 #[tauri::command]
 pub async fn agent_is_paused(
     app_state: State<'_, AppState>,
@@ -2836,6 +2842,7 @@ pub struct AgentRuntimeStats {
 }
 
 /// Get runtime statistics for an agent conversation.
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取智能体运行时统计信息")]
 #[tauri::command]
 pub async fn agent_runtime_stats(
     app_state: State<'_, AppState>,
@@ -2906,6 +2913,7 @@ pub struct ModelRoutingConfig {
 }
 
 /// Resolve which model to use for a given task context.
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "根据任务上下文解析应使用的模型")]
 #[tauri::command]
 pub async fn agent_resolve_model(
     routing_config: ModelRoutingConfig,
@@ -2958,6 +2966,7 @@ pub async fn agent_resolve_model(
 }
 
 /// Update agent session
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "更新智能体会话配置")]
 #[tauri::command]
 pub async fn agent_update_session(
     app_state: State<'_, AppState>,
@@ -2988,6 +2997,7 @@ pub async fn agent_update_session(
 }
 
 /// Get agent session
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取智能体会话信息")]
 #[tauri::command]
 pub async fn agent_get_session(
     app_state: State<'_, AppState>,
@@ -3044,6 +3054,7 @@ pub async fn agent_get_session(
 }
 
 /// Ensure workspace directory
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "确保工作区目录存在并同步云空间")]
 #[tauri::command]
 pub async fn agent_ensure_workspace(
     app_state: State<'_, AppState>,
@@ -3159,6 +3170,7 @@ pub async fn agent_ensure_workspace(
 }
 
 /// Backup and clear SDK context
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "备份并清除会话的SDK上下文")]
 #[tauri::command]
 pub async fn agent_backup_and_clear_sdk_context(
     app_state: State<'_, AppState>,
@@ -3178,6 +3190,7 @@ pub async fn agent_backup_and_clear_sdk_context(
 }
 
 /// Restore SDK context from backup
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "从备份恢复会话的SDK上下文")]
 #[tauri::command]
 pub async fn agent_restore_sdk_context_from_backup(
     app_state: State<'_, AppState>,
@@ -3199,6 +3212,7 @@ pub async fn agent_restore_sdk_context_from_backup(
 /// 前端 SteerInput 推送方向指令。已迁移到 AppState.steer_queue，保留此模块级辅助函数
 /// 仅作为非命令上下文的 fallback（当前无用途）。
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "向智能体推送方向指令")]
 #[tauri::command]
 pub async fn agent_steer(
     state: tauri::State<'_, AppState>,
@@ -3273,6 +3287,7 @@ async fn resolve_simple_completion_target(
     Err("没有可用的 provider/model：请先在设置中启用提供商".to_string())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "轻量级一次性文本补全请求")]
 #[tauri::command]
 pub async fn simple_chat_completion(
     app_state: State<'_, AppState>,

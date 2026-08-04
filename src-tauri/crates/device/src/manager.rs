@@ -9,12 +9,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axagent_harness::device_sync::{
     DeviceInfo, DeviceManager, DeviceType, PairingCode, PairingRequest, PairingResponse,
     SyncStorage, TrustLevel,
 };
 use axagent_harness::util_fns::current_rfc3339;
-use async_trait::async_trait;
 use rand::Rng;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -109,10 +109,7 @@ impl DeviceStore {
     /// 保存或更新设备
     pub async fn upsert_device(&self, device: DeviceInfo) {
         // 先更新内存缓存
-        self.devices
-            .write()
-            .await
-            .insert(device.device_id.clone(), device.clone());
+        self.devices.write().await.insert(device.device_id.clone(), device.clone());
 
         // 如果使用数据库，同步到数据库
         if let Some(storage) = &self.sync_storage
@@ -135,10 +132,7 @@ impl DeviceStore {
 
     /// 添加配对码（仅内存）
     pub async fn add_pending_code(&self, code: PairingCode) {
-        self.pending_codes
-            .write()
-            .await
-            .insert(code.code.clone(), code);
+        self.pending_codes.write().await.insert(code.code.clone(), code);
     }
 
     /// 获取并移除配对码

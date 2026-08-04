@@ -1,24 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { useEffect, useState } from "react";
-import {
-  Card,
-  Table,
-  Tabs,
-  Tag,
-  Space,
-  Button,
-  Select,
-  Typography,
-} from "antd";
-import type { TableProps } from "antd";
-import {
-  HistoryOutlined,
-  FileSearchOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
 import { useDeviceSyncStore } from "@/stores";
 import type { AuditLogEntry, SyncHistoryEntry } from "@/types";
+import { FileSearchOutlined, HistoryOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button, Card, Select, Space, Table, Tabs, Tag, Typography } from "antd";
+import type { TableProps } from "antd";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -110,29 +97,21 @@ export function SyncHistoryPanel() {
       key: "conflicts",
       width: 80,
       render: (conflicts: SyncHistoryEntry["conflicts"]) =>
-        conflicts.length > 0 ? (
-          <Tag color="orange">{conflicts.length}</Tag>
-        ) : (
-          <Text type="secondary">0</Text>
-        ),
+        conflicts.length > 0 ? <Tag color="orange">{conflicts.length}</Tag> : <Text type="secondary">0</Text>,
     },
     {
       title: t("deviceSync.duration"),
       dataIndex: ["result", "duration_ms"],
       key: "duration",
       width: 100,
-      render: (ms: number) => (
-        <Text>{ms ? `${ms}ms` : "-"}</Text>
-      ),
+      render: (ms: number) => <Text>{ms ? `${ms}ms` : "-"}</Text>,
     },
     {
       title: t("deviceSync.completedAt"),
       dataIndex: "completed_at",
       key: "completed_at",
       width: 180,
-      render: (date: string) => (
-        <Text type="secondary">{new Date(date).toLocaleString()}</Text>
-      ),
+      render: (date: string) => <Text type="secondary">{new Date(date).toLocaleString()}</Text>,
     },
   ];
 
@@ -142,9 +121,7 @@ export function SyncHistoryPanel() {
       dataIndex: "timestamp",
       key: "timestamp",
       width: 180,
-      render: (date: string) => (
-        <Text type="secondary">{new Date(date).toLocaleString()}</Text>
-      ),
+      render: (date: string) => <Text type="secondary">{new Date(date).toLocaleString()}</Text>,
     },
     {
       title: t("deviceSync.action"),
@@ -204,8 +181,7 @@ export function SyncHistoryPanel() {
       dataIndex: "details",
       key: "details",
       ellipsis: true,
-      render: (details: string | null) =>
-        details ? <Text code>{details}</Text> : <Text type="secondary">-</Text>,
+      render: (details: string | null) => details ? <Text code>{details}</Text> : <Text type="secondary">-</Text>,
     },
   ];
 

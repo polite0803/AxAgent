@@ -4,6 +4,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use crate::commands::workflow_ai::NODE_SCHEMAS_DOC;
 use crate::commands::workflow_ai::UPSTREAM_EXTENSION_FOR_CHAT;
+use agent_macro::agent_command;
 use axagent_harness::types::settings_chat::ChatContent;
 use axagent_harness::types::{
     ChatMessage, ChatRequest, ChatStreamChunk, ChatStreamErrorEvent, ChatStreamEvent,
@@ -14,6 +15,7 @@ use futures::StreamExt;
 use std::sync::Arc;
 use tauri::{Emitter, State};
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "AI聊天流式对话")]
 #[tauri::command]
 #[tracing::instrument(skip(app, state))]
 pub async fn workflow_ai_chat_stream(
@@ -299,6 +301,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
     Ok(())
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "取消AI聊天对话")]
 #[tauri::command]
 pub async fn workflow_ai_chat_cancel(
     _state: State<'_, AppState>,

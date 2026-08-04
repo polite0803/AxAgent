@@ -13,6 +13,7 @@ use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use crate::commands::error_code::workflow as workflow_err;
+use agent_macro::agent_command;
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,
@@ -751,6 +752,12 @@ async fn execute_step_with_agent(
 /// Generate a structured execution plan from the user's message using LLM.
 /// The plan is persisted to the database and emitted as a `plan-generated` event.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "根据用户消息生成执行计划"
+)]
 pub async fn plan_generate(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
@@ -835,6 +842,12 @@ pub async fn plan_generate(
 
 /// Execute an approved plan — runs each step sequentially using the agent tool-calling loop.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "执行已审批的计划"
+)]
 pub async fn plan_execute(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
@@ -1163,6 +1176,12 @@ fn is_error_result(result: &str) -> bool {
 
 /// Cancel a plan.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "取消正在执行的计划"
+)]
 pub async fn plan_cancel(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
@@ -1204,6 +1223,12 @@ pub async fn plan_cancel(
 
 /// Activate a plan for review — sets is_active=1, deactivates others.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "激活计划供审批"
+)]
 pub async fn plan_activate(
     state: tauri::State<'_, AppState>,
     request: PlanActivateRequest,
@@ -1261,6 +1286,12 @@ pub async fn plan_activate(
 
 /// Get a plan by ID.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "根据 ID 获取计划详情"
+)]
 pub async fn plan_get(
     state: tauri::State<'_, AppState>,
     request: PlanGetRequest,
@@ -1304,6 +1335,12 @@ pub async fn plan_get(
 
 /// List plans for a conversation.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "列出会话的所有计划"
+)]
 pub async fn plan_list(
     state: tauri::State<'_, AppState>,
     request: PlanListRequest,
@@ -1357,6 +1394,12 @@ pub async fn plan_list(
 
 /// Modify a step in a plan.
 #[tauri::command]
+#[agent_command(
+    domain = plan,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "修改计划步骤的属性或审批状态"
+)]
 pub async fn plan_modify_step(
     state: tauri::State<'_, AppState>,
     request: PlanModifyStepRequest,

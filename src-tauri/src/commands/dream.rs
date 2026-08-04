@@ -7,9 +7,11 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
+use agent_macro::agent_command;
 use tauri::State;
 
 /// 手动触发一次梦境巩固（忽略门控条件）
+#[agent_command(domain = dream, safety = Caution, call_mode = StateOnly, description = "手动触发梦境巩固")]
 #[tauri::command]
 pub async fn dream_consolidate_now(state: State<'_, AppState>) -> Result<String, String> {
     let consolidator = &state.dream_consolidator;
@@ -41,6 +43,7 @@ pub async fn dream_consolidate_now(state: State<'_, AppState>) -> Result<String,
 }
 
 /// 获取梦境巩固状态
+#[agent_command(domain = dream, safety = Safe, call_mode = StateOnly, description = "获取梦境巩固状态")]
 #[tauri::command]
 pub async fn dream_get_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let consolidator = &state.dream_consolidator;
@@ -59,6 +62,7 @@ pub async fn dream_get_status(state: State<'_, AppState>) -> Result<serde_json::
 }
 
 /// 设置梦境巩固配置
+#[agent_command(domain = dream, safety = Caution, call_mode = StateInput, description = "设置梦境巩固配置")]
 #[tauri::command]
 pub async fn dream_set_config(
     state: State<'_, AppState>,

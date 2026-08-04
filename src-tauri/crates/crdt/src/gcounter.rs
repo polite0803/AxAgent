@@ -21,10 +21,7 @@ pub struct GCounter {
 impl GCounter {
     /// 创建新的 GCounter
     pub fn new(site_id: String) -> Self {
-        Self {
-            counters: HashMap::new(),
-            site_id,
-        }
+        Self { counters: HashMap::new(), site_id }
     }
 
     /// 获取计数器总值
@@ -63,17 +60,12 @@ impl GCounter {
 
     /// 获取快照
     pub fn snapshot(&self) -> GCounterSnapshot {
-        GCounterSnapshot {
-            counters: self.counters.clone(),
-        }
+        GCounterSnapshot { counters: self.counters.clone() }
     }
 
     /// 从快照恢复
     pub fn from_snapshot(snapshot: GCounterSnapshot, site_id: String) -> Self {
-        Self {
-            counters: snapshot.counters,
-            site_id,
-        }
+        Self { counters: snapshot.counters, site_id }
     }
 }
 

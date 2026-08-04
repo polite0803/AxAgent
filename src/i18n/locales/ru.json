@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "Не удалось выполнить вызов умной маршрутизации",
     "FLEET_EXECUTION_FAILED": "Участнику не удалось выполнить задачу",
     "FLEET_TARGET_NOT_IN_FLEET": "Целевой участник не существует в этом офисе",
-    "FLEET_SLUG_EXISTS": "Участник с таким slug уже существует в этом офисе"
+    "FLEET_SLUG_EXISTS": "Участник с таким slug уже существует в этом офисе",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "Устройство не найдено",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Устройство уже сопряжено",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Устройство не сопряжено",
+    "DEVICE_SYNC_DEVICE_DISABLED": "Устройство отключено",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "Неверный код сопряжения",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "Срок действия кода сопряжения истёк",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "Недостаточный уровень доверия",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "Разрешения устройства не найдены",
+    "DEVICE_SYNC_PERMISSION_DENIED": "Доступ запрещён",
+    "DEVICE_SYNC_FAILED": "Синхронизация не удалась",
+    "DEVICE_SYNC_TIMEOUT": "Таймаут синхронизации",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "Обнаружение конфликтов не удалось",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "Разрешение конфликтов не удалось",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "Запись о конфликте не найдена",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "Синхронизация уже выполняется",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "Нет изменений для синхронизации",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "Шифрование не удалось",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "Расшифровка не удалась",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "Для шифрования требуется пароль",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "Пароль шифрования не может быть пустым",
+    "DEVICE_SYNC_SALT_REQUIRED": "Для расшифровки требуется соль",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Операция хранилища не удалась",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Операция политики не удалась"
   },
   "errorBoundary": {
     "copied": "Скопировано",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

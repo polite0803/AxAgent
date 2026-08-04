@@ -184,10 +184,7 @@ pub async fn get_failed_audit_logs(
 }
 
 /// 删除旧的审计日志
-pub async fn delete_old_audit_logs(
-    db: &DatabaseConnection,
-    before_timestamp: i64,
-) -> Result<u64> {
+pub async fn delete_old_audit_logs(db: &DatabaseConnection, before_timestamp: i64) -> Result<u64> {
     let result = sync_audit_log::Entity::delete_many()
         .filter(sync_audit_log::Column::CreatedAt.lt(before_timestamp))
         .exec(db)

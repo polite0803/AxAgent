@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use tauri::State;
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取待处理 Nudge 列表")]
 #[tauri::command]
 pub async fn nudge_list(
     app_state: State<'_, AppState>,
@@ -13,6 +15,7 @@ pub async fn nudge_list(
     Ok(pending.iter().filter_map(|n| serde_json::to_value(n).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "忽略 Nudge")]
 #[tauri::command]
 pub async fn nudge_dismiss(
     app_state: State<'_, AppState>,
@@ -22,6 +25,7 @@ pub async fn nudge_dismiss(
     Ok(ns.take_nudge_action(&nudge_id, axagent_trajectory::NudgeAction::Dismissed))
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "延后 Nudge 提醒")]
 #[tauri::command]
 pub async fn nudge_snooze(
     app_state: State<'_, AppState>,
@@ -32,6 +36,7 @@ pub async fn nudge_snooze(
     Ok(ns.snooze_nudge(&nudge_id, until))
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "执行 Nudge 并写入记忆")]
 #[tauri::command]
 pub async fn nudge_execute(
     app_state: State<'_, AppState>,
@@ -67,6 +72,7 @@ pub async fn nudge_execute(
     Ok(succeeded)
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "获取 Nudge 统计数据")]
 #[tauri::command]
 pub async fn nudge_stats(app_state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let ns = app_state.nudge_service.lock().await;
@@ -79,6 +85,7 @@ pub async fn nudge_stats(app_state: State<'_, AppState>) -> Result<serde_json::V
     })
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "获取闭环 Nudge 列表")]
 #[tauri::command]
 pub async fn nudge_closed_loop_list(
     app_state: State<'_, AppState>,
@@ -87,6 +94,7 @@ pub async fn nudge_closed_loop_list(
     Ok(nudges.iter().filter_map(|n| serde_json::to_value(n).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "确认闭环 Nudge")]
 #[tauri::command]
 pub async fn nudge_closed_loop_acknowledge(
     app_state: State<'_, AppState>,
@@ -96,6 +104,7 @@ pub async fn nudge_closed_loop_acknowledge(
     Ok(())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "查找相似技能")]
 #[tauri::command]
 pub async fn skill_find_similar(
     app_state: State<'_, AppState>,
@@ -111,6 +120,7 @@ pub async fn skill_find_similar(
     Ok(similar.iter().filter_map(|s| serde_json::to_value(s).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "提议技能升级")]
 #[tauri::command]
 pub async fn skill_upgrade_propose(
     app_state: State<'_, AppState>,
@@ -144,6 +154,7 @@ pub async fn skill_upgrade_propose(
     Ok(None)
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "执行技能升级")]
 #[tauri::command]
 pub async fn skill_upgrade_execute(
     app_state: State<'_, AppState>,
@@ -180,6 +191,7 @@ static IPC_TOTAL_DURATION_MS: std::sync::atomic::AtomicU64 = std::sync::atomic::
 static IPC_ERROR_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// 获取 IPC 调用指标（proactiveStore 用于性能预热）
+#[agent_command(domain = agent, safety = Safe, call_mode = Manual, description = "获取 IPC 调用指标")]
 #[tauri::command]
 pub fn get_invoke_metrics() -> Result<serde_json::Value, String> {
     let total = IPC_COUNTER.load(std::sync::atomic::Ordering::Relaxed);
@@ -193,6 +205,7 @@ pub fn get_invoke_metrics() -> Result<serde_json::Value, String> {
 }
 
 /// 将主动建议转换为 Nudge（nudgeStore 调用）
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "将主动建议转换为 Nudge")]
 #[tauri::command]
 pub async fn proactive_convert_to_nudge(
     state: tauri::State<'_, crate::AppState>,

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_harness::types::CreateSourceInput;
 use axagent_search::rag::{ContainerType, KnowledgeContainer};
 use serde::{Deserialize, Serialize};
@@ -95,6 +96,7 @@ async fn fetch_all_sources(
     sources
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "列出所有知识源")]
 #[tauri::command]
 pub async fn list_all_sources(
     state: State<'_, AppState>,
@@ -103,6 +105,7 @@ pub async fn list_all_sources(
     Ok(fetch_all_sources(state.harness.db(), container_types.as_ref()).await)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "创建知识源")]
 #[tauri::command]
 pub async fn create_source(
     state: State<'_, AppState>,
@@ -235,6 +238,7 @@ pub async fn create_source(
     }
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "获取知识源配置")]
 #[tauri::command]
 pub async fn get_source_config(
     state: State<'_, AppState>,
@@ -277,6 +281,7 @@ pub async fn get_source_config(
     Ok(config)
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "搜索所有知识源")]
 #[tauri::command]
 pub async fn search_all_sources(
     state: State<'_, AppState>,

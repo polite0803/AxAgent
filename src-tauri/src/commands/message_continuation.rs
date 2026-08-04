@@ -3,6 +3,7 @@
 // 消息续写 — 从截断/partial 消息处继续生成
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_entities::messages;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
@@ -16,6 +17,7 @@ pub struct ContinueResult {
 }
 
 /// 列出可续写的消息（partial 状态）
+#[agent_command(domain = conversations, safety = Safe, call_mode = StateInput, description = "列出可续写的消息")]
 #[tauri::command]
 pub async fn list_continuable_messages(
     app_state: State<'_, AppState>,
@@ -53,6 +55,7 @@ pub async fn list_continuable_messages(
 
 /// 续写消息 — 返回续写上下文供前端发送
 /// 前端收到后发起 regenerate_with_model 调用
+#[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "续写消息")]
 #[tauri::command]
 pub async fn continue_message(
     app_state: State<'_, AppState>,

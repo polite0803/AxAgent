@@ -5,6 +5,7 @@ use crate::app_state::{
     InMemoryCacheEntry, PlannerAction, PlannerSession, PlannerVersion, PlannerVersionDiff, TotNode,
     TotSession,
 };
+use agent_macro::agent_command;
 use serde_json::Value;
 use std::collections::{HashMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -31,6 +32,7 @@ fn ensure_planner_session(sessions: &mut HashMap<String, PlannerSession>, sessio
 // Tree of Thoughts commands
 // ---------------------------------------------------------------------------
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "获取思维树状态")]
 #[tauri::command]
 pub async fn tot_get_state(
     session_id: String,
@@ -44,6 +46,7 @@ pub async fn tot_get_state(
     serde_json::to_value(session).map_err(|e| format!("Serialization error: {}", e))
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "思维树回溯")]
 #[tauri::command]
 pub async fn tot_backtrack(
     session_id: String,
@@ -64,6 +67,7 @@ pub async fn tot_backtrack(
     }
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "思维树探索")]
 #[tauri::command]
 pub async fn tot_explore(
     session_id: String,
@@ -184,6 +188,7 @@ fn generate_thought_content(prompt: &str, branch_index: u32) -> String {
     format!("Strategy: {} — Applied to: {}", strategy, prompt)
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "思维树评分节点")]
 #[tauri::command]
 pub async fn tot_score_node(
     session_id: String,
@@ -251,6 +256,7 @@ fn compute_heuristic_score(node: &TotNode, criteria: Option<&Value>) -> f64 {
         .clamp(0.0, 1.0)
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "思维树遍历")]
 #[tauri::command]
 pub async fn tot_traverse(
     session_id: String,
@@ -373,6 +379,7 @@ fn traverse_best_first(
     result
 }
 
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateInput, description = "思维树剪枝")]
 #[tauri::command]
 pub async fn tot_prune(
     session_id: String,
@@ -443,6 +450,7 @@ fn collect_prunable_nodes(
     }
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "思维树获取最佳路径")]
 #[tauri::command]
 pub async fn tot_get_best_path(
     session_id: String,
@@ -505,6 +513,7 @@ pub async fn tot_get_best_path(
 // Replanning commands
 // ---------------------------------------------------------------------------
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "规划器重规划")]
 #[tauri::command]
 pub async fn planner_replan(
     session_id: String,
@@ -591,6 +600,7 @@ fn compute_version_diff(
     PlannerVersionDiff { from_version, to_version, actions_added, actions_removed, summary }
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "规划器回滚")]
 #[tauri::command]
 pub async fn planner_rollback(
     session_id: String,
@@ -623,6 +633,7 @@ pub async fn planner_rollback(
     }))
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "规划器版本差异")]
 #[tauri::command]
 pub async fn planner_diff_versions(
     session_id: String,
@@ -669,6 +680,7 @@ pub async fn planner_diff_versions(
     }))
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "规划器获取历史")]
 #[tauri::command]
 pub async fn planner_get_history(
     session_id: String,
@@ -683,6 +695,7 @@ pub async fn planner_get_history(
     serde_json::to_value(&session.actions).map_err(|e| format!("Serialization error: {}", e))
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "规划器获取版本")]
 #[tauri::command]
 pub async fn planner_get_versions(
     session_id: String,
@@ -701,6 +714,7 @@ pub async fn planner_get_versions(
 // Semantic Cache commands
 // ---------------------------------------------------------------------------
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "语义缓存统计")]
 #[tauri::command]
 pub async fn semantic_cache_stats(app_state: State<'_, AppState>) -> Result<Value, String> {
     info!("semantic_cache_stats invoked");
@@ -715,6 +729,7 @@ pub async fn semantic_cache_stats(app_state: State<'_, AppState>) -> Result<Valu
     .map_err(|e| format!("Serialization error: {}", e))
 }
 
+#[agent_command(domain = agent, safety = Dangerous, call_mode = StateOnly, description = "清空语义缓存")]
 #[tauri::command]
 pub async fn semantic_cache_clear(app_state: State<'_, AppState>) -> Result<(), String> {
     info!("semantic_cache_clear invoked");
@@ -724,6 +739,7 @@ pub async fn semantic_cache_clear(app_state: State<'_, AppState>) -> Result<(), 
     Ok(())
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "设置语义缓存开关")]
 #[tauri::command]
 pub async fn semantic_cache_set_enabled(
     enabled: bool,
@@ -735,6 +751,7 @@ pub async fn semantic_cache_set_enabled(
     Ok(())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "语义缓存查找")]
 #[tauri::command]
 pub async fn semantic_cache_lookup(
     query_embedding: Vec<f32>,
@@ -798,6 +815,7 @@ pub async fn semantic_cache_lookup(
     }
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "语义缓存存储")]
 #[tauri::command]
 pub async fn semantic_cache_store(
     query_text: String,
@@ -843,6 +861,7 @@ pub async fn semantic_cache_store(
     }))
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "设置语义缓存阈值")]
 #[tauri::command]
 pub async fn semantic_cache_set_threshold(
     threshold: f32,
@@ -1056,6 +1075,7 @@ fn get_remediation(category: &ErrorCategory) -> Vec<&'static str> {
     }
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = Manual, description = "获取错误报告")]
 #[tauri::command]
 pub async fn error_get_report(error_json: Value) -> Result<Value, String> {
     info!("error_get_report invoked");
@@ -1107,6 +1127,7 @@ pub async fn error_get_report(error_json: Value) -> Result<Value, String> {
 // Prompt Cache commands
 // ---------------------------------------------------------------------------
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "获取提示缓存状态")]
 #[tauri::command]
 pub async fn get_prompt_cache_state(app_state: State<'_, AppState>) -> Result<Value, String> {
     let state = app_state.prompt_cache.get_state().await;

@@ -5,8 +5,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-axagent-harness = { path = "../harness" }
 async-trait = "0.1"
+axagent-harness = { path = "../harness" }
 axum = { version = "0.8", features = ["ws"] }
 axum-server = { version = "0.8", features = ["tls-rustls"] }
 base64 = { workspace = true }

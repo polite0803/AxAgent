@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use tauri::State;
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "获取洞察列表")]
 #[tauri::command]
 pub async fn insight_list(
     app_state: State<'_, AppState>,
@@ -12,6 +14,7 @@ pub async fn insight_list(
     Ok(insights.iter().filter_map(|i| serde_json::to_value(i).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "按类别获取洞察")]
 #[tauri::command]
 pub async fn insight_get_by_category(
     app_state: State<'_, AppState>,
@@ -29,6 +32,7 @@ pub async fn insight_get_by_category(
     Ok(insights.iter().filter_map(|i| serde_json::to_value(i).ok()).collect())
 }
 
+#[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "生成会话洞察报告")]
 #[tauri::command]
 pub async fn insight_report(
     app_state: State<'_, AppState>,

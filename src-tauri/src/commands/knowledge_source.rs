@@ -14,6 +14,7 @@
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::knowledge_source as ks_err;
+use agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::note::{CreateNoteInput, list_notes};
 use axagent_dao::repo::wiki::{
@@ -319,6 +320,7 @@ pub struct FetchUrlResult {
 }
 
 /// 输入 URL → 抓取 → 规范化 MD → Wiki 页面 + RAG 索引 + 知识源登记。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "抓取URL导入Wiki")]
 #[tauri::command]
 pub async fn fetch_url_to_wiki(
     app: AppHandle,
@@ -434,11 +436,13 @@ pub struct UpdateKnowledgeSourceInput {
     pub metadata_json: Option<serde_json::Value>,
 }
 
+#[agent_command(domain = knowledge, safety = Safe, call_mode = StateOnly, description = "列出知识源")]
 #[tauri::command]
 pub async fn knowledge_source_list(state: State<'_, AppState>) -> Result<Vec<WikiSource>, String> {
     list_all_sources(state.harness.db()).await.map_err(err_str)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "创建知识源")]
 #[tauri::command]
 pub async fn knowledge_source_create(
     state: State<'_, AppState>,
@@ -483,6 +487,7 @@ pub async fn knowledge_source_create(
     Ok(src)
 }
 
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "更新知识源")]
 #[tauri::command]
 pub async fn knowledge_source_update(
     state: State<'_, AppState>,
@@ -513,6 +518,7 @@ pub async fn knowledge_source_update(
         .ok_or_else(|| ErrorResponse::err_with_detail(ks_err::NOT_FOUND, "知识源不存在"))
 }
 
+#[agent_command(domain = knowledge, safety = Dangerous, call_mode = StateInput, description = "删除知识源")]
 #[tauri::command]
 pub async fn knowledge_source_delete(
     state: State<'_, AppState>,
@@ -534,6 +540,7 @@ pub struct FetchSourceResult {
 }
 
 /// 单源抓取闭环：按 source_type 分派 → 指纹去重 → 入库 → 更新元数据。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "立即抓取知识源")]
 #[tauri::command]
 pub async fn knowledge_source_fetch_now(
     app: AppHandle,
@@ -549,6 +556,7 @@ pub async fn knowledge_source_fetch_now(
 }
 
 /// 全部 active 知识源批量抓取（定时任务入口）。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateOnly, description = "批量抓取所有知识源")]
 #[tauri::command]
 pub async fn knowledge_source_fetch_all(
     app: AppHandle,
@@ -788,6 +796,7 @@ async fn fetch_rss_source(
 
 /// 注册知识源定时刷新任务（task_type=knowledge_source_fetch_all，走 CronScheduler 分支）。
 /// 幂等：同名任务已存在时更新其 cron，不重复创建。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "注册知识源定时同步")]
 #[tauri::command]
 pub async fn knowledge_source_schedule_sync(
     state: State<'_, AppState>,
@@ -854,6 +863,7 @@ fn parse_github_repo(repo: &str) -> Option<(String, String)> {
 ///
 /// 导入完成后登记 source_type="github" 的知识源，之后可经
 /// knowledge_source_fetch_all 增量重抓（内部按内容指纹跳过未变化文件）。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "导入GitHub仓库")]
 #[tauri::command]
 pub async fn github_repo_import(
     app: AppHandle,
@@ -1054,6 +1064,7 @@ async fn github_sync(
 // ── P3: sitemap 批量抓取 ─────────────────────────────────────────
 
 /// 解析站点 sitemap.xml，批量创建 url 型知识源。
+#[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "抓取站点Sitemap")]
 #[tauri::command]
 pub async fn sitemap_crawl(
     state: State<'_, AppState>,

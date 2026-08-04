@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "智慧路由呼叫失敗",
     "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
     "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室",
-    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員"
+    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "裝置未找到",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "裝置已配對",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "裝置未配對",
+    "DEVICE_SYNC_DEVICE_DISABLED": "裝置已停用",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "配對碼無效",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "配對碼已過期",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "信任等級不足",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "裝置權限不存在",
+    "DEVICE_SYNC_PERMISSION_DENIED": "權限不足",
+    "DEVICE_SYNC_FAILED": "同步失敗",
+    "DEVICE_SYNC_TIMEOUT": "同步超時",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "衝突檢測失敗",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "衝突解決失敗",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "衝突記錄不存在",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "同步已在進行中",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "無待同步變更",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "加密失敗",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "解密失敗",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "加密必須提供密碼",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "加密密碼不能為空",
+    "DEVICE_SYNC_SALT_REQUIRED": "解密需要提供鹽值",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "儲存操作失敗",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "策略操作失敗"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "預設",
     "temperatureDivergent": "發散",
     "maxTokensDefault": "預設"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",

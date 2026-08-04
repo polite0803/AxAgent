@@ -30,9 +30,9 @@ pub mod conversations_search;
 pub mod crash_report;
 pub mod dashboard;
 pub mod db_config;
-pub mod device_sync;
 #[cfg(not(mobile))]
 pub mod desktop;
+pub mod device_sync;
 pub mod dream;
 pub mod dynamic_ui;
 pub mod error;

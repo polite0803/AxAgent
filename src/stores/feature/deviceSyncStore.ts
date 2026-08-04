@@ -24,11 +24,33 @@ import type {
   SyncSignal,
   TrustLevel,
 } from "@/types";
+import { useTranslation } from "react-i18next";
 import { create } from "zustand";
+
+/**
+ * 解析后端 ErrorResponse 并返回 i18n 翻译后的错误消息
+ */
+function translateErrorMessage(err: unknown): string {
+  const { t } = useTranslation();
+  const message = err instanceof Error ? err.message : String(err);
+
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed?.code && typeof parsed.code === "string") {
+      return String(t(`error.${parsed.code}`, parsed.params ?? {}));
+    }
+  } catch {
+    // 非 JSON 格式，直接返回原始消息
+  }
+
+  return message;
+}
 
 interface DeviceSyncState {
   /** 本地设备信息 */
   localDevice: DeviceInfo | null;
+  /** 本地设备 ID */
+  localDeviceId: string | null;
   /** 已配对设备列表 */
   devices: DeviceInfo[];
   /** 当前同步状态 */
@@ -104,7 +126,6 @@ interface DeviceSyncState {
   // === 状态查询 ===
   /** 获取同步状态 */
   getSyncStatus: () => Promise<DeviceSyncStatus | null>;
-  /** 记录变更 */
   recordChange: (
     entityType: string,
     entityId: string,
@@ -140,6 +161,7 @@ interface DeviceSyncState {
 
 export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   localDevice: null,
+  localDeviceId: null,
   devices: [],
   syncStatus: null,
   changeLog: [],
@@ -248,7 +270,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
         encryption: {
           ...state.encryption,
           is_encrypting: false,
-          encryption_error: String(e),
+          encryption_error: translateErrorMessage(e),
         },
       }));
       return null;
@@ -282,7 +304,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
         encryption: {
           ...state.encryption,
           is_encrypting: false,
-          encryption_error: String(e),
+          encryption_error: translateErrorMessage(e),
         },
       }));
       return null;
@@ -303,7 +325,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return device;
     } catch (e) {
       logIpcError("register_device")(e);
-      set({ loading: false, error: String(e) });
+      set({ loading: false, error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -311,7 +333,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   getLocalDevice: async () => {
     try {
       const device = await invoke<DeviceInfo>("get_local_device");
-      set({ localDevice: device });
+      set({ localDevice: device, localDeviceId: device.device_id });
       return device;
     } catch (e) {
       logIpcError("get_local_device")(e);
@@ -326,7 +348,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       set({ devices, loading: false });
     } catch (e) {
       logIpcError("list_devices")(e);
-      set({ loading: false, error: String(e) });
+      set({ loading: false, error: translateErrorMessage(e) });
     }
   },
 
@@ -337,7 +359,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       set({ devices });
     } catch (e) {
       logIpcError("unpair_device")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
     }
   },
 
@@ -350,7 +372,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return code;
     } catch (e) {
       logIpcError("generate_pairing_code")(e);
-      set({ loading: false, error: String(e) });
+      set({ loading: false, error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -363,7 +385,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return request;
     } catch (e) {
       logIpcError("verify_pairing_code")(e);
-      set({ loading: false, error: String(e) });
+      set({ loading: false, error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -389,7 +411,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return response;
     } catch (e) {
       logIpcError("accept_pairing")(e);
-      set({ loading: false, error: String(e) });
+      set({ loading: false, error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -408,7 +430,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return result;
     } catch (e) {
       logIpcError("full_sync")(e);
-      set({ isSyncing: false, error: String(e) });
+      set({ isSyncing: false, error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -426,14 +448,20 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return result;
     } catch (e) {
       logIpcError("incremental_sync")(e);
-      set({ isSyncing: false, error: String(e) });
+      set({ isSyncing: false, error: translateErrorMessage(e) });
       return null;
     }
   },
 
   pushChanges: async (changes) => {
+    const deviceId = get().localDeviceId;
+    if (!deviceId) {
+      set({ error: "设备未初始化" });
+      return [];
+    }
     try {
       const conflicts = await invoke<ConflictInfo[]>("push_changes", {
+        device_id: deviceId,
         changes,
       });
       if (conflicts.length > 0) {
@@ -444,27 +472,39 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return conflicts;
     } catch (e) {
       logIpcError("push_changes")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
       return [];
     }
   },
 
   pullChanges: async (sinceTimestamp) => {
+    const deviceId = get().localDeviceId;
+    if (!deviceId) {
+      set({ error: "设备未初始化" });
+      return [];
+    }
     try {
       const changes = await invoke<ChangeLogEntry[]>("pull_changes", {
+        device_id: deviceId,
         since_timestamp: sinceTimestamp,
       });
       return changes;
     } catch (e) {
       logIpcError("pull_changes")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
       return [];
     }
   },
 
   resolveConflict: async (conflictId, strategy) => {
+    const deviceId = get().localDeviceId;
+    if (!deviceId) {
+      set({ error: "设备未初始化" });
+      return;
+    }
     try {
       await invoke<void>("resolve_conflict", {
+        device_id: deviceId,
         conflict_id: conflictId,
         strategy,
       });
@@ -475,14 +515,21 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       }));
     } catch (e) {
       logIpcError("resolve_conflict")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
     }
   },
 
   // === 状态查询 ===
   getSyncStatus: async () => {
+    const deviceId = get().localDeviceId;
+    if (!deviceId) {
+      set({ error: "设备未初始化" });
+      return null;
+    }
     try {
-      const status = await invoke<DeviceSyncStatus>("get_sync_status");
+      const status = await invoke<DeviceSyncStatus>("get_sync_status", {
+        device_id: deviceId,
+      });
       set({ syncStatus: status });
       return status;
     } catch (e) {
@@ -524,7 +571,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return policy;
     } catch (e) {
       logIpcError("update_sync_policy")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -538,7 +585,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       return created;
     } catch (e) {
       logIpcError("create_sync_policy")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
       return null;
     }
   },
@@ -551,7 +598,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       }));
     } catch (e) {
       logIpcError("delete_sync_policy")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
     }
   },
 
@@ -623,7 +670,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       });
     } catch (e) {
       logIpcError("update_device_permissions")(e);
-      set({ error: String(e) });
+      set({ error: translateErrorMessage(e) });
     }
   },
 
@@ -646,6 +693,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   reset: () =>
     set({
       localDevice: null,
+      localDeviceId: null,
       devices: [],
       syncStatus: null,
       changeLog: [],

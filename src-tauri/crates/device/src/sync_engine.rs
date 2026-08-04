@@ -8,11 +8,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axagent_harness::device_sync::{
     ChangeLogEntry, ChangeOperation, ConflictInfo, ConflictResolutionStrategy, DeviceSyncStatus,
-    EntityType, SyncEngine, SyncResult, VersionVectorEntry,
+    EntityType, SyncEngine, SyncResult, SyncStorage, VersionVectorEntry,
 };
-use async_trait::async_trait;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
@@ -23,19 +23,70 @@ use crate::manager::DeviceStore;
 use crate::version_vector::VersionVector;
 
 /// 变更日志存储
-#[derive(Default)]
 pub struct ChangeLogStore {
+    /// 数据库存储实现（可选）
+    sync_storage: Option<Arc<dyn SyncStorage>>,
+    /// 内存变更日志存储（作为回退或缓存）
     entries: RwLock<Vec<ChangeLogEntry>>,
+    /// 每设备最后同步时间
     last_sync_per_device: RwLock<HashMap<String, u64>>,
 }
 
 impl ChangeLogStore {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            sync_storage: None,
+            entries: RwLock::new(Vec::new()),
+            last_sync_per_device: RwLock::new(HashMap::new()),
+        }
+    }
+
+    /// 创建数据库模式的变更日志存储
+    pub fn with_storage(sync_storage: Arc<dyn SyncStorage>) -> Self {
+        Self {
+            sync_storage: Some(sync_storage),
+            entries: RwLock::new(Vec::new()),
+            last_sync_per_device: RwLock::new(HashMap::new()),
+        }
+    }
+
+    /// 从数据库加载变更日志到内存缓存
+    pub async fn load_from_db(&self) -> Result<(), String> {
+        if let Some(storage) = &self.sync_storage {
+            // 加载所有设备的变更日志
+            let devices = storage.get_all_devices().await?;
+            let mut cache = self.entries.write().await;
+            for device in &devices {
+                let logs = storage.get_change_logs_by_device(&device.device_id, None).await?;
+                cache.extend(logs);
+            }
+        }
+        Ok(())
+    }
+
+    /// 检查是否使用数据库存储
+    pub fn uses_database(&self) -> bool {
+        self.sync_storage.is_some()
     }
 
     pub async fn add_entry(&self, entry: ChangeLogEntry) {
-        self.entries.write().await.push(entry);
+        // 写入内存缓存
+        self.entries.write().await.push(entry.clone());
+
+        // 如果使用数据库，同时持久化
+        if let Some(storage) = &self.sync_storage {
+            let _ = storage.add_change_log(&entry).await;
+        }
+    }
+
+    pub async fn add_entries(&self, entries: Vec<ChangeLogEntry>) {
+        // 写入内存缓存
+        self.entries.write().await.extend(entries.clone());
+
+        // 如果使用数据库，同时持久化
+        if let Some(storage) = &self.sync_storage {
+            let _ = storage.batch_add_change_logs(&entries).await;
+        }
     }
 
     pub async fn get_entries_since(&self, timestamp: u64) -> Vec<ChangeLogEntry> {
@@ -43,24 +94,75 @@ impl ChangeLogStore {
         entries.iter().filter(|e| e.timestamp > timestamp).cloned().collect()
     }
 
+    pub async fn get_entries_for_device(&self, device_id: &str) -> Vec<ChangeLogEntry> {
+        if let Some(storage) = &self.sync_storage
+            && let Ok(entries) = storage.get_change_logs_by_device(device_id, None).await
+        {
+            return entries;
+        }
+
+        let entries = self.entries.read().await;
+        entries.iter().filter(|e| e.device_id == device_id).cloned().collect()
+    }
+
     pub async fn get_all_entries(&self) -> Vec<ChangeLogEntry> {
+        if let Some(storage) = &self.sync_storage {
+            // 从所有设备加载
+            if let Ok(devices) = storage.get_all_devices().await {
+                let mut all_entries = Vec::new();
+                for device in &devices {
+                    if let Ok(entries) =
+                        storage.get_change_logs_by_device(&device.device_id, None).await
+                    {
+                        all_entries.extend(entries);
+                    }
+                }
+                if !all_entries.is_empty() {
+                    return all_entries;
+                }
+            }
+        }
+
         self.entries.read().await.clone()
     }
 
+    pub async fn get_unsynced_entries(&self, device_id: &str) -> Vec<ChangeLogEntry> {
+        if let Some(storage) = &self.sync_storage
+            && let Ok(entries) = storage.get_unsynced_change_logs(device_id).await
+        {
+            return entries;
+        }
+
+        let entries = self.entries.read().await;
+        entries.iter().filter(|e| e.device_id == device_id && !e.is_synced).cloned().collect()
+    }
+
+    pub async fn mark_as_synced(&self, change_ids: &[String], target_device_id: &str) {
+        // 更新内存缓存
+        {
+            let mut entries = self.entries.write().await;
+            for entry in entries.iter_mut() {
+                if change_ids.contains(&entry.id) {
+                    if !entry.synced_to.contains(&target_device_id.to_string()) {
+                        entry.synced_to.push(target_device_id.to_string());
+                    }
+                    entry.is_synced = !entry.synced_to.is_empty();
+                }
+            }
+        }
+
+        // 如果使用数据库，同时更新
+        if let Some(storage) = &self.sync_storage {
+            let _ = storage.mark_changes_as_synced(change_ids, target_device_id).await;
+        }
+    }
+
     pub async fn set_last_sync(&self, device_id: &str, timestamp: u64) {
-        self.last_sync_per_device
-            .write()
-            .await
-            .insert(device_id.to_string(), timestamp);
+        self.last_sync_per_device.write().await.insert(device_id.to_string(), timestamp);
     }
 
     pub async fn get_last_sync(&self, device_id: &str) -> u64 {
-        self.last_sync_per_device
-            .read()
-            .await
-            .get(device_id)
-            .copied()
-            .unwrap_or(0)
+        self.last_sync_per_device.read().await.get(device_id).copied().unwrap_or(0)
     }
 
     pub async fn cleanup_before(&self, timestamp: u64) -> usize {
@@ -68,6 +170,12 @@ impl ChangeLogStore {
         let before = entries.len();
         entries.retain(|e| e.timestamp >= timestamp);
         before - entries.len()
+    }
+}
+
+impl Default for ChangeLogStore {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -175,13 +283,15 @@ impl SyncEngineImpl {
             device_id: self.local_device_id.clone(),
             version_vector: vv.to_entries(),
             data,
+            synced_to: vec![],
+            is_synced: false,
         };
 
         self.change_log.add_entry(entry.clone()).await;
         entry
     }
 
-    /// 获取本地版本向量
+    /// 获取本地版本向量（修复版本向量逻辑）
     async fn get_local_version_vector(&self) -> VersionVector {
         let entries = self.change_log.get_all_entries().await;
         let mut vv = VersionVector::new();
@@ -189,11 +299,10 @@ impl SyncEngineImpl {
         for entry in &entries {
             for vv_entry in &entry.version_vector {
                 let current = vv.get(&vv_entry.device_id);
+                // 直接取最大值，修复原有的 while 循环逻辑
                 if vv_entry.counter > current {
-                    // 更新最大值
-                    vv.increment(&vv_entry.device_id);
-                    // 可能需要多次递增
-                    while vv.get(&vv_entry.device_id) < vv_entry.counter {
+                    // 使用 increment_to 或多次递增
+                    for _ in current..vv_entry.counter {
                         vv.increment(&vv_entry.device_id);
                     }
                 }
@@ -215,13 +324,15 @@ impl SyncEngineImpl {
 
         let merge_entry = ChangeLogEntry {
             id: Uuid::new_v4().to_string(),
-            entity_type: EntityType::Conversation, // 系统事件
+            entity_type: EntityType::Conversation,
             entity_id: "__version_vector_sync__".to_string(),
             operation: ChangeOperation::Update,
             timestamp: now,
             device_id: self.local_device_id.clone(),
             version_vector: merged_entries,
             data: None,
+            synced_to: vec![],
+            is_synced: false,
         };
 
         self.change_log.add_entry(merge_entry).await;
@@ -248,9 +359,7 @@ impl SyncEngine for SyncEngineImpl {
 
         // 4. 更新最后同步时间
         let now_ms = chrono::Utc::now().timestamp_millis() as u64;
-        self.change_log
-            .set_last_sync(&self.local_device_id, now_ms)
-            .await;
+        self.change_log.set_last_sync(&self.local_device_id, now_ms).await;
 
         Ok(SyncResult {
             success: true,
@@ -315,17 +424,12 @@ impl SyncEngine for SyncEngineImpl {
         Ok(conflicts)
     }
 
-    async fn pull_changes(
-        &self,
-        since_timestamp: u64,
-    ) -> Result<Vec<ChangeLogEntry>, String> {
+    async fn pull_changes(&self, since_timestamp: u64) -> Result<Vec<ChangeLogEntry>, String> {
         let changes = self.change_log.get_entries_since(since_timestamp).await;
 
         // 过滤掉系统事件
-        let filtered: Vec<_> = changes
-            .into_iter()
-            .filter(|e| e.entity_id != "__version_vector_sync__")
-            .collect();
+        let filtered: Vec<_> =
+            changes.into_iter().filter(|e| e.entity_id != "__version_vector_sync__").collect();
 
         Ok(filtered)
     }
@@ -352,6 +456,8 @@ impl SyncEngine for SyncEngineImpl {
                     r#"{{"resolution":"{}","conflict_id":"{}"}}"#,
                     result.resolution_applied, result.conflict_id
                 )),
+                synced_to: vec![],
+                is_synced: false,
             };
 
             self.change_log.add_entry(resolution_entry).await;
@@ -409,12 +515,7 @@ mod tests {
 
         // 记录一些变更
         engine
-            .record_change(
-                EntityType::Conversation,
-                "conv-1",
-                ChangeOperation::Create,
-                None,
-            )
+            .record_change(EntityType::Conversation, "conv-1", ChangeOperation::Create, None)
             .await;
 
         let result = engine.incremental_sync("test-device").await.unwrap();
@@ -438,6 +539,8 @@ mod tests {
                 counter: 1,
             }],
             data: None,
+            synced_to: vec![],
+            is_synced: false,
         }];
 
         let conflicts = engine.push_changes(remote_changes).await.unwrap();

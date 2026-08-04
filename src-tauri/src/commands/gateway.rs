@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::gateway as gateway_err;
+use agent_macro::agent_command;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_dao::repo::cli_config::CliTool;
 use axagent_harness::types::*;
@@ -320,6 +321,7 @@ where
 
 // ─── CLI Tool Integration ───────────────────────────────
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取所有CLI工具状态")]
 #[tauri::command]
 pub async fn get_all_cli_tool_statuses(
     state: State<'_, AppState>,
@@ -368,6 +370,7 @@ pub async fn get_all_cli_tool_statuses(
     Ok(results)
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "连接CLI工具")]
 #[tauri::command]
 pub async fn connect_cli_tool(
     state: State<'_, AppState>,
@@ -408,6 +411,7 @@ pub async fn connect_cli_tool(
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "断开CLI工具")]
 #[tauri::command]
 pub async fn disconnect_cli_tool(
     state: State<'_, AppState>,
@@ -433,6 +437,7 @@ pub async fn disconnect_cli_tool(
 
 // ─── Existing Commands ──────────────────────────────────
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "列出网关密钥")]
 #[tauri::command]
 pub async fn list_gateway_keys(state: State<'_, AppState>) -> Result<Vec<GatewayKey>, String> {
     axagent_dao::repo::gateway::list_gateway_keys(state.harness.db()).await.map_err(|e| {
@@ -443,6 +448,7 @@ pub async fn list_gateway_keys(state: State<'_, AppState>) -> Result<Vec<Gateway
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "创建网关密钥")]
 #[tauri::command]
 pub async fn create_gateway_key(
     state: State<'_, AppState>,
@@ -463,6 +469,7 @@ pub async fn create_gateway_key(
     })
 }
 
+#[agent_command(domain = gateway, safety = Dangerous, call_mode = StateOnly, description = "删除网关密钥")]
 #[tauri::command]
 pub async fn delete_gateway_key(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::gateway::delete_gateway_key(state.harness.db(), &id).await.map_err(|e| {
@@ -473,6 +480,7 @@ pub async fn delete_gateway_key(state: State<'_, AppState>, id: String) -> Resul
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "切换网关密钥状态")]
 #[tauri::command]
 pub async fn toggle_gateway_key(
     state: State<'_, AppState>,
@@ -491,6 +499,7 @@ pub async fn toggle_gateway_key(
 
 /// SECURITY (S3): 仅返回密钥前缀用于 UI 展示，禁止返回完整明文密钥。
 /// 与 `get_decrypted_provider_key` 保持一致的安全策略。
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "解密网关密钥")]
 #[tauri::command]
 pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Result<String, String> {
     let plain = axagent_dao::repo::gateway_key::get_plain_key(
@@ -509,6 +518,7 @@ pub async fn decrypt_gateway_key(state: State<'_, AppState>, id: String) -> Resu
     Ok(axagent_crypto::key_prefix(&plain))
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取网关指标")]
 #[tauri::command]
 pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMetrics, String> {
     // NOTE: active_connections 暂硬编码为 0（DAO 层）。
@@ -521,6 +531,7 @@ pub async fn get_gateway_metrics(state: State<'_, AppState>) -> Result<GatewayMe
     })
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "启动网关")]
 #[tauri::command]
 pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     {
@@ -594,6 +605,7 @@ pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result
     Ok(())
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "停止网关")]
 #[tauri::command]
 pub async fn stop_gateway(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
     let mut gw = state.gateway.lock().await;
@@ -610,6 +622,7 @@ pub async fn stop_gateway(state: State<'_, AppState>, app: AppHandle) -> Result<
     Ok(())
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取网关状态")]
 #[tauri::command]
 pub async fn get_gateway_status(state: State<'_, AppState>) -> Result<GatewayStatus, String> {
     // Extract live addresses while holding the lock, then drop it before the
@@ -662,6 +675,7 @@ pub async fn get_gateway_status(state: State<'_, AppState>) -> Result<GatewaySta
     }
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取密钥使用量")]
 #[tauri::command]
 pub async fn get_gateway_usage_by_key(
     state: State<'_, AppState>,
@@ -674,6 +688,7 @@ pub async fn get_gateway_usage_by_key(
     })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取提供商使用量")]
 #[tauri::command]
 pub async fn get_gateway_usage_by_provider(
     state: State<'_, AppState>,
@@ -686,6 +701,7 @@ pub async fn get_gateway_usage_by_provider(
     })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取每日使用量")]
 #[tauri::command]
 pub async fn get_gateway_usage_by_day(
     state: State<'_, AppState>,
@@ -701,6 +717,7 @@ pub async fn get_gateway_usage_by_day(
         })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取已连接程序")]
 #[tauri::command]
 pub async fn get_connected_programs(
     state: State<'_, AppState>,
@@ -715,6 +732,7 @@ pub async fn get_connected_programs(
     )
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取网关诊断信息")]
 #[tauri::command]
 pub async fn get_gateway_diagnostics(
     state: State<'_, AppState>,
@@ -727,6 +745,7 @@ pub async fn get_gateway_diagnostics(
     })
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取程序策略")]
 #[tauri::command]
 pub async fn get_program_policies(
     state: State<'_, AppState>,
@@ -741,6 +760,7 @@ pub async fn get_program_policies(
     )
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "保存程序策略")]
 #[tauri::command]
 pub async fn save_program_policy(
     state: State<'_, AppState>,
@@ -756,6 +776,7 @@ pub async fn save_program_policy(
         })
 }
 
+#[agent_command(domain = gateway, safety = Dangerous, call_mode = StateOnly, description = "删除程序策略")]
 #[tauri::command]
 pub async fn delete_program_policy(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::program_policy::delete_program_policy(state.harness.db(), &id).await.map_err(
@@ -768,6 +789,7 @@ pub async fn delete_program_policy(state: State<'_, AppState>, id: String) -> Re
     )
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "列出网关模板")]
 #[tauri::command]
 pub async fn list_gateway_templates() -> Result<Vec<GatewayTemplate>, String> {
     Ok(vec![
@@ -825,6 +847,7 @@ export ANTHROPIC_BASE_URL="http://localhost:8080/v1""#
     ])
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "复制网关模板")]
 #[tauri::command]
 pub async fn copy_gateway_template(template_id: String) -> Result<String, String> {
     let templates = list_gateway_templates().await?;
@@ -835,6 +858,7 @@ pub async fn copy_gateway_template(template_id: String) -> Result<String, String
         .ok_or_else(|| format!("Template '{}' not found", template_id))
 }
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "列出网关请求日志")]
 #[tauri::command]
 pub async fn list_gateway_request_logs(
     state: State<'_, AppState>,
@@ -855,6 +879,7 @@ pub async fn list_gateway_request_logs(
     })
 }
 
+#[agent_command(domain = gateway, safety = Dangerous, call_mode = StateOnly, description = "清空网关请求日志")]
 #[tauri::command]
 pub async fn clear_gateway_request_logs(state: State<'_, AppState>) -> Result<u64, String> {
     axagent_dao::repo::gateway_request_log::clear_request_logs(state.harness.db()).await.map_err(
@@ -867,6 +892,7 @@ pub async fn clear_gateway_request_logs(state: State<'_, AppState>) -> Result<u6
     )
 }
 
+#[agent_command(domain = gateway, safety = Caution, call_mode = StateOnly, description = "生成自签名证书")]
 #[tauri::command]
 pub async fn generate_self_signed_cert(
     state: State<'_, AppState>,
@@ -976,6 +1002,7 @@ pub async fn generate_self_signed_cert(
 
 // ─── Platform Detection ─────────────────────────────────
 
+#[agent_command(domain = gateway, safety = Safe, call_mode = StateOnly, description = "获取活跃网关平台")]
 #[tauri::command]
 pub async fn get_active_gateway_platform(state: State<'_, AppState>) -> Result<String, String> {
     // 优先检查 PlatformManager 中正在运行的平台适配器

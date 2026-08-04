@@ -8,16 +8,16 @@
 //! - RGA: 可复制增长数组
 //! - GCounter: 增长计数器
 
+pub mod gcounter;
 pub mod lww_register;
 pub mod or_set;
 pub mod rga;
-pub mod gcounter;
 pub mod version_vector;
 
+pub use gcounter::GCounter;
 pub use lww_register::LWWRegister;
 pub use or_set::ORSet;
 pub use rga::{RGA, RGAEntry};
-pub use gcounter::GCounter;
 pub use version_vector::{VVEntry, VersionVector};
 
 use serde::{Deserialize, Serialize};
@@ -27,25 +27,11 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CRDTOperation {
     /// 设置寄存器值
-    Set {
-        id: String,
-        value: serde_json::Value,
-        timestamp: u64,
-        site_id: String,
-    },
+    Set { id: String, value: serde_json::Value, timestamp: u64, site_id: String },
     /// 添加到集合
-    Add {
-        id: String,
-        element: String,
-        tag: String,
-        site_id: String,
-    },
+    Add { id: String, element: String, tag: String, site_id: String },
     /// 从集合移除
-    Remove {
-        id: String,
-        element: String,
-        tag: String,
-    },
+    Remove { id: String, element: String, tag: String },
     /// 插入到数组
     Insert {
         id: String,
@@ -56,16 +42,9 @@ pub enum CRDTOperation {
         site_id: String,
     },
     /// 从数组删除
-    Delete {
-        id: String,
-        entry_id: String,
-    },
+    Delete { id: String, entry_id: String },
     /// 计数器递增
-    Increment {
-        id: String,
-        site_id: String,
-        amount: u64,
-    },
+    Increment { id: String, site_id: String, amount: u64 },
 }
 
 /// CRDT 操作日志条目

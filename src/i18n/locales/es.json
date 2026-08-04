@@ -2217,7 +2217,30 @@
     "FLEET_ROUTING_FAILED": "Falló la llamada de enrutamiento inteligente",
     "FLEET_EXECUTION_FAILED": "El miembro no pudo ejecutar la tarea",
     "FLEET_TARGET_NOT_IN_FLEET": "El miembro objetivo no existe en esta oficina",
-    "FLEET_SLUG_EXISTS": "Ya existe un miembro con este slug en esta oficina"
+    "FLEET_SLUG_EXISTS": "Ya existe un miembro con este slug en esta oficina",
+    "DEVICE_SYNC_DEVICE_NOT_FOUND": "Dispositivo no encontrado",
+    "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Dispositivo ya emparejado",
+    "DEVICE_SYNC_DEVICE_NOT_PAIRED": "Dispositivo no emparejado",
+    "DEVICE_SYNC_DEVICE_DISABLED": "Dispositivo deshabilitado",
+    "DEVICE_SYNC_INVALID_PAIRING_CODE": "Código de emparejamiento inválido",
+    "DEVICE_SYNC_PAIRING_CODE_EXPIRED": "Código de emparejamiento caducado",
+    "DEVICE_SYNC_INSUFFICIENT_TRUST_LEVEL": "Nivel de confianza insuficiente",
+    "DEVICE_SYNC_PERMISSIONS_NOT_FOUND": "Permisos del dispositivo no encontrados",
+    "DEVICE_SYNC_PERMISSION_DENIED": "Permiso denegado",
+    "DEVICE_SYNC_FAILED": "Sincronización fallida",
+    "DEVICE_SYNC_TIMEOUT": "Tiempo de espera de sincronización agotado",
+    "DEVICE_SYNC_CONFLICT_DETECTION_FAILED": "Detección de conflictos fallida",
+    "DEVICE_SYNC_CONFLICT_RESOLUTION_FAILED": "Resolución de conflictos fallida",
+    "DEVICE_SYNC_CONFLICT_NOT_FOUND": "Registro de conflicto no encontrado",
+    "DEVICE_SYNC_ALREADY_IN_PROGRESS": "Sincronización ya en curso",
+    "DEVICE_SYNC_NO_CHANGES_TO_SYNC": "Sin cambios para sincronizar",
+    "DEVICE_SYNC_ENCRYPTION_FAILED": "Cifrado fallido",
+    "DEVICE_SYNC_DECRYPTION_FAILED": "Descifrado fallido",
+    "DEVICE_SYNC_PASSWORD_REQUIRED": "Se requiere contraseña para el cifrado",
+    "DEVICE_SYNC_PASSWORD_EMPTY": "La contraseña de cifrado no puede estar vacía",
+    "DEVICE_SYNC_SALT_REQUIRED": "Se requiere sal para el descifrado",
+    "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Operación de almacenamiento fallida",
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Operación de política fallida"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -8929,8 +8952,7 @@
     "temperatureDefault": "Default",
     "temperatureDivergent": "Divergent",
     "maxTokensDefault": "Default"
-  }
-,
+  },
   "deviceSync": {
     "title": "Device Sync",
     "description": "Manage multi-device pairing and data synchronization",
