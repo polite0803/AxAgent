@@ -17,6 +17,7 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
+use agent_macro::agent_command;
 #[cfg(test)]
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 #[cfg(test)]
@@ -661,6 +662,12 @@ pub(crate) fn chat_message_from_message(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "列出所有对话"
+)]
 pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conversation>, String> {
     axagent_dao::repo::conversation::list_conversations(state.harness.db()).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -671,6 +678,12 @@ pub async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<Conver
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "创建新对话"
+)]
 pub async fn create_conversation(
     state: State<'_, AppState>,
     title: String,
@@ -746,6 +759,12 @@ async fn cancel_and_cleanup_agent(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Dangerous,
+    call_mode = StateInput,
+    description = "删除对话（不可恢复）"
+)]
 pub async fn delete_conversation(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -1068,6 +1087,12 @@ async fn delete_conversation_with_attachments_using(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Safe,
+    call_mode = StateInput,
+    description = "搜索对话"
+)]
 pub async fn search_conversations(
     state: State<'_, AppState>,
     query: String,
@@ -1194,6 +1219,12 @@ pub async fn archive_conversation_to_knowledge_base(
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = conversation,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "列出所有已归档的对话"
+)]
 pub async fn list_archived_conversations(
     state: State<'_, AppState>,
 ) -> Result<Vec<Conversation>, String> {

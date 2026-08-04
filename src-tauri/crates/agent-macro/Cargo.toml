@@ -1,0 +1,14 @@
+[package]
+name = "agent-macro"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+agent-command-types = { path = "../agent-command-types" }
+inventory = "0.3"
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full", "extra-traits"] }

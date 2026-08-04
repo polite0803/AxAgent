@@ -1651,6 +1651,43 @@ export interface ShareSessionInfo {
   created_at: number;
 }
 
+// === Device Sync Types ===
+
+export type {
+  AuditAction,
+  AuditLogEntry,
+  ChangeLogEntry,
+  ChangeOperation,
+  ConflictInfo,
+  ConflictResolutionStrategy,
+  DeviceInfo,
+  DevicePermissions,
+  DeviceSyncStatus,
+  DeviceType,
+  EncryptedSyncData,
+  EncryptionAlgorithm,
+  EncryptionState,
+  EntityType,
+  KeyDerivation,
+  PairingCode,
+  PairingRequest,
+  PairingResponse,
+  PermissionUpdate,
+  RealtimePushState,
+  SyncDirection,
+  SyncEncryptionConfig,
+  SyncHistoryEntry,
+  SyncPolicy,
+  SyncPolicyUpdate,
+  SyncResult,
+  SyncSignal,
+  SyncSignalResponse,
+  SyncType,
+  TrustLevel,
+  VersionVectorEntry,
+  WebSocketStatus,
+} from "./deviceSync";
+
 export interface ShareParticipant {
   id: string;
   name: string;
@@ -1790,4 +1827,25 @@ export interface PresetModelDto {
   sizeBytes: number;
   modelType: string;
   isDownloaded: boolean;
+}
+
+// === llama.cpp 安装管理 ===
+
+export interface LlamaCppVersionInfo {
+  tag: string;
+  name: string;
+  publishedAt: string;
+  downloadUrl: string;
+  fileName: string;
+  fileSize: number | null;
+}
+
+export interface LlamaCppInstallStatus {
+  installed: boolean;
+  version: string | null;
+  installPath: string | null;
+  executablePath: string | null;
+  isDownloading: boolean;
+  downloadProgress: number | null;
+  downloadError: string | null;
 }

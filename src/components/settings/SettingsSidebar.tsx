@@ -85,6 +85,7 @@ const MENU_ICONS: Partial<Record<SettingsSection, React.ReactNode>> = {
   readingList: <ListChecks size={14} />,
   paperOverview: <FileText size={14} />,
   knowledgeGraph: <Workflow size={14} />,
+  deviceSync: <CloudUpload size={14} />,
 };
 
 /**
@@ -139,6 +140,7 @@ const TAB_GROUPS: Record<string, SettingsSection[]> = {
     "storage",
     "cloudWorkspace",
     "backup",
+    "deviceSync",
     "scheduler",
     "cron",
     "notificationCenter",

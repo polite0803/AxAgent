@@ -123,6 +123,14 @@ pub mod vec_collections;
 pub mod fleet_members;
 pub mod fleets;
 
+// Sync entities
+pub mod sync_audit_log;
+pub mod sync_change_log;
+pub mod sync_device;
+pub mod sync_history;
+pub mod sync_permission;
+pub mod sync_policy;
+
 // Paper Overview Engine + Reading List & Queue
 pub mod paper_overviews;
 pub mod reading_list_items;

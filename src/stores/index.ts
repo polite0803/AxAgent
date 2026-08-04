@@ -88,3 +88,4 @@ export { useWorkEngineStore } from "./feature/workEngineStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";
 export type { SaveSkillWorkflowResponse, SimilarWorkflow } from "./feature/workflowEditorStore";
 export { useWorkflowStore } from "./feature/workflowStore";
+export { useDeviceSyncStore } from "./feature/deviceSyncStore";

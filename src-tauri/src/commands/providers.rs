@@ -3,11 +3,18 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
+use agent_macro::agent_command;
 use axagent_harness::types::*;
 use std::time::Instant;
 use tauri::State;
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "列出所有可用的 LLM 提供商"
+)]
 pub async fn list_providers(state: State<'_, AppState>) -> Result<Vec<ProviderConfig>, String> {
     axagent_dao::repo::provider::list_providers_merged(state.harness.db()).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -18,6 +25,12 @@ pub async fn list_providers(state: State<'_, AppState>) -> Result<Vec<ProviderCo
 }
 
 #[tauri::command]
+#[agent_command(
+    domain = provider,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "创建新的 LLM 提供商配置"
+)]
 pub async fn create_provider(
     state: State<'_, AppState>,
     input: CreateProviderInput,

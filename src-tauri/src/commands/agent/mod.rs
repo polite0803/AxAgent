@@ -53,7 +53,11 @@ use skill_execution::{
 };
 
 pub mod command_bridge;
-use command_bridge::{build_chat_tools as build_tauri_command_chat_tools, build_command_handlers};
+use command_bridge::{
+    CommandCache, CommandRegistry, build_chat_tools as build_tauri_command_chat_tools,
+    build_command_handlers, build_command_index_string, create_registry_with_custom_commands,
+    preload_command_cache, resolve_command_domains,
+};
 
 /// AskUser 桥接器的具体实现，由 wiring 层注入到 UnifiedToolRegistry。
 /// 当 LLM 调用 AskUserQuestionTool 时，通过此桥接器：
@@ -1674,6 +1678,44 @@ pub async fn agent_query(
         },
         request.agent_context.as_ref(),
     );
+
+    // ── 注入 Tauri 命令索引到系统提示 ──
+    // 使用配置化的领域映射解析可见命令域
+    let command_domains: Vec<command_bridge::CommandDomain> = {
+        // 将 ToolDomain 集合转换为字符串集合
+        let tool_domain_set: std::collections::HashSet<String> =
+            active_domains.iter().map(|d| d.as_str().to_string()).collect();
+        resolve_command_domains(&tool_domain_set)
+    };
+
+    // 使用 CommandRegistry 和 CommandCache 构建索引
+    // 首次调用预加载缓存
+    let (_preloaded_index, hit_rate) = preload_command_cache(&command_domains);
+    let command_registry = CommandRegistry::default();
+    let mut command_cache = CommandCache::default();
+    let command_index = command_cache.get(&command_domains, &command_registry);
+
+    // 验证 build_command_index_string 函数
+    let _verified_index = build_command_index_string(&command_domains);
+
+    // 验证动态注册功能
+    let custom_registry = create_registry_with_custom_commands();
+    info!("[agent] Custom registry created with {} commands", custom_registry.len());
+
+    let (hits, misses, cache_size) = command_cache.stats();
+    info!(
+        "[agent] Command index injected: {} domains, {} chars (cache: {} hits, {} misses, {} entries, preload_hit_rate: {:.1}%)",
+        command_domains.len(),
+        command_index.len(),
+        hits,
+        misses,
+        cache_size,
+        hit_rate * 100.0
+    );
+
+    // 将命令索引追加到系统提示中
+    let mut system_prompt = system_prompt;
+    system_prompt.push(format!("<tauri-command-index>\n{}\n</tauri-command-index>", command_index));
 
     // Attach image URLs to the API client for multimodal support
     let api_client = api_client.with_image_urls(image_urls);

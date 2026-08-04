@@ -224,6 +224,14 @@ pub mod local_model {
     pub const LOG_NOT_FOUND: &str = "LOCAL_MODEL_LOG_NOT_FOUND";
     /// 日志读取失败
     pub const LOG_READ_FAILED: &str = "LOCAL_MODEL_LOG_READ_FAILED";
+    /// llama-server 可执行文件未找到
+    pub const SERVER_NOT_FOUND: &str = "LOCAL_MODEL_SERVER_NOT_FOUND";
+    /// llama.cpp 安装失败
+    pub const INSTALL_FAILED: &str = "LOCAL_MODEL_INSTALL_FAILED";
+    /// llama.cpp 安装进行中
+    pub const INSTALL_IN_PROGRESS: &str = "LOCAL_MODEL_INSTALL_IN_PROGRESS";
+    /// 下载失败
+    pub const DOWNLOAD_FAILED: &str = "LOCAL_MODEL_DOWNLOAD_FAILED";
 }
 
 /// 搜索相关错误码

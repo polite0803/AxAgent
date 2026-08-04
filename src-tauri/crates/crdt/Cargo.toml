@@ -1,0 +1,14 @@
+[package]
+name = "axagent-crdt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { version = "1", features = ["v4"] }
+chrono = { workspace = true, features = ["serde"] }
+thiserror = { workspace = true }
+
+axagent-harness = { path = "../harness" }

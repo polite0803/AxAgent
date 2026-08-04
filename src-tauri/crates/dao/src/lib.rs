@@ -26,6 +26,8 @@ pub mod migrations;
 pub mod platform_adapter_impl;
 pub mod platform_config_repository;
 pub mod provider_repository;
+pub mod sync_storage_impl;
+pub use sync_storage_impl::SyncStorageDb;
 pub mod repo;
 pub mod search_sources_impl;
 pub mod settings_repository;

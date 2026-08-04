@@ -133,6 +133,10 @@ macro_rules! register_all_commands {
             commands::local_model::local_model_download,
             commands::local_model::local_model_download_progress,
             commands::local_model::local_model_delete_local_model,
+            commands::local_model::local_model_check_server,
+            commands::local_model::local_model_get_latest_version,
+            commands::local_model::local_model_install_server,
+            commands::local_model::local_model_get_install_status,
             knowledge_integration::analyze_knowledge_integration,
             commands::prompt_templates::list_prompt_templates,
             commands::prompt_templates::get_prompt_template,
@@ -1093,6 +1097,36 @@ macro_rules! register_all_commands {
             // Multi-Agent 协作骨架（analyst/implementer/reviewer 三角色）
             commands::multi_agent::delegate_task,
             commands::multi_agent::list_multi_agent_roles,
+            // Device Sync（多设备同步）
+            commands::device_sync::register_device,
+            commands::device_sync::get_local_device,
+            commands::device_sync::list_devices,
+            commands::device_sync::generate_pairing_code,
+            commands::device_sync::verify_pairing_code,
+            commands::device_sync::accept_pairing,
+            commands::device_sync::unpair_device,
+            commands::device_sync::full_sync,
+            commands::device_sync::incremental_sync,
+            commands::device_sync::push_changes,
+            commands::device_sync::pull_changes,
+            commands::device_sync::resolve_conflict,
+            commands::device_sync::get_sync_status,
+            commands::device_sync::record_change,
+            commands::device_sync::encrypt_sync_data,
+            commands::device_sync::decrypt_sync_data,
+            // P2: 同步策略
+            commands::device_sync::get_sync_policy,
+            commands::device_sync::list_sync_policies,
+            commands::device_sync::create_sync_policy,
+            commands::device_sync::update_sync_policy,
+            commands::device_sync::delete_sync_policy,
+            // P2: 同步历史与审计
+            commands::device_sync::get_sync_history,
+            commands::device_sync::get_audit_logs,
+            // P2: 设备权限
+            commands::device_sync::get_device_permissions,
+            commands::device_sync::update_device_permissions,
+            commands::device_sync::list_all_permissions,
         ]
     };
 }

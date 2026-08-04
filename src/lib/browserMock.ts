@@ -4203,6 +4203,139 @@ export async function handleCommand<T>(
         elapsedMs: 0,
       } as T;
 
+    // ── Knowledge Base Advanced (知识库高级) ────────────────────────
+    case "kb_connect_vault":
+      return { success: true, vault_id: (args as { vault_id?: string })?.vault_id ?? "" } as T;
+    case "kb_disconnect_vault":
+      return { success: true } as T;
+    case "kb_list_vaults":
+      return [] as T;
+    case "kb_semantic_search":
+      return [] as T;
+    case "kb_hybrid_search":
+      return [] as T;
+    case "kb_rag_pipeline":
+      return { chunks: [], answer: "", sources: [] } as T;
+    case "kb_create_rag_pipeline":
+      return { pipeline_id: (args as { name?: string })?.name ?? "", created: true } as T;
+    case "kb_list_rag_pipelines":
+      return [] as T;
+    case "kb_delete_rag_pipeline":
+      return { success: true } as T;
+    case "kb_get_embedding_config":
+      return { model: "text-embedding-3-small", dimension: 1536 } as T;
+    case "kb_update_embedding_config":
+      return { success: true } as T;
+    case "kb_reindex":
+      return { job_id: "mock-reindex", status: "started" } as T;
+    case "kb_get_index_status":
+      return { status: "ready", progress: 100, indexed_chunks: 0 } as T;
+    case "kb_cancel_index":
+      return { success: true } as T;
+    case "kb_optimize_index":
+      return { success: true, optimized_chunks: 0 } as T;
+
+    // ── Workflow Engine (工作流引擎) ────────────────────────────────
+    case "workflow_execute":
+      return { execution_id: "mock-exec", status: "completed", outputs: {} } as T;
+    case "workflow_cancel":
+      return { success: true } as T;
+    case "workflow_get_execution_status":
+      return {
+        execution_id: (args as { execution_id?: string })?.execution_id ?? "",
+        status: "completed",
+        current_node: null,
+        progress: 100,
+        node_states: {},
+      } as T;
+    case "workflow_list_executions":
+      return [] as T;
+    case "workflow_get_execution_history":
+      return [] as T;
+    case "workflow_get_node_trace":
+      return { node_id: (args as { node_id?: string })?.node_id ?? "", inputs: {}, outputs: {}, duration_ms: 0 } as T;
+    case "workflow_resume_execution":
+      return { success: true } as T;
+    case "workflow_pause_execution":
+      return { success: true } as T;
+    case "workflow_set_breakpoint":
+      return { success: true } as T;
+    case "workflow_remove_breakpoint":
+      return { success: true } as T;
+    case "workflow_list_breakpoints":
+      return [] as T;
+
+    // ── RL Training (RL 训练) ───────────────────────────────────────
+    case "rl_train_start":
+      return { training_id: "mock-rl-train", status: "started" } as T;
+    case "rl_train_stop":
+      return { success: true } as T;
+    case "rl_train_status":
+      return {
+        training_id: (args as { training_id?: string })?.training_id ?? "",
+        status: "idle",
+        step: 0,
+        total_steps: 0,
+        reward: 0,
+        loss: 0,
+      } as T;
+    case "rl_list_training_jobs":
+      return [] as T;
+    case "rl_get_training_config":
+      return {} as T;
+    case "rl_update_training_config":
+      return { success: true } as T;
+    case "rl_save_checkpoint":
+      return { checkpoint_id: "mock-checkpoint", saved: true } as T;
+    case "rl_load_checkpoint":
+      return { checkpoint_id: (args as { checkpoint_id?: string })?.checkpoint_id ?? "", config: {} } as T;
+    case "rl_list_checkpoints":
+      return [] as T;
+    case "rl_delete_checkpoint":
+      return { success: true } as T;
+    case "rl_compute_advantages":
+      return { advantages: [], values: [] } as T;
+    case "rl_generate_trajectories":
+      return { trajectories: [], total_steps: 0 } as T;
+    case "rl_rollout_policy":
+      return { actions: [], log_probs: [], values: [] } as T;
+    case "rl_get_policy_weights":
+      return { weights: {} } as T;
+    case "rl_update_policy_weights":
+      return { success: true } as T;
+
+    // ── Trajectory System (轨迹系统) ───────────────────────────────
+    case "trajectory_record_start":
+      return { trajectory_id: "mock-traj", started: true } as T;
+    case "trajectory_record_step":
+      return { recorded: true } as T;
+    case "trajectory_record_end":
+      return { trajectory_id: (args as { trajectory_id?: string })?.trajectory_id ?? "", total_steps: 0 } as T;
+    case "trajectory_batch_record":
+      return { batch_id: "mock-batch", count: 0 } as T;
+    case "trajectory_replay":
+      return { steps: [], total_score: 0 } as T;
+    case "trajectory_sample_batch":
+      return { trajectories: [] } as T;
+    case "trajectory_export":
+      return { format: "json", url: "" } as T;
+    case "trajectory_delete":
+      return { success: true } as T;
+    case "trajectory_get_stats":
+      return { total: 0, avg_reward: 0, avg_length: 0 } as T;
+
+    // ── Tools System (工具系统) ─────────────────────────────────────
+    case "tool_list":
+      return [] as T;
+    case "tool_execute":
+      return { success: true, result: null, duration_ms: 0 } as T;
+    case "tool_validate":
+      return { valid: true, errors: [] } as T;
+    case "tool_get_dependencies":
+      return [] as T;
+    case "tool_warmup":
+      return { success: true, warmed_up: false } as T;
+
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       // SAFE: browser mock fallback for unhandled commands — returns empty placeholder matching generic T

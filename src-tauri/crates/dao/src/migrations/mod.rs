@@ -39,9 +39,10 @@ pub mod v112_feedback_data_lake;
 pub mod v113_unified_knowledge_graph;
 pub mod v114_wiki_sources_schedule;
 pub mod v115_fleet_member_agent_profile;
+pub mod v116_create_sync_tables;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 115;
+pub const CURRENT_VERSION: i32 = 116;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -153,6 +154,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 115,
         description: "v115_fleet_member_agent_profile: 为 fleet_members 添加 agent_profile_id 字段，成员按 AgentProfile（角色+专家组合）定义智能体身份",
         up: |db| Box::pin(v115_fleet_member_agent_profile::up(db)),
+    },
+    Migration {
+        version: 116,
+        description: "v116_create_sync_tables: 创建 sync_devices/sync_change_logs/sync_policies/sync_histories/sync_permissions/sync_audit_logs 六张同步相关表，支持多设备同步持久化",
+        up: |db| Box::pin(v116_create_sync_tables::up(db)),
     },
 ];
 

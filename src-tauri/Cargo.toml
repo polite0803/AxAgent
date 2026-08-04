@@ -2,10 +2,13 @@
 members = [
   ".",
   "crates/agent",
-  "crates/cache",
+  "crates/agent-command-types",
+  "crates/agent-macro",
+  "crates/cache", "crates/crdt",
   "crates/credential",
   "crates/crypto",
   "crates/dao",
+  "crates/device",
   "crates/disk-cache",
   "crates/document-parser",
   "crates/entities",
@@ -114,12 +117,16 @@ required-features = ["server"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+agent-command-types = { path = "crates/agent-command-types" }
+agent-macro = { path = "crates/agent-macro" }
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
+inventory = "0.3"
 axagent-cache = { path = "crates/cache" }
 axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
+axagent-device = { path = "crates/device" }
 axagent-disk-cache = { path = "crates/disk-cache" }
 axagent-document-parser = { path = "crates/document-parser" }
 axagent-entities = { path = "crates/entities" }
@@ -150,6 +157,7 @@ chrono = { workspace = true }
 dashmap = { workspace = true }
 dirs = "6"
 feed-rs = "2"
+flate2 = "1"
 futures = "0.3"
 hex = { workspace = true }
 hostname = "0.4"
@@ -166,6 +174,7 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 sha2 = { workspace = true }
 sysinfo = "0.39"
+tar = "0.4"
 tauri = { version = "2.11.5", features = ["tray-icon", "image-png", "devtools"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
@@ -184,6 +193,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "chrono"] }
 urlencoding = "2"
 uuid = { workspace = true }
+walkdir = "2"
 zip = "8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

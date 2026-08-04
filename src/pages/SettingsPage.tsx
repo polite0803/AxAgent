@@ -126,6 +126,9 @@ const LazyReadingListSettings = lazy(() =>
 const LazyKnowledgeGraphSearchPanel = lazy(() =>
   import("@/components/settings/KnowledgeGraphSearchPanel").then((m) => ({ default: m.KnowledgeGraphSearchPanel }))
 );
+const LazyDeviceSyncPanel = lazy(() =>
+  import("@/components/settings/DeviceSyncPanel").then((m) => ({ default: m.DeviceSyncPanel }))
+);
 
 function SectionFallback() {
   return (
@@ -334,6 +337,11 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   gateway: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyGatewayLinkPage />
+    </Suspense>
+  ),
+  deviceSync: () => (
+    <Suspense fallback={<SectionFallback />}>
+      <LazyDeviceSyncPanel />
     </Suspense>
   ),
 };
