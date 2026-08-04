@@ -1,6 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
+use agent_macro::agent_command;
 use axagent_agent::self_improvement_executor::{SelfImprovementConfig, SelfImprovementExecutor};
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketBatchQuery};
@@ -136,6 +137,7 @@ pub struct SimulationGateInfo {
 
 /// 执行 portfolio-mgr 确定性公式（Rhai 引擎）。
 /// 修复 D2: 从文件加载完整 portfolio-mgr.rhai，通过 blackboard_snapshot 提供完整参数。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "执行What-If回测计算")]
 #[tauri::command]
 pub fn compute_what_if(params: WhatIfRequest) -> Result<WhatIfResult, String> {
     use rhai::{Engine, Scope};
@@ -394,6 +396,7 @@ fn neutral_quote(code: &str) -> StockQuote {
 
 /// 重新运行工具链（t-scoring / t-valuation / t-risk）带上覆盖的配置参数。
 /// 工具本身是纯 Rust 函数（确定性），修改配置参数后会产生不同输出。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "重跑工具链回放配置参数")]
 #[tauri::command]
 pub async fn replay_tool_chain(
     state: State<'_, AppState>,
@@ -638,6 +641,7 @@ use tauri::State;
 
 /// 获取当前全局 as-of 降级条目总数(进程级,跨 live/replay)。
 /// 缺陷 E 修复:前端 poll 用,实时显示降级数量。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取降级条目总数")]
 #[tauri::command]
 pub fn get_asof_degradation_count() -> u64 {
     as_of::global_degradation_count()
@@ -645,12 +649,14 @@ pub fn get_asof_degradation_count() -> u64 {
 
 /// 拉取最近 256 条全局降级日志(快照,不清空)。
 /// 供前端做"降级详情面板"展示。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取降级日志")]
 #[tauri::command]
 pub fn get_asof_degradation_log() -> Vec<as_of::DegradationEntry> {
     as_of::peek_global_degradation_report()
 }
 
 /// 清空全局降级缓冲(用户从 replay 切回 live 时调用,避免过期条目一直显示)。
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "清空降级日志")]
 #[tauri::command]
 pub fn clear_asof_degradation_log() {
     as_of::reset_global_degradation_log();
@@ -663,6 +669,7 @@ pub fn clear_asof_degradation_log() {
 /// - `"HK"` → 仅港股
 /// - `"US"` → 仅美股
 /// - `None` → 全市场
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "搜索股票")]
 #[tauri::command]
 pub async fn search_stock(
     state: State<'_, AppState>,
@@ -692,6 +699,7 @@ pub async fn search_stock(
 ///
 /// 复用 AStockClient::search_news 已有链路：多 vendor 路由（eastmoney/akshare/neodata）
 /// + 自动去重入库（news_archive 表）+ as-of 模式查本地语料库。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "搜索财经新闻")]
 #[tauri::command]
 pub async fn search_news(
     state: State<'_, AppState>,
@@ -710,6 +718,7 @@ pub async fn search_news(
 /// 获取社交舆情数据（股吧/雪球热度）
 ///
 /// 返回指定股票在社交平台上的讨论热度、情感倾向等数据。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取社交舆情数据")]
 #[tauri::command]
 pub async fn get_social_sentiment(
     state: State<'_, AppState>,
@@ -729,6 +738,7 @@ pub async fn get_social_sentiment(
 ///
 /// spec §4.1: `as_of_date` 非空时,所有 vendor 调用以"截至该日"语义截断,
 /// 并在 task_local 中标记 `AsOfContext`,让上层 LLM / 缓存 / 校验能感知。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取实时行情")]
 #[tauri::command]
 pub async fn get_stock_quote(
     state: State<'_, AppState>,
@@ -758,6 +768,7 @@ pub async fn get_stock_quote(
 /// 获取K线数据
 ///
 /// spec §4.1: K 线在 as-of 模式下保留 date <= as_of_date 的行(live 模式原样返回)。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取K线数据")]
 #[tauri::command]
 pub async fn get_stock_kline(
     state: State<'_, AppState>,
@@ -812,6 +823,7 @@ pub async fn get_stock_kline(
 // ── G1 跨市场数据接入：美股/港股/外汇/基准指数 Tauri 命令 ──
 
 /// 获取国际股票（美股/港股）实时行情
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取国际股票行情")]
 #[tauri::command]
 pub async fn get_international_stock_quote(
     state: State<'_, AppState>,
@@ -828,6 +840,7 @@ pub async fn get_international_stock_quote(
 }
 
 /// 获取国际股票（美股/港股）K 线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取国际股票K线")]
 #[tauri::command]
 pub async fn get_international_stock_kline(
     state: State<'_, AppState>,
@@ -848,6 +861,7 @@ pub async fn get_international_stock_kline(
 }
 
 /// 获取基准指数 K 线（标普 500 / 纳指 / 恒生 / 上证等）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取基准指数K线")]
 #[tauri::command]
 pub async fn get_benchmark_kline(
     state: State<'_, AppState>,
@@ -868,6 +882,7 @@ pub async fn get_benchmark_kline(
 }
 
 /// 获取外汇 K 线（USD/CNY、HKD/CNY 等）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取外汇K线")]
 #[tauri::command]
 pub async fn get_forex_kline(
     state: State<'_, AppState>,
@@ -906,6 +921,7 @@ pub struct BatchQuotesRequest {
 ///
 /// 内部并发调 `get_quote`,受 `DomainGate` 限流。
 /// 失败股票不阻塞,集中在 `failures` 字段返回。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "批量获取实时行情")]
 #[tauri::command]
 pub async fn batch_get_quotes(
     state: State<'_, AppState>,
@@ -930,6 +946,7 @@ pub async fn batch_get_quotes(
 }
 
 /// 批量获取 K 线
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "批量获取K线")]
 #[tauri::command]
 pub async fn batch_get_klines(
     state: State<'_, AppState>,
@@ -955,6 +972,7 @@ pub async fn batch_get_klines(
 }
 
 /// 批量获取财务数据
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "批量获取财务数据")]
 #[tauri::command]
 pub async fn batch_get_financials(
     state: State<'_, AppState>,
@@ -978,6 +996,7 @@ pub struct FundamentalsReportRequest {
 ///
 /// 喂给工作流 a-fundamentals 节点使用:
 /// 报告把 `FinancialReport` + 实时行情聚合成可读结构 + 0-100 健康度评分。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "生成基本面分析报告")]
 #[tauri::command]
 pub async fn generate_fundamentals_report(
     state: State<'_, AppState>,
@@ -1017,6 +1036,7 @@ pub struct FundamentalsReportEnvelope {
 }
 
 /// 仅获取 Markdown 渲染（轻量,不返回结构）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取基本面报告Markdown")]
 #[tauri::command]
 pub async fn get_fundamentals_report_markdown(
     state: State<'_, AppState>,
@@ -1033,6 +1053,7 @@ pub async fn get_fundamentals_report_markdown(
 }
 
 /// 取消分析 — 设置取消令牌让后台任务停止
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "取消股票分析任务")]
 #[tauri::command]
 pub async fn cancel_stock_analysis(
     state: State<'_, AppState>,
@@ -1075,6 +1096,7 @@ pub struct StockAnalysisListItem {
 }
 
 /// 历史分析列表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取历史分析列表")]
 #[tauri::command]
 pub async fn list_stock_analyses(
     state: State<'_, AppState>,
@@ -1121,6 +1143,7 @@ pub async fn list_stock_analyses(
 }
 
 /// 获取单个分析详情
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取单个分析详情")]
 #[tauri::command]
 pub async fn get_stock_analysis(
     state: State<'_, AppState>,
@@ -1140,6 +1163,7 @@ pub async fn get_stock_analysis(
 }
 
 /// 删除历史分析记录
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除历史分析记录")]
 #[tauri::command]
 pub async fn delete_stock_analysis(
     state: State<'_, AppState>,
@@ -1152,6 +1176,7 @@ pub async fn delete_stock_analysis(
 }
 
 /// 批量删除历史分析记录
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "批量删除历史分析记录")]
 #[tauri::command]
 pub async fn batch_delete_stock_analyses(
     state: State<'_, AppState>,
@@ -1179,6 +1204,7 @@ pub async fn batch_delete_stock_analyses(
 }
 
 /// 重命名历史分析记录
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "重命名历史分析记录")]
 #[tauri::command]
 pub async fn rename_stock_analysis(
     state: State<'_, AppState>,
@@ -1208,6 +1234,7 @@ pub async fn rename_stock_analysis(
 // ── Watchlist ──
 
 /// 添加自选股
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "添加自选股")]
 #[tauri::command]
 pub async fn add_to_watchlist(
     state: State<'_, AppState>,
@@ -1231,6 +1258,7 @@ pub async fn add_to_watchlist(
 }
 
 /// 移除自选股
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "移除自选股")]
 #[tauri::command]
 pub async fn remove_from_watchlist(state: State<'_, AppState>, id: String) -> Result<(), String> {
     watchlist_items::Entity::delete_by_id(id).exec(state.harness.db()).await.map_err(|e| {
@@ -1240,6 +1268,7 @@ pub async fn remove_from_watchlist(state: State<'_, AppState>, id: String) -> Re
 }
 
 /// 更新自选股的分组归属
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "更新自选股分组")]
 #[tauri::command]
 pub async fn watchlist_update_group(
     state: State<'_, AppState>,
@@ -1270,6 +1299,7 @@ pub async fn watchlist_update_group(
 }
 
 /// 获取所有分组列表（从 settings 表读取）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取分组列表")]
 #[tauri::command]
 pub async fn watchlist_list_groups(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     use axagent_entities::settings;
@@ -1285,6 +1315,7 @@ pub async fn watchlist_list_groups(state: State<'_, AppState>) -> Result<Vec<Str
 }
 
 /// 保存分组列表（写入 settings 表）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "保存分组列表")]
 #[tauri::command]
 pub async fn watchlist_save_groups(
     state: State<'_, AppState>,
@@ -1312,6 +1343,7 @@ pub async fn watchlist_save_groups(
 }
 
 /// 自选股列表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取自选股列表")]
 #[tauri::command]
 pub async fn list_watchlist(
     state: State<'_, AppState>,
@@ -1331,6 +1363,7 @@ pub async fn list_watchlist(
 ///
 /// 从指定股票分析的 `decision_json` + `blackboard_snapshot` 中
 /// 提取每条决策理由的来源分析师报告引用。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "提取证据引用链")]
 #[tauri::command]
 pub async fn extract_evidence_citations(
     state: State<'_, AppState>,
@@ -1369,6 +1402,7 @@ pub async fn extract_evidence_citations(
 // ── 条件单 ──
 
 /// 获取所有条件单
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取条件单列表")]
 #[tauri::command]
 pub async fn conditional_order_list(
     state: State<'_, AppState>,
@@ -1386,6 +1420,7 @@ pub async fn conditional_order_list(
 }
 
 /// 保存条件单列表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "保存条件单列表")]
 #[tauri::command]
 pub async fn conditional_order_save(
     state: State<'_, AppState>,
@@ -1412,6 +1447,7 @@ pub async fn conditional_order_save(
 }
 
 /// 评估条件单（测试用）
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "评估条件单")]
 #[tauri::command]
 pub async fn conditional_order_evaluate(
     _stock_code: String,
@@ -1428,6 +1464,7 @@ pub async fn conditional_order_evaluate(
 }
 
 /// 生成月度投资报告
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "生成月度投资报告")]
 #[tauri::command]
 pub async fn generate_monthly_report(
     state: State<'_, AppState>,
@@ -1439,6 +1476,7 @@ pub async fn generate_monthly_report(
 }
 
 /// 获取情绪深度分析报告
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "分析情绪深度")]
 #[tauri::command]
 pub async fn analyze_sentiment_depth(
     stock_code: String,
@@ -1455,6 +1493,7 @@ pub async fn analyze_sentiment_depth(
 }
 
 /// 运行组合回测（简化版 — 调用 quant crate）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "运行组合回测")]
 #[tauri::command]
 pub async fn portfolio_backtest_run(
     _state: State<'_, AppState>,
@@ -1477,6 +1516,7 @@ pub async fn portfolio_backtest_run(
 }
 
 /// 获取因子分析结果
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取因子分析结果")]
 #[tauri::command]
 pub async fn factor_analysis_list() -> Result<Vec<serde_json::Value>, String> {
     let registry = axagent_stock_analysis::factor_analysis::FactorRegistry::new();
@@ -1497,6 +1537,7 @@ pub async fn factor_analysis_list() -> Result<Vec<serde_json::Value>, String> {
 }
 
 /// 获取宏观经济数据快照
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取宏观数据快照")]
 #[tauri::command]
 pub async fn macro_data_snapshot() -> Result<axagent_astock_data::MacroDataSnapshot, String> {
     let client = axagent_astock_data::macro_data::MacroDataClient::new();
@@ -1506,6 +1547,7 @@ pub async fn macro_data_snapshot() -> Result<axagent_astock_data::MacroDataSnaps
 // ── Portfolio ──
 
 /// 添加持仓
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "添加持仓")]
 #[tauri::command]
 pub async fn add_portfolio_holding(
     state: State<'_, AppState>,
@@ -1531,6 +1573,7 @@ pub async fn add_portfolio_holding(
 }
 
 /// 更新持仓
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "更新持仓")]
 #[tauri::command]
 pub async fn update_portfolio_holding(
     state: State<'_, AppState>,
@@ -1553,6 +1596,7 @@ pub async fn update_portfolio_holding(
 }
 
 /// 移除持仓
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "移除持仓")]
 #[tauri::command]
 pub async fn remove_portfolio_holding(
     state: State<'_, AppState>,
@@ -1565,6 +1609,7 @@ pub async fn remove_portfolio_holding(
 }
 
 /// 持仓列表（含实时盈亏）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "获取持仓列表")]
 #[tauri::command]
 pub async fn list_portfolio(state: State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
     let holdings =
@@ -1648,6 +1693,7 @@ async fn load_value_config(
 /// P2-8: 合并 `axagent_astock_data::mcp_tools::stock_mcp_tools()` 与
 /// `axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools()`。
 /// G3 产业链工具已从 astock-data 迁回 stock-analysis，需在此合并返回。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取股票MCP工具列表")]
 #[tauri::command]
 pub async fn get_stock_mcp_tools() -> Result<Vec<serde_json::Value>, String> {
     let mut tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
@@ -1658,6 +1704,7 @@ pub async fn get_stock_mcp_tools() -> Result<Vec<serde_json::Value>, String> {
 /// 执行 stock data MCP 工具调用
 ///
 /// P2-8: 先尝试 G3 产业链工具（位于 stock-analysis crate），未匹配则回退到 astock-data。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "执行股票MCP工具调用")]
 #[tauri::command]
 pub async fn execute_stock_mcp_tool(
     state: State<'_, AppState>,
@@ -1693,6 +1740,7 @@ pub(crate) fn map_action_to_strategy_id(action: &str) -> &'static str {
 }
 
 /// 回测单个分析决策
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "回测单个分析决策")]
 #[tauri::command]
 pub async fn backtest_analysis(
     state: State<'_, AppState>,
@@ -1755,6 +1803,7 @@ pub async fn backtest_analysis(
 /// - `"all"` (默认): 所有 completed 分析(live + replay)
 /// - `"live"`: 仅 live 模式分析(实时分析的回测准确率)
 /// - `"replay"`: 仅 replay 模式分析(回放分析的真实回测)
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "批量回测历史分析")]
 #[tauri::command]
 pub async fn backtest_all_history(
     state: State<'_, AppState>,
@@ -1843,6 +1892,7 @@ pub struct ReplaySweepResult {
 /// 注意：
 /// - `as_of_date` 必须在过去；前端 `DatePicker` 已约束 `disabledDate={d => d > dayjs()}`。
 /// - 此命令不读写 DB，只做计算；与 `backtest_all_history` 互为补充。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "批量回放回测")]
 #[tauri::command]
 pub async fn run_replay_backtest(
     state: State<'_, AppState>,
@@ -1911,6 +1961,7 @@ pub async fn run_replay_backtest(
 /// - `condition` 仍接收老值（above/below/change_up/change_down/volume_spike），命令内部映射到 6 类 alert_type
 /// - `target_price` 在 price 类告警是绝对价，在 change_pct 类是百分比，在 turnover_rate 类是换手率
 /// - 新增 `alert_type` + `condition_type` + `threshold` 三列同步写入，新代码读新列
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "创建价格告警")]
 #[tauri::command]
 pub async fn create_price_alert(
     state: State<'_, AppState>,
@@ -2005,6 +2056,7 @@ pub async fn create_price_alert(
 }
 
 /// 查询价格告警列表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "查询价格告警列表")]
 #[tauri::command]
 pub async fn list_price_alerts(
     state: State<'_, AppState>,
@@ -2021,6 +2073,7 @@ pub async fn list_price_alerts(
 }
 
 /// 删除价格告警
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除价格告警")]
 #[tauri::command]
 pub async fn delete_price_alert(state: State<'_, AppState>, id: String) -> Result<(), String> {
     // 先查出 stock_code，以便从 RealtimeMonitor 移除监控
@@ -2047,6 +2100,7 @@ pub async fn delete_price_alert(state: State<'_, AppState>, id: String) -> Resul
 /// @param stock_codes 要监控的股票代码列表
 /// @param priority "active"（2s 轮询，用户当前查看）或 "background"（10s 轮询，仅监控）
 /// @param replace 是否替换当前监控列表（true=替换，false=追加）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "加入行情监控")]
 #[tauri::command]
 pub async fn watch_stock_quotes(
     state: State<'_, AppState>,
@@ -2083,6 +2137,7 @@ pub async fn watch_stock_quotes(
 }
 
 /// P1-2: 移除实时行情监控
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "移除行情监控")]
 #[tauri::command]
 pub async fn unwatch_stock_quotes(
     state: State<'_, AppState>,
@@ -2099,6 +2154,7 @@ pub async fn unwatch_stock_quotes(
 }
 
 /// P1-2: 查询当前监控的股票列表
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "查询当前监控股票")]
 #[tauri::command]
 pub async fn list_watched_quotes(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let watcher = state.quote_watcher.get().ok_or_else(|| "实时行情监视器未初始化".to_string())?;
@@ -2107,6 +2163,7 @@ pub async fn list_watched_quotes(state: State<'_, AppState>) -> Result<Vec<Strin
 }
 
 /// P1-2: 设置单只股票的监控优先级
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "设置监控优先级")]
 #[tauri::command]
 pub async fn set_quote_watch_priority(
     state: State<'_, AppState>,
@@ -2129,6 +2186,7 @@ pub async fn set_quote_watch_priority(
 // ── 自定义分析师插件 ──
 
 /// 列出所有自定义分析师插件
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出自定义分析师插件")]
 #[tauri::command]
 pub async fn list_custom_analysts()
 -> Result<Vec<axagent_stock_analysis::plugin::CustomAnalyst>, String> {
@@ -2137,6 +2195,7 @@ pub async fn list_custom_analysts()
 }
 
 /// 生成股票分析 HTML 报告
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "生成股票分析HTML报告")]
 #[tauri::command]
 pub async fn generate_stock_report(
     state: State<'_, AppState>,
@@ -2251,6 +2310,7 @@ pub async fn generate_stock_report(
 // ── 手动交易日志 ──
 
 /// 记录一笔交易
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "记录交易")]
 #[tauri::command]
 pub async fn record_trade(
     state: State<'_, AppState>,
@@ -2281,6 +2341,7 @@ pub async fn record_trade(
 }
 
 /// 获取交易历史
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取交易历史")]
 #[tauri::command]
 pub async fn list_trades(
     state: State<'_, AppState>,
@@ -2292,6 +2353,7 @@ pub async fn list_trades(
 }
 
 /// 获取持仓汇总（交易日志驱动的成本跟踪）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "获取持仓汇总")]
 #[tauri::command]
 pub async fn get_trade_positions(
     state: State<'_, AppState>,
@@ -2301,6 +2363,7 @@ pub async fn get_trade_positions(
 }
 
 /// 开启 / 关闭交易功能
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "开关交易功能")]
 #[tauri::command]
 pub async fn toggle_trading_enabled(
     state: State<'_, AppState>,
@@ -2321,6 +2384,7 @@ pub async fn toggle_trading_enabled(
 }
 
 /// 获取最近分析记录（用于 Dashboard）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取最近分析记录")]
 #[tauri::command]
 #[allow(dead_code)] // 暂未在 frontend 调起，预留给 Dashboard "历史" 区块
 pub async fn get_recent_analyses(
@@ -2353,6 +2417,7 @@ pub async fn get_recent_analyses(
 }
 
 /// 校验交易（提交前预览）
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "校验交易")]
 #[tauri::command]
 pub async fn validate_trade(
     state: State<'_, AppState>,
@@ -2371,6 +2436,7 @@ pub async fn validate_trade(
 }
 
 /// 对比实际交易出场价与最近分析预测价位
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "对比交易与分析预测")]
 #[tauri::command]
 pub async fn compare_trade_with_analysis(
     state: State<'_, AppState>,
@@ -2391,6 +2457,7 @@ pub async fn compare_trade_with_analysis(
 // ── Key Levels Commands ──
 
 /// 回测关键价位命中率
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "回测关键价位命中率")]
 #[tauri::command]
 pub async fn backtest_key_levels(
     state: State<'_, AppState>,
@@ -2404,6 +2471,7 @@ pub async fn backtest_key_levels(
 // ── Screen Commands ──
 
 /// 从自选股中筛选(自选股为空或 DB 异常时回退到 FALLBACK_STOCKS 池)
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "筛选股票")]
 #[tauri::command]
 pub async fn screen_stocks(
     state: State<'_, AppState>,
@@ -2422,6 +2490,7 @@ pub async fn screen_stocks(
 }
 
 /// 从全市场发现热门候选标的
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "发现热门候选标的")]
 #[tauri::command]
 pub async fn discover_stock_candidates(
     state: State<'_, AppState>,
@@ -2432,6 +2501,7 @@ pub async fn discover_stock_candidates(
 // ── Calendar Commands ──
 
 /// 获取市场状态
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "获取市场状态")]
 #[tauri::command]
 pub async fn get_market_status() -> Result<serde_json::Value, String> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
@@ -2445,6 +2515,7 @@ pub async fn get_market_status() -> Result<serde_json::Value, String> {
 }
 
 /// 从东方财富 API 刷新交易日历
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "刷新交易日历")]
 #[tauri::command]
 pub async fn refresh_trading_calendar() -> Result<Vec<String>, String> {
     axagent_astock_data::calendar::fetch_holiday_calendar().await
@@ -2453,6 +2524,7 @@ pub async fn refresh_trading_calendar() -> Result<Vec<String>, String> {
 // ── Review Commands ──
 
 /// 生成每日收盘复盘报告
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "生成每日复盘报告")]
 #[tauri::command]
 pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyReview, String> {
     let watchlist: Vec<(String, String)> = axagent_entities::watchlist_items::Entity::find()
@@ -2507,6 +2579,7 @@ pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyRe
 // ── Scoring Weights Optimization ──
 
 /// 基于回测结果优化评分权重
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "优化评分权重")]
 #[tauri::command]
 pub async fn optimize_scoring_weights(
     state: State<'_, AppState>,
@@ -2521,6 +2594,7 @@ pub async fn optimize_scoring_weights(
 /// 2. 从同次荐股的候选池快照中，减去正向样本，得到负向样本（漏推荐的股票）
 /// 3. 两组分别跑策略信号历史回溯
 /// 4. 输出对比结果
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "荐股策略历史回测")]
 #[tauri::command]
 pub async fn backtest_reco_strategies(
     state: State<'_, AppState>,
@@ -2624,6 +2698,7 @@ async fn backtest_reco_strategies_inner(
 /// 预览荐股策略权重调整（只读，不写入）
 ///
 /// 返回新旧权重对比，供用户确认后再调 apply。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "预览荐股策略权重调整")]
 #[tauri::command]
 pub async fn preview_adjust_reco_weights(
     state: State<'_, AppState>,
@@ -2706,6 +2781,7 @@ pub async fn preview_adjust_reco_weights(
 /// 应用荐股策略权重调整（用户确认后）
 ///
 /// 如果传了 `weights` 则只应用其中列出的策略；不传则全部应用（向后兼容）。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "应用荐股策略权重调整")]
 #[tauri::command]
 pub async fn apply_reco_weights(
     state: State<'_, AppState>,
@@ -2810,6 +2886,7 @@ pub async fn apply_reco_weights(
 // ── RecoSignalTimeline ──
 
 /// 获取指定策略的历史信号明细
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取策略历史信号明细")]
 #[tauri::command]
 pub async fn get_reco_signal_history(
     state: State<'_, AppState>,
@@ -2877,6 +2954,7 @@ pub async fn get_reco_signal_history(
 // ── Portfolio Risk ──
 
 /// 获取组合风险指标
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "获取组合风险指标")]
 #[tauri::command]
 pub async fn get_portfolio_risk(
     state: State<'_, AppState>,
@@ -2889,6 +2967,7 @@ pub async fn get_portfolio_risk(
 // ── R2 组合监控 ──
 
 /// 拉取最近一次组合监控快照（按 as_of_date 时间旅行）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "获取组合监控仪表盘")]
 #[tauri::command]
 pub async fn get_portfolio_dashboard(
     state: State<'_, AppState>,
@@ -2928,6 +3007,7 @@ pub async fn get_portfolio_dashboard(
 }
 
 /// 立即刷新组合监控快照（写 portfolio_metrics_daily + correlation_snapshot）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "刷新组合监控快照")]
 #[tauri::command]
 pub async fn refresh_portfolio_metrics(
     state: State<'_, AppState>,
@@ -2967,6 +3047,7 @@ pub async fn refresh_portfolio_metrics(
 }
 
 /// 拉取最近一次两两相关性快照（按 as_of_date 时间旅行）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "获取组合相关性快照")]
 #[tauri::command]
 pub async fn get_portfolio_correlations(
     state: State<'_, AppState>,
@@ -2976,6 +3057,7 @@ pub async fn get_portfolio_correlations(
 }
 
 /// 压测（无 DB 副作用，纯计算）
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "运行组合压力测试")]
 #[tauri::command]
 pub async fn run_portfolio_stress_test(
     state: State<'_, AppState>,
@@ -2988,6 +3070,7 @@ pub async fn run_portfolio_stress_test(
 }
 
 /// 校验能否新开仓（position_limits）
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "校验新开仓限制")]
 #[tauri::command]
 pub async fn check_position_limits(
     state: State<'_, AppState>,
@@ -3033,6 +3116,7 @@ pub async fn check_position_limits(
 // ── Value Investing ──
 
 /// 获取巴菲特式价值投资评估
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取价值投资评估")]
 #[tauri::command]
 pub async fn get_value_assessment(
     state: State<'_, AppState>,
@@ -3069,6 +3153,7 @@ pub async fn get_value_assessment(
 }
 
 /// 计算巴菲特式价值投资综合指标（DCF + F-Score + 护城河量化 + 安全边际 + 所有者收益）
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "计算价值投资综合指标")]
 #[tauri::command]
 pub async fn compute_value_metrics(
     state: State<'_, AppState>,
@@ -3102,6 +3187,7 @@ pub async fn compute_value_metrics(
 // ── Position Limits ──
 
 /// 获取全局仓位限制配置
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "获取全局仓位限制配置")]
 #[tauri::command]
 pub async fn get_position_limits() -> Result<PositionLimits, String> {
     Ok(PositionLimits::default())
@@ -3109,6 +3195,7 @@ pub async fn get_position_limits() -> Result<PositionLimits, String> {
 
 // ── 新增数据源命令 ──
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取研究报告")]
 #[tauri::command]
 pub async fn get_stock_research_reports(
     state: State<'_, AppState>,
@@ -3121,6 +3208,7 @@ pub async fn get_stock_research_reports(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取一致预期EPS")]
 #[tauri::command]
 pub async fn get_stock_consensus_eps(
     state: State<'_, AppState>,
@@ -3133,6 +3221,7 @@ pub async fn get_stock_consensus_eps(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取概念板块")]
 #[tauri::command]
 pub async fn get_stock_concept_blocks(
     state: State<'_, AppState>,
@@ -3145,6 +3234,7 @@ pub async fn get_stock_concept_blocks(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取公司公告")]
 #[tauri::command]
 pub async fn get_stock_announcements(
     state: State<'_, AppState>,
@@ -3159,6 +3249,7 @@ pub async fn get_stock_announcements(
 ///
 /// 复用 `get_announcements` vendor 链路(优先 cninfo),按标题归类成
 /// preliminary / express / formal / shareholders_meeting,过滤其它类。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取财报披露日历")]
 #[tauri::command]
 pub async fn get_earnings_calendar(
     state: State<'_, AppState>,
@@ -3176,6 +3267,7 @@ pub async fn get_earnings_calendar(
 /// - years: 回溯窗口(默认 5 年);内部按 EOD 快照表统计 PE/PB/PS 的 5/10/25/50/75/90/95
 ///   分位 + 当前分位。
 /// - 数据来源:本机 `financial_snapshots` 表(DB),表为空时返回 verdict = "insufficient"。
+#[agent_command(domain = "quant", safety = Caution, call_mode = StateInput, description = "计算估值带")]
 #[tauri::command]
 pub async fn compute_valuation_band(
     state: State<'_, AppState>,
@@ -3240,6 +3332,7 @@ pub async fn compute_valuation_band(
 }
 
 /// 列估值快照原始行(R3-C 辅助):返回 financial_snapshots 表中某只股票在区间内的全部快照。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列估值快照原始行")]
 #[tauri::command]
 pub async fn list_financial_snapshots(
     state: State<'_, AppState>,
@@ -3266,6 +3359,7 @@ pub async fn list_financial_snapshots(
     Ok(rows)
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取热门股票")]
 #[tauri::command]
 pub async fn get_hot_stocks(
     state: State<'_, AppState>,
@@ -3277,6 +3371,7 @@ pub async fn get_hot_stocks(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取行业排名")]
 #[tauri::command]
 pub async fn get_industry_ranking(
     state: State<'_, AppState>,
@@ -3288,6 +3383,7 @@ pub async fn get_industry_ranking(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取财联社快讯")]
 #[tauri::command]
 pub async fn get_cls_flash(
     state: State<'_, AppState>,
@@ -3299,6 +3395,7 @@ pub async fn get_cls_flash(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取龙虎榜")]
 #[tauri::command]
 pub async fn get_market_dragon_tiger(
     state: State<'_, AppState>,
@@ -3308,6 +3405,7 @@ pub async fn get_market_dragon_tiger(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取北向资金")]
 #[tauri::command]
 pub async fn get_north_bound_flow(
     state: State<'_, AppState>,
@@ -3317,6 +3415,7 @@ pub async fn get_north_bound_flow(
     })?)
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取指数行情")]
 #[tauri::command]
 pub async fn get_index_quotes(
     state: State<'_, AppState>,
@@ -3328,6 +3427,7 @@ pub async fn get_index_quotes(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取同行业对比")]
 #[tauri::command]
 pub async fn get_stock_peers(
     state: State<'_, AppState>,
@@ -3340,6 +3440,7 @@ pub async fn get_stock_peers(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取期权PCR")]
 #[tauri::command]
 pub async fn get_stock_option_pcr(
     state: State<'_, AppState>,
@@ -3387,6 +3488,7 @@ impl From<&CronJob> for CronJobResponse {
 }
 
 /// 创建股票定时分析任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "创建股票定时分析任务")]
 #[tauri::command]
 pub async fn create_stock_cron(
     state: State<'_, AppState>,
@@ -3409,6 +3511,7 @@ pub async fn create_stock_cron(
 }
 
 /// 列出所有股票定时分析任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出股票定时分析任务")]
 #[tauri::command]
 pub async fn list_stock_crons(state: State<'_, AppState>) -> Result<Vec<CronJobResponse>, String> {
     let jobs = state.cron_job_store.list().await;
@@ -3420,6 +3523,7 @@ pub async fn list_stock_crons(state: State<'_, AppState>) -> Result<Vec<CronJobR
 }
 
 /// 启停定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "开关股票定时任务")]
 #[tauri::command]
 pub async fn toggle_stock_cron(
     state: State<'_, AppState>,
@@ -3441,6 +3545,7 @@ pub async fn toggle_stock_cron(
 }
 
 /// 删除定时任务
+#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "删除股票定时任务")]
 #[tauri::command]
 pub async fn delete_stock_cron(state: State<'_, AppState>, id: String) -> Result<(), String> {
     state.cron_job_store.remove(&id).await;
@@ -3453,6 +3558,7 @@ pub async fn delete_stock_cron(state: State<'_, AppState>, id: String) -> Result
 ///
 /// 定时扫描所有持仓股，自动执行完整分析并携带持仓上下文。
 /// task_type = "portfolio-scan"
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "创建持仓扫描定时任务")]
 #[tauri::command]
 pub async fn create_portfolio_scan_cron(
     state: State<'_, AppState>,
@@ -3476,6 +3582,7 @@ pub async fn create_portfolio_scan_cron(
 }
 
 /// 列出所有持仓扫描定时任务
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出持仓扫描定时任务")]
 #[tauri::command]
 pub async fn list_portfolio_scan_crons(
     state: State<'_, AppState>,
@@ -3489,6 +3596,7 @@ pub async fn list_portfolio_scan_crons(
 }
 
 /// 启停持仓扫描定时任务
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateOnly, description = "开关持仓扫描定时任务")]
 #[tauri::command]
 pub async fn toggle_portfolio_scan_cron(
     state: State<'_, AppState>,
@@ -3510,6 +3618,7 @@ pub async fn toggle_portfolio_scan_cron(
 }
 
 /// 删除持仓扫描定时任务
+#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "删除持仓扫描定时任务")]
 #[tauri::command]
 pub async fn delete_portfolio_scan_cron(
     state: State<'_, AppState>,
@@ -3520,6 +3629,7 @@ pub async fn delete_portfolio_scan_cron(
 }
 
 /// 检查指定数据源的连接可用性
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "检查数据源连接可用性")]
 #[tauri::command]
 pub async fn check_vendor_health(state: State<'_, AppState>, vendor: String) -> Result<(), String> {
     // 对需要 token/密钥的 vendor，先从数据库加载凭据到内存
@@ -3587,6 +3697,7 @@ pub async fn get_vendor_fallback_log(
 
 /// P3-B5(B): 手动设置 vendor 状态（healthy/degraded/disabled）
 /// 用于前端设置页"vendor 健康面板"手动启停 vendor
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "设置数据源状态")]
 #[tauri::command]
 pub async fn set_vendor_status(
     state: State<'_, AppState>,
@@ -3618,6 +3729,7 @@ pub async fn set_vendor_status(
 /// 调用 WorkBuddy 的 connect_cloud_service 获取新 token 后，
 /// 由前端或自动化流程触发此命令将 token 写入脚本缓存。
 /// 后续所有 NeoData 查询自动使用该 token（无需在设置页手动粘贴）。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "保存NeoData token")]
 #[tauri::command]
 pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Result<(), String> {
     if token.is_empty() {
@@ -3685,6 +3797,7 @@ pub async fn save_neodata_token(state: State<'_, AppState>, token: String) -> Re
 ///
 /// 调用一次即可采集当日快照；as-of 模式下的 NoHistoricalSemantic 方法会优先查快照缓存。
 /// 建议在每日收盘后（15:30 以后）通过 cron 调用。
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "采集每日快照")]
 #[tauri::command]
 pub async fn sweep_daily_snapshots(state: State<'_, AppState>) -> Result<String, String> {
     use axagent_astock_data::daily_snapshot::{PER_STOCK_METHODS, SNAPSHOT_METHODS};

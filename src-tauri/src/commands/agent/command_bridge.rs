@@ -116,6 +116,12 @@ pub enum CommandDomain {
     Message,
     Memory,
     Settings,
+    // ── AxInvest 特有业务域 ──
+    Invest,    // 投资分析
+    Opc,       // 一人公司运营
+    Quant,     // 量化回测
+    MarketSim, // 市场模拟
+    Portfolio, // 投资组合
 }
 
 impl CommandDomain {
@@ -132,6 +138,12 @@ impl CommandDomain {
             CommandDomain::Message => "message",
             CommandDomain::Memory => "memory",
             CommandDomain::Settings => "settings",
+            // AxInvest 业务域
+            CommandDomain::Invest => "invest",
+            CommandDomain::Opc => "opc",
+            CommandDomain::Quant => "quant",
+            CommandDomain::MarketSim => "market_sim",
+            CommandDomain::Portfolio => "portfolio",
         }
     }
 
@@ -148,6 +160,12 @@ impl CommandDomain {
             "message" => Some(CommandDomain::Message),
             "memory" => Some(CommandDomain::Memory),
             "settings" => Some(CommandDomain::Settings),
+            // AxInvest 业务域
+            "invest" => Some(CommandDomain::Invest),
+            "opc" => Some(CommandDomain::Opc),
+            "quant" => Some(CommandDomain::Quant),
+            "market_sim" => Some(CommandDomain::MarketSim),
+            "portfolio" => Some(CommandDomain::Portfolio),
             _ => None,
         }
     }
@@ -203,6 +221,12 @@ impl CommandRegistry {
             "message" => CommandDomain::Message,
             "memory" => CommandDomain::Memory,
             "settings" => CommandDomain::Settings,
+            // AxInvest 业务域
+            "invest" => CommandDomain::Invest,
+            "opc" => CommandDomain::Opc,
+            "quant" => CommandDomain::Quant,
+            "market_sim" => CommandDomain::MarketSim,
+            "portfolio" => CommandDomain::Portfolio,
             _ => CommandDomain::Core,
         }
     }
@@ -465,15 +489,40 @@ impl Default for DomainMappingConfig {
                     tool_domain: "ai_media".to_string(),
                     command_domains: vec![CommandDomain::Core, CommandDomain::Skill],
                 },
-                // Invest → 基础 + 知识库
+                // Invest → 投资分析全套（含量化回测和市场模拟）
                 DomainMapping {
                     tool_domain: "invest".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Knowledge],
+                    command_domains: vec![
+                        CommandDomain::Core,
+                        CommandDomain::Knowledge,
+                        CommandDomain::Invest,
+                        CommandDomain::Quant,
+                        CommandDomain::MarketSim,
+                        CommandDomain::Portfolio,
+                    ],
                 },
-                // Opc → 基础 + 工作流
+                // Opc → 一人公司运营全套
                 DomainMapping {
                     tool_domain: "opc".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Workflow],
+                    command_domains: vec![
+                        CommandDomain::Core,
+                        CommandDomain::Workflow,
+                        CommandDomain::Opc,
+                    ],
+                },
+                // Quant → 量化回测专用
+                DomainMapping {
+                    tool_domain: "quant".to_string(),
+                    command_domains: vec![
+                        CommandDomain::Quant,
+                        CommandDomain::MarketSim,
+                        CommandDomain::Portfolio,
+                    ],
+                },
+                // Portfolio → 投资组合管理专用
+                DomainMapping {
+                    tool_domain: "portfolio".to_string(),
+                    command_domains: vec![CommandDomain::Portfolio, CommandDomain::Invest],
                 },
             ],
             // 默认暴露核心域
