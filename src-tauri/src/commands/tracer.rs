@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_telemetry::{
     CostMetrics, Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceExport, TraceFilter,
     TraceMetrics, TraceSummary,
     storage::{InMemoryTraceStorage, TraceStorage},
 };
 use serde::{Deserialize, Serialize};
-use agent_macro::agent_command;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::command;

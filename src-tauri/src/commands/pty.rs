@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_runtime::pty::{PtySessionConfig, PtySessionStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::Manager;
-use agent_macro::agent_command;
 use tauri::command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

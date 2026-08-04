@@ -7,6 +7,7 @@
 //! 2. `deep_research_topic`  — 多轮 Web 搜索 + 差距分析 + 交叉验证的深度研究
 
 use crate::AppState;
+use agent_macro::agent_command;
 use axagent_agent::deep_research::{DeepResearchConfig, DeepResearcher};
 use axagent_agent::ingest_pipeline::IngestPipeline;
 use axagent_agent::noop_kit::NoopHtmlCleaner;
@@ -21,7 +22,6 @@ use axagent_harness::resolve_base_url_for_type;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, MessageRole};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use agent_macro::agent_command;
 use tauri::State;
 
 /// 报告节结构

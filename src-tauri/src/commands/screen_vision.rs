@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_kit::permission::ensure_computer_control_granted;
 use axagent_kit::screen_vision::UIElementInfo;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use agent_macro::agent_command;
 
 use crate::AppState;
 use crate::commands::provider_ctx::{VisionContext, build_vision_context};

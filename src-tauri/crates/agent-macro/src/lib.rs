@@ -101,15 +101,12 @@ impl syn::parse::Parse for AgentCommandArgs {
                             }
                         },
                         syn::Expr::Path(path) => {
-                            path.path
-                                .get_ident()
-                                .map(|id| id.to_string())
-                                .ok_or_else(|| {
-                                    syn::Error::new(
-                                        proc_macro2::Span::call_site(),
-                                        "domain 必须是字符串字面量或标识符",
-                                    )
-                                })?
+                            path.path.get_ident().map(|id| id.to_string()).ok_or_else(|| {
+                                syn::Error::new(
+                                    proc_macro2::Span::call_site(),
+                                    "domain 必须是字符串字面量或标识符",
+                                )
+                            })?
                         },
                         _ => {
                             return Err(syn::Error::new(

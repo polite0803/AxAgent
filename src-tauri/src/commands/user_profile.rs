@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_trajectory::{
     CodeSample, MessageSample, StyleApplier, StyleExtractor, StyleVectorizer, UserProfile,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use agent_macro::agent_command;
 
 use crate::AppState;
 

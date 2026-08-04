@@ -4,13 +4,13 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
 use crate::commands::error_code::storage_path as storage_path_err;
+use agent_macro::agent_command;
 use axagent_storage::storage_inventory::{self, StorageInventory};
 use axagent_storage::storage_paths;
 use serde::Serialize;
 use serde_json;
 use std::path::PathBuf;
 use tauri::State;
-use agent_macro::agent_command;
 
 #[agent_command(domain = storage, safety = Safe, call_mode = Manual, description = "获取存储目录信息")]
 #[tauri::command]

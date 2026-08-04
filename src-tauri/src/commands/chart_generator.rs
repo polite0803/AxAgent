@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+use agent_macro::agent_command;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ChatResponse};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::openai::OpenAIAdapter;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-use agent_macro::agent_command;
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize)]

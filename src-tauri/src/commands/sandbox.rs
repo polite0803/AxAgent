@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_kit::sandbox_runner::{self, ExecutionResult};
 use agent_macro::agent_command;
+use axagent_kit::sandbox_runner::{self, ExecutionResult};
 use tauri::command;
 
 #[agent_command(domain = sandbox, safety = Caution, call_mode = Manual, description = "在沙箱中执行代码")]
