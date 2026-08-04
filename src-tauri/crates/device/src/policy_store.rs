@@ -234,7 +234,7 @@ impl Default for PolicyStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory_storage::MemorySyncStorage;
+    use crate::MemorySyncStorage;
 
     #[tokio::test]
     async fn test_create_and_get_policy() {

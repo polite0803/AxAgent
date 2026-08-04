@@ -201,7 +201,7 @@ impl Default for PermissionStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory_storage::MemorySyncStorage;
+    use crate::MemorySyncStorage;
 
     #[tokio::test]
     async fn test_init_and_get_permissions() {
