@@ -54,7 +54,7 @@ pub fn parse_iso8601_date(date_str: &str) -> u64 {
 
 /// 根据文件扩展名猜测 MIME 内容类型
 pub fn guess_content_type(path: &str) -> &'static str {
-    let ext = path.rsplit('.').next_back().unwrap_or("").to_lowercase();
+    let ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
 
     match ext.as_str() {
         "json" => "application/json",
