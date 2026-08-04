@@ -864,7 +864,7 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 {
                     Ok(rl_data) => {
                         let has_experience =
-                            rl_data.get("experienceRecorded").map_or(false, |v| !v.is_null());
+                            rl_data.get("experienceRecorded").is_some_and(|v| !v.is_null());
                         let pool_size =
                             rl_data.get("poolSize").and_then(|v| v.as_u64()).unwrap_or(0);
                         let policy_optimized = rl_data

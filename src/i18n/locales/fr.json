@@ -4505,63 +4505,56 @@
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - Exécuter",
       "learning": {
+        "title": "Configuration d'apprentissage et d'évolution",
+        "subtitle": "Gérez les capacités de réflexion, d'évolution, d'amélioration autonome et d'apprentissage par renforcement du secteur",
+        "version": "Version de la configuration",
+        "reflection": {
+          "label": "Réflexion",
+          "description": "Évaluez la qualité d'exécution du workflow et générez des suggestions d'amélioration",
+          "enabled": "Activé",
+          "disabled": "Désactivé",
+          "trigger": "Déclencher la réflexion",
+          "triggerDesc": "Analysez les résultats du workflow actuel",
+          "triggerSuccess": "Réflexion déclenchée",
+          "triggerFailed": "Échec de la réflexion: {{error}}",
+          "notEnabled": "La réflexion n'est pas activée pour ce secteur"
+        },
+        "evolution": {
+          "label": "Évolution du workflow",
+          "description": "Optimisez automatiquement la structure du workflow lorsqu'elle échoue à plusieurs reprises ou a une faible efficacité",
+          "enabled": "Activé",
+          "disabled": "Désactivé",
+          "trigger": "Déclencher l'évolution",
+          "triggerDesc": "Essayez d'optimiser la structure du workflow actuel",
+          "triggerSuccess": "Évolution déclenchée",
+          "triggerFailed": "Échec de l'évolution: {{error}}",
+          "notEnabled": "L'évolution n'est pas activée pour ce secteur",
+          "reasonRequired": "Veuillez fournir une raison pour l'évolution"
+        },
+        "selfImprovement": {
+          "label": "Amélioration autonome",
+          "description": "Optimisez automatiquement les paramètres et les stratégies en fonction des données d'exécution historiques",
+          "enabled": "Activé",
+          "disabled": "Désactivé",
+          "trigger": "Lancer l'amélioration autonome",
+          "triggerDesc": "Démarrez le processus d'amélioration autonome pour optimiser les performances du secteur",
+          "triggerSuccess": "Amélioration autonome démarrée",
+          "triggerFailed": "Échec de l'amélioration autonome: {{error}}",
+          "notEnabled": "L'amélioration autonome n'est pas activée pour ce secteur",
+          "targetRequired": "Veuillez spécifier un objectif d'amélioration"
+        },
+        "reinforcementLearning": {
+          "label": "Apprentissage par renforcement",
+          "description": "Accumulez de l'expérience via le pool d'expérience pour optimiser les modèles de décision",
+          "enabled": "Activé",
+          "disabled": "Désactivé"
+        },
         "actions": {
-          "viewConfig": "Voir la configuration",
+          "viewConfig": "Afficher la configuration",
           "refreshConfig": "Actualiser la configuration",
-          "loadFailed": "Échec du chargement de la configuration d'apprentissage : {{error}}",
+          "loadFailed": "Échec du chargement de la configuration d'apprentissage: {{error}}",
           "configNotFound": "Configuration d'apprentissage introuvable"
         }
-      }
-    },
-    "learning": {
-      "title": "Configuration d'apprentissage et d'évolution",
-      "subtitle": "Gérez les capacités de réflexion, d'évolution, d'amélioration autonome et d'apprentissage par renforcement du secteur",
-      "version": "Version de la configuration",
-      "reflection": {
-        "label": "Réflexion",
-        "description": "Évaluez la qualité d'exécution du workflow et générez des suggestions d'amélioration",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "trigger": "Déclencher la réflexion",
-        "triggerDesc": "Analysez les résultats du workflow actuel",
-        "triggerSuccess": "Réflexion déclenchée",
-        "triggerFailed": "Échec de la réflexion: {{error}}",
-        "notEnabled": "La réflexion n'est pas activée pour ce secteur"
-      },
-      "evolution": {
-        "label": "Évolution du workflow",
-        "description": "Optimisez automatiquement la structure du workflow lorsqu'elle échoue à plusieurs reprises ou a une faible efficacité",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "trigger": "Déclencher l'évolution",
-        "triggerDesc": "Essayez d'optimiser la structure du workflow actuel",
-        "triggerSuccess": "Évolution déclenchée",
-        "triggerFailed": "Échec de l'évolution: {{error}}",
-        "notEnabled": "L'évolution n'est pas activée pour ce secteur",
-        "reasonRequired": "Veuillez fournir une raison pour l'évolution"
-      },
-      "selfImprovement": {
-        "label": "Amélioration autonome",
-        "description": "Optimisez automatiquement les paramètres et les stratégies en fonction des données d'exécution historiques",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "trigger": "Lancer l'amélioration autonome",
-        "triggerDesc": "Démarrez le processus d'amélioration autonome pour optimiser les performances du secteur",
-        "triggerSuccess": "Amélioration autonome démarrée",
-        "triggerFailed": "Échec de l'amélioration autonome: {{error}}",
-        "notEnabled": "L'amélioration autonome n'est pas activée pour ce secteur",
-        "targetRequired": "Veuillez spécifier un objectif d'amélioration"
-      },
-      "reinforcementLearning": {
-        "label": "Apprentissage par renforcement",
-        "description": "Accumulez de l'expérience via le pool d'expérience pour optimiser les modèles de décision",
-        "enabled": "Activé",
-        "disabled": "Désactivé"
-      },
-      "actions": {
-        "viewConfig": "Afficher la configuration",
-        "refreshConfig": "Actualiser la configuration",
-        "loadFailed": "Échec du chargement de la configuration d'apprentissage: {{error}}"
       }
     },
     "rl": {

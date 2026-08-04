@@ -4505,63 +4505,56 @@
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - 실행",
       "learning": {
+        "title": "학습 및 진화 설정",
+        "subtitle": "업계 리플렉션, 진화, 자기 개선, 강화 학습 기능을 관리합니다",
+        "version": "설정 버전",
+        "reflection": {
+          "label": "리플렉션",
+          "description": "워크플로우 실행 품질을 평가하고 개선 제안을 생성합니다",
+          "enabled": "활성화",
+          "disabled": "비활성화",
+          "trigger": "리플렉션 실행",
+          "triggerDesc": "현재 워크플로우 결과를 분석합니다",
+          "triggerSuccess": "리플렉션이 실행되었습니다",
+          "triggerFailed": "리플렉션 실행 실패: {{error}}",
+          "notEnabled": "이 업계에서는 리플렉션이 활성화되지 않았습니다"
+        },
+        "evolution": {
+          "label": "워크플로우 진화",
+          "description": "반복 실패 또는 낮은 효율성 시 워크플로우 구조를 자동 최적화합니다",
+          "enabled": "활성화",
+          "disabled": "비활성화",
+          "trigger": "진화 실행",
+          "triggerDesc": "현재 워크플로우 구조를 최적화합니다",
+          "triggerSuccess": "진화가 실행되었습니다",
+          "triggerFailed": "진화 실행 실패: {{error}}",
+          "notEnabled": "이 업계에서는 진화가 활성화되지 않았습니다",
+          "reasonRequired": "진화 이유를 입력해 주세요"
+        },
+        "selfImprovement": {
+          "label": "자기 개선",
+          "description": "과거 실행 데이터 기반으로 매개변수와 전략을 자동 최적화합니다",
+          "enabled": "활성화",
+          "disabled": "비활성화",
+          "trigger": "자기 개선 실행",
+          "triggerDesc": "업계 성능을 최적화하기 위해 자기 개선 프로세스를 시작합니다",
+          "triggerSuccess": "자기 개선이 시작되었습니다",
+          "triggerFailed": "자기 개선 실행 실패: {{error}}",
+          "notEnabled": "이 업계에서는 자기 개선이 활성화되지 않았습니다",
+          "targetRequired": "개선 목표를 지정해 주세요"
+        },
+        "reinforcementLearning": {
+          "label": "강화 학습",
+          "description": "경험 풀을 통해 경험을 축적하고 의사결정 모델을 최적화합니다",
+          "enabled": "활성화",
+          "disabled": "비활성화"
+        },
         "actions": {
-          "viewConfig": "구성 보기",
-          "refreshConfig": "구성 새로고침",
-          "loadFailed": "학습 구성 로드 실패: {{error}}",
+          "viewConfig": "설정 보기",
+          "refreshConfig": "설정 새로고침",
+          "loadFailed": "학습 설정 로드 실패: {{error}}",
           "configNotFound": "학습 구성을 찾을 수 없음"
         }
-      }
-    },
-    "learning": {
-      "title": "학습 및 진화 설정",
-      "subtitle": "업계 리플렉션, 진화, 자기 개선, 강화 학습 기능을 관리합니다",
-      "version": "설정 버전",
-      "reflection": {
-        "label": "리플렉션",
-        "description": "워크플로우 실행 품질을 평가하고 개선 제안을 생성합니다",
-        "enabled": "활성화",
-        "disabled": "비활성화",
-        "trigger": "리플렉션 실행",
-        "triggerDesc": "현재 워크플로우 결과를 분석합니다",
-        "triggerSuccess": "리플렉션이 실행되었습니다",
-        "triggerFailed": "리플렉션 실행 실패: {{error}}",
-        "notEnabled": "이 업계에서는 리플렉션이 활성화되지 않았습니다"
-      },
-      "evolution": {
-        "label": "워크플로우 진화",
-        "description": "반복 실패 또는 낮은 효율성 시 워크플로우 구조를 자동 최적화합니다",
-        "enabled": "활성화",
-        "disabled": "비활성화",
-        "trigger": "진화 실행",
-        "triggerDesc": "현재 워크플로우 구조를 최적화합니다",
-        "triggerSuccess": "진화가 실행되었습니다",
-        "triggerFailed": "진화 실행 실패: {{error}}",
-        "notEnabled": "이 업계에서는 진화가 활성화되지 않았습니다",
-        "reasonRequired": "진화 이유를 입력해 주세요"
-      },
-      "selfImprovement": {
-        "label": "자기 개선",
-        "description": "과거 실행 데이터 기반으로 매개변수와 전략을 자동 최적화합니다",
-        "enabled": "활성화",
-        "disabled": "비활성화",
-        "trigger": "자기 개선 실행",
-        "triggerDesc": "업계 성능을 최적화하기 위해 자기 개선 프로세스를 시작합니다",
-        "triggerSuccess": "자기 개선이 시작되었습니다",
-        "triggerFailed": "자기 개선 실행 실패: {{error}}",
-        "notEnabled": "이 업계에서는 자기 개선이 활성화되지 않았습니다",
-        "targetRequired": "개선 목표를 지정해 주세요"
-      },
-      "reinforcementLearning": {
-        "label": "강화 학습",
-        "description": "경험 풀을 통해 경험을 축적하고 의사결정 모델을 최적화합니다",
-        "enabled": "활성화",
-        "disabled": "비활성화"
-      },
-      "actions": {
-        "viewConfig": "설정 보기",
-        "refreshConfig": "설정 새로고침",
-        "loadFailed": "학습 설정 로드 실패: {{error}}"
       }
     },
     "rl": {

@@ -4505,63 +4505,56 @@
       "workflowTag": "Workflow",
       "executeSuffix": "{{name}} - Ejecutar",
       "learning": {
+        "title": "Configuración de aprendizaje y evolución",
+        "subtitle": "Gestione las capacidades de reflexión, evolución, superación personal y aprendizaje por refuerzo de la industria",
+        "version": "Versión de configuración",
+        "reflection": {
+          "label": "Reflexión",
+          "description": "Evalúe la calidad de ejecución del workflow y genere sugerencias de mejora",
+          "enabled": "Activado",
+          "disabled": "Desactivado",
+          "trigger": "Activar reflexión",
+          "triggerDesc": "Analice los resultados actuales del workflow",
+          "triggerSuccess": "Reflexión activada",
+          "triggerFailed": "Error en la reflexión: {{error}}",
+          "notEnabled": "La reflexión no está activada para esta industria"
+        },
+        "evolution": {
+          "label": "Evolución del workflow",
+          "description": "Optimice automáticamente la estructura del workflow cuando falle repetidamente o tenga baja eficiencia",
+          "enabled": "Activado",
+          "disabled": "Desactivado",
+          "trigger": "Activar evolución",
+          "triggerDesc": "Intente optimizar la estructura actual del workflow",
+          "triggerSuccess": "Evolución activada",
+          "triggerFailed": "Error en la evolución: {{error}}",
+          "notEnabled": "La evolución no está activada para esta industria",
+          "reasonRequired": "Proporcione una razón para la evolución"
+        },
+        "selfImprovement": {
+          "label": "Superación personal",
+          "description": "Optimice automáticamente parámetros y estrategias basándose en datos históricos de ejecución",
+          "enabled": "Activado",
+          "disabled": "Desactivado",
+          "trigger": "Ejecutar superación personal",
+          "triggerDesc": "Inicie el proceso de superación personal para optimizar el rendimiento de la industria",
+          "triggerSuccess": "Superación personal iniciada",
+          "triggerFailed": "Error en la superación personal: {{error}}",
+          "notEnabled": "La superación personal no está activada para esta industria",
+          "targetRequired": "Especifique un objetivo de mejora"
+        },
+        "reinforcementLearning": {
+          "label": "Aprendizaje por refuerzo",
+          "description": "Acumule experiencia a través del grupo de experiencia para optimizar los modelos de decisión",
+          "enabled": "Activado",
+          "disabled": "Desactivado"
+        },
         "actions": {
           "viewConfig": "Ver configuración",
           "refreshConfig": "Actualizar configuración",
-          "loadFailed": "No se pudo cargar la configuración de aprendizaje: {{error}}",
+          "loadFailed": "Error al cargar la configuración de aprendizaje: {{error}}",
           "configNotFound": "Configuración de aprendizaje no encontrada"
         }
-      }
-    },
-    "learning": {
-      "title": "Configuración de aprendizaje y evolución",
-      "subtitle": "Gestione las capacidades de reflexión, evolución, superación personal y aprendizaje por refuerzo de la industria",
-      "version": "Versión de configuración",
-      "reflection": {
-        "label": "Reflexión",
-        "description": "Evalúe la calidad de ejecución del workflow y genere sugerencias de mejora",
-        "enabled": "Activado",
-        "disabled": "Desactivado",
-        "trigger": "Activar reflexión",
-        "triggerDesc": "Analice los resultados actuales del workflow",
-        "triggerSuccess": "Reflexión activada",
-        "triggerFailed": "Error en la reflexión: {{error}}",
-        "notEnabled": "La reflexión no está activada para esta industria"
-      },
-      "evolution": {
-        "label": "Evolución del workflow",
-        "description": "Optimice automáticamente la estructura del workflow cuando falle repetidamente o tenga baja eficiencia",
-        "enabled": "Activado",
-        "disabled": "Desactivado",
-        "trigger": "Activar evolución",
-        "triggerDesc": "Intente optimizar la estructura actual del workflow",
-        "triggerSuccess": "Evolución activada",
-        "triggerFailed": "Error en la evolución: {{error}}",
-        "notEnabled": "La evolución no está activada para esta industria",
-        "reasonRequired": "Proporcione una razón para la evolución"
-      },
-      "selfImprovement": {
-        "label": "Superación personal",
-        "description": "Optimice automáticamente parámetros y estrategias basándose en datos históricos de ejecución",
-        "enabled": "Activado",
-        "disabled": "Desactivado",
-        "trigger": "Ejecutar superación personal",
-        "triggerDesc": "Inicie el proceso de superación personal para optimizar el rendimiento de la industria",
-        "triggerSuccess": "Superación personal iniciada",
-        "triggerFailed": "Error en la superación personal: {{error}}",
-        "notEnabled": "La superación personal no está activada para esta industria",
-        "targetRequired": "Especifique un objetivo de mejora"
-      },
-      "reinforcementLearning": {
-        "label": "Aprendizaje por refuerzo",
-        "description": "Acumule experiencia a través del grupo de experiencia para optimizar los modelos de decisión",
-        "enabled": "Activado",
-        "disabled": "Desactivado"
-      },
-      "actions": {
-        "viewConfig": "Ver configuración",
-        "refreshConfig": "Actualizar configuración",
-        "loadFailed": "Error al cargar la configuración de aprendizaje: {{error}}"
       }
     },
     "rl": {

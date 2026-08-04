@@ -1488,7 +1488,7 @@ pub async fn opc_trigger_industry_learning(
         {
             Ok(rl_data) => {
                 let has_experience =
-                    rl_data.get("experienceRecorded").map_or(false, |v| !v.is_null());
+                    rl_data.get("experienceRecorded").is_some_and(|v| !v.is_null());
                 let pool_size = rl_data.get("poolSize").and_then(|v| v.as_u64()).unwrap_or(0);
                 let policy_optimized =
                     rl_data.get("policyOptimized").and_then(|v| v.as_bool()).unwrap_or(false);
@@ -1556,13 +1556,13 @@ pub(crate) fn load_rl_config(industry_id: &str) -> Option<ReinforcementLearningC
 
     let reward_weights = rl_section
         .get("reward_weights")
-        .and_then(|w| {
+        .map(|w| {
             let quality = w.get("quality").and_then(|v| v.as_f64()).unwrap_or(0.35);
             let efficiency = w.get("efficiency").and_then(|v| v.as_f64()).unwrap_or(0.25);
             let cost = w.get("cost").and_then(|v| v.as_f64()).unwrap_or(0.15);
             let innovation = w.get("innovation").and_then(|v| v.as_f64()).unwrap_or(0.15);
             let satisfaction = w.get("satisfaction").and_then(|v| v.as_f64()).unwrap_or(0.1);
-            Some(RewardWeightConfig { quality, efficiency, cost, innovation, satisfaction })
+            RewardWeightConfig { quality, efficiency, cost, innovation, satisfaction }
         })
         .unwrap_or_default();
 
