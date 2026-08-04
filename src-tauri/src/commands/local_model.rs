@@ -13,7 +13,7 @@
 //! `managed` 字段标记该进程是否由本应用托管（settings 中记录 PID 匹配）。
 
 use crate::AppState;
-use crate::commands::error::ErrorResponse;
+use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::local_model as lm_err;
 use agent_macro::agent_command;
 use axagent_harness::core_error::Result as HarnessResult;
@@ -1522,21 +1522,33 @@ fn extract_archive(archive_path: &Path, dest: &Path) -> Result<(), String> {
 }
 
 fn extract_zip(archive_path: &Path, dest: &Path) -> Result<(), String> {
-    let file = std::fs::File::open(archive_path).map_err(|e| e.to_string())?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let file = std::fs::File::open(archive_path)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let mut file = archive.by_index(i).map_err(|e| {
+            String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+        })?;
         let out_path = dest.join(file.mangled_name());
 
         if file.is_dir() {
-            std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
+            std::fs::create_dir_all(&out_path).map_err(|e| {
+                String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+            })?;
         } else {
             if let Some(parent) = out_path.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                std::fs::create_dir_all(parent).map_err(|e| {
+                    String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+                })?;
             }
-            let mut outfile = std::fs::File::create(&out_path).map_err(|e| e.to_string())?;
-            std::io::copy(&mut file, &mut outfile).map_err(|e| e.to_string())?;
+            let mut outfile = std::fs::File::create(&out_path).map_err(|e| {
+                String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+            })?;
+            std::io::copy(&mut file, &mut outfile).map_err(|e| {
+                String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable))
+            })?;
         }
     }
     Ok(())
@@ -1545,9 +1557,12 @@ fn extract_zip(archive_path: &Path, dest: &Path) -> Result<(), String> {
 fn extract_tar_gz(archive_path: &Path, dest: &Path) -> Result<(), String> {
     use flate2::read::GzDecoder;
 
-    let file = std::fs::File::open(archive_path).map_err(|e| e.to_string())?;
+    let file = std::fs::File::open(archive_path)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
     let decoder = GzDecoder::new(file);
     let mut archive = tar::Archive::new(decoder);
-    archive.unpack(dest).map_err(|e| e.to_string())?;
+    archive
+        .unpack(dest)
+        .map_err(|e| String::from(ErrorResponse::from_error(e, ErrorCategory::Unrecoverable)))?;
     Ok(())
 }

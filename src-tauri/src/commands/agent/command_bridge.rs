@@ -1267,7 +1267,12 @@ impl CommandHandler for SettingsCommandHandler {
                         warn!("Failed to get settings: {}", e);
                         format!("获取设置失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&settings).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "save" => {
                 let mut settings =
@@ -1318,7 +1323,12 @@ impl CommandHandler for ConversationCommandHandler {
                         })
                     })
                     .collect();
-                serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&summaries).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "get" => {
                 let conv_id = args["conversation_id"]
@@ -1331,7 +1341,12 @@ impl CommandHandler for ConversationCommandHandler {
                         warn!("Failed to get conversation {}: {}", conv_id, e);
                         format!("获取会话失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&conv).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&conv).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的会话操作: {}", action)),
         }
@@ -1369,7 +1384,12 @@ impl CommandHandler for KnowledgeCommandHandler {
                         })
                     })
                     .collect();
-                serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&summaries).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的知识库操作: {}", action)),
         }
@@ -1416,7 +1436,12 @@ impl CommandHandler for MemoryCommandHandler {
             })
             .collect();
 
-        serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+        serde_json::to_string_pretty(&summaries).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
     }
 }
 
@@ -1540,7 +1565,12 @@ impl CommandHandler for ProviderCommandHandler {
                         warn!("Failed to list providers: {}", e);
                         format!("列出提供商失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&providers).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&providers).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_merged" => {
                 let providers =
@@ -1548,7 +1578,12 @@ impl CommandHandler for ProviderCommandHandler {
                         warn!("Failed to list merged providers: {}", e);
                         format!("列出合并提供商失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&providers).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&providers).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "get" | "get_provider" => {
                 let provider_id = args["provider_id"]
@@ -1561,7 +1596,12 @@ impl CommandHandler for ProviderCommandHandler {
                         warn!("Failed to get provider {}: {}", provider_id, e);
                         format!("获取提供商失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&provider).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&provider).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_keys" => {
                 let provider_id = args["provider_id"]
@@ -1573,7 +1613,12 @@ impl CommandHandler for ProviderCommandHandler {
                         warn!("Failed to list keys for provider {}: {}", provider_id, e);
                         format!("列出密钥失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&keys).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&keys).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_models" => {
                 let provider_id = args["provider_id"]
@@ -1585,7 +1630,12 @@ impl CommandHandler for ProviderCommandHandler {
                         warn!("Failed to list models for provider {}: {}", provider_id, e);
                         format!("列出模型失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&models).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&models).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的提供商操作: {}", action)),
         }
@@ -1622,7 +1672,12 @@ impl CommandHandler for MessageCommandHandler {
                         );
                         format!("列出消息失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&messages).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&messages).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_page" => {
                 let conversation_id = args["conversation_id"]
@@ -1641,7 +1696,12 @@ impl CommandHandler for MessageCommandHandler {
                     warn!("Failed to list messages page for {}: {}", conversation_id, e);
                     format!("分页列出消息失败: {}", e)
                 })?;
-                serde_json::to_string_pretty(&result).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&result).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_versions" => {
                 let message_id = args["message_id"]
@@ -1655,7 +1715,12 @@ impl CommandHandler for MessageCommandHandler {
                             warn!("Failed to list versions for message {}: {}", message_id, e);
                             format!("列出消息版本失败: {}", e)
                         })?;
-                serde_json::to_string_pretty(&versions).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&versions).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的消息操作: {}", action)),
         }
@@ -1685,7 +1750,12 @@ impl CommandHandler for AgentCommandHandler {
                         warn!("Failed to list agent profiles: {}", e);
                         format!("列出智能体配置失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&profiles).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&profiles).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "get_profile" => {
                 let profile_id = args["profile_id"]
@@ -1698,7 +1768,12 @@ impl CommandHandler for AgentCommandHandler {
                         warn!("Failed to get agent profile {}: {}", profile_id, e);
                         format!("获取智能体配置失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&profile).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&profile).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_roles" => {
                 let roles = axagent_dao::repo::agent_role::list_agent_roles(db, None)
@@ -1707,7 +1782,12 @@ impl CommandHandler for AgentCommandHandler {
                         warn!("Failed to list agent roles: {}", e);
                         format!("列出智能体角色失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&roles).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&roles).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "get_role" => {
                 let role_id = args["role_id"]
@@ -1720,7 +1800,12 @@ impl CommandHandler for AgentCommandHandler {
                         warn!("Failed to get agent role {}: {}", role_id, e);
                         format!("获取智能体角色失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&role).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&role).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_business_roles" => {
                 let roles = axagent_dao::repo::business_role::list_business_roles(db, None)
@@ -1729,7 +1814,12 @@ impl CommandHandler for AgentCommandHandler {
                     warn!("Failed to list business roles: {}", e);
                     format!("列出业务角色失败: {}", e)
                 })?;
-                serde_json::to_string_pretty(&roles).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&roles).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的智能体操作: {}", action)),
         }
@@ -1758,11 +1848,21 @@ impl CommandHandler for MCPCommandHandler {
                         warn!("Failed to list MCP servers: {}", e);
                         format!("列出 MCP 服务器失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&servers).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&servers).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_builtin" => {
                 let servers = axagent_dao::repo::mcp_server::list_builtin_servers(db).await;
-                serde_json::to_string_pretty(&servers).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&servers).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_tools" => {
                 let server_id =
@@ -1773,7 +1873,12 @@ impl CommandHandler for MCPCommandHandler {
                         warn!("Failed to list tools for server {}: {}", server_id, e);
                         format!("列出 MCP 工具失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&tools).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&tools).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的 MCP 操作: {}", action)),
         }
@@ -1806,7 +1911,12 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                         warn!("Failed to list documents for KB {}: {}", kb_id, e);
                         format!("列出文档失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&documents).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&documents).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_entities" => {
                 let kb_id = args["kb_id"]
@@ -1820,7 +1930,12 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                             warn!("Failed to list entities for KB {}: {}", kb_id, e);
                             format!("列出知识实体失败: {}", e)
                         })?;
-                serde_json::to_string_pretty(&entities).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&entities).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_relations" => {
                 let kb_id = args["kb_id"]
@@ -1834,7 +1949,12 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                         warn!("Failed to list relations for KB {}: {}", kb_id, e);
                         format!("列出知识关系失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&relations).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&relations).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_templates" => {
                 let templates = axagent_dao::repo::prompt_template::list_prompt_templates(db)
@@ -1843,7 +1963,12 @@ impl CommandHandler for KnowledgeAdvancedCommandHandler {
                         warn!("Failed to list prompt templates: {}", e);
                         format!("列出提示模板失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&templates).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&templates).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的高级知识库操作: {}", action)),
         }
@@ -1879,7 +2004,12 @@ impl CommandHandler for ArtifactCommandHandler {
                         format!("列出产物失败: {}", e)
                     })?
                 };
-                serde_json::to_string_pretty(&artifacts).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&artifacts).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "get" => {
                 let artifact_id = args["artifact_id"]
@@ -1892,7 +2022,12 @@ impl CommandHandler for ArtifactCommandHandler {
                         warn!("Failed to get artifact {}: {}", artifact_id, e);
                         format!("获取产物失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&artifact).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&artifact).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的产物操作: {}", action)),
         }
@@ -1936,7 +2071,12 @@ impl CommandHandler for WorkflowCommandHandler {
                             warn!("Failed to get workflow template {}: {}", template_id, e);
                             format!("获取工作流模板失败: {}", e)
                         })?;
-                serde_json::to_string_pretty(&template).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&template).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_executions" => {
                 // 工作流执行历史需要通过 workflow crate 访问
@@ -1958,7 +2098,12 @@ impl CommandHandler for WorkflowCommandHandler {
                             warn!("Failed to get workflow execution {}: {}", execution_id, e);
                             format!("获取工作流执行失败: {}", e)
                         })?;
-                serde_json::to_string_pretty(&execution).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&execution).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的工作流操作: {}", action)),
         }
@@ -2003,7 +2148,12 @@ impl CommandHandler for BackupCommandHandler {
                         warn!("Failed to list backups: {}", e);
                         format!("列出备份失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&backups).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&backups).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "get" => {
                 let backup_id = args["backup_id"]
@@ -2016,7 +2166,12 @@ impl CommandHandler for BackupCommandHandler {
                     warn!("Failed to get backup {}: {}", backup_id, e);
                     format!("获取备份失败: {}", e)
                 })?;
-                serde_json::to_string_pretty(&backup).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&backup).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的备份操作: {}", action)),
         }
@@ -2045,7 +2200,12 @@ impl CommandHandler for GatewayCommandHandler {
                         warn!("Failed to list gateway keys: {}", e);
                         format!("列出网关密钥失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&keys).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&keys).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_links" => {
                 let links =
@@ -2053,7 +2213,12 @@ impl CommandHandler for GatewayCommandHandler {
                         warn!("Failed to list gateway links: {}", e);
                         format!("列出网关链接失败: {}", e)
                     })?;
-                serde_json::to_string_pretty(&links).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&links).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             "list_request_logs" => {
                 let limit = args["limit"].as_u64().unwrap_or(50);
@@ -2065,7 +2230,12 @@ impl CommandHandler for GatewayCommandHandler {
                             warn!("Failed to list request logs: {}", e);
                             format!("列出请求日志失败: {}", e)
                         })?;
-                serde_json::to_string_pretty(&logs).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&logs).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的网关操作: {}", action)),
         }
@@ -2108,7 +2278,12 @@ impl CommandHandler for CredentialCommandHandler {
                         })
                     })
                     .collect();
-                serde_json::to_string_pretty(&summaries).map_err(|e| e.to_string())
+                serde_json::to_string_pretty(&summaries).map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })
             },
             _ => Err(format!("未知的凭证操作: {}", action)),
         }
@@ -2351,7 +2526,12 @@ pub async fn try_invoke_command(
 
     // 调用命令
     match invoke_command_direct(&full_path, args, app_handle).await {
-        Ok(result) => Ok(serde_json::to_string_pretty(&result).map_err(|e| e.to_string())?),
+        Ok(result) => Ok(serde_json::to_string_pretty(&result).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?),
         Err(e) => Err(format!(
             "命令调用失败: {}\n\
                  命令路径: {}\n\
