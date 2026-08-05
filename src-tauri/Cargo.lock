@@ -835,6 +835,11 @@ dependencies = [
  "axagent-npm",
  "axagent-opc-dao",
  "axagent-opc-entities",
+ "axagent-opc-industries",
+ "axagent-opc-industry-accounting",
+ "axagent-opc-industry-ai-research",
+ "axagent-opc-industry-content-media",
+ "axagent-opc-runtime",
  "axagent-opc-types",
  "axagent-orchestrator",
  "axagent-plugins",
@@ -1329,6 +1334,130 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-opc-industries"
+version = "2.8.9"
+dependencies = [
+ "axagent-opc-industry-accounting",
+ "axagent-opc-industry-ai-research",
+ "axagent-opc-industry-content-media",
+ "axagent-opc-industry-ecommerce",
+ "axagent-opc-industry-education",
+ "axagent-opc-industry-finance-invest",
+ "axagent-opc-industry-industry-consulting",
+ "axagent-opc-industry-sales-growth",
+ "axagent-opc-industry-software-dev",
+ "axagent-opc-runtime",
+ "axagent-opc-types",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-opc-industry-accounting"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-opc-industry-ai-research"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-industry-content-media"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-industry-ecommerce"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-industry-education"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-industry-finance-invest"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-opc-industry-industry-consulting"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-industry-sales-growth"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "axagent-opc-industry-software-dev"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "axagent-opc-runtime"
+version = "2.8.9"
+dependencies = [
+ "async-trait",
+ "axagent-opc-types",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "axagent-opc-types"
 version = "2.8.9"
 dependencies = [
@@ -1338,6 +1467,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]

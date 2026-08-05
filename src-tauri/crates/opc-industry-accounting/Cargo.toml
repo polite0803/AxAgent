@@ -1,20 +1,16 @@
 [package]
-name = "axagent-opc-types"
+name = "axagent-opc-industry-accounting"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
 
-[features]
-default = []
-
 [dependencies]
 async-trait = "0.1"
-axagent-harness = { path = "../harness" }
-chrono = { workspace = true }
+axagent-opc-types = { path = "../opc-types" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }

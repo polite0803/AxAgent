@@ -4592,7 +4592,33 @@
           "refreshConfig": "Actualiser la configuration",
           "loadFailed": "Échec du chargement de la configuration d'apprentissage: {{error}}",
           "configNotFound": "Configuration d'apprentissage introuvable"
-        }
+        },
+      },
+      "refresh": "Rafraîchir",
+      "refreshSuccess": "Données de l'industrie rafraîchies",
+      "dashboard": {
+        "title": "Tableau de bord KPI de l'industrie",
+        "7days": "7 derniers jours",
+        "30days": "30 derniers jours",
+        "90days": "90 derniers jours",
+        "noData": "Aucune donnée KPI"
+      },
+      "workflowSteps": {
+        "title": "Étapes du workflow de l'industrie",
+        "step": "Étape",
+        "noData": "Aucune étape de workflow"
+      },
+      "rules": {
+        "title": "Règles d'automatisation de l'industrie",
+        "runAll": "Exécuter toutes les règles",
+        "enabled": "Activées",
+        "disabled": "Désactivées",
+        "conditions": "Conditions de déclenchement",
+        "actions": "Actions à exécuter",
+        "noData": "Aucune règle d'automatisation",
+        "triggered": "{{count}} règles déclenchées",
+        "nothingTriggered": "Aucune règle déclenchée",
+        "runFailed": "Échec de l'exécution des règles : {{error}}"
       }
     },
     "rl": {

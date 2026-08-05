@@ -1284,6 +1284,20 @@ commands::opc_industry_actions::opc_run_self_improvement,
 commands::opc_industry_actions::opc_trigger_industry_learning,
 commands::opc_industry_actions::opc_trigger_rl_optimization,
 
+// opc_industry_runtime
+commands::opc_industry_runtime::opc_init_industry_runtime,
+commands::opc_industry_runtime::opc_validate_entity,
+commands::opc_industry_runtime::opc_compute_kpis,
+commands::opc_industry_runtime::opc_run_automation_rules,
+commands::opc_industry_runtime::opc_get_industry_dashboard,
+commands::opc_industry_runtime::opc_list_runtime_industries,
+commands::opc_industry_runtime::opc_get_industry_workflow_steps,
+commands::opc_industry_runtime::opc_get_industry_automation_rules,
+commands::opc_industry_runtime::opc_batch_validate_entities,
+commands::opc_industry_runtime::opc_get_kpi_definitions,
+commands::opc_industry_runtime::opc_has_industry,
+commands::opc_industry_runtime::opc_reset_industry_runtime,
+
 // paper_portfolio
 commands::paper_portfolio::paper_portfolio_add_position,
 commands::paper_portfolio::paper_portfolio_archive,

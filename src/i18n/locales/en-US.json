@@ -4277,6 +4277,32 @@
           "loadFailed": "Failed to load learning config: {{error}}",
           "configNotFound": "Learning config not found"
         }
+      },
+      "refresh": "Refresh",
+      "refreshSuccess": "Industry data refreshed",
+      "dashboard": {
+        "title": "Industry KPI Dashboard",
+        "7days": "Last 7 days",
+        "30days": "Last 30 days",
+        "90days": "Last 90 days",
+        "noData": "No KPI data available"
+      },
+      "workflowSteps": {
+        "title": "Industry Workflow Steps",
+        "step": "Step",
+        "noData": "No workflow steps available"
+      },
+      "rules": {
+        "title": "Industry Automation Rules",
+        "runAll": "Run All Rules",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "conditions": "Trigger Conditions",
+        "actions": "Execute Actions",
+        "noData": "No automation rules available",
+        "triggered": "{{count}} rules triggered",
+        "nothingTriggered": "No rules triggered",
+        "runFailed": "Rule execution failed: {{error}}"
       }
     },
     "rl": {

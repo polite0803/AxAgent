@@ -490,12 +490,20 @@ pub fn run() {
             // 异步启动：不阻塞 UI — 种子化股票分析专家/角色/Profile/工作流模板（UPSERT 幂等）
             let seed_db = state.harness.db().clone();
             tauri::async_runtime::spawn(async move {
+                // 1. 初始化 OPC 行业运行时（幂等，每次启动都尝试确保就绪）
+                if let Err(e) = crate::commands::opc_industry_runtime::init_runtime(seed_db.clone()).await {
+                    tracing::error!("[startup] OPC 行业运行时初始化失败: {e}");
+                } else {
+                    tracing::info!("[startup] OPC 行业运行时已就绪");
+                }
+
+                // 2. 种子化股票分析专家/角色/Profile/工作流模板
                 if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&seed_db).await {
                     tracing::error!("[startup] 股票业务种子化失败: {e}");
                 }
-                // G13: 同步内置 SKILL.md 到用户目录（同步操作，快速完成）
+                // 3. 同步内置 SKILL.md 到用户目录（同步操作，快速完成）
                 crate::commands::skills::seed_builtin_skills();
-                // Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
+                // 4. Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
                 // 幂等 upsert，每次启动都调用，确保三个内置角色记录存在
                 if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&seed_db).await {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);

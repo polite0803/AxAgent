@@ -4592,7 +4592,33 @@
           "refreshConfig": "Konfiguration aktualisieren",
           "loadFailed": "Laden der Lernkonfiguration fehlgeschlagen: {{error}}",
           "configNotFound": "Lernkonfiguration nicht gefunden"
-        }
+        },
+      },
+      "refresh": "Aktualisieren",
+      "refreshSuccess": "Industriedaten aktualisiert",
+      "dashboard": {
+        "title": "Industrie KPI-Dashboard",
+        "7days": "Letzte 7 Tage",
+        "30days": "Letzte 30 Tage",
+        "90days": "Letzte 90 Tage",
+        "noData": "Keine KPI-Daten verfügbar"
+      },
+      "workflowSteps": {
+        "title": "Industrie-Workflow-Schritte",
+        "step": "Schritt",
+        "noData": "Keine Workflow-Schritte verfügbar"
+      },
+      "rules": {
+        "title": "Industrie-Automationsregeln",
+        "runAll": "Alle Regeln ausführen",
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "conditions": "Auslösungsbedingungen",
+        "actions": "Aktionsausführung",
+        "noData": "Keine Automationsregeln verfügbar",
+        "triggered": "{{count}} Regeln ausgelöst",
+        "nothingTriggered": "Keine Regeln ausgelöst",
+        "runFailed": "Regelausführung fehlgeschlagen: {{error}}"
       }
     },
     "rl": {

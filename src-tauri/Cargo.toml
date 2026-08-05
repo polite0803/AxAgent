@@ -25,6 +25,17 @@ members = [
   "crates/npm",
   "crates/opc-dao",
   "crates/opc-entities",
+  "crates/opc-industries",
+  "crates/opc-industry-accounting",
+  "crates/opc-industry-ai-research",
+  "crates/opc-industry-content-media",
+  "crates/opc-industry-ecommerce",
+  "crates/opc-industry-education",
+  "crates/opc-industry-finance-invest",
+  "crates/opc-industry-industry-consulting",
+  "crates/opc-industry-sales-growth",
+  "crates/opc-industry-software-dev",
+  "crates/opc-runtime",
   "crates/opc-types",
   "crates/orchestrator",
   "crates/plugins",
@@ -106,6 +117,11 @@ ignored = [
   "axagent-notification",
   "axagent-opc-dao",
   "axagent-opc-entities",
+  "axagent-opc-industry-accounting",
+  "axagent-opc-industry-ai-research",
+  "axagent-opc-industry-content-media",
+  "axagent-opc-industries",
+  "axagent-opc-runtime",
   "axagent-opc-types",
   "axagent-prompt-guard",
   "axagent-quant",
@@ -155,6 +171,11 @@ axagent-notification = { path = "crates/notification" }
 axagent-npm = { path = "crates/npm" }
 axagent-opc-dao = { path = "crates/opc-dao" }
 axagent-opc-entities = { path = "crates/opc-entities" }
+axagent-opc-industries = { path = "crates/opc-industries" }
+axagent-opc-industry-accounting = { path = "crates/opc-industry-accounting" }
+axagent-opc-industry-ai-research = { path = "crates/opc-industry-ai-research" }
+axagent-opc-industry-content-media = { path = "crates/opc-industry-content-media" }
+axagent-opc-runtime = { path = "crates/opc-runtime" }
 axagent-opc-types = { path = "crates/opc-types" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }

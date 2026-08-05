@@ -4277,6 +4277,32 @@
           "loadFailed": "加载学习配置失败: {{error}}",
           "configNotFound": "配置未找到"
         }
+      },
+      "refresh": "刷新",
+      "refreshSuccess": "行业数据已刷新",
+      "dashboard": {
+        "title": "行业 KPI 仪表盘",
+        "7days": "近 7 天",
+        "30days": "近 30 天",
+        "90days": "近 90 天",
+        "noData": "暂无 KPI 数据"
+      },
+      "workflowSteps": {
+        "title": "行业工作流步骤",
+        "step": "步骤",
+        "noData": "暂无工作流步骤"
+      },
+      "rules": {
+        "title": "行业自动化规则",
+        "runAll": "执行所有规则",
+        "enabled": "已启用",
+        "disabled": "已禁用",
+        "conditions": "触发条件",
+        "actions": "执行动作",
+        "noData": "暂无自动化规则",
+        "triggered": "已触发 {{count}} 条规则",
+        "nothingTriggered": "没有规则被触发",
+        "runFailed": "规则执行失败: {{error}}"
       }
     },
     "rl": {

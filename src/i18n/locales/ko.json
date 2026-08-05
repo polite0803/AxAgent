@@ -4592,7 +4592,33 @@
           "refreshConfig": "설정 새로고침",
           "loadFailed": "학습 설정 로드 실패: {{error}}",
           "configNotFound": "학습 구성을 찾을 수 없음"
-        }
+        },
+      },
+      "refresh": "새로고침",
+      "refreshSuccess": "산업 데이터가 새로고침되었습니다",
+      "dashboard": {
+        "title": "산업 KPI 대시보드",
+        "7days": "최근 7일",
+        "30days": "최근 30일",
+        "90days": "최근 90일",
+        "noData": "KPI 데이터가 없습니다"
+      },
+      "workflowSteps": {
+        "title": "산업 워크플로우 단계",
+        "step": "단계",
+        "noData": "워크플로우 단계가 없습니다"
+      },
+      "rules": {
+        "title": "산업 자동화 규칙",
+        "runAll": "모든 규칙 실행",
+        "enabled": "활성화",
+        "disabled": "비활성화",
+        "conditions": "트리거 조건",
+        "actions": "실행 작업",
+        "noData": "자동화 규칙이 없습니다",
+        "triggered": "{{count}}개 규칙이 트리거되었습니다",
+        "nothingTriggered": "트리거된 규칙이 없습니다",
+        "runFailed": "규칙 실행 실패: {{error}}"
       }
     },
     "rl": {

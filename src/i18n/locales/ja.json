@@ -4592,7 +4592,33 @@
           "refreshConfig": "設定を更新",
           "loadFailed": "学習設定の読み込みに失敗しました: {{error}}",
           "configNotFound": "学習設定が見つかりません"
-        }
+        },
+      },
+      "refresh": "更新",
+      "refreshSuccess": "業界データを更新しました",
+      "dashboard": {
+        "title": "業界 KPI ダッシュボード",
+        "7days": "過去7日間",
+        "30days": "過去30日間",
+        "90days": "過去90日間",
+        "noData": "KPIデータがありません"
+      },
+      "workflowSteps": {
+        "title": "業界ワークフロー手順",
+        "step": "ステップ",
+        "noData": "ワークフロー手順がありません"
+      },
+      "rules": {
+        "title": "業界自動化ルール",
+        "runAll": "すべてのルールを実行",
+        "enabled": "有効",
+        "disabled": "無効",
+        "conditions": "トリガー条件",
+        "actions": "実行アクション",
+        "noData": "自動化ルールがありません",
+        "triggered": "{{count}} 件のルールがトリガーされました",
+        "nothingTriggered": "トリガーされたルールはありません",
+        "runFailed": "ルール実行に失敗しました: {{error}}"
       }
     },
     "rl": {

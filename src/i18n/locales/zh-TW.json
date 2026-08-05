@@ -4592,7 +4592,33 @@
           "refreshConfig": "重新整理設定",
           "loadFailed": "載入學習設定失敗：{{error}}",
           "configNotFound": "找不到學習配置"
-        }
+        },
+      },
+      "refresh": "重新整理",
+      "refreshSuccess": "產業資料已重新整理",
+      "dashboard": {
+        "title": "產業 KPI 儀表板",
+        "7days": "近 7 天",
+        "30days": "近 30 天",
+        "90days": "近 90 天",
+        "noData": "暫無 KPI 資料"
+      },
+      "workflowSteps": {
+        "title": "產業工作流步驟",
+        "step": "步驟",
+        "noData": "暫無工作流步驟"
+      },
+      "rules": {
+        "title": "產業自動化規則",
+        "runAll": "執行所有規則",
+        "enabled": "已啟用",
+        "disabled": "已停用",
+        "conditions": "觸發條件",
+        "actions": "執行動作",
+        "noData": "暫無自動化規則",
+        "triggered": "已觸發 {{count}} 條規則",
+        "nothingTriggered": "沒有規則被觸發",
+        "runFailed": "規則執行失敗: {{error}}"
       }
     },
     "rl": {

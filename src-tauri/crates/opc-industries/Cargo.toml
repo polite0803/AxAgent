@@ -1,0 +1,21 @@
+[package]
+name = "axagent-opc-industries"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+axagent-opc-industry-accounting = { path = "../opc-industry-accounting" }
+axagent-opc-industry-ai-research = { path = "../opc-industry-ai-research" }
+axagent-opc-industry-content-media = { path = "../opc-industry-content-media" }
+axagent-opc-industry-ecommerce = { path = "../opc-industry-ecommerce" }
+axagent-opc-industry-education = { path = "../opc-industry-education" }
+axagent-opc-industry-finance-invest = { path = "../opc-industry-finance-invest" }
+axagent-opc-industry-industry-consulting = { path = "../opc-industry-industry-consulting" }
+axagent-opc-industry-sales-growth = { path = "../opc-industry-sales-growth" }
+axagent-opc-industry-software-dev = { path = "../opc-industry-software-dev" }
+axagent-opc-runtime = { path = "../opc-runtime" }
+axagent-opc-types = { path = "../opc-types" }
+tokio = { workspace = true }
+tracing = { workspace = true }

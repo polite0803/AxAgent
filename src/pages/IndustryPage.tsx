@@ -15,6 +15,7 @@ import {
   CodeOutlined,
   CodeSandboxOutlined,
   CrownOutlined,
+  DashboardOutlined,
   DollarCircleOutlined,
   EditOutlined,
   ExperimentOutlined,
@@ -33,7 +34,23 @@ import {
   TrophyOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
-import { App, Button, Card, Col, Empty, Row, Space, Spin, Tag, Typography } from "antd";
+import {
+  Alert,
+  App,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Empty,
+  Row,
+  Segmented,
+  Space,
+  Spin,
+  Statistic,
+  Steps,
+  Tag,
+  Typography,
+} from "antd";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,6 +83,48 @@ interface ActionItem {
 interface IndustryConfig {
   actions: ActionItem[];
   workflows: IndustryWorkflow[];
+}
+
+// ── 行业运行时相关类型 ──────────────────────────────────
+
+interface KpiValue {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  period: string;
+  trend?: "up" | "down" | "flat";
+  change_percent?: number;
+}
+
+interface WorkflowStepInfo {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  status?: "pending" | "active" | "completed";
+}
+
+interface AutomationRuleInfo {
+  id: string;
+  name: string;
+  enabled: boolean;
+  conditions: Array<{ type: string; config: Record<string, unknown> }>;
+  actions: Array<{ type: string; config: Record<string, unknown> }>;
+  last_triggered?: string;
+  trigger_count?: number;
+}
+
+interface IndustryDashboard {
+  industry_id: string;
+  kpis: KpiValue[];
+  cards: Array<{
+    id: string;
+    title: string;
+    kpi_id: string;
+    default_display: string;
+  }>;
+  summary?: string;
 }
 
 /** 9 个行业专属配置 - 文本内容通过 i18n 获取 */
@@ -206,6 +265,16 @@ export function IndustryPage() {
   const [learningConfig, setLearningConfig] = useState<IndustryLearningConfig | null>(null);
   const [learningLoading, setLearningLoading] = useState(false);
 
+  // 行业运行时数据
+  const [dashboard, setDashboard] = useState<IndustryDashboard | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStepInfo[]>([]);
+  const [stepsLoading, setStepsLoading] = useState(false);
+  const [automationRules, setAutomationRules] = useState<AutomationRuleInfo[]>([]);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesRunning, setRulesRunning] = useState(false);
+  const [kpiTimeRange, setKpiTimeRange] = useState<"7" | "30" | "90">("30");
+
   const createConversation = useConversationStore((s) => s.createConversation);
   const settings = useSettingsStore((s) => s.settings);
   const learningStore = useIndustryLearningStore();
@@ -261,6 +330,106 @@ export function IndustryPage() {
     };
     loadLearning();
   }, [industryId, learningStore]);
+
+  // 加载行业仪表盘（KPI 聚合）
+  const loadDashboard = async () => {
+    if (!industryId) { return; }
+    setDashboardLoading(true);
+    try {
+      const days = Number(kpiTimeRange);
+      const result = await invoke<IndustryDashboard>(
+        "opc_get_industry_dashboard",
+        { industry_id: industryId, days },
+      );
+      setDashboard(result);
+    } catch (e) {
+      console.error("[IndustryPage] load dashboard failed:", e);
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  // 加载行业工作流步骤
+  const loadWorkflowSteps = async () => {
+    if (!industryId) { return; }
+    setStepsLoading(true);
+    try {
+      const result = await invoke<{ steps: WorkflowStepInfo[] }>(
+        "opc_get_industry_workflow_steps",
+        { industry_id: industryId },
+      );
+      setWorkflowSteps(result.steps || []);
+    } catch (e) {
+      console.error("[IndustryPage] load workflow steps failed:", e);
+      setWorkflowSteps([]);
+    } finally {
+      setStepsLoading(false);
+    }
+  };
+
+  // 加载行业自动化规则
+  const loadAutomationRules = async () => {
+    if (!industryId) { return; }
+    setRulesLoading(true);
+    try {
+      const result = await invoke<{ rules: AutomationRuleInfo[] }>(
+        "opc_get_industry_automation_rules",
+        { industry_id: industryId },
+      );
+      setAutomationRules(result.rules || []);
+    } catch (e) {
+      console.error("[IndustryPage] load automation rules failed:", e);
+      setAutomationRules([]);
+    } finally {
+      setRulesLoading(false);
+    }
+  };
+
+  // 行业数据初始化（行业 ID 变化时触发）
+  useEffect(() => {
+    if (!industryId) { return; }
+    loadDashboard();
+    loadWorkflowSteps();
+    loadAutomationRules();
+  }, [industryId]);
+
+  // KPI 时间范围变化时刷新
+  useEffect(() => {
+    if (!industryId) { return; }
+    loadDashboard();
+  }, [kpiTimeRange]);
+
+  /** 手动执行自动化规则 */
+  const handleRunRules = async () => {
+    if (!industryId) { return; }
+    setRulesRunning(true);
+    try {
+      const triggered = await invoke<string[]>("opc_run_automation_rules", {
+        industry_id: industryId,
+        entity_type: "customer",
+        entity_id: "manual_trigger",
+      });
+      if (triggered.length > 0) {
+        message.success(
+          t("opc.industry.rules.triggered", { count: triggered.length }),
+        );
+      } else {
+        message.info(t("opc.industry.rules.nothingTriggered"));
+      }
+    } catch (e) {
+      message.error(t("opc.industry.rules.runFailed", { error: String(e) }));
+    } finally {
+      setRulesRunning(false);
+    }
+  };
+
+  /** 刷新所有行业数据 */
+  const handleRefreshAll = () => {
+    loadDashboard();
+    loadWorkflowSteps();
+    loadAutomationRules();
+    message.success(t("opc.industry.refreshSuccess"));
+  };
 
   /** 触发反思 */
   const handleReflect = async () => {
@@ -403,12 +572,226 @@ export function IndustryPage() {
     <div style={{ padding: 24, height: "100%", overflow: "auto" }}>
       {/* 行业标题 */}
       <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ marginBottom: 8 }}>
-          <span style={{ fontSize: 28, marginRight: 12 }}>{manifest.icon}</span>
-          {t(`opc.industries.${industryKey}`)}
-        </Title>
-        <Paragraph type="secondary">{t(`opc.industries.${industryKey}_desc`)}</Paragraph>
+        <Space align="center" style={{ width: "100%", justifyContent: "space-between" }}>
+          <div>
+            <Title level={3} style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 28, marginRight: 12 }}>{manifest.icon}</span>
+              {t(`opc.industries.${industryKey}`)}
+            </Title>
+            <Paragraph type="secondary">{t(`opc.industries.${industryKey}_desc`)}</Paragraph>
+          </div>
+          <Button
+            icon={<SyncOutlined spin={dashboardLoading || stepsLoading || rulesLoading} />}
+            onClick={handleRefreshAll}
+          >
+            {t("opc.industry.refresh")}
+          </Button>
+        </Space>
       </div>
+
+      {/* 行业运行时 - KPI 仪表盘 */}
+      <Card
+        style={{ marginBottom: 24 }}
+        title={
+          <span>
+            <DashboardOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.dashboard.title")}
+          </span>
+        }
+        extra={
+          <Segmented
+            value={kpiTimeRange}
+            onChange={(v) => setKpiTimeRange(v as "7" | "30" | "90")}
+            options={[
+              { label: t("opc.industry.dashboard.7days"), value: "7" },
+              { label: t("opc.industry.dashboard.30days"), value: "30" },
+              { label: t("opc.industry.dashboard.90days"), value: "90" },
+            ]}
+          />
+        }
+      >
+        {dashboardLoading
+          ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin />
+            </div>
+          )
+          : dashboard && dashboard.kpis.length > 0
+          ? (
+            <>
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                {dashboard.kpis.map((kpi) => (
+                  <Col xs={12} sm={8} md={6} key={kpi.id}>
+                    <Card size="small" className="h-full">
+                      <Statistic
+                        title={kpi.name}
+                        value={kpi.value}
+                        precision={2}
+                        prefix={kpi.unit === "%" ? "%" : ""}
+                        suffix={kpi.unit !== "%" ? kpi.unit : ""}
+                        valueStyle={{
+                          color: kpi.trend === "up"
+                            ? "#3f8600"
+                            : kpi.trend === "down"
+                            ? "#cf1322"
+                            : undefined,
+                        }}
+                      />
+                      {kpi.change_percent !== undefined && (
+                        <Text
+                          type={kpi.trend === "down" ? "danger" : "secondary"}
+                          style={{ fontSize: 12 }}
+                        >
+                          {kpi.trend === "up" ? "↑" : kpi.trend === "down" ? "↓" : "→"}{" "}
+                          {Math.abs(kpi.change_percent).toFixed(1)}%
+                        </Text>
+                      )}
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+              {dashboard.summary && (
+                <Alert
+                  type="info"
+                  showIcon
+                  message={dashboard.summary}
+                  style={{ marginTop: 8 }}
+                />
+              )}
+            </>
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.dashboard.noData")}
+            />
+          )}
+      </Card>
+
+      {/* 行业工作流步骤 */}
+      <Card
+        style={{ marginBottom: 24 }}
+        title={
+          <span>
+            <LineChartOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.workflowSteps.title")}
+          </span>
+        }
+      >
+        {stepsLoading
+          ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin />
+            </div>
+          )
+          : workflowSteps.length > 0
+          ? (
+            <Steps
+              direction="vertical"
+              current={-1}
+              items={workflowSteps.map((step) => ({
+                title: (
+                  <Space>
+                    <Text strong>{step.name}</Text>
+                    <Tag color="blue">{t("opc.industry.workflowSteps.step")} {step.order}</Tag>
+                  </Space>
+                ),
+                description: step.description,
+                status: step.status === "completed" ? "finish" : step.status === "active" ? "process" : "wait",
+              }))}
+            />
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.workflowSteps.noData")}
+            />
+          )}
+      </Card>
+
+      {/* 行业自动化规则 */}
+      <Card
+        style={{ marginBottom: 24 }}
+        title={
+          <span>
+            <ThunderboltOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.rules.title")}
+          </span>
+        }
+        extra={
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlayCircleOutlined />}
+            loading={rulesRunning}
+            onClick={handleRunRules}
+            disabled={automationRules.filter((r) => r.enabled).length === 0}
+          >
+            {t("opc.industry.rules.runAll")}
+          </Button>
+        }
+      >
+        {rulesLoading
+          ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin />
+            </div>
+          )
+          : automationRules.length > 0
+          ? (
+            <Row gutter={[16, 16]}>
+              {automationRules.map((rule) => (
+                <Col xs={24} sm={12} md={8} key={rule.id}>
+                  <Card
+                    size="small"
+                    title={
+                      <Space>
+                        <Text strong>{rule.name}</Text>
+                        <Badge
+                          status={rule.enabled ? "success" : "default"}
+                          text={rule.enabled
+                            ? t("opc.industry.rules.enabled")
+                            : t("opc.industry.rules.disabled")}
+                        />
+                      </Space>
+                    }
+                  >
+                    <div style={{ marginBottom: 8 }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {t("opc.industry.rules.conditions")}:
+                      </Text>
+                      <div style={{ marginTop: 4 }}>
+                        {rule.conditions.map((cond, i) => (
+                          <Tag key={i} color="blue" style={{ marginBottom: 2 }}>
+                            {cond.type}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {t("opc.industry.rules.actions")}:
+                      </Text>
+                      <div style={{ marginTop: 4 }}>
+                        {rule.actions.map((act, i) => (
+                          <Tag key={i} color="green" style={{ marginBottom: 2 }}>
+                            {act.type}
+                          </Tag>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.rules.noData")}
+            />
+          )}
+      </Card>
 
       {/* 专属操作入口 */}
       <Card
