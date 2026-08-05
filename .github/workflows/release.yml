@@ -422,7 +422,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            openjdk-23-jdk-headless \
+            openjdk-21-jdk-headless \
             protobuf-compiler \
             python3
 
@@ -596,10 +596,10 @@ jobs:
         with:
           ndk-version: ${{ env.NDK_VERSION }}
 
-      - name: Setup JDK 23 (Zulu)
+      - name: Setup JDK 21 (Zulu)
         uses: actions/setup-java@v4
         with:
-          java-version: '23'
+          java-version: '21'
           distribution: 'zulu'
 
       - name: Setup Android SDK
