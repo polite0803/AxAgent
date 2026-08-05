@@ -117,7 +117,12 @@ pub async fn validate_entity(
     entity_data: &serde_json::Value,
 ) -> Result<Vec<ValidationError>, String> {
     let runtime = get_runtime().await?;
-    runtime.validate_entity(industry_id, entity_type, entity_data).await.map_err(|e| e.to_string())
+    runtime.validate_entity(industry_id, entity_type, entity_data).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 批量验证行业实体
@@ -126,7 +131,12 @@ pub async fn validate_batch(
     entities: &[(String, serde_json::Value)],
 ) -> Result<Vec<(String, Vec<ValidationError>)>, String> {
     let runtime = get_runtime().await?;
-    runtime.validate_batch(industry_id, entities).await.map_err(|e| e.to_string())
+    runtime.validate_batch(industry_id, entities).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 计算行业 KPI 指标
@@ -135,25 +145,45 @@ pub async fn compute_kpis(
     time_range: TimeRange,
 ) -> Result<Vec<KpiValue>, String> {
     let runtime = get_runtime().await?;
-    runtime.compute_kpis(industry_id, &time_range).await.map_err(|e| e.to_string())
+    runtime.compute_kpis(industry_id, &time_range).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业 KPI 定义列表
 pub async fn get_kpi_definitions(industry_id: &str) -> Result<Vec<KpiDefinition>, String> {
     let runtime = get_runtime().await?;
-    runtime.get_kpi_definitions(industry_id).await.map_err(|e| e.to_string())
+    runtime.get_kpi_definitions(industry_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业工作流步骤
 pub async fn get_workflow_steps(industry_id: &str) -> Result<Vec<WorkflowStep>, String> {
     let runtime = get_runtime().await?;
-    runtime.get_workflow_steps(industry_id).await.map_err(|e| e.to_string())
+    runtime.get_workflow_steps(industry_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业启用的自动化规则
 pub async fn get_enabled_rules(industry_id: &str) -> Result<Vec<IndustryAutomationRule>, String> {
     let runtime = get_runtime().await?;
-    runtime.get_enabled_rules(industry_id).await.map_err(|e| e.to_string())
+    runtime.get_enabled_rules(industry_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 运行行业自动化规则
@@ -164,7 +194,12 @@ pub async fn run_automation_rules(
     context: RuleContext,
 ) -> Result<Vec<String>, String> {
     let runtime = get_runtime().await?;
-    runtime.run_all_rules(industry_id, &context).await.map_err(|e| e.to_string())
+    runtime.run_all_rules(industry_id, &context).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业仪表盘数据
@@ -173,7 +208,12 @@ pub async fn get_dashboard(
     time_range: TimeRange,
 ) -> Result<IndustryDashboard, String> {
     let runtime = get_runtime().await?;
-    runtime.get_industry_dashboard(industry_id, &time_range).await.map_err(|e| e.to_string())
+    runtime.get_industry_dashboard(industry_id, &time_range).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 列出所有已注册行业
