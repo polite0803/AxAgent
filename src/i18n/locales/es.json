@@ -4911,7 +4911,38 @@
       "noActivity": "Sin actividad",
       "noFilteredActivity": "Sin actividad para este agente"
     },
-    "stepLabel": "Paso"
+    "stepLabel": "Paso",
+    "profiles": {
+      "code_auditor": { "name": "Experto en Auditoría de Código", "role": "Experto en Auditoría de Código" },
+      "architect_analyst": { "name": "Analista de Arquitectura", "role": "Analista de Arquitectura" },
+      "quality_expert": { "name": "Experto en Calidad de Código", "role": "Experto en Calidad de Código" },
+      "behavior_tester": {
+        "name": "Experto en Pruebas de Comportamiento",
+        "role": "Experto en Pruebas de Comportamiento"
+      },
+      "knowledge_engineer": { "name": "Ingeniero de Conocimiento", "role": "Ingeniero de Conocimiento" },
+      "refactor_consultant": { "name": "Consultor de Refactorización", "role": "Consultor de Refactorización" },
+      "solution_architect": { "name": "Arquitecto de Soluciones", "role": "Arquitecto de Soluciones" },
+      "tech_project_manager": { "name": "Gestor de Proyectos Técnicos", "role": "Gestor de Proyectos Técnicos" },
+      "change_manager": { "name": "Experto en Gestión del Cambio", "role": "Experto en Gestión del Cambio" },
+      "quality_engineer": { "name": "Ingeniero de Calidad", "role": "Ingeniero de Calidad" },
+      "devops_engineer": { "name": "Ingeniero DevOps", "role": "Ingeniero DevOps" },
+      "code_reviewer": { "name": "Revisor de Código", "role": "Revisor de Código" },
+      "senior_engineer": { "name": "Ingeniero Senior", "role": "Ingeniero Senior" },
+      "behavior_verifier": {
+        "name": "Experto en Verificación de Comportamiento",
+        "role": "Experto en Verificación de Comportamiento"
+      },
+      "test_engineer": { "name": "Ingeniero de Pruebas", "role": "Ingeniero de Pruebas" },
+      "integration_engineer": {
+        "name": "Ingeniero de Pruebas de Integración",
+        "role": "Ingeniero de Pruebas de Integración"
+      },
+      "quality_director": { "name": "Director de Calidad", "role": "Director de Calidad" },
+      "tech_writer": { "name": "Escritor Técnico", "role": "Escritor Técnico" },
+      "ops_engineer": { "name": "Ingeniero de Operaciones", "role": "Ingeniero de Operaciones" },
+      "project_manager": { "name": "Gestor de Proyectos", "role": "Gestor de Proyectos" }
+    }
   },
   "promptTemplate": {
     "unnamed": "Sin nombre"

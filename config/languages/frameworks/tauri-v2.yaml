@@ -1,0 +1,248 @@
+# Tauri v2 框架配置
+# 用于目标框架为 Tauri v2 时的特定集成规则
+id: tauri-v2
+name: Tauri v2
+version: "2.x"
+description: "Tauri v2 桌面应用框架，结合 Rust 后端 + Web 前端"
+
+# 框架结构
+structure:
+  backend:
+    language: Rust
+    crate_organization:
+      - src-tauri/
+        - src/
+          - lib.rs          # 入口，注册命令
+          - commands/      # Tauri 命令模块
+          - init/          # 初始化逻辑
+          - app_state.rs   # 全局状态
+        - crates/          # 业务 crate
+          - harness/       # 基础层（trait + DTO）
+          - entities/      # 数据定义
+          - dao/           # 数据访问
+          - runtime/       # 运行时
+          - ...
+  frontend:
+    language: TypeScript + React 19
+    structure:
+      - src/
+        - components/     # UI 组件
+        - pages/          # 路由页面
+        - stores/         # Zustand 状态
+          - domain/       # 核心业务
+          - feature/      # 功能特性
+          - shared/       # 跨组件 UI
+          - devtools/     # 调试工具
+        - hooks/          # 自定义 Hooks
+        - lib/            # 工具函数
+        - types/          # 类型定义
+        - i18n/           # 国际化
+
+# Tauri 命令规范
+command_conventions:
+  naming:
+    - format: "snake_case"
+    - pattern: "模块_动作_目标"
+    - examples:
+        - opc_get_invoice
+        - opc_create_invoice
+        - opc_list_industries
+        - opc_execute_rule
+
+  macro_requirements:
+    - tauri_command: "#[tauri::command]"
+    - agent_command: "#[agent_command(domain = \"域\", safety = \"安全级别\", call_mode = \"调用模式\", description = \"中文描述\")]"
+    - example: |
+      #[agent_command(domain = "opc", safety = "Safe", call_mode = "StateInput", description = "获取发票列表")]
+      #[tauri::command]
+      async fn opc_list_invoices(
+          state: State<'_, AppState>,
+          industry_id: String,
+      ) -> Result<Vec<Invoice>, String> {
+          // 业务逻辑
+          Ok(invoices)
+      }
+
+  registration:
+    - commands_mod: "src-tauri/src/commands/mod.rs 中声明 pub mod"
+    - lib_rs: "generate_handler![] 中注册所有命令"
+    - requirement: "所有命令必须在 mod.rs 和 lib.rs 中同时声明"
+
+# 前端调用规范
+frontend_conventions:
+  invoke_method:
+    - mandatory: "通过 @/lib/invoke 调用"
+    - forbidden: "禁止直接使用 @tauri-apps/api/core 的 invoke"
+    - example: |
+      import { invoke } from '@/lib/invoke';
+
+      const result = await invoke<Invoice[]>('opc_list_invoices', {
+          industryId: 'software_dev',
+      });
+
+  store_pattern:
+    - classification:
+        - domain: "核心业务状态（会话、消息、流式）"
+        - feature: "功能模块状态（网关、技能、终端）"
+        - shared: "跨组件 UI 状态（标签页、侧栏）"
+        - devtools: "调试工具状态（追踪、评估、RL）"
+    - example: |
+      // stores/feature/opcStore.ts
+      interface OpcState {
+          invoices: Invoice[];
+          isLoading: boolean;
+          fetchInvoices: (industryId: string) => Promise<void>;
+      }
+
+      export const useOpcStore = create<OpcState>((set, get) => ({
+          invoices: [],
+          isLoading: false,
+          fetchInvoices: async (industryId) => {
+              set({ isLoading: true });
+              try {
+                  const data = await invoke<Invoice[]>('opc_list_invoices', { industryId });
+                  set({ invoices: data, isLoading: false });
+              } catch (e) {
+                  set({ isLoading: false });
+                  console.error(e);
+              }
+          },
+      }));
+
+  i18n_requirements:
+    - mandatory: "所有 UI 文本必须使用 useTranslation()"
+    - forbidden: "禁止硬编码字符串"
+    - locale_files: ["zh-CN", "en-US", "ja-JP", "ko-KR", "zh-TW", "fr-FR", "de-DE", "es-ES", "pt-BR", "ru-RU", "ar-SA"]
+    - example: |
+      import { useTranslation } from 'react-i18next';
+
+      function InvoiceList() {
+          const { t } = useTranslation();
+          return <div>{t('opc.invoice.list.title')}</div>;
+      }
+
+# 数据模型规范
+data_model_conventions:
+  backend_authority:
+    - rule: "所有共享数据模型的权威定义在 axagent-harness"
+    - layers:
+        - harness: "trait 契约 + 纯 DTO"
+        - entities: "SeaORM 数据定义"
+        - consumer: "仅依赖 harness"
+        - implementor: "依赖 harness + entities"
+    - forbidden: "禁止在多个 crate 中重复定义相同类型"
+
+  dto_pattern:
+    - naming: "XxxDto 或 XxxRequest / XxxResponse"
+    - location: "harness crate"
+    - example: |
+      // axagent-harness/src/dto/opc.rs
+      #[derive(Debug, Serialize, Deserialize)]
+      pub struct InvoiceDto {
+          pub id: String,
+          pub amount: Decimal,
+          pub industry_id: String,
+      }
+
+# Rust 代码规范
+rust_conventions:
+  formatting:
+    - tool: rustfmt
+    - max_width: 100
+    - tab_spaces: 4
+    - mandatory: "cargo fmt 必须通过"
+
+  linting:
+    - tool: clippy
+    - mandatory: "cargo clippy -- -D warnings 必须通过"
+    - rules: "零 clippy 警告"
+
+  testing:
+    - unit_test: "在同文件底部 #[cfg(test)] mod tests"
+    - integration_test: "tests/ 目录"
+    - command_test: "Tauri 命令必须有单元测试"
+
+  cargo:
+    - workspace: "Cargo workspace 结构"
+    - minimum_version: "Edition 2024"
+    - forbidden: "禁止在已有 tokio runtime 中创建嵌套 runtime"
+
+# TypeScript 代码规范
+typescript_conventions:
+  formatting:
+    - tool: dprint
+    - quote_style: double
+    - brace_style: "maintain"
+    - indent_width: 2
+    - mandatory: "npm run format 必须通过"
+
+  linting:
+    - tool: TypeScript strict mode
+    - tsconfig:
+        - strict: true
+        - noUnusedLocals: true
+        - noUnusedParameters: true
+        - noImplicitReturns: true
+    - mandatory: "npm run typecheck 必须通过"
+
+  testing:
+    - tool: Vitest
+    - framework: "@testing-library/react"
+    - e2e: Playwright
+
+  component_pattern:
+    - export: "命名导出 (export function XxxComponent)"
+    - forbidden: "默认导出 (export default)"
+    - size: "单组件不超过 300 行"
+    - split: "超过 300 行必须拆分为子组件"
+
+# 迁移检查清单
+migration_checklist:
+  before_migration:
+    - [ ] 确认 Tauri 版本兼容性
+    - [ ] 确认目标前端框架版本（React 19）
+    - [ ] 确认数据库选型（SeaORM + SQLite）
+    - [ ] 确认 i18n 语言列表
+    - [ ] 确认后端 crate 分层架构
+
+  during_migration:
+    - [ ] 每个 Tauri 命令添加 #[agent_command] 宏
+    - [ ] 在 commands/mod.rs 中声明新命令
+    - [ ] 在 lib.rs 的 generate_handler![] 中注册
+    - [ ] 前端调用通过 @/lib/invoke
+    - [ ] Store 按四层分类放置
+    - [ ] 所有 UI 文本使用 i18n
+    - [ ] 类型从 @/types 导入
+    - [ ] 运行 cargo fmt 和 npm run format
+
+  after_migration:
+    - [ ] cargo clippy -- -D warnings 零警告
+    - [ ] npm run typecheck 零错误
+    - [ ] npm run test:run 全部通过
+    - [ ] 手动测试所有 Tauri 命令
+    - [ ] 验证跨平台兼容性（Windows/macOS/Linux）
+    - [ ] 检查 i18n 覆盖所有 11 种语言
+
+# 性能要求
+performance_requirements:
+  startup:
+    - target: "冷启动 < 3s"
+    - measurement: "Time to Interactive"
+  command:
+    - target: "单次命令调用 < 100ms"
+    - measurement: "Tauri IPC latency"
+  rendering:
+    - target: "首屏渲染 < 500ms"
+    - measurement: "First Contentful Paint"
+  memory:
+    - target: "稳态内存 < 200MB"
+    - measurement: "进程内存占用"
+
+# 安全要求
+security_requirements:
+  - [ ] Tauri 权限最小化配置 (capabilities.json)
+  - [ ] 命令参数验证
+  - [ ] 敏感数据加密存储
+  - [ ] 无硬编码密钥
+  - [ ] 输入清理，防止注入攻击
+  - [ ] CSRF 防护

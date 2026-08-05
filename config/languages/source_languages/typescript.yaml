@@ -1,0 +1,225 @@
+# TypeScript 源语言配置
+# 用于跨语言迁移的源语言特性定义
+id: typescript
+name: TypeScript
+typescript_versions: ["TypeScript 5.x"]
+file_extensions: [.ts, .tsx]
+common_frameworks:
+  - Node.js (运行时)
+  - Express / Koa (Web 框架)
+  - NestJS (后端框架)
+  - Fastify (Web 框架)
+  - Prisma / TypeORM (ORM)
+  - React (前端框架)
+
+# 类型系统
+type_system:
+  native_types:
+    - { typescript: "number", common: "float", size: "IEEE 754 双精度 (64位)" }
+    - { typescript: "string", common: "string", size: "UTF-16" }
+    - { typescript: "boolean", common: "boolean", size: "1 位" }
+    - { typescript: "bigint", common: "integer", size: "任意精度整数" }
+    - { typescript: "symbol", common: "symbol", size: "唯一标识" }
+    - { typescript: "void", common: "void", size: "无返回值" }
+    - { typescript: "never", common: "never", size: "永不到达" }
+    - { typescript: "unknown", common: "unknown", size: "未知类型（安全）" }
+    - { typescript: "any", common: "any", size: "任意类型（不安全）" }
+    - { typescript: "T[]", common: "array<T>", size: "动态数组" }
+    - { typescript: "Array<T>", common: "array<T>", size: "动态数组" }
+    - { typescript: "Record<K,V>", common: "map<K,V>", size: "对象映射" }
+    - { typescript: "Map<K,V>", common: "ordered_map<K,V>", size: "有序映射" }
+    - { typescript: "Set<T>", common: "set<T>", size: "集合" }
+    - { typescript: "[T1, T2]", common: "tuple<T1,T2>", size: "元组" }
+    - { typescript: "Promise<T>", common: "promise<T>", size: "异步" }
+    - { typescript: "interface", common: "interface", size: "结构类型" }
+    - { typescript: "type", common: "type_alias", size: "类型别名" }
+    - { typescript: "enum", common: "enum", size: "枚举" }
+    - { typescript: "class", common: "class", size: "类" }
+    - { typescript: "function", common: "function", size: "函数类型" }
+    - { typescript: "arrow function", common: "function", size: "箭头函数" }
+    - { typescript: "async function", common: "async_function", size: "异步函数" }
+
+  special_types:
+    - name: 联合类型 (Union)
+      description: "T1 | T2" 表示类型之一
+      common_representation: "union_type"
+      migration_risk: "medium"
+      example: |
+        type Status = 'active' | 'inactive';
+        type Result = Success | Error;
+
+    - name: 交叉类型 (Intersection)
+      description: "T1 & T2" 表示同时满足
+      common_representation: "intersection_type"
+      migration_risk: "medium"
+      example: |
+        type Employee = Person & { employeeId: string };
+
+    - name: 泛型 (Generics)
+      description: "类型参数化"
+      common_representation: "generic<T>"
+      migration_risk: "medium"
+      example: |
+        function identity<T>(value: T): T {
+            return value;
+        }
+
+    - name: 条件类型
+      description: "类型级别的条件判断"
+      common_representation: "conditional_type"
+      migration_risk: "high"
+      example: |
+        type NonNull<T> = T extends null | undefined ? never : T;
+        type ReturnType<T> = T extends (...args: any) => infer R ? R : never;
+
+    - name: 映射类型
+      description: "基于已有类型创建新类型"
+      common_representation: "mapped_type"
+      migration_risk: "medium"
+      example: |
+        type Readonly<T> = { readonly [P in keyof T]: T[P] };
+        type Partial<T> = { [P in keyof T]?: T[P] };
+
+    - name: 装饰器 (Decorator)
+      description: "类/方法/属性装饰器"
+      common_representation: "decorator"
+      migration_risk: "high"
+      example: |
+        @Controller('/users')
+        class UserController {
+            @Get('/:id')
+            getUser(@Param('id') id: string) { ... }
+        }
+
+    - name: 命名空间 (Namespace)
+      description: "模块化组织"
+      common_representation: "namespace"
+      migration_risk: "low"
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "V8 引擎的分代式 GC"
+  features:
+    - automatic_memory_management
+    - garbage_collection
+    - closures (闭包)
+    - prototypal_inheritance (原型继承)
+  pitfalls:
+    - id: closure_memory_leak
+      description: 闭包导致的内存泄漏
+      examples: ["长时间运行的闭包引用大对象"]
+    - id: global_accumulation
+      description: 全局对象无限增长
+      examples: ["在 globalThis 上挂载大量属性"]
+    - id: event_listener_leak
+      description: 事件监听器未清理
+      examples: ["addEventListener 后未 removeEventListener"]
+    - id: circular_reference
+      description: 循环引用导致 GC 无法回收
+
+# 并发模型
+concurrency_model:
+  execution_model: "单线程 + 事件循环"
+  async_mechanism: "Event Loop + Promise"
+  mechanisms:
+    - async/await (语法支持)
+    - Promise
+    - Generator / async Generator
+    - EventEmitter (事件驱动)
+    - Worker Threads (多线程)
+    - SharedArrayBuffer + Atomics (共享内存)
+  runtime_environments:
+    - Node.js (推荐)
+    - Deno
+    - Bun
+    - Browser
+  concurrency_safety:
+    - 单线程模型天然无数据竞争
+    - Worker Threads 需显式消息传递
+    - 无原生多线程锁
+  pitfalls:
+    - id: callback_hell
+      description: 回调嵌套过深
+      examples: ["多层嵌套的回调函数"]
+    - id: promise_leak
+      description: Promise 未正确处理
+      examples: ["未捕获的 Promise rejection"]
+    - id: async_context_loss
+      description: 异步上下文丢失
+      examples: ["在回调中丢失 this 上下文"]
+
+# 惯用模式
+idiomatic_patterns:
+  - name: 接口优先
+    description: 定义清晰的接口
+    code_example: |
+      interface UserRepository {
+          findById(id: string): Promise<User | null>;
+          save(user: User): Promise<void>;
+      }
+  - name: 依赖注入
+    description: 通过构造函数注入依赖
+    code_example: |
+      class UserService {
+          constructor(private repo: UserRepository) {}
+          
+          async getUser(id: string): Promise<User | null> {
+              return this.repo.findById(id);
+          }
+      }
+  - name: 函数式编程
+    description: 使用纯函数和不可变数据
+    code_example: |
+      const sorted = users
+          .filter(u => u.active)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(u => ({ ...u, displayName: `${u.firstName} ${u.lastName}` }));
+  - name: 错误处理
+    description: 使用 Result 模式或异常
+    code_example: |
+      // 使用 Result 模式
+      type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
+      
+      function parseJson<T>(json: string): Result<T> {
+          try {
+              return { ok: true, value: JSON.parse(json) as T };
+          } catch (e) {
+              return { ok: false, error: e as Error };
+          }
+      }
+  - name: 工厂模式
+    description: 使用工厂函数
+    code_example: |
+      function createUser(params: CreateUserParams): User {
+          return {
+              id: crypto.randomUUID(),
+              createdAt: new Date(),
+              ...params,
+          };
+      }
+
+# 常见代码坏味道
+common_code_smells:
+  - id: any_overuse
+    description: 过度使用 any 类型
+    severity: "high"
+    examples: ["函数参数使用 any 而非具体类型"]
+  - id: non_null_assertion
+    description: 滥用非空断言 (!)
+    severity: "medium"
+    examples: ["value!.property 而非 value?.property"]
+  - id: type_assertion
+    description: 不必要的类型断言
+    severity: "medium"
+    examples: ["value as Type 而非 value: Type"]
+  - id: god_class
+    description: 上帝类
+    severity: "medium"
+    threshold: "超过 300 行的类"
+  - id: callback_hell
+    description: 回调地狱
+    severity: "medium"
+  - id: mutation_side_effect
+    description: 不必要的副作用
+    severity: "low"

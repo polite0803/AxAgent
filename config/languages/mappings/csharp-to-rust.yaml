@@ -1,0 +1,721 @@
+# C# → Rust 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: csharp-to-rust
+source: csharp
+target: rust
+description: "从 C# (.NET) 迁移到 Rust 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "i32", note: "C# int = Rust i32" }
+    - { source: "long", target: "i64" }
+    - { source: "short", target: "i16" }
+    - { source: "byte", target: "u8" }
+    - { source: "float", target: "f32" }
+    - { source: "double", target: "f64" }
+    - { source: "bool", target: "bool" }
+    - { source: "string", target: "String", note: "均为不可变堆分配字符串" }
+    - { source: "char", target: "char", note: "均为 Unicode 字符" }
+    - { source: "List<T>", target: "Vec<T>" }
+    - { source: "Dictionary<K,V>", target: "HashMap<K,V>" }
+    - { source: "HashSet<T>", target: "HashSet<T>" }
+    - { source: "SortedDictionary<K,V>", target: "BTreeMap<K,V>" }
+    - { source: "SortedSet<T>", target: "BTreeSet<T>" }
+    - { source: "Nullable<T> / T?", target: "Option<T>" }
+    - { source: "Tuple<T1,T2>", target: "(T1, T2)" }
+    - { source: "async Task<T>", target: "impl Future<Output = T>" }
+    - { source: "IEnumerable<T>", target: "impl Iterator<Item = T>" }
+    - { source: "ICollection<T>", target: "Vec<T> (或自定义 trait)" }
+    - { source: "IComparable<T>", target: "Ord trait" }
+    - { source: "IEquatable<T>", target: "PartialEq + Eq traits" }
+    - { source: "IFormattable", target: "Display trait" }
+    - { source: "IDisposable", target: "Drop trait" }
+    - { source: "IAsyncDisposable", target: "async_trait::AsyncDrop (手动实现)" }
+
+  manual_review:
+    - source: "class (引用类型)"
+      target_options:
+        - option: "struct (值语义)"
+          condition: "类型小且无需继承"
+        - option: "struct + Arc<T> (共享所有权)"
+          condition: "需要在多处共享"
+        - option: "enum (代数数据类型)"
+          condition: "有明确的多种形态（状态、类型标记等）"
+        - option: "trait + dyn (运行时多态)"
+          condition: "需要接口多态"
+      decision_guide: "C# class 默认引用语义，Rust 需要明确选择值或引用语义。优先 struct，需要共享时用 Arc"
+
+    - source: "struct (值类型)"
+      target_options:
+        - option: "struct (值语义)"
+          condition: "直接映射"
+        - option: "struct + Copy trait"
+          condition: "类型小于某个阈值且语义上是复制语义"
+      note: "C# struct 总是值类型，Rust struct 默认也是值类型"
+
+    - source: "interface"
+      target: "trait"
+      note: "C# 接口隐式实现，Rust trait 需显式 impl"
+      example: |
+        // C#: public interface IRepository { T GetById(int id); }
+        // Rust:
+        trait Repository {
+            fn get_by_id(&self, id: i32) -> Option<T>;
+        }
+
+    - source: "delegate / event"
+      target_options:
+        - option: "Fn/FnMut/FnOnce (闭包)"
+          condition: "简单委托"
+        - option: "自定义 trait (观察者模式)"
+          condition: "多订阅者事件"
+        - option: "回调函数 Vec"
+          condition: "需要存储多个回调"
+      example: |
+        // C#: public event EventHandler Clicked;
+        // Rust:
+        struct Button {
+            on_clicked: Vec<Box<dyn Fn()>>,
+        }
+        impl Button {
+            fn click(&mut self) {
+                for callback in &self.on_clicked {
+                    callback();
+                }
+            }
+        }
+
+    - source: "泛型 <T>"
+      target: "泛型 <T>"
+      note: "语法非常相似，直接映射"
+      example: |
+        // C#: class MyList<T> { T Get(int index); }
+        // Rust:
+        struct MyList<T> { ... }
+        impl<T> MyList<T> {
+            fn get(&self, index: usize) -> &T { ... }
+        }
+
+    - source: "async/await"
+      target: "async/await (tokio)"
+      note: "语法相似，需注意运行时选择（tokio 推荐）"
+      example: |
+        // C#: public async Task<string> GetDataAsync(string url) { ... }
+        // Rust:
+        async fn get_data(url: &str) -> Result<String, Error> { ... }
+
+    - source: "扩展方法"
+      target: "trait 方法 + impl"
+      note: "C# 扩展方法是静态方法，Rust 需定义 trait 并为目标类型 impl"
+      example: |
+        // C#: public static class StringExt { public static bool IsNullOrEmpty(this string s); }
+        // Rust:
+        trait IsNullOrEmpty {
+            fn is_null_or_empty(&self) -> bool;
+        }
+        impl IsNullOrEmpty for str {
+            fn is_null_or_empty(&self) -> bool { self.is_empty() }
+        }
+
+    - source: "属性 (Attribute)"
+      target: "派生宏 (Derive Macro)"
+      note: "C# 特性 → Rust derive"
+      example: |
+        // C#: [Serializable] class MyData { ... }
+        // Rust:
+        #[derive(Serialize, Deserialize)]
+        struct MyData { ... }
+
+    - source: "命名空间 (namespace)"
+      target: "模块 (mod)"
+      note: "C# namespace 与 Rust mod 对应"
+      example: |
+        // C#: MyCompany.MyApp.Services
+        // Rust:
+        mod my_company {
+            mod my_app {
+                mod services { ... }
+            }
+        }
+
+    - source: "Partial class"
+      target: "拆分 impl 块"
+      note: "Rust 可以有多个 impl 块，但必须在同一 crate 中"
+
+# 异步映射
+async_mapping:
+  rules:
+    - source: "async Task<T>"
+      target: "async fn() -> Result<T, E>"
+      example: |
+        // C#: public async Task<User> GetUserAsync(int id) { ... }
+        // Rust:
+        async fn get_user(id: i32) -> Result<User, UserError> { ... }
+
+    - source: "Task.WhenAll"
+      target: "futures::join! 或 tokio::join!"
+      example: |
+        // C#: await Task.WhenAll(task1, task2);
+        // Rust:
+        let (result1, result2) = tokio::join!(task1, task2);
+
+    - source: "Task.WhenAny"
+      target: "tokio::select!"
+      example: |
+        // C#: await Task.WhenAny(task1, task2);
+        // Rust:
+        tokio::select! {
+            result = task1 => { /* task1 先完成 */ }
+            result = task2 => { /* task2 先完成 */ }
+        }
+
+    - source: "CancellationToken"
+      target: "tokio::signal::CtrlC 或 context"
+      example: |
+        // C#: await LongRunningTask(token);
+        // Rust:
+        async fn long_running_task() -> Result<(), tokio::task::JoinError> {
+            tokio::signal::ctrl_c().await?;
+            Ok(())
+        }
+
+    - source: "IAsyncEnumerable<T>"
+      target: "impl Stream<Item = T>"
+      note: "使用 futures crate 的 Stream trait"
+
+    - source: "ValueTask<T>"
+      target: "impl Future<Output = T>"
+      note: "Rust async fn 通常返回 Future，即惰性求值"
+
+# 并发映射
+concurrency_mapping:
+  rules:
+    - source: "lock (Monitor)"
+      target: "std::sync::Mutex"
+      example: |
+        // C#: lock (obj) { ... }
+        // Rust:
+        {
+            let mut guard = mutex.lock().unwrap();
+            // ...
+        } // guard drop 时自动解锁
+
+    - source: "ReaderWriterLockSlim"
+      target: "std::sync::RwLock"
+      example: |
+        let data = RwLock::new(0);
+        {
+            let mut guard = data.write().unwrap();  // 写锁
+            *guard += 1;
+        }
+        {
+            let guard = data.read().unwrap();  // 读锁
+            println!("{}", *guard);
+        }
+
+    - source: "ConcurrentDictionary"
+      target: "dashmap::DashMap 或 std::collections::HashMap + Mutex"
+      note: "DashMap 提供无锁并发 HashMap"
+
+    - source: "SemaphoreSlim"
+      target: "tokio::sync::Semaphore"
+      example: |
+        let sem = Arc::new(tokio::sync::Semaphore::new(10));
+        let permit = sem.acquire().await?;
+        // 使用资源
+        drop(permit); // 释放
+
+    - source: "BlockingCollection"
+      target: "flume::bounded 或 crossbeam::channel"
+      example: |
+        let (tx, rx) = flume::bounded(100);
+        tx.send(item).await?;
+        let item = rx.recv().await?;
+
+# 代码模式映射
+pattern_mapping:
+  - source_pattern: "属性注入 (DI)"
+    target: "构造函数 + 显式注入"
+    example: |
+      // C#:
+      // public class MyService {
+      //     private readonly ILogger _logger;
+      //     public MyService(ILogger logger) { _logger = logger; }
+      // }
+      // Rust:
+      struct MyService {
+          logger: Arc<dyn Logger>,
+      }
+      impl MyService {
+          fn new(logger: Arc<dyn Logger>) -> Self {
+              Self { logger }
+          }
+      }
+
+  - source_pattern: "静态类"
+    target: "独立函数 (free function)"
+    note: "Rust 倾向 free function 而非静态类"
+    example: |
+      // C#: public static class MathHelper { public static int Add(int a, int b); }
+      // Rust:
+      pub fn add(a: i32, b: i32) -> i32 { a + b }
+
+  - source_pattern: "枚举 + 标记"
+    target: "enum + variant 携带数据"
+    example: |
+      // C#:
+      // public enum OrderStatus { Pending, Processing, Completed, Cancelled }
+      // public class Order { public OrderStatus Status; }
+      // Rust:
+      enum OrderStatus {
+          Pending,
+          Processing { started_at: DateTime },
+          Completed { completed_at: DateTime, receipt_id: String },
+          Cancelled { reason: String },
+      }
+
+  - source_pattern: "LINQ 查询"
+    target: "迭代器适配器"
+    example: |
+      // C#: var result = users.Where(u => u.Age > 18).Select(u => u.Name).ToList();
+      // Rust:
+      let result: Vec<_> = users.iter()
+          .filter(|u| u.age > 18)
+          .map(|u| u.name.clone())
+          .collect();
+
+  - source_pattern: "反射"
+    target: "尽量避免，用 trait + 泛型替代"
+    note: "Rust 不支持运行时反射，需在编译期通过 trait 约束"
+
+  - source_pattern: "特性标志"
+    target: "常量 + 条件编译"
+    example: |
+      const USE_NEW_FEATURE: bool = false;
+      #[cfg(feature = "new-feature")]
+      fn new_implementation() { ... }
+
+# ASP.NET Core → Tauri 映射
+aspnet_to_tauri:
+  - name: "Controller → Tauri Command"
+    example:
+      csharp: |
+        // ASP.NET Core Controller
+        [ApiController]
+        [Route("api/[controller]")]
+        public class UsersController : ControllerBase {
+            private readonly IUserService _service;
+            public UsersController(IUserService service) { _service = service; }
+
+            [HttpGet("{id}")]
+            public async Task<IActionResult> Get(int id) {
+                var user = await _service.GetByIdAsync(id);
+                if (user == null) return NotFound();
+                return Ok(user);
+            }
+        }
+      rust: |
+        // Tauri Command
+        #[tauri::command]
+        #[agent_command(domain = "user", safety = "Safe", call_mode = "StateInput", description = "获取用户")]
+        async fn get_user(
+            id: i32,
+            state: State<'_, AppState>,
+        ) -> Result<User, String> {
+            let service = state.user_service.read().await;
+            match service.get_by_id(id).await {
+                Some(user) => Ok(user),
+                None => Err("用户不存在".into()),
+            }
+        }
+
+  - name: "Entity Framework → SeaORM"
+    example:
+      csharp: |
+        // EF Core DbContext
+        public class AppDbContext : DbContext {
+            public DbSet<User> Users { get; set; }
+            public async Task<User> GetByIdAsync(int id) {
+                return await Users.FindAsync(id);
+            }
+        }
+      rust: |
+        // SeaORM Select
+        use sea_orm::EntityTrait;
+        let user = user::Entity::find_by_id(id)
+            .one(&db)
+            .await?
+            .ok_or("用户不存在")?;
+
+  - name: "Program.cs → main.rs + AppState"
+    example:
+      csharp: |
+        // ASP.NET Core 启动
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Services.AddScoped<IUserService, UserService>();
+        var app = builder.Build();
+        app.MapControllers();
+        app.Run();
+      rust: |
+        // Tauri 启动
+        fn main() {
+            tauri::Builder::default()
+                .manage(AppState::default())
+                .invoke_handler(tauri::generate_handler![
+                    commands::get_user,
+                    commands::create_user,
+                ])
+                .run(tauri::generate_context!())
+                .expect("error while running tauri application");
+        }
+
+# ── WPF/WinForms UI 到 React 映射 ──
+wpf_winforms_to_react:
+  description: "WPF/WinForms 桌面 UI 迁移到 React + Ant Design 的映射规则"
+  
+  # WPF 控件映射
+  wpf_control_mapping:
+    - source: "Button"
+      target: "Ant Design Button"
+      example: |
+        // C# (WPF):
+        // <Button Content="保存" Click="SaveButton_Click" IsEnabled="False"/>
+        // TypeScript:
+        <Button type="primary" disabled={!canSave} onClick={handleSave}>
+          保存
+        </Button>
+    
+    - source: "TextBox"
+      target: "Ant Design Input"
+      example: |
+        // C# (WPF):
+        // <TextBox Text="{Binding UserName}" TextChanged="TextBox_TextChanged"/>
+        // TypeScript:
+        <Input
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          placeholder="请输入用户名"
+        />
+    
+    - source: "ComboBox"
+      target: "Ant Design Select"
+      example: |
+        // C# (WPF):
+        // <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"/>
+        // TypeScript:
+        <Select
+          value={selected}
+          onChange={setSelected}
+          options={items.map(item => ({ label: item.Name, value: item.Id }))}
+        />
+    
+    - source: "DataGrid"
+      target: "Ant Design Table"
+      example: |
+        // C# (WPF):
+        // <DataGrid ItemsSource="{Binding Users}" AutoGenerateColumns="True"/>
+        // TypeScript:
+        <Table
+          columns={[
+            { title: '姓名', dataIndex: 'name' },
+            { title: '年龄', dataIndex: 'age' },
+            { title: '操作', render: (_, record) => <a onClick={() => handleEdit(record)}>编辑</a> },
+          ]}
+          dataSource={users}
+          rowKey="id"
+        />
+    
+    - source: "TreeView"
+      target: "Ant Design Tree"
+      example: |
+        // C# (WPF):
+        // <TreeView ItemsSource="{Binding TreeData}"/>
+        // TypeScript:
+        <Tree
+          treeData={treeData}
+          defaultExpandAll
+          onSelect={handleSelect}
+        />
+    
+    - source: "TabControl"
+      target: "Ant Design Tabs"
+      example: |
+        // C# (WPF):
+        // <TabControl>
+        //   <TabItem Header="基本信息">...</TabItem>
+        //   <TabItem Header="高级设置">...</TabItem>
+        // </TabControl>
+        // TypeScript:
+        <Tabs
+          items={[
+            { key: 'basic', label: '基本信息', children: <BasicInfo /> },
+            { key: 'advanced', label: '高级设置', children: <AdvancedSettings /> },
+          ]}
+        />
+    
+    - source: "ListBox"
+      target: "Ant Design List / Select"
+      example: |
+        // C# (WPF):
+        // <ListBox ItemsSource="{Binding Items}" SelectionMode="Extended"/>
+        // TypeScript (单选):
+        <Select mode="multiple" value={selectedKeys} onChange={setSelectedKeys} />
+        // 或 (多选列表):
+        <List
+          dataSource={items}
+          renderItem={(item) => <List.Item>{item.name}</List.Item>}
+        />
+    
+    - source: "CheckBox"
+      target: "Ant Design Checkbox"
+      example: |
+        // C# (WPF):
+        // <CheckBox Content="启用" IsChecked="{Binding IsEnabled}"/>
+        // TypeScript:
+        <Checkbox checked={isEnabled} onChange={(e) => setIsEnabled(e.target.checked)}>
+          启用
+        </Checkbox>
+    
+    - source: "RadioButton"
+      target: "Ant Design Radio.Group"
+      example: |
+        // C# (WPF):
+        // <RadioButton Content="选项1" IsChecked="{Binding Option1}"/>
+        // TypeScript:
+        <Radio.Group value={option} onChange={(e) => setOption(e.target.value)}>
+          <Radio value={1}>选项1</Radio>
+          <Radio value={2}>选项2</Radio>
+        </Radio.Group>
+    
+    - source: "DatePicker"
+      target: "Ant Design DatePicker"
+      example: |
+        // C# (WPF):
+        // <DatePicker SelectedDate="{Binding BirthDate}"/>
+        // TypeScript:
+        <DatePicker value={birthDate} onChange={setBirthDate} />
+    
+    - source: "ProgressBar"
+      target: "Ant Design Progress"
+      example: |
+        // C# (WPF):
+        // <ProgressBar Value="{Binding Progress}" Maximum="100"/>
+        // TypeScript:
+        <Progress percent={progress} status={progress === 100 ? 'success' : 'active'} />
+    
+    - source: "Slider"
+      target: "Ant Design Slider"
+      example: |
+        // C# (WPF):
+        // <Slider Value="{Binding Volume}" Minimum="0" Maximum="100"/>
+        // TypeScript:
+        <Slider min={0} max={100} value={volume} onChange={setVolume} />
+    
+    - source: "Menu"
+      target: "Ant Design Menu / Dropdown"
+      example: |
+        // C# (WPF):
+        // <Menu>
+        //   <MenuItem Header="文件">
+        //     <MenuItem Header="新建" Click="New_Click"/>
+        //   </MenuItem>
+        // </Menu>
+        // TypeScript:
+        <Menu
+          mode="horizontal"
+          items={[
+            {
+              key: 'file',
+              label: '文件',
+              children: [
+                { key: 'new', label: '新建', onClick: handleNew },
+              ],
+            },
+          ]}
+        />
+
+  # WinForms 控件映射
+  winforms_control_mapping:
+    - source: "Form"
+      target: "React 根组件 / Modal"
+      example: |
+        // C# (WinForms):
+        // public class MainForm : Form { ... }
+        // TypeScript:
+        export function MainForm() {
+          return <Layout>...</Layout>;
+        }
+    
+    - source: "Panel"
+      target: "div / Layout.Content"
+      example: |
+        // C# (WinForms):
+        // Panel panel1 = new Panel();
+        // TypeScript:
+        <div className="p-4">...</div>
+    
+    - source: "GroupBox"
+      target: "Ant Design Card"
+      example: |
+        // C# (WinForms):
+        // GroupBox groupBox1 = new GroupBox();
+        // groupBox1.Text = "用户信息";
+        // TypeScript:
+        <Card title="用户信息">...</Card>
+    
+    - source: "StatusStrip"
+      target: "Ant Design Layout.Footer"
+      example: |
+        // C# (WinForms):
+        // StatusStrip statusStrip1 = new StatusStrip();
+        // TypeScript:
+        <Layout.Footer>
+          <span>就绪</span>
+        </Layout.Footer>
+    
+    - source: "ToolStrip"
+      target: "Ant Design Toolbar / Space"
+      example: |
+        // C# (WinForms):
+        // ToolStrip toolStrip1 = new ToolStrip();
+        // TypeScript:
+        <Space>
+          <Button>新建</Button>
+          <Button>打开</Button>
+          <Button>保存</Button>
+        </Space>
+
+  # WPF 布局到 CSS 映射
+  layout_mapping:
+    - source: "StackPanel (Orientation=Horizontal)"
+      target: "flex flex-row"
+      example: |
+        <!-- WPF: <StackPanel Orientation="Horizontal"> -->
+        <div className="flex flex-row gap-4">
+          {children}
+        </div>
+    
+    - source: "StackPanel (Orientation=Vertical)"
+      target: "flex flex-col"
+      example: |
+        <!-- WPF: <StackPanel Orientation="Vertical"> -->
+        <div className="flex flex-col gap-4">
+          {children}
+        </div>
+    
+    - source: "Grid"
+      target: "CSS Grid"
+      example: |
+        <!-- WPF: <Grid Grid.ColumnDefinitions="2*,3*" Grid.RowDefinitions="Auto,*,Auto"> -->
+        <div className="grid grid-cols-2 lg:grid-cols-5 grid-rows-[auto,1fr,auto]">
+          {children}
+        </div>
+    
+    - source: "DockPanel"
+      target: "Flexbox + absolute"
+      example: |
+        <!-- WPF DockPanel.Top/DockPanel.Bottom/DockPanel.Left/DockPanel.Right/LastChildFill -->
+        <div className="flex flex-col h-screen">
+          <header className="flex-shrink-0">{topContent}</header>
+          <div className="flex flex-1">
+            <aside className="w-64">{leftContent}</aside>
+            <main className="flex-1">{centerContent}</main>
+          </div>
+          <footer className="flex-shrink-0">{bottomContent}</footer>
+        </div>
+    
+    - source: "WrapPanel"
+      target: "flex flex-wrap"
+      example: |
+        <!-- WPF: <WrapPanel> -->
+        <div className="flex flex-wrap gap-2">
+          {children}
+        </div>
+    
+    - source: "UniformGrid"
+      target: "grid grid-cols-N"
+      example: |
+        <!-- WPF: <UniformGrid Columns="3"> -->
+        <div className="grid grid-cols-3">
+          {children}
+        </div>
+
+  # WPF 绑定到 React 状态映射
+  binding_mapping:
+    - source: "{Binding PropertyName}"
+      target: "useState / Zustand"
+      example: |
+        // C# (WPF): <TextBox Text="{Binding UserName}"/>
+        // TypeScript:
+        const [userName, setUserName] = useState('');
+        <Input value={userName} onChange={(e) => setUserName(e.target.value)} />
+    
+    - source: "{Binding Path=ItemsSource}"
+      target: "props.dataSource"
+      example: |
+        // C# (WPF): <ListBox ItemsSource="{Binding Products}"/>
+        // TypeScript:
+        <List dataSource={products} />
+    
+    - source: "{Binding Converter}"
+      target: "useMemo 转换函数"
+      example: |
+        // C# (WPF): <TextBlock Text="{Binding Price, Converter={StaticResource CurrencyConverter}}"/>
+        // TypeScript:
+        const displayPrice = useMemo(() => formatCurrency(price), [price]);
+        <Text>{displayPrice}</Text>
+    
+    - source: "INotifyPropertyChanged"
+      target: "useState / Zustand 自动更新"
+      example: |
+        // C# 实现 INotifyPropertyChanged:
+        // public event PropertyChangedEventHandler PropertyChanged;
+        // TypeScript 无需手动实现，React 自动处理
+    
+    - source: "ObservableCollection"
+      target: "useState<Array> / Zustand 数组操作"
+      example: |
+        // C#: ObservableCollection<string> names = new ObservableCollection<string>();
+        // names.Add("Alice");
+        // TypeScript:
+        const [names, setNames] = useState<string[]>([]);
+        setNames([...names, 'Alice']);
+
+  # WPF 命令模式映射
+  command_mapping:
+    - source: "ICommand / RelayCommand"
+      target: "useCallback / 事件处理器"
+      example: |
+        // C# (WPF MVVM):
+        // public ICommand SaveCommand { get; }
+        // TypeScript:
+        const handleSave = useCallback(() => {
+          // 保存逻辑
+        }, [dependencies]);
+    
+    - source: "CommandBinding"
+      target: "条件渲染 + 禁用状态"
+      example: |
+        // C# (WPF): <Button Command="{Binding SaveCommand}" CommandParameter="{Binding CurrentItem}"/>
+        // TypeScript:
+        <Button onClick={() => handleSave(currentItem)} disabled={!canSave}>
+          保存
+        </Button>
+
+  # 迁移检查清单
+  migration_checklist:
+    - [ ] WPF/WinForms 控件已全部识别
+    - [ ] 布局系统已迁移（StackPanel → flex, Grid → CSS Grid）
+    - [ ] 数据绑定已迁移（INotifyPropertyChanged → useState）
+    - [ ] 命令模式已迁移（ICommand → useCallback）
+    - [ ] 样式/主题已迁移
+    - [ ] 资源字典已迁移
+    - [ ] 国际化已迁移
+    - [ ] 路由/导航已迁移
+    - [ ] 对话框/窗口已迁移
+    - [ ] 拖放操作已迁移
+    - [ ] 打印功能已处理
+    - [ ] 文件对话框已迁移
+    - [ ] 系统托盘已迁移
+    - [ ] 注册配置已迁移

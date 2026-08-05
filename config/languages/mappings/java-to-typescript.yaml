@@ -1,0 +1,821 @@
+# Java → TypeScript 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: java-to-typescript
+source: java
+target: typescript
+description: "从 Java 迁移到 TypeScript 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "number", note: "TypeScript 用 number 表示所有数值" }
+    - { source: "long", target: "bigint", note: "大整数用 bigint" }
+    - { source: "double", target: "number" }
+    - { source: "float", target: "number" }
+    - { source: "boolean", target: "boolean" }
+    - { source: "char", target: "string", note: "TypeScript 无单独 char 类型" }
+    - { source: "String", target: "string" }
+    - { source: "List<T>", target: "T[]" }
+    - { source: "ArrayList<T>", target: "T[]" }
+    - { source: "Set<T>", target: "Set<T>" }
+    - { source: "HashSet<T>", target: "Set<T>" }
+    - { source: "Map<K,V>", target: "Map<K, V>" }
+    - { source: "HashMap<K,V>", target: "Map<K, V>" 或 Record<K, V>" }
+    - { source: "TreeMap<K,V>", target: "Map<K, V>" (无序) 或手动排序" }
+    - { source: "Optional<T>", target: "T | undefined" }
+    - { source: "CompletableFuture<T>", target: "Promise<T>" }
+    - { source: "Stream<T>", target: "T[] (或异步迭代)" }
+    - { source: "Function<T,R>", target: "(input: T) => R" }
+    - { source: "Supplier<T>", target: "() => T" }
+    - { source: "Consumer<T>", target: "(input: T) => void" }
+    - { source: "Predicate<T>", target: "(input: T) => boolean" }
+    - { source: "Runnable", target: "() => void" }
+
+  manual_review:
+    - source: "类 (class)"
+      target_options:
+        - option: "class (ES6 class)"
+          condition: "需要继承或私有成员"
+        - option: "interface + 工厂函数"
+          condition: "仅需要类型定义"
+        - option: "type + 工具函数"
+          condition: "纯数据载体"
+        - option: "Zustand Store (如果是状态管理)"
+          condition: "该类管理状态"
+      note: "TypeScript 支持 class，但函数式 + 组合更惯用"
+
+    - source: "接口 (interface)"
+      target: "interface"
+      note: "Java 接口 → TypeScript interface，语法相似"
+      example: |
+        // Java: public interface UserService { User findById(Long id); }
+        // TypeScript:
+        interface UserService {
+            findById(id: bigint): Promise<User | null>;
+        }
+
+    - source: "继承 (extends)"
+      target_options:
+        - option: "class extends"
+          condition: "需要继承实现"
+        - option: "组合 (composition)"
+          condition: "推荐方式，将父类作为成员"
+        - option: "interface extends"
+          condition: "仅扩展接口"
+      example: |
+        // Java: class AdminUser extends User { ... }
+        // TypeScript (继承):
+        class AdminUser extends User { ... }
+        // TypeScript (组合 - 推荐):
+        type AdminUser = User & { role: 'admin'; permissions: string[] };
+
+    - source: "枚举 (enum)"
+      target_options:
+        - option: "enum (数字枚举)"
+          condition: "需要数字值"
+        - option: "enum (字符串枚举)"
+          condition: "需要语义化字符串"
+        - option: "const object + union type"
+          condition: "推荐方式，更类型安全"
+      example: |
+        // Java: enum Status { ACTIVE, INACTIVE, PENDING }
+        // TypeScript (推荐):
+        export const Status = {
+            ACTIVE: 'ACTIVE',
+            INACTIVE: 'INACTIVE',
+            PENDING: 'PENDING',
+        } as const;
+        export type Status = typeof Status[keyof typeof Status];
+
+    - source: "泛型 <T>"
+      target: "泛型 <T>"
+      note: "语法相似，TypeScript 泛型更灵活"
+      example: |
+        // Java: class Repository<T> { T findById(Long id); }
+        // TypeScript:
+        interface Repository<T> {
+            findById(id: bigint): Promise<T | null>;
+        }
+
+    - source: "注解 (Annotation)"
+      target: "装饰器 (Decorator) - 实验性或 Reflect Metadata"
+      note: "TypeScript 装饰器仍为实验性特性"
+      example: |
+        // Java: @Entity @Table(name = "users")
+        // TypeScript (如果使用 TypeORM):
+        // @Entity()
+        // @Column({ name: 'users' })
+        // class User { ... }
+
+    - source: "lambda / 函数式接口"
+      target: "箭头函数"
+      note: "Java lambda → TypeScript 箭头函数，语法更简洁"
+      example: |
+        // Java: users.stream().filter(u -> u.getAge() > 18).map(User::getName).collect(toList());
+        // TypeScript:
+        users.filter(u => u.age > 18).map(u => u.name);
+
+    - source: "方法引用 (::)"
+      target: "箭头函数"
+      example: |
+        // Java: list.forEach(System.out::println);
+        // TypeScript:
+        list.forEach(item => console.log(item));
+
+    - source: "静态方法"
+      target: "类静态方法或模块函数"
+      note: "TypeScript 推荐 free function 而非静态类"
+      example: |
+        // Java: public class MathUtils { public static int add(int a, int b); }
+        // TypeScript:
+        // mathUtils.ts
+        export function add(a: number, b: number): number {
+            return a + b;
+        }
+
+    - source: "内部类"
+      target: "独立文件或嵌套 namespace"
+      note: "TypeScript 通常每个文件一个导出类型"
+
+    - source: "record (Java 14+)"
+      target: "type 或 interface"
+      example: |
+        // Java: public record Point(int x, int y) {}
+        // TypeScript:
+        interface Point {
+            readonly x: number;
+            readonly y: number;
+        }
+        // 或使用 readonly 构造器
+        const createPoint = (x: number, y: number): Point => ({ x, y });
+
+# 异步映射
+async_mapping:
+  rules:
+    - source: "CompletableFuture<T>"
+      target: "Promise<T>"
+      example: |
+        // Java: CompletableFuture<User> future = ...;
+        // TypeScript:
+        const future: Promise<User> = ...;
+        const user = await future;
+
+    - source: "Future<T>"
+      target: "Promise<T>"
+      note: "Java Future → TypeScript Promise"
+
+    - source: "ExecutorService"
+      target: "setTimeout / setInterval / Worker"
+      note: "JavaScript 是单线程，用异步 API 替代线程池"
+
+    - source: "parallelStream"
+      target: "Promise.all 或 Worker"
+      note: "浏览器中并行计算用 Web Worker"
+
+    - source: "@Async"
+      target: "async function"
+      example: |
+        // Java: @Async public CompletableFuture<User> findUser(Long id) { ... }
+        // TypeScript:
+        async function findUser(id: bigint): Promise<User> { ... }
+
+    - source: "Reactor Mono/Flux"
+      target: "Promise/AsyncGenerator"
+      note: "响应式流需映射到异步迭代器"
+
+# 并发映射
+concurrency_mapping:
+  rules:
+    - source: "synchronized"
+      target: "无需（JavaScript 单线程）"
+      note: "JavaScript 单线程，无需显式同步。异步操作通过 Promise 串行化"
+
+    - source: "AtomicInteger/Long"
+      target: "SharedArrayBuffer + Atomics (如需要)"
+      note: "通常用简单变量即可，因为单线程"
+
+    - source: "CountDownLatch"
+      target: "Promise.all"
+      example: |
+        // Java: latch.await();
+        // TypeScript:
+        await Promise.all([task1(), task2()]);
+
+    - source: "BlockingQueue"
+      target: "自定义异步队列"
+      note: "JavaScript 无原生阻塞队列，需基于 Promise 实现"
+
+    - source: "Thread.sleep"
+      target: "setTimeout / delay"
+      example: |
+        // Java: Thread.sleep(1000);
+        // TypeScript:
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 或使用：
+        import { delay } from 'some-utils';
+        await delay(1000);
+
+# Spring Boot → Tauri/React 映射
+spring_to_tauri:
+  - name: "REST Controller → Tauri Command + React Hook"
+    example:
+      java: |
+        // Spring Boot REST Controller
+        @RestController
+        @RequestMapping("/api/users")
+        public class UserController {
+            @GetMapping("/{id}")
+            public ResponseEntity<User> getUser(@PathVariable Long id) {
+                User user = userService.findById(id);
+                return ResponseEntity.ok(user);
+            }
+        }
+      rust: |
+        // Tauri Command
+        #[tauri::command]
+        #[agent_command(domain = "user", safety = "Safe", call_mode = "StateInput", description = "获取用户")]
+        async fn get_user(id: i64) -> Result<User, String> {
+            user_service::find_by_id(id)
+                .await
+                .map_err(|e| e.to_string())
+        }
+      typescript: |
+        // React Hook
+        function useUser(id: bigint | null) {
+            const { data: user, error, isLoading } = useQuery({
+                queryKey: ['user', id],
+                queryFn: () => invoke<User>('get_user', { id }),
+                enabled: id !== null,
+            });
+            return { user, error, isLoading };
+        }
+
+  - name: "Service → Zustand Store"
+    example:
+      java: |
+        // Spring Service
+        @Service
+        public class UserService {
+            @Autowired
+            private UserRepository userRepository;
+
+            public User findById(Long id) {
+                return userRepository.findById(id).orElse(null);
+            }
+        }
+      typescript: |
+        // Zustand Store
+        interface UserState {
+            users: Map<bigint, User>;
+            isLoading: boolean;
+            error: string | null;
+            fetchUser: (id: bigint) => Promise<void>;
+        }
+
+        export const useUserStore = create<UserState>((set, get) => ({
+            users: new Map(),
+            isLoading: false,
+            error: null,
+            fetchUser: async (id) => {
+                set({ isLoading: true, error: null });
+                try {
+                    const user = await invoke<User>('get_user', { id });
+                    const newUsers = new Map(get().users);
+                    newUsers.set(id, user);
+                    set({ users: newUsers, isLoading: false });
+                } catch (e) {
+                    set({ error: String(e), isLoading: false });
+                }
+            },
+        }));
+
+  - name: "Repository → Tauri 命令 + 数据库层"
+    example:
+      java: |
+        // Spring Data Repository
+        public interface UserRepository extends JpaRepository<User, Long> {
+            Optional<User> findByName(String name);
+            List<User> findByAgeGreaterThan(int age);
+        }
+      rust: |
+        // SeaORM 查询
+        pub async fn find_by_name(name: &str, db: &DatabaseConnection) -> Result<Option<Model>, DbError> {
+            Entity::find()
+                .filter(Column::Name.eq(name))
+                .one(db)
+                .await
+        }
+
+  - name: "配置 (@Value)"
+    target: "环境变量 + 配置文件"
+    example:
+      java: |
+        @Value("${app.database.url}")
+        private String databaseUrl;
+      typescript: |
+        // 前端 (构建时注入)
+        const databaseUrl = import.meta.env.VITE_DATABASE_URL;
+      rust: |
+        // 后端 (运行时读取)
+        let database_url = std::env::var("DATABASE_URL")?;
+
+# 异常处理映射
+exception_mapping:
+  rules:
+    - source: "try-catch-finally"
+      target: "try-catch-finally"
+      note: "语法几乎相同"
+      example: |
+        // Java:
+        // try { process(); } catch (Exception e) { handle(e); } finally { cleanup(); }
+        // TypeScript:
+        try {
+            await process();
+        } catch (error) {
+            handle(error);
+        } finally {
+            cleanup();
+        }
+
+    - source: "受检异常 (checked exception)"
+      target: "Error 类 + throw"
+      note: "TypeScript 无受检异常，所有异常均为非受检"
+      example: |
+        // Java: throws IOException
+        // TypeScript:
+        throw new Error('IO failed');
+
+    - source: "自定义异常类"
+      target: "自定义 Error 子类"
+      example: |
+        // Java: public class BusinessException extends RuntimeException
+        // TypeScript:
+        class BusinessError extends Error {
+            constructor(message: string, public code: number) {
+                super(message);
+                this.name = 'BusinessError';
+            }
+        }
+
+# 代码风格映射
+style_mapping:
+  - java_naming:
+    - class: PascalCase → PascalCase (保持一致)
+    - method: camelCase → camelCase (保持一致)
+    - constant: UPPER_SNAKE_CASE → UPPER_SNAKE_CASE (保持一致)
+    - package: lowercase → 模块用 lowercase + 文件名用 kebab-case
+    - variable: camelCase → camelCase (保持一致)
+  - typescript_conventions:
+    - 文件命名：kebab-case (如 user-service.ts)
+    - 组件命名：PascalCase (如 UserProfile.tsx)
+    - 严格模式：always
+    - 类型注解：公共 API 必须有类型注解
+    - 禁止 any：尽量避免，用 unknown 替代
+
+# ── Swing/JavaFX UI 到 React 映射 ──
+swing_javafx_to_react:
+  description: "Java Swing/JavaFX 桌面 UI 迁移到 React + Ant Design 的映射规则"
+  
+  # Swing 控件映射
+  swing_component_mapping:
+    - source: "JButton"
+      target: "Ant Design Button"
+      example: |
+        // Java (Swing):
+        // JButton button = new JButton("保存");
+        // button.addActionListener(e -> save());
+        // TypeScript:
+        <Button type="primary" onClick={handleSave}>保存</Button>
+    
+    - source: "JTextField"
+      target: "Ant Design Input"
+      example: |
+        // Java (Swing):
+        // JTextField textField = new JTextField();
+        // textField.addActionListener(e -> update());
+        // TypeScript:
+        <Input value={value} onChange={(e) => setValue(e.target.value)} />
+    
+    - source: "JComboBox"
+      target: "Ant Design Select"
+      example: |
+        // Java (Swing):
+        // JComboBox<String> combo = new JComboBox<>(items);
+        // TypeScript:
+        <Select value={selected} onChange={setSelected} options={options} />
+    
+    - source: "JTable"
+      target: "Ant Design Table"
+      example: |
+        // Java (Swing):
+        // JTable table = new JTable(data, columns);
+        // TypeScript:
+        <Table columns={columns} dataSource={data} rowKey="id" />
+    
+    - source: "JTree"
+      target: "Ant Design Tree"
+      example: |
+        // Java (Swing):
+        // JTree tree = new JTree(treeModel);
+        // TypeScript:
+        <Tree treeData={treeData} onSelect={handleSelect} />
+    
+    - source: "JTabbedPane"
+      target: "Ant Design Tabs"
+      example: |
+        // Java (Swing):
+        // JTabbedPane tabs = new JTabbedPane();
+        // tabs.addTab("基本", basicPanel);
+        // TypeScript:
+        <Tabs items={[
+          { key: 'basic', label: '基本', children: <Basic /> },
+        ]} />
+    
+    - source: "JCheckBox"
+      target: "Ant Design Checkbox"
+      example: |
+        // Java (Swing):
+        // JCheckBox checkBox = new JCheckBox("启用");
+        // TypeScript:
+        <Checkbox checked={checked} onChange={(e) => setChecked(e.target.checked)}>
+          启用
+        </Checkbox>
+    
+    - source: "JRadioButton"
+      target: "Ant Design Radio.Group"
+      example: |
+        // Java (Swing):
+        // JRadioButton radio = new JRadioButton("选项1");
+        // TypeScript:
+        <Radio.Group value={value} onChange={(e) => setValue(e.target.value)}>
+          <Radio value={1}>选项1</Radio>
+        </Radio.Group>
+    
+    - source: "JList"
+      target: "Ant Design List / Select"
+      example: |
+        // Java (Swing):
+        // JList<String> list = new JList<>(items);
+        // TypeScript (多选):
+        <Select mode="multiple" value={selected} onChange={setSelected} />
+    
+    - source: "JProgressBar"
+      target: "Ant Design Progress"
+      example: |
+        // Java (Swing):
+        // JProgressBar progress = new JProgressBar(0, 100);
+        // progress.setValue(50);
+        // TypeScript:
+        <Progress percent={50} />
+    
+    - source: "JSlider"
+      target: "Ant Design Slider"
+      example: |
+        // Java (Swing):
+        // JSlider slider = new JSlider(0, 100, 50);
+        // TypeScript:
+        <Slider min={0} max={100} value={50} onChange={setValue} />
+    
+    - source: "JFileChooser"
+      target: "Ant Design Upload / Tauri Dialog"
+      example: |
+        // Java (Swing):
+        // JFileChooser chooser = new JFileChooser();
+        // int result = chooser.showOpenDialog(null);
+        // TypeScript:
+        <Upload beforeUpload={handleFileSelect}>
+          <Button>选择文件</Button>
+        </Upload>
+        // 或使用 Tauri:
+        const path = await open({ multiple: false });
+    
+    - source: "JColorChooser"
+      target: "颜色选择组件 / Ant Design ColorPicker"
+      example: |
+        // Java (Swing):
+        // Color color = JColorChooser.showDialog(null, "选择颜色", Color.RED);
+        // TypeScript:
+        <ColorPicker value={color} onChange={setColor} />
+    
+    - source: "JSpinner"
+      target: "Ant Design InputNumber"
+      example: |
+        // Java (Swing):
+        // JSpinner spinner = new JSpinner(new SpinnerNumberModel(0, 0, 100, 1));
+        // TypeScript:
+        <InputNumber min={0} max={100} value={value} onChange={setValue} />
+    
+    - source: "JDialog"
+      target: "Ant Design Modal"
+      example: |
+        // Java (Swing):
+        // JDialog dialog = new JDialog(parent, true);
+        // TypeScript:
+        <Modal open={visible} onOk={handleOk} onCancel={handleCancel} title="标题">
+          内容
+        </Modal>
+    
+    - source: "JOptionPane"
+      target: "message / Modal / notification"
+      example: |
+        // Java (Swing):
+        // JOptionPane.showMessageDialog(null, "错误", "错误", JOptionPane.ERROR_MESSAGE);
+        // TypeScript:
+        message.error({ content: '错误' });
+        // 或:
+        Modal.error({ title: '错误', content: '错误信息' });
+    
+    - source: "JToolBar"
+      target: "Ant Design Space / Toolbar"
+      example: |
+        // Java (Swing):
+        // JToolBar toolbar = new JToolBar();
+        // TypeScript:
+        <Space>
+          <Button>新建</Button>
+          <Button>打开</Button>
+          <Button>保存</Button>
+        </Space>
+    
+    - source: "JStatusBar"
+      target: "Ant Design Layout.Footer"
+      example: |
+        // Java (Swing):
+        // JLabel statusLabel = new JLabel("就绪");
+        // frame.getContentPane().add(statusLabel, BorderLayout.SOUTH);
+        // TypeScript:
+        <Layout.Footer>就绪</Layout.Footer>
+
+  # JavaFX 控件映射
+  javafx_component_mapping:
+    - source: "Button"
+      target: "Ant Design Button"
+      example: |
+        // Java (JavaFX):
+        // Button button = new Button("保存");
+        // button.setOnAction(e -> save());
+        // TypeScript:
+        <Button type="primary" onClick={handleSave}>保存</Button>
+    
+    - source: "TextField"
+      target: "Ant Design Input"
+      example: |
+        // Java (JavaFX):
+        // TextField textField = new TextField();
+        // TypeScript:
+        <Input value={value} onChange={(e) => setValue(e.target.value)} />
+    
+    - source: "ComboBox"
+      target: "Ant Design Select"
+      example: |
+        // Java (JavaFX):
+        // ComboBox<String> combo = new ComboBox<>(items);
+        // TypeScript:
+        <Select value={selected} onChange={setSelected} options={options} />
+    
+    - source: "TableView"
+      target: "Ant Design Table"
+      example: |
+        // Java (JavaFX):
+        // TableView<User> tableView = new TableView<>();
+        // TypeScript:
+        <Table columns={columns} dataSource={data} rowKey="id" />
+    
+    - source: "TreeView"
+      target: "Ant Design Tree"
+      example: |
+        // Java (JavaFX):
+        // TreeItem<String> root = new TreeItem<>("Root");
+        // TreeView<String> treeView = new TreeView<>(root);
+        // TypeScript:
+        <Tree treeData={treeData} />
+    
+    - source: "TabPane"
+      target: "Ant Design Tabs"
+      example: |
+        // Java (JavaFX):
+        // TabPane tabPane = new TabPane();
+        // TypeScript:
+        <Tabs items={tabs} />
+    
+    - source: "ListView"
+      target: "Ant Design List"
+      example: |
+        // Java (JavaFX):
+        // ListView<String> listView = new ListView<>(items);
+        // TypeScript:
+        <List dataSource={items} renderItem={(item) => <List.Item>{item}</List.Item>} />
+    
+    - source: "CheckBox"
+      target: "Ant Design Checkbox"
+      example: |
+        // Java (JavaFX):
+        // CheckBox checkBox = new CheckBox("启用");
+        // TypeScript:
+        <Checkbox checked={checked} onChange={(e) => setChecked(e.target.checked)}>
+          启用
+        </Checkbox>
+    
+    - source: "RadioButton"
+      target: "Ant Design Radio.Group"
+      example: |
+        // Java (JavaFX):
+        // RadioButton radio = new RadioButton("选项1");
+        // TypeScript:
+        <Radio.Group value={value} onChange={(e) => setValue(e.target.value)}>
+          <Radio value={1}>选项1</Radio>
+        </Radio.Group>
+    
+    - source: "DatePicker"
+      target: "Ant Design DatePicker"
+      example: |
+        // Java (JavaFX):
+        // DatePicker datePicker = new DatePicker();
+        // TypeScript:
+        <DatePicker value={date} onChange={setDate} />
+    
+    - source: "ProgressBar"
+      target: "Ant Design Progress"
+      example: |
+        // Java (JavaFX):
+        // ProgressBar progressBar = new ProgressBar(0.5);
+        // TypeScript:
+        <Progress percent={50} />
+    
+    - source: "Slider"
+      target: "Ant Design Slider"
+      example: |
+        // Java (JavaFX):
+        // Slider slider = new Slider(0, 100, 50);
+        // TypeScript:
+        <Slider min={0} max={100} value={50} onChange={setValue} />
+    
+    - source: "MenuBar"
+      target: "Ant Design Menu"
+      example: |
+        // Java (JavaFX):
+        // MenuBar menuBar = new MenuBar(fileMenu, editMenu);
+        // TypeScript:
+        <Menu mode="horizontal" items={[
+          { key: 'file', label: '文件', children: [...] },
+        ]} />
+    
+    - source: "ToolBar"
+      target: "Ant Design Space / Toolbar"
+      example: |
+        // Java (JavaFX):
+        // ToolBar toolBar = new ToolBar(new Button("新建"), new Button("打开"));
+        // TypeScript:
+        <Space>
+          <Button>新建</Button>
+          <Button>打开</Button>
+        </Space>
+    
+    - source: "Dialog"
+      target: "Ant Design Modal"
+      example: |
+        // Java (JavaFX):
+        // Dialog<ButtonType> dialog = new Dialog<>();
+        // TypeScript:
+        <Modal open={visible} onOk={handleOk} onCancel={handleCancel}>
+          内容
+        </Modal>
+
+  # Swing/JavaFX 布局到 CSS 映射
+  layout_mapping:
+    - source: "BorderLayout"
+      target: "Flexbox (header/main/footer + sidebar)"
+      example: |
+        // Java (Swing):
+        // frame.setLayout(new BorderLayout());
+        // frame.add(northPanel, BorderLayout.NORTH);
+        // TypeScript:
+        <div className="flex flex-col h-screen">
+          <header>{north}</header>
+          <div className="flex flex-1">
+            <aside className="w-64">{west}</aside>
+            <main className="flex-1">{center}</main>
+            <aside className="w-64">{east}</aside>
+          </div>
+          <footer>{south}</footer>
+        </div>
+    
+    - source: "GridBagLayout"
+      target: "CSS Grid"
+      example: |
+        // Java (Swing):
+        // panel.setLayout(new GridBagLayout());
+        // TypeScript:
+        <div className="grid grid-cols-4 gap-4">
+          <div className="col-span-2">...</div>
+          <div>...</div>
+        </div>
+    
+    - source: "FlowLayout"
+      target: "flex flex-wrap"
+      example: |
+        // Java (Swing):
+        // panel.setLayout(new FlowLayout());
+        // TypeScript:
+        <div className="flex flex-wrap gap-2">
+          {children}
+        </div>
+    
+    - source: "BoxLayout"
+      target: "flex flex-col / flex-row"
+      example: |
+        // Java (Swing):
+        // panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        // TypeScript:
+        <div className="flex flex-col gap-4">
+          {children}
+        </div>
+    
+    - source: "GridLayout"
+      target: "grid grid-cols-N"
+      example: |
+        // Java (Swing):
+        // panel.setLayout(new GridLayout(3, 3));
+        // TypeScript:
+        <div className="grid grid-cols-3 gap-2">
+          {children}
+        </div>
+    
+    - source: "GroupBox (BorderFactory)"
+      target: "Ant Design Card"
+      example: |
+        // Java (Swing):
+        // panel.setBorder(BorderFactory.createTitledBorder("用户信息"));
+        // TypeScript:
+        <Card title="用户信息">
+          {children}
+        </Card>
+
+  # Java 事件模型到 React 映射
+  event_mapping:
+    - source: "addActionListener"
+      target: "onClick / onChange"
+      example: |
+        // Java:
+        // button.addActionListener(e -> handleClick());
+        // TypeScript:
+        <Button onClick={handleClick}>按钮</Button>
+    
+    - source: "addChangeListener"
+      target: "onChange"
+      example: |
+        // Java:
+        // slider.addChangeListener(e -> handleChange());
+        // TypeScript:
+        <Slider onChange={handleChange} />
+    
+    - source: "addKeyListener"
+      target: "onKeyDown / onKeyPress"
+      example: |
+        // Java:
+        // textField.addKeyListener(new KeyAdapter() {
+        //     public void keyPressed(KeyEvent e) { ... }
+        // });
+        // TypeScript:
+        <Input onKeyDown={(e) => handleKey(e)} />
+    
+    - source: "addMouseListener"
+      target: "onClick / onMouseEnter / onMouseLeave"
+      example: |
+        // Java:
+        // button.addMouseListener(new MouseAdapter() {
+        //     public void mouseClicked(MouseEvent e) { ... }
+        // });
+        // TypeScript:
+        <Button onClick={handleClick} onMouseEnter={handleEnter} />
+    
+    - source: "addWindowListener"
+      target: "useEffect + 事件监听"
+      example: |
+        // Java:
+        // frame.addWindowListener(new WindowAdapter() {
+        //     public void windowClosed(WindowEvent e) { ... }
+        // });
+        // TypeScript:
+        useEffect(() => {
+          window.addEventListener('beforeunload', handleUnload);
+          return () => window.removeEventListener('beforeunload', handleUnload);
+        }, []);
+
+  # 迁移检查清单
+  migration_checklist:
+    - [ ] Swing/JavaFX 控件已全部识别
+    - [ ] 布局系统已迁移（BorderLayout → Flexbox, GridBagLayout → CSS Grid）
+    - [ ] 事件模型已迁移（addActionListener → onClick）
+    - [ ] 数据绑定已迁移（PropertyChangeListener → useState）
+    - [ ] 线程模型已迁移（SwingWorker → async/await + useEffect）
+    - [ ] 表格模型已迁移（TableModel → Table columns + dataSource）
+    - [ ] 树形模型已迁移（TreeModel → Tree treeData）
+    - [ ] 对话框已迁移（JDialog → Modal）
+    - [ ] 文件对话框已迁移（JFileChooser → Upload/Tauri Dialog）
+    - [ ] 菜单系统已迁移（JMenuBar → Menu）
+    - [ ] 工具栏已迁移（JToolBar → Space/Toolbar）
+    - [ ] 状态栏已迁移（JStatusBar → Layout.Footer）
+    - [ ] 国际化已迁移
+    - [ ] 样式/主题已迁移
+    - [ ] 资源加载已处理

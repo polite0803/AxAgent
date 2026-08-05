@@ -1,0 +1,209 @@
+# Go 源语言配置
+# 用于跨语言迁移的源语言特性定义
+id: go
+name: Go
+go_versions: ["Go 1.21+", "Go 1.22", "Go 1.23"]
+file_extensions: [.go]
+common_frameworks:
+  - Gin / Echo (Web 框架)
+  - gRPC (RPC 框架)
+  - Fx (依赖注入)
+  - Cobra (CLI 框架)
+  - Fiber (Web 框架)
+
+# 类型系统
+type_system:
+  native_types:
+    - { go: "int", common: "integer", size: "平台相关（通常 64 位）" }
+    - { go: "int8", common: "integer", size: "8 位" }
+    - { go: "int16", common: "integer", size: "16 位" }
+    - { go: "int32", common: "integer", size: "32 位" }
+    - { go: "int64", common: "integer", size: "64 位" }
+    - { go: "uint", common: "unsigned_integer", size: "平台相关" }
+    - { go: "uint8", common: "unsigned_integer", size: "8 位" }
+    - { go: "uint16", common: "unsigned_integer", size: "16 位" }
+    - { go: "uint32", common: "unsigned_integer", size: "32 位" }
+    - { go: "uint64", common: "unsigned_integer", size: "64 位" }
+    - { go: "uintptr", common: "unsigned_integer", size: "指针大小" }
+    - { go: "float32", common: "float", size: "32 位" }
+    - { go: "float64", common: "float", size: "64 位" }
+    - { go: "bool", common: "boolean", size: "1 位" }
+    - { go: "string", common: "string", size: "动态（UTF-8）" }
+    - { go: "byte (uint8)", common: "byte", size: "8 位" }
+    - { go: "rune (int32)", common: "character", size: "32 位 (Unicode)" }
+    - { go: "[n]T", common: "array<T>", size: "固定长度" }
+    - { go: "[]T", common: "slice<T>", size: "动态（可变）" }
+    - { go: "map[K]V", common: "map<K,V>", size: "动态（哈希表）" }
+    - { go: "struct", common: "struct", size: "复合类型" }
+    - { go: "interface{} / any", common: "any", size: "任意类型" }
+    - { go: "error", common: "error", size: "错误接口" }
+    - { go: "func", common: "function", size: "函数" }
+    - { go: "complex64", common: "complex", size: "64 位复数" }
+    - { go: "complex128", common: "complex", size: "128 位复数" }
+
+  special_types:
+    - name: 空接口 (interface{} / any)
+      description: 接受任意类型的空接口
+      common_representation: "any_type"
+      migration_risk: "high"
+      note: "迁移时需确定具体类型或使用泛型"
+    - name: 方法集 (method set)
+      description: 类型的方法集合
+      common_representation: "method_set"
+      migration_risk: "low"
+    - name: 嵌入 (embedding)
+      description: 结构体/接口嵌入
+      common_representation: "composition"
+      migration_risk: "medium"
+      example: |
+        type Base struct { ID int }
+        type Platform struct {
+            Base  // 嵌入 Base
+            Name string
+        }
+    - name: 标签 (struct tag)
+      description: 结构体元数据标签
+      common_representation: "metadata_tag"
+      migration_risk: "low"
+      example: |
+        type User struct {
+            ID   int    `json:"id"`
+            Name string `json:"name"`
+        }
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "三色标记清除 + 写屏障"
+  features:
+    - automatic_memory_management
+    - stack_allocation (逃逸分析)
+    - heap_allocation
+    - escape_analysis
+    - region-based memory
+  pitfalls:
+    - id: memory_leak
+      description: 引用未释放导致的内存泄漏
+      examples: ["无限增长的切片", "未关闭的 channel"]
+    - id: goroutine_leak
+      description: goroutine 泄漏
+      examples: ["忘记启动消费者导致 channel 阻塞"]
+    - id: nil_pointer
+      description: nil 指针解引用
+      examples: ["空 map 操作", "nil slice 操作"]
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  concurrency_model: "CSP (Communicating Sequential Processes)"
+  mechanisms:
+    - goroutine (轻量级协程)
+    - channel (通信)
+    - sync.WaitGroup (等待)
+    - sync.Mutex / sync.RWMutex (互斥)
+    - sync.Once (一次性)
+    - sync.Cond (条件变量)
+    - atomic (原子操作)
+    - context (上下文传递)
+  scheduler: "M:N 调度器 (GMP 模型)"
+  pitfalls:
+    - id: goroutine_leak
+      description: goroutine 泄漏
+      examples: ["channel 无消费者", "忘记 cancel context"]
+    - id: deadlock
+      description: 死锁
+      examples: ["双向等待 channel", "忘记 unlock mutex"]
+    - id: race_condition
+      description: 数据竞争
+      examples: ["无锁保护的并发访问"]
+    - id: context_cancellation
+      description: context 未正确传递
+      examples: ["goroutine 不响应 ctx.Done()"]
+
+# 惯用模式
+idiomatic_patterns:
+  - name: 错误处理 (if err != nil)
+    description: 显式错误处理
+    code_example: |
+      result, err := doSomething()
+      if err != nil {
+          return err
+      }
+      // 使用 result
+  - name: defer 清理
+    description: 延迟执行清理操作
+    code_example: |
+      file, err := os.Open("file.txt")
+      if err != nil {
+          return err
+      }
+      defer file.Close()
+      // 使用 file
+  - name: 通道通信
+    description: 通过 channel 传递数据
+    code_example: |
+      ch := make(chan int)
+      go func() {
+          ch <- 42
+      }()
+      val := <-ch
+  - name: 选项模式
+    description: 函数选项模式
+    code_example: |
+      type Options struct {
+          Timeout time.Duration
+          Retries int
+      }
+      
+      func WithTimeout(d time.Duration) func(*Options) {
+          return func(o *Options) {
+              o.Timeout = d
+          }
+      }
+      
+      func NewService(opts ...func(*Options)) *Service {
+          options := Options{
+              Timeout: 30 * time.Second,
+              Retries: 3,
+          }
+          for _, opt := range opts {
+              opt(&options)
+          }
+          // ...
+      }
+  - name: 函数作为值
+    description: 函数作为一等公民
+    code_example: |
+      type Handler func(w http.ResponseWriter, r *http.Request)
+      
+      func LogMiddleware(next Handler) Handler {
+          return func(w http.ResponseWriter, r *http.Request) {
+              start := time.Now()
+              next(w, r)
+              log.Println(time.Since(start))
+          }
+      }
+
+# 常见代码坏味道
+common_code_smells:
+  - id: error_ignored
+    description: 忽略错误返回值
+    severity: "high"
+    examples: ["os.Open 返回的 error 被忽略"]
+  - id: goroutine_leak
+    description: goroutine 泄漏
+    severity: "high"
+  - id: channel_misuse
+    description: channel 使用不当
+    severity: "medium"
+    examples: ["无缓冲 channel 误用", "忘记关闭 channel"]
+  - id: nil_check_missing
+    description: 缺少 nil 检查
+    severity: "medium"
+  - id: interface_overuse
+    description: 过度使用空接口
+    severity: "medium"
+    examples: ["使用 interface{} 而非具体类型或泛型"]
+  - id: global_state
+    description: 使用全局状态
+    severity: "low"

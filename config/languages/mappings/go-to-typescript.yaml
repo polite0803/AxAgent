@@ -1,0 +1,377 @@
+# Go → TypeScript 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: go-to-typescript
+source: go
+target: typescript
+description: "从 Go 迁移到 TypeScript 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "number", note: "注意: Go int 可能溢出，TS number 是 64 位浮点" }
+    - { source: "int8", target: "number" }
+    - { source: "int16", target: "number" }
+    - { source: "int32", target: "number" }
+    - { source: "int64", target: "number", note: "大整数考虑使用 bigint" }
+    - { source: "uint", target: "number" }
+    - { source: "float32", target: "number" }
+    - { source: "float64", target: "number" }
+    - { source: "bool", target: "boolean" }
+    - { source: "string", target: "string" }
+    - { source: "byte / uint8", target: "number" }
+    - { source: "rune / int32", target: "string", note: "Go rune 表示 Unicode 字符" }
+    - { source: "[n]T (数组)", target: "T[]" }
+    - { source: "[]T (切片)", target: "T[]" }
+    - { source: "map[K]V", target: "Map<K, V>" }
+    - { source: "struct", target: "interface" }
+    - { source: "interface{} / any", target: "any" }
+    - { source: "error", target: "Error" }
+    - { source: "func", target: "Function" }
+    - { source: "func(T) T", target: "(input: T) => T" }
+
+  manual_review:
+    - source: "interface{} / any"
+      target_options:
+        - option: "any (与 Go 语义一致)"
+          condition: "确实需要任意类型"
+        - option: "unknown (更安全)"
+          condition: "需要类型检查"
+        - option: "联合类型 (union type)"
+          condition: "实际是特定几种类型"
+        - option: "泛型 (generic)"
+          condition: "可以确定类型关系"
+
+    - source: "struct (结构体)"
+      target: "interface / type"
+      example: |
+        // Go:
+        type Platform struct {
+            Name     string
+            Position [3]float64
+        }
+        
+        func (p *Platform) GetPosition() [3]float64 {
+            return p.Position
+        }
+        
+        // TypeScript:
+        interface Platform {
+            name: string;
+            position: [number, number, number];
+        }
+        
+        function getPosition(p: Platform): [number, number, number] {
+            return p.position;
+        }
+
+    - source: "嵌入 (struct embedding)"
+      target: "extends / 交叉类型"
+      example: |
+        // Go:
+        type Base struct {
+            ID   int
+            Name string
+        }
+        
+        type Platform struct {
+            Base
+            Position [3]float64
+        }
+        
+        // TypeScript:
+        interface Base {
+            id: number;
+            name: string;
+        }
+        
+        interface Platform extends Base {
+            position: [number, number, number];
+        }
+
+    - source: "方法接收者 (receiver)"
+      target: "方法或函数"
+      example: |
+        // Go:
+        func (p *Platform) SetPosition(x, y, z float64) {
+            p.Position = [3]float64{x, y, z}
+        }
+        
+        // TypeScript (类方法):
+        class Platform {
+            position: [number, number, number] = [0, 0, 0];
+            
+            setPosition(x: number, y: number, z: number): void {
+                this.position = [x, y, z];
+            }
+        }
+        
+        // 或 (函数式):
+        function setPosition(p: Platform, x: number, y: number, z: number): Platform {
+            return { ...p, position: [x, y, z] };
+        }
+
+    - source: "接口 (interface)"
+      target: "interface"
+      example: |
+        // Go:
+        type Renderer interface {
+            Render(frame Frame) error
+            Close() error
+        }
+        
+        // TypeScript:
+        interface Renderer {
+            render(frame: Frame): Promise<void> | void;
+            close(): Promise<void> | void;
+        }
+
+    - source: "泛型 (Go 1.18+ generics)"
+      target: "泛型 (generics)"
+      example: |
+        // Go:
+        func Map[T any, U any](slice []T, fn func(T) U) []U {
+            result := make([]U, len(slice))
+            for i, v := range slice {
+                result[i] = fn(v)
+            }
+            return result
+        }
+        
+        // TypeScript:
+        function Map<T, U>(slice: T[], fn: (item: T) => U): U[] {
+            return slice.map(fn);
+        }
+
+# 并发映射
+concurrency_mapping:
+  - source: "goroutine"
+    target: "异步函数 (async function)"
+    example: |
+    // Go:
+    go func() {
+        result := doWork()
+        fmt.Println(result)
+    }()
+    
+    // TypeScript:
+    async function work() {
+        const result = await doWork();
+        console.log(result);
+    }
+    work();
+
+  - source: "channel"
+    target: "Promise / async iterator"
+    example: |
+    // Go (无缓冲 channel):
+    ch := make(chan int)
+    go func() { ch <- 42 }()
+    val := <-ch
+    
+    // TypeScript (使用 Promise):
+    const val = await new Promise<number>(resolve => {
+        setTimeout(() => resolve(42), 100);
+    });
+    
+    // 或使用 EventEmitter:
+    const emitter = new EventEmitter();
+    emitter.on('data', (val: number) => {
+        console.log(val);
+    });
+    emitData(42);
+
+  - source: "sync.WaitGroup"
+    target: "Promise.all"
+    example: |
+    // Go:
+    var wg sync.WaitGroup
+    wg.Add(2)
+    go func() { defer wg.Done(); work1() }()
+    go func() { defer wg.Done(); work2() }()
+    wg.Wait()
+    
+    // TypeScript:
+    await Promise.all([work1(), work2()]);
+
+  - source: "sync.Mutex"
+    target: "Atomic / 串行执行"
+    example: |
+    // Go:
+    var mu sync.Mutex
+    mu.Lock()
+    // 临界区
+    mu.Unlock()
+    
+    // TypeScript (单线程，通常不需要锁):
+    // JS 是单线程的，不需要 mutex
+    // 如果需要串行执行，可以使用队列:
+    class Serializer {
+        private queue: Promise<void> = Promise.resolve();
+        
+        async run<T>(fn: () => Promise<T>): Promise<T> {
+            const next = this.queue.then(() => fn());
+            this.queue = next.then(() => {});
+            return next;
+        }
+    }
+
+# 错误处理映射
+error_mapping:
+  - source: "if err != nil { return err }"
+    target: "throw / 返回错误"
+    example: |
+    // Go:
+    result, err := doSomething()
+    if err != nil {
+        return nil, err
+    }
+    
+    // TypeScript (抛出异常):
+    try {
+        const result = await doSomething();
+        return result;
+    } catch (err) {
+        throw err;
+    }
+    
+    // 或使用 Result 模式:
+    function doSomething(): { data: T | null; error: Error | null } {
+        // ...
+    }
+
+  - source: "errors.New"
+    target: "new Error"
+    example: |
+    // Go:
+    import "errors"
+    return nil, errors.New("something went wrong")
+    
+    // TypeScript:
+    throw new Error("something went wrong");
+
+  - source: "panic / recover"
+    target: "throw / try-catch"
+    example: |
+    // Go:
+    func safeCall() {
+        defer func() {
+            if r := recover(); r != nil {
+                log.Printf("Recovered: %v", r)
+            }
+        }()
+        doSomething()
+    }
+    
+    // TypeScript:
+    function safeCall() {
+        try {
+            doSomething();
+        } catch (e) {
+            console.error("Caught:", e);
+        }
+    }
+
+  - source: "多返回值 (multiple return)"
+    target: "元组 / 对象"
+    example: |
+    // Go:
+    func Divide(a, b float64) (float64, error) {
+        if b == 0 {
+            return 0, fmt.Errorf("division by zero")
+        }
+        return a / b, nil
+    }
+    
+    // TypeScript (使用对象):
+    function divide(a: number, b: number): { result: number; error: string | null } {
+        if (b === 0) {
+            return { result: 0, error: "division by zero" };
+        }
+        return { result: a / b, error: null };
+    }
+    
+    // 或 (使用元组):
+    function divide(a: number, b: number): [number, string | null] {
+        if (b === 0) return [0, "division by zero"];
+        return [a / b, null];
+    }
+
+# 常用 Go 库映射
+library_mapping:
+  - go_library: "net/http"
+    typescript_alternative: "fetch / axios"
+    example: |
+    // Go:
+    resp, err := http.Get("https://api.example.com/data")
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+    body, _ := io.ReadAll(resp.Body)
+    
+    // TypeScript:
+    const response = await fetch("https://api.example.com/data");
+    const body = await response.text();
+
+  - go_library: "database/sql"
+    typescript_alternative: "ORM / SQL client"
+    example: |
+    // Go:
+    rows, err := db.Query("SELECT * FROM users WHERE age > ?", 25)
+    
+    // TypeScript (使用 Drizzle):
+    const users = await db
+        .select()
+        .from(users)
+        .where(gt(users.age, 25));
+
+  - go_library: "encoding/json"
+    typescript_alternative: "JSON.parse / JSON.stringify"
+    example: |
+    // Go:
+    jsonData, _ := json.Marshal(user)
+    err := json.Unmarshal(data, &user)
+    
+    // TypeScript:
+    const jsonData = JSON.stringify(user);
+    const user = JSON.parse(data);
+
+  - go_library: "os"
+    typescript_alternative: "fs (Node.js) / Web APIs"
+    example: |
+    // Go:
+    data, err := os.ReadFile("file.txt")
+    os.WriteFile("file.txt", data, 0644)
+    
+    // TypeScript (Node.js):
+    import fs from 'fs/promises';
+    const data = await fs.readFile("file.txt", "utf-8");
+    await fs.writeFile("file.txt", data);
+
+  - go_library: "time"
+    typescript_alternative: "Date"
+    example: |
+    // Go:
+    now := time.Now()
+    formatted := now.Format("2006-01-02 15:04:05")
+    time.Sleep(time.Second)
+    
+    // TypeScript:
+    const now = new Date();
+    const formatted = now.toISOString();
+    await new Promise(r => setTimeout(r, 1000));
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] goroutine 已转换为 async/await
+  - [ ] channel 已转换为 Promise/EventEmitter
+  - [ ] interface{} 已转换为明确类型或 any
+  - [ ] struct 方法已转换为类方法或函数
+  - [ ] 错误处理已统一 (throw/return)
+  - [ ] 多返回值已转换为元组/对象
+  - [ ] defer 清理已转换为 try-finally
+  - [ ] switch-case 已转换
+  - [ ] 包结构已重新组织
+  - [ ] 依赖库已找到 TS 替代
+  - [ ] 单元测试已通过
+  - [ ] 类型安全已验证

@@ -1,0 +1,1381 @@
+# C++ → Rust 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: cpp-to-rust
+source: cpp
+target: rust
+description: "从 C++ 迁移到 Rust 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "i32", note: "默认 32 位整数" }
+    - { source: "long", target: "i64", note: "64 位整数" }
+    - { source: "unsigned int", target: "u32" }
+    - { source: "float", target: "f32" }
+    - { source: "double", target: "f64" }
+    - { source: "bool", target: "bool" }
+    - { source: "std::string", target: "String", note: "堆分配字符串" }
+    - { source: "std::vector<T>", target: "Vec<T>" }
+    - { source: "std::map<K,V>", target: "BTreeMap<K,V>", note: "有序映射" }
+    - { source: "std::unordered_map<K,V>", target: "HashMap<K,V>", note: "哈希映射" }
+    - { source: "std::set<T>", target: "BTreeSet<T>" }
+    - { source: "std::unordered_set<T>", target: "HashSet<T>" }
+    - { source: "std::optional<T>", target: "Option<T>" }
+    - { source: "std::variant<T1,T2>", target: "enum { T1(T1), T2(T2) }", note: "需手动定义枚举" }
+    - { source: "std::function<F>", target: "Box<dyn Fn> 或 impl Fn" }
+    - { source: "std::thread", target: "std::thread 或 tokio::task" }
+    - { source: "std::mutex", target: "std::sync::Mutex<T>" }
+    - { source: "std::atomic<T>", target: "std::sync::atomic::AtomicT" }
+
+  manual_review:
+    - source: "裸指针 (T*)"
+      target_options:
+        - option: "&T (不可变引用)"
+          condition: "只读访问，不改变所有权"
+        - option: "&mut T (可变引用)"
+          condition: "需要修改 T，但不获得所有权"
+        - option: "Box<T> (堆分配所有权)"
+          condition: "需要独占所有权"
+        - option: "Rc<T> (单线程引用计数)"
+          condition: "多个所有者，单线程"
+        - option: "Arc<T> (多线程原子引用计数)"
+          condition: "多个所有者，多线程"
+        - option: "Option<Box<T>> (递归类型)"
+          condition: "递归数据结构"
+      decision_guide: "优先使用 &T，只有在真正需要所有权时才使用 Box<T>"
+
+    - source: "引用 (T&)"
+      target_options:
+        - option: "&T (不可变引用)"
+          condition: "源是 const T&"
+        - option: "&mut T (可变引用)"
+          condition: "源是 T&，需要修改"
+      note: "Rust 的引用总是显式的，无需特殊处理"
+
+    - source: "智能指针 (std::unique_ptr<T>)"
+      target_options:
+        - option: "Box<T>"
+          condition: "独占所有权"
+        - option: "&T"
+          condition: "如果所有权在别处，仅需借用"
+
+    - source: "智能指针 (std::shared_ptr<T>)"
+      target_options:
+        - option: "Rc<T>"
+          condition: "单线程环境"
+        - option: "Arc<T>"
+          condition: "多线程环境"
+        - option: "Arc<Mutex<T>>"
+          condition: "需要可变访问的多线程"
+
+    - source: "类 (class)"
+      target_options:
+        - option: "struct + impl"
+          condition: "不需要继承"
+        - option: "enum + impl"
+          condition: "有多种形态（状态机、AST 等）"
+        - option: "trait + dyn"
+          condition: "需要运行时多态"
+        - option: "泛型 + trait bounds"
+          condition: "需要静态多态"
+      decision_guide: "Rust 推荐组合优于继承。用多个小的 struct + trait 实现组合"
+
+    - source: "继承 (class Derived : public Base)"
+      target_options:
+        - option: "组合 + trait"
+          condition: "推荐方式。struct 持有 Base，实现 trait"
+        - option: "enum 变体"
+          condition: "如果是封闭的继承层次"
+      example: |
+        // C++:
+        // class Animal { virtual void speak(); };
+        // class Dog : public Animal { void speak() override; };
+
+        // Rust:
+        trait Animal {
+            fn speak(&self);
+        }
+
+        struct Dog;
+        impl Animal for Dog {
+            fn speak(&self) { println!("Woof!"); }
+        }
+
+    - source: "虚函数 (virtual)"
+      target: "trait 方法"
+      note: "通过 trait 对象实现运行时多态"
+      example: |
+        trait Shape {
+            fn area(&self) -> f64;
+        }
+
+        fn print_area(shape: &dyn Shape) {
+            println!("Area: {}", shape.area());
+        }
+
+    - source: "模板 (template<typename T>)"
+      target_options:
+        - option: "泛型函数/struct (impl Trait)"
+          condition: "编译期确定类型"
+        - option: "泛型 + trait bounds"
+          condition: "约束泛型参数行为"
+      example: |
+        // C++: template<typename T> T add(T a, T b) { return a + b; }
+        // Rust:
+        fn add<T: std::ops::Add<Output = T>>(a: T, b: T) -> T {
+            a + b
+        }
+
+    - source: "多重继承"
+      target: "多 trait 实现"
+      note: "Rust 不支持多继承，但支持多 trait"
+      example: |
+        trait Runnable { fn run(&self); }
+        trait Serializable { fn serialize(&self) -> String; }
+
+        struct MyClass;
+        impl Runnable for MyClass { ... }
+        impl Serializable for MyClass { ... }
+
+    - source: "const 成员函数"
+      target: "&self (不可变借用)"
+      note: "Rust 中所有方法默认 &self，需要修改时用 &mut self"
+
+    - source: "const_cast"
+      target: "split_at_mut 或 unsafe"
+      note: "尽量避免，重新设计 API 消除 const_cast 需求"
+
+    - source: "reinterpret_cast"
+      target: "unsafe { std::mem::transmute }"
+      note: "极度危险，尽量避免。优先使用安全转换"
+
+# 内存管理映射
+memory_mapping:
+  rules:
+    - source: "new/delete"
+      target: "Rust 所有权系统"
+      mapping:
+        - source: "new T()"
+          target: "Box::new(T::new()) 或 T::new()"
+          condition: "需要堆分配"
+        - source: "delete ptr"
+          target: "自动（所有者 drop 时释放）"
+          note: "Rust 无需手动释放"
+
+    - source: "RAII"
+      target: "Drop trait"
+      example: |
+        // C++: class File { ~File() { close(); } };
+        // Rust:
+        struct File { ... }
+        impl Drop for File {
+            fn drop(&mut self) {
+                self.close();
+            }
+        }
+
+    - source: "智能指针 (unique_ptr)"
+      target: "Box<T>"
+      auto_convert: true
+
+    - source: "智能指针 (shared_ptr)"
+      target: "Rc<T> 或 Arc<T>"
+      note: "根据是否跨线程选择"
+
+    - source: "weak_ptr"
+      target: "Weak<T>"
+      auto_convert: true
+
+    - source: "栈分配"
+      target: "栈分配（默认）"
+      note: "Rust 默认栈分配，逃逸分析决定是否堆分配"
+
+  risk_patterns:
+    - pattern: "悬垂指针 → 编译期错误"
+      solution: "Rust 借用检查器在编译期阻止悬垂指针"
+    - pattern: "双重释放 → 编译期错误"
+      solution: "所有权系统确保每个值只有一个所有者"
+    - pattern: "缓冲区溢出 → 运行时检查"
+      solution: "Rust 索引操作自动检查边界"
+    - pattern: "数据竞争 → 编译期错误"
+      solution: "Send/Sync trait 标记保证线程安全"
+
+# 代码模式映射
+pattern_mapping:
+  - source_pattern: "构造函数"
+    target: "关联函数 new() + Default trait"
+    example: |
+      // C++: class Foo { Foo(int x); };
+      // Rust:
+      struct Foo { x: i32 }
+      impl Foo {
+          fn new(x: i32) -> Self { Self { x } }
+      }
+      impl Default for Foo {
+          fn default() -> Self { Self { x: 0 } }
+      }
+
+  - source_pattern: "析构函数"
+    target: "Drop trait"
+    example: |
+      impl Drop for Foo {
+          fn drop(&mut self) { /* 清理逻辑 */ }
+      }
+
+  - source_pattern: "getter/setter"
+    target: "公开字段或方法"
+    note: "Rust 倾向公开字段，复杂逻辑用方法"
+    example: |
+      struct User {
+          pub name: String,  // 简单 getter 直接用公开字段
+          age: u32,
+      }
+      impl User {
+          fn age(&self) -> u32 { self.age }  // 需要计算的用方法
+          fn set_age(&mut self, age: u32) { self.age = age; }
+      }
+
+  - source_pattern: "operator+ 重载"
+    target: "std::ops::Add trait"
+    example: |
+      impl std::ops::Add for Point {
+          type Output = Point;
+          fn add(self, rhs: Point) -> Point {
+              Point {
+                  x: self.x + rhs.x,
+                  y: self.y + rhs.y,
+              }
+          }
+      }
+
+  - source_pattern: "friend 类"
+    target: "模块可见性 (pub(crate))"
+    example: |
+      // C++: class B { friend class A; };
+      // Rust:
+      mod inner {
+          pub(crate) struct B { ... }  // crate 内可见
+      }
+
+  - source_pattern: "namespace"
+    target: "mod (模块)"
+    example: |
+      // C++: namespace MyLib::Network { class Client; }
+      // Rust:
+      mod my_lib {
+          mod network {
+              pub struct Client { ... }
+          }
+      }
+
+  - source_pattern: "enum (C 风格)"
+    target: "enum (带显式值)"
+    example: |
+      // C++: enum Color { Red = 0, Green = 1, Blue = 2 };
+      // Rust:
+      #[repr(u8)]
+      enum Color { Red = 0, Green = 1, Blue = 2 }
+
+  - source_pattern: "enum (带数据)"
+    target: "enum (带数据变体)"
+    example: |
+      // C++: 无法直接表达
+      // Rust:
+      enum Message {
+          Quit,
+          Move { x: i32, y: i32 },
+          Write(String),
+          ChangeColor(u8, u8, u8),
+      }
+
+  - source_pattern: "lambda"
+    target: "闭包 (|| {})"
+    example: |
+      // C++: [](int x) { return x * 2; }
+      // Rust: |x: i32| x * 2
+
+  - source_pattern: "std::sort"
+    target: "Vec::sort 或 Vec::sort_by"
+    example: |
+      vec.sort();
+      vec.sort_by(|a, b| a.cmp(b));
+
+  - source_pattern: "std::for_each / std::transform"
+    target: "迭代器适配器"
+    example: |
+      let result: Vec<_> = vec.iter()
+          .map(|x| x * 2)
+          .filter(|x| *x > 10)
+          .collect();
+
+  - source_pattern: "异常处理"
+    target: "Result<T, E>"
+    example: |
+      // C++: try { func(); } catch(Err& e) { handle(); }
+      // Rust:
+      match func() {
+          Ok(val) => /* 成功 */,
+          Err(e) => handle(e),
+      }
+
+  - source_pattern: "代码生成 (CRTP, SFINAE)"
+    target: "过程宏 (Proc Macro)"
+    note: "复杂的元编程用宏或代码生成工具"
+    example: |
+      #[derive(Debug, Clone, PartialEq)]
+      struct MyStruct { ... }
+
+# STL 映射
+stl_mapping:
+  - { stl: "std::vector<T>", rust: "Vec<T>" }
+  - { stl: "std::deque<T>", rust: "Vec<T>" (无原生双向队列，用 VecDeque<T>) }
+  - { stl: "std::list<T>", rust: "Vec<T>" (推荐) 或 LinkedList<T> }
+  - { stl: "std::forward_list<T>", rust: "LinkedList<T>" (单向) }
+  - { stl: "std::map<K,V>", rust: "BTreeMap<K,V>" }
+  - { stl: "std::unordered_map<K,V>", rust: "HashMap<K,V>" }
+  - { stl: "std::set<T>", rust: "BTreeSet<T>" }
+  - { stl: "std::unordered_set<T>", rust: "HashSet<T>" }
+  - { stl: "std::stack<T>", rust: "Vec<T>" (用 pop() 代替 top()) }
+  - { stl: "std::queue<T>", rust: "VecDeque<T>" }
+  - { stl: "std::priority_queue<T>", rust: "BinaryHeap<T>" }
+  - { stl: "std::string", rust: "String" }
+  - { stl: "std::optional<T>", rust: "Option<T>" }
+  - { stl: "std::variant<T1,T2>", rust: "enum" }
+  - { stl: "std::tuple<T1,T2>", rust: "(T1, T2)" }
+  - { stl: "std::pair<T1,T2>", rust: "(T1, T2)" }
+  - { stl: "std::error_code", rust: "Box<dyn std::error::Error>" }
+  - { stl: "std::exception", rust: "Box<dyn std::error::Error>" }
+
+# 第三方库映射
+third_party_mapping:
+  boost:
+    - { boost: "boost::asio", rust: "tokio (异步 I/O)" }
+    - { boost: "boost::beast", rust: "hyper (HTTP)" }
+    - { boost: "boost::serialize", rust: "serde (序列化)" }
+    - { boost: "boost::filesystem", rust: "std::fs (稳定) / walkdir" }
+    - { boost: "boost::regex", rust: "regex crate" }
+    - { boost: "boost::json", rust: "serde_json" }
+  poppler:
+    - { poppler: "PDF 解析", rust: "pdf (crate) 或 poppler-rs (绑定)" }
+  qt:
+    - { qt: "Qt Widgets", rust: "egui / Tauri (桌面 UI)" }
+    - { qt: "Qt Network", rust: "reqwest / tokio" }
+    - { qt: "QSql", rust: "sqlx / sea-orm" }
+    - { qt: "QJson", rust: "serde_json" }
+
+# Tauri 框架集成特定规则
+tauri_framework:
+  - name: "C++ 后端 → Tauri 命令"
+    example:
+      cpp: |
+        // C++ HTTP Controller
+        class ApiController {
+        public:
+            HttpResponse getUser(int id) {
+                auto user = userService->getUser(id);
+                return HttpResponse::Ok(user);
+            }
+        };
+      rust: |
+        // Tauri Command
+        #[tauri::command]
+        #[agent_command(domain = "user", safety = "Safe", call_mode = "StateInput", description = "获取用户信息")]
+        async fn get_user(id: i32) -> Result<User, String> {
+            user_service::get_user(id).await
+                .map_err(|e| e.to_string())
+        }
+
+  - name: "C++ Service → Rust Service"
+    example:
+      cpp: |
+        // C++ Service with DI
+        class UserService {
+            std::shared_ptr<IUserRepository> repo;
+        public:
+            UserService(std::shared_ptr<IUserRepository> r) : repo(r) {}
+            User getUser(int id) { return repo->findById(id); }
+        };
+      rust: |
+        // Rust Service with State
+        struct UserService {
+            repo: Arc<dyn UserRepository>,
+        }
+        impl UserService {
+            async fn get_user(&self, id: i32) -> Result<User, ServiceError> {
+                self.repo.find_by_id(id).await
+            }
+        }
+
+  - name: "C++ Config → Rust State"
+    example:
+      cpp: |
+        // C++ Global Config
+        class AppConfig {
+            std::string dbHost;
+            int dbPort;
+        };
+      rust: |
+        // Tauri App State
+        pub struct AppState {
+            pub config: Mutex<AppConfig>,
+            pub users: RwLock<HashMap<i32, User>>,
+        }
+
+# ── Afsim 仿真框架 Rust 特定映射 ──
+afsim_rust_mapping:
+  description: "Afsim 仿真框架到 Rust 的特定映射配置"
+  
+  # 数学库映射
+  math_crate_mapping:
+    - afsim_type: "UtVec3<T>"
+      rust_crate: "nalgebra::Vector3<T>"
+      example: |
+        // C++ (UtVec3):
+        UtVec3d pos(1000.0, 2000.0, 3000.0);
+        UtVec3d vel(100.0, 0.0, 0.0);
+        pos.Add(vel, result);
+        
+        // Rust (nalgebra):
+        use nalgebra::Vector3;
+        let pos = Vector3::new(1000.0_f64, 2000.0, 3000.0);
+        let vel = Vector3::new(100.0_f64, 0.0, 0.0);
+        let result = pos + vel;
+    
+    - afsim_type: "UtQuaternion<T>"
+      rust_crate: "nalgebra::UnitQuaternion<T>"
+      example: |
+        // C++ (UtQuaternion):
+        UtQuaterniond q;
+        q.FromEulerAngles(roll, pitch, yaw);
+        q.RotateVector(original, rotated);
+        
+        // Rust (nalgebra):
+        use nalgebra::{UnitQuaternion, Vector3};
+        let q = UnitQuaternion::from_euler_angles(roll, pitch, yaw);
+        let rotated = q * original;
+    
+    - afsim_type: "UtMatrix3x3<T>"
+      rust_crate: "nalgebra::Matrix3<T>"
+      example: |
+        // Rust:
+        use nalgebra::Matrix3;
+        let m = Matrix3::new(
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0
+        );
+        let det = m.determinant();
+  
+  # 错误处理映射
+  error_handling_mapping:
+    - afsim_pattern: "assert/throw/catch"
+      rust_pattern: "Result<T, Error>"
+      example: |
+        // C++:
+        void init() {
+            if (config.is_null()) {
+                throw std::runtime_error("Config is null");
+            }
+        }
+        
+        // Rust:
+        fn init() -> Result<(), AfsimError> {
+            if config.is_none() {
+                return Err(AfsimError::ConfigNull);
+            }
+            Ok(())
+        }
+    
+    - afsim_pattern: "AfsimError (自定义错误)"
+      rust_pattern: "thiserror Error 枚举"
+      example: |
+        // Rust:
+        use thiserror::Error;
+        
+        #[derive(Error, Debug)]
+        pub enum AfsimError {
+            #[error("Configuration error: {0}")]
+            ConfigError(String),
+            #[error("Platform not found: {id}")]
+            PlatformNotFound { id: String },
+            #[error("Simulation error at time {time}: {msg}")]
+            SimulationError { time: f64, msg: String },
+            #[error("Math error: {0}")]
+            MathError(String),
+        }
+  
+  # 并发模型映射
+  concurrency_mapping:
+    - afsim_pattern: "QThread / std::thread"
+      rust_pattern: "tokio::task::JoinHandle"
+      example: |
+        // C++:
+        std::thread worker([]() {
+            // 执行任务
+        });
+        worker.join();
+        
+        // Rust (Tokio):
+        use tokio::task;
+        let handle = task::spawn(async {
+            // 执行任务
+        });
+        let result = handle.await.unwrap();
+    
+    - afsim_pattern: "QWaitCondition / condition_variable"
+      rust_pattern: "tokio::sync::Notify"
+      example: |
+        // Rust:
+        use tokio::sync::Notify;
+        use std::sync::Arc;
+        
+        let notify = Arc::new(Notify::new());
+        let notify_clone = notify.clone();
+        
+        // 等待方
+        tokio::spawn(async move {
+            notify_clone.notified().await;
+            // 继续执行
+        });
+        
+        // 通知方
+        notify.notify_one();
+    
+    - afsim_pattern: "QMutex / std::mutex"
+      rust_pattern: "tokio::sync::Mutex"
+      example: |
+        // Rust (异步锁):
+        use tokio::sync::Mutex;
+        
+        let data = Mutex::new(0);
+        {
+            let mut guard = data.lock().await;
+            *guard += 1;
+        }
+  
+  # 网络通信映射
+  network_mapping:
+    - afsim_pattern: "QTcpSocket / QUdpSocket"
+      rust_pattern: "tokio::net::TcpStream / UdpSocket"
+      example: |
+        // Rust (Tokio TCP):
+        use tokio::net::TcpStream;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        
+        let mut stream = TcpStream::connect("127.0.0.1:8080").await?;
+        stream.write_all(b"Hello").await?;
+        let mut buf = vec![0; 1024];
+        let n = stream.read(&mut buf).await?;
+    
+    - afsim_pattern: "QNetworkAccessManager"
+      rust_pattern: "reqwest::Client"
+      example: |
+        // Rust (reqwest):
+        use reqwest::Client;
+        
+        let client = Client::new();
+        let response = client
+            .get("https://api.example.com/data")
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
+  
+  # 序列化映射
+  serialization_mapping:
+    - afsim_pattern: "QJsonObject / QJsonArray"
+      rust_pattern: "serde_json::Value"
+      example: |
+        // C++:
+        QJsonObject obj;
+        obj["name"] = "Platform1";
+        obj["position"] = QJsonArray::fromStringList({"1000", "2000", "3000"});
+        
+        // Rust:
+        use serde_json::{json, Value};
+        let obj = json!({
+            "name": "Platform1",
+            "position": [1000, 2000, 3000]
+        });
+    
+    - afsim_pattern: "QDataStream (二进制序列化)"
+      rust_pattern: "bincode / messagepack"
+      example: |
+        // Rust (bincode):
+        use serde::{Serialize, Deserialize};
+        
+        #[derive(Serialize, Deserialize)]
+        struct Platform {
+            name: String,
+            position: [f64; 3],
+        }
+        
+        let platform = Platform {
+            name: "Platform1".into(),
+            position: [1000.0, 2000.0, 3000.0],
+        };
+        
+        let encoded = bincode::serialize(&platform)?;
+        let decoded: Platform = bincode::deserialize(&encoded)?;
+
+  # Afsim 特定 Rust crate 推荐
+  recommended_afsim_crates:
+    - crate: "nalgebra"
+      version: "0.33"
+      purpose: "向量、矩阵、四元数运算"
+      features: ["serde"]
+      cargo_toml: |
+        [dependencies]
+        nalgebra = { version = "0.33", features = ["serde"] }
+    
+    - crate: "tokio"
+      version: "1"
+      purpose: "异步运行时"
+      features: ["full"]
+      cargo_toml: |
+        [dependencies]
+        tokio = { version = "1", features = ["full"] }
+    
+    - crate: "thiserror"
+      version: "1"
+      purpose: "错误类型定义"
+      cargo_toml: |
+        [dependencies]
+        thiserror = "1"
+    
+    - crate: "serde"
+      version: "1"
+      purpose: "序列化/反序列化"
+      features: ["derive"]
+      cargo_toml: |
+        [dependencies]
+        serde = { version = "1", features = ["derive"] }
+    
+    - crate: "serde_json"
+      version: "1"
+      purpose: "JSON 处理"
+    
+    - crate: "bincode"
+      version: "1"
+      purpose: "二进制序列化"
+    
+    - crate: "reqwest"
+      version: "0.12"
+      purpose: "HTTP 客户端"
+      features: ["json", "stream"]
+      cargo_toml: |
+        [dependencies]
+        reqwest = { version = "0.12", features = ["json", "stream"] }
+    
+    - crate: "tracing"
+      version: "0.1"
+      purpose: "日志记录"
+      cargo_toml: |
+        [dependencies]
+        tracing = "0.1"
+        tracing-subscriber = "0.3"
+
+  # Afsim Rust workspace 结构建议
+  workspace_structure:
+    description: "Afsim 迁移到 AxAgent 的 Cargo workspace 结构"
+    cargo_workspace_toml: |
+      [workspace]
+      members = [
+          "crates/afsim-core",
+          "crates/afsim-math",
+          "crates/afsim-script",
+          "crates/afsim-protocol",
+      ]
+      
+      [workspace.package]
+      version = "0.1.0"
+      edition = "2021"
+      
+      [workspace.dependencies]
+      nalgebra = "0.33"
+      tokio = { version = "1", features = ["full"] }
+      serde = { version = "1", features = ["derive"] }
+      thiserror = "1"
+      tracing = "0.1"
+    
+    afsim_core_cargo_toml: |
+      [package]
+      name = "afsim-core"
+      version.workspace = true
+      edition.workspace = true
+      
+      [dependencies]
+      afsim-math = { path = "../afsim-math" }
+      nalgebra.workspace = true
+      tokio.workspace = true
+      serde.workspace = true
+      thiserror.workspace = true
+      tracing.workspace = true
+    
+    afsim_math_cargo_toml: |
+      [package]
+      name = "afsim-math"
+      version.workspace = true
+      edition.workspace = true
+      
+      [dependencies]
+      nalgebra.workspace = true
+      serde.workspace = true
+      approx = "0.5"
+    
+    afsim_core_lib_rs: |
+      // crates/afsim-core/src/lib.rs
+      pub mod platform;
+      pub mod track;
+      pub mod scenario;
+      pub mod error;
+      
+      pub use platform::Platform;
+      pub use track::Track;
+      pub use scenario::Scenario;
+      pub use error::AfsimError;
+    
+    afsim_math_lib_rs: |
+      // crates/afsim-math/src/lib.rs
+      pub mod vec3;
+      pub mod matrix;
+      pub mod quaternion;
+      pub mod earth;
+      
+      pub use vec3::Vec3;
+      pub use matrix::{Mat3, Mat4};
+      pub use quaternion::Quaternion;
+      pub use earth::{Wgs84, Ecef, Ned};
+
+  # Afsim 核心数据结构 Rust 示例
+  core_data_structures:
+    - name: "Platform (对应 WsfPlatform)"
+      rust_impl: |
+        // crates/afsim-core/src/platform.rs
+        use nalgebra::Vector3;
+        use serde::{Deserialize, Serialize};
+        
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct Platform {
+            id: String,
+            name: String,
+            platform_type: PlatformType,
+            position: Vector3<f64>,
+            velocity: Vector3<f64>,
+            orientation: Orientation,
+            health: f64,
+            weapons: Vec<Weapon>,
+        }
+        
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct Orientation {
+            roll: f64,
+            pitch: f64,
+            yaw: f64,
+        }
+        
+        impl Platform {
+            pub fn new(id: String, name: String) -> Self {
+                Self {
+                    id,
+                    name,
+                    platform_type: PlatformType::Default,
+                    position: Vector3::zeros(),
+                    velocity: Vector3::zeros(),
+                    orientation: Orientation {
+                        roll: 0.0,
+                        pitch: 0.0,
+                        yaw: 0.0,
+                    },
+                    health: 100.0,
+                    weapons: Vec::new(),
+                }
+            }
+            
+            pub fn update_position(&mut self, delta: &Vector3<f64>) {
+                self.position += delta;
+            }
+        }
+    
+    - name: "Track (对应 WsfTrack)"
+      rust_impl: |
+        // crates/afsim-core/src/track.rs
+        use serde::{Deserialize, Serialize};
+        
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct Track {
+            id: String,
+            platform_id: String,
+            history: Vec<TrackPoint>,
+            current_point: TrackPoint,
+        }
+        
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct TrackPoint {
+            time: f64,
+            position: [f64; 3],
+            velocity: [f64; 3],
+        }
+        
+        impl Track {
+            pub fn new(id: String, platform_id: String) -> Self {
+                Self {
+                    id,
+                    platform_id,
+                    history: Vec::new(),
+                    current_point: TrackPoint {
+                        time: 0.0,
+                        position: [0.0, 0.0, 0.0],
+                        velocity: [0.0, 0.0, 0.0],
+                    },
+                }
+            }
+            
+            pub fn add_point(&mut self, point: TrackPoint) {
+                self.current_point = point.clone();
+                self.history.push(point);
+            }
+        }
+
+  # Afsim 命令模式映射
+  command_pattern_mapping:
+    - afsim_command: "Scenario.Run()"
+      tauri_command: "simulation_start"
+      rust_impl: |
+        #[tauri::command]
+        #[agent_command(
+            domain = "simulation",
+            safety = "Safe",
+            call_mode = "Manual",
+            description = "启动仿真"
+        )]
+        pub async fn simulation_start(
+            state: State<'_, SimulationState>,
+        ) -> Result<(), AfsimError> {
+            let mut sim = state.simulation.write().await;
+            sim.start().await
+        }
+    
+    - afsim_command: "Platform.GetInfo(id)"
+      tauri_command: "platform_get_info"
+      rust_impl: |
+        #[tauri::command]
+        #[agent_command(
+            domain = "platform",
+            safety = "Safe",
+            call_mode = "StateOnly",
+            description = "获取平台信息"
+        )]
+        pub async fn platform_get_info(
+            id: String,
+            state: State<'_, PlatformState>,
+        ) -> Result<Platform, AfsimError> {
+            state.platforms.read().await
+                .get(&id)
+                .cloned()
+                .ok_or(AfsimError::PlatformNotFound { id })
+        }
+
+# ── DIS/HLA 分布式仿真协议迁移 ──
+distributed_simulation_protocol:
+  description: "DIS (IEEE 1278) 和 HLA (IEEE 1516) 分布式仿真协议的 Rust 实现方案"
+  
+  # DIS 协议映射
+  dis_protocol_mapping:
+    description: "DIS 协议到 Rust 的实现方案"
+    
+    # PDU 数据结构
+    pdu_structures:
+      - pdu_type: "Entity State PDU (1)"
+        rust_impl: |
+          // Rust: DIS Entity State PDU
+          use serde::{Serialize, Deserialize};
+          
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct EntityStatePdu {
+              pub pdu_type: u8,              // 1
+              pub protocol_version: u8,      // 7
+              pub exercise_id: u16,
+              pub site_id: u16,
+              pub application_id: u16,
+              pub entity_id: EntityId,
+              pub force_id: u8,
+              pub alive_flag: u8,
+              pub simulation_time: u64,
+              pub position: DisVector3,
+              pub orientation: DisEulerAngles,
+              pub velocity: DisVector3,
+              pub angular_velocity: DisVector3,
+              pub entity_appearance: EntityAppearance,
+              pub dead_reckoning_parameters: u8,
+          }
+          
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct EntityId {
+              pub site: u16,
+              pub application: u16,
+              pub entity: u16,
+          }
+          
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct DisVector3 {
+              pub x: f64,
+              pub y: f64,
+              pub z: f64,
+          }
+      
+      - pdu_type: "Fire PDU (2)"
+        rust_impl: |
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct FirePdu {
+              pub pdu_type: u8,              // 2
+              pub firing_entity_id: EntityId,
+              pub target_entity_id: EntityId,
+              pub munition_type: u16,
+              pub quantity_fired: u8,
+              pub warhead_type: u8,
+              pub fuse_type: u8,
+              pub fire_time: u64,
+              pub location: DisVector3,
+              pub velocity: DisVector3,
+              pub range: f32,
+          }
+      
+      - pdu_type: "Explosion PDU (3)"
+        rust_impl: |
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct ExplosionPdu {
+              pub pdu_type: u8,              // 3
+              pub munition_id: EntityId,
+              pub event_id: EventId,
+              pub velocity: DisVector3,
+              pub location: DisVector3,
+              pub burst_characteristics: u16,
+              pub quantity: u8,
+              pub warhead_type: u8,
+              pub fuse_type: u8,
+          }
+      
+      - pdu_type: "Collision PDU (4)"
+        rust_impl: |
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct CollisionPdu {
+              pub pdu_type: u8,              // 4
+              pub issuing_entity_id: EntityId,
+              pub colliding_entity_id: EntityId,
+              pub event_id: EventId,
+              pub collision_type: u8,
+              pub location: DisVector3,
+              pub velocity: DisVector3,
+              pub mass: f32,
+          }
+      
+      - pdu_type: "Create Entity PDU (5)"
+        rust_impl: |
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct CreateEntityPdu {
+              pub pdu_type: u8,              // 5
+              pub origin_id: EntityId,
+              pub receipt_time: u64,
+          }
+      
+      - pdu_type: "Remove Entity PDU (6)"
+        rust_impl: |
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct RemoveEntityPdu {
+              pub pdu_type: u8,              // 6
+              pub origin_id: EntityId,
+              pub receipt_time: u64,
+              pub reason: u8,
+          }
+    
+    # 消息编解码
+    message_codec:
+      - encoding: "Binary (PDU 打包)"
+        rust_impl: |
+          // DIS 二进制编码/解码
+          use bytes::{BufMut, Buf};
+          
+          pub fn encode_pdu(pdu: &EntityStatePdu, buf: &mut Vec<u8>) {
+              buf.put_u8(pdu.pdu_type);
+              buf.put_u8(pdu.protocol_version);
+              buf.put_u16(pdu.exercise_id);
+              buf.put_u16(pdu.site_id);
+              buf.put_u16(pdu.application_id);
+              // ... 其他字段
+              buf.put_f64(pdu.position.x);
+              buf.put_f64(pdu.position.y);
+              buf.put_f64(pdu.position.z);
+          }
+          
+          pub fn decode_pdu(buf: &[u8]) -> Result<EntityStatePdu, DisError> {
+              let mut cursor = std::io::Cursor::new(buf);
+              let pdu_type = cursor.get_u8();
+              let protocol_version = cursor.get_u8();
+              // ... 其他字段
+              Ok(EntityStatePdu {
+                  pdu_type,
+                  protocol_version,
+                  // ...
+              })
+          }
+      
+      - encoding: "JSON (用于 WebSocket 传输)"
+        rust_impl: |
+          // DIS JSON 编码（用于与前端通信）
+          use serde_json;
+          
+          pub fn pdu_to_json(pdu: &EntityStatePdu) -> Result<String, serde_json::Error> {
+              serde_json::to_string(pdu)
+          }
+          
+          pub fn json_to_pdu(json: &str) -> Result<EntityStatePdu, serde_json::Error> {
+              serde_json::from_str(json)
+          }
+    
+    # 网络传输
+    network_transport:
+      - transport: "UDP 广播/组播"
+        rust_impl: |
+          // DIS 使用 UDP 进行广播/组播通信
+          use tokio::net::UdpSocket;
+          
+          pub async fn dis_transmit(
+              socket: &UdpSocket,
+              pdu_data: &[u8],
+              multicast_addr: &str,
+          ) -> Result<(), DisError> {
+              socket.send_to(pdu_data, multicast_addr).await?;
+              Ok(())
+          }
+          
+          pub async fn dis_receive(socket: &UdpSocket) -> Result<Vec<u8>, DisError> {
+              let mut buf = vec![0u8; 1500];
+              let (len, _addr) = socket.recv_from(&mut buf).await?;
+              buf.truncate(len);
+              Ok(buf)
+          }
+      
+      - transport: "TCP (可靠传输)"
+        rust_impl: |
+          // DIS 使用 TCP 进行可靠传输（用于需要可靠传递的场景）
+          use tokio::net::TcpStream;
+          use tokio::io::{AsyncReadExt, AsyncWriteExt};
+          
+          pub async fn dis_tcp_transmit(
+              stream: &mut TcpStream,
+              pdu_data: &[u8],
+          ) -> Result<(), DisError> {
+              let length = (pdu_data.len() as u32).to_be_bytes();
+              stream.write_all(&length).await?;
+              stream.write_all(pdu_data).await?;
+              Ok(())
+          }
+      
+      - transport: "WebSocket (与前端通信)"
+        rust_impl: |
+          // Tauri 事件推送：通过 WebSocket 或 Tauri Event 机制
+          use tauri::Emitter;
+          
+          pub fn emit_dis_pdu(app_handle: &tauri::AppHandle, pdu: &EntityStatePdu) {
+              let event_name = format!("dis_pdu_{}", pdu.pdu_type);
+              let _ = app_handle.emit(&event_name, serde_json::to_value(pdu).ok());
+          }
+    
+    # 推荐 crate
+    recommended_crates:
+      - crate: "tokio"
+        purpose: "异步网络编程 (UDP/TCP)"
+        features: ["net", "rt"]
+      - crate: "bytes"
+        purpose: "二进制数据处理"
+      - crate: "serde"
+        purpose: "序列化/反序列化"
+        features: ["derive"]
+      - crate: "thiserror"
+        purpose: "错误类型定义"
+
+  # HLA 协议映射
+  hla_protocol_mapping:
+    description: "HLA (High Level Architecture) 协议到 Rust 的实现方案"
+    
+    # HLA/FOM 对象模型
+    fom_object_model:
+      - class: "FOM (Federation Object Model)"
+        description: "HLA 对象模型定义，包含类、属性、交互等"
+        rust_impl: |
+          // HLA/FOM 对象模型
+          use std::collections::HashMap;
+          
+          #[derive(Debug, Clone)]
+          pub struct FederateObjectModel {
+              pub classes: Vec<ObjectClass>,
+              pub interactions: Vec<InteractionClass>,
+              pub data_types: Vec<DataType>,
+          }
+          
+          #[derive(Debug, Clone)]
+          pub struct ObjectClass {
+              pub name: String,
+              pub attributes: Vec<Attribute>,
+              pub parent_class: Option<String>,
+          }
+          
+          #[derive(Debug, Clone)]
+          pub struct InteractionClass {
+              pub name: String,
+              pub parameters: Vec<Parameter>,
+              pub parent_class: Option<String>,
+          }
+      
+      # SOM (Simulation Object Model)
+      - class: "SOM (Simulation Object Model)"
+        description: "仿真对象模型，基于 FOM 定义具体的类和交互"
+        rust_impl: |
+          // HLA/SOM 示例：飞行器模型
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct Aircraft {
+              pub id: String,
+              pub name: String,
+              pub position: [f64; 3],
+              pub velocity: [f64; 3],
+              pub orientation: [f64; 3],
+              pub health: f64,
+              pub weapons: Vec<Weapon>,
+          }
+          
+          #[derive(Debug, Clone, Serialize, Deserialize)]
+          pub struct WeaponFiredInteraction {
+              pub firing_platform_id: String,
+              pub target_platform_id: String,
+              pub weapon_type: String,
+              pub timestamp: f64,
+          }
+    
+    # HLA 服务接口
+    service_interfaces:
+      - service: "RTI (Run-Time Infrastructure)"
+        description: "HLA 运行时基础设施，提供发布/订阅、时间管理等服务"
+        rust_impl: |
+          // HLA RTI 服务接口
+          pub trait RtiAmbassador {
+              // 加入/退出联邦
+              fn join_federation(&mut self, federation_name: &str) -> Result<(), RtiError>;
+              fn resign_federation(&mut self) -> Result<(), RtiError>;
+              
+              // 发布/订阅
+              fn publish_object_class(&mut self, class_name: &str, attributes: &[&str]) -> Result<(), RtiError>;
+              fn subscribe_object_class(&mut self, class_name: &str, attributes: &[&str]) -> Result<(), RtiError>;
+              fn publish_interaction_class(&mut self, class_name: &str, parameters: &[&str]) -> Result<(), RtiError>;
+              fn subscribe_interaction_class(&mut self, class_name: &str, parameters: &[&str]) -> Result<(), RtiError>;
+              
+              // 交互/对象传递
+              fn send_interaction(&mut self, interaction: &Interaction) -> Result<(), RtiError>;
+              fn register_object(&mut self, object: &RegisteredObject) -> Result<ObjectHandle, RtiError>;
+              fn update_object_attribute(&mut self, handle: ObjectHandle, attributes: &[AttributeValue]) -> Result<(), RtiError>;
+              
+              // 时间管理
+              fn advance_time(&mut self, logical_time: f64) -> Result<(), RtiError>;
+              fn get_federation_time(&self) -> f64;
+          }
+      
+      - service: "时间管理 (Time Management)"
+        description: "HLA 时间管理服务，支持同步和异步模式"
+        rust_impl: |
+          // HLA 时间管理实现
+          pub struct TimeManager {
+              logical_time: f64,
+              lookahead: f64,
+              constrained: bool,
+              regulating: bool,
+          }
+          
+          impl TimeManager {
+              pub fn new() -> Self {
+                  Self {
+                      logical_time: 0.0,
+                      lookahead: 0.01,  // 10ms lookahead
+                      constrained: false,
+                      regulating: false,
+                  }
+              }
+              
+              pub fn enable_time_constrained(&mut self) {
+                  self.constrained = true;
+              }
+              
+              pub fn enable_time_regulating(&mut self, lookahead: f64) {
+                  self.regulating = true;
+                  self.lookahead = lookahead;
+              }
+              
+              pub fn advance_time(&mut self, delta: f64) -> f64 {
+                  self.logical_time += delta;
+                  self.logical_time
+              }
+          }
+    
+    # HLA 实现方案
+    implementation_approaches:
+      - approach: "开源 RTI 实现 (OpenRTI / CERTI)"
+        description: "使用开源 RTI 库，通过 FFI 绑定到 Rust"
+        pros:
+          - "完整 HLA 标准实现"
+          - "经过验证的稳定性"
+          - "社区支持"
+        cons:
+          - "需要 FFI 绑定"
+          - "可能有性能开销"
+          - "跨平台编译复杂度"
+        implementation: |
+          // 使用 OpenRTI (C++ 实现) 的 Rust 绑定
+          // Cargo.toml
+          [dependencies]
+          openrti-rs = "0.1"  // 假设存在此绑定
+          
+          // 或使用 FFI
+          extern "C" {
+              fn RTIambassador_create() -> *mut c_void;
+              fn RTIambassador_joinFederation(handle: *mut c_void, name: *const c_char) -> i32;
+          }
+      
+      - approach: "自定义轻量 RTI (推荐)"
+        description: "实现简化版 HLA 核心功能，满足 AFSIM 仿真需求"
+        pros:
+          - "完全控制实现"
+          - "性能优化"
+          - "与 AxAgent 架构集成"
+        cons:
+          - "需实现 HLA 协议细节"
+          - "开发工作量大"
+        implementation: |
+          // 自定义轻量 RTI 实现
+          // crates/afsim-rti/src/lib.rs
+          
+          pub mod ambassador;
+          pub mod time_manager;
+          pub mod message_bus;
+          
+          pub use ambassador::RtiAmbassador;
+          pub use time_manager::TimeManager;
+          pub use message_bus::MessageBus;
+          
+          // crates/afsim-rti/src/ambassador.rs
+          pub struct RtiAmbassadorImpl {
+              federation_name: String,
+              joined: bool,
+              time_manager: TimeManager,
+              message_bus: MessageBus,
+              published_classes: HashMap<String, Vec<String>>,
+              subscribed_classes: HashMap<String, Vec<String>>,
+          }
+          
+          impl RtiAmbassadorImpl {
+              pub fn new(federation_name: &str) -> Self {
+                  Self {
+                      federation_name: federation_name.to_string(),
+                      joined: false,
+                      time_manager: TimeManager::new(),
+                      message_bus: MessageBus::new(),
+                      published_classes: HashMap::new(),
+                      subscribed_classes: HashMap::new(),
+                  }
+              }
+          }
+      
+      - approach: "消息总线 + 事件驱动"
+        description: "使用 Redis Streams / NATS 作为消息总线，简化 HLA 实现"
+        pros:
+          - "高吞吐量"
+          - "水平扩展"
+          - "灵活的消息路由"
+        cons:
+          - "外部依赖"
+          - "需要部署消息中间件"
+        implementation: |
+          // 使用 Redis Streams 作为消息总线
+          // Cargo.toml
+          [dependencies]
+          redis = { version = "0.25", features = ["tokio-comp"] }
+          
+          // 发布交互
+          pub async fn publish_interaction(
+              redis_client: &redis::Client,
+              channel: &str,
+              interaction: &Interaction,
+          ) -> Result<(), RtiError> {
+              let data = serde_json::to_string(interaction)?;
+              redis_client.xadd(channel, &[("data", data)]).await?;
+              Ok(())
+          }
+          
+          // 订阅交互
+          pub async fn subscribe_interactions(
+              redis_client: &redis::Client,
+              channel: &str,
+              handler: impl Fn(Interaction) + Send + 'static,
+          ) -> Result<(), RtiError> {
+              let mut stream = redis_client.xread().stream(channel).await?;
+              tokio::spawn(async move {
+                  while let Some(message) = stream.next().await {
+                      // 解析并分发交互
+                      handler(parsed_interaction);
+                  }
+              });
+              Ok(())
+          }
+
+  # 推荐迁移路径
+  recommended_path:
+    phases:
+      - phase: 1
+        name: "分析现有 DIS/HLA 实现"
+        tasks:
+          - "识别使用的 PDU 类型"
+          - "分析网络传输方式"
+          - "评估实时性要求"
+          - "确定迁移范围"
+        estimated_effort: "1-2 周"
+      
+      - phase: 2
+        name: "实现核心 DIS 协议"
+        tasks:
+          - "实现 PDU 数据结构"
+          - "实现二进制编解码"
+          - "实现 UDP/TCP 传输"
+          - "实现 Tauri 事件推送"
+        estimated_effort: "2-3 周"
+      
+      - phase: 3
+        name: "选择并实现 HLA 方案"
+        tasks:
+          - "评估三种实现方案"
+          - "确定最终方案（推荐：自定义轻量 RTI）"
+          - "实现 RtiAmbassador 核心接口"
+          - "实现时间管理"
+        estimated_effort: "3-4 周"
+      
+      - phase: 4
+        name: "集成测试和优化"
+        tasks:
+          - "单元测试 PDU 编解码"
+          - "集成测试多节点通信"
+          - "性能测试和优化"
+          - "与现有 AFSIM 系统的互操作测试"
+        estimated_effort: "2-3 周"
+
+  # 分布式仿真检查清单
+  migration_checklist:
+    - [ ] DIS PDU 数据结构已完整实现
+    - [ ] DIS 二进制编解码已实现
+    - [ ] DIS UDP 广播/组播已实现
+    - [ ] DIS TCP 可靠传输已实现
+    - [ ] DIS 与前端 WebSocket 通信已实现
+    - [ ] HLA FOM/SOM 对象模型已定义
+    - [ ] HLA RTI 核心接口已实现
+    - [ ] HLA 时间管理已实现
+    - [ ] HLA 发布/订阅机制已实现
+    - [ ] 分布式仿真性能测试已通过
+    - [ ] 与现有 AFSIM 系统的互操作测试已通过
+    - [ ] 异常处理和重连机制已实现
+    - [ ] 日志记录和监控已实现

@@ -1,0 +1,507 @@
+# Go → Rust 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: go-to-rust
+source: go
+target: rust
+description: "从 Go 迁移到 Rust 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "i64", note: "默认 i64" }
+    - { source: "int8", target: "i8" }
+    - { source: "int16", target: "i16" }
+    - { source: "int32", target: "i32" }
+    - { source: "int64", target: "i64" }
+    - { source: "uint", target: "u64" }
+    - { source: "uint8", target: "u8" }
+    - { source: "uint16", target: "u16" }
+    - { source: "uint32", target: "u32" }
+    - { source: "uint64", target: "u64" }
+    - { source: "float32", target: "f32" }
+    - { source: "float64", target: "f64" }
+    - { source: "bool", target: "bool" }
+    - { source: "string", target: "String" }
+    - { source: "byte", target: "u8" }
+    - { source: "rune", target: "char" }
+    - { source: "[n]T", target: "[T; n]" }
+    - { source: "[]T", target: "Vec<T>" }
+    - { source: "map[K]V", target: "HashMap<K, V>" }
+    - { source: "struct", target: "struct" }
+    - { source: "interface{} / any", target: "dyn Any / enum" }
+    - { source: "error", target: "Result<T, E>" }
+    - { source: "func", target: "fn" }
+    - { source: "func(T) T", target: "fn(T) -> T" }
+    - { source: "uintptr", target: "usize" }
+    - { source: "complex64", target: "num-complex::Complex32" }
+    - { source: "complex128", target: "num-complex::Complex64" }
+
+  manual_review:
+    - source: "interface{} / any"
+      target_options:
+        - option: "enum (如果是有限类型)"
+          condition: "可以枚举所有可能类型"
+        - option: "trait object (如果需要多态)"
+          condition: "需要运行时多态"
+        - option: "Box<dyn Any> (如果真的不确定)"
+          condition: "确实需要任意类型"
+
+    - source: "struct (结构体)"
+      target: "struct"
+      example: |
+        // Go:
+        type Platform struct {
+            Name     string
+            Position [3]float64
+        }
+        
+        func (p *Platform) GetPosition() [3]float64 {
+            return p.Position
+        }
+        
+        // Rust:
+        pub struct Platform {
+            pub name: String,
+            pub position: [f64; 3],
+        }
+        
+        impl Platform {
+            pub fn get_position(&self) -> [f64; 3] {
+                self.position
+            }
+        }
+
+    - source: "嵌入 (struct embedding)"
+      target: "组合 / 新类型 (newtype)"
+      example: |
+        // Go:
+        type Base struct {
+            ID   int
+            Name string
+        }
+        
+        type Platform struct {
+            Base
+            Position [3]float64
+        }
+        
+        // Rust (组合):
+        pub struct Base {
+            pub id: i64,
+            pub name: String,
+        }
+        
+        pub struct Platform {
+            pub base: Base,
+            pub position: [f64; 3],
+        }
+        
+        // 或 (newtype 模式):
+        pub struct Platform(Base, [f64; 3]);
+
+    - source: "接口 (interface)"
+      target: "trait"
+      example: |
+        // Go:
+        type Renderer interface {
+            Render(frame Frame) error
+            Close() error
+        }
+        
+        // Rust:
+        pub trait Renderer {
+            fn render(&self, frame: &Frame) -> Result<(), RenderError>;
+            fn close(&self) -> Result<(), CloseError>;
+        }
+
+    - source: "方法接收者 (receiver)"
+      target: "impl 块"
+      example: |
+        // Go:
+        func (p *Platform) SetPosition(x, y, z float64) {
+            p.Position = [3]float64{x, y, z}
+        }
+        
+        // Rust:
+        impl Platform {
+            pub fn set_position(&mut self, x: f64, y: f64, z: f64) {
+                self.position = [x, y, z];
+            }
+        }
+
+    - source: "泛型 (Go 1.18+ generics)"
+      target: "泛型 (generics)"
+      example: |
+        // Go:
+        func Map[T any, U any](slice []T, fn func(T) U) []U {
+            result := make([]U, len(slice))
+            for i, v := range slice {
+                result[i] = fn(v)
+            }
+            return result
+        }
+        
+        // Rust:
+        pub fn map_slice<T, U, F>(slice: &[T], fn: F) -> Vec<U>
+        where
+            F: Fn(&T) -> U,
+        {
+            slice.iter().map(fn).collect()
+        }
+
+# 并发映射
+concurrency_mapping:
+  - source: "goroutine"
+    target: "tokio::spawn"
+    example: |
+    // Go:
+    go func() {
+        result := doWork()
+        fmt.Println(result)
+    }()
+    
+    // Rust:
+    tokio::spawn(async {
+        let result = do_work().await;
+        println!("{}", result);
+    });
+
+  - source: "channel"
+    target: "tokio::sync::mpsc / tokio::sync::broadcast"
+    example: |
+    // Go (无缓冲 channel):
+    ch := make(chan int)
+    go func() { ch <- 42 }()
+    val := <-ch
+    
+    // Rust:
+    use tokio::sync::mpsc;
+    let (tx, mut rx) = mpsc::channel::<i64>(100);
+    
+    tokio::spawn(async move {
+        tx.send(42).await;
+    });
+    
+    let val = rx.recv().await.unwrap();
+
+  - source: "sync.WaitGroup"
+    target: "JoinHandle.await / futures::join"
+    example: |
+    // Go:
+    var wg sync.WaitGroup
+    wg.Add(2)
+    go func() { defer wg.Done(); work1() }()
+    go func() { defer wg.Done(); work2() }()
+    wg.Wait()
+    
+    // Rust:
+    let h1 = tokio::spawn(work1());
+    let h2 = tokio::spawn(work2());
+    h1.await.unwrap();
+    h2.await.unwrap();
+
+  - source: "sync.Mutex"
+    target: "tokio::sync::Mutex"
+    example: |
+    // Go:
+    var mu sync.Mutex
+    mu.Lock()
+    // 临界区
+    mu.Unlock()
+    
+    // Rust:
+    use tokio::sync::Mutex;
+    let mu = Mutex::new(0);
+    let mut guard = mu.lock().await;
+    // 临界区
+    *guard = 42;
+    drop(guard); // 自动解锁
+
+  - source: "sync.Once"
+    target: "std::sync::Once / once_cell"
+    example: |
+    // Go:
+    var once sync.Once
+    once.Do(func() { init() })
+    
+    // Rust:
+    use std::sync::Once;
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        init();
+    });
+
+  - source: "sync.Cond"
+    target: "tokio::sync::Notify"
+    example: |
+    // Go:
+    cond := sync.NewCond(&mu)
+    cond.Wait()
+    cond.Signal()
+    
+    // Rust:
+    use tokio::sync::Notify;
+    let notify = Notify::new();
+    // 等待
+    notify.notified().await;
+    // 通知
+    notify.notify_one();
+
+# 错误处理映射
+error_mapping:
+  - source: "if err != nil { return err }"
+    target: "Result<T, E> + ?"
+    example: |
+    // Go:
+    result, err := doSomething()
+    if err != nil {
+        return nil, err
+    }
+    
+    // Rust:
+    let result = do_something().await?;
+
+  - source: "errors.New"
+    target: "Err / thiserror"
+    example: |
+    // Go:
+    import "errors"
+    return nil, errors.New("something went wrong")
+    
+    // Rust:
+    use thiserror::Error;
+    
+    #[derive(Error, Debug)]
+    pub enum AppError {
+        #[error("something went wrong")]
+        SomethingWrong,
+    }
+    
+    Err(AppError::SomethingWrong)
+
+  - source: "panic / recover"
+    target: "unwrap / expect (或错误处理)"
+    example: |
+    // Go:
+    func safeCall() {
+        defer func() {
+            if r := recover(); r != nil {
+                log.Printf("Recovered: %v", r)
+            }
+        }()
+        doSomething()
+    }
+    
+    // Rust:
+    fn safe_call() {
+        match do_something() {
+            Ok(_) => {},
+            Err(e) => eprintln!("Error: {}", e),
+        }
+    }
+
+  - source: "多返回值 (multiple return)"
+    target: "Result<T, E>"
+    example: |
+    // Go:
+    func Divide(a, b float64) (float64, error) {
+        if b == 0 {
+            return 0, fmt.Errorf("division by zero")
+        }
+        return a / b, nil
+    }
+    
+    // Rust:
+    pub fn divide(a: f64, b: f64) -> Result<f64, DivideError> {
+        if b == 0.0 {
+            Err(DivideError::DivisionByZero)
+        } else {
+            Ok(a / b)
+        }
+    }
+
+# 内存安全映射
+memory_safety_mapping:
+  - source: "指针 (pointer)"
+    target: "引用 / Arc<RwLock<T>>"
+    example: |
+    // Go:
+    var ptr *int
+    ptr = &value
+    *ptr = 42
+    
+    // Rust (栈分配):
+    let mut value = 0i64;
+    let ptr = &mut value;
+    *ptr = 42;
+    
+    // Rust (堆分配 + 共享):
+    use std::sync::Arc;
+    let ptr = Arc::new(0i64);
+    let ptr2 = ptr.clone();
+
+  - source: "nil 检查"
+    target: "Option<T>"
+    example: |
+    // Go:
+    var ptr *Node
+    if ptr != nil {
+        ptr.Value
+    }
+    
+    // Rust:
+    let node: Option<Node> = Some(Node { value: 42 });
+    if let Some(n) = node {
+        println!("{}", n.value);
+    }
+
+  - source: "unsafe / cgo"
+    target: "unsafe 块 / FFI"
+    example: |
+    // Go (cgo):
+    // #include <python.h>
+    import "C"
+    
+    // Rust (FFI):
+    extern "C" {
+        fn Py_Initialize() -> i32;
+    }
+    
+    unsafe {
+        Py_Initialize();
+    }
+
+# 常用 Go 库映射
+library_mapping:
+  - go_library: "net/http"
+    rust_alternative: "reqwest / axum"
+    example: |
+    // Go:
+    resp, err := http.Get("https://api.example.com/data")
+    
+    // Rust (客户端):
+    let client = reqwest::Client::new();
+    let resp = client.get("https://api.example.com/data")
+        .send()
+        .await?;
+    
+    // Rust (服务端 - axum):
+    let app = Router::new()
+        .route("/data", get(|| async { "Hello" }));
+
+  - go_library: "database/sql"
+    rust_alternative: "sea-orm / sqlx"
+    example: |
+    // Go:
+    rows, err := db.Query("SELECT * FROM users WHERE age > ?", 25)
+    
+    // Rust (SeaORM):
+    use sea_orm::{EntityTrait, QueryFilter};
+    let users = Entity::find()
+        .filter(Column::Age.gt(25))
+        .all(&db)
+        .await?;
+
+  - go_library: "encoding/json"
+    rust_alternative: "serde / serde_json"
+    example: |
+    // Go:
+    jsonData, _ := json.Marshal(user)
+    err := json.Unmarshal(data, &user)
+    
+    // Rust:
+    use serde_json::{json, from_str, to_string};
+    let json_data = serde_json::to_string(&user)?;
+    let user: User = serde_json::from_str(&data)?;
+
+  - go_library: "os"
+    rust_alternative: "std::fs"
+    example: |
+    // Go:
+    data, err := os.ReadFile("file.txt")
+    os.WriteFile("file.txt", data, 0644)
+    
+    // Rust:
+    let data = std::fs::read_to_string("file.txt")?;
+    std::fs::write("file.txt", data)?;
+
+  - go_library: "time"
+    rust_alternative: "chrono / time"
+    example: |
+    // Go:
+    now := time.Now()
+    formatted := now.Format("2006-01-02 15:04:05")
+    time.Sleep(time.Second)
+    
+    // Rust (chrono):
+    use chrono::Local;
+    let now = Local::now();
+    let formatted = now.format("%Y-%m-%d %H:%M:%S");
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+# 系统编程映射
+system_programming_mapping:
+  - source: "os/exec"
+    target: "std::process::Command"
+    example: |
+    // Go:
+    out, err := exec.Command("ls", "-la").Output()
+    
+    // Rust:
+    let output = std::process::Command::new("ls")
+        .arg("-la")
+        .output()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+  - source: "net"
+    target: "tokio::net"
+    example: |
+    // Go:
+    conn, err := net.Dial("tcp", "localhost:8080")
+    
+    // Rust:
+    let conn = tokio::net::TcpStream::connect("localhost:8080").await?;
+
+  - source: "sync/atomic"
+    target: "std::sync::atomic"
+    example: |
+    // Go:
+    counter := atomic.AddInt64(&counter, 1)
+    
+    // Rust:
+    use std::sync::atomic::{AtomicI64, Ordering};
+    let counter = AtomicI64::new(0);
+    counter.fetch_add(1, Ordering::SeqCst);
+
+  - source: "context"
+    target: "tokio::time::timeout / 自定义 context"
+    example: |
+    // Go:
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    defer cancel()
+    result, err := doWork(ctx)
+    
+    // Rust:
+    let result = tokio::time::timeout(
+        Duration::from_secs(1),
+        do_work(),
+    ).await?;
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] goroutine 已转换为 tokio::spawn
+  - [ ] channel 已转换为 mpsc/broadcast
+  - [ ] interface{} 已转换为 enum/trait object
+  - [ ] struct 方法已转换为 impl 块
+  - [ ] 错误处理已统一为 Result<T, E>
+  - [ ] 多返回值已转换为 Result
+  - [ ] nil 检查已转换为 Option<T>
+  - [ ] defer 清理已转换为 RAII (Drop trait)
+  - [ ] 内存安全已验证 (无数据竞争)
+  - [ ] 借用检查器通过
+  - [ ] 生命周期标注正确
+  - [ ] 依赖库已找到 Rust 替代
+  - [ ] tokio runtime 正确配置
+  - [ ] 单元测试已通过
+  - [ ] 并发测试已通过
+  - [ ] 性能测试已通过

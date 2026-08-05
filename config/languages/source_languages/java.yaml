@@ -1,0 +1,179 @@
+# Java 源语言配置
+# 用于跨语言迁移的源语言特性定义
+id: java
+name: Java
+java_versions: ["Java 8", "Java 11", "Java 17", "Java 21"]
+file_extensions: [.java]
+common_frameworks:
+  - Spring Boot
+  - Jakarta EE (Java EE)
+  - Hibernate/JPA
+  - Maven/Gradle
+
+# 类型系统
+type_system:
+  native_types:
+    - { java: "int", common: "integer", size: "32 位" }
+    - { java: "long", common: "integer", size: "64 位" }
+    - { java: "short", common: "integer", size: "16 位" }
+    - { java: "byte", common: "integer", size: "8 位" }
+    - { java: "float", common: "float", size: "32 位" }
+    - { java: "double", common: "float", size: "64 位" }
+    - { java: "char", common: "character", size: "16 位 (UTF-16)" }
+    - { java: "boolean", common: "boolean", size: "1 位" }
+    - { java: "String", common: "string", size: "动态（不可变）" }
+    - { java: "Integer/Long/... (包装类)", common: "boxed_integer", size: "对象类型" }
+    - { java: "List<T>", common: "array<T>", size: "动态（有序）" }
+    - { java: "Map<K,V>", common: "map<K,V>", size: "动态" }
+    - { java: "Set<T>", common: "set<T>", size: "动态" }
+    - { java: "Optional<T>", common: "optional<T>", size: "动态" }
+    - { java: "Stream<T>", common: "stream<T>", size: "惰性评估" }
+    - { java: "CompletableFuture<T>", common: "promise<T>", size: "异步" }
+    - { java: "Supplier<T>", common: "lazy<T>", size: "惰性求值" }
+    - { java: "Function<T,R>", common: "callable", size: "函数接口" }
+
+  special_types:
+    - name: 基本类型 vs 包装类
+      description: int vs Integer, 自动装箱拆箱
+      common_representation: "primitive_vs_object"
+      migration_risk: "medium"
+    - name: 数组 vs List
+      description: 原生数组 vs 集合框架
+      common_representation: "array_types"
+      migration_risk: "low"
+    - name: 泛型擦除
+      description: 泛型信息在运行时被擦除
+      common_representation: "erased_generics"
+      migration_risk: "high"
+    - name: 注解 (Annotation)
+      description: 元编程机制
+      common_representation: "metadata_annotation"
+      migration_risk: "medium"
+    - name: 反射 (Reflection)
+      description: 运行时类型检查
+      common_representation: "runtime_reflection"
+      migration_risk: "high"
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "分代式垃圾回收（Young Gen + Old Gen）"
+  gc_algorithms:
+    - G1GC (默认)
+    - ZGC
+    - Shenandoah
+  features:
+    - automatic_memory_management
+    - generational_gc
+    - automatic_boxing_unboxing
+    - string_pool_intern
+    - finalize_mechanism
+  pitfalls:
+    - id: memory_leak_static
+      description: 静态集合导致的内存泄漏
+      examples: ["static Map 缓存无限增长"]
+    - id: memory_leak_thread_locals
+      description: 未清理的 ThreadLocal
+      examples: ["线程池中的 ThreadLocal 未 remove"]
+    - id: string_pool_exhaustion
+      description: 大量 String.intern() 导致元空间溢出
+      examples: ["高频使用 intern()"]
+    - id: finalizer_queue
+      description: 过度使用 finalize()
+      examples: ["覆盖 finalize 方法导致 GC 延迟"]
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  mechanisms:
+    - Thread
+    - ExecutorService / ThreadPool
+    - synchronized / Lock
+    - volatile
+    - java.util.concurrent (BlockingQueue, ConcurrentHashMap)
+    - CompletableFuture
+    - Stream API (并行流)
+    - Project Loom (虚拟线程, Java 21+)
+  frameworks:
+    - Reactor (响应式)
+    - RxJava
+    - Spring WebFlux
+  pitfalls:
+    - id: shared_mutability
+      description: 共享可变状态
+      examples: ["多个线程修改同一 ArrayList"]
+    - id: lock_contention
+      description: 锁竞争
+      examples: ["synchronized 方法在高并发下成为瓶颈"]
+    - id: thread_pool_exhaustion
+      description: 线程池耗尽
+      examples: ["默认 ForkJoinPool 被阻塞任务占满"]
+
+# 惯用模式
+idiomatic_patterns:
+  - name: Stream API 函数式编程
+    description: 使用 Stream 进行集合处理
+    code_example: |
+      List<String> names = users.stream()
+          .filter(u -> u.getAge() > 18)
+          .sorted(Comparator.comparing(User::getName))
+          .map(User::getName)
+          .collect(Collectors.toList());
+  - name: Optional 空值处理
+    description: 使用 Optional 避免 NPE
+    code_example: |
+      String city = Optional.ofNullable(user)
+          .map(User::getAddress)
+          .map(Address::getCity)
+          .orElse("Unknown");
+  - name: 接口默认方法
+    description: Java 8+ 接口默认实现
+    code_example: |
+      public interface Repository<T> {
+          T findById(Long id);
+          default List<T> findAll() {
+              return findAll(null);
+          }
+          List<T> findAll(Specification<T> spec);
+      }
+  - name: 记录类 (Record, Java 14+)
+    description: 不可变数据载体
+    code_example: |
+      public record Point(int x, int y) {
+          public double distance(Point other) {
+              return Math.sqrt(
+                  Math.pow(this.x - other.x, 2) +
+                  Math.pow(this.y - other.y, 2)
+              );
+          }
+      }
+  - name: 构建器模式
+    description: 使用 Builder 模式创建复杂对象
+    code_example: |
+      Order order = Order.builder()
+          .customer(customer)
+          .items(items)
+          .shippingAddress(address)
+          .paymentMethod(payment)
+          .build();
+
+# 常见代码坏味道
+common_code_smells:
+  - id: null_pointers
+    description: 大量 null 检查而不使用 Optional
+    severity: "high"
+    examples: ["if (obj != null && obj.getField() != null)"]
+  - id: god_class
+    description: 上帝类/大类
+    severity: "high"
+    threshold: "超过 1000 行或 30 个方法"
+  - id: mutable_state
+    description: 过度使用可变状态
+    severity: "medium"
+  - id: utility_class_abuse
+    description: 滥用工具类
+    severity: "low"
+    examples: ["MathUtils.getInstance().calculate()"]
+  - id: exception_vs_control_flow
+    description: 用异常控制流
+    severity: "medium"

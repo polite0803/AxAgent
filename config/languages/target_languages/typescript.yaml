@@ -1,0 +1,241 @@
+# TypeScript 目标语言配置
+# 用于跨语言迁移的目标语言特性定义
+id: typescript
+name: TypeScript
+typescript_versions: ["TypeScript 5.x"]
+file_extensions: [.ts, .tsx]
+common_frameworks:
+  - React 19
+  - Ant Design 6
+  - Zustand 5 (状态管理)
+  - React Router 7
+  - Vite 8 (构建)
+  - Tauri 2 (桌面应用)
+
+# 类型系统
+type_system:
+  native_types:
+    - { typescript: "number", common: "float", size: "IEEE 754 双精度" }
+    - { typescript: "string", common: "string", size: "UTF-16" }
+    - { typescript: "boolean", common: "boolean", size: "1 位" }
+    - { typescript: "bigint", common: "integer", size: "任意精度整数" }
+    - { typescript: "symbol", common: "symbol", size: "唯一标识" }
+    - { typescript: "void", common: "void", size: "无返回值" }
+    - { typescript: "never", common: "never", size: "永不到达" }
+    - { typescript: "unknown", common: "unknown", size: "未知类型（安全）" }
+    - { typescript: "any", common: "any", size: "任意类型（不安全）" }
+    - { typescript: "T[]", common: "array<T>", size: "动态" }
+    - { typescript: "Array<T>", common: "array<T>", size: "动态" }
+    - { typescript: "Record<K,V>", common: "map<K,V>", size: "动态" }
+    - { typescript: "Map<K,V>", common: "ordered_map<K,V>", size: "动态" }
+    - { typescript: "Set<T>", common: "set<T>", size: "动态" }
+    - { typescript: "Tuple<[T1, T2]>", common: "tuple<T1,T2>", size: "固定长度数组" }
+    - { typescript: "Promise<T>", common: "promise<T>", size: "异步" }
+    - { typescript: "interface", common: "interface", size: "结构类型" }
+    - { typescript: "type", common: "type_alias", size: "类型别名" }
+    - { typescript: "enum", common: "enum", size: "枚举" }
+    - { typescript: "class", common: "class", size: "类" }
+    - { typescript: "abstract class", common: "abstract_class", size: "抽象类" }
+    - { typescript: "namespace", common: "namespace", size: "命名空间" }
+    - { typescript: "module", common: "module", size: "ES Module" }
+
+  special_types:
+    - name: 联合类型 (Union)
+      description: "T1 | T2" 表示类型之一
+      common_representation: "union_type"
+      migration_risk: "low"
+    - name: 交叉类型 (Intersection)
+      description: "T1 & T2" 表示同时满足
+      common_representation: "intersection_type"
+      migration_risk: "low"
+    - name: 字面量类型
+      description: 精确的常量类型
+      common_representation: "literal_type"
+      migration_risk: "low"
+      example: |
+        type Status = "active" | "inactive" | "pending";
+    - name: 条件类型
+      description: 类型级别的条件判断
+      common_representation: "conditional_type"
+      migration_risk: "medium"
+      example: |
+        type NonNull<T> = T extends null | undefined ? never : T;
+    - name: 映射类型
+      description: 基于已有类型创建新类型
+      common_representation: "mapped_type"
+      migration_risk: "medium"
+      example: |
+        type Readonly<T> = { readonly [P in keyof T]: T[P] };
+    - name: 模板字面量类型
+      description: 字符串类型操作
+      common_representation: "template_literal_type"
+      migration_risk: "medium"
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "V8 引擎的分代式 GC"
+  features:
+    - automatic_memory_management
+    - garbage_collection
+    - closures (闭包)
+    - prototypal_inheritance (原型继承)
+  pitfalls:
+    - id: closure_memory_leak
+      description: 闭包导致的内存泄漏
+      examples: ["组件卸载后闭包仍引用大对象"]
+    - id: global_accumulation
+      description: 全局对象无限增长
+      examples: ["在 window 上挂载大量属性"]
+    - id: event_listener_leak
+      description: 事件监听器未清理
+      examples: ["addEventListener 后未 removeEventListener"]
+
+# 并发模型
+concurrency_model:
+  execution_model: "单线程 + 事件循环"
+  async_mechanism: "Event Loop + Promise"
+  mechanisms:
+    - async/await (语法支持)
+    - Promise
+    - Generator / async Generator
+    - Web Workers (多线程)
+    - SharedArrayBuffer + Atomics (共享内存)
+    - MessageChannel
+  runtime_environments:
+    - Browser (Chrome, Firefox, Safari, Edge)
+    - Node.js
+    - Deno
+    - Bun
+    - Tauri (基于 WebView)
+  concurrency_safety:
+    - 单线程模型天然无数据竞争
+    - Web Workers 需显式消息传递
+    - 无原生多线程锁
+
+# 惯用模式
+idiomatic_patterns:
+  - name: 函数组件 + Hooks (React)
+    description: 使用函数组件和 Hooks
+    code_example: |
+      import { useState, useEffect } from 'react';
+
+      function UserProfile({ userId }: { userId: string }) {
+          const [user, setUser] = useState<User | null>(null);
+
+          useEffect(() => {
+              fetchUser(userId).then(setUser);
+          }, [userId]);
+
+          if (!user) return <Loading />;
+          return <div>{user.name}</div>;
+      }
+  - name: 不可变数据 + 更新
+    description: 使用展开运算符而非突变
+    code_example: |
+      const newItems = [...items, newItem];
+      const updated = items.map(item =>
+          item.id === id ? { ...item, name: 'new' } : item
+      );
+  - name: 类型安全 API
+    description: 定义清晰的接口
+    code_example: |
+      interface ApiResponse<T> {
+          code: number;
+          data: T;
+          message?: string;
+      }
+
+      async function fetchApi<T>(url: string): Promise<T> {
+          const res = await fetch(url);
+          const json: ApiResponse<T> = await res.json();
+          if (json.code !== 0) throw new Error(json.message);
+          return json.data;
+      }
+  - name: 依赖注入 + 工厂
+    description: 解耦依赖
+    code_example: |
+      interface DataService {
+          getUsers(): Promise<User[]>;
+      }
+
+      class ApiDataService implements DataService {
+          async getUsers() {
+              return fetchApi<User[]>('/users');
+          }
+      }
+
+      function createApp(service: DataService) {
+          return new App(service);
+      }
+  - name: Zustand Store
+    description: 集中状态管理
+    code_example: |
+      interface AuthState {
+          user: User | null;
+          login: (user: User) => void;
+          logout: () => void;
+      }
+
+      export const useAuthStore = create<AuthState>((set) => ({
+          user: null,
+          login: (user) => set({ user }),
+          logout: () => set({ user: null }),
+      }));
+
+# 代码规范
+code_conventions:
+  naming:
+    - component: PascalCase
+    - function: camelCase
+    - variable: camelCase
+    - constant: UPPER_SNAKE_CASE
+    - interface: PascalCase (不用 I 前缀)
+    - type: PascalCase
+    - enum: PascalCase
+    - enum member: PascalCase
+    - file: kebab-case (组件文件用 PascalCase)
+  formatting:
+    - indentation: 2 spaces
+    - max_line_width: 100
+    - semicolons: true
+    - quotes: double
+  linting:
+    - ESLint (强制)
+    - Prettier (格式化)
+    - TypeScript strict mode (强制)
+  testing:
+    - Vitest (单元测试)
+    - React Testing Library
+    - Playwright (E2E)
+
+# 与 Tauri 集成
+tauri_integration:
+  invoke_pattern: |
+    // 必须通过 @/lib/invoke 调用，禁止直接使用 @tauri-apps/api/core
+    import { invoke } from '@/lib/invoke';
+
+    // 调用后端命令
+    const result = await invoke<{ data: string }>('my_command', {
+        input: 'test',
+    });
+  store_pattern: |
+    // Zustand Store 分类
+    // 核心业务 → stores/domain/
+    // 功能特性 → stores/feature/
+    // 跨组件 UI → stores/shared/
+    // 调试工具 → stores/devtools/
+
+    export const useMyStore = create<State>((set, get) => ({
+        data: null,
+        loading: false,
+        fetchData: async () => {
+            set({ loading: true });
+            const data = await invoke('get_data');
+            set({ data, loading: false });
+        },
+    }));
+  i18n_pattern: |
+    // 必须使用 i18n，禁止硬编码字符串
+    const { t } = useTranslation();
+    return <div>{t('common.loading')}</div>;

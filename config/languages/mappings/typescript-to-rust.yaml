@@ -1,0 +1,888 @@
+# TypeScript → Rust 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: typescript-to-rust
+source: typescript
+target: rust
+description: "从 TypeScript 后端迁移到 Rust 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "number", target: "f64", note: "TypeScript number 是 64 位浮点；大整数用 i64/u64" }
+    - { source: "string", target: "String" }
+    - { source: "boolean", target: "bool" }
+    - { source: "bigint", target: "i128 / u128", note: "任意精度整数" }
+    - { source: "void", target: "()" }
+    - { source: "T[] / Array<T>", target: "Vec<T>" }
+    - { source: "Map<K, V>", target: "HashMap<K, V>" }
+    - { source: "Set<T>", target: "HashSet<T>" }
+    - { source: "[T1, T2]", target: "(T1, T2)" }
+    - { source: "Promise<T>", target: "impl Future<Output = T> / BoxFuture<'static, T>" }
+    - { source: "undefined", target: "Option<T::None>" }
+    - { source: "null", target: "Option<T::None>" }
+    - { source: "T | undefined", target: "Option<T>" }
+
+  manual_review:
+    - source: "any"
+      target_options:
+        - option: "enum (如果是有限类型)"
+          condition: "可以枚举所有可能类型"
+        - option: "trait object (如果需要多态)"
+          condition: "需要运行时多态"
+        - option: "Box<dyn Any> (如果真的不确定)"
+          condition: "确实需要任意类型"
+      note: "any 类型是迁移的最大风险点，必须确定具体类型"
+
+    - source: "unknown"
+      target_options:
+        - option: "enum (如果可以确定类型)"
+          condition: "输入来源已知"
+        - option: "serde_json::Value (如果是动态 JSON)"
+          condition: "处理 JSON 数据"
+        - option: "Box<dyn Any>"
+          condition: "确实未知"
+
+    - source: "interface"
+      target_options:
+        - option: "trait (如果是行为契约)"
+          condition: "定义了方法签名"
+        - option: "struct (如果是数据结构)"
+          condition: "只有字段，没有方法"
+        - option: "struct + impl (数据 + 行为)"
+          condition: "既有数据又有方法"
+
+    - source: "type alias (类型别名)"
+      target: "type alias / 新类型 (newtype)"
+      example: |
+        // TypeScript:
+        type UserId = string;
+        type Result<T> = { ok: true; value: T } | { ok: false; error: string };
+        
+        // Rust:
+        type UserId = String;
+        enum Result<T> {
+            Ok(T),
+            Err(String),
+        }
+
+    - source: "class (类)"
+      target: "struct + impl"
+      example: |
+        // TypeScript:
+        class UserService {
+            private users: Map<string, User> = new Map();
+            
+            constructor(private repository: UserRepository) {}
+            
+            async getUser(id: string): Promise<User | null> {
+                return this.repository.findById(id);
+            }
+            
+            addUser(user: User): void {
+                this.users.set(user.id, user);
+            }
+        }
+        
+        // Rust:
+        pub struct UserService {
+            users: HashMap<String, User>,
+            repository: Arc<dyn UserRepository>,
+        }
+        
+        impl UserService {
+            pub fn new(repository: Arc<dyn UserRepository>) -> Self {
+                Self {
+                    users: HashMap::new(),
+                    repository,
+                }
+            }
+            
+            pub async fn get_user(&self, id: &str) -> Option<User> {
+                self.repository.find_by_id(id).await
+            }
+            
+            pub fn add_user(&mut self, user: User) {
+                self.users.insert(user.id.clone(), user);
+            }
+        }
+
+    - source: "enum (枚举)"
+      target: "enum (代数数据类型)"
+      example: |
+        // TypeScript:
+        enum Status {
+            Active = 'active',
+            Inactive = 'inactive',
+        }
+        
+        enum Result<T> {
+            Success = 'success',
+            Error = 'error',
+        }
+        
+        // Rust:
+        #[derive(Debug, Serialize, Deserialize)]
+        enum Status {
+            #[serde(rename = "active")]
+            Active,
+            #[serde(rename = "inactive")]
+            Inactive,
+        }
+        
+        #[derive(Debug)]
+        enum AppResult<T> {
+            Success(T),
+            Error(String),
+        }
+
+    - source: "泛型 (Generics)"
+      target: "泛型 (generics)"
+      example: |
+        // TypeScript:
+        interface Repository<T, ID> {
+            findById(id: ID): Promise<T | null>;
+            save(entity: T): Promise<void>;
+        }
+        
+        // Rust:
+        pub trait Repository<T, ID> {
+            async fn find_by_id(&self, id: &ID) -> Option<T>;
+            async fn save(&self, entity: &T);
+        }
+
+    - source: "装饰器 (Decorator)"
+      target: "宏 / 包装函数"
+      example: |
+        // TypeScript:
+        @Controller('/users')
+        class UserController {
+            @Get('/:id')
+            async getUser(@Param('id') id: string) {
+                return { id, name: 'Alice' };
+            }
+        }
+        
+        // Rust (使用宏):
+        use axum::{routing::get, Router};
+        
+        async fn get_user(Path(id): Path<String>) -> Json<UserResponse> {
+            Json(UserResponse { id, name: "Alice".to_string() })
+        }
+        
+        pub fn user_routes() -> Router {
+            Router::new()
+                .route("/users/:id", get(get_user))
+        }
+
+    - source: "联合类型 (Union Type)"
+      target: "enum / trait"
+      example: |
+        // TypeScript:
+        type Shape = Circle | Rectangle;
+        type Event = UserEvent | SystemEvent | ErrorEvent;
+        
+        // Rust:
+        enum Shape {
+            Circle { radius: f64 },
+            Rectangle { width: f64, height: f64 },
+        }
+        
+        enum Event {
+            UserEvent(UserData),
+            SystemEvent(SystemData),
+            ErrorEvent(ErrorData),
+        }
+
+    - source: "交叉类型 (Intersection)"
+      target: "struct / 组合"
+      example: |
+        // TypeScript:
+        type Employee = Person & { employeeId: string };
+        
+        // Rust:
+        struct Employee {
+            person: Person,
+            employee_id: String,
+        }
+
+# 异步映射
+async_mapping:
+  - source: "async/await"
+    target: "async/await (Rust)"
+    example: |
+    // TypeScript:
+    async function fetchUser(id: string): Promise<User> {
+        const response = await fetch(`/api/users/${id}`);
+        const data = await response.json();
+        return data as User;
+    }
+    
+    // Rust:
+    async fn fetch_user(id: &str) -> Result<User, AppError> {
+        let response = reqwest::get(&format!("/api/users/{}", id))
+            .await?;
+        let user: User = response.json().await?;
+        Ok(user)
+    }
+
+  - source: "Promise.all"
+    target: "futures::join! / tokio::join!"
+    example: |
+    // TypeScript:
+    async function fetchAll() {
+        const [users, posts] = await Promise.all([
+            fetchUsers(),
+            fetchPosts(),
+        ]);
+        return { users, posts };
+    }
+    
+    // Rust:
+    async fn fetch_all() -> Result<(Vec<User>, Vec<Post>), AppError> {
+        let (users, posts) = tokio::join!(fetch_users(), fetch_posts());
+        Ok((users?, posts?))
+    }
+
+  - source: "Promise.race"
+    target: "tokio::select! / tokio::time::timeout"
+    example: |
+    // TypeScript:
+    async function fetchWithTimeout(url: string) {
+        return Promise.race([
+            fetch(url),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 5000)
+            ),
+        ]);
+    }
+    
+    // Rust:
+    async fn fetch_with_timeout(url: &str) -> Result<Response, AppError> {
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            reqwest::get(url)
+        ).await??
+    }
+
+  - source: "EventEmitter"
+    target: "tokio::sync::broadcast / mpsc"
+    example: |
+    // TypeScript:
+    class EventBus extends EventEmitter {
+        emitUserCreated(user: User) {
+            this.emit('user:created', user);
+        }
+        onUserCreated(handler: (user: User) => void) {
+            this.on('user:created', handler);
+        }
+    }
+    
+    // Rust:
+    use tokio::sync::broadcast;
+    
+    struct EventBus {
+        tx: broadcast::Sender<Event>,
+    }
+    
+    impl EventBus {
+        fn new(capacity: usize) -> Self {
+            let (tx, _) = broadcast::channel(capacity);
+            Self { tx }
+        }
+        
+        fn emit_user_created(&self, user: User) {
+            let _ = self.tx.send(Event::UserCreated(user));
+        }
+        
+        fn subscribe(&self) -> broadcast::Receiver<Event> {
+            self.tx.subscribe()
+        }
+    }
+
+  - source: "setTimeout / setInterval"
+    target: "tokio::time::sleep / interval"
+    example: |
+    // TypeScript:
+    setTimeout(() => doSomething(), 1000);
+    const timer = setInterval(() => tick(), 1000);
+    
+    // Rust:
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    let mut interval = tokio::time::interval(Duration::from_secs(1));
+    interval.tick().await;
+
+# 错误处理映射
+error_mapping:
+  - source: "try-catch"
+    target: "match / Result<T, E>"
+    example: |
+    // TypeScript:
+    try {
+        const user = await fetchUser(id);
+        return user;
+    } catch (error) {
+        console.error('Failed:', error);
+        return null;
+    }
+    
+    // Rust:
+    match fetch_user(id).await {
+        Ok(user) => Ok(user),
+        Err(e) => {
+            eprintln!("Failed: {}", e);
+            Err(e)
+        }
+    }
+
+  - source: "throw new Error"
+    target: "Err(MyError::Variant)"
+    example: |
+    // TypeScript:
+    throw new Error('User not found');
+    throw new ValidationError('Invalid input');
+    
+    // Rust:
+    use thiserror::Error;
+    
+    #[derive(Error, Debug)]
+    pub enum AppError {
+        #[error("User not found: {id}")]
+        UserNotFound { id: String },
+        #[error("Validation error: {message}")]
+        Validation { message: String },
+        #[error(transparent)]
+        Database(#[from] sqlx::Error),
+    }
+    
+    Err(AppError::UserNotFound { id: id.to_string() })
+
+  - source: "自定义错误类"
+    target: "thiserror enum"
+    example: |
+    // TypeScript:
+    class BusinessError extends Error {
+        constructor(
+            public code: string,
+            message: string,
+        ) {
+            super(message);
+        }
+    }
+    
+    class ValidationError extends BusinessError {
+        constructor(message: string) {
+            super('VALIDATION_ERROR', message);
+        }
+    }
+    
+    // Rust:
+    #[derive(Error, Debug)]
+    #[error("{code}: {message}")]
+    pub struct BusinessError {
+        pub code: String,
+        pub message: String,
+    }
+    
+    impl BusinessError {
+        fn validation(message: impl Into<String>) -> Self {
+            Self {
+                code: "VALIDATION_ERROR".to_string(),
+                message: message.into(),
+            }
+        }
+    }
+
+  - source: "Result 模式"
+    target: "Result<T, E>"
+    example: |
+    // TypeScript:
+    type Result<T, E = Error> = 
+        | { ok: true; value: T }
+        | { ok: false; error: E };
+    
+    function parseJson<T>(json: string): Result<T> {
+        try {
+            return { ok: true, value: JSON.parse(json) };
+        } catch (e) {
+            return { ok: false, error: e as Error };
+        }
+    }
+    
+    // Rust:
+    fn parse_json<T: DeserializeOwned>(json: &str) -> Result<T, serde_json::Error> {
+        serde_json::from_str(json)
+    }
+
+# 数据验证映射
+validation_mapping:
+  - source: "zod schema"
+    target: "手动验证 / validator crate"
+    example: |
+    // TypeScript:
+    import { z } from 'zod';
+    
+    const UserSchema = z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        age: z.number().min(0).max(150),
+    });
+    
+    type User = z.infer<typeof UserSchema>;
+    
+    // Rust:
+    use validator::Validate;
+    
+    #[derive(Debug, Validate, Deserialize)]
+    struct User {
+        #[validate(length(min = 1, message = "Name is required"))]
+        name: String,
+        
+        #[validate(email(message = "Invalid email"))]
+        email: String,
+        
+        #[validate(range(min = 0, max = 150, message = "Invalid age"))]
+        age: i32,
+    }
+
+  - source: "class-validator"
+    target: "validator crate / 手动实现"
+    example: |
+    // TypeScript:
+    import { IsEmail, IsString, MinLength } from 'class-validator';
+    
+    class CreateUserDto {
+        @IsString()
+        @MinLength(1)
+        name: string;
+        
+        @IsEmail()
+        email: string;
+    }
+    
+    // Rust:
+    #[derive(Debug, Deserialize)]
+    struct CreateUserDto {
+        name: String,
+        email: String,
+    }
+    
+    impl CreateUserDto {
+        fn validate(&self) -> Result<(), ValidationErrors> {
+            let mut errors = Vec::new();
+            
+            if self.name.is_empty() {
+                errors.push(("name", "Name must not be empty"));
+            }
+            
+            if !self.email.contains('@') {
+                errors.push(("email", "Invalid email format"));
+            }
+            
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(ValidationErrors(errors))
+            }
+        }
+    }
+
+# Web 框架映射
+web_framework_mapping:
+  - source: "Express.js"
+    target: "Axum"
+    example: |
+    // TypeScript (Express):
+    import express from 'express';
+    const app = express();
+    
+    app.get('/users/:id', async (req, res) => {
+        const user = await getUser(req.params.id);
+        res.json({ data: user });
+    });
+    
+    app.post('/users', async (req, res) => {
+        const user = await createUser(req.body);
+        res.status(201).json({ data: user });
+    });
+    
+    app.use(errorHandler);
+    app.listen(3000);
+    
+    // Rust (Axum):
+    use axum::{routing::{get, post}, Router, Json, extract::Path};
+    use tower_http::cors::CorsLayer;
+    
+    async fn get_user(Path(id): Path<String>) -> Json<UserResponse> {
+        let user = get_user_service(&id).await;
+        Json(UserResponse { data: user })
+    }
+    
+    async fn create_user(Json(body): Json<CreateUserRequest>) -> StatusCode {
+        create_user_service(body).await;
+        StatusCode::CREATED
+    }
+    
+    let app = Router::new()
+        .route("/users/:id", get(get_user))
+        .route("/users", post(create_user))
+        .layer(CorsLayer::permissive())
+        .with_state(AppState::new());
+    
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+
+  - source: "NestJS"
+    target: "Axum (手动组织) / 宏生成"
+    example: |
+    // TypeScript (NestJS):
+    @Controller('users')
+    class UsersController {
+        constructor(private usersService: UsersService) {}
+        
+        @Get(':id')
+        async getUser(@Param('id') id: string) {
+            return this.usersService.findOne(id);
+        }
+        
+        @Post()
+        @UseGuards(AuthGuard)
+        async create(@Body() createUserDto: CreateUserDto) {
+            return this.usersService.create(createUserDto);
+        }
+    }
+    
+    // Rust (Axum + 手动组织):
+    pub struct UsersController {
+        service: Arc<UsersService>,
+    }
+    
+    impl UsersController {
+        pub fn routes(self) -> Router {
+            Router::new()
+                .route("/:id", get(Self::get_user))
+                .route("", post(Self::create))
+                .with_state(self)
+        }
+        
+        async fn get_user(
+            State(controller): State<Arc<Self>>,
+            Path(id): Path<String>,
+        ) -> Json<UserResponse> {
+            let user = controller.service.find_one(&id).await;
+            Json(UserResponse::from(user))
+        }
+        
+        async fn create(
+            State(controller): State<Arc<Self>>,
+            Json(dto): Json<CreateUserDto>,
+        ) -> Result<Json<UserResponse>, AppError> {
+            let user = controller.service.create(dto).await?;
+            Ok(Json(UserResponse::from(user)))
+        }
+    }
+
+  - source: "Fastify"
+    target: "Axum (等价性能)"
+    example: |
+    // TypeScript (Fastify):
+    const fastify = Fastify();
+    
+    fastify.get('/health', async () => ({ status: 'ok' }));
+    
+    fastify.post('/data', async (request, reply) => {
+        const result = await processData(request.body);
+        reply.send(result);
+    });
+    
+    await fastify.listen({ port: 3000 });
+    
+    // Rust (Axum):
+    async fn health() -> Json<serde_json::Value> {
+        Json(serde_json::json!({ "status": "ok" }))
+    }
+    
+    async fn process_data(Json(body): Json<DataRequest>) -> Json<DataResponse> {
+        let result = process_data(body).await;
+        Json(result)
+    }
+    
+    let app = Router::new()
+        .route("/health", get(health))
+        .route("/data", post(process_data));
+
+# 数据库映射
+database_mapping:
+  - source: "Prisma"
+    target: "SeaORM / SQLx"
+    example: |
+    // TypeScript (Prisma):
+    // schema.prisma
+    model User {
+        id    String  @id @default(cuid())
+        name  String
+        email String  @unique
+        posts Post[]
+    }
+    
+    // TypeScript service:
+    const user = await prisma.user.create({
+        data: { name: 'Alice', email: 'alice@example.com' },
+        include: { posts: true },
+    });
+    
+    // Rust (SeaORM):
+    // entity/user.rs
+    pub struct Model {
+        pub id: String,
+        pub name: String,
+        pub email: String,
+    }
+    
+    // service:
+    let user = entity::user::ActiveModel {
+        id: Set(Uuid::new_v4().to_string()),
+        name: Set("Alice".to_string()),
+        email: Set("alice@example.com".to_string()),
+    }
+    .insert(&state.db)
+    .await?;
+
+  - source: "TypeORM"
+    target: "SeaORM / SQLx"
+    example: |
+    // TypeScript (TypeORM):
+    @Entity()
+    class User {
+        @PrimaryGeneratedColumn()
+        id: number;
+        
+        @Column()
+        name: string;
+        
+        @OneToMany(() => Post, post => post.user)
+        posts: Post[];
+    }
+    
+    // Rust (SeaORM):
+    // 使用 sea-orm-cli 从数据库自动生成实体
+    // 或手动定义
+
+  - source: "Knex.js"
+    target: "SeaORM 查询构建器 / SQLx"
+    example: |
+    // TypeScript (Knex):
+    const users = await knex('users')
+        .select('id', 'name')
+        .where('age', '>', 25)
+        .orderBy('name');
+    
+    // Rust (SeaORM):
+    let users = entity::user::Entity::find()
+        .filter(entity::user::Column::Age.gt(25))
+        .order_by_asc(entity::user::Column::Name)
+        .select_only()
+        .into_tuple::<(i64, String)>()
+        .all(&state.db)
+        .await?;
+
+# 依赖注入映射
+di_mapping:
+  - source: "NestJS DI"
+    target: "构造函数注入 + Arc<dyn>"
+    example: |
+    // TypeScript (NestJS):
+    @Injectable()
+    class UserService {
+        constructor(
+            @Inject('UserRepository') private repo: UserRepository,
+            @Inject('Logger') private logger: Logger,
+        ) {}
+    }
+    
+    // Rust:
+    pub struct UserService {
+        repo: Arc<dyn UserRepository>,
+        logger: Arc<dyn Logger>,
+    }
+    
+    impl UserService {
+        pub fn new(
+            repo: Arc<dyn UserRepository>,
+            logger: Arc<dyn Logger>,
+        ) -> Self {
+            Self { repo, logger }
+        }
+    }
+    
+    // 在启动时组装:
+    let repo: Arc<dyn UserRepository> = Arc::new(DbUserRepository::new(pool));
+    let logger: Arc<dyn Logger> = Arc::new(FileLogger::new("app.log"));
+    let service = Arc::new(UserService::new(repo, logger));
+
+  - source: "Inversify"
+    target: "手动依赖注入"
+    example: |
+    // TypeScript (Inversify):
+    const container = new Container();
+    container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepository);
+    const repo = container.get<IUserRepository>(TYPES.UserRepository);
+    
+    // Rust:
+    // Rust 没有 DI 容器，直接在启动时组装
+    let repo: Arc<dyn UserRepository> = Arc::new(UserRepository::new(pool));
+    let service = UserService::new(repo.clone());
+
+# 序列化映射
+serialization_mapping:
+  - source: "JSON.parse / JSON.stringify"
+    target: "serde_json"
+    example: |
+    // TypeScript:
+    const data = JSON.parse(jsonString);
+    const jsonString = JSON.stringify(data);
+    const pretty = JSON.stringify(data, null, 2);
+    
+    // Rust:
+    let data: Value = serde_json::from_str(json_string)?;
+    let json_string = serde_json::to_string(&data)?;
+    let pretty = serde_json::to_string_pretty(&data)?;
+
+  - source: "class-transformer"
+    target: "serde + 自定义转换"
+    example: |
+    // TypeScript:
+    import { plainToInstance } from 'class-transformer';
+    const user = plainToInstance(UserDto, jsonData);
+    
+    // Rust:
+    let user: UserDto = serde_json::from_value(json_data)?;
+    // 或使用自定义 From 实现
+    impl From<JsonValue> for UserDto {
+        fn from(value: JsonValue) -> Self {
+            // ...
+        }
+    }
+
+# 测试映射
+testing_mapping:
+  - source: "Jest / Vitest"
+    target: "cargo test"
+    example: |
+    // TypeScript:
+    test('should create user', async () => {
+        const result = await createUser({ name: 'Alice' });
+        expect(result.name).toBe('Alice');
+    });
+    
+    // Rust:
+    #[tokio::test]
+    async fn test_create_user() {
+        let result = create_user(CreateUserRequest { name: "Alice".into() }).await;
+        assert_eq!(result.name, "Alice");
+    }
+
+  - source: "Supertest"
+    target: "axum::test"
+    example: |
+    // TypeScript:
+    const response = await supertest(app)
+        .post('/users')
+        .send({ name: 'Alice' });
+    expect(response.status).toBe(201);
+    
+    // Rust:
+    use axum::body::Body;
+    use tower::ServiceExt;
+    
+    let app = create_test_app();
+    let response = app
+        .oneshot(
+            axum::http::Request::builder()
+                .method("POST")
+                .uri("/users")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":"Alice"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+# 常用库映射
+library_mapping:
+  - typescript_library: "lodash"
+    rust_alternative: "标准库 + 迭代器适配器"
+    example: |
+    // TypeScript:
+    import { groupBy, debounce, throttle } from 'lodash';
+    const groups = groupBy(users, u => u.department);
+    const debouncedFn = debounce(fn, 300);
+    
+    // Rust:
+    use std::collections::HashMap;
+    let mut groups: HashMap<&str, Vec<&User>> = HashMap::new();
+    for user in &users {
+        groups.entry(&user.department)
+            .or_insert_with(Vec::new)
+            .push(user);
+    }
+
+  - typescript_library: "dayjs / moment"
+    rust_alternative: "chrono"
+    example: |
+    // TypeScript:
+    const now = dayjs().format('YYYY-MM-DD');
+    const date = dayjs('2024-01-15').add(7, 'day');
+    
+    // Rust:
+    use chrono::{Local, Duration};
+    let now = Local::now().format("%Y-%m-%d").to_string();
+    let date = NaiveDate::from_ymd_opt(2024, 1, 15)
+        .unwrap()
+        + Duration::days(7);
+
+  - typescript_library: "uuid"
+    rust_alternative: "uuid crate"
+    example: |
+    // TypeScript:
+    import { v4 as uuidv4 } from 'uuid';
+    const id = uuidv4();
+    
+    // Rust:
+    use uuid::Uuid;
+    let id = Uuid::new_v4().to_string();
+
+  - typescript_library: "bcryptjs"
+    rust_alternative: "bcrypt crate"
+    example: |
+    // TypeScript:
+    import bcrypt from 'bcryptjs';
+    const hash = await bcrypt.hash(password, 10);
+    const isValid = await bcrypt.compare(password, hash);
+    
+    // Rust:
+    use bcrypt::{hash, verify, DEFAULT_COST};
+    let hashed = hash(password.as_bytes(), DEFAULT_COST)?;
+    let is_valid = verify(password.as_bytes(), &hashed)?;
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] 静态类型已完整转换（无 any 泄漏）
+  - [ ] Promise/async-await 已转换为 Rust async/await
+  - [ ] 类已转换为 struct + impl
+  - [ ] 接口已转换为 trait
+  - [ ] 装饰器已转换为宏或显式路由注册
+  - [ ] 依赖注入已手动组装
+  - [ ] 错误处理已统一为 Result<T, E>
+  - [ ] 数据库访问已转换为 SeaORM/SQLx
+  - [ ] Web 框架已转换为 Axum
+  - [ ] 序列化已转换为 serde
+  - [ ] 测试已转换为 cargo test
+  - [ ] 并发安全已验证（无数据竞争）
+  - [ ] 所有权和借用已正确处理
+  - [ ] 生命周期标注已正确
+  - [ ] 单元测试覆盖率达到 80%+
+  - [ ] 集成测试已通过
+  - [ ] 性能测试已通过
+  - [ ] clippy 零警告
+  - [ ] rustfmt 格式化通过

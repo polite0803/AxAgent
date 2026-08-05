@@ -1,0 +1,483 @@
+# Java → Rust 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: java-to-rust
+source: java
+target: rust
+description: "从 Java (Spring Boot) 迁移到 Rust (Axum) 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "byte", target: "i8" }
+    - { source: "short", target: "i16" }
+    - { source: "int", target: "i32" }
+    - { source: "long", target: "i64" }
+    - { source: "float", target: "f32" }
+    - { source: "double", target: "f64" }
+    - { source: "boolean", target: "bool" }
+    - { source: "char", target: "char" }
+    - { source: "String", target: "String" }
+    - { source: "byte[]", target: "Vec<u8>" }
+    - { source: "List<T>", target: "Vec<T>" }
+    - { source: "Set<T>", target: "HashSet<T>" }
+    - { source: "Map<K,V>", target: "HashMap<K,V>" }
+    - { source: "ConcurrentHashMap", target: "Arc<Mutex<HashMap>> / DashMap" }
+    - { source: "Optional<T>", target: "Option<T>" }
+    - { source: "Stream<T>", target: "impl Iterator<Item = T>" }
+    - { source: "CompletableFuture<T>", target: "impl Future<Output = T>" }
+
+  manual_review:
+    - source: "class (类)"
+      target: "struct + impl"
+      example: |
+        // Java:
+        @Entity
+        public class User {
+            @Id
+            private Long id;
+            private String name;
+            private String email;
+            
+            public Long getId() { return id; }
+            public void setName(String name) { this.name = name; }
+        }
+        
+        // Rust:
+        #[derive(Debug, Serialize, Deserialize)]
+        pub struct User {
+            pub id: Option<i64>,
+            pub name: String,
+            pub email: String,
+        }
+
+    - source: "interface (接口)"
+      target: "trait"
+      example: |
+        // Java:
+        public interface UserRepository extends JpaRepository<User, Long> {
+            Optional<User> findByEmail(String email);
+            List<User> findByAgeGreaterThan(int age);
+        }
+        
+        // Rust:
+        pub trait UserRepository {
+            async fn find_by_email(&self, email: &str) -> Result<Option<User>, RepoError>;
+            async fn find_by_age_greater_than(&self, age: i32) -> Result<Vec<User>, RepoError>;
+        }
+
+    - source: "继承 (extends)"
+      target: "trait + 组合"
+      example: |
+        // Java:
+        @Service
+        public class PremiumUserService extends UserService {
+            @Override
+            public User getUser(Long id) {
+                User user = super.getUser(id);
+                user.setPremium(true);
+                return user;
+            }
+        }
+        
+        // Rust:
+        pub trait UserService {
+            async fn get_user(&self, id: i64) -> Result<User, ServiceError>;
+        }
+        
+        pub struct PremiumUserService {
+            inner: Arc<dyn UserService>,
+        }
+        
+        impl UserService for PremiumUserService {
+            async fn get_user(&self, id: i64) -> Result<User, ServiceError> {
+                let mut user = self.inner.get_user(id).await?;
+                user.premium = true;
+                Ok(user)
+            }
+        }
+
+    - source: "注解 (Annotation)"
+      target: "trait 约束 / 宏"
+      example: |
+        // Java:
+        @RestController
+        @RequestMapping("/api/users")
+        public class UserController {
+            @GetMapping("/{id}")
+            public User getUser(@PathVariable Long id) { ... }
+        }
+        
+        // Rust:
+        // 使用 axum 的路由宏或手动注册
+        async fn get_user(Path(id): Path<i64>, State(state): State<AppState>) -> ApiResult<UserResponse> {
+            let user = state.user_service.get_user(id).await?;
+            Ok(Json(UserResponse::from(user)))
+        }
+        
+        pub fn router(state: AppState) -> Router {
+            Router::new()
+                .route("/api/users/:id", get(get_user))
+                .with_state(state)
+        }
+
+    - source: "泛型 (Generics)"
+      target: "泛型 (generics)"
+      example: |
+        // Java:
+        public interface Repository<T, ID> {
+            T findById(ID id);
+            List<T> findAll();
+            T save(T entity);
+            void delete(ID id);
+        }
+        
+        // Rust:
+        pub trait Repository<T, ID> {
+            async fn find_by_id(&self, id: &ID) -> Result<Option<T>, RepoError>;
+            async fn find_all(&self) -> Result<Vec<T>, RepoError>;
+            async fn save(&self, entity: T) -> Result<T, RepoError>;
+            async fn delete(&self, id: &ID) -> Result<(), RepoError>;
+        }
+
+    - source: "Stream API"
+      target: "迭代器适配器"
+      example: |
+        // Java:
+        List<User> users = userRepository.findAll();
+        List<String> names = users.stream()
+            .filter(u -> u.getAge() > 25)
+            .map(User::getName)
+            .sorted()
+            .collect(Collectors.toList());
+        
+        // Rust:
+        let names: Vec<String> = users
+            .iter()
+            .filter(|u| u.age > 25)
+            .map(|u| u.name.clone())
+            .collect();
+
+    - source: "Lambda 表达式"
+      target: "闭包"
+      example: |
+        // Java:
+        list.sort((a, b) -> a.getName().compareTo(b.getName()));
+        
+        // Rust:
+        list.sort_by(|a, b| a.name.cmp(&b.name));
+
+    - source: "Optional"
+      target: "Option<T>"
+      example: |
+        // Java:
+        Optional<User> user = repository.findById(id);
+        String name = user.map(User::getName).orElse("Unknown");
+        
+        // Rust:
+        let user = repository.find_by_id(id).await?;
+        let name = user.map(|u| u.name.as_str()).unwrap_or("Unknown");
+
+# Web 框架映射
+web_framework_mapping:
+  - source: "Spring Boot (REST)"
+    target: "Axum"
+    example: |
+    // Java (Spring Boot):
+    // @RestController
+    // @RequestMapping("/api/users")
+    // public class UserController {
+    //     @GetMapping("/{id}")
+    //     public ResponseEntity<User> getUser(@PathVariable Long id) { ... }
+    //     @PostMapping
+    //     public ResponseEntity<User> createUser(@RequestBody UserDto dto) { ... }
+    // }
+    
+    // Rust (Axum):
+    use axum::{routing::{get, post}, Router, Json, Path, extract::State};
+    use std::sync::Arc;
+    
+    async fn get_user(
+        Path(id): Path<i64>,
+        State(state): State<AppState>,
+    ) -> ApiResult<UserResponse> {
+        let user = state.user_service.get_user(id).await?;
+        Ok(Json(UserResponse::from(user)))
+    }
+    
+    async fn create_user(
+        State(state): State<AppState>,
+        Json(dto): Json<CreateUserDto>,
+    ) -> ApiResult<UserResponse> {
+        let user = state.user_service.create_user(dto).await?;
+        Ok(Json(UserResponse::from(user)))
+    }
+    
+    pub fn router(state: AppState) -> Router {
+        Router::new()
+            .route("/api/users/:id", get(get_user))
+            .route("/api/users", post(create_user))
+            .with_state(state)
+    }
+
+  - source: "Spring Security"
+    target: "Tower Middleware / 自定义"
+    example: |
+    // Java:
+    // @Configuration
+    // @EnableWebSecurity
+    // public class SecurityConfig extends WebSecurityConfigurerAdapter { ... }
+    
+    // Rust:
+    // 使用 tower 中间件或自定义认证层
+    use tower::ServiceBuilder;
+    use tower_http::cors::CorsLayer;
+    
+    pub fn auth_middleware(
+        req: Request,
+        next: Next,
+    ) -> impl IntoResponse {
+        // 认证逻辑
+    }
+
+  - source: "Spring Data JPA"
+    target: "SeaORM"
+    example: |
+    // Java (JPA):
+    // @Entity
+    // @Table(name = "users")
+    // public class User {
+    //     @Id
+    //     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    //     private Long id;
+    //     private String name;
+    //     @Column(unique = true)
+    //     private String email;
+    // }
+    
+    // Rust (SeaORM):
+    // 使用 sea-orm-cli 从数据库生成实体
+    // 或手动定义实体
+
+  - source: "Spring Validation"
+    target: "validator crate / 自定义"
+    example: |
+    // Java:
+    // public class CreateUserDto {
+    //     @NotBlank(message = "Name is required")
+    //     private String name;
+    //     @Email(message = "Invalid email")
+    //     private String email;
+    // }
+    
+    // Rust:
+    use validator::Validate;
+    
+    #[derive(Debug, Validate, Deserialize)]
+    struct CreateUserDto {
+        #[validate(length(min = 1, message = "Name is required"))]
+        name: String,
+        
+        #[validate(email(message = "Invalid email"))]
+        email: String,
+    }
+
+# 依赖注入映射
+di_mapping:
+  - source: "Spring IoC"
+    target: "手动依赖注入 + Arc<dyn>"
+    example: |
+    // Java:
+    // @Service
+    // public class UserService {
+    //     @Autowired
+    //     private UserRepository userRepository;
+    //     @Autowired
+    //     private PasswordEncoder passwordEncoder;
+    // }
+    
+    // Rust:
+    pub struct UserService {
+        user_repository: Arc<dyn UserRepository>,
+        password_encoder: Arc<dyn PasswordEncoder>,
+    }
+    
+    impl UserService {
+        pub fn new(
+            user_repository: Arc<dyn UserRepository>,
+            password_encoder: Arc<dyn PasswordEncoder>,
+        ) -> Self {
+            Self {
+                user_repository,
+                password_encoder,
+            }
+        }
+    }
+
+  - source: "@Component / @Service / @Repository"
+    target: "struct + impl + 构造函数"
+    example: |
+    // 在应用启动时组装:
+    let user_repo: Arc<dyn UserRepository> = Arc::new(DbUserRepository::new(pool));
+    let password_encoder: Arc<dyn PasswordEncoder> = Arc::new(BcryptEncoder::new(10));
+    let user_service: Arc<UserService> = Arc::new(UserService::new(
+        user_repo.clone(),
+        password_encoder.clone(),
+    ));
+
+# 错误处理映射
+error_mapping:
+  - source: "try-catch"
+    target: "match + Result<T, E>"
+    example: |
+    // Java:
+    try {
+        User user = userService.getUser(id);
+        return ResponseEntity.ok(user);
+    } catch (UserNotFoundException e) {
+        return ResponseEntity.notFound().build();
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().build();
+    }
+    
+    // Rust:
+    match user_service.get_user(id).await {
+        Ok(user) => Ok(Json(UserResponse::from(user))),
+        Err(ServiceError::UserNotFound) => Err(StatusCode::NOT_FOUND),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+
+  - source: "自定义异常类"
+    target: "thiserror enum"
+    example: |
+    // Java:
+    public class UserNotFoundException extends RuntimeException {
+        public UserNotFoundException(Long id) {
+            super("User not found: " + id);
+        }
+    }
+    
+    // Rust:
+    #[derive(Error, Debug)]
+    pub enum ServiceError {
+        #[error("User not found: {id}")]
+        UserNotFound { id: i64 },
+        #[error("Email already exists: {email}")]
+        EmailExists { email: String },
+        #[error("Database error: {0}")]
+        Database(#[from] sqlx::Error),
+    }
+
+  - source: "@ControllerAdvice"
+    target: "统一错误响应"
+    example: |
+    // Java:
+    // @ControllerAdvice
+    // public class GlobalExceptionHandler {
+    //     @ExceptionHandler(UserNotFoundException.class)
+    //     public ResponseEntity<?> handleNotFound(UserNotFoundException e) { ... }
+    // }
+    
+    // Rust:
+    // 在路由中统一处理错误
+    type ApiResult<T> = Result<Json<T>, (StatusCode, Json<ErrorResponse>)>;
+
+# 序列化映射
+serialization_mapping:
+  - source: "Jackson / Gson"
+    target: "serde + serde_json"
+    example: |
+    // Java:
+    // ObjectMapper mapper = new ObjectMapper();
+    // String json = mapper.writeValueAsString(user);
+    // User user = mapper.readValue(json, User.class);
+    
+    // Rust:
+    let json = serde_json::to_string(&user)?;
+    let user: User = serde_json::from_str(&json)?;
+
+  - source: "DTO 模式"
+    target: "struct + 转换方法"
+    example: |
+    // Java:
+    // public record UserDto(Long id, String name, String email) {}
+    // public static UserDto fromEntity(User user) { ... }
+    
+    // Rust:
+    #[derive(Serialize, Deserialize)]
+    pub struct UserDto {
+        pub id: i64,
+        pub name: String,
+        pub email: String,
+    }
+    
+    impl From<User> for UserDto {
+        fn from(user: User) -> Self {
+            Self {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            }
+        }
+    }
+
+# 常用 Java 库映射
+library_mapping:
+  - java_library: "Spring Boot"
+    rust_alternative: "Axum"
+  - java_library: "Spring Data JPA"
+    rust_alternative: "SeaORM"
+  - java_library: "Spring Security"
+    rust_alternative: "Tower Middleware + 自定义"
+  - java_library: "Spring Cache"
+    rust_alternative: "缓存 crate + 自定义"
+  - java_library: "Lombok"
+    rust_alternative: "derive 宏 + 手动实现"
+    example: |
+    // Java (Lombok):
+    // @Data
+    // @Builder
+    // public class User {
+    //     private Long id;
+    //     private String name;
+    // }
+    
+    // Rust:
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct User {
+        pub id: i64,
+        pub name: String,
+    }
+    
+    impl User {
+        pub fn new(id: i64, name: String) -> Self {
+            Self { id, name }
+        }
+    }
+
+  - java_library: "Hibernate"
+    rust_alternative: "SeaORM (query builder)"
+  - java_library: "MapStruct"
+    rust_alternative: "手动实现 From / Into"
+  - java_library: "JUnit"
+    rust_alternative: "cargo test"
+  - java_library: "Mockito"
+    rust_alternative: "Mock 结构体 + 接口"
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] Spring Boot 控制器已转换为 Axum 路由
+  - [ ] Spring 注解已移除（改为显式配置）
+  - [ ] 依赖注入已转换为构造函数注入
+  - [ ] 接口已转换为 trait
+  - [ ] 继承已转换为组合 + trait
+  - [ ] Stream API 已转换为 Rust 迭代器
+  - [ ] 异常处理已转换为 Result<T, E>
+  - [ ] JPA 实体已转换为 SeaORM 实体
+  - [ ] DTO 已转换为 Rust struct + From 实现
+  - [ ] 序列化已转换为 serde
+  - [ ] 缓存已转换
+  - [ ] 验证已转换为 validator crate
+  - [ ] 单元测试已通过
+  - [ ] 集成测试已通过
+  - [ ] API 契约测试已通过
+  - [ ] 性能对比测试已通过

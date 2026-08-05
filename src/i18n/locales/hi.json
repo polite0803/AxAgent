@@ -4911,7 +4911,29 @@
       "noActivity": "कोई गतिविधि नहीं",
       "noFilteredActivity": "इस Agent के लिए कोई गतिविधि नहीं"
     },
-    "stepLabel": "चरण"
+    "stepLabel": "चरण",
+    "profiles": {
+      "code_auditor": { "name": "कोड ऑडिट विशेषज्ञ", "role": "कोड ऑडिट विशेषज्ञ" },
+      "architect_analyst": { "name": "आर्किटेक्चर विश्लेषक", "role": "आर्किटेक्चर विश्लेषक" },
+      "quality_expert": { "name": "कोड गुणवत्ता विशेषज्ञ", "role": "कोड गुणवत्ता विशेषज्ञ" },
+      "behavior_tester": { "name": "व्यवहार परीक्षण विशेषज्ञ", "role": "व्यवहार परीक्षण विशेषज्ञ" },
+      "knowledge_engineer": { "name": "ज्ञान इंजीनियर", "role": "ज्ञान इंजीनियर" },
+      "refactor_consultant": { "name": "रिफैक्टरिंग सलाहकार", "role": "रिफैक्टरिंग सलाहकार" },
+      "solution_architect": { "name": "समाधान आर्किटेक्ट", "role": "समाधान आर्किटेक्ट" },
+      "tech_project_manager": { "name": "तकनीकी परियोजना प्रबंधक", "role": "तकनीकी परियोजना प्रबंधक" },
+      "change_manager": { "name": "परिवर्तन प्रबंधन विशेषज्ञ", "role": "परिवर्तन प्रबंधन विशेषज्ञ" },
+      "quality_engineer": { "name": "गुणवत्ता इंजीनियर", "role": "गुणवत्ता इंजीनियर" },
+      "devops_engineer": { "name": "DevOps इंजीनियर", "role": "DevOps इंजीनियर" },
+      "code_reviewer": { "name": "कोड समीक्षक", "role": "कोड समीक्षक" },
+      "senior_engineer": { "name": "वरिष्ठ इंजीनियर", "role": "वरिष्ठ इंजीनियर" },
+      "behavior_verifier": { "name": "व्यवहार सत्यापन विशेषज्ञ", "role": "व्यवहार सत्यापन विशेषज्ञ" },
+      "test_engineer": { "name": "परीक्षण इंजीनियर", "role": "परीक्षण इंजीनियर" },
+      "integration_engineer": { "name": "एकीकरण परीक्षण इंजीनियर", "role": "एकीकरण परीक्षण इंजीनियर" },
+      "quality_director": { "name": "गुणवत्ता निदेशक", "role": "गुणवत्ता निदेशक" },
+      "tech_writer": { "name": "तकनीकी लेखक", "role": "तकनीकी लेखक" },
+      "ops_engineer": { "name": "संचालन इंजीनियर", "role": "संचालन इंजीनियर" },
+      "project_manager": { "name": "परियोजना प्रबंधक", "role": "परियोजना प्रबंधक" }
+    }
   },
   "promptTemplate": {
     "unnamed": "अनाम"

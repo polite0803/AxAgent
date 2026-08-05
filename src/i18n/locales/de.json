@@ -4911,7 +4911,29 @@
       "noActivity": "Keine Aktivität",
       "noFilteredActivity": "Keine Aktivität für diesen Agent"
     },
-    "stepLabel": "Schritt"
+    "stepLabel": "Schritt",
+    "profiles": {
+      "code_auditor": { "name": "Code-Prüfexperte", "role": "Code-Prüfexperte" },
+      "architect_analyst": { "name": "Architekturanalyst", "role": "Architekturanalyst" },
+      "quality_expert": { "name": "Code-Qualitätsexperte", "role": "Code-Qualitätsexperte" },
+      "behavior_tester": { "name": "Verhaltensprüfungsexperte", "role": "Verhaltensprüfungsexperte" },
+      "knowledge_engineer": { "name": "Wissensingenieur", "role": "Wissensingenieur" },
+      "refactor_consultant": { "name": "Refactoring-Berater", "role": "Refactoring-Berater" },
+      "solution_architect": { "name": "Lösungsarchitekt", "role": "Lösungsarchitekt" },
+      "tech_project_manager": { "name": "Tech-Projektmanager", "role": "Tech-Projektmanager" },
+      "change_manager": { "name": "Änderungsmanagementexperte", "role": "Änderungsmanagementexperte" },
+      "quality_engineer": { "name": "Qualitätsingenieur", "role": "Qualitätsingenieur" },
+      "devops_engineer": { "name": "DevOps-Ingenieur", "role": "DevOps-Ingenieur" },
+      "code_reviewer": { "name": "Code-Reviewer", "role": "Code-Reviewer" },
+      "senior_engineer": { "name": "Senior-Ingenieur", "role": "Senior-Ingenieur" },
+      "behavior_verifier": { "name": "Verhaltensverifikationsexperte", "role": "Verhaltensverifikationsexperte" },
+      "test_engineer": { "name": "Testingenieur", "role": "Testingenieur" },
+      "integration_engineer": { "name": "Integrationstestingenieur", "role": "Integrationstestingenieur" },
+      "quality_director": { "name": "Qualitätsleiter", "role": "Qualitätsleiter" },
+      "tech_writer": { "name": "Technischer Autor", "role": "Technischer Autor" },
+      "ops_engineer": { "name": "Operationsingenieur", "role": "Operationsingenieur" },
+      "project_manager": { "name": "Projektmanager", "role": "Projektmanager" }
+    }
   },
   "promptTemplate": {
     "unnamed": "Unbenannt"

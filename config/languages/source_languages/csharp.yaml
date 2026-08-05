@@ -1,0 +1,197 @@
+# C# 源语言配置
+# 用于跨语言迁移的源语言特性定义
+id: csharp
+name: C#
+dotnet_versions: [".NET Framework 4.x", ".NET 6", ".NET 7", ".NET 8"]
+file_extensions: [.cs]
+common_frameworks:
+  - ASP.NET Core
+  - Entity Framework (EF)
+  - WinForms/WPF
+  - Xamarin/Maui
+
+# 类型系统
+type_system:
+  native_types:
+    - { csharp: "int", common: "integer", size: "32 位" }
+    - { csharp: "long", common: "integer", size: "64 位" }
+    - { csharp: "short", common: "integer", size: "16 位" }
+    - { csharp: "byte", common: "integer", size: "8 位" }
+    - { csharp: "float", common: "float", size: "32 位" }
+    - { csharp: "double", common: "float", size: "64 位" }
+    - { csharp: "decimal", common: "decimal", size: "128 位" }
+    - { csharp: "string", common: "string", size: "动态（不可变）" }
+    - { csharp: "char", common: "character", size: "16 位 (Unicode)" }
+    - { csharp: "bool", common: "boolean", size: "1 位" }
+    - { csharp: "object", common: "dynamic", size: "引用类型" }
+    - { csharp: "dynamic", common: "dynamic", size: "动态类型" }
+    - { csharp: "var", common: "inferred", size: "类型推断" }
+    - { csharp: "List<T>", common: "array<T>", size: "动态" }
+    - { csharp: "Dictionary<K,V>", common: "map<K,V>", size: "动态" }
+    - { csharp: "HashSet<T>", common: "set<T>", size: "动态" }
+    - { csharp: "Nullable<T> 或 T?", common: "optional<T>", size: "动态" }
+    - { csharp: "Tuple<T1,T2>", common: "tuple<T1,T2>", size: "固定大小" }
+    - { csharp: "async Task<T>", common: "promise<T>", size: "异步" }
+    - { csharp: "IEnumerable<T>", common: "iterator<T>", size: "惰性评估" }
+    - { csharp: "IQueryable<T>", common: "queryable<T>", size: "惰性评估（EF）" }
+    - { csharp: "Lazy<T>", common: "lazy<T>", size: "惰性初始化" }
+
+  special_types:
+    - name: class (引用类型)
+      description: 类是引用类型，在堆上分配
+      common_representation: "class_reference_type"
+      migration_risk: "medium"
+    - name: struct (值类型)
+      description: 结构体是值类型，在栈上分配
+      common_representation: "struct_value_type"
+      migration_risk: "medium"
+    - name: interface
+      description: 接口定义行为契约
+      common_representation: "interface_contract"
+      migration_risk: "low"
+    - name: delegate / event
+      description: 委托和事件机制
+      common_representation: "delegate_event"
+      migration_risk: "medium"
+    - name: generics (泛型)
+      description: 类型参数化
+      common_representation: "generic<T>"
+      migration_risk: "low"
+    - name: LINQ
+      description: 语言集成查询
+      common_representation: "query_expression"
+      migration_risk: "medium"
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "分代式垃圾回收（Server GC / Workstation GC）"
+  features:
+    - automatic_memory_management
+    - garbage_collection
+    - generational_gc
+    - large_object_heap
+    - finalizer_destrucor
+  special_features:
+    - id: idisposable_pattern
+      description: using 语句实现 IDisposable 模式
+      code_example: |
+        using (var stream = new FileStream("file.txt", FileMode.Open))
+        {
+            // 使用 stream，离开作用域自动释放
+        }
+    - id: async_disposable
+      description: IAsyncDisposable 异步释放
+      code_example: |
+        await using (var client = new HttpClient())
+        {
+            // 异步使用资源
+        }
+  pitfalls:
+    - id: memory_leak_events
+      description: 未取消订阅事件导致内存泄漏
+      examples: ["长生命周期对象订阅短生命周期对象的事件"]
+    - id: large_object_heap_fragmentation
+      description: 大对象导致 LOH 碎片
+      examples: ["大于 85000 字节的数组"]
+    - id: pinning
+      description: 固定对象导致 GC 无法压缩
+      examples: ["GCHandle.Alloc 固定"]
+    - id: box_unbox
+      description: 值类型与引用类型转换
+      examples: ["struct 转 object 再转回"]
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  mechanisms:
+    - Thread
+    - Task / Task<T> (TPL)
+    - async/await
+    - lock / Monitor
+    - SemaphoreSlim
+    - ReaderWriterLockSlim
+    - ConcurrentDictionary
+    - IAsyncEnumerable<T>
+    - Channel<T>
+  async_patterns:
+    - async/await
+    - Task.WhenAll/WhenAny
+    - AsyncLocal<T> (异步上下文)
+    - ValueTask<T> (值类型任务)
+  pitfalls:
+    - id: deadlock_sync_context
+      description: 在同步上下文中阻塞异步代码
+      examples: [".Result/.Wait() 导致死锁"]
+    - id: race_condition_async
+      description: 异步代码中的竞态条件
+      examples: ["多个 await 修改共享状态"]
+    - id: exception_handling
+      description: 异步异常处理
+      examples: ["catch 块中 await 导致聚合异常"]
+
+# 惯用模式
+idiomatic_patterns:
+  - name: async/await 模式
+    description: 使用 async/await 而非回调或 .ContinueWith
+    code_example: |
+      public async Task<string> GetDataAsync(string url)
+      {
+          using var client = new HttpClient();
+          var response = await client.GetStringAsync(url);
+          return response;
+      }
+  - name: 依赖注入
+    description: 使用 DI 容器（Microsoft.Extensions.DependencyInjection）
+    code_example: |
+      public void ConfigureServices(IServiceCollection services)
+      {
+          services.AddSingleton<IRepository, Repository>();
+          services.AddScoped<MyService>();
+      }
+  - name: LINQ 查询
+    description: 使用 LINQ 进行集合查询
+    code_example: |
+      var result = users
+          .Where(u => u.Age > 18)
+          .OrderBy(u => u.Name)
+          .Select(u => new { u.Id, u.Name })
+          .ToList();
+  - name: 模式匹配
+    description: 使用 switch 表达式和模式匹配
+    code_example: |
+      var result = obj switch
+      {
+          int i when i > 0 => "正数",
+          string s => $"字符串: {s}",
+          null => "空",
+          _ => "其他"
+      };
+  - name: 扩展方法
+    description: 为现有类型添加方法
+    code_example: |
+      public static class StringExtensions
+      {
+          public static bool IsNullOrEmpty(this string? str)
+              => string.IsNullOrEmpty(str);
+      }
+
+# 常见代码坏味道
+common_code_smells:
+  - id: async_over_sync
+    description: 同步方法包装异步方法
+    severity: "high"
+    examples: [".Result", ".GetAwaiter().GetResult()"]
+  - id: giant_class
+    description: 上帝类
+    severity: "high"
+    threshold: "超过 500 行或 20 个公有方法"
+  - id: switch_statements
+    description: 大量 switch 语句而非多态
+    severity: "medium"
+  - id: magic_strings
+    description: 魔法字符串而非常量
+    severity: "low"
+  - id: improper_exception_handling
+    description: 吞掉异常或使用异常控制流
+    severity: "medium"

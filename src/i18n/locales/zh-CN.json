@@ -4921,7 +4921,29 @@
       "noActivity": "暂无 Agent 活动",
       "noFilteredActivity": "该 Agent 暂无活动"
     },
-    "stepLabel": "步骤"
+    "stepLabel": "步骤",
+    "profiles": {
+      "code_auditor": { "name": "代码审计专家", "role": "代码审计专家" },
+      "architect_analyst": { "name": "架构分析师", "role": "架构分析师" },
+      "quality_expert": { "name": "代码质量专家", "role": "代码质量专家" },
+      "behavior_tester": { "name": "行为测试专家", "role": "行为测试专家" },
+      "knowledge_engineer": { "name": "知识提炼专家", "role": "知识提炼专家" },
+      "refactor_consultant": { "name": "重构顾问", "role": "重构顾问" },
+      "solution_architect": { "name": "架构师", "role": "架构师" },
+      "tech_project_manager": { "name": "技术项目经理", "role": "技术项目经理" },
+      "change_manager": { "name": "变更管理专家", "role": "变更管理专家" },
+      "quality_engineer": { "name": "质量工程师", "role": "质量工程师" },
+      "devops_engineer": { "name": "DevOps 工程师", "role": "DevOps 工程师" },
+      "code_reviewer": { "name": "代码审查员", "role": "代码审查员" },
+      "senior_engineer": { "name": "高级工程师", "role": "高级工程师" },
+      "behavior_verifier": { "name": "行为验证专家", "role": "行为验证专家" },
+      "test_engineer": { "name": "测试工程师", "role": "测试工程师" },
+      "integration_engineer": { "name": "集成测试工程师", "role": "集成测试工程师" },
+      "quality_director": { "name": "质量总监", "role": "质量总监" },
+      "tech_writer": { "name": "技术文档工程师", "role": "技术文档工程师" },
+      "ops_engineer": { "name": "运维工程师", "role": "运维工程师" },
+      "project_manager": { "name": "项目经理", "role": "项目经理" }
+    }
   },
   "promptTemplate": {
     "unnamed": "未命名"

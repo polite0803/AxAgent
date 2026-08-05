@@ -1,0 +1,2994 @@
+# C++ (Qt) → TypeScript 映射规则
+# 用于跨语言迁移的类型映射、UI 组件映射和框架转换规则
+id: cpp-to-typescript
+source: cpp
+target: typescript
+description: "从 C++ (Qt) 迁移到 TypeScript (React) 的完整映射规则"
+
+# ── 基础类型映射 ──
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "number" }
+    - { source: "long long", target: "bigint" }
+    - { source: "float", target: "number" }
+    - { source: "double", target: "number" }
+    - { source: "bool", target: "boolean" }
+    - { source: "char", target: "string" }
+    - { source: "std::string", target: "string" }
+    - { source: "std::vector<T>", target: "T[]" }
+    - { source: "std::map<K,V>", target: "Map<K, V>" 或 Record<K, V>" }
+    - { source: "std::set<T>", target: "Set<T>" }
+    - { source: "std::optional<T>", target: "T | undefined" }
+    - { source: "Qt::QString", target: "string" }
+    - { source: "Qt::QList<T>", target: "T[]" }
+    - { source: "Qt::QVector<T>", target: "T[]" }
+    - { source: "Qt::QMap<K,V>", target: "Map<K, V>" }
+    - { source: "Qt::QVariant", target: "any 或 unknown" }
+    - { source: "Qt::QByteArray", target: "Uint8Array 或 string" }
+    - { source: "Qt::QDate", target: "Date" }
+    - { source: "Qt::QDateTime", target: "Date" }
+    - { source: "Qt::QUrl", target: "URL" }
+    - { source: "Qt::QModelIndex", target: "string 或 number (ID)" }
+    - { source: "Qt::QItemSelection", target: "string[] (选中 ID 列表)" }
+
+  manual_review:
+    - source: "Qt::QObject"
+      target_options:
+        - option: "React 组件 (如果是 UI 对象)"
+          condition: "继承自 QWidget/QQuickItem"
+        - option: "普通 TypeScript 类 (如果是逻辑对象)"
+          condition: "非 UI 相关的 QObject 子类"
+        - option: "Zustand Store (如果是状态管理)"
+          condition: "管理应用状态的 QObject"
+      note: "QObject 有元对象系统、信号槽等特性，需要根据实际用途选择映射方式"
+
+    - source: "Qt::QObject 信号/槽"
+      target: "React 事件处理 / 回调函数"
+      example: |
+        // C++ (Qt):
+        // class MyWidget : public QWidget {
+        //     Q_OBJECT
+        // signals:
+        //     void dataChanged(const QString &newData);
+        // slots:
+        //     void onButtonClicked();
+        // };
+        // connect(button, &QPushButton::clicked, this, &MyWidget::onButtonClicked);
+
+        // TypeScript (React):
+        interface MyWidgetProps {
+            onDataChanged?: (newData: string) => void;
+            onButtonClicked?: () => void;
+        }
+
+        function MyWidget({ onDataChanged, onButtonClicked }: MyWidgetProps) {
+            const handleDataChange = (newData: string) => {
+                onDataChanged?.(newData);
+            };
+            return <Button onClick={onButtonClicked} />;
+        }
+
+    - source: "Qt 信号槽连接 (connect)"
+      target: "React 事件回调"
+      patterns:
+        - source: "connect(sender, &Sender::signal, receiver, &Receiver::slot)"
+          target: "<Component onSignal={handleSlot} />"
+        - source: "connect(sender, &Sender::signal, this, &This::slot, Qt::QueuedConnection)"
+          target: "<Component onSignal={(data) => setTimeout(() => slot(data), 0)} />"
+          note: "Qt::QueuedConnection 相当于异步执行"
+        - source: "connect(sender, &Sender::signal, model, &Model::slot, Qt::DirectConnection)"
+          target: "<Component onSignal={(data) => model.slot(data)} />"
+          note: "Qt::DirectConnection 相当于同步调用"
+
+# ── Qt Widgets → React 组件映射 ──
+widget_mapping:
+  layout:
+    - source: "Qt::QVBoxLayout"
+      target: "flex flex-col"
+      example: |
+        // C++:
+        auto layout = new QVBoxLayout(widget);
+        layout->addWidget(label);
+        layout->addLayout(innerLayout);
+
+        // TypeScript (Tailwind):
+        <div className="flex flex-col">
+          <Label />
+          <InnerComponent />
+        </div>
+
+    - source: "Qt::QHBoxLayout"
+      target: "flex flex-row"
+      example: |
+        // C++:
+        auto layout = new QHBoxLayout(widget);
+        layout->addWidget(button1);
+        layout->addWidget(button2);
+
+        // TypeScript:
+        <div className="flex flex-row">
+          <Button1 />
+          <Button2 />
+        </div>
+
+    - source: "Qt::QGridLayout"
+      target: "grid grid-cols-N"
+      example: |
+        // C++:
+        auto layout = new QGridLayout(widget);
+        layout->addWidget(widget1, 0, 0);
+        layout->addWidget(widget2, 0, 1);
+        layout->addWidget(widget3, 1, 0);
+        layout->addWidget(widget4, 1, 1);
+
+        // TypeScript:
+        <div className="grid grid-cols-2 gap-4">
+          <div>Widget1</div>
+          <div>Widget2</div>
+          <div>Widget3</div>
+          <div>Widget4</div>
+        </div>
+
+    - source: "Qt::QFormLayout"
+      target: "表格布局 (grid 或 Ant Design Form)"
+      example: |
+        // C++:
+        auto layout = new QFormLayout(widget);
+        layout->addRow("姓名:", nameEdit);
+        layout->addRow("邮箱:", emailEdit);
+
+        // TypeScript (Ant Design):
+        <Form layout="horizontal">
+          <Form.Item label="姓名">
+            <Input />
+          </Form.Item>
+          <Form.Item label="邮箱">
+            <Input />
+          </Form.Item>
+        </Form>
+
+    - source: "Qt::QStackedLayout"
+      target: "条件渲染或路由"
+      example: |
+        // C++:
+        auto layout = new QStackedLayout(widget);
+        layout->addWidget(page1);
+        layout->addWidget(page2);
+        layout->setCurrentIndex(0);
+
+        // TypeScript:
+        {currentPage === 0 && <Page1 />}
+        {currentPage === 1 && <Page2 />}
+        // 或使用 React Router:
+        <Routes>
+          <Route path="/page1" element={<Page1 />} />
+          <Route path="/page2" element={<Page2 />} />
+        </Routes>
+
+  common_widgets:
+    - source: "Qt::QPushButton"
+      target: "Ant Design Button 或原生 button"
+      example: |
+        // C++:
+        auto button = new QPushButton("确定");
+        button->setEnabled(false);
+        connect(button, &QPushButton::clicked, this, &MyClass::onConfirm);
+
+        // TypeScript (Ant Design):
+        <Button
+          type="primary"
+          disabled={!canConfirm}
+          onClick={handleConfirm}
+        >
+          确定
+        </Button>
+
+    - source: "Qt::QLabel"
+      target: "span/div + Text 组件"
+      example: |
+        // C++:
+        auto label = new QLabel("Hello World");
+        label->setStyleSheet("color: red; font-size: 16px;");
+
+        // TypeScript:
+        <Text style={{ color: 'red', fontSize: 16 }}>Hello World</Text>
+
+    - source: "Qt::QLineEdit"
+      target: "Ant Design Input"
+      example: |
+        // C++:
+        auto edit = new QLineEdit();
+        edit->setPlaceholderText("请输入姓名");
+        connect(edit, &QLineEdit::textChanged, this, &MyClass::onTextChanged);
+
+        // TypeScript:
+        <Input
+          placeholder="请输入姓名"
+          onChange={(e) => setText(e.target.value)}
+        />
+
+    - source: "Qt::QTextEdit / QPlainTextEdit"
+      target: "Ant Design Input.TextArea 或 Monaco Editor"
+      example: |
+        // C++:
+        auto edit = new QTextEdit();
+        edit->setMaximumBlockCount(100);
+
+        // TypeScript:
+        <Input.TextArea
+          maxLength={10000}
+          rows={10}
+          onChange={(e) => setContent(e.target.value)}
+        />
+        // 或使用 Monaco Editor:
+        <MonacoEditor height="300px" onChange={handleEditorChange} />
+
+    - source: "Qt::QComboBox"
+      target: "Ant Design Select"
+      example: |
+        // C++:
+        auto combo = new QComboBox();
+        combo->addItems(["选项1", "选项2", "选项3"]);
+        connect(combo, &QComboBox::currentIndexChanged, this, &MyClass::onIndexChanged);
+
+        // TypeScript:
+        <Select
+          defaultValue="1"
+          onChange={(value) => handleSelectChange(value)}
+          options={[
+            { value: '1', label: '选项1' },
+            { value: '2', label: '选项2' },
+            { value: '3', label: '选项3' },
+          ]}
+        />
+
+    - source: "Qt::QCheckBox"
+      target: "Ant Design Checkbox"
+      example: |
+        // C++:
+        auto check = new QCheckBox("启用");
+        check->setChecked(true);
+        connect(check, &QCheckBox::stateChanged, this, &MyClass::onStateChanged);
+
+        // TypeScript:
+        <Checkbox
+          checked={isEnabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+        >
+          启用
+        </Checkbox>
+
+    - source: "Qt::QRadioButton / QButtonGroup"
+      target: "Ant Design Radio.Group"
+      example: |
+        // C++:
+        auto group = new QButtonGroup(this);
+        group->addButton(radio1, 0);
+        group->addButton(radio2, 1);
+        connect(group, QOverload<int>::of(&QButtonGroup::idClicked), this, &MyClass::onRadioClicked);
+
+        // TypeScript:
+        <Radio.Group
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+        >
+          <Radio value={0}>选项1</Radio>
+          <Radio value={1}>选项2</Radio>
+        </Radio.Group>
+
+    - source: "Qt::QListWidget / QListView"
+      target: "Ant Design List 或自定义列表"
+      example: |
+        // C++:
+        auto list = new QListWidget();
+        list->addItem(new QListWidgetItem("项目1"));
+        list->addItem(new QListWidgetItem("项目2"));
+        connect(list, &QListWidget::currentItemChanged, this, &MyClass::onItemChanged);
+
+        // TypeScript:
+        <List
+          dataSource={items}
+          renderItem={(item) => (
+            <List.Item onClick={() => handleItemClick(item)}>
+              {item.name}
+            </List.Item>
+          )}
+        />
+
+    - source: "Qt::QTableWidget / QTableView"
+      target: "Ant Design Table"
+      example: |
+        // C++:
+        auto table = new QTableWidget(3, 3);
+        table->setHorizontalHeaderLabels(["列1", "列2", "列3"]);
+        table->setItem(0, 0, new QTableWidgetItem("数据"));
+        connect(table, &QTableWidget::cellClicked, this, &MyClass::onCellClicked);
+
+        // TypeScript:
+        <Table
+          columns={[
+            { title: '列1', dataIndex: 'col1' },
+            { title: '列2', dataIndex: 'col2' },
+            { title: '列3', dataIndex: 'col3' },
+          ]}
+          dataSource={tableData}
+          onRowClick={(record) => handleRowClick(record)}
+        />
+
+    - source: "Qt::QTreeWidget / QTreeView"
+      target: "Ant Design Tree"
+      example: |
+        // TypeScript:
+        <Tree
+          treeData={treeData}
+          onSelect={(selectedKeys) => handleSelect(selectedKeys)}
+          expandedKeys={expandedKeys}
+        />
+
+    - source: "Qt::QTabWidget"
+      target: "Ant Design Tabs 或 React Router"
+      example: |
+        // TypeScript:
+        <Tabs
+          defaultActiveKey="tab1"
+          items={[
+            { key: 'tab1', label: '标签1', children: <Content1 /> },
+            { key: 'tab2', label: '标签2', children: <Content2 /> },
+          ]}
+        />
+
+    - source: "Qt::QScrollArea"
+      target: "CSS overflow-auto 或容器组件"
+      example: |
+        // TypeScript:
+        <div className="overflow-auto" style={{ maxHeight: '400px' }}>
+          {content}
+        </div>
+
+    - source: "Qt::QDialog / QMessageBox"
+      target: "Ant Design Modal / message"
+      example: |
+        // C++:
+        QMessageBox::question(this, "确认", "是否继续?", QMessageBox::Yes | QMessageBox::No);
+
+        // TypeScript:
+        Modal.confirm({
+          title: '确认',
+          content: '是否继续?',
+          onOk: handleConfirm,
+        });
+        // 或:
+        message.confirm({
+          content: '是否继续?',
+        }).then(() => handleConfirm());
+
+    - source: "Qt::QMenuBar / QMenu"
+      target: "Ant Design Menu / Dropdown"
+      example: |
+        // TypeScript:
+        <Menu
+          items={[
+            { key: 'file', label: '文件', children: [
+              { key: 'new', label: '新建' },
+              { key: 'open', label: '打开' },
+              { type: 'divider' },
+              { key: 'exit', label: '退出' },
+            ]},
+          ]}
+        />
+
+    - source: "Qt::QStatusBar"
+      target: "自定义底部状态栏"
+      example: |
+        // TypeScript:
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-100 px-4 py-1 text-sm">
+          <span>{statusMessage}</span>
+          {isLoading && <Spin size="small" className="ml-2" />}
+        </div>
+
+    - source: "Qt::QProgressBar"
+      target: "Ant Design Progress"
+      example: |
+        // TypeScript:
+        <Progress percent={progress} status={status} />
+
+    - source: "Qt::QSlider"
+      target: "Ant Design Slider"
+      example: |
+        // TypeScript:
+        <Slider
+          min={0}
+          max={100}
+          value={value}
+          onChange={setValue}
+        />
+
+    - source: "Qt::QDateEdit / QDateTimeEdit"
+      target: "Ant Design DatePicker"
+      example: |
+        // TypeScript:
+        <DatePicker
+          value={selectedDate}
+          onChange={(date) => setDate(date)}
+        />
+
+    - source: "Qt::QFileDialog"
+      target: "HTML file input 或文件选择对话框"
+      example: |
+        // TypeScript:
+        <input
+          type="file"
+          onChange={(e) => handleFileSelect(e.target.files[0])}
+        />
+        // 或使用 Ant Design Upload:
+        <Upload beforeUpload={handleUpload}>
+          <Button icon={<UploadOutlined />}>点击上传</Button>
+        </Upload>
+
+    - source: "Qt::QSystemTrayIcon"
+      target: "Electron Tray 或 Tauri SystemTray"
+      note: "桌面应用需特殊处理，Web 应用无系统托盘"
+
+    - source: "Qt::QWebEngineView / QWebView"
+      target: "iframe 或 React 组件嵌入"
+      example: |
+        // TypeScript:
+        <iframe
+          src={url}
+          width="100%"
+          height="100%"
+          frameBorder="0"
+        />
+        // 或使用 react-router 导航
+
+# ── Qt 数据/功能模块映射 ──
+core_modules:
+    - source: "Qt::QSqlDatabase"
+      target: "后端 API + fetch/axios 调用"
+      note: "前端不直接操作数据库，通过 Tauri 命令或 HTTP API"
+
+    - source: "Qt::QFile"
+      target: "Tauri 文件操作命令 或 fetch 上传"
+      example: |
+        // C++:
+        QFile file("data.json");
+        file.open(QIODevice::ReadOnly);
+        QByteArray data = file.readAll();
+
+        // TypeScript (Tauri):
+        const contents = await invoke<{ data: string }>('read_file', {
+            path: 'data.json',
+        });
+
+    - source: "Qt::QNetworkAccessManager"
+      target: "fetch / axios / @tauri-apps/api/http"
+      example: |
+        // C++:
+        QNetworkAccessManager manager;
+        QNetworkReply *reply = manager.get(QNetworkRequest(QUrl("https://api.example.com/data")));
+
+        // TypeScript:
+        const response = await fetch('https://api.example.com/data');
+        const data = await response.json();
+        // 或使用 Tauri HTTP:
+        const response = await fetch<T>('/api/data');
+
+    - source: "Qt::QSettings"
+      target: "localStorage / @tauri-apps/api/store"
+      example: |
+        // C++:
+        QSettings settings("MyOrg", "MyApp");
+        settings.value("username").toString();
+
+        // TypeScript:
+        const username = localStorage.getItem('username');
+        // 或使用 Tauri Store:
+        import { get } from '@tauri-apps/plugin-store';
+        const store = await get('settings');
+        const username = await store.get('username');
+
+    - source: "Qt::QTimer"
+      target: "setTimeout / setInterval"
+      example: |
+        // C++:
+        QTimer *timer = new QTimer(this);
+        connect(timer, &QTimer::timeout, this, &MyClass::onTimeout);
+        timer->start(1000);
+
+        // TypeScript:
+        const timerRef = useRef<number | null>(null);
+        useEffect(() => {
+            timerRef.current = window.setInterval(() => {
+                handleTimeout();
+            }, 1000);
+            return () => {
+                if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                }
+            };
+        }, []);
+
+    - source: "Qt::QThread"
+      target: "Web Worker / Promise"
+      note: "JavaScript 单线程，CPU 密集任务用 Web Worker"
+
+    - source: "Qt::QSemaphore / QMutex"
+      target: "Promise 锁 / 简单同步机制"
+      note: "JavaScript 单线程通常不需要显式锁"
+
+    - source: "Qt::QRegularExpression"
+      target: "RegExp"
+      example: |
+        // C++:
+        QRegularExpression re("\\d+");
+        QRegularExpressionMatch match = re.match(text);
+
+        // TypeScript:
+        const regex = /\d+/;
+        const match = text.match(regex);
+
+    - source: "Qt::QCryptographicHash"
+      target: "Web Crypto API / crypto-js"
+      example: |
+        // TypeScript:
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    - source: "Qt::QJsonDocument / QJsonObject"
+      target: "JSON.parse / JSON.stringify"
+      example: |
+        // C++:
+        QJsonObject obj;
+        obj["name"] = "John";
+        QJsonDocument doc(obj);
+        QByteArray json = doc.toJson();
+
+        // TypeScript:
+        const obj = { name: 'John' };
+        const json = JSON.stringify(obj);
+
+    - source: "Qt::QXmlStreamReader"
+      target: "XML 解析库 (xml2js, fast-xml-parser)"
+      example: |
+        // TypeScript:
+        import { parseString } from 'xml2js';
+        const result = await parseString(xmlString);
+
+# ── Qt 模型/视图映射 ──
+model_view:
+    - source: "Qt::QAbstractListModel"
+      target: "React 状态 + 列表渲染"
+      example: |
+        // C++:
+        class UserModel : public QAbstractListModel {
+            QList<User> users;
+        };
+
+        // TypeScript:
+        interface UserState {
+            users: User[];
+            fetchUsers: () => Promise<void>;
+        }
+        export const useUserStore = create<UserState>((set) => ({
+            users: [],
+            fetchUsers: async () => {
+                const users = await invoke<User[]>('get_users');
+                set({ users });
+            },
+        }));
+
+    - source: "Qt::QAbstractTableModel"
+      target: "React 表格组件 + 数据源"
+
+    - source: "Qt::QSortFilterProxyModel"
+      target: "React 端过滤/排序逻辑"
+      example: |
+        // TypeScript:
+        const filteredUsers = useMemo(() => {
+            return users
+                .filter(u => u.name.includes(searchText))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        }, [users, searchText]);
+
+    - source: "Qt::QItemDelegate / QStyledItemDelegate"
+      target: "React 单元格渲染组件"
+      example: |
+        // TypeScript:
+        const columns = [
+            {
+                title: '状态',
+                dataIndex: 'status',
+                render: (status: string) => <Tag color={getStatusColor(status)}>{status}</Tag>,
+            },
+        ];
+
+# ── Qt 国际化映射 ──
+i18n_mapping:
+  - source: "Qt::QTranslator"
+    target: "react-i18next"
+    example: |
+      // C++:
+      QTranslator translator;
+      translator.load("en_US", "translations/");
+      qApp->installTranslator(&translator);
+
+      // TypeScript:
+      // i18n/index.ts
+      import i18n from 'i18next';
+      import { initReactI18next } from 'react-i18next';
+      HttpBackend from 'i18next-http-backend';
+
+      i18n.use(initReactI18next).init({
+        backend: { loadPath: '/locales/{{lng}}/{{ns}}.json' },
+        lng: 'zh-CN',
+        fallbackLng: 'en',
+        supportedLngs: ['zh-CN', 'en', 'ja', 'ko'],
+        ns: ['translation'],
+        defaultNS: 'translation',
+        interpolation: { escapeValue: false },
+      });
+
+      // 组件中使用:
+      function MyComponent() {
+        const { t, i18n } = useTranslation();
+        return <div>{t('hello')}</div>;
+      }
+
+  - source: "tr("Context", "text") 或 tr("text")"
+    target: "t('key')"
+    mapping_strategy:
+      key_format: "context.text 或直接 text"
+      example: |
+        // C++: tr("MainWindow", "Save")
+        // TypeScript: t('mainWindow.save') 或 t('save')
+
+  - source: "Qt Linguist (.ts 文件)"
+    target: "JSON 翻译文件"
+    conversion_strategy:
+      tool: "Qt lconvert 或自定义 Python 脚本"
+      command_example: |
+        # 方式1: 使用 Qt 自带工具
+        lconvert src/translations/app_en.ts -o src/translations/app_en.json
+
+        # 方式2: 使用 Python 脚本转换
+        # python scripts/convert_qm_to_json.py translations/app_zh_CN.qm -o locales/zh-CN/translation.json
+      output_structure: |
+        // locales/zh-CN/translation.json
+        {
+          "mainWindow": {
+            "save": "保存",
+            "cancel": "取消",
+            "delete": "删除"
+          },
+          "dialog": {
+            "confirm": "确认",
+            "warning": "警告"
+          }
+        }
+
+  - source: "QSObject::tr() 动态翻译"
+    target: "useTranslation() Hook"
+    migration_patterns:
+      - pattern: "静态字符串"
+        cpp_example: |
+          setWindowTitle(tr("Hello World"));
+        ts_example: |
+          const { t } = useTranslation();
+          setWindowTitle(t('helloWorld'));
+
+      - pattern: "带参数的字符串"
+        cpp_example: |
+          label->setText(tr("User %1 has %2 messages").arg(name).arg(count));
+        ts_example: |
+          t('userMessages', { name, count });
+          // JSON: { "userMessages": "用户 {{name}} 有 {{count}} 条消息" }
+
+      - pattern: "复数形式"
+        cpp_example: |
+          tr("%n file(s)", "", fileCount);
+        ts_example: |
+          t('fileCount', { count: fileCount });
+          // JSON: { "fileCount_one": "{{count}} 个文件", "fileCount_other": "{{count}} 个文件" }
+
+  - source: "QLocale 数字/日期格式化"
+    target: "Intl API 或 dayjs"
+    example: |
+      // C++:
+      QLocale locale(QLocale::Chinese);
+      QString formattedDate = locale.toString(date, "yyyy-MM-dd");
+      QString formattedNumber = locale.toString(1234567.89, 'f', 2);
+
+      // TypeScript:
+      // 日期格式化
+      import dayjs from 'dayjs';
+      import 'dayjs/locale/zh-cn';
+      dayjs(date).format('YYYY-MM-DD');
+
+      // 数字格式化
+      new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2 }).format(1234567.89);
+
+      // 使用 i18next 内置格式化
+      i18next.t('number_format', { value: 1234567.89, format: 'currency' });
+
+  - source: "QTranslator::translate() 带上下文"
+    target: "t('namespace:key') 或 t('key')"
+    mapping_rules:
+      - context_to_namespace: "Qt context → i18next namespace"
+      - separator: ".", usage: "context.key"
+
+  - source: "qApp->translate() 带 disambiguation"
+    target: "t('namespace:key', { defaultValue: '...' })"
+    note: "Qt disambiguation 映射到 i18next 命名空间 + 键值"
+
+i18n_checklist:
+  - name: "硬编码字符串检测"
+    description: "扫描源代码中的硬编码中文字符串/英文文本，需全部改为 t() 调用"
+    priority: high
+    tool_suggestion: "grep -rn '[一-龥]' src/ --include='*.ts'"
+
+  - name: "翻译覆盖率检查"
+    description: "确保所有 UI 文本都有对应的翻译条目"
+    priority: high
+
+  - name: "多语言完整性"
+    description: "所有支持的语言版本必须完整覆盖同一组 key"
+    priority: high
+
+  - name: "Key 命名规范"
+    description: "使用点分命名法：module.submodule.key，避免模糊的 key 名"
+    priority: medium
+    example: |
+      // 好的命名
+      t('userManagement.createDialog.title')
+      t('settings.notification.email.label')
+
+      // 不好的命名
+      t('title')
+      t('email')
+
+  - name: "插值变量规范"
+    description: "使用 {{variable}} 语法，避免在模板中拼接字符串"
+    priority: high
+    example: |
+      // 正确
+      t('greeting', { name: userName });
+      // JSON: { "greeting": "你好，{{name}}！" }
+
+      // 错误
+      `你好，${userName}！`
+
+  - name: "语言切换测试"
+    description: "测试所有支持的语言能否正常切换和显示"
+    priority: high
+
+  - name: "RTL 语言支持"
+    description: "如需支持阿拉伯语等 RTL 语言，需考虑布局反转"
+    priority: low
+
+i18n_file_structure:
+  recommended: |
+    src/
+    ├── i18n/
+    │   ├── index.ts           # i18next 配置
+    │   └── locales/           # 翻译文件
+    │       ├── zh-CN/
+    │       │   └── translation.json
+    │       ├── en/
+    │       │   └── translation.json
+    │       ├── ja/
+    │       │   └── translation.json
+    │       └── ko/
+    │           └── translation.json
+    └── components/
+        └── ...
+  naming_convention: "小写连字符: zh-CN, en-US, ja-JP"
+
+i18n_migration_workflow:
+  step1_extract: "提取 Qt .ts 文件中的所有翻译条目"
+  step2_convert: "转换为 JSON 格式，按模块/命名空间分组"
+  step3_key_mapping: "建立 Qt context → i18next key 的映射表"
+  step4_code_update: "逐文件将 tr() 调用替换为 useTranslation().t()"
+  step5_verify: "运行应用，检查所有界面文本是否正确显示"
+  step6_add_languages: "补充目标语言的翻译内容"
+
+# ── 从零搭建 i18n（原代码库无国际化实现时使用）──
+i18n_from_scratch:
+  scenario: "原 Qt 项目无 QTranslator/tr() 实现，所有 UI 文本都是硬编码字符串"
+  
+  # 检测方法
+  detection:
+    signals_absent:
+      - "没有 QTranslator 实例化代码"
+      - "没有 tr() 或 translate() 调用"
+      - "没有 .ts/.qm 翻译文件"
+      - "UI 文本直接写在 setText()、setWindowTitle() 等调用中"
+    detection_tools:
+      - "grep -rn 'setText(' src/ --include='*.cpp'"
+      - "grep -rn 'setWindowTitle(' src/ --include='*.cpp'"
+      - "grep -rn 'QLabel\\s*\\*' src/ --include='*.cpp'"
+      - "grep -rn '[一-龥]' src/ --include='*.cpp' --include='*.h'"
+      - "find . -name '*.ts' -o -name '*.qm' 2>/dev/null"
+
+  # 迁移策略
+  migration_strategy:
+    mode: "build_from_scratch"
+    phases:
+      - phase: 1
+        name: "基础设施搭建"
+        tasks:
+          - "安装 i18next 和 react-i18next 依赖"
+          - "创建 i18n/index.ts 配置文件"
+          - "创建默认语言的翻译文件骨架"
+          - "在应用入口初始化 i18next"
+        output: "i18n 基础设施就绪"
+
+      - phase: 2
+        name: "字符串提取与分类"
+        tasks:
+          - "扫描所有硬编码中文字符串/英文文本"
+          - "按模块/功能分类（用户管理、设置、对话框等）"
+          - "生成 key 名（module.submodule.key）"
+          - "建立字符串 → key 的映射表"
+          - "识别重复字符串（相同文本可复用同一 key）"
+        tools:
+          - "grep -rn 中文字符串 --include='*.cpp' --include='*.h'"
+          - "grep -rn '\"[A-Za-z][^\"]*\"' --include='*.cpp' --include='*.h'"
+        output: "字符串清单与 key 映射表"
+
+      - phase: 3
+        name: "翻译文件创建"
+        tasks:
+          - "创建 src/locales/{lang}/translation.json 文件"
+          - "按模块分组写入 key-value 对"
+          - "优先填充默认语言（通常为中文）"
+          - "为目标语言建立空 key（待翻译）"
+        output: "完整翻译文件"
+
+      - phase: 4
+        name: "代码改造"
+        tasks:
+          - "逐文件将硬编码字符串替换为 t() 调用"
+          - "在组件中添加 useTranslation() Hook"
+          - "处理带参数的字符串 → 插值语法"
+          - "处理复数形式 → 复数后缀"
+          - "处理日期/数字格式化 → Intl/dayjs"
+        code_conversion: |
+          // Before (hardcoded):
+          label->setText(tr("保存"));
+          setWindowTitle(tr("用户管理"));
+          QMessageBox::warning(this, tr("警告"), tr("确认删除？"));
+
+          // After (i18n):
+          const { t } = useTranslation();
+          <Button>{t('common.save')}</Button>
+          // For window title, use effect or i18next.changeLanguage
+          // Or handle at the Tauri level
+
+          // For dialogs in Tauri:
+          // Backend (Rust) sends message with localized text
+          // Or frontend uses Modal with t()
+
+        output: "代码改造完成"
+
+      - phase: 5
+        name: "验证与完善"
+        tasks:
+          - "运行应用检查所有界面文本"
+          - "验证语言切换功能"
+          - "检查翻译覆盖率"
+          - "补充遗漏的翻译条目"
+          - "处理边界情况（空字符串、特殊字符等）"
+        output: "验证通过"
+
+  # 复杂度评估
+  complexity_assessment:
+    low: "小型项目（< 1000 字符串）：1-2 天"
+    medium: "中型项目（1000-5000 字符串）：3-5 天"
+    high: "大型项目（> 5000 字符串）：1-2 周"
+    factors:
+      - "字符串分散程度（集中 vs 分散在多文件）"
+      - "是否有重复字符串（可复用 key）"
+      - "是否有带参数的复杂字符串"
+      - "是否需要支持多种语言"
+
+  # 常见陷阱
+  pitfalls:
+    - name: "字符串重复"
+      description: "相同文本可能出现在多个地方，应使用同一 key 而非重复定义"
+      solution: "建立全局字符串索引，去重后再分配 key"
+
+    - name: "拼接字符串"
+      description: "源代码中可能用字符串拼接构造动态文本"
+      solution: "识别拼接模式，改用 i18next 插值语法"
+      example: |
+        // Source: "用户 " + name + " 已删除"
+        // Target: t('userDeleted', { name })
+        // JSON: { "userDeleted": "用户 {{name}} 已删除" }
+
+    - name: "上下文依赖"
+      description: "某些字符串可能依赖运行时状态（如数据库值）"
+      solution: "在 key 中添加上下文标识"
+      example: |
+        // Source: (isActive ? "启用" : "禁用")
+        // Target: t(`status.${isActive ? 'active' : 'inactive'}`)
+
+    - name: "格式化字符串"
+      description: "日期、时间、数值等格式化需要特殊处理"
+      solution: "使用 dayjs/Intl API，与 i18next 的 language 绑定"
+
+  # 最小侵入式改造策略
+  incremental_approach:
+    description: "不必一次性完成所有 i18n 改造，可分阶段进行"
+    phases:
+      - phase: "MVP"
+        scope: "核心页面和通用组件"
+        modules: ["登录页", "导航菜单", "通用按钮/对话框"]
+        languages: ["zh-CN", "en"]
+        estimated_effort: "1-2 天"
+
+      - phase: "第二阶段"
+        scope: "业务核心功能"
+        modules: ["用户管理", "数据展示", "表单处理"]
+        languages: ["zh-CN", "en"]
+        estimated_effort: "2-3 天"
+
+      - phase: "第三阶段"
+        scope: "边缘功能和优化"
+        modules: ["设置页", "帮助文档", "错误提示"]
+        languages: ["按需添加"]
+        estimated_effort: "1-2 天"
+
+  # 配置示例
+  config_template: |
+    // src/i18n/index.ts
+    import i18n from 'i18next';
+    import { initReactI18next } from 'react-i18next';
+    import HttpBackend from 'i18next-http-backend';
+    import zhCN from 'antd/locale/zh_CN';
+    import enUS from 'antd/locale/en_US';
+
+    i18n
+      .use(HttpBackend)
+      .use(initReactI18next)
+      .init({
+        backend: {
+          loadPath: '/locales/{{lng}}/{{ns}}.json',
+        },
+        resources: {
+          'zh-CN': {
+            translation: {
+              common: {
+                save: '保存',
+                cancel: '取消',
+                delete: '删除',
+                confirm: '确认',
+                search: '搜索',
+              },
+              errors: {
+                networkError: '网络错误，请检查连接',
+                unknownError: '未知错误',
+              },
+            },
+          },
+          en: {
+            translation: {
+              common: {
+                save: 'Save',
+                cancel: 'Cancel',
+                delete: 'Delete',
+                confirm: 'Confirm',
+                search: 'Search',
+              },
+              errors: {
+                networkError: 'Network error, please check connection',
+                unknownError: 'Unknown error',
+              },
+            },
+          },
+        },
+        lng: 'zh-CN',
+        fallbackLng: 'en',
+        interpolation: {
+          escapeValue: false,
+        },
+      });
+
+    // 与 Ant Design 集成
+    export const antdLocale = i18n.language === 'zh-CN' ? zhCN : enUS;
+
+    export default i18n;
+
+# ── 后端消息国际化（后端推送给用户的消息）──
+backend_message_i18n:
+  description: "处理后端（Rust/Tauri 命令）返回给前端的消息国际化"
+  
+  # 架构模式选择
+  architecture_patterns:
+    - pattern: "前端翻译模式（推荐）"
+      description: "后端返回错误码/状态码，前端根据码值查找翻译显示"
+      pros: 
+        - "后端无需关心国际化"
+        - "错误码可跨平台复用（Web/iOS/Android）"
+        - "支持动态语言切换"
+        - "Tauri IPC 消息体更小"
+      cons: 
+        - "需要维护错误码注册表"
+        - "前后端需同步错误码定义"
+      implementation: |
+        // Rust 后端:
+        #[tauri::command]
+        pub fn save_data(path: String) -> Result<(), AppError> {
+            if path.is_empty() {
+                return Err(AppError::InvalidArgument("EMPTY_PATH"));
+            }
+            // ... 业务逻辑
+            Ok(())
+        }
+
+        // 错误码定义:
+        #[derive(Debug, thiserror::Error)]
+        pub enum AppError {
+            #[error("INVALID_ARGUMENT: {0}")]
+            InvalidArgument(&'static str),
+            #[error("NOT_FOUND: {0}")]
+            NotFound(String),
+            #[error("IO_ERROR: {0}")]
+            IoError(#[from] std::io::Error),
+        }
+
+        // TypeScript 前端:
+        // src/types/errors.ts
+        export const ERROR_CODES = {
+          EMPTY_PATH: 'error.file.emptyPath',
+          FILE_NOT_FOUND: 'error.file.notFound',
+          IO_ERROR: 'error.system.ioError',
+        } as const;
+
+        // src/locales/zh-CN/translation.json
+        {
+          "error": {
+            "file": {
+              "emptyPath": "文件路径不能为空",
+              "notFound": "文件不存在: {{path}}",
+            },
+            "system": {
+              "ioError": "系统错误: {{message}}",
+            },
+          },
+        }
+
+        // src/lib/invoke.ts
+        async function invokeCommand<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+          try {
+            return await invoke<T>(cmd, args);
+          } catch (error) {
+            const code = extractErrorCode(error);
+            const messageKey = ERROR_CODES[code as keyof typeof ERROR_CODES];
+            const translatedMessage = messageKey ? t(messageKey) : t('error.unknown');
+            throw new Error(translatedMessage);
+          }
+        }
+
+    - pattern: "后端翻译模式"
+      description: "后端根据用户语言返回已翻译的消息"
+      pros: 
+        - "消息实时可获取（即使前端未更新）"
+        - "可包含动态数据（如错误文件名）"
+        - "离线场景可用"
+      cons: 
+        - "后端需要翻译多语言文案"
+        - "不支持动态切换语言（需重新请求）"
+        - "增加 IPC 传输量"
+        - "与前端 i18n 可能不一致"
+      implementation: |
+        // Rust 后端（使用 rust-i18n 或其他库）:
+        use i18n_embed::{embed, load, I18nModule};
+
+        #[derive(I18nModule)]
+        pub struct Messages;
+
+        embed! {
+            "zh-CN" => {
+                "error.file.emptyPath" => "文件路径不能为空",
+                "error.file.notFound" => "文件不存在: {path}",
+            },
+            "en" => {
+                "error.file.emptyPath" => "File path cannot be empty",
+                "error.file.notFound" => "File not found: {path}",
+            },
+        }
+
+        #[tauri::command]
+        pub fn save_data(path: String, lang: String) -> Result<(), String> {
+            if path.is_empty() {
+                let msg = Messages::get(&lang, "error.file.emptyPath");
+                return Err(msg.into_owned());
+            }
+            // ...
+            Ok(())
+        }
+
+    - pattern: "混合模式（最灵活）"
+      description: "后端返回错误码 + 参数，前端负责翻译和展示"
+      pros: 
+        - "兼具灵活性和性能"
+        - "支持动态数据（文件名、数量等）"
+        - "前端可优化展示（Toast、Modal、内联提示）"
+      cons: 
+        - "需要约定错误码格式"
+        - "前后端需同步错误码"
+      implementation: |
+        // Rust 后端（返回结构化错误）:
+        #[derive(Serialize)]
+        pub struct ErrorResponse {
+            pub code: String,
+            pub params: HashMap<String, String>,
+        }
+
+        #[tauri::command]
+        pub fn save_data(path: String) -> Result<(), ErrorResponse> {
+            if path.is_empty() {
+                return Err(ErrorResponse {
+                    code: "error.file.emptyPath".into(),
+                    params: HashMap::new(),
+                });
+            }
+            if !std::path::Path::new(&path).exists() {
+                let mut params = HashMap::new();
+                params.insert("path".into(), path);
+                return Err(ErrorResponse {
+                    code: "error.file.notFound".into(),
+                    params,
+                });
+            }
+            // ...
+            Ok(())
+        }
+
+        // TypeScript 前端（解析结构化错误）:
+        async function invokeCommand<T>(...): Promise<T> {
+          try {
+            return await invoke<T>(cmd, args);
+          } catch (error) {
+            if (isStructuredError(error)) {
+              const { code, params } = error;
+              const message = t(code, params);
+              Notification.error({ message });
+              throw new Error(message);
+            }
+            throw error;
+          }
+        }
+
+  # 推荐方案
+  recommended_pattern: "前端翻译模式"
+  reasoning: |
+    - 与 React/i18next 生态系统集成最好
+    - 错误码可跨平台复用
+    - 支持动态语言切换
+    - Tauri IPC 消息格式简洁
+    
+  # Qt C++ 后端消息 → Rust/Tauri 映射
+  qt_backend_message_mapping:
+    - source: "QMessageBox::warning(caption, text)"
+      target: "结构化错误码 + 前端 t() 翻译"
+      example: |
+        // C++:
+        QMessageBox::warning(this, "警告", "文件路径不能为空");
+        
+        // Rust (返回错误码):
+        Err(ErrorResponse {
+            code: "error.file.emptyPath",
+            params: HashMap::new(),
+        })
+        
+        // TypeScript (展示):
+        Modal.warning({
+            title: t('common.warning'),
+            content: t('error.file.emptyPath'),
+        });
+
+    - source: "QMessageBox::critical(caption, text)"
+      target: "严重错误码 + Modal.error()"
+      example: |
+        // C++:
+        QMessageBox::critical(this, "错误", "系统异常: " + errorMsg);
+        
+        // TypeScript:
+        Modal.error({
+            title: t('common.error'),
+            content: t('error.system.exception', { message: errorMsg }),
+        });
+
+    - source: "QMessageBox::information(caption, text)"
+      target: "信息码 + Modal.info()"
+      example: |
+        // C++:
+        QMessageBox::information(this, "信息", "保存成功");
+        
+        // TypeScript:
+        Modal.info({
+            title: t('common.information'),
+            content: t('common.saveSuccess'),
+        });
+
+    - source: "statusBar()->showMessage(text)"
+      target: "Toast/message 提示"
+      example: |
+        // C++:
+        statusBar()->showMessage("加载中...", 3000);
+        
+        // TypeScript:
+        message.loading({ content: t('common.loading'), duration: 3 });
+
+    - source: "emit statusChanged(text)"
+      target: "状态 Store 更新"
+      example: |
+        // C++:
+        emit statusChanged("处理中");
+        
+        // TypeScript (Zustand):
+        useStatusStore.setState({ status: t('status.processing') });
+
+  # 错误码规范
+  error_code_convention:
+    format: "namespace.module.action.result"
+    examples:
+      - "error.file.emptyPath"
+      - "error.file.notFound"  
+      - "error.network.timeout"
+      - "error.database.connection"
+      - "success.operation.completed"
+      - "warning.disk.spaceLow"
+    prefixes:
+      - "error": 错误（必须处理）
+      - "warning": 警告（可选处理）
+      - "info": 信息（通知）
+      - "success": 成功（确认）
+    namespaces:
+      - "common": 通用（保存、取消、删除等）
+      - "file": 文件操作
+      - "network": 网络请求
+      - "database": 数据库操作
+      - "auth": 认证授权
+      - "system": 系统级错误
+
+  # 后端通知消息
+  backend_notification_mapping:
+    - scenario: "文件操作完成通知"
+      cpp_example: |
+        QMessageBox::information(this, "成功", "文件已保存");
+      ts_example: |
+        message.success(t('file.saveSuccess'));
+        
+        // JSON:
+        { "file": { "saveSuccess": "文件已保存" } }
+
+    - scenario: "异步任务进度通知"
+      cpp_example: |
+        statusBar()->showMessage("正在处理...", 0);
+        // ... 异步处理
+        statusBar()->showMessage("处理完成", 3000);
+      ts_example: |
+        const key = 'task-progress';
+        message.loading({ content: t('task.processing'), key });
+        // ... 异步处理
+        message.success({ content: t('task.completed'), key, duration: 3 });
+
+    - scenario: "后台推送通知"
+      cpp_example: |
+        // Qt 信号槽机制
+        connect(worker, &Worker::progressChanged, 
+                this, &MainWindow::onProgress);
+      ts_example: |
+        // Tauri 事件推送
+        listen('progress-update', (event) => {
+            const { code, params } = event.payload;
+            setProgress({
+                message: t(code, params),
+                percent: params?.percent,
+            });
+        });
+
+  # 前后端 i18n 同步策略
+  frontend_backend_sync:
+    description: "确保前后端消息翻译的一致性"
+    
+    strategies:
+      - name: "共享错误码定义（推荐）"
+        approach: "在 Rust 后端定义错误码枚举，前端通过生成脚本同步"
+        implementation: |
+          // src-tauri/src/error_codes.rs
+          #[derive(Debug, Clone, Serialize)]
+          #[serde(rename_all = "camelCase")]
+          pub enum ErrorCode {
+              #[serde(rename = "error.file.emptyPath")]
+              EmptyPath,
+              #[serde(rename = "error.file.notFound")]
+              FileNotFound,
+              #[serde(rename = "error.network.timeout")]
+              NetworkTimeout,
+          }
+          
+          // scripts/sync-error-codes.ts（自动生成）
+          // 读取 Rust 错误码定义 → 生成 TypeScript 常量
+          // 输出: src/types/errorCodes.ts
+          export const ERROR_CODES = {
+            EMPTY_PATH: 'error.file.emptyPath',
+            FILE_NOT_FOUND: 'error.file.notFound',
+            NETWORK_TIMEOUT: 'error.network.timeout',
+          } as const;
+
+      - name: "翻译文件单一来源"
+        approach: "所有翻译 key 集中在前端 locales 目录，后端仅返回 key"
+        rules:
+          - "后端错误码 = 前端翻译 key"
+          - "key 必须在所有语言文件中存在"
+          - "CI 检查 key 覆盖率"
+        ci_check: |
+          # scripts/check-i18n-coverage.ts
+          # 检查所有语言文件的 key 是否一致
+          # 检查是否存在未使用的 key
+          # 检查后端返回的错误码是否有对应翻译
+
+      - name: "动态参数传递"
+        approach: "后端返回错误码 + 动态参数，前端填充翻译模板"
+        example: |
+          // Rust:
+          Err(ErrorResponse {
+              code: "error.file.notFound".into(),
+              params: HashMap::from([
+                  ("path".into(), requested_path),
+              ]),
+          })
+          
+          // TypeScript:
+          const message = t('error.file.notFound', { 
+              path: params.path 
+          });
+          
+          // JSON (zh-CN):
+          { "error": { "file": { "notFound": "文件不存在: {{path}}" } } }
+
+          // JSON (en):
+          { "error": { "file": { "notFound": "File not found: {{path}}" } } }
+
+  # 后端消息 i18n 检查清单
+  backend_i18n_checklist:
+    - [ ] 所有后端命令的错误码已定义
+    - [ ] 错误码格式符合命名规范（namespace.module.type）
+    - [ ] 前端有对应的翻译 key（所有语言）
+    - [ ] 动态参数使用 {{}} 插值语法
+    - [ ] 错误码在所有语言文件中覆盖率一致
+    - [ ] 后端通知消息已国际化
+    - [ ] Tauri 事件推送的消息已国际化
+    - [ ] CI 检查 i18n 覆盖率已配置
+
+# ── Qt 样式表映射 ──
+stylesheet_mapping:
+    - source: "Qt 样式表 (QSS)"
+      target: "Tailwind CSS 或 styled-components"
+      example: |
+        // C++ (QSS):
+        // QPushButton { background-color: #4CAF50; color: white; border-radius: 4px; }
+        // QLabel#title { font-size: 18px; font-weight: bold; }
+
+        // TypeScript (Tailwind):
+        <Button className="bg-green-500 text-white rounded">
+          按钮
+        </Button>
+        <Text id="title" className="text-lg font-bold">
+          标题
+        </Text>
+
+    - source: "setStyleSheet()"
+      target: "className 或 style prop"
+      note: "避免使用内联样式表，优先使用 CSS 类或 Tailwind"
+
+# ── Qt 资源系统映射 ──
+resource_mapping:
+    - source: "Qt Resources (.qrc)"
+      target: "ES Modules / import"
+      example: |
+        // C++ (qrc):
+        // <qresource prefix="/">
+        //   <file>images/logo.png</file>
+        //   <file>styles/main.css</file>
+        // </qresource>
+
+        // TypeScript:
+        import logo from './images/logo.png';
+        import './styles/main.css';
+
+    - source: "QIcon"
+      target: "图片资源或图标组件"
+      example: |
+        // C++:
+        QIcon icon(":/icons/delete.png");
+
+        // TypeScript:
+        import { DeleteOutlined } from '@ant-design/icons';
+        <DeleteOutlined />
+        // 或:
+        <img src={deleteIcon} alt="delete" />
+
+    - source: "QPixmap / QImage"
+      target: "img 标签 或 Canvas API"
+      example: |
+        // TypeScript:
+        <img src={imageUrl} width={100} height={100} />
+        // 或使用 Canvas:
+        const canvasRef = useRef<HTMLCanvasElement>(null);
+
+# ── Tauri 集成补充 ──
+tauri_integration:
+    - name: "Qt 主窗口 → Tauri Window"
+      example:
+        cpp: |
+          // C++:
+          QMainWindow window;
+          window.setWindowTitle("My Application");
+          window.resize(800, 600);
+          window.show();
+        rust: |
+          // Tauri:
+          tauri::Builder::default()
+              .setup(|app| {
+                  let window = app.get_window("main").unwrap();
+                  window.set_title("My Application")?;
+                  window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width: 800, height: 600 }))?;
+                  Ok(())
+              })
+
+    - name: "Qt 对话框 → Tauri Dialog / Web 模态框"
+      example:
+        cpp: |
+          // C++:
+          QMessageBox::information(nullptr, "标题", "消息内容");
+        typescript: |
+          // TypeScript (Ant Design):
+          Modal.info({
+            title: '标题',
+            content: '消息内容',
+          });
+
+    - name: "Qt 文件系统 → Tauri FS API"
+      example:
+        typescript: |
+          // TypeScript (Tauri):
+          import { readFile, writeFile } from '@tauri-apps/plugin-fs';
+          const content = await readFile('path/to/file.txt');
+          await writeFile('path/to/file.txt', newContent);
+
+    - name: "Qt 系统托盘 → Tauri Tray"
+      example:
+        rust: |
+          // Rust:
+          tauri::TrayIconBuilder::with_id("main-tray")
+              .menu(menu)
+              .on_menu_event(|event| { ... })
+              .build(&app.handle)?;
+
+# ── 迁移检查清单 ──
+migration_checklist:
+  before_migration:
+    - [ ] 识别所有 Qt Widget 类型并确定 React 对应组件
+    - [ ] 识别所有信号/槽连接并转换为事件回调
+    - [ ] 规划数据状态管理方案（Zustand/Redux）
+    - [ ] 规划路由方案（React Router）
+    - [ ] 规划国际化方案（react-i18next）
+    - [ ] 规划后端消息国际化方案（前端翻译/后端翻译/混合模式）
+    - [ ] 定义错误码规范（namespace.module.action.result）
+    - [ ] 确定是否需要保留桌面功能（Tauri vs 纯 Web）
+
+  during_migration:
+    - [ ] UI 组件逐一映射（优先主窗口和核心视图）
+    - [ ] 数据模型转换（QAbstractItemModel → 状态管理）
+    - [ ] 信号槽系统转换（connect → event handler）
+    - [ ] 样式表转换（QSS → Tailwind/CSS）
+    - [ ] 资源文件迁移（qrc → import）
+    - [ ] 国际化迁移（QTranslator → react-i18next）
+    - [ ] 后端逻辑迁移（QSql/QNetwork → Tauri API/fetch）
+    - [ ] 后端错误码定义（Rust 枚举 + 错误响应结构）
+    - [ ] 前端错误码映射（TypeScript 常量 + 翻译 key）
+    - [ ] 前后端错误码同步（生成脚本 + CI 检查）
+
+  after_migration:
+    - [ ] UI 视觉验证（对比 Qt 原图和 React 渲染）
+    - [ ] 功能测试（确保所有交互正常）
+    - [ ] 性能测试（渲染性能、内存占用）
+    - [ ] 响应式测试（不同窗口大小）
+    - [ ] 桌面功能验证（文件系统、系统托盘等）
+    - [ ] 后端错误消息国际化验证（测试所有错误码翻译）
+    - [ ] 前后端消息同步测试（语言切换后消息正确显示）
+    - [ ] 动态参数传递测试（含变量的错误消息正确渲染）
+
+# ── Qt Designer (.ui) 文件解析配置 ──
+qt_designer_ui_parsing:
+  description: "解析 Qt Designer XML UI 文件并生成 React 组件代码"
+  
+  # XML 元素到 React 组件的映射
+  widget_mapping:
+    - qt_widget: "QWidget"
+      react_component: "div"
+      props_mapping:
+        - qt_prop: "objectName"
+          react_prop: "id"
+          transform: "passthrough"
+        - qt_prop: "geometry"
+          react_prop: "style"
+          transform: "geometry_to_css"
+    
+    - qt_widget: "QMainWindow"
+      react_component: "Layout"
+      props_mapping:
+        - qt_prop: "windowTitle"
+          react_prop: "title"
+          transform: "direct"
+        - qt_prop: "centralWidget"
+          react_prop: "content"
+          transform: "recursive_parse"
+    
+    - qt_widget: "QDockWidget"
+      react_component: "Ant Design Segmented + Tabs"
+      props_mapping:
+        - qt_prop: "windowTitle"
+          react_prop: "tab.title"
+        - qt_prop: "widget"
+          react_prop: "tab.content"
+        - qt_prop: "features"
+          react_prop: "closable/floatable"
+          transform: "feature_flags"
+    
+    - qt_widget: "QDialog"
+      react_component: "Ant Design Modal"
+      props_mapping:
+        - qt_prop: "windowTitle"
+          react_prop: "title"
+        - qt_prop: "modal"
+          react_prop: "open"
+          transform: "boolean_invert"
+    
+    - qt_widget: "QPushButton"
+      react_component: "Ant Design Button"
+      props_mapping:
+        - qt_prop: "text"
+          react_prop: "children"
+        - qt_prop: "enabled"
+          react_prop: "disabled"
+          transform: "boolean_invert"
+        - qt_prop: "clicked"
+          react_prop: "onClick"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QLabel"
+      react_component: "Ant Design Text"
+      props_mapping:
+        - qt_prop: "text"
+          react_prop: "children"
+        - qt_prop: "buddy"
+          react_prop: "htmlFor"
+    
+    - qt_widget: "QLineEdit"
+      react_component: "Ant Design Input"
+      props_mapping:
+        - qt_prop: "placeholderText"
+          react_prop: "placeholder"
+        - qt_prop: "textChanged"
+          react_prop: "onChange"
+          transform: "signal_to_handler"
+        - qt_prop: "echoMode"
+          react_prop: "type"
+          transform: "password_if_echo_mode_password"
+    
+    - qt_widget: "QComboBox"
+      react_component: "Ant Design Select"
+      props_mapping:
+        - qt_prop: "items"
+          react_prop: "options"
+          transform: "items_to_options_array"
+        - qt_prop: "currentIndexChanged"
+          react_prop: "onChange"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QCheckBox"
+      react_component: "Ant Design Checkbox"
+      props_mapping:
+        - qt_prop: "text"
+          react_prop: "children"
+        - qt_prop: "stateChanged"
+          react_prop: "onChange"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QRadioButton"
+      react_component: "Ant Design Radio"
+      props_mapping:
+        - qt_prop: "text"
+          react_prop: "children"
+        - qt_prop: "clicked"
+          react_prop: "onChange"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QTableWidget"
+      react_component: "Ant Design Table"
+      props_mapping:
+        - qt_prop: "columnCount"
+          react_prop: "columns.length"
+          transform: "count_to_array_length"
+        - qt_prop: "rowCount"
+          react_prop: "dataSource.length"
+        - qt_prop: "horizontalHeaderLabels"
+          react_prop: "columns[].title"
+          transform: "labels_to_columns_config"
+        - qt_prop: "cellClicked"
+          react_prop: "onRow"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QTreeWidget"
+      react_component: "Ant Design Tree"
+      props_mapping:
+        - qt_prop: "headerLabels"
+          react_prop: "treeData"
+          transform: "tree_structure"
+        - qt_prop: "itemClicked"
+          react_prop: "onSelect"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QTabWidget"
+      react_component: "Ant Design Tabs"
+      props_mapping:
+        - qt_prop: "tabText"
+          react_prop: "items[].label"
+        - qt_prop: "currentChanged"
+          react_prop: "onChange"
+          transform: "signal_to_handler"
+    
+    - qt_widget: "QGroupBox"
+      react_component: "Ant Design Card"
+      props_mapping:
+        - qt_prop: "title"
+          react_prop: "title"
+        - qt_prop: "layout"
+          react_prop: "children"
+          transform: "recursive_parse"
+    
+    - qt_widget: "QStatusBar"
+      react_component: "Ant Design Layout Footer"
+      props_mapping:
+        - qt_prop: "messageChanged"
+          react_prop: "statusText"
+          transform: "signal_to_state"
+  
+  # 布局系统映射
+  layout_mapping:
+    - qt_layout: "QVBoxLayout"
+      react_css: "flex flex-col"
+      example: |
+        <!-- Qt: QVBoxLayout -->
+        <div className="flex flex-col gap-4">
+          {children}
+        </div>
+    
+    - qt_layout: "QHBoxLayout"
+      react_css: "flex flex-row"
+      example: |
+        <!-- Qt: QHBoxLayout -->
+        <div className="flex flex-row gap-4">
+          {children}
+        </div>
+    
+    - qt_layout: "QGridLayout"
+      react_css: "grid grid-cols-N"
+      example: |
+        <!-- Qt: QGridLayout with 3 columns -->
+        <div className="grid grid-cols-3 gap-4">
+          <div>Item 1</div>
+          <div>Item 2</div>
+          <div>Item 3</div>
+        </div>
+    
+    - qt_layout: "QFormLayout"
+      react_css: "grid grid-cols-2 gap-4"
+      example: |
+        <!-- Qt: QFormLayout -->
+        <div className="grid grid-cols-2 gap-4">
+          <label>Label 1:</label>
+          <input>Input 1</input>
+          <label>Label 2:</label>
+          <input>Input 2</input>
+        </div>
+    
+    - qt_layout: "QStackedLayout"
+      react_css: "条件渲染 / React Router"
+      example: |
+        <!-- Qt: QStackedLayout -->
+        {currentIndex === 0 && <Page1 />}
+        {currentIndex === 1 && <Page2 />}
+    
+    - qt_layout: "QSplitter"
+      react_css: "Ant Design Segmented + Resizable"
+      example: |
+        <!-- Qt: QSplitter -->
+        <ResizablePanelGroup direction="horizontal">
+          <ResizablePanel defaultSize={30}>
+            <LeftPanel />
+          </ResizablePanel>
+          <ResizablePanel defaultSize={70}>
+            <RightPanel />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+
+  # 转换脚本（伪代码）
+  conversion_script: |
+    // Qt Designer UI → React 组件转换逻辑
+    
+    function parseQtDesignerUI(xmlContent: string): ReactComponent {
+      const doc = parseXML(xmlContent);
+      const rootWidget = doc.querySelector('widget[class]');
+      
+      return convertWidget(rootWidget);
+    }
+    
+    function convertWidget(element: Element): ReactComponent {
+      const qtClass = element.getAttribute('class');
+      const mapping = widget_mapping[qtClass];
+      
+      if (!mapping) {
+        return convertUnknownWidget(element);
+      }
+      
+      // 解析属性
+      const props = parseProperties(element, mapping.props_mapping);
+      
+      // 解析布局
+      const layout = parseLayout(element);
+      
+      // 递归转换子元素
+      const children = parseChildren(element);
+      
+      return {
+        component: mapping.react_component,
+        props,
+        layout,
+        children,
+      };
+    }
+
+  # 示例转换
+  conversion_examples:
+    - source_ui: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <ui version="4.0">
+         <class>MainWindow</class>
+         <widget class="QMainWindow" name="MainWindow">
+          <property name="windowTitle">
+            <string>主窗口</string>
+          </property>
+          <widget class="QWidget" name="centralWidget">
+            <layout class="QVBoxLayout" name="verticalLayout">
+              <item>
+                <widget class="QLabel" name="titleLabel">
+                  <property name="text">
+                    <string>欢迎使用</string>
+                  </property>
+                </widget>
+              </item>
+              <item>
+                <widget class="QPushButton" name="actionButton">
+                  <property name="text">
+                    <string>执行操作</string>
+                  </property>
+                </widget>
+              </item>
+            </layout>
+          </widget>
+         </widget>
+        </ui>
+      target_tsx: |
+        import React from 'react';
+        import { Layout, Typography, Button } from 'antd';
+        
+        export function MainWindow() {
+          return (
+            <Layout style={{ minHeight: '100vh' }}>
+              <Layout.Content className="flex flex-col gap-4 p-6">
+                <Typography.Title level={1}>
+                  {t('main.welcome')}
+                </Typography.Title>
+                <Button type="primary" onClick={handleAction}>
+                  {t('main.executeAction')}
+                </Button>
+              </Layout.Content>
+            </Layout>
+          );
+        }
+
+# ── Afsim 仿真数学类型映射 ──
+afsim_math_mapping:
+  description: "Afsim 仿真框架特有的数学类型到 Rust/TypeScript 的映射"
+  
+  # UtVec 向量类型
+  vector_types:
+    - source: "UtVec2<T>"
+      target_rust: "nalgebra::Vector2<T>"
+      target_typescript: "number[] (长度2) 或自定义 Vec2 类"
+      operations:
+        - op: "加法 a.Add(b, c)"
+          rust: "let c = a + b;"
+          typescript: "const c = [a[0]+b[0], a[1]+b[1]]"
+        - op: "减法 a.Subtract(b, c)"
+          rust: "let c = a - b;"
+          typescript: "const c = [a[0]-b[0], a[1]-b[1]]"
+        - op: "点积 a.Dot(b)"
+          rust: "a.dot(&b)"
+          typescript: "a[0]*b[0] + a[1]*b[1]"
+        - op: "叉积 a.Cross(b)"
+          rust: "a.cross(&b)"
+          typescript: "[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]"
+        - op: "长度 a.Length()"
+          rust: "a.magnitude()"
+          typescript: "Math.sqrt(a[0]**2 + a[1]**2 + a[2]**2)"
+        - op: "归一化 a.Normalize()"
+          rust: "a.normalize()"
+          typescript: "const len = Math.sqrt(a[0]**2 + a[1]**2 + a[2]**2); [a[0]/len, a[1]/len, a[2]/len]"
+    
+    - source: "UtVec3<T>"
+      target_rust: "nalgebra::Vector3<T>"
+      target_typescript: "number[] (长度3) 或自定义 Vec3 类"
+      operations:
+        - op: "构造"
+          rust: "let v = Vector3::new(x, y, z);"
+          typescript: "const v = [x, y, z];"
+        - op: "分量访问"
+          rust: "v[0] 或 v.x"
+          typescript: "v[0] 或 v.x (如果定义 getter)"
+        - op: "与标量相乘"
+          rust: "v * scalar"
+          typescript: "v.map(x => x * scalar)"
+  
+  # 矩阵类型
+  matrix_types:
+    - source: "UtMatrix3x3<T>"
+      target_rust: "nalgebra::Matrix3<T>"
+      target_typescript: "number[][] (3x3 数组) 或自定义 Matrix3 类"
+      operations:
+        - op: "矩阵乘法 a.Multiply(b, c)"
+          rust: "let c = a * b;"
+          typescript: "矩阵乘法实现"
+        - op: "转置 a.Transpose()"
+          rust: "a.transpose()"
+          typescript: "行列互换"
+        - op: "行列式 a.Determinant()"
+          rust: "a.determinant()"
+          typescript: "3x3 行列式公式"
+    
+    - source: "UtMatrix4x4<T>"
+      target_rust: "nalgebra::Matrix4<T>"
+      target_typescript: "number[][] (4x4 数组)"
+  
+  # 四元数
+  quaternion_types:
+    - source: "UtQuaternion<T>"
+      target_rust: "nalgebra::UnitQuaternion<T>"
+      target_typescript: "{ w: T, x: T, y: T, z: T }"
+      operations:
+        - op: "从欧拉角构造"
+          rust: "UnitQuaternion::from_euler_angles(roll, pitch, yaw)"
+          typescript: "quaternionFromEuler(roll, pitch, yaw)"
+        - op: "旋转向量"
+          rust: "q * v"
+          typescript: "rotateVector(q, v)"
+        - op: "转矩阵"
+          rust: "q.to_rotation_matrix()"
+          typescript: "quaternionToMatrix(q)"
+  
+  # 地球模型
+  earth_model:
+    - source: "UtEarth"
+      target_rust: "自定义 geo crate 或 坐标转换库"
+      target_typescript: "自定义坐标转换工具"
+      functions:
+        - func: "WGS84 经纬度 → ECEF 直角坐标"
+          rust: "geo::wgs84_to_ecef(lat, lon, alt)"
+          typescript: "wgs84ToEcef(lat, lon, alt)"
+        - func: "ECEF → NED"
+          rust: "geo::ecef_to_ned(x, y, z, lat, lon)"
+          typescript: "ecefToNed(x, y, z, lat, lon)"
+        - func: "大圆距离"
+          rust: "geo::great_circle_distance(lat1, lon1, lat2, lon2)"
+          typescript: "greatCircleDistance(lat1, lon1, lat2, lon2)"
+
+  # 推荐 Rust crate
+  recommended_crates:
+    - name: "nalgebra"
+      purpose: "线性代数（向量、矩阵、四元数）"
+      features: ["std", "serde"]
+    - name: "glam"
+      purpose: "轻量级数学（游戏/图形场景）"
+      features: ["std"]
+    - name: "geo"
+      purpose: "地理计算"
+      features: ["wgs84"]
+    - name: "approx"
+      purpose: "浮点比较"
+      features: []
+
+  # TypeScript 推荐库
+  recommended_ts_libs:
+    - name: "mldock"
+      purpose: "线性代数（向量、矩阵）"
+      install: "npm install mldock"
+    - name: "gl-matrix"
+      purpose: "WebGL 数学库"
+      install: "npm install gl-matrix"
+    - name: "three.js (THREE.Vector3)"
+      purpose: "如果使用 Three.js 3D 渲染"
+      install: "npm install three"
+
+# ── Afsim 核心类到 AxAgent 架构映射 ──
+afsim_architecture_mapping:
+  description: "Afsim 仿真核心类到 AxAgent 智能体架构的映射方案"
+  
+  # 核心基类映射
+  core_class_mapping:
+    - source_class: "WsfObject"
+      source_description: "AFSIM 所有命名对象的基类，提供名字、类型、属性管理"
+      target_mapping:
+        rust: "axagent_harness::Entity trait"
+        typescript: "interface Entity"
+      mapping_strategy: |
+        // Rust:
+        pub trait Entity {
+            fn name(&self) -> &str;
+            fn set_name(&mut self, name: &str);
+            fn entity_type(&self) -> &str;
+            fn clone_entity(&self) -> Box<dyn Entity>;
+        }
+        
+        // TypeScript:
+        interface Entity {
+          name: string;
+          entityType: string;
+          clone(): Entity;
+        }
+      key_features:
+        - 类型系统 (IsA_TypeOf) → 接口/泛型约束
+        - 克隆支持 → Clone trait / 深拷贝方法
+        - 引用跟踪 → Arc<Mutex> / useRef
+
+    - source_class: "WsfPlatform"
+      source_description: "仿真平台对象，包含位置、速度、武器等"
+      target_mapping:
+        rust: "axagent_agent::Agent + 状态结构体"
+        typescript: "interface Agent + Zustand Store"
+      mapping_strategy: |
+        // Rust (Agent 模型):
+        pub struct SimulationPlatform {
+            id: String,
+            position: Vector3,
+            velocity: Vector3,
+            weapons: Vec<Weapon>,
+            // ... 其他属性
+        }
+        
+        // TypeScript:
+        interface SimulationPlatform {
+          id: string;
+          position: [number, number, number];
+          velocity: [number, number, number];
+          weapons: Weapon[];
+        }
+        
+        // Zustand Store:
+        const usePlatformStore = create<PlatformState>((set) => ({
+            platforms: new Map(),
+            addPlatform: (platform) => set(state => ({
+                platforms: new Map([...state.platforms, [platform.id, platform]])
+            })),
+        }));
+      agent_mapping:
+        - WsfPlatform.Think() → Agent.run()
+        - WsfPlatform.ProcessInput() → Agent.handleInput()
+        - WsfPlatform.GetSignals() → Agent.getSignals()
+
+    - source_class: "WsfTrack"
+      source_description: "航迹对象，记录平台运动历史"
+      target_mapping:
+        rust: "axagent_domain::Conversation + 消息历史"
+        typescript: "interface Conversation + 消息数组"
+      mapping_strategy: |
+        // Rust:
+        pub struct Track {
+            id: TrackId,
+            platform_id: String,
+            history: Vec<TrackPoint>,
+            current_point: TrackPoint,
+        }
+        
+        // TypeScript:
+        interface Track {
+          id: string;
+          platformId: string;
+          history: TrackPoint[];
+          currentPoint: TrackPoint;
+        }
+        
+        // 与对话系统映射:
+        // Track ≈ Conversation
+        // TrackPoint ≈ Message
+        // Track.GetHistory() ≈ conversation.history
+      event_mapping:
+        - TrackUpdateEvent → ConversationUpdateEvent
+        - TrackCreatedEvent → ConversationCreatedEvent
+
+    - source_class: "WsfPlugin"
+      source_description: "插件系统基类，提供扩展功能"
+      target_mapping:
+        rust: "axagent_tools::Tool trait"
+        typescript: "interface Tool"
+      mapping_strategy: |
+        // Rust:
+        pub trait Tool {
+            fn name(&self) -> &str;
+            fn description(&self) -> &str;
+            fn execute(&self, input: &str) -> Result<String, ToolError>;
+            fn parameters_schema(&self) -> Option<Value>;
+        }
+        
+        // 从 WsfPlugin 迁移:
+        // WsfPlugin::OnInitialize() → Tool::new()
+        // WsfPlugin::ProcessCommand() → Tool::execute()
+        // WsfPlugin::GetCapabilities() → Tool::parameters_schema()
+
+    - source_class: "WsfScenario"
+      source_description: "仿真场景管理器，控制整个仿真运行"
+      target_mapping:
+        rust: "axagent_orchestrator::Orchestrator"
+        typescript: "interface Orchestrator"
+      mapping_strategy: |
+        // Rust:
+        pub struct SimulationOrchestrator {
+            platforms: Vec<Box<dyn Agent>>,
+            event_queue: EventQueue,
+            simulation_time: f64,
+            running: AtomicBool,
+        }
+        
+        // 关键方法迁移:
+        // Scenario.Run() → Orchestrator.start()
+        // Scenario.Stop() → Orchestrator.stop()
+        // Scenario.Pause() → Orchestrator.pause()
+        // Scenario.Step() → Orchestrator.step()
+
+  # 消息/事件系统映射
+  event_system_mapping:
+    - source_pattern: "信号槽机制 (connect(sender, &Sender::signal, receiver, &Receiver::slot))"
+      target_pattern: "事件发射器 (EventEmitter) / Zustand 订阅"
+      example: |
+        // C++ (Qt):
+        connect(platform, &WsfPlatform::positionChanged,
+                tracker, &WsfTracker::onPositionChanged);
+        
+        // TypeScript:
+        // 方式1: EventEmitter
+        const emitter = new EventEmitter();
+        emitter.on('positionChanged', (data) => {
+            tracker.onPositionChanged(data);
+        });
+        emitter.emit('positionChanged', newPosition);
+        
+        // 方式2: Zustand
+        usePlatformStore.subscribe(
+          (state) => state.platforms[id]?.position,
+          (newPosition) => {
+            tracker.onPositionChanged(newPosition);
+          }
+        );
+    
+    - source_pattern: "WsfEventQueue"
+      target_pattern: "消息总线 / Redis Streams"
+      example: |
+        // Rust:
+        let (tx, rx) = tokio::sync::mpsc::channel(1000);
+        tokio::spawn(async move {
+            while let Some(event) = rx.recv().await {
+                handle_event(event).await;
+            }
+        });
+
+  # 状态管理映射
+  state_management_mapping:
+    - source_pattern: "WsfPlatform 内部状态"
+      target_pattern: "Zustand Store"
+      complexity: "medium"
+      mapping_guide: |
+        // 每个平台类型对应一个 Store:
+        const useFighterStore = create<FighterState>((set) => ({
+            fighters: new Map(),
+            addFighter: (fighter) => { ... },
+            updatePosition: (id, pos) => { ... },
+            setHealth: (id, health) => { ... },
+        }));
+    
+    - source_pattern: "全局仿真状态"
+      target_pattern: "根级 Store + 选择器"
+      complexity: "low"
+      mapping_guide: |
+        const useSimulationStore = create<SimulationState>((set) => ({
+            time: 0,
+            running: false,
+            paused: false,
+            speed: 1.0,
+            startSimulation: () => { ... },
+            pauseSimulation: () => { ... },
+            stepSimulation: (dt) => { ... },
+        }));
+
+  # 文件结构映射
+  file_structure_mapping:
+    afsim_structure: |
+      src/
+      ├── core/
+      │   └── wsf/
+      │       ├── source/
+      │       │   ├── WsfObject.cpp/hpp
+      │       │   ├── WsfPlatform.cpp/hpp
+      │       │   ├── WsfTrack.cpp/hpp
+      │       │   └── ...
+      │       └── doc/
+      ├── tools/
+      │   └── util/
+      │       └── source/
+      │           ├── UtVec3.hpp
+      │           ├── UtMatrix.hpp
+      │           └── ...
+      ├── wizard/
+      │   └── plugins/
+      │       └── ...
+      └── ...
+    
+    axagent_target_structure: |
+      src-tauri/
+      ├── crates/
+      │   ├── afsim-core/          ← core/wsf 迁移
+      │   │   ├── src/
+      │   │   │   ├── object.rs    ← WsfObject
+      │   │   │   ├── platform.rs  ← WsfPlatform
+      │   │   │   ├── track.rs     ← WsfTrack
+      │   │   │   └── mod.rs
+      │   │   └── Cargo.toml
+      │   ├── afsim-math/           ← tools/util 迁移
+      │   │   ├── src/
+      │   │   │   ├── vec3.rs      ← UtVec3
+      │   │   │   ├── matrix.rs    ← UtMatrix
+      │   │   │   └── earth.rs    ← UtEarth
+      │   │   └── Cargo.toml
+      │   └── ...
+      ├── src/
+      │   └── commands/
+      │       └── afsim/
+      │           ├── simulation.rs  ← 仿真控制命令
+      │           ├── platform.rs    ← 平台管理命令
+      │           └── track.rs       ← 航迹查询命令
+      └── ...
+      
+      src/
+      ├── components/
+      │   ├── afsim/
+      │   │   ├── SimulationControl.tsx  ← 仿真控制面板
+      │   │   ├── PlatformList.tsx       ← 平台列表
+      │   │   └── TrackDisplay.tsx      ← 航迹显示
+      │   └── ...
+      ├── stores/
+      │   ├── domain/
+      │   │   └── simulationStore.ts    ← 仿真状态
+      │   └── feature/
+      │       └── platformStore.ts      ← 平台状态
+      └── ...
+
+  # 迁移优先级
+  migration_priority:
+    phase1_core:
+      description: "核心数据类型和基类"
+      components:
+        - "UtVec3, UtMatrix → nalgebra"
+        - "WsfObject → Entity trait"
+        - "WsfPlatform → Agent struct"
+      estimated_effort: "2-3 周"
+    
+    phase2_engine:
+      description: "仿真引擎核心逻辑"
+      components:
+        - "事件系统迁移"
+        - "状态管理实现"
+        - "插件系统改造"
+      estimated_effort: "3-4 周"
+    
+    phase3_ui:
+      description: "UI 组件迁移"
+      components:
+        - "Wizard 主界面"
+        - "Warlock 仿真控制"
+        - "MoverCreator 设计器"
+      estimated_effort: "4-6 周"
+    
+    phase4_advanced:
+      description: "高级功能"
+      components:
+        - "3D 可视化"
+        - "脚本系统"
+        - "分布式仿真接口"
+      estimated_effort: "3-5 周"
+
+# ── Afsim 特定 Qt Widget 增强映射 ──
+afsim_qt_widget_enhanced_mapping:
+  description: "Afsim 项目中特定 Qt Widget 的增强映射"
+  
+  # 复杂 Dock 窗口系统
+  dock_widget_system:
+    - source: "QDockWidget (Afsim 有 50+ 个)"
+      target: "Ant Design Segmented + 可拖拽面板系统"
+      implementation: |
+        // TypeScript:
+        import { Segmented } from 'antd';
+        import { DraggablePanel, DroppablePanel } from '@ant-design/pro-components';
+        
+        const AfsimLayout = () => {
+          const [activeKey, setActiveKey] = useState('simulation');
+          
+          return (
+            <div className="flex h-screen">
+              <div className="w-64 border-r">
+                <Segmented
+                  vertical
+                  active={activeKey}
+                  onChange={setActiveKey}
+                  options={[
+                    { label: '仿真控制', value: 'simulation' },
+                    { label: '平台管理', value: 'platform' },
+                    { label: '航迹显示', value: 'track' },
+                    { label: '日志输出', value: 'log' },
+                  ]}
+                />
+              </div>
+              <div className="flex-1">
+                {activeKey === 'simulation' && <SimulationControlPanel />}
+                {activeKey === 'platform' && <PlatformManagementPanel />}
+                {activeKey === 'track' && <TrackDisplayPanel />}
+                {activeKey === 'log' && <LogOutputPanel />}
+              </div>
+            </div>
+          );
+        };
+  
+  # 3D 视图组件
+  view_3d_components:
+    - source: "QGLWidget / QOpenGLWidget"
+      target: "Three.js Canvas 组件"
+      implementation: |
+        // TypeScript:
+        import { Canvas } from '@react-three/fiber';
+        import { OrbitControls, Stars } from '@react-three/drei';
+        
+        const Afsim3DView = ({ platforms }) => {
+          return (
+            <Canvas camera={{ position: [0, 1000, 3000], fov: 60 }}>
+              <ambientLight intensity={0.5} />
+              <Stars radius={100} depth={50} count={5000} factor={4} />
+              {platforms.map(platform => (
+                <PlatformModel 
+                  key={platform.id} 
+                  platform={platform} 
+                />
+              ))}
+              <OrbitControls enablePan enableZoom enableRotate />
+            </Canvas>
+          );
+        };
+    
+    - source: "Qt 自定义绘制 (QPaint)"
+      target: "Canvas API / SVG / D3.js"
+      implementation: |
+        // TypeScript (D3.js 用于数据可视化):
+        import { select, scaleLinear, line } from 'd3';
+        
+        const AfsimChart = ({ data }) => {
+          const svgRef = useRef<SVGSVGElement>(null);
+          
+          useEffect(() => {
+            const svg = select(svgRef.current);
+            // 创建 D3 图表...
+          }, [data]);
+          
+          return <svg ref={svgRef} className="w-full h-full" />;
+        };
+
+  # 自定义委托绘制
+  item_delegate_mapping:
+    - source: "QStyledItemDelegate"
+      target: "Ant Design Table Column render"
+      example: |
+        // C++ (Qt):
+        class StatusDelegate : public QStyledItemDelegate {
+            void paint(QPainter* painter, const QStyleOptionViewItem& option, 
+                      const QModelIndex& index) const override {
+                QString status = index.data().toString();
+                QColor color = (status == "Active") ? Qt::green : Qt::red;
+                painter->setPen(color);
+                painter->drawText(option.rect, Qt::AlignCenter, status);
+            }
+        };
+        
+        // TypeScript:
+        const columns = [
+          {
+            title: '状态',
+            dataIndex: 'status',
+            render: (status: string) => (
+              <Tag color={status === 'Active' ? 'green' : 'red'}>
+                {status}
+              </Tag>
+            ),
+          },
+        ];
+
+  # 模型视图框架
+  model_view_framework_mapping:
+    - source: "QAbstractItemModel"
+      target: "Zustand Store + 选择器"
+      complexity: "high"
+      strategy: |
+        // QAbstractItemModel → Zustand Store:
+        // 1. 将 rowCount() → items.length
+        // 2. 将 data(index) → items[index.row][column]
+        // 3. 将 setData() → updateItem(id, key, value)
+        // 4. 将 modelReset → 重新获取数据
+        
+        // TypeScript:
+        const useTableStore = create<TableState>((set, get) => ({
+          items: [],
+          loading: false,
+          filters: {},
+          
+          fetchItems: async () => {
+            set({ loading: true });
+            const items = await api.getItems(get().filters);
+            set({ items, loading: false });
+          },
+          
+          updateItem: (id, key, value) => {
+            set(state => ({
+              items: state.items.map(item =>
+                item.id === id ? { ...item, [key]: value } : item
+              )
+            }));
+          },
+          
+          // 选择器 (替代 QModelIndex)
+          getItemById: (id) => get().items.find(i => i.id === id),
+        }));
+
+# ── 3D 可视化迁移指南 (QtOpenGL → Three.js) ──
+visualization_3d_migration:
+  description: "Qt OpenGL 3D 可视化迁移到 Three.js / WebGL 的完整指南"
+  
+  # Qt OpenGL 组件映射
+  opengl_widget_mapping:
+    - source: "QGLWidget / QOpenGLWidget"
+      target: "@react-three/fiber Canvas"
+      complexity: "high"
+      example: |
+        // C++ (Qt OpenGL):
+        // class MyGLWidget : public QOpenGLWidget {
+        //     void initializeGL() { ... }
+        //     void paintGL() { ... }
+        //     void resizeGL(int w, int h) { ... }
+        // };
+        
+        // TypeScript (React Three Fiber):
+        import { Canvas } from '@react-three/fiber';
+        import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+        
+        function My3DView() {
+          return (
+            <Canvas camera={{ position: [0, 0, 1000], fov: 45 }}>
+              <PerspectiveCamera makeDefault position={[0, 0, 1000]} />
+              <OrbitControls enablePan enableZoom enableRotate />
+              <ambientLight intensity={0.5} />
+              <directionalLight position={[100, 100, 100]} intensity={1} />
+              {/* 3D 对象将在这里渲染 */}
+            </Canvas>
+          );
+        }
+    
+    - source: "QOpenGLFunctions"
+      target: "Three.js WebGLRenderer"
+      complexity: "medium"
+      mapping:
+        - glClear → renderer.setClearColor()
+        - glViewport → renderer.setSize()
+        - glEnable/glDisable → Three.js 对应属性
+        - glDrawElements → mesh.geometry
+    
+    - source: "QOpenGLBuffer"
+      target: "Three.js BufferGeometry"
+      complexity: "high"
+      mapping:
+        - 顶点数据 → geometry.attributes.position.array
+        - 索引数据 → geometry.index.array
+        - 法线数据 → geometry.attributes.normal.array
+    
+    - source: "QOpenGLShaderProgram"
+      target: "Three.js ShaderMaterial / 内置材质"
+      complexity: "high"
+      mapping:
+        - 顶点着色器 → material.vertexShader
+        - 片段着色器 → material.fragmentShader
+        - uniform 变量 → material.uniforms
+
+  # 3D 场景元素映射
+  scene_element_mapping:
+    # 几何图元
+    primitives:
+      - source: "glutSolidCube / glutWireCube"
+        target: "boxGeometry"
+        example: |
+          // C++: glutSolidCube(1.0);
+          // TypeScript:
+          <mesh>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="red" />
+          </mesh>
+      
+      - source: "glutSolidSphere / glutWireSphere"
+        target: "sphereGeometry"
+        example: |
+          // TypeScript:
+          <mesh>
+            <sphereGeometry args={[radius, segments, rings]} />
+            <meshStandardMaterial color="blue" />
+          </mesh>
+      
+      - source: "glutSolidCone / glutWireCone"
+        target: "coneGeometry"
+      
+      - source: "glutSolidCylinder"
+        target: "cylinderGeometry"
+      
+      - source: "glutSolidTorus"
+        target: "torusGeometry"
+      
+      - source: "glutSolidDodecahedron"
+        target: "dodecahedronGeometry"
+      
+      - source: "glutSolidOctahedron"
+        target: "octahedronGeometry"
+      
+      - source: "glutSolidTetrahedron"
+        target: "tetrahedronGeometry"
+      
+      - source: "glutSolidIcosahedron"
+        target: "icosahedronGeometry"
+    
+    # 复杂几何
+    complex_geometry:
+      - source: "自定义 QOpenGLBuffer (顶点数组)"
+        target: "BufferGeometry + setAttribute"
+        example: |
+          // C++: 创建顶点数组并绑定
+          // GLfloat vertices[] = { 0, 0, 0,  1, 0, 0,  ... };
+          // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+          
+          // TypeScript:
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', 
+            new THREE.Float32BufferAttribute(vertices, 3));
+          geometry.computeVertexNormals();
+    
+    # 加载外部模型
+    model_loading:
+      - source: "Assimp / OpenAssetImport (Qt 框架)"
+        target: "GLTFLoader / FBXLoader / OBJLoader"
+        example: |
+          // TypeScript (加载 GLTF):
+          import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+          
+          const loader = new GLTFLoader();
+          loader.load('/models/scene.gltf', (gltf) => {
+            scene.add(gltf.scene);
+          });
+      
+      - source: ".obj 文件加载"
+        target: "OBJLoader"
+        example: |
+          import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+          
+          const loader = new OBJLoader();
+          loader.load('/models/model.obj', (object) => {
+            scene.add(object);
+          });
+
+  # 光照映射
+  lighting_mapping:
+    - source: "glLight(GL_LIGHT0, GL_POSITION, ...)"
+      target: "directionalLight / pointLight"
+      example: |
+        // C++:
+        // GLfloat lightPos[] = { 0, 1, 0 };
+        // glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+        // glEnable(GL_LIGHTING);
+        
+        // TypeScript:
+        <directionalLight 
+          position={[0, 100, 0]} 
+          intensity={1}
+          castShadow
+        />
+    
+    - source: "glAmbient"
+      target: "ambientLight"
+      example: |
+        <ambientLight intensity={0.3} />
+    
+    - source: "glShininess + specular"
+      target: "MeshStandardMaterial.metalness/roughness"
+      example: |
+        <meshStandardMaterial 
+          color={color}
+          metalness={0.8}
+          roughness={0.2}
+        />
+
+  # 相机控制映射
+  camera_control_mapping:
+    - source: "gluPerspective / glOrtho"
+      target: "PerspectiveCamera / OrthographicCamera"
+      example: |
+        // C++: gluPerspective(fov, aspect, near, far);
+        // TypeScript:
+        <PerspectiveCamera 
+          fov={45} 
+          aspect={windowWidth / windowHeight}
+          near={0.1}
+          far={10000}
+        />
+    
+    - source: "gluLookAt"
+      target: "camera.position + camera.lookAt"
+      example: |
+        // C++: gluLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ);
+        // TypeScript:
+        camera.position.set(eyeX, eyeY, eyeZ);
+        camera.lookAt(centerX, centerY, centerZ);
+    
+    - source: "QMouseMoveEvent / QWheelEvent (自定义交互)"
+      target: "OrbitControls / CustomControls"
+      example: |
+        // TypeScript (OrbitControls):
+        import { OrbitControls } from '@react-three/drei';
+        
+        <OrbitControls
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+          minDistance={100}
+          maxDistance={5000}
+        />
+
+  # Afsim 3D 特定场景
+  afsim_3d_scenarios:
+    - scenario: "战场态势显示"
+      description: "显示多个平台位置、运动轨迹、武器发射等"
+      implementation: |
+        // 战场 3D 场景组件
+        function Battlefield3D({ platforms, events }) {
+          return (
+            <Canvas camera={{ position: [0, 500, 1500], fov: 60 }}>
+              <Terrain />
+              <Platforms platforms={platforms} />
+              <TrackTrails platforms={platforms} />
+              <EventMarkers events={events} />
+              <Skybox />
+              <OrbitControls enablePan enableZoom enableRotate />
+            </Canvas>
+          );
+        }
+    
+    - scenario: "地球坐标可视化"
+      description: "WGS84 经纬度 → 3D 地球模型"
+      implementation: |
+        // 地球组件
+        function Earth3D({ positions }) {
+          const earthRef = useRef();
+          
+          return (
+            <Canvas>
+              <mesh ref={earthRef}>
+                <sphereGeometry args={[6371, 64, 64]} />
+                <meshStandardMaterial 
+                  color="blue" 
+                  wireframe={false}
+                  transparent 
+                  opacity={0.8}
+                />
+              </mesh>
+              {/* 绘制位置点 */}
+              {positions.map(pos => (
+                <PositionMarker 
+                  key={pos.id}
+                  lat={pos.lat}
+                  lon={pos.lon}
+                />
+              ))}
+              <OrbitControls enablePan enableZoom enableRotate />
+            </Canvas>
+          );
+        }
+    
+    - scenario: "飞行器三维模型"
+      description: "显示飞行器几何形状、姿态、动画"
+      implementation: |
+        // 飞行器组件
+        function Aircraft3D({ platform, animation }) {
+          const groupRef = useRef();
+          
+          useFrame((state) => {
+            if (groupRef.current && animation) {
+              // 更新位置和姿态
+              groupRef.current.position.set(
+                platform.position.x,
+                platform.position.y,
+                platform.position.z
+              );
+              groupRef.current.rotation.set(
+                platform.orientation.pitch,
+                platform.orientation.yaw,
+                platform.orientation.roll
+              );
+            }
+          });
+          
+          return (
+            <group ref={groupRef}>
+              {/* 机身 */}
+              <mesh>
+                <cylinderGeometry args={[1, 1, 10, 8]} />
+                <meshStandardMaterial color="gray" metalness={0.8} roughness={0.2} />
+              </mesh>
+              {/* 机翼 */}
+              <mesh>
+                <boxGeometry args={[8, 0.1, 3]} />
+                <meshStandardMaterial color="gray" metalness={0.8} roughness={0.2} />
+              </mesh>
+            </group>
+          );
+        }
+
+  # 性能优化建议
+  performance_optimization:
+    - tip: "使用 useMemo 缓存几何体和材质"
+      example: |
+        const geometry = useMemo(() => {
+          return new THREE.BufferGeometry();
+          // 设置顶点数据...
+          return geometry;
+        }, []);
+    
+    - tip: "使用 instancedMesh 渲染大量相似对象"
+      example: |
+        const instancedMeshRef = useRef();
+        
+        // 批量渲染 1000 个平台标记
+        <instancedMesh ref={instancedMeshRef} args={[undefined, undefined, 1000]}>
+          <sphereGeometry args={[5, 16, 16]} />
+          <meshBasicMaterial color="red" />
+        </instancedMesh>
+    
+    - tip: "按需加载模型，使用 Suspense 处理加载状态"
+      example: |
+        <Suspense fallback={<LoadingScreen />}>
+          <Model url="/models/platform.gltf" />
+        </Suspense>
+    
+    - tip: "使用 requestAnimationFrame 而非 setInterval"
+      example: |
+        import { useFrame } from '@react-three/fiber';
+        
+        function AnimatedPlatform({ platform }) {
+          useFrame((state) => {
+            // 每帧更新
+            platform.update(state.clock.elapsedTime);
+          });
+          return <PlatformMesh platform={platform} />;
+        }
+
+  # 推荐 npm 包
+  recommended_npm_packages:
+    - package: "@react-three/fiber"
+      version: "^8.0"
+      purpose: "React 的 Three.js 渲染器"
+      install: "npm install @react-three/fiber three"
+    
+    - package: "@react-three/drei"
+      version: "^9.0"
+      purpose: "React Three Fiber 辅助组件"
+      install: "npm install @react-three/drei"
+      features: ["OrbitControls", "Stars", "Environment", "useGLTF"]
+    
+    - package: "three"
+      version: "^0.160"
+      purpose: "3D 渲染引擎核心"
+    
+    - package: "@types/three"
+      version: "^0.160"
+      purpose: "TypeScript 类型定义"
+      install: "npm install -D @types/three"
+
+# ── Afsim 脚本语言兼容方案 ──
+afsim_script_compatibility:
+  description: "Afsim 自定义脚本语言到现代方案的迁移策略"
+  
+  # Afsim 脚本特性
+  afsim_script_features:
+    - feature: "对象创建和属性设置"
+      example: |
+        // Afsim 脚本:
+        platform Platform1;
+        Platform1.set_name("Fighter-1");
+        Platform1.set_position(1000, 2000, 3000);
+    
+    - feature: "事件触发和条件判断"
+      example: |
+        // Afsim 脚本:
+        Platform1.on_position_changed {
+          if (self.position.x > 5000) {
+            send_event("out_of_bounds");
+          }
+        }
+    
+    - feature: "循环和迭代"
+      example: |
+        // Afsim 脚本:
+        for (i = 0; i < 100; i++) {
+          create_platform("Platform" + i);
+        }
+    
+    - feature: "函数调用和参数传递"
+      example: |
+        // Afsim 脚本:
+        function create_fighter(name, position) {
+          platform p;
+          p.set_name(name);
+          p.set_position(position);
+          return p;
+        }
+
+  # 迁移方案
+  migration_approaches:
+    # 方案 1: 完全重写为 TypeScript
+    - name: "完全重写为 TypeScript"
+      description: "将所有 Afsim 脚本逻辑重写为 TypeScript，作为应用核心逻辑"
+      pros:
+        - "类型安全"
+        - "与现有代码无缝集成"
+        - "IDE 支持（语法高亮、自动完成）"
+        - "易于调试和测试"
+      cons:
+        - "需要完全理解脚本语义"
+        - "工作量大"
+        - "可能引入新 bug"
+      implementation: |
+        // Afsim 脚本 → TypeScript 示例
+        
+        // 原始脚本:
+        // platform Platform1;
+        // Platform1.set_name("Fighter-1");
+        // Platform1.set_position(1000, 2000, 3000);
+        // Platform1.on_position_changed { ... }
+        
+        // 迁移后:
+        import { createPlatform, Platform } from '@/entities/platform';
+        
+        const platform1 = createPlatform({
+          name: 'Fighter-1',
+          position: { x: 1000, y: 2000, z: 3000 },
+        });
+        
+        platform1.on('position_changed', (newPos) => {
+          if (newPos.x > 5000) {
+            emit('out_of_bounds', { platformId: platform1.id });
+          }
+        });
+    
+    # 方案 2: 创建兼容层
+    - name: "创建兼容层"
+      description: "实现 Afsim 脚本解析器，在运行时解析和执行脚本"
+      pros:
+        - "无需修改现有脚本"
+        - "渐进式迁移"
+        - "向后兼容"
+      cons:
+        - "性能开销"
+        - "需维护解析器"
+        - "调试困难"
+      implementation: |
+        // Afsim 脚本解析器架构
+        
+        // src/lib/afsim-script/parser.ts
+        interface ScriptParser {
+          parse(input: string): AST;
+          execute(ast: AST, context: ScriptContext): Promise<any>;
+        }
+        
+        // 简单示例:
+        class AfsimScriptParser {
+          async execute(script: string, context: ScriptContext) {
+            const statements = this.parseStatements(script);
+            
+            for (const stmt of statements) {
+              switch (stmt.type) {
+                case 'create_platform':
+                  await this.executeCreatePlatform(stmt, context);
+                  break;
+                case 'set_property':
+                  await this.executeSetProperty(stmt, context);
+                  break;
+                case 'on_event':
+                  this.registerEventHandler(stmt, context);
+                  break;
+                // ...
+              }
+            }
+          }
+        }
+    
+    # 方案 3: 嵌入式脚本引擎
+    - name: "嵌入式脚本引擎 (QuickJS/Duktape)"
+      description: "集成 JavaScript 引擎，让用户脚本直接用 JS 编写"
+      pros:
+        - "无需学习新语言"
+        - "功能强大（完整的 JS 能力）"
+        - "可热更新"
+      cons:
+        - "沙箱安全风险"
+        - "性能开销"
+        - "需管理生命周期"
+      implementation: |
+        // 使用 QuickJS 或 Duktape
+        
+        // src/lib/script-engine/engine.ts
+        import { ScriptEngine } from '@aspect-build/rules_js';
+        
+        class SandboxedScriptEngine {
+          private context: ScriptContext;
+          
+          async executeScript(code: string) {
+            const sandbox = this.createSandbox();
+            
+            // 暴露安全的 API 给脚本
+            sandbox.expose({
+              createPlatform: (config) => this.createPlatform(config),
+              getPlatform: (id) => this.getPlatform(id),
+              setProperty: (target, prop, value) => this.setProperty(target, prop, value),
+              log: (msg) => console.log(msg),
+            });
+            
+            // 执行脚本
+            return sandbox.execute(code);
+          }
+          
+          private createSandbox() {
+            // 实现沙箱环境
+            return {
+              expose: (api) => { /* ... */ },
+              execute: (code) => { /* ... */ },
+            };
+          }
+        }
+    
+    # 方案 4: Visual DSL (拖拽式)
+    - name: "可视化 DSL (拖拽式编辑)"
+      description: "用拖拽流程编辑器替代脚本，降低使用门槛"
+      pros:
+        - "可视化、直观"
+        - "降低学习成本"
+        - "易于调试"
+      cons:
+        - "功能受限"
+        - "复杂逻辑难以表达"
+        - "开发成本高"
+      implementation: |
+        // 基于 React Flow 的可视化编辑器
+        
+        import ReactFlow, { 
+          Background, 
+          Controls, 
+          MiniMap,
+          useNodesState,
+          useEdgesState,
+          addEdge,
+        } from 'reactflow';
+        
+        function ScriptEditor() {
+          const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+          const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+          
+          const onConnect = useCallback(
+            (params) => setEdges((eds) => addEdge({ ...params, type: 'smoothstep' }, eds)),
+            [setEdges],
+          );
+          
+          return (
+            <div className="h-screen">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+              >
+                <Background />
+                <Controls />
+                <MiniMap />
+              </ReactFlow>
+            </div>
+          );
+        }
+
+  # 推荐迁移路线
+  recommended_path:
+    description: "从现有 Afsim 脚本迁移到现代方案的分阶段路径"
+    phases:
+      - phase: 1
+        name: "分析和分类现有脚本"
+        tasks:
+          - "统计现有脚本文件数量和行数"
+          - "识别脚本类型（创建、事件、逻辑、工具）"
+          - "标记需要特殊处理的复杂脚本"
+        estimated_effort: "1-2 周"
+      
+      - phase: 2
+        name: "建立 TypeScript 核心 API"
+        tasks:
+          - "创建 Platform、Track、Event 等核心类"
+          - "实现脚本需要的所有 API"
+          - "编写 API 文档和示例"
+        estimated_effort: "2-3 周"
+      
+      - phase: 3
+        name: "选择迁移方案并试点"
+        tasks:
+          - "选择迁移方案（推荐：完全重写或兼容层）"
+          - "选择 1-2 个典型脚本进行试点迁移"
+          - "验证迁移结果的正确性和性能"
+        estimated_effort: "2-3 周"
+      
+      - phase: 4
+        name: "批量迁移和集成"
+        tasks:
+          - "按模块批量迁移剩余脚本"
+          - "集成到主应用"
+          - "回归测试"
+        estimated_effort: "4-8 周"
+      
+      - phase: 5
+        name: "验证和优化"
+        tasks:
+          - "性能测试和优化"
+          - "功能完整性验证"
+          - "用户反馈收集"
+        estimated_effort: "1-2 周"
+
+  # 脚本迁移检查清单
+  migration_checklist:
+    - [ ] 现有脚本已全部分类和统计
+    - [ ] 核心 API 已完整实现
+    - [ ] 事件系统已迁移（on_event → event emitter）
+    - [ ] 循环和迭代已迁移
+    - [ ] 条件判断已迁移
+    - [ ] 函数调用已迁移
+    - [ ] 外部依赖已处理（文件、网络、数据库）
+    - [ ] 性能测试已通过
+    - [ ] 回归测试已通过
+    - [ ] 用户文档已更新

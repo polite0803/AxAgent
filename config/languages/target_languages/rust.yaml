@@ -1,0 +1,223 @@
+# Rust 目标语言配置
+# 用于跨语言迁移的目标语言特性定义
+id: rust
+name: Rust
+rust_versions: ["Rust 1.75+"]
+file_extensions: [.rs]
+common_frameworks:
+  - Tokio (异步运行时)
+  - Axum (Web 框架)
+  - Tauri (桌面应用)
+  - Serde (序列化)
+  - SQLx / SeaORM (数据库)
+
+# 类型系统
+type_system:
+  native_types:
+    - { rust: "i8", common: "integer", size: "8 位" }
+    - { rust: "i16", common: "integer", size: "16 位" }
+    - { rust: "i32", common: "integer", size: "32 位" }
+    - { rust: "i64", common: "integer", size: "64 位" }
+    - { rust: "i128", common: "integer", size: "128 位" }
+    - { rust: "isize", common: "integer", size: "平台相关" }
+    - { rust: "u8", common: "unsigned_integer", size: "8 位" }
+    - { rust: "u16", common: "unsigned_integer", size: "16 位" }
+    - { rust: "u32", common: "unsigned_integer", size: "32 位" }
+    - { rust: "u64", common: "unsigned_integer", size: "64 位" }
+    - { rust: "u128", common: "unsigned_integer", size: "128 位" }
+    - { rust: "usize", common: "unsigned_integer", size: "平台相关" }
+    - { rust: "f32", common: "float", size: "32 位" }
+    - { rust: "f64", common: "float", size: "64 位" }
+    - { rust: "bool", common: "boolean", size: "1 位" }
+    - { rust: "char", common: "character", size: "32 位 (Unicode)" }
+    - { rust: "String", common: "string", size: "动态（堆分配）" }
+    - { rust: "&str", common: "string_slice", size: "不可变引用" }
+    - { rust: "Vec<T>", common: "array<T>", size: "动态" }
+    - { rust: "HashMap<K,V>", common: "map<K,V>", size: "动态" }
+    - { rust: "BTreeMap<K,V>", common: "ordered_map<K,V>", size: "动态" }
+    - { rust: "HashSet<T>", common: "set<T>", size: "动态" }
+    - { rust: "Option<T>", common: "optional<T>", size: "枚举" }
+    - { rust: "Result<T,E>", common: "result<T,E>", size: "枚举" }
+    - { rust: "Box<T>", common: "box<T>", size: "堆分配" }
+    - { rust: "Rc<T>", common: "reference_counted<T>", size: "单线程引用计数" }
+    - { rust: "Arc<T>", common: "atomic_reference_counted<T>", size: "多线程原子引用计数" }
+    - { rust: "Mutex<T>", common: "mutex<T>", size: "互斥锁包装" }
+    - { rust: "RwLock<T>", common: "rwlock<T>", size: "读写锁包装" }
+    - { rust: "Pin<P>", common: "pinned<P>", size: "固定引用" }
+
+  special_types:
+    - name: 结构体 (struct)
+      description: 复合数据类型，值语义
+      common_representation: "struct_value_type"
+      migration_risk: "low"
+    - name: 枚举 (enum)
+      description: 代数数据类型 (ADT)
+      common_representation: "algebraic_data_type"
+      migration_risk: "medium"
+      example: |
+        enum Result<T, E> {
+            Ok(T),
+            Err(E),
+        }
+    - name: 特征 (trait)
+      description: 行为契约（类似接口）
+      common_representation: "trait_contract"
+      migration_risk: "low"
+    - name: 错误处理 (Result)
+      description: 强制的错误处理
+      common_representation: "forced_error_handling"
+      migration_risk: "medium"
+    - name: 生命周期标注
+      description: 编译期内存安全保障
+      common_representation: "lifetime_annotation"
+      migration_risk: "high"
+      example: |
+        fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+            if x.len() > y.len() { x } else { y }
+        }
+
+# 内存模型
+memory_model:
+  garbage_collected: false
+  ownership_system: true
+  features:
+    - ownership (所有权)
+    - borrowing (借用)
+    - lifetimes (生命周期)
+    - affine_types (线性类型)
+    - drop_trait (析构)
+    - copy_trait (复制语义)
+  rules:
+    - 每个值有且只有一个所有者
+    - 同一时刻只能有一个可变引用
+    - 或多个不可变引用，或一个可变引用
+    - 引用必须总是有效
+  smart_pointers:
+    - Box<T> (堆分配，单所有者)
+    - Rc<T> (单线程引用计数)
+    - Arc<T> (多线程原子引用计数)
+    - Cell<T> / RefCell<T> (内部可变性)
+    - Mutex<T> / RwLock<T> (线程安全内部可变性)
+    - Weak<T> (弱引用，防止循环引用)
+  pitfalls_to_avoid:
+    - id: move_semantics
+      description: 所有权转移
+      examples: ["赋值即移动", "函数参数传递即移动"]
+      solution: "使用克隆(&x.clone())或借用(&x)"
+    - id: borrow_conflict
+      description: 同时存在可变和不可变引用
+      examples: ["在迭代时修改集合"]
+      solution: "使用索引迭代或先收集修改目标"
+    - id: lifetime_elision
+      description: 生命周期省略规则
+      examples: ["需要手动标注生命周期"]
+      solution: "学习生命周期省略规则 'a, 'b, 'static"
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  async_runtime: "Tokio (推荐)"
+  mechanisms:
+    - std::thread (本地线程)
+    - tokio::task (异步任务)
+    - async/await (语法支持)
+    - std::sync::Mutex / RwLock
+    - tokio::sync::Mutex / RwLock (异步锁)
+    - std::sync::mpsc (消息传递)
+    - tokio::sync::mpsc (异步消息)
+    - crossbeam (无锁数据结构)
+    - rayon (数据并行)
+  concurrency_safety:
+    - Compile-time 保证无数据竞争
+    - Send / Sync trait 标记线程安全性
+    - 编译器阻止不安全的并发访问
+
+# 惯用模式
+idiomatic_patterns:
+  - name: 错误处理 (Result)
+    description: 使用 Result 而非异常
+    code_example: |
+      fn read_file(path: &str) -> Result<String, std::io::Error> {
+          std::fs::read_to_string(path)
+      }
+
+      match read_file("data.txt") {
+          Ok(content) => println!("内容: {}", content),
+          Err(e) => eprintln!("读取失败: {}", e),
+      }
+  - name: 模式匹配
+    description: 使用 match 表达式
+    code_example: |
+      let status = match result {
+          Ok(data) => format!("成功: {:?}", data),
+          Err(e) if e.kind() == ErrorKind::NotFound => "未找到".to_string(),
+          Err(e) => format!("错误: {}", e),
+      };
+  - name: 特征对象 vs 泛型
+    description: 静态分发 vs 动态分发
+    code_example: |
+      // 静态分发（泛型，单态化，性能好）
+      fn process<T: Processable>(item: &T) { item.process(); }
+
+      // 动态分发（trait 对象，多态）
+      fn process(item: &dyn Processable) { item.process(); }
+  - name: 枚举驱动设计
+    description: 使用枚举表示状态
+    code_example: |
+      enum Connection {
+          Disconnected,
+          Connecting { attempt: u32 },
+          Connected { addr: SocketAddr },
+          Error { reason: String },
+      }
+  - name: 不可变数据 + 持久化
+    description: 优先使用不可变数据
+    code_example: |
+      struct Config {
+          name: String,
+          timeout: Duration,
+          // 配置创建后不可变
+      }
+
+# 代码规范
+code_conventions:
+  naming:
+    - struct: PascalCase
+    - function: snake_case
+    - variable: snake_case
+    - constant: SCREAMING_SNAKE_CASE
+    - trait: PascalCase
+    - enum variant: PascalCase
+  formatting:
+    - indentation: 4 spaces
+    - max_line_width: 100
+    - trailing_newline: true
+  linting:
+    - clippy (强制)
+    - rustfmt (强制)
+    - clippy::pedantic (推荐)
+  testing:
+    - 单元测试: 在同文件底部 `#[cfg(test)] mod tests`
+    - 集成测试: tests/ 目录
+    - 文档测试: `///` 文档注释中
+
+# 与 Tauri 集成
+tauri_integration:
+  command_pattern: |
+    #[tauri::command]
+    #[agent_command(domain = "opc", safety = "Safe", call_mode = "StateInput", description = "中文描述")]
+    async fn my_command(
+        state: State<'_, AppState>,
+        input: String,
+    ) -> Result<String, String> {
+        // 业务逻辑
+        Ok(format!("处理: {}", input))
+    }
+  state_pattern: |
+    pub struct AppState {
+        pub config: Mutex<AppConfig>,
+        pub clients: RwLock<HashMap<String, Client>>,
+    }
+  event_pattern: |
+    // 向前端发送事件
+    app.emit("event-name", &payload)?;

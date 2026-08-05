@@ -1,0 +1,410 @@
+# Python → TypeScript 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: python-to-typescript
+source: python
+target: typescript
+description: "从 Python 迁移到 TypeScript 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "number", note: "Python int → TS number (64位浮点)" }
+    - { source: "float", target: "number", note: "Python float → TS number" }
+    - { source: "bool", target: "boolean" }
+    - { source: "str", target: "string" }
+    - { source: "bytes", target: "Uint8Array" }
+    - { source: "list[T]", target: "T[]" }
+    - { source: "dict[K,V]", target: "Map<K, V>" }
+    - { source: "set[T]", target: "Set<T>" }
+    - { source: "tuple", target: "[T1, T2]" }
+    - { source: "None", target: "void" }
+    - { source: "Optional[T]", target: "T | undefined" }
+    - { source: "list[Optional[T]]", target: "(T | undefined)[]" }
+    - { source: "Generator", target: "Generator<T>" }
+    - { source: "Iterator", target: "Iterator<T>" }
+
+  manual_review:
+    - source: "动态类型变量 (var = any)"
+      target_options:
+        - option: "具体类型 (根据推断)"
+          condition: "变量类型可推断"
+        - option: "联合类型 (union type)"
+          condition: "变量可能是多种类型"
+        - option: "any (最后手段)"
+          condition: "无法确定类型"
+      note: "Python 动态类型需要通过类型推断或手动指定"
+
+    - source: "类 (class)"
+      target: "class + interface"
+      example: |
+        # Python:
+        class Platform:
+            def __init__(self, name: str, position: tuple):
+                self.name = name
+                self.position = position
+            
+            def get_position(self):
+                return self.position
+        
+        # TypeScript:
+        class Platform {
+            name: string;
+            position: [number, number, number];
+            
+            constructor(name: string, position: [number, number, number]) {
+                this.name = name;
+                this.position = position;
+            }
+            
+            getPosition(): [number, number, number] {
+                return this.position;
+            }
+        }
+
+    - source: "继承 (class Child(Parent))"
+      target: "extends"
+      example: |
+        # Python:
+        class Aircraft(Platform):
+            def __init__(self, ...):
+                super().__init__(...)
+                self.altitude = 0
+        
+        # TypeScript:
+        class Aircraft extends Platform {
+            altitude: number;
+            
+            constructor(name: string, position: [number, number, number], altitude: number) {
+                super(name, position);
+                this.altitude = altitude;
+            }
+        }
+
+    - source: "鸭子类型 (duck typing)"
+      target: "接口 (interface)"
+      example: |
+        # Python:
+        def process(obj):
+            obj.run()
+            obj.stop()
+        
+        # TypeScript:
+        interface Runnable {
+            run(): void;
+            stop(): void;
+        }
+        
+        function process(obj: Runnable) {
+            obj.run();
+            obj.stop();
+        }
+
+    - source: "协议 (Protocol)"
+      target: "接口 (interface)"
+      example: |
+        # Python:
+        from typing import Protocol
+        
+        class Renderer(Protocol):
+            def render(self, frame): ...
+        
+        # TypeScript:
+        interface Renderer {
+            render(frame: Frame): void;
+        }
+
+    - source: "装饰器 (@decorator)"
+      target: "装饰器 (@Decorator)"
+      example: |
+        # Python:
+        @timer
+        def expensive_function():
+            pass
+        
+        def timer(func):
+            def wrapper():
+                start = time.time()
+                result = func()
+                print(f"Time: {time.time() - start}")
+                return result
+            return wrapper
+        
+        # TypeScript:
+        function timer(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+            const originalMethod = descriptor.value;
+            descriptor.value = function(...args: any[]) {
+                const start = Date.now();
+                const result = originalMethod.apply(this, args);
+                console.log(`Time: ${Date.now() - start}`);
+                return result;
+            };
+        }
+        
+        class MyClass {
+            @timer
+            expensiveFunction() {
+                // ...
+            }
+        }
+
+# 数据类映射
+dataclass_mapping:
+  - source: "@dataclass"
+    target: "interface / type"
+    example: |
+    # Python:
+    from dataclasses import dataclass
+    
+    @dataclass
+    class User:
+        id: int
+        name: str
+        email: str
+    
+    # TypeScript:
+    interface User {
+        id: number;
+        name: string;
+        email: string;
+    }
+    
+    // 或使用 type:
+    // type User = {
+    //     id: number;
+    //     name: string;
+    //     email: string;
+    // }
+
+  - source: "Pydantic BaseModel"
+    target: "interface + validation"
+    example: |
+    # Python:
+    from pydantic import BaseModel, Field
+    
+    class User(BaseModel):
+        id: int
+        name: str = Field(..., min_length=1)
+        email: str
+    
+    # TypeScript:
+    interface User {
+        id: number;
+        name: string;
+        email: string;
+    }
+    
+    // 验证可以用 zod、yup 等:
+    import { z } from 'zod';
+    
+    const UserSchema = z.object({
+        id: z.number(),
+        name: z.string().min(1),
+        email: z.string().email(),
+    });
+    
+    // 运行时类型:
+    type User = z.infer<typeof UserSchema>;
+
+  - source: "TypedDict"
+    target: "interface"
+    example: |
+    # Python:
+    from typing import TypedDict
+    
+    class UserInfo(TypedDict):
+        id: int
+        name: str
+    
+    # TypeScript:
+    interface UserInfo {
+        id: number;
+        name: string;
+    }
+
+# 异步映射
+async_mapping:
+  - source: "asyncio.gather"
+    target: "Promise.all"
+    example: |
+    # Python:
+    async def main():
+        result1, result2 = await asyncio.gather(
+            fetch_data(1),
+            fetch_data(2),
+        )
+    
+    # TypeScript:
+    async function main() {
+        const [result1, result2] = await Promise.all([
+            fetchData(1),
+            fetchData(2),
+        ]);
+    }
+
+  - source: "asyncio.sleep"
+    target: "setTimeout (wrapped in Promise)"
+    example: |
+    # Python:
+    await asyncio.sleep(1)
+    
+    # TypeScript:
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+  - source: "async with (context manager)"
+    target: "try-finally"
+    example: |
+    # Python:
+    async with connection:
+        await connection.execute(query)
+    
+    # TypeScript:
+    try {
+        await connection.execute(query);
+    } finally {
+        await connection.close();
+    }
+
+  - source: "async for"
+    target: "for-await-of"
+    example: |
+    # Python:
+    async for item in stream:
+        process(item)
+    
+    # TypeScript:
+    for await (const item of stream) {
+        await process(item);
+    }
+
+# 错误处理映射
+error_mapping:
+  - source: "try-except"
+    target: "try-catch"
+    example: |
+    # Python:
+    try:
+        result = risky_operation()
+    except ValueError as e:
+        print(f"Error: {e}")
+    
+    # TypeScript:
+    try {
+        const result = riskyOperation();
+    } catch (e) {
+        if (e instanceof Error) {
+            console.error(`Error: ${e.message}`);
+        }
+    }
+
+  - source: "raise Exception"
+    target: "throw new Error"
+    example: |
+    # Python:
+    raise ValueError("Invalid input")
+    
+    # TypeScript:
+    throw new Error("Invalid input");
+
+  - source: "自定义异常类"
+    target: "自定义错误类"
+    example: |
+    # Python:
+    class AppError(Exception):
+        def __init__(self, code, message):
+            self.code = code
+            self.message = message
+    
+    # TypeScript:
+    class AppError extends Error {
+        constructor(public code: string, message: string) {
+            super(message);
+        }
+    }
+
+# 常用 Python 库映射
+library_mapping:
+  - python_library: "numpy"
+    typescript_alternative: "number[] / Float32Array"
+    example: |
+    # Python:
+    import numpy as np
+    a = np.array([1, 2, 3])
+    dot = np.dot(a, a)
+    
+    # TypeScript:
+    const a = [1, 2, 3];
+    const dot = a.reduce((sum, val, i) => sum + val * a[i], 0);
+
+  - python_library: "pandas"
+    typescript_alternative: "自定义数据操作 / external lib"
+    example: |
+    # Python:
+    import pandas as pd
+    df = pd.DataFrame({"name": ["Alice", "Bob"], "age": [25, 30]})
+    result = df[df["age"] > 25]
+    
+    # TypeScript:
+    const data = [
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+    ];
+    const result = data.filter(d => d.age > 25);
+
+  - python_library: "requests / httpx"
+    typescript_alternative: "fetch / axios"
+    example: |
+    # Python:
+    import requests
+    response = requests.get("https://api.example.com/data")
+    data = response.json()
+    
+    # TypeScript:
+    const response = await fetch("https://api.example.com/data");
+    const data = await response.json();
+
+  - python_library: "sqlalchemy"
+    typescript_alternative: "ORM / raw SQL"
+    example: |
+    # Python:
+    query = select(User).where(User.age > 25)
+    
+    # TypeScript (使用 Drizzle ORM):
+    import { db } from './db';
+    const users = await db
+        .select()
+        .from(users)
+        .where(eq(users.age, 25));
+
+  - python_library: "fastapi"
+    typescript_alternative: "Express / Hono"
+    example: |
+    # Python:
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/users/{id}")
+    async def get_user(id: int):
+        return {"id": id, "name": "Alice"}
+    
+    # TypeScript (Express):
+    import express from 'express';
+    const app = express();
+    
+    app.get('/users/:id', async (req, res) => {
+        const id = parseInt(req.params.id);
+        res.json({ id, name: 'Alice' });
+    });
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] 动态类型已转换为静态类型
+  - [ ] 装饰器已转换为 TS 装饰器或高阶函数
+  - [ ] 生成器/迭代器已转换
+  - [ ] 上下文管理器已转换为 try-finally
+  - [ ] 异步代码已转换为 Promise/async-await
+  - [ ] 错误处理已转换为 try-catch
+  - [ ] 依赖库已找到 TS 替代
+  - [ ] 类型定义已完善
+  - [ ] 单元测试已通过
+  - [ ] 功能完整性验证已通过
+  - [ ] ESLint/TypeScript 编译无错误

@@ -4921,7 +4921,29 @@
       "noActivity": "No agent activity",
       "noFilteredActivity": "No activity for this agent"
     },
-    "stepLabel": "Step"
+    "stepLabel": "Step",
+    "profiles": {
+      "code_auditor": { "name": "Code Audit Expert", "role": "Code Audit Expert" },
+      "architect_analyst": { "name": "Architect Analyst", "role": "Architect Analyst" },
+      "quality_expert": { "name": "Code Quality Expert", "role": "Code Quality Expert" },
+      "behavior_tester": { "name": "Behavior Testing Expert", "role": "Behavior Testing Expert" },
+      "knowledge_engineer": { "name": "Knowledge Engineer", "role": "Knowledge Engineer" },
+      "refactor_consultant": { "name": "Refactoring Consultant", "role": "Refactoring Consultant" },
+      "solution_architect": { "name": "Solution Architect", "role": "Solution Architect" },
+      "tech_project_manager": { "name": "Tech Project Manager", "role": "Tech Project Manager" },
+      "change_manager": { "name": "Change Management Expert", "role": "Change Management Expert" },
+      "quality_engineer": { "name": "Quality Engineer", "role": "Quality Engineer" },
+      "devops_engineer": { "name": "DevOps Engineer", "role": "DevOps Engineer" },
+      "code_reviewer": { "name": "Code Reviewer", "role": "Code Reviewer" },
+      "senior_engineer": { "name": "Senior Engineer", "role": "Senior Engineer" },
+      "behavior_verifier": { "name": "Behavior Verification Expert", "role": "Behavior Verification Expert" },
+      "test_engineer": { "name": "Test Engineer", "role": "Test Engineer" },
+      "integration_engineer": { "name": "Integration Test Engineer", "role": "Integration Test Engineer" },
+      "quality_director": { "name": "Quality Director", "role": "Quality Director" },
+      "tech_writer": { "name": "Technical Writer", "role": "Technical Writer" },
+      "ops_engineer": { "name": "Operations Engineer", "role": "Operations Engineer" },
+      "project_manager": { "name": "Project Manager", "role": "Project Manager" }
+    }
   },
   "promptTemplate": {
     "unnamed": "Unnamed"

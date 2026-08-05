@@ -1,0 +1,168 @@
+# C++ 源语言配置
+# 用于跨语言迁移的源语言特性定义
+id: cpp
+name: C++
+version_versions: ["C++11", "C++14", "C++17", "C++20", "C++23"]
+file_extensions: [.cpp, .h, .hpp, .cc, .cxx, .inl]
+standard_includes:
+  - string
+  - vector
+  - map
+  - memory
+  - functional
+  - threading
+  - future
+
+# 类型系统
+type_system:
+  native_types:
+    - { cpp: "int", common: "integer", size: "平台相关（通常 32 位）" }
+    - { cpp: "long", common: "integer", size: "至少 32 位" }
+    - { cpp: "long long", common: "integer", size: "至少 64 位" }
+    - { cpp: "unsigned int", common: "unsigned_integer", size: "平台相关" }
+    - { cpp: "float", common: "float", size: "32 位" }
+    - { cpp: "double", common: "float", size: "64 位" }
+    - { cpp: "char", common: "character", size: "8 位" }
+    - { cpp: "bool", common: "boolean", size: "8 位" }
+    - { cpp: "std::string", common: "string", size: "动态" }
+    - { cpp: "std::vector<T>", common: "array<T>", size: "动态" }
+    - { cpp: "std::map<K,V>", common: "map<K,V>", size: "动态" }
+    - { cpp: "std::unordered_map<K,V>", common: "hash_map<K,V>", size: "动态" }
+    - { cpp: "std::set<T>", common: "set<T>", size: "动态" }
+    - { cpp: "std::optional<T>", common: "optional<T>", size: "动态" }
+    - { cpp: "std::variant<T1,T2>", common: "union<T1,T2>", size: "动态" }
+    - { cpp: "std::function<F>", common: "callable", size: "动态" }
+
+  special_types:
+    - name: 裸指针 (T*)
+      description: 指向内存的裸指针，需手动管理生命周期
+      common_representation: "reference 或 pointer"
+      migration_risk: "high"
+    - name: 引用 (T&)
+      description: 变量的别名，不可重新绑定
+      common_representation: "reference"
+      migration_risk: "low"
+    - name: 智能指针 (std::unique_ptr<T>, std::shared_ptr<T>)
+      description: 自动管理内存的指针
+      common_representation: "smart_reference"
+      migration_risk: "medium"
+    - name: 模板 (template<typename T>)
+      description: 泛型编程机制
+      common_representation: "generic<T>"
+      migration_risk: "medium"
+    - name: 虚函数 (virtual)
+      description: 运行时多态
+      common_representation: "polymorphic_method"
+      migration_risk: "high"
+    - name: 多重继承
+      description: 从多个基类继承
+      common_representation: "multiple_inheritance"
+      migration_risk: "high"
+
+# 内存模型
+memory_model:
+  garbage_collected: false
+  manual_memory_management: true
+  features:
+    - stack_allocation
+    - heap_allocation
+    - pointer_arithmetic
+    - manual_lifetime_management
+    - RAII
+  pitfalls:
+    - id: memory_leak
+      description: 忘记释放堆内存
+      examples: ["new 后忘记 delete", "异常路径未释放"]
+    - id: dangling_pointer
+      description: 使用已释放的指针
+      examples: ["返回局部变量地址", "对象销毁后使用其成员"]
+    - id: double_free
+      description: 同一块内存释放两次
+      examples: ["浅拷贝导致的重复释放"]
+    - id: buffer_overflow
+      description: 数组越界写入
+      examples: ["数组写操作超出边界"]
+    - id: use_after_free
+      description: 使用已释放内存
+      examples: ["多线程竞态导致的提前释放"]
+    - id: slicing
+      description: 值类型对象切片
+      examples: ["基类值接收派生类对象"]
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  mechanisms:
+    - std::thread
+    - std::mutex
+    - std::atomic
+    - std::async
+    - std::future
+    - condition_variable
+  pitfalls:
+    - id: deadlock
+      description: 循环等待锁
+      examples: ["锁顺序不一致"]
+    - id: race_condition
+      description: 无锁保护的并发访问
+      examples: ["多线程同时写入同一变量"]
+    - id: memory_ordering
+      description: 内存序问题
+      examples: ["缺少合适的内存屏障"]
+
+# 惯用模式
+idiomatic_patterns:
+  - name: RAII (Resource Acquisition Is Initialization)
+    description: 资源获取即初始化，构造函数获取资源，析构函数释放资源
+    code_example: |
+      std::lock_guard<std::mutex> lock(mutex);
+      // 使用共享资源
+      // 自动解锁
+  - name: Rule of Three/Five/Zero
+    description: 拷贝构造、拷贝赋值、析构的规则
+    code_example: |
+      // Rule of Zero: 使用标准库类型自动满足
+      class MyClass {
+          std::vector<int> data; // 自动管理
+      };
+  - name: Pimpl (Pointer to Implementation)
+    description: 降低编译依赖
+    code_example: |
+      class MyClass {
+          struct Impl;
+          std::unique_ptr<Impl> pimpl_;
+      };
+  - name: SFINAE
+    description: 模板元编程的子失败不是错误
+    code_example: |
+      template<typename T, typename = void>
+      struct has_foo : std::false_type {};
+
+  - name: CRTP (Curiously Recurring Template Pattern)
+    description: 奇特的递归模板模式
+    code_example: |
+      template<typename Derived>
+      class Base {
+      public:
+          void invoke() {
+              static_cast<Derived*>(this)->implementation();
+          }
+      };
+
+# 常见代码坏味道
+common_code_smells:
+  - id: raw_pointer_management
+    description: 使用裸指针而非智能指针
+    severity: "high"
+  - id: manual_memory_management
+    description: 手动 new/delete 而非使用容器或智能指针
+    severity: "high"
+  - id: c_style_cast
+    description: C 风格强制类型转换 (int*) 而非 static_cast/reinterpret_cast
+    severity: "medium"
+  - id: macro_overuse
+    description: 过度使用宏而非 constexpr/inline
+    severity: "medium"
+  - id: namespace_pollution
+    description: 使用 using namespace std 导致命名空间污染
+    severity: "low"

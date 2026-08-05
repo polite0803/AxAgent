@@ -4911,7 +4911,35 @@
       "noActivity": "Aucune activité",
       "noFilteredActivity": "Aucune activité pour cet agent"
     },
-    "stepLabel": "Étape"
+    "stepLabel": "Étape",
+    "profiles": {
+      "code_auditor": { "name": "Expert en Audit de Code", "role": "Expert en Audit de Code" },
+      "architect_analyst": { "name": "Analyste d'Architecture", "role": "Analyste d'Architecture" },
+      "quality_expert": { "name": "Expert en Qualité de Code", "role": "Expert en Qualité de Code" },
+      "behavior_tester": { "name": "Expert en Tests de Comportement", "role": "Expert en Tests de Comportement" },
+      "knowledge_engineer": { "name": "Ingénieur de Connaissance", "role": "Ingénieur de Connaissance" },
+      "refactor_consultant": { "name": "Consultant en Refactorisation", "role": "Consultant en Refactorisation" },
+      "solution_architect": { "name": "Architecte de Solutions", "role": "Architecte de Solutions" },
+      "tech_project_manager": { "name": "Chef de Projet Technique", "role": "Chef de Projet Technique" },
+      "change_manager": { "name": "Expert en Gestion du Changement", "role": "Expert en Gestion du Changement" },
+      "quality_engineer": { "name": "Ingénieur Qualité", "role": "Ingénieur Qualité" },
+      "devops_engineer": { "name": "Ingénieur DevOps", "role": "Ingénieur DevOps" },
+      "code_reviewer": { "name": "Reviseur de Code", "role": "Reviseur de Code" },
+      "senior_engineer": { "name": "Ingénieur Senior", "role": "Ingénieur Senior" },
+      "behavior_verifier": {
+        "name": "Expert en Vérification de Comportement",
+        "role": "Expert en Vérification de Comportement"
+      },
+      "test_engineer": { "name": "Ingénieur de Tests", "role": "Ingénieur de Tests" },
+      "integration_engineer": {
+        "name": "Ingénieur de Tests d'Intégration",
+        "role": "Ingénieur de Tests d'Intégration"
+      },
+      "quality_director": { "name": "Directeur Qualité", "role": "Directeur Qualité" },
+      "tech_writer": { "name": "Rédacteur Technique", "role": "Rédacteur Technique" },
+      "ops_engineer": { "name": "Ingénieur d'Exploitation", "role": "Ingénieur d'Exploitation" },
+      "project_manager": { "name": "Chef de Projet", "role": "Chef de Projet" }
+    }
   },
   "promptTemplate": {
     "unnamed": "Sans nom"

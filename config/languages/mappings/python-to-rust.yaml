@@ -1,0 +1,409 @@
+# Python → Rust 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: python-to-rust
+source: python
+target: rust
+description: "从 Python 迁移到 Rust 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "i64", note: "Python int 任意精度，Rust i64 固定宽度" }
+    - { source: "float", target: "f64", note: "双精度浮点" }
+    - { source: "bool", target: "bool" }
+    - { source: "str", target: "String" }
+    - { source: "bytes", target: "Vec<u8>" }
+    - { source: "list[T]", target: "Vec<T>" }
+    - { source: "dict[K,V]", target: "HashMap<K,V>" }
+    - { source: "set[T]", target: "HashSet<T>" }
+    - { source: "tuple", target: "(T1, T2, ...)" }
+    - { source: "None", target: "Option<T>" }
+    - { source: "list[Optional[T]]", target: "Vec<Option<T>>" }
+
+  manual_review:
+    - source: "动态类型变量 (var = any)"
+      target_options:
+        - option: "具体类型 (根据推断)"
+          condition: "变量类型可推断"
+        - option: "enum (如果有多种类型)"
+          condition: "变量可能是多种类型"
+        - option: "trait object (如果需要多态)"
+          condition: "需要运行时多态"
+        - option: "Any / Box<dyn Any>"
+          condition: "无法确定类型（最后手段）"
+      note: "Python 动态类型是迁移的最大挑战，需要通过类型推断或手动指定"
+
+    - source: "类 (class)"
+      target_options:
+        - option: "struct + impl (值语义)"
+          condition: "类不需要继承或共享"
+        - option: "struct + Arc<T> (共享所有权)"
+          condition: "类在多处共享"
+        - option: "enum (代数数据类型)"
+          condition: "类有明确的多种形态"
+      example: |
+        # Python:
+        class Platform:
+            def __init__(self, name: str, position: tuple):
+                self.name = name
+                self.position = position
+        
+        # Rust:
+        pub struct Platform {
+            pub name: String,
+            pub position: (f64, f64, f64),
+        }
+        
+        impl Platform {
+            pub fn new(name: String, position: (f64, f64, f64)) -> Self {
+                Self { name, position }
+            }
+        }
+
+    - source: "继承 (class Child(Parent))"
+      target: "trait + 组合"
+      note: "Rust 没有继承，用 trait 实现多态，用组合实现代码复用"
+      example: |
+        # Python:
+        class Aircraft(Platform):
+            def __init__(self, ...):
+                super().__init__(...)
+                self.altitude = 0
+        
+        # Rust:
+        pub trait PlatformBehavior {
+            fn position(&self) -> (f64, f64, f64);
+        }
+        
+        pub struct Aircraft {
+            platform: Platform,
+            altitude: f64,
+        }
+        
+        impl PlatformBehavior for Aircraft {
+            fn position(&self) -> (f64, f64, f64) {
+                self.platform.position
+            }
+        }
+
+    - source: "鸭子类型 (duck typing)"
+      target: "trait 约束"
+      example: |
+        # Python:
+        def process(obj):
+            obj.run()
+            obj.stop()
+        
+        # Rust:
+        trait Runnable {
+            fn run(&self);
+            fn stop(&self);
+        }
+        
+        fn process(obj: &dyn Runnable) {
+            obj.run();
+            obj.stop();
+        }
+
+    - source: "装饰器 (@decorator)"
+      target: "宏 / 包装函数"
+      example: |
+        # Python:
+        @timer
+        def expensive_function():
+            pass
+        
+        def timer(func):
+            def wrapper():
+                start = time.time()
+                result = func()
+                print(f"Time: {time.time() - start}")
+                return result
+            return wrapper
+        
+        # Rust (使用宏):
+        macro_rules! timer {
+            ($func:expr) => {{
+                let start = std::time::Instant::now();
+                let result = $func;
+                println!("Time: {:?}", start.elapsed());
+                result
+            }};
+        }
+
+# 异步映射
+async_mapping:
+  - source: "asyncio.gather / Task"
+    target: "tokio::join!"
+    example: |
+    # Python:
+    async def main():
+        result1, result2 = await asyncio.gather(
+            fetch_data(1),
+            fetch_data(2),
+        )
+    
+    # Rust:
+    async fn main() {
+        let (result1, result2) = tokio::join!(
+            fetch_data(1),
+            fetch_data(2),
+        );
+    }
+
+  - source: "asyncio.sleep"
+    target: "tokio::time::sleep"
+    example: |
+    # Python:
+    await asyncio.sleep(1)
+    
+    # Rust:
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+  - source: "async with (context manager)"
+    target: "RAII + async_trait"
+    example: |
+    # Python:
+    async with connection:
+        await connection.execute(query)
+    
+    # Rust:
+    {
+        let connection = pool.get().await?;
+        connection.execute(query).await?;
+        // connection 自动 drop
+    }
+
+  - source: "async for (async iteration)"
+    target: "while let Some(item) = stream.next().await"
+    example: |
+    # Python:
+    async for item in stream:
+        process(item)
+    
+    # Rust:
+    use tokio_stream::StreamExt;
+    while let Some(item) = stream.next().await {
+        process(item).await;
+    }
+
+# 数据类映射
+dataclass_mapping:
+  - source: "@dataclass"
+    target: "#[derive(Serialize, Deserialize)] struct"
+    example: |
+    # Python:
+    from dataclasses import dataclass
+    
+    @dataclass
+    class User:
+        id: int
+        name: str
+        email: str
+    
+    # Rust:
+    use serde::{Serialize, Deserialize};
+    
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct User {
+        pub id: i64,
+        pub name: String,
+        pub email: String,
+    }
+
+  - source: "Pydantic BaseModel"
+    target: "struct + validator"
+    example: |
+    # Python:
+    from pydantic import BaseModel, Field
+    
+    class User(BaseModel):
+        id: int
+        name: str = Field(..., min_length=1)
+        email: str
+    
+    # Rust:
+    pub struct User {
+        pub id: i64,
+        pub name: String,
+        pub email: String,
+    }
+    
+    impl User {
+        pub fn new(id: i64, name: String, email: String) -> Result<Self, ValidationError> {
+            if name.is_empty() {
+                return Err(ValidationError::new("name", "Cannot be empty"));
+            }
+            Ok(Self { id, name, email })
+        }
+    }
+
+  - source: "TypedDict"
+    target: "struct"
+    example: |
+    # Python:
+    from typing import TypedDict
+    
+    class UserInfo(TypedDict):
+        id: int
+        name: str
+    
+    # Rust:
+    pub struct UserInfo {
+        pub id: i64,
+        pub name: String,
+    }
+
+# 错误处理映射
+error_mapping:
+  - source: "try-except-finally"
+    target: "match + Result<T, E>"
+    example: |
+    # Python:
+    try:
+        result = risky_operation()
+    except ValueError as e:
+        print(f"Error: {e}")
+    finally:
+        cleanup()
+    
+    # Rust:
+    match risky_operation() {
+        Ok(result) => { /* success */ },
+        Err(e @ Error::Validation) => {
+            eprintln!("Error: {e}");
+        }
+    }
+    // cleanup 通过 Drop trait 自动执行
+
+  - source: "raise Exception"
+    target: "Err(MyError::Variant)"
+    example: |
+    # Python:
+    raise ValueError("Invalid input")
+    
+    # Rust:
+    return Err(MyError::Validation("Invalid input".into()));
+
+  - source: "自定义异常类"
+    target: "thiserror enum"
+    example: |
+    # Python:
+    class AppError(Exception):
+        def __init__(self, code, message):
+            self.code = code
+            self.message = message
+    
+    # Rust:
+    use thiserror::Error;
+    
+    #[derive(Error, Debug)]
+    pub enum AppError {
+        #[error("Validation error: {message}")]
+        Validation { message: String },
+        #[error("NotFound: {id}")]
+        NotFound { id: String },
+        #[error("Database error: {0}")]
+        Database(#[from] rusqlite::Error),
+    }
+
+# 常用 Python 库映射
+library_mapping:
+  - python_library: "numpy"
+    rust_alternative: "ndarray / nalgebra"
+    example: |
+    # Python:
+    import numpy as np
+    a = np.array([1, 2, 3])
+    b = np.array([4, 5, 6])
+    c = np.dot(a, b)
+    
+    # Rust:
+    use ndarray::Array1;
+    let a = Array1::from_vec(vec![1.0, 2.0, 3.0]);
+    let b = Array1::from_vec(vec![4.0, 5.0, 6.0]);
+    let c = a.dot(&b);
+
+  - python_library: "pandas"
+    rust_alternative: "polars-rs / 自定义 DataFrame"
+    example: |
+    # Python:
+    import pandas as pd
+    df = pd.DataFrame({"name": ["Alice", "Bob"], "age": [25, 30]})
+    result = df[df["age"] > 25]
+    
+    # Rust:
+    use polars::prelude::*;
+    let df = df! [
+        "name" => ["Alice", "Bob"],
+        "age" => [25, 30]
+    ]?;
+    let result = df.filter(col("age").gt(25))?;
+
+  - python_library: "requests / httpx"
+    rust_alternative: "reqwest"
+    example: |
+    # Python:
+    import requests
+    response = requests.get("https://api.example.com/data")
+    data = response.json()
+    
+    # Rust:
+    use reqwest::Client;
+    let client = Client::new();
+    let data: serde_json::Value = client
+        .get("https://api.example.com/data")
+        .send()
+        .await?
+        .json()
+        .await?;
+
+  - python_library: "sqlalchemy"
+    rust_alternative: "sea-orm / sqlx"
+    example: |
+    # Python:
+    from sqlalchemy import select
+    query = select(User).where(User.age > 25)
+    
+    # Rust (SeaORM):
+    use sea_orm::{EntityTrait, QueryFilter};
+    let users = Entity::find()
+        .filter(Column::Age.gt(25))
+        .all(&db)
+        .await?;
+
+  - python_library: "fastapi"
+    rust_alternative: "axum / actix-web"
+    example: |
+    # Python:
+    from fastapi import FastAPI
+    app = FastAPI()
+    
+    @app.get("/users/{id}")
+    async def get_user(id: int):
+        return {"id": id, "name": "Alice"}
+    
+    # Rust (Axum):
+    use axum::{routing::get, Router};
+    
+    async fn get_user(Path(id): Path<i64>) -> Json<serde_json::Value> {
+        Json(serde_json::json!({"id": id, "name": "Alice"}))
+    }
+    
+    let app = Router::new()
+        .route("/users/:id", get(get_user));
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] 动态类型已转换为静态类型
+  - [ ] GIL 限制已解决（多线程/异步）
+  - [ ] 装饰器已转换为宏或包装函数
+  - [ ] 生成器/迭代器已转换
+  - [ ] 上下文管理器已转换为 RAII
+  - [ ] 异步代码已转换为 tokio
+  - [ ] 错误处理已转换为 Result<T, E>
+  - [ ] 依赖库已找到 Rust 替代
+  - [ ] 性能测试已通过
+  - [ ] 功能完整性验证已通过
+  - [ ] 单元测试覆盖率已达到 80%+
+  - [ ] 集成测试已通过

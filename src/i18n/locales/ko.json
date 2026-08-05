@@ -4911,7 +4911,29 @@
       "noActivity": "활동 없음",
       "noFilteredActivity": "이 Agent의 활동 없음"
     },
-    "stepLabel": "단계"
+    "stepLabel": "단계",
+    "profiles": {
+      "code_auditor": { "name": "코드 감사 전문가", "role": "코드 감사 전문가" },
+      "architect_analyst": { "name": "아키텍처 분석가", "role": "아키텍처 분석가" },
+      "quality_expert": { "name": "코드 품질 전문가", "role": "코드 품질 전문가" },
+      "behavior_tester": { "name": "행동 테스트 전문가", "role": "행동 테스트 전문가" },
+      "knowledge_engineer": { "name": "지식 엔지니어", "role": "지식 엔지니어" },
+      "refactor_consultant": { "name": "리팩토링 컨설턴트", "role": "리팩토링 컨설턴트" },
+      "solution_architect": { "name": "솔루션 아키텍트", "role": "솔루션 아키텍트" },
+      "tech_project_manager": { "name": "기술 프로젝트 매니저", "role": "기술 프로젝트 매니저" },
+      "change_manager": { "name": "변경 관리 전문가", "role": "변경 관리 전문가" },
+      "quality_engineer": { "name": "품질 엔지니어", "role": "품질 엔지니어" },
+      "devops_engineer": { "name": "DevOps 엔지니어", "role": "DevOps 엔지니어" },
+      "code_reviewer": { "name": "코드 리뷰어", "role": "코드 리뷰어" },
+      "senior_engineer": { "name": "시니어 엔지니어", "role": "시니어 엔지니어" },
+      "behavior_verifier": { "name": "행동 검증 전문가", "role": "행동 검증 전문가" },
+      "test_engineer": { "name": "테스트 엔지니어", "role": "테스트 엔지니어" },
+      "integration_engineer": { "name": "통합 테스트 엔지니어", "role": "통합 테스트 엔지니어" },
+      "quality_director": { "name": "품질 디렉터", "role": "품질 디렉터" },
+      "tech_writer": { "name": "테니컬 라이터", "role": "테니컬 라이터" },
+      "ops_engineer": { "name": "운영 엔지니어", "role": "운영 엔지니어" },
+      "project_manager": { "name": "프로젝트 매니저", "role": "프로젝트 매니저" }
+    }
   },
   "promptTemplate": {
     "unnamed": "이름 없음"

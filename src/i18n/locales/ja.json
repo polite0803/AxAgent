@@ -4911,7 +4911,29 @@
       "noActivity": "アクティビティなし",
       "noFilteredActivity": "この Agent のアクティビティなし"
     },
-    "stepLabel": "ステップ"
+    "stepLabel": "ステップ",
+    "profiles": {
+      "code_auditor": { "name": "コード監査エキスパート", "role": "コード監査エキスパート" },
+      "architect_analyst": { "name": "アーキテクチャアナリスト", "role": "アーキテクチャアナリスト" },
+      "quality_expert": { "name": "コード品質エキスパート", "role": "コード品質エキスパート" },
+      "behavior_tester": { "name": "振る舞いテストエキスパート", "role": "振る舞いテストエキスパート" },
+      "knowledge_engineer": { "name": "ナレッジエンジニア", "role": "ナレッジエンジニア" },
+      "refactor_consultant": { "name": "リファクタリングコンサルタント", "role": "リファクタリングコンサルタント" },
+      "solution_architect": { "name": "ソリューションアーキテクト", "role": "ソリューションアーキテクト" },
+      "tech_project_manager": { "name": "テックプロジェクトマネージャー", "role": "テックプロジェクトマネージャー" },
+      "change_manager": { "name": "変更管理エキスパート", "role": "変更管理エキスパート" },
+      "quality_engineer": { "name": "品質エンジニア", "role": "品質エンジニア" },
+      "devops_engineer": { "name": "DevOpsエンジニア", "role": "DevOpsエンジニア" },
+      "code_reviewer": { "name": "コードレビューア", "role": "コードレビューア" },
+      "senior_engineer": { "name": "シニアエンジニア", "role": "シニアエンジニア" },
+      "behavior_verifier": { "name": "振る舞い検証エキスパート", "role": "振る舞い検証エキスパート" },
+      "test_engineer": { "name": "テストエンジニア", "role": "テストエンジニア" },
+      "integration_engineer": { "name": "統合テストエンジニア", "role": "統合テストエンジニア" },
+      "quality_director": { "name": "品質ディレクター", "role": "品質ディレクター" },
+      "tech_writer": { "name": "テクニカルライター", "role": "テクニカルライター" },
+      "ops_engineer": { "name": "オペレーションズエンジニア", "role": "オペレーションズエンジニア" },
+      "project_manager": { "name": "プロジェクトマネージャー", "role": "プロジェクトマネージャー" }
+    }
   },
   "promptTemplate": {
     "unnamed": "無名"

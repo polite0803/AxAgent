@@ -1,0 +1,478 @@
+# C# → TypeScript 映射规则
+# 用于跨语言迁移的类型映射和模式转换规则
+id: csharp-to-typescript
+source: csharp
+target: typescript
+description: "从 C# (WPF/WinForms) 迁移到 TypeScript (React) 的完整映射规则"
+
+# 类型映射规则
+type_mapping:
+  auto_convertible:
+    - { source: "int", target: "number" }
+    - { source: "long", target: "number", note: "64 位整数用 bigint" }
+    - { source: "float", target: "number" }
+    - { source: "double", target: "number" }
+    - { source: "bool", target: "boolean" }
+    - { source: "string", target: "string" }
+    - { source: "char", target: "string" }
+    - { source: "byte", target: "number" }
+    - { source: "DateTime", target: "Date / string (ISO)" }
+    - { source: "TimeSpan", target: "number (毫秒) / Duration" }
+    - { source: "Guid", target: "string" }
+    - { source: "List<T>", target: "T[]" }
+    - { source: "Dictionary<K,V>", target: "Record<K, V>" }
+    - { source: "HashSet<T>", target: "Set<T>" }
+    - { source: "Tuple", target: "[T1, T2]" }
+    - { source: "Nullable<T>", target: "T | undefined" }
+    - { source: "IEnumerable<T>", target: "Iterable<T> / T[]" }
+    - { source: "async Task<T>", target: "Promise<T>" }
+
+  manual_review:
+    - source: "class (类)"
+      target_options:
+        - option: "class + interface (需要继承/多态)"
+          condition: "源类使用了继承或接口"
+        - option: "interface (纯数据结构)"
+          condition: "类只包含属性，没有方法"
+        - option: "type + 函数 (纯函数式)"
+          condition: "方法可以转换为独立函数"
+      example: |
+        // C#:
+        public class UserService : IUserService {
+            private readonly IUserRepository _repo;
+            
+            public UserService(IUserRepository repo) {
+                _repo = repo;
+            }
+            
+            public async Task<User> GetUserAsync(int id) {
+                return await _repo.GetByIdAsync(id);
+            }
+        }
+        
+        // TypeScript:
+        interface UserRepository {
+            getById(id: number): Promise<User | null>;
+        }
+        
+        class UserService {
+            constructor(private repo: UserRepository) {}
+            
+            async getUser(id: number): Promise<User | null> {
+                return this.repo.getById(id);
+            }
+        }
+
+    - source: "接口 (interface)"
+      target: "interface"
+      example: |
+        // C#:
+        public interface IRepository<T> {
+            Task<T> GetByIdAsync(int id);
+            Task<IEnumerable<T>> GetAllAsync();
+            Task AddAsync(T entity);
+            Task UpdateAsync(T entity);
+            Task DeleteAsync(int id);
+        }
+        
+        // TypeScript:
+        interface Repository<T> {
+            getById(id: number): Promise<T | null>;
+            getAll(): Promise<T[]>;
+            add(entity: T): Promise<void>;
+            update(entity: T): Promise<void>;
+            delete(id: number): Promise<void>;
+        }
+
+    - source: "泛型 (Generics)"
+      target: "泛型 (Generics)"
+      example: |
+        // C#:
+        public interface ICache<TKey, TValue> {
+            Task<TValue> GetAsync(TKey key);
+            Task SetAsync(TKey key, TValue value);
+        }
+        
+        // TypeScript:
+        interface Cache<TKey, TValue> {
+            get(key: TKey): Promise<TValue | undefined>;
+            set(key: TKey, value: TValue): Promise<void>;
+        }
+
+    - source: "委托 (Delegate)"
+      target: "函数类型"
+      example: |
+        // C#:
+        public delegate void EventHandler(object sender, EventArgs e);
+        public event EventHandler Click;
+        
+        // TypeScript:
+        type EventHandler = (sender: any, e: EventArgs) => void;
+        // 或使用 EventEmitter
+
+    - source: "属性 (Property)"
+      target: "类属性 / getter"
+      example: |
+        // C#:
+        public string Name { get; set; }
+        public int Age { get; private set; }
+        
+        // TypeScript:
+        name: string;
+        private _age: number;
+        get age(): number { return this._age; }
+
+    - source: "LINQ 查询"
+      target: "Array 方法 / lodash"
+      example: |
+        // C#:
+        var result = users
+            .Where(u => u.Age > 25)
+            .OrderBy(u => u.Name)
+            .Select(u => new { u.Id, u.Name })
+            .ToList();
+        
+        // TypeScript:
+        const result = users
+            .filter(u => u.age > 25)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(u => ({ id: u.id, name: u.name }));
+
+# UI 组件映射 (WPF/WinForms → React)
+ui_component_mapping:
+  - source: "Button (WPF/WinForms)"
+    target: "Ant Design Button"
+    example: |
+      // C# (WPF):
+      // <Button Content="保存" Click="SaveButton_Click" IsEnabled="False"/>
+      // TypeScript:
+      <Button type="primary" disabled={!canSave} onClick={handleSave}>
+        保存
+      </Button>
+
+  - source: "TextBox (WPF/WinForms)"
+    target: "Ant Design Input"
+    example: |
+      // C# (WPF):
+      // <TextBox Text="{Binding UserName}" Width="200"/>
+      // TypeScript:
+      <Input value={userName} onChange={e => setUserName(e.target.value)} style={{ width: 200 }} />
+
+  - source: "DataGrid (WPF) / DataGridView (WinForms)"
+    target: "Ant Design Table"
+    example: |
+      // C# (WPF):
+      // <DataGrid ItemsSource="{Binding Users}" AutoGenerateColumns="True"/>
+      // TypeScript:
+      <Table
+        columns={[
+          { title: 'ID', dataIndex: 'id' },
+          { title: '姓名', dataIndex: 'name' },
+        ]}
+        dataSource={users}
+        rowKey="id"
+      />
+
+  - source: "ComboBox (WPF/WinForms)"
+    target: "Ant Design Select"
+    example: |
+      // C# (WPF):
+      // <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"/>
+      // TypeScript:
+      <Select value={selected} onChange={setSelected} options={items} />
+
+  - source: "CheckBox (WPF/WinForms)"
+    target: "Ant Design Checkbox"
+    example: |
+      // TypeScript:
+      <Checkbox checked={enabled} onChange={e => setEnabled(e.target.checked)}>
+        启用
+      </Checkbox>
+
+  - source: "ListBox (WPF/WinForms)"
+    target: "Ant Design List"
+    example: |
+      // TypeScript:
+      <List dataSource={items} renderItem={item => <List.Item>{item}</List.Item>} />
+
+  - source: "TabControl (WPF)"
+    target: "Ant Design Tabs"
+    example: |
+      // TypeScript:
+      <Tabs items={[
+        { key: '1', label: '标签1', children: <Content1 /> },
+        { key: '2', label: '标签2', children: <Content2 /> },
+      ]} />
+
+  - source: "TreeView (WPF/WinForms)"
+    target: "Ant Design Tree"
+    example: |
+      // TypeScript:
+      <Tree treeData={treeData} onSelect={handleSelect} />
+
+  - source: "ProgressBar (WPF)"
+    target: "Ant Design Progress"
+    example: |
+      // TypeScript:
+      <Progress percent={progress} status={status} />
+
+  - source: "Dialog (WPF)"
+    target: "Ant Design Modal"
+    example: |
+      // TypeScript:
+      <Modal open={visible} onOk={handleOk} onCancel={handleCancel} title="确认">
+        确定要执行此操作吗？
+      </Modal>
+
+  - source: "Menu (WPF/WinForms)"
+    target: "Ant Design Menu / Dropdown"
+    example: |
+      // TypeScript:
+      <Menu items={[{ key: '1', label: '选项1' }]} onClick={handleMenuClick} />
+
+  - source: "Image (WPF/WinForms)"
+    target: "Ant Design Image / img"
+    example: |
+      // TypeScript:
+      <Image src={imageUrl} alt="示例" width={200} preview />
+
+  - source: "Border / GroupBox"
+    target: "CSS 边框 / Card"
+    example: |
+      // TypeScript:
+      <Card title="标题" bordered>
+        内容
+      </Card>
+
+# 布局系统映射
+layout_mapping:
+  - source: "Grid (WPF)"
+    target: "CSS Grid / Ant Design Row/Col"
+    example: |
+      // C# (WPF):
+      // <Grid>
+      //   <Grid.RowDefinitions>
+      //     <RowDefinition Height="Auto"/>
+      //     <RowDefinition Height="*"/>
+      //   </Grid.RowDefinitions>
+      //   <TextBlock Grid.Row="0" Text="标题"/>
+      //   <DataGrid Grid.Row="1" ItemsSource="{Binding Data}"/>
+      // </Grid>
+      // TypeScript:
+      <Row>
+        <Col span={24}>
+          <Title level={3}>标题</Title>
+        </Col>
+        <Col span={24}>
+          <Table dataSource={data} />
+        </Col>
+      </Row>
+
+  - source: "StackPanel (WPF)"
+    target: "Flexbox / div"
+    example: |
+      // TypeScript:
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>元素1</div>
+        <div>元素2</div>
+      </div>
+
+  - source: "DockPanel (WPF)"
+    target: "Flexbox / CSS"
+    example: |
+      // TypeScript:
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <header style={{ flex: '0 0 auto' }}>顶部</header>
+        <main style={{ flex: '1 0 auto' }}>中间</main>
+        <footer style={{ flex: '0 0 auto' }}>底部</footer>
+      </div>
+
+  - source: "WrapPanel (WPF)"
+    target: "Flexbox (wrap)"
+    example: |
+      // TypeScript:
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {items.map(item => <div key={item.id}>{item.name}</div>)}
+      </div>
+
+  - source: "UniformGrid (WPF)"
+    target: "CSS Grid (equal columns)"
+    example: |
+      // TypeScript:
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        {items.map(item => <div key={item.id}>{item.name}</div>)}
+      </div>
+
+  - source: "FlowLayoutPanel (WinForms)"
+    target: "Flexbox"
+    example: |
+      // TypeScript:
+      <div style={{ display: 'flex', flexFlow: 'row wrap' }}>
+        {controls}
+      </div>
+
+# 事件处理映射
+event_mapping:
+  - source: "Click / MouseClick"
+    target: "onClick"
+  - source: "TextChanged"
+    target: "onChange"
+  - source: "SelectionChanged"
+    target: "onSelect / onChange"
+  - source: "FormClosing"
+    target: "beforeunload / useEffect cleanup"
+  - source: "Load / Shown"
+    target: "useEffect"
+  - source: "KeyDown / KeyUp"
+    target: "onKeyDown / onKeyUp"
+  - source: "PropertyChanged"
+    target: "useEffect (依赖项数组)"
+
+# 异步映射
+async_mapping:
+  - source: "async/await (C# 5+)"
+    target: "async/await (TypeScript)"
+    example: |
+    // C#:
+    public async Task<User> GetUserAsync(int id) {
+        var user = await _repository.GetByIdAsync(id);
+        return user;
+    }
+    
+    // TypeScript:
+    async function getUser(id: number): Promise<User | null> {
+        const user = await repository.getById(id);
+        return user;
+    }
+
+  - source: "Task.WhenAll"
+    target: "Promise.all"
+    example: |
+    // C#:
+    var results = await Task.WhenAll(
+        GetUsersAsync(),
+        GetPostsAsync()
+    );
+    
+    // TypeScript:
+    const [users, posts] = await Promise.all([
+        getUsers(),
+        getPosts(),
+    ]);
+
+  - source: "Task.WhenAny"
+    target: "Promise.race"
+    example: |
+    // C#:
+    var task = await Task.WhenAny(
+        FetchDataAsync(),
+        Task.Delay(5000)
+    );
+    
+    // TypeScript:
+    const result = await Promise.race([
+        fetchData(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]);
+
+  - source: "CancellationToken"
+    target: "AbortController"
+    example: |
+    // C#:
+    using var cts = new CancellationTokenSource();
+    await LongOperationAsync(cts.Token);
+    cts.Cancel();
+    
+    // TypeScript:
+    const controller = new AbortController();
+    try {
+        await longOperation(controller.signal);
+    } finally {
+        controller.abort();
+    }
+
+# 常用 C# 库映射
+library_mapping:
+  - csharp_library: "Entity Framework Core"
+    typescript_alternative: "Prisma / TypeORM"
+    example: |
+    // C# (EF Core):
+    // var user = await _context.Users
+    //     .Where(u => u.Age > 25)
+    //     .FirstOrDefaultAsync();
+    // TypeScript (Prisma):
+    const user = await prisma.user.findFirst({
+        where: { age: { gt: 25 } },
+    });
+
+  - csharp_library: "ASP.NET Core"
+    typescript_alternative: "Express / NestJS"
+    example: |
+    // C# (ASP.NET Core):
+    // [ApiController]
+    // [Route("api/[controller]")]
+    // public class UsersController : ControllerBase { ... }
+    // TypeScript (NestJS):
+    // @Controller('users')
+    // export class UsersController { ... }
+
+  - csharp_library: "AutoMapper"
+    typescript_alternative: "手动映射 / class-transformer"
+    example: |
+    // TypeScript:
+    // 使用 class-transformer 或手动映射
+    const dto: UserDto = plainToInstance(UserDto, entity);
+
+  - csharp_library: "Newtonsoft.Json / System.Text.Json"
+    typescript_alternative: "JSON.parse / JSON.stringify"
+    example: |
+    // TypeScript:
+    const data = JSON.parse(jsonString);
+    const json = JSON.stringify(data, null, 2);
+
+  - csharp_library: "Serilog / NLog"
+    typescript_alternative: "winston / pino / console"
+    example: |
+    // TypeScript:
+    import winston from 'winston';
+    logger.info('用户登录', { userId });
+
+# 依赖注入映射
+di_mapping:
+  - source: "Microsoft.Extensions.DependencyInjection"
+    target: "构造函数注入 + 容器"
+    example: |
+    // C#:
+    // services.AddScoped<IUserService, UserService>();
+    // services.AddSingleton<ILogger, FileLogger>();
+    // TypeScript (简单容器):
+    class Container {
+        private services = new Map<string, any>();
+        register<T>(key: string, factory: () => T) { ... }
+        resolve<T>(key: string): T { ... }
+    }
+
+  - source: "Unity / Autofac"
+    target: "手动依赖注入"
+    example: |
+    // TypeScript:
+    const repo: UserRepository = new DatabaseUserRepository(pool);
+    const service: UserService = new UserService(repo);
+
+# 迁移检查清单
+migration_checklist:
+  - [ ] UI 组件已完整映射（WPF/WinForms → React）
+  - [ ] 布局系统已转换（Grid → Flexbox/Grid）
+  - [ ] 事件处理已转换
+  - [ ] async/await 已转换为 TypeScript async/await
+  - [ ] LINQ 查询已转换为 Array 方法
+  - [ ] 泛型已转换
+  - [ ] 委托/事件已转换
+  - [ ] 依赖注入已转换
+  - [ ] 数据库访问已转换
+  - [ ] 序列化已转换
+  - [ ] 国际化已迁移
+  - [ ] 类型定义已完善
+  - [ ] 单元测试已通过
+  - [ ] 组件测试已通过
+  - [ ] 集成测试已通过

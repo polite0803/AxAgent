@@ -4911,7 +4911,29 @@
       "noActivity": "暫無 Agent 活動",
       "noFilteredActivity": "此 Agent 暫無活動"
     },
-    "stepLabel": "步驟"
+    "stepLabel": "步驟",
+    "profiles": {
+      "code_auditor": { "name": "程式碼審計專家", "role": "程式碼審計專家" },
+      "architect_analyst": { "name": "架構分析師", "role": "架構分析師" },
+      "quality_expert": { "name": "程式碼品質專家", "role": "程式碼品質專家" },
+      "behavior_tester": { "name": "行為測試專家", "role": "行為測試專家" },
+      "knowledge_engineer": { "name": "知識提煉專家", "role": "知識提煉專家" },
+      "refactor_consultant": { "name": "重構顧問", "role": "重構顧問" },
+      "solution_architect": { "name": "架構師", "role": "架構師" },
+      "tech_project_manager": { "name": "技術專案經理", "role": "技術專案經理" },
+      "change_manager": { "name": "變更管理專家", "role": "變更管理專家" },
+      "quality_engineer": { "name": "品質工程師", "role": "品質工程師" },
+      "devops_engineer": { "name": "DevOps 工程師", "role": "DevOps 工程師" },
+      "code_reviewer": { "name": "程式碼審查員", "role": "程式碼審查員" },
+      "senior_engineer": { "name": "資深工程師", "role": "資深工程師" },
+      "behavior_verifier": { "name": "行為驗證專家", "role": "行為驗證專家" },
+      "test_engineer": { "name": "測試工程師", "role": "測試工程師" },
+      "integration_engineer": { "name": "整合測試工程師", "role": "整合測試工程師" },
+      "quality_director": { "name": "品質總監", "role": "品質總監" },
+      "tech_writer": { "name": "技術文件工程師", "role": "技術文件工程師" },
+      "ops_engineer": { "name": "維運工程師", "role": "維運工程師" },
+      "project_manager": { "name": "專案經理", "role": "專案經理" }
+    }
   },
   "promptTemplate": {
     "unnamed": "未命名"

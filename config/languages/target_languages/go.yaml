@@ -1,0 +1,210 @@
+# Go 目标语言配置
+# 用于跨语言迁移的目标语言特性定义
+id: go
+name: Go
+go_versions: ["Go 1.21+"]
+file_extensions: [.go]
+common_frameworks:
+  - Gin (Web 框架)
+  - Echo (Web 框架)
+  - Fiber (Web 框架)
+  - GORM (ORM)
+  - sqlx (数据库)
+  - gRPC (RPC)
+
+# 类型系统
+type_system:
+  native_types:
+    - { go: "int", common: "integer", size: "平台相关" }
+    - { go: "int8", common: "integer", size: "8 位" }
+    - { go: "int16", common: "integer", size: "16 位" }
+    - { go: "int32", common: "integer", size: "32 位" }
+    - { go: "int64", common: "integer", size: "64 位" }
+    - { go: "uint", common: "unsigned_integer", size: "平台相关" }
+    - { go: "uint8", common: "unsigned_integer", size: "8 位" }
+    - { go: "uint16", common: "unsigned_integer", size: "16 位" }
+    - { go: "uint32", common: "unsigned_integer", size: "32 位" }
+    - { go: "uint64", common: "unsigned_integer", size: "64 位" }
+    - { go: "float32", common: "float", size: "32 位" }
+    - { go: "float64", common: "float", size: "64 位" }
+    - { go: "string", common: "string", size: "动态（不可变）" }
+    - { go: "bool", common: "boolean", size: "1 位" }
+    - { go: "byte", common: "integer", size: "uint8 别名" }
+    - { go: "rune", common: "integer", size: "int32 别名（Unicode）" }
+    - { go: "complex64", common: "complex", size: "64 位" }
+    - { go: "complex128", common: "complex", size: "128 位" }
+    - { go: "[n]T", common: "fixed_array<T>", size: "固定长度数组" }
+    - { go: "[]T", common: "slice<T>", size: "动态切片" }
+    - { go: "map[K]V", common: "map<K,V>", size: "动态" }
+    - { go: "chan T", common: "channel<T>", size: "通道" }
+    - { go: "func", common: "callable", size: "函数类型" }
+    - { go: "struct", common: "struct", size: "结构体" }
+    - { go: "interface", common: "interface", size: "接口" }
+    - { go: "error", common: "error", size: "错误接口" }
+
+  special_types:
+    - name: 指针 (*T)
+      description: 指向 T 的指针
+      common_representation: "pointer<T>"
+      migration_risk: "medium"
+    - name: 切片 (slice)
+      description: 动态数组，类似 Python list
+      common_representation: "slice<T>"
+      migration_risk: "low"
+    - name: 结构体 (struct)
+      description: 值类型，无继承
+      common_representation: "struct"
+      migration_risk: "low"
+    - name: 接口 (interface)
+      description: 隐式满足，鸭子类型
+      common_representation: "interface"
+      migration_risk: "low"
+    - name: 包 (package)
+      description: 模块化组织
+      common_representation: "package"
+      migration_risk: "low"
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "三色标记清除 + 写屏障"
+  features:
+    - automatic_memory_management
+    - garbage_collection
+    - stack_allocation (逃逸分析)
+    - escape_analysis (决定栈/堆分配)
+  pitfalls:
+    - id: memory_leak_goroutine
+      description: Goroutine 泄漏
+      examples: ["无终止条件的 for-select 循环", "未关闭的 channel"]
+    - id: memory_leak_map
+      description: 无限增长的 map
+      examples: ["map 只增不删"]
+    - id: large_slice_copy
+      description: 大切片拷贝
+      examples: ["频繁复制大数组"]
+    - id: string_allocation
+      description: 大量字符串分配
+      examples: ["循环中创建大量临时字符串"]
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  concurrency_model: "CSP (Communicating Sequential Processes)"
+  mechanisms:
+    - goroutine (轻量级协程)
+    - channel (通道通信)
+    - sync.Mutex (互斥锁)
+    - sync.RWMutex (读写锁)
+    - sync.WaitGroup (等待组)
+    - sync.Once (一次性执行)
+    - sync.Map (并发 map)
+    - context.Context (上下文取消)
+  concurrency_safety:
+    - 通过通信共享内存
+    - "不要通过共享内存通信，要通过通信共享内存"
+    - channel 是首选的同步机制
+  patterns:
+    - Pipeline 模式
+    - Fan-out / Fan-in 模式
+    - Worker Pool 模式
+    - Select 超时模式
+
+# 惯用模式
+idiomatic_patterns:
+  - name: 显式错误处理
+    description: 检查每个 error
+    code_example: |
+      data, err := os.ReadFile("file.txt")
+      if err != nil {
+          return fmt.Errorf("读取文件失败: %w", err)
+      }
+      // 使用 data
+  - name: 结构体方法
+    description: 方法与接口
+    code_example: |
+      type Server struct {
+          port int
+      }
+
+      func (s *Server) Start(ctx context.Context) error {
+          // 启动服务器
+          return nil
+      }
+
+      type ServerInterface interface {
+          Start(ctx context.Context) error
+      }
+  - name: 依赖注入
+    description: 通过接口注入依赖
+    code_example: |
+      type Repository interface {
+          GetUser(id int) (*User, error)
+      }
+
+      type Service struct {
+          repo Repository
+      }
+
+      func NewService(repo Repository) *Service {
+          return &Service{repo: repo}
+      }
+  - name: 选项模式
+    description: 函数式选项模式
+    code_example: |
+      type Server struct {
+          host string
+          port int
+          timeout time.Duration
+      }
+
+      type Option func(*Server)
+
+      func WithHost(host string) Option {
+          return func(s *Server) { s.host = host }
+      }
+
+      func NewServer(opts ...Option) *Server {
+          s := &Server{host: "localhost", port: 8080}
+          for _, opt := range opts {
+              opt(s)
+          }
+          return s
+      }
+
+  - name: 并发模式
+    description: goroutine + channel
+    code_example: |
+      func main() {
+          ch := make(chan string)
+          go func() {
+              ch <- "hello"
+          }()
+          msg := <-ch
+          fmt.Println(msg)
+      }
+
+# 代码规范
+code_conventions:
+  naming:
+    - package: lowercase (通常为目录名)
+    - file: snake_case
+    - function: CamelCase (导出) / camelCase (未导出)
+    - variable: camelCase
+    - constant: CamelCase (导出) / camelCase (未导出)
+    - interface: CamelCase (以方法名 + I 或 -er 结尾)
+    - struct: CamelCase
+    - method: CamelCase (导出) / camelCase (未导出)
+  formatting:
+    - indentation: tab (tab 字符)
+    - max_line_width: 不限 (通常 < 120)
+    - braces: 必须使用 (if/for 单语句也用大括号)
+  linting:
+    - gofmt (强制)
+    - goimports (推荐)
+    - golangci-lint (推荐)
+  testing:
+    - _test.go 文件
+    - testing 标准库
+    - table-driven tests (表驱动测试)
+    - testify (推荐)

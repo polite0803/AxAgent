@@ -1,0 +1,177 @@
+# Python 源语言配置
+# 用于跨语言迁移的源语言特性定义
+id: python
+name: Python
+python_versions: ["Python 3.9", "Python 3.10", "Python 3.11", "Python 3.12"]
+file_extensions: [.py]
+common_frameworks:
+  - Django
+  - Flask/FastAPI
+  - SQLAlchemy
+  - Celery
+  - PyTorch/TensorFlow
+
+# 类型系统
+type_system:
+  native_types:
+    - { python: "int", common: "integer", size: "动态（任意精度）" }
+    - { python: "float", common: "float", size: "64 位 (C double)" }
+    - { python: "complex", common: "complex", size: "128 位" }
+    - { python: "str", common: "string", size: "动态（Unicode）" }
+    - { python: "bool", common: "boolean", size: "1 位" }
+    - { python: "list", common: "array<T>", size: "动态（可变）" }
+    - { python: "tuple", common: "tuple<T1,T2>", size: "固定（不可变）" }
+    - { python: "dict", common: "map<K,V>", size: "动态（可变）" }
+    - { python: "set", common: "set<T>", size: "动态（可变）" }
+    - { python: "frozenset", common: "frozen_set<T>", size: "固定（不可变）" }
+    - { python: "list[int]", common: "array<integer>", size: "类型注解提示" }
+    - { python: "dict[str, int]", common: "map<string, integer>", size: "类型注解提示" }
+    - { python: "Optional[T]", common: "optional<T>", size: "可选类型注解" }
+    - { python: "Union[T1, T2]", common: "union<T1,T2>", size: "联合类型注解" }
+    - { python: "Callable", common: "callable", size: "可调用对象" }
+    - { python: "Generator[T]", common: "generator<T>", size: "惰性生成器" }
+    - { python: "AsyncGenerator[T]", common: "async_generator<T>", size: "异步生成器" }
+    - { python: "Future[T]", common: "promise<T>", size: "异步 Future" }
+
+  special_types:
+    - name: 动态类型
+      description: 变量类型运行时确定
+      common_representation: "dynamic_typing"
+      migration_risk: "high"
+      note: "迁移到静态类型语言时需添加类型注解"
+    - name: 鸭子类型
+      description: "如果它走起来像鸭子..."
+      common_representation: "duck_typing"
+      migration_risk: "high"
+      note: "需转换为接口/trait 定义"
+    - name: 元类 (Metaclass)
+      description: "类的类，元编程"
+      common_representation: "metaclass_metaprogramming"
+      migration_risk: "very_high"
+    - name: 描述符协议
+      description: 属性访问的底层机制
+      common_representation: "descriptor_protocol"
+      migration_risk: "high"
+    - name: GIL (全局解释器锁)
+      description: CPython 的全局锁
+      common_representation: "global_interpreter_lock"
+      migration_risk: "medium"
+      note: "迁移到无 GIL 的语言时并发模型需要重新设计"
+
+# 内存模型
+memory_model:
+  garbage_collected: true
+  gc_mechanism: "引用计数 + 分代式 GC（处理循环引用）"
+  features:
+    - reference_counting
+    - cyclic_garbage_collection
+    - automatic_memory_management
+    - dynamic_typing
+    - duck_typing
+  pitfalls:
+    - id: circular_reference
+      description: 循环引用导致泄漏
+      examples: ["相互引用的对象"]
+    - id: memory_overhead
+      description: 小对象内存开销过大
+      examples: ["大量小整数/字符串对象"]
+    - id: global_interpreter_lock
+      description: GIL 限制真并发
+      examples: ["多线程无法并行执行 CPU 密集任务"]
+    - id: mutable_default_args
+      description: 可变默认参数陷阱
+      examples: ["def func(lst=[]):"]
+
+# 并发模型
+concurrency_model:
+  native_support: true
+  mechanisms:
+    - threading (受 GIL 限制)
+    - multiprocessing (多进程)
+    - asyncio (异步 I/O)
+    - async/await
+    - concurrent.futures
+    - asyncio.Task / Future
+    - asyncio.Queue
+  frameworks:
+    - FastAPI (异步)
+    - aiohttp
+    - Celery (分布式任务)
+    - Dask (并行计算)
+  pitfalls:
+    - id: gil_limitation
+      description: GIL 导致多线程无法真正并行
+      examples: ["CPU 密集任务应使用 multiprocessing"]
+    - id: async_context
+      description: 异步上下文管理
+      examples: ["async with, async for"]
+    - id: blocking_in_async
+      description: 在异步代码中调用阻塞 I/O
+      examples: ["在 async 函数中使用 requests 而非 aiohttp"]
+
+# 惯用模式
+idiomatic_patterns:
+  - name: 上下文管理器
+    description: with 语句管理资源
+    code_example: |
+      with open('file.txt', 'r') as f:
+          content = f.read()
+      # 自动关闭文件
+  - name: 列表推导式
+    description: 紧凑的列表创建
+    code_example: |
+      squares = [x**2 for x in range(10) if x % 2 == 0]
+      # [0, 4, 16, 36, 64]
+  - name: 生成器
+    description: 惰性迭代
+    code_example: |
+      def fibonacci():
+          a, b = 0, 1
+          while True:
+              yield a
+              a, b = b, a + b
+  - name: 装饰器
+    description: 函数/类增强
+    code_example: |
+      def timer(func):
+          def wrapper(*args, **kwargs):
+              start = time.time()
+              result = func(*args, **kwargs)
+              elapsed = time.time() - start
+              print(f'{func.__name__} took {elapsed}s')
+              return result
+          return wrapper
+  - name: 数据类 (dataclass)
+    description: 自动生成 __init__, __repr__ 等
+    code_example: |
+      from dataclasses import dataclass
+
+      @dataclass
+      class Point:
+          x: float
+          y: float
+
+          def distance_to(self, other: 'Point') -> float:
+              return ((self.x - other.x)**2 +
+                      (self.y - other.y)**2) ** 0.5
+
+# 常见代码坏味道
+common_code_smells:
+  - id: global_variables
+    description: 使用全局变量而非依赖注入
+    severity: "high"
+  - id: mutable_defaults
+    description: 可变默认参数
+    severity: "high"
+  - id: bare_except
+    description: 裸 except 捕获所有异常
+    severity: "medium"
+    examples: ["except:"]
+  - id: too_many_arguments
+    description: 函数参数过多
+    severity: "medium"
+    threshold: "超过 5 个参数"
+  - id: dynamic_typing_abuse
+    description: 滥用动态类型导致的维护困难
+    severity: "medium"
+    examples: ["无类型注解的大型公共 API"]

@@ -4911,7 +4911,29 @@
       "noActivity": "لا يوجد نشاط",
       "noFilteredActivity": "لا يوجد نشاط لهذا الوكيل"
     },
-    "stepLabel": "الخطوة"
+    "stepLabel": "الخطوة",
+    "profiles": {
+      "code_auditor": { "name": "خبير تدقيق الأكواد", "role": "خبير تدقيق الأكواد" },
+      "architect_analyst": { "name": "محلل معماري", "role": "محلل معماري" },
+      "quality_expert": { "name": "خبير جودة الأكواد", "role": "خبير جودة الأكواد" },
+      "behavior_tester": { "name": "خبير اختبار السلوك", "role": "خبير اختبار السلوك" },
+      "knowledge_engineer": { "name": "مهندس معرفة", "role": "مهندس معرفة" },
+      "refactor_consultant": { "name": "مستشار إعادة الهيكلة", "role": "مستشار إعادة الهيكلة" },
+      "solution_architect": { "name": "مهندس حلول", "role": "مهندس حلول" },
+      "tech_project_manager": { "name": "مدير مشروع تقني", "role": "مدير مشروع تقني" },
+      "change_manager": { "name": "خبير إدارة التغيير", "role": "خبير إدارة التغيير" },
+      "quality_engineer": { "name": "مهندس جودة", "role": "مهندس جودة" },
+      "devops_engineer": { "name": "مهندس DevOps", "role": "مهندس DevOps" },
+      "code_reviewer": { "name": "مراجع الأكواد", "role": "مراجع الأكواد" },
+      "senior_engineer": { "name": "مهندس أول", "role": "مهندس أول" },
+      "behavior_verifier": { "name": "خبير التحقق من السلوك", "role": "خبير التحقق من السلوك" },
+      "test_engineer": { "name": "مهندس اختبار", "role": "مهندس اختبار" },
+      "integration_engineer": { "name": "مهندس اختبار تكاملي", "role": "مهندس اختبار تكاملي" },
+      "quality_director": { "name": "مدير الجودة", "role": "مدير الجودة" },
+      "tech_writer": { "name": "كاتب تقني", "role": "كاتب تقني" },
+      "ops_engineer": { "name": "مهندس عمليات", "role": "مهندس عمليات" },
+      "project_manager": { "name": "مدير مشروع", "role": "مدير مشروع" }
+    }
   },
   "promptTemplate": {
     "unnamed": "بدون اسم"

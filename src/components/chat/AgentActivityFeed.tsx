@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Badge, Card, Empty, List, Segmented, Space, Tag, Timeline, Typography } from "antd";
+import i18next from "i18next";
 import { Activity, CheckCircle, Clock, Loader2, PauseCircle, XCircle } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -52,56 +53,146 @@ export interface AgentEvent {
 // ── Agent 配置映射 ──
 
 const AGENT_PROFILES: Record<string, AgentProfile> = {
-  code_auditor: { id: "code_auditor", name: "代码审计专家", icon: "🔍", color: "#52c41a", role: "代码审计专家" },
-  architect_analyst: { id: "architect_analyst", name: "架构分析师", icon: "🏗️", color: "#1890ff", role: "架构分析师" },
-  quality_expert: { id: "quality_expert", name: "代码质量专家", icon: "📊", color: "#722ed1", role: "代码质量专家" },
-  behavior_tester: { id: "behavior_tester", name: "行为测试专家", icon: "🧪", color: "#13c2c2", role: "行为测试专家" },
+  code_auditor: {
+    id: "code_auditor",
+    name: "agentActivity.profiles.code_auditor.name",
+    icon: "🔍",
+    color: "#52c41a",
+    role: "agentActivity.profiles.code_auditor.role",
+  },
+  architect_analyst: {
+    id: "architect_analyst",
+    name: "agentActivity.profiles.architect_analyst.name",
+    icon: "🏗️",
+    color: "#1890ff",
+    role: "agentActivity.profiles.architect_analyst.role",
+  },
+  quality_expert: {
+    id: "quality_expert",
+    name: "agentActivity.profiles.quality_expert.name",
+    icon: "📊",
+    color: "#722ed1",
+    role: "agentActivity.profiles.quality_expert.role",
+  },
+  behavior_tester: {
+    id: "behavior_tester",
+    name: "agentActivity.profiles.behavior_tester.name",
+    icon: "🧪",
+    color: "#13c2c2",
+    role: "agentActivity.profiles.behavior_tester.role",
+  },
   knowledge_engineer: {
     id: "knowledge_engineer",
-    name: "知识提炼专家",
+    name: "agentActivity.profiles.knowledge_engineer.name",
     icon: "💡",
     color: "#faad14",
-    role: "知识提炼专家",
+    role: "agentActivity.profiles.knowledge_engineer.role",
   },
-  refactor_consultant: { id: "refactor_consultant", name: "重构顾问", icon: "⚠️", color: "#fa541c", role: "重构顾问" },
-  solution_architect: { id: "solution_architect", name: "架构师", icon: "🎯", color: "#2f54eb", role: "架构师" },
+  refactor_consultant: {
+    id: "refactor_consultant",
+    name: "agentActivity.profiles.refactor_consultant.name",
+    icon: "⚠️",
+    color: "#fa541c",
+    role: "agentActivity.profiles.refactor_consultant.role",
+  },
+  solution_architect: {
+    id: "solution_architect",
+    name: "agentActivity.profiles.solution_architect.name",
+    icon: "🎯",
+    color: "#2f54eb",
+    role: "agentActivity.profiles.solution_architect.role",
+  },
   tech_project_manager: {
     id: "tech_project_manager",
-    name: "技术项目经理",
+    name: "agentActivity.profiles.tech_project_manager.name",
     icon: "📋",
     color: "#eb2f96",
-    role: "技术项目经理",
+    role: "agentActivity.profiles.tech_project_manager.role",
   },
-  change_manager: { id: "change_manager", name: "变更管理专家", icon: "🔄", color: "#a0d911", role: "变更管理专家" },
-  quality_engineer: { id: "quality_engineer", name: "质量工程师", icon: "✅", color: "#52c41a", role: "质量工程师" },
+  change_manager: {
+    id: "change_manager",
+    name: "agentActivity.profiles.change_manager.name",
+    icon: "🔄",
+    color: "#a0d911",
+    role: "agentActivity.profiles.change_manager.role",
+  },
+  quality_engineer: {
+    id: "quality_engineer",
+    name: "agentActivity.profiles.quality_engineer.name",
+    icon: "✅",
+    color: "#52c41a",
+    role: "agentActivity.profiles.quality_engineer.role",
+  },
   devops_engineer: {
     id: "devops_engineer",
-    name: "DevOps 工程师",
+    name: "agentActivity.profiles.devops_engineer.name",
     icon: "⚙️",
     color: "#595959",
-    role: "DevOps 工程师",
+    role: "agentActivity.profiles.devops_engineer.role",
   },
-  code_reviewer: { id: "code_reviewer", name: "代码审查员", icon: "👁️", color: "#2f54eb", role: "代码审查员" },
-  senior_engineer: { id: "senior_engineer", name: "高级工程师", icon: "💻", color: "#1890ff", role: "高级工程师" },
+  code_reviewer: {
+    id: "code_reviewer",
+    name: "agentActivity.profiles.code_reviewer.name",
+    icon: "👁️",
+    color: "#2f54eb",
+    role: "agentActivity.profiles.code_reviewer.role",
+  },
+  senior_engineer: {
+    id: "senior_engineer",
+    name: "agentActivity.profiles.senior_engineer.name",
+    icon: "💻",
+    color: "#1890ff",
+    role: "agentActivity.profiles.senior_engineer.role",
+  },
   behavior_verifier: {
     id: "behavior_verifier",
-    name: "行为验证专家",
+    name: "agentActivity.profiles.behavior_verifier.name",
     icon: "🔬",
     color: "#722ed1",
-    role: "行为验证专家",
+    role: "agentActivity.profiles.behavior_verifier.role",
   },
-  test_engineer: { id: "test_engineer", name: "测试工程师", icon: "🧪", color: "#13c2c2", role: "测试工程师" },
+  test_engineer: {
+    id: "test_engineer",
+    name: "agentActivity.profiles.test_engineer.name",
+    icon: "🧪",
+    color: "#13c2c2",
+    role: "agentActivity.profiles.test_engineer.role",
+  },
   integration_engineer: {
     id: "integration_engineer",
-    name: "集成测试工程师",
+    name: "agentActivity.profiles.integration_engineer.name",
     icon: "🔗",
     color: "#fa8c16",
-    role: "集成测试工程师",
+    role: "agentActivity.profiles.integration_engineer.role",
   },
-  quality_director: { id: "quality_director", name: "质量总监", icon: "🎖️", color: "#cf1322", role: "质量总监" },
-  tech_writer: { id: "tech_writer", name: "技术文档工程师", icon: "📝", color: "#faad14", role: "技术文档工程师" },
-  ops_engineer: { id: "ops_engineer", name: "运维工程师", icon: "🔧", color: "#595959", role: "运维工程师" },
-  project_manager: { id: "project_manager", name: "项目经理", icon: "📊", color: "#eb2f96", role: "项目经理" },
+  quality_director: {
+    id: "quality_director",
+    name: "agentActivity.profiles.quality_director.name",
+    icon: "🎖️",
+    color: "#cf1322",
+    role: "agentActivity.profiles.quality_director.role",
+  },
+  tech_writer: {
+    id: "tech_writer",
+    name: "agentActivity.profiles.tech_writer.name",
+    icon: "📝",
+    color: "#faad14",
+    role: "agentActivity.profiles.tech_writer.role",
+  },
+  ops_engineer: {
+    id: "ops_engineer",
+    name: "agentActivity.profiles.ops_engineer.name",
+    icon: "🔧",
+    color: "#595959",
+    role: "agentActivity.profiles.ops_engineer.role",
+  },
+  project_manager: {
+    id: "project_manager",
+    name: "agentActivity.profiles.project_manager.name",
+    icon: "📊",
+    color: "#eb2f96",
+    role: "agentActivity.profiles.project_manager.role",
+  },
 };
 
 // ── 状态图标映射 ──
@@ -237,8 +328,8 @@ export const AgentActivityFeed: React.FC<AgentActivityFeedProps> = ({
                 <Space>
                   <span className="text-xl">{agent.icon}</span>
                   <div>
-                    <Text strong>{agent.name}</Text>
-                    <div className="text-xs text-gray-500">{agent.role}</div>
+                    <Text strong>{t(agent.name)}</Text>
+                    <div className="text-xs text-gray-500">{t(agent.role)}</div>
                   </div>
                 </Space>
                 <Space>
@@ -319,20 +410,14 @@ export function createAgentEvent(
   status?: AgentStatus,
   details?: Record<string, unknown>,
 ): AgentEvent {
-  const profile = AGENT_PROFILES[agentId] || {
-    id: agentId,
-    name: agentId,
-    icon: "🤖",
-    color: "#999",
-    role: agentId,
-  };
+  const profile = AGENT_PROFILES[agentId];
 
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     timestamp: Date.now(),
     agent_id: agentId,
-    agent_name: profile.name,
-    agent_icon: profile.icon,
+    agent_name: profile ? i18next.t(profile.name) : agentId,
+    agent_icon: profile?.icon ?? "🤖",
     event_type: eventType,
     step_id: stepId,
     step_title: stepTitle,
