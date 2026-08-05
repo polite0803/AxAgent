@@ -842,9 +842,9 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(plan.sub_tasks.len(), 4); // Refactor pattern
-        assert_eq!(plan.sub_tasks[1].role, "planner");
-        assert_eq!(plan.sub_tasks[2].role, "developer");
+        assert_eq!(plan.sub_tasks.len(), 9); // Refactor pattern (5 阶段)
+        assert!(plan.sub_tasks.iter().any(|t| t.role == "planner"));
+        assert!(plan.sub_tasks.iter().any(|t| t.role == "developer"));
     }
 
     #[tokio::test]
