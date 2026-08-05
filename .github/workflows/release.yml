@@ -457,19 +457,24 @@ jobs:
           NDK_PATH="/tmp/android-ndk-${NDK_VER}-linux-arm64"
           echo "ndk-path=$NDK_PATH" >> $GITHUB_OUTPUT
           echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-arm64/bin/" | head -5
         id: setup-ndk
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $HOME/.cargo/config.toml
 
       # ARM64 native runner 使用 linux-arm64 工具链
       - name: Setup Android NDK toolchain PATH (ARM64)
         run: |
           TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-arm64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
+          rustup target add ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || 'armv7-linux-androideabi' }}
 
       - name: Initialize Android project
         run: |
@@ -606,6 +611,8 @@ jobs:
           NDK_PATH="/tmp/android-ndk-${NDK_VER}-linux"
           echo "ndk-path=$NDK_PATH" >> $GITHUB_OUTPUT
           echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" | head -5
         id: setup-ndk
 
       - name: Setup JDK 21 (Zulu)
@@ -618,12 +625,15 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk
+        run: |
+          cargo install cargo-ndk
+          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $HOME/.cargo/config.toml
 
       - name: Setup Android NDK toolchain PATH (x86_64)
         run: |
           TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
+          rustup target add x86_64-linux-android
 
       - name: Initialize Android project
         run: |
