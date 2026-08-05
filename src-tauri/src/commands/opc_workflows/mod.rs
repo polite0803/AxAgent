@@ -326,7 +326,7 @@ mod tests {
             .count(db)
             .await
             .unwrap();
-        assert_eq!(count, 75, "应 seed 75 个领域工作流，实际 {count}");
+        assert_eq!(count, 76, "应 seed 76 个领域工作流，实际 {count}");
 
         // 幂等：二次 seed 不报错
         ensure_opc_domains_seeded(db, &base).await.expect("二次 seed 应成功");

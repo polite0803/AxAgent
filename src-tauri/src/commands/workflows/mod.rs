@@ -258,7 +258,9 @@ pub async fn workflow_pause(
     let active = engine.list_active_executions().await;
     let mut paused_count = 0;
     for info in &active {
-        if info.workflow_id == workflow_id && info.status == axagent_harness::workflow_types::ExecutionStatus::Running {
+        if info.workflow_id == workflow_id
+            && info.status == axagent_harness::workflow_types::ExecutionStatus::Running
+        {
             engine.pause(&info.execution_id).await.map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
                     e,
@@ -299,7 +301,9 @@ pub async fn workflow_resume(
     let active = engine.list_active_executions().await;
     let mut resumed_count = 0;
     for info in &active {
-        if info.workflow_id == workflow_id && info.status == axagent_harness::workflow_types::ExecutionStatus::Paused {
+        if info.workflow_id == workflow_id
+            && info.status == axagent_harness::workflow_types::ExecutionStatus::Paused
+        {
             engine.resume(&info.execution_id).await.map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
                     e,

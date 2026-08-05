@@ -1292,7 +1292,7 @@ impl NodeExecutorTrait for AgentExecutor {
                 });
             }
 
-// P1-3 修复(2026-07-22): 工具调用后预防性追加简短提醒，减少 GLM-5.2 空内容轮次。
+            // P1-3 修复(2026-07-22): 工具调用后预防性追加简短提醒，减少 GLM-5.2 空内容轮次。
             // 问题：GLM-5.2 在工具调用模式下常忽略初始 prompt 中的"工具调用后输出 JSON"要求，
             // 导致 has_tool_calls=true 但 content 为空，需要额外一轮强制总结指令补救。
             // 优化：在 tool result 后立即追加简短 system 提醒（而非等到空内容才注入长指令），

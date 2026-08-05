@@ -154,7 +154,7 @@ pub async fn try_auto_learn_workflow(
     };
 
     let quality_score = compute_quality_score(result);
-    let quality_score_100 = (quality_score * 100.0) as f64;
+    let quality_score_100 = quality_score * 100.0;
 
     info!(
         "[opc-auto-learn] 触发自动学习: industry={}, template={}, quality={:.1}",
