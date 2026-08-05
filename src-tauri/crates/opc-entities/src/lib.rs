@@ -2,10 +2,12 @@
 
 //! OPC 业务领域 SeaORM 实体定义
 
+pub mod opc_automation_rules;
 pub mod opc_blog_posts;
 pub mod opc_contact_submissions;
 pub mod opc_customers;
 pub mod opc_experience_records;
+pub mod opc_follow_up_tasks;
 pub mod opc_industries;
 pub mod opc_invoices;
 pub mod opc_kpi_records;

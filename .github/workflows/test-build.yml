@@ -62,7 +62,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: '-'
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'AxAgent ${{ github.ref_name }} (Test)'
+          releaseName: 'AxInvest ${{ github.ref_name }} (Test)'
           releaseBody: 'Internal test build for scrollbar fix verification.'
           releaseDraft: true
           prerelease: true

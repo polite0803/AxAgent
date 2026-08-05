@@ -4322,7 +4322,11 @@
       "dueDate": "截止日期",
       "createFailed": "创建失败: {{error}}",
       "deleteFailed": "删除失败: {{error}}",
-      "opFailed": "操作失败: {{error}}"
+      "opFailed": "操作失败: {{error}}",
+      "batchDelete": "批量删除 ({{count}})",
+      "batchDeleteSuccess": "批量删除成功",
+      "export": "导出",
+      "reset": "重置"
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4335,7 +4339,10 @@
       "quickActionsTitle": "快速操作",
       "manageInvoices": "管理发票",
       "manageCustomers": "管理客户",
-      "manageProjects": "管理项目"
+      "manageProjects": "管理项目",
+      "revenueTrend": "收入趋势",
+      "customerDistribution": "客户分布",
+      "projectDistribution": "项目分布"
     },
     "invoiceStatus": {
       "draft": "草稿",
@@ -4397,7 +4404,8 @@
       "actionCancel": "取消",
       "actionMarkPaid": "标记已收款",
       "actionMarkOverdue": "标记逾期",
-      "actionRefund": "退款"
+      "actionRefund": "退款",
+      "filterStatus": "按状态筛选"
     },
     "customer": {
       "updated": "客户已更新",

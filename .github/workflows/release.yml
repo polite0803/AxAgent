@@ -91,7 +91,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.resolve-tag.outputs.tag }}
-          name: 'AxAgent ${{ needs.resolve-tag.outputs.tag }}'
+          name: 'AxInvest ${{ needs.resolve-tag.outputs.tag }}'
           body: ${{ steps.cliff.outputs.content }}
           draft: true
           prerelease: ${{ contains(needs.resolve-tag.outputs.tag, '-rc') || contains(needs.resolve-tag.outputs.tag, '-beta') || contains(needs.resolve-tag.outputs.tag, '-alpha') }}
@@ -214,7 +214,7 @@ jobs:
         run: |
           $exe = "src-tauri/target/${{ matrix.target }}/release/AxInvest.exe"
           $arch = if ("${{ matrix.target }}" -match "aarch64") { "arm64" } else { "x64" }
-          $zipName = "AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}-portable.zip"
+          $zipName = "AxInvest_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName
 
           $msiPath = "src-tauri/target/${{ matrix.target }}/release/bundle/msi"
@@ -222,7 +222,7 @@ jobs:
             cd $msiPath
             $msiFiles = Get-ChildItem -Filter "*.msi"
             foreach ($msi in $msiFiles) {
-              $newMsiName = "AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}.msi"
+              $newMsiName = "AxInvest_${{ needs.resolve-tag.outputs.tag }}_windows-${arch}.msi"
               Rename-Item -Path $msi.Name -NewName $newMsiName
               Move-Item -Path $newMsiName -Destination "../../$newMsiName"
             }
@@ -234,7 +234,7 @@ jobs:
           if [ -d "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb" ]; then
             cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb
             for deb in *.deb; do
-              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.deb"
+              new_name="AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-x64.deb"
               mv "$deb" "$new_name"
               mv "$new_name" "../../$new_name"
             done
@@ -243,7 +243,7 @@ jobs:
           if [ -d "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm" ]; then
             cd src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm
             for rpm in *.rpm; do
-              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.rpm"
+              new_name="AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-x64.rpm"
               mv "$rpm" "$new_name"
               mv "$new_name" "../../$new_name"
             done
@@ -257,8 +257,8 @@ jobs:
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-*-portable.zip
-            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_windows-*.msi
+            AxInvest_${{ needs.resolve-tag.outputs.tag }}_windows-*-portable.zip
+            src-tauri/target/${{ matrix.target }}/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_windows-*.msi
 
       - name: Package macOS artifacts
         if: contains(matrix.target, 'apple-darwin')
@@ -266,9 +266,9 @@ jobs:
           cd src-tauri/target/${{ matrix.target }}/release/bundle/dmg
           for dmg in *.dmg; do
             if [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
-              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-arm64.dmg"
+              new_name="AxInvest_${{ needs.resolve-tag.outputs.tag }}_macos-arm64.dmg"
             else
-              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-x64.dmg"
+              new_name="AxInvest_${{ needs.resolve-tag.outputs.tag }}_macos-x64.dmg"
             fi
             mv "$dmg" "$new_name"
             mv "$new_name" "../../$new_name"
@@ -282,8 +282,8 @@ jobs:
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.deb
-            src-tauri/target/x86_64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-x64.rpm
+            src-tauri/target/x86_64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-x64.deb
+            src-tauri/target/x86_64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-x64.rpm
 
       - name: Upload macOS artifacts
         if: contains(matrix.target, 'apple-darwin')
@@ -293,7 +293,7 @@ jobs:
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/${{ matrix.target }}/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_macos-*.dmg
+            src-tauri/target/${{ matrix.target }}/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_macos-*.dmg
 
   # ── Build for Linux ARM64 (native on ARM64 runner) ───
   # 注：用 GitHub ARM64 native runner (ubuntu-24.04-arm) 原生编译，
@@ -367,7 +367,7 @@ jobs:
           if [ -d "src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb" ]; then
             cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb
             for deb in *.deb; do
-              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb"
+              new_name="AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb"
               mv "$deb" "$new_name"
               mv "$new_name" "../../$new_name"
             done
@@ -376,7 +376,7 @@ jobs:
           if [ -d "src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm" ]; then
             cd src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/rpm
             for rpm in *.rpm; do
-              new_name="AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm"
+              new_name="AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm"
               mv "$rpm" "$new_name"
               mv "$new_name" "../../$new_name"
             done
@@ -386,13 +386,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.resolve-tag.outputs.tag }}
-          name: 'AxAgent ${{ needs.resolve-tag.outputs.tag }}'
+          name: 'AxInvest ${{ needs.resolve-tag.outputs.tag }}'
           draft: true
           prerelease: ${{ contains(needs.resolve-tag.outputs.tag, '-rc') || contains(needs.resolve-tag.outputs.tag, '-beta') || contains(needs.resolve-tag.outputs.tag, '-alpha') }}
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb
-            src-tauri/target/aarch64-unknown-linux-gnu/release/AxAgent_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm
+            src-tauri/target/aarch64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb
+            src-tauri/target/aarch64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm
 
   # ── Build for Android ──────────────────────────────────
   build-android:
@@ -529,7 +529,7 @@ jobs:
           
           if [ -n "$APK" ]; then
             ABI="${{ matrix.abi }}"
-            NEW_NAME="AxAgent_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
+            NEW_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
             cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
             echo "Uploading APK: $NEW_NAME from $APK"
             cd "$GITHUB_WORKSPACE"
@@ -545,7 +545,7 @@ jobs:
           if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             AAB=$(find src-tauri/gen/android/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null | head -1)
             if [ -n "$AAB" ]; then
-              AAB_NAME="AxAgent_${{ needs.resolve-tag.outputs.tag }}_android-play-store.aab"
+              AAB_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-play-store.aab"
               cp "$AAB" "$GITHUB_WORKSPACE/$AAB_NAME"
               echo "Uploading AAB: $AAB_NAME"
               cd "$GITHUB_WORKSPACE"

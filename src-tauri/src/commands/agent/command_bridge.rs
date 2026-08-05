@@ -2851,7 +2851,7 @@ mod tests {
 
         // 第一次获取（缓存未命中）
         let index1 = cache.get(&domains, &registry);
-        let (hits1, misses1, _) = cache.stats();
+        let (_hits1, misses1, _) = cache.stats();
         assert_eq!(misses1, 1, "第一次获取应为缓存未命中");
 
         // 第二次获取（缓存命中）
@@ -2932,7 +2932,7 @@ mod tests {
 
         // 验证返回值
         assert!(!index.is_empty(), "预加载的索引不应为空");
-        assert!(hit_rate >= 0.0 && hit_rate <= 1.0, "命中率应在 0 到 1 之间");
+        assert!((0.0..=1.0).contains(&hit_rate), "命中率应在 0 到 1 之间");
     }
 
     /// 测试 build_command_index_string 便捷函数

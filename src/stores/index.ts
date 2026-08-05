@@ -120,3 +120,14 @@ export type { RecentStock, UserMode, WorkspaceView } from "./feature/workspaceSt
 // ── AxInvest quant 模块（回测 + 策略管理）──
 export { useBacktestStore } from "./feature/quant";
 export { useStrategyStore } from "./feature/quant";
+
+// ── OPC 一人公司（One-Person Company） ──
+export { useOpcStore } from "./feature/opcStore";
+export type {
+  OpcActions,
+  OpcCustomer,
+  OpcDashboardSummary,
+  OpcInvoice,
+  OpcProject,
+  OpcState,
+} from "./feature/opcStore";

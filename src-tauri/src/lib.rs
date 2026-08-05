@@ -247,7 +247,7 @@ pub fn run() {
                     android_utils::report_fatal_error(&format!("Database init failed: {}", e));
                     #[cfg(target_os = "windows")]
                     {
-                        windows_utils::show_error_dialog("AxAgent", &format!("数据库初始化失败: {}", e));
+                        windows_utils::show_error_dialog("AxInvest", &format!("数据库初始化失败: {}", e));
                     }
                     // 不要 panic 导致栈溢出；返回 Err 让 Tauri 优雅退出
                     let err_msg = format!("数据库初始化失败: {}", e);
@@ -616,15 +616,15 @@ pub fn run() {
                 {
                     const WEBVIEW2_DOWNLOAD_URL: &str = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH#download";
                     let user_ok = windows_utils::show_warning_ok_cancel(
-                        "AxAgent",
-                        "未检测到 Microsoft Edge WebView2 Runtime，AxAgent 无法启动。\n\n点击「确定」打开下载页面进行安装，安装完成后重新启动 AxAgent。",
+                        "AxInvest",
+                        "未检测到 Microsoft Edge WebView2 Runtime，AxInvest 无法启动。\n\n点击「确定」打开下载页面进行安装，安装完成后重新启动 AxInvest。",
                     );
                     if user_ok {
                         let _ = open::that(WEBVIEW2_DOWNLOAD_URL);
                     }
                 } else {
                     windows_utils::show_error_dialog(
-                        "AxAgent",
+                        "AxInvest",
                         &format!("应用启动失败：{}", error_msg),
                     );
                 }

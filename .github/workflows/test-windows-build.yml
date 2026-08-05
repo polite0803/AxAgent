@@ -64,7 +64,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'AxAgent Test ${{ github.ref_name }}'
+          releaseName: 'AxInvest Test ${{ github.ref_name }}'
           releaseDraft: true
           prerelease: true
           tauriScript: npm run tauri
@@ -74,7 +74,7 @@ jobs:
         shell: pwsh
         run: |
           $exe = "src-tauri/target/x86_64-pc-windows-msvc/release/AxInvest.exe"
-          $zipName = "AxAgent_${{ github.ref_name }}_windows-x64-portable.zip"
+          $zipName = "AxInvest_${{ github.ref_name }}_windows-x64-portable.zip"
           Compress-Archive -Path $exe -DestinationPath $zipName
 
       - name: Upload Windows portable to release
@@ -83,4 +83,4 @@ jobs:
           tag_name: ${{ github.ref_name }}
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: AxAgent_${{ github.ref_name }}_windows-x64-portable.zip
+          files: AxInvest_${{ github.ref_name }}_windows-x64-portable.zip

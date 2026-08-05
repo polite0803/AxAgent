@@ -1163,9 +1163,15 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
     let mut synced = 0u32;
     let mut updated = 0u32;
 
+    let role_ids: Vec<String> = employees.iter().map(|e| e.role_id.clone()).collect();
+    let role_status_map = opc_batch_role_status(&db, &role_ids).await;
+
     for emp in &employees {
         let slug = emp.role_id.clone();
-        let status = opc_role_member_status(&db, &slug).await;
+        let status = role_status_map
+            .get(&slug)
+            .cloned()
+            .unwrap_or(axagent_harness::fleet::FleetMemberStatus::Idle);
         match members.iter().find(|m| m.agent_slug == slug) {
             Some(existing) => {
                 if existing.status != status {
@@ -1222,30 +1228,46 @@ pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Va
     }))
 }
 
-/// 角色成员状态：由该角色最新 work item 的 phase 驱动。
-/// IN_PROGRESS/REVIEW/APPROVED → Busy；BLOCKED/FAILED → Error；其余/无任务 → Idle。
-async fn opc_role_member_status(
+/// 批量查询多个角色的成员状态（避免 N+1 查询）。
+/// 一次性加载所有相关 work items，在内存中按 role_id 分组取最新一条。
+async fn opc_batch_role_status(
     db: &sea_orm::DatabaseConnection,
-    role_id: &str,
-) -> axagent_harness::fleet::FleetMemberStatus {
+    role_ids: &[String],
+) -> std::collections::HashMap<String, axagent_harness::fleet::FleetMemberStatus> {
     use axagent_harness::fleet::FleetMemberStatus;
     use axagent_opc_entities::opc_work_items;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
-    let latest = opc_work_items::Entity::find()
-        .filter(opc_work_items::Column::OwnerRoleId.eq(role_id))
-        .order_by_desc(opc_work_items::Column::UpdatedAt)
-        .one(db)
-        .await
-        .ok()
-        .flatten();
+    let mut map = std::collections::HashMap::new();
 
-    match latest {
-        Some(w) => match w.phase.as_str() {
-            "IN_PROGRESS" | "REVIEW" | "APPROVED" => FleetMemberStatus::Busy,
-            "BLOCKED" | "FAILED" => FleetMemberStatus::Error,
-            _ => FleetMemberStatus::Idle,
-        },
-        None => FleetMemberStatus::Idle,
+    if role_ids.is_empty() {
+        return map;
     }
+
+    let work_items = opc_work_items::Entity::find()
+        .filter(opc_work_items::Column::OwnerRoleId.is_in(role_ids.iter().map(|s| s.as_str())))
+        .order_by_desc(opc_work_items::Column::UpdatedAt)
+        .all(db)
+        .await
+        .unwrap_or_default();
+
+    for w in work_items {
+        if let Some(role_id) = &w.owner_role_id {
+            if role_id.is_empty() || map.contains_key(role_id) {
+                continue;
+            }
+            let status = match w.phase.as_str() {
+                "IN_PROGRESS" | "REVIEW" | "APPROVED" => FleetMemberStatus::Busy,
+                "BLOCKED" | "FAILED" => FleetMemberStatus::Error,
+                _ => FleetMemberStatus::Idle,
+            };
+            map.insert(role_id.clone(), status);
+        }
+    }
+
+    for rid in role_ids {
+        map.entry(rid.clone()).or_insert(FleetMemberStatus::Idle);
+    }
+
+    map
 }

@@ -4322,7 +4322,11 @@
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
-      "opFailed": "Operation failed: {{error}}"
+      "opFailed": "Operation failed: {{error}}",
+      "batchDelete": "Batch Delete ({{count}})",
+      "batchDeleteSuccess": "Batch delete successful",
+      "export": "Export",
+      "reset": "Reset"
     },
     "dashboard": {
       "loadFailed": "Unable to load dashboard",
@@ -4335,7 +4339,10 @@
       "quickActionsTitle": "Quick Actions",
       "manageInvoices": "Manage Invoices",
       "manageCustomers": "Manage Customers",
-      "manageProjects": "Manage Projects"
+      "manageProjects": "Manage Projects",
+      "revenueTrend": "Revenue Trend",
+      "customerDistribution": "Customer Distribution",
+      "projectDistribution": "Project Distribution"
     },
     "invoiceStatus": {
       "draft": "Draft",
@@ -4397,7 +4404,8 @@
       "actionCancel": "Cancel",
       "actionMarkPaid": "Mark Paid",
       "actionMarkOverdue": "Mark Overdue",
-      "actionRefund": "Refund"
+      "actionRefund": "Refund",
+      "filterStatus": "Filter by Status"
     },
     "customer": {
       "updated": "Customer updated",

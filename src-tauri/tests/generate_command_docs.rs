@@ -144,7 +144,7 @@ fn generate_index_document(
     let mut doc = String::new();
 
     doc.push_str("# AxAgent 命令文档\n\n");
-    doc.push_str(&format!("> 基于 `#[agent_command]` 宏自动生成\n\n"));
+    doc.push_str("> 基于 `#[agent_command]` 宏自动生成\n\n");
     doc.push_str(&format!("> **总命令数**: {}\n\n", total_count));
     doc.push_str(&format!("> **命令域数**: {}\n\n", by_domain.len()));
 
