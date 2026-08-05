@@ -461,6 +461,8 @@ macro_rules! register_all_commands {
             commands::workflows::workflow_execute,
             commands::workflows::workflow_get_status,
             commands::workflows::workflow_cancel,
+            commands::workflows::workflow_pause,
+            commands::workflows::workflow_resume,
             commands::workflows::workflow_list,
             commands::workflows::workflow_list_active_executions,
             commands::sub_agent::sub_agent_list,
@@ -766,6 +768,11 @@ macro_rules! register_all_commands {
             commands::work_engine::list_pending_approvals,
             commands::work_engine::resume_approval,
             commands::work_engine::cancel_approval,
+            // 崩溃恢复命令
+            commands::work_engine::list_paused_workflow_executions,
+            commands::work_engine::recover_workflow_execution,
+            commands::work_engine::recover_all_paused_workflow_executions,
+            commands::work_engine::cancel_all_paused_workflow_executions,
             // User Profile & Style Migration commands
             commands::user_profile::get_user_profile,
             commands::user_profile::update_user_profile,

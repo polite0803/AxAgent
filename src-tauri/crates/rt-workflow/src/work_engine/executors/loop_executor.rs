@@ -34,7 +34,7 @@ use std::sync::Arc;
 use crate::expression_engine::{ExpressionContext, resolve_loop_condition};
 use crate::work_engine::execution_state::{ExecutionState, PartialResultEvent};
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    NodeError, NodeExecutorTrait, NodeOutput, check_cancellation_or_pause, error_code,
 };
 
 /// Loop 单次迭代最大硬上限。`max_iterations` 超过此值时 clamp 到此值。
@@ -196,15 +196,8 @@ impl NodeExecutorTrait for LoopExecutor {
         let mut iter_index: u32 = cursor;
 
         while (iter_index as usize) < input_items.len() && iter_index < total {
-            // 取消：检测 cancel_token
-            if let Some(token) = &context.cancel_token
-                && token.is_cancelled()
-            {
-                return Err(NodeError::exec_failed(
-                    error_code::TIMEOUT,
-                    "Loop iteration cancelled".to_string(),
-                ));
-            }
+            // 检查取消/暂停状态（修复：节点执行中途无法打断）
+            check_cancellation_or_pause(context).await?;
 
             let item = input_items[iter_index as usize].clone();
 

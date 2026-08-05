@@ -35,6 +35,10 @@ pub struct WorkflowExecutionData {
     pub node_executions: Option<String>,
     // workflow_executions.total_time_ms 实际库列为 INTEGER(INT4)，用 i32 匹配。
     pub total_time_ms: Option<i32>,
+    /// 序列化后的 ExecutionStateSnapshot，用于崩溃后恢复
+    pub execution_state_json: Option<String>,
+    /// 暂停时间戳（毫秒），用于超时判断
+    pub paused_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }

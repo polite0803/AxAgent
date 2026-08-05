@@ -347,6 +347,17 @@ pub trait WorkflowExecutionRepository: Send + Sync {
         &self,
         workflow_id: &str,
     ) -> Result<Vec<WorkflowExecutionData>, String>;
+    /// 保存执行状态快照（暂停时调用）
+    async fn save_execution_state(
+        &self,
+        id: &str,
+        status: &str,
+        execution_state_json: &str,
+    ) -> Result<bool, String>;
+    /// 恢复时清空执行状态快照
+    async fn clear_execution_state(&self, id: &str, status: &str) -> Result<bool, String>;
+    /// 列出所有暂停状态的工作流执行（用于崩溃后恢复）
+    async fn list_paused_executions(&self) -> Result<Vec<WorkflowExecutionData>, String>;
 }
 
 pub fn set_workflow_execution_repository(repo: Arc<dyn WorkflowExecutionRepository>) {

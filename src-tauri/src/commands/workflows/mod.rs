@@ -247,6 +247,88 @@ pub async fn workflow_cancel(
     })
 }
 
+/// 暂停正在执行的工作流
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "暂停正在执行的工作流")]
+#[tauri::command]
+pub async fn workflow_pause(
+    app_state: State<'_, AppState>,
+    workflow_id: String,
+) -> Result<Value, String> {
+    let engine = &*app_state.work_engine;
+    let active = engine.list_active_executions().await;
+    let mut paused_count = 0;
+    for info in &active {
+        if info.workflow_id == workflow_id && info.status == axagent_harness::workflow_types::ExecutionStatus::Running {
+            engine.pause(&info.execution_id).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+            paused_count += 1;
+        }
+    }
+    if paused_count == 0 {
+        return Err("未找到运行中的工作流执行".to_string());
+    }
+    let workflow = engine.get_workflow(&workflow_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    match workflow {
+        Some(w) => serde_json::to_value(w).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        }),
+        None => Err(ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND)),
+    }
+}
+
+/// 恢复已暂停的工作流
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "恢复已暂停的工作流")]
+#[tauri::command]
+pub async fn workflow_resume(
+    app_state: State<'_, AppState>,
+    workflow_id: String,
+) -> Result<Value, String> {
+    let engine = &*app_state.work_engine;
+    let active = engine.list_active_executions().await;
+    let mut resumed_count = 0;
+    for info in &active {
+        if info.workflow_id == workflow_id && info.status == axagent_harness::workflow_types::ExecutionStatus::Paused {
+            engine.resume(&info.execution_id).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+            resumed_count += 1;
+        }
+    }
+    if resumed_count == 0 {
+        return Err("未找到暂停中的工作流执行".to_string());
+    }
+    let workflow = engine.get_workflow(&workflow_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    match workflow {
+        Some(w) => serde_json::to_value(w).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        }),
+        None => Err(ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND)),
+    }
+}
+
 /// 列出所有工作流
 #[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "列出所有工作流")]
 #[tauri::command]

@@ -1,7 +1,7 @@
 import { invoke } from "@/lib/invoke";
 import type { ExecutionStatusResponse, ExecutionSummary } from "@/types";
 import { Badge, Button, Card, Empty, Spin, Tag, Timeline } from "antd";
-import { CheckCircle, Clock, Loader, Play, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle, Clock, Loader, RefreshCw, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,7 +19,7 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   completed: <CheckCircle size={14} />,
   running: <Loader size={14} className="animate-spin" />,
   pending: <Clock size={14} />,
-  ready: <Play size={14} />,
+  ready: <Loader size={14} />,
   failed: <XCircle size={14} />,
   skipped: <Clock size={14} />,
   paused: <Clock size={14} />,

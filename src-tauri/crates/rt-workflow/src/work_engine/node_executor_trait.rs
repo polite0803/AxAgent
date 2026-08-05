@@ -3,7 +3,7 @@
 //! Node executor trait and related types
 
 use async_trait::async_trait;
-use axagent_harness::workflow_types::WorkflowNode;
+use axagent_harness::workflow_types::{ExecutionStatus, WorkflowNode};
 use serde::{Deserialize, Serialize};
 
 /// Output from a node execution
@@ -56,7 +56,6 @@ pub mod error_code {
     pub const VECTOR_NOT_CONFIGURED: &str = "VECTOR_NOT_CONFIGURED";
     pub const VARIABLE_NOT_FOUND: &str = "VARIABLE_NOT_FOUND";
     pub const VALIDATION_FAILED: &str = "VALIDATION_FAILED";
-    /// 节点执行被 PermissionEnforcer 拒绝(对应 harness::error_codes::security::SECURITY_TOOL_ACCESS_DENIED 语义)
     pub const PERMISSION_DENIED: &str = "PERMISSION_DENIED";
     pub const TIMEOUT: &str = "TIMEOUT";
     pub const CIRCUIT_BREAKER_OPEN: &str = "CIRCUIT_BREAKER_OPEN";
@@ -66,6 +65,7 @@ pub mod error_code {
     pub const CACHE_DESERIALIZE_FAILED: &str = "CACHE_DESERIALIZE_FAILED";
     pub const MODEL_NOT_CONFIGURED: &str = "MODEL_NOT_CONFIGURED";
     pub const NODE_NOT_FOUND: &str = "NODE_NOT_FOUND";
+    pub const EXECUTION_CANCELLED: &str = "EXECUTION_CANCELLED";
 }
 
 /// Error types for node execution
@@ -117,6 +117,7 @@ impl NodeError {
             Self::VariableNotFound(_) => error_code::VARIABLE_NOT_FOUND,
             Self::Validation(_) => error_code::VALIDATION_FAILED,
             Self::Io(_) => error_code::IO_ERROR,
+            // EXECUTION_CANCELLED 通过 ExecutionFailed 变体传递
         }
     }
 }
@@ -131,6 +132,65 @@ impl From<NodeError> for serde_json::Value {
 }
 
 // ── Trait ──
+
+/// 检查执行是否被取消或暂停。
+///
+/// 所有执行器在长时间运行的循环/操作前应调用此函数，以支持：
+/// 1. 硬取消（cancel_token 被触发时立即中止）
+/// 2. 软暂停（status == Paused 时挂起等待恢复信号）
+///
+/// # 返回值
+/// - `Ok(())`: 可以继续执行
+/// - `Err(NodeError)`: 应中止执行
+pub async fn check_cancellation_or_pause(context: &super::ExecutionState) -> Result<(), NodeError> {
+    // 1. 检查硬取消
+    if let Some(ref token) = context.cancel_token
+        && token.is_cancelled()
+    {
+        return Err(NodeError::exec_failed(error_code::EXECUTION_CANCELLED, "节点执行已取消"));
+    }
+
+    // 2. 检查软暂停（循环等待恢复信号，同时定期检查取消状态）
+    // 注意：context.status 由外部恢复操作修改，此处通过 pause_signal 通知
+    // 不直接修改 status 字段
+    loop {
+        // 先检查是否已暂停
+        if context.status != ExecutionStatus::Paused {
+            break;
+        }
+
+        // 尝试获取暂停信号并等待
+        if let Some(signal) = context.pause_signal() {
+            tokio::select! {
+                _ = signal.notified() => {
+                    // 恢复信号触发，跳出循环继续执行
+                    tracing::debug!(
+                        "[check_cancellation_or_pause] 暂停状态已恢复，继续执行"
+                    );
+                    break;
+                }
+                // 每 500ms 检查一次取消状态
+                _ = tokio::time::sleep(tokio::time::Duration::from_millis(500)) => {
+                    if let Some(ref token) = context.cancel_token
+                        && token.is_cancelled()
+                    {
+                        return Err(NodeError::exec_failed(
+                            error_code::EXECUTION_CANCELLED,
+                            "节点执行已取消（暂停期间检测到取消）",
+                        ));
+                    }
+                    // 继续循环等待
+                    continue;
+                }
+            }
+        } else {
+            // 没有暂停信号但状态是 Paused，直接跳出
+            break;
+        }
+    }
+
+    Ok(())
+}
 
 #[async_trait]
 pub trait NodeExecutorTrait: Send + Sync {

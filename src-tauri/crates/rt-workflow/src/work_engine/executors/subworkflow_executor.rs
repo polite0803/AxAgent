@@ -8,7 +8,7 @@
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    NodeError, NodeExecutorTrait, NodeOutput, check_cancellation_or_pause, error_code,
 };
 use async_trait::async_trait;
 use axagent_harness::workflow_types::{SubWorkflowNode, WorkflowNode};
@@ -149,6 +149,9 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         node: &WorkflowNode,
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
+        // 执行前检查取消/暂停状态
+        check_cancellation_or_pause(context).await?;
+
         let sub_node = match node {
             WorkflowNode::SubWorkflow(s) => s,
             _ => {

@@ -838,6 +838,11 @@
       "toolOutput": "執行結果",
       "tools": "工具"
     },
+    "branchTree": {
+      "title": "分支樹",
+      "branchCount": "{{count}} 個分支",
+      "noBranches": "當前會話無分支"
+    },
     "knowledgeRetrieval": {
       "error": "知識庫檢索失敗",
       "feedbackIrrelevant": "無關",
@@ -1126,6 +1131,12 @@
       "cancel": "取消",
       "cancelFailed": "取消失敗",
       "cancelled": "已取消",
+      "pause": "暫停",
+      "pauseFailed": "暫停失敗",
+      "paused": "已暫停",
+      "resume": "恢復",
+      "resumeFailed": "恢復失敗",
+      "resumed": "已恢復",
       "chart": {
         "renderError": "圖表渲染錯誤"
       },
@@ -1205,6 +1216,7 @@
         "created": "已建立",
         "failed": "已失敗",
         "partiallyCompleted": "部分完成",
+        "paused": "已暫停",
         "running": "執行中",
         "strategyOverwrite": "覆寫（全部取代）",
         "strategyMerge": "合併（保留現有）",

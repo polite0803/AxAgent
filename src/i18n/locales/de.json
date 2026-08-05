@@ -837,6 +837,11 @@
       "toolOutput": "Ausgabe",
       "tools": "Werkzeuge"
     },
+    "branchTree": {
+      "title": "Branch-Baum",
+      "branchCount": "{{count}} Branches",
+      "noBranches": "Keine Branches in der aktuellen Konversation"
+    },
     "knowledgeRetrieval": {
       "error": "Wissensdatenbanksuche fehlgeschlagen",
       "feedbackIrrelevant": "Irrelevant",
@@ -1121,6 +1126,12 @@
       "cancel": "Abbrechen",
       "cancelFailed": "Abbrechen fehlgeschlagen",
       "cancelled": "Abgebrochen",
+      "pause": "Pause",
+      "pauseFailed": "Pause fehlgeschlagen",
+      "paused": "Pausiert",
+      "resume": "Fortsetzen",
+      "resumeFailed": "Fortsetzen fehlgeschlagen",
+      "resumed": "Fortgesetzt",
       "chart": {
         "renderError": "Diagramm-Renderfehler"
       },
@@ -1200,6 +1211,7 @@
         "created": "Erstellt",
         "failed": "Fehlgeschlagen",
         "partiallyCompleted": "Teilweise abgeschlossen",
+        "paused": "Pausiert",
         "running": "Läuft",
         "strategyOverwrite": "Überschreiben (alles ersetzen)",
         "strategyMerge": "Zusammenführen (vorhandene behalten)",

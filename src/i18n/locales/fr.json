@@ -837,6 +837,11 @@
       "toolOutput": "Sortie",
       "tools": "Outils"
     },
+    "branchTree": {
+      "title": "Arbre de branches",
+      "branchCount": "{{count}} branches",
+      "noBranches": "Aucune branche dans la conversation actuelle"
+    },
     "knowledgeRetrieval": {
       "error": "Échec de la recherche dans la base de connaissances",
       "feedbackIrrelevant": "Sans rapport",
@@ -1121,6 +1126,12 @@
       "cancel": "Annuler",
       "cancelFailed": "Échec de l’annulation",
       "cancelled": "Annulé",
+      "pause": "Pause",
+      "pauseFailed": "Échec de la pause",
+      "paused": "En pause",
+      "resume": "Reprendre",
+      "resumeFailed": "Échec de la reprise",
+      "resumed": "Repris",
       "chart": {
         "renderError": "Erreur de rendu du graphique"
       },
@@ -1200,6 +1211,7 @@
         "created": "Créé",
         "failed": "Échoué",
         "partiallyCompleted": "Partiellement terminé",
+        "paused": "En pause",
         "running": "En cours",
         "strategyOverwrite": "Écraser (remplacer tout)",
         "strategyMerge": "Fusionner (conserver existant)",

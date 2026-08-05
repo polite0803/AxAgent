@@ -837,6 +837,11 @@
       "toolOutput": "Вывод",
       "tools": "Инструменты"
     },
+    "branchTree": {
+      "title": "Дерево веток",
+      "branchCount": "{{count}} веток",
+      "noBranches": "В текущем разговоре нет веток"
+    },
     "knowledgeRetrieval": {
       "error": "Ошибка поиска в базе знаний",
       "feedbackIrrelevant": "Не по теме",
@@ -1121,6 +1126,12 @@
       "cancel": "Отмена",
       "cancelFailed": "Не удалось отменить",
       "cancelled": "Отменено",
+      "pause": "Приостановить",
+      "pauseFailed": "Ошибка приостановки",
+      "paused": "Приостановлено",
+      "resume": "Возобновить",
+      "resumeFailed": "Ошибка возобновления",
+      "resumed": "Возобновлено",
       "chart": {
         "renderError": "Ошибка отрисовки диаграммы"
       },
@@ -1200,6 +1211,7 @@
         "created": "Создано",
         "failed": "Не удалось",
         "partiallyCompleted": "Частично завершено",
+        "paused": "Приостановлено",
         "running": "Выполняется",
         "strategyOverwrite": "Перезаписать (заменить все)",
         "strategyMerge": "Объединить (сохранить существующее)",

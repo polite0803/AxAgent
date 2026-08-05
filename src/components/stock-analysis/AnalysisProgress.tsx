@@ -1,6 +1,8 @@
+import { invoke } from "@/lib/invoke";
 import { useStockAnalysisStore } from "@/stores";
-import { Button, Progress, Steps, Tag } from "antd";
-import { useMemo } from "react";
+import { Button, message, Progress, Steps, Tag } from "antd";
+import { Pause, Play } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const STAGES = [
@@ -41,6 +43,10 @@ export function AnalysisProgress() {
   const progressPct = useStockAnalysisStore((s) => s.progressPct);
   const dataWarnings = useStockAnalysisStore((s) => s.dataWarnings);
   const startAnalysis = useStockAnalysisStore((s) => s.startAnalysis);
+  const workflowId = useStockAnalysisStore((s) => s.workflowId);
+  const [pausing, setPausing] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [localPaused, setLocalPaused] = useState(false);
 
   // Hooks 必须在 early return 之前 — 保持顺序稳定
   const subProgress = useMemo(() => {
@@ -68,6 +74,43 @@ export function AnalysisProgress() {
         return null;
     }
   }, [status, currentStage, analystReports, debateRounds, riskAssessments, t]);
+
+  const handlePause = useCallback(async () => {
+    if (!workflowId) { return; }
+    setPausing(true);
+    try {
+      await invoke("workflow_pause", { workflowId });
+      message.success(t("chat.workflow.paused"));
+      setLocalPaused(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      message.error(t("chat.workflow.pauseFailed") + ": " + msg);
+    } finally {
+      setPausing(false);
+    }
+  }, [workflowId, t]);
+
+  const handleResume = useCallback(async () => {
+    if (!workflowId) { return; }
+    setResuming(true);
+    try {
+      await invoke("workflow_resume", { workflowId });
+      message.success(t("chat.workflow.resumed"));
+      setLocalPaused(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      message.error(t("chat.workflow.resumeFailed") + ": " + msg);
+    } finally {
+      setResuming(false);
+    }
+  }, [workflowId, t]);
+
+  // 工作流状态变化时重置暂停状态
+  useEffect(() => {
+    if (status !== "running" && status !== "loading") {
+      setLocalPaused(false);
+    }
+  }, [status]);
 
   if (status === "idle") { return null; }
 
@@ -160,6 +203,34 @@ export function AnalysisProgress() {
       {/* 进度条 */}
       {(status === "running" || status === "loading") && progressPct > 0 && (
         <Progress percent={progressPct} size="small" showInfo={false} className="mt-1" strokeColor="var(--accent)" />
+      )}
+
+      {/* 暂停/恢复按钮 */}
+      {(status === "running" || status === "loading") && !localPaused && (
+        <div className="mt-2 flex items-center gap-1">
+          <Button
+            size="small"
+            icon={<Pause size={12} />}
+            loading={pausing}
+            onClick={handlePause}
+            className="text-xs text-amber-500 hover:text-amber-600"
+          >
+            {t("chat.workflow.pause")}
+          </Button>
+        </div>
+      )}
+      {localPaused && (
+        <div className="mt-2 flex items-center gap-1">
+          <Button
+            size="small"
+            icon={<Play size={12} />}
+            loading={resuming}
+            onClick={handleResume}
+            className="text-xs text-green-500 hover:text-green-600"
+          >
+            {t("chat.workflow.resume")}
+          </Button>
+        </div>
       )}
     </div>
   );

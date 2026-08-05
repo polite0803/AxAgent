@@ -838,6 +838,11 @@
       "toolOutput": "Output",
       "tools": "Tools"
     },
+    "branchTree": {
+      "title": "Branch Tree",
+      "branchCount": "{{count}} branches",
+      "noBranches": "No branches in current conversation"
+    },
     "knowledgeRetrieval": {
       "error": "Knowledge base search failed",
       "feedbackIrrelevant": "Irrelevant",
@@ -1126,6 +1131,12 @@
       "cancel": "Cancel",
       "cancelFailed": "Cancel failed",
       "cancelled": "Cancelled",
+      "pause": "Pause",
+      "pauseFailed": "Pause failed",
+      "paused": "Paused",
+      "resume": "Resume",
+      "resumeFailed": "Resume failed",
+      "resumed": "Resumed",
       "chart": {
         "renderError": "Chart render error"
       },
@@ -1205,6 +1216,7 @@
         "created": "Created",
         "failed": "Failed",
         "partiallyCompleted": "Partially Completed",
+        "paused": "Paused",
         "running": "Running",
         "strategyOverwrite": "Overwrite (replace all)",
         "strategyMerge": "Merge (keep existing)",

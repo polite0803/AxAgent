@@ -17,6 +17,10 @@ pub struct Model {
     // 实际为 INTEGER，用 i64 会在 PG 上触发 INT8→INT4 解码失败。按"实体适配
     // 库列"纪律改用 i32（INT4）。若日后重建库使列变回 BIGINT，需同步改回 i64。
     pub total_time_ms: Option<i32>,
+    /// 序列化后的 ExecutionStateSnapshot，用于崩溃后恢复
+    pub execution_state_json: Option<String>,
+    /// 暂停时间戳（毫秒），用于超时判断
+    pub paused_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }

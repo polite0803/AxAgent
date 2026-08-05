@@ -837,6 +837,11 @@
       "toolOutput": "المخرجات",
       "tools": "الأدوات"
     },
+    "branchTree": {
+      "title": "شجرة الفروع",
+      "branchCount": "{{count}} فروع",
+      "noBranches": "لا توجد فروع في المحادثة الحالية"
+    },
     "knowledgeRetrieval": {
       "error": "فشل البحث في قاعدة المعرفة",
       "feedbackIrrelevant": "غير ذي صلة",
@@ -1121,6 +1126,12 @@
       "cancel": "إلغاء",
       "cancelFailed": "فشل الإلغاء",
       "cancelled": "ملغى",
+      "pause": "إيقاف مؤقت",
+      "pauseFailed": "فشل الإيقاف المؤقت",
+      "paused": "متوقف",
+      "resume": "استئناف",
+      "resumeFailed": "فشل الاستئناف",
+      "resumed": "تم الاستئناف",
       "chart": {
         "renderError": "خطأ في عرض المخطط"
       },
@@ -1200,6 +1211,7 @@
         "created": "تم الإنشاء",
         "failed": "فشل",
         "partiallyCompleted": "مكتمل جزئياً",
+        "paused": "متوقف",
         "running": "قيد التشغيل",
         "strategyOverwrite": "استبدال (استبدال الكل)",
         "strategyMerge": "دمج (الاحتفاظ بالموجود)",

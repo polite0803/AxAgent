@@ -768,3 +768,81 @@ pub async fn cancel_approval(
 
     Ok(true)
 }
+
+// ── 崩溃恢复命令 ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PausedExecutionInfo {
+    pub execution_id: String,
+    pub workflow_id: String,
+    pub snapshot: serde_json::Value,
+}
+
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "列出所有暂停状态的工作流执行（用于崩溃后恢复）")]
+#[tauri::command]
+pub async fn list_paused_workflow_executions(
+    state: State<'_, AppState>,
+) -> Result<Vec<PausedExecutionInfo>, String> {
+    let engine = &*state.work_engine;
+    let records = engine.list_paused_executions().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(records
+        .into_iter()
+        .map(|(execution_id, workflow_id, snapshot)| PausedExecutionInfo {
+            execution_id,
+            workflow_id,
+            snapshot,
+        })
+        .collect())
+}
+
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "从快照恢复指定的暂停工作流执行")]
+#[tauri::command]
+pub async fn recover_workflow_execution(
+    state: State<'_, AppState>,
+    execution_id: String,
+) -> Result<bool, String> {
+    let engine = &*state.work_engine;
+    engine.recover_execution(&execution_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(true)
+}
+
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "批量恢复所有暂停状态的工作流执行")]
+#[tauri::command]
+pub async fn recover_all_paused_workflow_executions(
+    state: State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    let engine = &*state.work_engine;
+    let recovered = engine.recover_all_paused_executions().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(recovered)
+}
+
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "取消所有暂停的工作流执行（放弃恢复）")]
+#[tauri::command]
+pub async fn cancel_all_paused_workflow_executions(
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let engine = &*state.work_engine;
+    engine.cancel_all_paused_executions().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(true)
+}

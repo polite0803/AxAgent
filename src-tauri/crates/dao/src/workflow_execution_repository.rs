@@ -67,6 +67,52 @@ impl WorkflowExecutionRepository for DaoWorkflowExecutionRepository {
                 input_params: m.input_params,
                 output_result: m.output_result,
                 node_executions: m.node_executions,
+                execution_state_json: m.execution_state_json,
+                paused_at: m.paused_at,
+                total_time_ms: m.total_time_ms,
+                created_at: m.created_at,
+                updated_at: m.updated_at,
+            })
+            .collect())
+    }
+
+    async fn save_execution_state(
+        &self,
+        id: &str,
+        status: &str,
+        execution_state_json: &str,
+    ) -> Result<bool, String> {
+        crate::repo::workflow_execution::save_execution_state(
+            &self.db,
+            id,
+            status,
+            execution_state_json,
+        )
+        .await
+        .map_err(|e| e.to_string())
+    }
+
+    async fn clear_execution_state(&self, id: &str, status: &str) -> Result<bool, String> {
+        crate::repo::workflow_execution::clear_execution_state(&self.db, id, status)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    async fn list_paused_executions(&self) -> Result<Vec<WorkflowExecutionData>, String> {
+        let models = crate::repo::workflow_execution::list_paused_executions(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(models
+            .into_iter()
+            .map(|m| WorkflowExecutionData {
+                id: m.id,
+                workflow_id: m.workflow_id,
+                status: m.status,
+                input_params: m.input_params,
+                output_result: m.output_result,
+                node_executions: m.node_executions,
+                execution_state_json: m.execution_state_json,
+                paused_at: m.paused_at,
                 total_time_ms: m.total_time_ms,
                 created_at: m.created_at,
                 updated_at: m.updated_at,

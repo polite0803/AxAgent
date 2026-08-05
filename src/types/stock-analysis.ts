@@ -369,7 +369,7 @@ export interface AnalysisEvent {
   payload: Record<string, unknown>;
 }
 
-export type AnalysisStatus = "idle" | "loading" | "running" | "completed" | "error" | "cancelled";
+export type AnalysisStatus = "idle" | "loading" | "running" | "paused" | "completed" | "error" | "cancelled";
 
 // ── 回测类型 ──
 

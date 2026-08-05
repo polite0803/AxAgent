@@ -4,6 +4,12 @@ import { create } from "zustand";
 import { invoke, listen } from "../../lib/invoke";
 import type { ExecutionStatus, ExecutionStatusResponse, ExecutionSummary, NodeExecutionRecord } from "../../types";
 
+export interface PausedExecutionInfo {
+  execution_id: string;
+  workflow_id: string;
+  snapshot: Record<string, unknown>;
+}
+
 interface WorkEngineState {
   executionId: string | null;
   status: ExecutionStatusResponse | null;
@@ -40,6 +46,12 @@ interface WorkEngineState {
   viewExecution: (executionId: string) => Promise<void>;
   resetDebug: () => void;
   setupEventListeners: () => Promise<() => void>;
+
+  // 崩溃恢复
+  listPausedExecutions: () => Promise<PausedExecutionInfo[]>;
+  recoverExecution: (executionId: string) => Promise<void>;
+  recoverAllPausedExecutions: () => Promise<string[]>;
+  cancelAllPausedExecutions: () => Promise<void>;
 }
 
 export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
@@ -124,6 +136,44 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
     } catch (e) {
       console.error("[workEngine] cancel failed:", String(e));
       set({ isDebugRunning: false });
+      throw e;
+    }
+  },
+
+  // ── 崩溃恢复方法 ──
+
+  listPausedExecutions: async () => {
+    try {
+      return await invoke<PausedExecutionInfo[]>("list_paused_workflow_executions");
+    } catch (e) {
+      console.error("[workEngine] listPausedExecutions failed:", String(e));
+      return [];
+    }
+  },
+
+  recoverExecution: async (executionId: string) => {
+    try {
+      await invoke<boolean>("recover_workflow_execution", { executionId });
+    } catch (e) {
+      console.error("[workEngine] recoverExecution failed:", String(e));
+      throw e;
+    }
+  },
+
+  recoverAllPausedExecutions: async () => {
+    try {
+      return await invoke<string[]>("recover_all_paused_workflow_executions");
+    } catch (e) {
+      console.error("[workEngine] recoverAllPausedExecutions failed:", String(e));
+      return [];
+    }
+  },
+
+  cancelAllPausedExecutions: async () => {
+    try {
+      await invoke<boolean>("cancel_all_paused_workflow_executions");
+    } catch (e) {
+      console.error("[workEngine] cancelAllPausedExecutions failed:", String(e));
       throw e;
     }
   },

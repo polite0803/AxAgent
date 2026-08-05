@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { invoke } from "@/lib/invoke";
 import { listen } from "@/lib/invoke";
 import { usePipelineStore } from "@/stores";
 import type { PipelineRun, PipelineStepEvent } from "@/types";
-import { Button, Card, Col, Empty, Row, Statistic, Table, Tag, Typography } from "antd";
+import { Button, Card, Col, Empty, message, Row, Statistic, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useEffect, useMemo } from "react";
+import { Pause, Play } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const STATUS_TAG_COLOR: Record<string, string> = {
@@ -32,6 +34,39 @@ function PipelinePageInner() {
   const runPipeline = usePipelineStore((s) => s.runPipeline);
   const clearStepEvents = usePipelineStore((s) => s.clearStepEvents);
   const addStepEvent = usePipelineStore((s) => s.addStepEvent);
+  const [pausing, setPausing] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const WORKFLOW_ID = "stock-analysis";
+
+  const handlePause = useCallback(async () => {
+    setPausing(true);
+    try {
+      await invoke("workflow_pause", { workflowId: WORKFLOW_ID });
+      message.success(t("chat.workflow.paused"));
+      setIsPaused(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      message.error(t("chat.workflow.pauseFailed") + ": " + msg);
+    } finally {
+      setPausing(false);
+    }
+  }, [t]);
+
+  const handleResume = useCallback(async () => {
+    setResuming(true);
+    try {
+      await invoke("workflow_resume", { workflowId: WORKFLOW_ID });
+      message.success(t("chat.workflow.resumed"));
+      setIsPaused(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      message.error(t("chat.workflow.resumeFailed") + ": " + msg);
+    } finally {
+      setResuming(false);
+    }
+  }, [t]);
 
   useEffect(() => {
     fetchHistory();
@@ -45,6 +80,7 @@ function PipelinePageInner() {
 
   const handleRun = async () => {
     clearStepEvents();
+    setIsPaused(false);
     try {
       await runPipeline();
     } catch (e) {
@@ -116,13 +152,36 @@ function PipelinePageInner() {
             <Card
               title={t("pipeline.title")}
               extra={
-                <Button
-                  type="primary"
-                  loading={isRunning}
-                  onClick={handleRun}
-                >
-                  {isRunning ? t("pipeline.running") : t("pipeline.runNow")}
-                </Button>
+                <div className="flex items-center gap-1">
+                  {isRunning && (
+                    <Button
+                      size="small"
+                      icon={<Pause size={12} />}
+                      loading={pausing}
+                      onClick={handlePause}
+                    >
+                      {t("chat.workflow.pause")}
+                    </Button>
+                  )}
+                  {isPaused && (
+                    <Button
+                      size="small"
+                      icon={<Play size={12} />}
+                      loading={resuming}
+                      onClick={handleResume}
+                      className="text-green-500"
+                    >
+                      {t("chat.workflow.resume")}
+                    </Button>
+                  )}
+                  <Button
+                    type="primary"
+                    loading={isRunning}
+                    onClick={handleRun}
+                  >
+                    {isRunning ? t("pipeline.running") : t("pipeline.runNow")}
+                  </Button>
+                </div>
               }
             >
               <Typography.Text type="secondary">

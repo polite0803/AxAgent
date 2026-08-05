@@ -837,6 +837,11 @@
       "toolOutput": "出力",
       "tools": "ツール"
     },
+    "branchTree": {
+      "title": "ブランチツリー",
+      "branchCount": "{{count}} 個のブランチ",
+      "noBranches": "現在の会話にブランチはありません"
+    },
     "knowledgeRetrieval": {
       "error": "ナレッジベース検索に失敗しました",
       "feedbackIrrelevant": "無関係",
@@ -1121,6 +1126,12 @@
       "cancel": "キャンセル",
       "cancelFailed": "キャンセルに失敗しました",
       "cancelled": "キャンセル済み",
+      "pause": "一時停止",
+      "pauseFailed": "一時停止に失敗しました",
+      "paused": "一時停止中",
+      "resume": "再開",
+      "resumeFailed": "再開に失敗しました",
+      "resumed": "再開しました",
       "chart": {
         "renderError": "チャートのレンダリングエラー"
       },
@@ -1200,6 +1211,7 @@
         "created": "作成済み",
         "failed": "失敗",
         "partiallyCompleted": "部分完了",
+        "paused": "一時停止中",
         "running": "実行中",
         "strategyOverwrite": "上書き（すべて置換）",
         "strategyMerge": "マージ（既存を保持）",

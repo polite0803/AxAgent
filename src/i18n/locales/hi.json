@@ -837,6 +837,11 @@
       "toolOutput": "आउटपुट",
       "tools": "टूल"
     },
+    "branchTree": {
+      "title": "शाखा वृक्ष",
+      "branchCount": "{{count}} शाखाएँ",
+      "noBranches": "वर्तमान बातचीत में कोई शाखा नहीं है"
+    },
     "knowledgeRetrieval": {
       "error": "ज्ञान आधार खोज विफल",
       "feedbackIrrelevant": "असंबंधित",
@@ -1121,6 +1126,12 @@
       "cancel": "रद्द करें",
       "cancelFailed": "रद्द करने में विफल",
       "cancelled": "रद्द किया गया",
+      "pause": "रोकें",
+      "pauseFailed": "रोकने में विफल",
+      "paused": "रुका हुआ",
+      "resume": "जारी रखें",
+      "resumeFailed": "जारी रखने में विफल",
+      "resumed": "जारी रखा गया",
       "chart": {
         "renderError": "चार्ट रेंडर त्रुटि"
       },
@@ -1200,6 +1211,7 @@
         "created": "बनाया गया",
         "failed": "विफल",
         "partiallyCompleted": "आंशिक रूप से पूर्ण",
+        "paused": "रुका हुआ",
         "running": "चल रहा है",
         "strategyOverwrite": "अधिलेखित करें (सब बदलें)",
         "strategyMerge": "मर्ज करें (मौजूदा रखें)",

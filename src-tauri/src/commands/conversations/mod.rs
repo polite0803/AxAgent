@@ -1332,6 +1332,8 @@ pub async fn archive_workflow_session(
                     })
                     .to_string(),
                 )),
+                execution_state_json: Set(None),
+                paused_at: Set(None),
                 total_time_ms: Set(None),
                 created_at: Set(axagent_kit::utils::now_ts()),
                 updated_at: Set(axagent_kit::utils::now_ts()),

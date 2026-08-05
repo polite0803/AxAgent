@@ -2,9 +2,11 @@
 
 import { useArtifactStore, useConversationStore } from "@/stores";
 import { Descriptions, Empty, Tabs, Tag, theme, Typography } from "antd";
-import { FileText, Info, Paperclip, Search, Wrench } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { FileText, GitBranch, Info, Paperclip, Search, Wrench } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { BranchTree } from "./BranchTree";
 
 interface ChatInspectorProps {
   visible: boolean;
@@ -52,6 +54,14 @@ export function ChatInspector({
   const workspaceSnapshot = useConversationStore((s) => s.workspaceSnapshot);
   const messages = useConversationStore((s) => s.messages);
   const { artifacts } = useArtifactStore();
+
+  const branches = workspaceSnapshot?.branches ?? [];
+  const activeBranchId = workspaceSnapshot?.activeBranchId ?? null;
+
+  const handleSelectBranch = useCallback((branchId: string | null) => {
+    // TODO: 实现分支切换逻辑，需要调用 switch_branch 或重新加载会话
+    console.log("Switch to branch:", branchId);
+  }, []);
 
   const contextSources = useMemo(() => {
     if (!workspaceSnapshot) {
@@ -245,6 +255,21 @@ export function ChatInspector({
             />
           ),
       },
+      {
+        key: "branches",
+        label: t("chat.branchTree.title"),
+        icon: <GitBranch size={14} />,
+        children: conversationId
+          ? (
+            <BranchTree
+              conversationId={conversationId}
+              branches={branches}
+              activeBranchId={activeBranchId}
+              onSelectBranch={handleSelectBranch}
+            />
+          )
+          : <Empty description={t("common.noData")} style={{ marginTop: 48 }} />,
+      },
     ],
     [
       t,
@@ -258,6 +283,9 @@ export function ChatInspector({
       convMessageCount,
       conversationCreatedFormatted,
       conversationArtifacts,
+      branches,
+      activeBranchId,
+      handleSelectBranch,
     ],
   );
 
