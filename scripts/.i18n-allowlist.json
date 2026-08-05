@@ -1,8 +1,8 @@
 {
   "version": "2",
-  "generated": "2026-08-03",
-  "total_entries": 514,
-  "total_files": 514,
+  "generated": "2026-08-06",
+  "total_entries": 516,
+  "total_files": 516,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -3086,6 +3086,18 @@
       "file": "src/types/workflow.ts",
       "lines": "2,4,7,19,28,42,49,57,71,74,84,97,106,115,125,133,136,143,166,173,183,186,193,200,209",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/browserMock.ts",
+      "lines": "2193,3356,3376,3396,3416,3436,3456,3476,3496,3516,3517,4495,4497,4503,4521,4589,4591,4617,4639,4642,4643,4644,4647,4648,4649,4652,4653,4654",
+      "reason": "浏览器模式 mock 数据（工作流名称/描述/systemPrompt，非 UI 文本）",
+      "phase": 3
+    },
+    {
+      "file": "src/pages/PipelinePage/PipelinePage.tsx",
+      "lines": "87",
+      "reason": "开发日志 (console.error)",
       "phase": 3
     }
   ]
