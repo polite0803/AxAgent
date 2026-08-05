@@ -485,7 +485,6 @@ impl ExecutionStateSnapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn make_test_state() -> ExecutionState {
         let mut state = ExecutionState::new(
