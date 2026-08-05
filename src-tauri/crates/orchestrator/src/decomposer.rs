@@ -575,8 +575,8 @@ mod tests {
         let plan = decomposer
             .decompose("Refactor database layer", OrchestrationStrategy::Ordered)
             .unwrap();
-        assert_eq!(plan.sub_tasks.len(), 4);
-        assert!(plan.sub_tasks.iter().any(|t| t.id == "verify"));
+        assert_eq!(plan.sub_tasks.len(), 9);
+        assert!(plan.sub_tasks.iter().any(|t| t.id == "quality_gate"));
     }
 
     #[test]
