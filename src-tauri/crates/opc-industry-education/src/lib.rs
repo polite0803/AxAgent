@@ -88,17 +88,17 @@ impl OpcIndustryAdapter for EducationAdapter {
 
         match entity_type {
             "student" => {
-                if let Some(age) = entity_data.get("age").and_then(|v| v.as_i64()) {
-                    if age < 5 {
-                        errors.push(ValidationError::field("age", "学员年龄必须大于等于 5 岁"));
-                    }
+                if let Some(age) = entity_data.get("age").and_then(|v| v.as_i64())
+                    && age < 5
+                {
+                    errors.push(ValidationError::field("age", "学员年龄必须大于等于 5 岁"));
                 }
             },
             "course" => {
-                if let Some(duration) = entity_data.get("duration").and_then(|v| v.as_f64()) {
-                    if duration <= 0.0 {
-                        errors.push(ValidationError::field("duration", "课程时长必须大于 0"));
-                    }
+                if let Some(duration) = entity_data.get("duration").and_then(|v| v.as_f64())
+                    && duration <= 0.0
+                {
+                    errors.push(ValidationError::field("duration", "课程时长必须大于 0"));
                 }
             },
             _ => {},

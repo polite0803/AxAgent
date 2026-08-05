@@ -4260,6 +4260,14 @@
           "wf-sd-3": {
             "name": "Performance Opt",
             "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "Refactoring à Grande Échelle",
+            "description": "Inventaire des actifs → Analyse des odeurs de code → Stratégie de refactoring → Exécution par lots → Livraison d'acceptation"
+          },
+          "wf-large-refactor-lite": {
+            "name": "Refactoring Incrémental Rapide",
+            "description": "Évaluation → Plan Minimal → Exécution → Vérification"
           }
         },
         "finance-invest": {
@@ -4409,6 +4417,14 @@
           "sd-bug": {
             "label": "Bug Analysis",
             "description": "Quickly locate and resolve technical issues"
+          },
+          "sd-large-refactor": {
+            "label": "Refactoring à Grande Échelle",
+            "description": "Refactoring systématique de bases de code à million de lignes avec exécution par lots et vérification incrémentale"
+          },
+          "sd-large-refactor-lite": {
+            "label": "Refactoring Incrémental Rapide",
+            "description": "Fast-track pour les changements post-refactoring avec injection minimale pour ajustements d'architecture et ajouts de fonctionnalités"
           }
         },
         "finance-invest": {
@@ -4863,6 +4879,39 @@
       "webFetch": "Récupération Web",
       "webSearch": "Recherche Web"
     }
+  },
+  "agentActivity": {
+    "title": "Flux d'activité Agent",
+    "activityLog": "Journal d'activité",
+    "status": {
+      "idle": "Inactif",
+      "running": "En cours",
+      "waitingApproval": "En attente d'approbation",
+      "completed": "Terminé",
+      "error": "Erreur"
+    },
+    "eventType": {
+      "stepStarted": "Étape démarrée",
+      "stepCompleted": "Étape terminée",
+      "stepFailed": "Étape échouée",
+      "agentStatusChange": "Changement d'état",
+      "toolInvocation": "Invocation d'outil",
+      "userInteraction": "Interaction utilisateur",
+      "milestoneReached": "Jaloon",
+      "approvalRequired": "Approbation requise",
+      "feedbackCollected": "Retour collecté"
+    },
+    "filter": {
+      "all": "Tout",
+      "running": "En cours",
+      "waiting": "En attente",
+      "completed": "Terminés"
+    },
+    "emptyState": {
+      "noActivity": "Aucune activité",
+      "noFilteredActivity": "Aucune activité pour cet agent"
+    },
+    "stepLabel": "Étape"
   },
   "promptTemplate": {
     "unnamed": "Sans nom"

@@ -1283,6 +1283,8 @@ commands::opc_industry_actions::opc_reflect_on_workflow,
 commands::opc_industry_actions::opc_run_self_improvement,
 commands::opc_industry_actions::opc_trigger_industry_learning,
 commands::opc_industry_actions::opc_trigger_rl_optimization,
+// opc_learning_hook
+commands::opc_learning_hook::opc_auto_learn_workflow,
 
 // opc_industry_runtime
 commands::opc_industry_runtime::opc_init_industry_runtime,

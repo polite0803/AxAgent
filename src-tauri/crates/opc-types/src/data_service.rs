@@ -160,6 +160,23 @@ pub trait OpcDataService: Send + Sync {
         child_type: &str,
         child_id: &str,
     ) -> OpcResult<bool>;
+
+    // ── 规则动作执行 ──
+
+    /// 更新实体状态
+    async fn update_entity_status(
+        &self,
+        entity_type: &str,
+        entity_id: &str,
+        new_status: &str,
+    ) -> OpcResult<()>;
+
+    /// 创建实体记录
+    async fn create_entity_record(
+        &self,
+        entity_type: &str,
+        data: &serde_json::Value,
+    ) -> OpcResult<String>;
 }
 
 // ── Mock 实现（测试用） ──────────────────────────────────────
@@ -284,6 +301,23 @@ impl OpcDataService for MockDataService {
         _child_id: &str,
     ) -> OpcResult<bool> {
         Ok(true)
+    }
+
+    async fn update_entity_status(
+        &self,
+        _entity_type: &str,
+        _entity_id: &str,
+        _new_status: &str,
+    ) -> OpcResult<()> {
+        Ok(())
+    }
+
+    async fn create_entity_record(
+        &self,
+        entity_type: &str,
+        _data: &serde_json::Value,
+    ) -> OpcResult<String> {
+        Ok(format!("mock-{}-{}", entity_type, uuid::Uuid::new_v4()))
     }
 }
 

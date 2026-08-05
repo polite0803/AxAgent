@@ -159,5 +159,6 @@ pub mod opc;
 pub mod opc_industry_actions;
 pub mod opc_industry_bridge;
 pub mod opc_industry_runtime;
+pub mod opc_learning_hook;
 pub mod opc_setup;
 pub mod opc_workflows;

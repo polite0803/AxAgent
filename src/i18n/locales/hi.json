@@ -4260,6 +4260,14 @@
           "wf-sd-3": {
             "name": "Performance Opt",
             "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "बड़े पैमाने पर रिफैक्टरिंग",
+            "description": "परिसंपत्ति सूची → कोड गंध विश्लेषण → रिफैक्टरिंग रणनीति → बैच निष्पादन → स्वीकृति वितरण"
+          },
+          "wf-large-refactor-lite": {
+            "name": "क्विक इन्क्रीमेंटल रिफैक्टरिंग",
+            "description": "परिवर्तन मूल्यांकन → न्यूनतम योजना → निष्पादन → सत्यापन"
           }
         },
         "finance-invest": {
@@ -4409,6 +4417,14 @@
           "sd-bug": {
             "label": "Bug Analysis",
             "description": "Quickly locate and resolve technical issues"
+          },
+          "sd-large-refactor": {
+            "label": "बड़े पैमाने पर रिफैक्टरिंग",
+            "description": "लाखों पंक्तियों के कोडबेस के लिए व्यवस्थित रिफैक्टरिंग (बैच निष्पादन और वृद्धिशील सत्यापन के साथ)"
+          },
+          "sd-large-refactor-lite": {
+            "label": "क्विक इन्क्रीमेंटल रिफैक्टरिंग",
+            "description": "रिफैक्टरिंग के बाद परिवर्तनों के लिए फास्ट-ट्रैक, आर्किटेक्चर समायोजन और सुविधा जोड़ने के न्यूनतम इंजेक्शन के साथ"
           }
         },
         "finance-invest": {
@@ -4863,6 +4879,39 @@
       "webFetch": "वेब फ़ेच",
       "webSearch": "वेब खोज"
     }
+  },
+  "agentActivity": {
+    "title": "Agent गतिविधि फ़ीड",
+    "activityLog": "गतिविधि लॉग",
+    "status": {
+      "idle": "निष्क्रिय",
+      "running": "चल रहा है",
+      "waitingApproval": "स्वीकृति की प्रतीक्षा",
+      "completed": "पूर्ण",
+      "error": "त्रुटि"
+    },
+    "eventType": {
+      "stepStarted": "चरण शुरू",
+      "stepCompleted": "चरण पूर्ण",
+      "stepFailed": "चरण विफल",
+      "agentStatusChange": "स्थिति बदलाव",
+      "toolInvocation": "टूल इन्वोकेशन",
+      "userInteraction": "उपयोगकर्ता इंटरैक्शन",
+      "milestoneReached": "मीलस्टोन",
+      "approvalRequired": "स्वीकृति आवश्यक",
+      "feedbackCollected": "प्रतिक्रिया एकत्र"
+    },
+    "filter": {
+      "all": "सभी",
+      "running": "चल रहा है",
+      "waiting": "प्रतीक्षा",
+      "completed": "पूर्ण"
+    },
+    "emptyState": {
+      "noActivity": "कोई गतिविधि नहीं",
+      "noFilteredActivity": "इस Agent के लिए कोई गतिविधि नहीं"
+    },
+    "stepLabel": "चरण"
   },
   "promptTemplate": {
     "unnamed": "अनाम"

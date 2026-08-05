@@ -62,24 +62,22 @@ impl OpcIndustryAdapter for FinanceInvestAdapter {
 
         match entity_type {
             "invoice" => {
-                if let Some(amount) = entity_data.get("amount").and_then(|v| v.as_f64()) {
-                    if amount <= 0.0 {
-                        errors.push(ValidationError::field("amount", "发票金额必须大于0"));
-                    }
+                if let Some(amount) = entity_data.get("amount").and_then(|v| v.as_f64())
+                    && amount <= 0.0
+                {
+                    errors.push(ValidationError::field("amount", "发票金额必须大于0"));
                 }
             },
-            "project" => {
-                if entity_data.get("budget").is_none() {
-                    errors.push(ValidationError::field("budget", "项目必须包含预算信息"));
-                }
+            "project" if entity_data.get("budget").is_none() => {
+                errors.push(ValidationError::field("budget", "项目必须包含预算信息"));
             },
             _ => {},
         }
 
-        if let Some(investment) = entity_data.get("investment_amount").and_then(|v| v.as_f64()) {
-            if investment <= 0.0 {
-                errors.push(ValidationError::field("investment_amount", "投资金额必须为正数"));
-            }
+        if let Some(investment) = entity_data.get("investment_amount").and_then(|v| v.as_f64())
+            && investment <= 0.0
+        {
+            errors.push(ValidationError::field("investment_amount", "投资金额必须为正数"));
         }
 
         Ok(errors)

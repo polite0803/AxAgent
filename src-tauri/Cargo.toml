@@ -259,7 +259,9 @@ windows-sys = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging", "W
 
 [profile.release]
 strip = true
-lto = true
+# Thin LTO 相比 full LTO 内存占用减少 50%，编译速度提升 20%+
+# 适合 GitHub ARM64 runner (4-8GB 内存) 和 Android 交叉编译
+lto = "thin"
 codegen-units = 1
 opt-level = "s"
 

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+export { AgentActivityFeed } from "./AgentActivityFeed";
+export type { AgentEvent, AgentProfile, AgentStatus, EventType } from "./AgentActivityFeed";
+export { createAgentEvent, getAgentProfile, getAllAgentProfiles } from "./AgentActivityFeed";
 export { AgentProgressBar } from "./AgentProgressBar";
 export { AgentStatsPanel } from "./AgentStatsPanel";
 export { ArtifactPanel } from "./ArtifactPanel";

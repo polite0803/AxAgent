@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 
 use axagent_orchestrator::{IndustryAdapterRegistry, IndustryLearningEngine};
 
+#[derive(Clone)]
 pub struct LearningEngineState {
     pub text_grad_engine: Arc<Mutex<axagent_trajectory::TextGradEngine>>,
     pub intrinsic_motivation: Arc<Mutex<axagent_trajectory::IntrinsicMotivationEngine>>,

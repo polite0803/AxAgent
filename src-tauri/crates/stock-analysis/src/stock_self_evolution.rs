@@ -20,8 +20,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axagent_harness::reflection_types::Reflection;
-use axagent_harness::workflow_evolution::{EvolutionStats, WorkflowEvolver, WorkflowModification};
+use axagent_harness::workflow_evolution::{
+    EvolutionPopulation, EvolutionStats, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
+    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox,
+};
+use axagent_harness::workflow_reflection::WorkflowRunStatus;
 use axagent_trajectory::{
     EvolutionConfig as TrajectoryEvolutionConfig, NumericEvolutionEngine, NumericEvolutionStats,
     NumericGenome, WorkflowEvolverImpl,
@@ -651,6 +656,132 @@ impl StockSelfEvolutionEngine {
 impl Default for StockSelfEvolutionEngine {
     fn default() -> Self {
         Self::new(Arc::new(StockReflectionEngine::new()))
+    }
+}
+
+#[async_trait]
+impl WorkflowEvolver for StockSelfEvolutionEngine {
+    async fn initialize(&self, template_id: &str) -> Result<EvolutionPopulation, String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            return evolver.initialize(template_id).await;
+        }
+        Ok(EvolutionPopulation {
+            generation: 0,
+            individuals: vec![WorkflowGenome {
+                template_id: template_id.to_string(),
+                name: template_id.to_string(),
+                nodes: Vec::new(),
+                edges: Vec::new(),
+                variables: Vec::new(),
+                fitness: 0.5,
+                generation: 0,
+                changed_node_ids: Vec::new(),
+            }],
+            best_fitness: 0.5,
+            avg_fitness: 0.5,
+            fitness_history: vec![0.5],
+        })
+    }
+
+    async fn evolve_generation(
+        &self,
+        _population: &mut EvolutionPopulation,
+        _reflections: &[Reflection],
+    ) -> Result<WorkflowGenome, String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            return evolver.evolve_generation(_population, _reflections).await;
+        }
+        // 无真实 evolver 时,返回占位 genome
+        Ok(WorkflowGenome {
+            template_id: String::new(),
+            name: String::new(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+            variables: Vec::new(),
+            fitness: 0.5,
+            generation: 0,
+            changed_node_ids: Vec::new(),
+        })
+    }
+
+    async fn run(
+        &self,
+        template_id: &str,
+        reflections: &[Reflection],
+    ) -> Result<WorkflowModification, String> {
+        self.evolve_workflow(template_id, reflections).await
+    }
+
+    async fn should_auto_evolve(&self, template_id: &str) -> Result<bool, String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            return evolver.should_auto_evolve(template_id).await;
+        }
+        // 无真实 evolver 时,基于进化历史启发式判定
+        let history = self.history.read().await;
+        Ok(history.failed_evolutions > history.successful_evolutions
+            || history.total_evolutions >= self.min_consecutive_low_score_count)
+    }
+
+    async fn record_reflection(
+        &self,
+        template_id: &str,
+        quality_score: u8,
+        status: WorkflowRunStatus,
+    ) {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            evolver.record_reflection(template_id, quality_score, status).await;
+        }
+        // 同时维护本地低质量计数
+        if quality_score < self.evolution_trigger_threshold {
+            let mut lq = self.low_quality_count.write().await;
+            *lq.entry(template_id.to_string()).or_insert(0) += 1;
+        }
+    }
+
+    async fn set_llm_provider(&self, provider: Arc<dyn WorkflowLlmMutator>) -> Result<(), String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            evolver.set_llm_provider(provider).await
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn set_sandbox(&self, sandbox: Arc<dyn WorkflowSandbox>) -> Result<(), String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            evolver.set_sandbox(sandbox).await
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn set_genome_loader(&self, loader: Arc<dyn WorkflowGenomeLoader>) -> Result<(), String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            evolver.set_genome_loader(loader).await
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn get_stats(&self) -> Result<EvolutionStats, String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            return evolver.get_stats().await;
+        }
+        let history = self.history.read().await;
+        Ok(EvolutionStats {
+            generation: history.total_evolutions as u32,
+            best_fitness: 0.65,
+            avg_fitness: 0.5,
+            fitness_history: history.best_fitness_history.iter().map(|f| *f as f32).collect(),
+            converged: history.successful_evolutions > 0
+                && history.failed_evolutions <= history.successful_evolutions,
+        })
+    }
+
+    async fn is_running(&self) -> Result<bool, String> {
+        if let Some(evolver) = self.workflow_evolver.as_ref() {
+            return evolver.is_running().await;
+        }
+        Ok(false)
     }
 }
 

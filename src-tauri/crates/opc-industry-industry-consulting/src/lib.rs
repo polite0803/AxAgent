@@ -63,19 +63,18 @@ impl OpcIndustryAdapter for IndustryConsultingAdapter {
                 if entity_data
                     .get("client_name")
                     .and_then(|v| v.as_str())
-                    .map_or(true, |s| s.is_empty())
+                    .is_none_or(|s| s.is_empty())
                 {
                     errors.push(ValidationError::field("client_name", "客户名称不能为空"));
                 }
             },
-            "report" => {
+            "report"
                 if entity_data
                     .get("executive_summary")
                     .and_then(|v| v.as_str())
-                    .map_or(true, |s| s.is_empty())
-                {
-                    errors.push(ValidationError::field("executive_summary", "报告摘要不能为空"));
-                }
+                    .is_none_or(|s| s.is_empty()) =>
+            {
+                errors.push(ValidationError::field("executive_summary", "报告摘要不能为空"));
             },
             _ => {},
         }

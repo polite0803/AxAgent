@@ -4260,6 +4260,14 @@
           "wf-sd-3": {
             "name": "Performance Opt",
             "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "إعادة هيكلة واسعة النطاق",
+            "description": "جرد الأصول → تحليل روائح الكود → استراتيجية إعادة الهيكلة → تنفيذ دفعي → تسليم القبول"
+          },
+          "wf-large-refactor-lite": {
+            "name": "إعادة هيكلة تدريجية سريعة",
+            "description": "تقييم التغيير → خطة دنيا → تنفيذ → تحقق"
           }
         },
         "finance-invest": {
@@ -4409,6 +4417,14 @@
           "sd-bug": {
             "label": "Bug Analysis",
             "description": "Quickly locate and resolve technical issues"
+          },
+          "sd-large-refactor": {
+            "label": "إعادة هيكلة واسعة النطاق",
+            "description": "إعادة هيكلة منهجية لقواعد كود بملايين الأسطر مع تنفيذ دفعي وتحقق متزايد"
+          },
+          "sd-large-refactor-lite": {
+            "label": "إعادة هيكلة تدريجية سريعة",
+            "description": "مسار سريع للتغييرات بعد إعادة الهيكلة مع حقن أدنى للتعديلات المعمارية وإضافة الميزات"
           }
         },
         "finance-invest": {
@@ -4863,6 +4879,39 @@
       "webFetch": "جلب الويب",
       "webSearch": "بحث الويب"
     }
+  },
+  "agentActivity": {
+    "title": "موجز نشاط الوكيل",
+    "activityLog": "سجل النشاط",
+    "status": {
+      "idle": "خامل",
+      "running": "قيد التشغيل",
+      "waitingApproval": "في انتظار الموافقة",
+      "completed": "مكتمل",
+      "error": "خطأ"
+    },
+    "eventType": {
+      "stepStarted": "بدأت الخطوة",
+      "stepCompleted": "اكتملت الخطوة",
+      "stepFailed": "فشلت الخطوة",
+      "agentStatusChange": "تغيير الحالة",
+      "toolInvocation": "استدعاء الأداة",
+      "userInteraction": "تفاعل المستخدم",
+      "milestoneReached": "معلم",
+      "approvalRequired": "الموافقة مطلوبة",
+      "feedbackCollected": "تم جمع الملاحظات"
+    },
+    "filter": {
+      "all": "الكل",
+      "running": "قيد التشغيل",
+      "waiting": "في الانتظار",
+      "completed": "مكتملة"
+    },
+    "emptyState": {
+      "noActivity": "لا يوجد نشاط",
+      "noFilteredActivity": "لا يوجد نشاط لهذا الوكيل"
+    },
+    "stepLabel": "الخطوة"
   },
   "promptTemplate": {
     "unnamed": "بدون اسم"

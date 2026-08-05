@@ -108,6 +108,7 @@ pub async fn workflow_execute(
     let app_for_emit = app.clone();
     let app_for_panic = app_for_emit.clone();
     let wid_for_panic = wid.clone();
+    let learning_state = app_state.learning.clone();
     tokio::spawn(async move {
         // 兜底：panic / 早退路径上 emit execution-completed failed 事件
         // WF-P0-2: emit 字段统一为 { workflow_id, execution_id, status, total_time_ms, error? }
@@ -156,6 +157,16 @@ pub async fn workflow_execute(
                         "total_time_ms": total_time_ms,
                     }),
                 );
+
+                // 自动学习钩子：OPC 行业工作流完成后触发反思/进化/RL
+                {
+                    use crate::commands::opc_learning_hook::try_auto_learn_workflow;
+                    let result_json = serde_json::json!({
+                        "status": status_str,
+                        "total_time_ms": total_time_ms,
+                    });
+                    try_auto_learn_workflow(&wid, &result_json, &learning_state).await;
+                }
             },
             Err(e) => {
                 tracing::error!("[workflow] 执行失败: {}", e);
@@ -170,6 +181,17 @@ pub async fn workflow_execute(
                         "error": e.to_string(),
                     }),
                 );
+
+                // 失败时也记录学习（负反馈）
+                {
+                    use crate::commands::opc_learning_hook::try_auto_learn_workflow;
+                    let result_json = serde_json::json!({
+                        "status": "failed",
+                        "error": e.to_string(),
+                        "total_time_ms": total_time_ms,
+                    });
+                    try_auto_learn_workflow(&wid, &result_json, &learning_state).await;
+                }
             },
         }
         _guard.finish();

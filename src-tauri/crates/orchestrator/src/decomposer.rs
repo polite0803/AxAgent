@@ -104,45 +104,99 @@ impl MissionDecomposer for RuleBasedDecomposer {
         } else if mission_lower.contains("refactor")
             || mission_lower.contains("rewrite")
             || mission_lower.contains("restructure")
+            || mission_lower.contains("large.*project")
+            || mission_lower.contains("legacy")
         {
+            // Phase 1: 分析阶段（4 个可并行子任务）
             plan.sub_tasks.push(SubTask::new(
-                "analyze".to_string(),
-                "Analyze".to_string(),
-                format!("Analyze current code structure for: {}", mission),
+                "asset_inventory".to_string(),
+                "Asset Inventory".to_string(),
+                format!("Inventory code assets: files, lines, modules for: {}", mission),
                 "researcher".to_string(),
             ));
 
+            plan.sub_tasks.push(SubTask::new(
+                "dependency_graph".to_string(),
+                "Dependency Graph".to_string(),
+                "Analyze module dependencies and circular dependencies".to_string(),
+                "researcher".to_string(),
+            ));
+
+            plan.sub_tasks.push(SubTask::new(
+                "complexity_scan".to_string(),
+                "Complexity Scan".to_string(),
+                "Identify cyclomatic complexity hotspots and code duplication".to_string(),
+                "researcher".to_string(),
+            ));
+
+            plan.sub_tasks.push(SubTask::new(
+                "risk_assessment".to_string(),
+                "Risk Assessment".to_string(),
+                "Assess blast radius, regression risk, and technical hazards".to_string(),
+                "analyst".to_string(),
+            ));
+
+            // Phase 2: 规划阶段（依赖 Phase 1 所有任务）
             plan.sub_tasks.push(
                 SubTask::new(
-                    "plan".to_string(),
-                    "Plan Refactor".to_string(),
-                    "Create refactoring plan with migration steps".to_string(),
+                    "refactor_strategy".to_string(),
+                    "Refactor Strategy".to_string(),
+                    "Select refactoring mode: progressive, big-bang, strangler-fig".to_string(),
                     "planner".to_string(),
                 )
-                .with_dependencies(vec!["analyze".to_string()]),
+                .with_dependencies(vec![
+                    "asset_inventory".to_string(),
+                    "dependency_graph".to_string(),
+                    "complexity_scan".to_string(),
+                    "risk_assessment".to_string(),
+                ]),
             );
 
             plan.sub_tasks.push(
                 SubTask::new(
-                    "implement".to_string(),
-                    "Implement".to_string(),
-                    "Execute the refactoring changes".to_string(),
+                    "batch_scheduling".to_string(),
+                    "Batch Scheduling".to_string(),
+                    "Schedule refactoring batches by coupling order".to_string(),
+                    "planner".to_string(),
+                )
+                .with_dependencies(vec!["refactor_strategy".to_string()]),
+            );
+
+            // Phase 3: 执行阶段
+            plan.sub_tasks.push(
+                SubTask::new(
+                    "batch_execution".to_string(),
+                    "Batch Execution".to_string(),
+                    "Execute refactoring batch by batch with continuous integration".to_string(),
                     "developer".to_string(),
                 )
-                .with_dependencies(vec!["plan".to_string()]),
+                .with_dependencies(vec!["batch_scheduling".to_string()]),
             );
 
+            // Phase 4: 验证阶段
             plan.sub_tasks.push(
                 SubTask::new(
-                    "verify".to_string(),
-                    "Verify".to_string(),
-                    "Verify refactored code works correctly".to_string(),
+                    "integration_verify".to_string(),
+                    "Integration Verify".to_string(),
+                    "Full regression test, integration test, and performance comparison"
+                        .to_string(),
                     "reviewer".to_string(),
                 )
-                .with_dependencies(vec!["implement".to_string()]),
+                .with_dependencies(vec!["batch_execution".to_string()]),
             );
 
-            4
+            // Phase 5: 交付阶段
+            plan.sub_tasks.push(
+                SubTask::new(
+                    "quality_gate".to_string(),
+                    "Quality Gate".to_string(),
+                    "Final quality gate: coverage, complexity, performance, smells".to_string(),
+                    "reviewer".to_string(),
+                )
+                .with_dependencies(vec!["integration_verify".to_string()]),
+            );
+
+            4 // max_parallel: Phase 1 (4 analysis tasks) can run in parallel
         } else if mission_lower.contains("design")
             || mission_lower.contains("architect")
             || mission_lower.contains("plan")

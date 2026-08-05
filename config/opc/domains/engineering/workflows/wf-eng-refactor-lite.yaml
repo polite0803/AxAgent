@@ -1,0 +1,84 @@
+# 工作流：快速追加重构
+# 适用于重构完成后的追加变更，4 步精简流程：评估 → 规划 → 执行 → 验证
+id: wf-eng-refactor-lite
+name: 快速追加重构
+description: 重构完成后的追加变更快速通道，支持架构调整、功能新增、技术栈升级等变更的轻量级注入。
+icon: "⚡"
+tags: [opc, refactor, incremental, fast-track]
+profile_id: cto
+version: 1
+
+# ── 执行策略 ──
+max_parallel_steps: 2
+require_approval_milestones: true
+rollback_enabled: true
+auto_verify_after_each_step: true
+
+steps:
+  # ══════════════════════════════════════════════════════════
+  # 阶段一：影响评估（1 步）
+  # ══════════════════════════════════════════════════════════
+  - id: l-assess
+    title: 变更影响评估
+    prompt: |
+      你作为架构分析师，快速评估追加变更的影响：
+      1. 识别变更涉及的模块和文件
+      2. 评估与已有重构成果的兼容性
+      3. 分析变更的依赖关系和连锁影响
+      4. 评估测试影响范围
+      5. 给出变更复杂度等级和预估工期
+      输出 JSON：{change_assessment{change{type{architecture|feature|tech_stack|dependency|bug}, description, source}, impacted_modules[{module, change_type, risk}], compatibility_check{conflicts[], breaking_changes, required_adaptions}, test_impact{affected_tests[], new_tests_needed[], regression_scope}, complexity{level{low|medium|high|critical}, estimated_effort, estimated_duration}, recommendation{proceed|defer|escalate, rationale, prerequisites[]}}
+    tools: [search_code, file_read]
+    inputs: {}
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段二：最小化变更计划（1 步）
+  # ══════════════════════════════════════════════════════════
+  - id: l-plan
+    title: 最小化变更计划
+    prompt: |
+      你作为技术项目经理，制定最小化变更计划：
+      1. 确定变更实施的最小影响路径
+      2. 规划变更与现有代码的集成点
+      3. 制定增量测试策略
+      4. 规划特性开关和灰度策略
+      5. 设定验收标准
+      输出 JSON：{change_plan{implementation_path{steps[{step, action, files[], dependencies}], integration_points[], minimal_change_set}, test_strategy{unit_tests{additions[], modifications[]}, integration_tests{new_scenarios[], regression_scope}, performance_validation{baseline_comparison, key_paths}}, feature_flags{needed[{name, scope, default, cleanup_plan}], rollback_triggers[]}, acceptance_criteria{functional{checks[]}, quality{coverage_min, lint_pass}, performance{max_regression}}, estimated_timeline{phases[{phase, duration, deliverable}], total_effort}}
+    tools: [search_code, file_read]
+    inputs:
+      assessment: l-assess.result
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段三：执行变更（1 步）
+  # ══════════════════════════════════════════════════════════
+  - id: l-execute
+    title: 变更执行
+    prompt: |
+      你作为高级工程师，执行追加变更：
+      1. 按最小化变更计划逐步实施
+      2. 保持与已有重构成果的一致性
+      3. 每完成一个变更点运行局部测试
+      4. 记录变更细节（文件、函数、行号、影响范围）
+      5. 更新相关文档
+      输出 JSON：{execution{changes_completed[{change_id, type, files_changed[], tests_run, status}], integration_checks[{point, status, issues_found}], test_results{unit{passed, failed, new}, integration{passed, failed, new}, coverage_delta{before, after}}, issues[{description, impact, resolution}]}
+    tools: [file_read, file_write, run_command, search_code]
+    inputs:
+      plan: l-plan.result
+    continue_on_fail: false
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段四：验证交付（1 步）
+  # ══════════════════════════════════════════════════════════
+  - id: l-verify
+    title: 验证与交付
+    prompt: |
+      你作为质量工程师，执行最终验证：
+      1. 运行增量测试和回归测试
+      2. 验证变更与已有重构成果的兼容性
+      3. 检查性能是否满足基线要求
+      4. 确认代码质量未退化
+      5. 完成交付检查
+      输出 JSON：{verification{test_summary{total, passed, failed, skipped, coverage_delta{before, after, delta}}, compatibility_check{refactored_modules_impacted, breaking_changes, adapters_sufficient}, performance_check{key_paths[{path, before, after, regression}], overall_regression}, quality_gate{lint_errors, lint_warnings, complexity_change, smells_introduced}, delivery{verdict{pass|fail, blocking_issues[], recommendations[]}, artifacts_updated[], handoff_notes}}}
+    tools: [run_command, file_read, search_code]
+    inputs:
+      execution: l-execute.result

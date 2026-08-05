@@ -4260,6 +4260,14 @@
           "wf-sd-3": {
             "name": "Performance Opt",
             "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "대규모 리팩토링",
+            "description": "자산 재고 → 코드 냄새 분석 → 리팩토링 전략 → 배치 실행 → 수용 납품"
+          },
+          "wf-large-refactor-lite": {
+            "name": "빠른 증분 리팩토링",
+            "description": "변경 평가 → 최소 계획 → 변경 실행 → 검증·인도"
           }
         },
         "finance-invest": {
@@ -4409,6 +4417,14 @@
           "sd-bug": {
             "label": "Bug Analysis",
             "description": "Quickly locate and resolve technical issues"
+          },
+          "sd-large-refactor": {
+            "label": "대규모 리팩토링",
+            "description": "백만 줄 규모 코드베이스의 체계적인 리팩토링 (배치 실행 및 증분 검증 지원)"
+          },
+          "sd-large-refactor-lite": {
+            "label": "빠른 증분 리팩토링",
+            "description": "리팩토링 후 추가 변경을 위한 패스트트랙. 아키텍처 조정 및 기능 추가의 최소 주입 지원"
           }
         },
         "finance-invest": {
@@ -4863,6 +4879,39 @@
       "webFetch": "웹 가져오기",
       "webSearch": "웹 검색"
     }
+  },
+  "agentActivity": {
+    "title": "Agent 활동 피드",
+    "activityLog": "활동 로그",
+    "status": {
+      "idle": "유휴",
+      "running": "실행 중",
+      "waitingApproval": "승인 대기",
+      "completed": "완료",
+      "error": "오류"
+    },
+    "eventType": {
+      "stepStarted": "단계 시작",
+      "stepCompleted": "단계 완료",
+      "stepFailed": "단계 실패",
+      "agentStatusChange": "상태 변경",
+      "toolInvocation": "도구 호출",
+      "userInteraction": "사용자 상호작용",
+      "milestoneReached": "마일스톤",
+      "approvalRequired": "승인 필요",
+      "feedbackCollected": "피드백 수집"
+    },
+    "filter": {
+      "all": "전체",
+      "running": "실행 중",
+      "waiting": "대기 중",
+      "completed": "완료됨"
+    },
+    "emptyState": {
+      "noActivity": "활동 없음",
+      "noFilteredActivity": "이 Agent의 활동 없음"
+    },
+    "stepLabel": "단계"
   },
   "promptTemplate": {
     "unnamed": "이름 없음"

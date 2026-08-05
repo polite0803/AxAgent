@@ -60,19 +60,17 @@ impl OpcIndustryAdapter for AiResearchAdapter {
 
         match entity_type {
             "research" => {
-                if entity_data.get("title").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty())
-                {
+                if entity_data.get("title").and_then(|v| v.as_str()).is_none_or(|s| s.is_empty()) {
                     errors.push(ValidationError::field("title", "研究项目标题不能为空"));
                 }
             },
-            "prototype" => {
+            "prototype"
                 if entity_data
                     .get("tech_stack")
                     .and_then(|v| v.as_str())
-                    .map_or(true, |s| s.is_empty())
-                {
-                    errors.push(ValidationError::field("tech_stack", "原型技术栈必须指定"));
-                }
+                    .is_none_or(|s| s.is_empty()) =>
+            {
+                errors.push(ValidationError::field("tech_stack", "原型技术栈必须指定"));
             },
             _ => {},
         }

@@ -20,7 +20,8 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  NDK_VERSION: 'r27d'
+  # NDK r26d 是稳定版，r27d 可能存在兼容性问题
+  NDK_VERSION: 'r26d'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
@@ -315,6 +316,8 @@ jobs:
       # 限制 Rust 并行编译的代码单元数，避免 ARM64 runner OOM
       # （runner 收到 shutdown signal 即被 OOM 杀掉）
       CARGO_BUILD_JOBS: 2
+      # Thin LTO 优化：减少链接时内存占用
+      RUSTFLAGS: '-C linker=cc'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -394,14 +397,157 @@ jobs:
             src-tauri/target/aarch64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb
             src-tauri/target/aarch64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm
 
-  # ── Build for Android ──────────────────────────────────
-  build-android:
-    name: Build Android (${{ matrix.abi }})
+  # ── Build for Android ARM (arm64-v8a, armeabi-v7a) on ARM64 native runner ──
+  # 使用 ubuntu-24.04-arm native runner 构建 ARM 架构 Android，
+  # 彻底避免 x86_64 → aarch64 交叉编译时的 rust-lld 链接错误
+  # (crti.o is incompatible with elf64-littleaarch64)
+  build-android-arm:
+    name: Build Android ARM (${{ matrix.abi }})
     needs: [resolve-tag, draft-release-notes]
     strategy:
       fail-fast: false
       matrix:
-        abi: [arm64-v8a, armeabi-v7a, x86_64]
+        abi: [arm64-v8a, armeabi-v7a]
+    runs-on: ubuntu-24.04-arm
+    env:
+      # ARM64 runner 内存有限，限制并行编译
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: master
+          submodules: recursive
+
+      - name: Install system dependencies (ARM64)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            openjdk-23-jdk-headless \
+            protobuf-compiler \
+            python3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.97.0"
+          targets: ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || 'armv7-linux-androideabi' }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1-android-arm'
+          key: 'ubuntu-24.04-arm-${{ matrix.abi }}'
+          workspaces: src-tauri -> target
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      # ARM64 native runner 使用 linux-arm64 工具链
+      - name: Setup Android NDK toolchain PATH (ARM64)
+        run: |
+          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-arm64/bin"
+          echo "$TOOLCHAIN" >> $GITHUB_PATH
+
+      - name: Initialize Android project
+        run: |
+          cd src-tauri
+          npx tauri android init
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Setup keystore and signing config
+        run: |
+          mkdir -p src-tauri/gen/android/app
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/app/release.jks
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
+            > src-tauri/gen/android/keystore.properties
+          python3 scripts/patch-android-signing.py src-tauri/gen/android/app/build.gradle.kts
+          cp src-tauri/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro
+
+      - name: Build frontend (Vite)
+        run: npm run build:skip-typecheck
+
+      - name: Limit Gradle memory (ARM64 runner)
+        run: |
+          if [ -f src-tauri/gen/android/gradle.properties ]; then
+            grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
+              || echo 'org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+UseParallelGC' \
+              >> src-tauri/gen/android/gradle.properties
+          fi
+
+      - name: Build Android APK + AAB (ARM)
+        run: |
+          cd src-tauri
+          TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || 'armv7' }}
+          if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
+            npx tauri android build --target "$TARGET" --apk --aab
+          else
+            npx tauri android build --target "$TARGET" --apk
+          fi
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx1536m -XX:MaxMetaspaceSize=384m'
+
+      - name: Upload APK and AAB to release
+        run: |
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk/release -name "*.apk" -type f 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find src-tauri/gen/android/app/build/outputs/apk -path "*/release/*" -name "*.apk" -type f 2>/dev/null | head -1)
+          fi
+          
+          if [ -n "$APK" ]; then
+            ABI="${{ matrix.abi }}"
+            NEW_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
+            cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
+            echo "Uploading APK: $NEW_NAME from $APK"
+            cd "$GITHUB_WORKSPACE"
+            gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$NEW_NAME" --clobber
+          else
+            echo "APK not found"
+            find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || true
+            exit 1
+          fi
+          
+          if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
+            AAB=$(find src-tauri/gen/android/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null | head -1)
+            if [ -n "$AAB" ]; then
+              AAB_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-play-store.aab"
+              cp "$AAB" "$GITHUB_WORKSPACE/$AAB_NAME"
+              echo "Uploading AAB: $AAB_NAME"
+              cd "$GITHUB_WORKSPACE"
+              gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$AAB_NAME" --clobber
+            else
+              echo "AAB not found, uploading APK only"
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Build for Android x86_64 on x86_64 runner ──
+  build-android-x86:
+    name: Build Android (x86_64)
+    needs: [resolve-tag, draft-release-notes]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
@@ -421,13 +567,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.97.0"
-          targets: ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || matrix.abi == 'armeabi-v7a' && 'armv7-linux-androideabi' || 'x86_64-linux-android' }}
+          targets: "x86_64-linux-android"
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v1-android'
-          key: 'ubuntu-22.04-${{ matrix.abi }}'
+          key: 'ubuntu-22.04-x86_64'
           workspaces: src-tauri -> target
 
       - name: Setup Node.js
@@ -462,7 +608,7 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
 
-      - name: Setup Android NDK toolchain PATH
+      - name: Setup Android NDK toolchain PATH (x86_64)
         run: |
           TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
@@ -482,14 +628,12 @@ jobs:
             "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
             > src-tauri/gen/android/keystore.properties
           python3 scripts/patch-android-signing.py src-tauri/gen/android/app/build.gradle.kts
-
-          # 添加 ProGuard 规则，防止 R8 混淆/剥离 JNI 桥接类导致闪退
           cp src-tauri/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro
 
       - name: Build frontend (Vite)
         run: npm run build:skip-typecheck
 
-      - name: Limit Gradle memory (prevent runner OOM)
+      - name: Limit Gradle memory
         run: |
           if [ -f src-tauri/gen/android/gradle.properties ]; then
             grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
@@ -497,19 +641,10 @@ jobs:
               >> src-tauri/gen/android/gradle.properties
           fi
 
-      # 注：APK 与 AAB 在同一次 `tauri android build` 中产出（--apk --aab），
-      # 避免为 AAB 单独再启动一次完整的 gradle 构建。此前分两步构建导致
-      # arm64-v8a job 二次 gradle 内存峰值叠加，触发 "runner lost communication"
-      # (OOM)。仅 arm64-v8a 需要 AAB（Play Store）。
-      - name: Build Android APK + AAB
+      - name: Build Android APK
         run: |
           cd src-tauri
-          TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
-          if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
-            npx tauri android build --target "$TARGET" --apk --aab
-          else
-            npx tauri android build --target "$TARGET" --apk
-          fi
+          npx tauri android build --target x86_64 --apk
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
@@ -518,41 +653,24 @@ jobs:
           ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
           CARGO_BUILD_JOBS: 2
 
-      - name: Upload APK and AAB to release
+      - name: Upload APK to release
         run: |
-          # Find release APK from gen/android outputs
           APK=$(find src-tauri/gen/android/app/build/outputs/apk/release -name "*.apk" -type f 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            # Fallback: search all apk directories for release APKs
             APK=$(find src-tauri/gen/android/app/build/outputs/apk -path "*/release/*" -name "*.apk" -type f 2>/dev/null | head -1)
           fi
           
           if [ -n "$APK" ]; then
-            ABI="${{ matrix.abi }}"
+            ABI="x86_64"
             NEW_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
             cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
             echo "Uploading APK: $NEW_NAME from $APK"
             cd "$GITHUB_WORKSPACE"
             gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$NEW_NAME" --clobber
           else
-            echo "APK not found in gen/android/outputs/apk"
-            ls -la src-tauri/gen/android/app/build/outputs/apk/ 2>/dev/null || true
+            echo "APK not found"
             find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || true
             exit 1
-          fi
-          
-          # Find and upload AAB (only for arm64-v8a)
-          if [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
-            AAB=$(find src-tauri/gen/android/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null | head -1)
-            if [ -n "$AAB" ]; then
-              AAB_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-play-store.aab"
-              cp "$AAB" "$GITHUB_WORKSPACE/$AAB_NAME"
-              echo "Uploading AAB: $AAB_NAME"
-              cd "$GITHUB_WORKSPACE"
-              gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$AAB_NAME" --clobber
-            else
-              echo "AAB not found, uploading APK only"
-            fi
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -560,7 +678,7 @@ jobs:
   # ── Publish draft release as latest ────────────────────
   publish-release:
     name: Publish Release
-    needs: [resolve-tag, release, release-linux-arm, build-android]
+    needs: [resolve-tag, release, release-linux-arm, build-android-arm, build-android-x86]
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -62,17 +62,17 @@ impl OpcIndustryAdapter for AccountingAdapter {
 
         match entity_type {
             "invoice" => {
-                if let Some(total) = entity_data.get("total").and_then(|v| v.as_f64()) {
-                    if total < 0.0 {
-                        errors.push(ValidationError::field("total", "发票总金额必须大于等于0"));
-                    }
+                if let Some(total) = entity_data.get("total").and_then(|v| v.as_f64())
+                    && total < 0.0
+                {
+                    errors.push(ValidationError::field("total", "发票总金额必须大于等于0"));
                 }
             },
             "customer" => {
-                if let Some(email) = entity_data.get("email").and_then(|v| v.as_str()) {
-                    if !email.contains('@') {
-                        errors.push(ValidationError::field("email", "客户邮箱格式不正确"));
-                    }
+                if let Some(email) = entity_data.get("email").and_then(|v| v.as_str())
+                    && !email.contains('@')
+                {
+                    errors.push(ValidationError::field("email", "客户邮箱格式不正确"));
                 }
             },
             _ => {},

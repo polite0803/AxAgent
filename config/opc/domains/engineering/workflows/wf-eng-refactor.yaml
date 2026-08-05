@@ -1,20 +1,815 @@
-# 工作流：代码重构
+# 工作流：大型代码项目重构
+# 适用于百万行级代码库的系统性重构，覆盖 23 个步骤、5 个阶段：
+# 资产普查（含行为快照+隐式知识） → 坏味道分析 → 重构策略（含变更融合） → 执行重构（含等价验证+变更闸门） → 验收交付（含行为保真门禁）
 id: wf-eng-refactor
-name: 代码重构
-description: 系统性地重构遗留代码提高可维护性
+name: 大型代码项目重构
+description: 系统性重构百万行级遗留代码，从资产普查到验收交付的完整闭环。支持分批执行、增量验证、性能回归和文档同步。
 icon: "🔧"
-tags: [opc]
+tags: [opc, refactor, large-scale, code-quality]
 profile_id: cto
+version: 3
+
+# ── 执行策略 ──
+max_parallel_steps: 3
+require_approval_milestones: true
+rollback_enabled: true
+auto_verify_after_each_step: true
+
+# ── 用户输入交互配置 ──
+user_interaction:
+  default_mode: hybrid
+  timeout:
+    blocking_input: 300
+    approval_gate: 600
+    optional_input: 60
+  on_timeout:
+    blocking_input: abort
+    approval_gate: auto_reject
+    optional_input: proceed
+  channels:
+    - web_chat
+    - desktop_notification
+    - email_digest
+
+# ── Agent 角色配置 ──
+agent_profiles:
+  - id: code_auditor
+    name: 代码审计专家
+    icon: "🔍"
+    color: "#52c41a"
+    capabilities: [search_code, file_read, run_command]
+  - id: architect_analyst
+    name: 架构分析师
+    icon: "🏗️"
+    color: "#1890ff"
+    capabilities: [search_code, file_read]
+  - id: quality_expert
+    name: 代码质量专家
+    icon: "📊"
+    color: "#722ed1"
+    capabilities: [search_code, file_read, run_command]
+  - id: behavior_tester
+    name: 行为测试专家
+    icon: "🧪"
+    color: "#13c2c2"
+    capabilities: [search_code, file_read, run_command]
+  - id: knowledge_engineer
+    name: 知识提炼专家
+    icon: "💡"
+    color: "#faad14"
+    capabilities: [search_code, file_read, run_command]
+  - id: refactor_consultant
+    name: 重构顾问
+    icon: "⚠️"
+    color: "#fa541c"
+    capabilities: [search_code, file_read]
+  - id: solution_architect
+    name: 架构师
+    icon: "🎯"
+    color: "#2f54eb"
+    capabilities: [search_code, file_read, file_write]
+  - id: tech_project_manager
+    name: 技术项目经理
+    icon: "📋"
+    color: "#eb2f96"
+    capabilities: [search_code, file_read, file_write]
+  - id: change_manager
+    name: 变更管理专家
+    icon: "🔄"
+    color: "#a0d911"
+    capabilities: [search_code, file_read, run_command]
+  - id: quality_engineer
+    name: 质量工程师
+    icon: "✅"
+    color: "#52c41a"
+    capabilities: [run_command, file_read, file_write]
+  - id: devops_engineer
+    name: DevOps 工程师
+    icon: "⚙️"
+    color: "#595959"
+    capabilities: [file_read, file_write]
+  - id: code_reviewer
+    name: 代码审查员
+    icon: "👁️"
+    color: "#2f54eb"
+    capabilities: [search_code, file_read]
+  - id: senior_engineer
+    name: 高级工程师
+    icon: "💻"
+    color: "#1890ff"
+    capabilities: [file_read, file_write, run_command, search_code]
+  - id: behavior_verifier
+    name: 行为验证专家
+    icon: "🔬"
+    color: "#722ed1"
+    capabilities: [run_command, file_read]
+  - id: test_engineer
+    name: 测试工程师
+    icon: "🧪"
+    color: "#13c2c2"
+    capabilities: [run_command, file_read]
+  - id: integration_engineer
+    name: 集成测试工程师
+    icon: "🔗"
+    color: "#fa8c16"
+    capabilities: [run_command, file_read, search_code]
+  - id: quality_director
+    name: 质量总监
+    icon: "🎖️"
+    color: "#cf1322"
+    capabilities: [run_command, file_read, search_code]
+  - id: tech_writer
+    name: 技术文档工程师
+    icon: "📝"
+    color: "#faad14"
+    capabilities: [file_read, file_write, search_code]
+  - id: ops_engineer
+    name: 运维工程师
+    icon: "🔧"
+    color: "#595959"
+    capabilities: [file_read, file_write]
+  - id: project_manager
+    name: 项目经理
+    icon: "📊"
+    color: "#eb2f96"
+    capabilities: [file_read, search_code]
+
+# ── 实时事件流配置 ──
+event_stream:
+  enabled: true
+  events:
+    - step_started           # 步骤开始执行
+    - step_completed         # 步骤完成
+    - step_failed            # 步骤失败
+    - agent_status_change    # Agent 状态变更
+    - tool_invocation        # 工具调用
+    - user_interaction       # 用户交互
+    - milestone_reached      # 里程碑达成
+    - approval_required      # 需要审批
+    - feedback_collected     # 反馈收集
+  display:
+    show_in_chat: true
+    show_in_panel: true
+    max_events: 500
+    filters:
+      - agent_id
+      - step_id
+      - event_type
+      - time_range
+
 steps:
-  - id: a-analyze
-    title: 分析
-    prompt: 分析代码结构、识别坏味道、圈复杂度
+  # ══════════════════════════════════════════════════════════
+  # 阶段一：代码资产普查（5 步，可并行）
+  # 含：资产盘点、依赖图、复杂度、行为快照、隐式知识
+  # ══════════════════════════════════════════════════════════
+  - id: a-asset-scan
+    title: 代码资产盘点
+    prompt: |
+      你作为代码审计专家，对项目进行全面的资产盘点：
+      1. 统计代码行数（分语言、分目录、分文件）
+      2. 识别所有源文件、配置文件、测试文件、第三方库
+      3. 标注模块边界和目录结构
+      4. 统计第三方依赖和框架版本
+      5. 识别技术栈（语言、框架、数据库、中间件）
+      6. 生成代码资产清单（文件数、行数、模块数、依赖数）
+      输出 JSON：{inventory{total_files, total_lines, by_language[{lang, files, lines}], by_module[{module, files, lines}], dependencies[{name, version, type}], tech_stack}, structure{directories, entry_points, public_api}}
+    tools: [search_code, file_read, run_command]
     inputs: {}
-  - id: a-plan
-    title: 重构计划
-    prompt: 制定重构方案和目标架构
+    agent:
+      id: code_auditor
+      role: 代码审计专家
+    user_input:
+      enabled: true
+      mode: optional_input
+      prompt: "代码资产盘点开始。请指定扫描范围（可选）"
+      fields:
+        - name: scan_scope
+          type: multi_choice
+          label: "扫描范围"
+          options: ["全部代码", "指定模块", "排除测试代码", "排除第三方库"]
+          required: false
+        - name: focus_modules
+          type: text
+          label: "重点关注模块（逗号分隔）"
+          placeholder: "例如: src/core, src/api"
+          required: false
+        - name: exclude_dirs
+          type: text
+          label: "排除目录（逗号分隔）"
+          placeholder: "例如: node_modules, vendor"
+          required: false
+      on_submit: "将用户指定的范围和排除列表传入扫描逻辑"
+
+  - id: a-dep-graph
+    title: 依赖关系分析
+    prompt: |
+      你作为架构分析师，构建项目的依赖关系图：
+      1. 分析模块间的 import/include 依赖关系
+      2. 识别循环依赖和不稳定依赖
+      3. 构建包级/模块级依赖拓扑图
+      4. 标注公共 API 和内部 API 边界
+      5. 识别依赖方向违反（高层依赖低层、跨层调用）
+      输出 JSON：{dependency_graph{nodes[{id, name, type, layer}], edges[{from, to, type}], circular_dependencies[], unstable_dependencies[], layer_violations[]}, impact_analysis{high_impact_modules[{module, impacted_modules, risk_level}], blast_radius_map}}
+    tools: [search_code, file_read]
     inputs: {}
+    agent:
+      id: architect_analyst
+      role: 架构分析师
+
+  - id: a-complexity
+    title: 复杂度扫描
+    prompt: |
+      你作为代码质量专家，评估代码复杂度：
+      1. 计算每个函数的圈复杂度（Cyclomatic Complexity）
+      2. 计算认知复杂度（Cognitive Complexity）
+      3. 识别超过阈值（CC>20）的高风险函数
+      4. 统计嵌套深度、分支数量、参数数量
+      5. 评估代码重复率（Copy-Paste Detection）
+      输出 JSON：{complexity{high_risk_functions[{file, function, cyclomatic, cognitive, lines}], average_cyclomatic, max_cyclomatic, by_module[{module, avg_cc, max_cc, high_risk_count}]}, duplication{rate, hotspots[{file, lines_count, duplicated_with}]}, nesting{deep_functions[{file, function, depth}]}}
+    tools: [search_code, file_read, run_command]
+    inputs: {}
+    agent:
+      id: quality_expert
+      role: 代码质量专家
+
+  - id: a-behavior-snapshot
+    title: 运行时行为快照
+    prompt: |
+      你作为行为测试专家，为待重构模块生成运行时行为快照：
+      1. 识别模块的公开 API（函数/方法/入口点）
+      2. 为每个公开 API 生成覆盖全路径的测试用例（正常路径、边界条件、异常路径）
+      3. 运行原有代码，记录每个用例的实际输出（返回值、副作用、状态变更）
+      4. 捕获运行时副作用：数据库写入、文件 IO、网络请求、缓存操作、事件发射
+      5. 记录状态机转换和时序依赖
+      6. 将所有输入-输出对保存为"黄金测试"（Golden Test）基线
+      输出 JSON：{behavioral_snapshot{api_snapshots[{api, inputs[{input_args, description}], outputs[{return_value, side_effects[{type, target, data}], state_changes[{entity, before, after}], timing}], coverage{paths_covered, paths_total, edge_cases_covered, error_paths_covered}, golden_tests[{test_id, api, input_fixture, expected_output, expected_side_effects, priority}], runtime_effects{external_calls[{service, call_signature, return_value}], db_operations[{table, operation, data}], event_streams[{event_type, payload}]}}
+    tools: [search_code, file_read, run_command]
+    inputs:
+      asset_scan: a-asset-scan.result
+      dep_graph: a-dep-graph.result
+    agent:
+      id: behavior_tester
+      role: 行为测试专家
+    user_input:
+      enabled: true
+      mode: optional_input
+      prompt: "行为快照生成中。请指定重点 API 和测试范围（可选）"
+      fields:
+        - name: key_apis
+          type: text
+          label: "重点 API（逗号分隔）"
+          placeholder: "例如: UserService.create, OrderService.calculate"
+          required: false
+        - name: skip_tests
+          type: multi_choice
+          label: "跳过的测试类型"
+          options: ["已存在充分测试", "性能敏感路径", "外部依赖未就绪"]
+          required: false
+        - name: test_depth
+          type: choice
+          label: "测试深度"
+          options: ["仅公开 API", "公开+内部方法", "全量函数"]
+          required: false
+
+  - id: a-tacit-knowledge
+    title: 隐式知识提取
+    prompt: |
+      你作为知识提炼专家，从原有代码中提取隐式知识：
+      1. 提取代码注释中的设计意图（"为什么这样写"而非"写了什么"）
+      2. 分析提交历史，提取 bug 修复模式和设计决策上下文
+      3. 识别隐式契约（调用方和被调用方的非文档化约定）
+      4. 提取魔法数字/字符串的实际含义和来源
+      5. 识别边界条件和特殊处理（防御性代码、hack、workaround）
+      6. 记录并发假设和时序约束
+      输出 JSON：{tacit_knowledge{design_intent[{file, code_region, comment, inferred_purpose, confidence}], commit_insights[{file, commit_hash, message, change_type, lesson_learned, related_bug}], implicit_contracts[{api, caller_expectations, callee_assumptions, violation_examples, confidence}], magic_values[{file, value, context, inferred_meaning, source}], edge_cases[{file, function, condition, special_handling, rationale}], concurrency_constraints[{module, assumption_type, description, violation_scenario}]}}
+    tools: [search_code, file_read, run_command]
+    inputs:
+      asset_scan: a-asset-scan.result
+    agent:
+      id: knowledge_engineer
+      role: 知识提炼专家
+    user_input:
+      enabled: true
+      mode: optional_input
+      prompt: "隐式知识提取中。请补充您知道的隐式知识（可选）"
+      fields:
+        - name: known_contracts
+          type: text
+          label: "已知隐式契约"
+          placeholder: "例如: 用户删除必须先清理关联订单缓存"
+          required: false
+        - name: known_edge_cases
+          type: text
+          label: "已知边界条件"
+          placeholder: "例如: 金额为零时跳过手续费计算"
+          required: false
+        - name: known_risks
+          type: text
+          label: "已知技术风险"
+          placeholder: "例如: 并发场景下可能出现的竞态条件"
+          required: false
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段二：坏味道分析（3 步，可并行）
+  # ══════════════════════════════════════════════════════════
+  - id: a-smell-detect
+    title: 坏味道检测
+    prompt: |
+      你作为代码审计专家，检测代码坏味道：
+      1. 识别长方法/长函数（>50 行）
+      2. 识别上帝类/上帝对象（>500 行或 >20 方法）
+      3. 识别魔法数字和魔法字符串
+      4. 识别深层嵌套（>4 层）
+      5. 识别重复代码和 Copy-Paste
+      6. 识别缺失抽象（if-else 链、switch 驱动）
+      输出 JSON：{smells[{type, file, line, description, severity, suggestion}], smell_summary{total, critical, high, medium, low, by_type[{type, count}]}}
+    tools: [search_code, file_read]
+    inputs: {}
+    agent:
+      id: code_auditor
+      role: 代码审计专家
+
+  - id: a-coupling-analyze
+    title: 耦合度分析
+    prompt: |
+      你作为架构分析师，评估模块耦合度：
+      1. 计算每个模块的扇入（fan-in）和扇出（fan-out）
+      2. 识别高耦合模块（fan-in>10 或 fan-out>10）
+      3. 识别紧密耦合的模块组
+      4. 标记双向依赖和网状依赖
+      5. 评估内聚性（Cohesion）
+      输出 JSON：{coupling{high_coupling_modules[{module, fan_in, fan_out, coupling_score}], tight_coupling_groups[{modules[], coupling_type}], bidirectional_dependencies[], cohesion_assessment[{module, cohesion_score, issues[]}]}}
+    tools: [search_code, file_read]
+    inputs: {}
+    agent:
+      id: architect_analyst
+      role: 架构分析师
+
+  - id: a-risk-assess
+    title: 风险评估
+    prompt: |
+      你作为重构顾问，评估重构风险：
+      1. 评估变更影响范围（Blast Radius）
+      2. 评估回归风险（测试覆盖盲区、无测试模块）
+      3. 评估技术风险（ unsafe 代码、反射、动态绑定）
+      4. 评估数据迁移风险（数据库 Schema 变更、数据完整性）
+      5. 评估性能风险（重构后可能的性能退化）
+      输出 JSON：{risk_assessment{impact_scope{affected_modules[], critical_paths[]}, regression_risk{uncovered_modules[], risk_level}, technical_risk{unsafe_areas[], dynamic_dependencies[]}, data_migration_risk{schema_changes, data_loss_risk}, performance_risk{hot_paths[], expected_regression}}, risk_score{overall, confidence, factors[]}}
+    tools: [search_code, file_read]
+    inputs:
+      asset_scan: a-asset-scan.result
+      complexity: a-complexity.result
+    agent:
+      id: refactor_consultant
+      role: 重构顾问
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段三：重构策略（5 步，串行）
+  # 含：策略制定 → 分批计划 → 变更融合 → 质量基线 → 回滚方案
+  # ══════════════════════════════════════════════════════════
+  - id: a-strategy
+    title: 重构策略制定
+    prompt: |
+      你作为架构师，制定整体重构策略：
+      1. 根据风险评估选择重构模式（渐进式/大爆炸/绞杀者/旁路）
+      2. 确定重构范围和边界
+      3. 制定技术选型和架构改进方案
+      4. 定义重构成功标准（质量指标、性能指标、交付指标）
+      5. 识别关键路径和里程碑
+      输出 JSON：{strategy{mode{type, rationale, pros, cons}, scope{in_scope[], out_of_scope[]}, architecture_changes[{from, to, rationale}], success_criteria{quality[{metric, target}], performance[{metric, baseline, target}], delivery[{metric, target}]}, critical_path{steps[], estimated_duration}}
+    tools: [search_code, file_read, file_write]
+    inputs:
+      risk_assessment: a-risk-assess.result
+    agent:
+      id: solution_architect
+      role: 架构师
+    user_input:
+      enabled: true
+      mode: approval_gate
+      prompt: "重构策略已生成。请审批确认"
+      fields:
+        - name: strategy_approval
+          type: confirm
+          label: "是否批准此重构策略？"
+          options: ["批准执行", "需要修改", "驳回重制定"]
+          required: true
+        - name: preferred_mode
+          type: choice
+          label: "偏好的重构模式"
+          options: ["渐进式（推荐）", "大爆炸", "绞杀者模式", "旁路模式"]
+          required: false
+        - name: scope_notes
+          type: text
+          label: "范围调整意见"
+          placeholder: "例如: 排除支付模块，后续单独重构"
+          required: false
+        - name: priority_modules
+          type: text
+          label: "优先重构的模块"
+          placeholder: "例如: 用户模块, 订单模块"
+          required: false
+      on_approval: "批准后进入分批计划制定"
+
+  - id: a-batch-plan
+    title: 分批计划
+    prompt: |
+      你作为技术项目经理，制定分批执行计划：
+      1. 按耦合度排序，确定重构批次（每批 5-10 个模块）
+      2. 识别每批的前置依赖和后置影响
+      3. 分配每批的工期和资源
+      4. 设定每批的验收标准和退出条件
+      5. 规划批次间的集成验证点
+      输出 JSON：{batches[{batch_id, modules[], order, dependencies, estimated_effort, exit_criteria{test_coverage, complexity_reduction, performance_delta}, verification_steps[]}], milestones[{name, batch_range, deliverable, approval_required}]}
+    tools: [search_code, file_read, file_write]
+    inputs:
+      strategy: a-strategy.result
+      dep_graph: a-dep-graph.result
+    agent:
+      id: tech_project_manager
+      role: 技术项目经理
+    user_input:
+      enabled: true
+      mode: approval_gate
+      prompt: "分批执行计划已生成。请审批确认"
+      fields:
+        - name: batch_approval
+          type: confirm
+          label: "是否批准此分批计划？"
+          options: ["批准执行", "需要调整分批顺序", "驳回重制定"]
+          required: true
+        - name: batch_size
+          type: choice
+          label: "每批模块数量"
+          options: ["3-5 模块（保守）", "5-10 模块（推荐）", "10-15 模块（激进）"]
+          required: false
+        - name: first_batch_priority
+          type: text
+          label: "第一批优先处理的模块"
+          placeholder: "例如: 核心工具库, 基础框架"
+          required: false
+        - name: timeline_constraints
+          type: text
+          label: "时间约束"
+          placeholder: "例如: 第一批需在两周内完成"
+          required: false
+
+  - id: a-change-merge
+    title: 变更融合规划
+    prompt: |
+      你作为变更管理专家，将新需求/架构变更融入重构计划：
+      1. 接收外部变更请求列表（新功能/架构调整/技术栈升级/依赖更新）
+      2. 分类变更类型和优先级
+      3. 评估每个变更与现有重构批次的依赖关系和冲突
+      4. 将变更预分配到最合适的批次
+      5. 评估增量测试需求和资源影响
+      6. 标记不可合并的变更并给出建议
+      输出 JSON：{changes[{id, type{architecture|feature|tech_stack|dependency|bug}, description, priority{P0|P1|P2|P3}, target_modules[], injection_batch, conflicts[{existing_step, conflict_type, resolution}], additional_tests[], resource_impact}], merged_batches[{batch_id, original_modules[], new_changes[], risk_level, additional_effort, additional_tests[]}], unmergeable_changes[{id, reason, recommendation}]}
+    tools: [search_code, file_read]
+    inputs:
+      batch_plan: a-batch-plan.result
+      new_requests: external_input
+    agent:
+      id: change_manager
+      role: 变更管理专家
+    continue_on_fail: true
+
+  - id: a-quality-baseline
+    title: 质量基线建立
+    prompt: |
+      你作为质量工程师，建立重构前的质量基线：
+      1. 运行全量测试，记录当前测试覆盖率
+      2. 执行性能基准测试，记录关键路径性能指标
+      3. 运行代码静态分析，记录当前代码质量指标
+      4. 建立代码规范和 lint 规则
+      5. 生成质量基线报告
+      输出 JSON：{baseline{test_coverage{overall, by_module[], uncovered_modules[]}, performance{key_paths[{path, latency_ms, throughput}], resource_usage{cpu, memory, disk_io}}, code_quality{lint_errors, lint_warnings, complexity_distribution[]}, quality_gates{coverage_min, complexity_max, lint_zero_errors, performance_regression_max}}}
+    tools: [run_command, file_read, file_write]
+    inputs:
+      batch_plan: a-batch-plan.result
+    agent:
+      id: quality_engineer
+      role: 质量工程师
+    user_input:
+      enabled: true
+      mode: approval_gate
+      prompt: "质量基线已建立。请确认门禁标准"
+      fields:
+        - name: quality_approval
+          type: confirm
+          label: "是否确认此质量基线标准？"
+          options: ["确认执行", "需要调整标准", "驳回重设定"]
+          required: true
+        - name: coverage_target
+          type: number
+          label: "测试覆盖率目标 (%)"
+          default: 80
+          required: false
+        - name: complexity_max
+          type: number
+          label: "圈复杂度上限"
+          default: 20
+          required: false
+        - name: performance_regression_max
+          type: number
+          label: "最大性能退化 (%)"
+          default: 10
+          required: false
+        - name: custom_gates
+          type: text
+          label: "自定义门禁要求"
+          placeholder: "例如: API 兼容性 100%, 零安全漏洞"
+          required: false
+
+  - id: a-rollback
+    title: 回滚方案
+    prompt: |
+      你作为 DevOps 工程师，制定完整的回滚方案：
+      1. 设计分支策略（主干/特性分支/发布分支）
+      2. 规划特性开关（Feature Flag）方案
+      3. 制定数据库迁移回滚脚本
+      4. 设计灰度发布和 A/B 测试方案
+      5. 建立应急预案和回滚触发条件
+      输出 JSON：{rollback{branch_strategy{model, naming_convention, protection_rules}, feature_flags[{name, scope, default_value, rollback_strategy}], db_migration{rollback_scripts[], data_preservation_plan}, canary{percentage_based, health_checks[], auto_rollback_triggers[]}, emergency_plan{trigger_conditions[], rollback_steps[], communication_plan}, parallel_strategy{enabled, refactor_branch_pattern, feature_branch_pattern, integration_point_frequency, conflict_resolution{auto_resolve[], manual_review[]}}}
+    tools: [file_read, file_write]
+    inputs:
+      batch_plan: a-batch-plan.result
+      quality_baseline: a-quality-baseline.result
+    agent:
+      id: devops_engineer
+      role: DevOps 工程师
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段四：执行重构（6 步，循环迭代）
+  # 含：预审查 → 执行 → 等价验证 → 变更闸门 → 回归 → 集成
+  # ══════════════════════════════════════════════════════════
+  - id: a-pre-review
+    title: 预审查
+    prompt: |
+      你作为代码审查员，进行重构前的预审查：
+      1. 审查当前批次涉及模块的现有代码
+      2. 确认重构方案与代码实际情况一致
+      3. 标记需要特殊处理的代码段
+      4. 确认测试用例覆盖待重构代码
+      5. 输出审查通过/驳回
+      输出 JSON：{pre_review{batch_id, modules_reviewed[], findings[{file, line, severity, recommendation}], coverage_gaps[{module, uncovered_paths}], verdict{approved|rejected, blockers[], suggestions[]}}}
+    tools: [search_code, file_read]
+    inputs:
+      batch_plan: a-batch-plan.result
+    agent:
+      id: code_reviewer
+      role: 代码审查员
+
   - id: a-execute
-    title: 执行重构
-    prompt: 逐步重构并保持测试通过
-    inputs: {}
+    title: 分批执行
+    prompt: |
+      你作为高级工程师，按计划执行重构：
+      1. 逐模块执行重构，每完成一个模块运行测试
+      2. 应用重构模式（Extract Method、Extract Class、Introduce Interface 等）
+      3. 保持行为不变，确保测试持续通过
+      4. 记录每步变更（文件、函数、行号）
+      5. 更新依赖关系图
+      输出 JSON：{execution{batch_id, modules_completed[{module, refactorings_applied[], tests_passed, lines_changed}], issues_encountered[{module, issue, resolution}], current_progress, remaining_modules[]}}
+    tools: [file_read, file_write, run_command, search_code]
+    inputs:
+      pre_review: a-pre-review.result
+      quality_baseline: a-quality-baseline.result
+    agent:
+      id: senior_engineer
+      role: 高级工程师
+    continue_on_fail: false
+
+  - id: a-equivalence-check
+    title: 语义等价验证
+    prompt: |
+      你作为行为验证专家，对比重构前后代码的语义等价性：
+      1. 使用黄金测试（Golden Test）用例分别运行新旧代码，对比输出结果
+      2. 逐维度对比：返回值结构、数据内容、副作用序列、状态变更
+      3. 识别等价差异：
+         - 完全等价 ✓（所有维度一致）
+         - 语义等价 ≈（数据等价但结构不同，如字段顺序变化）
+         - 行为差异 ✗（逻辑不同，需人工确认）
+         - 静默失败 ✗（旧代码有输出，新代码无）
+      4. 生成差异报告，标记需要人工裁决的差异
+      5. 验证隐式知识中的契约是否被保留
+      输出 JSON：{equivalence_check{batch_id, comparison_results[{golden_test_id, old_output{return_value, side_effects[], state_changes[]}, new_output{return_value, side_effects[], state_changes[]}, equivalence{identical|semantic|different|silent_failure}, diff_details[{dimension, old, new, diff_type}], verdict}], fidelity_score{percentage, by_module[{module, score}], failing_tests[{test_id, module, reason}]}, tacit_knowledge_validation[{tacit_item, preserved|violated, details}], overall_verdict{pass|fail|review_required, auto_pass_count, manual_review_count, blocked_diffs[]}}
+    tools: [run_command, file_read]
+    inputs:
+      execution: a-execute.result
+      behavioral_snapshot: a-behavior-snapshot.result
+      tacit_knowledge: a-tacit-knowledge.result
+    continue_on_fail: false
+    agent:
+      id: behavior_verifier
+      role: 行为验证专家
+    user_input:
+      enabled: true
+      mode: approval_gate
+      prompt: "等价验证完成。存在需裁决的行为差异，请处理"
+      fields:
+        - name: equivalence_verdict
+          type: confirm
+          label: "是否接受当前等价性验证结果？"
+          options: ["全部通过", "部分通过（需处理差异）", "不通过（需回滚）"]
+          required: true
+        - name: difference_handling
+          type: choice
+          label: "对语义差异的处理方式"
+          options: ["接受差异（非关键路径）", "修复差异后继续", "标记为已知变化"]
+          required: false
+        - name: manual_review_notes
+          type: text
+          label: "人工裁决备注"
+          placeholder: "说明接受或拒绝差异的原因"
+          required: false
+
+  - id: a-change-gate
+    title: 中途变更闸门
+    prompt: |
+      你作为变更控制专家，评估重构执行过程中的中途变更：
+      1. 接收外部变更请求（新功能/bug修复/架构调整/技术栈升级）
+      2. 评估与当前重构批次的冲突（模块重叠、依赖冲突、时序冲突）
+      3. 判断变更优先级并分类：
+         - P0 紧急：立即处理，暂停当前批次
+         - P1 重要：合并到当前批次的剩余模块
+         - P2 常规：排入后续批次
+         - P3 延后：记录待重构完成后处理
+      4. 触发增量风险评估和测试需求评估
+      5. 给出具体的变更处理方案
+      输出 JSON：{change_request{id, type, description, source}, assessment{conflicts[{module, conflict_type, severity}], impacted_batches[], test_impact, resource_impact}, decision{priority{P0|P1|P2|P3}, action{merge_into_current|defer_to_next|reject|pause_and_handle}, target_batch, resolution_steps[], additional_tests[]}, rollback_plan{trigger_conditions[], steps[]}}
+    tools: [search_code, file_read, run_command]
+    inputs:
+      execution: a-execute.result
+      change_request: external_input
+    agent:
+      id: change_manager
+      role: 变更控制专家
+    continue_on_fail: true
+
+  - id: a-regression
+    title: 回归验证
+    prompt: |
+      你作为测试工程师，执行回归验证：
+      1. 运行全量单元测试和集成测试
+      2. 对比重构前后的测试覆盖率
+      3. 执行性能回归测试，对比关键路径性能
+      4. 检查是否引入新的代码坏味道
+      5. 评估重构对模块耦合度的改善
+      输出 JSON：{regression{test_results{total, passed, failed, skipped, coverage_delta{before, after, delta}}, performance_comparison{before{path, latency}, after{path, latency}, regression_detected}, quality_improvement{complexity_reduction, coupling_reduction, smells_removed}, regressions_found[{file, test, expected, actual, severity}]}}
+    tools: [run_command, file_read]
+    inputs:
+      execution: a-execute.result
+      quality_baseline: a-quality-baseline.result
+    agent:
+      id: test_engineer
+      role: 测试工程师
+    continue_on_fail: false
+
+  - id: a-integration
+    title: 集成验证
+    prompt: |
+      你作为集成测试工程师，执行跨模块集成验证：
+      1. 验证重构模块与未重构模块的接口兼容性
+      2. 执行端到端测试场景
+      3. 验证数据流和状态管理的正确性
+      4. 执行跨模块性能测试
+      5. 确认无循环依赖和层间违规
+      输出 JSON：{integration{interface_compatibility{verified[], breaking_changes[], adapters_needed[]}, e2e_scenarios[{scenario, steps, status, duration}], data_flow_validation{paths_verified[], state_transitions_verified[]}, cross_module_performance{before, after, delta}, dependency_check{circular_deps[], layer_violations[]}}}
+    tools: [run_command, file_read, search_code]
+    inputs:
+      regression: a-regression.result
+      dep_graph: a-dep-graph.result
+    agent:
+      id: integration_engineer
+      role: 集成测试工程师
+    continue_on_fail: false
+
+  # ══════════════════════════════════════════════════════════
+  # 阶段五：验收交付（4 步）
+  # ══════════════════════════════════════════════════════════
+  - id: a-quality-gate
+    title: 质量门禁
+    prompt: |
+      你作为质量总监，执行最终质量门禁检查：
+      1. 检查测试覆盖率是否达到基线要求
+      2. 检查代码复杂度是否降低
+      3. 检查性能回归是否在可接受范围
+      4. 检查代码坏味道是否显著减少
+      5. 检查模块耦合度是否改善
+      6. **检查行为保真度**：黄金测试通过率、隐式知识保留率
+      7. **检查副作用完整性**：外部调用、数据库操作、事件发射是否一致
+      8. **检查边界条件覆盖**：原有代码的特殊处理是否全部保留
+      输出 JSON：{quality_gate{coverage{target, actual, pass}, complexity{avg_before, avg_after, reduction, pass}, performance{max_regression_allowed, actual_regression, pass}, smells{before_count, after_count, reduction, pass}, coupling{improvement, pass}, behavioral_fidelity{golden_test_pass_rate{target, actual, pass}, tacit_knowledge_retention{total_items, preserved, violated, pass}, side_effect_equivalence{db_ops_match, external_calls_match, event_order_match, pass}, edge_case_retention{total_edge_cases, preserved, missing, pass}}, overall_verdict{pass|fail, blocking_issues[], recommendations[], manual_reviews_required[]}}}
+    tools: [run_command, file_read, search_code]
+    inputs:
+      integration: a-integration.result
+      quality_baseline: a-quality-baseline.result
+      equivalence_check: a-equivalence-check.result
+      behavioral_snapshot: a-behavior-snapshot.result
+      tacit_knowledge: a-tacit-knowledge.result
+    agent:
+      id: quality_director
+      role: 质量总监
+    user_input:
+      enabled: true
+      mode: approval_gate
+      prompt: "最终质量门禁已完成。请审批交付"
+      fields:
+        - name: delivery_approval
+          type: confirm
+          label: "是否批准本次重构交付？"
+          options: ["批准交付", "有条件批准（需处理待办）", "驳回（需返工）"]
+          required: true
+        - name: manual_reviews
+          type: text
+          label: "需人工处理的问题"
+          placeholder: "列出需要在后续批次中处理的遗留问题"
+          required: false
+        - name: sign_off
+          type: text
+          label: "审批人签字"
+          placeholder: "请输入审批人姓名和日期"
+          required: true
+
+  - id: a-doc-update
+    title: 文档更新
+    prompt: |
+      你作为技术文档工程师，更新项目文档：
+      1. 更新架构文档（架构图、模块关系、数据流）
+      2. 更新 API 文档（接口变更、新增接口、废弃接口）
+      3. 更新开发指南（编码规范、目录结构、构建流程）
+      4. 更新迁移指南（从旧架构到新架构的迁移步骤）
+      5. 生成重构总结报告
+      输出 JSON：{docs_updated{architecture_doc{updated, changes[], new_diagrams[]}, api_doc{endpoints_updated[], deprecated[], new_endpoints[]}, migration_guide{steps[], breaking_changes[], compatibility_notes}, refactor_summary{total_changes, modules_affected, complexity_reduction, coupling_improvement, lessons_learned}}}
+    tools: [file_read, file_write, search_code]
+    inputs:
+      quality_gate: a-quality-gate.result
+    agent:
+      id: tech_writer
+      role: 技术文档工程师
+
+  - id: a-handoff
+    title: 运维交接
+    prompt: |
+      你作为运维工程师，完成运维交接：
+      1. 生成运行手册（启动、停止、配置、故障排查）
+      2. 设置监控告警（关键指标、阈值、告警渠道）
+      3. 准备数据备份和恢复方案
+      4. 整理应急预案和回滚流程
+      5. 完成交接检查清单
+      输出 JSON：{handoff{runbook{operations[{operation, steps, estimated_duration}], troubleshooting[{issue, cause, solution}]}, monitoring{metrics[{name, threshold, alert_channel}], dashboards[]}, backup_recovery{backup_schedule, restore_steps[], rto, rpo}, handoff_checklist{items[{item, status, assignee}], sign_off_required}}
+    tools: [file_read, file_write]
+    inputs:
+      docs_updated: a-doc-update.result
+    agent:
+      id: ops_engineer
+      role: 运维工程师
+
+  - id: a-post-review
+    title: 事后复盘
+    prompt: |
+      你作为项目经理，进行重构事后复盘：
+      1. 回顾重构过程，总结经验教训
+      2. 评估重构效果（质量提升、性能改善、可维护性提升）
+      3. 分析计划与实际的偏差
+      4. 提出后续改进建议
+      5. 生成最终复盘报告
+      输出 JSON：{post_review{what_went_well[{item, impact}], what_could_improve[{item, root_cause, action_needed}], metrics_before_after{quality[{metric, before, after, improvement}], performance[{metric, before, after, improvement}], maintainability[{metric, before, after, improvement}]}, follow_up_actions[{action, priority, owner, timeline}], final_assessment{success_level, key_achievements, remaining_risks[]}}}
+    tools: [file_read, search_code]
+    inputs:
+      handoff: a-handoff.result
+      quality_gate: a-quality-gate.result
+    agent:
+      id: project_manager
+      role: 项目经理
+    user_input:
+      enabled: true
+      mode: feedback_collect
+      prompt: "重构已完成。请提供您的反馈"
+      fields:
+        - name: overall_satisfaction
+          type: choice
+          label: "整体满意度"
+          options: ["非常满意", "基本满意", "部分满意", "不满意"]
+          required: true
+        - name: quality_improvement
+          type: number
+          label: "质量改善评分 (1-10)"
+          min: 1
+          max: 10
+          required: true
+        - name: process_feedback
+          type: text
+          label: "流程改进建议"
+          placeholder: "哪些环节做得好？哪些需要改进？"
+          required: false
+        - name: follow_up_items
+          type: text
+          label: "后续跟进事项"
+          placeholder: "需要后续处理的问题或改进点"
+          required: false
+        - name: knowledge_share
+          type: choice
+          label: "是否愿意分享经验？"
+          options: ["愿意", "视情况", "不愿意"]
+          required: false
+      on_feedback: "反馈将用于改进后续重构流程"

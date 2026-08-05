@@ -87,22 +87,24 @@ impl OpcIndustryAdapter for EcommerceAdapter {
 
         match entity_type {
             "order" => {
-                if let Some(quantity) = entity_data.get("quantity").and_then(|v| v.as_i64()) {
-                    if quantity <= 0 {
-                        errors.push(ValidationError::field("quantity", "订单数量必须大于 0"));
-                    }
+                if let Some(quantity) = entity_data.get("quantity").and_then(|v| v.as_i64())
+                    && quantity <= 0
+                {
+                    errors.push(ValidationError::field("quantity", "订单数量必须大于 0"));
                 }
-                if let Some(price) = entity_data.get("price").and_then(|v| v.as_f64()) {
-                    if price < 0.0 {
-                        errors.push(ValidationError::field("price", "价格不能为负数"));
-                    }
+                if let Some(price) = entity_data.get("price").and_then(|v| v.as_f64())
+                    && price < 0.0
+                {
+                    errors.push(ValidationError::field("price", "价格不能为负数"));
                 }
             },
-            "customer" => {
-                if entity_data.get("email").and_then(|v| v.as_str()).map_or(true, |e| e.is_empty())
-                {
-                    errors.push(ValidationError::field("email", "下单客户必须提供邮箱"));
-                }
+            "customer"
+                if entity_data
+                    .get("email")
+                    .and_then(|v| v.as_str())
+                    .is_none_or(|e| e.is_empty()) =>
+            {
+                errors.push(ValidationError::field("email", "下单客户必须提供邮箱"));
             },
             _ => {},
         }

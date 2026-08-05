@@ -89,20 +89,20 @@ impl OpcIndustryAdapter for SalesGrowthAdapter {
                 let has_email = entity_data
                     .get("email")
                     .and_then(|v| v.as_str())
-                    .map_or(false, |e| !e.is_empty());
+                    .is_some_and(|e| !e.is_empty());
                 let has_phone = entity_data
                     .get("phone")
                     .and_then(|v| v.as_str())
-                    .map_or(false, |p| !p.is_empty());
+                    .is_some_and(|p| !p.is_empty());
                 if !has_email && !has_phone {
                     errors.push(ValidationError::field("email", "线索必须提供邮箱或手机号"));
                 }
             },
             "deal" => {
-                if let Some(amount) = entity_data.get("amount").and_then(|v| v.as_f64()) {
-                    if amount <= 0.0 {
-                        errors.push(ValidationError::field("amount", "交易金额必须大于 0"));
-                    }
+                if let Some(amount) = entity_data.get("amount").and_then(|v| v.as_f64())
+                    && amount <= 0.0
+                {
+                    errors.push(ValidationError::field("amount", "交易金额必须大于 0"));
                 }
             },
             _ => {},

@@ -16,6 +16,7 @@
 //!     → 生成 StockReflectionReport → 可选触发自我进化
 //! ```
 
+use async_trait::async_trait;
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_reflection::{
     BottleneckNode, NodeExecutionSnapshot, NodeFailureAnalysis, WorkflowExecutionRecord,
@@ -514,6 +515,43 @@ impl StockReflectionEngine {
 impl Default for StockReflectionEngine {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[async_trait]
+impl WorkflowReflector for StockReflectionEngine {
+    async fn reflect(&self, record: &WorkflowExecutionRecord) -> Result<Reflection, String> {
+        self.reflector.reflect(record).await
+    }
+
+    async fn reflect_node(
+        &self,
+        record: &WorkflowExecutionRecord,
+        failed_node: &NodeExecutionSnapshot,
+    ) -> Result<Reflection, String> {
+        self.reflector.reflect_node(record, failed_node).await
+    }
+
+    async fn reflect_batch(
+        &self,
+        records: &[WorkflowExecutionRecord],
+    ) -> Result<Vec<Reflection>, String> {
+        self.reflector.reflect_batch(records).await
+    }
+
+    async fn aggregate_patterns(
+        &self,
+        records: &[WorkflowExecutionRecord],
+    ) -> Result<Vec<WorkflowPattern>, String> {
+        self.reflector.aggregate_patterns(records).await
+    }
+
+    async fn get_history(
+        &self,
+        workflow_id: &str,
+        limit: usize,
+    ) -> Result<Vec<Reflection>, String> {
+        self.reflector.get_history(workflow_id, limit).await
     }
 }
 

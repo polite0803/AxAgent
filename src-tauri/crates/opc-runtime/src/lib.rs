@@ -17,7 +17,6 @@ use axagent_opc_types::{
     WorkflowStep,
 };
 use tokio::sync::RwLock;
-use tracing;
 
 // ── IndustryAdapterRegistry ─────────────────────────────────────
 
@@ -212,7 +211,7 @@ impl OpcRuntime {
     /// 执行规则动作
     ///
     /// 优先使用行业适配器的特有执行逻辑；若适配器返回默认空实现（Ok(())），
-    /// 则回退到运行时的通用动作处理（日志记录 + 预留 DAO 扩展点）。
+    /// 则回退到运行时的通用动作处理（日志记录 + DAO 实际数据库操作）。
     pub async fn execute_rule(
         &self,
         industry_id: &str,
@@ -238,7 +237,10 @@ impl OpcRuntime {
                         context.entity_id,
                         status
                     );
-                    // 预留扩展点：可接入 opc-dao 的 DAO 更新方法
+                    if let Some(ds) = &self.data_service {
+                        ds.update_entity_status(&context.entity_type, &context.entity_id, status)
+                            .await?;
+                    }
                 },
                 AutomationAction::UpdateField { field, value } => {
                     tracing::info!(
@@ -263,7 +265,14 @@ impl OpcRuntime {
                         entity_type,
                         data
                     );
-                    // 预留扩展点：可接入 opc-dao 的创建方法
+                    if let Some(ds) = &self.data_service {
+                        let new_id = ds.create_entity_record(entity_type, data).await?;
+                        tracing::info!(
+                            "[opc-runtime] 记录创建成功: id={}, entity_type={}",
+                            new_id,
+                            entity_type
+                        );
+                    }
                 },
             }
         }

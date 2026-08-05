@@ -4260,6 +4260,14 @@
           "wf-sd-3": {
             "name": "Performance Opt",
             "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "Groß angelegte Refactoring",
+            "description": "Bestandsaufnahme → Code-Smell-Analyse → Refactoring-Strategie → Batch-Ausführung → Abnahme und Übergabe"
+          },
+          "wf-large-refactor-lite": {
+            "name": "Schnelle Inkrementelle Refactoring",
+            "description": "Änderungsbewertung → Minimalplan → Ausführung → Verifikation"
           }
         },
         "finance-invest": {
@@ -4409,6 +4417,14 @@
           "sd-bug": {
             "label": "Bug Analysis",
             "description": "Quickly locate and resolve technical issues"
+          },
+          "sd-large-refactor": {
+            "label": "Groß angelegte Refactoring",
+            "description": "Systematische Refactoring für Million-Zeilen-Codebasen mit Batch-Ausführung und inkrementeller Verifikation"
+          },
+          "sd-large-refactor-lite": {
+            "label": "Schnelle Inkrementelle Refactoring",
+            "description": "Fast-Track für Änderungen nach dem Refactoring mit minimaler Injektion für Architekturadjustierungen und Funktionserweiterungen"
           }
         },
         "finance-invest": {
@@ -4863,6 +4879,39 @@
       "webFetch": "Web-Abruf",
       "webSearch": "Web-Suche"
     }
+  },
+  "agentActivity": {
+    "title": "Agent Aktivitäts-Feed",
+    "activityLog": "Aktivitätsprotokoll",
+    "status": {
+      "idle": "Leerlauf",
+      "running": "In Bearbeitung",
+      "waitingApproval": "Warten auf Genehmigung",
+      "completed": "Abgeschlossen",
+      "error": "Fehler"
+    },
+    "eventType": {
+      "stepStarted": "Schritt gestartet",
+      "stepCompleted": "Schritt abgeschlossen",
+      "stepFailed": "Schritt fehlgeschlagen",
+      "agentStatusChange": "Statusänderung",
+      "toolInvocation": "Werkzeugaufruf",
+      "userInteraction": "Benutzerinteraktion",
+      "milestoneReached": "Meilenstein",
+      "approvalRequired": "Genehmigung erforderlich",
+      "feedbackCollected": "Feedback gesammelt"
+    },
+    "filter": {
+      "all": "Alle",
+      "running": "In Bearbeitung",
+      "waiting": "Wartend",
+      "completed": "Abgeschlossen"
+    },
+    "emptyState": {
+      "noActivity": "Keine Aktivität",
+      "noFilteredActivity": "Keine Aktivität für diesen Agent"
+    },
+    "stepLabel": "Schritt"
   },
   "promptTemplate": {
     "unnamed": "Unbenannt"

@@ -4260,6 +4260,14 @@
           "wf-sd-3": {
             "name": "Performance Opt",
             "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "Refactorización a Gran Escala",
+            "description": "Inventario de activos → Análisis de olores de código → Estrategia de refactorización → Ejecución por lotes → Entrega de aceptación"
+          },
+          "wf-large-refactor-lite": {
+            "name": "Refactorización Incremental Rápida",
+            "description": "Evaluación de Cambios → Plan Mínimo → Ejecución → Verificación"
           }
         },
         "finance-invest": {
@@ -4409,6 +4417,14 @@
           "sd-bug": {
             "label": "Bug Analysis",
             "description": "Quickly locate and resolve technical issues"
+          },
+          "sd-large-refactor": {
+            "label": "Refactorización a Gran Escala",
+            "description": "Refactorización sistemática para bases de código de millones de líneas con ejecución por lotes y verificación incremental"
+          },
+          "sd-large-refactor-lite": {
+            "label": "Refactorización Incremental Rápida",
+            "description": "Vía rápida para cambios posteriores al refactor con inyección mínima para ajustes de arquitectura y adiciones de funcionalidades"
           }
         },
         "finance-invest": {
@@ -4863,6 +4879,39 @@
       "webFetch": "Obtener Web",
       "webSearch": "Búsqueda Web"
     }
+  },
+  "agentActivity": {
+    "title": "Feed de Actividad de Agent",
+    "activityLog": "Registro de actividad",
+    "status": {
+      "idle": "Inactivo",
+      "running": "En ejecución",
+      "waitingApproval": "Esperando aprobación",
+      "completed": "Completado",
+      "error": "Error"
+    },
+    "eventType": {
+      "stepStarted": "Paso iniciado",
+      "stepCompleted": "Paso completado",
+      "stepFailed": "Paso fallido",
+      "agentStatusChange": "Cambio de estado",
+      "toolInvocation": "Invocación de herramienta",
+      "userInteraction": "Interacción de usuario",
+      "milestoneReached": "Hito",
+      "approvalRequired": "Aprobación requerida",
+      "feedbackCollected": "Comentarios recopilados"
+    },
+    "filter": {
+      "all": "Todos",
+      "running": "En ejecución",
+      "waiting": "Esperando",
+      "completed": "Completados"
+    },
+    "emptyState": {
+      "noActivity": "Sin actividad",
+      "noFilteredActivity": "Sin actividad para este agente"
+    },
+    "stepLabel": "Paso"
   },
   "promptTemplate": {
     "unnamed": "Sin nombre"

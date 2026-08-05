@@ -60,8 +60,7 @@ impl OpcIndustryAdapter for ContentMediaAdapter {
 
         match entity_type {
             "post" => {
-                if entity_data.get("title").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty())
-                {
+                if entity_data.get("title").and_then(|v| v.as_str()).is_none_or(|s| s.is_empty()) {
                     errors.push(ValidationError::field("title", "文章标题不能为空"));
                 }
                 if let Some(content) = entity_data.get("content").and_then(|v| v.as_str()) {
