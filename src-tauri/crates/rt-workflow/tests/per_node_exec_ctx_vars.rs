@@ -64,6 +64,20 @@ impl WorkflowExecutionRepository for MockWorkflowExecRepo {
     ) -> Result<Vec<WorkflowExecutionData>, String> {
         Ok(vec![])
     }
+    async fn save_execution_state(
+        &self,
+        _id: &str,
+        _status: &str,
+        _execution_state_json: &str,
+    ) -> Result<bool, String> {
+        Ok(true)
+    }
+    async fn clear_execution_state(&self, _id: &str, _status: &str) -> Result<bool, String> {
+        Ok(true)
+    }
+    async fn list_paused_executions(&self) -> Result<Vec<WorkflowExecutionData>, String> {
+        Ok(vec![])
+    }
 }
 
 static MOCK_WF_EXEC_REPO: OnceLock<()> = OnceLock::new();

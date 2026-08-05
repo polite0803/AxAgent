@@ -763,6 +763,11 @@ macro_rules! register_all_commands {
             commands::work_engine::list_pending_approvals,
             commands::work_engine::resume_approval,
             commands::work_engine::cancel_approval,
+            // 崩溃恢复命令
+            commands::work_engine::list_paused_workflow_executions,
+            commands::work_engine::recover_workflow_execution,
+            commands::work_engine::recover_all_paused_workflow_executions,
+            commands::work_engine::cancel_all_paused_workflow_executions,
             // User Profile & Style Migration commands
             commands::user_profile::get_user_profile,
             commands::user_profile::update_user_profile,

@@ -4,7 +4,7 @@
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    NodeError, NodeExecutorTrait, NodeOutput, check_cancellation_or_pause, error_code,
 };
 use async_trait::async_trait;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
@@ -176,6 +176,9 @@ impl NodeExecutorTrait for LlmExecutor {
             ..Default::default()
         };
 
+        // LLM 调用前检查取消/暂停状态
+        check_cancellation_or_pause(context).await?;
+
         let result =
             execute_llm(&*adapter, &req_ctx, request.clone(), &llm_config).await.map_err(|e| {
                 NodeError::exec_failed(
@@ -190,6 +193,9 @@ impl NodeExecutorTrait for LlmExecutor {
         if let Some(ref cc_config) = llm_node.config.consistency_check
             && cc_config.enabled
         {
+            // 二次调用前检查取消/暂停状态
+            check_cancellation_or_pause(context).await?;
+
             let secondary_request =
                 if matches!(cc_config.mode, axagent_harness::ConsistencyMode::CrossModelCompare) {
                     let sec_model =

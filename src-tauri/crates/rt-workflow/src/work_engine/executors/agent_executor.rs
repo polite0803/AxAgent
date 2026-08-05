@@ -42,7 +42,7 @@ fn lock_or_recover<T>(guard: Result<T, PoisonError<T>>) -> T {
 use crate::work_engine::WorkEngine;
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    NodeError, NodeExecutorTrait, NodeOutput, check_cancellation_or_pause, error_code,
 };
 use crate::work_engine::prompt_template::{
     BuiltinVarsProvider, CompiledPrompt, DomainConstraintsFn, TemplateSegment, compile_prompt,
@@ -995,7 +995,12 @@ impl NodeExecutorTrait for AgentExecutor {
         // 用尽 5 轮只浪费 token 和时间。2 轮连续空内容后提前终止。
         let mut consecutive_empty_tool_rounds = 0u32;
 
+        // 进入 ReAct 循环前检查取消/暂停状态
+        check_cancellation_or_pause(context).await?;
+
         for round in 0..max_rounds {
+            // 每轮迭代前检查取消/暂停状态（修复：节点执行中途无法打断）
+            check_cancellation_or_pause(context).await?;
             // V53 修复(M2): 连续 2 轮 content 为空 + 工具调用后提前终止。
             // agnes-2.0-flash 等模型在工具调用后始终不生成文本内容，
             // 用尽所有轮次浪费 token，此优化可节省 60%+ 的无效 API 调用。
@@ -1207,6 +1212,9 @@ impl NodeExecutorTrait for AgentExecutor {
                     thinking: None,
                 });
             }
+
+            // 工具执行后检查取消/暂停状态
+            check_cancellation_or_pause(context).await?;
 
             // 最后一轮即使还有 tool_calls 也结束
             if round + 1 >= max_rounds {

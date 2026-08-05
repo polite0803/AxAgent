@@ -23,7 +23,7 @@ use super::prompt_template::CompiledPrompt;
 /// 4.1.6 P3:暂停原因
 ///
 /// 显式区分触发暂停的不同场景,便于日志/审计/UI 展示。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PauseReason {
     /// 断点命中
     Breakpoint,
@@ -301,6 +301,42 @@ impl ExecutionState {
         }
     }
 
+    /// 从快照重建 ExecutionState（崩溃后恢复时使用）
+    ///
+    /// 仅恢复可序列化的纯数据字段，运行时原语（callbacks/cancel_token 等）
+    /// 由 WorkEngine 在调用方重新注入。
+    pub fn from_snapshot(snapshot: ExecutionStateSnapshot) -> Self {
+        Self {
+            execution_id: snapshot.execution_id,
+            workflow_id: snapshot.workflow_id,
+            status: snapshot.status,
+            input_params: snapshot.input_params,
+            variables: snapshot.variables,
+            node_records: snapshot.node_records,
+            current_node_id: snapshot.current_node_id,
+            parent_execution_id: snapshot.parent_execution_id,
+            callbacks: None,
+            compiled_prompts: None,
+            cancel_token: None,
+            dry_run: false,
+            breakpoints: std::collections::HashSet::new(),
+            pause_state: snapshot.pause_reason.map(PauseState::new),
+            plan_callbacks: None,
+            tool_permissions: None,
+            business_rule_engine: None,
+            tool_registry: None,
+            partial_result_tx: None,
+            interrupt_signal: None,
+            credential_manager: None,
+            node_outputs: snapshot.node_outputs,
+            total_time_ms: snapshot.total_time_ms,
+            created_at: snapshot.created_at,
+            updated_at: snapshot.updated_at,
+            last_error: None,
+            error_workflow_id: None,
+        }
+    }
+
     /// Set a workflow variable
     pub fn set_variable(&mut self, key: String, value: serde_json::Value) {
         self.variables.insert(key, value);
@@ -380,5 +416,192 @@ impl std::fmt::Debug for ExecutionState {
             .field("partial_result_tx", &self.partial_result_tx.as_ref().map(|_| "Some(broadcast)"))
             .field("interrupt_signal", &self.interrupt_signal.as_ref().map(|_| "Some(Notify)"))
             .finish()
+    }
+}
+
+// ── ExecutionStateSnapshot: 崩溃后恢复用的可序列化快照 ──
+
+/// 可序列化的执行状态快照，用于崩溃后恢复。
+///
+/// 与 ExecutionState 的区别：
+/// - 只包含可序列化的纯数据字段（无 Arc/Notify/CancellationToken 等运行时原语）
+/// - 恢复时由 WorkEngine 从 Snapshot 重建完整的 ExecutionState（重新注入运行时字段）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutionStateSnapshot {
+    pub execution_id: String,
+    pub workflow_id: String,
+    pub status: ExecutionStatus,
+    pub input_params: serde_json::Value,
+    pub variables: HashMap<String, serde_json::Value>,
+    pub node_records: Vec<NodeExecutionRecord>,
+    pub node_outputs: HashMap<String, serde_json::Value>,
+    pub current_node_id: Option<String>,
+    pub parent_execution_id: Option<String>,
+    pub total_time_ms: u64,
+    pub created_at: i64,
+    pub updated_at: i64,
+    /// 暂停原因（用于恢复时重建 PauseState）
+    pub pause_reason: Option<PauseReason>,
+}
+
+impl From<&ExecutionState> for ExecutionStateSnapshot {
+    fn from(state: &ExecutionState) -> Self {
+        Self {
+            execution_id: state.execution_id.clone(),
+            workflow_id: state.workflow_id.clone(),
+            status: state.status.clone(),
+            input_params: state.input_params.clone(),
+            variables: state.variables.clone(),
+            node_records: state.node_records.clone(),
+            node_outputs: state.node_outputs.clone(),
+            current_node_id: state.current_node_id.clone(),
+            parent_execution_id: state.parent_execution_id.clone(),
+            total_time_ms: state.total_time_ms,
+            created_at: state.created_at,
+            updated_at: state.updated_at,
+            pause_reason: state.pause_reason(),
+        }
+    }
+}
+
+impl From<&mut ExecutionState> for ExecutionStateSnapshot {
+    fn from(state: &mut ExecutionState) -> Self {
+        Self::from(&*state)
+    }
+}
+
+impl ExecutionStateSnapshot {
+    /// 序列化为 JSON 字符串
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    /// 从 JSON 字符串反序列化
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(json)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn make_test_state() -> ExecutionState {
+        let mut state = ExecutionState::new(
+            "exec-001".to_string(),
+            "wf-001".to_string(),
+            serde_json::json!({}),
+        );
+        state.status = ExecutionStatus::Running;
+        state.variables.insert("x".to_string(), serde_json::json!(42));
+        state.current_node_id = Some("node-1".to_string());
+        state.total_time_ms = 100;
+        state
+    }
+
+    #[test]
+    fn test_snapshot_roundtrip() {
+        let state = make_test_state();
+        let snapshot = ExecutionStateSnapshot::from(&state);
+        let json = snapshot.to_json().unwrap();
+
+        let restored = ExecutionStateSnapshot::from_json(&json).unwrap();
+        assert_eq!(restored.execution_id, "exec-001");
+        assert_eq!(restored.workflow_id, "wf-001");
+        assert_eq!(restored.status, ExecutionStatus::Running);
+        assert_eq!(restored.current_node_id, Some("node-1".to_string()));
+        assert_eq!(restored.total_time_ms, 100);
+        assert_eq!(
+            restored.variables.get("x"),
+            Some(&serde_json::json!(42))
+        );
+    }
+
+    #[test]
+    fn test_snapshot_from_mut_ref() {
+        let mut state = make_test_state();
+        let snapshot: ExecutionStateSnapshot = (&mut state).into();
+        assert_eq!(snapshot.execution_id, "exec-001");
+    }
+
+    #[test]
+    fn test_from_snapshot_rebuilds_state() {
+        let state = make_test_state();
+        let snapshot = ExecutionStateSnapshot::from(&state);
+
+        // 模拟崩溃恢复：从快照重建
+        let restored = ExecutionState::from_snapshot(snapshot);
+        assert_eq!(restored.execution_id, "exec-001");
+        assert_eq!(restored.workflow_id, "wf-001");
+        assert_eq!(restored.status, ExecutionStatus::Running);
+        // 运行时字段应为 None
+        assert!(restored.cancel_token.is_none());
+        assert!(restored.callbacks.is_none());
+    }
+
+    #[test]
+    fn test_snapshot_with_paused_status() {
+        let mut state = make_test_state();
+        state.status = ExecutionStatus::Paused;
+
+        // 模拟暂停
+        state.pause_state = Some(PauseState::new(PauseReason::Manual));
+
+        let snapshot = ExecutionStateSnapshot::from(&state);
+        let json = snapshot.to_json().unwrap();
+        let restored = ExecutionStateSnapshot::from_json(&json).unwrap();
+
+        assert_eq!(restored.status, ExecutionStatus::Paused);
+        assert_eq!(restored.pause_reason, Some(PauseReason::Manual));
+    }
+
+    #[test]
+    fn test_execution_status_serialization() {
+        let status = ExecutionStatus::Completed;
+        let json = serde_json::to_string(&status).unwrap();
+        // 默认 serde 表示为枚举索引值
+        let deser: ExecutionStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(deser, ExecutionStatus::Completed);
+
+        // Display 表示为小写字符串
+        assert_eq!(format!("{}", status), "completed");
+    }
+
+    #[test]
+    fn test_pause_reason_serialization() {
+        let reason = PauseReason::Manual;
+        let json = serde_json::to_string(&reason).unwrap();
+        assert!(!json.is_empty());
+
+        let deser: PauseReason = serde_json::from_str(&json).unwrap();
+        assert_eq!(deser, PauseReason::Manual);
+    }
+
+    #[test]
+    fn test_node_records_snapshot() {
+        let mut state = make_test_state();
+        state.node_records.push(NodeExecutionRecord {
+            node_id: "node-1".to_string(),
+            node_type: "llm".to_string(),
+            node_name: Some("LLM 节点".to_string()),
+            status: "completed".to_string(),
+            input: Some(serde_json::json!({"prompt": "hello"})),
+            output: Some(serde_json::json!({"response": "hi"})),
+            execution_time_ms: Some(50),
+            error: None,
+            started_at: 1000,
+            completed_at: Some(1050),
+            parent_execution_id: None,
+            sub_workflow_id: None,
+        });
+
+        let snapshot = ExecutionStateSnapshot::from(&state);
+        let json = snapshot.to_json().unwrap();
+        let restored = ExecutionStateSnapshot::from_json(&json).unwrap();
+
+        assert_eq!(restored.node_records.len(), 1);
+        assert_eq!(restored.node_records[0].node_id, "node-1");
+        assert_eq!(restored.node_records[0].status, "completed");
     }
 }

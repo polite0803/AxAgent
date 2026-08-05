@@ -45,7 +45,8 @@ use crate::workflow_engine::{
 use super::dispatcher::NodeDispatcher;
 use super::error_handling::ErrorContext;
 use super::execution_state::{
-    ExecutionContextCallbacks, ExecutionState, ExecutionStatus, NodeExecutionRecord, PauseReason,
+    ExecutionContextCallbacks, ExecutionState, ExecutionStateSnapshot, ExecutionStatus,
+    NodeExecutionRecord, PauseReason,
 };
 use super::executors::{
     AgentExecutor, ConditionExecutor, LlmClassifierExecutor, LlmExecutor, PlanCallbacks,
@@ -3172,16 +3173,31 @@ impl WorkEngine {
     }
 
     pub async fn pause(&self, execution_id: &str) -> Result<(), WorkEngineError> {
-        let mut executions = self.executions.lock().await;
-        if let Some(state) = executions.get_mut(execution_id) {
-            state.status = ExecutionStatus::Paused;
-            state.updated_at = Utc::now().timestamp_millis();
-            // 4.1.6 P3:显式记录手动暂停原因(若已存在 pause_state 则保留首次原因)
-            state.enter_pause(PauseReason::Manual);
-            Ok(())
-        } else {
-            Err(WorkEngineError::NotFound(execution_id.to_string()))
-        }
+        let snapshot = {
+            let mut executions = self.executions.lock().await;
+            if let Some(state) = executions.get_mut(execution_id) {
+                state.status = ExecutionStatus::Paused;
+                state.updated_at = Utc::now().timestamp_millis();
+                state.enter_pause(PauseReason::Manual);
+                // 生成快照用于持久化
+                ExecutionStateSnapshot::from(state)
+            } else {
+                return Err(WorkEngineError::NotFound(execution_id.to_string()));
+            }
+        };
+
+        // 持久化快照到数据库（崩溃后恢复用）
+        let json =
+            snapshot.to_json().map_err(|e| WorkEngineError::SerializationError(e.to_string()))?;
+        workflow_execution_repository()
+            .save_execution_state(execution_id, "paused", &json)
+            .await
+            .map_err(|e| {
+            tracing::error!("[WorkEngine] 保存执行状态快照失败: {}", e);
+            WorkEngineError::Db(e)
+        })?;
+
+        Ok(())
     }
 
     pub async fn resume(&self, execution_id: &str) -> Result<(), WorkEngineError> {
@@ -3192,7 +3208,6 @@ impl WorkEngine {
                     state.status = ExecutionStatus::Running;
                     state.updated_at = Utc::now().timestamp_millis();
                 }
-                // 4.1.6 P3:从 pause_state 派生信号,并清空 pause_state
                 let sig = state.pause_signal();
                 state.clear_pause();
                 sig
@@ -3203,6 +3218,11 @@ impl WorkEngine {
         if let Some(sig) = signal {
             sig.notify_waiters();
         }
+
+        // 恢复后清空数据库中的快照
+        let _ =
+            workflow_execution_repository().clear_execution_state(execution_id, "running").await;
+
         Ok(())
     }
 
@@ -3312,6 +3332,132 @@ impl WorkEngine {
         node_id: &str,
     ) -> Result<Option<axagent_harness::workflow_types::LoopCheckpoint>, String> {
         loop_checkpoint_repository().load_loop_checkpoint(execution_id, node_id).await
+    }
+
+    // ── 崩溃恢复 ──
+
+    /// 列出所有暂停状态的工作流执行（用于启动时展示给用户选择恢复）
+    pub async fn list_paused_executions(
+        &self,
+    ) -> Result<Vec<(String, String, serde_json::Value)>, WorkEngineError> {
+        let records = workflow_execution_repository()
+            .list_paused_executions()
+            .await
+            .map_err(WorkEngineError::Db)?;
+
+        let mut result = Vec::new();
+        for record in records {
+            if let Some(json) = &record.execution_state_json {
+                result.push((
+                    record.id,
+                    record.workflow_id,
+                    serde_json::from_str(json).unwrap_or_default(),
+                ));
+            }
+        }
+        Ok(result)
+    }
+
+    /// 从数据库快照恢复工作流执行
+    pub async fn recover_execution(&self, execution_id: &str) -> Result<(), WorkEngineError> {
+        let record = workflow_execution_repository()
+            .list_paused_executions()
+            .await
+            .map_err(WorkEngineError::Db)?
+            .into_iter()
+            .find(|r| r.id == execution_id)
+            .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))?;
+
+        let json = record
+            .execution_state_json
+            .ok_or_else(|| WorkEngineError::NotFound("execution_state_json".to_string()))?;
+
+        let snapshot: ExecutionStateSnapshot = serde_json::from_str(&json)
+            .map_err(|e| WorkEngineError::SerializationError(e.to_string()))?;
+
+        // 从快照重建 ExecutionState
+        let mut state = ExecutionState::from_snapshot(snapshot);
+        state.status = ExecutionStatus::Paused;
+
+        // 重新初始化运行时组件
+        state.business_rule_engine = self.business_rule_engine();
+        state.tool_registry = self.tool_registry();
+
+        // 重新创建广播器和中断信号
+        let (partial_tx, _) = tokio::sync::broadcast::channel(256);
+        let interrupt_signal = std::sync::Arc::new(tokio::sync::Notify::new());
+        state.partial_result_tx = Some(partial_tx.clone());
+        state.interrupt_signal = Some(interrupt_signal.clone());
+
+        // 生成 execution_id（如果快照中没有）
+        let exec_id = if state.execution_id.is_empty() {
+            uuid::Uuid::new_v4().to_string()
+        } else {
+            state.execution_id.clone()
+        };
+        state.execution_id = exec_id.clone();
+
+        self.loop_partial_txs.lock().await.insert(exec_id.clone(), partial_tx);
+        self.loop_interrupt_signals.lock().await.insert(exec_id.clone(), interrupt_signal);
+
+        // 注册 cancel_token
+        let token = CancellationToken::new();
+        self.cancel_tokens.lock().await.insert(exec_id.clone(), token);
+
+        self.executions.lock().await.insert(exec_id, state);
+
+        tracing::info!(
+            "[WorkEngine] 工作流 {} 已从快照恢复（暂停状态，等待用户 resume）",
+            execution_id
+        );
+
+        Ok(())
+    }
+
+    /// 批量恢复所有暂停状态的工作流
+    pub async fn recover_all_paused_executions(&self) -> Result<Vec<String>, WorkEngineError> {
+        let records = workflow_execution_repository()
+            .list_paused_executions()
+            .await
+            .map_err(WorkEngineError::Db)?;
+
+        let mut recovered = Vec::new();
+        for record in &records {
+            if record.execution_state_json.is_some() {
+                match self.recover_execution(&record.id).await {
+                    Ok(()) => {
+                        recovered.push(record.id.clone());
+                    },
+                    Err(e) => {
+                        tracing::error!("[WorkEngine] 恢复工作流 {} 失败: {}", record.id, e);
+                    },
+                }
+            }
+        }
+
+        if !recovered.is_empty() {
+            tracing::info!("[WorkEngine] 崩溃恢复完成，共恢复 {} 个暂停的工作流", recovered.len());
+        }
+
+        Ok(recovered)
+    }
+
+    /// 取消所有暂停的工作流（启动时如果用户选择放弃恢复）
+    pub async fn cancel_all_paused_executions(&self) -> Result<(), WorkEngineError> {
+        let records = workflow_execution_repository()
+            .list_paused_executions()
+            .await
+            .map_err(WorkEngineError::Db)?;
+
+        let count = records.len();
+        for record in &records {
+            let _ = workflow_execution_repository()
+                .clear_execution_state(&record.id, "cancelled")
+                .await;
+        }
+
+        tracing::info!("[WorkEngine] 已取消 {} 个暂停的工作流", count);
+        Ok(())
     }
 
     pub async fn get_status(&self, execution_id: &str) -> Result<ExecutionState, WorkEngineError> {
@@ -3692,6 +3838,7 @@ pub enum WorkEngineError {
     Cancelled,
     ToolError { name: String, message: String },
     Execution(String),
+    SerializationError(String),
 }
 
 impl std::fmt::Display for WorkEngineError {
@@ -3703,6 +3850,7 @@ impl std::fmt::Display for WorkEngineError {
             Self::Cancelled => write!(f, "执行已取消"),
             Self::ToolError { name, message } => write!(f, "工具执行错误 [{name}]: {message}"),
             Self::Execution(e) => write!(f, "执行错误: {e}"),
+            Self::SerializationError(e) => write!(f, "序列化错误: {e}"),
         }
     }
 }

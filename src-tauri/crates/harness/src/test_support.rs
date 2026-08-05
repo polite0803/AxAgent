@@ -1671,6 +1671,26 @@ impl WorkflowExecutionRepository for EmptyWorkflowExecutionRepository {
     ) -> std::result::Result<Vec<WorkflowExecutionData>, String> {
         Ok(vec![])
     }
+    async fn save_execution_state(
+        &self,
+        _id: &str,
+        _status: &str,
+        _execution_state_json: &str,
+    ) -> std::result::Result<bool, String> {
+        Ok(true)
+    }
+    async fn clear_execution_state(
+        &self,
+        _id: &str,
+        _status: &str,
+    ) -> std::result::Result<bool, String> {
+        Ok(true)
+    }
+    async fn list_paused_executions(
+        &self,
+    ) -> std::result::Result<Vec<WorkflowExecutionData>, String> {
+        Ok(vec![])
+    }
 }
 
 pub fn empty_workflow_execution_repo() -> Arc<dyn WorkflowExecutionRepository> {

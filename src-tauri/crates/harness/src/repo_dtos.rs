@@ -33,6 +33,10 @@ pub struct WorkflowExecutionData {
     pub input_params: Option<String>,
     pub output_result: Option<String>,
     pub node_executions: Option<String>,
+    /// 序列化后的 ExecutionStateSnapshot，用于崩溃后恢复
+    pub execution_state_json: Option<String>,
+    /// 暂停时间戳（毫秒），用于超时判断
+    pub paused_at: Option<i64>,
     // workflow_executions.total_time_ms 列为 BIGINT，用 i64 匹配。
     pub total_time_ms: Option<i64>,
     pub created_at: i64,

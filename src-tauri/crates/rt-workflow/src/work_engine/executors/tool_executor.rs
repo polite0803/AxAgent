@@ -11,7 +11,7 @@
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    NodeError, NodeExecutorTrait, NodeOutput, check_cancellation_or_pause, error_code,
 };
 use async_trait::async_trait;
 use axagent_harness::tool::ToolContext;
@@ -55,15 +55,8 @@ impl NodeExecutorTrait for ToolExecutor {
         node: &WorkflowNode,
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
-        // ── 取消检查：避免已取消的 Workflow 继续执行工具并消耗资源 ──
-        if let Some(ref token) = context.cancel_token
-            && token.is_cancelled()
-        {
-            return Err(NodeError::exec_failed(
-                "CANCELLED",
-                "Workflow 已取消，跳过工具执行".to_string(),
-            ));
-        }
+        // ── 取消/暂停检查：避免已取消/暂停的 Workflow 继续执行工具并消耗资源 ──
+        check_cancellation_or_pause(context).await?;
 
         let WorkflowNode::Tool(tool_node) = node else {
             return Err(NodeError::type_mismatch(

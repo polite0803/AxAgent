@@ -86,6 +86,7 @@ export { useUserProfileStore } from "./feature/userProfileStore";
 export type { AvatarType } from "./feature/userProfileStore";
 export { useVoicePreferenceStore } from "./feature/voicePreferenceStore";
 export { useWorkEngineStore } from "./feature/workEngineStore";
+export type { PausedExecutionInfo } from "./feature/workEngineStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";
 export type { SaveSkillWorkflowResponse, SimilarWorkflow } from "./feature/workflowEditorStore";
 export { useWorkflowStore } from "./feature/workflowStore";

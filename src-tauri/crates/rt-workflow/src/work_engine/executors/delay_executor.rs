@@ -7,7 +7,7 @@ use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code,
+    NodeError, NodeExecutorTrait, NodeOutput, check_cancellation_or_pause, error_code,
 };
 
 pub struct DelayExecutor;
@@ -43,6 +43,10 @@ impl NodeExecutorTrait for DelayExecutor {
         };
 
         let seconds = delay_node.config.seconds;
+
+        // 延迟前检查取消/暂停状态
+        check_cancellation_or_pause(context).await?;
+
         let cancel_token = context.cancel_token.clone();
         let sleep_future = tokio::time::sleep(std::time::Duration::from_secs(seconds));
 
