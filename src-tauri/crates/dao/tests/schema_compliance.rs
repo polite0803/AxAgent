@@ -1414,6 +1414,8 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("input_params", "TEXT"),
             ("output_result", "TEXT"),
             ("node_executions", "TEXT"),
+            ("execution_state_json", "TEXT"),
+            ("paused_at", "BIGINT"),
             ("total_time_ms", "BIGINT"),
             ("created_at", "BIGINT"),
             ("updated_at", "BIGINT"),
