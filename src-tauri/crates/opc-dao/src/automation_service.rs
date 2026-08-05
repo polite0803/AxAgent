@@ -361,7 +361,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_evaluate_condition_invoice_amount() {
-        let db = DatabaseConnection::Mock;
+        let db = DatabaseConnection::default();
         let service = DbAutomationService::new(db);
 
         let config = r#"{"field":"invoice_amount","operator":"gt","value":1000.0}"#;
@@ -371,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_evaluate_condition_invalid_json() {
-        let db = DatabaseConnection::Mock;
+        let db = DatabaseConnection::default();
         let service = DbAutomationService::new(db);
 
         let result = service.evaluate_condition("not valid json");
@@ -380,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_action_invalid_config() {
-        let db = DatabaseConnection::Mock;
+        let db = DatabaseConnection::default();
         let service = DbAutomationService::new(db);
 
         let result = service.execute_action("not valid json").await;
@@ -389,7 +389,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_action_unknown_type() {
-        let db = DatabaseConnection::Mock;
+        let db = DatabaseConnection::default();
         let service = DbAutomationService::new(db);
 
         let result = service.execute_action(r#"{"type":"unknown_action"}"#).await;
