@@ -788,6 +788,11 @@
       "toolOutput": "المخرجات",
       "tools": "الأدوات"
     },
+    "branchTree": {
+      "title": "شجرة الفروع",
+      "branchCount": "{{count}} فروع",
+      "noBranches": "لا توجد فروع في المحادثة الحالية"
+    },
     "knowledgeRetrieval": {
       "error": "فشل البحث في قاعدة المعرفة",
       "feedbackIrrelevant": "غير ذي صلة",

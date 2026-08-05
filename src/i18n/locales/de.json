@@ -788,6 +788,11 @@
       "toolOutput": "Ausgabe",
       "tools": "Werkzeuge"
     },
+    "branchTree": {
+      "title": "Branch-Baum",
+      "branchCount": "{{count}} Branches",
+      "noBranches": "Keine Branches in der aktuellen Konversation"
+    },
     "knowledgeRetrieval": {
       "error": "Wissensdatenbanksuche fehlgeschlagen",
       "feedbackIrrelevant": "Irrelevant",

@@ -788,6 +788,11 @@
       "toolOutput": "आउटपुट",
       "tools": "टूल"
     },
+    "branchTree": {
+      "title": "शाखा वृक्ष",
+      "branchCount": "{{count}} शाखाएँ",
+      "noBranches": "वर्तमान बातचीत में कोई शाखा नहीं है"
+    },
     "knowledgeRetrieval": {
       "error": "ज्ञान आधार खोज विफल",
       "feedbackIrrelevant": "असंबंधित",

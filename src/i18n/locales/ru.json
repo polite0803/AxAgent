@@ -788,6 +788,11 @@
       "toolOutput": "Вывод",
       "tools": "Инструменты"
     },
+    "branchTree": {
+      "title": "Дерево веток",
+      "branchCount": "{{count}} веток",
+      "noBranches": "В текущем разговоре нет веток"
+    },
     "knowledgeRetrieval": {
       "error": "Ошибка поиска в базе знаний",
       "feedbackIrrelevant": "Не по теме",

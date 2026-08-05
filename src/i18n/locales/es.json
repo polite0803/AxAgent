@@ -788,6 +788,11 @@
       "toolOutput": "Salida",
       "tools": "Herramientas"
     },
+    "branchTree": {
+      "title": "Árbol de ramas",
+      "branchCount": "{{count}} ramas",
+      "noBranches": "No hay ramas en la conversación actual"
+    },
     "knowledgeRetrieval": {
       "error": "Error en la búsqueda de la base de conocimientos",
       "feedbackIrrelevant": "Irrelevante",

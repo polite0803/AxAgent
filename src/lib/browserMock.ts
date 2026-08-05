@@ -10,6 +10,7 @@ import i18n from "@/i18n";
 
 import type {
   Conversation,
+  ConversationBranch,
   ConversationCategory,
   CreateSearchProviderInput,
   GatewayKey,
@@ -2945,13 +2946,28 @@ export async function handleCommand<T>(
       return undefined as T;
 
     // ── Phase 2: Workspace Snapshot ────────────────────────────────────
-    case "get_workspace_snapshot":
+    case "get_workspace_snapshot": {
+      const convId = (args as Record<string, unknown>)?.conversationId as string;
+      const branches = getStore<ConversationBranch[]>(`branches_${convId}`, []);
       return {
-        conversations: [],
-        providers: [],
-        settings: {},
-        captured_at: nowTs(),
+        searchPolicy: { enabled: false, queryMode: "manual", resultLimit: 10 },
+        toolBinding: { serverIds: [], approvalMode: "inherit" },
+        knowledgeBinding: { knowledgeBaseIds: [], autoAttach: false },
+        memoryPolicy: { enabled: false, writeBack: false },
+        toggles: {
+          searchEnabled: false,
+          enabledKnowledgeBaseIds: [],
+          enabledMcpServerIds: [],
+          enabledWikiIds: [],
+          memoryEnabled: false,
+          memoryWriteBack: false,
+        },
+        researchMode: false,
+        pinnedArtifactIds: [],
+        branches,
+        activeBranchId: null,
       } as T;
+    }
     case "update_workspace_snapshot":
       return undefined as T;
 

@@ -788,6 +788,11 @@
       "toolOutput": "執行結果",
       "tools": "工具"
     },
+    "branchTree": {
+      "title": "分支樹",
+      "branchCount": "{{count}} 個分支",
+      "noBranches": "當前會話無分支"
+    },
     "knowledgeRetrieval": {
       "error": "知識庫檢索失敗",
       "feedbackIrrelevant": "無關",

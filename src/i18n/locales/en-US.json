@@ -788,6 +788,11 @@
       "toolOutput": "Output",
       "tools": "Tools"
     },
+    "branchTree": {
+      "title": "Branch Tree",
+      "branchCount": "{{count}} branches",
+      "noBranches": "No branches in current conversation"
+    },
     "knowledgeRetrieval": {
       "error": "Knowledge base search failed",
       "feedbackIrrelevant": "Irrelevant",

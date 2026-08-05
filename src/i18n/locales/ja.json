@@ -788,6 +788,11 @@
       "toolOutput": "出力",
       "tools": "ツール"
     },
+    "branchTree": {
+      "title": "ブランチツリー",
+      "branchCount": "{{count}} 個のブランチ",
+      "noBranches": "現在の会話にブランチはありません"
+    },
     "knowledgeRetrieval": {
       "error": "ナレッジベース検索に失敗しました",
       "feedbackIrrelevant": "無関係",

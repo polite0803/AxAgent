@@ -1289,6 +1289,8 @@ export type ConversationWorkspaceSnapshot = {
   toggles: ContextToggleState;
   researchMode: boolean;
   pinnedArtifactIds: string[];
+  branches?: ConversationBranch[];
+  activeBranchId?: string | null;
 };
 
 export type ContextOverrideInput = {

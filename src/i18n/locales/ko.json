@@ -788,6 +788,11 @@
       "toolOutput": "출력",
       "tools": "도구"
     },
+    "branchTree": {
+      "title": "브랜치 트리",
+      "branchCount": "{{count}}개 브랜치",
+      "noBranches": "현재 대화에 브랜치가 없습니다"
+    },
     "knowledgeRetrieval": {
       "error": "지식 베이스 검색에 실패했습니다",
       "feedbackIrrelevant": "관련 없음",
