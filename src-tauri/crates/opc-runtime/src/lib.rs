@@ -590,7 +590,7 @@ mod tests {
         let cond = AutomationCondition::FieldExceeds { field: "amount".into(), threshold: 1000.0 };
         let mut ctx = HashMap::new();
         ctx.insert("amount".to_string(), serde_json::json!(5000.0));
-        assert!(OpcRuntime::evaluate_conditions(&[cond.clone()], &ctx));
+        assert!(OpcRuntime::evaluate_conditions(std::slice::from_ref(&cond), &ctx));
 
         ctx.insert("amount".to_string(), serde_json::json!(500.0));
         assert!(!OpcRuntime::evaluate_conditions(&[cond], &ctx));
@@ -601,7 +601,7 @@ mod tests {
         let cond = AutomationCondition::OverdueDaysGte { days: 30 };
         let mut ctx = HashMap::new();
         ctx.insert("overdue_days".to_string(), serde_json::json!(45));
-        assert!(OpcRuntime::evaluate_conditions(&[cond.clone()], &ctx));
+        assert!(OpcRuntime::evaluate_conditions(std::slice::from_ref(&cond), &ctx));
 
         ctx.insert("overdue_days".to_string(), serde_json::json!(10));
         assert!(!OpcRuntime::evaluate_conditions(&[cond], &ctx));
@@ -714,7 +714,7 @@ mod tests {
         let cond = AutomationCondition::StatusIs { status: "active".into() };
         let mut ctx = HashMap::new();
         ctx.insert("status".to_string(), serde_json::json!("active"));
-        assert!(OpcRuntime::evaluate_conditions(&[cond.clone()], &ctx));
+        assert!(OpcRuntime::evaluate_conditions(std::slice::from_ref(&cond), &ctx));
 
         ctx.insert("status".to_string(), serde_json::json!("inactive"));
         assert!(!OpcRuntime::evaluate_conditions(&[cond], &ctx));
@@ -725,7 +725,7 @@ mod tests {
         let cond = AutomationCondition::FieldBelow { field: "stock".into(), threshold: 10.0 };
         let mut ctx = HashMap::new();
         ctx.insert("stock".to_string(), serde_json::json!(5.0));
-        assert!(OpcRuntime::evaluate_conditions(&[cond.clone()], &ctx));
+        assert!(OpcRuntime::evaluate_conditions(std::slice::from_ref(&cond), &ctx));
 
         ctx.insert("stock".to_string(), serde_json::json!(20.0));
         assert!(!OpcRuntime::evaluate_conditions(&[cond], &ctx));
@@ -736,7 +736,7 @@ mod tests {
         let cond = AutomationCondition::CreatedDaysGte { days: 90 };
         let mut ctx = HashMap::new();
         ctx.insert("created_days".to_string(), serde_json::json!(120));
-        assert!(OpcRuntime::evaluate_conditions(&[cond.clone()], &ctx));
+        assert!(OpcRuntime::evaluate_conditions(std::slice::from_ref(&cond), &ctx));
 
         ctx.insert("created_days".to_string(), serde_json::json!(30));
         assert!(!OpcRuntime::evaluate_conditions(&[cond], &ctx));
