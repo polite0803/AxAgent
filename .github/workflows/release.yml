@@ -20,8 +20,7 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  # NDK r26d 是稳定版，r27d 可能存在兼容性问题
-  NDK_VERSION: 'r26d'
+  NDK_VERSION: 'r27d'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
@@ -397,47 +396,40 @@ jobs:
             src-tauri/target/aarch64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.deb
             src-tauri/target/aarch64-unknown-linux-gnu/release/AxInvest_${{ needs.resolve-tag.outputs.tag }}_linux-arm64.rpm
 
-  # ── Build for Android ARM (arm64-v8a, armeabi-v7a) on ARM64 native runner ──
-  # 使用 ubuntu-24.04-arm native runner 构建 ARM 架构 Android，
-  # 彻底避免 x86_64 → aarch64 交叉编译时的 rust-lld 链接错误
-  # (crti.o is incompatible with elf64-littleaarch64)
-  build-android-arm:
-    name: Build Android ARM (${{ matrix.abi }})
+  # ── Build for Android ──────────────────────────────────
+  build-android:
+    name: Build Android (${{ matrix.abi }})
     needs: [resolve-tag, draft-release-notes]
     strategy:
       fail-fast: false
       matrix:
-        abi: [arm64-v8a, armeabi-v7a]
-    runs-on: ubuntu-24.04-arm
-    env:
-      # ARM64 runner 内存有限，限制并行编译
-      CARGO_BUILD_JOBS: 2
+        abi: [arm64-v8a, armeabi-v7a, x86_64]
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
         with:
           ref: master
           submodules: recursive
 
-      - name: Install system dependencies (ARM64)
+      - name: Free disk space
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            openjdk-21-jdk-headless \
-            protobuf-compiler \
-            python3 \
-            unzip
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/powershell 2>/dev/null || true
+          sudo docker image prune -af 2>/dev/null || true
+          df -h /
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.97.0"
-          targets: ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || 'armv7-linux-androideabi' }}
+          targets: ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || matrix.abi == 'armeabi-v7a' && 'armv7-linux-androideabi' || 'x86_64-linux-android' }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 'v1-android-arm'
-          key: 'ubuntu-24.04-arm-${{ matrix.abi }}'
+          prefix-key: 'v1-android'
+          key: 'ubuntu-22.04-${{ matrix.abi }}'
           workspaces: src-tauri -> target
 
       - name: Setup Node.js
@@ -448,33 +440,34 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Install Android NDK (ARM64)
-        run: |
-          NDK_VER="${{ env.NDK_VERSION }}"
-          NDK_ZIP="android-ndk-${NDK_VER}-linux-arm64.zip"
-          curl -L "https://dl.google.com/android/repository/${NDK_ZIP}" -o /tmp/${NDK_ZIP}
-          unzip -q /tmp/${NDK_ZIP} -d /tmp
-          NDK_PATH="/tmp/android-ndk-${NDK_VER}-linux-arm64"
-          echo "ndk-path=$NDK_PATH" >> $GITHUB_OUTPUT
-          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
-          ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-arm64/bin/" | head -5
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '27.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
         id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+
+      - name: Setup JDK 23 (Zulu)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '23'
+          distribution: 'zulu'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install cargo-ndk
-        run: |
-          cargo install cargo-ndk
-          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $HOME/.cargo/config.toml
+        run: cargo install cargo-ndk
 
-      # ARM64 native runner 使用 linux-arm64 工具链
-      - name: Setup Android NDK toolchain PATH (ARM64)
+      - name: Setup Android NDK toolchain PATH
         run: |
-          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-arm64/bin"
+          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
-          rustup target add ${{ matrix.abi == 'arm64-v8a' && 'aarch64-linux-android' || 'armv7-linux-androideabi' }}
 
       - name: Initialize Android project
         run: |
@@ -491,34 +484,42 @@ jobs:
             "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
             > src-tauri/gen/android/keystore.properties
           python3 scripts/patch-android-signing.py src-tauri/gen/android/app/build.gradle.kts
+          # 添加 ProGuard 规则，防止 R8 混淆/剥离 JNI 桥接类导致闪退
           cp src-tauri/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro
 
       - name: Build frontend (Vite)
         run: npm run build:skip-typecheck
 
-      - name: Limit Gradle memory (ARM64 runner)
+      - name: Limit Gradle memory (prevent runner OOM)
         run: |
           if [ -f src-tauri/gen/android/gradle.properties ]; then
             grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
-              || echo 'org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+UseParallelGC' \
+              || echo 'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
               >> src-tauri/gen/android/gradle.properties
           fi
 
-      - name: Build Android APK + AAB (ARM)
+      # 注：APK 与 AAB 在同一次 `tauri android build` 中产出（--apk --aab），
+      # 避免为 AAB 单独再启动一次完整的 gradle 构建。
+      - name: Build Android APK + AAB
         run: |
           cd src-tauri
-          TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || 'armv7' }}
-          if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
-            npx tauri android build --target "$TARGET" --apk --aab
-          else
-            npx tauri android build --target "$TARGET" --apk
-          fi
+          case "${{ matrix.abi }}" in
+            arm64-v8a)
+              npx tauri android build --target aarch64 --apk --aab
+              ;;
+            armeabi-v7a)
+              npx tauri android build --target armv7 --apk
+              ;;
+            x86_64)
+              npx tauri android build --target x86_64 --apk
+              ;;
+          esac
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx1536m -XX:MaxMetaspaceSize=384m'
+          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
 
       - name: Upload APK and AAB to release
         run: |
@@ -531,7 +532,7 @@ jobs:
             ABI="${{ matrix.abi }}"
             NEW_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
             cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
-            echo "Uploading APK: $NEW_NAME from $APK"
+            echo "Uploading APK: $NEW_NAME"
             cd "$GITHUB_WORKSPACE"
             gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$NEW_NAME" --clobber
           else
@@ -555,152 +556,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── Build for Android x86_64 on x86_64 runner ──
-  build-android-x86:
-    name: Build Android (x86_64)
-    needs: [resolve-tag, draft-release-notes]
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: master
-          submodules: recursive
-
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /opt/ghc \
-            /opt/hostedtoolcache/CodeQL /usr/local/share/powershell 2>/dev/null || true
-          sudo docker image prune -af 2>/dev/null || true
-          df -h /
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.97.0"
-          targets: "x86_64-linux-android"
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: 'v1-android'
-          key: 'ubuntu-22.04-x86_64'
-          workspaces: src-tauri -> target
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      - name: Install frontend dependencies
-        run: npm install
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: '27.x'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Android NDK (x86_64)
-        run: |
-          sudo apt-get update && sudo apt-get install -y unzip
-          NDK_VER="${{ env.NDK_VERSION }}"
-          NDK_ZIP="android-ndk-${NDK_VER}-linux.zip"
-          curl -L "https://dl.google.com/android/repository/${NDK_ZIP}" -o /tmp/${NDK_ZIP}
-          unzip -q /tmp/${NDK_ZIP} -d /tmp
-          NDK_PATH="/tmp/android-ndk-${NDK_VER}-linux"
-          echo "ndk-path=$NDK_PATH" >> $GITHUB_OUTPUT
-          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
-          ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" | head -5
-        id: setup-ndk
-
-      - name: Setup JDK 21 (Zulu)
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'zulu'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install cargo-ndk
-        run: |
-          cargo install cargo-ndk
-          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $HOME/.cargo/config.toml
-
-      - name: Setup Android NDK toolchain PATH (x86_64)
-        run: |
-          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          echo "$TOOLCHAIN" >> $GITHUB_PATH
-          rustup target add x86_64-linux-android
-
-      - name: Initialize Android project
-        run: |
-          cd src-tauri
-          npx tauri android init
-        env:
-          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-
-      - name: Setup keystore and signing config
-        run: |
-          mkdir -p src-tauri/gen/android/app
-          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > src-tauri/gen/android/app/release.jks
-          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
-            "${{ secrets.KEYSTORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
-            > src-tauri/gen/android/keystore.properties
-          python3 scripts/patch-android-signing.py src-tauri/gen/android/app/build.gradle.kts
-          cp src-tauri/proguard-rules.pro src-tauri/gen/android/app/proguard-rules.pro
-
-      - name: Build frontend (Vite)
-        run: npm run build:skip-typecheck
-
-      - name: Limit Gradle memory
-        run: |
-          if [ -f src-tauri/gen/android/gradle.properties ]; then
-            grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
-              || echo 'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
-              >> src-tauri/gen/android/gradle.properties
-          fi
-
-      - name: Build Android APK
-        run: |
-          cd src-tauri
-          npx tauri android build --target x86_64 --apk
-        env:
-          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
-          CARGO_BUILD_JOBS: 2
-
-      - name: Upload APK to release
-        run: |
-          APK=$(find src-tauri/gen/android/app/build/outputs/apk/release -name "*.apk" -type f 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            APK=$(find src-tauri/gen/android/app/build/outputs/apk -path "*/release/*" -name "*.apk" -type f 2>/dev/null | head -1)
-          fi
-          
-          if [ -n "$APK" ]; then
-            ABI="x86_64"
-            NEW_NAME="AxInvest_${{ needs.resolve-tag.outputs.tag }}_android-${ABI}.apk"
-            cp "$APK" "$GITHUB_WORKSPACE/$NEW_NAME"
-            echo "Uploading APK: $NEW_NAME from $APK"
-            cd "$GITHUB_WORKSPACE"
-            gh release upload "${{ needs.resolve-tag.outputs.tag }}" "$NEW_NAME" --clobber
-          else
-            echo "APK not found"
-            find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || true
-            exit 1
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   # ── Publish draft release as latest ────────────────────
   publish-release:
     name: Publish Release
-    needs: [resolve-tag, release, release-linux-arm, build-android-arm, build-android-x86]
+    needs: [resolve-tag, release, release-linux-arm, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
