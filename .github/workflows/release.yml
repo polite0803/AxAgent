@@ -315,8 +315,6 @@ jobs:
       # 限制 Rust 并行编译的代码单元数，避免 ARM64 runner OOM
       # （runner 收到 shutdown signal 即被 OOM 杀掉）
       CARGO_BUILD_JOBS: 2
-      # Thin LTO 优化：减少链接时内存占用
-      RUSTFLAGS: '-C linker=cc'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -340,6 +338,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            build-essential \
             protobuf-compiler \
             patchelf \
             libwebkit2gtk-4.1-dev \
@@ -347,7 +346,12 @@ jobs:
             librsvg2-dev \
             libssl-dev \
             libpipewire-0.3-dev \
-            libgbm-dev
+            libgbm-dev \
+            libxkbcommon-dev \
+            libpango1.0-dev \
+            libatk-bridge2.0-dev \
+            libatk1.0-dev \
+            libcups2-dev
 
       - uses: actions/setup-node@v5
         with:
@@ -417,6 +421,11 @@ jobs:
           sudo rm -rf /usr/share/dotnet /opt/ghc \
             /opt/hostedtoolcache/CodeQL /usr/local/share/powershell 2>/dev/null || true
           sudo docker image prune -af 2>/dev/null || true
+          # 清理 Android 临时文件
+          sudo rm -rf /tmp/android* /tmp/gradle* /tmp/build* 2>/dev/null || true
+          # 清理 Rust Cargo 缓存
+          rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
+          rm -rf ~/.cargo/git/db/* 2>/dev/null || true
           df -h /
 
       - name: Install Rust
@@ -451,6 +460,7 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: ${{ env.NDK_VERSION }}
+          link-to-sdk: true
 
       - name: Setup JDK 23 (Zulu)
         uses: actions/setup-java@v4
@@ -460,6 +470,27 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Verify NDK installation
+        run: |
+          NDK_PATH="${{ steps.setup-ndk.outputs.ndk-path }}"
+          echo "NDK path: $NDK_PATH"
+          ls -la "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/" | head -20
+          echo "---"
+          # 检查关键工具是否存在
+          for tool in aarch64-linux-android-clang armv7a-linux-androideabi-clang x86_64-linux-android-clang; do
+            if [ -f "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/$tool" ]; then
+              echo "✅ $tool found"
+            else
+              echo "❌ $tool NOT found"
+            fi
+          done
+          echo "---"
+          # 检查 NDK 平台支持
+          ls "$NDK_PATH/platforms/" | head -10
+          echo "---"
+          echo "Available ABIs:"
+          ls "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/*/lib/linux/" 2>/dev/null || true
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
@@ -494,24 +525,30 @@ jobs:
         run: |
           if [ -f src-tauri/gen/android/gradle.properties ]; then
             grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
-              || echo 'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
+              || echo 'org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
               >> src-tauri/gen/android/gradle.properties
           fi
+          # 显示当前磁盘空间
+          df -h /
 
       # 注：APK 与 AAB 在同一次 `tauri android build` 中产出（--apk --aab），
       # 避免为 AAB 单独再启动一次完整的 gradle 构建。
+      # --target 参数接受: aarch64, armv7, i686, x86_64
       - name: Build Android APK + AAB
         run: |
           cd src-tauri
+          echo "Building for ABI: ${{ matrix.abi }}"
+          echo "Target: ${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}"
+          df -h /
           case "${{ matrix.abi }}" in
             arm64-v8a)
-              npx tauri android build --target aarch64 --apk --aab
+              npx tauri android build --target aarch64 --apk --aab -v
               ;;
             armeabi-v7a)
-              npx tauri android build --target armv7 --apk
+              npx tauri android build --target armv7 --apk -v
               ;;
             x86_64)
-              npx tauri android build --target x86_64 --apk
+              npx tauri android build --target x86_64 --apk -v
               ;;
           esac
         env:
@@ -519,7 +556,8 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx2048m -XX:MaxMetaspaceSize=512m'
+          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx3072m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC'
+          RUST_BACKTRACE: full
 
       - name: Upload APK and AAB to release
         run: |
