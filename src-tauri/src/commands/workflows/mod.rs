@@ -90,10 +90,7 @@ pub async fn workflow_execute(
     // 此处不再 set_tool_resolver 覆盖——否则会静默丢弃 init 阶段注入的 workflow:: 解析。
     let _ = app_state.local_tool_registry; // 保留依赖项以维持签名稳定
 
-    let mut opts = axagent_runtime::work_engine::RunOptions {
-        input,
-        ..Default::default()
-    };
+    let mut opts = axagent_runtime::work_engine::RunOptions { input, ..Default::default() };
     if let Some(m) = model_id {
         opts = opts.with_model(m);
     }

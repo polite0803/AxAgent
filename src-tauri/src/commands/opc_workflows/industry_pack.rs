@@ -220,98 +220,98 @@ pub mod analysis_schema {
     use super::{IndustryManifest, IndustryWorkflow, load_industry_workflows};
 
     /// 行业分析配置（`analysis.yaml`，由 manifest.analysis 字段引用，缺省同名文件）。
-///
-/// 供数据接入层（OpIndustryVendor 路由）、分析层（策略维度）与
-/// 质量预检（QualityPrecheck 源清单）消费。P0-4 先定义 schema 与加载，
-/// 执行逻辑在 P1/P2 接入。
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct IndustryAnalysisConfig {
-    #[serde(default)]
-    pub version: u32,
-    #[serde(default)]
-    pub industry_id: String,
-    /// 数据源声明（vendor 链按优先级）
-    #[serde(default)]
-    pub data_sources: Vec<AnalysisDataSource>,
-    /// 分析策略（行业专属分析维度）
-    #[serde(default)]
-    pub strategies: Vec<AnalysisStrategy>,
-    /// 风控参数（对齐 position_limits 的行业版）
-    #[serde(default)]
-    pub risk: AnalysisRisk,
-    /// 质量预检源清单（对齐 stock QualityPrecheck 的行业版）
-    #[serde(default)]
-    pub quality_precheck: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct AnalysisDataSource {
-    pub id: String,
-    /// vendor 链（按优先级：db / cache / web / file / astock）
-    #[serde(default)]
-    pub chain: Vec<String>,
-    /// 是否纳入质量预检
-    #[serde(default)]
-    pub quality_precheck: bool,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct AnalysisStrategy {
-    pub id: String,
-    #[serde(default)]
-    pub name: String,
-    /// 分析维度（如 cash_flow_health / tax_risk）
-    #[serde(default)]
-    pub dimensions: Vec<String>,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct AnalysisRisk {
-    /// 超阈值告警线（0-1）
-    #[serde(default)]
-    pub max_kpi_warning_pct: f64,
-    /// 关键 KPI 清单（越界触发风控拦截）
-    #[serde(default)]
-    pub critical_kpis: Vec<String>,
-}
-
-/// 读取行业包内分析配置（`{manifest.analysis}`，缺省 analysis.yaml）。
-/// 文件缺失返回 None（向后兼容：旧行业包无分析配置）。
-pub fn load_industry_analysis(
-    industry_dir: &Path,
-    manifest: &IndustryManifest,
-) -> Option<IndustryAnalysisConfig> {
-    let path = industry_dir.join(&manifest.analysis);
-    let raw = std::fs::read_to_string(&path).ok()?;
-    match serde_yaml::from_str(&raw) {
-        Ok(cfg) => Some(cfg),
-        Err(e) => {
-            tracing::warn!("[industry-pack] {} analysis 解析失败: {e}", path.display());
-            None
-        },
+    ///
+    /// 供数据接入层（OpIndustryVendor 路由）、分析层（策略维度）与
+    /// 质量预检（QualityPrecheck 源清单）消费。P0-4 先定义 schema 与加载，
+    /// 执行逻辑在 P1/P2 接入。
+    #[derive(Debug, Clone, Default, Deserialize)]
+    pub struct IndustryAnalysisConfig {
+        #[serde(default)]
+        pub version: u32,
+        #[serde(default)]
+        pub industry_id: String,
+        /// 数据源声明（vendor 链按优先级）
+        #[serde(default)]
+        pub data_sources: Vec<AnalysisDataSource>,
+        /// 分析策略（行业专属分析维度）
+        #[serde(default)]
+        pub strategies: Vec<AnalysisStrategy>,
+        /// 风控参数（对齐 position_limits 的行业版）
+        #[serde(default)]
+        pub risk: AnalysisRisk,
+        /// 质量预检源清单（对齐 stock QualityPrecheck 的行业版）
+        #[serde(default)]
+        pub quality_precheck: Vec<String>,
     }
-}
 
-/// 行业包完整资产（P0-4：一次读全四件套 = manifest + workflows + analysis + learning）
-#[derive(Debug, Clone)]
-pub struct IndustryPackBundle {
-    pub manifest: IndustryManifest,
-    pub workflows: Vec<IndustryWorkflow>,
-    pub analysis: Option<IndustryAnalysisConfig>,
-    /// 学习配置在 `{industry_dir}/{manifest.learning}`（P4-3 已迁入行业包），
-    /// 此处不重复解析，读取走 `opc_industry_actions::industry_learning_config_path`
-    pub pack_dir: PathBuf,
-}
+    #[derive(Debug, Clone, Deserialize)]
+    pub struct AnalysisDataSource {
+        pub id: String,
+        /// vendor 链（按优先级：db / cache / web / file / astock）
+        #[serde(default)]
+        pub chain: Vec<String>,
+        /// 是否纳入质量预检
+        #[serde(default)]
+        pub quality_precheck: bool,
+    }
 
-/// 加载单个行业包目录的完整资产（manifest 解析失败返回 None）。
-pub fn load_industry_pack(dir: &Path) -> Option<IndustryPackBundle> {
-    let manifest_path = dir.join("manifest.yaml");
-    let raw = std::fs::read_to_string(&manifest_path).ok()?;
-    let manifest: IndustryManifest = serde_yaml::from_str(&raw).ok()?;
-    let workflows = load_industry_workflows(dir);
-    let analysis = load_industry_analysis(dir, &manifest);
-    Some(IndustryPackBundle { manifest, workflows, analysis, pack_dir: dir.to_path_buf() })
-}
+    #[derive(Debug, Clone, Deserialize)]
+    pub struct AnalysisStrategy {
+        pub id: String,
+        #[serde(default)]
+        pub name: String,
+        /// 分析维度（如 cash_flow_health / tax_risk）
+        #[serde(default)]
+        pub dimensions: Vec<String>,
+    }
+
+    #[derive(Debug, Clone, Default, Deserialize)]
+    pub struct AnalysisRisk {
+        /// 超阈值告警线（0-1）
+        #[serde(default)]
+        pub max_kpi_warning_pct: f64,
+        /// 关键 KPI 清单（越界触发风控拦截）
+        #[serde(default)]
+        pub critical_kpis: Vec<String>,
+    }
+
+    /// 读取行业包内分析配置（`{manifest.analysis}`，缺省 analysis.yaml）。
+    /// 文件缺失返回 None（向后兼容：旧行业包无分析配置）。
+    pub fn load_industry_analysis(
+        industry_dir: &Path,
+        manifest: &IndustryManifest,
+    ) -> Option<IndustryAnalysisConfig> {
+        let path = industry_dir.join(&manifest.analysis);
+        let raw = std::fs::read_to_string(&path).ok()?;
+        match serde_yaml::from_str(&raw) {
+            Ok(cfg) => Some(cfg),
+            Err(e) => {
+                tracing::warn!("[industry-pack] {} analysis 解析失败: {e}", path.display());
+                None
+            },
+        }
+    }
+
+    /// 行业包完整资产（P0-4：一次读全四件套 = manifest + workflows + analysis + learning）
+    #[derive(Debug, Clone)]
+    pub struct IndustryPackBundle {
+        pub manifest: IndustryManifest,
+        pub workflows: Vec<IndustryWorkflow>,
+        pub analysis: Option<IndustryAnalysisConfig>,
+        /// 学习配置在 `{industry_dir}/{manifest.learning}`（P4-3 已迁入行业包），
+        /// 此处不重复解析，读取走 `opc_industry_actions::industry_learning_config_path`
+        pub pack_dir: PathBuf,
+    }
+
+    /// 加载单个行业包目录的完整资产（manifest 解析失败返回 None）。
+    pub fn load_industry_pack(dir: &Path) -> Option<IndustryPackBundle> {
+        let manifest_path = dir.join("manifest.yaml");
+        let raw = std::fs::read_to_string(&manifest_path).ok()?;
+        let manifest: IndustryManifest = serde_yaml::from_str(&raw).ok()?;
+        let workflows = load_industry_workflows(dir);
+        let analysis = load_industry_analysis(dir, &manifest);
+        Some(IndustryPackBundle { manifest, workflows, analysis, pack_dir: dir.to_path_buf() })
+    }
 }
 
 // ── 工作流构建（yaml → WorkflowTemplateData） ────────────────────

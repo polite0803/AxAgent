@@ -22,7 +22,8 @@ use axagent_dao::search_sources_impl::{
 };
 use axagent_harness::AgentSessionRepository;
 use axagent_harness::feedback_data_lake::register_feedback_lake;
-use axagent_orchestrator::{IndustryAdapterRegistry, IndustryLearningEngine};use axagent_plugins::{PluginManager, PluginManagerConfig};
+use axagent_orchestrator::{IndustryAdapterRegistry, IndustryLearningEngine};
+use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
 use tokio_util::sync::CancellationToken;

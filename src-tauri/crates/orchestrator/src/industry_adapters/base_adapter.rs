@@ -567,4 +567,3 @@ impl IndustryAdapter for BaseIndustryAdapter {
         &self.learning_config
     }
 }
-

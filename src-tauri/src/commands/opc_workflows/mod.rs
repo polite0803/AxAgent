@@ -245,7 +245,8 @@ pub fn load_industry_adapters_from_packs(
             .unwrap_or(serde_json::Value::Null);
         match BaseIndustryAdapter::from_config_json(&industry_id, &m.name, &adapter_cfg) {
             Ok(a) => {
-                out.push(std::sync::Arc::new(a) as std::sync::Arc<dyn axagent_orchestrator::IndustryAdapter>);
+                out.push(std::sync::Arc::new(a)
+                    as std::sync::Arc<dyn axagent_orchestrator::IndustryAdapter>);
             },
             Err(e) => tracing::warn!("[opc-adapter] 行业 {} 适配器配置解析失败: {e}", m.id),
         }
@@ -859,10 +860,13 @@ mod tests {
             let bundle = super::industry_pack::analysis_schema::load_industry_pack(&dir)
                 .expect("行业包应完整加载（manifest 可解析）");
             // manifest 扩展字段：缺省默认 analysis.yaml / learning.yaml
-            assert_eq!(bundle.manifest.analysis, "analysis.yaml", "{} analysis 缺省", bundle.manifest.id);
             assert_eq!(
-                bundle.manifest.learning,
-                "learning.yaml",
+                bundle.manifest.analysis, "analysis.yaml",
+                "{} analysis 缺省",
+                bundle.manifest.id
+            );
+            assert_eq!(
+                bundle.manifest.learning, "learning.yaml",
                 "{} learning 缺省",
                 bundle.manifest.id
             );
@@ -875,10 +879,10 @@ mod tests {
             let analysis = bundle.analysis.unwrap();
             assert!(!analysis.data_sources.is_empty(), "{} data_sources 非空", bundle.manifest.id);
             assert!(
-                analysis.quality_precheck.iter().all(|s| analysis
-                    .data_sources
+                analysis
+                    .quality_precheck
                     .iter()
-                    .any(|ds| ds.id == *s)),
+                    .all(|s| analysis.data_sources.iter().any(|ds| ds.id == *s)),
                 "{} quality_precheck 源必须存在于 data_sources",
                 bundle.manifest.id
             );
@@ -918,7 +922,9 @@ mod tests {
         assert_eq!(ec.min_steps, 2, "min_steps 应对账 yaml");
         assert_eq!(ec.max_steps, 15, "max_steps 应对账 yaml");
         assert!(ec.protected_steps.iter().any(|p| p.step_id == "compliance_check"));
-        assert!(ec.forbidden_optimizations.iter().any(|f| f.optimization_type == "skip_compliance"));
+        assert!(
+            ec.forbidden_optimizations.iter().any(|f| f.optimization_type == "skip_compliance")
+        );
         assert!((ec.quality_thresholds.min_accuracy - 0.95).abs() < 1e-9);
 
         let ac = accounting.acceptance_criteria();
