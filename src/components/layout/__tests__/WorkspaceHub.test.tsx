@@ -11,7 +11,6 @@ vi.mock("@/pages/DevTools/DevToolsPage", () => ({ DevToolsPage: () => <div data-
 vi.mock("@/pages/FilesPage", () => ({ FilesPage: () => <div data-testid="page-files" /> }));
 vi.mock("@/pages/KnowledgeHubPage", () => ({ KnowledgeHubPage: () => <div data-testid="page-knowledge" /> }));
 vi.mock("@/pages/MultiAgentPage", () => ({ MultiAgentPage: () => <div data-testid="page-multiagent" /> }));
-vi.mock("@/pages/OpcPage", () => ({ OpcPage: () => <div data-testid="page-opc" /> }));
 vi.mock("@/pages/TerminalPage", () => ({ TerminalPage: () => <div data-testid="page-terminal" /> }));
 vi.mock("@/pages/WorkflowPage", () => ({ WorkflowPage: () => <div data-testid="page-workflow" /> }));
 

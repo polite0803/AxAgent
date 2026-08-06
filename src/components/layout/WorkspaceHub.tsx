@@ -6,7 +6,6 @@ import { DevToolsPage } from "@/pages/DevTools/DevToolsPage";
 import { FilesPage } from "@/pages/FilesPage";
 import { KnowledgeHubPage } from "@/pages/KnowledgeHubPage";
 import { MultiAgentPage } from "@/pages/MultiAgentPage";
-import { OpcPage } from "@/pages/OpcPage";
 import { TerminalPage } from "@/pages/TerminalPage";
 import { WorkflowPage } from "@/pages/WorkflowPage";
 import { useWorkspaceTabStore, type WorkspaceTab } from "@/stores";
@@ -57,8 +56,6 @@ export function WorkspaceHub() {
       return <KnowledgeHubPage />;
     case "multiAgent":
       return <MultiAgentPage />;
-    case "opc":
-      return <OpcPage />;
     case "devtools":
       return <DevToolsPage />;
     default:

@@ -14,7 +14,6 @@ export type WorkspaceTab =
   | "knowledge"
   | "files"
   | "multiAgent"
-  | "opc"
   | "devtools";
 
 interface WorkspaceState {

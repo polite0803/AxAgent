@@ -2,7 +2,7 @@
 
 import { useSettingsStore, useWorkspaceTabStore, type WorkspaceTab } from "@/stores";
 import { theme } from "antd";
-import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal, Store, Users, Wrench } from "lucide-react";
+import { Database, Folder, FolderTree, Grid, MessageSquare, SquareTerminal, Users, Wrench } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface TabConfig {
@@ -19,7 +19,6 @@ const TABS: TabConfig[] = [
   { key: "files", labelKey: "nav.files", icon: Folder },
   { key: "knowledge", labelKey: "nav.knowledge", icon: Database },
   { key: "multiAgent", labelKey: "nav.multiAgent", icon: Users },
-  { key: "opc", labelKey: "nav.opc", icon: Store },
   { key: "devtools", labelKey: "nav.devTools", icon: Wrench },
 ];
 
@@ -28,6 +27,7 @@ const TABS: TabConfig[] = [
  * 紧凑的水平按钮组，位于内容区顶部，在 /chat 路由下显示。
  * 对话页作为核心枢纽，其他功能（仪表盘/工作流/终端/文件/知识源/开发工具）以 Tab 形式切换。
  * 开发工具 Tab 由设置 show_developer_tools 门控（默认开启）。
+ * 注：OPC 一人公司面板不在对话页重复展示——导航栏（Sidebar）已有完整入口。
  */
 export function WorkspaceSwitcher() {
   const { t } = useTranslation();
