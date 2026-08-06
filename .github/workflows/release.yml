@@ -316,6 +316,16 @@ jobs:
       # （runner 收到 shutdown signal 即被 OOM 杀掉）
       # 2026-08-06 实锤：CARGO_BUILD_JOBS=2 仍被 OOM 杀（ubuntu-24.04-arm 内存 ~4GB），降为 1
       CARGO_BUILD_JOBS: 1
+      # 2026-08-06 21:40 实锤：CARGO_BUILD_JOBS=1 仍被 OOM 杀（c606d6dd 运行 31091951809，
+      # 4 个 arm job 全灭，均死于编译 axagent-quant 时的 shutdown signal/exit 143）。
+      # 并行度已无肉可割，瓶颈=单个 rustc 编译 axagent-quant 的内存峰值 >4GB →
+      # codegen-units=16 拆细 codegen 单元降峰值（release 产物性能影响 ~2-5%）。
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      # 2026-08-06 21:53 根因修正：Cargo.toml [profile.release] 是 lto="thin" + codegen-units=1，
+      # 真正内存热点是链接阶段 thin LTO（全 workspace IR 加载 + 并行优化，不受 -j 限制），
+      # 日志佐证：quant 编译行后 18min 无输出即 LTO 阶段被杀。→ 此 job 关闭 LTO 降峰值
+      # （ARM/Android 产物运行性能损失 ~5-10%，桌面 job 保留 thin LTO）。
+      CARGO_PROFILE_RELEASE_LTO: off
     steps:
       - uses: actions/checkout@v5
         with:
@@ -414,6 +424,14 @@ jobs:
       # 限制 rustc 并行编译数：gradle JVM(-Xmx2g) + cargo 全并行会让 7GB runner OOM
       # （2026-08-06 实锤：arm64-v8a/armeabi-v7a 在 axagent-quant 编译后被 shutdown signal 杀掉）
       CARGO_BUILD_JOBS: 1
+      # 2026-08-06 21:40 实锤：-j1 后 3 个 Android job 仍全 OOM（c606d6dd 运行 31091951809，
+      # 连之前幸存的 x86_64 也挂，均死于 axagent-quant 编译期的 shutdown signal）→
+      # gradle JVM 3GB + 单 rustc 峰值超 7GB。codegen-units=16 拆细 codegen 单元降 rustc 峰值。
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      # 2026-08-06 21:53 根因修正：真正热点是 [profile.release] 的 thin LTO 链接峰值
+      # （全 workspace IR 加载 + 并行优化，不受 CARGO_BUILD_JOBS 限制，7GB 也被打爆）→
+      # 此 job 关闭 LTO（Android 产物运行性能损失 ~5-10%，桌面 job 保留 thin LTO）。
+      CARGO_PROFILE_RELEASE_LTO: off
     steps:
       - uses: actions/checkout@v5
         with:
