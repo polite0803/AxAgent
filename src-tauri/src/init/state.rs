@@ -10,6 +10,7 @@ use tokio::sync::RwLock as TokioRwLock;
 use super::database::DatabaseInitResult;
 use crate::AppState;
 use crate::app_state::SemanticCacheState;
+use crate::commands::opc_llm_bridge::OpcLlmBridge;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, LearningEngineState, SandboxExecutorField, ToolState};
@@ -842,7 +843,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 初始化 OPC 行业学习引擎（LLM 端口可选，未配置时使用规则回退；
     // RL 经验持久化存储注入 SQLite 实现，确保状态跨重启持久化）
     let rl_store = Arc::new(RlExperienceStoreImpl::new(Arc::new(sea_db.clone())));
-    let industry_learning_engine = Arc::new(IndustryLearningEngine::new().with_rl_store(rl_store));
+    // 注入真实 LLM 推理端口（复用默认提供商 + execute_llm），
+    // 使反思/进化/自我改进从规则占位升级为真实 LLM；无 provider 时引擎自动回退规则
+    let opc_llm_bridge = Arc::new(OpcLlmBridge::new(harness.clone()));
+    let industry_learning_engine = Arc::new(
+        IndustryLearningEngine::new().with_rl_store(rl_store).with_llm_port(opc_llm_bridge),
+    );
 
     let learning_state = LearningEngineState::new(
         text_grad_engine.clone(),

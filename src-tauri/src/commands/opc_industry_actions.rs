@@ -1109,6 +1109,33 @@ mod tests {
 /// 学习配置根目录常量（相对仓库根，由调用方拼接）
 pub const INDUSTRY_LEARNING_DIR: &str = "configs/industry_learning";
 
+/// 行业包内学习配置文件约定名（v1.1 行业独立版：学习配置迁入行业包）
+pub const INDUSTRY_PACK_LEARNING_FILE: &str = "learning.yaml";
+
+/// 学习配置文件路径解析（v1.1 行业独立版）：
+///
+/// 优先读行业包内 `config/opc/industries/{dir_id}/learning.yaml`（行业资产
+/// 自包含，消灭「学习配置独立于行业包」的混合）；兼容旧路径
+/// `configs/industry_learning/{dir_id}.yaml`（向后兼容，迁移期间双读）。
+/// `dir_id` 由 `industry_id` 连字符转下划线（`finance-invest` → `finance_invest`）。
+fn industry_learning_config_path(
+    industry_id: &str,
+    app_dir: Option<&std::path::Path>,
+) -> Option<std::path::PathBuf> {
+    let dir_id = industry_id.replace('-', "_");
+    let pack_path = crate::commands::opc_workflows::resolve_industries_dir(app_dir)
+        .join(&dir_id)
+        .join(INDUSTRY_PACK_LEARNING_FILE);
+    if pack_path.is_file() {
+        return Some(pack_path);
+    }
+    let legacy = resolve_industry_learning_dir(app_dir).join(format!("{dir_id}.yaml"));
+    if legacy.is_file() {
+        return Some(legacy);
+    }
+    None
+}
+
 /// 学习配置文件目录解析：优先 `app_dir/configs/industry_learning`（生产，
 /// 用户数据目录），不存在则 fallback 仓库根 `configs/industry_learning`
 /// （开发/测试）。与 `opc_workflows::resolve_industries_dir` 保持一致，
@@ -1177,6 +1204,7 @@ pub struct IndustryLearningConfigView {
     pub industry_name: String,
     pub reflection_enabled: bool,
     pub evolution_enabled: bool,
+    pub code_evolver_enabled: bool,
     pub self_improvement_enabled: bool,
     pub reinforcement_learning_enabled: bool,
     /// 完整的强化学习配置
@@ -1187,7 +1215,8 @@ pub struct IndustryLearningConfigView {
 /// 获取行业学习配置
 ///
 /// `app_dir`：用户数据目录（生产环境）。传 None 时仅尝试仓库根相对路径
-/// （开发/测试，CWD=仓库根 的场景）。
+/// （开发/测试，CWD=仓库根 的场景）。配置路径解析见
+/// [`industry_learning_config_path`]（行业包内 learning.yaml 优先）。
 pub fn get_industry_learning_config(
     industry_id: &str,
     app_dir: Option<&std::path::Path>,
@@ -1205,20 +1234,7 @@ pub fn get_industry_learning_config(
     ]
     .into();
 
-    let file_name = match industry_id {
-        "ai-research" => "ai_research.yaml",
-        "software-dev" => "software_dev.yaml",
-        "finance-invest" => "finance_invest.yaml",
-        "sales-growth" => "sales_growth.yaml",
-        "content-media" => "content_media.yaml",
-        "industry-consulting" => "industry_consulting.yaml",
-        "accounting" => "accounting.yaml",
-        "ecommerce" => "ecommerce.yaml",
-        "education" => "education.yaml",
-        _ => return None,
-    };
-
-    let config_path = resolve_industry_learning_dir(app_dir).join(file_name);
+    let config_path = industry_learning_config_path(industry_id, app_dir)?;
 
     let content = match std::fs::read_to_string(&config_path) {
         Ok(c) => c,
@@ -1249,6 +1265,13 @@ pub fn get_industry_learning_config(
         .and_then(|w| w.get("enabled"))
         .and_then(|e| e.as_bool())
         .unwrap_or(false);
+    // P4-3 补解析：evolution.code_evolver.enabled（此前配置存在但不生效）
+    let code_evolver_enabled = parsed
+        .get("evolution")
+        .and_then(|e| e.get("code_evolver"))
+        .and_then(|c| c.get("enabled"))
+        .and_then(|e| e.as_bool())
+        .unwrap_or(false);
     let self_improvement_enabled = parsed
         .get("self_improvement")
         .and_then(|s| s.get("enabled"))
@@ -1275,6 +1298,7 @@ pub fn get_industry_learning_config(
         industry_name,
         reflection_enabled,
         evolution_enabled,
+        code_evolver_enabled,
         self_improvement_enabled,
         reinforcement_learning_enabled,
         reinforcement_learning,
@@ -1282,23 +1306,31 @@ pub fn get_industry_learning_config(
     })
 }
 
-/// 获取所有行业学习配置列表
+/// 获取所有行业学习配置
+///
+/// v1.1 行业独立版：动态扫描行业包目录（`config/opc/industries/*/learning.yaml`），
+/// 新增行业无需改代码即可自动出现（消灭硬编码 9 行业列表）。
 pub fn get_all_industry_learning_configs(
     app_dir: Option<&std::path::Path>,
 ) -> Vec<IndustryLearningConfigView> {
-    let industry_ids = [
-        "ai-research",
-        "software-dev",
-        "finance-invest",
-        "sales-growth",
-        "content-media",
-        "industry-consulting",
-        "accounting",
-        "ecommerce",
-        "education",
-    ];
-
-    industry_ids.iter().filter_map(|id| get_industry_learning_config(id, app_dir)).collect()
+    let base = crate::commands::opc_workflows::resolve_industries_dir(app_dir);
+    let mut out = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(&base) {
+        for entry in rd.filter_map(Result::ok) {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let dir_name = entry.file_name().to_string_lossy().to_string();
+            // 行业包目录名下划线 → industry_id 连字符（ai_research → ai-research）
+            let industry_id = dir_name.replace('_', "-");
+            if let Some(cfg) = get_industry_learning_config(&industry_id, app_dir) {
+                out.push(cfg);
+            }
+        }
+    }
+    out.sort_by(|a, b| a.industry_id.cmp(&b.industry_id));
+    out
 }
 
 // ── Tauri 命令（学习配置） ──────────────────────────────────
@@ -1642,26 +1674,13 @@ pub async fn opc_trigger_industry_learning(
 
 /// 从 YAML 文件加载完整的 RL 配置
 ///
-/// `app_dir`：用户数据目录（生产环境），解析方式与
-/// [`resolve_industry_learning_dir`] 一致。
+/// `app_dir`：用户数据目录（生产环境），路径解析与
+/// [`get_industry_learning_config`] 一致（行业包内 learning.yaml 优先）。
 pub(crate) fn load_rl_config(
     industry_id: &str,
     app_dir: Option<&std::path::Path>,
 ) -> Option<ReinforcementLearningConfig> {
-    let file_name = match industry_id {
-        "ai-research" => "ai_research.yaml",
-        "software-dev" => "software_dev.yaml",
-        "finance-invest" => "finance_invest.yaml",
-        "sales-growth" => "sales_growth.yaml",
-        "content-media" => "content_media.yaml",
-        "industry-consulting" => "industry_consulting.yaml",
-        "accounting" => "accounting.yaml",
-        "ecommerce" => "ecommerce.yaml",
-        "education" => "education.yaml",
-        _ => return None,
-    };
-
-    let config_path = resolve_industry_learning_dir(app_dir).join(file_name);
+    let config_path = industry_learning_config_path(industry_id, app_dir)?;
     let content = std::fs::read_to_string(&config_path).ok()?;
     let parsed: serde_json::Value = serde_yaml::from_str(&content).ok()?;
 

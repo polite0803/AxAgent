@@ -97,6 +97,27 @@ pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::
     Ok(())
 }
 
+/// 递归增量拷贝：仅补目标**缺失**的文件，已存在（含用户编辑）一律保留不覆盖。
+///
+/// v1.1 行业独立版：行业包目录已存在于 app_dir 时，把包内新增资产
+/// （如 learning.yaml、新增 workflows）补进生产目录。返回拷贝文件数。
+pub fn copy_dir_incremental(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<u32> {
+    let mut copied = 0u32;
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if from.is_dir() {
+            copied += copy_dir_incremental(&from, &to)?;
+        } else if !to.exists() {
+            std::fs::copy(&from, &to)?;
+            copied += 1;
+        }
+    }
+    Ok(copied)
+}
+
 /// 探测仓库根下的 `rel` 相对目录（不依赖 CWD）。
 ///
 /// 依次尝试：
@@ -146,16 +167,29 @@ pub fn ensure_opc_config_synced(app_dir: &std::path::Path) {
                         copied += 1;
                     }
                 } else {
-                    // 已存在目录：内部增量（industries/{id}、domains/{id} 缺失项）
+                    // 已存在目录：内部文件级增量（industries/{id}、domains/{id} 缺失文件，
+                    // 如新增 learning.yaml / workflows；已存在文件保留不覆盖）
                     if let Ok(inner) = std::fs::read_dir(&src_path) {
                         for sub in inner.flatten() {
                             let sub_name = sub.file_name();
-                            if !dst_path.join(&sub_name).exists()
-                                && copy_dir_recursive(&sub.path(), &dst_path.join(&sub_name))
-                                    .is_ok()
+                            let sub_dst = dst_path.join(&sub_name);
+                            let n = if sub.path().is_dir() {
+                                if sub_dst.is_dir() {
+                                    // 子目录已存在：递归补缺失文件
+                                    copy_dir_incremental(&sub.path(), &sub_dst).unwrap_or(0)
+                                } else if copy_dir_recursive(&sub.path(), &sub_dst).is_ok() {
+                                    1
+                                } else {
+                                    0
+                                }
+                            } else if !sub_dst.exists()
+                                && std::fs::copy(sub.path(), &sub_dst).is_ok()
                             {
-                                copied += 1;
-                            }
+                                1
+                            } else {
+                                0
+                            };
+                            copied += n;
                         }
                     }
                 }

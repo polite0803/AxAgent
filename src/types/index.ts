@@ -851,6 +851,7 @@ export interface IndustryLearningConfig {
   industry_name: string;
   reflection_enabled: boolean;
   evolution_enabled: boolean;
+  code_evolver_enabled: boolean;
   self_improvement_enabled: boolean;
   reinforcement_learning_enabled: boolean;
   config_path: string;
@@ -863,6 +864,7 @@ export interface IndustryLearningConfigSummary {
   industry_name: string;
   reflection_enabled: boolean;
   evolution_enabled: boolean;
+  code_evolver_enabled: boolean;
   self_improvement_enabled: boolean;
   reinforcement_learning_enabled: boolean;
   config_path: string;

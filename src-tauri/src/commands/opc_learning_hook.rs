@@ -33,23 +33,7 @@ use axagent_orchestrator::{EvolutionRequest, ReflectionRequest, SelfImprovementR
 
 // ── 行业映射：模板 ID → 行业 ID ──────────────────────────
 
-/// OPC 行业模板前缀列表
-///
-/// 工作流模板 ID 以 `workflow-` 开头且匹配以下前缀时，
-/// 被识别为 OPC 行业工作流并自动触发学习。
-const INDUSTRY_TEMPLATE_PREFIXES: &[(&str, &str)] = &[
-    ("workflow-finance-invest", "finance-invest"),
-    ("workflow-accounting", "accounting"),
-    ("workflow-sales-growth", "sales-growth"),
-    ("workflow-software-dev", "software-dev"),
-    ("workflow-content-media", "content-media"),
-    ("workflow-education", "education"),
-    ("workflow-ai-research", "ai-research"),
-    ("workflow-ecommerce", "ecommerce"),
-    ("workflow-industry-consulting", "industry-consulting"),
-];
-
-/// 领域工作流前缀（17 个领域包，需要额外映射）
+/// 领域工作流前缀（17 个领域包，需额外映射；行业包走动态扫描，见下）
 const DOMAIN_TEMPLATE_PREFIXES: &[(&str, &str)] = &[
     ("wf-finance-", "finance-invest"),
     ("wf-accounting-", "accounting"),
@@ -64,17 +48,31 @@ const DOMAIN_TEMPLATE_PREFIXES: &[(&str, &str)] = &[
 
 /// 根据工作流模板 ID 识别所属行业
 ///
+/// v1.1 行业独立版：**动态扫描行业包目录**（`config/opc/industries/{dir}/`，
+/// 模板前缀约定 `workflow-{dir 下划线转连字符}`），新增行业无需改代码
+/// （消灭 M3 硬编码前缀表）；领域包前缀仍走静态表兼容。
+///
 /// 返回 `Some(industry_id)` 表示这是 OPC 行业工作流，
 /// `None` 表示非 OPC 工作流（如股票分析等）。
-pub fn identify_industry_from_template(template_id: &str) -> Option<&'static str> {
-    for (prefix, industry_id) in INDUSTRY_TEMPLATE_PREFIXES {
-        if template_id.starts_with(prefix) {
-            return Some(industry_id);
+pub fn identify_industry_from_template(template_id: &str) -> Option<String> {
+    // 行业包动态注册：扫描 `config/opc/industries/*/` 目录
+    let base = crate::commands::opc_workflows::resolve_industries_dir(None);
+    if let Ok(rd) = std::fs::read_dir(&base) {
+        for entry in rd.filter_map(Result::ok) {
+            if !entry.path().is_dir() {
+                continue;
+            }
+            let dir_name = entry.file_name().to_string_lossy().to_string();
+            let industry_id = dir_name.replace('_', "-");
+            if template_id.starts_with(&format!("workflow-{industry_id}")) {
+                return Some(industry_id);
+            }
         }
     }
+    // 领域包静态表（兼容）
     for (prefix, industry_id) in DOMAIN_TEMPLATE_PREFIXES {
         if template_id.starts_with(prefix) {
-            return Some(industry_id);
+            return Some((*industry_id).to_string());
         }
     }
     None
@@ -159,7 +157,7 @@ pub async fn try_auto_learn_workflow(
     // P1-4：尊重行业 YAML 的 reflection/evolution/self_improvement/rl 开关，
     // 关闭的环节不再触发（此前无视开关全部执行）。
     let config =
-        crate::commands::opc_industry_actions::get_industry_learning_config(industry_id, app_dir);
+        crate::commands::opc_industry_actions::get_industry_learning_config(&industry_id, app_dir);
     let Some(config) = config else {
         debug!("[opc-auto-learn] 行业 {} 学习配置缺失，跳过自动学习", industry_id);
         return;
@@ -183,7 +181,8 @@ pub async fn try_auto_learn_workflow(
     // 步骤 1：记录 RL 经验（尊重 rl 开关）
     if rl_enabled {
         if let Err(e) =
-            record_experience(industry_id, template_id, quality_score, result, state, app_dir).await
+            record_experience(&industry_id, template_id, quality_score, result, state, app_dir)
+                .await
         {
             warn!("[opc-auto-learn] RL 经验记录失败: {}", e);
         }
@@ -192,7 +191,8 @@ pub async fn try_auto_learn_workflow(
     // 步骤 2：触发反思（尊重 reflection 开关）
     let mut reflection_result = None;
     if config.reflection_enabled {
-        reflection_result = Some(trigger_reflection(industry_id, template_id, result, state).await);
+        reflection_result =
+            Some(trigger_reflection(&industry_id, template_id, result, state).await);
     }
 
     // 步骤 3：如果反思质量分低于阈值，触发进化（尊重 evolution 开关）
@@ -200,7 +200,7 @@ pub async fn try_auto_learn_workflow(
         if reflection.quality_score < 70.0 && config.evolution_enabled {
             info!("[opc-auto-learn] 质量分 {:.1} 低于阈值 70，触发进化", reflection.quality_score);
             if let Err(e) = trigger_evolution(
-                industry_id,
+                &industry_id,
                 template_id,
                 &format!("反思质量分较低 ({:.1})，自动触发进化", reflection.quality_score),
                 state,
@@ -214,14 +214,14 @@ pub async fn try_auto_learn_workflow(
 
     // 步骤 4：自我改进（尊重 self_improvement 开关）
     if config.self_improvement_enabled {
-        if let Err(e) = trigger_self_improvement(industry_id, template_id, state).await {
+        if let Err(e) = trigger_self_improvement(&industry_id, template_id, state).await {
             warn!("[opc-auto-learn] 自我改进失败: {}", e);
         }
     }
 
     // 步骤 5：RL 策略优化（尊重 rl 开关；经验不足时静默跳过）
     if rl_enabled {
-        if let Err(e) = trigger_rl_optimization(industry_id, state, app_dir).await {
+        if let Err(e) = trigger_rl_optimization(&industry_id, state, app_dir).await {
             debug!("[opc-auto-learn] RL 策略优化（可能经验不足）: {}", e);
         }
     }
@@ -301,13 +301,15 @@ async fn trigger_evolution(
 
 async fn trigger_self_improvement(
     industry_id: &str,
-    workflow_id: &str,
+    _workflow_id: &str,
     state: &LearningEngineState,
 ) -> Result<axagent_orchestrator::SelfImprovementResult, String> {
     let engine = &state.industry_learning_engine;
     let request = SelfImprovementRequest {
         industry_id: industry_id.to_string(),
-        target: format!("workflow_{}_optimization", workflow_id),
+        // P4-4 修复：target 由畸形 `workflow_{workflow_id}_optimization`
+        // （会拼出 workflow_workflow-xxx_optimization）改为按行业寻址
+        target: format!("industry_{}_optimization", industry_id),
     };
 
     engine.run_self_improvement(&request).await
