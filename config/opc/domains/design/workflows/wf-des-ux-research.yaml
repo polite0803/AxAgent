@@ -4,7 +4,7 @@ name: 用户研究
 description: 用户访谈、可用性测试和洞察
 icon: "👥"
 tags: [opc]
-profile_id: cpo
+profile_id: opc-cpo-cpo-product-manager
 steps:
   - id: a-ux-plan
     title: 研究计划

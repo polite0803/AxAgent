@@ -4,7 +4,7 @@ name: 数据隐私合规
 description: GDPR/个保法合规审计和整改
 icon: "🔒"
 tags: [opc]
-profile_id: cfo
+profile_id: opc-cfo-cfo-financial-analyst
 steps:
   - id: a-privacy-audit
     title: 合规审计

@@ -16,7 +16,7 @@ steps:
     prompt: |
       你作为产品经理，分析用户需求。
       输出 JSON：{requirements, scope{in_scope, out_of_scope}, constraints, user_stories, acceptance_criteria}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs: {}
 
   - id: a-feasibility
@@ -24,7 +24,7 @@ steps:
     prompt: |
       你作为 CTO，评估技术可行性、资源和风险。
       输出 JSON：{feasible|partially_feasible|not_feasible, risks[{risk, impact, mitigation}], go_or_no_go, action_items}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       requirements: a-req.result
     continue_on_fail: false
@@ -46,7 +46,7 @@ steps:
     prompt: |
       你作为架构师，设计系统架构和技术栈。
       输出 JSON：{architecture{pattern, layers, components}, tech_stack{frontend, backend, database, infrastructure}, modules[{name, responsibility, dependencies}], deployment_diagram}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       requirements: a-req.result
       feasibility: a-feasibility.result
@@ -56,7 +56,7 @@ steps:
     prompt: |
       设计数据库实体、关系和索引。
       输出 JSON：{entities[{name, fields[{name, type, constraints}]}], relationships[{from, to, type}], indexes[{entity, fields, type}], migration_plan, data_retention}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       architecture: a-arch.result
 
@@ -65,7 +65,7 @@ steps:
     prompt: |
       设计 RESTful API 接口和认证策略。
       输出 JSON：{endpoints[{method, path, description, request_schema, response_schema}], auth_strategy, rate_limits, error_codes, sdk_plan}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       architecture: a-arch.result
       data_model: a-data.result
@@ -78,7 +78,7 @@ steps:
     prompt: |
       你作为 DevOps，初始化开发环境：创建项目目录结构、配置文件、依赖清单、CI 配置。
       输出 JSON：{project_structure, config_files_created, dependencies, ci_pipeline, environment_notes}
-    tools: [file_read, file_write, run_command]
+    tools: [FileRead, FileWrite, Bash]
     inputs:
       architecture: a-arch.result
       tech_stack: a-arch.result
@@ -88,7 +88,7 @@ steps:
     prompt: |
       你作为高级工程师，按设计实现代码。先创建数据模型和 API 框架，再实现核心业务逻辑。
       输出 JSON：{modules_implemented[{name, files, status}], code_summary, file_structure, known_issues}
-    tools: [file_read, file_write, run_command, search_code]
+    tools: [FileRead, FileWrite, Bash, Grep]
     inputs:
       architecture: a-arch.result
       data_model: a-data.result
@@ -101,7 +101,7 @@ steps:
     prompt: |
       你作为代码审查者，审查代码质量：逻辑正确性、安全性、性能、可维护性。
       输出 JSON：{review_findings[{file, line, severity, category, description, suggestion}], statistics{files_reviewed, issues_found, critical, high}, approved, fix_suggestions}
-    tools: [file_read, search_code, lint, run_command]
+    tools: [FileRead, Grep, Bash]
     inputs:
       implementation: a-code.result
 
@@ -119,7 +119,7 @@ steps:
     prompt: |
       你作为高级工程师，根据代码审查意见修复代码缺陷。修复完成后再次自检。
       输出 JSON：{fixes_applied[{file, issue_severity, fix_description}], remaining_issues, fix_verification}
-    tools: [file_read, file_write, run_command, lint, search_code]
+    tools: [FileRead, FileWrite, Bash, Grep]
     inputs:
       implementation: a-code.result
       review_findings: a-cr.result
@@ -133,7 +133,7 @@ steps:
     prompt: |
       生成设计文档、API 文档和开发指南。
       输出 JSON：{design_doc{architecture_overview, module_descriptions, data_models}, api_reference{endpoints_table, authentication, error_handling}, dev_guide{setup_instructions, coding_conventions, deployment_steps}}
-    tools: [file_read, file_write, search_code]
+    tools: [FileRead, FileWrite, Grep]
     inputs:
       implementation: a-code.result
       data_model: a-data.result
@@ -145,7 +145,7 @@ steps:
     prompt: |
       你作为测试工程师，为核心模块编写单元测试，覆盖边界条件。
       输出 JSON：{test_suites[{module, tests, passed, failed}], coverage{overall, by_module}, bugs_found[{id, module, description, severity}], test_results}
-    tools: [file_read, file_write, run_command, run_tests]
+    tools: [FileRead, FileWrite, Bash]
     inputs:
       implementation: a-code.result
       fixes: a-fix.result
@@ -156,7 +156,7 @@ steps:
     prompt: |
       执行模块间集成测试和端到端测试。
       输出 JSON：{integration_report{scenarios, passed, failed}, e2e_results[{flow, steps, status, duration_ms}], integration_bugs[{id, modules, description, severity}], performance_baseline}
-    tools: [file_read, run_command, run_tests]
+    tools: [FileRead, Bash]
     inputs:
       implementation: a-code.result
       unit_test_results: a-unit-test.result
@@ -166,7 +166,7 @@ steps:
     prompt: |
       执行安全审计：依赖漏洞、密钥泄露、OWASP Top 10。
       输出 JSON：{vulnerabilities[{id, type, severity, cwe, description, recommendation}], dependency_audit{total, vulnerable, outdated}, security_score, mitigations}
-    tools: [file_read, search_code, lint, run_command]
+    tools: [FileRead, Grep, Bash]
     inputs:
       implementation: a-code.result
       review_findings: a-cr.result
@@ -189,7 +189,7 @@ steps:
     prompt: |
       执行部署：构建、数据库迁移、环境配置、健康检查。
       输出 JSON：{deploy_status, build_info{version, commit_hash, build_time}, environment{target, config}, database_migration{status, migrations_applied, rollback_plan}, health_check{api, db, dependencies}, monitoring_setup}
-    tools: [file_read, run_command, run_tests]
+    tools: [FileRead, Bash]
     inputs:
       implementation: a-code.result
       security_audit: a-security.result
@@ -201,7 +201,7 @@ steps:
     prompt: |
       生成运维文档和交接包。
       输出 JSON：{runbook[{operation, steps, rollback}], monitoring_dashboard{metrics, alerts}, knowledge_base[{topic, content, tags}], postmortem_plan, final_summary{total_modules, test_coverage, security_score, go_live_readiness}}
-    tools: [file_read, file_write, search_code]
+    tools: [FileRead, FileWrite, Grep]
     inputs:
       deploy_result: a-deploy.result
       security_audit: a-security.result

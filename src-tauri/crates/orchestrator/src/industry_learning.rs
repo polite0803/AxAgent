@@ -947,6 +947,70 @@ impl IndustryLearningEngine {
         }
     }
 
+    /// P2-7：按行业返回 RL 经验统计（stats_list 或内存池过滤）。
+    pub async fn get_industry_experience_stats(
+        &self,
+        industry_id: &str,
+    ) -> Option<ExperiencePoolStats> {
+        if let Some(ref store) = self.rl_store
+            && let Ok(stats_list) = store.get_global_stats().await
+            && let Some(s) = stats_list.into_iter().find(|s| s.industry_id == industry_id)
+        {
+            return Some(ExperiencePoolStats {
+                total_experiences: s.total_experiences as usize,
+                industry_count: 1,
+                oldest_timestamp_ms: s.last_trained_at.map(|t| t as u64),
+                newest_timestamp_ms: s.policy_updated_at.map(|t| t as u64),
+                avg_reward: s.avg_reward,
+                success_rate: s.success_rate,
+            });
+        }
+
+        // 内存池回退
+        let pools = self.experience_pools.lock().await;
+        let pool = pools.get(industry_id)?;
+        let mut total = 0usize;
+        let mut rewards = Vec::new();
+        let mut success_count = 0usize;
+        let mut min_ts: Option<u64> = None;
+        let mut max_ts: Option<u64> = None;
+        for exp in pool {
+            total += 1;
+            rewards.push(exp.total_reward);
+            if exp.success {
+                success_count += 1;
+            }
+            match (min_ts, max_ts) {
+                (Some(min), Some(max)) => {
+                    min_ts = Some(min.min(exp.timestamp_ms));
+                    max_ts = Some(max.max(exp.timestamp_ms));
+                },
+                _ => {
+                    min_ts = Some(exp.timestamp_ms);
+                    max_ts = Some(exp.timestamp_ms);
+                },
+            }
+        }
+        let avg_reward = if rewards.is_empty() {
+            0.0
+        } else {
+            rewards.iter().sum::<f64>() / rewards.len() as f64
+        };
+        let success_rate = if total > 0 {
+            success_count as f64 / total as f64
+        } else {
+            0.0
+        };
+        Some(ExperiencePoolStats {
+            total_experiences: total,
+            industry_count: 1,
+            oldest_timestamp_ms: min_ts,
+            newest_timestamp_ms: max_ts,
+            avg_reward,
+            success_rate,
+        })
+    }
+
     // ── 代码验收方法 ─────────────────────────────────────
 
     /// 验证代码变更

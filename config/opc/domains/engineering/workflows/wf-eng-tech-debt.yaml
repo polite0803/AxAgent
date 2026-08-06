@@ -4,7 +4,7 @@ name: 技术债管理
 description: 识别、评估和消除代码库中的技术债务
 icon: "📉"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-debt-scan
     title: 扫描

@@ -17,4 +17,5 @@ steps:
   - id: a-enroll
     title: 学员管理
     prompt: 使用 OpcCreateCustomer 创建学员信息，设置学习路径。输出 JSON {enrollment_id, student_count}
+    tools: [OpcCreateCustomer, OpcSendNotification]
     inputs: {}

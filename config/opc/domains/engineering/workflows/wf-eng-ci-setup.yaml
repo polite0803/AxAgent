@@ -4,7 +4,7 @@ name: CI/CD配置
 description: 搭建持续集成/持续部署流水线
 icon: "🔄"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-ci-plan
     title: 方案设计

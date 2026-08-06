@@ -4,7 +4,7 @@ name: 无人机测绘
 description: 无人机航拍数据处理和分析
 icon: "🛸"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-drone-plan
     title: 飞行规划

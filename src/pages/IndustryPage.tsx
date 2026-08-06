@@ -299,7 +299,7 @@ export function IndustryPage() {
       try {
         const result = await invoke<{
           manifest: IndustryManifest;
-        }>("opc_get_industry_pack", { industry_id: industryId });
+        }>("opc_get_industry_pack", { industryId });
         setManifest(result.manifest);
       } catch (e) {
         console.error("[IndustryPage] load failed:", e);
@@ -339,7 +339,7 @@ export function IndustryPage() {
       const days = Number(kpiTimeRange);
       const result = await invoke<IndustryDashboard>(
         "opc_get_industry_dashboard",
-        { industry_id: industryId, days },
+        { industryId, days },
       );
       setDashboard(result);
     } catch (e) {
@@ -356,7 +356,7 @@ export function IndustryPage() {
     try {
       const result = await invoke<{ steps: WorkflowStepInfo[] }>(
         "opc_get_industry_workflow_steps",
-        { industry_id: industryId },
+        { industryId },
       );
       setWorkflowSteps(result.steps || []);
     } catch (e) {
@@ -374,7 +374,7 @@ export function IndustryPage() {
     try {
       const result = await invoke<{ rules: AutomationRuleInfo[] }>(
         "opc_get_industry_automation_rules",
-        { industry_id: industryId },
+        { industryId },
       );
       setAutomationRules(result.rules || []);
     } catch (e) {
@@ -405,9 +405,9 @@ export function IndustryPage() {
     setRulesRunning(true);
     try {
       const triggered = await invoke<string[]>("opc_run_automation_rules", {
-        industry_id: industryId,
-        entity_type: "customer",
-        entity_id: "manual_trigger",
+        industryId,
+        entityType: "customer",
+        entityId: "manual_trigger",
       });
       if (triggered.length > 0) {
         message.success(
@@ -508,8 +508,8 @@ export function IndustryPage() {
         actionLabel: string;
         industryId: string;
       }>("opc_build_industry_prompt", {
-        industry_id: industryId,
-        action_key: action.key,
+        industryId,
+        actionKey: action.key,
       });
 
       const conv = await createConversation(

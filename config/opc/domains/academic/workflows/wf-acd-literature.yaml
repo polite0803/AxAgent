@@ -4,7 +4,7 @@ name: 文献综述
 description: 系统性地综述学术文献
 icon: "📚"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-lit-search
     title: 文献搜索

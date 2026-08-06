@@ -913,6 +913,30 @@ pub async fn opc_get_industry_config(industry_id: String) -> Result<serde_json::
     })
 }
 
+/// 获取行业包（manifest 基本信息）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业包 manifest")]
+#[tauri::command]
+pub async fn opc_get_industry_pack(industry_id: String) -> Result<serde_json::Value, String> {
+    let config =
+        get_industry_config(&industry_id).ok_or_else(|| format!("行业不存在: {}", industry_id))?;
+
+    let manifest = serde_json::json!({
+        "id": config.id,
+        "name": config.name,
+        "icon": config.icon,
+        "description": config.description,
+        "version": 1,
+        "enabled": true,
+    });
+
+    serde_json::to_value(serde_json::json!({ "manifest": manifest })).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
 /// 获取行业操作的执行配置（用于前端调用）
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业操作配置")]
 #[tauri::command]
@@ -1082,6 +1106,69 @@ mod tests {
 
 // ── 学习配置 ──────────────────────────────────────────────────
 
+/// 学习配置根目录常量（相对仓库根，由调用方拼接）
+pub const INDUSTRY_LEARNING_DIR: &str = "configs/industry_learning";
+
+/// 学习配置文件目录解析：优先 `app_dir/configs/industry_learning`（生产，
+/// 用户数据目录），不存在则 fallback 仓库根 `configs/industry_learning`
+/// （开发/测试）。与 `opc_workflows::resolve_industries_dir` 保持一致，
+/// 避免依赖进程 CWD（Tauri 生产环境 CWD 不是仓库根）。
+pub fn resolve_industry_learning_dir(app_dir: Option<&std::path::Path>) -> std::path::PathBuf {
+    if let Some(dir) = app_dir {
+        let candidate = dir.join(INDUSTRY_LEARNING_DIR);
+        if candidate.is_dir() {
+            return candidate;
+        }
+    }
+    std::path::PathBuf::from(INDUSTRY_LEARNING_DIR)
+}
+
+/// 启动时确保学习配置文件同步到 `app_dir/configs/industry_learning`。
+///
+/// 生产/服务模式下进程 CWD 不是仓库根，相对路径读取必然失败；将仓库根
+/// 的配置同步一份到用户数据目录，使 [`resolve_industry_learning_dir`] 的
+/// app_dir 分支始终可用。目标目录已含 yaml 文件则跳过（如需更新，删除
+/// app_dir 下的目录后重启）。复用 `opc_workflows` 的仓库根探测与拷贝工具。
+pub fn ensure_industry_learning_configs(app_dir: &std::path::Path) {
+    use crate::commands::opc_workflows::{copy_dir_recursive, find_repo_config_dir};
+
+    let target_dir = app_dir.join(INDUSTRY_LEARNING_DIR);
+
+    // 目标已就绪（含 yaml 文件）→ 跳过
+    if target_dir.is_dir() {
+        if let Ok(rd) = std::fs::read_dir(&target_dir) {
+            if rd
+                .filter_map(|e| e.ok())
+                .any(|e| e.path().is_file() && e.path().extension().is_some_and(|x| x == "yaml"))
+            {
+                return;
+            }
+        }
+    }
+
+    let Some(src) = find_repo_config_dir(INDUSTRY_LEARNING_DIR) else {
+        tracing::warn!(
+            "[opc-learning] 仓库根学习配置目录未找到，跳过同步: {}",
+            INDUSTRY_LEARNING_DIR
+        );
+        return;
+    };
+
+    match copy_dir_recursive(&src, &target_dir) {
+        Ok(()) => tracing::info!(
+            "[opc-learning] 学习配置已同步: {} → {}",
+            src.display(),
+            target_dir.display()
+        ),
+        Err(e) => tracing::warn!(
+            "[opc-learning] 学习配置同步失败: {} → {}: {}",
+            src.display(),
+            target_dir.display(),
+            e
+        ),
+    }
+}
+
 /// 行业学习配置
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IndustryLearningConfigView {
@@ -1098,7 +1185,13 @@ pub struct IndustryLearningConfigView {
 }
 
 /// 获取行业学习配置
-pub fn get_industry_learning_config(industry_id: &str) -> Option<IndustryLearningConfigView> {
+///
+/// `app_dir`：用户数据目录（生产环境）。传 None 时仅尝试仓库根相对路径
+/// （开发/测试，CWD=仓库根 的场景）。
+pub fn get_industry_learning_config(
+    industry_id: &str,
+    app_dir: Option<&std::path::Path>,
+) -> Option<IndustryLearningConfigView> {
     let industry_names: std::collections::HashMap<&str, &str> = [
         ("ai-research", "人工智能研究"),
         ("software-dev", "软件开发"),
@@ -1125,12 +1218,12 @@ pub fn get_industry_learning_config(industry_id: &str) -> Option<IndustryLearnin
         _ => return None,
     };
 
-    let config_path = format!("configs/industry_learning/{}", file_name);
+    let config_path = resolve_industry_learning_dir(app_dir).join(file_name);
 
     let content = match std::fs::read_to_string(&config_path) {
         Ok(c) => c,
         Err(_) => {
-            tracing::warn!("学习配置文件不存在: {}", config_path);
+            tracing::warn!("学习配置文件不存在: {}", config_path.display());
             return None;
         },
     };
@@ -1138,7 +1231,7 @@ pub fn get_industry_learning_config(industry_id: &str) -> Option<IndustryLearnin
     let parsed: serde_json::Value = match serde_yaml::from_str(&content) {
         Ok(v) => v,
         Err(e) => {
-            tracing::warn!("解析学习配置失败: {}, 错误: {}", config_path, e);
+            tracing::warn!("解析学习配置失败: {}, 错误: {}", config_path.display(), e);
             return None;
         },
     };
@@ -1185,12 +1278,14 @@ pub fn get_industry_learning_config(industry_id: &str) -> Option<IndustryLearnin
         self_improvement_enabled,
         reinforcement_learning_enabled,
         reinforcement_learning,
-        config_path,
+        config_path: config_path.display().to_string(),
     })
 }
 
 /// 获取所有行业学习配置列表
-pub fn get_all_industry_learning_configs() -> Vec<IndustryLearningConfigView> {
+pub fn get_all_industry_learning_configs(
+    app_dir: Option<&std::path::Path>,
+) -> Vec<IndustryLearningConfigView> {
     let industry_ids = [
         "ai-research",
         "software-dev",
@@ -1203,7 +1298,7 @@ pub fn get_all_industry_learning_configs() -> Vec<IndustryLearningConfigView> {
         "education",
     ];
 
-    industry_ids.iter().filter_map(|id| get_industry_learning_config(id)).collect()
+    industry_ids.iter().filter_map(|id| get_industry_learning_config(id, app_dir)).collect()
 }
 
 // ── Tauri 命令（学习配置） ──────────────────────────────────
@@ -1211,8 +1306,11 @@ pub fn get_all_industry_learning_configs() -> Vec<IndustryLearningConfigView> {
 /// 获取行业学习配置
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业学习配置")]
 #[tauri::command]
-pub async fn opc_get_learning_config(industry_id: String) -> Result<serde_json::Value, String> {
-    let config = get_industry_learning_config(&industry_id)
+pub async fn opc_get_learning_config(
+    state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let config = get_industry_learning_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
     serde_json::to_value(config).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -1225,8 +1323,10 @@ pub async fn opc_get_learning_config(industry_id: String) -> Result<serde_json::
 /// 获取所有行业学习配置
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取所有行业学习配置")]
 #[tauri::command]
-pub async fn opc_list_learning_configs() -> Result<serde_json::Value, String> {
-    let configs = get_all_industry_learning_configs();
+pub async fn opc_list_learning_configs(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let configs = get_all_industry_learning_configs(Some(&state.app_data_dir));
     serde_json::to_value(configs).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
@@ -1244,7 +1344,7 @@ pub async fn opc_reflect_on_workflow(
     workflow_id: String,
     workflow_result: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let config = get_industry_learning_config(&industry_id)
+    let config = get_industry_learning_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
     if !config.reflection_enabled {
@@ -1293,7 +1393,7 @@ pub async fn opc_evolve_workflow(
     workflow_id: String,
     reason: String,
 ) -> Result<serde_json::Value, String> {
-    let config = get_industry_learning_config(&industry_id)
+    let config = get_industry_learning_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
     if !config.evolution_enabled {
@@ -1340,7 +1440,7 @@ pub async fn opc_run_self_improvement(
     industry_id: String,
     target: String,
 ) -> Result<serde_json::Value, String> {
-    let config = get_industry_learning_config(&industry_id)
+    let config = get_industry_learning_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
     if !config.self_improvement_enabled {
@@ -1382,7 +1482,7 @@ pub async fn opc_trigger_industry_learning(
     workflow_id: String,
     workflow_result: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let config = get_industry_learning_config(&industry_id)
+    let config = get_industry_learning_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
     // 获取行业适配器
@@ -1488,7 +1588,8 @@ pub async fn opc_trigger_industry_learning(
     let rl_config = rl_config_from_adapter;
     if rl_config.enabled {
         // 读取 YAML 配置中的完整 RL 参数
-        let full_rl_config = load_rl_config(&industry_id).unwrap_or(rl_config);
+        let full_rl_config =
+            load_rl_config(&industry_id, Some(&state.app_data_dir)).unwrap_or(rl_config);
 
         match engine
             .run_reinforcement_learning(
@@ -1540,7 +1641,13 @@ pub async fn opc_trigger_industry_learning(
 // ── RL 辅助函数 ──────────────────────────────────────────
 
 /// 从 YAML 文件加载完整的 RL 配置
-pub(crate) fn load_rl_config(industry_id: &str) -> Option<ReinforcementLearningConfig> {
+///
+/// `app_dir`：用户数据目录（生产环境），解析方式与
+/// [`resolve_industry_learning_dir`] 一致。
+pub(crate) fn load_rl_config(
+    industry_id: &str,
+    app_dir: Option<&std::path::Path>,
+) -> Option<ReinforcementLearningConfig> {
     let file_name = match industry_id {
         "ai-research" => "ai_research.yaml",
         "software-dev" => "software_dev.yaml",
@@ -1554,7 +1661,7 @@ pub(crate) fn load_rl_config(industry_id: &str) -> Option<ReinforcementLearningC
         _ => return None,
     };
 
-    let config_path = format!("configs/industry_learning/{}", file_name);
+    let config_path = resolve_industry_learning_dir(app_dir).join(file_name);
     let content = std::fs::read_to_string(&config_path).ok()?;
     let parsed: serde_json::Value = serde_yaml::from_str(&content).ok()?;
 
@@ -1601,11 +1708,18 @@ pub(crate) fn load_rl_config(industry_id: &str) -> Option<ReinforcementLearningC
 // ── RL Tauri 命令 ──────────────────────────────────────────
 
 /// 获取经验池统计信息
+/// P2-7：支持按行业过滤（industry_id 可选；此前参数被静默忽略）
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取经验池统计信息")]
 #[tauri::command]
-pub async fn opc_get_rl_stats(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+pub async fn opc_get_rl_stats(
+    state: State<'_, AppState>,
+    industry_id: Option<String>,
+) -> Result<serde_json::Value, String> {
     let engine = &state.learning.industry_learning_engine;
-    let stats = engine.get_experience_pool_stats().await;
+    let stats = match industry_id.filter(|s| !s.trim().is_empty()) {
+        Some(id) => engine.get_industry_experience_stats(&id).await,
+        None => Some(engine.get_experience_pool_stats().await),
+    };
     serde_json::to_value(stats).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
@@ -1621,7 +1735,7 @@ pub async fn opc_trigger_rl_optimization(
     state: State<'_, AppState>,
     industry_id: String,
 ) -> Result<serde_json::Value, String> {
-    let rl_config = load_rl_config(&industry_id)
+    let rl_config = load_rl_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业 {} 的 RL 配置不存在", industry_id))?;
 
     if !rl_config.enabled {
@@ -1654,7 +1768,7 @@ pub async fn opc_record_rl_experience(
     quality_score: f64,
     workflow_result: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let rl_config = load_rl_config(&industry_id)
+    let rl_config = load_rl_config(&industry_id, Some(&state.app_data_dir))
         .ok_or_else(|| format!("行业 {} 的 RL 配置不存在", industry_id))?;
 
     let engine = &state.learning.industry_learning_engine;

@@ -51,6 +51,19 @@ pub fn build_opc_industry_tool_defs() -> Vec<TauriCommandToolDef> {
             }),
             is_read_only: true,
         },
+        // ── 行业包 manifest（只读） ──
+        TauriCommandToolDef {
+            name: "opc_get_industry_pack",
+            description: "获取行业包的 manifest 基本信息，包括 ID、名称、图标、描述、版本和启用状态",
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "industry_id": { "type": "string", "description": "行业 ID" },
+                },
+                "required": ["industry_id"],
+            }),
+            is_read_only: true,
+        },
         // ── 行业操作配置（只读） ──
         TauriCommandToolDef {
             name: "opc_get_action_config",
@@ -411,6 +424,27 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 ))
             })
         },
+        "opc_get_industry_pack" => {
+            let industry_id =
+                input["industry_id"].as_str().ok_or_else(|| "缺少 industry_id 参数".to_string())?;
+            let config = get_industry_config(industry_id)
+                .ok_or_else(|| format!("行业不存在: {industry_id}"))?;
+            let manifest = serde_json::json!({
+                "id": config.id,
+                "name": config.name,
+                "icon": config.icon,
+                "description": config.description,
+                "version": 1,
+                "enabled": true,
+            });
+            let result = serde_json::json!({ "manifest": manifest });
+            serde_json::to_string_pretty(&result).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })
+        },
         "opc_get_action_config" => {
             let industry_id =
                 input["industry_id"].as_str().ok_or_else(|| "缺少 industry_id 参数".to_string())?;
@@ -588,7 +622,8 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
         "opc_get_learning_config" => {
             let industry_id =
                 input["industry_id"].as_str().ok_or_else(|| "缺少 industry_id 参数".to_string())?;
-            let config = get_industry_learning_config(industry_id)
+            let app_state = app_handle.state::<crate::AppState>();
+            let config = get_industry_learning_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
             serde_json::to_string_pretty(&config).map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
@@ -598,7 +633,8 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
             })
         },
         "opc_list_learning_configs" => {
-            let configs = get_all_industry_learning_configs();
+            let app_state = app_handle.state::<crate::AppState>();
+            let configs = get_all_industry_learning_configs(Some(&app_state.app_data_dir));
             serde_json::to_string_pretty(&configs).map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
                     e,
@@ -613,15 +649,15 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 input["workflow_id"].as_str().ok_or_else(|| "缺少 workflow_id 参数".to_string())?;
             let workflow_result = input["workflow_result"].clone();
 
-            let config = get_industry_learning_config(industry_id)
+            // 从 AppState 获取学习配置目录与学习引擎
+            let app_state = app_handle.state::<crate::AppState>();
+            let config = get_industry_learning_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
             if !config.reflection_enabled {
                 return Err(format!("行业 {} 的反思功能未启用", industry_id));
             }
 
-            // 从 AppState 获取学习引擎
-            let app_state = app_handle.state::<crate::AppState>();
             let registry = app_state.learning.industry_adapter_registry.lock().await;
             let adapter = registry
                 .get(industry_id)
@@ -659,15 +695,15 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 input["workflow_id"].as_str().ok_or_else(|| "缺少 workflow_id 参数".to_string())?;
             let reason = input["reason"].as_str().ok_or_else(|| "缺少 reason 参数".to_string())?;
 
-            let config = get_industry_learning_config(industry_id)
+            // 从 AppState 获取学习配置目录与学习引擎
+            let app_state = app_handle.state::<crate::AppState>();
+            let config = get_industry_learning_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
             if !config.evolution_enabled {
                 return Err(format!("行业 {} 的进化功能未启用", industry_id));
             }
 
-            // 从 AppState 获取学习引擎
-            let app_state = app_handle.state::<crate::AppState>();
             let registry = app_state.learning.industry_adapter_registry.lock().await;
             let adapter = registry
                 .get(industry_id)
@@ -702,15 +738,14 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 input["industry_id"].as_str().ok_or_else(|| "缺少 industry_id 参数".to_string())?;
             let target = input["target"].as_str().ok_or_else(|| "缺少 target 参数".to_string())?;
 
-            let config = get_industry_learning_config(industry_id)
+            // 从 AppState 获取学习配置目录与学习引擎
+            let app_state = app_handle.state::<crate::AppState>();
+            let config = get_industry_learning_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
             if !config.self_improvement_enabled {
                 return Err(format!("行业 {} 的自我改进功能未启用", industry_id));
             }
-
-            // 从 AppState 获取学习引擎
-            let app_state = app_handle.state::<crate::AppState>();
 
             let request = axagent_orchestrator::SelfImprovementRequest {
                 industry_id: industry_id.to_string(),
@@ -739,11 +774,11 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
                 input["workflow_id"].as_str().ok_or_else(|| "缺少 workflow_id 参数".to_string())?;
             let workflow_result = input["workflow_result"].clone();
 
-            let config = get_industry_learning_config(industry_id)
+            // 从 AppState 获取学习配置目录与学习引擎
+            let app_state = app_handle.state::<crate::AppState>();
+            let config = get_industry_learning_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
-            // 从 AppState 获取学习引擎
-            let app_state = app_handle.state::<crate::AppState>();
             let registry = app_state.learning.industry_adapter_registry.lock().await;
             let adapter = registry
                 .get(industry_id)
@@ -850,7 +885,8 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
             let rl_config = rl_config_from_adapter;
             if rl_config.enabled {
                 // 读取 YAML 配置中的完整 RL 参数
-                let full_rl_config = load_rl_config(industry_id).unwrap_or(rl_config);
+                let full_rl_config =
+                    load_rl_config(industry_id, Some(&app_state.app_data_dir)).unwrap_or(rl_config);
 
                 match engine
                     .run_reinforcement_learning(
@@ -938,12 +974,12 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
             let engine = &app_state.learning.industry_learning_engine;
 
             // 获取行业 RL 配置
-            let config = get_industry_learning_config(industry_id)
+            let config = get_industry_learning_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
 
             // 加载 YAML 中的完整 RL 配置
-            let rl_config =
-                load_rl_config(industry_id).unwrap_or(config.reinforcement_learning.clone());
+            let rl_config = load_rl_config(industry_id, Some(&app_state.app_data_dir))
+                .unwrap_or(config.reinforcement_learning.clone());
 
             match engine
                 .record_experience(
@@ -991,7 +1027,7 @@ async fn dispatch_opc_industry_command<R: tauri::Runtime>(
             let engine = &app_state.learning.industry_learning_engine;
 
             // 加载 YAML 中的完整 RL 配置
-            let rl_config = load_rl_config(industry_id)
+            let rl_config = load_rl_config(industry_id, Some(&app_state.app_data_dir))
                 .ok_or_else(|| format!("行业 RL 配置不存在或无法加载: {industry_id}"))?;
 
             match engine.optimize_policy(industry_id, &rl_config).await {

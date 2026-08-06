@@ -4,7 +4,7 @@ name: 员工入职
 description: "新员工入职流程: 账号、文档、培训"
 icon: "📋"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-onboard-plan
     title: 入职计划

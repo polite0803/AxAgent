@@ -4,7 +4,7 @@ name: ESG报告
 description: 环境、社会和治理报告编制
 icon: "🌱"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-esg-collect
     title: 数据收集

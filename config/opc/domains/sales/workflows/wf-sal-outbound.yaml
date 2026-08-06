@@ -4,7 +4,7 @@ name: 外呼获客
 description: 制定和执行主动外呼获客策略
 icon: "📞"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-outbound-target
     title: 目标画像

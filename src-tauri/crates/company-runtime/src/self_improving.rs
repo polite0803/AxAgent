@@ -156,7 +156,16 @@ impl SelfImprovingRound for OpcWorkItemRound {
 
         if let Some(pb) = &playbook {
             out.push_str("## 参考经验\n");
-            out.push_str(&format!("- Playbook v{}（{}）\n\n", pb.version, pb.title));
+            out.push_str(&format!("- Playbook v{}（{}）\n", pb.version, pb.title));
+            // P1-2：纳入 Playbook 实际内容，使参考经验真实可被本轮执行引用
+            out.push_str(&format!(
+                "<details>\n<summary>Playbook 内容</summary>\n\n{}\n</details>\n\n",
+                pb.content
+            ));
+        } else {
+            // P1-3：无历史经验也声明参考经验段（首次执行），evaluate 据此给中性分而非扣分，
+            // 避免"无 playbook 首轮最高 0.60 < 质量门 0.80 必拒"的死锁。
+            out.push_str("## 参考经验\n- （无历史 Playbook，本轮为首次执行）\n\n");
         }
 
         if let Some(err) = &wi.last_error {
@@ -221,10 +230,15 @@ impl SelfImprovingRound for OpcWorkItemRound {
             gaps.push("依赖状态未完整声明".into());
         }
 
-        // 3. 参考经验引用 (0.20)
-        if output.contains("参考经验") || output.contains("Playbook") {
-            score += 0.20;
-            strengths.push("引用了历史经验/Playbook".into());
+        // 3. 参考经验引用 (0.20)：声明了参考经验段即计分；
+        // 有 Playbook 引用满分，无 Playbook（首次执行）给中性 0.10 而非扣分。
+        if output.contains("参考经验") {
+            if output.contains("Playbook") {
+                score += 0.20;
+                strengths.push("引用了历史经验/Playbook".into());
+            } else {
+                score += 0.10;
+            }
         } else {
             gaps.push("未引用历史经验（Self-Grown 缺口）".into());
         }

@@ -4,7 +4,7 @@ name: A/B测试
 description: 设计、执行和分析A/B测试
 icon: "🧪"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-ab-design
     title: 实验设计

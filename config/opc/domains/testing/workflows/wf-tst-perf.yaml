@@ -4,7 +4,7 @@ name: 性能测试
 description: 负载测试和性能基准
 icon: "⚡"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-tperf-script
     title: 测试脚本

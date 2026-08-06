@@ -78,7 +78,19 @@ impl<'a> HiringService<'a> {
         }
 
         // 3. 降级：占位空员工（不阻塞执行）
+        // P2-9：占位员工必须落库（此前只返回 id 不落库，调用方按 employee 关联必然 NotFound）
         let emp_id = format!("placeholder-{role_id}");
+        org_svc
+            .add_employee(crate::org::NewEmployee {
+                id: emp_id.clone(),
+                org_id: org_id.to_string(),
+                employee_id: emp_id.clone(),
+                role_id: role_id.to_string(),
+                expert_id: None,
+                status: "placeholder".to_string(),
+                experience_ref: None,
+            })
+            .await?;
         Ok(HireDecision {
             employee_id: emp_id,
             role_id: role_id.to_string(),
@@ -116,14 +128,18 @@ impl<'a> HiringService<'a> {
         if employee_id != placeholder {
             return Err(CompanyError::Invalid(format!("{employee_id} 不是占位员工，无需 promote")));
         }
-        // 将占位记录转为真实员工（employee_id 保持占位 id，expert 绑定由调用方完成）
+        // P2-6：真正执行升级——占位记录 status: placeholder → active
+        //（此前 `let _ = emp;` 空操作，占位永远无法转正）
         let emp = opc_org_employees::Entity::find()
             .filter(opc_org_employees::Column::OrgId.eq(org_id))
             .filter(opc_org_employees::Column::EmployeeId.eq(employee_id))
             .one(self.db)
             .await?
             .ok_or_else(|| CompanyError::NotFound(format!("employee {employee_id}")))?;
-        let _ = emp;
+        use sea_orm::{ActiveModelTrait, Set};
+        let mut am: opc_org_employees::ActiveModel = emp.into();
+        am.status = Set("active".to_string());
+        am.update(self.db).await?;
         Ok(())
     }
 }

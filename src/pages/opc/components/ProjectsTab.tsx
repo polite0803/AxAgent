@@ -107,14 +107,14 @@ export function ProjectsTab() {
     if (!detailProject) { return; }
     try {
       await invoke("opc_add_milestone", {
-        projectId: detailProject.id,
+        project_id: detailProject.id,
         milestone: {
           id: crypto.randomUUID(),
           title: values.title as string,
           description: (values.description as string) || "",
           due_at: values.due_at ? Math.floor(new Date(values.due_at as string).getTime() / 1000) : null,
           completed_at: null,
-          status: "Pending",
+          status: "pending",
         },
       });
       message.success(t("opc.project.milestoneAdded"));
@@ -131,7 +131,7 @@ export function ProjectsTab() {
   const handleCompleteMilestone = async (milestoneId: string) => {
     if (!detailProject) { return; }
     try {
-      await invoke("opc_complete_milestone", { projectId: detailProject.id, milestoneId });
+      await invoke("opc_complete_milestone", { project_id: detailProject.id, milestone_id: milestoneId });
       message.success(t("opc.project.milestoneCompleted"));
       const updated = await invoke<Project>("opc_get_project", { id: detailProject.id });
       setDetailProject(updated);
@@ -172,7 +172,7 @@ export function ProjectsTab() {
       title: t("opc.project.columnMilestones"),
       key: "milestones",
       render: (_: unknown, r: Project) => {
-        const done = r.milestones.filter((m) => m.status === "Completed").length;
+        const done = r.milestones.filter((m) => m.status === "completed").length;
         return r.milestones.length > 0 ? `${done}/${r.milestones.length}` : "-";
       },
     },
@@ -402,12 +402,12 @@ export function ProjectsTab() {
             {detailProject.milestones.length === 0 ? <Empty description={t("opc.project.noMilestones")} /> : (
               <Timeline
                 items={detailProject.milestones.map((m) => ({
-                  color: m.status === "Completed" ? "green" : m.status === "InProgress" ? "blue" : "gray",
+                  color: m.status === "completed" ? "green" : m.status === "in_progress" ? "blue" : "gray",
                   children: (
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <Text strong>{m.title}</Text>
-                        {m.status !== "Completed" && (
+                        {m.status !== "completed" && (
                           <Button
                             size="small"
                             type="link"

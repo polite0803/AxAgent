@@ -4,7 +4,7 @@ name: 广告ROI分析
 description: 分析各渠道广告投入产出比
 icon: "📊"
 tags: [opc]
-profile_id: cfo
+profile_id: opc-cfo-cfo-financial-analyst
 steps:
   - id: a-roi-collect
     title: 数据采集

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
-import { Button, Card, Col, Empty, Input, Row, Space, Spin, Tag } from "antd";
+import { Button, Card, Col, Empty, Input, Row, Space, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -13,7 +13,6 @@ export function TalentMarketTab() {
   const [category, setCategory] = useState<string | null>(null);
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
   const [importing, setImporting] = useState<string | null>(null);
-  const [loading] = useState(true);
 
   const allRoles: TalentRole[] = TALENT_ROLES;
 
@@ -76,59 +75,57 @@ export function TalentMarketTab() {
           </Space>
         </Col>
       </Row>
-      {loading ? <Spin style={{ display: "block", margin: "80px auto" }} /> : (
-        <Row gutter={[12, 12]}>
-          {filtered.length === 0
-            ? (
-              <Col span={24}>
-                <Empty description={t("opc.talent.noMatch")} />
-              </Col>
-            )
-            : (
-              filtered.map((role) => {
-                const isImported = importedIds.has(role.id);
-                return (
-                  <Col span={6} key={role.id}>
-                    <Card
-                      size="small"
-                      hoverable
-                      style={{ height: "100%" }}
-                      actions={[
-                        isImported ? <Tag color="green">{t("opc.talent.onboarded")}</Tag> : (
-                          <Button
-                            type="primary"
-                            size="small"
-                            loading={importing === role.id}
-                            onClick={() => handleHire(role.id)}
-                          >
-                            {t("opc.talent.hire")}
-                          </Button>
-                        ),
-                      ]}
-                    >
-                      <Card.Meta
-                        avatar={<div style={{ fontSize: 28 }}>{role.icon}</div>}
-                        title={<span style={{ fontSize: 13 }}>{t(role.nameKey)}</span>}
-                        description={
-                          <div>
-                            <Tag>
-                              {TALENT_CATEGORIES[role.category]?.icon} {TALENT_CATEGORIES[role.category]
-                                ? t(TALENT_CATEGORIES[role.category].labelKey)
-                                : role.category}
-                            </Tag>
-                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>
-                              {t(role.descriptionKey)}
-                            </div>
+      <Row gutter={[12, 12]}>
+        {filtered.length === 0
+          ? (
+            <Col span={24}>
+              <Empty description={t("opc.talent.noMatch")} />
+            </Col>
+          )
+          : (
+            filtered.map((role) => {
+              const isImported = importedIds.has(role.id);
+              return (
+                <Col span={6} key={role.id}>
+                  <Card
+                    size="small"
+                    hoverable
+                    style={{ height: "100%" }}
+                    actions={[
+                      isImported ? <Tag color="green">{t("opc.talent.onboarded")}</Tag> : (
+                        <Button
+                          type="primary"
+                          size="small"
+                          loading={importing === role.id}
+                          onClick={() => handleHire(role.id)}
+                        >
+                          {t("opc.talent.hire")}
+                        </Button>
+                      ),
+                    ]}
+                  >
+                    <Card.Meta
+                      avatar={<div style={{ fontSize: 28 }}>{role.icon}</div>}
+                      title={<span style={{ fontSize: 13 }}>{t(role.nameKey)}</span>}
+                      description={
+                        <div>
+                          <Tag>
+                            {TALENT_CATEGORIES[role.category]?.icon} {TALENT_CATEGORIES[role.category]
+                              ? t(TALENT_CATEGORIES[role.category].labelKey)
+                              : role.category}
+                          </Tag>
+                          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>
+                            {t(role.descriptionKey)}
                           </div>
-                        }
-                      />
-                    </Card>
-                  </Col>
-                );
-              })
-            )}
-        </Row>
-      )}
+                        </div>
+                      }
+                    />
+                  </Card>
+                </Col>
+              );
+            })
+          )}
+      </Row>
     </div>
   );
 }

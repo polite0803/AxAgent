@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// 项目状态
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum ProjectStatus {
     Planning,
     Active,
@@ -52,6 +53,7 @@ pub struct Milestone {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum MilestoneStatus {
     Pending,
     InProgress,
@@ -101,7 +103,8 @@ pub struct UpdateProjectInput {
 }
 
 /// 项目查询过滤
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ProjectFilter {
     pub status: Option<ProjectStatus>,
     pub customer_id: Option<String>,

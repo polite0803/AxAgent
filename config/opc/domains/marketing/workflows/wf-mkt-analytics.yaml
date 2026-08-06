@@ -4,7 +4,7 @@ name: 营销数据分析
 description: 整合多渠道数据生成营销洞察
 icon: "📈"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-mkt-data
     title: 数据采集

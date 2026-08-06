@@ -4,7 +4,7 @@ name: 商机复盘
 description: 销售商机管道的全面复盘
 icon: "📊"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-pipe-list
     title: 商机列表

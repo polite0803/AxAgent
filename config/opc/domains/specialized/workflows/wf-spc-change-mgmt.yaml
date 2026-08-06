@@ -4,7 +4,7 @@ name: 变更管理
 description: "企业变革管理: 评估影响、制定沟通、执行"
 icon: "🔄"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-change-impact
     title: 影响评估

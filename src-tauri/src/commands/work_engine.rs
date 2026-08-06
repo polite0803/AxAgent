@@ -2,6 +2,7 @@
 
 use agent_macro::agent_command;
 use axagent_harness::repo_dtos::WorkflowExecutionData;
+use axagent_harness::workflow_types::NodeStatus;
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 
@@ -713,13 +714,26 @@ pub async fn resume_approval(
     })?;
 
     // 3. 恢复工作流执行
+    // 修复 P0-1：审批决策必须注入节点结果（result:true/false）驱动条件边，
+    // 拒绝不再取消整个工作流——走 approval 的 false 分支（end）正常收尾。
     let execution_id = &record.execution_id;
-    if is_approved {
-        engine.resume_breakpoints(execution_id).await;
-    } else {
-        // 拒绝时取消工作流
-        let _ = engine.cancel(execution_id).await;
-    }
+    let node_id = &record.node_id;
+    let approval_result = serde_json::json!({
+        "status": if is_approved { "approved" } else { "rejected" },
+        "result": is_approved,
+        "message": record.message,
+    });
+    let _ = engine
+        .update_node_status_for_execution(
+            execution_id,
+            node_id,
+            NodeStatus::Completed,
+            Some(approval_result),
+            None,
+            None,
+        )
+        .await;
+    engine.resume_breakpoints(execution_id).await;
 
     Ok(true)
 }

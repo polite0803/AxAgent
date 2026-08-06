@@ -4,7 +4,7 @@ name: 产品路线图
 description: 制定季度产品路线图
 icon: "🗺️"
 tags: [opc]
-profile_id: cpo
+profile_id: opc-cpo-cpo-product-manager
 steps:
   - id: a-road-collect
     title: 需求收集

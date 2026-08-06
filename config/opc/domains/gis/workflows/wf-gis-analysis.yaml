@@ -4,7 +4,7 @@ name: 空间分析
 description: 地理空间数据分析和可视化
 icon: "🗺️"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-gis-data
     title: 数据准备

@@ -4,7 +4,7 @@ name: 并购整合
 description: 并购后业务、团队、系统整合
 icon: "🤝"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-ma-audit
     title: 尽调审计

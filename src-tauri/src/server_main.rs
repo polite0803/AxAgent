@@ -64,6 +64,11 @@ async fn async_main() {
         .expect("Fatal: database initialization failed");
     tracing::info!("Database initialized");
 
+    // ── 同步 OPC 资产到用户数据目录（CWD 无关） ──
+    // 与 Tauri 模式启动流程保持一致，保证行业包/领域包/学习配置可读
+    axagent_lib::commands::opc_workflows::ensure_opc_config_synced(&app_dir);
+    axagent_lib::commands::opc_industry_actions::ensure_industry_learning_configs(&app_dir);
+
     // ── 创建 AppState（复用 Tauri 版本的全部业务逻辑） ──
     let _state = axagent_lib::init::state::create_app_state(db_result)
         .await

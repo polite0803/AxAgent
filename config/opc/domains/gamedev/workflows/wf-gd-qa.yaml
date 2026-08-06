@@ -4,7 +4,7 @@ name: 游戏测试
 description: 全面测试游戏功能和体验
 icon: "🎮"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-gd-qa-functional
     title: 功能测试

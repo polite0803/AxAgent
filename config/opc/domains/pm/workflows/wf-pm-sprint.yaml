@@ -4,7 +4,7 @@ name: Sprint规划
 description: 迭代冲刺规划和任务分配
 icon: "📋"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-sprint-backlog
     title: Backlog梳理

@@ -4,7 +4,7 @@ name: DevOps部署流水线
 description: 自动化构建、测试、部署到生产环境
 icon: "🚀"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-build
     title: 构建

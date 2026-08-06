@@ -4,7 +4,7 @@ name: 安全事件响应
 description: 检测、分析和响应安全事件
 icon: "🚨"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-incident-detect
     title: 检测

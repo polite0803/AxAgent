@@ -9,12 +9,15 @@ steps:
   - id: a-lead
     title: 线索获取
     prompt: 使用 OpcListCustomers 分析现有客户数据，识别潜在客户。输出 JSON {leads, insights}
+    tools: [OpcListCustomers, OpcListKpis]
     inputs: {}
   - id: a-outreach
     title: 触达跟进
     prompt: 基于线索信息制定个触达方案。输出 JSON {strategy, channels, timeline}
+    tools: [OpcListCustomers]
     inputs: {}
   - id: a-close
     title: 签约转化
     prompt: 推动线索转化签约。使用 OpcCreateCustomer 创建客户记录。输出 JSON {conversions, next_steps}
+    tools: [OpcCreateCustomer, OpcSendNotification]
     inputs: {}

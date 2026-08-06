@@ -4,7 +4,7 @@ name: 原型设计
 description: 从线框图到交互原型
 icon: "🎨"
 tags: [opc]
-profile_id: cpo
+profile_id: opc-cpo-cpo-product-manager
 steps:
   - id: a-proto-wireframe
     title: 线框图

@@ -4,7 +4,7 @@ name: 红人营销
 description: 寻找和对接行业KOL合作
 icon: "🤳"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-inf-search
     title: 红人搜索

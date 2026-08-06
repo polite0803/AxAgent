@@ -4,7 +4,7 @@ name: 安全审查
 description: "代码安全审计: 漏洞扫描、依赖检查"
 icon: "🛡️"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-scan
     title: 扫描

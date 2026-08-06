@@ -4,7 +4,7 @@ name: 性能优化
 description: 分析和优化系统性能瓶颈
 icon: "⚡"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-profile
     title: 性能分析

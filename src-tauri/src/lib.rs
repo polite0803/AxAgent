@@ -288,6 +288,9 @@ pub fn run() {
                 });
             }
 
+            // 同步 OPC 行业包/领域包资产到用户数据目录（CWD 无关，供 seed 与命令读取）
+            crate::commands::opc_workflows::ensure_opc_config_synced(&app_dir);
+
             // Seed OPC professional workflow templates（行业数据资产包驱动）
             {
                 tauri::async_runtime::block_on(async {
@@ -296,6 +299,9 @@ pub fn run() {
                     }
                 });
             }
+
+            // 同步行业学习配置到用户数据目录（CWD 无关，供 opc_get_learning_config 等读取）
+            crate::commands::opc_industry_actions::ensure_industry_learning_configs(&app_dir);
 
             // Seed OPC company architecture (CEO/CTO/CFO + expert profiles)
             {

@@ -4,7 +4,7 @@ name: 风险管理
 description: 识别、评估和应对项目风险
 icon: "⚠️"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-risk-identify
     title: 风险识别

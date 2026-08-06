@@ -76,6 +76,105 @@ pub fn resolve_industries_dir(app_dir: Option<&std::path::Path>) -> std::path::P
     industries_base_dir()
 }
 
+// ── 配置目录同步（CWD 无关）────────────────────────────────
+
+/// OPC 配置根目录常量（相对仓库根）
+pub const OPC_CONFIG_DIR: &str = "config/opc";
+
+/// 递归拷贝目录（仅文件与子目录，保持结构）
+pub fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if from.is_dir() {
+            copy_dir_recursive(&from, &to)?;
+        } else {
+            std::fs::copy(&from, &to)?;
+        }
+    }
+    Ok(())
+}
+
+/// 探测仓库根下的 `rel` 相对目录（不依赖 CWD）。
+///
+/// 依次尝试：
+/// 1. 当前工作目录（dev：仓库根）
+/// 2. 当前工作目录下的 `src-tauri`（从 src-tauri 目录启动时）
+/// 3. 可执行文件所在目录的上两级（exe 位于 `src-tauri/target/{profile}/`）
+pub fn find_repo_config_dir(rel: &str) -> Option<std::path::PathBuf> {
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join(rel));
+        candidates.push(cwd.join("src-tauri").join(rel));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            candidates.push(parent.join("..").join(rel));
+            candidates.push(parent.join("../..").join(rel));
+        }
+    }
+    candidates.into_iter().find(|p| p.is_dir())
+}
+
+/// 启动时确保 `config/opc`（行业包 + 领域包）同步到 `app_dir/config/opc`。
+///
+/// 生产/服务模式下进程 CWD 不是仓库根，`resolve_industries_dir` /
+/// `resolve_domains_dir` 的仓库根 fallback 必然失败；将仓库根的资产
+/// 同步一份到用户数据目录，使 app_dir 分支始终可用。
+///
+/// P2-4 修复：原实现"目标已含任一 manifest 则整体跳过"，新增行业包永远
+/// 推不到生产目录。改为**增量同步**——只补目标缺失的行业/领域包与散文件，
+/// 已存在（含用户导入/编辑的包）一律保留不覆盖。
+pub fn ensure_opc_config_synced(app_dir: &std::path::Path) {
+    let Some(src) = find_repo_config_dir(OPC_CONFIG_DIR) else {
+        tracing::warn!("[opc-workflows] 仓库根 OPC 配置目录未找到，跳过同步: {}", OPC_CONFIG_DIR);
+        return;
+    };
+    let target_dir = app_dir.join(OPC_CONFIG_DIR);
+
+    let mut copied = 0u32;
+    if let Ok(entries) = std::fs::read_dir(&src) {
+        for entry in entries.flatten() {
+            let src_path = entry.path();
+            let name = entry.file_name();
+            let dst_path = target_dir.join(&name);
+            if src_path.is_dir() {
+                if !dst_path.is_dir() {
+                    if copy_dir_recursive(&src_path, &dst_path).is_ok() {
+                        copied += 1;
+                    }
+                } else {
+                    // 已存在目录：内部增量（industries/{id}、domains/{id} 缺失项）
+                    if let Ok(inner) = std::fs::read_dir(&src_path) {
+                        for sub in inner.flatten() {
+                            let sub_name = sub.file_name();
+                            if !dst_path.join(&sub_name).exists()
+                                && copy_dir_recursive(&sub.path(), &dst_path.join(&sub_name))
+                                    .is_ok()
+                            {
+                                copied += 1;
+                            }
+                        }
+                    }
+                }
+            } else if !dst_path.exists() && std::fs::copy(&src_path, &dst_path).is_ok() {
+                copied += 1;
+            }
+        }
+    }
+
+    if copied > 0 {
+        tracing::info!(
+            "[opc-workflows] OPC 配置增量同步 {} 项: {} → {}",
+            copied,
+            src.display(),
+            target_dir.display()
+        );
+    }
+}
+
 // ── 节点构建辅助 ─────────────────────────────────────────────────
 
 pub(crate) fn make_base(id: &str, title: &str, desc: &str, x: f64, y: f64) -> WorkflowNodeBase {
@@ -175,6 +274,39 @@ pub(crate) async fn check_template_version(
         tracing::info!("[opc-workflows] {} v{} → v{}", id, existing.version, version);
     }
     Ok(true)
+}
+
+/// P2-2：清理行业/领域包升级后残留的旧模板。
+///
+/// 包内 yaml 删除或改 id 后，DB 中旧的 preset 模板不会消失（upsert 只更新存在项）。
+/// 按 `prefix` 匹配该包历史 seed 的模板，删除不在 `keep` 集合中的残留。
+pub(crate) async fn cleanup_stale_pack_templates(
+    db: &DatabaseConnection,
+    prefix: &str,
+    keep: &[String],
+) -> Result<u32, String> {
+    use sea_orm::*;
+
+    let stale = workflow_template::Entity::find()
+        .filter(workflow_template::Column::Id.like(format!("{prefix}%")))
+        .filter(workflow_template::Column::IsPreset.eq(true))
+        .all(db)
+        .await
+        .map_err(|e| format!("查询旧模板失败: {e}"))?;
+
+    let mut removed = 0u32;
+    for t in stale {
+        if keep.iter().any(|k| k == &t.id) {
+            continue;
+        }
+        workflow_template::Entity::delete_by_id(&t.id)
+            .exec(db)
+            .await
+            .map_err(|e| format!("删除旧模板 {} 失败: {e}", t.id))?;
+        tracing::info!("[opc-workflows] 清理旧模板 {}", t.id);
+        removed += 1;
+    }
+    Ok(removed)
 }
 
 #[cfg(test)]
@@ -405,6 +537,149 @@ mod tests {
         // 不存在的工具名 → 空
         let none = super::industry_pack::stock_tool_defs(&["not_a_real_tool".to_string()]);
         assert!(none.is_empty());
+    }
+
+    /// 最终验收：9 行业 seed 产物端到端断言——工具注入/审批边/error_config/variables/profile 全部就绪。
+    #[tokio::test]
+    async fn industry_packs_end_to_end_verification() {
+        let h = axagent_dao::db::create_test_pool().await.unwrap();
+        let db = &h.conn;
+        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("config/opc/industries");
+        ensure_opc_industries_seeded(db, &base).await.expect("seed 9 行业");
+
+        use axagent_entities::workflow_template;
+        use sea_orm::EntityTrait;
+
+        // 1. 9 行业 10 个工作流模板全部存在
+        for id in [
+            "workflow-accounting",
+            "workflow-ai-research",
+            "workflow-content-media",
+            "workflow-ecommerce",
+            "workflow-education",
+            "workflow-finance-invest",
+            "workflow-finance-stock-research",
+            "workflow-industry-consulting",
+            "workflow-sales-growth",
+            "workflow-software-dev",
+        ] {
+            let t = workflow_template::Entity::find_by_id(id).one(db).await.unwrap();
+            assert!(t.is_some(), "{id} 应被 seed");
+        }
+
+        // 2. 工具注入：通用工具（P1-1 local_tool_defs）/ OPC 工具 / astock 工具
+        let sdev = workflow_template::Entity::find_by_id("workflow-software-dev")
+            .one(db)
+            .await
+            .unwrap()
+            .expect("software_dev 存在");
+        assert!(
+            sdev.nodes.contains("FileRead")
+                && sdev.nodes.contains("Bash")
+                && sdev.nodes.contains("Grep"),
+            "software_dev 应注入通用工具（FileRead/Bash/Grep）: {}",
+            sdev.nodes
+        );
+        let cm = workflow_template::Entity::find_by_id("workflow-content-media")
+            .one(db)
+            .await
+            .unwrap()
+            .expect("content_media 存在");
+        assert!(cm.nodes.contains("OpcCreateBlogPost"), "content_media 应注入 OPC 工具");
+        let fin = workflow_template::Entity::find_by_id("workflow-finance-stock-research")
+            .one(db)
+            .await
+            .unwrap()
+            .expect("finance_stock 存在");
+        assert!(
+            fin.nodes.contains("get_stock_quote") && fin.nodes.contains("search_stock"),
+            "finance_stock 应注入 astock 工具"
+        );
+        let acc = workflow_template::Entity::find_by_id("workflow-accounting")
+            .one(db)
+            .await
+            .unwrap()
+            .expect("accounting 存在");
+        assert!(acc.nodes.contains("OpcCreateInvoice"), "accounting 应注入 OPC 工具");
+
+        // 3. 审批边：普通节点→approval 为 Direct（P0-1），approval→下一节点为 true 条件边
+        assert!(
+            !acc.edges.contains("e-a-create-approval-true"),
+            "不得存在 ConditionTrue 边 e-a-create-approval-true"
+        );
+        assert!(acc.edges.contains("e-a-create-approval"), "应有 Direct 边 e-a-create-approval");
+        assert!(acc.edges.contains("e-approval-a-notify-true"), "应有审批通过 true 条件边");
+
+        // 4. error_config：finance-invest 声明了 error_handling → 模板 error_config 非空（P1-9）
+        let fi = workflow_template::Entity::find_by_id("workflow-finance-invest")
+            .one(db)
+            .await
+            .unwrap()
+            .expect("finance-invest 存在");
+        assert!(
+            fi.error_config.is_some(),
+            "finance-invest 应有 error_config（error_handling 生效）"
+        );
+
+        // 5. variables：{keyword} 引用收集为模板变量（P1-10）
+        assert!(
+            fin.variables.unwrap_or_default().contains("keyword"),
+            "finance_stock 应声明 keyword 输入变量"
+        );
+
+        // 6. profile 引用：节点绑定真实存在的 OPC profile（P1-11 全名）
+        assert!(acc.nodes.contains("opc-cfo-cfo-financial-analyst"), "accounting 应绑 CFO profile");
+        assert!(sdev.nodes.contains("opc-cto-cto-ai-engineer"), "software_dev 应绑 CTO profile");
+
+        // 7. 幂等：二次 seed 不报错、不产生重复（P2-2 清理不误删 keep 集）
+        ensure_opc_industries_seeded(db, &base).await.expect("二次 seed 应成功");
+        let count = workflow_template::Entity::find()
+            .filter(workflow_template::Column::Id.like("workflow-%"))
+            .count(db)
+            .await
+            .unwrap();
+        assert_eq!(count, 10, "9 行业共 10 个工作流，二次 seed 后不应残留/重复，实际 {count}");
+    }
+
+    #[tokio::test]
+    async fn approval_edges_build_correctly() {
+        // P0-1 回归：普通节点 → approval 必须用 Direct 边（此前误用 ConditionTrue 导致审批断链）
+        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("config/opc/industries");
+        let wfs = super::industry_pack::load_industry_workflows(&base.join("accounting"));
+        let wf =
+            wfs.iter().find(|w| w.id == "workflow-accounting").expect("accounting workflow 存在");
+        let data = super::industry_pack::build_workflow_from_pack(wf, 1);
+        let edges: Vec<serde_json::Value> =
+            serde_json::from_str(&serde_json::to_string(&data.edges).unwrap()).unwrap();
+
+        // a-create（普通 agent）→ approval：Direct 边，无条件 handle
+        let direct = edges
+            .iter()
+            .find(|e| e["id"] == "e-a-create-approval")
+            .expect("应有 Direct 边 e-a-create-approval");
+        assert!(direct["sourceHandle"].is_null(), "普通节点→approval 不得带条件 handle: {direct}");
+        assert!(
+            !edges.iter().any(|e| e["id"] == "e-a-create-approval-true"),
+            "不得生成 e-a-create-approval-true 条件边"
+        );
+
+        // approval → 后续节点：ConditionTrue；approval → end：ConditionFalse
+        let next = edges
+            .iter()
+            .find(|e| e["id"] == "e-approval-a-notify-true")
+            .expect("approval→下一节点应有 true 条件边");
+        assert_eq!(next["sourceHandle"], "true");
+        let reject = edges
+            .iter()
+            .find(|e| e["id"] == "e-approval-end-false")
+            .expect("approval→end 应有 false 条件边");
+        assert_eq!(reject["sourceHandle"], "false");
     }
 
     #[tokio::test]

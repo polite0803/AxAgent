@@ -4425,7 +4425,9 @@ export async function handleCommand<T>(
 
     // ── OPC Industries ──────────────────────────────────────────────
     case "opc_get_industry_pack": {
-      const industryId = (args as { industry_id?: string })?.industry_id || "";
+      const industryId = (args as { industry_id?: string; industryId?: string })?.industry_id
+        || (args as { industry_id?: string; industryId?: string })?.industryId
+        || "";
       const industryManifests: Record<string, {
         id: string;
         name: string;
@@ -4605,8 +4607,12 @@ export async function handleCommand<T>(
     }
 
     case "opc_build_industry_prompt": {
-      const industryId = (args as { industry_id?: string })?.industry_id || "ai-research";
-      const actionKey = (args as { action_key?: string })?.action_key || "ai-paper";
+      const industryId = (args as { industry_id?: string; industryId?: string })?.industry_id
+        || (args as { industry_id?: string; industryId?: string })?.industryId
+        || "ai-research";
+      const actionKey = (args as { action_key?: string; actionKey?: string })?.action_key
+        || (args as { action_key?: string; actionKey?: string })?.actionKey
+        || "ai-paper";
 
       const promptConfigs: Record<string, Record<string, { systemPrompt: string; userPrompt: string; label: string }>> =
         {
@@ -4674,6 +4680,433 @@ export async function handleCommand<T>(
     case "opc_get_workflow_config": {
       return [] as unknown as T;
     }
+
+    // ── OPC Core CRUD ────────────────────────────────────────────────
+    case "opc_list_invoices":
+    case "opc_list_customers":
+    case "opc_list_projects":
+    case "opc_list_kpis":
+    case "opc_list_revenue":
+    case "opc_list_landing_pages":
+    case "opc_list_blog_posts":
+    case "opc_list_contacts":
+    case "opc_list_work_items":
+    case "opc_list_orgs":
+    case "opc_list_talents":
+    case "opc_list_experiences":
+    case "opc_list_revenue_records":
+    case "opc_list_kpi_records":
+    case "opc_list_industry_connections":
+    case "opc_list_site_domains":
+    case "opc_list_tags":
+    case "opc_list_tasks":
+    case "opc_list_sessions":
+    case "opc_list_documents":
+    case "opc_list_rules":
+    case "opc_list_templates":
+    case "opc_list_domains":
+    case "opc_list_metrics":
+    case "opc_list_configs":
+    case "opc_list_assets":
+    case "opc_list_campaigns":
+    case "opc_list_channels":
+    case "opc_list_workflows":
+    case "opc_list_apps":
+    case "opc_list_tenants":
+    case "opc_list_members":
+    case "opc_list_integrations":
+    case "opc_list_automations":
+    case "opc_list_webhooks":
+    case "opc_list_newsletters":
+    case "opc_list_subscribers":
+    case "opc_list_seo_assets":
+    case "opc_list_backlinks":
+    case "opc_list_keywords":
+    case "opc_list_competitors":
+    case "opc_list_opportunities":
+    case "opc_list_funnels":
+    case "opc_list_pages":
+    case "opc_list_elements":
+    case "opc_list_variants":
+    case "opc_list_analytics":
+    case "opc_list_acquisitions":
+    case "opc_list_retention":
+    case "opc_list_referrals":
+    case "opc_list_campaign_templates":
+    case "opc_list_price_points":
+    case "opc_list_value_metrics":
+    case "opc_list_experiments":
+    case "opc_list_hypotheses":
+    case "opc_list_features":
+    case "opc_list_suggestions":
+    case "opc_list_reviews":
+    case "opc_list_tickets":
+    case "opc_list_invoices_overdue":
+    case "opc_list_invoices_upcoming":
+    case "opc_list_projects_active":
+    case "opc_list_projects_completed":
+    case "opc_list_customers_active":
+    case "opc_list_customers_inactive":
+    case "opc_list_customers_new":
+      return [] as unknown as T;
+
+    case "opc_get_dashboard_summary":
+      return {
+        total_revenue: 0,
+        total_invoices: 0,
+        active_projects: 0,
+        total_customers: 0,
+        recent_kpis: [],
+        revenue_trend: [],
+      } as unknown as T;
+
+    case "opc_get_industry_dashboard": {
+      const industryId = (args as { industryId?: string })?.industryId || "ai-research";
+      const days = (args as { days?: number })?.days || 30;
+      return {
+        industry_id: industryId,
+        kpis: [
+          {
+            id: "k1",
+            name: "总收入",
+            value: 125000,
+            unit: "¥",
+            period: `${days}天`,
+            trend: "up" as const,
+            change_percent: 12.5,
+          },
+          {
+            id: "k2",
+            name: "客户数量",
+            value: 48,
+            unit: "人",
+            period: `${days}天`,
+            trend: "up" as const,
+            change_percent: 8.2,
+          },
+          {
+            id: "k3",
+            name: "项目完成率",
+            value: 85,
+            unit: "%",
+            period: `${days}天`,
+            trend: "flat" as const,
+            change_percent: 0.5,
+          },
+          {
+            id: "k4",
+            name: "平均交付时间",
+            value: 12,
+            unit: "天",
+            period: `${days}天`,
+            trend: "down" as const,
+            change_percent: -5.3,
+          },
+        ],
+        cards: [
+          { id: "c1", title: "本月业绩", kpi_id: "k1", default_display: "¥125,000" },
+          { id: "c2", title: "客户增长", kpi_id: "k2", default_display: "48 人" },
+        ],
+        summary: `${industryId} 行业在过去 ${days} 天表现稳定，核心指标向好。`,
+      } as unknown as T;
+    }
+
+    case "opc_get_industry_workflow_steps": {
+      const industryId = (args as { industryId?: string })?.industryId || "ai-research";
+      return {
+        industry_id: industryId,
+        steps: [
+          { id: "s1", name: "需求分析", description: "收集客户需求与痛点", order: 1, status: "completed" as const },
+          { id: "s2", name: "方案设计", description: "制定解决方案", order: 2, status: "completed" as const },
+          { id: "s3", name: "开发实施", description: "执行开发与交付", order: 3, status: "active" as const },
+          { id: "s4", name: "验收上线", description: "最终验收与部署", order: 4, status: "pending" as const },
+        ],
+      } as unknown as T;
+    }
+
+    case "opc_get_industry_automation_rules": {
+      return {
+        rules: [
+          {
+            id: "r1",
+            name: "新客户跟进",
+            enabled: true,
+            conditions: [{ type: "event", config: { event: "customer_created" } }],
+            actions: [{ type: "notification", config: { channel: "email" } }],
+            last_triggered: new Date(Date.now() - 86400000).toISOString(),
+            trigger_count: 12,
+          },
+          {
+            id: "r2",
+            name: "发票逾期提醒",
+            enabled: true,
+            conditions: [{ type: "schedule", config: { cron: "0 9 * * *" } }],
+            actions: [{ type: "email", config: { template: "overdue_invoice" } }],
+            last_triggered: new Date(Date.now() - 3600000).toISOString(),
+            trigger_count: 5,
+          },
+          {
+            id: "r3",
+            name: "项目状态同步",
+            enabled: false,
+            conditions: [{ type: "event", config: { event: "project_status_changed" } }],
+            actions: [{ type: "webhook", config: { url: "/api/sync" } }],
+            trigger_count: 0,
+          },
+        ],
+      } as unknown as T;
+    }
+
+    case "opc_run_automation_rules": {
+      return ["r1", "r2"] as unknown as T;
+    }
+
+    case "opc_get_customer":
+    case "opc_get_invoice":
+    case "opc_get_project":
+    case "opc_get_kpi":
+    case "opc_get_revenue":
+    case "opc_get_landing_page":
+    case "opc_get_blog_post":
+    case "opc_get_contact":
+    case "opc_get_work_item":
+    case "opc_get_org":
+    case "opc_get_talent":
+    case "opc_get_experience":
+    case "opc_get_industry_connection":
+    case "opc_get_site_domain":
+    case "opc_get_tag":
+    case "opc_get_task":
+    case "opc_get_session":
+    case "opc_get_document":
+    case "opc_get_rule":
+    case "opc_get_template":
+    case "opc_get_domain":
+    case "opc_get_metric":
+    case "opc_get_config":
+    case "opc_get_asset":
+    case "opc_get_campaign":
+    case "opc_get_channel":
+    case "opc_get_workflow":
+    case "opc_get_app":
+    case "opc_get_tenant":
+    case "opc_get_member":
+    case "opc_get_integration":
+    case "opc_get_automation":
+    case "opc_get_webhook":
+    case "opc_get_newsletter":
+    case "opc_get_subscriber":
+    case "opc_get_seo_asset":
+    case "opc_get_backlink":
+    case "opc_get_keyword":
+    case "opc_get_competitor":
+    case "opc_get_opportunity":
+    case "opc_get_funnel":
+    case "opc_get_page":
+    case "opc_get_element":
+    case "opc_get_variant":
+    case "opc_get_analytic":
+    case "opc_get_acquisition":
+    case "opc_get_retention":
+    case "opc_get_referral":
+    case "opc_get_campaign_template":
+    case "opc_get_price_point":
+    case "opc_get_value_metric":
+    case "opc_get_experiment":
+    case "opc_get_hypothesis":
+    case "opc_get_feature":
+    case "opc_get_suggestion":
+    case "opc_get_review":
+    case "opc_get_ticket":
+      return {} as unknown as T;
+
+    case "opc_create_customer":
+    case "opc_create_invoice":
+    case "opc_create_project":
+    case "opc_create_kpi":
+    case "opc_create_revenue":
+    case "opc_create_landing_page":
+    case "opc_create_blog_post":
+    case "opc_create_contact":
+    case "opc_create_work_item":
+    case "opc_create_org":
+    case "opc_create_talent":
+    case "opc_create_experience":
+    case "opc_create_industry_connection":
+    case "opc_create_site_domain":
+    case "opc_create_tag":
+    case "opc_create_task":
+    case "opc_create_session":
+    case "opc_create_document":
+    case "opc_create_rule":
+    case "opc_create_template":
+    case "opc_create_domain":
+    case "opc_create_metric":
+    case "opc_create_config":
+    case "opc_create_asset":
+    case "opc_create_campaign":
+    case "opc_create_channel":
+    case "opc_create_workflow":
+    case "opc_create_app":
+    case "opc_create_tenant":
+    case "opc_create_member":
+    case "opc_create_integration":
+    case "opc_create_automation":
+    case "opc_create_webhook":
+    case "opc_create_newsletter":
+    case "opc_create_subscriber":
+    case "opc_create_seo_asset":
+    case "opc_create_backlink":
+    case "opc_create_keyword":
+    case "opc_create_competitor":
+    case "opc_create_opportunity":
+    case "opc_create_funnel":
+    case "opc_create_page":
+    case "opc_create_element":
+    case "opc_create_variant":
+    case "opc_create_experiment":
+    case "opc_create_hypothesis":
+    case "opc_create_feature":
+    case "opc_create_suggestion":
+    case "opc_create_review":
+    case "opc_create_ticket":
+    case "opc_create_referral":
+    case "opc_create_price_point":
+    case "opc_create_value_metric":
+    case "opc_create_campaign_template":
+    case "opc_create_acquisition":
+    case "opc_create_retention":
+      return { success: true } as unknown as T;
+
+    case "opc_update_customer":
+    case "opc_update_invoice":
+    case "opc_update_project":
+    case "opc_update_kpi":
+    case "opc_update_revenue":
+    case "opc_update_landing_page":
+    case "opc_update_blog_post":
+    case "opc_update_contact":
+    case "opc_update_work_item":
+    case "opc_update_org":
+    case "opc_update_talent":
+    case "opc_update_experience":
+    case "opc_update_industry_connection":
+    case "opc_update_site_domain":
+    case "opc_update_tag":
+    case "opc_update_task":
+    case "opc_update_session":
+    case "opc_update_document":
+    case "opc_update_rule":
+    case "opc_update_template":
+    case "opc_update_domain":
+    case "opc_update_metric":
+    case "opc_update_config":
+    case "opc_update_asset":
+    case "opc_update_campaign":
+    case "opc_update_channel":
+    case "opc_update_workflow":
+    case "opc_update_app":
+    case "opc_update_tenant":
+    case "opc_update_member":
+    case "opc_update_integration":
+    case "opc_update_automation":
+    case "opc_update_webhook":
+    case "opc_update_newsletter":
+    case "opc_update_subscriber":
+    case "opc_update_seo_asset":
+    case "opc_update_backlink":
+    case "opc_update_keyword":
+    case "opc_update_competitor":
+    case "opc_update_opportunity":
+    case "opc_update_funnel":
+    case "opc_update_page":
+    case "opc_update_element":
+    case "opc_update_variant":
+    case "opc_update_experiment":
+    case "opc_update_hypothesis":
+    case "opc_update_feature":
+    case "opc_update_suggestion":
+    case "opc_update_review":
+    case "opc_update_ticket":
+      return { success: true } as unknown as T;
+
+    case "opc_delete_customer":
+    case "opc_delete_invoice":
+    case "opc_delete_project":
+    case "opc_delete_kpi":
+    case "opc_delete_revenue":
+    case "opc_delete_landing_page":
+    case "opc_delete_blog_post":
+    case "opc_delete_contact":
+    case "opc_delete_work_item":
+    case "opc_delete_org":
+    case "opc_delete_talent":
+    case "opc_delete_experience":
+    case "opc_delete_industry_connection":
+    case "opc_delete_site_domain":
+    case "opc_delete_tag":
+    case "opc_delete_task":
+    case "opc_delete_session":
+    case "opc_delete_document":
+    case "opc_delete_rule":
+    case "opc_delete_template":
+    case "opc_delete_domain":
+    case "opc_delete_metric":
+    case "opc_delete_config":
+    case "opc_delete_asset":
+    case "opc_delete_campaign":
+    case "opc_delete_channel":
+    case "opc_delete_workflow":
+    case "opc_delete_app":
+    case "opc_delete_tenant":
+    case "opc_delete_member":
+    case "opc_delete_integration":
+    case "opc_delete_automation":
+    case "opc_delete_webhook":
+    case "opc_delete_newsletter":
+    case "opc_delete_subscriber":
+    case "opc_delete_seo_asset":
+    case "opc_delete_backlink":
+    case "opc_delete_keyword":
+    case "opc_delete_competitor":
+    case "opc_delete_opportunity":
+    case "opc_delete_funnel":
+    case "opc_delete_page":
+    case "opc_delete_element":
+    case "opc_delete_variant":
+    case "opc_delete_experiment":
+    case "opc_delete_hypothesis":
+    case "opc_delete_feature":
+    case "opc_delete_suggestion":
+    case "opc_delete_review":
+    case "opc_delete_ticket":
+    case "opc_delete_referral":
+      return { success: true } as unknown as T;
+
+    case "opc_transition_invoice":
+    case "opc_add_milestone":
+    case "opc_complete_milestone":
+    case "opc_find_customer_by_email":
+    case "opc_record_kpi":
+    case "opc_get_financial_report":
+    case "opc_kanban_board":
+    case "opc_work_item_start":
+    case "opc_work_item_unblock":
+    case "opc_work_item_review":
+    case "opc_escalate_work_item":
+    case "opc_mark_contact_read":
+    case "opc_get_investment_advice":
+    case "opc_sync_fleet":
+    case "opc_import_industry_pack":
+    case "opc_export_industry_pack":
+    case "opc_import_talent_library":
+    case "opc_market_list":
+    case "opc_publish_blog_post":
+    case "opc_publish_landing_page":
+    case "opc_evolve_workflow":
+    case "opc_build_industry_prompt":
+    case "opc_run_self_improving_opc_work_item":
+      return { success: true } as unknown as T;
 
     // ── Knowledge Base Advanced (知识库高级) ────────────────────────
     case "kb_connect_vault":

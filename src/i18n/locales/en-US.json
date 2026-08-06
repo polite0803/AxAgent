@@ -4380,7 +4380,11 @@
       "batchDelete": "Batch Delete ({{count}})",
       "batchDeleteSuccess": "Batch delete successful",
       "export": "Export",
-      "reset": "Reset"
+      "reset": "Reset",
+      "search": "Search",
+      "batchSuccess": "Batch operation succeeded",
+      "batchMarkRead": "Mark {{count}} as read",
+      "exportSuccess": "Exported {{count}}"
     },
     "dashboard": {
       "loadFailed": "Unable to load dashboard",
@@ -4425,7 +4429,12 @@
       "Website": "Website",
       "SocialMedia": "Social Media",
       "Marketplace": "Marketplace",
-      "Direct": "Direct"
+      "Direct": "Direct",
+      "referral": "Referral",
+      "website": "Website",
+      "social_media": "Social media",
+      "marketplace": "Marketplace",
+      "direct": "Direct"
     },
     "invoice": {
       "created": "Invoice created",
@@ -4482,7 +4491,9 @@
       "phoneLabel": "Phone",
       "companyLabel": "Company",
       "sourceLabel": "Source",
-      "sourcePlaceholder": "Select source"
+      "sourcePlaceholder": "Select source",
+      "filterStatus": "Filter by status",
+      "filterSource": "Filter by source"
     },
     "project": {
       "updated": "Project updated",
@@ -4513,7 +4524,9 @@
       "milestoneModalTitle": "Add Milestone",
       "milestoneOkAdd": "Add",
       "milestoneTitleLabel": "Title",
-      "milestoneTitleRequired": "Please enter a milestone title"
+      "milestoneTitleRequired": "Please enter a milestone title",
+      "filterStatus": "Filter by status",
+      "filterCustomer": "Filter by customer"
     },
     "site": {
       "tabLanding": "Landing Pages",
@@ -4674,7 +4687,11 @@
       "sirStrengths": "亮点",
       "sirGaps": "缺口",
       "sirAccept": "已收敛",
-      "sirRunning": "运行中…"
+      "sirRunning": "运行中…",
+      "create": "New",
+      "createPrompt": "Enter title for the new work item:",
+      "createSuccess": "Work item created",
+      "createFailed": "Failed to create work item: {{error}}"
     },
     "market": {
       "refresh": "Refresh Market",

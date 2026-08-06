@@ -4,7 +4,7 @@ name: 项目状态报告
 description: 生成项目周报和状态更新
 icon: "📊"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-status-collect
     title: 数据收集

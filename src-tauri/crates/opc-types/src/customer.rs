@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// 客户来源
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum CustomerSource {
     Referral,
     Website,
@@ -35,6 +36,7 @@ pub struct Customer {
 
 /// 客户状态
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum CustomerStatus {
     Lead,
     Prospect,
@@ -93,7 +95,8 @@ pub struct UpdateCustomerInput {
 }
 
 /// 客户查询过滤
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CustomerFilter {
     pub status: Option<CustomerStatus>,
     pub search: Option<String>,

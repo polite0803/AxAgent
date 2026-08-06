@@ -32,10 +32,10 @@ impl DefaultInvoiceService {
 // ── Entity ↔ DTO 转换 ─────────────────────────────────────────────
 
 fn entity_to_dto(e: opc_invoices::Model) -> OpcResult<Invoice> {
-    let line_items: Vec<InvoiceLineItem> = serde_json::from_str(&e.line_items_json)
-        .map_err(|err| OpcError::Database(format!("parse line_items: {err}")))?;
+    let line_items: Vec<InvoiceLineItem> =
+        serde_json::from_str(&e.line_items_json).unwrap_or_default();
 
-    let status = InvoiceStatus::from_str(&e.status).map_err(OpcError::Validation)?;
+    let status = InvoiceStatus::from_str(&e.status).unwrap_or(InvoiceStatus::Draft);
 
     Ok(Invoice {
         id: e.id,

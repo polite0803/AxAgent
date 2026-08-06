@@ -4,7 +4,7 @@ name: 品牌指南
 description: 制定品牌视觉和文案规范
 icon: "🎨"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-brand-audit
     title: 品牌审计

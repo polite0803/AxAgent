@@ -9,7 +9,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { Tabs, Typography } from "antd";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -39,8 +39,14 @@ export function OpcPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const params = useParams();
-  const initialTab = params?.tab || "dashboard";
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTab] = useState(params?.tab || "dashboard");
+
+  useEffect(() => {
+    const newTab = params?.tab || "dashboard";
+    if (newTab !== tab) {
+      setTab(newTab);
+    }
+  }, [params?.tab]);
 
   const handleTabChange = useCallback((key: string) => {
     setTab(key);

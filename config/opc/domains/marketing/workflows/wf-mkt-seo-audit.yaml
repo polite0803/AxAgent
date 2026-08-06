@@ -4,7 +4,7 @@ name: SEO审计
 description: 网站SEO全面审计并优化
 icon: "🔍"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-seo-scan
     title: 扫描

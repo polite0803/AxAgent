@@ -4,7 +4,7 @@ name: 供应链优化
 description: 分析和优化供应链效率
 icon: "📦"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-sc-audit
     title: 供应链审计

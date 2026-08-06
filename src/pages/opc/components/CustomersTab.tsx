@@ -174,11 +174,11 @@ export function CustomersTab() {
               value={filterSource || undefined}
               onChange={(val) => setFilterSource(val || "")}
               options={[
-                { value: "Referral", label: t("opc.source.Referral") },
-                { value: "Website", label: t("opc.source.Website") },
-                { value: "SocialMedia", label: t("opc.source.SocialMedia") },
-                { value: "Marketplace", label: t("opc.source.Marketplace") },
-                { value: "Direct", label: t("opc.source.Direct") },
+                { value: "referral", label: t("opc.source.referral") },
+                { value: "website", label: t("opc.source.website") },
+                { value: "social_media", label: t("opc.source.social_media") },
+                { value: "marketplace", label: t("opc.source.marketplace") },
+                { value: "direct", label: t("opc.source.direct") },
               ]}
             />
           </Col>
@@ -272,11 +272,11 @@ export function CustomersTab() {
               allowClear
               placeholder={t("opc.customer.sourcePlaceholder")}
               options={[
-                { value: "Referral", label: t("opc.source.Referral") },
-                { value: "Website", label: t("opc.source.Website") },
-                { value: "SocialMedia", label: t("opc.source.SocialMedia") },
-                { value: "Marketplace", label: t("opc.source.Marketplace") },
-                { value: "Direct", label: t("opc.source.Direct") },
+                { value: "referral", label: t("opc.source.referral") },
+                { value: "website", label: t("opc.source.website") },
+                { value: "social_media", label: t("opc.source.social_media") },
+                { value: "marketplace", label: t("opc.source.marketplace") },
+                { value: "direct", label: t("opc.source.direct") },
               ]}
             />
           </Form.Item>

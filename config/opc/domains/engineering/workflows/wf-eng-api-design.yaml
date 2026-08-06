@@ -4,7 +4,7 @@ name: API设计
 description: 设计REST/GraphQL API并生成文档
 icon: "🔌"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-spec
     title: 定义规约

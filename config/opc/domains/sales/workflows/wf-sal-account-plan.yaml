@@ -4,7 +4,7 @@ name: 客户规划
 description: 制定关键客户年度合作计划
 icon: "🤝"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-account-review
     title: 客户回顾

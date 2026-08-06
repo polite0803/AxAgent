@@ -672,6 +672,74 @@ pub async fn opc_import_industry_pack(
 
 // ── Company Runtime：看板投影 + 阻塞升级链（P3-3/4）──────────────
 
+/// 创建工作项（修复 P0-2：此前 opc_work_items 无生产创建入口，看板/自改进/质量门全无数据源）。
+/// id 强制 `wi-` 前缀（与 self_improving::OpcWorkItemRound 的 task 契约一致）。
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建工作项")]
+#[tauri::command]
+pub async fn opc_create_work_item(
+    state: State<'_, AppState>,
+    title: String,
+    owner_role_id: Option<String>,
+) -> Result<serde_json::Value, String> {
+    use axagent_company_runtime::WorkItemService;
+    use axagent_company_runtime::work_item_service::NewWorkItem;
+
+    if title.trim().is_empty() {
+        return Err("工作项标题不能为空".to_string());
+    }
+    let db = state.harness.db().clone();
+    let svc = WorkItemService::new(&db);
+    let id = format!("wi-{}", &uuid::Uuid::new_v4().simple().to_string()[..12]);
+    let mut input = NewWorkItem::new(id, title.trim().to_string());
+    if let Some(owner) = owner_role_id.filter(|s| !s.trim().is_empty()) {
+        input = input.owner(owner.trim().to_string());
+    }
+    let model = svc.create(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    serde_json::to_value(&model).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 删除落地页（修复 P0-5：前端 SitesTab 调用但后端缺失）。
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除落地页")]
+#[tauri::command]
+pub async fn opc_delete_landing_page(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    use axagent_opc_entities::opc_landing_pages;
+    use sea_orm::EntityTrait;
+    let db = state.harness.db();
+    opc_landing_pages::Entity::delete_by_id(&id).exec(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(())
+}
+
+/// 删除博客文章（修复 P0-5）。
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除博客文章")]
+#[tauri::command]
+pub async fn opc_delete_blog_post(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    use axagent_opc_entities::opc_blog_posts;
+    use sea_orm::EntityTrait;
+    let db = state.harness.db();
+    opc_blog_posts::Entity::delete_by_id(&id).exec(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(())
+}
+
 /// 看板投影：按 phase 列聚合 work items（Kanban）。
 /// 返回 {列名: [item...]}，列为 待办/进行中/阻塞/评审/已完成/终止。
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取看板块")]
@@ -755,7 +823,9 @@ pub async fn opc_work_item_review(
     use axagent_company_runtime::{OpcWorkItemRound, QualityGateService, WorkItemService};
     use axagent_harness::self_improving_loop::SelfImprovingRound;
 
-    const QUALITY_THRESHOLD: f64 = 0.80;
+    // P1-3：准入线 0.70——允许无历史经验（无 playbook）的首次执行也进入评审；
+    // 收敛判定（decide_next 0.85 Accept）语义不同，保留在自改进循环内。
+    const QUALITY_THRESHOLD: f64 = 0.70;
 
     let db = state.harness.db().clone();
     let svc = WorkItemService::new(&db);
@@ -903,6 +973,17 @@ pub async fn opc_import_talent_library(
     let mut imported: u32 = 0;
     let mut skipped: u32 = 0;
 
+    // P2-1：一次性加载现有模板 id 集合（此前每个 md 文件都全表查询 list_talent_templates，
+    // 274 个专家 → 274 次全表扫描；改为一次加载 + HashSet 判重）
+    let existing = org.list_talent_templates(None).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let mut existing_ids: std::collections::HashSet<String> =
+        existing.into_iter().map(|t| t.id).collect();
+
     // 遍历分类目录（跳过非专家目录）
     for entry in std::fs::read_dir(&base).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -955,17 +1036,12 @@ pub async fn opc_import_talent_library(
             let (name, description) = parse_frontmatter_brief(&content, &stem);
             let tid = format!("tt-{dir_name}-{stem}");
 
-            // 幂等：已存在跳过
-            let existing = org.list_talent_templates(None).await.map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
-            if existing.iter().any(|t| t.id == tid) {
+            // 幂等：已存在跳过（P2-1：用预加载的 HashSet 判重）
+            if existing_ids.contains(&tid) {
                 skipped += 1;
                 continue;
             }
+            existing_ids.insert(tid.clone());
             org.add_talent_template(axagent_company_runtime::org::NewTalentTemplate {
                 id: tid.clone(),
                 category: dir_name.clone(),

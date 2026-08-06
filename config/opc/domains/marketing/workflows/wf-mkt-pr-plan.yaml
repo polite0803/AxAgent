@@ -4,7 +4,7 @@ name: 公关传播计划
 description: 策划新闻稿和媒体传播方案
 icon: "📰"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-pr-story
     title: 故事挖掘

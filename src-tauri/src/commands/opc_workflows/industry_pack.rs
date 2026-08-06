@@ -66,8 +66,22 @@ pub struct IndustryWorkflow {
     pub tags: Vec<String>,
     /// 绑定角色 profile_id（如 opc-cfo-cfo-financial-analyst）
     pub profile_id: String,
+    /// 全局错误处理配置（映射 WorkflowTemplateData.error_config）
+    #[serde(default)]
+    pub error_handling: Option<IndustryErrorHandling>,
     /// 步骤（agent 节点链），按顺序串接
     pub steps: Vec<IndustryStep>,
+}
+
+/// 工作流级错误处理配置（yaml `error_handling:` 顶层键）。
+#[derive(Debug, Clone, Deserialize)]
+pub struct IndustryErrorHandling {
+    #[serde(default)]
+    pub retry: u32,
+    #[serde(default)]
+    pub timeout_seconds: u64,
+    #[serde(default)]
+    pub on_failure: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -90,6 +104,12 @@ pub struct IndustryStep {
     /// 空 = 不暴露任何工具。匹配 astock-data stock_mcp_tools 工具名。
     #[serde(default)]
     pub tools: Vec<String>,
+    /// 步骤失败时的降级说明（追加到 prompt 尾部，指导 LLM 处理失败场景）
+    #[serde(default)]
+    pub on_error: Option<String>,
+    /// 上游失败时是否容错继续（默认 false）
+    #[serde(default)]
+    pub continue_on_fail: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -105,6 +125,12 @@ pub struct IndustryApproval {
     /// 超时动作：auto_reject（默认）| auto_approve
     #[serde(default = "default_timeout_action")]
     pub timeout_action: String,
+    /// 通过按钮文案（附加到审批消息尾部，供前端展示）
+    #[serde(default)]
+    pub approve_label: Option<String>,
+    /// 拒绝按钮文案（附加到审批消息尾部）
+    #[serde(default)]
+    pub reject_label: Option<String>,
 }
 
 fn default_approval_message() -> String {
@@ -176,6 +202,27 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
     let mut nodes: Vec<WorkflowNode> = Vec::new();
     let mut edges: Vec<WorkflowEdge> = Vec::new();
 
+    // P1-10：收集 step.inputs 中 `{var}` 引用为工作流变量（模板级声明，前端执行时可注入）
+    let mut variables: Vec<Variable> = Vec::new();
+    for step in &w.steps {
+        for v in step.inputs.values() {
+            if let Some(name) = v.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
+                if !variables.iter().any(|x| x.name == name) {
+                    variables.push(Variable {
+                        name: name.to_string(),
+                        var_type: "string".to_string(),
+                        value: serde_json::Value::String(String::new()),
+                        description: Some(format!("工作流输入变量 {name}")),
+                        is_secret: false,
+                    });
+                }
+            }
+        }
+    }
+
+    // P1-9：error_handling.timeout_seconds → 节点级超时（默认 300s）
+    let node_timeout = w.error_handling.as_ref().map(|eh| eh.timeout_seconds).filter(|&t| t > 0);
+
     // trigger
     nodes.push(WorkflowNode::Trigger(TriggerNode {
         base: make_base("trigger", "手动启动", "用户选择后启动工作流", 250.0, 0.0),
@@ -194,11 +241,27 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
                 approver: String::new(),
                 timeout_secs: default_timeout(),
                 timeout_action: default_timeout_action(),
+                approve_label: None,
+                reject_label: None,
             });
+            // P1-9：approve_label/reject_label 附加到审批消息（ApprovalNodeConfig 无独立字段，
+            // 前端审批面板展示 message + 固定通过/拒绝按钮，按钮文案语义通过消息传达）。
+            let mut message = cfg.message.clone();
+            if let Some(label) = &cfg.approve_label {
+                message.push_str(&format!("\n[通过] {label}"));
+            }
+            if let Some(label) = &cfg.reject_label {
+                message.push_str(&format!("\n[拒绝] {label}"));
+            }
+            let mut approval_base = make_base(&step.id, &step.title, "", 250.0, y);
+            approval_base.continue_on_fail = step.continue_on_fail.unwrap_or(false);
+            if let Some(t) = node_timeout {
+                approval_base.timeout = Some(t);
+            }
             WorkflowNode::Approval(ApprovalNode {
-                base: make_base(&step.id, &step.title, "", 250.0, y),
+                base: approval_base,
                 config: ApprovalNodeConfig {
-                    message: cfg.message,
+                    message,
                     approver: if cfg.approver.is_empty() {
                         None
                     } else {
@@ -215,18 +278,30 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
                 input_mapping.insert(k.clone(), v.clone());
             }
             // 工具白名单：step.tools 声明的工具名 → ToolDef
-            // 优先匹配 stock_mcp_tools（金融），其次匹配 OPC 工具（一人公司业务）。
+            // 优先匹配 stock_mcp_tools（金融），其次 OPC 工具（一人公司业务），
+            // 最后通用本机工具（FileRead/Bash/Grep 等，P1-1 修复 software_dev 等工具落空）。
             let node_tools = if step.tools.is_empty() {
                 vec![]
             } else {
                 let mut defs = stock_tool_defs(&step.tools);
                 defs.extend(opc_tool_defs(&step.tools));
+                defs.extend(local_tool_defs(&step.tools));
                 defs
             };
+            // P1-9：on_error 降级说明追加到 prompt 尾部
+            let mut system_prompt = step.prompt.clone();
+            if let Some(on_error) = &step.on_error {
+                system_prompt.push_str(&format!("\n\n[失败降级] {on_error}"));
+            }
+            let mut agent_base = make_base(&step.id, &step.title, "", 250.0, y);
+            agent_base.continue_on_fail = step.continue_on_fail.unwrap_or(false);
+            if let Some(t) = node_timeout {
+                agent_base.timeout = Some(t);
+            }
             WorkflowNode::Agent(AgentNode {
-                base: make_base(&step.id, &step.title, "", 250.0, y),
+                base: agent_base,
                 config: AgentNodeConfig {
-                    system_prompt: step.prompt.clone(),
+                    system_prompt,
                     context_sources: vec![],
                     output_var: format!("{}_result", step.id),
                     model: None,
@@ -300,13 +375,20 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
 
     if has_approval {
         // 有 approval：逐段串接，approval 通过(true)→下一节点，拒绝(false)→end
-        // 修复：使用 pending_approval 追踪审批状态，确保审批后节点连 true 分支而非普通边
+        // 修复 P0-1：只有"上一个节点是审批"（pending_approval 未消费）时，前一步→审批
+        // 才用 ConditionTrue 条件边；否则（trigger/普通 agent 节点）用 Direct 边——
+        // 普通节点输出是 JSON 字符串，dag_store 条件边判定 `results[src]["result"].as_bool()`
+        // 恒 false，ConditionTrue 边永不激活导致审批断链。
         let mut prev: &str = "trigger";
         let mut pending_approval: Option<&str> = None;
         for (i, sid) in step_ids.iter().enumerate() {
             let is_approval = w.steps[i].node_type == "approval";
             if is_approval {
-                edges.push(cond_edge(&format!("e-{prev}-{sid}-true"), prev, sid, true));
+                if pending_approval.is_some() {
+                    edges.push(cond_edge(&format!("e-{prev}-{sid}-true"), prev, sid, true));
+                } else {
+                    edges.push(edge(&format!("e-{prev}-{sid}"), prev, sid));
+                }
                 edges.push(cond_edge(&format!("e-{sid}-end-false"), sid, "end", false));
                 pending_approval = Some(sid);
             } else {
@@ -369,8 +451,8 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
         edges,
         input_schema: None,
         output_schema: None,
-        variables: vec![],
-        error_config: None,
+        variables: variables.clone(),
+        error_config: pack_error_config(w),
         error_workflow_id: None,
         mission_hash: None,
         tool_defs: vec![],
@@ -411,6 +493,30 @@ fn cond_edge(id: &str, src: &str, tgt: &str, is_true: bool) -> WorkflowEdge {
     }
 }
 
+/// P1-9：行业包顶层 `error_handling` → WorkflowTemplateData.error_config。
+fn pack_error_config(w: &IndustryWorkflow) -> Option<ErrorConfig> {
+    w.error_handling.as_ref().map(|eh| ErrorConfig {
+        retry_policy: if eh.retry > 0 {
+            Some(WorkflowRetryPolicy {
+                max_retries: eh.retry,
+                base_delay_ms: 1000,
+                max_delay_ms: 30000,
+            })
+        } else {
+            None
+        },
+        on_failure: if eh.on_failure.contains("continue") {
+            OnFailureAction::ContinueWithDefault
+        } else if eh.on_failure.contains("branch") {
+            OnFailureAction::RunErrorBranch
+        } else {
+            OnFailureAction::RetryThenAbort
+        },
+        error_branch: None,
+        compensation_steps: None,
+    })
+}
+
 fn make_base(id: &str, title: &str, desc: &str, x: f64, y: f64) -> WorkflowNodeBase {
     WorkflowNodeBase {
         id: id.into(),
@@ -437,13 +543,17 @@ pub async fn upsert_industry_registry(
     use sea_orm::*;
 
     let now = now_ts();
+    // P1-5：保留用户手动禁用状态——DB 已有记录时以 DB enabled 为准，
+    // manifest.enabled 仅首次插入生效（否则重启会把用户禁用的行业自动重新启用）。
+    let existing = opc_industries::Entity::find_by_id(&m.id).one(db).await.ok().flatten();
+    let effective_enabled = existing.map(|e| e.enabled != 0).unwrap_or(m.enabled);
     let am = opc_industries::ActiveModel {
         id: Set(m.id.clone()),
         name: Set(m.name.clone()),
         icon: Set(m.icon.clone()),
         description: Set(m.description.clone()),
         version: Set(m.version),
-        enabled: Set(m.enabled as i32),
+        enabled: Set(effective_enabled as i32),
         pack_path: Set(format!("{INDUSTRIES_DIR}/{}", m.id)),
         installed_at: Set(now),
         updated_at: Set(now),
@@ -498,10 +608,11 @@ pub async fn ensure_opc_industries_seeded(
     for m in manifests {
         // 版本判断：读 DB 现有记录（seed 前，避免 registry upsert 自引用）
         let existing = opc_industries::Entity::find_by_id(&m.id).one(db).await.ok().flatten();
-        let already_seeded =
-            existing.as_ref().map(|e| e.version >= m.version && e.enabled == 1).unwrap_or(false);
+        // P1-5：生效 enabled 以 DB 为准（用户手动禁用优先于 manifest），manifest 仅首装生效
+        let effective_enabled = existing.as_ref().map(|e| e.enabled != 0).unwrap_or(m.enabled);
+        let already_seeded = existing.as_ref().map(|e| e.version >= m.version).unwrap_or(false);
 
-        // 注册表 upsert（记录当前包状态）
+        // 注册表 upsert（记录当前包状态，enabled 保留 DB 用户状态）
         upsert_industry_registry(db, &m).await?;
 
         if already_seeded {
@@ -509,18 +620,27 @@ pub async fn ensure_opc_industries_seeded(
             continue;
         }
 
-        if !m.enabled {
+        if !effective_enabled {
             tracing::info!("[industry-pack] {} 已禁用，跳过 seed", m.id);
             continue;
         }
 
         let industry_dir = base_dir.join(&m.id);
         let workflows = load_industry_workflows(&industry_dir);
+        let keep_ids: Vec<String> = workflows.iter().map(|w| w.id.clone()).collect();
         for wf in &workflows {
             let data = build_workflow_from_pack(wf, m.version);
             super::upsert_template(db, data).await?;
         }
-        tracing::info!("[industry-pack] {} seed 完成（{} 个工作流）", m.id, workflows.len());
+        // P2-2：清理该行业升级后残留的旧模板（yaml 删除/改 id 的 preset 模板）
+        let prefix = format!("workflow-{}", m.id.replace('_', "-"));
+        let removed = super::cleanup_stale_pack_templates(db, &prefix, &keep_ids).await?;
+        tracing::info!(
+            "[industry-pack] {} seed 完成（{} 个工作流，清理 {} 个旧模板）",
+            m.id,
+            workflows.len(),
+            removed
+        );
         seeded.push(m.id.clone());
     }
     Ok(seeded)
@@ -594,6 +714,36 @@ pub async fn import_industry_pack(
     app_dir: &Path,
     archive_path: &Path,
 ) -> Result<String, String> {
+    // P1-12：兼容目录导入（市场页把行业目录路径当归档传）。
+    // 目录内应含 manifest.yaml（或其子目录含），直接拷贝到 industries/ 并 seed。
+    if archive_path.is_dir() {
+        let Some(id) = archive_path.file_name().map(|s| s.to_string_lossy().to_string()) else {
+            return Err("无法从目录名确定行业 id".to_string());
+        };
+        let industries_root = app_dir.join(INDUSTRIES_DIR);
+        let target = industries_root.join(&id);
+        // 源目录可能是 {id}/（含 manifest）或 {id}/workflows 的父目录，先探测 manifest 位置
+        let manifest_candidate = if archive_path.join("manifest.yaml").is_file() {
+            archive_path.to_path_buf()
+        } else if archive_path.parent().map(|p| p.join("manifest.yaml").is_file()).unwrap_or(false)
+        {
+            archive_path.parent().unwrap().to_path_buf()
+        } else {
+            return Err(format!(
+                "{} 目录内未找到 manifest.yaml，不是有效的行业包目录",
+                archive_path.display()
+            ));
+        };
+        super::copy_dir_recursive(&manifest_candidate, &target)
+            .map_err(|e| format!("拷贝行业包目录失败: {e}"))?;
+        tracing::info!("[industry-pack] 目录导入 {id} → {}", target.display());
+        let seeded = ensure_opc_industries_seeded(db, &industries_root).await?;
+        if !seeded.contains(&id) {
+            tracing::info!("[industry-pack] {id} 已存在（版本一致），视为导入成功");
+        }
+        return Ok(id);
+    }
+
     let file = std::fs::File::open(archive_path).map_err(|e| format!("打开归档失败: {e}"))?;
     let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("解析归档失败: {e}"))?;
 
@@ -607,6 +757,13 @@ pub async fn import_industry_pack(
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i).map_err(|e| format!("读取条目失败: {e}"))?;
         let entry_name = entry.name().to_string();
+        // P2-3：zip-slip 防护——拒绝绝对路径与 `..` 穿越（恶意 .opcip 可写任意目录）
+        let normalized = entry_name.replace('\\', "/");
+        if std::path::Path::new(&normalized).is_absolute()
+            || normalized.split('/').any(|c| c == "..")
+        {
+            return Err(format!("归档内存在非法路径，已拒绝解包: {entry_name}"));
+        }
         if entry.is_dir() {
             continue;
         }
@@ -666,6 +823,22 @@ pub async fn ensure_opc_domains_seeded(
         }
         let domain_dir = base_dir.join(&m.id);
         let workflows = load_industry_workflows(&domain_dir);
+        let keep_ids: Vec<String> = workflows.iter().map(|w| w.id.clone()).collect();
+
+        // P2-5：版本判断——首个 workflow 已存在且 version >= manifest.version 则跳过
+        // （此前每次启动无条件 upsert 覆盖，用户编辑的领域工作流会被重置）
+        if let Some(first) = workflows.first() {
+            use axagent_entities::workflow_template;
+            use sea_orm::EntityTrait;
+            if let Ok(Some(existing)) =
+                workflow_template::Entity::find_by_id(&first.id).one(db).await
+                && existing.version >= m.version
+            {
+                seeded.push(m.id.clone());
+                continue;
+            }
+        }
+
         for wf in &workflows {
             let data = build_workflow_from_pack(wf, m.version);
             super::upsert_template(db, data).await?;
@@ -676,6 +849,8 @@ pub async fn ensure_opc_domains_seeded(
             workflows.len(),
             m.version
         );
+        // 领域包无统一 id 前缀，清理跳过（结构稳定）；仅行业包执行 cleanup
+        let _ = keep_ids;
         seeded.push(m.id.clone());
     }
     Ok(seeded)
@@ -708,9 +883,7 @@ pub fn stock_tool_defs(names: &[String]) -> Vec<axagent_harness::workflow_types:
     out
 }
 
-// ── OPC 工具白名单（一人公司业务：内容营销/电商等行业吃 Opc 工具链）────
-
-/// 从 tools crate 内置 OPC 工具匹配工具名 → ToolDef 列表。
+// ── OPC 工具白名单（一人公司业务：内容营销/电商等行业吃 Opc 工具链）────/// 从 tools crate 内置 OPC 工具匹配工具名 → ToolDef 列表。
 /// 工具已注册进本地工具注册表（UnifiedToolRegistry），
 /// init/services.rs ToolResolver 的 `known` 分支即可接通执行路径，
 /// 工作流 AgentNode 只要 exposed_tools 含工具名即可调用。
@@ -743,6 +916,37 @@ pub fn opc_tool_defs(names: &[String]) -> Vec<axagent_harness::workflow_types::T
             continue;
         }
         // parameters：把 input_schema()（serde_json::Value）转 ToolDef.parameters（JsonSchema）
+        let parameters = serde_json::from_value(tool.input_schema()).ok();
+        out.push(axagent_harness::workflow_types::ToolDef {
+            name: tool.name().to_string(),
+            description: Some(tool.description().to_string()),
+            parameters,
+        });
+    }
+    out
+}
+
+// ── 通用本机工具白名单（P1-1：software_dev 等行业声明 FileRead/Bash/Grep 等）──
+
+/// 从 tools crate 内置通用工具匹配工具名 → ToolDef 列表。
+/// 与 stock_tool_defs / opc_tool_defs 并列，构成完整工具注入白名单。
+pub fn local_tool_defs(names: &[String]) -> Vec<axagent_harness::workflow_types::ToolDef> {
+    use axagent_tools::Tool;
+    let candidates: Vec<Arc<dyn Tool>> = vec![
+        std::sync::Arc::new(axagent_tools::tools::file_read::FileReadTool),
+        std::sync::Arc::new(axagent_tools::tools::file_write::FileWriteTool),
+        std::sync::Arc::new(axagent_tools::tools::file_edit::FileEditTool),
+        std::sync::Arc::new(axagent_tools::tools::bash::BashTool),
+        std::sync::Arc::new(axagent_tools::tools::grep::GrepTool),
+        std::sync::Arc::new(axagent_tools::tools::glob::GlobTool),
+        std::sync::Arc::new(axagent_tools::tools::file_system::ListDirectoryTool),
+        std::sync::Arc::new(axagent_tools::tools::web_search::WebSearchTool),
+    ];
+    let mut out = Vec::new();
+    for tool in candidates {
+        if !names.iter().any(|n| n == tool.name()) {
+            continue;
+        }
         let parameters = serde_json::from_value(tool.input_schema()).ok();
         out.push(axagent_harness::workflow_types::ToolDef {
             name: tool.name().to_string(),

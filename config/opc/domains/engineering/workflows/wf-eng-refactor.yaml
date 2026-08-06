@@ -6,7 +6,7 @@ name: 大型代码项目重构
 description: 系统性重构百万行级遗留代码，支持同语言重构和跨语言迁移（C++→Rust、C#→Rust、Java→TypeScript 等）。内置 UI 组件映射和国际化迁移分析，支持从现有 i18n 导入或从零搭建 i18next。从资产普查到验收交付的完整闭环。
 icon: "🔧"
 tags: [opc, refactor, large-scale, code-quality, cross-language]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 version: 4
 
 # ── 跨语言迁移配置 ──
@@ -404,7 +404,7 @@ steps:
       5. 识别技术栈（语言、框架、数据库、中间件）
       6. 生成代码资产清单（文件数、行数、模块数、依赖数）
       输出 JSON：{inventory{total_files, total_lines, by_language[{lang, files, lines}], by_module[{module, files, lines}], dependencies[{name, version, type}], tech_stack}, structure{directories, entry_points, public_api}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs: {}
     agent:
       id: code_auditor
@@ -441,7 +441,7 @@ steps:
       4. 标注公共 API 和内部 API 边界
       5. 识别依赖方向违反（高层依赖低层、跨层调用）
       输出 JSON：{dependency_graph{nodes[{id, name, type, layer}], edges[{from, to, type}], circular_dependencies[], unstable_dependencies[], layer_violations[]}, impact_analysis{high_impact_modules[{module, impacted_modules, risk_level}], blast_radius_map}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs: {}
     agent:
       id: architect_analyst
@@ -457,7 +457,7 @@ steps:
       4. 统计嵌套深度、分支数量、参数数量
       5. 评估代码重复率（Copy-Paste Detection）
       输出 JSON：{complexity{high_risk_functions[{file, function, cyclomatic, cognitive, lines}], average_cyclomatic, max_cyclomatic, by_module[{module, avg_cc, max_cc, high_risk_count}]}, duplication{rate, hotspots[{file, lines_count, duplicated_with}]}, nesting{deep_functions[{file, function, depth}]}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs: {}
     agent:
       id: quality_expert
@@ -474,7 +474,7 @@ steps:
       5. 记录状态机转换和时序依赖
       6. 将所有输入-输出对保存为"黄金测试"（Golden Test）基线
       输出 JSON：{behavioral_snapshot{api_snapshots[{api, inputs[{input_args, description}], outputs[{return_value, side_effects[{type, target, data}], state_changes[{entity, before, after}], timing}], coverage{paths_covered, paths_total, edge_cases_covered, error_paths_covered}, golden_tests[{test_id, api, input_fixture, expected_output, expected_side_effects, priority}], runtime_effects{external_calls[{service, call_signature, return_value}], db_operations[{table, operation, data}], event_streams[{event_type, payload}]}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs:
       asset_scan: a-asset-scan.result
       dep_graph: a-dep-graph.result
@@ -513,7 +513,7 @@ steps:
       5. 识别边界条件和特殊处理（防御性代码、hack、workaround）
       6. 记录并发假设和时序约束
       输出 JSON：{tacit_knowledge{design_intent[{file, code_region, comment, inferred_purpose, confidence}], commit_insights[{file, commit_hash, message, change_type, lesson_learned, related_bug}], implicit_contracts[{api, caller_expectations, callee_assumptions, violation_examples, confidence}], magic_values[{file, value, context, inferred_meaning, source}], edge_cases[{file, function, condition, special_handling, rationale}], concurrency_constraints[{module, assumption_type, description, violation_scenario}]}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs:
       asset_scan: a-asset-scan.result
     agent:
@@ -554,7 +554,7 @@ steps:
       5. 识别重复代码和 Copy-Paste
       6. 识别缺失抽象（if-else 链、switch 驱动）
       输出 JSON：{smells[{type, file, line, description, severity, suggestion}], smell_summary{total, critical, high, medium, low, by_type[{type, count}]}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs: {}
     agent:
       id: code_auditor
@@ -570,7 +570,7 @@ steps:
       4. 标记双向依赖和网状依赖
       5. 评估内聚性（Cohesion）
       输出 JSON：{coupling{high_coupling_modules[{module, fan_in, fan_out, coupling_score}], tight_coupling_groups[{modules[], coupling_type}], bidirectional_dependencies[], cohesion_assessment[{module, cohesion_score, issues[]}]}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs: {}
     agent:
       id: architect_analyst
@@ -586,7 +586,7 @@ steps:
       4. 评估数据迁移风险（数据库 Schema 变更、数据完整性）
       5. 评估性能风险（重构后可能的性能退化）
       输出 JSON：{risk_assessment{impact_scope{affected_modules[], critical_paths[]}, regression_risk{uncovered_modules[], risk_level}, technical_risk{unsafe_areas[], dynamic_dependencies[]}, data_migration_risk{schema_changes, data_loss_risk}, performance_risk{hot_paths[], expected_regression}}, risk_score{overall, confidence, factors[]}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       complexity: a-complexity.result
@@ -608,7 +608,7 @@ steps:
       4. 定义重构成功标准（质量指标、性能指标、交付指标）
       5. 识别关键路径和里程碑
       输出 JSON：{strategy{mode{type, rationale, pros, cons}, scope{in_scope[], out_of_scope[]}, architecture_changes[{from, to, rationale}], success_criteria{quality[{metric, target}], performance[{metric, baseline, target}], delivery[{metric, target}]}, critical_path{steps[], estimated_duration}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       risk_assessment: a-risk-assess.result
     agent:
@@ -651,7 +651,7 @@ steps:
       4. 设定每批的验收标准和退出条件
       5. 规划批次间的集成验证点
       输出 JSON：{batches[{batch_id, modules[], order, dependencies, estimated_effort, exit_criteria{test_coverage, complexity_reduction, performance_delta}, verification_steps[]}], milestones[{name, batch_range, deliverable, approval_required}]}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       strategy: a-strategy.result
       dep_graph: a-dep-graph.result
@@ -695,7 +695,7 @@ steps:
       5. 评估增量测试需求和资源影响
       6. 标记不可合并的变更并给出建议
       输出 JSON：{changes[{id, type{architecture|feature|tech_stack|dependency|bug}, description, priority{P0|P1|P2|P3}, target_modules[], injection_batch, conflicts[{existing_step, conflict_type, resolution}], additional_tests[], resource_impact}], merged_batches[{batch_id, original_modules[], new_changes[], risk_level, additional_effort, additional_tests[]}], unmergeable_changes[{id, reason, recommendation}]}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       batch_plan: a-batch-plan.result
       new_requests: external_input
@@ -714,7 +714,7 @@ steps:
       4. 建立代码规范和 lint 规则
       5. 生成质量基线报告
       输出 JSON：{baseline{test_coverage{overall, by_module[], uncovered_modules[]}, performance{key_paths[{path, latency_ms, throughput}], resource_usage{cpu, memory, disk_io}}, code_quality{lint_errors, lint_warnings, complexity_distribution[]}, quality_gates{coverage_min, complexity_max, lint_zero_errors, performance_regression_max}}}
-    tools: [run_command, file_read, file_write]
+    tools: [Bash, FileRead, FileWrite]
     inputs:
       batch_plan: a-batch-plan.result
     agent:
@@ -761,7 +761,7 @@ steps:
       4. 设计灰度发布和 A/B 测试方案
       5. 建立应急预案和回滚触发条件
       输出 JSON：{rollback{branch_strategy{model, naming_convention, protection_rules}, feature_flags[{name, scope, default_value, rollback_strategy}], db_migration{rollback_scripts[], data_preservation_plan}, canary{percentage_based, health_checks[], auto_rollback_triggers[]}, emergency_plan{trigger_conditions[], rollback_steps[], communication_plan}, parallel_strategy{enabled, refactor_branch_pattern, feature_branch_pattern, integration_point_frequency, conflict_resolution{auto_resolve[], manual_review[]}}}
-    tools: [file_read, file_write]
+    tools: [FileRead, FileWrite]
     inputs:
       batch_plan: a-batch-plan.result
       quality_baseline: a-quality-baseline.result
@@ -816,7 +816,7 @@ steps:
          - 设计前后端 i18n 同步机制
 
       输出 JSON：{integration_plan{directory_structure{backend_tree[], frontend_tree[]}, backend_integration{command_registration_plan[], state_management_design[], error_handling_strategy, error_code_framework{enum_definition, error_response_struct, serialization_format}}, frontend_integration{component_hierarchy[], store_classification[{type, modules[], responsibilities}], i18n_strategy, error_code_mapping{constant_definition, translation_loading, error_handler_hook}}, ui_integration{component_mapping_plan[], layout_strategy, state_architecture, router_design}, i18n_integration{mode[import_existing | build_from_scratch | skip], config_plan{languages[], namespaces[], key_convention}, file_structure{locales_dir, naming_pattern}, migration_order{phase1_infrastructure, phase2_extraction, phase3_files, phase4_code, phase5_verification}, incremental_approach[{phase, scope, modules[], estimated_effort}]}, backend_i18n_integration{pattern[frontend_translation | backend_translation | hybrid | skip], error_code_convention{format, prefixes[], namespaces[]}, sync_strategy{code_generation_script, ci_coverage_check, translation_workflow}, implementation_steps[{step, description, files[]}]}, communication{ipc_patterns[], data_flow_diagram}, testing_strategy{unit_test_plan[], integration_test_plan[], e2e_test_plan[], i18n_test_plan{backend_error_test, language_switch_test}}, implementation_order{phase1_modules[], phase2_modules[], phase3_modules[]}}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       batch_plan: a-batch-plan.result
       type_mapping: a-type-mapping.result
@@ -860,7 +860,7 @@ steps:
       4. 确认测试用例覆盖待重构代码
       5. 输出审查通过/驳回
       输出 JSON：{pre_review{batch_id, modules_reviewed[], findings[{file, line, severity, recommendation}], coverage_gaps[{module, uncovered_paths}], verdict{approved|rejected, blockers[], suggestions[]}}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       batch_plan: a-batch-plan.result
     agent:
@@ -877,7 +877,7 @@ steps:
       4. 记录每步变更（文件、函数、行号）
       5. 更新依赖关系图
       输出 JSON：{execution{batch_id, modules_completed[{module, refactorings_applied[], tests_passed, lines_changed}], issues_encountered[{module, issue, resolution}], current_progress, remaining_modules[]}}
-    tools: [file_read, file_write, run_command, search_code]
+    tools: [FileRead, FileWrite, Bash, Grep]
     inputs:
       pre_review: a-pre-review.result
       quality_baseline: a-quality-baseline.result
@@ -909,7 +909,7 @@ steps:
       5. 确保代码符合目标语言社区最佳实践
 
       输出 JSON：{conversion{patterns_converted[{source_pattern, target_pattern, file, function, lines_changed}], idiomatic_score{before, after, improvement, by_module[]}}, code_quality{naming_compliance, formatting_compliance, documentation_coverage, community_compliance}}
-    tools: [file_read, file_write, search_code]
+    tools: [FileRead, FileWrite, Grep]
     inputs:
       execution: a-execute.result
       type_mapping: a-type-mapping.result
@@ -953,7 +953,7 @@ steps:
          - 检查动态参数传递是否正确
 
       输出 JSON：{validation{backend{command_registration{compliant, violations[]}, agent_command_macro{compliant, violations[]}, state_management{compliant, violations[]}, error_code_definition{compliant, missing_codes[], format_violations[]}}, frontend{store_classification{compliant, violations[]}, i18n_usage{compliant, violations[], hardcoded_strings[], missing_translations[]}, type_imports{compliant, violations[]}, error_code_mapping{compliant, unmapped_codes[], sync_status}}, i18n_validation{file_completeness{compliant, missing_keys[]}, key_naming{compliant, violations[]}, interpolation{compliant, violations[]}, import_usage{compliant, violations[]}, backend_message_i18n{compliant, violations[], coverage_score}}, communication{ipc_pattern{compliant, violations[]}, data_contract{compliant, violations[]}, error_response_format{compliant, violations[]}}, overall_compliance{score, critical_violations[], warnings[], recommendations[]}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs:
       execution: a-execute.result
       idiomatic_convert: a-idiomatic-convert.result
@@ -994,7 +994,7 @@ steps:
       4. 生成差异报告，标记需要人工裁决的差异
       5. 验证隐式知识中的契约是否被保留
       输出 JSON：{equivalence_check{batch_id, comparison_results[{golden_test_id, old_output{return_value, side_effects[], state_changes[]}, new_output{return_value, side_effects[], state_changes[]}, equivalence{identical|semantic|different|silent_failure}, diff_details[{dimension, old, new, diff_type}], verdict}], fidelity_score{percentage, by_module[{module, score}], failing_tests[{test_id, module, reason}]}, tacit_knowledge_validation[{tacit_item, preserved|violated, details}], overall_verdict{pass|fail|review_required, auto_pass_count, manual_review_count, blocked_diffs[]}}
-    tools: [run_command, file_read]
+    tools: [Bash, FileRead]
     inputs:
       execution: a-execute.result
       behavioral_snapshot: a-behavior-snapshot.result
@@ -1038,7 +1038,7 @@ steps:
       4. 触发增量风险评估和测试需求评估
       5. 给出具体的变更处理方案
       输出 JSON：{change_request{id, type, description, source}, assessment{conflicts[{module, conflict_type, severity}], impacted_batches[], test_impact, resource_impact}, decision{priority{P0|P1|P2|P3}, action{merge_into_current|defer_to_next|reject|pause_and_handle}, target_batch, resolution_steps[], additional_tests[]}, rollback_plan{trigger_conditions[], steps[]}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs:
       execution: a-execute.result
       change_request: external_input
@@ -1057,7 +1057,7 @@ steps:
       4. 检查是否引入新的代码坏味道
       5. 评估重构对模块耦合度的改善
       输出 JSON：{regression{test_results{total, passed, failed, skipped, coverage_delta{before, after, delta}}, performance_comparison{before{path, latency}, after{path, latency}, regression_detected}, quality_improvement{complexity_reduction, coupling_reduction, smells_removed}, regressions_found[{file, test, expected, actual, severity}]}}
-    tools: [run_command, file_read]
+    tools: [Bash, FileRead]
     inputs:
       execution: a-execute.result
       quality_baseline: a-quality-baseline.result
@@ -1076,7 +1076,7 @@ steps:
       4. 执行跨模块性能测试
       5. 确认无循环依赖和层间违规
       输出 JSON：{integration{interface_compatibility{verified[], breaking_changes[], adapters_needed[]}, e2e_scenarios[{scenario, steps, status, duration}], data_flow_validation{paths_verified[], state_transitions_verified[]}, cross_module_performance{before, after, delta}, dependency_check{circular_deps[], layer_violations[]}}}
-    tools: [run_command, file_read, search_code]
+    tools: [Bash, FileRead, Grep]
     inputs:
       regression: a-regression.result
       dep_graph: a-dep-graph.result
@@ -1101,7 +1101,7 @@ steps:
       7. **检查副作用完整性**：外部调用、数据库操作、事件发射是否一致
       8. **检查边界条件覆盖**：原有代码的特殊处理是否全部保留
       输出 JSON：{quality_gate{coverage{target, actual, pass}, complexity{avg_before, avg_after, reduction, pass}, performance{max_regression_allowed, actual_regression, pass}, smells{before_count, after_count, reduction, pass}, coupling{improvement, pass}, behavioral_fidelity{golden_test_pass_rate{target, actual, pass}, tacit_knowledge_retention{total_items, preserved, violated, pass}, side_effect_equivalence{db_ops_match, external_calls_match, event_order_match, pass}, edge_case_retention{total_edge_cases, preserved, missing, pass}}, overall_verdict{pass|fail, blocking_issues[], recommendations[], manual_reviews_required[]}}}
-    tools: [run_command, file_read, search_code]
+    tools: [Bash, FileRead, Grep]
     inputs:
       integration: a-integration.result
       quality_baseline: a-quality-baseline.result
@@ -1142,7 +1142,7 @@ steps:
       4. 更新迁移指南（从旧架构到新架构的迁移步骤）
       5. 生成重构总结报告
       输出 JSON：{docs_updated{architecture_doc{updated, changes[], new_diagrams[]}, api_doc{endpoints_updated[], deprecated[], new_endpoints[]}, migration_guide{steps[], breaking_changes[], compatibility_notes}, refactor_summary{total_changes, modules_affected, complexity_reduction, coupling_improvement, lessons_learned}}}
-    tools: [file_read, file_write, search_code]
+    tools: [FileRead, FileWrite, Grep]
     inputs:
       quality_gate: a-quality-gate.result
     agent:
@@ -1159,7 +1159,7 @@ steps:
       4. 整理应急预案和回滚流程
       5. 完成交接检查清单
       输出 JSON：{handoff{runbook{operations[{operation, steps, estimated_duration}], troubleshooting[{issue, cause, solution}]}, monitoring{metrics[{name, threshold, alert_channel}], dashboards[]}, backup_recovery{backup_schedule, restore_steps[], rto, rpo}, handoff_checklist{items[{item, status, assignee}], sign_off_required}}
-    tools: [file_read, file_write]
+    tools: [FileRead, FileWrite]
     inputs:
       docs_updated: a-doc-update.result
     agent:
@@ -1176,7 +1176,7 @@ steps:
       4. 提出后续改进建议
       5. 生成最终复盘报告
       输出 JSON：{post_review{what_went_well[{item, impact}], what_could_improve[{item, root_cause, action_needed}], metrics_before_after{quality[{metric, before, after, improvement}], performance[{metric, before, after, improvement}], maintainability[{metric, before, after, improvement}]}, follow_up_actions[{action, priority, owner, timeline}], final_assessment{success_level, key_achievements, remaining_risks[]}}}
-    tools: [file_read, search_code]
+    tools: [FileRead, Grep]
     inputs:
       handoff: a-handoff.result
       quality_gate: a-quality-gate.result
@@ -1243,7 +1243,7 @@ steps:
       6. 提供性能优化建议
 
       输出 JSON：{performance_comparison{latency_comparison{metric, source_before, target_after, regression_percentage, verdict}, throughput_comparison{metric, source_before, target_after, regression_percentage, verdict}, memory_comparison{metric, source_before, target_after, regression_percentage, verdict}, cpu_comparison{metric, source_before, target_after, regression_percentage, verdict}, regressions_identified[{path, description, severity, root_cause, optimization_suggestion}], performance_score{before_score, after_score, delta, pass_threshold, overall_verdict}}}
-    tools: [run_command, file_read]
+    tools: [Bash, FileRead]
     inputs:
       quality_baseline: a-quality-baseline.result
       regression: a-regression.result
@@ -1293,7 +1293,7 @@ steps:
       4. 生成类型映射表和决策清单
 
       输出 JSON：{type_mapping{auto_mapped[{source_type, target_type, confidence}], manual_review_required[{source_type, target_options[], decision_guide, risk_level}], unmapped_types[{type, reason, suggestion}], mapping_coverage{total_types, auto_mapped, manual_review, unmapped, percentage}}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       config: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml"
@@ -1338,7 +1338,7 @@ steps:
       4. 生成内存安全检查清单
 
       输出 JSON：{memory_audit{patterns_found[{pattern, count, risk_level}], safety_issues[{issue, severity, file, line}], migration_strategy{ownership_model, pointer_choice_rules, lifetime_annotation_guide}, safety_checklist[{checkpoint, status, action_required}]}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       type_mapping: a-type-mapping.result
@@ -1385,7 +1385,7 @@ steps:
       5. 规划路由方案（React Router）
 
       输出 JSON：{ui_mapping{components[{source_widget, target_component, confidence, mapping_type}], layouts[{source_layout, target_layout_strategy, css_framework}], custom_widgets[{widget, complexity, implementation_strategy, estimated_effort}], state_management{state_model, store_design, data_flow}, routing{routes_mapped, navigation_strategy}}, migration_complexity{total_components, auto_mappable, custom_implementation, complexity_score, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       type_mapping: a-type-mapping.result
@@ -1451,7 +1451,7 @@ steps:
          - 设计前后端 i18n 同步策略
 
       输出 JSON：{i18n_analysis{current_state{has_i18n[boolean], translator_usage[count, files], hardcoded_strings[count, files, samples[], languages[]], translation_files[{path, format, entry_count}], backend_messages[{source, type, count, samples[]}], locale_coverage[supported_languages[]]}, migration_plan{mode[import_existing | build_from_scratch], target_languages[], key_naming_convention, namespace_structure, file_organization, backend_i18n_pattern[frontend_translation | backend_translation | hybrid]}, conversion_strategy{mode_specific_config[ts_to_json_method | extraction_strategy], key_mapping_table[{source_pattern, i18next_key}], special_cases[{type, source, target, complexity}]}, backend_strategy{error_code_convention, frontend_backend_sync, error_code_mapping_table[{qt_source, rust_error_code, ts_translation_key}]}, complexity_assessment{total_entries, auto_mappable, manual_review_required, estimated_effort, risk_level}}, migration_workflow{step1_scan, step2_extract_or_convert, step3_key_mapping, step4_code_update, step5_verify, step6_backend_integration}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       ui_mapping: a-ui-mapping.result  # 可选，UI 迁移时
@@ -1522,7 +1522,7 @@ steps:
       6. 评估迁移复杂度并给出优先级排序
       
       输出 JSON：{afsim_analysis{core_classes[{name, usage_count, complexity, priority}], math_types[{name, usage_count, target_crate, target_typescript}], custom_widgets[{name, count, complexity, target_impl}], script_system{detected[boolean], language, complexity}, protocols[{name, type, complexity}], complexity_assessment{overall_score[1-10], estimated_effort_weeks, high_risk_areas[]}, migration_priority{phase1_core[], phase2_engine[], phase3_ui[], phase4_advanced[]}}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       afsim_config: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_math_mapping"
@@ -1580,7 +1580,7 @@ steps:
       7. 生成对应的 TypeScript 数学工具类
       
       输出 JSON：{math_conversion{converted_types[{source, target_rust, target_typescript, file_paths[]}], operations_converted[{source_op, rust_op, typescript_op}], test_coverage{unit_tests, edge_cases}}, issues[{type, description, severity, workaround}]}
-    tools: [file_read, file_write]
+    tools: [FileRead, FileWrite]
     inputs:
       afsim_analysis: a-afsim-analysis.result
       math_mapping: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_math_mapping"
@@ -1609,7 +1609,7 @@ steps:
       8. 创建 Cargo workspace 结构
       
       输出 JSON：{architecture_mapping{classes_mapped[{source, target_rust, target_typescript, file_paths[]}], traits_defined[{name, methods[], implementations[]}], stores_created[{name, state_shape, actions[]}], workspace_structure{crate_members[], dependencies[]}}, issues[{type, description, severity, workaround}]}
-    tools: [file_read, file_write]
+    tools: [FileRead, FileWrite]
     inputs:
       afsim_analysis: a-afsim-analysis.result
       architecture_mapping: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_architecture_mapping"
@@ -1640,7 +1640,7 @@ steps:
       7. 将 QSplitter 迁移为 Resizable 面板组
       
       输出 JSON：{ui_enhancement{widgets_converted[{source, target, complexity, file_paths[]}], custom_components_created[{name, framework, props[], events[]}], threejs_scene_setup{canvas_component, controls, lighting}}, issues[{type, description, severity, workaround}]}
-    tools: [file_read, file_write]
+    tools: [FileRead, FileWrite]
     inputs:
       afsim_analysis: a-afsim-analysis.result
       ui_enhanced_mapping: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_qt_widget_enhanced_mapping"
@@ -1671,7 +1671,7 @@ steps:
       7. 应用性能优化建议
       
       输出 JSON：{migration_3d{opengl_components_found[{name, file, complexity}], geometries_mapped[{source, target, file_paths[]}], lighting_mapped[{source, target}], camera_mapped[{source, target}], afsim_scenarios_implemented[{name, file_paths[]}], performance_optimizations_applied[{tip, impact}], issues[{type, description, severity, workaround}]}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       asset_scan: a-asset-scan.result
       visualization_config: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#visualization_3d_migration"
@@ -1718,7 +1718,7 @@ steps:
       6. 规划批量迁移路径
       
       输出 JSON：{script_migration{scripts_analyzed{total_files, total_lines, features_detected[]}, approach_selected{name, rationale}, core_api_created{modules[], methods[]}, pilot_scripts_migrated[{original, migrated, correctness}], batch_migration_plan{phases[{phase, tasks[], estimated_effort}]}}, issues[{type, description, severity, workaround}]}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       asset_scan: a-asset-scan.result
       script_config: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_script_compatibility"
@@ -1771,7 +1771,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{csharp_rust_analysis{patterns_identified[{pattern, count, complexity}], async_conversion{methods_count, complexity, challenges[]}, generic_mapping{constraints, lifetime_annotations}, linq_mapping{query_types[], implementation_strategy}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       csharp_rust_config: "config/languages/mappings/csharp-to-rust.yaml"
@@ -1800,7 +1800,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{java_typescript_analysis{patterns_identified[{pattern, count, complexity}], spring_mapping{controllers, services, repositories}, jpa_mapping{entities, relationships, queries}, stream_mapping{operations[], rxjs_equivalents[]}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       java_ts_config: "config/languages/mappings/java-to-typescript.yaml"
@@ -1832,7 +1832,7 @@ steps:
       9. 实现发布/订阅机制
       
       输出 JSON：{dis_hla_migration{dis_analysis{pdu_types_used[], network_transport[], realtime_requirements}, dis_implementation{pdu_structures[{type, file_path}], codec_implementation[{encoding, file_path}], transport_implementation[{type, file_path}]}, hla_implementation{approach_selected, rti_interface{file_path}, time_manager{file_path}, pub_sub{file_path}}, test_plan{unit_tests[], integration_tests[], performance_tests[]}, issues[{type, description, severity, workaround}]}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       asset_scan: a-asset-scan.result
       dis_hla_config: "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#distributed_simulation_protocol"
@@ -1884,7 +1884,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{python_rust_analysis{patterns_identified[{pattern, count, complexity}], type_mapping{dynamic_to_static{modules_to_convert[], type_inference_strategy}}, async_conversion{asyncio_patterns[], tokio_equivalents[]}, decorator_mapping{decorators[], macro_or_trait_equivalents[]}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       python_rust_config: "config/languages/mappings/python-to-rust.yaml"
@@ -1913,7 +1913,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{python_ts_analysis{patterns_identified[{pattern, count, complexity}], type_mapping{dynamic_to_static{modules[], type_inference_strategy}}, decorator_mapping{decorators[], equivalents[]}}, data_class_mapping{pydantic_dataclasses, ts_interface_equivalents[]}, async_conversion{patterns[], equivalents[]}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       python_ts_config: "config/languages/mappings/python-to-typescript.yaml"
@@ -1942,7 +1942,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{go_ts_analysis{patterns_identified[{pattern, count, complexity}], concurrency_mapping{goroutines_to_async{count, complexity}, channels_to_async_iterators{count, complexity}}, type_mapping{struct_to_interface[], interface_removal_strategy}, error_handling_mapping{patterns[], equivalents[]}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       go_ts_config: "config/languages/mappings/go-to-typescript.yaml"
@@ -1971,7 +1971,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{go_rust_analysis{patterns_identified[{pattern, count, complexity}], concurrency_mapping{goroutines_to_tokio{count, complexity}, channels_to_mpsc{count, complexity}}, type_mapping{interface_to_trait[], any_to_enum_or_trait}, error_handling_mapping{panic_to_result[], recover_to_match}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       go_rust_config: "config/languages/mappings/go-to-rust.yaml"
@@ -2002,7 +2002,7 @@ steps:
       8. 评估迁移复杂度
       
       输出 JSON：{ts_rust_analysis{patterns_identified[{pattern, count, complexity}], web_framework_mapping{framework_type, routes_count, middleware_count}, db_mapping{orm_type, queries_count, migrations_count}, di_mapping{decorator_count, injection_points[]}, async_mapping{async_functions_count, promise_patterns[]}, estimated_effort, risks[{type, description, severity, mitigation}]}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       ts_rust_config: "config/languages/mappings/typescript-to-rust.yaml"
@@ -2065,7 +2065,7 @@ steps:
          - 服务定位器 → 启动时手动组装
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], patterns_used[{pattern, rust_implementation}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-typescript-to-rust-analysis.result
       ts_rust_config: "config/languages/mappings/typescript-to-rust.yaml"
@@ -2125,7 +2125,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{csharp_ts_analysis{patterns_identified[{pattern, count, complexity}], ui_mapping{components_count, layouts_count, complexity}, linq_mapping{query_types[], array_equivalents[]}, async_mapping{async_methods_count, task_patterns[]}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       csharp_ts_config: "config/languages/mappings/csharp-to-typescript.yaml"
@@ -2154,7 +2154,7 @@ steps:
       6. 评估迁移复杂度
       
       输出 JSON：{java_rust_analysis{patterns_identified[{pattern, count, complexity}], spring_mapping{controllers_count, services_count, repositories_count}, orm_mapping{entities_count, queries_complexity}, di_mapping{beans_count, injection_points[]}, estimated_effort}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       java_rust_config: "config/languages/mappings/java-to-rust.yaml"
@@ -2183,7 +2183,7 @@ steps:
       6. 常用库迁移
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], patterns_used[{pattern, rust_implementation}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-python-to-rust-analysis.result
       py_rust_config: "config/languages/mappings/python-to-rust.yaml"
@@ -2243,7 +2243,7 @@ steps:
       4. 生成等价性验证报告
       
       输出 JSON：{verification_result{functionality{passed, tests_total, discrepancies[]}, performance{source_baseline, target_metrics, regression_detected}, api_contract{endpoints_verified[], breaking_changes[]}, data_integrity{migrated_records, validation_errors[]}, overall_status: "PASS" | "WARN" | "FAIL"}}
-    tools: [search_code, file_read, run_command]
+    tools: [Grep, FileRead, Bash]
     inputs:
       migration_result: a-execute.result
       equivalence_check: a-equivalence-check.result
@@ -2290,7 +2290,7 @@ steps:
       6. 国际化集成
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], components_migrated[{original, replacement, complexity}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-csharp-to-typescript-analysis.result
       csharp_ts_config: "config/languages/mappings/csharp-to-typescript.yaml"
@@ -2358,7 +2358,7 @@ steps:
          - 全局变量 → 依赖注入容器
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], concurrency_patterns[{pattern, typescript_implementation}], error_handling{migrated_patterns[], remaining_issues[]}, tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-go-to-typescript-analysis.result
       go_ts_config: "config/languages/mappings/go-to-typescript.yaml"
@@ -2428,7 +2428,7 @@ steps:
          - 多返回值 → Result<T, E>
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], concurrency_patterns[{pattern, rust_implementation, complexity}], memory_safety{pointers_migrated[], nil_checks_converted[], defer_to_drop[]}, error_handling{errors_converted[], panics_handled[]}, ownership_issues[{file, issue, severity, fix}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write, run_command]
+    tools: [Grep, FileRead, FileWrite, Bash]
     inputs:
       analysis: a-go-to-rust-analysis.result
       go_rust_config: "config/languages/mappings/go-to-rust.yaml"
@@ -2507,7 +2507,7 @@ steps:
          - SQLAlchemy → ORM / 原生查询
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], type_annotations_added[], dataclass_migrations[{original, target_pattern}], async_patterns[{pattern, typescript_implementation}], decorators_migrated[{decorator, equivalent}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-python-to-typescript-analysis.result
       py_ts_config: "config/languages/mappings/python-to-typescript.yaml"
@@ -2584,7 +2584,7 @@ steps:
          - @ControllerAdvice → 统一错误响应
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], controllers_migrated[{original, routes_count, complexity}], di_beans[{bean_type, injection_points_count}], entities_migrated[{original, table_name}], async_patterns[{pattern, rust_implementation}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write, run_command]
+    tools: [Grep, FileRead, FileWrite, Bash]
     inputs:
       analysis: a-java-to-rust-analysis.result
       java_rust_config: "config/languages/mappings/java-to-rust.yaml"
@@ -2663,7 +2663,7 @@ steps:
          - Filters → 统一错误处理
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], types_migrated[{csharp_type, rust_type, count}], async_patterns[{pattern, rust_implementation, complexity}], linq_queries[{query_type, rust_equivalent}], web_framework_migration{controllers_migrated, middleware_migrated}, tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write, run_command]
+    tools: [Grep, FileRead, FileWrite, Bash]
     inputs:
       analysis: a-csharp-to-rust-analysis.result
       csharp_rust_config: "config/languages/mappings/csharp-to-rust.yaml"
@@ -2784,7 +2784,7 @@ steps:
       9. 执行测试并生成报告
       
       输出 JSON：{test_suite{unit_tests{files_generated, total_cases, coverage_target, golden_test_baselines_used}, integration_tests{files_generated, api_tests, db_tests, ipc_tests}, contract_tests{api_endpoints_verified, breaking_changes_found, schema_validation}, performance_tests{benchmarks_count, load_test_scripts, baseline_comparison}, equivalence_tests{golden_cases_verified, random_cases, edge_cases, pass_rate, discrepancies[]}, ui_tests{components_tested, visual_regression_tests}# 可选, i18n_tests{languages_covered, translation_completeness, formatting_tests}# 可选}, execution_result{all_tests_passed, failures[{test_name, reason, fix_suggestion}], coverage_achieved{unit, integration, overall}, performance_regressions_detected, equivalence_verdict{pass|fail|review_required, discrepancies_found[]}}}
-    tools: [search_code, file_read, file_write, run_command]
+    tools: [Grep, FileRead, FileWrite, Bash]
     inputs:
       migration_result: a-execute.result
       code_structure: a-complexity.result
@@ -2893,7 +2893,7 @@ steps:
          - Spring Test → Supertest
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], spring_components[{type, count, target_equivalent}], ui_components[{original, target_component, complexity}], db_entities[{original, orm_model}], tests_migrated[{original_framework, target_framework}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-java-to-typescript-analysis.result
       java_ts_config: "config/languages/mappings/java-to-typescript.yaml"
@@ -2949,7 +2949,7 @@ steps:
       7. 评估迁移复杂度和 unsafe 代码比例
 
       输出 JSON：{cpp_rust_analysis{patterns_identified[{pattern, count, complexity}], memory_patterns[{pattern, count, risk_level}], class_hierarchy{classes_count, inheritance_depth, virtual_functions}}, template_usage{template_functions, template_classes, complexity}, concurrency_patterns[{pattern, count, migration_complexity}], unsafe_code{lines_total, distribution_by_module[]}, estimated_effort, risk_assessment{high_risk_modules[], unsafe_percentage}}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       cpp_rust_config: "config/languages/mappings/cpp-to-rust.yaml"
@@ -3019,7 +3019,7 @@ steps:
          - std::accumulate → Iterator::sum
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], types_migrated[{cpp_type, rust_type, count}], pointer_conversion{unique_ptr_to_box[], shared_ptr_to_arc[], raw_pointer_resolved[]}, class_conversion{classes_to_struct[], virtual_to_trait[], inheritance_to_composition[]}, template_to_generic{functions[], classes[]}, concurrency_migration{threads_to_tokio[], mutex_to_async_mutex[]}, stl_to_std{algorithms_migrated[], containers_migrated[]}, unsafe_code_generated{files, blocks_count, rationale}, tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write, run_command]
+    tools: [Grep, FileRead, FileWrite, Bash]
     inputs:
       analysis: a-cpp-to-rust-analysis.result
       cpp_rust_config: "config/languages/mappings/cpp-to-rust.yaml"
@@ -3091,7 +3091,7 @@ steps:
       7. 评估 UI 迁移复杂度
 
       输出 JSON：{cpp_ts_analysis{qt_patterns[{pattern, count, complexity}], widget_analysis{widgets_count, layouts_count, custom_widgets[]}, signal_slot_analysis{signals_count, slots_count, connections_count}, data_type_analysis{qstring_usage, qlist_usage, qvariant_usage}, state_management_analysis{qobject_subclasses, state_holders[], signal_triggers[]}, estimated_effort, ui_complexity_score}}
-    tools: [search_code, file_read]
+    tools: [Grep, FileRead]
     inputs:
       asset_scan: a-asset-scan.result
       cpp_ts_config: "config/languages/mappings/cpp-to-typescript.yaml"
@@ -3165,7 +3165,7 @@ steps:
          - QByteArray → Uint8Array
 
       输出 JSON：{migration_result{files_migrated[{source_file, target_file, complexity}], widgets_migrated[{qt_widget, react_component, complexity}], layouts_converted[{qt_layout, css_strategy, components}], signal_slot_conversion{connections_migrated[], async_patterns_added[]}, state_management{stores_created[], state_variables_migrated[], actions_mapped[]}, styles_converted{qss_files, css_files, migration_rate}, qt_utils_migrated[{qt_class, typescript_equivalent, methods_converted[]}], tests_added[{test_file, coverage}], issues[{type, description, severity, workaround}]}}
-    tools: [search_code, file_read, file_write]
+    tools: [Grep, FileRead, FileWrite]
     inputs:
       analysis: a-cpp-to-typescript-analysis.result
       cpp_ts_config: "config/languages/mappings/cpp-to-typescript.yaml"

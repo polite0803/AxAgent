@@ -109,6 +109,7 @@ pub async fn workflow_execute(
     let app_for_panic = app_for_emit.clone();
     let wid_for_panic = wid.clone();
     let learning_state = app_state.learning.clone();
+    let app_data_dir = app_state.app_data_dir.clone();
     tokio::spawn(async move {
         // 兜底：panic / 早退路径上 emit execution-completed failed 事件
         // WF-P0-2: emit 字段统一为 { workflow_id, execution_id, status, total_time_ms, error? }
@@ -159,13 +160,33 @@ pub async fn workflow_execute(
                 );
 
                 // 自动学习钩子：OPC 行业工作流完成后触发反思/进化/RL
+                // P2-10：携带节点结果与步骤状态，compute_quality_score 才能真实评估
+                //（此前仅 {status, total_time_ms}，质量分恒 0.8，RL/反思输入失真）
                 {
                     use crate::commands::opc_learning_hook::try_auto_learn_workflow;
+                    let node_steps: Vec<serde_json::Value> = workflow
+                        .node_states
+                        .iter()
+                        .map(|(id, s)| {
+                            serde_json::json!({
+                                "node_id": id,
+                                "status": format!("{:?}", s.status).to_lowercase(),
+                            })
+                        })
+                        .collect();
                     let result_json = serde_json::json!({
                         "status": status_str,
                         "total_time_ms": total_time_ms,
+                        "results": workflow.results,
+                        "steps": node_steps,
                     });
-                    try_auto_learn_workflow(&wid, &result_json, &learning_state).await;
+                    try_auto_learn_workflow(
+                        &wid,
+                        &result_json,
+                        &learning_state,
+                        Some(&app_data_dir),
+                    )
+                    .await;
                 }
             },
             Err(e) => {
@@ -190,7 +211,13 @@ pub async fn workflow_execute(
                         "error": e.to_string(),
                         "total_time_ms": total_time_ms,
                     });
-                    try_auto_learn_workflow(&wid, &result_json, &learning_state).await;
+                    try_auto_learn_workflow(
+                        &wid,
+                        &result_json,
+                        &learning_state,
+                        Some(&app_data_dir),
+                    )
+                    .await;
                 }
             },
         }

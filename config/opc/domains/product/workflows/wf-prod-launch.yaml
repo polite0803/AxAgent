@@ -4,7 +4,7 @@ name: 产品发布
 description: 新产品/功能发布流程
 icon: "🚀"
 tags: [opc]
-profile_id: cpo
+profile_id: opc-cpo-cpo-product-manager
 steps:
   - id: a-launch-plan
     title: 发布计划

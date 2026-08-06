@@ -4,7 +4,7 @@ name: 客户工单处理
 description: 接收、分类、处理和关闭客户工单
 icon: "🎫"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-ticket-categorize
     title: 分类

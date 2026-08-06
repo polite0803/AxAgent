@@ -4,7 +4,7 @@ name: 邮件营销活动
 description: 策划、设计、发送邮件营销活动并分析效果
 icon: "📧"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-email-plan
     title: 活动策划

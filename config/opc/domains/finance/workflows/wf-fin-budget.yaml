@@ -4,7 +4,7 @@ name: 预算编制
 description: 编制年度预算和滚动预测
 icon: "💰"
 tags: [opc]
-profile_id: cfo
+profile_id: opc-cfo-cfo-financial-analyst
 steps:
   - id: a-budget-review
     title: 回顾

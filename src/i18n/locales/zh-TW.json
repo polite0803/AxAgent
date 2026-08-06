@@ -3912,7 +3912,11 @@
       "batchDelete": "Batch Delete ({{count}})",
       "batchDeleteSuccess": "Batch delete successful",
       "export": "Export",
-      "reset": "Reset"
+      "reset": "Reset",
+      "search": "搜索",
+      "batchSuccess": "批量操作成功",
+      "batchMarkRead": "标记 {{count}} 条已读",
+      "exportSuccess": "已导出 {{count}} 条"
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -3957,7 +3961,12 @@
       "Website": "网站",
       "SocialMedia": "社交媒体",
       "Marketplace": "市场",
-      "Direct": "直接"
+      "Direct": "直接",
+      "referral": "推荐",
+      "website": "网站",
+      "social_media": "社交媒体",
+      "marketplace": "市场",
+      "direct": "直接"
     },
     "invoice": {
       "created": "发票创建成功",
@@ -4014,7 +4023,9 @@
       "phoneLabel": "电话",
       "companyLabel": "公司",
       "sourceLabel": "来源",
-      "sourcePlaceholder": "选择来源"
+      "sourcePlaceholder": "选择来源",
+      "filterStatus": "按状态筛选",
+      "filterSource": "按来源筛选"
     },
     "project": {
       "updated": "项目已更新",
@@ -4045,7 +4056,9 @@
       "milestoneModalTitle": "添加里程碑",
       "milestoneOkAdd": "添加",
       "milestoneTitleLabel": "标题",
-      "milestoneTitleRequired": "请输入里程碑标题"
+      "milestoneTitleRequired": "请输入里程碑标题",
+      "filterStatus": "按状态筛选",
+      "filterCustomer": "按客户筛选"
     },
     "site": {
       "tabLanding": "落地页",
@@ -4206,7 +4219,11 @@
       "sirStrengths": "亮点",
       "sirGaps": "缺口",
       "sirAccept": "已收敛",
-      "sirRunning": "运行中…"
+      "sirRunning": "运行中…",
+      "create": "新建",
+      "createPrompt": "输入新工作项标题：",
+      "createSuccess": "工作项已创建",
+      "createFailed": "创建工作项失败: {{error}}"
     },
     "market": {
       "refresh": "刷新市场",

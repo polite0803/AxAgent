@@ -4,7 +4,7 @@ name: 线上研讨会
 description: 策划和执行线上研讨会活动
 icon: "🎥"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-webinar-plan
     title: 活动策划

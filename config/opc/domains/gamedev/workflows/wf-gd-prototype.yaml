@@ -4,7 +4,7 @@ name: 游戏原型
 description: 快速搭建可玩原型验证核心机制
 icon: "🎮"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-gd-proto-core
     title: 核心机制

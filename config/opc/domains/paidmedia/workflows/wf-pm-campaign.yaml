@@ -4,7 +4,7 @@ name: 广告活动管理
 description: 规划、执行和优化付费广告活动
 icon: "📺"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-pm-plan
     title: 广告规划

@@ -4,7 +4,7 @@ name: 合规审计
 description: 检查安全合规标准和差距
 icon: "✅"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-comp-standard
     title: 标准对照

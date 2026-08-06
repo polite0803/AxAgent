@@ -4,7 +4,7 @@ name: 社交媒体策略
 description: 制定社交媒体系运营和内容日历
 icon: "📱"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-soc-audit
     title: 账号审计

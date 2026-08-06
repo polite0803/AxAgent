@@ -4,7 +4,7 @@ name: 空间场景
 description: 构建沉浸式3D空间场景
 icon: "🏠"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-scene-layout
     title: 场景规划

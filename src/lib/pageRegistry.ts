@@ -59,6 +59,15 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   multiAgent: "/multi-agent",
   // OPC 一人公司管理
   opc: "/opc",
+  // OPC 管理页面（仪表板、发票、客户、项目等）
+  opcDashboard: "/opc/dashboard",
+  opcInvoices: "/opc/invoices",
+  opcCustomers: "/opc/customers",
+  opcProjects: "/opc/projects",
+  opcSites: "/opc/sites",
+  opcTalent: "/opc/talent",
+  opcMarket: "/opc/market",
+  opcKanban: "/opc/kanban",
   // OPC 9 大垂直行业入口
   opcIndustryAiResearch: "/opc/industries/ai-research",
   opcIndustrySoftwareDev: "/opc/industries/software-dev",

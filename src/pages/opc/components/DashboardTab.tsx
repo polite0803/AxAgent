@@ -13,10 +13,14 @@ interface DashboardSummary {
   active_projects: number;
   total_customers: number;
   recent_kpis: Array<{ name: string; value: number; unit: string; period: string }>;
-  revenue_trend?: Array<{ date: string; revenue: number }>;
-  customer_stats?: Array<{ status: string; count: number }>;
-  project_stats?: Array<{ status: string; count: number }>;
+  // P1-6：与后端 RevenueRecord { id, amount, currency, category, description, recorded_at } 对齐
+  revenue_trend?: Array<{ amount: number; recorded_at: number }>;
 }
+
+const formatTs = (ts: number): string => {
+  const d = new Date(ts * 1000);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+};
 
 export function DashboardTab() {
   const { t } = useTranslation();
@@ -24,11 +28,7 @@ export function DashboardTab() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
   const revenueChartRef = useRef<HTMLDivElement>(null);
-  const customerChartRef = useRef<HTMLDivElement>(null);
-  const projectChartRef = useRef<HTMLDivElement>(null);
   const revenueChartInstance = useRef<echarts.ECharts | null>(null);
-  const customerChartInstance = useRef<echarts.ECharts | null>(null);
-  const projectChartInstance = useRef<echarts.ECharts | null>(null);
 
   useEffect(() => {
     invoke<DashboardSummary>("opc_get_dashboard_summary")
@@ -51,7 +51,7 @@ export function DashboardTab() {
         grid: { left: 50, right: 20, top: 20, bottom: 30 },
         xAxis: {
           type: "category",
-          data: summary.revenue_trend.map((item) => item.date),
+          data: summary.revenue_trend.map((item) => formatTs(item.recorded_at)),
           axisLabel: { color: "#999" },
         },
         yAxis: {
@@ -62,7 +62,7 @@ export function DashboardTab() {
           {
             name: t("opc.dashboard.totalRevenue"),
             type: "line",
-            data: summary.revenue_trend.map((item) => item.revenue),
+            data: summary.revenue_trend.map((item) => item.amount),
             smooth: true,
             areaStyle: { opacity: 0.3 },
             lineStyle: { color: "#3f8600" },
@@ -72,57 +72,9 @@ export function DashboardTab() {
       });
     }
 
-    // 客户统计图
-    if (customerChartRef.current && summary.customer_stats) {
-      if (!customerChartInstance.current) {
-        customerChartInstance.current = echarts.init(customerChartRef.current);
-      }
-      customerChartInstance.current.setOption({
-        tooltip: { trigger: "item" },
-        legend: { bottom: 0 },
-        series: [
-          {
-            type: "pie",
-            radius: ["40%", "70%"],
-            avoidLabelOverlap: false,
-            label: { show: false },
-            data: summary.customer_stats.map((item) => ({
-              name: t(`opc.customerStatus.${item.status}`),
-              value: item.count,
-            })),
-          },
-        ],
-      });
-    }
-
-    // 项目状态图
-    if (projectChartRef.current && summary.project_stats) {
-      if (!projectChartInstance.current) {
-        projectChartInstance.current = echarts.init(projectChartRef.current);
-      }
-      projectChartInstance.current.setOption({
-        tooltip: { trigger: "item" },
-        legend: { bottom: 0 },
-        series: [
-          {
-            type: "pie",
-            radius: ["40%", "70%"],
-            avoidLabelOverlap: false,
-            label: { show: false },
-            data: summary.project_stats.map((item) => ({
-              name: t(`opc.projectStatus.${item.status}`),
-              value: item.count,
-            })),
-          },
-        ],
-      });
-    }
-
     // 响应式
     const handleResize = () => {
       revenueChartInstance.current?.resize();
-      customerChartInstance.current?.resize();
-      projectChartInstance.current?.resize();
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -132,8 +84,6 @@ export function DashboardTab() {
   useEffect(() => {
     return () => {
       revenueChartInstance.current?.dispose();
-      customerChartInstance.current?.dispose();
-      projectChartInstance.current?.dispose();
     };
   }, []);
 
@@ -189,29 +139,13 @@ export function DashboardTab() {
       </Row>
 
       {/* 图表区域 */}
-      {(summary.revenue_trend || summary.customer_stats || summary.project_stats) && (
+      {summary.revenue_trend && (
         <Row gutter={[16, 16]}>
-          {summary.revenue_trend && (
-            <Col xs={24} lg={12}>
-              <Card title={t("opc.dashboard.revenueTrend")} size="small">
-                <div ref={revenueChartRef} style={{ height: 240 }} />
-              </Card>
-            </Col>
-          )}
-          {summary.customer_stats && (
-            <Col xs={24} sm={12} lg={summary.revenue_trend ? 12 : 12}>
-              <Card title={t("opc.dashboard.customerDistribution")} size="small">
-                <div ref={customerChartRef} style={{ height: 240 }} />
-              </Card>
-            </Col>
-          )}
-          {summary.project_stats && (
-            <Col xs={24} sm={12} lg={12}>
-              <Card title={t("opc.dashboard.projectDistribution")} size="small">
-                <div ref={projectChartRef} style={{ height: 240 }} />
-              </Card>
-            </Col>
-          )}
+          <Col xs={24}>
+            <Card title={t("opc.dashboard.revenueTrend")} size="small">
+              <div ref={revenueChartRef} style={{ height: 240 }} />
+            </Card>
+          </Col>
         </Row>
       )}
 

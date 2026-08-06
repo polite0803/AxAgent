@@ -140,10 +140,13 @@ pub fn compute_quality_score(result: &serde_json::Value) -> f64 {
 /// 7. RL 策略优化（由 optimize_policy 内部判断阈值）
 ///
 /// 所有步骤均为异步非阻塞，失败仅记录日志，不影响主流程。
+///
+/// `app_dir`：用户数据目录（生产环境），用于解析学习配置文件。
 pub async fn try_auto_learn_workflow(
     template_id: &str,
     result: &serde_json::Value,
     state: &LearningEngineState,
+    app_dir: Option<&std::path::Path>,
 ) {
     let industry_id = match identify_industry_from_template(template_id) {
         Some(id) => id,
@@ -153,26 +156,48 @@ pub async fn try_auto_learn_workflow(
         },
     };
 
+    // P1-4：尊重行业 YAML 的 reflection/evolution/self_improvement/rl 开关，
+    // 关闭的环节不再触发（此前无视开关全部执行）。
+    let config =
+        crate::commands::opc_industry_actions::get_industry_learning_config(industry_id, app_dir);
+    let Some(config) = config else {
+        debug!("[opc-auto-learn] 行业 {} 学习配置缺失，跳过自动学习", industry_id);
+        return;
+    };
+    let rl_enabled = config.reinforcement_learning_enabled;
+
     let quality_score = compute_quality_score(result);
     let quality_score_100 = quality_score * 100.0;
 
     info!(
-        "[opc-auto-learn] 触发自动学习: industry={}, template={}, quality={:.1}",
-        industry_id, template_id, quality_score_100
+        "[opc-auto-learn] 触发自动学习: industry={}, template={}, quality={:.1}, rl={}, reflect={}, evolve={}, self_improve={}",
+        industry_id,
+        template_id,
+        quality_score_100,
+        rl_enabled,
+        config.reflection_enabled,
+        config.evolution_enabled,
+        config.self_improvement_enabled
     );
 
-    // 步骤 1：记录 RL 经验
-    if let Err(e) = record_experience(industry_id, template_id, quality_score, result, state).await
-    {
-        warn!("[opc-auto-learn] RL 经验记录失败: {}", e);
+    // 步骤 1：记录 RL 经验（尊重 rl 开关）
+    if rl_enabled {
+        if let Err(e) =
+            record_experience(industry_id, template_id, quality_score, result, state, app_dir).await
+        {
+            warn!("[opc-auto-learn] RL 经验记录失败: {}", e);
+        }
     }
 
-    // 步骤 2：触发反思
-    let reflection_result = trigger_reflection(industry_id, template_id, result, state).await;
+    // 步骤 2：触发反思（尊重 reflection 开关）
+    let mut reflection_result = None;
+    if config.reflection_enabled {
+        reflection_result = Some(trigger_reflection(industry_id, template_id, result, state).await);
+    }
 
-    // 步骤 3：如果反思质量分低于阈值，触发进化
-    if let Ok(reflection) = &reflection_result {
-        if reflection.quality_score < 70.0 {
+    // 步骤 3：如果反思质量分低于阈值，触发进化（尊重 evolution 开关）
+    if let Some(Ok(reflection)) = &reflection_result {
+        if reflection.quality_score < 70.0 && config.evolution_enabled {
             info!("[opc-auto-learn] 质量分 {:.1} 低于阈值 70，触发进化", reflection.quality_score);
             if let Err(e) = trigger_evolution(
                 industry_id,
@@ -187,14 +212,18 @@ pub async fn try_auto_learn_workflow(
         }
     }
 
-    // 步骤 4：自我改进
-    if let Err(e) = trigger_self_improvement(industry_id, template_id, state).await {
-        warn!("[opc-auto-learn] 自我改进失败: {}", e);
+    // 步骤 4：自我改进（尊重 self_improvement 开关）
+    if config.self_improvement_enabled {
+        if let Err(e) = trigger_self_improvement(industry_id, template_id, state).await {
+            warn!("[opc-auto-learn] 自我改进失败: {}", e);
+        }
     }
 
-    // 步骤 5：RL 策略优化（内部判断阈值，经验不足时静默跳过）
-    if let Err(e) = trigger_rl_optimization(industry_id, state).await {
-        debug!("[opc-auto-learn] RL 策略优化（可能经验不足）: {}", e);
+    // 步骤 5：RL 策略优化（尊重 rl 开关；经验不足时静默跳过）
+    if rl_enabled {
+        if let Err(e) = trigger_rl_optimization(industry_id, state, app_dir).await {
+            debug!("[opc-auto-learn] RL 策略优化（可能经验不足）: {}", e);
+        }
     }
 
     info!(
@@ -211,8 +240,9 @@ async fn record_experience(
     quality_score: f64,
     result: &serde_json::Value,
     state: &LearningEngineState,
+    app_dir: Option<&std::path::Path>,
 ) -> Result<(), String> {
-    let rl_config = load_rl_config(industry_id)
+    let rl_config = load_rl_config(industry_id, app_dir)
         .ok_or_else(|| format!("行业 {} 的 RL 配置不存在", industry_id))?;
 
     let engine = &state.industry_learning_engine;
@@ -286,8 +316,9 @@ async fn trigger_self_improvement(
 async fn trigger_rl_optimization(
     industry_id: &str,
     state: &LearningEngineState,
+    app_dir: Option<&std::path::Path>,
 ) -> Result<(), String> {
-    let rl_config = load_rl_config(industry_id)
+    let rl_config = load_rl_config(industry_id, app_dir)
         .ok_or_else(|| format!("行业 {} 的 RL 配置不存在", industry_id))?;
 
     let engine = &state.industry_learning_engine;
@@ -310,7 +341,13 @@ pub async fn opc_auto_learn_workflow(
 
     let quality_score = compute_quality_score(&workflow_result);
 
-    try_auto_learn_workflow(&template_id, &workflow_result, &state.learning).await;
+    try_auto_learn_workflow(
+        &template_id,
+        &workflow_result,
+        &state.learning,
+        Some(&state.app_data_dir),
+    )
+    .await;
 
     Ok(serde_json::json!({
         "success": true,

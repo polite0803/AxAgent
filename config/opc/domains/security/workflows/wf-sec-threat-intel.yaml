@@ -4,7 +4,7 @@ name: 威胁情报
 description: 收集和分析最新安全威胁情报
 icon: "🕵️"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-threat-collect
     title: 情报收集

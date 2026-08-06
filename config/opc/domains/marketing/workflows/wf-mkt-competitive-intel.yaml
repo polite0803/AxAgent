@@ -4,7 +4,7 @@ name: 竞争情报
 description: 持续监控竞争对手动态
 icon: "🕵️"
 tags: [opc]
-profile_id: cmo
+profile_id: opc-cmo-cmo-content-strategist
 steps:
   - id: a-comp-map
     title: 竞品地图

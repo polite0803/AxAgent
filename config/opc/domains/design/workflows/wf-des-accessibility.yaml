@@ -4,7 +4,7 @@ name: 无障碍审计
 description: 审计和修复产品无障碍问题
 icon: "♿"
 tags: [opc]
-profile_id: cpo
+profile_id: opc-cpo-cpo-product-manager
 steps:
   - id: a-a11y-scan
     title: 扫描

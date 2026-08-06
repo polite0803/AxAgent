@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// 发票状态
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum InvoiceStatus {
     Draft,
     Sent,
@@ -107,7 +108,8 @@ pub struct UpdateInvoiceInput {
 }
 
 /// 发票查询过滤
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct InvoiceFilter {
     pub status: Option<InvoiceStatus>,
     pub customer_id: Option<String>,

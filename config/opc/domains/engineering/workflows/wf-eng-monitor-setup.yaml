@@ -4,7 +4,7 @@ name: 监控告警配置
 description: 搭建应用监控、日志和告警系统
 icon: "📊"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-monitor-plan
     title: 监控规划

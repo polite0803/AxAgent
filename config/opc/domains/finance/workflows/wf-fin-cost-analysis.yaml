@@ -4,7 +4,7 @@ name: 成本分析
 description: 全面分析运营成本和优化空间
 icon: "📉"
 tags: [opc]
-profile_id: cfo
+profile_id: opc-cfo-cfo-financial-analyst
 steps:
   - id: a-cost-collect
     title: 采集

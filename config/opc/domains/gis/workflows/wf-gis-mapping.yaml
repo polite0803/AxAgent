@@ -4,7 +4,7 @@ name: 地图制作
 description: 专业地图制图和符号设计
 icon: "🗺️"
 tags: [opc]
-profile_id: ceo
+profile_id: opc-ceo-ceo-business-strategist
 steps:
   - id: a-map-data
     title: 数据准备

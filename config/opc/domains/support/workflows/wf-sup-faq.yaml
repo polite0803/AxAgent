@@ -4,7 +4,7 @@ name: FAQ知识库
 description: 从客户问题提取和更新知识库
 icon: "📚"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-faq-collect
     title: 收集

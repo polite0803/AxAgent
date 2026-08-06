@@ -4,7 +4,7 @@ name: 架构评审
 description: 后端架构师评审系统设计方案的可行性
 icon: "🏗️"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-design
     title: 设计方案

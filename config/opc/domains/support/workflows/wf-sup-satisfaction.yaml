@@ -4,7 +4,7 @@ name: 客户满意度调查
 description: 设计、发���和分析满意度调查
 icon: "📊"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-sat-design
     title: 设计

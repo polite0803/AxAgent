@@ -39,7 +39,7 @@ fn entity_to_dto(e: opc_customers::Model) -> OpcResult<Customer> {
         "direct" => CustomerSource::Direct,
         other => CustomerSource::Other(other.to_string()),
     });
-    let status = CustomerStatus::from_str(&e.status).map_err(OpcError::Validation)?;
+    let status = CustomerStatus::from_str(&e.status).unwrap_or(CustomerStatus::Lead);
 
     Ok(Customer {
         id: e.id,

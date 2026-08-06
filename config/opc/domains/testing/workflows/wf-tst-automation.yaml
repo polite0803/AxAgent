@@ -4,7 +4,7 @@ name: 自动化测试
 description: 编写和维护自动化测试脚本
 icon: "🤖"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-tauto-pick
     title: 选型

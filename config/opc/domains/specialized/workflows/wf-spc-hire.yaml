@@ -4,7 +4,7 @@ name: 招聘流程
 description: 从职位描述到Offer的完整招聘
 icon: "🎯"
 tags: [opc]
-profile_id: coo
+profile_id: opc-coo-coo-operations-manager
 steps:
   - id: a-hire-jd
     title: 职位描述

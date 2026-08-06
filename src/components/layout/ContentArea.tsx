@@ -35,6 +35,7 @@ const LazyDynamicPageViewer = lazy(() =>
 );
 const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
 const LazyIndustryPage = lazy(() => import("@/pages/IndustryPage").then((m) => ({ default: m.IndustryPage })));
+const LazyOpcPage = lazy(() => import("@/pages/OpcPage").then((m) => ({ default: m.OpcPage })));
 
 function PageLoader() {
   return (
@@ -242,10 +243,19 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* OPC 一人公司管理 — 根路径重定向到第一个行业 */}
+          {/* OPC 一人公司管理 — 根路径重定向到仪表板 */}
           <Route
             path={BUILTIN_PAGE_PATH.opc}
-            element={<Navigate to={BUILTIN_PAGE_PATH.opcIndustryAiResearch} replace />}
+            element={<Navigate to={`${BUILTIN_PAGE_PATH.opc}/dashboard`} replace />}
+          />
+          {/* OPC 管理页面（仪表板、发票、客户、项目等）— 使用动态 :tab 参数 */}
+          <Route
+            path={`${BUILTIN_PAGE_PATH.opc}/:tab`}
+            element={
+              <PageContextProvider page="opc">
+                <SafeLazyPage Page={LazyOpcPage} />
+              </PageContextProvider>
+            }
           />
           {/* OPC 9 大垂直行业路由 */}
           <Route

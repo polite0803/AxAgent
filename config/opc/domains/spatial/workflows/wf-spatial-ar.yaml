@@ -4,7 +4,7 @@ name: AR应用设计
 description: 增强现实应用概念和交互设计
 icon: "🥽"
 tags: [opc]
-profile_id: cto
+profile_id: opc-cto-cto-ai-engineer
 steps:
   - id: a-ar-concept
     title: 概念设计

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
-import { ProjectOutlined } from "@ant-design/icons";
+import { PlusOutlined, ProjectOutlined } from "@ant-design/icons";
 import { Button, Card, Col, Descriptions, Empty, message, Modal, Row, Space, Tag, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -63,11 +63,29 @@ export function KanbanTab() {
     }
   };
 
+  const createItem = async () => {
+    const title = window.prompt(t("opc.kanban.createPrompt"), "");
+    if (!title || !title.trim()) { return; }
+    setActing("new");
+    try {
+      await invoke("opc_create_work_item", { title: title.trim() });
+      message.success(t("opc.kanban.createSuccess"));
+      refresh();
+    } catch (e) {
+      message.error(t("opc.kanban.createFailed", { error: String(e) }));
+    } finally {
+      setActing(null);
+    }
+  };
+
   return (
     <div>
       <Space style={{ marginBottom: 12 }}>
         <Button size="small" type="primary" icon={<ProjectOutlined />} onClick={refresh} loading={loading}>
           {t("opc.kanban.refresh")}
+        </Button>
+        <Button size="small" icon={<PlusOutlined />} onClick={createItem} loading={acting === "new"}>
+          {t("opc.kanban.create")}
         </Button>
         <Text type="secondary">{t("opc.kanban.machineDesc")}</Text>
       </Space>
