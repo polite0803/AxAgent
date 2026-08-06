@@ -141,10 +141,5 @@ impl Default for IndustryAdapterRegistry {
     }
 }
 
-// 导出基础适配器和工厂函数
-pub use base_adapter::{
-    BaseIndustryAdapter, create_accounting_adapter, create_ai_research_adapter,
-    create_all_adapters, create_content_media_adapter, create_ecommerce_adapter,
-    create_education_adapter, create_finance_invest_adapter, create_industry_consulting_adapter,
-    create_sales_growth_adapter, create_software_dev_adapter,
-};
+// 导出基础适配器和配置加载入口（P0-1-A：工厂函数已随硬编码删除）
+pub use base_adapter::BaseIndustryAdapter;

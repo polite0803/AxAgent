@@ -748,8 +748,7 @@ macro_rules! register_all_commands {
             commands::skill_decomposition::check_tool_semantic_matches,
             commands::skill_decomposition::upgrade_tool_with_llm,
             commands::skill_decomposition::get_marketplace_skill_content,
-            // Work Engine commands
-            commands::work_engine::start_workflow_execution,
+            // Work Engine commands（P0-2：start_workflow_execution 已并入 workflow_execute 单一入口）
             commands::work_engine::pause_workflow_execution,
             commands::work_engine::resume_workflow_execution,
             commands::work_engine::cancel_workflow_execution,

@@ -22,9 +22,7 @@ use axagent_dao::search_sources_impl::{
 };
 use axagent_harness::AgentSessionRepository;
 use axagent_harness::feedback_data_lake::register_feedback_lake;
-use axagent_orchestrator::industry_adapters::create_all_adapters;
-use axagent_orchestrator::{IndustryAdapterRegistry, IndustryLearningEngine};
-use axagent_plugins::{PluginManager, PluginManagerConfig};
+use axagent_orchestrator::{IndustryAdapterRegistry, IndustryLearningEngine};use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::{CloudStorageConfig, SyncEngine};
 use tokio_util::sync::CancellationToken;
@@ -833,9 +831,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
 
     // ── M1: 新子状态分解 — 学习引擎与工具创建器 ──
-    // 初始化 OPC 行业适配器注册表
+    // 初始化 OPC 行业适配器注册表（P0-1-A：行业包驱动，替代 create_all_adapters 硬编码）
     let mut industry_registry = IndustryAdapterRegistry::new();
-    for adapter in create_all_adapters() {
+    for adapter in crate::commands::opc_workflows::load_industry_adapters_from_packs(Some(&app_dir))
+    {
         industry_registry.register(adapter);
     }
     let industry_adapter_registry = Arc::new(Mutex::new(industry_registry));

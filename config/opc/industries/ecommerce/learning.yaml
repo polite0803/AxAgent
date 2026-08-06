@@ -46,3 +46,56 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "ecommerce-default"
+    name: "电商反思模板"
+    quality_weights:
+      task_completion: 0.25
+      output_quality: 0.25
+      efficiency: 0.25
+      cost_efficiency: 0.25
+    checkpoints:
+      - id: "conversion-rate"
+        name: "转化率"
+        dimension: "conversion"
+        description: "评估访客到客户的转化"
+        weight: 0.4
+      - id: "customer-satisfaction"
+        name: "客户满意度"
+        dimension: "satisfaction"
+        description: "评估客户购买体验"
+        weight: 0.3
+      - id: "profit-margin"
+        name: "利润率"
+        dimension: "profitability"
+        description: "评估盈利能力"
+        weight: 0.3
+    prompts:
+      - "请评估本次电商活动的转化率"
+      - "客户满意度如何？"
+      - "利润率是否达标？"
+  evolution_constraints: {}
+  acceptance_criteria:
+    - id: "ec-conversion"
+      name: "转化率"
+      description: "页面转化率达到目标"
+      dimension: "conversion"
+      threshold: 0.6
+      is_critical: true
+      weight: 0.4
+    - id: "ec-satisfaction"
+      name: "客户满意度"
+      description: "客户体验良好"
+      dimension: "satisfaction"
+      threshold: 0.8
+      is_critical: false
+      weight: 0.3
+    - id: "ec-profit"
+      name: "利润率"
+      description: "保持合理利润率"
+      dimension: "profitability"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.3

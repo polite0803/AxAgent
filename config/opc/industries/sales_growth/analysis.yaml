@@ -1,0 +1,20 @@
+# sales_growth 行业分析配置（P0-4 四件套之一）— 最小骨架，数据源/策略/风控在 P1/P2 细化
+version: 1
+industry_id: sales_growth
+
+data_sources:
+  - id: business_stats
+    chain: [db, cache]
+    quality_precheck: true
+
+strategies:
+  - id: overview
+    name: 经营概览
+    dimensions: []
+
+risk:
+  max_kpi_warning_pct: 0.8
+  critical_kpis: []
+
+quality_precheck:
+  - business_stats

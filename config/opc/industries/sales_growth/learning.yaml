@@ -46,3 +46,56 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "sales-growth-default"
+    name: "销售增长反思模板"
+    quality_weights:
+      task_completion: 0.25
+      output_quality: 0.25
+      efficiency: 0.3
+      cost_efficiency: 0.2
+    checkpoints:
+      - id: "conversion"
+        name: "转化率"
+        dimension: "conversion"
+        description: "评估线索到成交的转化效率"
+        weight: 0.4
+      - id: "lead-quality"
+        name: "线索质量"
+        dimension: "quality"
+        description: "评估目标客户匹配度"
+        weight: 0.3
+      - id: "response-speed"
+        name: "响应速度"
+        dimension: "speed"
+        description: "评估跟进和响应的及时性"
+        weight: 0.3
+    prompts:
+      - "请评估本次销售活动的转化效果"
+      - "线索质量是否达标？"
+      - "跟进响应是否及时？"
+  evolution_constraints: {}
+  acceptance_criteria:
+    - id: "sg-conversion"
+      name: "转化率"
+      description: "线索转化率达到目标"
+      dimension: "conversion"
+      threshold: 0.7
+      is_critical: true
+      weight: 0.4
+    - id: "sg-lead-quality"
+      name: "线索质量"
+      description: "目标客户符合 ICP"
+      dimension: "quality"
+      threshold: 0.8
+      is_critical: false
+      weight: 0.3
+    - id: "sg-response-time"
+      name: "响应时效"
+      description: "首次响应时间不超过 24 小时"
+      dimension: "speed"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.3

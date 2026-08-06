@@ -46,3 +46,56 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "content-media-default"
+    name: "内容媒体反思模板"
+    quality_weights:
+      task_completion: 0.2
+      output_quality: 0.35
+      efficiency: 0.2
+      cost_efficiency: 0.25
+    checkpoints:
+      - id: "content-quality"
+        name: "内容质量"
+        dimension: "quality"
+        description: "评估内容的原创性和价值"
+        weight: 0.5
+      - id: "seo"
+        name: "SEO 效果"
+        dimension: "seo"
+        description: "评估搜索引擎优化效果"
+        weight: 0.3
+      - id: "engagement"
+        name: "用户互动"
+        dimension: "engagement"
+        description: "评估内容引发的用户互动"
+        weight: 0.2
+    prompts:
+      - "请评估本次内容创作的质量"
+      - "SEO 优化是否到位？"
+      - "内容能引发用户互动吗？"
+  evolution_constraints: {}
+  acceptance_criteria:
+    - id: "cm-content-quality"
+      name: "内容质量"
+      description: "内容原创且有价值"
+      dimension: "quality"
+      threshold: 0.8
+      is_critical: true
+      weight: 0.5
+    - id: "cm-seo"
+      name: "SEO 优化"
+      description: "关键词和元数据优化到位"
+      dimension: "seo"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.3
+    - id: "cm-engagement"
+      name: "互动潜力"
+      description: "标题和开头能吸引读者"
+      dimension: "engagement"
+      threshold: 0.6
+      is_critical: false
+      weight: 0.2

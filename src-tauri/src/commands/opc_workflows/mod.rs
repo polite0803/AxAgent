@@ -209,6 +209,50 @@ pub fn ensure_opc_config_synced(app_dir: &std::path::Path) {
     }
 }
 
+// ── 行业适配器配置加载（P0-1-A：行业包驱动，消灭 Rust 硬编码） ────
+
+/// 从行业包目录加载全部行业适配器（`learning.yaml` 的 `adapter:` 段驱动）。
+///
+/// P0-1-A：替代 orchestrator `create_all_adapters()` 的 Rust 硬编码 9 行业配置；
+/// 动态扫描 `config/opc/industries/*/`，新增行业无需改代码。
+/// `adapter` 段缺失（旧包）→ 默认适配器（向后兼容）；解析失败仅告警跳过该行业。
+pub fn load_industry_adapters_from_packs(
+    app_dir: Option<&std::path::Path>,
+) -> Vec<std::sync::Arc<dyn axagent_orchestrator::IndustryAdapter>> {
+    use axagent_orchestrator::industry_adapters::BaseIndustryAdapter;
+
+    let base = resolve_industries_dir(app_dir);
+    let mut out = Vec::new();
+    let Ok(entries) = std::fs::read_dir(&base) else { return out };
+    for entry in entries.flatten() {
+        let dir = entry.path();
+        if !dir.is_dir() {
+            continue;
+        }
+        let Some(bundle) = industry_pack::analysis_schema::load_industry_pack(&dir) else {
+            continue;
+        };
+        let m = &bundle.manifest;
+        // 行业 ID 双轨归一：manifest.id 是下划线（software_dev），orchestrator
+        // 学习/编排侧约定连字符（software-dev）——与 learning hook 的
+        // `identify_industry_from_template` 转换一致（P4-4）。
+        let industry_id = m.id.replace('_', "-");
+        let learning_path = dir.join(&m.learning);
+        let adapter_cfg = std::fs::read_to_string(&learning_path)
+            .ok()
+            .and_then(|c| serde_yaml::from_str::<serde_json::Value>(&c).ok())
+            .and_then(|v| v.get("adapter").cloned())
+            .unwrap_or(serde_json::Value::Null);
+        match BaseIndustryAdapter::from_config_json(&industry_id, &m.name, &adapter_cfg) {
+            Ok(a) => {
+                out.push(std::sync::Arc::new(a) as std::sync::Arc<dyn axagent_orchestrator::IndustryAdapter>);
+            },
+            Err(e) => tracing::warn!("[opc-adapter] 行业 {} 适配器配置解析失败: {e}", m.id),
+        }
+    }
+    out
+}
+
 // ── 节点构建辅助 ─────────────────────────────────────────────────
 
 pub(crate) fn make_base(id: &str, title: &str, desc: &str, x: f64, y: f64) -> WorkflowNodeBase {
@@ -795,5 +839,121 @@ mod tests {
             assert!(!m.name.is_empty());
             assert!(m.version >= 1);
         }
+    }
+
+    #[tokio::test]
+    async fn industry_pack_four_assets_loaded() {
+        // P0-4 回归：行业包四件套（manifest + workflows + analysis + learning）一次读全，
+        // manifest.analysis/learning 字段缺省默认值，analysis.yaml 全部可解析
+        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("config/opc/industries");
+
+        let mut count = 0;
+        for entry in std::fs::read_dir(&base).unwrap().flatten() {
+            let dir = entry.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            let bundle = super::industry_pack::analysis_schema::load_industry_pack(&dir)
+                .expect("行业包应完整加载（manifest 可解析）");
+            // manifest 扩展字段：缺省默认 analysis.yaml / learning.yaml
+            assert_eq!(bundle.manifest.analysis, "analysis.yaml", "{} analysis 缺省", bundle.manifest.id);
+            assert_eq!(
+                bundle.manifest.learning,
+                "learning.yaml",
+                "{} learning 缺省",
+                bundle.manifest.id
+            );
+            // analysis.yaml 四件套之一：必须存在且可解析
+            assert!(
+                bundle.analysis.is_some(),
+                "{} 缺 analysis.yaml（P0-4 四件套要求）",
+                bundle.manifest.id
+            );
+            let analysis = bundle.analysis.unwrap();
+            assert!(!analysis.data_sources.is_empty(), "{} data_sources 非空", bundle.manifest.id);
+            assert!(
+                analysis.quality_precheck.iter().all(|s| analysis
+                    .data_sources
+                    .iter()
+                    .any(|ds| ds.id == *s)),
+                "{} quality_precheck 源必须存在于 data_sources",
+                bundle.manifest.id
+            );
+            // learning.yaml 四件套之一：P4-3 已迁入行业包
+            assert!(
+                dir.join("learning.yaml").is_file(),
+                "{} 缺 learning.yaml（P4-3 要求）",
+                bundle.manifest.id
+            );
+            count += 1;
+        }
+        assert_eq!(count, 9, "应扫描到 9 个行业包，实际 {count}");
+    }
+
+    #[test]
+    fn industry_adapters_loaded_from_packs() {
+        // P0-1-A 回归：行业适配器由行业包 learning.yaml 的 adapter 段驱动
+        //（替代 orchestrator create_all_adapters Rust 硬编码）。
+        // 用 accounting 已知配置对账：3 checkpoints + 3 AC + min/max 2/15 + protected compliance_check。
+        // 测试 CWD=src-tauri，相对路径落空 → 显式传仓库根（模拟 app_dir 命中分支）。
+        let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+        let adapters = super::load_industry_adapters_from_packs(Some(repo_root));
+        assert_eq!(adapters.len(), 9, "应加载 9 个行业适配器: {}", adapters.len());
+
+        let accounting = adapters
+            .iter()
+            .find(|a| a.industry_id() == "accounting")
+            .expect("accounting 适配器应存在");
+        assert_eq!(accounting.industry_name(), "会计财务流程");
+
+        let rt = accounting.reflection_template();
+        assert_eq!(rt.id, "accounting-default", "reflection_template.id 应对账 yaml");
+        assert_eq!(rt.checkpoints.len(), 3, "accounting 应有 3 个检查点");
+        assert!(rt.checkpoints.iter().any(|c| c.id == "accuracy" && (c.weight - 0.5).abs() < 1e-9));
+
+        let ec = accounting.evolution_constraints();
+        assert_eq!(ec.min_steps, 2, "min_steps 应对账 yaml");
+        assert_eq!(ec.max_steps, 15, "max_steps 应对账 yaml");
+        assert!(ec.protected_steps.iter().any(|p| p.step_id == "compliance_check"));
+        assert!(ec.forbidden_optimizations.iter().any(|f| f.optimization_type == "skip_compliance"));
+        assert!((ec.quality_thresholds.min_accuracy - 0.95).abs() < 1e-9);
+
+        let ac = accounting.acceptance_criteria();
+        assert_eq!(ac.len(), 3, "accounting 应有 3 条验收标准");
+        assert!(ac.iter().any(|c| c.id == "ac-accuracy" && c.is_critical));
+
+        // software-dev：唯一带 protected/deps/forbidden + must_follow_order 的行业
+        let sd = adapters
+            .iter()
+            .find(|a| a.industry_id() == "software-dev")
+            .expect("software-dev 适配器应存在");
+        assert!(sd.evolution_constraints().must_follow_order, "software-dev 应 must_follow_order");
+        assert_eq!(sd.evolution_constraints().protected_steps.len(), 3);
+        assert_eq!(sd.acceptance_criteria().len(), 4);
+
+        // 新增行业零代码：临时目录建 manifest + learning.yaml(adapter 段) → 动态出现
+        let tmp = std::env::temp_dir().join(format!("opc-adapter-test-{}", std::process::id()));
+        let pkg = tmp.join("config/opc/industries/mock_industry");
+        std::fs::create_dir_all(&pkg).unwrap();
+        std::fs::write(
+            pkg.join("manifest.yaml"),
+            "id: mock-industry\nname: 模拟行业\nversion: 1\nenabled: true\n",
+        )
+        .unwrap();
+        std::fs::write(
+            pkg.join("learning.yaml"),
+            "version: 1\nindustry_id: mock-industry\nadapter:\n  reflection_template:\n    id: mock\n    name: Mock 模板\n    checkpoints:\n      - id: c1\n        name: C1\n        dimension: d\n        description: desc\n        weight: 0.5\n",
+        )
+        .unwrap();
+        let adapters2 = super::load_industry_adapters_from_packs(Some(&tmp));
+        let mock = adapters2
+            .iter()
+            .find(|a| a.industry_id() == "mock-industry")
+            .expect("新增行业应自动加载（零代码）");
+        assert_eq!(mock.reflection_template().id, "mock");
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

@@ -46,3 +46,62 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "ai-research-default"
+    name: "AI 研究反思模板"
+    quality_weights:
+      task_completion: 0.3
+      output_quality: 0.3
+      efficiency: 0.2
+      cost_efficiency: 0.2
+    checkpoints:
+      - id: "accuracy"
+        name: "研究准确性"
+        dimension: "accuracy"
+        description: "评估论文分析和技术解读的准确性"
+        weight: 0.4
+      - id: "coverage"
+        name: "调研覆盖度"
+        dimension: "coverage"
+        description: "评估技术调研的广度和深度"
+        weight: 0.3
+      - id: "actionability"
+        name: "可操作性"
+        dimension: "actionability"
+        description: "评估研究结论的实践指导价值"
+        weight: 0.3
+    prompts:
+      - "请评估本次 AI 研究的准确性和深度"
+      - "本次研究是否覆盖了关键技术方向？"
+      - "研究结论是否具有实际应用价值？"
+  evolution_constraints:
+    min_steps: 2
+    max_steps: 15
+    quality_thresholds:
+      min_accuracy: 0.8
+      min_success_rate: 0.7
+      min_quality_score: 0.6
+  acceptance_criteria:
+    - id: "ai-research-accuracy"
+      name: "研究准确性"
+      description: "论文和技术解读是否准确"
+      dimension: "accuracy"
+      threshold: 0.85
+      is_critical: true
+      weight: 0.4
+    - id: "ai-research-coverage"
+      name: "研究覆盖度"
+      description: "是否覆盖指定的研究范围"
+      dimension: "coverage"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.3
+    - id: "ai-research-actionable"
+      name: "可操作性"
+      description: "结论是否可以指导实际应用"
+      dimension: "actionability"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.3

@@ -46,3 +46,56 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "education-default"
+    name: "教育反思模板"
+    quality_weights:
+      task_completion: 0.3
+      output_quality: 0.25
+      efficiency: 0.2
+      cost_efficiency: 0.25
+    checkpoints:
+      - id: "learning-outcomes"
+        name: "学习成果"
+        dimension: "outcomes"
+        description: "评估学员知识掌握情况"
+        weight: 0.4
+      - id: "engagement"
+        name: "参与度"
+        dimension: "engagement"
+        description: "评估学员课堂参与度"
+        weight: 0.3
+      - id: "practical-application"
+        name: "实践应用"
+        dimension: "application"
+        description: "评估知识转化为实践能力"
+        weight: 0.3
+    prompts:
+      - "请评估本次教学的学习成果"
+      - "学员参与度如何？"
+      - "知识能否转化为实践能力？"
+  evolution_constraints: {}
+  acceptance_criteria:
+    - id: "ed-outcomes"
+      name: "学习成果"
+      description: "学员掌握核心知识点"
+      dimension: "outcomes"
+      threshold: 0.75
+      is_critical: true
+      weight: 0.4
+    - id: "ed-engagement"
+      name: "参与度"
+      description: "学员积极参与互动"
+      dimension: "engagement"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.3
+    - id: "ed-application"
+      name: "实践应用"
+      description: "知识可应用于实际场景"
+      dimension: "application"
+      threshold: 0.65
+      is_critical: false
+      weight: 0.3

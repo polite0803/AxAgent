@@ -46,3 +46,56 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "industry-consulting-default"
+    name: "行业咨询反思模板"
+    quality_weights:
+      task_completion: 0.25
+      output_quality: 0.3
+      efficiency: 0.2
+      cost_efficiency: 0.25
+    checkpoints:
+      - id: "insight-depth"
+        name: "洞察深度"
+        dimension: "depth"
+        description: "分析是否深入到业务本质"
+        weight: 0.4
+      - id: "recommendation"
+        name: "建议质量"
+        dimension: "quality"
+        description: "建议是否具体可执行"
+        weight: 0.3
+      - id: "data-support"
+        name: "数据支撑"
+        dimension: "data"
+        description: "结论是否有充分数据支撑"
+        weight: 0.3
+    prompts:
+      - "请评估本次咨询分析的深度"
+      - "建议是否具体可行？"
+      - "结论是否有数据支撑？"
+  evolution_constraints: {}
+  acceptance_criteria:
+    - id: "ic-insight-depth"
+      name: "洞察深度"
+      description: "分析深入业务本质"
+      dimension: "depth"
+      threshold: 0.8
+      is_critical: true
+      weight: 0.4
+    - id: "ic-recommendation"
+      name: "建议质量"
+      description: "建议具体可执行"
+      dimension: "quality"
+      threshold: 0.75
+      is_critical: true
+      weight: 0.35
+    - id: "ic-data-support"
+      name: "数据支撑"
+      description: "结论有充分数据支撑"
+      dimension: "data"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.25

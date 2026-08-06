@@ -46,3 +46,92 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "software-dev-default"
+    name: "软件开发反思模板"
+    quality_weights:
+      task_completion: 0.25
+      output_quality: 0.3
+      efficiency: 0.2
+      cost_efficiency: 0.25
+    checkpoints:
+      - id: "coding"
+        name: "代码质量"
+        dimension: "quality"
+        description: "评估代码的可读性、健壮性和可维护性"
+        weight: 0.4
+      - id: "testing"
+        name: "测试覆盖率"
+        dimension: "coverage"
+        description: "评估单元测试和集成测试的覆盖情况"
+        weight: 0.3
+      - id: "documentation"
+        name: "文档完整性"
+        dimension: "documentation"
+        description: "评估技术文档和 API 文档的完整度"
+        weight: 0.3
+    prompts:
+      - "请评估本次代码实现的质量和规范"
+      - "代码是否通过了必要的测试？"
+      - "技术文档是否完整清晰？"
+  evolution_constraints:
+    protected_steps:
+      - step_id: "code_review"
+        reason: "代码质量是核心竞争力"
+      - step_id: "security_audit"
+        reason: "安全性不可妥协"
+      - step_id: "testing"
+        reason: "测试是质量保障"
+    step_dependencies:
+      - from: "requirements"
+        to: "architecture"
+        type: hard
+      - from: "architecture"
+        to: "coding"
+        type: hard
+      - from: "coding"
+        to: "code_review"
+        type: soft
+    min_steps: 5
+    max_steps: 25
+    must_follow_order: true
+    forbidden_optimizations:
+      - optimization_type: "skip_testing"
+        reason: "不允许跳过测试阶段"
+      - optimization_type: "merge_review_and_coding"
+        reason: "实现和评估必须分离"
+    quality_thresholds:
+      min_accuracy: 0.8
+      min_success_rate: 0.7
+      min_quality_score: 0.6
+  acceptance_criteria:
+    - id: "sd-code-quality"
+      name: "代码质量"
+      description: "代码符合编码规范，无明显 bug"
+      dimension: "quality"
+      threshold: 0.8
+      is_critical: true
+      weight: 0.35
+    - id: "sd-test-coverage"
+      name: "测试覆盖率"
+      description: "核心模块测试覆盖率不低于 70%"
+      dimension: "coverage"
+      threshold: 0.7
+      is_critical: true
+      weight: 0.25
+    - id: "sd-security"
+      name: "安全性"
+      description: "无高危漏洞，符合 OWASP Top 10"
+      dimension: "security"
+      threshold: 0.9
+      is_critical: true
+      weight: 0.2
+    - id: "sd-documentation"
+      name: "文档完整性"
+      description: "设计文档和 API 文档齐全"
+      dimension: "documentation"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.2

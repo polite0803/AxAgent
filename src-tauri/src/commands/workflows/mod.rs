@@ -4,13 +4,12 @@ use crate::AppState;
 use crate::commands::agent::skill_execution::{self, SkillStep};
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
-use crate::commands::spawn_guard::SpawnGuard;
 
 use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tauri::{Emitter, State};
+use tauri::State;
 
 // ── 类型定义 ──
 
@@ -70,161 +69,55 @@ pub async fn workflow_create(
     })
 }
 
-/// 执行工作流（含 LLM 步骤执行）
+/// 执行工作流（P0-2 单一入口：统一 `start_workflow_execution` 与 `workflow_execute`）。
 ///
+/// `input`：工作流输入（原 start_workflow_execution 参数，现已并入）。
 /// `max_concurrent`：最大并发节点数（None 使用默认值 3）。
-/// 暴露给前端用于按场景调节吞吐：CPU 密集型工作流降低并发避免压垮本机，
-/// IO 密集型工作流可提高并发缩短端到端时延。
+/// 返回 execution_id（前端按 `workflow:execution-completed` 事件感知完成）。
 #[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "执行工作流")]
 #[tauri::command]
 pub async fn workflow_execute(
     app: tauri::AppHandle,
     app_state: State<'_, AppState>,
     workflow_id: String,
+    input: Option<serde_json::Value>,
     model_id: Option<String>,
     provider_id: Option<String>,
     variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
     max_concurrent: Option<usize>,
 ) -> Result<String, String> {
-    // 验证工作流存在
-    let _ = app_state
-        .work_engine
-        .get_workflow(&workflow_id)
-        .await
-        .map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?
-        .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
-
     // 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
     // 此处不再 set_tool_resolver 覆盖——否则会静默丢弃 init 阶段注入的 workflow:: 解析。
     let _ = app_state.local_tool_registry; // 保留依赖项以维持签名稳定
 
-    let engine = app_state.work_engine.clone();
-    let wid = workflow_id.clone();
-    let app_for_emit = app.clone();
-    let app_for_panic = app_for_emit.clone();
-    let wid_for_panic = wid.clone();
-    let learning_state = app_state.learning.clone();
-    let app_data_dir = app_state.app_data_dir.clone();
-    tokio::spawn(async move {
-        // 兜底：panic / 早退路径上 emit execution-completed failed 事件
-        // WF-P0-2: emit 字段统一为 { workflow_id, execution_id, status, total_time_ms, error? }
-        // 与前端 workEngineStore.ts 期望对齐
-        let _guard = SpawnGuard::new("workflow_run", move || {
-            tracing::error!("[workflow_run] PANIC guard fired for workflow={}", wid_for_panic);
-            let _ = app_for_panic.emit(
-                "workflow:execution-completed",
-                serde_json::json!({
-                    "workflow_id": wid_for_panic,
-                    "execution_id": null,
-                    "status": "failed",
-                    "total_time_ms": 0,
-                    "error": "Internal panic during workflow execution",
-                }),
-            );
-        });
-        let mut opts = axagent_runtime::work_engine::RunOptions::default();
-        if let Some(m) = model_id {
-            opts = opts.with_model(m);
-        }
-        if let Some(p) = provider_id {
-            opts = opts.with_provider(p);
-        }
-        if let Some(vars) = variables {
-            opts = opts.with_variables(vars);
-        }
-        if let Some(mc) = max_concurrent {
-            // 合理下限保护：至少 1 个并发，避免 0 导致死锁。
-            let clamped = mc.max(1);
-            opts = opts.with_max_concurrent(clamped);
-        }
-        let started_at = std::time::Instant::now();
-        match engine.run_workflow(&wid, opts).await {
-            Ok(workflow) => {
-                let total_time_ms = started_at.elapsed().as_millis() as u64;
-                // run_workflow 不生成独立 execution_id，使用 workflow.id 作为标识
-                let execution_id = workflow.id.clone();
-                let status_str = format!("{:?}", workflow.status).to_lowercase();
-                let _ = app_for_emit.emit(
-                    "workflow:execution-completed",
-                    serde_json::json!({
-                        "workflow_id": wid,
-                        "execution_id": execution_id,
-                        "status": status_str,
-                        "total_time_ms": total_time_ms,
-                    }),
-                );
+    let mut opts = axagent_runtime::work_engine::RunOptions {
+        input,
+        ..Default::default()
+    };
+    if let Some(m) = model_id {
+        opts = opts.with_model(m);
+    }
+    if let Some(p) = provider_id {
+        opts = opts.with_provider(p);
+    }
+    if let Some(vars) = variables {
+        opts = opts.with_variables(vars);
+    }
+    if let Some(mc) = max_concurrent {
+        // 合理下限保护：至少 1 个并发，避免 0 导致死锁。
+        opts = opts.with_max_concurrent(mc.max(1));
+    }
+    let execution_id = crate::commands::work_engine::spawn_workflow_run(
+        app,
+        app_state.work_engine.clone(),
+        workflow_id,
+        opts,
+        Some(app_state.learning.clone()),
+        Some(app_state.app_data_dir.clone()),
+    );
 
-                // 自动学习钩子：OPC 行业工作流完成后触发反思/进化/RL
-                // P2-10：携带节点结果与步骤状态，compute_quality_score 才能真实评估
-                //（此前仅 {status, total_time_ms}，质量分恒 0.8，RL/反思输入失真）
-                {
-                    use crate::commands::opc_learning_hook::try_auto_learn_workflow;
-                    let node_steps: Vec<serde_json::Value> = workflow
-                        .node_states
-                        .iter()
-                        .map(|(id, s)| {
-                            serde_json::json!({
-                                "node_id": id,
-                                "status": format!("{:?}", s.status).to_lowercase(),
-                            })
-                        })
-                        .collect();
-                    let result_json = serde_json::json!({
-                        "status": status_str,
-                        "total_time_ms": total_time_ms,
-                        "results": workflow.results,
-                        "steps": node_steps,
-                    });
-                    try_auto_learn_workflow(
-                        &wid,
-                        &result_json,
-                        &learning_state,
-                        Some(&app_data_dir),
-                    )
-                    .await;
-                }
-            },
-            Err(e) => {
-                tracing::error!("[workflow] 执行失败: {}", e);
-                let total_time_ms = started_at.elapsed().as_millis() as u64;
-                let _ = app_for_emit.emit(
-                    "workflow:execution-completed",
-                    serde_json::json!({
-                        "workflow_id": wid,
-                        "execution_id": null,
-                        "status": "failed",
-                        "total_time_ms": total_time_ms,
-                        "error": e.to_string(),
-                    }),
-                );
-
-                // 失败时也记录学习（负反馈）
-                {
-                    use crate::commands::opc_learning_hook::try_auto_learn_workflow;
-                    let result_json = serde_json::json!({
-                        "status": "failed",
-                        "error": e.to_string(),
-                        "total_time_ms": total_time_ms,
-                    });
-                    try_auto_learn_workflow(
-                        &wid,
-                        &result_json,
-                        &learning_state,
-                        Some(&app_data_dir),
-                    )
-                    .await;
-                }
-            },
-        }
-        _guard.finish();
-    });
-
-    Ok(workflow_id)
+    // 统一返回 execution_id（前端监听 execution-completed 事件感知完成）
+    Ok(execution_id)
 }
 
 /// 获取工作流状态

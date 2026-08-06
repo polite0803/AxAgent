@@ -329,7 +329,7 @@ describe("workflowStore", () => {
 
     it("resolves with completed execution when backend completes", async () => {
       invokeMock
-        .mockResolvedValueOnce("exec-1") // start_workflow_execution
+        .mockResolvedValueOnce("exec-1") // workflow_execute（P0-2 单一入口）
         .mockResolvedValueOnce({ // get_workflow_execution_status (poll)
           execution_id: "exec-1",
           workflow_id: "wf-1",

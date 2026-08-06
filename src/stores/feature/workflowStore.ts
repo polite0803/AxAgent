@@ -664,9 +664,9 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   executeWorkflow: async (id: string, inputs: Record<string, unknown>) => {
     set({ isExecuting: true, error: null });
     try {
-      // 调用后端启动执行
-      const executionId = await invoke<string>("start_workflow_execution", {
-        workflowId: id,
+      // 调用后端启动执行（P0-2 单一入口：workflow_execute 统一承载执行+事件+学习钩子）
+      const executionId = await invoke<string>("workflow_execute", {
+        workflow_id: id,
         input: inputs,
       });
 
@@ -764,7 +764,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         }
       });
     } catch (e) {
-      logIpcError("executeWorkflow: start_workflow_execution")(e);
+      logIpcError("executeWorkflow: workflow_execute")(e);
       const execution: WorkflowExecution = {
         id: `exec_${Date.now()}`,
         workflowId: id,

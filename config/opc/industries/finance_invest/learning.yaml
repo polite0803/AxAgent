@@ -46,3 +46,70 @@ reinforcement_learning:
   experience_batch_size: 32
   update_interval: 100
   auto_save: true
+
+adapter:
+  reflection_template:
+    id: "finance-invest-default"
+    name: "金融投资反思模板"
+    quality_weights:
+      task_completion: 0.2
+      output_quality: 0.35
+      efficiency: 0.15
+      cost_efficiency: 0.3
+    checkpoints:
+      - id: "analysis-accuracy"
+        name: "分析准确性"
+        dimension: "accuracy"
+        description: "评估财务分析和投资建议的准确性"
+        weight: 0.5
+      - id: "risk-assessment"
+        name: "风险评估"
+        dimension: "risk"
+        description: "评估风险识别和控制的有效性"
+        weight: 0.3
+      - id: "actionability"
+        name: "可操作性"
+        dimension: "actionability"
+        description: "评估建议的可执行性"
+        weight: 0.2
+    prompts:
+      - "请评估本次财务分析的准确性"
+      - "投资建议的风险是否充分考虑？"
+      - "建议是否具有可操作性？"
+  evolution_constraints:
+    protected_steps:
+      - step_id: "risk_assessment"
+        reason: "风险控制是金融核心"
+      - step_id: "compliance_check"
+        reason: "合规性要求"
+    min_steps: 3
+    max_steps: 20
+    forbidden_optimizations:
+      - optimization_type: "skip_risk_assessment"
+        reason: "不允许跳过风险评估"
+    quality_thresholds:
+      min_accuracy: 0.85
+      min_success_rate: 0.75
+      min_quality_score: 0.7
+  acceptance_criteria:
+    - id: "fi-analysis-accuracy"
+      name: "分析准确性"
+      description: "财务分析和投资建议准确无误"
+      dimension: "accuracy"
+      threshold: 0.85
+      is_critical: true
+      weight: 0.5
+    - id: "fi-risk-control"
+      name: "风险控制"
+      description: "已识别并评估主要风险"
+      dimension: "risk"
+      threshold: 0.9
+      is_critical: true
+      weight: 0.3
+    - id: "fi-actionable"
+      name: "可操作性"
+      description: "建议清晰可执行"
+      dimension: "actionability"
+      threshold: 0.7
+      is_critical: false
+      weight: 0.2

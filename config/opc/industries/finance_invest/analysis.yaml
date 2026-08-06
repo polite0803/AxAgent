@@ -1,0 +1,43 @@
+# 金融投资行业分析配置（P0-4 四件套之一）
+# 数据源声明 / 分析策略 / 风控参数 / 质量预检源
+# 本行业特例：数据域直接映射 astock-data 全链（复用已验证的 7 工具桥梁）
+version: 1
+industry_id: finance_invest
+
+data_sources:
+  - id: stock_quote
+    chain: [astock, db, cache]
+    quality_precheck: true
+  - id: stock_financials
+    chain: [astock, db, cache]
+    quality_precheck: true
+  - id: stock_klines
+    chain: [astock, db, cache]
+    quality_precheck: true
+  - id: stock_money_flow
+    chain: [astock, cache]
+    quality_precheck: true
+  - id: market_news
+    chain: [astock, web, cache]
+    quality_precheck: false
+
+strategies:
+  - id: fundamentals
+    name: 基本面分析
+    dimensions: [revenue, profit, eps, roe, gross_margin, health_score, valuation_band]
+  - id: technical
+    name: 技术面分析
+    dimensions: [trend, ma_position, volatility]
+  - id: flow_sentiment
+    name: 资金与情绪
+    dimensions: [main_flow_5d, catalyst_summary, sentiment_score]
+
+risk:
+  max_kpi_warning_pct: 0.8
+  critical_kpis: [health_score, valuation_band]
+
+quality_precheck:
+  - stock_quote
+  - stock_financials
+  - stock_klines
+  - stock_money_flow
