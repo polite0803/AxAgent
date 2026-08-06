@@ -314,7 +314,8 @@ jobs:
     env:
       # 限制 Rust 并行编译的代码单元数，避免 ARM64 runner OOM
       # （runner 收到 shutdown signal 即被 OOM 杀掉）
-      CARGO_BUILD_JOBS: 2
+      # 2026-08-06 实锤：CARGO_BUILD_JOBS=2 仍被 OOM 杀（ubuntu-24.04-arm 内存 ~4GB），降为 1
+      CARGO_BUILD_JOBS: 1
     steps:
       - uses: actions/checkout@v5
         with:
@@ -409,6 +410,10 @@ jobs:
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64]
     runs-on: ubuntu-22.04
+    env:
+      # 限制 rustc 并行编译数：gradle JVM(-Xmx2g) + cargo 全并行会让 7GB runner OOM
+      # （2026-08-06 实锤：arm64-v8a/armeabi-v7a 在 axagent-quant 编译后被 shutdown signal 杀掉）
+      CARGO_BUILD_JOBS: 1
     steps:
       - uses: actions/checkout@v5
         with:
