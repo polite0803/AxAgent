@@ -2,7 +2,7 @@
 
 //! OPC 自改进循环领域实现（对接上游 harness::SelfImprovingRound）。
 //!
-//! 参照 stock_analysis::StockAnalysisRound 样板的分层：
+//! 参照 analysis_engine::StockAnalysisRound 样板的分层：
 //! - trait + DTO（RoundResult/RoundEvaluation/NextAction）在 **axagent-harness**
 //!   （foundation，self_improving_loop.rs 已 pub export）；
 //! - 通用执行器 `SelfImprovementExecutor` 在 **axagent-agent**（consumer）——
@@ -16,10 +16,10 @@
 //! Accept/Refine/Redirect 决策。evaluate 输出可经 QualityGateService 落库
 //! 为经验记录（Self-Grown 闭环）。
 
+use axagent_entities::{opc_playbooks, opc_work_items};
 use axagent_harness::self_improving_loop::{
     NextAction, RoundEvaluation, RoundResult, RoundStep, SelfImprovingRound,
 };
-use axagent_opc_entities::{opc_playbooks, opc_work_items};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 
 /// OPC 领域执行错误。

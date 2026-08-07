@@ -6,7 +6,7 @@
 //! 是 DB 层：CRUD + 状态转换落库 + 依赖传播（doomed 判定）。
 
 use crate::work_item::{ManagementMode, Phase, Transition, dependency_doomed, transition};
-use axagent_opc_entities::opc_work_items;
+use axagent_entities::opc_work_items;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::collections::HashMap;
 

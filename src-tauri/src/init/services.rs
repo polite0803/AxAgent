@@ -458,8 +458,8 @@ fn start_pty_event_forwarder(app: &tauri::AppHandle, state: &AppState) {
 /// 必须在 `shared_rhai_engine()` 首次调用前注册（即任何工作流执行前）。
 /// 后续注册不会生效（`OnceLock::set` 在已初始化后返回 Err，仅记 warn）。
 fn register_portfolio_mgr_rhai_functions() {
+    use axagent_analysis_engine::portfolio_formula;
     use axagent_rt_workflow::work_engine::executors::register_shared_engine_initializer;
-    use axagent_stock_analysis::portfolio_formula;
 
     register_shared_engine_initializer(Box::new(|engine| {
         engine.register_fn("pm_evidence_scale", |total_weight: f64, max_weight: f64| -> f64 {
@@ -2136,7 +2136,7 @@ fn start_cron_scheduler(state: &AppState) {
         // P0-1: 注入 astock_client 用于接通 32 个 stock_mcp_tools 到工作流执行路径
         let astock_client = state.astock_client.clone();
         // P0-1: 缓存 stock_mcp_tools 工具名集合，避免每次 resolve 都重新生成 Vec。
-        // P2-8: 合并 G3 产业链工具（来自 axagent_stock_analysis::mcp_tools）。
+        // P2-8: 合并 G3 产业链工具（来自 axagent_analysis_engine::mcp_tools）。
         static STOCK_TOOL_NAMES: std::sync::OnceLock<std::collections::HashSet<String>> =
             std::sync::OnceLock::new();
         let stock_tools = STOCK_TOOL_NAMES.get_or_init(|| {
@@ -2146,7 +2146,7 @@ fn start_cron_scheduler(state: &AppState) {
                     .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
                     .collect();
             // G3 产业链工具（P2-8 从 astock-data 迁回 stock-analysis）
-            for tool in axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools() {
+            for tool in axagent_analysis_engine::mcp_tools::industry_chain_mcp_tools() {
                 if let Some(name) = tool.get("name").and_then(|v| v.as_str()) {
                     set.insert(name.to_string());
                 }
@@ -2160,7 +2160,7 @@ fn start_cron_scheduler(state: &AppState) {
                 let astock_client = astock_client.clone();
                 let in_stock_tools = stock_tools.contains(&tool_name);
                 let in_industry_chain =
-                    axagent_stock_analysis::mcp_tools::is_industry_chain_tool(&tool_name);
+                    axagent_analysis_engine::mcp_tools::is_industry_chain_tool(&tool_name);
                 tracing::info!(
                     "[ToolResolver] 被调用: tool_name={}, in_stock_tools={}, in_industry_chain={}",
                     tool_name,
@@ -2225,12 +2225,12 @@ fn start_cron_scheduler(state: &AppState) {
                             });
                         Some(cb)
                     } else if in_industry_chain {
-                        // P2-8: G3 产业链工具由 axagent_stock_analysis::mcp_tools 提供，
+                        // P2-8: G3 产业链工具由 axagent_analysis_engine::mcp_tools 提供，
                         // 不依赖 astock_client，直接同步执行（纯计算，无网络/DB 调用）。
                         let cb: axagent_runtime::work_engine::ToolCallback = std::sync::Arc::new(
                             move |tn: String, args: serde_json::Value| {
                                 Box::pin(async move {
-                                    match axagent_stock_analysis::mcp_tools::execute_industry_chain_tool(&tn, &args)
+                                    match axagent_analysis_engine::mcp_tools::execute_industry_chain_tool(&tn, &args)
                                     {
                                         Ok(content) => {
                                             Ok(serde_json::json!({ "content": content }))
@@ -2731,12 +2731,12 @@ fn next_18_00_shanghai() -> chrono::DateTime<chrono::Utc> {
 fn start_realtime_monitor(app: &tauri::AppHandle, state: &AppState) {
     use crate::commands::stock_workflow::core::trigger_t0_rerun;
     use crate::init::monitor_emitter::TauriMonitorEmitter;
-    use axagent_entities::price_alerts;
-    use axagent_harness::market_data::MarketDataProvider;
-    use axagent_stock_analysis::cross_stock_aggregator::{
+    use axagent_analysis_engine::cross_stock_aggregator::{
         AggregatorConfig, CrossStockSignalAggregator,
     };
-    use axagent_stock_analysis::monitor::{MonitorConfig, RealtimeMonitor, TZeroCallback};
+    use axagent_analysis_engine::monitor::{MonitorConfig, RealtimeMonitor, TZeroCallback};
+    use axagent_entities::price_alerts;
+    use axagent_harness::market_data::MarketDataProvider;
     use sea_orm::ColumnTrait;
     use sea_orm::EntityTrait;
     use sea_orm::QueryFilter;

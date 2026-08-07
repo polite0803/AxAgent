@@ -498,7 +498,7 @@ pub async fn run_reflection_workflow(
             // 当连续 3+ 条反思对某个参数提出同方向调整时，自动跑校准。
             if verdict_str == "wrong" || verdict_str == "partial" {
                 if let Some(ref pj) = params_suggestion_json {
-                    use axagent_stock_analysis::portfolio_formula::try_parse_param_suggestion;
+                    use axagent_analysis_engine::portfolio_formula::try_parse_param_suggestion;
                     if let Some(suggested) = try_parse_param_suggestion(pj) {
                         tracing::info!(
                             "[reflection] Gap3: 解析到参数建议 buy={:.2} capHi={:.0}, 检查一致性...",
@@ -524,7 +524,7 @@ pub async fn run_reflection_workflow(
                                 if let Some(pj2) = r.parameter_suggestions_json.as_deref() {
                                     if let Some(prev) = try_parse_param_suggestion(pj2) {
                                         // 检查 buy_threshold 的调整方向是否一致
-                                        let def = axagent_stock_analysis::portfolio_formula::PortfolioMgrParamSet::v56_default();
+                                        let def = axagent_analysis_engine::portfolio_formula::PortfolioMgrParamSet::v56_default();
                                         let current_dir =
                                             suggested.buy_threshold < def.buy_threshold;
                                         let prev_dir = prev.buy_threshold < def.buy_threshold;
@@ -1088,12 +1088,12 @@ async fn extract_lesson_to_rule(
 pub async fn run_lesson_validation(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<serde_json::Value, String> {
+    use axagent_analysis_engine::reflection_lesson_validator::{
+        build_lesson_validation, build_lesson_validation_report,
+    };
     use axagent_entities::lesson_applications;
     use axagent_entities::reflection_lessons;
     use axagent_entities::stock_reflections;
-    use axagent_stock_analysis::reflection_lesson_validator::{
-        build_lesson_validation, build_lesson_validation_report,
-    };
 
     // 0. P2-F15 预处理：同步 lesson_applications.outcome_at_validation
     // 扫描所有 outcome_at_validation IS NULL 的行，从 stock_analyses.outcome 回写。

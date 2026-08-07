@@ -115,6 +115,20 @@ function RedirectStockAnalysisById() {
   return <Navigate to={`${BUILTIN_PAGE_PATH.invest}?${params.toString()}`} replace />;
 }
 
+/** 从路径参数读取行业 ID 并重定向到 /opc/industry/:id（单数格式） */
+function RedirectIndustryPath() {
+  const { industryId } = useParams<{ industryId?: string }>();
+  if (!industryId) {
+    return <Navigate to={BUILTIN_PAGE_PATH.opc} replace />;
+  }
+  return <Navigate to={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/${industryId}`} replace />;
+}
+
+/** 9 个硬编码行业路由重定向到 /opc/industry/:id 动态路由 */
+function redirectToIndustry(id: string) {
+  return <Navigate to={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/${id}`} replace />;
+}
+
 export const ContentArea = memo(function ContentArea() {
   const { ipcHealthy } = useIpcHealth();
 
@@ -257,87 +271,32 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* OPC 9 大垂直行业路由 */}
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustryAiResearch}
-            element={
-              <PageContextProvider page="opc-industry-ai-research">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustrySoftwareDev}
-            element={
-              <PageContextProvider page="opc-industry-software-dev">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustryFinanceInvest}
-            element={
-              <PageContextProvider page="opc-industry-finance-invest">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustrySalesGrowth}
-            element={
-              <PageContextProvider page="opc-industry-sales-growth">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustryContentMedia}
-            element={
-              <PageContextProvider page="opc-industry-content-media">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
+          {/* OPC 9 大垂直行业路由（重定向到 /opc/industry/:id 动态路由） */}
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryAiResearch} element={redirectToIndustry("ai-research")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustrySoftwareDev} element={redirectToIndustry("software-dev")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryFinanceInvest} element={redirectToIndustry("finance-invest")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustrySalesGrowth} element={redirectToIndustry("sales-growth")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryContentMedia} element={redirectToIndustry("content-media")} />
           <Route
             path={BUILTIN_PAGE_PATH.opcIndustryIndustryConsulting}
-            element={
-              <PageContextProvider page="opc-industry-industry-consulting">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
+            element={redirectToIndustry("industry-consulting")}
           />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryAccounting} element={redirectToIndustry("accounting")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryEcommerce} element={redirectToIndustry("ecommerce")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryEducation} element={redirectToIndustry("education")} />
+          {/* OPC 行业动态路由（单数形式，与方案文档一致） */}
           <Route
-            path={BUILTIN_PAGE_PATH.opcIndustryAccounting}
-            element={
-              <PageContextProvider page="opc-industry-accounting">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustryEcommerce}
-            element={
-              <PageContextProvider page="opc-industry-ecommerce">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          <Route
-            path={BUILTIN_PAGE_PATH.opcIndustryEducation}
-            element={
-              <PageContextProvider page="opc-industry-education">
-                <SafeLazyPage Page={LazyIndustryPage} />
-              </PageContextProvider>
-            }
-          />
-          {/* OPC 行业动态路由 — 支持 /opc/industries/:industryId 格式 */}
-          <Route
-            path={`${BUILTIN_PAGE_PATH.opc}/industries/:industryId`}
+            path={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/:id`}
             element={
               <PageContextProvider page="opc">
                 <SafeLazyPage Page={LazyIndustryPage} />
               </PageContextProvider>
             }
+          />
+          {/* OPC 旧复数行业路由（重定向到单数动态路由） */}
+          <Route
+            path={`${BUILTIN_PAGE_PATH.opc}/industries/:industryId`}
+            element={<RedirectIndustryPath />}
           />
           {/* ── 旧股票业务路由重定向到 /invest?tab=xxx ── */}
           {/* /workspace → workspace tab（单股深度工作区） */}

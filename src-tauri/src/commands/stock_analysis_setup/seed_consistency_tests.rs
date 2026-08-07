@@ -70,7 +70,7 @@ fn resolvable_tool_names(rhai: &[String]) -> HashSet<String> {
     );
     // G3 产业链工具（STOCK_TOOL_NAMES 来源之二）
     set.extend(
-        axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools()
+        axagent_analysis_engine::mcp_tools::industry_chain_mcp_tools()
             .into_iter()
             .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(String::from)),
     );

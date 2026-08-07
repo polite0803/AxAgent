@@ -1,0 +1,108 @@
+# Runtime 配置：销售增长流程（sales_growth）
+# 由 opc-industry-sales-growth crate 迁移而来，version=1
+version: 1
+industry_id: sales_growth
+
+validations:
+  # 原代码：email 与 phone 至少一个非空，否则报错。any_not_empty = 字段列表中任一非空即通过
+  - entity_type: lead
+    field: email_or_phone
+    operator: any_not_empty
+    value: [email, phone]
+    message: 线索必须提供邮箱或手机号
+  - entity_type: deal
+    field: amount
+    operator: gt
+    value: 0
+    message: 交易金额必须大于 0
+
+kpi_definitions:
+  - key: lead_count
+    name: 线索数量
+    unit: 个
+    metric_type: count
+  - key: conversion_rate
+    name: 转化率
+    unit: "%"
+    metric_type: percentage
+  - key: deal_value
+    name: 成交金额
+    unit: CNY
+    metric_type: currency
+  - key: sales_cycle_length
+    name: 销售周期
+    unit: 天
+    metric_type: duration
+
+kpi_sources:
+  lead_count:
+    type: constant
+    value: 0
+  conversion_rate:
+    type: constant
+    value: 0
+  deal_value:
+    type: constant
+    value: 0
+  sales_cycle_length:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: sales_lead_followup
+    name: 新线索跟进提醒
+    conditions:
+      - type: created_days_gte
+        days: 3
+      - type: entity_type_is
+        entity_type: lead
+      - type: status_is
+        status: new
+    actions:
+      - type: send_notification
+        target: sales_rep
+        message: "新线索已3天未跟进"
+    enabled: true
+  - id: sales_deal_velocity
+    name: 交易谈判超时提醒
+    conditions:
+      - type: field_below
+        field: deal_age
+        threshold: 7.0
+      - type: entity_type_is
+        entity_type: deal
+      - type: status_is
+        status: negotiating
+    actions:
+      - type: send_notification
+        target: manager
+        message: "交易谈判时间超过7天"
+    enabled: true
+
+workflow_steps:
+  - id: a-lead
+    name: 线索获取
+    description: 分析现有客户数据，识别潜在客户
+    order: 1
+  - id: a-outreach
+    name: 触达跟进
+    description: 制定触达方案
+    order: 2
+  - id: a-close
+    name: 签约转化
+    description: 推动线索转化签约
+    order: 3
+
+dashboard_cards:
+  - id: lead_card
+    title: 本月线索
+    kpi_key: lead_count
+    display_value: -- 个
+  - id: conversion_card
+    title: 转化率
+    kpi_key: conversion_rate
+    display_value: --%
+  - id: deal_card
+    title: 成交金额
+    kpi_key: deal_value
+    display_value: ¥--

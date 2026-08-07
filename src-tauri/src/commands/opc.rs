@@ -12,14 +12,14 @@ use crate::AppState;
 use sea_orm::ActiveModelTrait;
 use tauri::State;
 
-use axagent_opc_dao::{
-    DefaultAnalyticsService, DefaultCustomerService, DefaultFinanceService, DefaultInvoiceService,
-    DefaultProjectService, DefaultSiteService,
-};
-use axagent_opc_types::{
-    AnalyticsService, CreateCustomerInput, CreateInvoiceInput, CreateProjectInput, CustomerFilter,
-    CustomerService, FinanceService, InvoiceFilter, InvoiceService, InvoiceStatus, Milestone,
-    ProjectFilter, ProjectService, SiteService, UpdateCustomerInput, UpdateInvoiceInput,
+use axagent_analysis_engine::opc::{
+    AnalyticsService, BlogPost, ContactSubmission, CreateBlogPostInput, CreateCustomerInput,
+    CreateInvoiceInput, CreateKpiInput, CreateLandingPageInput, CreateProjectInput, Customer,
+    CustomerFilter, CustomerService, DashboardSummary, DefaultAnalyticsService,
+    DefaultCustomerService, DefaultFinanceService, DefaultInvoiceService, DefaultProjectService,
+    DefaultSiteService, FinanceService, FinancialReport, InvestmentAdvice, Invoice, InvoiceFilter,
+    InvoiceService, InvoiceStatus, KpiRecord, LandingPage, Milestone, Project, ProjectFilter,
+    ProjectService, RevenueRecord, SiteService, UpdateCustomerInput, UpdateInvoiceInput,
     UpdateProjectInput,
 };
 
@@ -95,7 +95,7 @@ async fn record_opc_failure(
 pub async fn opc_create_invoice(
     state: State<'_, AppState>,
     input: CreateInvoiceInput,
-) -> Result<axagent_opc_types::Invoice, String> {
+) -> Result<Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
     let result = svc.create_invoice(input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -117,10 +117,7 @@ pub async fn opc_create_invoice(
 
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取发票")]
 #[tauri::command]
-pub async fn opc_get_invoice(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<axagent_opc_types::Invoice, String> {
+pub async fn opc_get_invoice(state: State<'_, AppState>, id: String) -> Result<Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
     svc.get_invoice(&id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -135,7 +132,7 @@ pub async fn opc_get_invoice(
 pub async fn opc_list_invoices(
     state: State<'_, AppState>,
     filter: InvoiceFilter,
-) -> Result<Vec<axagent_opc_types::Invoice>, String> {
+) -> Result<Vec<Invoice>, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
     svc.list_invoices(filter).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -151,7 +148,7 @@ pub async fn opc_update_invoice(
     state: State<'_, AppState>,
     id: String,
     input: UpdateInvoiceInput,
-) -> Result<axagent_opc_types::Invoice, String> {
+) -> Result<Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
     svc.update_invoice(&id, input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -179,7 +176,7 @@ pub async fn opc_transition_invoice(
     state: State<'_, AppState>,
     id: String,
     target_status: String,
-) -> Result<axagent_opc_types::Invoice, String> {
+) -> Result<Invoice, String> {
     let status = InvoiceStatus::from_str(&target_status)
         .map_err(|_| format!("invalid invoice status: {target_status}"))?;
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
@@ -208,7 +205,7 @@ pub async fn opc_transition_invoice(
 pub async fn opc_create_customer(
     state: State<'_, AppState>,
     input: CreateCustomerInput,
-) -> Result<axagent_opc_types::Customer, String> {
+) -> Result<Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
     let result = svc.create_customer(input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -230,10 +227,7 @@ pub async fn opc_create_customer(
 
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取客户")]
 #[tauri::command]
-pub async fn opc_get_customer(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<axagent_opc_types::Customer, String> {
+pub async fn opc_get_customer(state: State<'_, AppState>, id: String) -> Result<Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
     svc.get_customer(&id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -248,7 +242,7 @@ pub async fn opc_get_customer(
 pub async fn opc_list_customers(
     state: State<'_, AppState>,
     filter: CustomerFilter,
-) -> Result<Vec<axagent_opc_types::Customer>, String> {
+) -> Result<Vec<Customer>, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
     svc.list_customers(filter).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -264,7 +258,7 @@ pub async fn opc_update_customer(
     state: State<'_, AppState>,
     id: String,
     input: UpdateCustomerInput,
-) -> Result<axagent_opc_types::Customer, String> {
+) -> Result<Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
     svc.update_customer(&id, input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -291,7 +285,7 @@ pub async fn opc_delete_customer(state: State<'_, AppState>, id: String) -> Resu
 pub async fn opc_find_customer_by_email(
     state: State<'_, AppState>,
     email: String,
-) -> Result<Option<axagent_opc_types::Customer>, String> {
+) -> Result<Option<Customer>, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
     svc.find_by_email(&email).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -308,7 +302,7 @@ pub async fn opc_find_customer_by_email(
 pub async fn opc_create_project(
     state: State<'_, AppState>,
     input: CreateProjectInput,
-) -> Result<axagent_opc_types::Project, String> {
+) -> Result<Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
     let result = svc.create_project(input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -330,10 +324,7 @@ pub async fn opc_create_project(
 
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取项目")]
 #[tauri::command]
-pub async fn opc_get_project(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<axagent_opc_types::Project, String> {
+pub async fn opc_get_project(state: State<'_, AppState>, id: String) -> Result<Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
     svc.get_project(&id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -348,7 +339,7 @@ pub async fn opc_get_project(
 pub async fn opc_list_projects(
     state: State<'_, AppState>,
     filter: ProjectFilter,
-) -> Result<Vec<axagent_opc_types::Project>, String> {
+) -> Result<Vec<Project>, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
     svc.list_projects(filter).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -364,7 +355,7 @@ pub async fn opc_update_project(
     state: State<'_, AppState>,
     id: String,
     input: UpdateProjectInput,
-) -> Result<axagent_opc_types::Project, String> {
+) -> Result<Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
     svc.update_project(&id, input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -392,7 +383,7 @@ pub async fn opc_add_milestone(
     state: State<'_, AppState>,
     project_id: String,
     milestone: Milestone,
-) -> Result<axagent_opc_types::Project, String> {
+) -> Result<Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
     svc.add_milestone(&project_id, milestone).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -408,7 +399,7 @@ pub async fn opc_complete_milestone(
     state: State<'_, AppState>,
     project_id: String,
     milestone_id: String,
-) -> Result<axagent_opc_types::Project, String> {
+) -> Result<Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
     svc.complete_milestone(&project_id, &milestone_id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -424,8 +415,8 @@ pub async fn opc_complete_milestone(
 #[tauri::command]
 pub async fn opc_create_landing_page(
     state: State<'_, AppState>,
-    input: axagent_opc_types::CreateLandingPageInput,
-) -> Result<axagent_opc_types::LandingPage, String> {
+    input: CreateLandingPageInput,
+) -> Result<LandingPage, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.create_landing_page(input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -439,7 +430,7 @@ pub async fn opc_create_landing_page(
 #[tauri::command]
 pub async fn opc_list_landing_pages(
     state: State<'_, AppState>,
-) -> Result<Vec<axagent_opc_types::LandingPage>, String> {
+) -> Result<Vec<LandingPage>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.list_landing_pages().await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -454,7 +445,7 @@ pub async fn opc_list_landing_pages(
 pub async fn opc_publish_landing_page(
     state: State<'_, AppState>,
     id: String,
-) -> Result<axagent_opc_types::LandingPage, String> {
+) -> Result<LandingPage, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.publish_landing_page(&id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -470,8 +461,8 @@ pub async fn opc_publish_landing_page(
 #[tauri::command]
 pub async fn opc_create_blog_post(
     state: State<'_, AppState>,
-    input: axagent_opc_types::CreateBlogPostInput,
-) -> Result<axagent_opc_types::BlogPost, String> {
+    input: CreateBlogPostInput,
+) -> Result<BlogPost, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.create_blog_post(input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -483,9 +474,7 @@ pub async fn opc_create_blog_post(
 
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出博客文章")]
 #[tauri::command]
-pub async fn opc_list_blog_posts(
-    state: State<'_, AppState>,
-) -> Result<Vec<axagent_opc_types::BlogPost>, String> {
+pub async fn opc_list_blog_posts(state: State<'_, AppState>) -> Result<Vec<BlogPost>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.list_blog_posts().await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -500,7 +489,7 @@ pub async fn opc_list_blog_posts(
 pub async fn opc_publish_blog_post(
     state: State<'_, AppState>,
     id: String,
-) -> Result<axagent_opc_types::BlogPost, String> {
+) -> Result<BlogPost, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.publish_blog_post(&id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -516,7 +505,7 @@ pub async fn opc_publish_blog_post(
 #[tauri::command]
 pub async fn opc_list_contacts(
     state: State<'_, AppState>,
-) -> Result<Vec<axagent_opc_types::ContactSubmission>, String> {
+) -> Result<Vec<ContactSubmission>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
     svc.list_contacts().await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -544,8 +533,8 @@ pub async fn opc_mark_contact_read(state: State<'_, AppState>, id: String) -> Re
 #[tauri::command]
 pub async fn opc_record_kpi(
     state: State<'_, AppState>,
-    input: axagent_opc_types::CreateKpiInput,
-) -> Result<axagent_opc_types::KpiRecord, String> {
+    input: CreateKpiInput,
+) -> Result<KpiRecord, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
     svc.record_kpi(input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -561,7 +550,7 @@ pub async fn opc_list_kpis(
     state: State<'_, AppState>,
     period: Option<String>,
     limit: Option<u32>,
-) -> Result<Vec<axagent_opc_types::KpiRecord>, String> {
+) -> Result<Vec<KpiRecord>, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
     svc.list_kpis(period, limit).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -577,7 +566,7 @@ pub async fn opc_list_revenue(
     state: State<'_, AppState>,
     category: Option<String>,
     limit: Option<u32>,
-) -> Result<Vec<axagent_opc_types::RevenueRecord>, String> {
+) -> Result<Vec<RevenueRecord>, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
     svc.list_revenue(category, limit).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -591,7 +580,7 @@ pub async fn opc_list_revenue(
 #[tauri::command]
 pub async fn opc_get_dashboard_summary(
     state: State<'_, AppState>,
-) -> Result<axagent_opc_types::DashboardSummary, String> {
+) -> Result<DashboardSummary, String> {
     let svc = DefaultAnalyticsService::new(state.harness.db().clone());
     svc.get_dashboard_summary().await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -608,7 +597,7 @@ pub async fn opc_get_dashboard_summary(
 pub async fn opc_get_financial_report(
     state: State<'_, AppState>,
     period: String,
-) -> Result<axagent_opc_types::FinancialReport, String> {
+) -> Result<FinancialReport, String> {
     let svc = DefaultFinanceService::new(state.harness.db().clone());
     svc.get_financial_report(&period).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -623,7 +612,7 @@ pub async fn opc_get_financial_report(
 pub async fn opc_get_investment_advice(
     state: State<'_, AppState>,
     period: String,
-) -> Result<axagent_opc_types::InvestmentAdvice, String> {
+) -> Result<InvestmentAdvice, String> {
     let svc = DefaultFinanceService::new(state.harness.db().clone());
     let report = svc.get_financial_report(&period).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
@@ -712,7 +701,7 @@ pub async fn opc_create_work_item(
 #[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除落地页")]
 #[tauri::command]
 pub async fn opc_delete_landing_page(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    use axagent_opc_entities::opc_landing_pages;
+    use axagent_entities::opc_landing_pages;
     use sea_orm::EntityTrait;
     let db = state.harness.db();
     opc_landing_pages::Entity::delete_by_id(&id).exec(db).await.map_err(|e| {
@@ -728,7 +717,7 @@ pub async fn opc_delete_landing_page(state: State<'_, AppState>, id: String) -> 
 #[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除博客文章")]
 #[tauri::command]
 pub async fn opc_delete_blog_post(state: State<'_, AppState>, id: String) -> Result<(), String> {
-    use axagent_opc_entities::opc_blog_posts;
+    use axagent_entities::opc_blog_posts;
     use sea_orm::EntityTrait;
     let db = state.harness.db();
     opc_blog_posts::Entity::delete_by_id(&id).exec(db).await.map_err(|e| {
@@ -899,7 +888,7 @@ pub async fn opc_escalate_work_item(
     })?;
 
     // 2. 记录 last_error（升级原因）
-    let mut am: axagent_opc_entities::opc_work_items::ActiveModel = model.clone().into();
+    let mut am: axagent_entities::opc_work_items::ActiveModel = model.clone().into();
     am.last_error = sea_orm::Set(Some(reason.clone()));
     am.phase = sea_orm::Set(Phase::Blocked.as_str().to_string());
     am.updated_at = sea_orm::Set(chrono::Utc::now().timestamp());
@@ -1175,8 +1164,8 @@ pub async fn run_self_improving_opc_work_item(
 #[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "同步员工到舰队")]
 #[tauri::command]
 pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    use axagent_entities::opc_org_employees;
     use axagent_harness::fleet::{Fleet, FleetMember, FleetMetadata, FleetStatus};
-    use axagent_opc_entities::opc_org_employees;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
     let db = state.harness.db().clone();
@@ -1310,8 +1299,8 @@ async fn opc_batch_role_status(
     db: &sea_orm::DatabaseConnection,
     role_ids: &[String],
 ) -> std::collections::HashMap<String, axagent_harness::fleet::FleetMemberStatus> {
+    use axagent_entities::opc_work_items;
     use axagent_harness::fleet::FleetMemberStatus;
-    use axagent_opc_entities::opc_work_items;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     let mut map = std::collections::HashMap::new();

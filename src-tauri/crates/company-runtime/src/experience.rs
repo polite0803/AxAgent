@@ -8,7 +8,7 @@
 //! `work_item_id` + `role_id`，本模块按角色隔离写入。
 
 use crate::error::{CompanyError, CompanyResult};
-use axagent_opc_entities::{opc_experience_records, opc_playbooks};
+use axagent_entities::{opc_experience_records, opc_playbooks};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, Set,

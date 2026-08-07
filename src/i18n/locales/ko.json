@@ -4662,6 +4662,43 @@
         "triggered": "{{count}}개 규칙이 트리거되었습니다",
         "nothingTriggered": "트리거된 규칙이 없습니다",
         "runFailed": "규칙 실행 실패: {{error}}"
+      },
+      "analysis": {
+        "title": "산업 분석 엔진",
+        "execute": "분석 실행",
+        "executeSuccess": "분석이 실행되었습니다",
+        "executeFailed": "분석 실행 실패: {{error}}",
+        "noData": "분석 데이터가 없습니다. 분석을 실행해 주세요",
+        "confidence": "결정 신뢰도",
+        "decisionType": "결정 유형",
+        "riskLevel": "위험 수준",
+        "riskLevelTitle": "위험 수준",
+        "recommendations": "추천 목록"
+      },
+      "workflow": {
+        "executionTitle": "산업 워크플로우 실행",
+        "execute": "워크플로우 실행",
+        "executeSuccess": "워크플로우가 실행되었습니다",
+        "executePartial": "워크플로우가 부분적으로 완료되었습니다",
+        "executeFailed": "워크플로우 실행 실패: {{error}}",
+        "executing": "워크플로우 실행 중...",
+        "noData": "워크플로우 실행 기록이 없습니다",
+        "status_completed": "완료",
+        "status_failed": "실패",
+        "status_partial": "부분 완료",
+        "duration": "실행 시간"
+      },
+      "metrics": {
+        "title": "산업 학습 지표",
+        "refresh": "지표 새로고침",
+        "noData": "학습 지표 데이터가 없습니다",
+        "totalSamples": "총 샘플 수",
+        "decisionAccuracy": "결정 정확도",
+        "riskAccuracy": "위험 예측 정확도",
+        "avgFeedback": "평균 피드백",
+        "trend_improving": "개선 추세",
+        "trend_stable": "안정",
+        "trend_declining": "하락 추세"
       }
     },
     "rl": {

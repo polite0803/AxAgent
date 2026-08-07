@@ -4331,6 +4331,43 @@
         "triggered": "已触发 {{count}} 条规则",
         "nothingTriggered": "没有规则被触发",
         "runFailed": "规则执行失败: {{error}}"
+      },
+      "analysis": {
+        "title": "行业分析决策引擎",
+        "execute": "执行分析",
+        "executeSuccess": "分析执行成功",
+        "executeFailed": "分析执行失败: {{error}}",
+        "noData": "暂无分析数据，请点击执行分析",
+        "confidence": "决策置信度",
+        "decisionType": "决策类型",
+        "riskLevel": "风险等级",
+        "riskLevelTitle": "风险等级",
+        "recommendations": "建议列表"
+      },
+      "workflow": {
+        "executionTitle": "行业工作流执行",
+        "execute": "执行工作流",
+        "executeSuccess": "工作流执行成功",
+        "executePartial": "工作流部分完成",
+        "executeFailed": "工作流执行失败: {{error}}",
+        "executing": "工作流执行中...",
+        "noData": "暂无工作流执行记录",
+        "status_completed": "执行完成",
+        "status_failed": "执行失败",
+        "status_partial": "部分完成",
+        "duration": "执行耗时"
+      },
+      "metrics": {
+        "title": "行业学习指标",
+        "refresh": "刷新指标",
+        "noData": "暂无学习指标数据",
+        "totalSamples": "总样本数",
+        "decisionAccuracy": "决策准确率",
+        "riskAccuracy": "风险预测准确率",
+        "avgFeedback": "平均反馈分",
+        "trend_improving": "上升趋势",
+        "trend_stable": "稳定",
+        "trend_declining": "下降趋势"
       }
     },
     "rl": {

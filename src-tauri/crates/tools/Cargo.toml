@@ -6,14 +6,13 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
+axagent-analysis-engine = { path = "../analysis-engine" }
 axagent-astock-data = { path = "../astock-data" }
 axagent-dao = { path = "../dao" }
 axagent-document-parser = { path = "../document-parser" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }
-axagent-opc-dao = { path = "../opc-dao" }
-axagent-opc-types = { path = "../opc-types" }
 axagent-providers = { path = "../providers" }
 axagent-search = { path = "../search" }
 base64 = "0.22"

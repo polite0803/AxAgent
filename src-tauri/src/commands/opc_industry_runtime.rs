@@ -1,276 +1,186 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! OPC 行业运行时 — 基于行业适配器的动态业务逻辑
+//! OPC 行业命令 — 命令直读行业包（与股票业务同架构，无运行时容器）
 //!
-//! 本模块提供行业运行时的初始化和业务操作封装。
-//! 采用 `OnceLock + RwLock` 模式存储全局运行时实例，
-//! 可被 `opc_industry_bridge` 等模块调用。
+//! 宏观要求：OPC 行业与股票业务**同架构**。股票业务 = 引擎 + 命令直调
+//! （`search_stock` / `get_stock_quote` 直接调 astock 引擎）；OPC 行业同理 =
+//! 行业包（yaml 数据）+ 命令直读。**没有 opc-runtime / registry / adapter 注册表**。
 //!
-//! # 架构
-//!
-//! ```text
-//! ┌─────────────────────────────────────────────┐
-//! │          opc_industry_runtime               │
-//! │  (全局 OnceLock<RwLock<Option<OpcRuntime>>>) │
-//! └──────────┬──────────────────────────────────┘
-//!            │ Arc<OpcRuntime>
-//!            ▼
-//! ┌─────────────────────────────────────────────┐
-//! │  OpcRuntime                                 │
-//! │  ├── IndustryAdapterRegistry (9 个行业)     │
-//! │  └── DefaultDataService (数据库访问)         │
-//! └─────────────────────────────────────────────┘
-//! ```
+//! 每个命令：定位行业包目录 → 读 `runtime.yaml` → 构造 `DataDrivenIndustryAdapter`
+//! （纯逻辑，无全局状态）→ 执行。新增行业 = 新建目录 + runtime.yaml，零代码。
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::OnceLock;
 
 use agent_macro::agent_command;
 use tauri::State;
-use tokio::sync::RwLock;
 
-use axagent_opc_dao::DefaultDataService;
-use axagent_opc_industries::register_all_industries;
-use axagent_opc_runtime::{IndustryAdapterRegistry, OpcRuntime};
-use axagent_opc_types::{
-    IndustryAutomationRule, IndustryDashboard, KpiDefinition, KpiValue, OpcDataService,
-    RuleContext, TimeRange, ValidationError, WorkflowStep,
-};
+use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
+use axagent_analysis_engine::opc::workflow::{IndustryWorkflowExecutor, IndustryWorkflowManager};
+use axagent_analysis_engine::opc::*;
+use axagent_dao::db::DatabaseConnection;
 
-// ── 全局运行时存储 ──────────────────────────────────────────────
+use crate::AppState;
+use crate::commands::opc_industry_logic;
 
-/// 全局行业运行时状态
+// ── 行业适配器构造（工厂统一创建内建手写 adapter，脱离 yaml） ──
+
+/// 定位行业包目录：`{industries_dir}/{industry_id}`（app_dir 优先 → 仓库根 fallback）
 ///
-/// 使用 `OnceLock` 保证全局唯一，`RwLock` 支持异步读取/写入。
-/// 初始化前为 `None`，调用 `init_runtime()` 后变为 `Some`。
-static RUNTIME: OnceLock<RwLock<Option<Arc<OpcRuntime>>>> = OnceLock::new();
-
-/// 获取运行时读写锁引用
-fn runtime_lock() -> &'static RwLock<Option<Arc<OpcRuntime>>> {
-    RUNTIME.get_or_init(|| RwLock::new(None))
-}
-
-// ── 初始化 ──────────────────────────────────────────────────
-
-/// 初始化行业运行时
-///
-/// 执行以下步骤：
-/// 1. 创建 `IndustryAdapterRegistry`
-/// 2. 调用 `register_all_industries` 注册全部 9 个行业适配器
-/// 3. 创建 `DefaultDataService` 并注入运行时
-/// 4. 存储到全局状态
-///
-/// # 幂等
-///
-/// 多次调用仅首次生效，后续调用直接返回已有实例。
-pub async fn init_runtime(db: sea_orm::DatabaseConnection) -> Result<Arc<OpcRuntime>, String> {
-    {
-        let lock = runtime_lock().read().await;
-        if let Some(existing) = lock.as_ref() {
-            tracing::debug!(
-                "[opc-industry-runtime] 运行时已初始化，跳过 (行业数={})",
-                existing.registry().list_ids().await.len()
-            );
-            return Ok(existing.clone());
-        }
+/// 仅用于 Phase 1 数据接入（读取行业包 `analysis.yaml` 数据源配置）。
+/// 业务逻辑（validate / KPI / 工作流 / 规则 / 仪表盘）一律走内建 adapter，不依赖本目录。
+fn industry_dir(app_dir: Option<&Path>, industry_id: &str) -> Result<PathBuf, String> {
+    let base = crate::commands::opc_workflows::resolve_industries_dir(app_dir);
+    let dir = base.join(industry_id);
+    if dir.is_dir() {
+        Ok(dir)
+    } else {
+        Err(format!("行业包不存在: {industry_id}"))
     }
-
-    let registry = Arc::new(IndustryAdapterRegistry::new());
-
-    register_all_industries(&registry).await;
-
-    let data_service: Arc<dyn OpcDataService> = Arc::new(DefaultDataService::new(db));
-
-    let runtime = Arc::new(OpcRuntime::new(registry).with_data_service(data_service).await);
-
-    {
-        let mut lock = runtime_lock().write().await;
-        *lock = Some(runtime.clone());
-    }
-
-    let ids = runtime.registry().list_ids().await;
-    tracing::info!("[opc-industry-runtime] 行业运行时初始化完成: {} 个行业已注册", ids.len());
-
-    Ok(runtime)
 }
 
-// ── 内部工具 ──────────────────────────────────────────────────
-
-/// 获取已初始化的运行时实例
-///
-/// # Errors
-///
-/// 返回 `Err` 当运行时尚未初始化。
-async fn get_runtime() -> Result<Arc<OpcRuntime>, String> {
-    let lock = runtime_lock().read().await;
-    lock.clone().ok_or_else(|| "行业运行时未初始化，请先调用 opc_init_industry_runtime".to_string())
+/// 通过工厂创建行业适配器（内建手写逻辑）并注入数据服务
+fn load_adapter(
+    db: &DatabaseConnection,
+    industry_id: &str,
+) -> Result<Arc<dyn OpcIndustryAdapter>, String> {
+    let adapter = IndustryAdapterFactory::create(industry_id)
+        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+    adapter.set_data_service(Arc::new(DefaultDataService::new(db.clone())));
+    Ok(adapter)
 }
 
-// ── 公共 API ──────────────────────────────────────────────────
+// ── 公共 API（内部函数，命令直读行业包） ───────────────────────
 
 /// 验证行业实体
-///
-/// 根据 `industry_id` 找到对应适配器，执行行业特有校验逻辑。
 pub async fn validate_entity(
+    db: &DatabaseConnection,
     industry_id: &str,
     entity_type: &str,
     entity_data: &serde_json::Value,
 ) -> Result<Vec<ValidationError>, String> {
-    let runtime = get_runtime().await?;
-    runtime.validate_entity(industry_id, entity_type, entity_data).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    let adapter = load_adapter(db, industry_id)?;
+    adapter.validate(entity_type, entity_data).await.map_err(|e| e.to_string())
 }
 
 /// 批量验证行业实体
 pub async fn validate_batch(
+    db: &DatabaseConnection,
     industry_id: &str,
     entities: &[(String, serde_json::Value)],
 ) -> Result<Vec<(String, Vec<ValidationError>)>, String> {
-    let runtime = get_runtime().await?;
-    runtime.validate_batch(industry_id, entities).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    let adapter = load_adapter(db, industry_id)?;
+    adapter.validate_batch(entities).await.map_err(|e| e.to_string())
 }
 
 /// 计算行业 KPI 指标
 pub async fn compute_kpis(
+    db: &DatabaseConnection,
     industry_id: &str,
     time_range: TimeRange,
 ) -> Result<Vec<KpiValue>, String> {
-    let runtime = get_runtime().await?;
-    runtime.compute_kpis(industry_id, &time_range).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    let adapter = load_adapter(db, industry_id)?;
+    adapter.compute_kpis(&time_range).await.map_err(|e| e.to_string())
 }
 
 /// 获取行业 KPI 定义列表
-pub async fn get_kpi_definitions(industry_id: &str) -> Result<Vec<KpiDefinition>, String> {
-    let runtime = get_runtime().await?;
-    runtime.get_kpi_definitions(industry_id).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+pub fn get_kpi_definitions(industry_id: &str) -> Result<Vec<KpiDefinition>, String> {
+    let adapter = IndustryAdapterFactory::create(industry_id)
+        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+    Ok(adapter.kpi_definitions())
 }
 
 /// 获取行业工作流步骤
-pub async fn get_workflow_steps(industry_id: &str) -> Result<Vec<WorkflowStep>, String> {
-    let runtime = get_runtime().await?;
-    runtime.get_workflow_steps(industry_id).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+pub fn get_workflow_steps(industry_id: &str) -> Result<Vec<WorkflowStep>, String> {
+    let adapter = IndustryAdapterFactory::create(industry_id)
+        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+    let mut steps = adapter.workflow_steps();
+    steps.sort_by_key(|s| s.order);
+    Ok(steps)
 }
 
 /// 获取行业启用的自动化规则
-pub async fn get_enabled_rules(industry_id: &str) -> Result<Vec<IndustryAutomationRule>, String> {
-    let runtime = get_runtime().await?;
-    runtime.get_enabled_rules(industry_id).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+pub fn get_enabled_rules(industry_id: &str) -> Result<Vec<IndustryAutomationRule>, String> {
+    let adapter = IndustryAdapterFactory::create(industry_id)
+        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+    Ok(adapter.automation_rules().into_iter().filter(|r| r.enabled).collect())
 }
 
-/// 运行行业自动化规则
-///
-/// 评估并执行指定行业的所有启用规则，返回被触发的规则 ID 列表。
+/// 运行行业自动化规则（通用条件求值 + 动作执行）
 pub async fn run_automation_rules(
+    db: &DatabaseConnection,
     industry_id: &str,
     context: RuleContext,
 ) -> Result<Vec<String>, String> {
-    let runtime = get_runtime().await?;
-    runtime.run_all_rules(industry_id, &context).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    let adapter = load_adapter(db, industry_id)?;
+    let rules = adapter.automation_rules().into_iter().filter(|r| r.enabled).collect::<Vec<_>>();
+    let ctx_map = opc_industry_logic::context_to_hashmap(&context);
+    let ds = adapter.data_service();
+    let mut triggered = Vec::new();
+    for rule in &rules {
+        if opc_industry_logic::evaluate_conditions(&rule.conditions, &ctx_map) {
+            opc_industry_logic::execute_rule_actions(ds.as_ref(), rule, &context)
+                .await
+                .map_err(|e| e.to_string())?;
+            triggered.push(rule.id.clone());
+        }
+    }
+    Ok(triggered)
 }
 
 /// 获取行业仪表盘数据
 pub async fn get_dashboard(
+    db: &DatabaseConnection,
     industry_id: &str,
     time_range: TimeRange,
 ) -> Result<IndustryDashboard, String> {
-    let runtime = get_runtime().await?;
-    runtime.get_industry_dashboard(industry_id, &time_range).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    let adapter = load_adapter(db, industry_id)?;
+    adapter.aggregate_dashboard(&time_range).await.map_err(|e| e.to_string())
 }
 
-/// 列出所有已注册行业
-pub async fn list_industries() -> Result<Vec<(String, String)>, String> {
-    let runtime = get_runtime().await?;
-    Ok(runtime.registry().list_all().await)
+/// 执行行业动态工作流
+pub async fn execute_dynamic_workflow(
+    db: &DatabaseConnection,
+    industry_id: &str,
+    time_range: TimeRange,
+) -> Result<axagent_analysis_engine::opc::workflow::WorkflowExecutionResult, String> {
+    let adapter = load_adapter(db, industry_id)?;
+    
+    // 使用管理器创建工作流
+    let mut manager = IndustryWorkflowManager::new();
+    let workflow = manager.create_or_update(industry_id, adapter.as_ref());
+    
+    // 创建执行器并执行
+    let executor = IndustryWorkflowExecutor::new(industry_id.to_string(), adapter);
+    executor.execute(workflow, &time_range).await.map_err(|e| e.to_string())
 }
 
-/// 检查行业是否已注册
-pub async fn has_industry(industry_id: &str) -> Result<bool, String> {
-    let runtime = get_runtime().await?;
-    Ok(runtime.registry().contains(industry_id).await)
+/// 列出全部内建行业（工厂注册）
+pub fn list_industries() -> Vec<(String, String)> {
+    IndustryAdapterFactory::list_all()
+        .into_iter()
+        .map(|(id, name)| (id.to_string(), name.to_string()))
+        .collect()
 }
 
-/// 重置运行时（测试/调试用）
-///
-/// 清除全局运行时状态，下次调用 `init_runtime` 将重新初始化。
-pub async fn reset_runtime() {
-    let mut lock = runtime_lock().write().await;
-    *lock = None;
-    tracing::warn!("[opc-industry-runtime] 行业运行时已重置");
+/// 检查行业是否存在（工厂注册）
+pub fn has_industry(industry_id: &str) -> bool {
+    IndustryAdapterFactory::create(industry_id).is_some()
 }
 
-// ── Tauri 命令 ────────────────────────────────────────────────
-//
-// 以下 Tauri 命令暴露行业运行时能力给前端，
-// 同时允许 Agent 通过 tool bridge 调用。
-
-/// 初始化行业运行时（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "初始化行业运行时")]
-#[tauri::command]
-pub async fn opc_init_industry_runtime(
-    app_state: State<'_, crate::AppState>,
-) -> Result<serde_json::Value, String> {
-    let db = app_state.harness.db().clone();
-
-    let runtime = init_runtime(db).await?;
-
-    let industries = runtime.registry().list_all().await;
-    Ok(serde_json::json!({
-        "status": "initialized",
-        "industryCount": industries.len(),
-        "industries": industries.into_iter().map(|(id, name)| {
-            serde_json::json!({ "id": id, "name": name })
-        }).collect::<Vec<_>>(),
-    }))
-}
+// ── Tauri 命令（签名保持前端契约；app_state 由 Tauri 自动注入） ──
 
 /// 验证行业实体（Tauri 命令）
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "验证行业实体")]
 #[tauri::command]
 pub async fn opc_validate_entity(
+    app_state: State<'_, AppState>,
     industry_id: String,
     entity_type: String,
     entity_data: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let errors = validate_entity(&industry_id, &entity_type, &entity_data).await?;
+    let db = app_state.harness.db();
+    let errors = validate_entity(db, &industry_id, &entity_type, &entity_data).await?;
     Ok(serde_json::json!({
         "industryId": industry_id,
         "entityType": entity_type,
@@ -283,6 +193,7 @@ pub async fn opc_validate_entity(
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "计算行业KPI")]
 #[tauri::command]
 pub async fn opc_compute_kpis(
+    app_state: State<'_, AppState>,
     industry_id: String,
     days: Option<i64>,
 ) -> Result<serde_json::Value, String> {
@@ -290,7 +201,8 @@ pub async fn opc_compute_kpis(
         Some(d) => TimeRange::days(d),
         None => TimeRange::days(30),
     };
-    let kpis = compute_kpis(&industry_id, range).await?;
+    let db = app_state.harness.db();
+    let kpis = compute_kpis(db, &industry_id, range).await?;
     Ok(serde_json::json!({
         "industryId": industry_id,
         "kpis": kpis,
@@ -301,6 +213,7 @@ pub async fn opc_compute_kpis(
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "运行行业自动化规则")]
 #[tauri::command]
 pub async fn opc_run_automation_rules(
+    app_state: State<'_, AppState>,
     industry_id: String,
     entity_type: String,
     entity_id: String,
@@ -322,8 +235,8 @@ pub async fn opc_run_automation_rules(
     if let Some(f) = fields {
         ctx.fields = f;
     }
-
-    let triggered = run_automation_rules(&industry_id, ctx).await?;
+    let db = app_state.harness.db();
+    let triggered = run_automation_rules(db, &industry_id, ctx).await?;
     Ok(serde_json::json!({
         "industryId": industry_id,
         "triggeredRules": triggered,
@@ -335,6 +248,7 @@ pub async fn opc_run_automation_rules(
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业仪表盘")]
 #[tauri::command]
 pub async fn opc_get_industry_dashboard(
+    app_state: State<'_, AppState>,
     industry_id: String,
     days: Option<i64>,
 ) -> Result<serde_json::Value, String> {
@@ -342,18 +256,21 @@ pub async fn opc_get_industry_dashboard(
         Some(d) => TimeRange::days(d),
         None => TimeRange::days(30),
     };
-    let dashboard = get_dashboard(&industry_id, range).await?;
+    let db = app_state.harness.db();
+    let dashboard = get_dashboard(db, &industry_id, range).await?;
     Ok(serde_json::json!({
         "industryId": industry_id,
         "dashboard": dashboard,
     }))
 }
 
-/// 列出所有已注册行业（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出行业运行时所有已注册行业")]
+/// 列出全部行业包（Tauri 命令）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出全部行业包")]
 #[tauri::command]
-pub async fn opc_list_runtime_industries() -> Result<serde_json::Value, String> {
-    let industries = list_industries().await?;
+pub async fn opc_list_runtime_industries(
+    _app_state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let industries = list_industries();
     Ok(serde_json::json!({
         "count": industries.len(),
         "industries": industries.into_iter().map(|(id, name)| {
@@ -366,9 +283,10 @@ pub async fn opc_list_runtime_industries() -> Result<serde_json::Value, String> 
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业工作流步骤")]
 #[tauri::command]
 pub async fn opc_get_industry_workflow_steps(
+    _app_state: State<'_, AppState>,
     industry_id: String,
 ) -> Result<serde_json::Value, String> {
-    let steps = get_workflow_steps(&industry_id).await?;
+    let steps = get_workflow_steps(&industry_id)?;
     let step_infos: Vec<serde_json::Value> = steps
         .into_iter()
         .map(|s| {
@@ -391,44 +309,13 @@ pub async fn opc_get_industry_workflow_steps(
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业自动化规则")]
 #[tauri::command]
 pub async fn opc_get_industry_automation_rules(
+    _app_state: State<'_, AppState>,
     industry_id: String,
 ) -> Result<serde_json::Value, String> {
-    let rules = get_enabled_rules(&industry_id).await?;
-    let rule_infos: Vec<serde_json::Value> = rules
-        .into_iter()
-        .map(|r| {
-            let conditions: Vec<serde_json::Value> = r
-                .conditions
-                .iter()
-                .map(|c| {
-                    serde_json::json!({
-                        "type": format!("{:?}", c),
-                        "config": serde_json::json!({}),
-                    })
-                })
-                .collect();
-            let actions: Vec<serde_json::Value> = r
-                .actions
-                .iter()
-                .map(|a| {
-                    serde_json::json!({
-                        "type": format!("{:?}", a),
-                        "config": serde_json::json!({}),
-                    })
-                })
-                .collect();
-            serde_json::json!({
-                "id": r.id,
-                "name": r.name,
-                "enabled": r.enabled,
-                "conditions": conditions,
-                "actions": actions,
-            })
-        })
-        .collect();
+    let rules = get_enabled_rules(&industry_id)?;
     Ok(serde_json::json!({
         "industryId": industry_id,
-        "rules": rule_infos,
+        "rules": rules,
     }))
 }
 
@@ -436,65 +323,153 @@ pub async fn opc_get_industry_automation_rules(
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "批量验证行业实体")]
 #[tauri::command]
 pub async fn opc_batch_validate_entities(
+    app_state: State<'_, AppState>,
     industry_id: String,
-    entities: Vec<(String, serde_json::Value)>,
+    entities: Vec<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    let results = validate_batch(&industry_id, &entities).await?;
-    let items: Vec<serde_json::Value> = results
+    let pairs: Vec<(String, serde_json::Value)> = entities
         .into_iter()
-        .map(|(entity_id, errors)| {
-            serde_json::json!({
-                "entityId": entity_id,
-                "valid": errors.is_empty(),
-                "errors": errors,
-            })
+        .filter_map(|e| {
+            let t = e.get("entityType").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let d = e.get("data").cloned().unwrap_or(serde_json::Value::Null);
+            if t.is_empty() { None } else { Some((t, d)) }
         })
         .collect();
+    let db = app_state.harness.db();
+    let results = validate_batch(db, &industry_id, &pairs).await?;
     Ok(serde_json::json!({
         "industryId": industry_id,
-        "results": items,
+        "results": results.into_iter().map(|(t, errs)| {
+            serde_json::json!({ "entityType": t, "valid": errs.is_empty(), "errors": errs })
+        }).collect::<Vec<_>>(),
     }))
 }
 
 /// 获取行业 KPI 定义（Tauri 命令）
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业KPI定义")]
 #[tauri::command]
-pub async fn opc_get_kpi_definitions(industry_id: String) -> Result<serde_json::Value, String> {
-    let definitions = get_kpi_definitions(&industry_id).await?;
-    let defs: Vec<serde_json::Value> = definitions
-        .into_iter()
-        .map(|d| {
-            serde_json::json!({
-                "key": d.key,
-                "name": d.name,
-                "unit": d.unit,
-                "metricType": format!("{:?}", d.metric_type),
-            })
+pub async fn opc_get_kpi_definitions(
+    _app_state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let definitions = get_kpi_definitions(&industry_id)?;
+    Ok(serde_json::json!({
+        "industryId": industry_id,
+        "definitions": definitions,
+    }))
+}
+
+/// 检查行业包是否存在（Tauri 命令）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "检查行业包是否存在")]
+#[tauri::command]
+pub async fn opc_has_industry(
+    _app_state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let exists = has_industry(&industry_id);
+    Ok(serde_json::json!({
+        "industryId": industry_id,
+        "exists": exists,
+    }))
+}
+
+// ── Phase 1 数据接入命令（OpIndustryClient 直读行业包 analysis.yaml） ──
+
+/// 构造行业数据客户端（db/cache/web/file 内建 vendor，无容器）
+fn build_data_client(app_state: &AppState, industry_id: &str) -> Result<OpIndustryClient, String> {
+    let dir = industry_dir(Some(&app_state.app_data_dir), industry_id)?;
+    let config = crate::commands::opc_data::load_analysis_config(&dir)?;
+    let db = app_state.harness.db();
+    let mut vendors: std::collections::HashMap<String, std::sync::Arc<dyn OpIndustryVendor>> =
+        std::collections::HashMap::new();
+    let db_vendor = DbVendor::new(std::sync::Arc::new(DefaultDataService::new(db.clone())));
+    vendors.insert("db".to_string(), std::sync::Arc::new(db_vendor));
+    let cache_vendor = CacheVendor::new(app_state.app_data_dir.join("opc-cache"));
+    vendors.insert("cache".to_string(), std::sync::Arc::new(cache_vendor));
+    vendors.insert("web".to_string(), std::sync::Arc::new(WebVendor));
+    vendors.insert("file".to_string(), std::sync::Arc::new(FileVendor));
+
+    let sources: Vec<AnalysisDataSource> = config
+        .data_sources
+        .iter()
+        .map(|s| AnalysisDataSource {
+            id: s.id.clone(),
+            chain: s.chain.clone(),
+            quality_precheck: s.quality_precheck,
         })
         .collect();
+
+    Ok(OpIndustryClient::new(industry_id.to_string(), sources, vendors))
+}
+
+/// 获取行业数据（Phase 1：按 analysis.yaml data_sources 路由 + 降级）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业数据")]
+#[tauri::command]
+pub async fn opc_get_industry_data(
+    app_state: State<'_, AppState>,
+    industry_id: String,
+    source_id: String,
+    data_domain: String,
+    query: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let client = build_data_client(&app_state, &industry_id)?;
+    let data = client
+        .fetch(&source_id, &data_domain, &query.unwrap_or(serde_json::json!({})))
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(serde_json::json!({
         "industryId": industry_id,
-        "definitions": defs,
+        "sourceId": source_id,
+        "data": data,
     }))
 }
 
-/// 检查行业是否已注册（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "检查行业是否已注册")]
+/// 获取行业数据质量预检（Phase 1：quality_precheck 源清单探测）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业数据质量预检")]
 #[tauri::command]
-pub async fn opc_has_industry(industry_id: String) -> Result<serde_json::Value, String> {
-    let exists = has_industry(&industry_id).await?;
+pub async fn opc_get_industry_precheck(
+    app_state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let client = build_data_client(&app_state, &industry_id)?;
+    let precheck = client.precheck().await;
     Ok(serde_json::json!({
         "industryId": industry_id,
-        "registered": exists,
+        "precheck": precheck,
     }))
 }
 
-/// 重置行业运行时（Tauri 命令，仅限调试）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateOnly, description = "重置行业运行时")]
+/// 获取行业数据源健康状态（Phase 1：vendor 降级可观测）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业数据源健康状态")]
 #[tauri::command]
-pub async fn opc_reset_industry_runtime() -> Result<serde_json::Value, String> {
-    reset_runtime().await;
+pub async fn opc_get_industry_health(
+    app_state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let client = build_data_client(&app_state, &industry_id)?;
+    let health = client.health_snapshot();
     Ok(serde_json::json!({
-        "status": "reset",
+        "industryId": industry_id,
+        "health": health,
+    }))
+}
+
+/// 执行行业动态工作流（Tauri 命令）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业动态工作流")]
+#[tauri::command]
+pub async fn opc_execute_dynamic_workflow(
+    app_state: State<'_, AppState>,
+    industry_id: String,
+    days: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    let range = match days {
+        Some(d) => TimeRange::days(d),
+        None => TimeRange::days(30),
+    };
+    let db = app_state.harness.db();
+    let result = execute_dynamic_workflow(db, &industry_id, range).await?;
+    Ok(serde_json::json!({
+        "industryId": industry_id,
+        "workflowExecution": result,
     }))
 }

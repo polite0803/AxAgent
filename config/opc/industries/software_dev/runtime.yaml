@@ -1,0 +1,448 @@
+# Runtime 配置：软件开发完整流程（software_dev）
+# 由 opc-industry-software-dev crate 迁移而来，version=1
+version: 1
+industry_id: software_dev
+
+validations:
+  - entity_type: project
+    field: title
+    operator: not_empty
+    value: null
+    message: 项目标题不能为空
+  - entity_type: sprint
+    field: start_date
+    operator: not_empty
+    value: null
+    message: 迭代必须包含开始日期
+  - entity_type: sprint
+    field: end_date
+    operator: not_empty
+    value: null
+    message: 迭代必须包含结束日期
+
+kpi_definitions:
+  # ── 通用软件开发 KPI ──
+  - key: sprint_count
+    name: 迭代数量
+    unit: 次
+    metric_type: count
+  - key: code_coverage
+    name: 代码覆盖率
+    unit: "%"
+    metric_type: percentage
+  - key: bug_fix_rate
+    name: 缺陷修复率
+    unit: "%"
+    metric_type: percentage
+  - key: deploy_frequency
+    name: 部署频率
+    unit: 次/月
+    metric_type: ratio
+  # ── 大型项目重构专属 KPI ──
+  - key: refactor_total_lines
+    name: 代码总量
+    unit: 行
+    metric_type: count
+  - key: refactor_total_files
+    name: 文件总数
+    unit: 个
+    metric_type: count
+  - key: refactor_avg_complexity
+    name: 平均圈复杂度
+    unit: 分
+    metric_type: ratio
+  - key: refactor_duplicate_ratio
+    name: 重复代码率
+    unit: "%"
+    metric_type: percentage
+  - key: refactor_module_coupling
+    name: 模块耦合度
+    unit: 分
+    metric_type: ratio
+  - key: refactor_test_coverage
+    name: 测试覆盖率
+    unit: "%"
+    metric_type: percentage
+  - key: refactor_batches_completed
+    name: 完成批次数
+    unit: 次
+    metric_type: count
+  - key: refactor_quality_score
+    name: 质量评分
+    unit: 分
+    metric_type: ratio
+  # ── 行为保真度专属 KPI ──
+  - key: refactor_golden_test_pass_rate
+    name: 黄金测试通过率
+    unit: "%"
+    metric_type: percentage
+  - key: refactor_tacit_knowledge_retention
+    name: 隐式知识保留率
+    unit: "%"
+    metric_type: percentage
+  - key: refactor_side_effect_equivalence
+    name: 副作用等价率
+    unit: "%"
+    metric_type: percentage
+  - key: refactor_edge_case_retention
+    name: 边界条件保留率
+    unit: "%"
+    metric_type: percentage
+
+kpi_sources:
+  sprint_count:
+    type: constant
+    value: 0
+  code_coverage:
+    type: constant
+    value: 0
+  bug_fix_rate:
+    type: constant
+    value: 0
+  deploy_frequency:
+    type: constant
+    value: 0
+  refactor_total_lines:
+    type: constant
+    value: 0
+  refactor_total_files:
+    type: constant
+    value: 0
+  refactor_avg_complexity:
+    type: constant
+    value: 0
+  refactor_duplicate_ratio:
+    type: constant
+    value: 0
+  refactor_module_coupling:
+    type: constant
+    value: 0
+  refactor_test_coverage:
+    type: constant
+    value: 0
+  refactor_batches_completed:
+    type: constant
+    value: 0
+  refactor_quality_score:
+    type: constant
+    value: 0
+  refactor_golden_test_pass_rate:
+    type: constant
+    value: 0
+  refactor_tacit_knowledge_retention:
+    type: constant
+    value: 0
+  refactor_side_effect_equivalence:
+    type: constant
+    value: 0
+  refactor_edge_case_retention:
+    type: constant
+    value: 0
+
+automation_rules:
+  # ── 通用软件开发规则 ──
+  - id: software_deadline_warning
+    name: 任务截止日期预警
+    conditions:
+      - type: created_days_gte
+        days: 7
+      - type: entity_type_is
+        entity_type: task
+      - type: status_is
+        status: in_progress
+    actions:
+      - type: send_notification
+        target: assignee
+        message: "任务已进行7天，请注意截止日期"
+    enabled: true
+  - id: software_code_review_reminder
+    name: 代码审查提醒
+    conditions:
+      - type: field_exceeds
+        field: review_comments
+        threshold: 5.0
+      - type: entity_type_is
+        entity_type: pull_request
+    actions:
+      - type: send_notification
+        target: author
+        message: "代码审查有超过5条评论需要处理"
+    enabled: true
+  # ── 大型项目重构专属规则 ──
+  - id: refactor_complexity_warn
+    name: 圈复杂度预警
+    conditions:
+      - type: field_exceeds
+        field: high_complexity_functions
+        threshold: 10.0
+      - type: entity_type_is
+        entity_type: refactor_batch
+    actions:
+      - type: send_notification
+        target: tech_lead
+        message: "检测到超过10个圈复杂度>20的函数，建议优先重构"
+    enabled: true
+  - id: refactor_coverage_check
+    name: 测试覆盖率门禁
+    conditions:
+      - type: field_below
+        field: test_coverage
+        threshold: 80.0
+      - type: entity_type_is
+        entity_type: refactor_batch
+    actions:
+      - type: update_status
+        status: blocked
+      - type: send_notification
+        target: assignee
+        message: "测试覆盖率低于80%，阻断进入下一批次"
+    enabled: true
+  - id: refactor_deadline_alert
+    name: 重构批次超时预警
+    conditions:
+      - type: created_days_gte
+        days: 14
+      - type: entity_type_is
+        entity_type: refactor_batch
+      - type: status_is
+        status: in_progress
+    actions:
+      - type: send_notification
+        target: project_manager
+        message: "重构批次停留时间超过14天，需要关注"
+    enabled: true
+  - id: refactor_regression_fail
+    name: 回归测试失败触发回滚
+    conditions:
+      - type: status_is
+        status: regression_failed
+      - type: entity_type_is
+        entity_type: refactor_batch
+    actions:
+      - type: create_record
+        entity_type: rollback_trigger
+        data:
+          reason: regression_test_failed
+          auto_triggered: true
+      - type: send_notification
+        target: on_call
+        message: "重构回归测试失败，已自动触发回滚流程"
+    enabled: true
+  # ── 行为保真度专属规则 ──
+  - id: refactor_golden_test_fail
+    name: 黄金测试失败阻断
+    conditions:
+      - type: field_below
+        field: golden_test_pass_rate
+        threshold: 95.0
+      - type: entity_type_is
+        entity_type: refactor_batch
+    actions:
+      - type: update_status
+        status: blocked
+      - type: send_notification
+        target: tech_lead
+        message: "黄金测试通过率低于95%，行为等价性验证失败，需人工介入"
+    enabled: true
+  - id: refactor_tacit_knowledge_violation
+    name: 隐式知识违反预警
+    conditions:
+      - type: field_below
+        field: tacit_knowledge_retention
+        threshold: 100.0
+      - type: entity_type_is
+        entity_type: refactor_batch
+    actions:
+      - type: send_notification
+        target: tech_lead
+        message: "隐式知识保留率未达100%，可能存在契约违反或行为遗漏"
+    enabled: true
+
+workflow_steps:
+  # ── SDLC 软件开发流程（18 步） ──
+  - id: a-req
+    name: 需求分析
+    description: 分析用户需求
+    order: 1
+  - id: a-feasibility
+    name: 可行性评审
+    description: 评估技术可行性、资源和风险
+    order: 2
+  - id: a-feasibility-approval
+    name: 可行性审批
+    description: 批准项目进入架构设计阶段
+    order: 3
+  - id: a-arch
+    name: 架构设计
+    description: 设计系统架构和技术栈
+    order: 4
+  - id: a-data
+    name: 数据模型设计
+    description: 设计数据库实体、关系和索引
+    order: 5
+  - id: a-api
+    name: API设计
+    description: 设计RESTful API接口
+    order: 6
+  - id: a-setup
+    name: 项目环境搭建
+    description: 初始化开发环境
+    order: 7
+  - id: a-code
+    name: 编码实现
+    description: 按设计实现代码
+    order: 8
+  - id: a-cr
+    name: 代码审查
+    description: 审查代码质量
+    order: 9
+  - id: a-cr-approval
+    name: 代码审查审批
+    description: 代码审查是否通过
+    order: 10
+  - id: a-fix
+    name: 缺陷修复
+    description: 根据代码审查意见修复代码缺陷
+    order: 11
+  - id: a-doc
+    name: 文档编写
+    description: 生成设计文档、API文档和开发指南
+    order: 12
+  - id: a-unit-test
+    name: 单元测试
+    description: 为核心模块编写单元测试
+    order: 13
+  - id: a-integration-test
+    name: 集成测试
+    description: 执行模块间集成测试和端到端测试
+    order: 14
+  - id: a-security
+    name: 安全审查
+    description: 执行安全审计
+    order: 15
+  - id: a-deploy-approval
+    name: 部署审批
+    description: 批准部署到目标环境
+    order: 16
+  - id: a-deploy
+    name: 部署上线
+    description: 执行部署、构建、数据库迁移
+    order: 17
+  - id: a-handoff
+    name: 运维交接
+    description: 生成运维文档和交接包
+    order: 18
+  # ── 大型项目重构流程（18 步） ──
+  - id: r-asset-scan
+    name: 代码资产盘点
+    description: 统计文件数/行数/模块结构
+    order: 101
+  - id: r-dep-graph
+    name: 依赖关系分析
+    description: 构建模块依赖图、识别循环依赖
+    order: 102
+  - id: r-complexity
+    name: 复杂度扫描
+    description: 圈复杂度/认知复杂度热点识别
+    order: 103
+  - id: r-smell-detect
+    name: 坏味道检测
+    description: 长方法/上帝类/重复代码检测
+    order: 104
+  - id: r-coupling-analyze
+    name: 耦合度分析
+    description: 高耦合模块识别与内聚性评估
+    order: 105
+  - id: r-risk-assess
+    name: 风险评估
+    description: 变更影响范围与回归风险评分
+    order: 106
+  - id: r-strategy
+    name: 重构策略制定
+    description: 渐进式/大爆炸/绞杀者模式选择
+    order: 107
+  - id: r-batch-plan
+    name: 分批计划
+    description: 按耦合度排序的模块分批
+    order: 108
+  - id: r-quality-baseline
+    name: 质量基线建立
+    description: 测试覆盖/性能基准/代码规范
+    order: 109
+  - id: r-rollback
+    name: 回滚方案
+    description: 分支策略/特性开关/数据回滚
+    order: 110
+  - id: r-pre-review
+    name: 预审查
+    description: 重构前代码审查
+    order: 111
+  - id: r-execute
+    name: 分批执行
+    description: 逐模块重构+持续集成
+    order: 112
+  - id: r-regression
+    name: 回归验证
+    description: 全量回归测试/性能对比
+    order: 113
+  - id: r-integration
+    name: 集成验证
+    description: 跨模块集成/端到端测试
+    order: 114
+  - id: r-quality-gate
+    name: 质量门禁
+    description: 代码覆盖/复杂度/性能达标
+    order: 115
+  - id: r-doc-update
+    name: 文档更新
+    description: 架构文档/API文档/迁移指南
+    order: 116
+  - id: r-handoff
+    name: 运维交接
+    description: 运行手册/监控告警/回滚预案
+    order: 117
+  - id: r-post-review
+    name: 事后复盘
+    description: 经验总结/改进建议
+    order: 118
+
+dashboard_cards:
+  # ── 通用软件开发卡片 ──
+  - id: sprint_card
+    title: 迭代数
+    kpi_key: sprint_count
+    display_value: -- 次
+  - id: coverage_card
+    title: 代码覆盖
+    kpi_key: code_coverage
+    display_value: --%
+  - id: deploy_card
+    title: 部署频率
+    kpi_key: deploy_frequency
+    display_value: -- 次/月
+  # ── 大型项目重构专属卡片 ──
+  - id: code_scale_card
+    title: 代码规模
+    kpi_key: refactor_total_lines
+    display_value: -- 行
+  - id: complexity_card
+    title: 复杂度
+    kpi_key: refactor_avg_complexity
+    display_value: -- 分
+  - id: progress_card
+    title: 重构进度
+    kpi_key: refactor_batches_completed
+    display_value: -- 批
+  - id: quality_card
+    title: 质量评分
+    kpi_key: refactor_quality_score
+    display_value: -- 分
+  - id: coupling_card
+    title: 耦合度
+    kpi_key: refactor_module_coupling
+    display_value: -- 分
+  # ── 行为保真度专属卡片 ──
+  - id: fidelity_card
+    title: 行为保真度
+    kpi_key: refactor_golden_test_pass_rate
+    display_value: --%

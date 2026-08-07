@@ -210,8 +210,8 @@ pub fn load_industry_workflows(industry_dir: &Path) -> Vec<IndustryWorkflow> {
 
 // ── analysis.yaml schema（P0-4：行业分析配置，四件套之一） ──────
 
-// P0-4 仅定义 schema 与加载器；生产消费在 P1（数据接入层 OpIndustryClient
-// 路由 / OpQualityPrecheck 源清单）与 P2（分析策略维度）接入，届时移除 allow。
+// P0-4 定义 schema；Phase 1 数据接入层已消费 data_sources/quality_precheck。
+// strategies/risk 由 P2（分析策略维度）消费，bundle 字段由 P1 部分消费——接入后移除 allow。
 #[allow(dead_code)]
 pub mod analysis_schema {
     use serde::Deserialize;
@@ -662,7 +662,7 @@ pub async fn upsert_industry_registry(
     db: &DatabaseConnection,
     m: &IndustryManifest,
 ) -> Result<(), String> {
-    use axagent_opc_entities::opc_industries;
+    use axagent_entities::opc_industries;
     use sea_orm::*;
 
     let now = now_ts();
@@ -706,8 +706,8 @@ pub async fn upsert_industry_registry(
 #[allow(dead_code)]
 pub async fn enabled_industries(
     db: &DatabaseConnection,
-) -> Result<Vec<axagent_opc_entities::opc_industries::Model>, String> {
-    use axagent_opc_entities::opc_industries;
+) -> Result<Vec<axagent_entities::opc_industries::Model>, String> {
+    use axagent_entities::opc_industries;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
     opc_industries::Entity::find()
         .filter(opc_industries::Column::Enabled.eq(1))
@@ -722,7 +722,7 @@ pub async fn ensure_opc_industries_seeded(
     db: &DatabaseConnection,
     base_dir: &Path,
 ) -> Result<Vec<String>, String> {
-    use axagent_opc_entities::opc_industries;
+    use axagent_entities::opc_industries;
     use sea_orm::EntityTrait;
 
     let manifests = scan_industry_packs(base_dir);

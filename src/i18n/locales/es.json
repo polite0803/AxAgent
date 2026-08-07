@@ -4662,6 +4662,43 @@
         "triggered": "{{count}} reglas activadas",
         "nothingTriggered": "Ninguna regla activada",
         "runFailed": "Error al ejecutar las reglas: {{error}}"
+      },
+      "analysis": {
+        "title": "Motor de análisis de industria",
+        "execute": "Ejecutar análisis",
+        "executeSuccess": "Análisis ejecutado con éxito",
+        "executeFailed": "Error al ejecutar análisis: {{error}}",
+        "noData": "No hay datos de análisis, haga clic para ejecutar",
+        "confidence": "Confianza de decisión",
+        "decisionType": "Tipo de decisión",
+        "riskLevel": "Nivel de riesgo",
+        "riskLevelTitle": "Nivel de riesgo",
+        "recommendations": "Lista de recomendaciones"
+      },
+      "workflow": {
+        "executionTitle": "Ejecución de flujo de trabajo de industria",
+        "execute": "Ejecutar flujo de trabajo",
+        "executeSuccess": "Flujo de trabajo ejecutado con éxito",
+        "executePartial": "Flujo de trabajo parcialmente completado",
+        "executeFailed": "Error al ejecutar flujo de trabajo: {{error}}",
+        "executing": "Ejecutando flujo de trabajo...",
+        "noData": "No hay registros de ejecución de flujo de trabajo",
+        "status_completed": "Completado",
+        "status_failed": "Fallido",
+        "status_partial": "Parcial",
+        "duration": "Duración"
+      },
+      "metrics": {
+        "title": "Métricas de aprendizaje de industria",
+        "refresh": "Actualizar métricas",
+        "noData": "No hay datos de métricas de aprendizaje",
+        "totalSamples": "Total de muestras",
+        "decisionAccuracy": "Precisión de decisiones",
+        "riskAccuracy": "Precisión de predicción de riesgos",
+        "avgFeedback": "Puntuación de feedback promedio",
+        "trend_improving": "Mejora",
+        "trend_stable": "Estable",
+        "trend_declining": "Descenso"
       }
     },
     "rl": {

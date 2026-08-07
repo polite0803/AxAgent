@@ -332,21 +332,21 @@ pub struct AppState {
     /// A 股数据客户端（vendors + 缓存 + 健康追踪）
     pub astock_client: Arc<axagent_astock_data::AStockClient>,
     /// 交易引擎（持仓 / 回测 / 组合风险）
-    pub trading_engine: Arc<TokioRwLock<axagent_stock_analysis::trading::TradingEngine>>,
+    pub trading_engine: Arc<TokioRwLock<axagent_analysis_engine::trading::TradingEngine>>,
     /// 股票业务自适应引擎（反思+进化+编排闭环）
     /// 工作流完成后自动触发自适应循环，实现参数/流程自我优化
     pub stock_adaptive_engine:
-        Arc<axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine>,
+        Arc<axagent_analysis_engine::stock_adaptive_engine::StockAdaptiveEngine>,
     /// 执行桥接器（量化信号→实盘交易）
     pub execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState,
     /// 实时监控器（T+0 / 盘口 / 异常波动），可选
     /// P0: 改用 OnceLock 以便 start_realtime_monitor 在启动后期能注入。
     /// 命令端用 `state.stock_monitor.get()` 获取 `Option<&Arc<RealtimeMonitor>>`。
-    pub stock_monitor: std::sync::OnceLock<Arc<axagent_stock_analysis::monitor::RealtimeMonitor>>,
+    pub stock_monitor: std::sync::OnceLock<Arc<axagent_analysis_engine::monitor::RealtimeMonitor>>,
     /// P3: 跨股票信号聚合器（组合级告警），由 `start_realtime_monitor` 注入。
     /// Tauri 命令通过 `state.cross_stock_aggregator.get()` 访问。
     pub cross_stock_aggregator: std::sync::OnceLock<
-        Arc<axagent_stock_analysis::cross_stock_aggregator::CrossStockSignalAggregator>,
+        Arc<axagent_analysis_engine::cross_stock_aggregator::CrossStockSignalAggregator>,
     >,
     /// 实时行情监视器（P1-2: 替代前端 15s 轮询，2s/10s 自适应）
     /// 由 `start_realtime_quote_watcher` 在启动时注入。

@@ -1293,11 +1293,13 @@ commands::opc_industry_actions::opc_reflect_on_workflow,
 commands::opc_industry_actions::opc_run_self_improvement,
 commands::opc_industry_actions::opc_trigger_industry_learning,
 commands::opc_industry_actions::opc_trigger_rl_optimization,
+commands::opc_industry_actions::opc_execute_analysis,
+commands::opc_industry_actions::opc_execute_workflow,
+commands::opc_industry_actions::opc_get_learning_metrics,
 // opc_learning_hook
 commands::opc_learning_hook::opc_auto_learn_workflow,
 
-// opc_industry_runtime
-commands::opc_industry_runtime::opc_init_industry_runtime,
+// opc_industry_runtime（命令直读行业包，无运行时容器；init/reset 已移除）
 commands::opc_industry_runtime::opc_validate_entity,
 commands::opc_industry_runtime::opc_compute_kpis,
 commands::opc_industry_runtime::opc_run_automation_rules,
@@ -1308,7 +1310,12 @@ commands::opc_industry_runtime::opc_get_industry_automation_rules,
 commands::opc_industry_runtime::opc_batch_validate_entities,
 commands::opc_industry_runtime::opc_get_kpi_definitions,
 commands::opc_industry_runtime::opc_has_industry,
-commands::opc_industry_runtime::opc_reset_industry_runtime,
+// Phase 1 数据接入（OpIndustryClient 直读行业包 analysis.yaml）
+commands::opc_industry_runtime::opc_get_industry_data,
+commands::opc_industry_runtime::opc_get_industry_precheck,
+commands::opc_industry_runtime::opc_get_industry_health,
+// 动态工作流执行
+commands::opc_industry_runtime::opc_execute_dynamic_workflow,
 
 // paper_portfolio
 commands::paper_portfolio::paper_portfolio_add_position,

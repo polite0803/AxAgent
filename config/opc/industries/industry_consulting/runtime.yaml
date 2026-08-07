@@ -1,0 +1,122 @@
+# Runtime 配置：行业咨询流程（industry_consulting）
+# 由 opc-industry-industry-consulting crate 迁移而来，version=1
+version: 1
+industry_id: industry_consulting
+
+validations:
+  - entity_type: consulting_project
+    field: client_name
+    operator: not_empty
+    value: null
+    message: 客户名称不能为空
+  - entity_type: report
+    field: executive_summary
+    operator: not_empty
+    value: null
+    message: 报告摘要不能为空
+
+kpi_definitions:
+  - key: consulting_count
+    name: 咨询项目数
+    unit: 个
+    metric_type: count
+  - key: client_satisfaction
+    name: 客户满意度
+    unit: "%"
+    metric_type: percentage
+  - key: delivery_quality_score
+    name: 交付质量分
+    unit: 分
+    metric_type: count
+  - key: market_insight_depth
+    name: 市场洞察深度
+    unit: 分
+    metric_type: count
+
+kpi_sources:
+  consulting_count:
+    type: constant
+    value: 0
+  client_satisfaction:
+    type: constant
+    value: 0
+  delivery_quality_score:
+    type: constant
+    value: 0
+  market_insight_depth:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: consulting_delivery_warning
+    name: 报告交付预警
+    conditions:
+      - type: created_days_gte
+        days: 30
+      - type: entity_type_is
+        entity_type: report
+      - type: status_is
+        status: draft
+    actions:
+      - type: send_notification
+        target: consultant
+        message: "报告草稿已创建30天，需要尽快交付"
+    enabled: true
+  - id: consulting_client_followup
+    name: 客户跟进提醒
+    conditions:
+      - type: overdue_days_gte
+        days: 7
+      - type: entity_type_is
+        entity_type: invoice
+      - type: status_is
+        status: sent
+    actions:
+      - type: send_notification
+        target: client
+        message: "咨询费用已到期，请及时付款"
+    enabled: true
+
+workflow_steps:
+  - id: a-intake
+    name: 调研启动
+    description: 明确咨询目标和调研范围
+    order: 1
+  - id: a-research
+    name: 信息采集
+    description: 系统性收集行业数据和情报
+    order: 2
+  - id: a-validate
+    name: 调研验证
+    description: 验证采集信息的质量和充分性
+    order: 3
+  - id: a-design
+    name: 方案设计
+    description: 设计针对性的咨询方案
+    order: 4
+  - id: a-approval
+    name: 方案审批
+    description: 客户审批咨询方案
+    order: 5
+  - id: a-report
+    name: 报告撰写
+    description: 生成完整的行业咨询报告
+    order: 6
+  - id: a-deliver
+    name: 交付归档
+    description: 整理最终交付物包
+    order: 7
+
+dashboard_cards:
+  - id: consulting_card
+    title: 咨询项目数
+    kpi_key: consulting_count
+    display_value: -- 个
+  - id: satisfaction_card
+    title: 客户满意度
+    kpi_key: client_satisfaction
+    display_value: --%
+  - id: quality_card
+    title: 交付质量
+    kpi_key: delivery_quality_score
+    display_value: -- 分

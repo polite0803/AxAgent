@@ -205,7 +205,7 @@ pub(crate) fn inject_vendor_state(
         let template_vars: Vec<(String, serde_json::Value)> =
             vars.iter().map(|v| (v.name.clone(), v.value.clone())).collect();
         let enabled_set =
-            axagent_stock_analysis::recommender::pool::load_enabled_vendors_from_template(
+            axagent_analysis_engine::recommender::pool::load_enabled_vendors_from_template(
                 &template_vars,
             );
         tracing::info!("[stock_workflow] vendor 启用状态已注入: {:?}", enabled_set);
@@ -1541,7 +1541,7 @@ pub async fn rerun_decision(
     axagent_rt_workflow::work_engine::executors::register_common_functions(&mut engine);
     // ── P3-1: 注册 portfolio 公式函数（替代 Rhai 内联计算）──
     // 这些函数定义在 stock-analysis::portfolio_formula，纯数学、无副作用。
-    use axagent_stock_analysis::portfolio_formula;
+    use axagent_analysis_engine::portfolio_formula;
     engine.register_fn("pm_evidence_scale", |total_weight: f64, max_weight: f64| -> f64 {
         portfolio_formula::compute_evidence_scale(total_weight, max_weight)
     });
@@ -1942,7 +1942,7 @@ pub async fn rerun_decision(
     let analysis_date = analysis.analysis_date.clone();
 
     let dashboard_report =
-        axagent_stock_analysis::dashboard_report::build_dashboard_report_from_workflow(
+        axagent_analysis_engine::dashboard_report::build_dashboard_report_from_workflow(
             &decision_value,
             &score_json,
             &stock_code,
@@ -1951,7 +1951,7 @@ pub async fn rerun_decision(
             &analyst_reports,
         );
     let dashboard_md =
-        axagent_stock_analysis::dashboard_report::render_dashboard_md(&dashboard_report);
+        axagent_analysis_engine::dashboard_report::render_dashboard_md(&dashboard_report);
 
     tracing::info!(
         "[rerun_decision] DashboardReport 生成完成: integrity_passed={}, risk_alerts={}, catalysts={}",
@@ -2050,7 +2050,7 @@ pub(crate) fn build_dashboard_from_workflow_result(
 
     // 4. 构建 DashboardReport
     let dashboard_report =
-        axagent_stock_analysis::dashboard_report::build_dashboard_report_from_workflow(
+        axagent_analysis_engine::dashboard_report::build_dashboard_report_from_workflow(
             &decision_value,
             &score_json,
             stock_code,
@@ -2059,7 +2059,7 @@ pub(crate) fn build_dashboard_from_workflow_result(
             &analyst_reports,
         );
     let dashboard_md =
-        axagent_stock_analysis::dashboard_report::render_dashboard_md(&dashboard_report);
+        axagent_analysis_engine::dashboard_report::render_dashboard_md(&dashboard_report);
 
     tracing::info!(
         "[build_dashboard_from_workflow_result] DashboardReport 构建完成: \

@@ -17,9 +17,9 @@
 
 use std::sync::Arc;
 
+use axagent_analysis_engine::monitor::MonitorEventEmitter;
 use axagent_harness::AlertPayload;
 use axagent_harness::AlertSeverity;
-use axagent_stock_analysis::monitor::MonitorEventEmitter;
 use chrono::Utc;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;

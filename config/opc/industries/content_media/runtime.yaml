@@ -1,0 +1,122 @@
+# Runtime 配置：内容营销流程（content_media）
+# 由 opc-industry-content-media crate 迁移而来，version=1
+version: 1
+industry_id: content_media
+
+validations:
+  - entity_type: post
+    field: title
+    operator: not_empty
+    value: null
+    message: 文章标题不能为空
+  - entity_type: post
+    field: content
+    operator: not_empty
+    value: null
+    message: 文章内容不能为空
+  - entity_type: post
+    field: content
+    operator: ge
+    value: 50
+    message: 文章内容至少需要50个字符
+  - entity_type: landing_page
+    field: url
+    operator: not_empty
+    value: null
+    message: 落地页URL不能为空
+  - entity_type: landing_page
+    field: url
+    operator: starts_with
+    value: "http"
+    message: 落地页URL格式无效，需以http://或https://开头
+
+kpi_definitions:
+  - key: content_count
+    name: 内容数量
+    unit: 篇
+    metric_type: count
+  - key: page_views
+    name: 页面浏览量
+    unit: 次
+    metric_type: count
+  - key: conversion_rate
+    name: 转化率
+    unit: "%"
+    metric_type: percentage
+  - key: content_engagement
+    name: 内容互动率
+    unit: "%"
+    metric_type: percentage
+
+kpi_sources:
+  content_count:
+    type: constant
+    value: 0
+  page_views:
+    type: constant
+    value: 0
+  conversion_rate:
+    type: constant
+    value: 0
+  content_engagement:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: content_publish_schedule
+    name: 内容发布提醒
+    conditions:
+      - type: created_days_gte
+        days: 7
+      - type: entity_type_is
+        entity_type: post
+      - type: status_is
+        status: draft
+    actions:
+      - type: send_notification
+        target: editor
+        message: "草稿已创建7天，建议尽快发布"
+    enabled: true
+  - id: content_performance_alert
+    name: 内容绩效预警
+    conditions:
+      - type: field_below
+        field: engagement_rate
+        threshold: 2.0
+      - type: entity_type_is
+        entity_type: post
+      - type: status_is
+        status: published
+    actions:
+      - type: send_notification
+        target: content_team
+        message: "文章互动率低于2%，需要优化"
+    enabled: true
+
+workflow_steps:
+  - id: a-topic
+    name: 选题策划
+    description: 分析市场和客户数据，策划内容主题
+    order: 1
+  - id: a-create
+    name: 内容创作
+    description: 根据选题创作内容，发布博客
+    order: 2
+  - id: a-landing
+    name: 创建落地页
+    description: 为内容创建落地页
+    order: 3
+
+dashboard_cards:
+  - id: content_card
+    title: 本月内容数
+    kpi_key: content_count
+    display_value: -- 篇
+  - id: views_card
+    title: 页面浏览
+    kpi_key: page_views
+    display_value: -- 次
+  - id: conversion_card
+    title: 转化率
+    kpi_key: conversion_rate
+    display_value: --%

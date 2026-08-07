@@ -1,0 +1,104 @@
+# Runtime 配置：会计财务流程（accounting）
+# 由 opc-industry-accounting crate 迁移而来，version=1
+version: 1
+industry_id: accounting
+
+validations:
+  - entity_type: invoice
+    field: total
+    operator: ge
+    value: 0
+    message: 发票总金额必须大于等于0
+  - entity_type: customer
+    field: email
+    operator: contains
+    value: "@"
+    message: 客户邮箱格式不正确
+
+kpi_definitions:
+  - key: invoice_count
+    name: 发票数量
+    unit: 张
+    metric_type: count
+  - key: total_revenue
+    name: 总营收
+    unit: CNY
+    metric_type: currency
+  - key: collection_rate
+    name: 回款率
+    unit: "%"
+    metric_type: percentage
+  - key: avg_processing_time
+    name: 平均处理时间
+    unit: 天
+    metric_type: duration
+
+kpi_sources:
+  invoice_count:
+    type: count_invoices
+  total_revenue:
+    type: aggregate_invoice_amounts
+  collection_rate:
+    type: constant
+    value: 0.85
+  avg_processing_time:
+    type: constant
+    value: 3.0
+
+automation_rules:
+  - id: accounting_overdue_alert
+    name: 发票逾期提醒
+    conditions:
+      - type: overdue_days_gte
+        days: 15
+      - type: entity_type_is
+        entity_type: invoice
+    actions:
+      - type: send_notification
+        target: customer
+        message: "您的发票即将逾期"
+    enabled: true
+  - id: accounting_payment_reminder
+    name: 付款到期提醒
+    conditions:
+      - type: overdue_days_gte
+        days: 7
+      - type: status_is
+        status: sent
+    actions:
+      - type: send_notification
+        target: finance_team
+        message: "有发票即将到期"
+    enabled: true
+
+workflow_steps:
+  - id: a-create
+    name: 创建发票
+    description: 根据用户信息创建发票
+    order: 1
+  - id: approval
+    name: 财务审批
+    description: 财务审批（24小时超时自动拒绝）
+    order: 2
+  - id: a-notify
+    name: 通知客户
+    description: 发票已审批通过，通知客户
+    order: 3
+  - id: a-report
+    name: 登记报表
+    description: 记录发票相关关键指标
+    order: 4
+
+dashboard_cards:
+  - id: revenue_card
+    title: 本月营收
+    kpi_key: total_revenue
+    display_value: ¥--
+  - id: invoice_card
+    title: 本月发票数
+    kpi_key: invoice_count
+    display_value: -- 张
+  - id: collection_card
+    title: 回款率
+    kpi_key: collection_rate
+    display_value: --%

@@ -1,0 +1,104 @@
+# Runtime 配置：教育培训流程（education）
+# 由 opc-industry-education crate 迁移而来，version=1
+version: 1
+industry_id: education
+
+validations:
+  - entity_type: student
+    field: age
+    operator: ge
+    value: 5
+    message: 学员年龄必须大于等于 5 岁
+  - entity_type: course
+    field: duration
+    operator: gt
+    value: 0
+    message: 课程时长必须大于 0
+
+kpi_definitions:
+  - key: student_count
+    name: 学员数量
+    unit: 人
+    metric_type: count
+  - key: course_completion_rate
+    name: 课程完成率
+    unit: "%"
+    metric_type: percentage
+  - key: avg_score
+    name: 平均分数
+    unit: 分
+    metric_type: count
+  - key: student_satisfaction
+    name: 学员满意度
+    unit: "%"
+    metric_type: percentage
+
+kpi_sources:
+  student_count:
+    type: constant
+    value: 0
+  course_completion_rate:
+    type: constant
+    value: 0
+  avg_score:
+    type: constant
+    value: 0
+  student_satisfaction:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: education_attendance_alert
+    name: 学员缺席预警
+    conditions:
+      - type: created_days_gte
+        days: 3
+      - type: entity_type_is
+        entity_type: attendance
+      - type: status_is
+        status: absent
+    actions:
+      - type: send_notification
+        target: parent
+        message: "学员已缺席3天，请关注"
+    enabled: true
+  - id: education_completion_ceremony
+    name: 课程完成典礼
+    conditions:
+      - type: field_exceeds
+        field: completion_rate
+        threshold: 95.0
+      - type: entity_type_is
+        entity_type: course
+    actions:
+      - type: update_status
+        status: completed
+    enabled: true
+
+workflow_steps:
+  - id: a-curriculum
+    name: 课程设计
+    description: 设计课程目标、大纲和评估方式
+    order: 1
+  - id: a-content
+    name: 内容制作
+    description: 制作课程内容讲义、练习和测验
+    order: 2
+  - id: a-enroll
+    name: 学员管理
+    description: 创建学员信息，设置学习路径
+    order: 3
+
+dashboard_cards:
+  - id: student_card
+    title: 学员总数
+    kpi_key: student_count
+    display_value: -- 人
+  - id: completion_card
+    title: 完成率
+    kpi_key: course_completion_rate
+    display_value: --%
+  - id: satisfaction_card
+    title: 满意度
+    kpi_key: student_satisfaction
+    display_value: --%

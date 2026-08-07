@@ -3,6 +3,23 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use agent_macro::agent_command;
 use axagent_agent::self_improvement_executor::{SelfImprovementConfig, SelfImprovementExecutor};
+use axagent_analysis_engine::backtest::{
+    BacktestEngine, BacktestResult, BacktestStats, HistoricalAnalysis,
+};
+use axagent_analysis_engine::backtest_feedback;
+use axagent_analysis_engine::evidence_weight::{self, EvidenceWeightReport, EvidenceWeightRequest};
+use axagent_analysis_engine::key_levels::{KeyLevelBacktestStats, KeyLevelTracker};
+use axagent_analysis_engine::plugin::AnalystPluginManager;
+use axagent_analysis_engine::portfolio_monitor::{
+    self, CorrelationCell, PortfolioDashboard, StressTestBundle,
+};
+use axagent_analysis_engine::portfolio_risk::{PortfolioRiskManager, PortfolioRiskMetrics};
+use axagent_analysis_engine::position_limits::PositionLimits;
+use axagent_analysis_engine::recommender::{self, RecoResponse};
+use axagent_analysis_engine::review::{DailyReview, PostCloseReview};
+use axagent_analysis_engine::screener::{ScreenCriteria, ScreenResult, StockScreener};
+use axagent_analysis_engine::stock_analysis_round::StockAnalysisRound;
+use axagent_analysis_engine::trading::{PositionSummary, TradePredictionComparison};
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_astock_data::batch::{BatchRequest, BatchResult, BatchRunner, MarketBatchQuery};
 use axagent_astock_data::fundamentals_report::{FundamentalsAnalyzer, FundamentalsReport};
@@ -12,23 +29,6 @@ use axagent_entities::{
     watchlist_items,
 };
 use axagent_harness::market_data::KLine;
-use axagent_stock_analysis::backtest::{
-    BacktestEngine, BacktestResult, BacktestStats, HistoricalAnalysis,
-};
-use axagent_stock_analysis::backtest_feedback;
-use axagent_stock_analysis::evidence_weight::{self, EvidenceWeightReport, EvidenceWeightRequest};
-use axagent_stock_analysis::key_levels::{KeyLevelBacktestStats, KeyLevelTracker};
-use axagent_stock_analysis::plugin::AnalystPluginManager;
-use axagent_stock_analysis::portfolio_monitor::{
-    self, CorrelationCell, PortfolioDashboard, StressTestBundle,
-};
-use axagent_stock_analysis::portfolio_risk::{PortfolioRiskManager, PortfolioRiskMetrics};
-use axagent_stock_analysis::position_limits::PositionLimits;
-use axagent_stock_analysis::recommender::{self, RecoResponse};
-use axagent_stock_analysis::review::{DailyReview, PostCloseReview};
-use axagent_stock_analysis::screener::{ScreenCriteria, ScreenResult, StockScreener};
-use axagent_stock_analysis::stock_analysis_round::StockAnalysisRound;
-use axagent_stock_analysis::trading::{PositionSummary, TradePredictionComparison};
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -1368,8 +1368,8 @@ pub async fn list_watchlist(
 pub async fn extract_evidence_citations(
     state: State<'_, AppState>,
     analysis_id: String,
-) -> Result<axagent_stock_analysis::evidence_citation::CitationReport, String> {
-    use axagent_stock_analysis::evidence_citation::extract_citations;
+) -> Result<axagent_analysis_engine::evidence_citation::CitationReport, String> {
+    use axagent_analysis_engine::evidence_citation::extract_citations;
 
     let analysis = axagent_entities::stock_analyses::Entity::find_by_id(&analysis_id)
         .one(state.harness.db())
@@ -1406,7 +1406,7 @@ pub async fn extract_evidence_citations(
 #[tauri::command]
 pub async fn conditional_order_list(
     state: State<'_, AppState>,
-) -> Result<Vec<axagent_stock_analysis::conditional_order::ConditionalOrder>, String> {
+) -> Result<Vec<axagent_analysis_engine::conditional_order::ConditionalOrder>, String> {
     use axagent_entities::settings;
     let setting = settings::Entity::find_by_id("conditional_orders")
         .one(state.harness.db())
@@ -1424,7 +1424,7 @@ pub async fn conditional_order_list(
 #[tauri::command]
 pub async fn conditional_order_save(
     state: State<'_, AppState>,
-    orders: Vec<axagent_stock_analysis::conditional_order::ConditionalOrder>,
+    orders: Vec<axagent_analysis_engine::conditional_order::ConditionalOrder>,
 ) -> Result<(), String> {
     use axagent_entities::settings;
     let value = serde_json::to_string(&orders).map_err(|e| format!("序列化条件单失败: {e}"))?;
@@ -1455,7 +1455,7 @@ pub async fn conditional_order_evaluate(
     _prev_close: f64,
     _turnover_rate: Option<f64>,
 ) -> Result<Vec<serde_json::Value>, String> {
-    use axagent_stock_analysis::conditional_order::ConditionalOrderEngine;
+    use axagent_analysis_engine::conditional_order::ConditionalOrderEngine;
 
     // 简化版：本地评估（不依赖 DB），返回匹配结果
     let _engine = ConditionalOrderEngine::new();
@@ -1470,9 +1470,13 @@ pub async fn generate_monthly_report(
     state: State<'_, AppState>,
     year: i32,
     month: u32,
-) -> Result<axagent_stock_analysis::monthly_report::MonthlyReport, String> {
-    axagent_stock_analysis::monthly_report::generate_monthly_report(state.harness.db(), year, month)
-        .await
+) -> Result<axagent_analysis_engine::monthly_report::MonthlyReport, String> {
+    axagent_analysis_engine::monthly_report::generate_monthly_report(
+        state.harness.db(),
+        year,
+        month,
+    )
+    .await
 }
 
 /// 获取情绪深度分析报告
@@ -1482,10 +1486,10 @@ pub async fn analyze_sentiment_depth(
     stock_code: String,
     stock_name: String,
     history_json: String,
-) -> Result<axagent_stock_analysis::sentiment_analysis::SentimentReport, String> {
-    let history: Vec<axagent_stock_analysis::sentiment_analysis::SentimentSnapshot> =
+) -> Result<axagent_analysis_engine::sentiment_analysis::SentimentReport, String> {
+    let history: Vec<axagent_analysis_engine::sentiment_analysis::SentimentSnapshot> =
         serde_json::from_str(&history_json).map_err(|e| format!("解析历史数据失败: {e}"))?;
-    Ok(axagent_stock_analysis::sentiment_analysis::analyze_sentiment(
+    Ok(axagent_analysis_engine::sentiment_analysis::analyze_sentiment(
         &stock_code,
         &stock_name,
         &history,
@@ -1519,7 +1523,7 @@ pub async fn portfolio_backtest_run(
 #[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取因子分析结果")]
 #[tauri::command]
 pub async fn factor_analysis_list() -> Result<Vec<serde_json::Value>, String> {
-    let registry = axagent_stock_analysis::factor_analysis::FactorRegistry::new();
+    let registry = axagent_analysis_engine::factor_analysis::FactorRegistry::new();
     let factors = registry.all_factors();
     Ok(factors
         .iter()
@@ -1669,13 +1673,13 @@ pub async fn list_portfolio(state: State<'_, AppState>) -> Result<Vec<serde_json
 /// 从 settings 表加载估值参数（ValueConfig），仅提取需要的部分
 async fn load_value_config(
     db: &sea_orm::DatabaseConnection,
-) -> axagent_stock_analysis::decision::ValueConfig {
+) -> axagent_analysis_engine::decision::ValueConfig {
     if let Ok(Some(v)) = axagent_dao::repo::settings::get_setting(db, "stock_analysis_config").await
     {
         if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&v) {
             if let Some(value_section) = parsed.get("value") {
                 if let Ok(cfg) = serde_json::from_value::<
-                    axagent_stock_analysis::decision::ValueConfig,
+                    axagent_analysis_engine::decision::ValueConfig,
                 >(value_section.clone())
                 {
                     return cfg;
@@ -1683,7 +1687,7 @@ async fn load_value_config(
             }
         }
     }
-    axagent_stock_analysis::decision::ValueConfig::default()
+    axagent_analysis_engine::decision::ValueConfig::default()
 }
 
 // ── MCP Stock Data Tools ──
@@ -1691,13 +1695,13 @@ async fn load_value_config(
 /// 返回 stock data MCP 工具定义列表（供前端 MCP 管理页面注册）
 ///
 /// P2-8: 合并 `axagent_astock_data::mcp_tools::stock_mcp_tools()` 与
-/// `axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools()`。
+/// `axagent_analysis_engine::mcp_tools::industry_chain_mcp_tools()`。
 /// G3 产业链工具已从 astock-data 迁回 stock-analysis，需在此合并返回。
 #[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取股票MCP工具列表")]
 #[tauri::command]
 pub async fn get_stock_mcp_tools() -> Result<Vec<serde_json::Value>, String> {
     let mut tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
-    tools.extend(axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools());
+    tools.extend(axagent_analysis_engine::mcp_tools::industry_chain_mcp_tools());
     Ok(tools)
 }
 
@@ -1712,8 +1716,8 @@ pub async fn execute_stock_mcp_tool(
     arguments: serde_json::Value,
 ) -> Result<String, String> {
     // P2-8: G3 产业链工具优先（纯计算，不依赖 astock_client）
-    if axagent_stock_analysis::mcp_tools::is_industry_chain_tool(&tool_name) {
-        return axagent_stock_analysis::mcp_tools::execute_industry_chain_tool(
+    if axagent_analysis_engine::mcp_tools::is_industry_chain_tool(&tool_name) {
+        return axagent_analysis_engine::mcp_tools::execute_industry_chain_tool(
             &tool_name, &arguments,
         );
     }
@@ -1775,7 +1779,7 @@ pub async fn backtest_analysis(
         .map(|d| d.and_utc().timestamp_millis())
         .unwrap_or(0);
     let period = result.time_horizon.as_deref().unwrap_or("short");
-    let _ = axagent_stock_analysis::evolution_drift::record_performance(
+    let _ = axagent_analysis_engine::evolution_drift::record_performance(
         state.harness.db(),
         strategy_id,
         period,
@@ -1970,13 +1974,13 @@ pub async fn create_price_alert(
     condition: String,
     target_price: f64,
 ) -> Result<price_alerts::Model, String> {
-    use axagent_stock_analysis::alert_mapping::{
+    use axagent_analysis_engine::alert_mapping::{
         condition_type_for, legacy_condition_to_alert_type,
     };
 
     // 映射老 condition 到 6 类 alert_type（未知值保守视为 take_profit）
     let alert_type = legacy_condition_to_alert_type(&condition)
-        .unwrap_or(axagent_stock_analysis::alert_mapping::alert_types::TAKE_PROFIT);
+        .unwrap_or(axagent_analysis_engine::alert_mapping::alert_types::TAKE_PROFIT);
     let condition_type = condition_type_for(alert_type);
     let threshold = target_price;
 
@@ -2005,7 +2009,7 @@ pub async fn create_price_alert(
 
     // P0: 同步加入 RealtimeMonitor 配置，即时生效（无需重启）
     if let Some(monitor) = state.stock_monitor.get() {
-        use axagent_stock_analysis::monitor::MonitorConfig;
+        use axagent_analysis_engine::monitor::MonitorConfig;
         // 用 alert_type 直接构造 MonitorConfig 的 6 个 Option 字段
         let mut config = MonitorConfig {
             stock_code: stock_code.clone(),
@@ -2019,22 +2023,22 @@ pub async fn create_price_alert(
             enabled: true,
         };
         match alert_type {
-            axagent_stock_analysis::alert_mapping::alert_types::STOP_LOSS => {
+            axagent_analysis_engine::alert_mapping::alert_types::STOP_LOSS => {
                 config.stop_loss = Some(threshold);
             },
-            axagent_stock_analysis::alert_mapping::alert_types::TAKE_PROFIT => {
+            axagent_analysis_engine::alert_mapping::alert_types::TAKE_PROFIT => {
                 config.take_profit = Some(threshold);
             },
-            axagent_stock_analysis::alert_mapping::alert_types::RESISTANCE => {
+            axagent_analysis_engine::alert_mapping::alert_types::RESISTANCE => {
                 config.resistance_break = Some(threshold);
             },
-            axagent_stock_analysis::alert_mapping::alert_types::SUPPORT => {
+            axagent_analysis_engine::alert_mapping::alert_types::SUPPORT => {
                 config.support_break = Some(threshold);
             },
-            axagent_stock_analysis::alert_mapping::alert_types::CHANGE => {
+            axagent_analysis_engine::alert_mapping::alert_types::CHANGE => {
                 config.change_pct_alert = Some(threshold);
             },
-            axagent_stock_analysis::alert_mapping::alert_types::VOLUME => {
+            axagent_analysis_engine::alert_mapping::alert_types::VOLUME => {
                 config.turnover_rate_alert = Some(threshold);
             },
             _ => {},
@@ -2189,7 +2193,7 @@ pub async fn set_quote_watch_priority(
 #[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出自定义分析师插件")]
 #[tauri::command]
 pub async fn list_custom_analysts()
--> Result<Vec<axagent_stock_analysis::plugin::CustomAnalyst>, String> {
+-> Result<Vec<axagent_analysis_engine::plugin::CustomAnalyst>, String> {
     let mgr = AnalystPluginManager::new("agency_experts/stock-analysis");
     Ok(mgr.discover_custom_analysts())
 }
@@ -2235,7 +2239,7 @@ pub async fn generate_stock_report(
     let indicators =
         axagent_astock_data::indicators::compute_indicators(&record.stock_code, &klines);
     let mut score =
-        axagent_stock_analysis::scoring::ScoringEngine::score(&indicators, quote.price, None);
+        axagent_analysis_engine::scoring::ScoringEngine::score(&indicators, quote.price, None);
     let pe = quote.pe.unwrap_or(0.0);
     let pb = quote.pb.unwrap_or(0.0);
     let roe = state
@@ -2244,10 +2248,10 @@ pub async fn generate_stock_report(
         .await
         .ok()
         .and_then(|f| f.first().and_then(|r| r.roe));
-    axagent_stock_analysis::scoring::ScoringEngine::apply_fundamental_adjustment(
+    axagent_analysis_engine::scoring::ScoringEngine::apply_fundamental_adjustment(
         &mut score, pe, pb, roe,
     );
-    axagent_stock_analysis::scoring::ScoringEngine::apply_industry_adjustment(
+    axagent_analysis_engine::scoring::ScoringEngine::apply_industry_adjustment(
         &mut score, pe, None, pb, None,
     );
 
@@ -2281,7 +2285,7 @@ pub async fn generate_stock_report(
 
     let value_assessment_json = bb_str("value.assessment");
 
-    let html = axagent_stock_analysis::report::generate_html_report(
+    let html = axagent_analysis_engine::report::generate_html_report(
         &record.stock_code,
         &record.stock_name,
         &record.analysis_date,
@@ -2583,8 +2587,8 @@ pub async fn generate_daily_review(state: State<'_, AppState>) -> Result<DailyRe
 #[tauri::command]
 pub async fn optimize_scoring_weights(
     state: State<'_, AppState>,
-) -> Result<axagent_stock_analysis::decision::ScoringWeights, String> {
-    axagent_stock_analysis::backtest::optimize_weights(&*state.astock_client, state.harness.db())
+) -> Result<axagent_analysis_engine::decision::ScoringWeights, String> {
+    axagent_analysis_engine::backtest::optimize_weights(&*state.astock_client, state.harness.db())
         .await
 }
 
@@ -2599,7 +2603,7 @@ pub async fn optimize_scoring_weights(
 pub async fn backtest_reco_strategies(
     state: State<'_, AppState>,
     as_of_date: Option<String>,
-) -> Result<axagent_stock_analysis::backtest_strategy::BacktestComparisonResponse, String> {
+) -> Result<axagent_analysis_engine::backtest_strategy::BacktestComparisonResponse, String> {
     let ctx = AsOfContext::parse_optional(as_of_date.as_deref())?;
     axagent_astock_data::as_of::with_optional_asof(ctx, async {
         backtest_reco_strategies_inner(&state).await
@@ -2609,7 +2613,7 @@ pub async fn backtest_reco_strategies(
 
 async fn backtest_reco_strategies_inner(
     state: &State<'_, AppState>,
-) -> Result<axagent_stock_analysis::backtest_strategy::BacktestComparisonResponse, String> {
+) -> Result<axagent_analysis_engine::backtest_strategy::BacktestComparisonResponse, String> {
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     // 1. 找最近一次荐股记录的 generated_at
@@ -2679,7 +2683,7 @@ async fn backtest_reco_strategies_inner(
         .collect();
 
     // 5. 跑回测
-    let bt_result = axagent_stock_analysis::backtest_strategy::backtest_two_groups(
+    let bt_result = axagent_analysis_engine::backtest_strategy::backtest_two_groups(
         state.astock_client.clone(),
         &positive_stocks,
         &negative_stocks,
@@ -2687,7 +2691,7 @@ async fn backtest_reco_strategies_inner(
     .await?;
 
     // 6. 更新信号质量缓存（供给侧反馈 → 荐股读取）
-    axagent_stock_analysis::backtest_strategy::update_signal_quality_cache(
+    axagent_analysis_engine::backtest_strategy::update_signal_quality_cache(
         &bt_result.positive.strategies,
     );
 
@@ -2704,8 +2708,8 @@ pub async fn preview_adjust_reco_weights(
     state: State<'_, AppState>,
     as_of_date: Option<String>,
 ) -> Result<serde_json::Value, String> {
+    use axagent_analysis_engine::backtest_strategy::adjust_strategy_weights;
     use axagent_entities::workflow_template;
-    use axagent_stock_analysis::backtest_strategy::adjust_strategy_weights;
     use std::collections::BTreeMap;
 
     let db = state.harness.db();
@@ -2891,7 +2895,7 @@ pub async fn apply_reco_weights(
 pub async fn get_reco_signal_history(
     state: State<'_, AppState>,
     strategy_id: String,
-) -> Result<Vec<axagent_stock_analysis::backtest_strategy::StrategySignalResult>, String> {
+) -> Result<Vec<axagent_analysis_engine::backtest_strategy::StrategySignalResult>, String> {
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     // 1. 找最近一次荐股记录
@@ -2943,7 +2947,7 @@ pub async fn get_reco_signal_history(
     let stock_list: Vec<(String, String)> = all_stocks.into_iter().collect();
 
     // 4. 调用信号历史
-    axagent_stock_analysis::backtest_strategy::run_signal_history(
+    axagent_analysis_engine::backtest_strategy::run_signal_history(
         state.astock_client.clone(),
         &strategy_id,
         Some(&stock_list),
@@ -3121,7 +3125,7 @@ pub async fn check_position_limits(
 pub async fn get_value_assessment(
     state: State<'_, AppState>,
     stock_code: String,
-) -> Result<axagent_stock_analysis::value::ValueAssessment, String> {
+) -> Result<axagent_analysis_engine::value::ValueAssessment, String> {
     let client = &state.astock_client;
     let quote = client.get_quote(&stock_code).await.map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取实时行情失败: {e}"))
@@ -3138,13 +3142,13 @@ pub async fn get_value_assessment(
     });
     let value_config = load_value_config(state.harness.db()).await;
     Ok(match shares {
-        Some(s) if s > 0.0 => axagent_stock_analysis::value::ValueEngine::assess(
+        Some(s) if s > 0.0 => axagent_analysis_engine::value::ValueEngine::assess(
             quote.price,
             &financials,
             s,
             Some(&value_config),
         ),
-        _ => axagent_stock_analysis::value::ValueEngine::assess_no_shares(
+        _ => axagent_analysis_engine::value::ValueEngine::assess_no_shares(
             quote.price,
             &financials,
             Some(&value_config),
@@ -3158,7 +3162,7 @@ pub async fn get_value_assessment(
 pub async fn compute_value_metrics(
     state: State<'_, AppState>,
     stock_code: String,
-) -> Result<axagent_stock_analysis::value_investing::ValueMetrics, String> {
+) -> Result<axagent_analysis_engine::value_investing::ValueMetrics, String> {
     let quote = state.astock_client.get_quote(&stock_code).await.map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("获取实时行情失败: {e}"))
     })?;
@@ -3173,7 +3177,7 @@ pub async fn compute_value_metrics(
         }
     });
     let value_config = load_value_config(state.harness.db()).await;
-    Ok(axagent_stock_analysis::value_investing::ValueInvestingEngine::compute(
+    Ok(axagent_analysis_engine::value_investing::ValueInvestingEngine::compute(
         &stock_code,
         quote.price,
         total_shares,
@@ -3931,7 +3935,7 @@ pub async fn sweep_daily_snapshots(state: State<'_, AppState>) -> Result<String,
 #[tauri::command]
 pub async fn recommend_stocks(
     state: State<'_, AppState>,
-    period: axagent_stock_analysis::recommender::Period,
+    period: axagent_analysis_engine::recommender::Period,
     as_of_date: Option<String>,
 ) -> Result<RecoResponse, String> {
     // 解析 as_of_date；非法/未来 → 4xx-style 错误
@@ -4040,7 +4044,7 @@ pub async fn recommend_stocks(
 #[tauri::command]
 pub async fn get_cached_recommendation(
     state: State<'_, AppState>,
-    period: axagent_stock_analysis::recommender::Period,
+    period: axagent_analysis_engine::recommender::Period,
 ) -> Result<Option<RecoResponse>, String> {
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 
@@ -4083,15 +4087,15 @@ pub async fn get_cached_recommendation(
     // 3) 反序列化 + 按 style 分组
     use std::collections::{BTreeMap, HashMap};
     let mut picks_map: BTreeMap<
-        axagent_stock_analysis::recommender::Style,
-        Vec<axagent_stock_analysis::recommender::RecoPick>,
+        axagent_analysis_engine::recommender::Style,
+        Vec<axagent_analysis_engine::recommender::RecoPick>,
     > = BTreeMap::new();
 
     for row in &rows {
         let Some(ref pd) = row.pick_data else {
             continue;
         };
-        let Ok(pick) = serde_json::from_str::<axagent_stock_analysis::recommender::RecoPick>(pd)
+        let Ok(pick) = serde_json::from_str::<axagent_analysis_engine::recommender::RecoPick>(pd)
         else {
             continue;
         };
@@ -4792,7 +4796,7 @@ pub async fn apply_param_suggestions(
     tracing::info!("[param_suggestions] 已应用 {} 项参数调整到 stock-analysis 模板", updates.len());
 
     // 4. 同时触发策略权重重新计算，使 params_suggestion 间接影响荐股权重
-    let _ = axagent_stock_analysis::evolution_drift::recalc_and_persist(db, "manual", None, None)
+    let _ = axagent_analysis_engine::evolution_drift::recalc_and_persist(db, "manual", None, None)
         .await
         .map(|(written, _)| {
             tracing::info!("[param_suggestions] 参数调整触发策略权重重算，{written} 项更新");
@@ -4808,10 +4812,10 @@ pub async fn apply_param_suggestions(
 pub async fn calibrate_portfolio_mgr_params(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_entities::stock_reflections;
-    use axagent_stock_analysis::portfolio_formula::{
+    use axagent_analysis_engine::portfolio_formula::{
         PortfolioMgrParamSet, score_param_set, try_parse_param_suggestion,
     };
+    use axagent_entities::stock_reflections;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 
     let db = state.harness.db();
@@ -4883,9 +4887,9 @@ pub async fn calibrate_portfolio_mgr_params(
 pub async fn get_evolution_drift_dashboard(
     state: State<'_, AppState>,
     as_of_date: Option<String>,
-) -> Result<axagent_stock_analysis::evolution_drift::EvolutionDriftDashboard, String> {
+) -> Result<axagent_analysis_engine::evolution_drift::EvolutionDriftDashboard, String> {
     let db = state.harness.db();
-    axagent_stock_analysis::evolution_drift::get_dashboard(db, as_of_date.as_deref()).await
+    axagent_analysis_engine::evolution_drift::get_dashboard(db, as_of_date.as_deref()).await
 }
 
 /// 拉取某条 (strategy, period) 的权重时间线
@@ -4896,9 +4900,9 @@ pub async fn get_evolution_drift_timeline(
     strategy_id: String,
     period: String,
     limit: Option<u32>,
-) -> Result<Vec<axagent_stock_analysis::evolution_drift::TimelinePoint>, String> {
+) -> Result<Vec<axagent_analysis_engine::evolution_drift::TimelinePoint>, String> {
     let db = state.harness.db();
-    axagent_stock_analysis::evolution_drift::get_timeline(
+    axagent_analysis_engine::evolution_drift::get_timeline(
         db,
         &strategy_id,
         &period,
@@ -4953,7 +4957,7 @@ pub async fn manual_recalc_strategy_weights(
     as_of_date: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let db = state.harness.db();
-    let (written, new_weights) = axagent_stock_analysis::evolution_drift::recalc_and_persist(
+    let (written, new_weights) = axagent_analysis_engine::evolution_drift::recalc_and_persist(
         db,
         "manual",
         None,
@@ -4977,7 +4981,7 @@ pub async fn get_reco_strategy_weights(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
     let db = state.harness.db();
-    let weights = axagent_stock_analysis::evolution_drift::load_current_weights(db).await?;
+    let weights = axagent_analysis_engine::evolution_drift::load_current_weights(db).await?;
     // 转成 JSON 对象 {"trend_short": 1.2, ...}
     let mut obj = serde_json::Map::new();
     for ((s, p), w) in weights {
@@ -4994,7 +4998,7 @@ pub async fn get_reco_strategy_weights(
 #[tauri::command]
 pub async fn get_t0_config(
     state: State<'_, AppState>,
-) -> Result<axagent_stock_analysis::monitor::TZeroConfig, String> {
+) -> Result<axagent_analysis_engine::monitor::TZeroConfig, String> {
     let monitor = state.stock_monitor.get().ok_or_else(|| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail("RealtimeMonitor 未初始化")
     })?;
@@ -5006,7 +5010,7 @@ pub async fn get_t0_config(
 #[tauri::command]
 pub async fn set_t0_config(
     state: State<'_, AppState>,
-    config: axagent_stock_analysis::monitor::TZeroConfig,
+    config: axagent_analysis_engine::monitor::TZeroConfig,
 ) -> Result<(), String> {
     let monitor = state.stock_monitor.get().ok_or_else(|| {
         ErrorResponse::new(wf_err::INTERNAL).with_detail("RealtimeMonitor 未初始化")
@@ -5053,8 +5057,8 @@ pub fn analyze_backtest_feedback(
 #[tauri::command]
 pub fn parse_analysis_intent(
     input: String,
-) -> Result<axagent_stock_analysis::intent_parser::ParsedIntent, String> {
-    Ok(axagent_stock_analysis::intent_parser::parse_analysis_intent(&input))
+) -> Result<axagent_analysis_engine::intent_parser::ParsedIntent, String> {
+    Ok(axagent_analysis_engine::intent_parser::parse_analysis_intent(&input))
 }
 
 // ── P1-2: VLM 截图导入持仓 ──
@@ -5073,8 +5077,8 @@ pub fn parse_analysis_intent(
 #[tauri::command]
 pub fn parse_vlm_portfolio_screenshot(
     raw_vlm_output: String,
-) -> Result<axagent_stock_analysis::vlm_import::VlmParseResult, String> {
-    Ok(axagent_stock_analysis::vlm_import::parse_vlm_output(&raw_vlm_output))
+) -> Result<axagent_analysis_engine::vlm_import::VlmParseResult, String> {
+    Ok(axagent_analysis_engine::vlm_import::parse_vlm_output(&raw_vlm_output))
 }
 
 /// 解析 CSV 交易记录文件（不写入数据库，仅预览）
@@ -5084,8 +5088,8 @@ pub fn parse_vlm_portfolio_screenshot(
 #[tauri::command]
 pub fn parse_trades_csv(
     file_path: String,
-) -> Result<Vec<axagent_stock_analysis::trade_import::ImportRow>, String> {
-    axagent_stock_analysis::trade_import::parse_csv(&file_path)
+) -> Result<Vec<axagent_analysis_engine::trade_import::ImportRow>, String> {
+    axagent_analysis_engine::trade_import::parse_csv(&file_path)
 }
 
 /// 批量导入交易记录到数据库
@@ -5097,10 +5101,10 @@ pub fn parse_trades_csv(
 pub async fn import_trades(
     state: State<'_, AppState>,
     file_path: String,
-) -> Result<axagent_stock_analysis::trade_import::ImportSummary, String> {
-    let rows = axagent_stock_analysis::trade_import::parse_csv(&file_path)?;
+) -> Result<axagent_analysis_engine::trade_import::ImportSummary, String> {
+    let rows = axagent_analysis_engine::trade_import::parse_csv(&file_path)?;
     let db = state.harness.db();
-    axagent_stock_analysis::trade_import::batch_import_trades(db, &rows).await.map_err(|e| {
+    axagent_analysis_engine::trade_import::batch_import_trades(db, &rows).await.map_err(|e| {
         ErrorResponse::new(wf_err::INTERNAL)
             .with_detail(format!("批量导入交易失败: {e}"))
             .to_string()
@@ -5117,8 +5121,8 @@ pub async fn import_portfolio_from_vlm(
     raw_vlm_output: String,
     replace_existing: Option<bool>,
 ) -> Result<serde_json::Value, String> {
+    use axagent_analysis_engine::vlm_import::{holdings_to_import_params, parse_vlm_output};
     use axagent_entities::portfolio_holdings;
-    use axagent_stock_analysis::vlm_import::{holdings_to_import_params, parse_vlm_output};
     use sea_orm::{EntityTrait, Set};
 
     let parsed = parse_vlm_output(&raw_vlm_output);
@@ -5372,12 +5376,12 @@ pub async fn quick_backtest(
 
 /// 列出所有可用的股票分析工具名称（用于 Agent 配置页工具选择列表）
 ///
-/// P2-8: 合并 G3 产业链工具（来自 axagent_stock_analysis::mcp_tools）。
+/// P2-8: 合并 G3 产业链工具（来自 axagent_analysis_engine::mcp_tools）。
 #[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description = "列出股票分析工具")]
 #[tauri::command]
 pub async fn list_stock_tools() -> Result<Vec<String>, String> {
     let mut tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
-    tools.extend(axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools());
+    tools.extend(axagent_analysis_engine::mcp_tools::industry_chain_mcp_tools());
     let names: Vec<String> = tools
         .into_iter()
         .filter_map(|t| t.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
@@ -5435,7 +5439,7 @@ pub async fn stock_evolution_recalc(
     as_of_date: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let db = state.harness.db();
-    let (written, new_weights) = axagent_stock_analysis::evolution_drift::recalc_and_persist(
+    let (written, new_weights) = axagent_analysis_engine::evolution_drift::recalc_and_persist(
         db,
         "manual",
         None,

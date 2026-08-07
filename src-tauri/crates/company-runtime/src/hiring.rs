@@ -11,7 +11,7 @@
 
 use crate::error::{CompanyError, CompanyResult};
 use crate::org::OrgService;
-use axagent_opc_entities::{opc_org_employees, opc_talent_templates};
+use axagent_entities::{opc_org_employees, opc_talent_templates};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 
 /// 招聘决策结果。

@@ -435,9 +435,9 @@ async fn discover_candidates(
 
     // 调 recommend_stocks（Mid 周期），传入 preseed
     let template_vars: Vec<(String, serde_json::Value)> = vec![];
-    let reco = match axagent_stock_analysis::recommender::recommend_stocks(
+    let reco = match axagent_analysis_engine::recommender::recommend_stocks(
         client.clone(),
-        axagent_stock_analysis::recommender::Period::Mid,
+        axagent_analysis_engine::recommender::Period::Mid,
         &template_vars,
         preseed,
     )

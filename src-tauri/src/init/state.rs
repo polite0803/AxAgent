@@ -961,7 +961,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                     let template_vars: Vec<(String, serde_json::Value)> =
                         vars.iter().map(|v| (v.name.clone(), v.value.clone())).collect();
                     let enabled_set =
-                        axagent_stock_analysis::recommender::pool::load_enabled_vendors_from_template(
+                        axagent_analysis_engine::recommender::pool::load_enabled_vendors_from_template(
                             &template_vars,
                         );
                     tracing::info!("[init] vendor 启用状态已从模板加载: {:?}", enabled_set);
@@ -975,7 +975,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         }
     }
     let trading_engine =
-        Arc::new(TokioRwLock::new(axagent_stock_analysis::trading::TradingEngine::new(
+        Arc::new(TokioRwLock::new(axagent_analysis_engine::trading::TradingEngine::new(
             Arc::new(sea_db.clone()),
             astock_client.clone(),
         )));
@@ -984,7 +984,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 整合反思、进化、编排三者为统一的自适应闭环系统，
     // 工作流完成后自动触发自适应循环，实现参数/流程自我优化。
     let stock_adaptive_engine =
-        Arc::new(axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine::new());
+        Arc::new(axagent_analysis_engine::stock_adaptive_engine::StockAdaptiveEngine::new());
     tracing::info!("[init] 股票自适应引擎已初始化");
 
     // 2.7 P1:从持久化 settings 读取遥测级别初值,构造共享句柄。

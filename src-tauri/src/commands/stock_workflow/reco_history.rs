@@ -284,7 +284,7 @@ pub async fn delete_serenity_pick(state: State<'_, AppState>, id: String) -> Res
         ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("删除候选记录失败: {e}"))
     })?;
     // 同步清空 Serenity 全局缓存，避免下次荐股仍包含已删除的候选
-    axagent_stock_analysis::recommender::clear_serenity_candidate_cache();
+    axagent_analysis_engine::recommender::clear_serenity_candidate_cache();
     tracing::info!("[serenity] 已删除候选记录: {id}，Serenity 缓存已同步清空");
     Ok(())
 }

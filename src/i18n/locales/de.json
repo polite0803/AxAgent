@@ -4662,6 +4662,43 @@
         "triggered": "{{count}} Regeln ausgelöst",
         "nothingTriggered": "Keine Regeln ausgelöst",
         "runFailed": "Regelausführung fehlgeschlagen: {{error}}"
+      },
+      "analysis": {
+        "title": "Industrie-Analyse-Engine",
+        "execute": "Analyse ausführen",
+        "executeSuccess": "Analyse erfolgreich ausgeführt",
+        "executeFailed": "Analyse fehlgeschlagen: {{error}}",
+        "noData": "Keine Analysedaten, klicken Sie zum Ausführen",
+        "confidence": "Entscheidungsvertrauen",
+        "decisionType": "Entscheidungstyp",
+        "riskLevel": "Risikoniveau",
+        "riskLevelTitle": "Risikoniveau",
+        "recommendations": "Empfehlungsliste"
+      },
+      "workflow": {
+        "executionTitle": "Industrie-Workflow-Ausführung",
+        "execute": "Workflow ausführen",
+        "executeSuccess": "Workflow erfolgreich ausgeführt",
+        "executePartial": "Workflow teilweise abgeschlossen",
+        "executeFailed": "Workflow fehlgeschlagen: {{error}}",
+        "executing": "Workflow wird ausgeführt...",
+        "noData": "Keine Workflow-Ausführungsdatensätze",
+        "status_completed": "Abgeschlossen",
+        "status_failed": "Fehlgeschlagen",
+        "status_partial": "Teilweise",
+        "duration": "Dauer"
+      },
+      "metrics": {
+        "title": "Industrie-Lernmetriken",
+        "refresh": "Metriken aktualisieren",
+        "noData": "Keine Lernmetriken-Daten",
+        "totalSamples": "Gesamtproben",
+        "decisionAccuracy": "Entscheidungsgenauigkeit",
+        "riskAccuracy": "Risikovhersagegenauigkeit",
+        "avgFeedback": "Durchschnittliche Feedback-Punktzahl",
+        "trend_improving": "Verbesserung",
+        "trend_stable": "Stabil",
+        "trend_declining": "Rückgang"
       }
     },
     "rl": {

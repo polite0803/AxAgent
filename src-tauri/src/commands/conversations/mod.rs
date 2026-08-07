@@ -3243,13 +3243,13 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         session_share_manager: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         astock_client: Arc::new(axagent_astock_data::AStockClient::new()),
         trading_engine: Arc::new(tokio::sync::RwLock::new(
-            axagent_stock_analysis::trading::TradingEngine::new(
+            axagent_analysis_engine::trading::TradingEngine::new(
                 Arc::new(db.clone()),
                 Arc::new(axagent_astock_data::AStockClient::new()),
             ),
         )),
         stock_adaptive_engine: Arc::new(
-            axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine::new(),
+            axagent_analysis_engine::stock_adaptive_engine::StockAdaptiveEngine::new(),
         ),
         stock_monitor: std::sync::OnceLock::new(),
         cross_stock_aggregator: std::sync::OnceLock::new(),

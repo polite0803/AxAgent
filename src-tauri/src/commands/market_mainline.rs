@@ -2,7 +2,7 @@
 //! G4 市场主线自动提炼 Tauri 命令层
 //!
 //! 对应前端 IPC 调用，全部走 `#[tauri::command]`，返回 `Result<T, String>`。
-//! 业务实现委托给 `axagent_stock_analysis::market_mainline`。
+//! 业务实现委托给 `axagent_analysis_engine::market_mainline`。
 //!
 //! 命令清单：
 //! - `market_mainline_create` —— 创建单条主线
@@ -18,7 +18,7 @@
 
 use crate::AppState;
 use agent_macro::agent_command;
-use axagent_stock_analysis::market_mainline::{
+use axagent_analysis_engine::market_mainline::{
     self, BatchUpsertInput, BatchUpsertResult, CreateMainlineInput, UpdateMainlineInput,
 };
 use tauri::State;

@@ -9,6 +9,9 @@ use tauri::State;
 
 use crate::AppState;
 use agent_macro::agent_command;
+use axagent_analysis_engine::opc::{
+    IndustryLearningManager, IndustryWorkflowExecutor, OpcIndustryAnalysisRound,
+};
 use axagent_orchestrator::{ReinforcementLearningConfig, RewardWeightConfig};
 
 /// 行业操作类型
@@ -1047,6 +1050,91 @@ pub async fn opc_list_industry_workflows(industry_id: String) -> Result<serde_js
         })
         .collect();
     serde_json::to_value(workflows).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+// ── 行业分析引擎命令 ──────────────────────────────────────────
+
+/// 执行行业分析（使用新的分析引擎）
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业分析")]
+#[tauri::command]
+pub async fn opc_execute_analysis(
+    _app_state: State<'_, AppState>,
+    industry_id: String,
+    days: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    use axagent_analysis_engine::opc::data_service::TimeRange;
+    use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
+
+    let adapter = IndustryAdapterFactory::create(&industry_id)
+        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+
+    let days = days.unwrap_or(30);
+    let time_range = TimeRange::days(days as i64);
+
+    let round = OpcIndustryAnalysisRound::new(industry_id.clone(), adapter);
+    let decision = round.analyze(&time_range).await.map_err(|e| format!("分析执行失败: {e}"))?;
+
+    serde_json::to_value(decision).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 执行行业工作流
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业工作流")]
+#[tauri::command]
+pub async fn opc_execute_workflow(
+    _app_state: State<'_, AppState>,
+    industry_id: String,
+    days: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    use axagent_analysis_engine::opc::data_service::TimeRange;
+    use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
+    use axagent_analysis_engine::opc::workflow::IndustryWorkflowManager;
+
+    let adapter = IndustryAdapterFactory::create(&industry_id)
+        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+
+    let days = days.unwrap_or(30);
+    let time_range = TimeRange::days(days as i64);
+
+    let mut manager = IndustryWorkflowManager::new();
+    let workflow = manager.create_or_update(&industry_id, adapter.as_ref()).clone();
+
+    let executor = IndustryWorkflowExecutor::new(industry_id.clone(), adapter);
+    let result = executor
+        .execute(&workflow, &time_range)
+        .await
+        .map_err(|e| format!("工作流执行失败: {e}"))?;
+
+    serde_json::to_value(result).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 查询行业学习指标
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "查询行业学习指标")]
+#[tauri::command]
+pub async fn opc_get_learning_metrics(
+    _app_state: State<'_, AppState>,
+    industry_id: String,
+) -> Result<serde_json::Value, String> {
+    let mut manager = IndustryLearningManager::new();
+    let engine = manager.get_or_create(&industry_id).clone();
+
+    let metrics = engine.compute_metrics().await.map_err(|e| format!("指标计算失败: {e}"))?;
+
+    serde_json::to_value(metrics).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,

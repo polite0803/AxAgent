@@ -1,0 +1,110 @@
+# Runtime 配置：电商运营流程（ecommerce）
+# 由 opc-industry-ecommerce crate 迁移而来，version=1
+version: 1
+industry_id: ecommerce
+
+validations:
+  - entity_type: order
+    field: quantity
+    operator: gt
+    value: 0
+    message: 订单数量必须大于 0
+  - entity_type: order
+    field: price
+    operator: ge
+    value: 0
+    message: 价格不能为负数
+  - entity_type: customer
+    field: email
+    operator: not_empty
+    value: null
+    message: 下单客户必须提供邮箱
+
+kpi_definitions:
+  - key: gmv
+    name: 商品交易总额
+    unit: CNY
+    metric_type: currency
+  - key: order_count
+    name: 订单数量
+    unit: 单
+    metric_type: count
+  - key: conversion_rate
+    name: 转化率
+    unit: "%"
+    metric_type: percentage
+  - key: return_rate
+    name: 退货率
+    unit: "%"
+    metric_type: percentage
+
+kpi_sources:
+  gmv:
+    type: constant
+    value: 0
+  order_count:
+    type: constant
+    value: 0
+  conversion_rate:
+    type: constant
+    value: 0
+  return_rate:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: ecommerce_low_stock
+    name: 电商低库存预警
+    conditions:
+      - type: field_below
+        field: stock_level
+        threshold: 10.0
+      - type: entity_type_is
+        entity_type: product
+    actions:
+      - type: send_notification
+        target: inventory
+        message: "库存不足，请及时补货"
+    enabled: true
+  - id: ecommerce_cart_abandon
+    name: 购物车遗弃提醒
+    conditions:
+      - type: created_days_gte
+        days: 1
+      - type: entity_type_is
+        entity_type: cart
+      - type: status_is
+        status: active
+    actions:
+      - type: send_notification
+        target: customer
+        message: "您的购物车有商品待结账"
+    enabled: true
+
+workflow_steps:
+  - id: a-product
+    name: 选品分析
+    description: 分析市场和客户需求，确定产品方向
+    order: 1
+  - id: a-page
+    name: 上架落地页
+    description: 创建产品落地页
+    order: 2
+  - id: a-customer
+    name: 客户管理
+    description: 创建客户记录，关联产品信息
+    order: 3
+
+dashboard_cards:
+  - id: gmv_card
+    title: 本月GMV
+    kpi_key: gmv
+    display_value: ¥--
+  - id: order_card
+    title: 订单数
+    kpi_key: order_count
+    display_value: -- 单
+  - id: conversion_card
+    title: 转化率
+    kpi_key: conversion_rate
+    display_value: --%

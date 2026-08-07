@@ -8,6 +8,7 @@ import type { IndustryLearningConfig } from "@/types";
 import {
   ApiOutlined,
   AuditOutlined,
+  BarChartOutlined,
   BookOutlined,
   BugOutlined,
   BulbOutlined,
@@ -41,7 +42,10 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
+  Divider,
   Empty,
+  Progress,
   Row,
   Segmented,
   Space,
@@ -49,6 +53,7 @@ import {
   Statistic,
   Steps,
   Tag,
+  Timeline,
   Typography,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
@@ -125,6 +130,51 @@ interface IndustryDashboard {
     default_display: string;
   }>;
   summary?: string;
+}
+
+// ── 分析决策相关类型 ──────────────────────────────────
+interface AnalysisRecommendation {
+  id: string;
+  type: "action" | "warning" | "opportunity";
+  description: string;
+  priority: "low" | "medium" | "high";
+}
+
+interface OpcIndustryDecision {
+  industry_id: string;
+  decision_type: string;
+  summary: string;
+  confidence: number;
+  kpis: KpiValue[];
+  recommendations: AnalysisRecommendation[];
+  risk_level: "low" | "medium" | "high";
+}
+
+// ── 工作流执行结果类型 ──────────────────────────────────
+interface WorkflowExecutionResult {
+  industry_id: string;
+  workflow_id: string;
+  status: "completed" | "failed" | "partial";
+  node_results: Array<{
+    id: string;
+    name: string;
+    status: "completed" | "failed" | "skipped";
+    duration_ms: number;
+    output?: Record<string, unknown>;
+  }>;
+  duration_ms: number;
+  error_message?: string;
+}
+
+// ── 学习指标类型 ──────────────────────────────────────────
+interface IndustryLearningMetrics {
+  industry_id: string;
+  total_samples: number;
+  decision_accuracy: number;
+  risk_prediction_accuracy: number;
+  avg_feedback_score: number;
+  improvement_trend: "improving" | "stable" | "declining";
+  last_updated: number;
 }
 
 /** 9 个行业专属配置 - 文本内容通过 i18n 获取 */
@@ -251,12 +301,14 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
 /** 行业操作面板 — 根据行业 ID 加载专属配置，所有文本通过 i18n 获取 */
 export function IndustryPage() {
   const { t } = useTranslation();
-  const params = useParams<{ industryId: string }>();
+  const params = useParams<{ id?: string; industryId?: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const { message } = App.useApp();
 
-  const industryId = params?.industryId
+  // 支持两种路由参数：新格式 /opc/industry/:id 和旧格式 /opc/industries/:industryId
+  const industryId = params?.id
+    || params?.industryId
     || location.pathname.split("/").pop()
     || "";
 
@@ -274,6 +326,19 @@ export function IndustryPage() {
   const [rulesLoading, setRulesLoading] = useState(false);
   const [rulesRunning, setRulesRunning] = useState(false);
   const [kpiTimeRange, setKpiTimeRange] = useState<"7" | "30" | "90">("30");
+
+  // 分析决策数据
+  const [decision, setDecision] = useState<OpcIndustryDecision | null>(null);
+  const [decisionLoading, setDecisionLoading] = useState(false);
+  const [decisionDays, setDecisionDays] = useState<number>(30);
+
+  // 工作流执行数据
+  const [workflowResult, setWorkflowResult] = useState<WorkflowExecutionResult | null>(null);
+  const [workflowExecuting, setWorkflowExecuting] = useState(false);
+
+  // 学习指标数据
+  const [learningMetrics, setLearningMetrics] = useState<IndustryLearningMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
 
   const createConversation = useConversationStore((s) => s.createConversation);
   const settings = useSettingsStore((s) => s.settings);
@@ -429,6 +494,67 @@ export function IndustryPage() {
     loadWorkflowSteps();
     loadAutomationRules();
     message.success(t("opc.industry.refreshSuccess"));
+  };
+
+  /** 执行行业分析决策（对接 opc_execute_analysis 命令） */
+  const handleExecuteAnalysis = async () => {
+    if (!industryId) { return; }
+    setDecisionLoading(true);
+    try {
+      const result = await invoke<OpcIndustryDecision>(
+        "opc_execute_analysis",
+        { industryId, days: decisionDays },
+      );
+      setDecision(result);
+      message.success(t("opc.industry.analysis.executeSuccess"));
+    } catch (e) {
+      console.error("[IndustryPage] execute analysis failed:", e);
+      message.error(t("opc.industry.analysis.executeFailed", { error: String(e) }));
+    } finally {
+      setDecisionLoading(false);
+    }
+  };
+
+  /** 执行行业工作流（对接 opc_execute_workflow 命令） */
+  const handleExecuteWorkflow = async () => {
+    if (!industryId) { return; }
+    setWorkflowExecuting(true);
+    setWorkflowResult(null);
+    try {
+      const result = await invoke<WorkflowExecutionResult>(
+        "opc_execute_workflow",
+        { industryId, days: decisionDays },
+      );
+      setWorkflowResult(result);
+      if (result.status === "completed") {
+        message.success(t("opc.industry.workflow.executeSuccess"));
+      } else {
+        message.warning(t("opc.industry.workflow.executePartial"));
+      }
+    } catch (e) {
+      console.error("[IndustryPage] execute workflow failed:", e);
+      message.error(t("opc.industry.workflow.executeFailed", { error: String(e) }));
+    } finally {
+      setWorkflowExecuting(false);
+    }
+  };
+
+  /** 获取学习指标（对接 opc_get_learning_metrics 命令） */
+  const handleGetLearningMetrics = async () => {
+    if (!industryId) { return; }
+    setMetricsLoading(true);
+    try {
+      const result = await invoke<IndustryLearningMetrics>(
+        "opc_get_learning_metrics",
+        { industryId },
+      );
+      setLearningMetrics(result);
+    } catch (e) {
+      console.error("[IndustryPage] get learning metrics failed:", e);
+      setLearningMetrics(null);
+    } finally {
+      setMetricsLoading(false);
+    }
   };
 
   /** 触发反思 */
@@ -789,6 +915,283 @@ export function IndustryPage() {
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={t("opc.industry.rules.noData")}
+            />
+          )}
+      </Card>
+
+      {/* 行业分析决策引擎（对接 opc_execute_analysis 命令） */}
+      <Card
+        style={{ marginBottom: 24 }}
+        title={
+          <span>
+            <BarChartOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.analysis.title")}
+          </span>
+        }
+        extra={
+          <Space>
+            <Segmented
+              value={String(decisionDays)}
+              onChange={(v) => setDecisionDays(Number(v))}
+              options={[
+                { label: "7天", value: "7" },
+                { label: "30天", value: "30" },
+                { label: "90天", value: "90" },
+              ]}
+            />
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              loading={decisionLoading}
+              onClick={handleExecuteAnalysis}
+            >
+              {t("opc.industry.analysis.execute")}
+            </Button>
+          </Space>
+        }
+      >
+        {decisionLoading
+          ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin />
+            </div>
+          )
+          : decision
+          ? (
+            <>
+              {/* 决策摘要 */}
+              <Alert
+                type={decision.risk_level === "high"
+                  ? "error"
+                  : decision.risk_level === "medium"
+                  ? "warning"
+                  : "success"}
+                showIcon
+                message={decision.summary}
+                description={t("opc.industry.analysis.riskLevel") + ": " + decision.risk_level}
+                style={{ marginBottom: 16 }}
+              />
+              {/* 置信度 */}
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Col xs={12} sm={8}>
+                  <Card size="small">
+                    <Progress
+                      type="dashboard"
+                      percent={Math.round(decision.confidence * 100)}
+                      format={(p) => `${p}%`}
+                    />
+                    <div style={{ textAlign: "center", marginTop: 8 }}>
+                      <Text type="secondary">{t("opc.industry.analysis.confidence")}</Text>
+                    </div>
+                  </Card>
+                </Col>
+                <Col xs={12} sm={8}>
+                  <Card size="small">
+                    <Statistic
+                      title={t("opc.industry.analysis.decisionType")}
+                      value={decision.decision_type}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} sm={8}>
+                  <Card size="small">
+                    <Statistic
+                      title={t("opc.industry.analysis.riskLevelTitle")}
+                      value={decision.risk_level}
+                      valueStyle={{
+                        color: decision.risk_level === "high"
+                          ? "#cf1322"
+                          : decision.risk_level === "medium"
+                          ? "#d48806"
+                          : "#3f8600",
+                      }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+              {/* 建议列表 */}
+              {decision.recommendations.length > 0 && <Divider>{t("opc.industry.analysis.recommendations")}</Divider>}
+              <Timeline
+                items={decision.recommendations.map((rec) => ({
+                  color: rec.type === "action" ? "blue" : rec.type === "warning" ? "red" : "green",
+                  children: (
+                    <Space direction="vertical">
+                      <Space>
+                        <Tag color={rec.priority === "high" ? "red" : rec.priority === "medium" ? "orange" : "blue"}>
+                          {rec.priority}
+                        </Tag>
+                        <Tag color={rec.type === "action" ? "blue" : rec.type === "warning" ? "red" : "green"}>
+                          {rec.type}
+                        </Tag>
+                      </Space>
+                      <Text>{rec.description}</Text>
+                    </Space>
+                  ),
+                }))}
+              />
+            </>
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.analysis.noData")}
+            />
+          )}
+      </Card>
+
+      {/* 行业工作流执行（对接 opc_execute_workflow 命令） */}
+      <Card
+        style={{ marginBottom: 24 }}
+        title={
+          <span>
+            <ThunderboltOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.workflow.executionTitle")}
+          </span>
+        }
+        extra={
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            loading={workflowExecuting}
+            onClick={handleExecuteWorkflow}
+          >
+            {t("opc.industry.workflow.execute")}
+          </Button>
+        }
+      >
+        {workflowExecuting
+          ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin tip={t("opc.industry.workflow.executing")} />
+            </div>
+          )
+          : workflowResult
+          ? (
+            <>
+              {/* 执行状态 */}
+              <Alert
+                type={workflowResult.status === "completed" ? "success" : "error"}
+                showIcon
+                message={t("opc.industry.workflow.status_" + workflowResult.status)}
+                description={workflowResult.error_message
+                  || `${t("opc.industry.workflow.duration")}: ${(workflowResult.duration_ms / 1000).toFixed(2)}s`}
+                style={{ marginBottom: 16 }}
+              />
+              {/* 节点执行结果 */}
+              <Collapse
+                items={workflowResult.node_results.map((node) => ({
+                  key: node.id,
+                  label: (
+                    <Space>
+                      <Tag color={node.status === "completed" ? "green" : node.status === "failed" ? "red" : "default"}>
+                        {node.status}
+                      </Tag>
+                      <Text strong>{node.name}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        ({(node.duration_ms / 1000).toFixed(2)}s)
+                      </Text>
+                    </Space>
+                  ),
+                  children: node.output
+                    ? (
+                      <pre
+                        style={{ maxHeight: 200, overflow: "auto", background: "#f5f5f5", padding: 8, borderRadius: 4 }}
+                      >
+                      {JSON.stringify(node.output, null, 2)}
+                      </pre>
+                    )
+                    : null,
+                }))}
+              />
+            </>
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.workflow.noData")}
+            />
+          )}
+      </Card>
+
+      {/* 行业学习指标（对接 opc_get_learning_metrics 命令） */}
+      <Card
+        style={{ marginBottom: 24 }}
+        title={
+          <span>
+            <FundProjectionScreenOutlined style={{ marginRight: 8 }} />
+            {t("opc.industry.metrics.title")}
+          </span>
+        }
+        extra={
+          <Button
+            icon={<SyncOutlined spin={metricsLoading} />}
+            loading={metricsLoading}
+            onClick={handleGetLearningMetrics}
+          >
+            {t("opc.industry.metrics.refresh")}
+          </Button>
+        }
+      >
+        {metricsLoading
+          ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin />
+            </div>
+          )
+          : learningMetrics
+          ? (
+            <Row gutter={[16, 16]}>
+              <Col xs={12} sm={6}>
+                <Card size="small">
+                  <Statistic
+                    title={t("opc.industry.metrics.totalSamples")}
+                    value={learningMetrics.total_samples}
+                    prefix={<BookOutlined />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={12} sm={6}>
+                <Card size="small" title={t("opc.industry.metrics.decisionAccuracy")}>
+                  <Progress
+                    type="circle"
+                    percent={Math.round(learningMetrics.decision_accuracy * 100)}
+                  />
+                </Card>
+              </Col>
+              <Col xs={12} sm={6}>
+                <Card size="small" title={t("opc.industry.metrics.riskAccuracy")}>
+                  <Progress
+                    type="circle"
+                    percent={Math.round(learningMetrics.risk_prediction_accuracy * 100)}
+                  />
+                </Card>
+              </Col>
+              <Col xs={12} sm={6}>
+                <Card size="small">
+                  <Statistic
+                    title={t("opc.industry.metrics.avgFeedback")}
+                    value={learningMetrics.avg_feedback_score}
+                    precision={2}
+                    prefix={<BulbOutlined />}
+                  />
+                  <Tag
+                    color={learningMetrics.improvement_trend === "improving"
+                      ? "green"
+                      : learningMetrics.improvement_trend === "stable"
+                      ? "blue"
+                      : "red"}
+                    style={{ marginTop: 8 }}
+                  >
+                    {t("opc.industry.metrics.trend_" + learningMetrics.improvement_trend)}
+                  </Tag>
+                </Card>
+              </Col>
+            </Row>
+          )
+          : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={t("opc.industry.metrics.noData")}
             />
           )}
       </Card>

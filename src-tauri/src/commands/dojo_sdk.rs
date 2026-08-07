@@ -209,7 +209,7 @@ impl DojoSdkExecutorImpl {
 
         let db = self.get_db().ok_or_else(|| "数据库未初始化".to_string())?;
 
-        let detail = axagent_stock_analysis::paper_portfolio::get_portfolio_detail(
+        let detail = axagent_analysis_engine::paper_portfolio::get_portfolio_detail(
             &db,
             &*self.astock_client,
             &portfolio_id,
@@ -249,7 +249,7 @@ impl DojoSdkExecutorImpl {
         let db = self.get_db().ok_or_else(|| "数据库未初始化".to_string())?;
 
         let mainlines = if let Some(cat) = &category {
-            axagent_stock_analysis::market_mainline::list_mainlines_by_category(&db, cat)
+            axagent_analysis_engine::market_mainline::list_mainlines_by_category(&db, cat)
                 .await
                 .map_err(|e| {
                     String::from(crate::commands::error::ErrorResponse::from_error(
@@ -258,7 +258,7 @@ impl DojoSdkExecutorImpl {
                     ))
                 })?
         } else {
-            axagent_stock_analysis::market_mainline::list_recent_mainlines(&db, days)
+            axagent_analysis_engine::market_mainline::list_recent_mainlines(&db, days)
                 .await
                 .map_err(|e| {
                     String::from(crate::commands::error::ErrorResponse::from_error(

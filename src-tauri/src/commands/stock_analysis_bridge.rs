@@ -604,11 +604,11 @@ async fn dispatch_stock_command<R: tauri::Runtime>(
                 .as_f64()
                 .ok_or_else(|| "缺少 target_price 参数".to_string())?;
 
-            use axagent_stock_analysis::alert_mapping::{
+            use axagent_analysis_engine::alert_mapping::{
                 condition_type_for, legacy_condition_to_alert_type,
             };
             let alert_type = legacy_condition_to_alert_type(condition)
-                .unwrap_or(axagent_stock_analysis::alert_mapping::alert_types::TAKE_PROFIT);
+                .unwrap_or(axagent_analysis_engine::alert_mapping::alert_types::TAKE_PROFIT);
             let condition_type = condition_type_for(alert_type);
 
             let now = chrono::Utc::now().timestamp_millis();

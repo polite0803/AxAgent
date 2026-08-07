@@ -1,0 +1,127 @@
+# Runtime 配置：金融投资分析（finance_invest）
+# 由 opc-industry-finance-invest crate 迁移而来，version=1
+version: 1
+industry_id: finance_invest
+
+validations:
+  - entity_type: invoice
+    field: amount
+    operator: gt
+    value: 0
+    message: 发票金额必须大于0
+  - entity_type: project
+    field: budget
+    operator: not_empty
+    value: null
+    message: 项目必须包含预算信息
+  # 原代码中 investment_amount 校验位于 match 之外，对所有实体类型生效，故用 "*"
+  - entity_type: "*"
+    field: investment_amount
+    operator: gt
+    value: 0
+    message: 投资金额必须为正数
+
+kpi_definitions:
+  - key: total_assets
+    name: 总资产
+    unit: CNY
+    metric_type: currency
+  - key: revenue_growth
+    name: 营收增长率
+    unit: "%"
+    metric_type: percentage
+  - key: risk_level
+    name: 风险等级
+    unit: 级
+    metric_type: count
+  - key: roi
+    name: 投资回报率
+    unit: "%"
+    metric_type: percentage
+
+kpi_sources:
+  total_assets:
+    type: constant
+    value: 0
+  revenue_growth:
+    type: constant
+    value: 0
+  risk_level:
+    type: constant
+    value: 0
+  roi:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: finance_overdue_escalation
+    name: 逾期发票升级处理
+    conditions:
+      - type: overdue_days_gte
+        days: 30
+      - type: entity_type_is
+        entity_type: invoice
+    actions:
+      - type: update_status
+        status: high_risk
+      - type: send_notification
+        target: finance_team
+        message: "逾期30天以上的发票需要关注"
+    enabled: true
+  - id: finance_risk_alert
+    name: 风险敞口预警
+    conditions:
+      - type: field_exceeds
+        field: risk_exposure
+        threshold: 1000000.0
+    actions:
+      - type: send_notification
+        target: risk_team
+        message: "风险敞口超过阈值"
+    enabled: true
+  - id: finance_investment_review
+    name: 大额投资审核
+    conditions:
+      - type: field_exceeds
+        field: amount
+        threshold: 500000.0
+      - type: entity_type_is
+        entity_type: project
+    actions:
+      - type: create_record
+        entity_type: review
+        data:
+          reason: 大额投资自动触发审核
+    enabled: true
+
+workflow_steps:
+  - id: a-report
+    name: 财务数据获取
+    description: 获取财务报表和运营数据
+    order: 1
+  - id: a-validate
+    name: 数据验证
+    description: 校验财务数据的完整性和合理性
+    order: 2
+  - id: a-risk
+    name: 风险评估
+    description: 基于财务数据计算风险指标
+    order: 3
+  - id: a-advice
+    name: 投资建议
+    description: 基于财务分析和风险评估生成投资建议
+    order: 4
+
+dashboard_cards:
+  - id: assets_card
+    title: 总资产
+    kpi_key: total_assets
+    display_value: ¥--
+  - id: growth_card
+    title: 营收增长
+    kpi_key: revenue_growth
+    display_value: --%
+  - id: roi_card
+    title: 投资回报
+    kpi_key: roi
+    display_value: --%

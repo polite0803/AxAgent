@@ -4331,6 +4331,43 @@
         "triggered": "{{count}} rules triggered",
         "nothingTriggered": "No rules triggered",
         "runFailed": "Rule execution failed: {{error}}"
+      },
+      "analysis": {
+        "title": "Industry Analysis Decision Engine",
+        "execute": "Run Analysis",
+        "executeSuccess": "Analysis executed successfully",
+        "executeFailed": "Analysis execution failed: {{error}}",
+        "noData": "No analysis data available, click to run analysis",
+        "confidence": "Decision Confidence",
+        "decisionType": "Decision Type",
+        "riskLevel": "Risk Level",
+        "riskLevelTitle": "Risk Level",
+        "recommendations": "Recommendations"
+      },
+      "workflow": {
+        "executionTitle": "Industry Workflow Execution",
+        "execute": "Execute Workflow",
+        "executeSuccess": "Workflow executed successfully",
+        "executePartial": "Workflow partially completed",
+        "executeFailed": "Workflow execution failed: {{error}}",
+        "executing": "Workflow executing...",
+        "noData": "No workflow execution records",
+        "status_completed": "Completed",
+        "status_failed": "Failed",
+        "status_partial": "Partial",
+        "duration": "Duration"
+      },
+      "metrics": {
+        "title": "Industry Learning Metrics",
+        "refresh": "Refresh Metrics",
+        "noData": "No learning metrics data",
+        "totalSamples": "Total Samples",
+        "decisionAccuracy": "Decision Accuracy",
+        "riskAccuracy": "Risk Prediction Accuracy",
+        "avgFeedback": "Avg Feedback Score",
+        "trend_improving": "Improving",
+        "trend_stable": "Stable",
+        "trend_declining": "Declining"
       }
     },
     "rl": {

@@ -2,7 +2,7 @@
 //! G2 模拟观察组合（Paper Trading Portfolio）Tauri 命令层
 //!
 //! 对应前端 IPC 调用，全部走 `#[tauri::command]`，返回 `Result<T, String>`。
-//! 业务实现委托给 `axagent_stock_analysis::paper_portfolio`。
+//! 业务实现委托给 `axagent_analysis_engine::paper_portfolio`。
 //!
 //! 命令清单：
 //! - `paper_portfolio_create` —— 创建模拟组合
@@ -17,7 +17,7 @@
 
 use crate::AppState;
 use agent_macro::agent_command;
-use axagent_stock_analysis::paper_portfolio::{
+use axagent_analysis_engine::paper_portfolio::{
     self, AddPositionInput, ClosePositionInput, CreatePortfolioInput, PortfolioDetail,
 };
 use tauri::State;

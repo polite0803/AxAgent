@@ -4662,6 +4662,43 @@
         "triggered": "تم تشغيل {{count}} قاعدة",
         "nothingTriggered": "لم يتم تشغيل أي قاعدة",
         "runFailed": "فشل تشغيل القاعدة: {{error}}"
+      },
+      "analysis": {
+        "title": "محرك تحليل الصناعة",
+        "execute": "تشغيل التحليل",
+        "executeSuccess": "تم تشغيل التحليل بنجاح",
+        "executeFailed": "فشل تشغيل التحليل: {{error}}",
+        "noData": "لا توجد بيانات تحليل، انقر للتشغيل",
+        "confidence": "ثقة القرار",
+        "decisionType": "نوع القرار",
+        "riskLevel": "مستوى المخاطر",
+        "riskLevelTitle": "مستوى المخاطر",
+        "recommendations": "قائمة التوصيات"
+      },
+      "workflow": {
+        "executionTitle": "تنفيذ سير عمل الصناعة",
+        "execute": "تشغيل سير العمل",
+        "executeSuccess": "تم تشغيل سير العمل بنجاح",
+        "executePartial": "اكتمل سير العمل جزئياً",
+        "executeFailed": "فشل تشغيل سير العمل: {{error}}",
+        "executing": "جاري تشغيل سير العمل...",
+        "noData": "لا توجد سجلات تشغيل سير العمل",
+        "status_completed": "مكتمل",
+        "status_failed": "فشل",
+        "status_partial": "جزئي",
+        "duration": "المدة"
+      },
+      "metrics": {
+        "title": "مؤشرات تعلم الصناعة",
+        "refresh": "تحديث المؤشرات",
+        "noData": "لا توجد بيانات مؤشرات التعلم",
+        "totalSamples": "إجمالي العينات",
+        "decisionAccuracy": "دقة القرار",
+        "riskAccuracy": "دقة توقع المخاطر",
+        "avgFeedback": "متوسط درجة التغذية الراجعة",
+        "trend_improving": "تحسن",
+        "trend_stable": "مستقر",
+        "trend_declining": "انخفاض"
       }
     },
     "rl": {

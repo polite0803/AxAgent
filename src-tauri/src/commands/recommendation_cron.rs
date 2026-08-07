@@ -12,10 +12,10 @@
 
 use std::sync::Arc;
 
+use axagent_analysis_engine::recommender::{Period, build_notification, run_recommendation_scan};
 use axagent_astock_data::AStockClient;
 use axagent_harness::{NotificationDispatchSummary, ReportPayload, ReportStockSummary};
 use axagent_notification::NotificationDispatcher;
-use axagent_stock_analysis::recommender::{Period, build_notification, run_recommendation_scan};
 use chrono::Utc;
 
 /// 推荐 cron 配置（写入 `CronJob.prompt`）

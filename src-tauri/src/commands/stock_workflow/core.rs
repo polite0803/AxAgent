@@ -8,14 +8,14 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
 use agent_macro::agent_command;
+use axagent_analysis_engine::blackboard::build_blackboard_snapshot;
+use axagent_analysis_engine::stock_reflection::{AnalysisStepResult, StockAnalysisOutcome};
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_entities::price_alerts;
 use axagent_entities::stock_analyses;
 use axagent_entities::stock_reflections;
 use axagent_harness::workflow_types::Variable;
 use axagent_rt_workflow::work_engine::{ProgressCallback, RunOptions, StepProgressEvent};
-use axagent_stock_analysis::blackboard::build_blackboard_snapshot;
-use axagent_stock_analysis::stock_reflection::{AnalysisStepResult, StockAnalysisOutcome};
 use sea_orm::DatabaseConnection;
 use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -414,7 +414,7 @@ pub(crate) async fn run_stock_workflow_inner(
 
     // P2-3.3: 报告语言切换 — 追加语言指示到 Agent 节点的 system_prompt 末尾
     if let Some(ref lang) = language {
-        if let Some(instruction) = axagent_stock_analysis::prompts::language_instruction(lang) {
+        if let Some(instruction) = axagent_analysis_engine::prompts::language_instruction(lang) {
             for node in &mut loaded.nodes {
                 if let axagent_harness::workflow_types::WorkflowNode::Agent(a) = node {
                     a.config.system_prompt = format!("{}\n{}", a.config.system_prompt, instruction);
@@ -556,7 +556,7 @@ pub(crate) async fn run_stock_workflow_inner(
             if klines.is_empty() {
                 return None;
             }
-            let r = axagent_stock_analysis::market_regime::classify_regime(&klines);
+            let r = axagent_analysis_engine::market_regime::classify_regime(&klines);
             Some(serde_json::json!({
                 "regime": r.regime,
                 "confidence": r.confidence,
@@ -714,7 +714,7 @@ pub(crate) async fn run_stock_workflow_inner(
         // 使 portfolio-mgr.rhai 能感知 Serenity 瓶颈分析结果，增加因子 6: 瓶颈置信度
         if let Some(ref source) = screening_source {
             if source == "serenity" {
-                if let Some(detail) = axagent_stock_analysis::recommender::get_serenity_candidate_detail(&stock_code) {
+                if let Some(detail) = axagent_analysis_engine::recommender::get_serenity_candidate_detail(&stock_code) {
                     merged_vars.push(axagent_harness::workflow_types::Variable {
                         name: "serenity_context".into(),
                         var_type: "object".into(),
@@ -1426,7 +1426,7 @@ pub(crate) async fn run_stock_workflow_inner(
                                             {
                                                 // 同步加入 RealtimeMonitor
                                                 if let Some(ref monitor) = monitor_for_spawn {
-                                                    use axagent_stock_analysis::monitor::MonitorConfig;
+                                                    use axagent_analysis_engine::monitor::MonitorConfig;
                                                     let config = MonitorConfig {
                                                         stock_code: stock_code.clone(),
                                                         stock_name: sc_name_for_spawn.clone(),
@@ -1473,7 +1473,7 @@ pub(crate) async fn run_stock_workflow_inner(
                                             {
                                                 // 同步加入 RealtimeMonitor
                                                 if let Some(ref monitor) = monitor_for_spawn {
-                                                    use axagent_stock_analysis::monitor::MonitorConfig;
+                                                    use axagent_analysis_engine::monitor::MonitorConfig;
                                                     let config = MonitorConfig {
                                                         stock_code: stock_code.clone(),
                                                         stock_name: sc_name_for_spawn.clone(),
@@ -2483,7 +2483,7 @@ fn build_outcome_from_workflow(
 /// 在工作流完成后异步执行反思→诊断→进化→验证→应用的完整闭环，
 /// 不阻塞主流程，失败仅记录日志
 pub(crate) async fn trigger_adaptive_cycle(
-    adaptive_engine: &Arc<axagent_stock_analysis::stock_adaptive_engine::StockAdaptiveEngine>,
+    adaptive_engine: &Arc<axagent_analysis_engine::stock_adaptive_engine::StockAdaptiveEngine>,
     stock_code: &str,
     analysis_id: &str,
     execution_id: &str,

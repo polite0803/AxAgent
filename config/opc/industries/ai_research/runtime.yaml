@@ -1,0 +1,108 @@
+# Runtime 配置：AI 科技研究报告（ai_research）
+# 由 opc-industry-ai-research crate 迁移而来，version=1
+version: 1
+industry_id: ai_research
+
+validations:
+  - entity_type: research
+    field: title
+    operator: not_empty
+    value: null
+    message: 研究项目标题不能为空
+  - entity_type: prototype
+    field: tech_stack
+    operator: not_empty
+    value: null
+    message: 原型技术栈必须指定
+
+kpi_definitions:
+  - key: research_count
+    name: 研究数量
+    unit: 份
+    metric_type: count
+  - key: prototype_success_rate
+    name: 原型成功率
+    unit: "%"
+    metric_type: percentage
+  - key: tech_readiness_score
+    name: 技术成熟度
+    unit: 分
+    metric_type: count
+  - key: research_impact_score
+    name: 研究影响力
+    unit: 分
+    metric_type: count
+
+kpi_sources:
+  research_count:
+    type: constant
+    value: 0
+  prototype_success_rate:
+    type: constant
+    value: 0
+  tech_readiness_score:
+    type: constant
+    value: 0
+  research_impact_score:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: ai_research_deadline
+    name: 研究项目期限提醒
+    conditions:
+      - type: created_days_gte
+        days: 14
+      - type: entity_type_is
+        entity_type: research
+      - type: status_is
+        status: in_progress
+    actions:
+      - type: send_notification
+        target: researcher
+        message: "研究项目已进行14天，请确保按时完成"
+    enabled: true
+  - id: ai_prototype_review
+    name: 原型评审触发
+    conditions:
+      - type: field_exceeds
+        field: prototype_score
+        threshold: 80.0
+      - type: entity_type_is
+        entity_type: prototype
+    actions:
+      - type: update_status
+        status: approved
+    enabled: true
+
+workflow_steps:
+  - id: a-req
+    name: 需求分析
+    description: 分析AI研究需求，明确研究范围和评估标准
+    order: 1
+  - id: a-survey
+    name: 技术调研
+    description: 调研AI技术方案和最新进展
+    order: 2
+  - id: a-prototype
+    name: 原型验证
+    description: 搭建最小原型，验证关键假设
+    order: 3
+  - id: a-report
+    name: 研究报告
+    description: 生成AI研究报告
+    order: 4
+
+dashboard_cards:
+  - id: research_card
+    title: 研究报告数
+    kpi_key: research_count
+    display_value: -- 份
+  - id: prototype_card
+    title: 原型成功率
+    kpi_key: prototype_success_rate
+    display_value: --%
+  - id: readiness_card
+    title: 技术成熟度
+    kpi_key: tech_readiness_score
+    display_value: -- 分

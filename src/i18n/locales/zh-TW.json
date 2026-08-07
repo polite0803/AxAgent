@@ -4662,6 +4662,43 @@
         "triggered": "已觸發 {{count}} 條規則",
         "nothingTriggered": "沒有規則被觸發",
         "runFailed": "規則執行失敗: {{error}}"
+      },
+      "analysis": {
+        "title": "行業分析決策引擎",
+        "execute": "執行分析",
+        "executeSuccess": "分析執行成功",
+        "executeFailed": "分析執行失敗: {{error}}",
+        "noData": "暫無分析資料，請點擊執行分析",
+        "confidence": "決策置信度",
+        "decisionType": "決策類型",
+        "riskLevel": "風險等級",
+        "riskLevelTitle": "風險等級",
+        "recommendations": "建議列表"
+      },
+      "workflow": {
+        "executionTitle": "行業工作流執行",
+        "execute": "執行工作流",
+        "executeSuccess": "工作流執行成功",
+        "executePartial": "工作流部分完成",
+        "executeFailed": "工作流執行失敗: {{error}}",
+        "executing": "工作流執行中...",
+        "noData": "暫無工作流執行記錄",
+        "status_completed": "執行完成",
+        "status_failed": "執行失敗",
+        "status_partial": "部分完成",
+        "duration": "執行耗時"
+      },
+      "metrics": {
+        "title": "行業學習指標",
+        "refresh": "刷新指標",
+        "noData": "暫無學習指標資料",
+        "totalSamples": "總樣本數",
+        "decisionAccuracy": "決策準確率",
+        "riskAccuracy": "風險預測準確率",
+        "avgFeedback": "平均反饋分",
+        "trend_improving": "上升趨勢",
+        "trend_stable": "穩定",
+        "trend_declining": "下降趨勢"
       }
     },
     "rl": {

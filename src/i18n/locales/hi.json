@@ -4662,6 +4662,43 @@
         "triggered": "{{count}} नियम ट्रिगर हुए",
         "nothingTriggered": "कोई नियम ट्रिगर नहीं हुआ",
         "runFailed": "नियम निष्पादन विफल: {{error}}"
+      },
+      "analysis": {
+        "title": "उद्योग विश्लेषण इंजन",
+        "execute": "विश्लेषण चलाएं",
+        "executeSuccess": "विश्लेषण सफलतापूर्वक निष्पादित",
+        "executeFailed": "विश्लेषण विफल: {{error}}",
+        "noData": "कोई विश्लेषण डेटा नहीं, चलाने के लिए क्लिक करें",
+        "confidence": "निर्णय विश्वास",
+        "decisionType": "निर्णय प्रकार",
+        "riskLevel": "जोखिम स्तर",
+        "riskLevelTitle": "जोखिम स्तर",
+        "recommendations": "सिफारिशों की सूची"
+      },
+      "workflow": {
+        "executionTitle": "उद्योग वर्कफ़्लो निष्पादन",
+        "execute": "वर्कफ़्लो चलाएं",
+        "executeSuccess": "वर्कफ़्लो सफलतापूर्वक निष्पादित",
+        "executePartial": "वर्कफ़्लो आंशिक रूप से पूरा",
+        "executeFailed": "वर्कफ़्लो विफल: {{error}}",
+        "executing": "वर्कफ़्लो निष्पादित हो रहा है...",
+        "noData": "कोई वर्कफ़्लो निष्पादन रिकॉर्ड नहीं",
+        "status_completed": "पूरा",
+        "status_failed": "विफल",
+        "status_partial": "आंशिक",
+        "duration": "अवधि"
+      },
+      "metrics": {
+        "title": "उद्योग शिक्षण मेट्रिक्स",
+        "refresh": "मेट्रिक्स रीफ्रेश करें",
+        "noData": "कोई शिक्षण मेट्रिक्स डेटा नहीं",
+        "totalSamples": "कुल नमूने",
+        "decisionAccuracy": "निर्णय सटीकता",
+        "riskAccuracy": "जोखिम पूर्वानुमान सटीकता",
+        "avgFeedback": "औसत फ़ीडबैक स्कोर",
+        "trend_improving": "सुधार",
+        "trend_stable": "स्थिर",
+        "trend_declining": "गिरावट"
       }
     },
     "rl": {

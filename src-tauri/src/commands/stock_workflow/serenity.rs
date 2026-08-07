@@ -1163,8 +1163,10 @@ pub async fn run_serenity_screening(
                 }
                 // 同步到全局种子 + 全量数据缓存
                 if !serenity_seed.is_empty() {
-                    axagent_stock_analysis::recommender::set_serenity_seed(serenity_seed);
-                    axagent_stock_analysis::recommender::set_serenity_candidate_cache(detail_cache);
+                    axagent_analysis_engine::recommender::set_serenity_seed(serenity_seed);
+                    axagent_analysis_engine::recommender::set_serenity_candidate_cache(
+                        detail_cache,
+                    );
                 }
             }
 

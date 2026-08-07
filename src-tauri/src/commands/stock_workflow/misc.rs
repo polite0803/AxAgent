@@ -177,7 +177,7 @@ pub async fn get_cross_stock_aggregator_config(
 #[tauri::command]
 pub async fn set_cross_stock_aggregator_config(
     state: State<'_, AppState>,
-    config: axagent_stock_analysis::cross_stock_aggregator::AggregatorConfig,
+    config: axagent_analysis_engine::cross_stock_aggregator::AggregatorConfig,
 ) -> Result<(), String> {
     let Some(agg) = state.cross_stock_aggregator.get() else {
         return Err(ErrorResponse::new(wf_err::INTERNAL)
@@ -213,8 +213,8 @@ pub async fn get_sector_coherence_report(
     state: State<'_, AppState>,
     concept_id: String,
 ) -> Result<serde_json::Value, String> {
-    use axagent_stock_analysis::concept_index::{build_sample_index, seed_ashare_ontology};
-    use axagent_stock_analysis::sector_coherence::compute_sector_coherence;
+    use axagent_analysis_engine::concept_index::{build_sample_index, seed_ashare_ontology};
+    use axagent_analysis_engine::sector_coherence::compute_sector_coherence;
 
     // 构建概念索引（A 股本体）
     let mut idx = build_sample_index();
@@ -255,8 +255,8 @@ pub async fn scan_sector_coherence(
     state: State<'_, AppState>,
     concept_ids: Vec<String>,
 ) -> Result<Vec<serde_json::Value>, String> {
-    use axagent_stock_analysis::concept_index::{build_sample_index, seed_ashare_ontology};
-    use axagent_stock_analysis::sector_coherence::scan_sectors;
+    use axagent_analysis_engine::concept_index::{build_sample_index, seed_ashare_ontology};
+    use axagent_analysis_engine::sector_coherence::scan_sectors;
     use std::collections::HashMap;
 
     let mut idx = build_sample_index();

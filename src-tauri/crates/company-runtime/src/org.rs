@@ -7,7 +7,7 @@
 //! org_employees.expert_id ↔ agency_experts / opc-xxx。
 
 use crate::error::CompanyResult;
-use axagent_opc_entities::{opc_org_employees, opc_org_roles, opc_orgs, opc_talent_templates};
+use axagent_entities::{opc_org_employees, opc_org_roles, opc_orgs, opc_talent_templates};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 
 /// 新增组织角色的输入。

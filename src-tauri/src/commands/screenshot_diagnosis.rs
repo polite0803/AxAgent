@@ -2,7 +2,7 @@
 //! G6 截图持仓诊断完整闭环 Tauri 命令层
 //!
 //! 对应前端 IPC 调用，全部走 `#[tauri::command]`，返回 `Result<T, String>`。
-//! 业务实现委托给 `axagent_stock_analysis::screenshot_diagnosis`。
+//! 业务实现委托给 `axagent_analysis_engine::screenshot_diagnosis`。
 //!
 //! 命令清单：
 //! - `screenshot_diagnosis_create_from_image` —— 上传截图自动诊断（OCR + 结构化 + 风险诊断）
@@ -26,15 +26,15 @@
 
 use crate::AppState;
 use agent_macro::agent_command;
+use axagent_analysis_engine::screenshot_diagnosis::{
+    self, CreateScreenshotDiagnosisInput, UpdateScreenshotDiagnosisInput,
+};
+#[cfg(not(mobile))]
+use axagent_analysis_engine::screenshot_diagnosis::{RiskDiagnosis, ScreenshotPosition};
 #[cfg(not(mobile))]
 use axagent_harness::LlmCallConfig;
 #[cfg(not(mobile))]
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ContentPart, ImageUrl};
-use axagent_stock_analysis::screenshot_diagnosis::{
-    self, CreateScreenshotDiagnosisInput, UpdateScreenshotDiagnosisInput,
-};
-#[cfg(not(mobile))]
-use axagent_stock_analysis::screenshot_diagnosis::{RiskDiagnosis, ScreenshotPosition};
 use serde::{Deserialize, Serialize};
 #[cfg(not(mobile))]
 use sha2::{Digest, Sha256};
@@ -453,7 +453,7 @@ pub async fn screenshot_diagnosis_to_paper_portfolio(
     name: String,
     source_event: String,
 ) -> Result<axagent_entities::paper_portfolios::Model, String> {
-    axagent_stock_analysis::paper_portfolio::create_portfolio_from_screenshot_diagnosis(
+    axagent_analysis_engine::paper_portfolio::create_portfolio_from_screenshot_diagnosis(
         state.harness.db(),
         &diagnosis_id,
         &name,

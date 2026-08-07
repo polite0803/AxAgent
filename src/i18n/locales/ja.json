@@ -4662,6 +4662,43 @@
         "triggered": "{{count}} 件のルールがトリガーされました",
         "nothingTriggered": "トリガーされたルールはありません",
         "runFailed": "ルール実行に失敗しました: {{error}}"
+      },
+      "analysis": {
+        "title": "業界分析エンジン",
+        "execute": "分析実行",
+        "executeSuccess": "分析が実行されました",
+        "executeFailed": "分析の実行に失敗しました: {{error}}",
+        "noData": "分析データがありません。分析を実行してください",
+        "confidence": "決定信頼度",
+        "decisionType": "決定タイプ",
+        "riskLevel": "リスクレベル",
+        "riskLevelTitle": "リスクレベル",
+        "recommendations": "推奨リスト"
+      },
+      "workflow": {
+        "executionTitle": "業界ワークフロー実行",
+        "execute": "ワークフロー実行",
+        "executeSuccess": "ワークフローが実行されました",
+        "executePartial": "ワークフローが部分的に完了しました",
+        "executeFailed": "ワークフローの実行に失敗しました: {{error}}",
+        "executing": "ワークフロー実行中...",
+        "noData": "ワークフロー実行履歴がありません",
+        "status_completed": "完了",
+        "status_failed": "失敗",
+        "status_partial": "部分完了",
+        "duration": "実行時間"
+      },
+      "metrics": {
+        "title": "業界学習指標",
+        "refresh": "指標を更新",
+        "noData": "学習指標データがありません",
+        "totalSamples": "総サンプル数",
+        "decisionAccuracy": "決定精度",
+        "riskAccuracy": "リスク予測精度",
+        "avgFeedback": "平均フィードバック",
+        "trend_improving": "改善傾向",
+        "trend_stable": "安定",
+        "trend_declining": "低下傾向"
       }
     },
     "rl": {

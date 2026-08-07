@@ -12,8 +12,8 @@
 use agent_macro::agent_command;
 use std::path::PathBuf;
 
+use axagent_analysis_engine::strategy_pack::{LoadedStrategyPack, load_pack_from_file};
 use axagent_harness::strategy_pack::{StrategyPackManifest, StrategyPackSpec};
-use axagent_stock_analysis::strategy_pack::{LoadedStrategyPack, load_pack_from_file};
 use serde::Serialize;
 use tauri::State;
 

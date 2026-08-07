@@ -78,6 +78,8 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   opcIndustryAccounting: "/opc/industries/accounting",
   opcIndustryEcommerce: "/opc/industries/ecommerce",
   opcIndustryEducation: "/opc/industries/education",
+  // OPC 行业动态路由（单数形式，与方案文档一致）
+  opcIndustryDynamic: "/opc/industry",
   // 以下为历史兼容入口 / devtools 等次要路由，同样收归此处以消除散写硬编码
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",

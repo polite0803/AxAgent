@@ -10,6 +10,8 @@ mod industry_pack;
 mod seed_production;
 
 pub use industry_pack::IndustryManifest;
+#[allow(unused_imports)]
+pub use industry_pack::analysis_schema::{AnalysisDataSource, IndustryAnalysisConfig};
 pub use industry_pack::ensure_opc_domains_seeded;
 pub use industry_pack::ensure_opc_industries_seeded;
 pub use industry_pack::export_industry_pack;
@@ -427,7 +429,7 @@ mod tests {
         let seeded = ensure_opc_industries_seeded(db, &base).await.expect("seed 成功");
         assert_eq!(seeded.len(), 9, "应 seed 9 行业: {seeded:?}");
 
-        use axagent_opc_entities::opc_industries;
+        use axagent_entities::opc_industries;
         let count = opc_industries::Entity::find().count(db).await.unwrap();
         assert_eq!(count, 9, "opc_industries 应有 9 行");
 

@@ -4662,6 +4662,43 @@
         "triggered": "{{count}} règles déclenchées",
         "nothingTriggered": "Aucune règle déclenchée",
         "runFailed": "Échec de l'exécution des règles : {{error}}"
+      },
+      "analysis": {
+        "title": "Moteur d'analyse du secteur",
+        "execute": "Exécuter l'analyse",
+        "executeSuccess": "Analyse exécutée avec succès",
+        "executeFailed": "Échec de l'analyse: {{error}}",
+        "noData": "Aucune donnée d'analyse, cliquez pour exécuter",
+        "confidence": "Confiance de décision",
+        "decisionType": "Type de décision",
+        "riskLevel": "Niveau de risque",
+        "riskLevelTitle": "Niveau de risque",
+        "recommendations": "Liste des recommandations"
+      },
+      "workflow": {
+        "executionTitle": "Exécution du workflow du secteur",
+        "execute": "Exécuter le workflow",
+        "executeSuccess": "Workflow exécuté avec succès",
+        "executePartial": "Workflow partiellement terminé",
+        "executeFailed": "Échec du workflow: {{error}}",
+        "executing": "Exécution du workflow...",
+        "noData": "Aucun enregistrement d'exécution de workflow",
+        "status_completed": "Terminé",
+        "status_failed": "Échoué",
+        "status_partial": "Partiel",
+        "duration": "Durée"
+      },
+      "metrics": {
+        "title": "Métriques d'apprentissage du secteur",
+        "refresh": "Rafraîchir les métriques",
+        "noData": "Aucune donnée de métriques d'apprentissage",
+        "totalSamples": "Total des échantillons",
+        "decisionAccuracy": "Précision des décisions",
+        "riskAccuracy": "Précision des prévisions de risque",
+        "avgFeedback": "Score de feedback moyen",
+        "trend_improving": "Amélioration",
+        "trend_stable": "Stable",
+        "trend_declining": "Déclin"
       }
     },
     "rl": {

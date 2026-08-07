@@ -20,7 +20,7 @@ pub mod gate;
 pub mod indicators;
 // G3 industry_chain 已于 P2-8 阶段迁回 axagent-stock-analysis crate（架构归属：
 // 产业链定义/传导算法/新闻映射均为分析逻辑而非数据获取）。
-// 调用方应使用 `axagent_stock_analysis::industry_chain::*`。
+// 调用方应使用 `axagent_analysis_engine::industry_chain::*`。
 pub mod macro_data;
 pub mod mcp_tools;
 pub mod realtime_quote;

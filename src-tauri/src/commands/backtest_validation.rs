@@ -27,12 +27,12 @@
 //! - **T+N 默认值**：[5, 20, 60]（短/中/长三个窗口）
 //! - **K 线拉取**：复用 astock_client.get_klines，自动 vendor failover + 缓存
 
-use axagent_entities::decision_validations;
-use axagent_entities::reco_picks;
-use axagent_stock_analysis::hit_rate_backtest::{
+use axagent_analysis_engine::hit_rate_backtest::{
     HitRateReport, PickValidation, build_pick_validation, compute_hit_rate_report,
 };
-use axagent_stock_analysis::recommender::types::RecoPick;
+use axagent_analysis_engine::recommender::types::RecoPick;
+use axagent_entities::decision_validations;
+use axagent_entities::reco_picks;
 use chrono::Utc;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};

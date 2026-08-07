@@ -629,8 +629,8 @@ pub fn stock_mcp_tools() -> Vec<serde_json::Value> {
         }),
         // G3 产业链相关 MCP 工具（get_industry_chain_propagation /
         // map_news_to_cross_market_stocks）已于 P2-8 阶段迁至
-        // `axagent_stock_analysis::mcp_tools`。本 crate 不再注册这两个工具，
-        // 调用方需通过 `axagent_stock_analysis::mcp_tools::industry_chain_mcp_tools()`
+        // `axagent_analysis_engine::mcp_tools`。本 crate 不再注册这两个工具，
+        // 调用方需通过 `axagent_analysis_engine::mcp_tools::industry_chain_mcp_tools()`
         // 获取并合并到工具列表中。
         // ── G14 DojoSDK 工具集 ──────────────────────────────────────────
         json!({
@@ -904,7 +904,7 @@ pub async fn execute_mcp_tool(
             | "optimize_attention_weights"
             | "get_forex_kline"
             | "get_benchmark_kline"
-            // G3 industry_chain 工具已迁至 axagent_stock_analysis::mcp_tools
+            // G3 industry_chain 工具已迁至 axagent_analysis_engine::mcp_tools
             | "dojo_run_quant_backtest"
             | "dojo_get_skill_content"
             | "dojo_list_skills"
@@ -1551,9 +1551,9 @@ pub async fn execute_mcp_tool(
         },
         // G3 产业链相关工具（get_industry_chain_propagation /
         // map_news_to_cross_market_stocks）已于 P2-8 阶段迁至
-        // `axagent_stock_analysis::mcp_tools::execute_industry_chain_tool`。
+        // `axagent_analysis_engine::mcp_tools::execute_industry_chain_tool`。
         // 调用方需在调用 astock-data::mcp_tools::execute_mcp_tool 之前，
-        // 先尝试 axagent_stock_analysis::mcp_tools::execute_industry_chain_tool。
+        // 先尝试 axagent_analysis_engine::mcp_tools::execute_industry_chain_tool。
         _ => Err(format!("Unknown MCP tool: {tool_name}")),
     }
 }

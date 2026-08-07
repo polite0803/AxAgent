@@ -84,8 +84,8 @@ impl Tool for OpcListInvoicesTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultInvoiceService;
-        use axagent_opc_types::{InvoiceFilter, InvoiceService, InvoiceStatus};
+        use axagent_analysis_engine::opc::DefaultInvoiceService;
+        use axagent_analysis_engine::opc::{InvoiceFilter, InvoiceService, InvoiceStatus};
 
         let db = get_db()?;
         let svc = DefaultInvoiceService::new((*db).clone());
@@ -182,8 +182,8 @@ impl Tool for OpcCreateInvoiceTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultInvoiceService;
-        use axagent_opc_types::{CreateInvoiceInput, InvoiceLineItem, InvoiceService};
+        use axagent_analysis_engine::opc::DefaultInvoiceService;
+        use axagent_analysis_engine::opc::{CreateInvoiceInput, InvoiceLineItem, InvoiceService};
 
         let db = get_db()?;
         let svc = DefaultInvoiceService::new((*db).clone());
@@ -271,8 +271,8 @@ impl Tool for OpcTransitionInvoiceTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultInvoiceService;
-        use axagent_opc_types::{InvoiceService, InvoiceStatus};
+        use axagent_analysis_engine::opc::DefaultInvoiceService;
+        use axagent_analysis_engine::opc::{InvoiceService, InvoiceStatus};
 
         let db = get_db()?;
         let svc = DefaultInvoiceService::new((*db).clone());
@@ -341,8 +341,8 @@ impl Tool for OpcListCustomersTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultCustomerService;
-        use axagent_opc_types::{CustomerFilter, CustomerService, CustomerStatus};
+        use axagent_analysis_engine::opc::DefaultCustomerService;
+        use axagent_analysis_engine::opc::{CustomerFilter, CustomerService, CustomerStatus};
 
         let db = get_db()?;
         let svc = DefaultCustomerService::new((*db).clone());
@@ -425,8 +425,8 @@ impl Tool for OpcCreateCustomerTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultCustomerService;
-        use axagent_opc_types::{CreateCustomerInput, CustomerService, CustomerSource};
+        use axagent_analysis_engine::opc::DefaultCustomerService;
+        use axagent_analysis_engine::opc::{CreateCustomerInput, CustomerService, CustomerSource};
 
         let db = get_db()?;
         let svc = DefaultCustomerService::new((*db).clone());
@@ -515,8 +515,10 @@ impl Tool for OpcListProjectsTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultProjectService;
-        use axagent_opc_types::{ProjectFilter, ProjectService, ProjectStatus};
+        use axagent_analysis_engine::opc::DefaultProjectService;
+        use axagent_analysis_engine::opc::{
+            MilestoneStatus, ProjectFilter, ProjectService, ProjectStatus,
+        };
 
         let db = get_db()?;
         let svc = DefaultProjectService::new((*db).clone());
@@ -547,9 +549,7 @@ impl Tool for OpcListProjectsTool {
                             let done = p
                                 .milestones
                                 .iter()
-                                .filter(|m| {
-                                    m.status == axagent_opc_types::MilestoneStatus::Completed
-                                })
+                                .filter(|m| m.status == MilestoneStatus::Completed)
                                 .count();
                             format!(" (里程碑: {}/{})", done, p.milestones.len())
                         };
@@ -608,8 +608,8 @@ impl Tool for OpcCreateProjectTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultProjectService;
-        use axagent_opc_types::{CreateProjectInput, ProjectService};
+        use axagent_analysis_engine::opc::DefaultProjectService;
+        use axagent_analysis_engine::opc::{CreateProjectInput, ProjectService};
 
         let db = get_db()?;
         let svc = DefaultProjectService::new((*db).clone());
@@ -675,8 +675,8 @@ impl Tool for OpcAddMilestoneTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultProjectService;
-        use axagent_opc_types::{Milestone, MilestoneStatus, ProjectService};
+        use axagent_analysis_engine::opc::DefaultProjectService;
+        use axagent_analysis_engine::opc::{Milestone, MilestoneStatus, ProjectService};
 
         let db = get_db()?;
         let svc = DefaultProjectService::new((*db).clone());
@@ -745,12 +745,12 @@ impl Tool for OpcGetDashboardTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::{
-            DefaultCustomerService, DefaultInvoiceService, DefaultProjectService,
+        use axagent_analysis_engine::opc::{
+            CustomerFilter, CustomerService, CustomerStatus, InvoiceFilter, InvoiceService,
+            InvoiceStatus, ProjectFilter, ProjectService, ProjectStatus,
         };
-        use axagent_opc_types::{
-            CustomerFilter, CustomerService, InvoiceFilter, InvoiceService, ProjectFilter,
-            ProjectService,
+        use axagent_analysis_engine::opc::{
+            DefaultCustomerService, DefaultInvoiceService, DefaultProjectService,
         };
 
         let db = get_db()?;
@@ -788,36 +788,23 @@ impl Tool for OpcGetDashboardTool {
         let customers = customers.unwrap_or_default();
         let projects = projects.unwrap_or_default();
 
-        let total_revenue: f64 = invoices
-            .iter()
-            .filter(|i| i.status == axagent_opc_types::InvoiceStatus::Paid)
-            .map(|i| i.total)
-            .sum();
+        let total_revenue: f64 =
+            invoices.iter().filter(|i| i.status == InvoiceStatus::Paid).map(|i| i.total).sum();
         let pending_invoices = invoices
             .iter()
             .filter(|i| {
                 matches!(
                     i.status,
-                    axagent_opc_types::InvoiceStatus::Draft
-                        | axagent_opc_types::InvoiceStatus::Sent
-                        | axagent_opc_types::InvoiceStatus::Overdue
+                    InvoiceStatus::Draft | InvoiceStatus::Sent | InvoiceStatus::Overdue
                 )
             })
             .count();
         let active_projects = projects
             .iter()
-            .filter(|p| {
-                matches!(
-                    p.status,
-                    axagent_opc_types::ProjectStatus::Active
-                        | axagent_opc_types::ProjectStatus::Planning
-                )
-            })
+            .filter(|p| matches!(p.status, ProjectStatus::Active | ProjectStatus::Planning))
             .count();
-        let active_customers = customers
-            .iter()
-            .filter(|c| c.status == axagent_opc_types::CustomerStatus::Active)
-            .count();
+        let active_customers =
+            customers.iter().filter(|c| c.status == CustomerStatus::Active).count();
 
         Ok(ToolResult::success(format!(
             r#"## 📊 OPC 运营概览
@@ -873,8 +860,8 @@ impl Tool for OpcListLandingPagesTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultSiteService;
-        use axagent_opc_types::SiteService;
+        use axagent_analysis_engine::opc::DefaultSiteService;
+        use axagent_analysis_engine::opc::SiteService;
 
         let db = get_db()?;
         let svc = DefaultSiteService::new((*db).clone());
@@ -939,8 +926,8 @@ impl Tool for OpcListBlogPostsTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultSiteService;
-        use axagent_opc_types::SiteService;
+        use axagent_analysis_engine::opc::DefaultSiteService;
+        use axagent_analysis_engine::opc::SiteService;
 
         let db = get_db()?;
         let svc = DefaultSiteService::new((*db).clone());
@@ -1005,8 +992,8 @@ impl Tool for OpcListContactsTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultSiteService;
-        use axagent_opc_types::SiteService;
+        use axagent_analysis_engine::opc::DefaultSiteService;
+        use axagent_analysis_engine::opc::SiteService;
 
         let db = get_db()?;
         let svc = DefaultSiteService::new((*db).clone());
@@ -1068,8 +1055,8 @@ impl Tool for OpcCreateLandingPageTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultSiteService;
-        use axagent_opc_types::{CreateLandingPageInput, SiteService};
+        use axagent_analysis_engine::opc::DefaultSiteService;
+        use axagent_analysis_engine::opc::{CreateLandingPageInput, SiteService};
 
         let db = get_db()?;
         let svc = DefaultSiteService::new((*db).clone());
@@ -1143,8 +1130,8 @@ impl Tool for OpcCreateBlogPostTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultSiteService;
-        use axagent_opc_types::{CreateBlogPostInput, SiteService};
+        use axagent_analysis_engine::opc::DefaultSiteService;
+        use axagent_analysis_engine::opc::{CreateBlogPostInput, SiteService};
 
         let db = get_db()?;
         let svc = DefaultSiteService::new((*db).clone());
@@ -1284,8 +1271,8 @@ impl Tool for OpcRecordKpiTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultAnalyticsService;
-        use axagent_opc_types::{AnalyticsService, CreateKpiInput};
+        use axagent_analysis_engine::opc::DefaultAnalyticsService;
+        use axagent_analysis_engine::opc::{AnalyticsService, CreateKpiInput};
         let db = get_db()?;
         let svc = DefaultAnalyticsService::new((*db).clone());
         let inp = CreateKpiInput {
@@ -1331,8 +1318,8 @@ impl Tool for OpcListKpisTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultAnalyticsService;
-        use axagent_opc_types::AnalyticsService;
+        use axagent_analysis_engine::opc::AnalyticsService;
+        use axagent_analysis_engine::opc::DefaultAnalyticsService;
         let db = get_db()?;
         let svc = DefaultAnalyticsService::new((*db).clone());
         let period = input.get("period").and_then(|v| v.as_str()).map(String::from);
@@ -1473,8 +1460,8 @@ impl Tool for OpcGetFinancialReportTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        use axagent_opc_dao::DefaultFinanceService;
-        use axagent_opc_types::FinanceService;
+        use axagent_analysis_engine::opc::DefaultFinanceService;
+        use axagent_analysis_engine::opc::FinanceService;
 
         let period = input
             .get("period")
