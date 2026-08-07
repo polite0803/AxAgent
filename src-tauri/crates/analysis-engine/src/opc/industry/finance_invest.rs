@@ -10,9 +10,7 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -74,10 +72,15 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
-            KpiCalculationDef { key: "portfolio_return".to_string(), name: "组合收益率".to_string() },
+            KpiCalculationDef {
+                key: "portfolio_return".to_string(),
+                name: "组合收益率".to_string(),
+            },
             KpiCalculationDef { key: "max_drawdown".to_string(), name: "最大回撤".to_string() },
             KpiCalculationDef { key: "sharpe_ratio".to_string(), name: "夏普比率".to_string() },
-            KpiCalculationDef { key: "trades_executed".to_string(), name: "交易笔数".to_string() },
+            KpiCalculationDef {
+                key: "trades_executed".to_string(), name: "交易笔数".to_string()
+            },
         ]
     }
 
@@ -87,8 +90,16 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "ret".to_string(), title: "组合收益率".to_string(), kpi_key: "portfolio_return".to_string() },
-            DashboardCardDef { id: "trades".to_string(), title: "交易笔数".to_string(), kpi_key: "trades_executed".to_string() },
+            DashboardCardDef {
+                id: "ret".to_string(),
+                title: "组合收益率".to_string(),
+                kpi_key: "portfolio_return".to_string(),
+            },
+            DashboardCardDef {
+                id: "trades".to_string(),
+                title: "交易笔数".to_string(),
+                kpi_key: "trades_executed".to_string(),
+            },
         ]
     }
 

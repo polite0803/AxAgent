@@ -9,11 +9,9 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
-};
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
 };
 
 pub struct AiResearchIndustryAdapter {
@@ -72,9 +70,10 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
     }
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
-        vec![
-            KpiCalculationDef { key: "research_projects_completed".to_string(), name: "完成研究项目".to_string() },
-        ]
+        vec![KpiCalculationDef {
+            key: "research_projects_completed".to_string(),
+            name: "完成研究项目".to_string(),
+        }]
     }
 
     fn define_automation_rules(&self) -> Vec<IndustryAutomationRule> {
@@ -82,9 +81,11 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
     }
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
-        vec![
-            DashboardCardDef { id: "projects".to_string(), title: "完成项目".to_string(), kpi_key: "research_projects_completed".to_string() },
-        ]
+        vec![DashboardCardDef {
+            id: "projects".to_string(),
+            title: "完成项目".to_string(),
+            kpi_key: "research_projects_completed".to_string(),
+        }]
     }
 
     fn requires_approval(&self) -> bool {

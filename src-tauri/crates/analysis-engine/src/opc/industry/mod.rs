@@ -20,9 +20,7 @@ use super::data_service::OpcDataService;
 use super::data_service::TimeRange;
 use super::error::OpcResult;
 use super::rules::ValidationError;
-use super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
+use super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 
 // ── 行业适配器共享基类 ────────────────────────────────────────
 // 收敛 9 个行业 adapter 中重复的数据服务注入与基本信息存储逻辑。

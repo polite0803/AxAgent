@@ -10,9 +10,7 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -74,8 +72,14 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
-            KpiCalculationDef { key: "content_published".to_string(), name: "内容发布量".to_string() },
-            KpiCalculationDef { key: "subscriber_growth".to_string(), name: "订阅增长".to_string() },
+            KpiCalculationDef {
+                key: "content_published".to_string(),
+                name: "内容发布量".to_string(),
+            },
+            KpiCalculationDef {
+                key: "subscriber_growth".to_string(),
+                name: "订阅增长".to_string(),
+            },
         ]
     }
 
@@ -84,9 +88,11 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
     }
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
-        vec![
-            DashboardCardDef { id: "pub".to_string(), title: "发布量".to_string(), kpi_key: "content_published".to_string() },
-        ]
+        vec![DashboardCardDef {
+            id: "pub".to_string(),
+            title: "发布量".to_string(),
+            kpi_key: "content_published".to_string(),
+        }]
     }
 
     fn requires_approval(&self) -> bool {

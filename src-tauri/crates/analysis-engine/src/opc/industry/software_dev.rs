@@ -10,11 +10,9 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
-};
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
 };
 
 pub struct SoftwareDevIndustryAdapter {
@@ -74,9 +72,17 @@ impl OpcIndustryAdapter for SoftwareDevIndustryAdapter {
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
-            KpiCalculationDef { key: "tasks_completed".to_string(), name: "完成任务数".to_string() },
-            KpiCalculationDef { key: "code_coverage".to_string(), name: "代码覆盖率".to_string() },
-            KpiCalculationDef { key: "deployment_frequency".to_string(), name: "部署频率".to_string() },
+            KpiCalculationDef {
+                key: "tasks_completed".to_string(),
+                name: "完成任务数".to_string(),
+            },
+            KpiCalculationDef {
+                key: "code_coverage".to_string(), name: "代码覆盖率".to_string()
+            },
+            KpiCalculationDef {
+                key: "deployment_frequency".to_string(),
+                name: "部署频率".to_string(),
+            },
         ]
     }
 
@@ -86,8 +92,16 @@ impl OpcIndustryAdapter for SoftwareDevIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "tasks".to_string(), title: "完成任务数".to_string(), kpi_key: "tasks_completed".to_string() },
-            DashboardCardDef { id: "deploys".to_string(), title: "部署频率".to_string(), kpi_key: "deployment_frequency".to_string() },
+            DashboardCardDef {
+                id: "tasks".to_string(),
+                title: "完成任务数".to_string(),
+                kpi_key: "tasks_completed".to_string(),
+            },
+            DashboardCardDef {
+                id: "deploys".to_string(),
+                title: "部署频率".to_string(),
+                kpi_key: "deployment_frequency".to_string(),
+            },
         ]
     }
 

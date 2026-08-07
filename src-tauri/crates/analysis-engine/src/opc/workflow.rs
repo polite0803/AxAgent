@@ -8,8 +8,8 @@ use std::sync::Arc;
 use axagent_harness::workflow_types::{
     AggregatorNode, AggregatorNodeConfig, ApprovalNode, ApprovalNodeConfig, ConditionNode,
     ConditionNodeConfig, DataTransformerNode, DataTransformerNodeConfig, EndNode, EndNodeConfig,
-    NotificationNode, NotificationNodeConfig, TriggerNode, TriggerConfig, WorkflowNode,
-    WorkflowNodeBase, ValidationNodeConfig as HValidationNodeConfig, ValidationAssertion,
+    NotificationNode, NotificationNodeConfig, TriggerConfig, TriggerNode, ValidationAssertion,
+    ValidationNodeConfig as HValidationNodeConfig, WorkflowNode, WorkflowNodeBase,
 };
 
 use super::automation::{AutomationAction, AutomationCondition};
@@ -152,33 +152,43 @@ impl IndustryWorkflow {
                 .iter()
                 .map(|c| {
                     let (var_path, operator, value) = match c {
-                        AutomationCondition::FieldExceeds { field, threshold } => {
-                            (field.clone(), axagent_harness::workflow_types::CompareOperator::Gte, serde_json::json!(threshold))
-                        },
-                        AutomationCondition::FieldBelow { field, threshold } => {
-                            (field.clone(), axagent_harness::workflow_types::CompareOperator::Lte, serde_json::json!(threshold))
-                        },
-                        AutomationCondition::OverdueDaysGte { days } => {
-                            ("overdue_days".to_string(), axagent_harness::workflow_types::CompareOperator::Gte, serde_json::json!(days))
-                        },
-                        AutomationCondition::EntityTypeIs { entity_type } => {
-                            ("entity_type".to_string(), axagent_harness::workflow_types::CompareOperator::Eq, serde_json::json!(entity_type))
-                        },
-                        AutomationCondition::StatusIs { status } => {
-                            ("status".to_string(), axagent_harness::workflow_types::CompareOperator::Eq, serde_json::json!(status))
-                        },
-                        AutomationCondition::CreatedDaysGte { days } => {
-                            ("created_days".to_string(), axagent_harness::workflow_types::CompareOperator::Gte, serde_json::json!(days))
-                        },
-                        AutomationCondition::Custom { expression } => {
-                            (expression.clone(), axagent_harness::workflow_types::CompareOperator::Eq, serde_json::json!(true))
-                        },
+                        AutomationCondition::FieldExceeds { field, threshold } => (
+                            field.clone(),
+                            axagent_harness::workflow_types::CompareOperator::Gte,
+                            serde_json::json!(threshold),
+                        ),
+                        AutomationCondition::FieldBelow { field, threshold } => (
+                            field.clone(),
+                            axagent_harness::workflow_types::CompareOperator::Lte,
+                            serde_json::json!(threshold),
+                        ),
+                        AutomationCondition::OverdueDaysGte { days } => (
+                            "overdue_days".to_string(),
+                            axagent_harness::workflow_types::CompareOperator::Gte,
+                            serde_json::json!(days),
+                        ),
+                        AutomationCondition::EntityTypeIs { entity_type } => (
+                            "entity_type".to_string(),
+                            axagent_harness::workflow_types::CompareOperator::Eq,
+                            serde_json::json!(entity_type),
+                        ),
+                        AutomationCondition::StatusIs { status } => (
+                            "status".to_string(),
+                            axagent_harness::workflow_types::CompareOperator::Eq,
+                            serde_json::json!(status),
+                        ),
+                        AutomationCondition::CreatedDaysGte { days } => (
+                            "created_days".to_string(),
+                            axagent_harness::workflow_types::CompareOperator::Gte,
+                            serde_json::json!(days),
+                        ),
+                        AutomationCondition::Custom { expression } => (
+                            expression.clone(),
+                            axagent_harness::workflow_types::CompareOperator::Eq,
+                            serde_json::json!(true),
+                        ),
                     };
-                    axagent_harness::workflow_types::Condition {
-                        var_path,
-                        operator,
-                        value,
-                    }
+                    axagent_harness::workflow_types::Condition { var_path, operator, value }
                 })
                 .collect();
             nodes.push(WorkflowNode::Condition(ConditionNode {
@@ -216,7 +226,10 @@ impl IndustryWorkflow {
                     },
                     AutomationAction::UpdateField { field, value } => {
                         WorkflowNode::DataTransformer(DataTransformerNode {
-                            base: create_node_base(action_id.clone(), format!("更新字段: {}", field)),
+                            base: create_node_base(
+                                action_id.clone(),
+                                format!("更新字段: {}", field),
+                            ),
                             config: DataTransformerNodeConfig {
                                 input_var: field.clone(),
                                 expression: format!("{}", value),
@@ -226,7 +239,10 @@ impl IndustryWorkflow {
                     },
                     AutomationAction::UpdateStatus { status } => {
                         WorkflowNode::DataTransformer(DataTransformerNode {
-                            base: create_node_base(action_id.clone(), format!("更新状态: {}", status)),
+                            base: create_node_base(
+                                action_id.clone(),
+                                format!("更新状态: {}", status),
+                            ),
                             config: DataTransformerNodeConfig {
                                 input_var: "status".to_string(),
                                 expression: status.clone(),
@@ -246,7 +262,10 @@ impl IndustryWorkflow {
                     },
                     AutomationAction::CreateRecord { entity_type, data } => {
                         WorkflowNode::DataTransformer(DataTransformerNode {
-                            base: create_node_base(action_id.clone(), format!("创建记录: {}", entity_type)),
+                            base: create_node_base(
+                                action_id.clone(),
+                                format!("创建记录: {}", entity_type),
+                            ),
                             config: DataTransformerNodeConfig {
                                 input_var: format!("{}_data", entity_type),
                                 expression: format!("{}", data),
@@ -287,9 +306,8 @@ impl IndustryWorkflow {
             let agg_id = next_id(&mut node_counter, "dashboard");
             // 先读取前驱节点ID，避免编译器警告
             let prev = prev_node_id.clone();
-            let input_sources: Vec<String> = (0..node_counter)
-                .map(|i| format!("kpi_{}_output", i))
-                .collect();
+            let input_sources: Vec<String> =
+                (0..node_counter).map(|i| format!("kpi_{}_output", i)).collect();
             nodes.push(WorkflowNode::Aggregator(AggregatorNode {
                 base: create_node_base(agg_id.clone(), "仪表盘聚合"),
                 config: AggregatorNodeConfig {
@@ -313,9 +331,7 @@ impl IndustryWorkflow {
         let end_id = next_id(&mut node_counter, "end");
         nodes.push(WorkflowNode::End(EndNode {
             base: create_node_base(end_id.clone(), "结束"),
-            config: EndNodeConfig {
-                output_var: Some("final_result".to_string()),
-            },
+            config: EndNodeConfig { output_var: Some("final_result".to_string()) },
         }));
         if let Some(prev) = &prev_node_id {
             edges.push(WorkflowEdge { from: prev.clone(), to: end_id.clone() });
@@ -443,7 +459,10 @@ impl IndustryWorkflowExecutor {
                         // 收集 KPI 数据
                         if node_type == "code" {
                             if let Some(kpi_data) = result.output.get("kpis") {
-                                if let Ok(kpis) = serde_json::from_value::<Vec<crate::opc::analytics::KpiValue>>(kpi_data.clone()) {
+                                if let Ok(kpis) = serde_json::from_value::<
+                                    Vec<crate::opc::analytics::KpiValue>,
+                                >(kpi_data.clone())
+                                {
                                     all_kpis.extend(kpis);
                                 }
                             }
@@ -466,14 +485,19 @@ impl IndustryWorkflowExecutor {
                         output: serde_json::Value::Null,
                         error: Some(e),
                     });
-                }
+                },
             }
         }
 
         Ok(WorkflowExecutionResult {
             workflow_id: workflow.workflow_id.clone(),
             industry_id: self.industry_id.clone(),
-            status: if errors.is_empty() { "success" } else { "partial_failed" }.to_string(),
+            status: if errors.is_empty() {
+                "success"
+            } else {
+                "partial_failed"
+            }
+            .to_string(),
             node_results,
             kpis: all_kpis,
             errors,
@@ -534,8 +558,8 @@ impl IndustryWorkflowExecutor {
                 // Code 节点：对于 KPI 计算节点，执行 compute_kpis
                 let output_var = &code_node.config.output_var;
                 if output_var.starts_with("kpi_") {
-                    let kpis = self.adapter.compute_kpis(time_range).await
-                        .map_err(|e| e.to_string())?;
+                    let kpis =
+                        self.adapter.compute_kpis(time_range).await.map_err(|e| e.to_string())?;
                     Ok(NodeExecutionResult {
                         node_id,
                         node_type,
@@ -615,37 +639,31 @@ impl IndustryWorkflowExecutor {
                     error: None,
                 })
             },
-            WorkflowNode::End(_) => {
-                Ok(NodeExecutionResult {
-                    node_id,
-                    node_type,
-                    status: "success".to_string(),
-                    output: serde_json::json!({"completed": true}),
-                    error: None,
-                })
-            },
-            WorkflowNode::DataTransformer(dt_node) => {
-                Ok(NodeExecutionResult {
-                    node_id,
-                    node_type,
-                    status: "success".to_string(),
-                    output: serde_json::json!({
-                        "input_var": dt_node.config.input_var,
-                        "output_var": dt_node.config.output_var,
-                        "transformed": true
-                    }),
-                    error: None,
-                })
-            },
-            _ => {
-                Ok(NodeExecutionResult {
-                    node_id,
-                    node_type,
-                    status: "skipped".to_string(),
-                    output: serde_json::json!({"skipped": true}),
-                    error: None,
-                })
-            },
+            WorkflowNode::End(_) => Ok(NodeExecutionResult {
+                node_id,
+                node_type,
+                status: "success".to_string(),
+                output: serde_json::json!({"completed": true}),
+                error: None,
+            }),
+            WorkflowNode::DataTransformer(dt_node) => Ok(NodeExecutionResult {
+                node_id,
+                node_type,
+                status: "success".to_string(),
+                output: serde_json::json!({
+                    "input_var": dt_node.config.input_var,
+                    "output_var": dt_node.config.output_var,
+                    "transformed": true
+                }),
+                error: None,
+            }),
+            _ => Ok(NodeExecutionResult {
+                node_id,
+                node_type,
+                status: "skipped".to_string(),
+                output: serde_json::json!({"skipped": true}),
+                error: None,
+            }),
         }
     }
 }

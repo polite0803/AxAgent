@@ -145,11 +145,11 @@ pub async fn execute_dynamic_workflow(
     time_range: TimeRange,
 ) -> Result<axagent_analysis_engine::opc::workflow::WorkflowExecutionResult, String> {
     let adapter = load_adapter(db, industry_id)?;
-    
+
     // 使用管理器创建工作流
     let mut manager = IndustryWorkflowManager::new();
     let workflow = manager.create_or_update(industry_id, adapter.as_ref());
-    
+
     // 创建执行器并执行
     let executor = IndustryWorkflowExecutor::new(industry_id.to_string(), adapter);
     executor.execute(workflow, &time_range).await.map_err(|e| e.to_string())

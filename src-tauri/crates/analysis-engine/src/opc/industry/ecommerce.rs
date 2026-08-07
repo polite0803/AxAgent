@@ -10,9 +10,7 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -77,7 +75,10 @@ impl OpcIndustryAdapter for EcommerceIndustryAdapter {
             KpiCalculationDef { key: "total_revenue".to_string(), name: "总营收".to_string() },
             KpiCalculationDef { key: "orders_count".to_string(), name: "订单数".to_string() },
             KpiCalculationDef { key: "conversion_rate".to_string(), name: "转化率".to_string() },
-            KpiCalculationDef { key: "customer_retention".to_string(), name: "客户留存率".to_string() },
+            KpiCalculationDef {
+                key: "customer_retention".to_string(),
+                name: "客户留存率".to_string(),
+            },
         ]
     }
 
@@ -87,8 +88,16 @@ impl OpcIndustryAdapter for EcommerceIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "rev".to_string(), title: "总营收".to_string(), kpi_key: "total_revenue".to_string() },
-            DashboardCardDef { id: "orders".to_string(), title: "订单数".to_string(), kpi_key: "orders_count".to_string() },
+            DashboardCardDef {
+                id: "rev".to_string(),
+                title: "总营收".to_string(),
+                kpi_key: "total_revenue".to_string(),
+            },
+            DashboardCardDef {
+                id: "orders".to_string(),
+                title: "订单数".to_string(),
+                kpi_key: "orders_count".to_string(),
+            },
         ]
     }
 

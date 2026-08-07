@@ -9,11 +9,9 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::rules::ValidationError;
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
-};
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
 };
 
 pub struct AccountingIndustryAdapter {
@@ -80,10 +78,15 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
-            KpiCalculationDef { key: "invoice_count".to_string(), name: "发票数量".to_string() },
+            KpiCalculationDef {
+                key: "invoice_count".to_string(), name: "发票数量".to_string()
+            },
             KpiCalculationDef { key: "total_revenue".to_string(), name: "总营收".to_string() },
             KpiCalculationDef { key: "collection_rate".to_string(), name: "回款率".to_string() },
-            KpiCalculationDef { key: "avg_processing_time".to_string(), name: "平均处理时间".to_string() },
+            KpiCalculationDef {
+                key: "avg_processing_time".to_string(),
+                name: "平均处理时间".to_string(),
+            },
         ]
     }
 
@@ -118,9 +121,21 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "revenue_card".to_string(), title: "本月营收".to_string(), kpi_key: "total_revenue".to_string() },
-            DashboardCardDef { id: "invoice_card".to_string(), title: "本月发票数".to_string(), kpi_key: "invoice_count".to_string() },
-            DashboardCardDef { id: "collection_card".to_string(), title: "回款率".to_string(), kpi_key: "collection_rate".to_string() },
+            DashboardCardDef {
+                id: "revenue_card".to_string(),
+                title: "本月营收".to_string(),
+                kpi_key: "total_revenue".to_string(),
+            },
+            DashboardCardDef {
+                id: "invoice_card".to_string(),
+                title: "本月发票数".to_string(),
+                kpi_key: "invoice_count".to_string(),
+            },
+            DashboardCardDef {
+                id: "collection_card".to_string(),
+                title: "回款率".to_string(),
+                kpi_key: "collection_rate".to_string(),
+            },
         ]
     }
 
@@ -179,8 +194,9 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
         let now = chrono::Utc::now().timestamp();
 
         let revenue = data.aggregate_invoice_amounts(&[InvoiceStatus::Paid], from, to).await?.total;
-        let outstanding =
-            data.count_invoices(&[InvoiceStatus::Sent, InvoiceStatus::Overdue], from, to).await? as f64;
+        let outstanding = data
+            .count_invoices(&[InvoiceStatus::Sent, InvoiceStatus::Overdue], from, to)
+            .await? as f64;
         let total = data.count_invoices(&[], from, to).await? as f64;
 
         let collection_rate = if total > 0.0 {
@@ -231,8 +247,10 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
     fn workflow_steps(&self) -> Vec<WorkflowStep> {
         vec![
             WorkflowStep::new("create_invoice", "创建发票", "根据用户信息创建发票").with_order(1),
-            WorkflowStep::new("approval", "财务审批", "财务审批（24小时超时自动拒绝）").with_order(2),
-            WorkflowStep::new("notify_customer", "通知客户", "发票已审批通过，通知客户").with_order(3),
+            WorkflowStep::new("approval", "财务审批", "财务审批（24小时超时自动拒绝）")
+                .with_order(2),
+            WorkflowStep::new("notify_customer", "通知客户", "发票已审批通过，通知客户")
+                .with_order(3),
             WorkflowStep::new("register_report", "登记报表", "记录发票相关关键指标").with_order(4),
         ]
     }

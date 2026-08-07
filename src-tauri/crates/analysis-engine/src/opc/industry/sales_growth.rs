@@ -4,15 +4,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use super::super::analytics::{KpiDefinition, KpiValue};
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
 use super::super::automation::{AutomationAction, AutomationCondition, IndustryAutomationRule};
 use super::super::customer::CustomerStatus;
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::rules::ValidationError;
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -76,8 +74,13 @@ impl OpcIndustryAdapter for SalesGrowthIndustryAdapter {
         vec![
             KpiCalculationDef { key: "new_leads".to_string(), name: "新增线索".to_string() },
             KpiCalculationDef { key: "conversion_rate".to_string(), name: "转化率".to_string() },
-            KpiCalculationDef { key: "pipeline_value".to_string(), name: "管道总值".to_string() },
-            KpiCalculationDef { key: "customer_acquisition_cost".to_string(), name: "获客成本".to_string() },
+            KpiCalculationDef {
+                key: "pipeline_value".to_string(), name: "管道总值".to_string()
+            },
+            KpiCalculationDef {
+                key: "customer_acquisition_cost".to_string(),
+                name: "获客成本".to_string(),
+            },
         ]
     }
 
@@ -87,8 +90,16 @@ impl OpcIndustryAdapter for SalesGrowthIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "leads".to_string(), title: "新增线索".to_string(), kpi_key: "new_leads".to_string() },
-            DashboardCardDef { id: "conv".to_string(), title: "转化率".to_string(), kpi_key: "conversion_rate".to_string() },
+            DashboardCardDef {
+                id: "leads".to_string(),
+                title: "新增线索".to_string(),
+                kpi_key: "new_leads".to_string(),
+            },
+            DashboardCardDef {
+                id: "conv".to_string(),
+                title: "转化率".to_string(),
+                kpi_key: "conversion_rate".to_string(),
+            },
         ]
     }
 

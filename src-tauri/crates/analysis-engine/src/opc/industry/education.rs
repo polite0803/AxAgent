@@ -11,9 +11,7 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -75,9 +73,18 @@ impl OpcIndustryAdapter for EducationIndustryAdapter {
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
-            KpiCalculationDef { key: "students_enrolled".to_string(), name: "报名学生数".to_string() },
-            KpiCalculationDef { key: "course_completion_rate".to_string(), name: "课程完成率".to_string() },
-            KpiCalculationDef { key: "revenue_per_student".to_string(), name: "人均营收".to_string() },
+            KpiCalculationDef {
+                key: "students_enrolled".to_string(),
+                name: "报名学生数".to_string(),
+            },
+            KpiCalculationDef {
+                key: "course_completion_rate".to_string(),
+                name: "课程完成率".to_string(),
+            },
+            KpiCalculationDef {
+                key: "revenue_per_student".to_string(),
+                name: "人均营收".to_string(),
+            },
         ]
     }
 
@@ -87,8 +94,16 @@ impl OpcIndustryAdapter for EducationIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "stu".to_string(), title: "报名学生".to_string(), kpi_key: "students_enrolled".to_string() },
-            DashboardCardDef { id: "rev".to_string(), title: "人均营收".to_string(), kpi_key: "revenue_per_student".to_string() },
+            DashboardCardDef {
+                id: "stu".to_string(),
+                title: "报名学生".to_string(),
+                kpi_key: "students_enrolled".to_string(),
+            },
+            DashboardCardDef {
+                id: "rev".to_string(),
+                title: "人均营收".to_string(),
+                kpi_key: "revenue_per_student".to_string(),
+            },
         ]
     }
 

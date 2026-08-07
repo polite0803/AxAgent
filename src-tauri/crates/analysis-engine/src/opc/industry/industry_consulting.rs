@@ -11,9 +11,7 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{
-    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef,
-};
+use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -75,9 +73,18 @@ impl OpcIndustryAdapter for IndustryConsultingIndustryAdapter {
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
-            KpiCalculationDef { key: "projects_delivered".to_string(), name: "交付项目数".to_string() },
-            KpiCalculationDef { key: "utilization_rate".to_string(), name: "人员利用率".to_string() },
-            KpiCalculationDef { key: "revenue_per_consultant".to_string(), name: "人均营收".to_string() },
+            KpiCalculationDef {
+                key: "projects_delivered".to_string(),
+                name: "交付项目数".to_string(),
+            },
+            KpiCalculationDef {
+                key: "utilization_rate".to_string(),
+                name: "人员利用率".to_string(),
+            },
+            KpiCalculationDef {
+                key: "revenue_per_consultant".to_string(),
+                name: "人均营收".to_string(),
+            },
         ]
     }
 
@@ -87,8 +94,16 @@ impl OpcIndustryAdapter for IndustryConsultingIndustryAdapter {
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
         vec![
-            DashboardCardDef { id: "delivered".to_string(), title: "交付项目数".to_string(), kpi_key: "projects_delivered".to_string() },
-            DashboardCardDef { id: "util".to_string(), title: "人员利用率".to_string(), kpi_key: "utilization_rate".to_string() },
+            DashboardCardDef {
+                id: "delivered".to_string(),
+                title: "交付项目数".to_string(),
+                kpi_key: "projects_delivered".to_string(),
+            },
+            DashboardCardDef {
+                id: "util".to_string(),
+                title: "人员利用率".to_string(),
+                kpi_key: "utilization_rate".to_string(),
+            },
         ]
     }
 
