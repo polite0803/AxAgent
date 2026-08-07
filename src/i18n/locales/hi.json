@@ -4673,7 +4673,10 @@
         "decisionType": "निर्णय प्रकार",
         "riskLevel": "जोखिम स्तर",
         "riskLevelTitle": "जोखिम स्तर",
-        "recommendations": "सिफारिशों की सूची"
+        "recommendations": "सिफारिशों की सूची",
+        "timeRange7d": "7 दिन",
+        "timeRange30d": "30 दिन",
+        "timeRange90d": "90 दिन"
       },
       "workflow": {
         "executionTitle": "उद्योग वर्कफ़्लो निष्पादन",

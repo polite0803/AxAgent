@@ -4673,7 +4673,10 @@
         "decisionType": "Entscheidungstyp",
         "riskLevel": "Risikoniveau",
         "riskLevelTitle": "Risikoniveau",
-        "recommendations": "Empfehlungsliste"
+        "recommendations": "Empfehlungsliste",
+        "timeRange7d": "7 Tage",
+        "timeRange30d": "30 Tage",
+        "timeRange90d": "90 Tage"
       },
       "workflow": {
         "executionTitle": "Industrie-Workflow-Ausführung",

@@ -4342,7 +4342,10 @@
         "decisionType": "决策类型",
         "riskLevel": "风险等级",
         "riskLevelTitle": "风险等级",
-        "recommendations": "建议列表"
+        "recommendations": "建议列表",
+        "timeRange7d": "7天",
+        "timeRange30d": "30天",
+        "timeRange90d": "90天"
       },
       "workflow": {
         "executionTitle": "行业工作流执行",

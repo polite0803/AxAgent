@@ -4673,7 +4673,10 @@
         "decisionType": "決定タイプ",
         "riskLevel": "リスクレベル",
         "riskLevelTitle": "リスクレベル",
-        "recommendations": "推奨リスト"
+        "recommendations": "推奨リスト",
+        "timeRange7d": "7日間",
+        "timeRange30d": "30日間",
+        "timeRange90d": "90日間"
       },
       "workflow": {
         "executionTitle": "業界ワークフロー実行",

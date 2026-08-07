@@ -4673,7 +4673,10 @@
         "decisionType": "Тип решения",
         "riskLevel": "Уровень риска",
         "riskLevelTitle": "Уровень риска",
-        "recommendations": "Список рекомендаций"
+        "recommendations": "Список рекомендаций",
+        "timeRange7d": "7 дней",
+        "timeRange30d": "30 дней",
+        "timeRange90d": "90 дней"
       },
       "workflow": {
         "executionTitle": "Выполнение рабочего процесса отрасли",

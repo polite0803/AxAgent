@@ -4673,7 +4673,10 @@
         "decisionType": "決策類型",
         "riskLevel": "風險等級",
         "riskLevelTitle": "風險等級",
-        "recommendations": "建議列表"
+        "recommendations": "建議列表",
+        "timeRange7d": "7天",
+        "timeRange30d": "30天",
+        "timeRange90d": "90天"
       },
       "workflow": {
         "executionTitle": "行業工作流執行",

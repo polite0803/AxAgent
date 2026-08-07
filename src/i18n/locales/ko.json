@@ -4673,7 +4673,10 @@
         "decisionType": "결정 유형",
         "riskLevel": "위험 수준",
         "riskLevelTitle": "위험 수준",
-        "recommendations": "추천 목록"
+        "recommendations": "추천 목록",
+        "timeRange7d": "7일",
+        "timeRange30d": "30일",
+        "timeRange90d": "90일"
       },
       "workflow": {
         "executionTitle": "산업 워크플로우 실행",

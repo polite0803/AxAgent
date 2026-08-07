@@ -4673,7 +4673,10 @@
         "decisionType": "نوع القرار",
         "riskLevel": "مستوى المخاطر",
         "riskLevelTitle": "مستوى المخاطر",
-        "recommendations": "قائمة التوصيات"
+        "recommendations": "قائمة التوصيات",
+        "timeRange7d": "7 أيام",
+        "timeRange30d": "30 يومًا",
+        "timeRange90d": "90 يومًا"
       },
       "workflow": {
         "executionTitle": "تنفيذ سير عمل الصناعة",

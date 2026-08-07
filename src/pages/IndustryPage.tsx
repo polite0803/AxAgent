@@ -934,9 +934,9 @@ export function IndustryPage() {
               value={String(decisionDays)}
               onChange={(v) => setDecisionDays(Number(v))}
               options={[
-                { label: "7天", value: "7" },
-                { label: "30天", value: "30" },
-                { label: "90天", value: "90" },
+                { label: t("opc.industry.analysis.timeRange7d"), value: "7" },
+                { label: t("opc.industry.analysis.timeRange30d"), value: "30" },
+                { label: t("opc.industry.analysis.timeRange90d"), value: "90" },
               ]}
             />
             <Button
