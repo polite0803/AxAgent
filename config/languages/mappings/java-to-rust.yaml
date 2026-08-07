@@ -481,3 +481,41 @@ migration_checklist:
   - [ ] 集成测试已通过
   - [ ] API 契约测试已通过
   - [ ] 性能对比测试已通过
+
+# ── Java → Rust 通用迁移配置 ──
+java_to_rust_mapping:
+  description: "Java (Spring Boot) 到 Rust (Axum) 的完整迁移映射"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "i32" }
+      - { source: "long", target: "i64" }
+      - { source: "float", target: "f32" }
+      - { source: "double", target: "f64" }
+      - { source: "String", target: "String" }
+      - { source: "List<T>", target: "Vec<T>" }
+      - { source: "Map<K,V>", target: "HashMap<K,V>" }
+      - { source: "Optional<T>", target: "Option<T>" }
+      - { source: "CompletableFuture<T>", target: "impl Future<Output=T>" }
+  
+  spring_to_rust:
+    - { source: "@RestController", target: "Axum Router + handler" }
+    - { source: "@Service", target: "struct impl 业务逻辑" }
+    - { source: "@Repository", target: "SeaORM Entity + Repository" }
+    - { source: "@Component", target: "普通 struct" }
+    - { source: "@Autowired", target: "构造函数注入" }
+    - { source: "@Configuration", target: "手动初始化函数" }
+  
+  jpa_to_seaorm:
+    - { source: "@Entity", target: SeaORM Entity }
+    - { source: "@Id @GeneratedValue", target: "主键字段 + From/To 转换" }
+    - { source: "@Column", target: "实体字段定义" }
+    - { source: "@OneToMany", target: "关联查询方法" }
+    - { source: "JpaRepository", target: "自定义 Repository impl" }
+  
+  recommended_crates:
+    - { crate: "axum", purpose: "Web 框架" }
+    - { crate: "sea-orm", purpose: "ORM" }
+    - { crate: "sqlx", purpose: "数据库连接池" }
+    - { crate: "validator", purpose: "数据验证" }
+    - { crate: "jsonwebtoken", purpose: "JWT 认证" }

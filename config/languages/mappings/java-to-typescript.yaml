@@ -819,3 +819,33 @@ swing_javafx_to_react:
     - [ ] 国际化已迁移
     - [ ] 样式/主题已迁移
     - [ ] 资源加载已处理
+
+# ── Java → TypeScript 通用迁移配置 ──
+java_to_typescript_mapping:
+  description: "Java 到 TypeScript 的完整迁移映射配置"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "number" }
+      - { source: "long", target: "number" }
+      - { source: "String", target: "string" }
+      - { source: "boolean", target: "boolean" }
+      - { source: "List<T>", target: "T[]" }
+      - { source: "Map<K,V>", target: "Map<K,V> / Record<K,V>" }
+      - { source: "Optional<T>", target: "T | undefined" }
+      - { source: "CompletableFuture<T>", target: "Promise<T>" }
+      - { source: "Stream<T>", target: "T[] / Iterable<T>" }
+  
+  spring_to_typescript:
+    - { source: "@RestController", target: "Express/Fastify 路由处理函数" }
+    - { source: "@Service", target: "class / 服务层" }
+    - { source: "@Repository", target: "数据库操作层" }
+    - { source: "@Autowired", target: "构造函数参数注入" }
+    - { source: "@RequestMapping", target: "路由装饰器/配置" }
+  
+  recommended_packages:
+    - { package: "express", purpose: "Web 框架" }
+    - { package: "prisma", purpose: "ORM" }
+    - { package: "class-validator", purpose: "数据验证" }
+    - { package: "passport", purpose: "认证" }
+    - { package: "joi/zod", purpose: "Schema 验证" }

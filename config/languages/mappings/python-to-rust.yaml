@@ -407,3 +407,44 @@ migration_checklist:
   - [ ] 功能完整性验证已通过
   - [ ] 单元测试覆盖率已达到 80%+
   - [ ] 集成测试已通过
+
+# ── Python → Rust 通用迁移配置 ──
+python_to_rust_mapping:
+  description: "Python 到 Rust 的完整迁移映射配置"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "i64" }
+      - { source: "float", target: "f64" }
+      - { source: "str", target: "String" }
+      - { source: "bool", target: "bool" }
+      - { source: "list", target: "Vec<T>" }
+      - { source: "dict", target: "HashMap<K,V>" }
+      - { source: "set", target: "HashSet<T>" }
+      - { source: "tuple", target: "(T1, T2, ...)" }
+      - { source: "None", target: "Option<T>" }
+      - { source: "async def", target: "async fn" }
+  
+  python_to_rust_patterns:
+    - { source: "装饰器", target: "宏 / 包装函数" }
+    - { source: "上下文管理器 (with)", target: "RAII (Drop trait)" }
+    - { source: "生成器 (yield)", target: "impl Iterator" }
+    - { source: "列表推导式", target: "迭代器适配器" }
+    - { source: "try-except", target: "match + Result<T, E>" }
+    - { source: "pandas DataFrame", target: "自定义数据结构" }
+  
+  python_library_mapping:
+    - { source: "numpy", target: "ndarray / nalgebra" }
+    - { source: "pandas", target: "自定义表格处理" }
+    - { source: "requests", target: "reqwest" }
+    - { source: "flask/fastapi", target: "axum" }
+    - { source: "sqlalchemy", target: "sea-orm / sqlx" }
+    - { source: "pytest", target: "cargo test" }
+    - { source: "asyncio", target: "tokio" }
+  
+  recommended_crates:
+    - { crate: "tokio", purpose: "异步运行时" }
+    - { crate: "serde", purpose: "序列化/反序列化" }
+    - { crate: "thiserror", purpose: "错误处理" }
+    - { crate: "tracing", purpose: "日志" }
+    - { crate: "reqwest", purpose: "HTTP 客户端" }

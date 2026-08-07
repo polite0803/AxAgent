@@ -886,3 +886,49 @@ migration_checklist:
   - [ ] 性能测试已通过
   - [ ] clippy 零警告
   - [ ] rustfmt 格式化通过
+
+# ── TypeScript → Rust 通用迁移配置 ──
+typescript_to_rust_mapping:
+  description: "TypeScript 后端到 Rust 的完整迁移映射配置"
+  
+  type_system:
+    source_to_target:
+      - { source: "number", target: "i64 / f64 (根据上下文)" }
+      - { source: "string", target: "String" }
+      - { source: "boolean", target: "bool" }
+      - { source: "T[]", target: "Vec<T>" }
+      - { source: "Record<K,V>", target: "HashMap<K,V>" }
+      - { source: "Map<K,V>", target: "HashMap<K,V>" }
+      - { source: "Set<T>", target: "HashSet<T>" }
+      - { source: "T | null", target: "Option<T>" }
+      - { source: "Promise<T>", target: "impl Future<Output=T>" }
+      - { source: "interface/class", target: "trait / struct + impl" }
+  
+  async_model:
+    - { source: "async/await", target: "async/await (Tokio)", note: "直接对应" }
+    - { source: "Promise.all", target: "futures::join_all / try_join_all" }
+    - { source: "Promise.race", target: "tokio::select!" }
+    - { source: "AbortController", target: "tokio::signal::CancellationToken" }
+  
+  web_framework_mapping:
+    - { source: "Express/Fastify", target: "axum" }
+    - { source: "NestJS 控制器", target: "axum Router + handler" }
+    - { source: "Middleware", target: "axum::middleware" }
+    - { source: "路由装饰器", target: "手动路由注册" }
+  
+  ts_to_rust_patterns:
+    - { source: "class + 继承", target: "struct + impl + trait (组合)" }
+    - { source: "interface", target: "trait" }
+    - { source: "泛型 <T>", target: "泛型 <T>" }
+    - { source: "类型别名", target: "type / enum" }
+    - { source: "装饰器", target: "宏 / 显式实现" }
+    - { source: "依赖注入", target: "构造函数注入 / 状态传递" }
+  
+  recommended_crates:
+    - { crate: "axum", purpose: "Web 框架" }
+    - { crate: "tokio", purpose: "异步运行时" }
+    - { crate: "serde", purpose: "序列化/反序列化" }
+    - { crate: "sea-orm", purpose: "ORM" }
+    - { crate: "sqlx", purpose: "数据库访问" }
+    - { crate: "validator", purpose: "数据验证" }
+    - { crate: "tracing", purpose: "日志" }

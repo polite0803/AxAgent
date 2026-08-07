@@ -1377,5 +1377,397 @@ distributed_simulation_protocol:
     - [ ] HLA 发布/订阅机制已实现
     - [ ] 分布式仿真性能测试已通过
     - [ ] 与现有 AFSIM 系统的互操作测试已通过
+
+# ── C++ → Rust 通用迁移配置 ──
+cpp_to_rust_mapping:
+  description: "C++ 到 Rust 的完整迁移映射配置，供分析和实现步骤使用"
+  
+  # 类型系统映射（引用自 type_mapping）
+  type_system:
+    source_to_target:
+      - { source: "int", target: "i32", note: "默认 32 位整数" }
+      - { source: "long", target: "i64", note: "64 位整数" }
+      - { source: "unsigned int", target: "u32" }
+      - { source: "float", target: "f32" }
+      - { source: "double", target: "f64" }
+      - { source: "bool", target: "bool" }
+      - { source: "std::string", target: "String" }
+      - { source: "std::vector<T>", target: "Vec<T>" }
+      - { source: "std::map<K,V>", target: "HashMap<K,V>" }
+      - { source: "std::optional<T>", target: "Option<T>" }
+      - { source: "std::function<F>", target: "Box<dyn Fn> 或 impl Fn" }
+  
+  # 内存管理映射（引用自 memory_mapping）
+  memory_management:
+    pointer_types:
+      - { source: "T* (裸指针)", target: "&T / &mut T / Box<T>", strategy: "优先使用引用，仅在需要所有权时使用 Box" }
+      - { source: "std::unique_ptr<T>", target: "Box<T>" }
+      - { source: "std::shared_ptr<T>", target: "Arc<T> / Rc<T>", condition: "根据是否跨线程选择" }
+      - { source: "std::weak_ptr<T>", target: "Weak<T>" }
+    ownership_rules:
+      - "RAII → Drop trait"
+      - "new/delete → 所有权系统（自动 drop）"
+      - "栈分配 → 默认栈分配"
+  
+  # 并发模型映射
+  concurrency_model:
+    - { source: "std::thread", target: "tokio::task::spawn" }
+    - { source: "std::mutex", target: "tokio::sync::Mutex" }
+    - { source: "std::atomic<T>", target: "std::sync::atomic::AtomicT" }
+    - { source: "condition_variable", target: "tokio::sync::Notify" }
+    - { source: "std::future", target: "impl Future / BoxFuture" }
+  
+  # 错误处理映射
+  error_handling:
+    - { source: "try-catch", target: "match + Result<T, E>" }
+    - { source: "throw", target: "Err(MyError::Variant)" }
+    - { source: "自定义异常类", target: "thiserror 枚举" }
+    - { source: "错误码", target: "Result 类型" }
+  
+  # STL 到 Rust 标准库映射
+  stl_to_std:
+    algorithms:
+      - { source: "std::sort", target: "slice::sort" }
+      - { source: "std::find", target: "Iterator::find" }
+      - { source: "std::transform", target: "Iterator::map" }
+      - { source: "std::accumulate", target: "Iterator::sum" }
+      - { source: "std::for_each", target: "Iterator::for_each" }
+    containers:
+      - { source: "std::vector", target: "Vec" }
+      - { source: "std::map", target: "HashMap / BTreeMap" }
+      - { source: "std::set", target: "HashSet / BTreeSet" }
+      - { source: "std::deque", target: "VecDeque" }
+      - { source: "std::queue", target: "VecDeque" }
+  
+  # 常用 crate 推荐
+  recommended_crates:
+    - { crate: "serde", purpose: "序列化/反序列化", features: ["derive"] }
+    - { crate: "thiserror", purpose: "错误类型定义" }
+    - { crate: "anyhow", purpose: "错误处理（应用层）" }
+    - { crate: "tokio", purpose: "异步运行时", features: ["full"] }
+    - { crate: "tracing", purpose: "日志追踪" }
+    - { crate: "clap", purpose: "命令行参数解析", features: ["derive"] }
+
+# ── Afsim 数学类型映射 ──
+afsim_math_mapping:
+  description: "Afsim 数学类型到 Rust nalgebra 的映射配置"
+  
+  math_crate_mapping:
+    - afsim_type: "UtVec2<T>"
+      rust_crate: "nalgebra::Vector2<T>"
+      example: |
+        // C++ (UtVec2):
+        UtVec2d v(1.0, 2.0);
+        double len = v.Length();
+        
+        // Rust (nalgebra):
+        use nalgebra::Vector2;
+        let v = Vector2::new(1.0_f64, 2.0);
+        let len = v.magnitude();
+    
+    - afsim_type: "UtVec3<T>"
+      rust_crate: "nalgebra::Vector3<T>"
+      example: |
+        // C++ (UtVec3):
+        UtVec3d pos(1000.0, 2000.0, 3000.0);
+        UtVec3d vel(100.0, 0.0, 0.0);
+        pos.Add(vel, result);
+        
+        // Rust (nalgebra):
+        use nalgebra::Vector3;
+        let pos = Vector3::new(1000.0_f64, 2000.0, 3000.0);
+        let vel = Vector3::new(100.0_f64, 0.0, 0.0);
+        let result = pos + vel;
+    
+    - afsim_type: "UtVec4<T>"
+      rust_crate: "nalgebra::Vector4<T>"
+    
+    - afsim_type: "UtMatrix3x3<T>"
+      rust_crate: "nalgebra::Matrix3<T>"
+      example: |
+        // Rust:
+        use nalgebra::Matrix3;
+        let m = Matrix3::new(
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0
+        );
+        let det = m.determinant();
+    
+    - afsim_type: "UtMatrix4x4<T>"
+      rust_crate: "nalgebra::Matrix4<T>"
+    
+    - afsim_type: "UtQuaternion<T>"
+      rust_crate: "nalgebra::UnitQuaternion<T>"
+      example: |
+        // C++ (UtQuaternion):
+        UtQuaterniond q;
+        q.FromEulerAngles(roll, pitch, yaw);
+        q.RotateVector(original, rotated);
+        
+        // Rust (nalgebra):
+        use nalgebra::{UnitQuaternion, Vector3};
+        let q = UnitQuaternion::from_euler_angles(roll, pitch, yaw);
+        let rotated = q * original;
+    
+    - afsim_type: "UtEulerAngles"
+      rust_crate: "nalgebra::Rotation3<T>"
+      example: |
+        // Rust:
+        use nalgebra::Rotation3;
+        let rot = Rotation3::from_euler_angles(roll, pitch, yaw);
+    
+    - afsim_type: "UtEarthCoord"
+      rust_crate: "自定义地理坐标类型"
+      example: |
+        // Rust:
+        #[derive(Debug, Clone)]
+        pub struct Wgs84Coord {
+            pub longitude: f64,
+            pub latitude: f64,
+            pub altitude: f64,
+        }
+        
+        #[derive(Debug, Clone)]
+        pub struct EcefCoord {
+            pub x: f64,
+            pub y: f64,
+            pub z: f64,
+        }
+        
+        // WGS84 ↔ ECEF 转换
+        pub fn wgs84_to_ecef(wgs84: &Wgs84Coord) -> EcefCoord {
+            // 使用 WGS84 椭球参数
+            let a = 6378137.0_f64; // 长半轴
+            let e2 = 0.00669437999014_f64; // 第一偏心率平方
+            // ... 转换逻辑
+            EcefCoord { x: 0.0, y: 0.0, z: 0.0 }
+        }
+  
+  operations_mapping:
+    - { op: "Add", rust_op: "+", note: "向量加法" }
+    - { op: "Subtract", rust_op: "-", note: "向量减法" }
+    - { op: "Dot", rust_op: "dot()", note: "点积" }
+    - { op: "Cross", rust_op: "cross()", note: "叉积" }
+    - { op: "Normalize", rust_op: "normalize()", note: "归一化" }
+    - { op: "Length/Magnitude", rust_op: "magnitude()", note: "向量长度" }
+    - { op: "Multiply (矩阵)", rust_op: "*", note: "矩阵乘法" }
+    - { op: "Transpose", rust_op: "transpose()", note: "转置" }
+    - { op: "Determinant", rust_op: "determinant()", note: "行列式" }
+    - { op: "Inverse", rust_op: "try_inverse()", note: "逆矩阵" }
+
+  recommended_crates:
+    - { crate: "nalgebra", purpose: "线性代数运算", features: ["std"] }
+    - { crate: "approx", purpose: "浮点数近似比较" }
+
+# ── Afsim 核心架构映射 ──
+afsim_architecture_mapping:
+  description: "Afsim 核心类到 Rust/AxAgent 架构的映射配置"
+  
+  # 核心类映射
+  core_classes:
+    - source: "WsfObject"
+      target_rust: "trait Object + struct 实现"
+      target_typescript: "interface Object + class 实现"
+      description: "Afsim 基类，所有仿真对象的父类"
+      rust_impl: |
+        // Rust:
+        pub trait AfsimObject {
+            fn id(&self) -> &str;
+            fn name(&self) -> &str;
+            fn initialize(&mut self) -> Result<(), AfsimError>;
+            fn update(&mut self, dt: f64) -> Result<(), AfsimError>;
+            fn shutdown(&mut self) -> Result<(), AfsimError>;
+        }
+        
+        pub struct AfsimObjectBase {
+            id: String,
+            name: String,
+            initialized: bool,
+        }
+        
+        impl AfsimObjectBase {
+            pub fn new(id: &str, name: &str) -> Self {
+                Self {
+                    id: id.to_string(),
+                    name: name.to_string(),
+                    initialized: false,
+                }
+            }
+        }
+    
+    - source: "WsfPlatform"
+      target_rust: "struct Platform + impl AfsimObject"
+      target_typescript: "class Platform implements AfsimObject"
+      description: "平台类，代表仿真实体（飞行器、舰船等）"
+      rust_impl: |
+        // Rust:
+        pub struct Platform {
+            base: AfsimObjectBase,
+            position: Vector3<f64>,
+            velocity: Vector3<f64>,
+            orientation: UnitQuaternion<f64>,
+            health: f64,
+            weapons: Vec<Weapon>,
+        }
+        
+        impl AfsimObject for Platform {
+            fn id(&self) -> &str { &self.base.id }
+            fn name(&self) -> &str { &self.base.name }
+            
+            fn initialize(&mut self) -> Result<(), AfsimError> {
+                self.base.initialized = true;
+                Ok(())
+            }
+            
+            fn update(&mut self, dt: f64) -> Result<(), AfsimError> {
+                // 更新位置、速度等
+                Ok(())
+            }
+            
+            fn shutdown(&mut self) -> Result<(), AfsimError> {
+                self.base.initialized = false;
+                Ok(())
+            }
+        }
+    
+    - source: "WsfTrack"
+      target_rust: "struct Track"
+      target_typescript: "class Track"
+      description: "航迹类，记录平台历史轨迹"
+      rust_impl: |
+        // Rust:
+        pub struct Track {
+            platform_id: String,
+            history: Vec<TrackPoint>,
+            max_points: usize,
+        }
+        
+        #[derive(Debug, Clone)]
+        pub struct TrackPoint {
+            pub time: f64,
+            pub position: Vector3<f64>,
+            pub velocity: Vector3<f64>,
+            pub orientation: UnitQuaternion<f64>,
+        }
+    
+    - source: "WsfPlugin"
+      target_rust: "trait Plugin"
+      target_typescript: "interface Plugin"
+      description: "插件接口，用于扩展功能"
+      rust_impl: |
+        // Rust:
+        pub trait AfsimPlugin: Send + Sync {
+            fn name(&self) -> &str;
+            fn version(&self) -> &str;
+            fn on_initialize(&self, context: &PluginContext) -> Result<(), PluginError>;
+            fn on_update(&self, context: &PluginContext, dt: f64) -> Result<(), PluginError>;
+            fn on_shutdown(&self, context: &PluginContext) -> Result<(), PluginError>;
+        }
+    
+    - source: "WsfScenario"
+      target_rust: "struct Scenario + trait ScenarioManager"
+      target_typescript: "class Scenario"
+      description: "想定类，定义仿真场景"
+      rust_impl: |
+        // Rust:
+        pub struct Scenario {
+            id: String,
+            name: String,
+            platforms: Vec<Platform>,
+            initial_conditions: InitialConditions,
+            events: Vec<ScenarioEvent>,
+        }
+        
+        pub trait ScenarioManager {
+            fn load_scenario(&mut self, path: &str) -> Result<Scenario, ScenarioError>;
+            fn start_scenario(&mut self, scenario: &Scenario) -> Result<(), ScenarioError>;
+            fn pause_scenario(&mut self) -> Result<(), ScenarioError>;
+            fn resume_scenario(&mut self) -> Result<(), ScenarioError>;
+            fn stop_scenario(&mut self) -> Result<(), ScenarioError>;
+        }
+  
+  # 事件系统映射
+  event_system:
+    - source: "Qt 信号槽 (QObject::connect)"
+      target_rust: "trait EventHandler + Channel"
+      target_typescript: "EventEmitter / Zustand Store"
+      description: "事件驱动机制迁移"
+      rust_impl: |
+        // Rust: 使用 tokio::sync::mpsc 实现事件系统
+        use tokio::sync::mpsc;
+        
+        pub struct EventBus<T: Clone + Send + 'static> {
+            subscribers: HashMap<String, Vec<mpsc::Sender<T>>>,
+        }
+        
+        impl<T: Clone + Send + 'static> EventBus<T> {
+            pub async fn subscribe(&mut self, event_type: &str) -> mpsc::Receiver<T> {
+                let (tx, rx) = mpsc::channel(100);
+                self.subscribers
+                    .entry(event_type.to_string())
+                    .or_insert_with(Vec::new)
+                    .push(tx);
+                rx
+            }
+            
+            pub async fn publish(&mut self, event_type: &str, data: T) {
+                if let Some(subscribers) = self.subscribers.get_mut(event_type) {
+                    for sender in subscribers {
+                        let _ = sender.send(data.clone()).await;
+                    }
+                }
+            }
+        }
+  
+  # 工作区结构
+  workspace_structure:
+    description: "推荐的 Cargo workspace 结构"
+    crates:
+      - name: "afsim-core"
+        purpose: "核心类型定义和 trait"
+        dependencies: ["serde", "thiserror", "nalgebra"]
+      - name: "afsim-platform"
+        purpose: "平台实现"
+        dependencies: ["afsim-core"]
+      - name: "afsim-track"
+        purpose: "航迹管理"
+        dependencies: ["afsim-core"]
+      - name: "afsim-plugin"
+        purpose: "插件系统"
+        dependencies: ["afsim-core"]
+      - name: "afsim-scenario"
+        purpose: "想定管理"
+        dependencies: ["afsim-core", "afsim-platform"]
+      - name: "afsim-network"
+        purpose: "网络通信（DIS/HLA）"
+        dependencies: ["afsim-core", "tokio", "serde"]
+      - name: "afsim-geo"
+        purpose: "地理坐标转换"
+        dependencies: ["afsim-core", "approx"]
+      - name: "afsim-ffi"
+        purpose: "与 C++ 遗留代码 FFI 桥接"
+        dependencies: ["afsim-core"]
+    
+    Cargo_toml_example: |
+      # Cargo.toml (workspace root)
+      [workspace]
+      members = [
+          "crates/afsim-core",
+          "crates/afsim-platform",
+          "crates/afsim-track",
+          "crates/afsim-plugin",
+          "crates/afsim-scenario",
+          "crates/afsim-network",
+          "crates/afsim-geo",
+          "crates/afsim-ffi",
+      ]
+      resolver = "2"
+      
+      [workspace.dependencies]
+      serde = { version = "1", features = ["derive"] }
+      thiserror = "1"
+      nalgebra = "0.33"
+      tokio = { version = "1", features = ["full"] }
     - [ ] 异常处理和重连机制已实现
     - [ ] 日志记录和监控已实现

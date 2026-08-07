@@ -719,3 +719,59 @@ wpf_winforms_to_react:
     - [ ] 文件对话框已迁移
     - [ ] 系统托盘已迁移
     - [ ] 注册配置已迁移
+
+# ── C# → Rust 通用迁移配置 ──
+csharp_to_rust_mapping:
+  description: "C# (.NET) 到 Rust 的完整迁移映射配置"
+  
+  # 类型系统映射
+  type_system:
+    source_to_target:
+      - { source: "int", target: "i32" }
+      - { source: "long", target: "i64" }
+      - { source: "float", target: "f32" }
+      - { source: "double", target: "f64" }
+      - { source: "bool", target: "bool" }
+      - { source: "string", target: "String" }
+      - { source: "List<T>", target: "Vec<T>" }
+      - { source: "Dictionary<K,V>", target: "HashMap<K,V>" }
+      - { source: "HashSet<T>", target: "HashSet<T>" }
+      - { source: "Nullable<T>", target: "Option<T>" }
+      - { source: "Action/Func", target: "Box<dyn Fn> / impl Fn" }
+      - { source: "async Task<T>", target: "impl Future<Output=T>" }
+  
+  # 异步/并发映射
+  async_model:
+    - { source: "async/await", target: "async/await (Tokio)", note: "直接对应" }
+    - { source: "Task.Run", target: "tokio::task::spawn" }
+    - { source: "CancellationToken", target: "tokio::signal::CancellationToken" }
+    - { source: "IAsyncEnumerable", target: "tokio::stream" }
+  
+  # 错误处理映射
+  error_handling:
+    - { source: "try-catch-finally", target: "match + Result<T, E>" }
+    - { source: "throw", target: "Err(MyError::Variant)" }
+    - { source: "自定义异常", target: "thiserror 枚举" }
+    - { source: "null 检查", target: "Option<T>" }
+  
+  # .NET 框架映射
+  dotnet_to_rust:
+    - { source: "ASP.NET Core", target: "Axum / Actix-web", note: "Web 框架" }
+    - { source: "Entity Framework Core", target: "SeaORM / SQLx", note: "ORM" }
+    - { source: "AutoMapper", target: "自定义 From trait 实现", note: "对象映射" }
+    - { source: "Newtonsoft.Json / System.Text.Json", target: "serde", note: "JSON 序列化" }
+    - { source: "MemoryCache", target: "moka / cached", note: "缓存" }
+    - { source: "ILogger", target: "tracing", note: "日志" }
+    - { source: "IConfiguration", target: "config / dotenv", note: "配置" }
+    - { source: "HttpClient", target: "reqwest", note: "HTTP 客户端" }
+    - { source: "SignalR", target: "WebSocket (tokio-tungstenite)", note: "实时通信" }
+  
+  # 推荐 crate
+  recommended_crates:
+    - { crate: "tokio", purpose: "异步运行时", features: ["full"] }
+    - { crate: "serde", purpose: "序列化/反序列化", features: ["derive"] }
+    - { crate: "thiserror", purpose: "错误类型定义" }
+    - { crate: "tracing", purpose: "日志追踪" }
+    - { crate: "axum", purpose: "Web 框架" }
+    - { crate: "sqlx", purpose: "数据库访问", features: ["runtime-tokio"] }
+    - { crate: "reqwest", purpose: "HTTP 客户端", features: ["json"] }

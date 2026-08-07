@@ -408,3 +408,44 @@ migration_checklist:
   - [ ] 单元测试已通过
   - [ ] 功能完整性验证已通过
   - [ ] ESLint/TypeScript 编译无错误
+
+# ── Python → TypeScript 通用迁移配置 ──
+python_to_typescript_mapping:
+  description: "Python 到 TypeScript 的完整迁移映射配置"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "number" }
+      - { source: "float", target: "number" }
+      - { source: "str", target: "string" }
+      - { source: "bool", target: "boolean" }
+      - { source: "list", target: "T[]" }
+      - { source: "dict", target: "Record<K,V> / Map<K,V>" }
+      - { source: "set", target: "Set<T>" }
+      - { source: "tuple", target: "readonly T[] / [T1, T2]" }
+      - { source: "None", target: "null / undefined" }
+      - { source: "async def", target: "async function" }
+  
+  python_to_ts_patterns:
+    - { source: "装饰器", target: "高阶函数 / TS 装饰器" }
+    - { source: "上下文管理器", target: "try-finally / using TC39" }
+    - { source: "生成器 (yield)", target: "Generator / 迭代器" }
+    - { source: "列表推导式", target: "Array.map/filter" }
+    - { source: "try-except", target: "try-catch" }
+    - { source: "pandas DataFrame", target: "自定义类型 / papaparse" }
+  
+  python_library_mapping:
+    - { source: "numpy", target: "math.js / 自定义" }
+    - { source: "pandas", target: "papaparse / xlsx" }
+    - { source: "requests", target: "axios" }
+    - { source: "flask/fastapi", target: "Express/Fastify" }
+    - { source: "sqlalchemy", target: "Prisma / Drizzle" }
+    - { source: "pytest", target: "jest / vitest" }
+    - { source: "asyncio", target: "Promise / async-await" }
+  
+  recommended_packages:
+    - { package: "express", purpose: "Web 框架" }
+    - { package: "prisma", purpose: "ORM" }
+    - { package: "axios", purpose: "HTTP 客户端" }
+    - { package: "zod", purpose: "Schema 验证" }
+    - { package: "jest", purpose: "测试框架" }

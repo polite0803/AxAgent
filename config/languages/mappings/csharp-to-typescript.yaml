@@ -476,3 +476,39 @@ migration_checklist:
   - [ ] 单元测试已通过
   - [ ] 组件测试已通过
   - [ ] 集成测试已通过
+
+# ── C# → TypeScript 通用迁移配置 ──
+csharp_to_typescript_mapping:
+  description: "C# (WPF/WinForms) 到 TypeScript (React) 的完整迁移映射"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "number" }
+      - { source: "string", target: "string" }
+      - { source: "bool", target: "boolean" }
+      - { source: "List<T>", target: "T[]" }
+      - { source: "Dictionary<K,V>", target: "Map<K,V> / Record<K,V>" }
+      - { source: "Nullable<T>", target: "T | null" }
+      - { source: "async Task<T>", target: "Promise<T>" }
+      - { source: "IEnumerable<T>", target: "Iterable<T> / T[]" }
+  
+  async_model:
+    - { source: "async/await", target: "async/await", note: "直接对应" }
+    - { source: "Task.WhenAll", target: "Promise.all" }
+    - { source: "CancellationToken", target: "AbortController.signal" }
+  
+  dotnet_to_typescript:
+    - { source: "ASP.NET Core API", target: "Express/Fastify 路由" }
+    - { source: "Entity Framework Core", target: "Prisma/Drizzle ORM" }
+    - { source: "AutoMapper", target: "手动映射 / Zod schema" }
+    - { source: "Newtonsoft.Json", target: "JSON.parse/stringify" }
+    - { source: "ILogger", target: "console.log / winston" }
+  
+  recommended_packages:
+    - { package: "react", purpose: "UI 框架" }
+    - { package: "antd", purpose: "UI 组件库" }
+    - { package: "zustand", purpose: "状态管理" }
+    - { package: "react-router-dom", purpose: "路由" }
+    - { package: "axios", purpose: "HTTP 客户端" }
+    - { package: "zod", purpose: "运行时类型验证" }
+    - { package: "i18next", purpose: "国际化" }

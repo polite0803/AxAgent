@@ -375,3 +375,43 @@ migration_checklist:
   - [ ] 依赖库已找到 TS 替代
   - [ ] 单元测试已通过
   - [ ] 类型安全已验证
+
+# ── Go → TypeScript 通用迁移配置 ──
+go_to_typescript_mapping:
+  description: "Go 到 TypeScript 的完整迁移映射配置"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "number" }
+      - { source: "int64", target: "number (bigint)" }
+      - { source: "string", target: "string" }
+      - { source: "bool", target: "boolean" }
+      - { source: "[]T", target: "T[]" }
+      - { source: "map[K]V", target: "Map<K,V> / Record<K,V>" }
+      - { source: "interface{}", target: "any" }
+      - { source: "error", target: "Error | null" }
+      - { source: "struct", target: "class / interface" }
+      - { source: "goroutine", target: "async/await" }
+  
+  go_to_ts_patterns:
+    - { source: "goroutine", target: "async 函数" }
+    - { source: "channel", target: "Promise / EventEmitter" }
+    - { source: "sync.WaitGroup", target: "Promise.all" }
+    - { source: "defer", target: "try-finally" }
+    - { source: "多返回值 (value, error)", target: "返回值 + 抛异常" }
+    - { source: "struct 方法", target: "class 方法 / 独立函数" }
+  
+  go_library_mapping:
+    - { source: "net/http", target: "Express/Fastify" }
+    - { source: "gin", target: "Express/Koa" }
+    - { source: "gorm", target: "Prisma / Drizzle" }
+    - { source: "encoding/json", target: "JSON.parse/stringify" }
+    - { source: "sync", target: "Promise / EventEmitter" }
+    - { source: "testing", target: "Jest/Vitest" }
+  
+  recommended_packages:
+    - { package: "express", purpose: "Web 框架" }
+    - { package: "prisma", purpose: "ORM" }
+    - { package: "axios", purpose: "HTTP 客户端" }
+    - { package: "ws", purpose: "WebSocket" }
+    - { package: "jest", purpose: "测试" }

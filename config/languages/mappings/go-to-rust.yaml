@@ -505,3 +505,46 @@ migration_checklist:
   - [ ] 单元测试已通过
   - [ ] 并发测试已通过
   - [ ] 性能测试已通过
+
+# ── Go → Rust 通用迁移配置 ──
+go_to_rust_mapping:
+  description: "Go 到 Rust 的完整迁移映射配置"
+  
+  type_system:
+    source_to_target:
+      - { source: "int", target: "i64" }
+      - { source: "int32", target: "i32" }
+      - { source: "string", target: "String" }
+      - { source: "bool", target: "bool" }
+      - { source: "[]T", target: "Vec<T>" }
+      - { source: "map[K]V", target: "HashMap<K,V>" }
+      - { source: "interface{}", target: "enum / Box<dyn trait>" }
+      - { source: "error", target: "Result<T, E>" }
+      - { source: "struct", target: "struct" }
+      - { source: "goroutine", target: "tokio::spawn" }
+  
+  go_to_rust_patterns:
+    - { source: "goroutine", target: "tokio::task::spawn" }
+    - { source: "channel", target: "tokio::sync::mpsc" }
+    - { source: "sync.Mutex", target: "tokio::sync::Mutex" }
+    - { source: "sync.WaitGroup", target: "JoinHandle.await" }
+    - { source: "defer", target: "Drop trait (RAII)" }
+    - { source: "多返回值 (value, error)", target: "Result<T, E>" }
+    - { source: "struct 方法", target: "impl 块" }
+    - { source: "interface", target: "trait" }
+  
+  go_library_mapping:
+    - { source: "net/http", target: "axum" }
+    - { source: "gin", target: "axum / actix-web" }
+    - { source: "gorm", target: "sea-orm / sqlx" }
+    - { source: "encoding/json", target: "serde" }
+    - { source: "sync", target: "tokio::sync" }
+    - { source: "testing", target: "cargo test" }
+    - { source: "context", target: "tokio::signal / 手动取消" }
+  
+  recommended_crates:
+    - { crate: "tokio", purpose: "异步运行时" }
+    - { crate: "axum", purpose: "Web 框架" }
+    - { crate: "serde", purpose: "序列化" }
+    - { crate: "thiserror", purpose: "错误处理" }
+    - { crate: "tracing", purpose: "日志" }
