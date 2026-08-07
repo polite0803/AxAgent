@@ -60,7 +60,12 @@ pub async fn validate_entity(
     entity_data: &serde_json::Value,
 ) -> Result<Vec<ValidationError>, String> {
     let adapter = load_adapter(db, industry_id)?;
-    adapter.validate(entity_type, entity_data).await.map_err(|e| e.to_string())
+    adapter.validate(entity_type, entity_data).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 批量验证行业实体
@@ -70,7 +75,12 @@ pub async fn validate_batch(
     entities: &[(String, serde_json::Value)],
 ) -> Result<Vec<(String, Vec<ValidationError>)>, String> {
     let adapter = load_adapter(db, industry_id)?;
-    adapter.validate_batch(entities).await.map_err(|e| e.to_string())
+    adapter.validate_batch(entities).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 计算行业 KPI 指标
@@ -80,7 +90,12 @@ pub async fn compute_kpis(
     time_range: TimeRange,
 ) -> Result<Vec<KpiValue>, String> {
     let adapter = load_adapter(db, industry_id)?;
-    adapter.compute_kpis(&time_range).await.map_err(|e| e.to_string())
+    adapter.compute_kpis(&time_range).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 获取行业 KPI 定义列表
@@ -119,9 +134,14 @@ pub async fn run_automation_rules(
     let mut triggered = Vec::new();
     for rule in &rules {
         if opc_industry_logic::evaluate_conditions(&rule.conditions, &ctx_map) {
-            opc_industry_logic::execute_rule_actions(ds.as_ref(), rule, &context)
-                .await
-                .map_err(|e| e.to_string())?;
+            opc_industry_logic::execute_rule_actions(ds.as_ref(), rule, &context).await.map_err(
+                |e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                },
+            )?;
             triggered.push(rule.id.clone());
         }
     }
@@ -135,7 +155,12 @@ pub async fn get_dashboard(
     time_range: TimeRange,
 ) -> Result<IndustryDashboard, String> {
     let adapter = load_adapter(db, industry_id)?;
-    adapter.aggregate_dashboard(&time_range).await.map_err(|e| e.to_string())
+    adapter.aggregate_dashboard(&time_range).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 执行行业动态工作流
@@ -152,7 +177,12 @@ pub async fn execute_dynamic_workflow(
 
     // 创建执行器并执行
     let executor = IndustryWorkflowExecutor::new(industry_id.to_string(), adapter);
-    executor.execute(workflow, &time_range).await.map_err(|e| e.to_string())
+    executor.execute(workflow, &time_range).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 /// 列出全部内建行业（工厂注册）
@@ -416,7 +446,12 @@ pub async fn opc_get_industry_data(
     let data = client
         .fetch(&source_id, &data_domain, &query.unwrap_or(serde_json::json!({})))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
     Ok(serde_json::json!({
         "industryId": industry_id,
         "sourceId": source_id,
