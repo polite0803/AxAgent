@@ -3943,7 +3943,8 @@
       "talent": "人才市场",
       "market": "市场包",
       "kanban": "看板",
-      "contentMedia": "Contenu et Médias"
+      "contentMedia": "Contenu et Médias",
+      "industries": "Navigation par industrie"
     },
     "common": {
       "cancel": "Cancel",
@@ -4305,7 +4306,17 @@
       "industry_consulting_desc": "Conseil industriel",
       "accounting_desc": "Comptabilité",
       "ecommerce_desc": "Commerce électronique",
-      "education_desc": "Éducation"
+      "education_desc": "Éducation",
+      "design": "Design",
+      "design_desc": "Design de produit et créativité : recherche utilisateur → système de design → prototypage → accessibilité",
+      "project_management": "Gestion de projet",
+      "project_management_desc": "Cycle de vie du projet : planification → suivi d'exécution → gestion des risques → rapports d'état",
+      "security": "Sécurité et conformité",
+      "security_desc": "Protection et sécurité : tests de pénétration → renseignement de menaces → réponse à incident → audit de conformité",
+      "geospatial": "Géospatial",
+      "geospatial_desc": "Données spatiales et calcul géographique : cartographie → analyse spatiale → données drones → applications AR",
+      "game_dev": "Développement de jeux",
+      "game_dev_desc": "Processus de développement de jeux : conception conceptuelle → développement de prototype → assurance qualité → test de jeu"
     },
     "industry": {
       "actions": {

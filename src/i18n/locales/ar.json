@@ -3943,7 +3943,8 @@
       "talent": "人才市场",
       "market": "市场包",
       "kanban": "看板",
-      "contentMedia": "المحتوى والإعلام"
+      "contentMedia": "المحتوى والإعلام",
+      "industries": "导航 الصناعة"
     },
     "common": {
       "cancel": "Cancel",
@@ -4305,7 +4306,17 @@
       "industry_consulting_desc": "الاستشارات الصناعية",
       "accounting_desc": "المحاسبة",
       "ecommerce_desc": "التجارة الإلكترونية",
-      "education_desc": "التعليم"
+      "education_desc": "التعليم",
+      "design": "تصميم",
+      "design_desc": "التصميم والإبداع المنتج",
+      "project_management": "إدارة المشاريع",
+      "project_management_desc": "دورة حياة المشروع الكاملة",
+      "security": "الأمن والامتثال",
+      "security_desc": "الحماية الأمنية والاستجابة للطوارئ",
+      "geospatial": "المعلومات الجغرافية",
+      "geospatial_desc": "البيانات المكانية والحساب الجغرافي",
+      "game_dev": "تطوير الألعاب",
+      "game_dev_desc": "عملية تطوير الألعاب"
     },
     "industry": {
       "actions": {

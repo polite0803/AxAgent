@@ -3943,7 +3943,8 @@
       "talent": "人才市场",
       "market": "市场包",
       "kanban": "看板",
-      "contentMedia": "Inhalt & Medien"
+      "contentMedia": "Inhalt & Medien",
+      "industries": "Branchennavigation"
     },
     "common": {
       "cancel": "Cancel",
@@ -4305,7 +4306,17 @@
       "industry_consulting_desc": "Industrieberatung",
       "accounting_desc": "Rechnungswesen",
       "ecommerce_desc": "E-Commerce",
-      "education_desc": "Bildung"
+      "education_desc": "Bildung",
+      "design": "Design",
+      "design_desc": "Produktdesign und Kreativität: Nutzerforschung → Designsystem → Prototyp → Barrierefreiheit",
+      "project_management": "Projektmanagement",
+      "project_management_desc": "Projektlebenszyklus: Projektplanung → Ausführungsüberwachung → Risikomanagement → Statusberichte",
+      "security": "Sicherheit und Compliance",
+      "security_desc": "Sicherheitsschutz und Notfall: Penetrationstests → Bedrohungsanalyse → Vorfallreaktion → Compliance-Audit",
+      "geospatial": "Geoinformation",
+      "geospatial_desc": "Geodaten und Geoberechnung: Kartierung → Georaumanalyse → Drohnendaten → AR-Anwendungen",
+      "game_dev": "Spielentwicklung",
+      "game_dev_desc": "Spielentwicklungsprozess: Konzeptdesign → Prototypentwicklung → Qualitätssicherung → Spieletests"
     },
     "industry": {
       "actions": {

@@ -940,13 +940,7 @@ mod tests {
         let template = DomainWorkflowGenerator::gen_to_template_data(&def, 1);
 
         // 找到 agent 节点并检查工具
-        let node = template.nodes.iter().find(|n| {
-            if let WorkflowNode::Agent(_agent_inner) = n {
-                true
-            } else {
-                false
-            }
-        });
+        let node = template.nodes.iter().find(|n| matches!(n, WorkflowNode::Agent(_agent_inner)));
         assert!(node.is_some());
         if let Some(WorkflowNode::Agent(agent)) = node {
             assert_eq!(agent.config.tools.len(), 2);

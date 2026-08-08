@@ -3943,7 +3943,8 @@
       "talent": "人才市场",
       "market": "市场包",
       "kanban": "看板",
-      "contentMedia": "コンテンツメディア"
+      "contentMedia": "コンテンツメディア",
+      "industries": "業種ナビゲーション"
     },
     "common": {
       "cancel": "Cancel",
@@ -4305,7 +4306,17 @@
       "industry_consulting_desc": "業界コンサルティング",
       "accounting_desc": "会計",
       "ecommerce_desc": "Eコマース",
-      "education_desc": "教育"
+      "education_desc": "教育",
+      "design": "デザイン",
+      "design_desc": "プロダクトデザインとクリエイティビティ：ユーザー調査 → デザインシステム → プロトタイピング → アクセシビリティ",
+      "project_management": "プロジェクト管理",
+      "project_management_desc": "プロジェクトライフサイクル：プロジェクト計画 → 実行監視 → リスク管理 → ステータスレポート",
+      "security": "セキュリティとコンプライアンス",
+      "security_desc": "セキュリティ保護と緊急時対応：ペネトレーションテスト → 脅威インテリジェンス → インシデント対応 → コンプライアンス監査",
+      "geospatial": "地理空間情報",
+      "geospatial_desc": "空間データと地理計算：マッピング → 空間分析 → ドローンデータ → ARアプリケーション",
+      "game_dev": "ゲーム開発",
+      "game_dev_desc": "ゲーム開発プロセス：コンセプトデザイン → プロトタイプ開発 → 品質保証 → ゲームテスト"
     },
     "industry": {
       "actions": {

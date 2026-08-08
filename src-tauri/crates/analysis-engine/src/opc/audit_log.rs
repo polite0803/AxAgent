@@ -187,7 +187,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_log_entry() {
-        let db = Arc::new(DatabaseConnection::default());
+        let h = axagent_dao::db::create_test_pool().await.unwrap();
+        let db = Arc::new(h.conn);
         let service = OpcAuditLogService::new(db);
 
         let result = service
@@ -199,7 +200,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_history() {
-        let db = Arc::new(DatabaseConnection::default());
+        let h = axagent_dao::db::create_test_pool().await.unwrap();
+        let db = Arc::new(h.conn);
         let service = OpcAuditLogService::new(db);
 
         let result = service.get_history("invoice", "inv-001", 10).await;

@@ -3943,7 +3943,8 @@
       "talent": "人才市场",
       "market": "市场包",
       "kanban": "看板",
-      "contentMedia": "內容媒體"
+      "contentMedia": "內容媒體",
+      "industries": "產業導航"
     },
     "common": {
       "cancel": "Cancel",
@@ -4305,7 +4306,17 @@
       "industry_consulting_desc": "產業諮詢",
       "accounting_desc": "會計",
       "ecommerce_desc": "電商",
-      "education_desc": "教育"
+      "education_desc": "教育",
+      "design": "設計",
+      "design_desc": "產品設計與創意：使用者研究 → 設計系統 → 原型製作 → 無障礙",
+      "project_management": "專案管理",
+      "project_management_desc": "專案生命週期：專案規劃 → 執行監控 → 風險管理 → 狀態報告",
+      "security": "安全合規",
+      "security_desc": "安全防護與應急：滲透測試 → 威脅情報 → 事件響應 → 合規審計",
+      "geospatial": "地理資訊",
+      "geospatial_desc": "空間資料與地理計算：地圖測繪 → 空間分析 → 無人機資料 → AR 應用",
+      "game_dev": "遊戲開發",
+      "game_dev_desc": "遊戲研發流程：概念設計 → 原型開發 → 品質保證 → 遊戲測試"
     },
     "industry": {
       "actions": {
