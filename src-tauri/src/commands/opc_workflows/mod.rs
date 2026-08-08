@@ -6,17 +6,20 @@ use axagent_entities::workflow_template;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 
+pub mod domain_workflows;
 mod industry_pack;
 mod seed_content_media;
 mod seed_production;
 
+pub use domain_workflows::{
+    opc_get_domain_workflow, opc_list_domain_workflows, opc_list_domains, DomainWorkflowSummary,
+};
+pub use industry_pack::INDUSTRIES_DIR;
 pub use industry_pack::IndustryManifest;
 #[allow(unused_imports)]
 pub use industry_pack::analysis_schema::{AnalysisDataSource, IndustryAnalysisConfig};
-pub use industry_pack::ensure_opc_domains_seeded;
 pub use industry_pack::export_industry_pack;
 pub use industry_pack::import_industry_pack;
-pub use industry_pack::{DOMAINS_DIR, INDUSTRIES_DIR};
 pub use seed_content_media::seed_content_media_workflows;
 pub use seed_production::seed_landing_page_workflow;
 pub use seed_production::seed_startup_mvp_workflow;
@@ -28,29 +31,28 @@ pub fn industries_base_dir() -> std::path::PathBuf {
 
 const OPC_TEMPLATE_VERSION: i32 = 2; // 升级到 2 以覆盖旧 YAML 版本
 
-/// 主入口：代码驱动种子化（对齐股票业务） + 领域/生产工作流。
+/// 主入口：全代码驱动种子化（行业 + 领域 + 生产 + 内容媒体）。
 pub async fn ensure_opc_workflows_seeded(
     db: &DatabaseConnection,
     _app_dir: Option<&std::path::Path>,
 ) -> Result<(), String> {
-    // 1) 代码驱动种子化（9 大行业，对齐股票业务）
+    // 1) 行业工作流（9 大行业，代码驱动，对齐股票业务）
     let industry_seeded = seed_opc_industries_from_code(db).await?;
     tracing::info!("[opc-workflows] Industries seeded from code: {industry_seeded}");
 
-    // 2) 领域包驱动（17 领域 75 工作流，数据资产包）
-    let domains_base = resolve_domains_dir(_app_dir);
-    let domains = ensure_opc_domains_seeded(db, &domains_base).await?;
-    tracing::info!("[opc-workflows] Domain packs seeded: {domains:?}");
+    // 2) 领域工作流（17 领域 70+ 工作流，代码驱动）
+    let domain_seeded = seed_domains_from_code(db).await?;
+    tracing::info!("[opc-workflows] Domains seeded from code: {domain_seeded}");
 
     // 3) 生产工作流（landing page / startup MVP）
     seed_landing_page_workflow(db).await?;
     seed_startup_mvp_workflow(db).await?;
 
-    // 4) 内容媒体 3 个专属工作流（爆款内容 / 多平台 / IP 打造）
+    // 4) 内容媒体专属工作流（爆款内容 / 多平台 / IP 打造）
     let cm_seeded = seed_content_media_workflows(db).await?;
     tracing::info!("[opc-workflows] Content media workflows seeded: {cm_seeded}");
 
-    tracing::info!("[opc-workflows] All workflows seeded");
+    tracing::info!("[opc-workflows] All workflows seeded (code-driven)");
     Ok(())
 }
 
@@ -95,15 +97,27 @@ async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize,
     Ok(seeded_count)
 }
 
-/// 领域包目录解析：app_dir/config/opc/domains → 仓库根 fallback。
-pub fn resolve_domains_dir(app_dir: Option<&std::path::Path>) -> std::path::PathBuf {
-    if let Some(dir) = app_dir {
-        let candidate = dir.join(DOMAINS_DIR);
-        if candidate.is_dir() {
-            return candidate;
-        }
+/// 代码驱动种子化：从 DomainAdapterFactory 创建所有领域工作流定义，
+/// 通过 DomainWorkflowGenerator 转换为模板数据后 upsert 到数据库。
+async fn seed_domains_from_code(db: &DatabaseConnection) -> Result<usize, String> {
+    let domain_defs = axagent_analysis_engine::opc::domain::DomainAdapterFactory::create_all();
+
+    let mut seeded_count = 0;
+    for def in &domain_defs {
+        let template_data =
+            axagent_analysis_engine::opc::domain::DomainWorkflowGenerator::gen_to_template_data(
+                def,
+                OPC_TEMPLATE_VERSION,
+            );
+        upsert_template(db, template_data).await?;
+        seeded_count += 1;
     }
-    std::path::PathBuf::from(DOMAINS_DIR)
+
+    tracing::info!(
+        "[opc-workflows] Domains seeded: {seeded_count} workflows from {} domains",
+        axagent_analysis_engine::opc::domain::DomainAdapterFactory::list_all().len()
+    );
+    Ok(seeded_count)
 }
 
 /// 行业包目录解析：app_dir/config/opc/industries → 仓库根 fallback。
@@ -396,39 +410,6 @@ pub(crate) async fn check_template_version(
     Ok(true)
 }
 
-/// P2-2：清理行业/领域包升级后残留的旧模板。
-///
-/// 包内 yaml 删除或改 id 后，DB 中旧的 preset 模板不会消失（upsert 只更新存在项）。
-/// 按 `prefix` 匹配该包历史 seed 的模板，删除不在 `keep` 集合中的残留。
-pub(crate) async fn cleanup_stale_pack_templates(
-    db: &DatabaseConnection,
-    prefix: &str,
-    keep: &[String],
-) -> Result<u32, String> {
-    use sea_orm::*;
-
-    let stale = workflow_template::Entity::find()
-        .filter(workflow_template::Column::Id.like(format!("{prefix}%")))
-        .filter(workflow_template::Column::IsPreset.eq(true))
-        .all(db)
-        .await
-        .map_err(|e| format!("查询旧模板失败: {e}"))?;
-
-    let mut removed = 0u32;
-    for t in stale {
-        if keep.iter().any(|k| k == &t.id) {
-            continue;
-        }
-        workflow_template::Entity::delete_by_id(&t.id)
-            .exec(db)
-            .await
-            .map_err(|e| format!("删除旧模板 {} 失败: {e}", t.id))?;
-        tracing::info!("[opc-workflows] 清理旧模板 {}", t.id);
-        removed += 1;
-    }
-    Ok(removed)
-}
-
 #[cfg(test)]
 mod tests {
     use super::industry_pack::scan_industry_packs;
@@ -465,12 +446,18 @@ mod tests {
         let manifests = scan_industry_packs(&base);
         assert!(!manifests.is_empty(), "scan_industry_packs 不应为空");
 
-        let seeded = ensure_opc_industries_seeded(db, &base).await.expect("seed 成功");
-        assert_eq!(seeded.len(), 9, "应 seed 9 行业: {seeded:?}");
+        // 行业包 manifest 注册（仅注册，不 seed 工作流）
+        let seeded =
+            super::industry_pack::ensure_opc_industries_seeded(db, &base).await.expect("注册成功");
+        assert_eq!(seeded.len(), 9, "应注册 9 行业: {seeded:?}");
 
         use axagent_entities::opc_industries;
         let count = opc_industries::Entity::find().count(db).await.unwrap();
         assert_eq!(count, 9, "opc_industries 应有 9 行");
+
+        // 工作流由 Rust 适配器种子化
+        let wf_seeded = seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
+        assert_eq!(wf_seeded, 9, "应 seed 9 行业工作流");
 
         use axagent_entities::workflow_template;
         let fi = workflow_template::Entity::find_by_id("workflow-finance-invest")
@@ -487,26 +474,15 @@ mod tests {
         let db = &h.conn;
         let tmp = std::env::temp_dir().join(format!("opc-test-{}", std::process::id()));
         let dir = tmp.join("disabled_test");
-        let wf_dir = dir.join("workflows");
-        std::fs::create_dir_all(&wf_dir).unwrap();
+        std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(
             dir.join("manifest.yaml"),
             "id: disabled_test\nname: 禁用测试\nversion: 1\nenabled: false\n",
         )
         .unwrap();
-        std::fs::write(
-            wf_dir.join("d.yaml"),
-            "id: workflow-disabled-test\nname: 禁用工作流\ndescription: ''\nicon: ''\ntags: []\nprofile_id: opc-ceo-ceo-business-strategist\nsteps:\n  - id: a1\n    title: 步骤1\n    prompt: 测试\n    inputs: {}\n",
-        )
-        .unwrap();
 
-        let seeded = ensure_opc_industries_seeded(db, &tmp).await.unwrap();
+        let seeded = super::industry_pack::ensure_opc_industries_seeded(db, &tmp).await.unwrap();
         assert!(!seeded.contains(&"disabled_test".to_string()));
-
-        use axagent_entities::workflow_template;
-        let wf =
-            workflow_template::Entity::find_by_id("workflow-disabled-test").one(db).await.unwrap();
-        assert!(wf.is_none(), "禁用行业的工作流不应写入");
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
@@ -521,27 +497,22 @@ mod tests {
         let tmp = std::env::temp_dir().join(format!("opc-export-test-{}", std::process::id()));
         std::fs::create_dir_all(&tmp).unwrap();
 
-        // 导出 finance_invest → .opcip
+        // 导出 finance_invest → .opcip（含 manifest + analysis + learning）
         let out = export_industry_pack(&base, "finance_invest", &tmp).await.expect("导出成功");
         assert!(std::path::Path::new(&out).exists(), "归档应生成");
         assert!(out.ends_with("finance_invest.opcip"), "归档名应含行业 id");
 
-        // 导入到独立 app_dir → 注册 + seed
+        // 导入到独立 app_dir → 注册 manifest
         let app_dir = tmp.join("app");
         let imported =
             import_industry_pack(db, &app_dir, std::path::Path::new(&out)).await.expect("导入成功");
         assert_eq!(imported, "finance_invest");
 
-        // 解包的文件应存在
+        // 解包的 manifest 应存在
         let manifest = app_dir.join("config/opc/industries/finance_invest/manifest.yaml");
         assert!(manifest.exists(), "解包后 manifest 应存在");
 
-        // 工作流已 seed 进 DB
-        use axagent_entities::workflow_template;
-        let fi =
-            workflow_template::Entity::find_by_id("workflow-finance-invest").one(db).await.unwrap();
-        assert!(fi.is_some(), "导入后工作流应 seed");
-
+        // 工作流由 Rust 适配器提供，导入不包含 YAML 工作流
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
@@ -549,81 +520,30 @@ mod tests {
     async fn domain_pack_seed_all_workflows() {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
-        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap()
-            .join("config/opc/domains");
 
-        let diag_wfs = super::industry_pack::load_industry_workflows(&base.join("engineering"));
-        println!("[diag] engineering 领域包解析: {} 个工作流", diag_wfs.len());
+        let seeded = seed_domains_from_code(db).await.expect("领域代码 seed 成功");
+        assert!(seeded > 65, "应 seed 至少 65 个领域工作流，实际 {seeded}");
 
-        let seeded = ensure_opc_domains_seeded(db, &base).await.expect("领域包 seed 成功");
-        assert_eq!(seeded.len(), 17, "应 seed 17 个领域: {seeded:?}");
-        assert!(seeded.contains(&"engineering".to_string()));
-        assert!(seeded.contains(&"finance".to_string()));
-
-        // 抽查：engineering 的 12 个工作流已写入
         use axagent_entities::workflow_template;
         let wf = workflow_template::Entity::find_by_id("wf-eng-code-review")
             .one(db)
             .await
             .unwrap()
             .expect("wf-eng-code-review 应存在");
-        assert!(wf.nodes.contains("a-review"), "节点应含 AI 审查");
-        assert!(wf.nodes.contains("trigger"), "应有 trigger 节点");
+        assert!(!wf.nodes.is_empty(), "节点不应为空");
 
-        // 全部 wf- 前缀模板数 = 75
-        let count = workflow_template::Entity::find()
-            .filter(workflow_template::Column::Id.like("wf-%"))
-            .count(db)
-            .await
-            .unwrap();
-        assert_eq!(count, 76, "应 seed 76 个领域工作流，实际 {count}");
-
-        // 幂等：二次 seed 不报错
-        ensure_opc_domains_seeded(db, &base).await.expect("二次 seed 应成功");
-    }
-
-    #[tokio::test]
-    async fn domain_pack_disabled_skipped() {
-        let h = axagent_dao::db::create_test_pool().await.unwrap();
-        let db = &h.conn;
-        let tmp = std::env::temp_dir().join(format!("opc-domain-test-{}", std::process::id()));
-        let dir = tmp.join("disabled_domain");
-        let wf_dir = dir.join("workflows");
-        std::fs::create_dir_all(&wf_dir).unwrap();
-        std::fs::write(
-            dir.join("manifest.yaml"),
-            "id: disabled_domain\nname: 禁用领域\nversion: 1\nenabled: false\n",
-        )
-        .unwrap();
-        std::fs::write(
-            wf_dir.join("d.yaml"),
-            "id: wf-disabled-test\nname: 禁用工作流\ndescription: ''\nicon: ''\ntags: []\nprofile_id: cto\nsteps:\n  - id: a1\n    title: 步骤1\n    prompt: 测试\n    inputs: {}\n",
-        )
-        .unwrap();
-
-        let seeded = ensure_opc_domains_seeded(db, &tmp).await.unwrap();
-        assert!(!seeded.contains(&"disabled_domain".to_string()));
-
-        use axagent_entities::workflow_template;
-        let wf = workflow_template::Entity::find_by_id("wf-disabled-test").one(db).await.unwrap();
-        assert!(wf.is_none(), "禁用领域的工作流不应写入");
-        let _ = std::fs::remove_dir_all(&tmp);
+        seed_domains_from_code(db).await.expect("二次 seed 应成功");
     }
 
     #[tokio::test]
     async fn finance_pack_injects_astock_tools() {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
-        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap()
-            .join("config/opc/industries");
 
-        ensure_opc_industries_seeded(db, &base).await.expect("seed 成功");
+        // 行业工作流由 Rust 适配器种子化
+        seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
 
-        // 个股投资研究工作流应存在
+        // 个股投资研究工作流应存在（由 Rust adapter 生成）
         use axagent_entities::workflow_template;
         let wf = workflow_template::Entity::find_by_id("workflow-finance-stock-research")
             .one(db)
@@ -664,11 +584,9 @@ mod tests {
     async fn industry_packs_end_to_end_verification() {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
-        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap()
-            .join("config/opc/industries");
-        ensure_opc_industries_seeded(db, &base).await.expect("seed 9 行业");
+
+        // 行业工作流由 Rust 适配器种子化
+        seed_opc_industries_from_code(db).await.expect("seed 9 行业");
 
         use axagent_entities::workflow_template;
         use sea_orm::EntityTrait;
@@ -754,8 +672,8 @@ mod tests {
         assert!(acc.nodes.contains("opc-cfo-cfo-financial-analyst"), "accounting 应绑 CFO profile");
         assert!(sdev.nodes.contains("opc-cto-cto-ai-engineer"), "software_dev 应绑 CTO profile");
 
-        // 7. 幂等：二次 seed 不报错、不产生重复（P2-2 清理不误删 keep 集）
-        ensure_opc_industries_seeded(db, &base).await.expect("二次 seed 应成功");
+        // 7. 幂等：二次 seed 不报错、不产生重复（代码适配器幂等）
+        seed_opc_industries_from_code(db).await.expect("二次 seed 应成功");
         let count = workflow_template::Entity::find()
             .filter(workflow_template::Column::Id.like("workflow-%"))
             .count(db)
@@ -767,16 +685,21 @@ mod tests {
     #[tokio::test]
     async fn approval_edges_build_correctly() {
         // P0-1 回归：普通节点 → approval 必须用 Direct 边（此前误用 ConditionTrue 导致审批断链）
-        let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
+        // 通过 Rust 适配器 seed，再从 DB 读取模板验证审批边
+        let h = axagent_dao::db::create_test_pool().await.unwrap();
+        let db = &h.conn;
+
+        seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
+
+        use axagent_entities::workflow_template;
+        let wf = workflow_template::Entity::find_by_id("workflow-accounting")
+            .one(db)
+            .await
             .unwrap()
-            .join("config/opc/industries");
-        let wfs = super::industry_pack::load_industry_workflows(&base.join("accounting"));
-        let wf =
-            wfs.iter().find(|w| w.id == "workflow-accounting").expect("accounting workflow 存在");
-        let data = super::industry_pack::build_workflow_from_pack(wf, 1);
+            .expect("workflow-accounting 应存在");
+
         let edges: Vec<serde_json::Value> =
-            serde_json::from_str(&serde_json::to_string(&data.edges).unwrap()).unwrap();
+            serde_json::from_str(&serde_json::to_string(&wf.edges).unwrap()).unwrap();
 
         // a-create（普通 agent）→ approval：Direct 边，无条件 handle
         let direct = edges

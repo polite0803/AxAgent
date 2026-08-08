@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+#![allow(dead_code)]
 
 //! 行业数据资产包（Industry Pack）引擎
 //!
@@ -716,7 +717,12 @@ pub async fn enabled_industries(
         .map_err(|e| format!("list enabled industries: {e}"))
 }
 
-/// 行业包完整 seed：扫描目录 → 注册表 → 逐行业 seed 工作流。
+/// 行业包完整 seed：扫描目录 → 注册表（opc_industries）。
+///
+/// ⚠️ 架构变更：行业工作流已迁移至 Rust 代码种子化（见 mod.rs `seed_opc_industries_from_code`），
+/// 本函数仅负责 manifest 注册（opc_industries 表），不再从 YAML 加载工作流。
+/// 领域包（domains/）仍使用 YAML 加载工作流（ensure_opc_domains_seeded）。
+///
 /// 返回 seed 的行业 id 列表。
 pub async fn ensure_opc_industries_seeded(
     db: &DatabaseConnection,
@@ -744,25 +750,16 @@ pub async fn ensure_opc_industries_seeded(
         }
 
         if !effective_enabled {
-            tracing::info!("[industry-pack] {} 已禁用，跳过 seed", m.id);
+            tracing::info!("[industry-pack] {} 已禁用，跳过注册", m.id);
             continue;
         }
 
-        let industry_dir = base_dir.join(&m.id);
-        let workflows = load_industry_workflows(&industry_dir);
-        let keep_ids: Vec<String> = workflows.iter().map(|w| w.id.clone()).collect();
-        for wf in &workflows {
-            let data = build_workflow_from_pack(wf, m.version);
-            super::upsert_template(db, data).await?;
-        }
-        // P2-2：清理该行业升级后残留的旧模板（yaml 删除/改 id 的 preset 模板）
-        let prefix = format!("workflow-{}", m.id.replace('_', "-"));
-        let removed = super::cleanup_stale_pack_templates(db, &prefix, &keep_ids).await?;
+        // 行业工作流已由 Rust 适配器生成（seed_opc_industries_from_code），
+        // 此处仅注册 manifest 到 opc_industries 表。
         tracing::info!(
-            "[industry-pack] {} seed 完成（{} 个工作流，清理 {} 个旧模板）",
+            "[industry-pack] {} manifest 注册完成（v{}，工作流由 Rust 适配器提供）",
             m.id,
-            workflows.len(),
-            removed
+            m.version
         );
         seeded.push(m.id.clone());
     }
@@ -916,13 +913,140 @@ pub async fn import_industry_pack(
     let id = top_dirs.into_iter().next().unwrap();
     tracing::info!("[industry-pack] 导入 {id} → {}", target_root.display());
 
-    // 注册 + seed
+    // 注册 + seed（行业工作流现已由 Rust 代码生成，仅注册 manifest）
     let seeded = ensure_opc_industries_seeded(db, &target_root).await?;
     if !seeded.contains(&id) {
-        // 包已存在且版本一致（已 seed），视为导入成功
         tracing::info!("[industry-pack] {id} 已存在，跳过 seed");
     }
     Ok(id)
+}
+
+// ── JSON 工作流模板导出/导入（资源交换机制） ─────────────────────
+//
+// 行业/领域工作流 → JSON 文件（WorkflowTemplateResponse 数组），
+// 通过工作流编辑器的导出/导入功能实现资源交换。
+// 替代旧 .opcip zip 格式（YAML 工作流），统一使用 JSON 工作流模板。
+
+/// 从数据库查询指定行业的所有工作流模板（按 tags 过滤），
+/// 导出为 JSON bundle 文件（manifest + templates[]）。
+pub async fn export_industry_workflows_json(
+    db: &DatabaseConnection,
+    industry_id: &str,
+    out_path: &Path,
+) -> Result<String, String> {
+    use axagent_entities::workflow_template;
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+
+    let templates = workflow_template::Entity::find()
+        .filter(workflow_template::Column::Tags.like(format!("%\"{industry_id}\"%")))
+        .all(db)
+        .await
+        .map_err(|e| format!("查询工作流失败: {e}"))?;
+
+    if templates.is_empty() {
+        return Err(format!("行业 {industry_id} 无工作流模板"));
+    }
+
+    let mut template_json_list = Vec::new();
+    for t in &templates {
+        let tags: Vec<String> =
+            t.tags.as_ref().and_then(|j| serde_json::from_str(j).ok()).unwrap_or_default();
+
+        let nodes: Vec<WorkflowNode> = serde_json::from_str(&t.nodes).unwrap_or_default();
+        let edges: Vec<WorkflowEdge> = serde_json::from_str(&t.edges).unwrap_or_default();
+
+        let template_data = WorkflowTemplateData {
+            id: t.id.clone(),
+            name: t.name.clone(),
+            description: t.description.clone(),
+            icon: t.icon.clone(),
+            tags,
+            version: t.version,
+            is_preset: t.is_preset,
+            is_editable: t.is_editable,
+            is_public: t.is_public,
+            trigger_config: t.trigger_config.as_ref().and_then(|j| serde_json::from_str(j).ok()),
+            nodes,
+            edges,
+            input_schema: t.input_schema.as_ref().and_then(|j| serde_json::from_str(j).ok()),
+            output_schema: t.output_schema.as_ref().and_then(|j| serde_json::from_str(j).ok()),
+            variables: t
+                .variables
+                .as_ref()
+                .and_then(|j| serde_json::from_str(j).ok())
+                .unwrap_or_default(),
+            error_config: t.error_config.as_ref().and_then(|j| serde_json::from_str(j).ok()),
+            tool_defs: t
+                .tool_defs
+                .as_ref()
+                .and_then(|j| serde_json::from_str(j).ok())
+                .unwrap_or_default(),
+            error_workflow_id: None,
+            mission_hash: t.mission_hash.clone(),
+            created_at: t.created_at,
+            updated_at: t.updated_at,
+        };
+
+        template_json_list.push(serde_json::to_value(&template_data).unwrap_or_default());
+    }
+
+    let bundle = serde_json::json!({
+        "format": "axagent-workflow-bundle",
+        "version": 1,
+        "industry_id": industry_id,
+        "exported_at": now_ts(),
+        "templates": template_json_list,
+    });
+
+    let json_str =
+        serde_json::to_string_pretty(&bundle).map_err(|e| format!("序列化 bundle 失败: {e}"))?;
+
+    std::fs::write(out_path, json_str).map_err(|e| format!("写入文件失败: {e}"))?;
+
+    tracing::info!(
+        "[industry-pack] JSON bundle 导出 {industry_id} → {} ({} 个工作流)",
+        out_path.display(),
+        template_json_list.len()
+    );
+
+    Ok(out_path.to_string_lossy().to_string())
+}
+
+/// 从 JSON bundle 文件导入工作流模板，upsert 到数据库。
+pub async fn import_industry_workflows_json(
+    db: &DatabaseConnection,
+    bundle_path: &Path,
+) -> Result<(String, usize), String> {
+    let json_str =
+        std::fs::read_to_string(bundle_path).map_err(|e| format!("读取文件失败: {e}"))?;
+
+    let bundle: serde_json::Value =
+        serde_json::from_str(&json_str).map_err(|e| format!("解析 JSON 失败: {e}"))?;
+
+    let format = bundle.get("format").and_then(|v| v.as_str()).unwrap_or("");
+    if format != "axagent-workflow-bundle" {
+        return Err("不是有效的 axagent 工作流 bundle 格式".to_string());
+    }
+
+    let industry_id =
+        bundle.get("industry_id").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+
+    let templates = bundle
+        .get("templates")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| "bundle 中无 templates 数组".to_string())?;
+
+    let mut imported_count = 0;
+    for template_val in templates {
+        let template_data: WorkflowTemplateData = serde_json::from_value(template_val.clone())
+            .map_err(|e| format!("解析模板失败: {e}"))?;
+        super::upsert_template(db, template_data).await?;
+        imported_count += 1;
+    }
+
+    tracing::info!("[industry-pack] JSON bundle 导入 {industry_id} ({} 个工作流)", imported_count);
+
+    Ok((industry_id, imported_count))
 }
 
 // ── 领域包 seed（Self-Built 通用领域工作流）─────────────────────

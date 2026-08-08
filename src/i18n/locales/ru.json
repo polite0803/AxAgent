@@ -3889,6 +3889,7 @@
     "title": "OPC — 一人公司管理面板",
     "nav": {
       "dashboard": "仪表盘",
+      "industries": "Индустрии",
       "invoices": "发票",
       "customers": "客户",
       "projects": "项目",
@@ -4259,161 +4260,19 @@
       "industry_consulting_desc": "Отраслевые консультации",
       "accounting_desc": "Бухгалтерский учет",
       "ecommerce_desc": "Электронная коммерция",
-      "education_desc": "Образование"
+      "education_desc": "Образование",
+      "design": "Дизайн",
+      "design_desc": "Дизайн продукта и креативность",
+      "project_management": "Управление проектами",
+      "project_management_desc": "Полный жизненный цикл проекта",
+      "security": "Безопасность и соответствие требованиям",
+      "security_desc": "Защита безопасности и оперативное реагирование",
+      "geospatial": "Геопространственные данные",
+      "geospatial_desc": "Пространственные данные и географические вычисления",
+      "game_dev": "Разработка игр",
+      "game_dev_desc": "Процесс разработки игр"
     },
     "industry": {
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "version": "Version {{version}}",
-      "workflows": {
-        "ai-research": {
-          "wf-ai-research-1": {
-            "name": "AI Tech Research",
-            "description": "Tech Scan → Paper Analysis → Trend Forecast"
-          },
-          "wf-ai-research-2": {
-            "name": "LLM Selection",
-            "description": "Requirements → Model Comparison → Selection"
-          },
-          "wf-ai-research-3": {
-            "name": "AI Product Analysis",
-            "description": "Competitor Scan → Feature Breakdown → Positioning"
-          }
-        },
-        "software-dev": {
-          "wf-sd-1": {
-            "name": "Code Refactoring",
-            "description": "Code Scan → Issue ID → Refactor → Verify"
-          },
-          "wf-sd-2": {
-            "name": "Tech Selection",
-            "description": "Requirements → Comparison → Recommendation"
-          },
-          "wf-sd-3": {
-            "name": "Performance Opt",
-            "description": "Perf Analysis → Bottleneck → Optimization → Verify"
-          },
-          "wf-large-refactor": {
-            "name": "Крупномасштабный рефакторинг",
-            "description": "Инвентаризация активов → Анализ запахов кода → Стратегия рефакторинга → Пакетное выполнение → Приёмка и сдача"
-          },
-          "wf-large-refactor-lite": {
-            "name": "Быстрое инкрементальное рефакторинг",
-            "description": "Оценка изменений → Минимальный план → Выполнение → Проверка"
-          }
-        },
-        "finance-invest": {
-          "wf-fi-1": {
-            "name": "A-Share Research",
-            "description": "Market → Financials → Valuation → Recommendation"
-          },
-          "wf-fi-2": {
-            "name": "Industry Comparison",
-            "description": "Industry Scan → Benchmark → Compare → Conclusion"
-          },
-          "wf-fi-3": {
-            "name": "Portfolio Optimization",
-            "description": "Holdings → Risk → Allocation → Rebalance"
-          }
-        },
-        "sales-growth": {
-          "wf-sg-1": {
-            "name": "Acquisition Strategy",
-            "description": "Channel → Budget → Content → ROI"
-          },
-          "wf-sg-2": {
-            "name": "Conversion Boost",
-            "description": "Funnel → Page → A/B Test → Conversion"
-          },
-          "wf-sg-3": {
-            "name": "Customer Retention",
-            "description": "Churn → Retention → Loyalty → Repurchase"
-          }
-        },
-        "content-media": {
-          "workflow-cm-viral-content": {
-            "name": "Viral Content",
-            "description": "Topic → Title → Write → Publish"
-          },
-          "workflow-cm-multi-platform": {
-            "name": "Platform Adapt",
-            "description": "Content → Platform → Format → Strategy"
-          },
-          "workflow-cm-ip-building": {
-            "name": "IP Building",
-            "description": "Positioning → Persona → Planning → Growth"
-          }
-        },
-        "industry-consulting": {
-          "wf-ic-1": {
-            "name": "Industry Scan",
-            "description": "Research → Competition → Trends → Opportunities"
-          },
-          "wf-ic-2": {
-            "name": "Entry Assessment",
-            "description": "Market → Competition → Profitability → Entry"
-          },
-          "wf-ic-3": {
-            "name": "Strategic Plan",
-            "description": "Vision → Business → Roadmap → KPIs"
-          }
-        },
-        "accounting": {
-          "wf-ac-1": {
-            "name": "Tax Optimization",
-            "description": "Business → Policy → Design → Implement"
-          },
-          "wf-ac-2": {
-            "name": "Financial Health",
-            "description": "Metrics → Benchmark → Issues → Improve"
-          },
-          "wf-ac-3": {
-            "name": "Cost Control",
-            "description": "Breakdown → Efficiency → Optimize → Execute"
-          }
-        },
-        "ecommerce": {
-          "wf-ec-1": {
-            "name": "Viral Product",
-            "description": "Selection → Highlights → Page → Traffic"
-          },
-          "wf-ec-2": {
-            "name": "Competitor Monitor",
-            "description": "Identify → Price → Campaign → Adjust"
-          },
-          "wf-ec-3": {
-            "name": "Promo Planning",
-            "description": "Goals → Selection → Traffic → Execute"
-          }
-        },
-        "education": {
-          "wf-ed-1": {
-            "name": "Course Design",
-            "description": "Needs → Outline → Content → Assessment"
-          },
-          "wf-ed-2": {
-            "name": "Learning Path",
-            "description": "Assessment → Goals → Path → Resources"
-          },
-          "wf-ed-3": {
-            "name": "Content Development",
-            "description": "Knowledge → Write → Cases → Exercises"
-          }
-        }
-      },
-      "noWorkflows": "No workflows for this industry",
-      "loadFailed": "Failed to load industry: {{error}}",
-      "notFound": "Industry not found",
-      "quickActions": "Quick Actions",
-      "startConversation": "Start Industry Conversation",
-      "createWorkflow": "Create Industry Workflow",
-      "presetWorkflows": "Industry Preset Workflows",
-      "createFirstWorkflow": "Create First Workflow",
-      "useWorkflow": "Use This Workflow",
-      "noProviderConfig": "Please configure a default AI provider first",
-      "useThisWorkflow": "Use This Workflow",
-      "exclusiveActions": "Exclusive Actions",
-      "exclusiveWorkflows": "Exclusive Workflows",
       "actions": {
         "ai-research": {
           "ai-paper": {
@@ -4586,7 +4445,35 @@
           }
         }
       },
-      "workflowTag": "Workflow",
+      "analysis": {
+        "title": "Движок анализа отрасли",
+        "execute": "Запустить анализ",
+        "executeSuccess": "Анализ выполнен успешно",
+        "executeFailed": "Не удалось выполнить анализ: {{error}}",
+        "noData": "Нет данных анализа. Нажмите для запуска анализа",
+        "confidence": "Уверенность решения",
+        "decisionType": "Тип решения",
+        "riskLevel": "Уровень риска",
+        "riskLevelTitle": "Уровень риска",
+        "recommendations": "Список рекомендаций",
+        "timeRange7d": "7 дней",
+        "timeRange30d": "30 дней",
+        "timeRange90d": "90 дней"
+      },
+      "createFirstWorkflow": "Create First Workflow",
+      "createWorkflow": "Create Industry Workflow",
+      "dashboard": {
+        "title": "Панель KPI отрасли",
+        "7days": "Последние 7 дней",
+        "30days": "Последние 30 дней",
+        "90days": "Последние 90 дней",
+        "noData": "Нет данных KPI"
+      },
+      "disabled": "Disabled",
+      "domainWorkflows": "Доменные workflow",
+      "enabled": "Enabled",
+      "exclusiveActions": "Exclusive Actions",
+      "exclusiveWorkflows": "Exclusive Workflows",
       "executeSuffix": "{{name}} - Выполнить",
       "learning": {
         "title": "Конфигурация обучения и эволюции",
@@ -4640,20 +4527,27 @@
           "configNotFound": "Конфигурация обучения не найдена"
         }
       },
+      "loadFailed": "Failed to load industry: {{error}}",
+      "loadingDomainWorkflows": "Загрузка доменных workflow...",
+      "metrics": {
+        "title": "Метрики обучения отрасли",
+        "refresh": "Обновить метрики",
+        "noData": "Нет данных метрик обучения",
+        "totalSamples": "Всего выборок",
+        "decisionAccuracy": "Точность решений",
+        "riskAccuracy": "Точность прогнозирования риска",
+        "avgFeedback": "Средняя обратная связь",
+        "trend_improving": "Улучшение",
+        "trend_stable": "Стабильно",
+        "trend_declining": "Снижение"
+      },
+      "noProviderConfig": "Please configure a default AI provider first",
+      "noWorkflows": "No workflows for this industry",
+      "notFound": "Industry not found",
+      "presetWorkflows": "Industry Preset Workflows",
+      "quickActions": "Quick Actions",
       "refresh": "Обновить",
       "refreshSuccess": "Данные отрасли обновлены",
-      "dashboard": {
-        "title": "Панель KPI отрасли",
-        "7days": "Последние 7 дней",
-        "30days": "Последние 30 дней",
-        "90days": "Последние 90 дней",
-        "noData": "Нет данных KPI"
-      },
-      "workflowSteps": {
-        "title": "Шаги workflow отрасли",
-        "step": "Шаг",
-        "noData": "Нет шагов workflow"
-      },
       "rules": {
         "title": "Правила автоматизации отрасли",
         "runAll": "Запустить все правила",
@@ -4666,21 +4560,10 @@
         "nothingTriggered": "Ни одно правило не сработало",
         "runFailed": "Ошибка выполнения правила: {{error}}"
       },
-      "analysis": {
-        "title": "Движок анализа отрасли",
-        "execute": "Запустить анализ",
-        "executeSuccess": "Анализ выполнен успешно",
-        "executeFailed": "Не удалось выполнить анализ: {{error}}",
-        "noData": "Нет данных анализа. Нажмите для запуска анализа",
-        "confidence": "Уверенность решения",
-        "decisionType": "Тип решения",
-        "riskLevel": "Уровень риска",
-        "riskLevelTitle": "Уровень риска",
-        "recommendations": "Список рекомендаций",
-        "timeRange7d": "7 дней",
-        "timeRange30d": "30 дней",
-        "timeRange90d": "90 дней"
-      },
+      "startConversation": "Start Industry Conversation",
+      "useThisWorkflow": "Use This Workflow",
+      "useWorkflow": "Use This Workflow",
+      "version": "Version {{version}}",
       "workflow": {
         "executionTitle": "Выполнение рабочего процесса отрасли",
         "execute": "Запустить рабочий процесс",
@@ -4694,17 +4577,147 @@
         "status_partial": "Частично завершено",
         "duration": "Длительность"
       },
-      "metrics": {
-        "title": "Метрики обучения отрасли",
-        "refresh": "Обновить метрики",
-        "noData": "Нет данных метрик обучения",
-        "totalSamples": "Всего выборок",
-        "decisionAccuracy": "Точность решений",
-        "riskAccuracy": "Точность прогнозирования риска",
-        "avgFeedback": "Средняя обратная связь",
-        "trend_improving": "Улучшение",
-        "trend_stable": "Стабильно",
-        "trend_declining": "Снижение"
+      "workflowSteps": {
+        "title": "Шаги workflow отрасли",
+        "step": "Шаг",
+        "noData": "Нет шагов workflow"
+      },
+      "workflowTag": "Workflow",
+      "workflows": {
+        "ai-research": {
+          "wf-ai-research-1": {
+            "name": "AI Tech Research",
+            "description": "Tech Scan → Paper Analysis → Trend Forecast"
+          },
+          "wf-ai-research-2": {
+            "name": "LLM Selection",
+            "description": "Requirements → Model Comparison → Selection"
+          },
+          "wf-ai-research-3": {
+            "name": "AI Product Analysis",
+            "description": "Competitor Scan → Feature Breakdown → Positioning"
+          }
+        },
+        "software-dev": {
+          "wf-sd-1": {
+            "name": "Code Refactoring",
+            "description": "Code Scan → Issue ID → Refactor → Verify"
+          },
+          "wf-sd-2": {
+            "name": "Tech Selection",
+            "description": "Requirements → Comparison → Recommendation"
+          },
+          "wf-sd-3": {
+            "name": "Performance Opt",
+            "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "Крупномасштабный рефакторинг",
+            "description": "Инвентаризация активов → Анализ запахов кода → Стратегия рефакторинга → Пакетное выполнение → Приёмка и сдача"
+          },
+          "wf-large-refactor-lite": {
+            "name": "Быстрое инкрементальное рефакторинг",
+            "description": "Оценка изменений → Минимальный план → Выполнение → Проверка"
+          }
+        },
+        "finance-invest": {
+          "wf-fi-1": {
+            "name": "A-Share Research",
+            "description": "Market → Financials → Valuation → Recommendation"
+          },
+          "wf-fi-2": {
+            "name": "Industry Comparison",
+            "description": "Industry Scan → Benchmark → Compare → Conclusion"
+          },
+          "wf-fi-3": {
+            "name": "Portfolio Optimization",
+            "description": "Holdings → Risk → Allocation → Rebalance"
+          }
+        },
+        "sales-growth": {
+          "wf-sg-1": {
+            "name": "Acquisition Strategy",
+            "description": "Channel → Budget → Content → ROI"
+          },
+          "wf-sg-2": {
+            "name": "Conversion Boost",
+            "description": "Funnel → Page → A/B Test → Conversion"
+          },
+          "wf-sg-3": {
+            "name": "Customer Retention",
+            "description": "Churn → Retention → Loyalty → Repurchase"
+          }
+        },
+        "content-media": {
+          "workflow-cm-viral-content": {
+            "name": "Viral Content",
+            "description": "Topic → Title → Write → Publish"
+          },
+          "workflow-cm-multi-platform": {
+            "name": "Platform Adapt",
+            "description": "Content → Platform → Format → Strategy"
+          },
+          "workflow-cm-ip-building": {
+            "name": "IP Building",
+            "description": "Positioning → Persona → Planning → Growth"
+          }
+        },
+        "industry-consulting": {
+          "wf-ic-1": {
+            "name": "Industry Scan",
+            "description": "Research → Competition → Trends → Opportunities"
+          },
+          "wf-ic-2": {
+            "name": "Entry Assessment",
+            "description": "Market → Competition → Profitability → Entry"
+          },
+          "wf-ic-3": {
+            "name": "Strategic Plan",
+            "description": "Vision → Business → Roadmap → KPIs"
+          }
+        },
+        "accounting": {
+          "wf-ac-1": {
+            "name": "Tax Optimization",
+            "description": "Business → Policy → Design → Implement"
+          },
+          "wf-ac-2": {
+            "name": "Financial Health",
+            "description": "Metrics → Benchmark → Issues → Improve"
+          },
+          "wf-ac-3": {
+            "name": "Cost Control",
+            "description": "Breakdown → Efficiency → Optimize → Execute"
+          }
+        },
+        "ecommerce": {
+          "wf-ec-1": {
+            "name": "Viral Product",
+            "description": "Selection → Highlights → Page → Traffic"
+          },
+          "wf-ec-2": {
+            "name": "Competitor Monitor",
+            "description": "Identify → Price → Campaign → Adjust"
+          },
+          "wf-ec-3": {
+            "name": "Promo Planning",
+            "description": "Goals → Selection → Traffic → Execute"
+          }
+        },
+        "education": {
+          "wf-ed-1": {
+            "name": "Course Design",
+            "description": "Needs → Outline → Content → Assessment"
+          },
+          "wf-ed-2": {
+            "name": "Learning Path",
+            "description": "Assessment → Goals → Path → Resources"
+          },
+          "wf-ed-3": {
+            "name": "Content Development",
+            "description": "Knowledge → Write → Cases → Exercises"
+          }
+        }
       }
     },
     "rl": {
@@ -5067,32 +5080,86 @@
     },
     "stepLabel": "Шаг",
     "profiles": {
-      "code_auditor": { "name": "Эксперт по аудиту кода", "role": "Эксперт по аудиту кода" },
-      "architect_analyst": { "name": "Архитектурный аналитик", "role": "Архитектурный аналитик" },
-      "quality_expert": { "name": "Эксперт по качеству кода", "role": "Эксперт по качеству кода" },
-      "behavior_tester": { "name": "Эксперт по тестированию поведения", "role": "Эксперт по тестированию поведения" },
-      "knowledge_engineer": { "name": "Инженер по знаниям", "role": "Инженер по знаниям" },
-      "refactor_consultant": { "name": "Консультант по рефакторингу", "role": "Консультант по рефакторингу" },
-      "solution_architect": { "name": "Архитектор решений", "role": "Архитектор решений" },
+      "code_auditor": {
+        "name": "Эксперт по аудиту кода",
+        "role": "Эксперт по аудиту кода"
+      },
+      "architect_analyst": {
+        "name": "Архитектурный аналитик",
+        "role": "Архитектурный аналитик"
+      },
+      "quality_expert": {
+        "name": "Эксперт по качеству кода",
+        "role": "Эксперт по качеству кода"
+      },
+      "behavior_tester": {
+        "name": "Эксперт по тестированию поведения",
+        "role": "Эксперт по тестированию поведения"
+      },
+      "knowledge_engineer": {
+        "name": "Инженер по знаниям",
+        "role": "Инженер по знаниям"
+      },
+      "refactor_consultant": {
+        "name": "Консультант по рефакторингу",
+        "role": "Консультант по рефакторингу"
+      },
+      "solution_architect": {
+        "name": "Архитектор решений",
+        "role": "Архитектор решений"
+      },
       "tech_project_manager": {
         "name": "Технический руководитель проектов",
         "role": "Технический руководитель проектов"
       },
-      "change_manager": { "name": "Эксперт по управлению изменениями", "role": "Эксперт по управлению изменениями" },
-      "quality_engineer": { "name": "Инженер по качеству", "role": "Инженер по качеству" },
-      "devops_engineer": { "name": "DevOps-инженер", "role": "DevOps-инженер" },
-      "code_reviewer": { "name": "Ревьюер кода", "role": "Ревьюер кода" },
-      "senior_engineer": { "name": "Старший инженер", "role": "Старший инженер" },
-      "behavior_verifier": { "name": "Эксперт по верификации поведения", "role": "Эксперт по верификации поведения" },
-      "test_engineer": { "name": "Инженер по тестированию", "role": "Инженер по тестированию" },
+      "change_manager": {
+        "name": "Эксперт по управлению изменениями",
+        "role": "Эксперт по управлению изменениями"
+      },
+      "quality_engineer": {
+        "name": "Инженер по качеству",
+        "role": "Инженер по качеству"
+      },
+      "devops_engineer": {
+        "name": "DevOps-инженер",
+        "role": "DevOps-инженер"
+      },
+      "code_reviewer": {
+        "name": "Ревьюер кода",
+        "role": "Ревьюер кода"
+      },
+      "senior_engineer": {
+        "name": "Старший инженер",
+        "role": "Старший инженер"
+      },
+      "behavior_verifier": {
+        "name": "Эксперт по верификации поведения",
+        "role": "Эксперт по верификации поведения"
+      },
+      "test_engineer": {
+        "name": "Инженер по тестированию",
+        "role": "Инженер по тестированию"
+      },
       "integration_engineer": {
         "name": "Инженер по интеграционному тестированию",
         "role": "Инженер по интеграционному тестированию"
       },
-      "quality_director": { "name": "Директор по качеству", "role": "Директор по качеству" },
-      "tech_writer": { "name": "Технический писатель", "role": "Технический писатель" },
-      "ops_engineer": { "name": "Инженер по эксплуатации", "role": "Инженер по эксплуатации" },
-      "project_manager": { "name": "Руководитель проекта", "role": "Руководитель проекта" }
+      "quality_director": {
+        "name": "Директор по качеству",
+        "role": "Директор по качеству"
+      },
+      "tech_writer": {
+        "name": "Технический писатель",
+        "role": "Технический писатель"
+      },
+      "ops_engineer": {
+        "name": "Инженер по эксплуатации",
+        "role": "Инженер по эксплуатации"
+      },
+      "project_manager": {
+        "name": "Руководитель проекта",
+        "role": "Руководитель проекта"
+      }
     }
   },
   "promptTemplate": {

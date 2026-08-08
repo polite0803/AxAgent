@@ -35,6 +35,51 @@ const LazyDynamicPageViewer = lazy(() =>
 );
 const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
 const LazyIndustryPage = lazy(() => import("@/pages/IndustryPage").then((m) => ({ default: m.IndustryPage })));
+const LazyAiResearchPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.AiResearchPage }))
+);
+const LazySoftwareDevPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.SoftwareDevPage }))
+);
+const LazyFinanceInvestPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.FinanceInvestPage }))
+);
+const LazySalesGrowthPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.SalesGrowthPage }))
+);
+const LazyContentMediaPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.ContentMediaPage }))
+);
+const LazyIndustryConsultingPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.IndustryConsultingPage }))
+);
+const LazyAccountingPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.AccountingPage }))
+);
+const LazyEcommercePage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.EcommercePage }))
+);
+const LazyEducationPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.EducationPage }))
+);
+const LazyDesignPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.DesignPage }))
+);
+const LazyProjectManagementPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.ProjectManagementPage }))
+);
+const LazySecurityPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.SecurityPage }))
+);
+const LazyGeospatialPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.GeospatialPage }))
+);
+const LazyGameDevPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryPages").then((m) => ({ default: m.GameDevPage }))
+);
+const LazyIndustryNavigatorPage = lazy(() =>
+  import("@/pages/opc/industries/IndustryNavigator").then((m) => ({ default: m.IndustryNavigatorPage }))
+);
 const LazyOpcSubPage = lazy(() => import("@/pages/OpcPage").then((m) => ({ default: m.OpcSubPage })));
 
 function PageLoader() {
@@ -115,7 +160,36 @@ function RedirectStockAnalysisById() {
   return <Navigate to={`${BUILTIN_PAGE_PATH.invest}?${params.toString()}`} replace />;
 }
 
-/** 从路径参数读取行业 ID 并重定向到 /opc/industry/:id（单数格式） */
+/** 从行业 ID 映射到对应的页面组件 */
+const INDUSTRY_PAGE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+  "ai-research": LazyAiResearchPage,
+  "software-dev": LazySoftwareDevPage,
+  "finance-invest": LazyFinanceInvestPage,
+  "sales-growth": LazySalesGrowthPage,
+  "content-media": LazyContentMediaPage,
+  "industry-consulting": LazyIndustryConsultingPage,
+  accounting: LazyAccountingPage,
+  ecommerce: LazyEcommercePage,
+  education: LazyEducationPage,
+  design: LazyDesignPage,
+  "project-management": LazyProjectManagementPage,
+  security: LazySecurityPage,
+  geospatial: LazyGeospatialPage,
+  "game-dev": LazyGameDevPage,
+  _default: LazyIndustryPage, // 保留作为后备
+};
+
+/** 根据行业 ID 渲染对应的页面组件 */
+function renderIndustryPage(industryId: string) {
+  const Page = INDUSTRY_PAGE_MAP[industryId] || INDUSTRY_PAGE_MAP._default;
+  return (
+    <PageContextProvider page="opc">
+      <SafeLazyPage Page={Page} />
+    </PageContextProvider>
+  );
+}
+
+/** 从路径参数读取行业 ID 并重定向到对应的独立页面 */
 function RedirectIndustryPath() {
   const { industryId } = useParams<{ industryId?: string }>();
   if (!industryId) {
@@ -127,6 +201,15 @@ function RedirectIndustryPath() {
 /** 9 个硬编码行业路由重定向到 /opc/industry/:id 动态路由 */
 function redirectToIndustry(id: string) {
   return <Navigate to={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/${id}`} replace />;
+}
+
+/** 根据路由参数中的 id 选择对应的行业页面组件 */
+function IndustryRouter() {
+  const { id } = useParams<{ id?: string }>();
+  if (!id) {
+    return <Navigate to={BUILTIN_PAGE_PATH.opc} replace />;
+  }
+  return renderIndustryPage(id);
 }
 
 export const ContentArea = memo(function ContentArea() {
@@ -281,12 +364,26 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH.opcIndustryAccounting} element={redirectToIndustry("accounting")} />
           <Route path={BUILTIN_PAGE_PATH.opcIndustryEcommerce} element={redirectToIndustry("ecommerce")} />
           <Route path={BUILTIN_PAGE_PATH.opcIndustryEducation} element={redirectToIndustry("education")} />
-          {/* OPC 行业动态路由（单数形式，独立页面） */}
+          {/* OPC 新增 6 个行业路由 */}
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryDesign} element={redirectToIndustry("design")} />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryProjectManagement}
+            element={redirectToIndustry("project-management")}
+          />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustrySecurity} element={redirectToIndustry("security")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryGeospatial} element={redirectToIndustry("geospatial")} />
+          <Route path={BUILTIN_PAGE_PATH.opcIndustryGameDev} element={redirectToIndustry("game-dev")} />
+          {/* OPC 行业动态路由（单数形式，根据 ID 渲染对应的独立页面） */}
           <Route
             path={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/:id`}
+            element={<IndustryRouter />}
+          />
+          {/* OPC 行业导航页面（集中展示所有行业入口） */}
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustries}
             element={
               <PageContextProvider page="opc">
-                <SafeLazyPage Page={LazyIndustryPage} />
+                <SafeLazyPage Page={LazyIndustryNavigatorPage} />
               </PageContextProvider>
             }
           />

@@ -2343,14 +2343,14 @@
     "FILE_NOT_FOUND": "文件不存在：{{error}}",
     "FILE_PATH_EMPTY": "文件路径为空",
     "FLEET_NOT_FOUND": "办公室未找到",
-    "FLEET_NAME_REQUIRED": "办公室名称为空",
-    "FLEET_NO_MEMBERS": "办公室无任何成员",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "办公室所有成员均不可用",
-    "FLEET_MEMBER_NOT_FOUND": "办公室成员未找到",
-    "FLEET_NO_PROVIDER": "没有可用的模型提供商",
-    "FLEET_ROUTING_FAILED": "LLM 意图路由调用失败",
-    "FLEET_EXECUTION_FAILED": "Agent 执行失败",
-    "FLEET_TARGET_NOT_IN_FLEET": "路由目标不在成员列表中",
+    "FLEET_NAME_REQUIRED": "办公室名称不能为空",
+    "FLEET_NO_MEMBERS": "该办公室还没有任何成员",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "办公室所有成员均不可用（已暂停/错误/离线）",
+    "FLEET_MEMBER_NOT_FOUND": "成员未找到",
+    "FLEET_NO_PROVIDER": "没有可用的模型提供商，请先在设置中配置",
+    "FLEET_ROUTING_FAILED": "智能路由调用失败",
+    "FLEET_EXECUTION_FAILED": "成员执行任务失败",
+    "FLEET_TARGET_NOT_IN_FLEET": "目标成员不存在于该办公室",
     "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
     "GATEWAY_ALREADY_RUNNING": "网关已在运行",
     "GATEWAY_HTTP_UNAVAILABLE": "网关 HTTP 服务不可用",
@@ -2558,16 +2558,6 @@
     "LOCAL_MODEL_INSTALL_FAILED": "llama.cpp 安装失败",
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp 安装进行中",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下载失败",
-    "FLEET_NOT_FOUND": "办公室未找到",
-    "FLEET_NAME_REQUIRED": "办公室名称不能为空",
-    "FLEET_NO_MEMBERS": "该办公室还没有任何成员",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "办公室所有成员均不可用（已暂停/错误/离线）",
-    "FLEET_MEMBER_NOT_FOUND": "成员未找到",
-    "FLEET_NO_PROVIDER": "没有可用的模型提供商，请先在设置中配置",
-    "FLEET_ROUTING_FAILED": "智能路由调用失败",
-    "FLEET_EXECUTION_FAILED": "成员执行任务失败",
-    "FLEET_TARGET_NOT_IN_FLEET": "目标成员不存在于该办公室",
-    "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "设备未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "设备未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "设备已配对",
@@ -3899,6 +3889,7 @@
     "title": "OPC — 一人公司管理面板",
     "nav": {
       "dashboard": "仪表盘",
+      "industries": "行业导航",
       "invoices": "发票",
       "customers": "客户",
       "projects": "项目",
@@ -3927,163 +3918,19 @@
       "ecommerce": "电商",
       "ecommerce_desc": "电商运营全流程：选品策略 → 店铺运营 → 营销推广 → 客户管理",
       "education": "教育",
-      "education_desc": "教育产品与服务：课程设计 → 内容开发 → 学员运营 → 效果评估"
+      "education_desc": "教育产品与服务：课程设计 → 内容开发 → 学员运营 → 效果评估",
+      "design": "设计",
+      "design_desc": "产品设计与创意：用户研究 → 设计系统 → 原型制作 → 可访问性",
+      "project_management": "项目管理",
+      "project_management_desc": "项目全生命周期：项目规划 → 执行监控 → 风险管理 → 状态报告",
+      "security": "安全合规",
+      "security_desc": "安全防护与应急：渗透测试 → 威胁情报 → 事件响应 → 合规审计",
+      "geospatial": "地理信息",
+      "geospatial_desc": "空间数据与地理计算：地图测绘 → 空间分析 → 无人机数据 → AR 应用",
+      "game_dev": "游戏开发",
+      "game_dev_desc": "游戏研发流程：概念设计 → 原型开发 → 质量保证 → 游戏测试"
     },
     "industry": {
-      "enabled": "已启用",
-      "disabled": "已禁用",
-      "version": "版本 {{version}}",
-      "workflows": {
-        "ai-research": {
-          "wf-ai-research-1": {
-            "name": "AI 技术调研",
-            "description": "技术扫描 → 论文分析 → 趋势预测"
-          },
-          "wf-ai-research-2": {
-            "name": "LLM 选型评估",
-            "description": "需求分析 → 模型对比 → 选型建议"
-          },
-          "wf-ai-research-3": {
-            "name": "AI 产品分析",
-            "description": "竞品扫描 → 功能拆解 → 差异化定位"
-          }
-        },
-        "software-dev": {
-          "wf-sd-1": {
-            "name": "代码重构",
-            "description": "代码扫描 → 问题识别 → 重构方案 → 验证"
-          },
-          "wf-sd-2": {
-            "name": "技术选型",
-            "description": "需求分析 → 方案对比 → 选型建议"
-          },
-          "wf-sd-3": {
-            "name": "性能优化",
-            "description": "性能分析 → 瓶颈定位 → 优化方案 → 验证"
-          },
-          "wf-large-refactor": {
-            "name": "大型项目重构",
-            "description": "资产普查 → 坏味道分析 → 重构策略 → 分批执行 → 验收交付"
-          },
-          "wf-large-refactor-lite": {
-            "name": "快速追加重构",
-            "description": "变更评估 → 最小化计划 → 变更执行 → 验证交付"
-          }
-        },
-        "finance-invest": {
-          "wf-fi-1": {
-            "name": "A股深度研究",
-            "description": "行情分析 → 财报解读 → 估值模型 → 投资建议"
-          },
-          "wf-fi-2": {
-            "name": "行业对比分析",
-            "description": "行业扫描 → 对标选择 → 对比分析 → 结论"
-          },
-          "wf-fi-3": {
-            "name": "投资组合优化",
-            "description": "持仓分析 → 风险评估 → 配置建议 → 调仓方案"
-          }
-        },
-        "sales-growth": {
-          "wf-sg-1": {
-            "name": "获客策略优化",
-            "description": "渠道分析 → 预算分配 → 内容优化 → ROI 提升"
-          },
-          "wf-sg-2": {
-            "name": "转化提升方案",
-            "description": "漏斗诊断 → 页面优化 → A/B 测试 → 转化率提升"
-          },
-          "wf-sg-3": {
-            "name": "客户留存计划",
-            "description": "流失分析 → 留存策略 → 忠诚度计划 → 复购提升"
-          }
-        },
-        "content-media": {
-          "workflow-cm-viral-content": {
-            "name": "爆款内容生成",
-            "description": "选题策划 → 标题优化 → 内容撰写 → 发布建议"
-          },
-          "workflow-cm-multi-platform": {
-            "name": "多平台适配",
-            "description": "内容分析 → 平台对比 → 格式适配 → 发布策略"
-          },
-          "workflow-cm-ip-building": {
-            "name": "IP 打造方案",
-            "description": "定位分析 → 人设设计 → 内容规划 → 增长策略"
-          }
-        },
-        "industry-consulting": {
-          "wf-ic-1": {
-            "name": "行业扫描",
-            "description": "市场调研 → 竞争分析 → 趋势预测 → 机会识别"
-          },
-          "wf-ic-2": {
-            "name": "进入评估",
-            "description": "市场规模 → 竞争强度 → 盈利模式 → 进入建议"
-          },
-          "wf-ic-3": {
-            "name": "战略规划",
-            "description": "愿景定位 → 业务设计 → 路线图 → KPI 设定"
-          }
-        },
-        "accounting": {
-          "wf-ac-1": {
-            "name": "税务优化",
-            "description": "业务分析 → 政策匹配 → 方案设计 → 实施建议"
-          },
-          "wf-ac-2": {
-            "name": "财务健康诊断",
-            "description": "指标计算 → 同业对比 → 问题识别 → 改进方案"
-          },
-          "wf-ac-3": {
-            "name": "成本控制",
-            "description": "成本拆解 → 效率分析 → 优化方案 → 执行计划"
-          }
-        },
-        "ecommerce": {
-          "wf-ec-1": {
-            "name": "爆款打造",
-            "description": "选品分析 → 卖点提炼 → 页面优化 → 流量引爆"
-          },
-          "wf-ec-2": {
-            "name": "竞品监控",
-            "description": "竞品识别 → 价格监控 → 活动分析 → 策略调整"
-          },
-          "wf-ec-3": {
-            "name": "大促策划",
-            "description": "目标设定 → 选品策略 → 流量规划 → 执行方案"
-          }
-        },
-        "education": {
-          "wf-ed-1": {
-            "name": "课程体系设计",
-            "description": "需求分析 → 大纲设计 → 内容规划 → 评估方案"
-          },
-          "wf-ed-2": {
-            "name": "学习路径规划",
-            "description": "水平评估 → 目标设定 → 路径规划 → 资源匹配"
-          },
-          "wf-ed-3": {
-            "name": "教学内容开发",
-            "description": "知识点梳理 → 内容撰写 → 案例设计 → 练习生成"
-          }
-        }
-      },
-      "noWorkflows": "该行业暂无工作流",
-      "loadFailed": "加载行业失败: {{error}}",
-      "notFound": "行业不存在",
-      "quickActions": "快速操作",
-      "startConversation": "启动行业对话",
-      "createWorkflow": "创建行业工作流",
-      "presetWorkflows": "行业预设工作流",
-      "createFirstWorkflow": "创建第一个工作流",
-      "useWorkflow": "使用此工作流",
-      "useThisWorkflow": "使用此工作流",
-      "noProviderConfig": "请先配置默认 AI 提供商",
-      "exclusiveActions": "专属操作",
-      "exclusiveWorkflows": "专属工作流",
-      "workflowTag": "工作流",
-      "executeSuffix": "{{name}} - 执行",
       "actions": {
         "ai-research": {
           "ai-paper": {
@@ -4256,6 +4103,36 @@
           }
         }
       },
+      "analysis": {
+        "title": "行业分析决策引擎",
+        "execute": "执行分析",
+        "executeSuccess": "分析执行成功",
+        "executeFailed": "分析执行失败: {{error}}",
+        "noData": "暂无分析数据，请点击执行分析",
+        "confidence": "决策置信度",
+        "decisionType": "决策类型",
+        "riskLevel": "风险等级",
+        "riskLevelTitle": "风险等级",
+        "recommendations": "建议列表",
+        "timeRange7d": "7天",
+        "timeRange30d": "30天",
+        "timeRange90d": "90天"
+      },
+      "createFirstWorkflow": "创建第一个工作流",
+      "createWorkflow": "创建行业工作流",
+      "dashboard": {
+        "title": "行业 KPI 仪表盘",
+        "7days": "近 7 天",
+        "30days": "近 30 天",
+        "90days": "近 90 天",
+        "noData": "暂无 KPI 数据"
+      },
+      "disabled": "已禁用",
+      "domainWorkflows": "领域工作流",
+      "enabled": "已启用",
+      "exclusiveActions": "专属操作",
+      "exclusiveWorkflows": "专属工作流",
+      "executeSuffix": "{{name}} - 执行",
       "learning": {
         "title": "学习与进化配置",
         "subtitle": "管理行业的反思、进化、自我改进和强化学习能力",
@@ -4308,20 +4185,54 @@
           "configNotFound": "配置未找到"
         }
       },
+      "loadFailed": "加载行业失败: {{error}}",
+      "loadingDomainWorkflows": "加载领域工作流中...",
+      "tab": {
+        "all": "全部",
+        "actions": "快速操作",
+        "workflows": "业务工作流",
+        "noContent": "该阶段暂无内容",
+        "execute": "执行",
+        "executeSuccess": "工作流 {{id}} 执行成功",
+        "executeFailed": "工作流 {{id}} 执行失败",
+        "actionTriggered": "操作 {{key}} 已触发",
+        "executionResult": "执行结果",
+        "durationMs": "耗时 {{ms}}ms",
+        "type": {
+          "workflow": "工作流",
+          "conversation": "对话"
+        }
+      },
+      "metrics": {
+        "title": "行业学习指标",
+        "refresh": "刷新指标",
+        "noData": "暂无学习指标数据",
+        "totalSamples": "总样本数",
+        "decisionAccuracy": "决策准确率",
+        "riskAccuracy": "风险预测准确率",
+        "avgFeedback": "平均反馈分",
+        "trend_improving": "上升趋势",
+        "trend_stable": "稳定",
+        "trend_declining": "下降趋势"
+      },
+      "noProviderConfig": "请先配置默认 AI 提供商",
+      "noWorkflows": "该行业暂无工作流",
+      "notFound": "行业不存在",
+      "nav": {
+        "title": "行业导航",
+        "description": "选择您想要进入的行业领域，每个行业都有专属的业务工作流和快速操作",
+        "totalIndustries": "行业总数",
+        "totalWorkflows": "工作流总数",
+        "totalActions": "快速操作",
+        "totalCategories": "业务分类",
+        "noIndustries": "暂无行业",
+        "workflows": "{{count}} 个工作流",
+        "actions": "{{count}} 个操作"
+      },
+      "presetWorkflows": "行业预设工作流",
+      "quickActions": "快速操作",
       "refresh": "刷新",
       "refreshSuccess": "行业数据已刷新",
-      "dashboard": {
-        "title": "行业 KPI 仪表盘",
-        "7days": "近 7 天",
-        "30days": "近 30 天",
-        "90days": "近 90 天",
-        "noData": "暂无 KPI 数据"
-      },
-      "workflowSteps": {
-        "title": "行业工作流步骤",
-        "step": "步骤",
-        "noData": "暂无工作流步骤"
-      },
       "rules": {
         "title": "行业自动化规则",
         "runAll": "执行所有规则",
@@ -4334,21 +4245,10 @@
         "nothingTriggered": "没有规则被触发",
         "runFailed": "规则执行失败: {{error}}"
       },
-      "analysis": {
-        "title": "行业分析决策引擎",
-        "execute": "执行分析",
-        "executeSuccess": "分析执行成功",
-        "executeFailed": "分析执行失败: {{error}}",
-        "noData": "暂无分析数据，请点击执行分析",
-        "confidence": "决策置信度",
-        "decisionType": "决策类型",
-        "riskLevel": "风险等级",
-        "riskLevelTitle": "风险等级",
-        "recommendations": "建议列表",
-        "timeRange7d": "7天",
-        "timeRange30d": "30天",
-        "timeRange90d": "90天"
-      },
+      "startConversation": "启动行业对话",
+      "useThisWorkflow": "使用此工作流",
+      "useWorkflow": "使用此工作流",
+      "version": "版本 {{version}}",
       "workflow": {
         "executionTitle": "行业工作流执行",
         "execute": "执行工作流",
@@ -4362,17 +4262,147 @@
         "status_partial": "部分完成",
         "duration": "执行耗时"
       },
-      "metrics": {
-        "title": "行业学习指标",
-        "refresh": "刷新指标",
-        "noData": "暂无学习指标数据",
-        "totalSamples": "总样本数",
-        "decisionAccuracy": "决策准确率",
-        "riskAccuracy": "风险预测准确率",
-        "avgFeedback": "平均反馈分",
-        "trend_improving": "上升趋势",
-        "trend_stable": "稳定",
-        "trend_declining": "下降趋势"
+      "workflowSteps": {
+        "title": "行业工作流步骤",
+        "step": "步骤",
+        "noData": "暂无工作流步骤"
+      },
+      "workflowTag": "工作流",
+      "workflows": {
+        "ai-research": {
+          "wf-ai-research-1": {
+            "name": "AI 技术调研",
+            "description": "技术扫描 → 论文分析 → 趋势预测"
+          },
+          "wf-ai-research-2": {
+            "name": "LLM 选型评估",
+            "description": "需求分析 → 模型对比 → 选型建议"
+          },
+          "wf-ai-research-3": {
+            "name": "AI 产品分析",
+            "description": "竞品扫描 → 功能拆解 → 差异化定位"
+          }
+        },
+        "software-dev": {
+          "wf-sd-1": {
+            "name": "代码重构",
+            "description": "代码扫描 → 问题识别 → 重构方案 → 验证"
+          },
+          "wf-sd-2": {
+            "name": "技术选型",
+            "description": "需求分析 → 方案对比 → 选型建议"
+          },
+          "wf-sd-3": {
+            "name": "性能优化",
+            "description": "性能分析 → 瓶颈定位 → 优化方案 → 验证"
+          },
+          "wf-large-refactor": {
+            "name": "大型项目重构",
+            "description": "资产普查 → 坏味道分析 → 重构策略 → 分批执行 → 验收交付"
+          },
+          "wf-large-refactor-lite": {
+            "name": "快速追加重构",
+            "description": "变更评估 → 最小化计划 → 变更执行 → 验证交付"
+          }
+        },
+        "finance-invest": {
+          "wf-fi-1": {
+            "name": "A股深度研究",
+            "description": "行情分析 → 财报解读 → 估值模型 → 投资建议"
+          },
+          "wf-fi-2": {
+            "name": "行业对比分析",
+            "description": "行业扫描 → 对标选择 → 对比分析 → 结论"
+          },
+          "wf-fi-3": {
+            "name": "投资组合优化",
+            "description": "持仓分析 → 风险评估 → 配置建议 → 调仓方案"
+          }
+        },
+        "sales-growth": {
+          "wf-sg-1": {
+            "name": "获客策略优化",
+            "description": "渠道分析 → 预算分配 → 内容优化 → ROI 提升"
+          },
+          "wf-sg-2": {
+            "name": "转化提升方案",
+            "description": "漏斗诊断 → 页面优化 → A/B 测试 → 转化率提升"
+          },
+          "wf-sg-3": {
+            "name": "客户留存计划",
+            "description": "流失分析 → 留存策略 → 忠诚度计划 → 复购提升"
+          }
+        },
+        "content-media": {
+          "workflow-cm-viral-content": {
+            "name": "爆款内容生成",
+            "description": "选题策划 → 标题优化 → 内容撰写 → 发布建议"
+          },
+          "workflow-cm-multi-platform": {
+            "name": "多平台适配",
+            "description": "内容分析 → 平台对比 → 格式适配 → 发布策略"
+          },
+          "workflow-cm-ip-building": {
+            "name": "IP 打造方案",
+            "description": "定位分析 → 人设设计 → 内容规划 → 增长策略"
+          }
+        },
+        "industry-consulting": {
+          "wf-ic-1": {
+            "name": "行业扫描",
+            "description": "市场调研 → 竞争分析 → 趋势预测 → 机会识别"
+          },
+          "wf-ic-2": {
+            "name": "进入评估",
+            "description": "市场规模 → 竞争强度 → 盈利模式 → 进入建议"
+          },
+          "wf-ic-3": {
+            "name": "战略规划",
+            "description": "愿景定位 → 业务设计 → 路线图 → KPI 设定"
+          }
+        },
+        "accounting": {
+          "wf-ac-1": {
+            "name": "税务优化",
+            "description": "业务分析 → 政策匹配 → 方案设计 → 实施建议"
+          },
+          "wf-ac-2": {
+            "name": "财务健康诊断",
+            "description": "指标计算 → 同业对比 → 问题识别 → 改进方案"
+          },
+          "wf-ac-3": {
+            "name": "成本控制",
+            "description": "成本拆解 → 效率分析 → 优化方案 → 执行计划"
+          }
+        },
+        "ecommerce": {
+          "wf-ec-1": {
+            "name": "爆款打造",
+            "description": "选品分析 → 卖点提炼 → 页面优化 → 流量引爆"
+          },
+          "wf-ec-2": {
+            "name": "竞品监控",
+            "description": "竞品识别 → 价格监控 → 活动分析 → 策略调整"
+          },
+          "wf-ec-3": {
+            "name": "大促策划",
+            "description": "目标设定 → 选品策略 → 流量规划 → 执行方案"
+          }
+        },
+        "education": {
+          "wf-ed-1": {
+            "name": "课程体系设计",
+            "description": "需求分析 → 大纲设计 → 内容规划 → 评估方案"
+          },
+          "wf-ed-2": {
+            "name": "学习路径规划",
+            "description": "水平评估 → 目标设定 → 路径规划 → 资源匹配"
+          },
+          "wf-ed-3": {
+            "name": "教学内容开发",
+            "description": "知识点梳理 → 内容撰写 → 案例设计 → 练习生成"
+          }
+        }
       }
     },
     "rl": {
@@ -5077,26 +5107,86 @@
     },
     "stepLabel": "步骤",
     "profiles": {
-      "code_auditor": { "name": "代码审计专家", "role": "代码审计专家" },
-      "architect_analyst": { "name": "架构分析师", "role": "架构分析师" },
-      "quality_expert": { "name": "代码质量专家", "role": "代码质量专家" },
-      "behavior_tester": { "name": "行为测试专家", "role": "行为测试专家" },
-      "knowledge_engineer": { "name": "知识提炼专家", "role": "知识提炼专家" },
-      "refactor_consultant": { "name": "重构顾问", "role": "重构顾问" },
-      "solution_architect": { "name": "架构师", "role": "架构师" },
-      "tech_project_manager": { "name": "技术项目经理", "role": "技术项目经理" },
-      "change_manager": { "name": "变更管理专家", "role": "变更管理专家" },
-      "quality_engineer": { "name": "质量工程师", "role": "质量工程师" },
-      "devops_engineer": { "name": "DevOps 工程师", "role": "DevOps 工程师" },
-      "code_reviewer": { "name": "代码审查员", "role": "代码审查员" },
-      "senior_engineer": { "name": "高级工程师", "role": "高级工程师" },
-      "behavior_verifier": { "name": "行为验证专家", "role": "行为验证专家" },
-      "test_engineer": { "name": "测试工程师", "role": "测试工程师" },
-      "integration_engineer": { "name": "集成测试工程师", "role": "集成测试工程师" },
-      "quality_director": { "name": "质量总监", "role": "质量总监" },
-      "tech_writer": { "name": "技术文档工程师", "role": "技术文档工程师" },
-      "ops_engineer": { "name": "运维工程师", "role": "运维工程师" },
-      "project_manager": { "name": "项目经理", "role": "项目经理" }
+      "code_auditor": {
+        "name": "代码审计专家",
+        "role": "代码审计专家"
+      },
+      "architect_analyst": {
+        "name": "架构分析师",
+        "role": "架构分析师"
+      },
+      "quality_expert": {
+        "name": "代码质量专家",
+        "role": "代码质量专家"
+      },
+      "behavior_tester": {
+        "name": "行为测试专家",
+        "role": "行为测试专家"
+      },
+      "knowledge_engineer": {
+        "name": "知识提炼专家",
+        "role": "知识提炼专家"
+      },
+      "refactor_consultant": {
+        "name": "重构顾问",
+        "role": "重构顾问"
+      },
+      "solution_architect": {
+        "name": "架构师",
+        "role": "架构师"
+      },
+      "tech_project_manager": {
+        "name": "技术项目经理",
+        "role": "技术项目经理"
+      },
+      "change_manager": {
+        "name": "变更管理专家",
+        "role": "变更管理专家"
+      },
+      "quality_engineer": {
+        "name": "质量工程师",
+        "role": "质量工程师"
+      },
+      "devops_engineer": {
+        "name": "DevOps 工程师",
+        "role": "DevOps 工程师"
+      },
+      "code_reviewer": {
+        "name": "代码审查员",
+        "role": "代码审查员"
+      },
+      "senior_engineer": {
+        "name": "高级工程师",
+        "role": "高级工程师"
+      },
+      "behavior_verifier": {
+        "name": "行为验证专家",
+        "role": "行为验证专家"
+      },
+      "test_engineer": {
+        "name": "测试工程师",
+        "role": "测试工程师"
+      },
+      "integration_engineer": {
+        "name": "集成测试工程师",
+        "role": "集成测试工程师"
+      },
+      "quality_director": {
+        "name": "质量总监",
+        "role": "质量总监"
+      },
+      "tech_writer": {
+        "name": "技术文档工程师",
+        "role": "技术文档工程师"
+      },
+      "ops_engineer": {
+        "name": "运维工程师",
+        "role": "运维工程师"
+      },
+      "project_manager": {
+        "name": "项目经理",
+        "role": "项目经理"
+      }
     }
   },
   "promptTemplate": {
@@ -13877,42 +13967,6 @@
   },
   "paperOverview": {
     "title": "论文概览"
-  },
-  "multiAgent": {
-    "title": "多智能体协作",
-    "subtitle": "将复杂任务分派给专业角色协作完成",
-    "rolesTitle": "固定角色",
-    "refreshRoles": "刷新角色",
-    "noRoles": "暂无可用角色",
-    "selectRole": "选择角色",
-    "taskDescription": "任务描述",
-    "taskPlaceholder": "描述您需要完成的任务...",
-    "taskLabel": "任务",
-    "contextJsonOptional": "上下文 JSON（可选）",
-    "contextJsonPlaceholder": "输入上下文 JSON...",
-    "contextJsonInvalid": "JSON 格式无效",
-    "provider": "供应商",
-    "model": "模型",
-    "temperature": "温度",
-    "maxTokens": "最大 Token",
-    "delegateTitle": "委派任务",
-    "delegateBtn": "委派",
-    "delegateSuccess": "委派成功",
-    "delegateFailed": "委派失败",
-    "fillRequired": "请填写任务描述",
-    "success": "成功",
-    "failed": "失败",
-    "tokens": "Token",
-    "historyTitle": "委派历史",
-    "clearHistory": "清空历史",
-    "noHistory": "暂无委派记录",
-    "maxConcurrent": "最大并发",
-    "timeoutSec": "超时",
-    "responseLabel": "响应",
-    "temperatureStrict": "严格",
-    "temperatureDefault": "默认",
-    "temperatureDivergent": "发散",
-    "maxTokensDefault": "默认"
   },
   "deviceSync": {
     "title": "设备同步",

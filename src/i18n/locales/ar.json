@@ -4262,158 +4262,6 @@
       "education_desc": "التعليم"
     },
     "industry": {
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "version": "Version {{version}}",
-      "workflows": {
-        "ai-research": {
-          "wf-ai-research-1": {
-            "name": "AI Tech Research",
-            "description": "Tech Scan → Paper Analysis → Trend Forecast"
-          },
-          "wf-ai-research-2": {
-            "name": "LLM Selection",
-            "description": "Requirements → Model Comparison → Selection"
-          },
-          "wf-ai-research-3": {
-            "name": "AI Product Analysis",
-            "description": "Competitor Scan → Feature Breakdown → Positioning"
-          }
-        },
-        "software-dev": {
-          "wf-sd-1": {
-            "name": "Code Refactoring",
-            "description": "Code Scan → Issue ID → Refactor → Verify"
-          },
-          "wf-sd-2": {
-            "name": "Tech Selection",
-            "description": "Requirements → Comparison → Recommendation"
-          },
-          "wf-sd-3": {
-            "name": "Performance Opt",
-            "description": "Perf Analysis → Bottleneck → Optimization → Verify"
-          },
-          "wf-large-refactor": {
-            "name": "إعادة هيكلة واسعة النطاق",
-            "description": "جرد الأصول → تحليل روائح الكود → استراتيجية إعادة الهيكلة → تنفيذ دفعي → تسليم القبول"
-          },
-          "wf-large-refactor-lite": {
-            "name": "إعادة هيكلة تدريجية سريعة",
-            "description": "تقييم التغيير → خطة دنيا → تنفيذ → تحقق"
-          }
-        },
-        "finance-invest": {
-          "wf-fi-1": {
-            "name": "A-Share Research",
-            "description": "Market → Financials → Valuation → Recommendation"
-          },
-          "wf-fi-2": {
-            "name": "Industry Comparison",
-            "description": "Industry Scan → Benchmark → Compare → Conclusion"
-          },
-          "wf-fi-3": {
-            "name": "Portfolio Optimization",
-            "description": "Holdings → Risk → Allocation → Rebalance"
-          }
-        },
-        "sales-growth": {
-          "wf-sg-1": {
-            "name": "Acquisition Strategy",
-            "description": "Channel → Budget → Content → ROI"
-          },
-          "wf-sg-2": {
-            "name": "Conversion Boost",
-            "description": "Funnel → Page → A/B Test → Conversion"
-          },
-          "wf-sg-3": {
-            "name": "Customer Retention",
-            "description": "Churn → Retention → Loyalty → Repurchase"
-          }
-        },
-        "content-media": {
-          "workflow-cm-viral-content": {
-            "name": "Viral Content",
-            "description": "Topic → Title → Write → Publish"
-          },
-          "workflow-cm-multi-platform": {
-            "name": "Platform Adapt",
-            "description": "Content → Platform → Format → Strategy"
-          },
-          "workflow-cm-ip-building": {
-            "name": "IP Building",
-            "description": "Positioning → Persona → Planning → Growth"
-          }
-        },
-        "industry-consulting": {
-          "wf-ic-1": {
-            "name": "Industry Scan",
-            "description": "Research → Competition → Trends → Opportunities"
-          },
-          "wf-ic-2": {
-            "name": "Entry Assessment",
-            "description": "Market → Competition → Profitability → Entry"
-          },
-          "wf-ic-3": {
-            "name": "Strategic Plan",
-            "description": "Vision → Business → Roadmap → KPIs"
-          }
-        },
-        "accounting": {
-          "wf-ac-1": {
-            "name": "Tax Optimization",
-            "description": "Business → Policy → Design → Implement"
-          },
-          "wf-ac-2": {
-            "name": "Financial Health",
-            "description": "Metrics → Benchmark → Issues → Improve"
-          },
-          "wf-ac-3": {
-            "name": "Cost Control",
-            "description": "Breakdown → Efficiency → Optimize → Execute"
-          }
-        },
-        "ecommerce": {
-          "wf-ec-1": {
-            "name": "Viral Product",
-            "description": "Selection → Highlights → Page → Traffic"
-          },
-          "wf-ec-2": {
-            "name": "Competitor Monitor",
-            "description": "Identify → Price → Campaign → Adjust"
-          },
-          "wf-ec-3": {
-            "name": "Promo Planning",
-            "description": "Goals → Selection → Traffic → Execute"
-          }
-        },
-        "education": {
-          "wf-ed-1": {
-            "name": "Course Design",
-            "description": "Needs → Outline → Content → Assessment"
-          },
-          "wf-ed-2": {
-            "name": "Learning Path",
-            "description": "Assessment → Goals → Path → Resources"
-          },
-          "wf-ed-3": {
-            "name": "Content Development",
-            "description": "Knowledge → Write → Cases → Exercises"
-          }
-        }
-      },
-      "noWorkflows": "No workflows for this industry",
-      "loadFailed": "Failed to load industry: {{error}}",
-      "notFound": "Industry not found",
-      "quickActions": "Quick Actions",
-      "startConversation": "Start Industry Conversation",
-      "createWorkflow": "Create Industry Workflow",
-      "presetWorkflows": "Industry Preset Workflows",
-      "createFirstWorkflow": "Create First Workflow",
-      "useWorkflow": "Use This Workflow",
-      "noProviderConfig": "Please configure a default AI provider first",
-      "useThisWorkflow": "Use This Workflow",
-      "exclusiveActions": "Exclusive Actions",
-      "exclusiveWorkflows": "Exclusive Workflows",
       "actions": {
         "ai-research": {
           "ai-paper": {
@@ -4586,7 +4434,35 @@
           }
         }
       },
-      "workflowTag": "Workflow",
+      "analysis": {
+        "title": "محرك تحليل الصناعة",
+        "execute": "تشغيل التحليل",
+        "executeSuccess": "تم تشغيل التحليل بنجاح",
+        "executeFailed": "فشل تشغيل التحليل: {{error}}",
+        "noData": "لا توجد بيانات تحليل، انقر للتشغيل",
+        "confidence": "ثقة القرار",
+        "decisionType": "نوع القرار",
+        "riskLevel": "مستوى المخاطر",
+        "riskLevelTitle": "مستوى المخاطر",
+        "recommendations": "قائمة التوصيات",
+        "timeRange7d": "7 أيام",
+        "timeRange30d": "30 يومًا",
+        "timeRange90d": "90 يومًا"
+      },
+      "createFirstWorkflow": "Create First Workflow",
+      "createWorkflow": "Create Industry Workflow",
+      "dashboard": {
+        "title": "لوحة معلومات KPI للصناعة",
+        "7days": "آخر 7 أيام",
+        "30days": "آخر 30 يوماً",
+        "90days": "آخر 90 يوماً",
+        "noData": "لا توجد بيانات KPI"
+      },
+      "disabled": "Disabled",
+      "domainWorkflows": "تدفقات المجال",
+      "enabled": "Enabled",
+      "exclusiveActions": "Exclusive Actions",
+      "exclusiveWorkflows": "Exclusive Workflows",
       "executeSuffix": "{{name}} - تنفيذ",
       "learning": {
         "title": "إعداد التعلم والتطور",
@@ -4640,20 +4516,27 @@
           "configNotFound": "إعداد التعلم غير موجود"
         }
       },
+      "loadFailed": "Failed to load industry: {{error}}",
+      "loadingDomainWorkflows": "جاري تحميل تدفقات المجال...",
+      "metrics": {
+        "title": "مؤشرات تعلم الصناعة",
+        "refresh": "تحديث المؤشرات",
+        "noData": "لا توجد بيانات مؤشرات التعلم",
+        "totalSamples": "إجمالي العينات",
+        "decisionAccuracy": "دقة القرار",
+        "riskAccuracy": "دقة توقع المخاطر",
+        "avgFeedback": "متوسط درجة التغذية الراجعة",
+        "trend_improving": "تحسن",
+        "trend_stable": "مستقر",
+        "trend_declining": "انخفاض"
+      },
+      "noProviderConfig": "Please configure a default AI provider first",
+      "noWorkflows": "No workflows for this industry",
+      "notFound": "Industry not found",
+      "presetWorkflows": "Industry Preset Workflows",
+      "quickActions": "Quick Actions",
       "refresh": "تحديث",
       "refreshSuccess": "تم تحديث بيانات الصناعة",
-      "dashboard": {
-        "title": "لوحة معلومات KPI للصناعة",
-        "7days": "آخر 7 أيام",
-        "30days": "آخر 30 يوماً",
-        "90days": "آخر 90 يوماً",
-        "noData": "لا توجد بيانات KPI"
-      },
-      "workflowSteps": {
-        "title": "خطوات سير عمل الصناعة",
-        "step": "خطوة",
-        "noData": "لا توجد خطوات سير عمل"
-      },
       "rules": {
         "title": "قواعد الأتمتة الصناعية",
         "runAll": "تشغيل جميع القواعد",
@@ -4666,21 +4549,10 @@
         "nothingTriggered": "لم يتم تشغيل أي قاعدة",
         "runFailed": "فشل تشغيل القاعدة: {{error}}"
       },
-      "analysis": {
-        "title": "محرك تحليل الصناعة",
-        "execute": "تشغيل التحليل",
-        "executeSuccess": "تم تشغيل التحليل بنجاح",
-        "executeFailed": "فشل تشغيل التحليل: {{error}}",
-        "noData": "لا توجد بيانات تحليل، انقر للتشغيل",
-        "confidence": "ثقة القرار",
-        "decisionType": "نوع القرار",
-        "riskLevel": "مستوى المخاطر",
-        "riskLevelTitle": "مستوى المخاطر",
-        "recommendations": "قائمة التوصيات",
-        "timeRange7d": "7 أيام",
-        "timeRange30d": "30 يومًا",
-        "timeRange90d": "90 يومًا"
-      },
+      "startConversation": "Start Industry Conversation",
+      "useThisWorkflow": "Use This Workflow",
+      "useWorkflow": "Use This Workflow",
+      "version": "Version {{version}}",
       "workflow": {
         "executionTitle": "تنفيذ سير عمل الصناعة",
         "execute": "تشغيل سير العمل",
@@ -4694,17 +4566,147 @@
         "status_partial": "جزئي",
         "duration": "المدة"
       },
-      "metrics": {
-        "title": "مؤشرات تعلم الصناعة",
-        "refresh": "تحديث المؤشرات",
-        "noData": "لا توجد بيانات مؤشرات التعلم",
-        "totalSamples": "إجمالي العينات",
-        "decisionAccuracy": "دقة القرار",
-        "riskAccuracy": "دقة توقع المخاطر",
-        "avgFeedback": "متوسط درجة التغذية الراجعة",
-        "trend_improving": "تحسن",
-        "trend_stable": "مستقر",
-        "trend_declining": "انخفاض"
+      "workflowSteps": {
+        "title": "خطوات سير عمل الصناعة",
+        "step": "خطوة",
+        "noData": "لا توجد خطوات سير عمل"
+      },
+      "workflowTag": "Workflow",
+      "workflows": {
+        "ai-research": {
+          "wf-ai-research-1": {
+            "name": "AI Tech Research",
+            "description": "Tech Scan → Paper Analysis → Trend Forecast"
+          },
+          "wf-ai-research-2": {
+            "name": "LLM Selection",
+            "description": "Requirements → Model Comparison → Selection"
+          },
+          "wf-ai-research-3": {
+            "name": "AI Product Analysis",
+            "description": "Competitor Scan → Feature Breakdown → Positioning"
+          }
+        },
+        "software-dev": {
+          "wf-sd-1": {
+            "name": "Code Refactoring",
+            "description": "Code Scan → Issue ID → Refactor → Verify"
+          },
+          "wf-sd-2": {
+            "name": "Tech Selection",
+            "description": "Requirements → Comparison → Recommendation"
+          },
+          "wf-sd-3": {
+            "name": "Performance Opt",
+            "description": "Perf Analysis → Bottleneck → Optimization → Verify"
+          },
+          "wf-large-refactor": {
+            "name": "إعادة هيكلة واسعة النطاق",
+            "description": "جرد الأصول → تحليل روائح الكود → استراتيجية إعادة الهيكلة → تنفيذ دفعي → تسليم القبول"
+          },
+          "wf-large-refactor-lite": {
+            "name": "إعادة هيكلة تدريجية سريعة",
+            "description": "تقييم التغيير → خطة دنيا → تنفيذ → تحقق"
+          }
+        },
+        "finance-invest": {
+          "wf-fi-1": {
+            "name": "A-Share Research",
+            "description": "Market → Financials → Valuation → Recommendation"
+          },
+          "wf-fi-2": {
+            "name": "Industry Comparison",
+            "description": "Industry Scan → Benchmark → Compare → Conclusion"
+          },
+          "wf-fi-3": {
+            "name": "Portfolio Optimization",
+            "description": "Holdings → Risk → Allocation → Rebalance"
+          }
+        },
+        "sales-growth": {
+          "wf-sg-1": {
+            "name": "Acquisition Strategy",
+            "description": "Channel → Budget → Content → ROI"
+          },
+          "wf-sg-2": {
+            "name": "Conversion Boost",
+            "description": "Funnel → Page → A/B Test → Conversion"
+          },
+          "wf-sg-3": {
+            "name": "Customer Retention",
+            "description": "Churn → Retention → Loyalty → Repurchase"
+          }
+        },
+        "content-media": {
+          "workflow-cm-viral-content": {
+            "name": "Viral Content",
+            "description": "Topic → Title → Write → Publish"
+          },
+          "workflow-cm-multi-platform": {
+            "name": "Platform Adapt",
+            "description": "Content → Platform → Format → Strategy"
+          },
+          "workflow-cm-ip-building": {
+            "name": "IP Building",
+            "description": "Positioning → Persona → Planning → Growth"
+          }
+        },
+        "industry-consulting": {
+          "wf-ic-1": {
+            "name": "Industry Scan",
+            "description": "Research → Competition → Trends → Opportunities"
+          },
+          "wf-ic-2": {
+            "name": "Entry Assessment",
+            "description": "Market → Competition → Profitability → Entry"
+          },
+          "wf-ic-3": {
+            "name": "Strategic Plan",
+            "description": "Vision → Business → Roadmap → KPIs"
+          }
+        },
+        "accounting": {
+          "wf-ac-1": {
+            "name": "Tax Optimization",
+            "description": "Business → Policy → Design → Implement"
+          },
+          "wf-ac-2": {
+            "name": "Financial Health",
+            "description": "Metrics → Benchmark → Issues → Improve"
+          },
+          "wf-ac-3": {
+            "name": "Cost Control",
+            "description": "Breakdown → Efficiency → Optimize → Execute"
+          }
+        },
+        "ecommerce": {
+          "wf-ec-1": {
+            "name": "Viral Product",
+            "description": "Selection → Highlights → Page → Traffic"
+          },
+          "wf-ec-2": {
+            "name": "Competitor Monitor",
+            "description": "Identify → Price → Campaign → Adjust"
+          },
+          "wf-ec-3": {
+            "name": "Promo Planning",
+            "description": "Goals → Selection → Traffic → Execute"
+          }
+        },
+        "education": {
+          "wf-ed-1": {
+            "name": "Course Design",
+            "description": "Needs → Outline → Content → Assessment"
+          },
+          "wf-ed-2": {
+            "name": "Learning Path",
+            "description": "Assessment → Goals → Path → Resources"
+          },
+          "wf-ed-3": {
+            "name": "Content Development",
+            "description": "Knowledge → Write → Cases → Exercises"
+          }
+        }
       }
     },
     "rl": {
@@ -5067,26 +5069,86 @@
     },
     "stepLabel": "الخطوة",
     "profiles": {
-      "code_auditor": { "name": "خبير تدقيق الأكواد", "role": "خبير تدقيق الأكواد" },
-      "architect_analyst": { "name": "محلل معماري", "role": "محلل معماري" },
-      "quality_expert": { "name": "خبير جودة الأكواد", "role": "خبير جودة الأكواد" },
-      "behavior_tester": { "name": "خبير اختبار السلوك", "role": "خبير اختبار السلوك" },
-      "knowledge_engineer": { "name": "مهندس معرفة", "role": "مهندس معرفة" },
-      "refactor_consultant": { "name": "مستشار إعادة الهيكلة", "role": "مستشار إعادة الهيكلة" },
-      "solution_architect": { "name": "مهندس حلول", "role": "مهندس حلول" },
-      "tech_project_manager": { "name": "مدير مشروع تقني", "role": "مدير مشروع تقني" },
-      "change_manager": { "name": "خبير إدارة التغيير", "role": "خبير إدارة التغيير" },
-      "quality_engineer": { "name": "مهندس جودة", "role": "مهندس جودة" },
-      "devops_engineer": { "name": "مهندس DevOps", "role": "مهندس DevOps" },
-      "code_reviewer": { "name": "مراجع الأكواد", "role": "مراجع الأكواد" },
-      "senior_engineer": { "name": "مهندس أول", "role": "مهندس أول" },
-      "behavior_verifier": { "name": "خبير التحقق من السلوك", "role": "خبير التحقق من السلوك" },
-      "test_engineer": { "name": "مهندس اختبار", "role": "مهندس اختبار" },
-      "integration_engineer": { "name": "مهندس اختبار تكاملي", "role": "مهندس اختبار تكاملي" },
-      "quality_director": { "name": "مدير الجودة", "role": "مدير الجودة" },
-      "tech_writer": { "name": "كاتب تقني", "role": "كاتب تقني" },
-      "ops_engineer": { "name": "مهندس عمليات", "role": "مهندس عمليات" },
-      "project_manager": { "name": "مدير مشروع", "role": "مدير مشروع" }
+      "code_auditor": {
+        "name": "خبير تدقيق الأكواد",
+        "role": "خبير تدقيق الأكواد"
+      },
+      "architect_analyst": {
+        "name": "محلل معماري",
+        "role": "محلل معماري"
+      },
+      "quality_expert": {
+        "name": "خبير جودة الأكواد",
+        "role": "خبير جودة الأكواد"
+      },
+      "behavior_tester": {
+        "name": "خبير اختبار السلوك",
+        "role": "خبير اختبار السلوك"
+      },
+      "knowledge_engineer": {
+        "name": "مهندس معرفة",
+        "role": "مهندس معرفة"
+      },
+      "refactor_consultant": {
+        "name": "مستشار إعادة الهيكلة",
+        "role": "مستشار إعادة الهيكلة"
+      },
+      "solution_architect": {
+        "name": "مهندس حلول",
+        "role": "مهندس حلول"
+      },
+      "tech_project_manager": {
+        "name": "مدير مشروع تقني",
+        "role": "مدير مشروع تقني"
+      },
+      "change_manager": {
+        "name": "خبير إدارة التغيير",
+        "role": "خبير إدارة التغيير"
+      },
+      "quality_engineer": {
+        "name": "مهندس جودة",
+        "role": "مهندس جودة"
+      },
+      "devops_engineer": {
+        "name": "مهندس DevOps",
+        "role": "مهندس DevOps"
+      },
+      "code_reviewer": {
+        "name": "مراجع الأكواد",
+        "role": "مراجع الأكواد"
+      },
+      "senior_engineer": {
+        "name": "مهندس أول",
+        "role": "مهندس أول"
+      },
+      "behavior_verifier": {
+        "name": "خبير التحقق من السلوك",
+        "role": "خبير التحقق من السلوك"
+      },
+      "test_engineer": {
+        "name": "مهندس اختبار",
+        "role": "مهندس اختبار"
+      },
+      "integration_engineer": {
+        "name": "مهندس اختبار تكاملي",
+        "role": "مهندس اختبار تكاملي"
+      },
+      "quality_director": {
+        "name": "مدير الجودة",
+        "role": "مدير الجودة"
+      },
+      "tech_writer": {
+        "name": "كاتب تقني",
+        "role": "كاتب تقني"
+      },
+      "ops_engineer": {
+        "name": "مهندس عمليات",
+        "role": "مهندس عمليات"
+      },
+      "project_manager": {
+        "name": "مدير مشروع",
+        "role": "مدير مشروع"
+      }
     }
   },
   "promptTemplate": {

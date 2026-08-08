@@ -1286,6 +1286,11 @@ commands::opc::opc_work_item_start,
 commands::opc::opc_work_item_unblock,
 commands::opc::run_self_improving_opc_work_item,
 
+// opc_workflows — 领域工作流
+commands::opc_workflows::domain_workflows::opc_list_domain_workflows,
+commands::opc_workflows::domain_workflows::opc_get_domain_workflow,
+commands::opc_workflows::domain_workflows::opc_list_domains,
+
 // opc_industry_actions
 commands::opc_industry_actions::opc_build_industry_prompt,
 commands::opc_industry_actions::opc_evolve_workflow,

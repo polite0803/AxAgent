@@ -178,6 +178,7 @@ interface IndustryLearningMetrics {
 }
 
 /** 9 个行业专属配置 - 文本内容通过 i18n 获取 */
+/** 工作流 ID 对应 Rust 后端生成的领域工作流 (src-tauri/crates/analysis-engine/src/opc/domain/generated.rs) */
 const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
   "ai-research": {
     actions: [
@@ -187,9 +188,8 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "ai-report", icon: <FileTextOutlined />, type: "workflow" },
     ],
     workflows: [
-      { id: "wf-ai-research-1", name: "", description: "", version: "1.0" },
-      { id: "wf-ai-research-2", name: "", description: "", version: "1.0" },
-      { id: "wf-ai-research-3", name: "", description: "", version: "1.0" },
+      { id: "wf-acd-literature", name: "", description: "", version: "1.0" },
+      { id: "wf-acd-research", name: "", description: "", version: "1.0" },
     ],
   },
   "software-dev": {
@@ -200,9 +200,11 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "sd-bug", icon: <BugOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "wf-sd-1", name: "", description: "", version: "1.0" },
-      { id: "wf-sd-2", name: "", description: "", version: "1.0" },
-      { id: "wf-sd-3", name: "", description: "", version: "1.0" },
+      { id: "wf-eng-api-design", name: "", description: "", version: "1.0" },
+      { id: "wf-eng-arch-review", name: "", description: "", version: "1.0" },
+      { id: "wf-eng-code-review", name: "", description: "", version: "1.0" },
+      { id: "wf-eng-refactor", name: "", description: "", version: "1.0" },
+      { id: "wf-eng-security-review", name: "", description: "", version: "1.0" },
     ],
   },
   "finance-invest": {
@@ -213,9 +215,9 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "fi-risk", icon: <SolutionOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "wf-fi-1", name: "", description: "", version: "1.0" },
-      { id: "wf-fi-2", name: "", description: "", version: "1.0" },
-      { id: "wf-fi-3", name: "", description: "", version: "1.0" },
+      { id: "wf-fin-budget", name: "", description: "", version: "1.0" },
+      { id: "wf-fin-cost-analysis", name: "", description: "", version: "1.0" },
+      { id: "wf-fin-tax", name: "", description: "", version: "1.0" },
     ],
   },
   "sales-growth": {
@@ -226,9 +228,10 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "sg-competitor", icon: <TrophyOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "wf-sg-1", name: "", description: "", version: "1.0" },
-      { id: "wf-sg-2", name: "", description: "", version: "1.0" },
-      { id: "wf-sg-3", name: "", description: "", version: "1.0" },
+      { id: "wf-sal-outbound", name: "", description: "", version: "1.0" },
+      { id: "wf-sal-deal-strategy", name: "", description: "", version: "1.0" },
+      { id: "wf-sal-pipeline-review", name: "", description: "", version: "1.0" },
+      { id: "wf-mkt-ab-test", name: "", description: "", version: "1.0" },
     ],
   },
   "content-media": {
@@ -239,9 +242,9 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "cm-calendar", icon: <BookOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "workflow-cm-viral-content", name: "", description: "", version: "1.0" },
-      { id: "workflow-cm-multi-platform", name: "", description: "", version: "1.0" },
-      { id: "workflow-cm-ip-building", name: "", description: "", version: "1.0" },
+      { id: "wf-mkt-social-plan", name: "", description: "", version: "1.0" },
+      { id: "wf-mkt-seo-audit", name: "", description: "", version: "1.0" },
+      { id: "wf-mkt-email-campaign", name: "", description: "", version: "1.0" },
     ],
   },
   "industry-consulting": {
@@ -252,9 +255,9 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "ic-competitor", icon: <TrophyOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "wf-ic-1", name: "", description: "", version: "1.0" },
-      { id: "wf-ic-2", name: "", description: "", version: "1.0" },
-      { id: "wf-ic-3", name: "", description: "", version: "1.0" },
+      { id: "wf-strat-biz-plan", name: "", description: "", version: "1.0" },
+      { id: "wf-strat-market-entry", name: "", description: "", version: "1.0" },
+      { id: "wf-spc-esg", name: "", description: "", version: "1.0" },
     ],
   },
   accounting: {
@@ -265,9 +268,9 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "ac-budget", icon: <FundProjectionScreenOutlined />, type: "workflow" },
     ],
     workflows: [
-      { id: "wf-ac-1", name: "", description: "", version: "1.0" },
-      { id: "wf-ac-2", name: "", description: "", version: "1.0" },
-      { id: "wf-ac-3", name: "", description: "", version: "1.0" },
+      { id: "wf-fin-budget", name: "", description: "", version: "1.0" },
+      { id: "wf-fin-cost-analysis", name: "", description: "", version: "1.0" },
+      { id: "wf-fin-tax", name: "", description: "", version: "1.0" },
     ],
   },
   ecommerce: {
@@ -278,9 +281,10 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "ec-shop", icon: <ShopOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "wf-ec-1", name: "", description: "", version: "1.0" },
-      { id: "wf-ec-2", name: "", description: "", version: "1.0" },
-      { id: "wf-ec-3", name: "", description: "", version: "1.0" },
+      { id: "wf-mkt-ab-test", name: "", description: "", version: "1.0" },
+      { id: "wf-mkt-analytics", name: "", description: "", version: "1.0" },
+      { id: "wf-prod-launch", name: "", description: "", version: "1.0" },
+      { id: "wf-prod-spec", name: "", description: "", version: "1.0" },
     ],
   },
   education: {
@@ -291,9 +295,9 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
       { key: "ed-content", icon: <FileTextOutlined />, type: "workflow" },
     ],
     workflows: [
-      { id: "wf-ed-1", name: "", description: "", version: "1.0" },
-      { id: "wf-ed-2", name: "", description: "", version: "1.0" },
-      { id: "wf-ed-3", name: "", description: "", version: "1.0" },
+      { id: "wf-acd-literature", name: "", description: "", version: "1.0" },
+      { id: "wf-sup-faq", name: "", description: "", version: "1.0" },
+      { id: "wf-sup-satisfaction", name: "", description: "", version: "1.0" },
     ],
   },
 };
