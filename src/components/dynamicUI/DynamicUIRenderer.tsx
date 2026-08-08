@@ -338,7 +338,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
     }
     const { style, blocked } = getStyleSanitizer().sanitize(schema.style);
     if (blocked.length > 0) {
-      console.warn(`[DynamicUI] 已过滤危险样式属性 ${blocked.join(", ")} (schema: ${schema.id})`);
+      console.warn(`[DynamicUI] Filtered dangerous style properties ${blocked.join(", ")} (schema: ${schema.id})`);
     }
     return style ? { ...schema, style } : { ...schema, style: undefined };
   }, [schema]);
@@ -352,7 +352,7 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
     }
     const { isClean } = checkInput(schemaContent);
     if (!isClean) {
-      console.warn(`[DynamicUI] content 检测到注入模式 (schema: ${schema.id})`);
+      console.warn(`[DynamicUI] Injection pattern detected in content (schema: ${schema.id})`);
     }
     // 仅依赖内容与 id，避免 schema 引用变化触发重复检测
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -2,10 +2,10 @@
 
 import { escapeHtml } from "./injectionDetector";
 
-/** 输出风险级别 */
+/** Output risk level */
 export type OutputRiskLevel = "safe" | "warning" | "blocked";
 
-/** 输出净化结果 */
+/** Sanitized output */
 export interface SanitizedOutput {
   content: string;
   riskLevel: OutputRiskLevel;
@@ -14,7 +14,7 @@ export interface SanitizedOutput {
   warnings: string[];
 }
 
-/** 输出安全过滤器 */
+/** Output sanitizer */
 export class OutputSanitizer {
   private contentFilters: Array<(content: string) => string>;
   private flagChecks: Array<{ pattern: RegExp; flag: string }>;
@@ -25,12 +25,12 @@ export class OutputSanitizer {
       (c) =>
         c.replace(
           /(?:system|assistant|user)\s*:\s*(?:ignore|disregard|forget)\s+(?:all\s+)?(?:previous|prior)\s+(?:instructions?|prompts?|rules?)/gi,
-          "[安全过滤: 提示注入尝试已移除]",
+          "[SAFE FILTERED: Prompt injection attempt removed]",
         ),
       (c) =>
         c.replace(
           /DAN\s*(?:mode)?|do\s+anything\s+now/i,
-          "[安全过滤: 越狱尝试已移除]",
+          "[SAFE FILTERED: Jailbreak attempt removed]",
         ),
     ];
 
@@ -45,17 +45,17 @@ export class OutputSanitizer {
     ];
   }
 
-  /** 添加自定义过滤器 */
+  /** Add custom filter */
   addFilter(filter: (content: string) => string): void {
     this.contentFilters.push(filter);
   }
 
-  /** 添加自定义标志检查 */
+  /** Add custom flag check */
   addFlagCheck(pattern: RegExp, flag: string): void {
     this.flagChecks.push({ pattern, flag });
   }
 
-  /** 净化输出内容 */
+  /** Sanitize output content */
   sanitize(content: string): SanitizedOutput {
     let sanitized = content;
     const flags: string[] = [];
@@ -76,26 +76,26 @@ export class OutputSanitizer {
 
     if (flags.some((f) => f.includes("script") || f.includes("javascript"))) {
       riskLevel = "blocked";
-      warnings.push("检测到脚本注入风险，已自动过滤");
+      warnings.push("Script injection risk detected, automatically filtered");
       actions.push("script_blocked");
     } else if (flags.includes("potential_data_exfiltration")) {
       riskLevel = "warning";
-      warnings.push("检测到可能的数据外泄意图");
+      warnings.push("Potential data exfiltration intent detected");
       actions.push("exfiltration_warning");
     } else if (flags.includes("contains_sensitive_data")) {
       riskLevel = "warning";
-      warnings.push("输出中可能包含敏感信息");
+      warnings.push("Output may contain sensitive information");
       actions.push("sensitive_data_warning");
     } else if (flags.length > 0) {
       riskLevel = "warning";
-      warnings.push(`检测到 ${flags.length} 个安全标志`);
+      warnings.push(`${flags.length} security flag(s) detected`);
       actions.push("flagged");
     }
 
     const MAX_OUTPUT_LENGTH = 100_000;
     if (sanitized.length > MAX_OUTPUT_LENGTH) {
-      sanitized = sanitized.slice(0, MAX_OUTPUT_LENGTH) + "\n\n[输出已截断以保护性能]";
-      warnings.push(`输出超过 ${MAX_OUTPUT_LENGTH} 字符，已截断`);
+      sanitized = sanitized.slice(0, MAX_OUTPUT_LENGTH) + "\n\n[Output truncated for performance]";
+      warnings.push(`Output exceeded ${MAX_OUTPUT_LENGTH} characters, truncated`);
       riskLevel = riskLevel === "safe" ? "warning" : riskLevel;
       actions.push("truncated");
     }
@@ -109,7 +109,7 @@ export class OutputSanitizer {
     };
   }
 
-  /** 安全渲染（React 场景） */
+  /** Safe rendering (React scenario) */
   sanitizeForRender(content: string): {
     safeHtml: string;
     wasModified: boolean;

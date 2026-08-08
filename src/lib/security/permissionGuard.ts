@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/** 权限等级 */
+/** Permission level */
 export type PermissionLevel = "read" | "write" | "execute" | "admin";
 
-/** 资源类型 */
+/** Resource type */
 export type ResourceType =
   | "file"
   | "network"
@@ -13,7 +13,7 @@ export type ResourceType =
   | "clipboard"
   | "filesystem";
 
-/** 权限请求 */
+/** Permission request */
 export interface PermissionRequest {
   id: string;
   resourceType: ResourceType;
@@ -25,7 +25,7 @@ export interface PermissionRequest {
   timestamp: number;
 }
 
-/** 权限审批结果 */
+/** Permission decision */
 export interface PermissionDecision {
   requestId: string;
   approved: boolean;
@@ -35,27 +35,27 @@ export interface PermissionDecision {
   reason?: string;
 }
 
-/** 权限策略 */
+/** Permission policy */
 export interface PermissionPolicy {
-  /** 自动批准的低风险操作 */
+  /** Auto-approve low-risk operations */
   autoApprove: Array<{
     resourceType: ResourceType;
     action: string;
   }>;
-  /** 永远拒绝的高风险操作 */
+  /** Always deny high-risk operations */
   autoDeny: Array<{
     resourceType: ResourceType;
     action: string;
   }>;
-  /** 需要用户确认的操作 */
+  /** Operations requiring user confirmation */
   requireConfirmation: Array<{
     resourceType: ResourceType;
     action: string;
     riskLevel: "medium" | "high" | "critical";
   }>;
-  /** 默认权限等级 */
+  /** Default permission level */
   defaultLevel: PermissionLevel;
-  /** 会话超时时间（ms） */
+  /** Session timeout (ms) */
   sessionTimeoutMs: number;
 }
 
@@ -81,7 +81,7 @@ const DEFAULT_POLICY: PermissionPolicy = {
   sessionTimeoutMs: 30 * 60 * 1000,
 };
 
-/** 权限守卫 */
+/** Permission guard */
 export class PermissionGuard {
   private policy: PermissionPolicy;
   private activePermissions: Map<string, { level: PermissionLevel; expiresAt: number }>;
@@ -91,12 +91,12 @@ export class PermissionGuard {
     this.activePermissions = new Map();
   }
 
-  /** 更新策略 */
+  /** Update policy */
   updatePolicy(policy: Partial<PermissionPolicy>): void {
     this.policy = { ...this.policy, ...policy };
   }
 
-  /** 检查权限请求 */
+  /** Check permission request */
   evaluate(request: PermissionRequest): PermissionDecision {
     const denied = this.policy.autoDeny.find(
       (rule) =>
@@ -111,7 +111,7 @@ export class PermissionGuard {
         decidedBy: "policy",
         constrainedPermissions: [],
         expiresAt: null,
-        reason: `操作 ${request.action} 被安全策略永久拒绝`,
+        reason: `Operation ${request.action} is permanently denied by security policy`,
       };
     }
 
@@ -153,7 +153,7 @@ export class PermissionGuard {
         decidedBy: "user",
         constrainedPermissions: [],
         expiresAt: null,
-        reason: `需要用户确认：${request.action}（风险等级：${requiresConfirm.riskLevel}）`,
+        reason: `User confirmation required: ${request.action} (risk level: ${requiresConfirm.riskLevel})`,
       };
     }
 
@@ -163,11 +163,11 @@ export class PermissionGuard {
       decidedBy: "policy",
       constrainedPermissions: [],
       expiresAt: null,
-      reason: "操作不在白名单内，默认拒绝",
+      reason: "Operation not in whitelist, denied by default",
     };
   }
 
-  /** 授予权限 */
+  /** Grant permission */
   grant(
     request: PermissionRequest,
     level: PermissionLevel,
@@ -179,12 +179,12 @@ export class PermissionGuard {
     this.activePermissions.set(this.makeKey(request), { level, expiresAt });
   }
 
-  /** 撤销权限 */
+  /** Revoke permission */
   revoke(request: PermissionRequest): void {
     this.activePermissions.delete(this.makeKey(request));
   }
 
-  /** 清理过期权限 */
+  /** Clean expired permissions */
   cleanupExpired(): number {
     const now = Date.now();
     let count = 0;
@@ -197,7 +197,7 @@ export class PermissionGuard {
     return count;
   }
 
-  /** 获取当前活跃权限 */
+  /** Get current active permissions */
   getActivePermissions(): Array<{
     resourceType: ResourceType;
     action: string;
@@ -224,13 +224,13 @@ export class PermissionGuard {
     return result;
   }
 
-  /** 快速检查：低风险操作是否被允许 */
+  /** Quick check: whether low-risk operations are allowed */
   canPerformLowRisk(resourceType: ResourceType, action: string): boolean {
     const request: PermissionRequest = {
       id: `quick-${Date.now()}`,
       resourceType,
       action,
-      reason: "快速权限检查",
+      reason: "Quick permission check",
       riskLevel: "low",
       requiredPermissions: ["read"],
       context: {},

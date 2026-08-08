@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/** 注入类型 */
+/** Injection type */
 export type InjectionType =
   | "prompt_injection"
   | "sql_injection"
@@ -11,7 +11,7 @@ export type InjectionType =
   | "role_play_attack"
   | "jailbreak";
 
-/** 注入检测结果 */
+/** Injection detection result */
 export interface InjectionDetection {
   type: InjectionType;
   severity: "low" | "medium" | "high" | "critical";
@@ -22,7 +22,7 @@ export interface InjectionDetection {
   recommendation: string;
 }
 
-/** 输入净化结果 */
+/** Sanitization result */
 export interface SanitizationResult {
   isClean: boolean;
   sanitizedText: string;
@@ -30,7 +30,7 @@ export interface SanitizationResult {
   riskScore: number;
 }
 
-/** 注入检测规则 */
+/** Detection rules */
 interface DetectionRule {
   type: InjectionType;
   patterns: RegExp[];
@@ -42,7 +42,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "prompt_injection",
     severity: "high",
-    recommendation: "检测到可能的提示注入攻击，建议审查输入内容",
+    recommendation: "Potential prompt injection attack detected. Review input content carefully.",
     patterns: [
       /ignore\s+(all\s+)?(previous|prior)\s+(instructions?|prompts?|rules?)/i,
       /disregard\s+(all\s+)?(previous|prior)\s+(instructions?|prompts?|rules?)/i,
@@ -59,7 +59,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "sql_injection",
     severity: "critical",
-    recommendation: "检测到可能的 SQL 注入攻击，严禁直接拼接到 SQL 查询中",
+    recommendation: "Potential SQL injection attack detected. Never concatenate directly into SQL queries.",
     patterns: [
       /('|"|;)\s*(drop|delete|update|insert|truncate|alter)\s+/i,
       /\bor\s+['"]?\d+['"]?\s*=\s*['"]?\d+/i,
@@ -75,7 +75,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "command_injection",
     severity: "critical",
-    recommendation: "检测到可能的命令注入，严禁直接拼接到 shell 命令中",
+    recommendation: "Potential command injection detected. Never concatenate directly into shell commands.",
     patterns: [
       /[;&|`$(){}!<>].*(?:rm|del|move|copy|shutdown|reboot|chmod|chown)\s/i,
       /\$\(.*\)/,
@@ -89,7 +89,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "path_traversal",
     severity: "high",
-    recommendation: "检测到路径遍历尝试，确保文件操作在允许的目录内",
+    recommendation: "Path traversal attempt detected. Ensure file operations are within allowed directories.",
     patterns: [
       /\.\.\//g,
       /\.\.\\/g,
@@ -103,7 +103,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "xss",
     severity: "high",
-    recommendation: "检测到可能的 XSS 脚本，输出前必须 HTML 转义",
+    recommendation: "Potential XSS script detected. HTML escape must be applied before output.",
     patterns: [
       /<script[\s>]/i,
       /<\/script>/i,
@@ -118,7 +118,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "exfiltration",
     severity: "medium",
-    recommendation: "检测到可能的数据外泄意图",
+    recommendation: "Potential data exfiltration intent detected.",
     patterns: [
       /(?:send|export|exfiltrate|leak|dump)\s+(?:my|the|all)\s+(?:data|password|secret|key|token|credential)/i,
       /\b(?:api|webhook|url|endpoint)[^\s]*\b.*(?:send|post|upload|fetch)\b/i,
@@ -128,7 +128,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "role_play_attack",
     severity: "medium",
-    recommendation: "检测到角色冒充攻击",
+    recommendation: "Role impersonation attack detected.",
     patterns: [
       /act\s+as\s+(?:a|an|the)\s+(?:system|admin|root|developer|attacker|hacker)/i,
       /you\s+are\s+(?:now\s+)?(?:a|an|the)\s+(?:system|admin|root|god)/i,
@@ -139,7 +139,7 @@ const DETECTION_RULES: DetectionRule[] = [
   {
     type: "jailbreak",
     severity: "high",
-    recommendation: "检测到越狱尝试",
+    recommendation: "Jailbreak attempt detected.",
     patterns: [
       /jailbreak|crack|hack|exploit/i,
       /bypass\s+(safety|security|filter|guard)/i,
@@ -151,7 +151,7 @@ const DETECTION_RULES: DetectionRule[] = [
   },
 ];
 
-/** 注入检测器 */
+/** Injection detector */
 export class InjectionDetector {
   private rules: DetectionRule[];
   private customRules: DetectionRule[] = [];
@@ -160,13 +160,13 @@ export class InjectionDetector {
     this.rules = [...DETECTION_RULES, ...(customRules || [])];
   }
 
-  /** 添加自定义规则 */
+  /** Add custom rule */
   addRule(rule: DetectionRule): void {
     this.customRules.push(rule);
     this.rules = [...DETECTION_RULES, ...this.customRules];
   }
 
-  /** 检测输入中的注入攻击 */
+  /** Detect injection attacks in input */
   detect(input: string): InjectionDetection[] {
     const detections: InjectionDetection[] = [];
 
@@ -196,7 +196,7 @@ export class InjectionDetector {
     });
   }
 
-  /** 完整净化流程 */
+  /** Full sanitization flow */
   sanitize(input: string): SanitizationResult {
     const detections = this.detect(input);
 
@@ -220,14 +220,14 @@ export class InjectionDetector {
     };
   }
 
-  /** 仅检测严重级别 */
+  /** Detect only critical and high severity */
   detectCritical(input: string): InjectionDetection[] {
     return this.detect(input).filter(
       (d) => d.severity === "critical" || d.severity === "high",
     );
   }
 
-  /** 计算置信度 */
+  /** Calculate confidence score */
   private calculateConfidence(type: InjectionType, matched: string): number {
     const baseScores: Record<InjectionType, number> = {
       prompt_injection: 0.85,
@@ -245,7 +245,7 @@ export class InjectionDetector {
     return Math.min(score + lengthBonus, 1.0);
   }
 
-  /** 计算风险分 */
+  /** Calculate risk score */
   private calculateRiskScore(detections: InjectionDetection[]): number {
     const severityWeights = { critical: 1, high: 0.75, medium: 0.5, low: 0.25 };
     const total = detections.reduce((sum, d) => {
@@ -254,7 +254,7 @@ export class InjectionDetector {
     return Math.min(total / Math.max(detections.length, 1), 1.0);
   }
 
-  /** 编辑检测到的注入内容 */
+  /** Redact detected injection content */
   private redactDetections(
     input: string,
     detections: InjectionDetection[],
@@ -265,27 +265,27 @@ export class InjectionDetector {
     for (const detection of sorted) {
       const start = detection.position;
       const end = start + detection.matchedPattern.length;
-      result = result.slice(0, start) + `[已过滤: ${detection.type}]` + result.slice(end);
+      result = result.slice(0, start) + `[FILTERED: ${detection.type}]` + result.slice(end);
     }
 
     return result;
   }
 }
 
-/** HTML 转义 */
+/** HTML escape */
 export function escapeHtml(text: string): string {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
 
-/** JSON 安全字符串化 */
+/** JSON safe stringify */
 export function safeStringify(value: unknown): string {
   try {
     return JSON.stringify(value, (_key, val) => {
       if (typeof val === "string") {
         if (/<script|javascript:|on\w+=/i.test(val)) {
-          return "[已过滤]";
+          return "[FILTERED]";
         }
       }
       return val;
