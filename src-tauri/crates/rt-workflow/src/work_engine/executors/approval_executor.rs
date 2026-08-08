@@ -45,7 +45,7 @@ impl NodeExecutorTrait for ApprovalExecutor {
             return Err(NodeError::type_mismatch("approval", self.node_type()));
         };
         let c = &n.config;
-let approval_request = ApprovalRequest {
+        let approval_request = ApprovalRequest {
             execution_id: ctx.execution_id.clone(),
             node_id: node.base_id().to_string(),
             title: n.base.title.clone(),
