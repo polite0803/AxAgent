@@ -6,10 +6,16 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 
 use agent_macro::agent_command;
+use axagent_dao::repo::{conversation, message};
+use axagent_harness::types::{MessageRole, UpdateConversationInput};
+use axagent_harness::workflow_types::Workflow;
+use axagent_runtime::work_engine::{ProgressCallback, StepProgressEvent, node_type_of};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tauri::State;
+use crate::commands::spawn_guard::SpawnGuard;
+use std::sync::Arc;
+use tauri::{Emitter, State};
 
 // ── 类型定义 ──
 
@@ -69,52 +75,386 @@ pub async fn workflow_create(
     })
 }
 
-/// 执行工作流（P0-2 单一入口：统一 `start_workflow_execution` 与 `workflow_execute`）。
+/// 执行工作流（含 LLM 步骤执行）。
 ///
-/// `input`：工作流输入（原 start_workflow_execution 参数，现已并入）。
 /// `max_concurrent`：最大并发节点数（None 使用默认值 3）。
-/// 返回 execution_id（前端按 `workflow:execution-completed` 事件感知完成）。
+/// 暴露给前端用于按场景调节吞吐：CPU 密集型工作流降低并发避免压垮本机，
+/// IO 密集型工作流可提高并发缩短端到端时延。
+///
+/// `conversation_id` / `input`：对话驱动模式参数（可选）。
+/// 传入后，工作流执行期间会把步骤事件（`workflow_start` / `workflow_step_start` /
+/// `workflow_step_complete` / `workflow_step_error`）以带 `type` 的 `agent-stream-text`
+/// 事件桥接到对应对话；执行完成时结果写回 assistant 消息并 emit `agent-done` +
+/// `workflow-complete`，失败时 emit `agent-error` + `workflow-complete(success=false)`。
 #[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "执行工作流")]
 #[tauri::command]
 pub async fn workflow_execute(
     app: tauri::AppHandle,
     app_state: State<'_, AppState>,
     workflow_id: String,
-    input: Option<serde_json::Value>,
     model_id: Option<String>,
     provider_id: Option<String>,
     variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
     max_concurrent: Option<usize>,
+    conversation_id: Option<String>,
+    input: Option<serde_json::Value>,
 ) -> Result<String, String> {
-    // 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
+    // 验证工作流存在，并预构建节点元信息（node_id → (title, node_type)）。
+    // 供 progress_callback 组装步骤事件使用；回调内不再访问 engine 锁，
+    // 避免 progress_callback 与 run_workflow 主循环产生死锁。
+    let workflow = app_state
+        .work_engine
+        .get_workflow(&workflow_id)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+        .ok_or_else(|| ErrorResponse::err(agent_err::WORKFLOW_NOT_FOUND))?;
+
+    let goal_map: HashMap<String, (String, String)> = workflow
+        .nodes
+        .iter()
+        .map(|n| {
+            let base = n.base();
+            let kind = node_type_of(n).to_string();
+            (base.id.clone(), (base.title.clone(), kind))
+        })
+        .collect();
+
+// 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
     // 此处不再 set_tool_resolver 覆盖——否则会静默丢弃 init 阶段注入的 workflow:: 解析。
     let _ = app_state.local_tool_registry; // 保留依赖项以维持签名稳定
+    let db = app_state.harness.db().clone();
+    let engine = app_state.work_engine.clone();
+    let wid = workflow_id.clone();
+    let app_for_emit = app.clone();
+    let app_for_panic = app_for_emit.clone();
+    let wid_for_panic = wid.clone();
+    tokio::spawn(async move {
+        // 兜底：panic / 早退路径上 emit execution-completed failed 事件
+        // WF-P0-2: emit 字段统一为 { workflow_id, execution_id, status, total_time_ms, error? }
+        // 与前端 workEngineStore.ts 期望对齐
+        let _guard = SpawnGuard::new("workflow_run", move || {
+            tracing::error!("[workflow_run] PANIC guard fired for workflow={}", wid_for_panic);
+            let _ = app_for_panic.emit(
+                "workflow:execution-completed",
+                serde_json::json!({
+                    "workflow_id": wid_for_panic,
+                    "execution_id": null,
+                    "status": "failed",
+                    "total_time_ms": 0,
+                    "error": "Internal panic during workflow execution",
+                }),
+            );
+        });
+        let mut opts = axagent_runtime::work_engine::RunOptions::default();
+        if let Some(m) = model_id {
+            opts = opts.with_model(m);
+        }
+        if let Some(p) = provider_id {
+            opts = opts.with_provider(p);
+        }
+        if let Some(vars) = variables {
+            opts = opts.with_variables(vars);
+        }
+        if let Some(mc) = max_concurrent {
+            // 合理下限保护：至少 1 个并发，避免 0 导致死锁。
+            let clamped = mc.max(1);
+            opts = opts.with_max_concurrent(clamped);
+        }
+        opts.input = input;
 
-    let mut opts = axagent_runtime::work_engine::RunOptions { input, ..Default::default() };
-    if let Some(m) = model_id {
-        opts = opts.with_model(m);
-    }
-    if let Some(p) = provider_id {
-        opts = opts.with_provider(p);
-    }
-    if let Some(vars) = variables {
-        opts = opts.with_variables(vars);
-    }
-    if let Some(mc) = max_concurrent {
-        // 合理下限保护：至少 1 个并发，避免 0 导致死锁。
-        opts = opts.with_max_concurrent(mc.max(1));
-    }
-    let execution_id = crate::commands::work_engine::spawn_workflow_run(
-        app,
-        app_state.work_engine.clone(),
-        workflow_id,
-        opts,
-        Some(app_state.learning.clone()),
-        Some(app_state.app_data_dir.clone()),
-    );
+        // ── 对话驱动模式：创建 assistant 占位消息 + 桥接步骤事件 ──
+        // 步骤文本累积缓冲：与前端实时事件同格式，最终与结果一并写入 DB 消息，
+        // 保证 fetchMessages 回读的内容与对话区显示一致（步骤保留 + 结果在尾部）。
+        let steps_buf: Arc<std::sync::Mutex<String>> =
+            Arc::new(std::sync::Mutex::new(String::new()));
+        let assistant_message_id: Option<String> = if let Some(conv) = &conversation_id {
+            match message::create_message_with_parts(
+                &db,
+                conv,
+                MessageRole::Assistant,
+                "",
+                &[],
+                None,
+                0,
+                None,
+                None,
+            )
+            .await
+            {
+                Ok(m) => {
+                    // 前端用真实 ID 替换流式占位消息
+                    let _ = app_for_emit.emit(
+                        "agent-message-id",
+                        serde_json::json!({
+                            "conversationId": conv,
+                            "assistantMessageId": m.id,
+                        }),
+                    );
+                    if let Ok(mut buf) = steps_buf.lock() {
+                        buf.push_str(&format!("\n[Workflow Started: {}]\n", wid));
+                    }
+                    let _ = app_for_emit.emit(
+                        "agent-stream-text",
+                        serde_json::json!({
+                            "conversationId": conv,
+                            "assistantMessageId": m.id,
+                            "type": "workflow_start",
+                            "workflowId": wid.clone(),
+                        }),
+                    );
+                    Some(m.id)
+                },
+                Err(e) => {
+                    tracing::warn!("[workflow_run] 创建 assistant 消息失败: {}", e);
+                    None
+                },
+            }
+        } else {
+            None
+        };
 
-    // 统一返回 execution_id（前端监听 execution-completed 事件感知完成）
-    Ok(execution_id)
+        if let (Some(conv), Some(msg_id)) = (&conversation_id, &assistant_message_id) {
+            let cb_app = app_for_emit.clone();
+            let cb_conv = conv.clone();
+            let cb_msg = msg_id.clone();
+            let cb_goals = goal_map.clone();
+            let cb_steps = steps_buf.clone();
+            let progress_cb: ProgressCallback = Arc::new(move |evt: StepProgressEvent| {
+                let app = cb_app.clone();
+                let conv = cb_conv.clone();
+                let msg = cb_msg.clone();
+                let goals = cb_goals.clone();
+                let steps = cb_steps.clone();
+                Box::pin(async move {
+                    let (title, kind) = goals
+                        .get(&evt.node_id)
+                        .cloned()
+                        .unwrap_or_else(|| (evt.node_id.clone(), "node".to_string()));
+                    match evt.status.as_str() {
+                        "running" => {
+                            if let Ok(mut buf) = steps.lock() {
+                                buf.push_str(&format!("\n[Step Start] {}: {}\n", kind, title));
+                            }
+                            let _ = app.emit(
+                                "agent-stream-text",
+                                serde_json::json!({
+                                    "conversationId": conv,
+                                    "assistantMessageId": msg,
+                                    "type": "workflow_step_start",
+                                    "stepId": evt.node_id,
+                                    "stepGoal": title,
+                                    "agentRole": kind,
+                                }),
+                            );
+                        },
+                        "completed" => {
+                            if let Ok(mut buf) = steps.lock() {
+                                buf.push_str(&format!("[Step Complete] {}: ✓\n", title));
+                            }
+                            let _ = app.emit(
+                                "agent-stream-text",
+                                serde_json::json!({
+                                    "conversationId": conv,
+                                    "assistantMessageId": msg,
+                                    "type": "workflow_step_complete",
+                                    "stepId": evt.node_id,
+                                    "stepGoal": title,
+                                    "result": "✓",
+                                }),
+                            );
+                        },
+                        "failed" => {
+                            if let Ok(mut buf) = steps.lock() {
+                                buf.push_str(&format!(
+                                    "[Step Error] {}: 节点执行失败\n",
+                                    evt.node_id
+                                ));
+                            }
+                            let _ = app.emit(
+                                "agent-stream-text",
+                                serde_json::json!({
+                                    "conversationId": conv,
+                                    "assistantMessageId": msg,
+                                    "type": "workflow_step_error",
+                                    "stepId": evt.node_id,
+                                    "error": "节点执行失败",
+                                }),
+                            );
+                        },
+                        _ => {},
+                    }
+                })
+            });
+            opts = opts.with_progress_callback(progress_cb);
+        }
+
+        let started_at = std::time::Instant::now();
+        match engine.run_workflow(&wid, opts).await {
+            Ok(workflow) => {
+                let total_time_ms = started_at.elapsed().as_millis() as u64;
+                // run_workflow 不生成独立 execution_id，使用 workflow.id 作为标识
+                let execution_id = workflow.id.clone();
+                let status_str = format!("{:?}", workflow.status).to_lowercase();
+                let _ = app_for_emit.emit(
+                    "workflow:execution-completed",
+                    serde_json::json!({
+                        "workflow_id": wid,
+                        "execution_id": execution_id,
+                        "status": status_str,
+                        "total_time_ms": total_time_ms,
+                    }),
+                );
+
+                // 对话驱动模式：步骤文本保留 + 结果追加尾部，写入 DB 与 agent-done
+                if let (Some(conv), Some(msg_id)) = (&conversation_id, &assistant_message_id) {
+                    let output_text = format_workflow_output(&workflow);
+                    let steps_text = steps_buf.lock().map(|b| b.clone()).unwrap_or_default();
+                    let full_text = if steps_text.trim().is_empty() {
+                        output_text.clone()
+                    } else {
+                        format!(
+                            "{}{}{}",
+                            steps_text.trim_end(),
+                            if output_text.trim().is_empty() {
+                                ""
+                            } else {
+                                "\n\n"
+                            },
+                            output_text
+                        )
+                    };
+                    // DB 落库完整内容（步骤 + 结果），保证 fetchMessages 回读与显示一致
+                    let _ = message::update_message_content(&db, msg_id, &full_text).await;
+                    // agent-done 只带结果部分：前端在 workflow 场景追加到已流式的步骤事件尾部
+                    let _ = app_for_emit.emit(
+                        "agent-done",
+                        serde_json::json!({
+                            "conversationId": conv,
+                            "assistantMessageId": msg_id,
+                            "text": output_text,
+                            "thinking": serde_json::Value::Null,
+                            "usage": serde_json::Value::Null,
+                            "numTurns": serde_json::Value::Null,
+                            "costUsd": serde_json::Value::Null,
+                            "blocks": serde_json::Value::Null,
+                        }),
+                    );
+                    let _ = app_for_emit.emit(
+                        "workflow-complete",
+                        serde_json::json!({
+                            "conversationId": conv,
+                            "assistantMessageId": msg_id,
+                            "workflowId": wid,
+                            "success": true,
+                        }),
+                    );
+                    let _ = conversation::update_conversation(
+                        &db,
+                        conv,
+                        UpdateConversationInput {
+                            workflow_status: Some(Some("completed".to_string())),
+                            ..Default::default()
+                        },
+                    )
+                    .await;
+                }
+            },
+            Err(e) => {
+                tracing::error!("[workflow] 执行失败: {}", e);
+                let total_time_ms = started_at.elapsed().as_millis() as u64;
+                let _ = app_for_emit.emit(
+                    "workflow:execution-completed",
+                    serde_json::json!({
+                        "workflow_id": wid,
+                        "execution_id": null,
+                        "status": "failed",
+                        "total_time_ms": total_time_ms,
+                        "error": e.to_string(),
+                    }),
+                );
+
+                // 对话驱动模式：失败事件 + 会话状态
+                if let Some(conv) = &conversation_id {
+                    let _ = app_for_emit.emit(
+                        "agent-error",
+                        serde_json::json!({
+                            "conversationId": conv,
+                            "assistantMessageId": assistant_message_id,
+                            "message": e.to_string(),
+                        }),
+                    );
+                    let _ = app_for_emit.emit(
+                        "workflow-complete",
+                        serde_json::json!({
+                            "conversationId": conv,
+                            "assistantMessageId": assistant_message_id,
+                            "workflowId": wid,
+                            "success": false,
+                        }),
+                    );
+                    let _ = conversation::update_conversation(
+                        &db,
+                        conv,
+                        UpdateConversationInput {
+                            workflow_status: Some(Some("failed".to_string())),
+                            ..Default::default()
+                        },
+                    )
+                    .await;
+                }
+            },
+        }
+        _guard.finish();
+    });
+
+    Ok(workflow_id)
+}
+
+/// 提取工作流执行结果文本（不含步骤清单）。
+///
+/// 步骤清单由 progress_callback 累积（与前端实时事件同格式），最终由调用方
+/// 拼成「步骤 + 结果」写入 DB 消息；本函数只负责结果部分。
+/// 优先级：`workflow.output`（EndNode 聚合）> 节点 results 聚合 > 状态兜底。
+fn format_workflow_output(workflow: &Workflow) -> String {
+    let mut out = String::new();
+    if let Some(output) = &workflow.output {
+        match output {
+            Value::String(s) if !s.is_empty() => out.push_str(s),
+            _ => {
+                let pretty = serde_json::to_string_pretty(output).unwrap_or_default();
+                if !pretty.is_empty() && pretty != "null" {
+                    out.push_str(&pretty);
+                }
+            },
+        }
+    }
+    if out.trim().is_empty() && !workflow.results.is_empty() {
+        let mut parts: Vec<String> = Vec::new();
+        for (node_id, val) in &workflow.results {
+            let title = workflow
+                .nodes
+                .iter()
+                .find(|n| n.base_id() == node_id)
+                .map(|n| n.base().title.clone())
+                .unwrap_or_else(|| node_id.clone());
+            let text = serde_json::to_string_pretty(val).unwrap_or_default();
+            if !text.is_empty() && text != "null" {
+                parts.push(format!("【{}】\n{}", title, text));
+            }
+        }
+        if !parts.is_empty() {
+            out.push_str(&parts.join("\n\n"));
+        }
+    }
+    if out.trim().is_empty() {
+        out = format!("工作流执行完成（状态：{:?}）", workflow.status);
+    }
+    out
 }
 
 /// 获取工作流状态

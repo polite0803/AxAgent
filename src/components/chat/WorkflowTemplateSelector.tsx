@@ -2,8 +2,6 @@
 
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
 import { invoke, logIpcError } from "@/lib/invoke";
-import { useConversationStore } from "@/stores";
-import { useSettingsStore } from "@/stores/feature/settingsStore";
 import { Card, Input, Modal, Spin, Tag } from "antd";
 import { ArrowRight, LayoutTemplate, MessageCircle } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -37,7 +35,8 @@ export interface WorkflowTemplate {
 /**
  * 后端模板并非为聊天选择器设计——没有 systemPrompt / initialMessage 等聊天专用字段。
  * 此处仅列出模板供选择，选择后由调用方决定如何将模板注入对话上下文。
- * 有 steps 的模板会走 workflow_create → workflow_execute 流程。
+ * 有 steps 的模板走 workflow_create 创建工作流实例；执行不在此处触发——
+ * 对话驱动模式下，用户发送消息时以消息内容为 input 执行该工作流（见 sendAgentMessage）。
  */
 function mapBackendTemplate(
   bt: WorkflowTemplateResponse,
@@ -93,18 +92,6 @@ export const WorkflowTemplateSelector: React.FC<
   const [creatingWorkflow, setCreatingWorkflow] = useState<string | null>(null);
   const [allTemplates, setAllTemplates] = useState<WorkflowTemplate[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // 获取当前会话/provider/模型，供工作流执行使用
-  const activeConversationId = useConversationStore((s) => s.activeConversationId);
-  const conversations = useConversationStore((s) => s.conversations);
-  const settings = useSettingsStore((s) => s.settings);
-  const activeConversation = activeConversationId
-    ? conversations.find((c) => c.id === activeConversationId)
-    : null;
-  const effectiveProviderId = activeConversation?.provider_id
-    || settings?.default_provider_id;
-  const effectiveModelId = activeConversation?.model_id
-    || settings?.default_model_id;
 
   // 从后端加载模板列表（与设置页「我的工作流」同一数据源）
   const loadTemplates = useCallback(async () => {
@@ -173,7 +160,9 @@ export const WorkflowTemplateSelector: React.FC<
     if (template.steps && template.steps.length > 0) {
       setCreatingWorkflow(template.id);
       try {
-        // 使用后端模板已有的 nodes + edges 创建工作流实例
+        // 使用后端模板已有的 nodes + edges 创建工作流实例。
+        // 不在选择时立即执行——对话驱动模式下，用户发送消息时以消息内容为
+        // input 执行（sendAgentMessage → workflow_execute），步骤事件实时回流对话。
         const backend = await invoke<WorkflowTemplateResponse>(
           "get_workflow_template",
           { id: template.id },
@@ -212,17 +201,6 @@ export const WorkflowTemplateSelector: React.FC<
         }>("workflow_create", {
           request: { name: template.name, nodes, edges },
         });
-
-        try {
-          await invoke("workflow_execute", {
-            workflow_id: result.workflowId,
-            model_id: effectiveModelId || null,
-            provider_id: effectiveProviderId || null,
-            variables: template.variables || null,
-          });
-        } catch (execErr) {
-          logIpcError("WorkflowTemplateSelector.execute")(execErr);
-        }
 
         onSelect(template, result.workflowId);
       } catch (e) {
