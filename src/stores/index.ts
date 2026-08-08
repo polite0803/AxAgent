@@ -76,6 +76,7 @@ export { useReadingListStore } from "./feature/readingListStore";
 export { useRlTrainingStore } from "./feature/rlTrainingStore";
 export type { CheckpointInfo, RLTrainingConfig, TrainingMetrics } from "./feature/rlTrainingStore";
 export { useSearchStore } from "./feature/searchStore";
+export { useSecurityStore } from "./feature/securityStore";
 export { useSettingsStore } from "./feature/settingsStore";
 export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/settingsStore";
 export { useSkillExtensionStore } from "./feature/skillExtensionStore";

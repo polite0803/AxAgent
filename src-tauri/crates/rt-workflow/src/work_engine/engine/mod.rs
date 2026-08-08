@@ -1843,6 +1843,22 @@ impl WorkEngine {
             map
         };
 
+        self.publish_workflow_event(
+            "ProgressBrief",
+            serde_json::json!({
+                "execution_id": &execution_id,
+                "workflow_id": workflow_id,
+                "brief_type": "workflow_start",
+                "description": format!("工作流 {} 开始执行", workflow_id),
+                "current_node_id": Option::<String>::None,
+                "completed_count": 0u32,
+                "total_count": total_nodes as u32,
+                "elapsed_ms": 0u64,
+                "emitted_at_ms": chrono::Utc::now().timestamp_millis(),
+            }),
+        )
+        .await;
+
         loop {
             if cancel_token.is_cancelled() {
                 self.finalize_cancelled_workflow_for_execution(&execution_id).await;
@@ -2404,37 +2420,54 @@ impl WorkEngine {
                             nr.elapsed_ms,
                         );
 
+                        let completed_count = {
+                            let workflows = self.execution_workflows.read().await;
+                            workflows
+                                .get(&execution_id)
+                                .map(|w| {
+                                    w.node_states
+                                        .values()
+                                        .filter(|s| {
+                                            matches!(
+                                                s.status,
+                                                NodeStatus::Completed
+                                                    | NodeStatus::Failed
+                                                    | NodeStatus::Skipped
+                                            )
+                                        })
+                                        .count()
+                                })
+                                .unwrap_or(0)
+                        };
+
                         if let Some(ref cb) = progress_cb {
-                            let completed = {
-                                let workflows = self.execution_workflows.read().await;
-                                workflows
-                                    .get(&execution_id)
-                                    .map(|w| {
-                                        w.node_states
-                                            .values()
-                                            .filter(|s| {
-                                                matches!(
-                                                    s.status,
-                                                    NodeStatus::Completed
-                                                        | NodeStatus::Failed
-                                                        | NodeStatus::Skipped
-                                                )
-                                            })
-                                            .count()
-                                    })
-                                    .unwrap_or(0)
-                            };
                             cb(StepProgressEvent {
                                 node_id: nr.node_id.clone(),
                                 status: "completed".to_string(),
                                 total_nodes,
-                                completed_nodes: completed,
+                                completed_nodes: completed_count,
                                 execution_id: Some(execution_id.clone()),
                                 error: None,
                                 output: Some(output.output.clone()),
                             })
                             .await;
                         }
+
+                        self.publish_workflow_event(
+                            "ProgressBrief",
+                            serde_json::json!({
+                                "execution_id": &execution_id,
+                                "workflow_id": workflow_id,
+                                "brief_type": "node_progress",
+                                "description": format!("节点 {} 执行完成", nr.node_id),
+                                "current_node_id": Some(nr.node_id.clone()),
+                                "completed_count": completed_count as u32,
+                                "total_count": total_nodes as u32,
+                                "elapsed_ms": nr.elapsed_ms,
+                                "emitted_at_ms": chrono::Utc::now().timestamp_millis(),
+                            }),
+                        )
+                        .await;
 
                         if matches!(nr.node, WorkflowNode::Condition(_)) {
                             let mut workflows = self.execution_workflows.write().await;
@@ -2503,7 +2536,7 @@ impl WorkEngine {
                                     state.enter_pause(PauseReason::Approval);
                                 }
                             }
-                            // 等待 resume signal（4.1.6:从 pause_state 派生,与断点模式同构）
+                            // 等待 resume signal（含超时自动取消）
                             let pause_sig = {
                                 self.executions
                                     .lock()
@@ -2512,7 +2545,54 @@ impl WorkEngine {
                                     .and_then(|s| s.pause_signal())
                             };
                             if let Some(sig) = pause_sig {
-                                sig.notified().await;
+                                let timeout_secs = approval.timeout_secs.max(30); // 最少 30 秒
+                                match tokio::time::timeout(
+                                    std::time::Duration::from_secs(timeout_secs),
+                                    sig.notified(),
+                                )
+                                .await
+                                {
+                                    Ok(_) => {
+                                        // 收到恢复信号，正常继续
+                                    },
+                                    Err(_elapsed) => {
+                                        // 审批超时，自动取消工作流
+                                        tracing::warn!(
+                                            execution_id = %execution_id,
+                                            node_id = %nr.node_id,
+                                            timeout_secs = timeout_secs,
+                                            "[Approval] 审批超时，自动取消"
+                                        );
+                                        // 更新审批记录为 expired
+                                        {
+                                            let db_clone = {
+                                                let db_guard =
+                                                    self.db.lock().expect("db mutex poisoned");
+                                                db_guard.clone()
+                                            };
+                                            if let Some(db) = db_clone.as_ref() {
+                                                let _ = axagent_dao::repo::workflow_approval::expire_approval(
+                                                    db, &execution_id, &nr.node_id,
+                                                )
+                                                .await;
+                                            }
+                                        }
+                                        // 将节点结果写入 execution_workflows，标记超时
+                                        {
+                                            let mut wfs = self.execution_workflows.write().await;
+                                            if let Some(wf) = wfs.get_mut(&execution_id) {
+                                                wf.results.insert(
+                                                    nr.node_id.clone(),
+                                                    serde_json::json!({
+                                                        "status": "timeout",
+                                                        "reason": format!("审批超时（{}秒）", timeout_secs),
+                                                    }),
+                                                );
+                                            }
+                                        }
+                                        break;
+                                    },
+                                }
                             }
                             // 恢复后继续处理下一节点结果
                             continue;
@@ -3350,6 +3430,45 @@ impl WorkEngine {
                 exec_wfs.remove(&execution_id);
             }
         }
+
+        let (completed_count, total_count_val, total_elapsed) = {
+            if let Some(ref wf) = result {
+                let comp = wf
+                    .node_states
+                    .values()
+                    .filter(|s| {
+                        matches!(
+                            s.status,
+                            NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped
+                        )
+                    })
+                    .count() as u32;
+                let total = wf.nodes.len() as u32;
+                let elapsed = wf
+                    .completed_at
+                    .map(|end| end.saturating_sub(wf.created_at) * 1000)
+                    .unwrap_or(0);
+                (comp, total, elapsed)
+            } else {
+                (0, total_nodes as u32, 0)
+            }
+        };
+
+        self.publish_workflow_event(
+            "ProgressBrief",
+            serde_json::json!({
+                "execution_id": &execution_id,
+                "workflow_id": workflow_id,
+                "brief_type": "workflow_complete",
+                "description": format!("工作流 {} 执行完成，共完成 {} 个节点", workflow_id, completed_count),
+                "current_node_id": Option::<String>::None,
+                "completed_count": completed_count,
+                "total_count": total_count_val,
+                "elapsed_ms": total_elapsed,
+                "emitted_at_ms": chrono::Utc::now().timestamp_millis(),
+            }),
+        )
+        .await;
 
         Ok(result.unwrap_or_else(|| Workflow {
             id: workflow_id.to_string(),

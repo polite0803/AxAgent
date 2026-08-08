@@ -9,8 +9,8 @@ use chrono::Utc;
 use serde_json;
 
 use crate::trajectory_types::{
-    GeneratedTool, MessageRole, RLTrainingEntry, RewardSignal, Trajectory, TrajectoryOutcome,
-    TrajectoryPattern, TrajectoryQuality,
+    MessageRole, RLTrainingEntry, RewardSignal, Trajectory, TrajectoryOutcome, TrajectoryPattern,
+    TrajectoryQuality,
 };
 
 /// Scoring service for Trajectory quality, value, rewards, and exports.
@@ -191,15 +191,92 @@ impl TrajectoryPatternUpdater {
 pub struct GeneratedToolRecorder;
 
 impl GeneratedToolRecorder {
-    pub fn record_success(tool: &mut GeneratedTool) {
+    /// 记录工具调用成功：增加使用计数，更新成功率
+    pub fn record_success(tool: &mut crate::trajectory_types::GeneratedTool) {
         tool.usage_count += 1;
-        let total = tool.usage_count as f64;
-        tool.success_rate = tool.success_rate * ((total - 1.0) / total) + 1.0 / total;
+        let prev_total = tool.usage_count.saturating_sub(1) as f64;
+        tool.success_rate = if prev_total > 0.0 {
+            (tool.success_rate * prev_total + 1.0) / tool.usage_count as f64
+        } else {
+            1.0
+        };
     }
 
-    pub fn record_failure(tool: &mut GeneratedTool) {
+    /// 记录工具调用失败：增加使用计数，更新成功率
+    pub fn record_failure(tool: &mut crate::trajectory_types::GeneratedTool) {
         tool.usage_count += 1;
-        let total = tool.usage_count as f64;
-        tool.success_rate *= (total - 1.0) / total;
+        let prev_total = tool.usage_count.saturating_sub(1) as f64;
+        tool.success_rate = if prev_total > 0.0 {
+            (tool.success_rate * prev_total + 0.0) / tool.usage_count as f64
+        } else {
+            0.0
+        };
+    }
+}
+
+/// Scorecard 门禁级别
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GateLevel {
+    /// 硬门禁：未通过则阻断上线（质量分 < 0.6 或安全分 < 0.8）
+    Hard,
+    /// 软门禁：未通过给出警告但不阻断（质量分 < 0.7）
+    Soft,
+    /// 盲审门禁：匿名评审，不显示分数来源
+    Blind,
+}
+
+/// Scorecard 门禁结果
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GateResult {
+    pub level: GateLevel,
+    pub passed: bool,
+    pub quality_score: f64,
+    pub safety_score: f64,
+    pub efficiency_score: f64,
+    pub detail: String,
+}
+
+impl TrajectoryScorer {
+    /// Scorecard 三档门禁评估
+    pub fn evaluate_gate(
+        quality: TrajectoryQuality,
+        safety_score: f64,
+        level: GateLevel,
+    ) -> GateResult {
+        let q = quality.overall;
+        let s = safety_score.clamp(0.0, 1.0);
+        let e = quality.tool_efficiency;
+
+        let (passed, detail) = match level {
+            GateLevel::Hard => {
+                // 硬门禁：质量分 >= 0.6 且 安全分 >= 0.8
+                let p = q >= 0.6 && s >= 0.8;
+                let d = if p {
+                    format!("硬门禁通过：质量分 {:.2} ≥ 0.6，安全分 {:.2} ≥ 0.8", q, s)
+                } else {
+                    format!("硬门禁未通过：质量分 {:.2} (需 ≥ 0.6)，安全分 {:.2} (需 ≥ 0.8)", q, s)
+                };
+                (p, d)
+            },
+            GateLevel::Soft => {
+                // 软门禁：质量分 >= 0.7
+                let p = q >= 0.7;
+                let d = if p {
+                    format!("软门禁通过：质量分 {:.2} ≥ 0.7", q)
+                } else {
+                    format!("软门禁未通过：质量分 {:.2} (需 ≥ 0.7)，建议优化", q)
+                };
+                (p, d)
+            },
+            GateLevel::Blind => {
+                // 盲审门禁：通过即允许，不阻断，仅记录
+                let p = q >= 0.5;
+                let d = format!("盲审评估：质量分 {:.2}，已记录供人工审核", q);
+                (p, d)
+            },
+        };
+
+        GateResult { level, passed, quality_score: q, safety_score: s, efficiency_score: e, detail }
     }
 }

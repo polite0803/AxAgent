@@ -27,13 +27,13 @@ describe("SchemaValidator", () => {
       it("null 值应返回错误", () => {
         const result = validateSchema(null);
         expect(result.valid).toBe(false);
-        expect(result.errors[0].message).toContain("对象类型");
+        expect(result.errors[0].message).toContain("object");
       });
 
       it("非对象值应返回错误", () => {
         const result = validateSchema("string");
         expect(result.valid).toBe(false);
-        expect(result.errors[0].message).toContain("对象类型");
+        expect(result.errors[0].message).toContain("object");
       });
     });
 
@@ -67,7 +67,7 @@ describe("SchemaValidator", () => {
       it("未知组件类型应返回错误", () => {
         const result = validateSchema(makeValidNode({ type: "UnknownComponent" as "Container" }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("未知组件类型"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("Unknown component type"))).toBe(true);
       });
 
       it("已知组件类型应通过校验", () => {
@@ -106,7 +106,7 @@ describe("SchemaValidator", () => {
           props: { columns: "not-array" },
         }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("columns 必须为数组"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("columns must be an array"))).toBe(true);
       });
 
       it("Chart chartType 非法值应返回错误", () => {
@@ -135,7 +135,7 @@ describe("SchemaValidator", () => {
           props: { columns: "three" },
         }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("columns 必须为数字"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("columns must be a number"))).toBe(true);
       });
     });
 
@@ -176,7 +176,7 @@ describe("SchemaValidator", () => {
         }
         const result = validateSchema(deep);
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("嵌套深度超过上限"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("Node nesting depth exceeds limit"))).toBe(true);
       });
     });
 
@@ -192,7 +192,7 @@ describe("SchemaValidator", () => {
           dataSource: { type: "invalid" as "store", config: {} },
         }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("数据源类型"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("data source type"))).toBe(true);
       });
 
       it("缺少 config 应返回错误", () => {
@@ -223,7 +223,7 @@ describe("SchemaValidator", () => {
           events: [{ trigger: "onInvalid" as "onClick", actions: [] }],
         }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("触发器"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("trigger"))).toBe(true);
       });
 
       it("actions 非数组时应返回错误", () => {
@@ -256,7 +256,7 @@ describe("SchemaValidator", () => {
           conditionalDisplay: [] as unknown as undefined,
         }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("不能为空"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("cannot be empty"))).toBe(true);
       });
 
       it("无效的 logic 应返回错误", () => {
@@ -277,7 +277,7 @@ describe("SchemaValidator", () => {
           ],
         }));
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes("操作符"))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes("operator"))).toBe(true);
       });
 
       it("缺少 field 应返回错误", () => {

@@ -323,6 +323,39 @@
       "business": "商業"
     }
   },
+  "agentPattern": {
+    "title": "智能體模式",
+    "type": {
+      "react": "ReAct 推理行動",
+      "plan-and-execute": "計畫-執行模式",
+      "reflection": "反思式",
+      "multi-agent": "多智能體協作",
+      "code-review": "程式碼審查專家",
+      "data-analysis": "資料分析專家",
+      "document-processing": "文件處理助手",
+      "web-research": "網路研究專家",
+      "custom": "自訂"
+    },
+    "complexity": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "expert": "專家"
+    },
+    "actions": {
+      "select": "選擇此模式",
+      "autoSelect": "自動選擇",
+      "reset": "重設"
+    },
+    "matchedPatterns": "匹配的模式",
+    "noMatch": "未找到匹配的模式",
+    "confidence": "信心度",
+    "reasoning": "推薦理由",
+    "maxTurns": "最大輪次",
+    "estimatedTokens": "預估 Token",
+    "requiredCapabilities": "所需能力",
+    "availableTools": "可用工具"
+  },
   "businessRole": {
     "activeDomains": "啟動業務域",
     "activeDomainsPlaceholder": "選擇該崗位啟動的工具域",
@@ -2137,7 +2170,20 @@
     "unsupportedChartType": "不支援的圖表類型: {{type}}",
     "persistFailed": "表單資料持久化失敗，請檢查後端服務",
     "schemaNotFound": "找不到指定的動態頁面",
-    "uiSchemaJson": "UI Schema JSON"
+    "uiSchemaJson": "UI Schema JSON",
+    "noFallbackAvailable": "無可用的替代渲染方案",
+    "status": {
+      "pending": "待處理",
+      "ready": "就緒",
+      "error": "錯誤",
+      "loading": "載入中"
+    },
+    "importance": {
+      "low": "低優先級",
+      "medium": "中優先級",
+      "high": "高優先級",
+      "critical": "關鍵"
+    }
   },
   "dynamicUIManager": {
     "addChild": "新增子節點",
@@ -8311,7 +8357,46 @@
     "ticketFailed": "取得語音會話票據失敗",
     "decryptKeyFailed": "閘道金鑰解密失敗，無法啟動語音通話",
     "sessionError": "語音會話發生錯誤",
-    "stateError": "語音會話異常斷開"
+    "stateError": "語音會話異常斷開",
+    "idle": "待機中",
+    "intent": {
+      "draft": "草稿",
+      "clarifying": "澄清中",
+      "needs_confirmation": "待確認",
+      "submitted": "已提交",
+      "cancelled": "已取消",
+      "clarificationPrompt": "請回答以下問題以幫助我更好地理解您的需求",
+      "confirmationPrompt": "請確認以下理解是否正確",
+      "confirm": "確認執行",
+      "cancel": "取消",
+      "submit": "提交",
+      "rephrase": "重新表述",
+      "skipClarification": "直接執行",
+      "intentSummary": "我理解您想要",
+      "processingIntent": "正在處理您的意圖...",
+      "dagProgress": "工作流執行進度",
+      "dagComplete": "工作流已完成",
+      "dagFailed": "工作流執行失敗",
+      "dagRunning": "工作流執行中"
+    },
+    "planning": "規劃中",
+    "waitingExecution": "等待執行",
+    "initializing": "初始化",
+    "planningNode": "規劃",
+    "executingNode": "執行",
+    "waitingApproval": "等待審批",
+    "completed": "完成",
+    "failed": "失敗",
+    "tts": {
+      "title": "語音播報",
+      "enabled": "開",
+      "disabled": "關",
+      "noMessages": "暫無播報消息",
+      "workflowStart": "工作流開始執行",
+      "workflowComplete": "工作流執行完成",
+      "workflowFailed": "工作流執行失敗",
+      "waitingForApproval": "等待人工審批..."
+    }
   },
   "wiki": {
     "backlinks": "反向連結",
@@ -8719,14 +8804,21 @@
       "noPending": "暫無待審批項",
       "message": "審批訊息",
       "workflowId": "Workflow",
-      "status": "狀態",
+      "status": {
+        "pending": "待審批",
+        "approved": "已批准",
+        "rejected": "已拒絕",
+        "expired": "已過期"
+      },
       "expiresAt": "過期時間",
+      "expiresSoon": "即將過期",
       "actions": "動作",
       "decision": "審批結果",
       "approve": "通過",
       "reject": "拒絕",
       "cancel": "取消",
-      "notePlaceholder": "添加備註（可選）"
+      "notePlaceholder": "添加備註（可選）",
+      "waitingForApproval": "等待人工審批介入"
     },
     "aiAssistant": "AI 助手",
     "applySemanticCheck": "應用語義檢查",
@@ -10679,7 +10771,12 @@
     "noPending": "暫無待審批項",
     "message": "審批消息",
     "workflowId": "Workflow",
-    "status": "狀態",
+    "status": {
+      "pending": "待審批",
+      "approved": "已批准",
+      "rejected": "已拒絕",
+      "expired": "已過期"
+    },
     "expiresAt": "過期時間",
     "actions": "動作",
     "decision": "審批結果",
@@ -10687,7 +10784,9 @@
     "reject": "拒絕",
     "cancel": "取消",
     "notePlaceholder": "添加備註（可選）",
-    "approver": "審批人"
+    "approver": "審批人",
+    "expiresSoon": "即將過期",
+    "waitingForApproval": "等待人工審批介入"
   },
   "browserMock": {
     "greeting": "你好！我可以幫你做什麼？",

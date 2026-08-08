@@ -92,6 +92,12 @@ export type ConditionalDisplay =
     not?: boolean;
   };
 
+// ── 语义化增强：重要性等级 ──
+export type DynamicImportance = "low" | "medium" | "high" | "critical";
+
+// ── 语义化增强：组件运行状态 ──
+export type DynamicStatus = "pending" | "ready" | "error" | "loading";
+
 // ── UI Schema 顶层结构 ──
 export interface UISchema {
   /** Schema 版本号 */
@@ -112,6 +118,12 @@ export interface UISchema {
   conditionalDisplay?: ConditionalDisplay;
   /** 样式覆盖 */
   style?: Record<string, string | number>;
+  /** 语义化：重要性等级（用于排序和渲染优先级） */
+  importance?: DynamicImportance;
+  /** 语义化：运行状态（用于状态徽章显示） */
+  status?: DynamicStatus;
+  /** 语义化：fallback Schema（当前组件渲染出错时的替代方案） */
+  fallback?: UISchema;
 }
 
 // ── 组件注册表项 ──

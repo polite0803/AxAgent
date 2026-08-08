@@ -323,6 +323,39 @@
       "business": "商业"
     }
   },
+  "agentPattern": {
+    "title": "智能体模式",
+    "type": {
+      "react": "ReAct 推理行动",
+      "plan-and-execute": "计划-执行模式",
+      "reflection": "反思式",
+      "multi-agent": "多智能体协作",
+      "code-review": "代码审查专家",
+      "data-analysis": "数据分析专家",
+      "document-processing": "文档处理助手",
+      "web-research": "网络研究专家",
+      "custom": "自定义"
+    },
+    "complexity": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "expert": "专家"
+    },
+    "actions": {
+      "select": "选择此模式",
+      "autoSelect": "自动选择",
+      "reset": "重置"
+    },
+    "matchedPatterns": "匹配的模式",
+    "noMatch": "未找到匹配的模式",
+    "confidence": "置信度",
+    "reasoning": "推荐理由",
+    "maxTurns": "最大轮次",
+    "estimatedTokens": "预估 Token",
+    "requiredCapabilities": "所需能力",
+    "availableTools": "可用工具"
+  },
   "businessRole": {
     "activeDomains": "激活业务域",
     "activeDomainsPlaceholder": "选择该岗位激活的工具域",
@@ -2137,7 +2170,20 @@
     "unsupportedChartType": "不支持的图表类型: {{type}}",
     "persistFailed": "表单数据持久化失败，请检查后端服务",
     "schemaNotFound": "未找到指定的动态页面",
-    "uiSchemaJson": "UI Schema JSON"
+    "uiSchemaJson": "UI Schema JSON",
+    "noFallbackAvailable": "无可用的替代渲染方案",
+    "status": {
+      "pending": "待处理",
+      "ready": "就绪",
+      "error": "错误",
+      "loading": "加载中"
+    },
+    "importance": {
+      "low": "低优先级",
+      "medium": "中优先级",
+      "high": "高优先级",
+      "critical": "关键"
+    }
   },
   "dynamicUIManager": {
     "addChild": "添加子节点",
@@ -8349,7 +8395,46 @@
     "ticketFailed": "获取语音会话票据失败",
     "decryptKeyFailed": "网关密钥解密失败，无法启动语音通话",
     "sessionError": "语音会话发生错误",
-    "stateError": "语音会话异常断开"
+    "stateError": "语音会话异常断开",
+    "idle": "待机中",
+    "intent": {
+      "draft": "草稿",
+      "clarifying": "澄清中",
+      "needs_confirmation": "待确认",
+      "submitted": "已提交",
+      "cancelled": "已取消",
+      "clarificationPrompt": "请回答以下问题以帮助我更好地理解您的需求",
+      "confirmationPrompt": "请确认以下理解是否正确",
+      "confirm": "确认执行",
+      "cancel": "取消",
+      "submit": "提交",
+      "rephrase": "重新表述",
+      "skipClarification": "直接执行",
+      "intentSummary": "我理解您想要",
+      "processingIntent": "正在处理您的意图...",
+      "dagProgress": "工作流执行进度",
+      "dagComplete": "工作流已完成",
+      "dagFailed": "工作流执行失败",
+      "dagRunning": "工作流执行中"
+    },
+    "planning": "规划中",
+    "waitingExecution": "等待执行",
+    "initializing": "初始化",
+    "planningNode": "规划",
+    "executingNode": "执行",
+    "waitingApproval": "等待审批",
+    "completed": "完成",
+    "failed": "失败",
+    "tts": {
+      "title": "语音播报",
+      "enabled": "开",
+      "disabled": "关",
+      "noMessages": "暂无播报消息",
+      "workflowStart": "工作流开始执行",
+      "workflowComplete": "工作流执行完成",
+      "workflowFailed": "工作流执行失败",
+      "waitingForApproval": "等待人工审批..."
+    }
   },
   "wiki": {
     "backlinks": "反向链接",
@@ -8765,14 +8850,21 @@
       "noPending": "暂无待审批项",
       "message": "审批消息",
       "workflowId": "工作流",
-      "status": "状态",
+      "status": {
+        "pending": "待审批",
+        "approved": "已批准",
+        "rejected": "已拒绝",
+        "expired": "已过期"
+      },
       "expiresAt": "过期时间",
+      "expiresSoon": "即将过期",
       "actions": "操作",
       "decision": "审批结果",
       "approve": "通过",
       "reject": "拒绝",
       "cancel": "取消",
-      "notePlaceholder": "添加备注（可选）"
+      "notePlaceholder": "添加备注（可选）",
+      "waitingForApproval": "等待人工审批介入"
     },
     "aiAssistant": "AI 助手",
     "applySemanticCheck": "应用语义检查",
@@ -10717,15 +10809,22 @@
     "noPending": "暂无待审批项",
     "message": "审批消息",
     "workflowId": "工作流",
-    "status": "状态",
+    "status": {
+      "pending": "待审批",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "expired": "已过期"
+    },
     "expiresAt": "过期时间",
+    "expiresSoon": "即将过期",
     "actions": "操作",
     "decision": "审批结果",
     "approve": "通过",
     "reject": "拒绝",
     "cancel": "取消",
     "notePlaceholder": "添加备注（可选）",
-    "approver": "审批人"
+    "approver": "审批人",
+    "waitingForApproval": "等待人工审批介入"
   },
   "browserMock": {
     "greeting": "你好！我可以帮你做什么？",

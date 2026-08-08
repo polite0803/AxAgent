@@ -6,6 +6,8 @@ use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
+use axagent_harness::trajectory_scorer::TrajectoryScorer;
+use axagent_harness::trajectory_types::TrajectoryOutcome;
 use serde::Serialize;
 use std::collections::HashMap;
 use tauri::{State, command};
@@ -372,4 +374,189 @@ pub fn evaluator_get_ab_results(skill_id: String) -> Result<Option<AbTestReport>
     let store = ab_test_store().lock().map_err(|e| format!("Lock error: {}", e))?;
     let all: Vec<&AbTestReport> = store.values().collect();
     Ok(all.into_iter().rev().find(|r| r.skill_id == skill_id).cloned())
+}
+
+// ── DAG 级回放与评估命令 ──
+
+/// DAG 级回放命令：基于执行 ID 回放工作流执行记录
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateInput, description = "DAG 级回放工作流执行")]
+#[command]
+pub async fn replay_workflow_execution(
+    state: State<'_, AppState>,
+    execution_id: String,
+    step_index: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    let db = state.harness.db();
+
+    let exec = axagent_dao::repo::workflow_execution::get_workflow_execution(db, &execution_id)
+        .await
+        .map_err(|e| format!("查询执行记录失败: {}", e))?
+        .ok_or_else(|| format!("执行记录 {} 不存在", execution_id))?;
+
+    // 查询关联的真实轨迹数据
+    let trajectory = {
+        let storage = &state.trajectory_storage;
+        // 使用 execution_id 作为 session_id 前缀查找关联轨迹
+        let all_trajectories = storage
+            .get_trajectories(Some(100))
+            .await
+            .map_err(|e| format!("查询轨迹失败: {}", e))?;
+        all_trajectories.into_iter().find(|t| t.session_id == exec.id)
+    };
+
+    let (quality_summary, value_score) = if let Some(ref traj) = trajectory {
+        (
+            serde_json::json!({
+                "overall": traj.quality.overall,
+                "task_completion": traj.quality.task_completion,
+                "tool_efficiency": traj.quality.tool_efficiency,
+                "reasoning_quality": traj.quality.reasoning_quality,
+                "user_satisfaction": traj.quality.user_satisfaction,
+            }),
+            traj.value_score,
+        )
+    } else {
+        (serde_json::json!(null), 0.5)
+    };
+
+    // 使用真实轨迹数据重新评分（回放）
+    let replay_score = if let Some(ref traj) = trajectory {
+        use axagent_harness::trajectory_scorer::TrajectoryScorer;
+        let replayed_quality = TrajectoryScorer::compute_quality(&traj.steps, traj.outcome);
+        let replayed_value = TrajectoryScorer::compute_value_score(
+            replayed_quality.overall,
+            traj.outcome,
+            &traj.steps,
+        );
+        serde_json::json!({
+            "replayed_quality_overall": replayed_quality.overall,
+            "replayed_value_score": replayed_value,
+            "delta_vs_original": (replayed_quality.overall - traj.quality.overall).abs(),
+            "steps_count": traj.steps.len(),
+        })
+    } else {
+        serde_json::json!({ "note": "无轨迹数据，无法回放评分" })
+    };
+
+    let replay_result = serde_json::json!({
+        "execution_id": execution_id,
+        "workflow_id": exec.workflow_id,
+        "original_status": exec.status,
+        "replay_step_index": step_index,
+        "trajectory_found": trajectory.is_some(),
+        "trajectory_quality": quality_summary,
+        "trajectory_value_score": value_score,
+        "replay_scoring": replay_score,
+        "output_result_preview": exec.output_result.as_ref().map(|r| {
+            if r.chars().count() > 500 { format!("{}...", r.chars().take(500).collect::<String>()) } else { r.clone() }
+        }),
+        "node_executions_count": exec.node_executions.as_ref().map(|n| {
+            serde_json::from_str::<serde_json::Value>(n)
+                .ok()
+                .and_then(|v| v.as_array().map(|a| a.len()))
+                .unwrap_or(0)
+        }).unwrap_or(0),
+        "replayed_at": chrono::Utc::now().to_rfc3339(),
+    });
+
+    Ok(replay_result)
+}
+
+/// 评估运行命令（eval-run）：对工作流进行批量评估
+#[agent_command(domain = evaluator, safety = Safe, call_mode = StateInput, description = "运行工作流评估")]
+#[command]
+pub async fn run_evaluation(
+    state: State<'_, AppState>,
+    workflow_id: String,
+    evaluation_type: String,
+    sample_size: u32,
+) -> Result<serde_json::Value, String> {
+    let db = state.harness.db();
+
+    // 查询该工作流的历史执行记录
+    let all_executions =
+        axagent_dao::repo::workflow_execution::list_workflow_executions(db, &workflow_id)
+            .await
+            .map_err(|e| format!("查询执行记录失败: {}", e))?;
+
+    // 按 sample_size 限制数量
+    let executions: Vec<_> = all_executions.into_iter().take(sample_size as usize).collect();
+
+    // 预加载真实轨迹数据（用于评分回放）
+    let all_trajectories = state
+        .trajectory_storage
+        .get_trajectories(Some(500))
+        .await
+        .map_err(|e| format!("加载轨迹数据失败: {}", e))?;
+
+    let mut success_count = 0u32;
+    let mut total_quality = 0.0f64;
+    let mut total_value = 0.0f64;
+    let mut quality_count = 0u32;
+    let mut trajectory_hits = 0u32;
+    let mut trajectory_misses = 0u32;
+
+    for exec in &executions {
+        if exec.status == "completed" || exec.status == "success" {
+            success_count += 1;
+        }
+
+        // 查找关联的真实轨迹数据
+        let matching_traj = all_trajectories.iter().find(|t| t.session_id == exec.id);
+
+        if let Some(traj) = matching_traj {
+            // 使用真实轨迹数据重新评分
+            trajectory_hits += 1;
+            let quality = TrajectoryScorer::compute_quality(&traj.steps, traj.outcome);
+            total_quality += quality.overall;
+            total_value += traj.value_score;
+            quality_count += 1;
+        } else {
+            // 无轨迹数据，使用执行状态做粗估
+            trajectory_misses += 1;
+            let outcome = match exec.status.as_str() {
+                "completed" | "success" => TrajectoryOutcome::Success,
+                "failed" => TrajectoryOutcome::Failure,
+                "partial" => TrajectoryOutcome::Partial,
+                "cancelled" => TrajectoryOutcome::Abandoned,
+                _ => TrajectoryOutcome::Failure,
+            };
+            let quality = TrajectoryScorer::compute_quality(&[], outcome);
+            total_quality += quality.overall;
+            quality_count += 1;
+        }
+    }
+
+    let avg_quality = if quality_count > 0 {
+        total_quality / quality_count as f64
+    } else {
+        0.0
+    };
+
+    let avg_value = if trajectory_hits > 0 {
+        total_value / trajectory_hits as f64
+    } else {
+        0.0
+    };
+
+    let success_rate = if !executions.is_empty() {
+        success_count as f64 / executions.len() as f64
+    } else {
+        0.0
+    };
+
+    let eval_result = serde_json::json!({
+        "workflow_id": workflow_id,
+        "evaluation_type": evaluation_type,
+        "sample_size": executions.len() as u32,
+        "success_count": success_count,
+        "success_rate": success_rate,
+        "avg_quality_score": avg_quality,
+        "avg_value_score": avg_value,
+        "trajectory_hits": trajectory_hits,
+        "trajectory_misses": trajectory_misses,
+        "evaluated_at": chrono::Utc::now().to_rfc3339(),
+    });
+
+    Ok(eval_result)
 }

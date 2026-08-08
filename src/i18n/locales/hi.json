@@ -323,6 +323,39 @@
       "business": "商业"
     }
   },
+  "agentPattern": {
+    "title": "एजेंट पैटर्न",
+    "type": {
+      "react": "ReAct रीज़निंग-एक्टिंग",
+      "plan-and-execute": "प्लान-एंड-एक्ज़ीक्यूट",
+      "reflection": "चिंतन",
+      "multi-agent": "मल्टी-एजेंट सहयोग",
+      "code-review": "कोड समीक्षा विशेषज्ञ",
+      "data-analysis": "डेटा विश्लेषण विशेषज्ञ",
+      "document-processing": "दस्तावेज़ प्रसंस्करण सहायक",
+      "web-research": "वेब अनुसंधान विशेषज्ञ",
+      "custom": "कस्टम"
+    },
+    "complexity": {
+      "low": "कम",
+      "medium": "मध्यम",
+      "high": "उच्च",
+      "expert": "विशेषज्ञ"
+    },
+    "actions": {
+      "select": "इस पैटर्न का चयन करें",
+      "autoSelect": "स्वचालित चयन",
+      "reset": "रीसेट"
+    },
+    "matchedPatterns": "मatched पैटर्न",
+    "noMatch": "कोई मेल खाने वाला पैटर्न नहीं मिला",
+    "confidence": "विश्वास",
+    "reasoning": "कारण",
+    "maxTurns": "अधिकतम टर्न",
+    "estimatedTokens": "अनुमानित टोकन",
+    "requiredCapabilities": "आवश्यक क्षमताएँ",
+    "availableTools": "उपलब्ध उपकरण"
+  },
   "businessRole": {
     "activeDomains": "सक्रिय डोमेन",
     "activeDomainsPlaceholder": "इस भूमिका द्वारा सक्रिय टूल डोमेन चुनें",
@@ -2137,7 +2170,20 @@
     "unsupportedChartType": "असमर्थित चार्ट प्रकार: {{type}}",
     "persistFailed": "फ़ॉर्म डेटा सहेजने में विफल, कृपया बैकएंड सेवा जांचें",
     "schemaNotFound": "डायनामिक पेज नहीं मिला",
-    "uiSchemaJson": "UI स्कीमा JSON"
+    "uiSchemaJson": "UI स्कीमा JSON",
+    "noFallbackAvailable": "कोई फ़ॉलबैक रेंडरिंग उपलब्ध नहीं",
+    "status": {
+      "pending": "लंबित",
+      "ready": "तैयार",
+      "error": "त्रुटि",
+      "loading": "लोड हो रहा है"
+    },
+    "importance": {
+      "low": "कम",
+      "medium": "मध्यम",
+      "high": "उच्च",
+      "critical": "गंभीर"
+    }
   },
   "dynamicUIManager": {
     "addChild": "चाइल्ड जोड़ें",
@@ -8311,7 +8357,46 @@
     "decryptKeyFailed": "गेटवे कुंजी डिक्रिप्ट विफल, कॉल शुरू नहीं कर सकते",
     "sessionError": "वॉइस सत्र त्रुटि",
     "stateError": "वॉइस सत्र असामान्य रूप से डिस्कनेक्ट हो गया",
-    "connectionLost": "语音连接已断开"
+    "connectionLost": "语音连接已断开",
+    "idle": "निष्क्रिय",
+    "intent": {
+      "draft": "मसौदा",
+      "clarifying": "स्पष्टीकरण",
+      "needs_confirmation": "पुष्टि की आवश्यकता",
+      "submitted": "जमा किया गया",
+      "cancelled": "रद्द किया गया",
+      "clarificationPrompt": "आपकी आवश्यकताओं को बेहतर समझने में मदद के लिए कृपया निम्नलिखित प्रश्नों के उत्तर दें",
+      "confirmationPrompt": "कृपया पुष्टि करें कि क्या मेरी समझ सही है",
+      "confirm": "पुष्टि करें और निष्पादित करें",
+      "cancel": "रद्द करें",
+      "submit": "जमा करें",
+      "rephrase": "पुनः शब्दांकन करें",
+      "skipClarification": "सीधे निष्पादित करें",
+      "intentSummary": "मैं समझता हूँ कि आप चाहते हैं",
+      "processingIntent": "आपकी मंशा पर कार्रवाई की जा रही है...",
+      "dagProgress": "कार्यप्रणाली प्रगति",
+      "dagComplete": "कार्यप्रणाली पूर्ण",
+      "dagFailed": "कार्यप्रणाली विफल",
+      "dagRunning": "कार्यप्रणाली चल रही है"
+    },
+    "planning": "योजना",
+    "waitingExecution": "निष्पादन की प्रतीक्षा हो रही है",
+    "initializing": "इनिशियलाइज़ हो रहा है",
+    "planningNode": "योजना",
+    "executingNode": "निष्पादन",
+    "waitingApproval": "स्वीकृति की प्रतीक्षा हो रही है",
+    "completed": "पूर्ण",
+    "failed": "विफल",
+    "tts": {
+      "title": "वॉयस ब्रीफिंग",
+      "enabled": "चालू",
+      "disabled": "बंद",
+      "noMessages": "कोई ब्रीफिंग संदेश नहीं",
+      "workflowStart": "वर्कफ़लो शुरू हुआ",
+      "workflowComplete": "वर्कफ़लो पूरा हुआ",
+      "workflowFailed": "वर्कफ़लो विफल",
+      "waitingForApproval": "मानव अनुमोदन की प्रतीक्षा हो रही है..."
+    }
   },
   "wiki": {
     "backlinks": "बैकलिंक",
@@ -8719,14 +8804,21 @@
       "noPending": "कोई लंबित स्वीकृति नहीं",
       "message": "संदेश",
       "workflowId": "वर्कफ़्लो",
-      "status": "स्थिति",
+      "status": {
+        "pending": "लंबित",
+        "approved": "स्वीकृत",
+        "rejected": "अस्वीकृत",
+        "expired": "समय समाप्त"
+      },
       "expiresAt": "समाप्ति",
+      "expiresSoon": "जल्द ही समाप्त",
       "actions": "कार्रवाइयाँ",
       "decision": "निर्णय",
       "approve": "स्वीकृत करें",
       "reject": "अस्वीकृत करें",
       "cancel": "रद्द करें",
-      "notePlaceholder": "नोट जोड़ें (वैकल्पिक)"
+      "notePlaceholder": "नोट जोड़ें (वैकल्पिक)",
+      "waitingForApproval": "मानव अनुमोदन हस्तक्षेप की प्रतीक्षा हो रही है"
     },
     "aiAssistant": "AI सहायक",
     "applySemanticCheck": "लागू करें",
@@ -10679,7 +10771,12 @@
     "noPending": "कोई लंबित अनुमोदन नहीं",
     "message": "अनुमोदन संदेश",
     "workflowId": "वर्कफ़्लो",
-    "status": "स्थिति",
+    "status": {
+      "pending": "लंबित",
+      "approved": "स्वीकृत",
+      "rejected": "अस्वीकृत",
+      "expired": "समाप्त"
+    },
     "expiresAt": "समाप्ति समय",
     "actions": "कार्रवाइयाँ",
     "decision": "निर्णय",
@@ -10687,7 +10784,9 @@
     "reject": "अस्वीकार करें",
     "cancel": "रद्द करें",
     "notePlaceholder": "एक नोट जोड़ें (वैकल्पिक)",
-    "approver": "अनुमोदक"
+    "approver": "अनुमोदक",
+    "expiresSoon": "जल्द समाप्त",
+    "waitingForApproval": "मानव अनुमोदन हस्तक्षेप की प्रतीक्षा हो रही है"
   },
   "cancel": "रद्द करें",
   "browserMock": {

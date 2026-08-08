@@ -835,6 +835,8 @@ macro_rules! register_all_commands {
             commands::evaluator::evaluator_export_report,
             commands::evaluator::evaluator_run_ab_test,
             commands::evaluator::evaluator_get_ab_results,
+            commands::evaluator::replay_workflow_execution,
+            commands::evaluator::run_evaluation,
             commands::research::generate_research_report,
             commands::research::deep_research_topic,
             commands::reflection::reflect_on_task,

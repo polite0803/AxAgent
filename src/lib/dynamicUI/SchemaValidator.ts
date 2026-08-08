@@ -9,16 +9,19 @@ import {
   VALID_DYNAMIC_COMPONENT_TYPES,
 } from "@/types";
 
+const VALID_IMPORTANCE = ["low", "medium", "high", "critical"];
+const VALID_STATUS = ["pending", "ready", "error", "loading"];
+
 /** Maximum nesting depth for schema validation to prevent stack overflow. */
 const MAX_NESTING_DEPTH = 50;
 
 /**
- * 使用递归遍历校验 UISchema 的结构合法性。
- * 校验项：
- * 1. 必填字段：version、id、type
- * 2. DynamicComponentType 是否为合法枚举值
- * 3. 组件类型与 props 的兼容性（如 Table 必须有 columns 字段）
- * 4. 递归校验 children（最大深度 50 层）
+ * Recursively validates the structural integrity of a UISchema.
+ * Validation items:
+ * 1. Required fields: version, id, type
+ * 2. DynamicComponentType is a valid enum value
+ * 3. Component type and props compatibility (e.g. Table must have columns field)
+ * 4. Recursively validates children (max depth 50 levels)
  */
 export function validateSchema(schema: unknown): SchemaValidationResult {
   const errors: SchemaValidationError[] = [];
@@ -38,30 +41,31 @@ function validateNode(
   if (depth > MAX_NESTING_DEPTH) {
     errors.push({
       path,
-      message: `节点嵌套深度超过上限 ${MAX_NESTING_DEPTH}，可能存在循环引用或恶意构造`,
+      message:
+        `Node nesting depth exceeds limit ${MAX_NESTING_DEPTH}, possible circular reference or malicious structure`,
     });
     return;
   }
   if (typeof node !== "object" || node === null) {
     errors.push({
       path,
-      message: `节点必须为对象类型，实际为 ${typeof node}`,
+      message: `Node must be an object type, got ${typeof node}`,
     });
     return;
   }
 
   const obj = node as Record<string, unknown>;
 
-  // 必填字段校验
+  // Required field validation
   if (typeof obj.id !== "string" || obj.id.length === 0) {
-    errors.push({ path: `${path}.id`, message: "缺少必填字段 id" });
+    errors.push({ path: `${path}.id`, message: "Missing required field: id" });
   }
   if (typeof obj.version !== "string" || obj.version.length === 0) {
-    errors.push({ path: `${path}.version`, message: "缺少必填字段 version" });
+    errors.push({ path: `${path}.version`, message: "Missing required field: version" });
   }
   if (typeof obj.type !== "string" || obj.type.length === 0) {
-    errors.push({ path: `${path}.type`, message: "缺少必填字段 type" });
-    // 继续校验 children，不提前 return，确保子节点也能被校验到
+    errors.push({ path: `${path}.type`, message: "Missing required field: type" });
+    // Continue to validate children without early return to ensure sub-nodes are also validated
     if (Array.isArray(obj.children)) {
       for (let i = 0; i < obj.children.length; i++) {
         validateNode(obj.children[i], `${path}.children[${i}]`, errors, depth + 1);
@@ -72,24 +76,24 @@ function validateNode(
 
   const type = obj.type as string;
 
-  // 校验 ComponentType 合法性
+  // Validate ComponentType validity
   if (!VALID_DYNAMIC_COMPONENT_TYPES.has(type)) {
     errors.push({
       path: `${path}.type`,
-      message: `未知组件类型 "${type}"，有效类型: ${[...VALID_DYNAMIC_COMPONENT_TYPES].sort().join(", ")}`,
+      message: `Unknown component type "${type}", valid types: ${[...VALID_DYNAMIC_COMPONENT_TYPES].sort().join(", ")}`,
     });
   }
 
-  // 校验 props
+  // Validate props
   const props = obj.props;
   if (props !== undefined && (typeof props !== "object" || props === null)) {
     errors.push({
       path: `${path}.props`,
-      message: "props 必须为对象类型",
+      message: "props must be an object type",
     });
   }
 
-  // props 兼容性校验
+  // Props compatibility validation
   const requiredProps = COMPONENT_REQUIRED_PROPS[type as DynamicComponentType];
   if (requiredProps && requiredProps.length > 0) {
     const propsObj = (props as Record<string, unknown>) || {};
@@ -100,21 +104,21 @@ function validateNode(
       ) {
         errors.push({
           path: `${path}.props.${field}`,
-          message: `组件 "${type}" 缺少必填属性 "${field}"`,
+          message: `Component "${type}" is missing required prop "${field}"`,
         });
       }
     }
   }
 
-  // 形状校验（D-11）：增强类型检查，不仅判断存在性
+  // Shape validation (D-11): enhanced type checking, not just existence
   shapeValidateProps(type, props, path, errors);
 
-  // 校验 dataSource
+  // Validate dataSource
   if (obj.dataSource !== undefined) {
     validateDataSource(obj.dataSource, `${path}.dataSource`, errors);
   }
 
-  // 校验 events
+  // Validate events
   if (Array.isArray(obj.events)) {
     for (let i = 0; i < obj.events.length; i++) {
       validateEventHandler(obj.events[i], `${path}.events[${i}]`, errors);
@@ -122,11 +126,11 @@ function validateNode(
   } else if (obj.events !== undefined) {
     errors.push({
       path: `${path}.events`,
-      message: "events 必须为数组类型",
+      message: "events must be an array type",
     });
   }
 
-  // 校验 conditionalDisplay（支持数组形式和对象形式）
+  // Validate conditionalDisplay (supports both array and object forms)
   if (obj.conditionalDisplay !== undefined) {
     validateConditionalDisplay(
       obj.conditionalDisplay,
@@ -136,7 +140,36 @@ function validateNode(
     );
   }
 
-  // 递归校验 children
+  // Validate semantics: importance
+  if (obj.importance !== undefined) {
+    if (!VALID_IMPORTANCE.includes(obj.importance as string)) {
+      errors.push({
+        path: `${path}.importance`,
+        message: `Invalid importance "${String(obj.importance)}", valid: ${VALID_IMPORTANCE.join("|")}`,
+      });
+    }
+  }
+
+  // Validate semantics: status
+  if (obj.status !== undefined) {
+    if (!VALID_STATUS.includes(obj.status as string)) {
+      errors.push({
+        path: `${path}.status`,
+        message: `Invalid status "${String(obj.status)}", valid: ${VALID_STATUS.join("|")}`,
+      });
+    }
+  }
+
+  // Validate semantics: fallback (recursively validates fallback schema)
+  if (obj.fallback !== undefined) {
+    if (typeof obj.fallback !== "object" || obj.fallback === null) {
+      errors.push({ path: `${path}.fallback`, message: "fallback must be a UISchema object" });
+    } else {
+      validateNode(obj.fallback as UISchema, `${path}.fallback`, errors, depth + 1);
+    }
+  }
+
+  // Recursively validate children
   if (Array.isArray(obj.children)) {
     for (let i = 0; i < obj.children.length; i++) {
       validateNode(obj.children[i], `${path}.children[${i}]`, errors, depth + 1);
@@ -150,7 +183,7 @@ function validateDataSource(
   errors: SchemaValidationError[],
 ): void {
   if (typeof ds !== "object" || ds === null) {
-    errors.push({ path, message: "dataSource 必须为对象类型" });
+    errors.push({ path, message: "dataSource must be an object type" });
     return;
   }
   const obj = ds as Record<string, unknown>;
@@ -158,7 +191,7 @@ function validateDataSource(
   if (!validTypes.includes(obj.type as string)) {
     errors.push({
       path: `${path}.type`,
-      message: `无效的数据源类型 "${String(obj.type)}"，有效类型: ${validTypes.join(", ")}`,
+      message: `Invalid data source type "${String(obj.type)}", valid types: ${validTypes.join(", ")}`,
     });
   }
   if (
@@ -167,7 +200,7 @@ function validateDataSource(
   ) {
     errors.push({
       path: `${path}.config`,
-      message: "dataSource.config 必须为对象类型",
+      message: "dataSource.config must be an object type",
     });
   }
 }
@@ -178,7 +211,7 @@ function validateEventHandler(
   errors: SchemaValidationError[],
 ): void {
   if (typeof handler !== "object" || handler === null) {
-    errors.push({ path, message: "EventHandler 必须为对象类型" });
+    errors.push({ path, message: "EventHandler must be an object type" });
     return;
   }
   const obj = handler as Record<string, unknown>;
@@ -192,13 +225,13 @@ function validateEventHandler(
   if (!validTriggers.includes(obj.trigger as string)) {
     errors.push({
       path: `${path}.trigger`,
-      message: `无效的触发器 "${String(obj.trigger)}"，有效: ${validTriggers.join(", ")}`,
+      message: `Invalid trigger "${String(obj.trigger)}", valid: ${validTriggers.join(", ")}`,
     });
   }
   if (!Array.isArray(obj.actions)) {
     errors.push({
       path: `${path}.actions`,
-      message: "actions 必须为数组类型",
+      message: "actions must be an array type",
     });
   }
 }
@@ -212,7 +245,7 @@ function validateConditionalDisplay(
   if (depth > MAX_NESTING_DEPTH) {
     errors.push({
       path,
-      message: `conditionalDisplay 嵌套深度超过上限 ${MAX_NESTING_DEPTH}`,
+      message: `conditionalDisplay nesting depth exceeds limit ${MAX_NESTING_DEPTH}`,
     });
     return;
   }
@@ -220,7 +253,7 @@ function validateConditionalDisplay(
   if (Array.isArray(display)) {
     const arr = display as unknown[];
     if (arr.length === 0) {
-      errors.push({ path, message: "conditionalDisplay 数组不能为空" });
+      errors.push({ path, message: "conditionalDisplay array cannot be empty" });
       return;
     }
     for (let i = 0; i < arr.length; i++) {
@@ -230,7 +263,7 @@ function validateConditionalDisplay(
   }
 
   if (typeof display !== "object" || display === null) {
-    errors.push({ path, message: "conditionalDisplay 必须为数组或对象类型" });
+    errors.push({ path, message: "conditionalDisplay must be an array or object type" });
     return;
   }
 
@@ -239,14 +272,14 @@ function validateConditionalDisplay(
   if (obj.logic !== "and" && obj.logic !== "or") {
     errors.push({
       path: `${path}.logic`,
-      message: `conditionalDisplay.logic 必须为 "and" 或 "or"，实际为 "${String(obj.logic)}"`,
+      message: `conditionalDisplay.logic must be "and" or "or", got "${String(obj.logic)}"`,
     });
   }
 
   if (!Array.isArray(obj.rules) || obj.rules.length === 0) {
     errors.push({
       path: `${path}.rules`,
-      message: "conditionalDisplay.rules 必须为非空数组",
+      message: "conditionalDisplay.rules must be a non-empty array",
     });
   } else {
     for (let i = 0; i < obj.rules.length; i++) {
@@ -257,7 +290,7 @@ function validateConditionalDisplay(
   if (obj.not !== undefined && typeof obj.not !== "boolean") {
     errors.push({
       path: `${path}.not`,
-      message: "conditionalDisplay.not 必须为布尔类型",
+      message: "conditionalDisplay.not must be a boolean type",
     });
   }
 }
@@ -268,12 +301,12 @@ function validateConditionalRule(
   errors: SchemaValidationError[],
 ): void {
   if (typeof rule !== "object" || rule === null) {
-    errors.push({ path, message: "ConditionalRule 必须为对象类型" });
+    errors.push({ path, message: "ConditionalRule must be an object type" });
     return;
   }
   const obj = rule as Record<string, unknown>;
   if (typeof obj.field !== "string" || obj.field.length === 0) {
-    errors.push({ path: `${path}.field`, message: "缺少必填字段 field" });
+    errors.push({ path: `${path}.field`, message: "Missing required field: field" });
   }
   const validOperators = [
     "eq",
@@ -290,15 +323,15 @@ function validateConditionalRule(
   if (!validOperators.includes(obj.operator as string)) {
     errors.push({
       path: `${path}.operator`,
-      message: `无效的操作符 "${String(obj.operator)}"，有效: ${validOperators.join(", ")}`,
+      message: `Invalid operator "${String(obj.operator)}", valid: ${validOperators.join(", ")}`,
     });
   }
 }
 
-/** 已知的有效 chartType 值 */
+/** Known valid chartType values */
 const VALID_CHART_TYPES = ["line", "bar", "pie", "scatter", "area"];
 
-/** 组件 props 形状校验规则：存在性之外的类型/枚举检查（D-11） */
+/** Component props shape validation rules: type/enum checks beyond existence (D-11) */
 const PROPS_SHAPE_RULES: Record<
   string,
   Array<{
@@ -307,7 +340,7 @@ const PROPS_SHAPE_RULES: Record<
   }>
 > = {
   Table: [
-    { field: "columns", check: (v) => Array.isArray(v) ? null : "columns 必须为数组" },
+    { field: "columns", check: (v) => Array.isArray(v) ? null : "columns must be an array" },
   ],
   Chart: [
     {
@@ -315,20 +348,20 @@ const PROPS_SHAPE_RULES: Record<
       check: (v) =>
         VALID_CHART_TYPES.includes(v as string)
           ? null
-          : `chartType 必须为 ${VALID_CHART_TYPES.join("|")}，实际为 "${String(v)}"`,
+          : `chartType must be one of ${VALID_CHART_TYPES.join("|")}, got "${String(v)}"`,
     },
   ],
   Dashboard: [
-    { field: "items", check: (v) => Array.isArray(v) ? null : "items 必须为数组" },
+    { field: "items", check: (v) => Array.isArray(v) ? null : "items must be an array" },
   ],
   Tree: [
-    { field: "treeData", check: (v) => Array.isArray(v) ? null : "treeData 必须为数组" },
+    { field: "treeData", check: (v) => Array.isArray(v) ? null : "treeData must be an array" },
   ],
   Timeline: [
-    { field: "items", check: (v) => Array.isArray(v) ? null : "items 必须为数组" },
+    { field: "items", check: (v) => Array.isArray(v) ? null : "items must be an array" },
   ],
   Grid: [
-    { field: "columns", check: (v) => typeof v === "number" ? null : "columns 必须为数字" },
+    { field: "columns", check: (v) => typeof v === "number" ? null : "columns must be a number" },
   ],
 };
 
@@ -346,7 +379,7 @@ function shapeValidateProps(
   for (const { field, check } of rules) {
     const val = propsObj[field];
     if (val === undefined || val === null) {
-      continue; // 存在性已由 COMPONENT_REQUIRED_PROPS 校验
+      continue; // Existence already validated by COMPONENT_REQUIRED_PROPS
     }
     const errMsg = check(val);
     if (errMsg) {

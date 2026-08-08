@@ -323,6 +323,39 @@
       "business": "商业"
     }
   },
+  "agentPattern": {
+    "title": "Modèle d'Agent",
+    "type": {
+      "react": "ReAct Raisonnement-Action",
+      "plan-and-execute": "Planification-Exécution",
+      "reflection": "Réflexion",
+      "multi-agent": "Collaboration Multi-Agents",
+      "code-review": "Expert en Révision de Code",
+      "data-analysis": "Expert en Analyse de Données",
+      "document-processing": "Assistant de Traitement de Documents",
+      "web-research": "Expert en Recherche Web",
+      "custom": "Personnalisé"
+    },
+    "complexity": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé",
+      "expert": "Expert"
+    },
+    "actions": {
+      "select": "Sélectionner ce modèle",
+      "autoSelect": "Sélection automatique",
+      "reset": "Réinitialiser"
+    },
+    "matchedPatterns": "Modèles correspondants",
+    "noMatch": "Aucun modèle correspondant trouvé",
+    "confidence": "Confiance",
+    "reasoning": "Raisonnement",
+    "maxTurns": " Tours maximum",
+    "estimatedTokens": "Tokens estimés",
+    "requiredCapabilities": "Capacités requises",
+    "availableTools": "Outils disponibles"
+  },
   "businessRole": {
     "activeDomains": "Domaines Actifs",
     "activeDomainsPlaceholder": "Sélectionnez les domaines d'outils activés par ce rôle",
@@ -2137,7 +2170,20 @@
     "unsupportedChartType": "Type de graphique non pris en charge : {{type}}",
     "persistFailed": "Échec de la persistance des données du formulaire, vérifiez le service backend",
     "schemaNotFound": "Page dynamique introuvable",
-    "uiSchemaJson": "Schéma JSON de l'interface utilisateur"
+    "uiSchemaJson": "Schéma JSON de l'interface utilisateur",
+    "noFallbackAvailable": "Aucun rendement de secours disponible",
+    "status": {
+      "pending": "En attente",
+      "ready": "Prêt",
+      "error": "Erreur",
+      "loading": "Chargement"
+    },
+    "importance": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé",
+      "critical": "Critique"
+    }
   },
   "dynamicUIManager": {
     "addChild": "Ajouter un enfant",
@@ -8311,7 +8357,46 @@
     "decryptKeyFailed": "Échec du déchiffrement de la clé passerelle, impossible de démarrer l'appel vocal",
     "sessionError": "Erreur de session vocale",
     "stateError": "Session vocale déconnectée anormalement",
-    "connectionLost": "语音连接已断开"
+    "connectionLost": "语音连接已断开",
+    "idle": "En attente",
+    "intent": {
+      "draft": "Brouillon",
+      "clarifying": "Clarification",
+      "needs_confirmation": "Confirmation Requise",
+      "submitted": "Soumis",
+      "cancelled": "Annulé",
+      "clarificationPrompt": "Veuillez répondre aux questions suivantes pour m'aider à mieux comprendre vos besoins",
+      "confirmationPrompt": "Veuillez confirmer si ma compréhension est correcte",
+      "confirm": "Confirmer et Exécuter",
+      "cancel": "Annuler",
+      "submit": "Soumettre",
+      "rephrase": " reformuler",
+      "skipClarification": "Exécuter Directement",
+      "intentSummary": "Je comprends que vous voulez",
+      "processingIntent": "Traitement de votre intention...",
+      "dagProgress": "Progression du flux de travail",
+      "dagComplete": "Flux de travail terminé",
+      "dagFailed": "Flux de travail échoué",
+      "dagRunning": "Flux de travail en cours"
+    },
+    "planning": "Planification",
+    "waitingExecution": "En attente d'exécution",
+    "initializing": "Initialisation",
+    "planningNode": "Planification",
+    "executingNode": "Exécution",
+    "waitingApproval": "En attente d'approbation",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "tts": {
+      "title": "Annonce vocale",
+      "enabled": "Marche",
+      "disabled": "Arrêt",
+      "noMessages": "Aucun message d'annonce",
+      "workflowStart": "Flux de travail démarré",
+      "workflowComplete": "Flux de travail terminé",
+      "workflowFailed": "Flux de travail échoué",
+      "waitingForApproval": "En attente d'approbation humaine..."
+    }
   },
   "wiki": {
     "backlinks": "Rétroliens",
@@ -8719,14 +8804,21 @@
       "noPending": "Aucune approbation en attente",
       "message": "Message",
       "workflowId": "Workflow",
-      "status": "Statut",
+      "status": {
+        "pending": "En attente",
+        "approved": "Approuvé",
+        "rejected": "Rejeté",
+        "expired": "Expiré"
+      },
       "expiresAt": "Expire",
+      "expiresSoon": "Bientôt",
       "actions": "Actions",
       "decision": "Décision",
       "approve": "Approuver",
       "reject": "Rejeter",
       "cancel": "Annuler",
-      "notePlaceholder": "Ajouter une note (optionnel)"
+      "notePlaceholder": "Ajouter une note (optionnel)",
+      "waitingForApproval": "En attente d'intervention d'approbation humaine"
     },
     "aiAssistant": "Assistant IA",
     "applySemanticCheck": "Appliquer",
@@ -10679,7 +10771,12 @@
     "noPending": "Aucune approbation en attente",
     "message": "Message d'approbation",
     "workflowId": "Workflow",
-    "status": "Statut",
+    "status": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "rejected": "Rejeté",
+      "expired": "Expiré"
+    },
     "expiresAt": "Expire le",
     "actions": "Actions",
     "decision": "Décision",
@@ -10687,7 +10784,9 @@
     "reject": "Rejeter",
     "cancel": "Annuler",
     "notePlaceholder": "Ajouter une note (facultatif)",
-    "approver": "Approbateur"
+    "approver": "Approbateur",
+    "expiresSoon": "Expire bientôt",
+    "waitingForApproval": "En attente d'intervention d'approbation humaine"
   },
   "cancel": "Annuler",
   "browserMock": {

@@ -5,12 +5,38 @@ import { evaluateConditions } from "@/lib/dynamicUI/ConditionalRenderer";
 import { type DataSourceSubscriber, subscribeDataSource } from "@/lib/dynamicUI/DataBindingEngine";
 import { executeActions, getLifecycleHandlers, handleEvents } from "@/lib/dynamicUI/EventHandlerEngine";
 import { validateSchema } from "@/lib/dynamicUI/SchemaValidator";
-import type { DynamicAction, DynamicUIProps, UISchema } from "@/types";
-import { Alert, Skeleton } from "antd";
+import { getStyleSanitizer } from "@/lib/security/styleSanitizer";
+import { useSecurityStore } from "@/stores/feature/securityStore";
+import type { DynamicAction, DynamicImportance, DynamicStatus, DynamicUIProps, UISchema } from "@/types";
+import { Alert, Badge, Skeleton, Tag } from "antd";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SchemaRenderContext } from "./SchemaRenderContext";
+
+// ── 语义化：重要性权重（值越大越优先渲染） ──
+const IMPORTANCE_WEIGHT: Record<DynamicImportance, number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+  critical: 3,
+};
+
+function sortChildrenByImportance(children: UISchema[]): UISchema[] {
+  return [...children].sort((a, b) => {
+    const wa = IMPORTANCE_WEIGHT[(a.importance ?? "medium") as DynamicImportance];
+    const wb = IMPORTANCE_WEIGHT[(b.importance ?? "medium") as DynamicImportance];
+    return wb - wa;
+  });
+}
+
+// ── 语义化：状态徽章映射 ──
+const STATUS_BADGE_MAP: Record<DynamicStatus, { color: string; labelKey: string }> = {
+  pending: { color: "default", labelKey: "dynamicUI.status.pending" },
+  ready: { color: "success", labelKey: "dynamicUI.status.ready" },
+  error: { color: "error", labelKey: "dynamicUI.status.error" },
+  loading: { color: "processing", labelKey: "dynamicUI.status.loading" },
+};
 
 interface SchemaUpdateEventDetail {
   schemaId: string;
@@ -282,7 +308,8 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
     if (NEEDS_CHILD_PREPROCESSING.has(schema.type)) {
       return null;
     }
-    return schema.children.map((child) => renderSchema(child));
+    const sorted = sortChildrenByImportance(schema.children);
+    return sorted.map((child) => renderSchema(child));
   }, [schema.children, schema.type, renderSchema]);
 
   const eventBindings = useMemo(
@@ -304,16 +331,97 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
 
   const Component = entry.component;
 
-  return (
-    <SchemaRenderContext.Provider value={contextValue}>
+  // ── 安全接入：schema.style 白名单过滤（agent 生成的 schema 不可信） ──
+  const sanitizedSchema = useMemo(() => {
+    if (!schema.style) {
+      return schema;
+    }
+    const { style, blocked } = getStyleSanitizer().sanitize(schema.style);
+    if (blocked.length > 0) {
+      console.warn(`[DynamicUI] Filtered dangerous style properties ${blocked.join(", ")} (schema: ${schema.id})`);
+    }
+    return style ? { ...schema, style } : { ...schema, style: undefined };
+  }, [schema]);
+
+  // ── 安全接入：content 注入检测（记录到 securityStore，不阻断——React 文本渲染天然转义） ──
+  const checkInput = useSecurityStore((s) => s.checkInput);
+  const schemaContent = (schema.props as Record<string, unknown>)?.content;
+  useEffect(() => {
+    if (typeof schemaContent !== "string" || schemaContent.length === 0) {
+      return;
+    }
+    const { isClean } = checkInput(schemaContent);
+    if (!isClean) {
+      console.warn(`[DynamicUI] Injection pattern detected in content (schema: ${schema.id})`);
+    }
+    // 仅依赖内容与 id，避免 schema 引用变化触发重复检测
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schemaContent, schema.id, checkInput]);
+
+  // 语义化：状态徽章
+  const statusBadge = schema.status ? STATUS_BADGE_MAP[schema.status] : null;
+
+  // 语义化：fallback 渲染
+  const renderFallback = () => {
+    if (!schema.fallback) {
+      return (
+        <Alert
+          type="warning"
+          message={t("dynamicUI.renderFailed", { type: schema.id })}
+          description={t("dynamicUI.noFallbackAvailable")}
+          showIcon
+        />
+      );
+    }
+    return (
+      <SchemaNodeRenderer
+        schema={schema.fallback}
+        externalContext={mergedContext}
+        onAction={onAction}
+        scope={scope}
+      />
+    );
+  };
+
+  const renderWithFallback = (
+    <SchemaErrorBoundary schemaId={schema.id} t={t} fallbackRenderer={renderFallback}>
       <Component
-        schema={{ ...schema, props: processedProps, children: undefined }}
+        schema={{ ...sanitizedSchema, props: processedProps, children: undefined }}
         dataContext={mergedContext}
         onAction={onAction}
         {...eventBindings}
       >
         {childNodes}
       </Component>
+    </SchemaErrorBoundary>
+  );
+
+  // 语义化：包装渲染（带状态徽章或重要性标识）
+  if (statusBadge || schema.importance) {
+    return (
+      <SchemaRenderContext.Provider value={contextValue}>
+        <div className="relative">
+          {statusBadge && (
+            <Badge
+              status={statusBadge.color as "default" | "success" | "error" | "processing" | "warning"}
+              text={t(statusBadge.labelKey)}
+              className="mb-1"
+            />
+          )}
+          {schema.importance && schema.importance !== "medium" && (
+            <Tag color={schema.importance === "critical" ? "red" : schema.importance === "high" ? "orange" : "default"}>
+              {t(`dynamicUI.importance.${schema.importance}`)}
+            </Tag>
+          )}
+          {renderWithFallback}
+        </div>
+      </SchemaRenderContext.Provider>
+    );
+  }
+
+  return (
+    <SchemaRenderContext.Provider value={contextValue}>
+      {renderWithFallback}
     </SchemaRenderContext.Provider>
   );
 });
@@ -445,6 +553,7 @@ interface SchemaErrorBoundaryProps {
   schemaId: string;
   children: React.ReactNode;
   t: (key: string, options?: Record<string, unknown>) => string;
+  fallbackRenderer?: () => React.ReactNode;
 }
 
 interface SchemaErrorBoundaryState {
@@ -467,6 +576,9 @@ class SchemaErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallbackRenderer) {
+        return this.props.fallbackRenderer();
+      }
       return (
         <ErrorPlaceholder
           type={this.props.schemaId}

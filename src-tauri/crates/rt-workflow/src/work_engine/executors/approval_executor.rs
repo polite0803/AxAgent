@@ -35,6 +35,7 @@ impl NodeExecutorTrait for ApprovalExecutor {
     fn node_type(&self) -> &'static str {
         "approval"
     }
+
     async fn execute(
         &self,
         node: &WorkflowNode,
@@ -44,30 +45,36 @@ impl NodeExecutorTrait for ApprovalExecutor {
             return Err(NodeError::type_mismatch("approval", self.node_type()));
         };
         let c = &n.config;
-        let node_id = node.base_id().to_string();
-        let output = serde_json::json!({
-            "status": "pending",
-            "result": false,
-            "message": c.message,
-            "timeout_secs": c.timeout_secs,
-            "node_id": node_id,
-        });
-        Ok(NodeOutput {
-            output: output.clone(),
-            control: Some(NodeControl::Suspend {
-                resume_token: node_id.clone(),
-                approval: ApprovalRequest {
-                    execution_id: ctx.execution_id.clone(),
-                    node_id,
-                    title: n.base.title.clone(),
-                    message: c.message.clone(),
-                    approver: c.approver.clone(),
-                    channels: vec![],
-                    payload: output,
-                    timeout_secs: c.timeout_secs,
-                    timeout_action: c.timeout_action.clone(),
-                },
+let approval_request = ApprovalRequest {
+            execution_id: ctx.execution_id.clone(),
+            node_id: node.base_id().to_string(),
+            title: n.base.title.clone(),
+            message: c.message.clone(),
+            approver: c.approver.clone(),
+            channels: vec!["ui".to_string()],
+            payload: serde_json::json!({
+                "node_id": node.base_id(),
+                "workflow_id": ctx.workflow_id,
+                "message": c.message,
+                "timeout_secs": c.timeout_secs,
+                "output_var": c.output_var,
             }),
+            timeout_secs: c.timeout_secs,
+            timeout_action: c.timeout_action.clone(),
+        };
+
+        let resume_token = format!("approval-{}-{}", ctx.execution_id, node.base_id());
+
+        Ok(NodeOutput {
+            output: serde_json::json!({
+                "status": "waiting_for_approval",
+                "approval_request": approval_request,
+                "message": c.message,
+                "timeout_secs": c.timeout_secs,
+                "node_id": node.base_id(),
+                "pause_reason": "approval",
+            }),
+            control: Some(NodeControl::Suspend { resume_token, approval: approval_request }),
             output_var: if c.output_var.is_empty() {
                 None
             } else {

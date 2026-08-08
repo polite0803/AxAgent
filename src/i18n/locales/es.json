@@ -323,6 +323,39 @@
       "business": "商业"
     }
   },
+  "agentPattern": {
+    "title": "Patrón de Agente",
+    "type": {
+      "react": "ReAct Razonamiento-Acción",
+      "plan-and-execute": "Plan y Ejecución",
+      "reflection": "Reflexión",
+      "multi-agent": "Colaboración Multi-Agente",
+      "code-review": "Experto en Revisión de Código",
+      "data-analysis": "Experto en Análisis de Datos",
+      "document-processing": "Asistente de Procesamiento de Documentos",
+      "web-research": "Experto en Investigación Web",
+      "custom": "Personalizado"
+    },
+    "complexity": {
+      "low": "Bajo",
+      "medium": "Medio",
+      "high": "Alto",
+      "expert": "Experto"
+    },
+    "actions": {
+      "select": "Seleccionar este patrón",
+      "autoSelect": "Selección automática",
+      "reset": "Restablecer"
+    },
+    "matchedPatterns": "Patrones coincidentes",
+    "noMatch": "No se encontró ningún patrón coincidente",
+    "confidence": "Confianza",
+    "reasoning": "Razonamiento",
+    "maxTurns": "Turnos máximos",
+    "estimatedTokens": "Tokens estimados",
+    "requiredCapabilities": "Capacidades requeridas",
+    "availableTools": "Herramientas disponibles"
+  },
   "businessRole": {
     "activeDomains": "Dominios Activos",
     "activeDomainsPlaceholder": "Seleccione los dominios de herramientas activados por este rol",
@@ -2137,7 +2170,20 @@
     "unsupportedChartType": "Tipo de gráfico no compatible: {{type}}",
     "persistFailed": "Error al persistir los datos del formulario, verifique el servicio backend",
     "schemaNotFound": "Página dinámica no encontrada",
-    "uiSchemaJson": "Esquema JSON de UI"
+    "uiSchemaJson": "Esquema JSON de UI",
+    "noFallbackAvailable": "Sin renderizado de respaldo disponible",
+    "status": {
+      "pending": "Pendiente",
+      "ready": "Listo",
+      "error": "Error",
+      "loading": "Cargando"
+    },
+    "importance": {
+      "low": "Bajo",
+      "medium": "Medio",
+      "high": "Alto",
+      "critical": "Crítico"
+    }
   },
   "dynamicUIManager": {
     "addChild": "Agregar hijo",
@@ -8311,7 +8357,46 @@
     "decryptKeyFailed": "Error al descifrar la clave de puerta de enlace, no se puede iniciar la llamada",
     "sessionError": "Error de sesión de voz",
     "stateError": "Sesión de voz desconectada anormalmente",
-    "connectionLost": "语音连接已断开"
+    "connectionLost": "语音连接已断开",
+    "idle": "Inactivo",
+    "intent": {
+      "draft": "Borrador",
+      "clarifying": "Aclaración",
+      "needs_confirmation": "Necesita Confirmación",
+      "submitted": "Enviado",
+      "cancelled": "Cancelado",
+      "clarificationPrompt": "Por favor, responda las siguientes preguntas para ayudarme a comprender mejor sus necesidades",
+      "confirmationPrompt": "Por favor, confirme si mi comprensión es correcta",
+      "confirm": "Confirmar y Ejecutar",
+      "cancel": "Cancelar",
+      "submit": "Enviar",
+      "rephrase": "Reformular",
+      "skipClarification": "Ejecutar Directamente",
+      "intentSummary": "Entiendo que quieres",
+      "processingIntent": "Procesando su intención...",
+      "dagProgress": "Progreso del flujo de trabajo",
+      "dagComplete": "Flujo de trabajo completado",
+      "dagFailed": "Flujo de trabajo fallido",
+      "dagRunning": "Flujo de trabajo en ejecución"
+    },
+    "planning": "Planificación",
+    "waitingExecution": "Esperando ejecución",
+    "initializing": "Inicializando",
+    "planningNode": "Planificación",
+    "executingNode": "Ejecución",
+    "waitingApproval": "Esperando aprobación",
+    "completed": "Completado",
+    "failed": "Fallido",
+    "tts": {
+      "title": "Anuncio de voz",
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "noMessages": "Sin mensajes de anuncio",
+      "workflowStart": "Flujo de trabajo iniciado",
+      "workflowComplete": "Flujo de trabajo completado",
+      "workflowFailed": "Flujo de trabajo fallido",
+      "waitingForApproval": "Esperando aprobación humana..."
+    }
   },
   "wiki": {
     "backlinks": "Retroenlaces",
@@ -8719,14 +8804,21 @@
       "noPending": "Sin aprobaciones pendientes",
       "message": "Mensaje",
       "workflowId": "Workflow",
-      "status": "Estado",
+      "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobado",
+        "rejected": "Rechazado",
+        "expired": "Expirado"
+      },
       "expiresAt": "Vence",
+      "expiresSoon": "Próximamente",
       "actions": "Acciones",
       "decision": "Decisión",
       "approve": "Aprobar",
       "reject": "Rechazar",
       "cancel": "Cancelar",
-      "notePlaceholder": "Agregar nota (opcional)"
+      "notePlaceholder": "Agregar nota (opcional)",
+      "waitingForApproval": "Esperando intervención de aprobación humana"
     },
     "aiAssistant": "Asistente de IA",
     "applySemanticCheck": "Aplicar",
@@ -10679,7 +10771,12 @@
     "noPending": "Sin aprobaciones pendientes",
     "message": "Mensaje de aprobación",
     "workflowId": "Workflow",
-    "status": "Estado",
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobado",
+      "rejected": "Rechazado",
+      "expired": "Expirado"
+    },
     "expiresAt": "Expira en",
     "actions": "Acciones",
     "decision": "Decisión",
@@ -10687,7 +10784,9 @@
     "reject": "Rechazar",
     "cancel": "Cancelar",
     "notePlaceholder": "Añadir una nota (opcional)",
-    "approver": "Aprobador"
+    "approver": "Aprobador",
+    "expiresSoon": "Vence pronto",
+    "waitingForApproval": "Esperando intervención de aprobación humana"
   },
   "cancel": "Cancelar",
   "browserMock": {

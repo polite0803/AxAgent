@@ -1829,6 +1829,87 @@ pub struct StepProgressEvent {
     pub output: Option<serde_json::Value>,
 }
 
+/// DAG 进度简报事件 —— 用于 TTS 语音播报
+///
+/// 在工作流执行的关键节点（开始/节点完成/结束）触发，
+/// 携带自然语言描述 + 结构化进度数据，供前端 TTS 通道播报。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgressBriefEvent {
+    pub execution_id: String,
+    pub workflow_id: String,
+    /// 简报类型：workflow_start / node_progress / workflow_complete
+    pub brief_type: String,
+    /// 自然语言描述（用于 TTS 播报）
+    pub description: String,
+    /// 可选：当前节点 ID
+    pub current_node_id: Option<String>,
+    /// 可选：已完成节点数
+    pub completed_count: Option<u32>,
+    /// 可选：总节点数
+    pub total_count: Option<u32>,
+    /// 可选：执行耗时（ms）
+    pub elapsed_ms: Option<u64>,
+    /// 时间戳（毫秒）
+    pub emitted_at_ms: i64,
+}
+
+/// 审核证据标识（ReviewEvidenceIdentity）
+///
+/// 用于审计链中标识每个评分/决策的证据来源，
+/// 支持 DAG 级别的可追溯性和可验证性。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ReviewEvidenceIdentity {
+    /// 证据唯一 ID
+    pub id: String,
+    /// 证据类型：scorecard / replay / eval_run / manual
+    pub evidence_type: String,
+    /// 关联的执行 ID
+    pub execution_id: String,
+    /// 关联的工作流 ID
+    pub workflow_id: String,
+    /// 证据摘要（如评分、决策说明）
+    pub summary: String,
+    /// 证据哈希（用于防篡改验证）
+    pub evidence_hash: String,
+    /// 证据来源（系统自动/人工）
+    pub source: String,
+    /// 创建时间（UTC）
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl ReviewEvidenceIdentity {
+    pub fn new(
+        evidence_type: impl Into<String>,
+        execution_id: impl Into<String>,
+        workflow_id: impl Into<String>,
+        summary: impl Into<String>,
+    ) -> Self {
+        let type_str: String = evidence_type.into();
+        let exec: String = execution_id.into();
+        let wf: String = workflow_id.into();
+        let summ: String = summary.into();
+        let hash_input = format!("{type_str}:{exec}:{wf}:{summ}");
+
+        // 使用 SHA-256 生成真正的加密哈希，防止篡改
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(hash_input.as_bytes());
+        let hash_result = hasher.finalize();
+        let evidence_hash = hash_result.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            evidence_type: type_str,
+            execution_id: exec,
+            workflow_id: wf,
+            summary: summ,
+            evidence_hash,
+            source: "system".to_string(),
+            created_at: chrono::Utc::now(),
+        }
+    }
+}
+
 /// 活跃执行摘要(仅内存运行态,用于可观测性 / 前端轮询)。
 ///
 /// 字段精简自 rt-workflow `ExecutionState`,剔除 callbacks / compiled_prompts / cancel_token

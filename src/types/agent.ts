@@ -434,3 +434,43 @@ export interface TrajectoryDetail {
   created_at: string;
   replay_count: number;
 }
+
+/** 智能体模式枚举 */
+export type AgentPatternType =
+  | "react"
+  | "plan-and-execute"
+  | "reflection"
+  | "multi-agent"
+  | "code-review"
+  | "data-analysis"
+  | "document-processing"
+  | "web-research"
+  | "custom";
+
+/** 模式复杂度等级 */
+export type PatternComplexity = "low" | "medium" | "high" | "expert";
+
+/** 智能体模式模板 */
+export interface AgentPattern {
+  id: string;
+  type: AgentPatternType;
+  name: string;
+  description: string;
+  complexity: PatternComplexity;
+  triggerKeywords: string[];
+  systemPromptTemplate: string;
+  availableTools: string[];
+  requiredCapabilities: string[];
+  maxTurns: number;
+  estimatedTokenRange: { min: number; max: number };
+  isBuiltin: boolean;
+  version: string;
+}
+
+/** 模式匹配结果 */
+export interface PatternMatchResult {
+  pattern: AgentPattern;
+  confidence: number;
+  matchedKeywords: string[];
+  reasoning: string;
+}

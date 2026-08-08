@@ -323,6 +323,39 @@
       "business": "商业"
     }
   },
+  "agentPattern": {
+    "title": "Шаблон Агента",
+    "type": {
+      "react": "ReAct Рассуждение-Действие",
+      "plan-and-execute": "План и Выполнение",
+      "reflection": "Рефлексия",
+      "multi-agent": "Мульти-агентное Сотрудничество",
+      "code-review": "Эксперт по Ревью Кода",
+      "data-analysis": "Эксперт по Анализу Данных",
+      "document-processing": "Ассистент Обработки Документов",
+      "web-research": "Эксперт по Веб-Исследованиям",
+      "custom": "Пользовательский"
+    },
+    "complexity": {
+      "low": "Низкий",
+      "medium": "Средний",
+      "high": "Высокий",
+      "expert": "Эксперт"
+    },
+    "actions": {
+      "select": "Выбрать этот шаблон",
+      "autoSelect": "Автовыбор",
+      "reset": "Сбросить"
+    },
+    "matchedPatterns": "Совпавшие шаблоны",
+    "noMatch": "Совпадающий шаблон не найден",
+    "confidence": "Уверенность",
+    "reasoning": "Обоснование",
+    "maxTurns": "Максимум ходов",
+    "estimatedTokens": "Оценочные токены",
+    "requiredCapabilities": "Требуемые возможности",
+    "availableTools": "Доступные инструменты"
+  },
   "businessRole": {
     "activeDomains": "Активные домены",
     "activeDomainsPlaceholder": "Выберите домены инструментов, активируемые этой ролью",
@@ -2137,7 +2170,20 @@
     "unsupportedChartType": "Неподдерживаемый тип диаграммы: {{type}}",
     "persistFailed": "Не удалось сохранить данные формы, проверьте бэкенд-сервис",
     "schemaNotFound": "Динамическая страница не найдена",
-    "uiSchemaJson": "UI Schema JSON"
+    "uiSchemaJson": "UI Schema JSON",
+    "noFallbackAvailable": "Нет резервного рендеринга",
+    "status": {
+      "pending": "Ожидание",
+      "ready": "Готов",
+      "error": "Ошибка",
+      "loading": "Загрузка"
+    },
+    "importance": {
+      "low": "Низкий",
+      "medium": "Средний",
+      "high": "Высокий",
+      "critical": "Критический"
+    }
   },
   "dynamicUIManager": {
     "addChild": "Добавить дочерний",
@@ -8322,7 +8368,46 @@
     "decryptKeyFailed": "Не удалось расшифровать ключ шлюза, невозможно начать вызов",
     "sessionError": "Ошибка голосовой сессии",
     "stateError": "Голосовая сессия ненормально отключена",
-    "connectionLost": "语音连接已断开"
+    "connectionLost": "语音连接已断开",
+    "idle": "Ожидание",
+    "intent": {
+      "draft": "Черновик",
+      "clarifying": "Уточнение",
+      "needs_confirmation": "Требует подтверждения",
+      "submitted": "Отправлено",
+      "cancelled": "Отменено",
+      "clarificationPrompt": "Пожалуйста, ответьте на следующие вопросы, чтобы я лучше понял ваши потребности",
+      "confirmationPrompt": "Пожалуйста, подтвердите, правильно ли я понял",
+      "confirm": "Подтвердить и выполнить",
+      "cancel": "Отменить",
+      "submit": "Отправить",
+      "rephrase": "Переформулировать",
+      "skipClarification": "Выполнить напрямую",
+      "intentSummary": "Я понимаю, что вы хотите",
+      "processingIntent": "Обрабатываем ваше намерение...",
+      "dagProgress": "Прогресс рабочего процесса",
+      "dagComplete": "Рабочий процесс завершен",
+      "dagFailed": "Рабочий процесс завершился ошибкой",
+      "dagRunning": "Рабочий процесс выполняется"
+    },
+    "planning": "Планирование",
+    "waitingExecution": "Ожидание выполнения",
+    "initializing": "Инициализация",
+    "planningNode": "Планирование",
+    "executingNode": "Выполнение",
+    "waitingApproval": "Ожидание утверждения",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "tts": {
+      "title": "Голосовое сообщение",
+      "enabled": "Вкл",
+      "disabled": "Выкл",
+      "noMessages": "Нет сообщений для брифинга",
+      "workflowStart": "Рабочий процесс запущен",
+      "workflowComplete": "Рабочий процесс завершен",
+      "workflowFailed": "Рабочий процесс завершился ошибкой",
+      "waitingForApproval": "Ожидание утверждения человеком..."
+    }
   },
   "wiki": {
     "backlinks": "Обратные ссылки",
@@ -8730,14 +8815,21 @@
       "noPending": "Нет ожидающих утверждений",
       "message": "Сообщение",
       "workflowId": "Workflow",
-      "status": "Статус",
+      "status": {
+        "pending": "Ожидает",
+        "approved": "Одобрено",
+        "rejected": "Отклонено",
+        "expired": "Истекло"
+      },
       "expiresAt": "Истекает",
+      "expiresSoon": "Скоро истекает",
       "actions": "Действия",
       "decision": "Решение",
-      "approve": "Утвердить",
+      "approve": "Одобрить",
       "reject": "Отклонить",
       "cancel": "Отмена",
-      "notePlaceholder": "Добавить заметку (необязательно)"
+      "notePlaceholder": "Добавить заметку (необязательно)",
+      "waitingForApproval": "Ожидание вмешательства человека для утверждения"
     },
     "aiAssistant": "ИИ-ассистент",
     "applySemanticCheck": "Применить",
@@ -10690,7 +10782,12 @@
     "noPending": "Нет ожидающих утверждения",
     "message": "Сообщение об утверждении",
     "workflowId": "Workflow",
-    "status": "Статус",
+    "status": {
+      "pending": "Ожидает",
+      "approved": "Одобрено",
+      "rejected": "Отклонено",
+      "expired": "Истёк"
+    },
     "expiresAt": "Истекает в",
     "actions": "Действия",
     "decision": "Решение",
@@ -10698,7 +10795,9 @@
     "reject": "Отклонить",
     "cancel": "Отмена",
     "notePlaceholder": "Добавить примечание (необязательно)",
-    "approver": "Утверждающий"
+    "approver": "Утверждающий",
+    "expiresSoon": "Скоро истечёт",
+    "waitingForApproval": "Ожидание вмешательства человека для утверждения"
   },
   "cancel": "Отмена",
   "browserMock": {
