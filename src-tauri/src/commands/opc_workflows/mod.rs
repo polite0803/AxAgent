@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! OPC 业务工作流种子化（行业数据资产包驱动）
+//! OPC 业务工作流种子化（代码驱动 + 数据资产包）
 
 use axagent_entities::workflow_template;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 
 mod industry_pack;
+mod seed_content_media;
 mod seed_production;
 
 pub use industry_pack::IndustryManifest;
 #[allow(unused_imports)]
 pub use industry_pack::analysis_schema::{AnalysisDataSource, IndustryAnalysisConfig};
 pub use industry_pack::ensure_opc_domains_seeded;
-pub use industry_pack::ensure_opc_industries_seeded;
 pub use industry_pack::export_industry_pack;
 pub use industry_pack::import_industry_pack;
 pub use industry_pack::{DOMAINS_DIR, INDUSTRIES_DIR};
+pub use seed_content_media::seed_content_media_workflows;
 pub use seed_production::seed_landing_page_workflow;
 pub use seed_production::seed_startup_mvp_workflow;
 
@@ -25,26 +26,19 @@ pub fn industries_base_dir() -> std::path::PathBuf {
     std::path::PathBuf::from(INDUSTRIES_DIR)
 }
 
-const OPC_TEMPLATE_VERSION: i32 = 1;
+const OPC_TEMPLATE_VERSION: i32 = 2; // 升级到 2 以覆盖旧 YAML 版本
 
-/// 主入口：行业包 seed + 领域/生产工作流。
-///
-/// 行业包路径解析：优先 `app_dir/config/opc/industries`（生产，
-/// 随配置拷贝到用户数据目录），不存在则 fallback 仓库根
-/// `config/opc/industries`（开发/测试）。`app_dir` 传 None 时直接用
-/// 仓库根（测试场景）。
+/// 主入口：代码驱动种子化（对齐股票业务） + 领域/生产工作流。
 pub async fn ensure_opc_workflows_seeded(
     db: &DatabaseConnection,
-    app_dir: Option<&std::path::Path>,
+    _app_dir: Option<&std::path::Path>,
 ) -> Result<(), String> {
-    // 1) 行业包驱动（9 大行业，各自独立启用/禁用/版本）
-    let base = resolve_industries_dir(app_dir);
-    tracing::info!("[opc-workflows] Industry pack dir: {}", base.display());
-    let seeded = ensure_opc_industries_seeded(db, &base).await?;
-    tracing::info!("[opc-workflows] Industry packs seeded: {seeded:?}");
+    // 1) 代码驱动种子化（9 大行业，对齐股票业务）
+    let industry_seeded = seed_opc_industries_from_code(db).await?;
+    tracing::info!("[opc-workflows] Industries seeded from code: {industry_seeded}");
 
     // 2) 领域包驱动（17 领域 75 工作流，数据资产包）
-    let domains_base = resolve_domains_dir(app_dir);
+    let domains_base = resolve_domains_dir(_app_dir);
     let domains = ensure_opc_domains_seeded(db, &domains_base).await?;
     tracing::info!("[opc-workflows] Domain packs seeded: {domains:?}");
 
@@ -52,8 +46,53 @@ pub async fn ensure_opc_workflows_seeded(
     seed_landing_page_workflow(db).await?;
     seed_startup_mvp_workflow(db).await?;
 
+    // 4) 内容媒体 3 个专属工作流（爆款内容 / 多平台 / IP 打造）
+    let cm_seeded = seed_content_media_workflows(db).await?;
+    tracing::info!("[opc-workflows] Content media workflows seeded: {cm_seeded}");
+
     tracing::info!("[opc-workflows] All workflows seeded");
     Ok(())
+}
+
+/// 代码驱动种子化：从 IndustryAdapterFactory 创建 Adapter，调用 from_adapter 生成工作流。
+/// 完全对齐股票业务的代码驱动模式。
+async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize, String> {
+    let industry_ids = vec![
+        "accounting",
+        "ai_research",
+        "content_media",
+        "ecommerce",
+        "education",
+        "finance_invest",
+        "industry_consulting",
+        "sales_growth",
+        "software_dev",
+    ];
+
+    let mut seeded_count = 0;
+
+    for industry_id in &industry_ids {
+        let adapter =
+            axagent_analysis_engine::opc::industry::IndustryAdapterFactory::create(industry_id);
+        let Some(adapter) = adapter else {
+            tracing::warn!("[opc-workflows] Adapter not found for: {industry_id}");
+            continue;
+        };
+
+        let workflow = axagent_analysis_engine::opc::workflow::IndustryWorkflow::from_adapter(
+            industry_id,
+            &*adapter,
+        );
+
+        let template_data = workflow.to_template_data();
+
+        // 使用统一的 upsert_template 函数
+        upsert_template(db, template_data).await?;
+
+        seeded_count += 1;
+    }
+
+    Ok(seeded_count)
 }
 
 /// 领域包目录解析：app_dir/config/opc/domains → 仓库根 fallback。

@@ -57,16 +57,19 @@ impl OpcIndustryAdapter for EducationIndustryAdapter {
                 name: "招生".to_string(),
                 description: "新生报名".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "教学".to_string(),
                 description: "课程授课与作业".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "认证".to_string(),
                 description: "结课发证".to_string(),
                 order: 3,
+                ..Default::default()
             },
         ]
     }

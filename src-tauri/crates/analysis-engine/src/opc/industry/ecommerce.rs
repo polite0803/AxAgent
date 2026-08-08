@@ -56,16 +56,19 @@ impl OpcIndustryAdapter for EcommerceIndustryAdapter {
                 name: "同步库存".to_string(),
                 description: "同步商品库存".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "履约".to_string(),
                 description: "处理订单并发货".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "复盘".to_string(),
                 description: "分析销售数据".to_string(),
                 order: 3,
+                ..Default::default()
             },
         ]
     }

@@ -53,19 +53,59 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
         vec![
             WorkflowStepDef {
+                name: "市场分析".to_string(),
+                description: "宏观经济与市场趋势分析".to_string(),
+                prompt: Some(
+                    "你是一名资深投资分析师。请分析宏观经济与市场趋势，识别投资机会。输出 JSON {market_view, key_sectors, risk_factors}".to_string(),
+                ),
+                tools: vec!["OpcMarketAnalysis".to_string(), "OpcGetMarketData".to_string()],
+                agent_profile_id: Some("opc-cio-cio-investment-analyst".to_string()),
+                error_handling: "stop".to_string(),
+                order: 1,
+            },
+            WorkflowStepDef {
                 name: "行业研究".to_string(),
                 description: "研究标的与行业趋势".to_string(),
-                order: 1,
+                prompt: Some(
+                    "你是一名行业研究专家。请深入研究目标行业与个股。输出 JSON {industry_outlook, stock_analysis, valuation}".to_string(),
+                ),
+                tools: vec!["OpcIndustryResearch".to_string(), "OpcStockAnalysis".to_string()],
+                agent_profile_id: Some("opc-cio-cio-industry-researcher".to_string()),
+                error_handling: "stop".to_string(),
+                order: 2,
             },
             WorkflowStepDef {
                 name: "资产配置".to_string(),
                 description: "构建并调整投资组合".to_string(),
-                order: 2,
+                prompt: Some(
+                    "你是一名资产配置专家。请根据分析结果构建最优投资组合。输出 JSON {allocation, positions, rebalance_plan}".to_string(),
+                ),
+                tools: vec!["OpcPortfolioOptimization".to_string(), "OpcRiskAssessment".to_string()],
+                agent_profile_id: Some("opc-cio-cio-asset-allocation".to_string()),
+                error_handling: "stop".to_string(),
+                order: 3,
+            },
+            WorkflowStepDef {
+                name: "交易执行".to_string(),
+                description: "执行交易并监控".to_string(),
+                prompt: Some(
+                    "你是一名交易执行专家。请执行交易并实时监控市场。输出 JSON {executed_trades, pnl, alerts}".to_string(),
+                ),
+                tools: vec!["OpcExecuteTrade".to_string(), "OpcMonitorMarket".to_string()],
+                agent_profile_id: Some("opc-cio-cio-trading-executor".to_string()),
+                error_handling: "continue".to_string(),
+                order: 4,
             },
             WorkflowStepDef {
                 name: "回顾复盘".to_string(),
                 description: "分析组合表现并再平衡".to_string(),
-                order: 3,
+                prompt: Some(
+                    "你是一名投资回顾专家。请分析组合表现并提出再平衡建议。输出 JSON {performance_attribution, rebalance_recommendation, lessons_learned}".to_string(),
+                ),
+                tools: vec!["OpcPerformanceAnalysis".to_string(), "OpcRebalancePortfolio".to_string()],
+                agent_profile_id: Some("opc-cio-cio-portfolio-reviewer".to_string()),
+                error_handling: "continue".to_string(),
+                order: 5,
             },
         ]
     }

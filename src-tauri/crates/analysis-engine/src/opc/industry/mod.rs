@@ -286,7 +286,9 @@ pub struct IndustryAdapterFactory;
 
 impl IndustryAdapterFactory {
     pub fn create(industry_id: &str) -> Option<Arc<dyn OpcIndustryAdapter>> {
-        match industry_id {
+        // 归一化：将连字符转为下划线，支持前端 content-media / content_media 两种格式
+        let normalized_id = industry_id.trim().replace('-', "_");
+        match normalized_id.as_str() {
             "accounting" => Some(Arc::new(accounting::AccountingIndustryAdapter::new())),
             "ai_research" => Some(Arc::new(ai_research::AiResearchIndustryAdapter::new())),
             "content_media" => Some(Arc::new(content_media::ContentMediaIndustryAdapter::new())),

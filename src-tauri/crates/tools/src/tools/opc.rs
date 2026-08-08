@@ -1512,3 +1512,529 @@ impl Tool for OpcGetFinancialReportTool {
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 内容资产工具
+// ═══════════════════════════════════════════════════════════════════
+
+pub struct OpcCreateContentAssetTool;
+
+#[async_trait]
+impl Tool for OpcCreateContentAssetTool {
+    fn name(&self) -> &str {
+        "OpcCreateContentAsset"
+    }
+    fn description(&self) -> &str {
+        "创建新的内容资产（文章、视频、图片等）。需要提供标题、内容类型和正文内容。创建后为草稿状态。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "title": { "type": "string", "description": "内容标题" },
+                "content_type": {
+                    "type": "string",
+                    "enum": ["article", "video", "image"],
+                    "description": "内容类型"
+                },
+                "body": { "type": "string", "description": "正文内容（支持 Markdown）" },
+                "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "标签列表（可选）"
+                }
+            },
+            "required": ["title", "content_type", "body"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{
+            ContentAssetService, CreateContentAssetInput, DefaultSiteService,
+        };
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let title = input
+            .get("title")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: title"))?;
+        let content_type = input
+            .get("content_type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: content_type"))?;
+        let body = input
+            .get("body")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: body"))?;
+
+        let tags = input
+            .get("tags")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default();
+
+        let inp = CreateContentAssetInput {
+            title: title.to_string(),
+            content_type: content_type.to_string(),
+            body: body.to_string(),
+            tags,
+        };
+
+        match svc.create_content_asset(inp).await {
+            Ok(asset) => Ok(ToolResult::success(format!(
+                "## 内容资产创建成功\n\n- **标题**: {}\n- **类型**: {}\n- **状态**: 📝 草稿\n- **ID**: `{}`",
+                asset.title, asset.content_type, asset.id,
+            ))),
+            Err(e) => Err(ToolError::execution_failed(format!("创建内容资产失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcListContentAssetsTool;
+
+#[async_trait]
+impl Tool for OpcListContentAssetsTool {
+    fn name(&self) -> &str {
+        "OpcListContentAssets"
+    }
+    fn description(&self) -> &str {
+        "列出所有内容资产。返回标题、类型、标签、状态等摘要信息。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{}})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
+    fn is_read_only(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{ContentAssetService, DefaultSiteService};
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+        match svc.list_content_assets().await {
+            Ok(assets) => {
+                if assets.is_empty() {
+                    return Ok(ToolResult::success("## 内容资产\n\n暂无内容资产。"));
+                }
+                let lines: Vec<String> = assets
+                    .iter()
+                    .map(|a| {
+                        let tags = a.tags.join(", ");
+                        format!(
+                            "- **{}** | {} | {} | 标签: {}",
+                            a.title,
+                            a.content_type,
+                            if a.status == "published" {
+                                "✅ 已发布"
+                            } else {
+                                "📝 草稿"
+                            },
+                            tags,
+                        )
+                    })
+                    .collect();
+                Ok(ToolResult::success(format!(
+                    "## 内容资产 ({} 个)\n\n{}",
+                    assets.len(),
+                    lines.join("\n")
+                )))
+            },
+            Err(e) => Err(ToolError::execution_failed(format!("查询内容资产失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcUpdateContentAssetTool;
+
+#[async_trait]
+impl Tool for OpcUpdateContentAssetTool {
+    fn name(&self) -> &str {
+        "OpcUpdateContentAsset"
+    }
+    fn description(&self) -> &str {
+        "更新内容资产。可选择性更新标题、类型、正文、标签和状态。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "id": { "type": "string", "description": "内容资产ID" },
+                "title": { "type": "string", "description": "新标题（可选）" },
+                "content_type": {
+                    "type": "string",
+                    "enum": ["article", "video", "image"],
+                    "description": "新内容类型（可选）"
+                },
+                "body": { "type": "string", "description": "新正文内容（可选）" },
+                "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "新标签列表（可选）"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": ["draft", "published"],
+                    "description": "新状态（可选）"
+                }
+            },
+            "required": ["id"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{
+            ContentAssetService, DefaultSiteService, UpdateContentAssetInput,
+        };
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let id = input
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: id"))?;
+
+        let inp = UpdateContentAssetInput {
+            title: input.get("title").and_then(|v| v.as_str()).map(String::from),
+            content_type: input.get("content_type").and_then(|v| v.as_str()).map(String::from),
+            body: input.get("body").and_then(|v| v.as_str()).map(String::from),
+            tags: input
+                .get("tags")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()),
+            status: input.get("status").and_then(|v| v.as_str()).map(String::from),
+        };
+
+        match svc.update_content_asset(id, inp).await {
+            Ok(asset) => Ok(ToolResult::success(format!(
+                "## 内容资产已更新\n\n- **标题**: {}\n- **类型**: {}\n- **状态**: {}\n- **ID**: `{}`",
+                asset.title, asset.content_type, asset.status, asset.id,
+            ))),
+            Err(e) => Err(ToolError::execution_failed(format!("更新内容资产失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcDeleteContentAssetTool;
+
+#[async_trait]
+impl Tool for OpcDeleteContentAssetTool {
+    fn name(&self) -> &str {
+        "OpcDeleteContentAsset"
+    }
+    fn description(&self) -> &str {
+        "删除指定内容资产。需要提供内容资产ID。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "id": { "type": "string", "description": "内容资产ID" }
+            },
+            "required": ["id"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::ContentAssetService;
+        use axagent_analysis_engine::opc::DefaultSiteService;
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let id = input
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: id"))?;
+
+        match svc.delete_content_asset(id).await {
+            Ok(_) => Ok(ToolResult::success(format!("## 内容资产已删除\n\n- **ID**: `{id}`"))),
+            Err(e) => Err(ToolError::execution_failed(format!("删除内容资产失败: {e}"))),
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 发布计划工具
+// ═══════════════════════════════════════════════════════════════════
+
+pub struct OpcCreatePublishScheduleTool;
+
+#[async_trait]
+impl Tool for OpcCreatePublishScheduleTool {
+    fn name(&self) -> &str {
+        "OpcCreatePublishSchedule"
+    }
+    fn description(&self) -> &str {
+        "创建新的发布计划。需要提供内容引用类型、ID 和计划发布时间。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "content_ref_type": {
+                    "type": "string",
+                    "enum": ["blog_post", "content_asset"],
+                    "description": "内容引用类型"
+                },
+                "content_ref_id": { "type": "string", "description": "内容引用ID" },
+                "scheduled_at": { "type": "integer", "description": "计划发布时间戳" }
+            },
+            "required": ["content_ref_type", "content_ref_id", "scheduled_at"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{
+            CreatePublishScheduleInput, DefaultSiteService, PublishScheduleService,
+        };
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let content_ref_type = input
+            .get("content_ref_type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: content_ref_type"))?;
+        let content_ref_id = input
+            .get("content_ref_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: content_ref_id"))?;
+        let scheduled_at = input
+            .get("scheduled_at")
+            .and_then(|v| v.as_i64())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: scheduled_at"))?;
+
+        let inp = CreatePublishScheduleInput {
+            content_ref_type: content_ref_type.to_string(),
+            content_ref_id: content_ref_id.to_string(),
+            scheduled_at,
+        };
+
+        match svc.create_publish_schedule(inp).await {
+            Ok(schedule) => Ok(ToolResult::success(format!(
+                "## 发布计划创建成功\n\n- **类型**: {}\n- **计划时间**: {}\n- **状态**: 📋 待发布\n- **ID**: `{}`",
+                schedule.content_ref_type,
+                chrono::DateTime::from_timestamp(schedule.scheduled_at, 0)
+                    .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                    .unwrap_or_default(),
+                schedule.id,
+            ))),
+            Err(e) => Err(ToolError::execution_failed(format!("创建发布计划失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcListPublishSchedulesTool;
+
+#[async_trait]
+impl Tool for OpcListPublishSchedulesTool {
+    fn name(&self) -> &str {
+        "OpcListPublishSchedules"
+    }
+    fn description(&self) -> &str {
+        "列出所有发布计划。返回内容类型、计划时间、状态等信息。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{}})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+    fn is_concurrency_safe(&self) -> bool {
+        true
+    }
+    fn is_read_only(&self) -> bool {
+        true
+    }
+
+    async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{DefaultSiteService, PublishScheduleService};
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+        match svc.list_publish_schedules().await {
+            Ok(schedules) => {
+                if schedules.is_empty() {
+                    return Ok(ToolResult::success("## 发布计划\n\n暂无发布计划。"));
+                }
+                let lines: Vec<String> = schedules
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "- **{}** | {} | {} | 计划: {}{}",
+                            s.content_ref_type,
+                            s.content_ref_id,
+                            if s.status == "published" {
+                                "✅ 已发布"
+                            } else if s.status == "failed" {
+                                "❌ 失败"
+                            } else {
+                                "📋 待发布"
+                            },
+                            chrono::DateTime::from_timestamp(s.scheduled_at, 0)
+                                .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                                .unwrap_or_default(),
+                            if let Some(published_at) = s.published_at {
+                                format!(
+                                    " | 发布于: {}",
+                                    chrono::DateTime::from_timestamp(published_at, 0)
+                                        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+                                        .unwrap_or_default()
+                                )
+                            } else {
+                                String::new()
+                            },
+                        )
+                    })
+                    .collect();
+                Ok(ToolResult::success(format!(
+                    "## 发布计划 ({} 个)\n\n{}",
+                    schedules.len(),
+                    lines.join("\n")
+                )))
+            },
+            Err(e) => Err(ToolError::execution_failed(format!("查询发布计划失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcCancelPublishScheduleTool;
+
+#[async_trait]
+impl Tool for OpcCancelPublishScheduleTool {
+    fn name(&self) -> &str {
+        "OpcCancelPublishSchedule"
+    }
+    fn description(&self) -> &str {
+        "取消/删除发布计划。需要提供发布计划ID。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "id": { "type": "string", "description": "发布计划ID" }
+            },
+            "required": ["id"]
+        })
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{DefaultSiteService, PublishScheduleService};
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        let id = input
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| ToolError::invalid_input("缺少必需参数: id"))?;
+
+        match svc.delete_publish_schedule(id).await {
+            Ok(_) => Ok(ToolResult::success(format!("## 发布计划已取消\n\n- **ID**: `{id}`"))),
+            Err(e) => Err(ToolError::execution_failed(format!("取消发布计划失败: {e}"))),
+        }
+    }
+}
+
+pub struct OpcProcessDueSchedulesTool;
+
+#[async_trait]
+impl Tool for OpcProcessDueSchedulesTool {
+    fn name(&self) -> &str {
+        "OpcProcessDueSchedules"
+    }
+    fn description(&self) -> &str {
+        "处理所有到期的发布计划。将状态为pending且计划时间已到的内容发布出去。"
+    }
+    fn input_schema(&self) -> Value {
+        serde_json::json!({"type":"object","properties":{}})
+    }
+    fn category(&self) -> ToolCategory {
+        ToolCategory::Integration
+    }
+    fn domain(&self) -> ToolDomain {
+        ToolDomain::Opc
+    }
+
+    async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+        use axagent_analysis_engine::opc::{DefaultSiteService, PublishScheduleService};
+
+        let db = get_db()?;
+        let svc = DefaultSiteService::new((*db).clone());
+
+        match svc.process_due_schedules().await {
+            Ok(results) => {
+                if results.is_empty() {
+                    return Ok(ToolResult::success("## 处理发布计划\n\n暂无到期的发布计划。"));
+                }
+                let lines: Vec<String> = results
+                    .iter()
+                    .map(|s| {
+                        format!(
+                            "- **{}** | {} | {}",
+                            s.content_ref_type,
+                            s.content_ref_id,
+                            if s.status == "published" {
+                                "✅ 发布成功"
+                            } else {
+                                "❌ 发布失败"
+                            },
+                        )
+                    })
+                    .collect();
+                Ok(ToolResult::success(format!(
+                    "## 处理发布计划 ({} 个)\n\n{}",
+                    results.len(),
+                    lines.join("\n")
+                )))
+            },
+            Err(e) => Err(ToolError::execution_failed(format!("处理发布计划失败: {e}"))),
+        }
+    }
+}

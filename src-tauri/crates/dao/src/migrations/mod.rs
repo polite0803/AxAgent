@@ -70,9 +70,11 @@ pub mod v212_opc_work_items;
 pub mod v213_opc_orgs;
 pub mod v214_opc_experience;
 pub mod v215_opc_rl_experience;
+pub mod v216_opc_content_assets;
+pub mod v217_opc_publish_schedules;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 215;
+pub const CURRENT_VERSION: i32 = 217;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -274,6 +276,16 @@ const MIGRATIONS: &[Migration] = &[
         version: 215,
         description: "v215_opc_rl_experience: OPC 强化学习经验持久化表（opc_rl_experiences / opc_rl_training_stats）——RL 闭环",
         up: |db| Box::pin(v215_opc_rl_experience::up(db)),
+    },
+    Migration {
+        version: 216,
+        description: "v216_opc_content_assets: OPC 内容资产表（opc_content_assets）——支持文章/视频/图片等内容资产管理",
+        up: |db| Box::pin(v216_opc_content_assets::up(db)),
+    },
+    Migration {
+        version: 217,
+        description: "v217_opc_publish_schedules: OPC 发布计划表（opc_publish_schedules）——支持定时发布博客/内容资产",
+        up: |db| Box::pin(v217_opc_publish_schedules::up(db)),
     },
 ];
 

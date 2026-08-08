@@ -83,12 +83,25 @@ impl SiteMetric {
 // ── OPC 站点/落地页/博客管理 ─────────────────────────────────────
 
 use async_trait::async_trait;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryOrder, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
+};
 
-use axagent_entities::{opc_blog_posts, opc_contact_submissions, opc_landing_pages};
+use axagent_entities::{
+    opc_blog_posts, opc_contact_submissions, opc_content_assets, opc_landing_pages,
+    opc_publish_schedules,
+};
 use axagent_harness::util_fns::{gen_id, now_ts};
 
+use super::content_asset::{
+    content_asset_entity_to_dto, ContentAsset, ContentAssetService, CreateContentAssetInput,
+    UpdateContentAssetInput,
+};
 use super::error::{OpcError, OpcResult};
+use super::publish_schedule::{
+    publish_schedule_entity_to_dto, CreatePublishScheduleInput, PublishSchedule,
+    PublishScheduleService, UpdatePublishScheduleInput,
+};
 
 /// 落地页
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -424,5 +437,227 @@ impl SiteService for DefaultSiteService {
         am.is_read = Set(true);
         am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
         Ok(())
+    }
+}
+
+// ── ContentAssetService impl for DefaultSiteService ───────────────
+
+#[async_trait]
+impl ContentAssetService for DefaultSiteService {
+    async fn create_content_asset(
+        &self,
+        input: CreateContentAssetInput,
+    ) -> OpcResult<ContentAsset> {
+        let now = now_ts();
+        let tags_json = serde_json::to_string(&input.tags).unwrap_or_else(|_| "[]".to_string());
+        let am = opc_content_assets::ActiveModel {
+            id: Set(gen_id()),
+            title: Set(input.title),
+            content_type: Set(input.content_type),
+            body: Set(input.body),
+            tags_json: Set(tags_json),
+            status: Set("draft".to_string()),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        let entity = am.insert(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(content_asset_entity_to_dto(entity))
+    }
+
+    async fn get_content_asset(&self, id: &str) -> OpcResult<ContentAsset> {
+        let entity = opc_content_assets::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?
+            .ok_or_else(|| OpcError::NotFound(format!("ContentAsset {id}")))?;
+        Ok(content_asset_entity_to_dto(entity))
+    }
+
+    async fn list_content_assets(&self) -> OpcResult<Vec<ContentAsset>> {
+        let entities = opc_content_assets::Entity::find()
+            .order_by_desc(opc_content_assets::Column::CreatedAt)
+            .all(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(entities.into_iter().map(content_asset_entity_to_dto).collect())
+    }
+
+    async fn update_content_asset(
+        &self,
+        id: &str,
+        input: UpdateContentAssetInput,
+    ) -> OpcResult<ContentAsset> {
+        let entity = opc_content_assets::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?
+            .ok_or_else(|| OpcError::NotFound(format!("ContentAsset {id}")))?;
+        let mut am: opc_content_assets::ActiveModel = entity.into();
+        if let Some(title) = input.title {
+            am.title = Set(title);
+        }
+        if let Some(content_type) = input.content_type {
+            am.content_type = Set(content_type);
+        }
+        if let Some(body) = input.body {
+            am.body = Set(body);
+        }
+        if let Some(tags) = input.tags {
+            am.tags_json = Set(serde_json::to_string(&tags).unwrap_or_else(|_| "[]".to_string()));
+        }
+        if let Some(status) = input.status {
+            am.status = Set(status);
+        }
+        am.updated_at = Set(now_ts());
+        let updated = am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(content_asset_entity_to_dto(updated))
+    }
+
+    async fn delete_content_asset(&self, id: &str) -> OpcResult<()> {
+        let result = opc_content_assets::Entity::delete_by_id(id)
+            .exec(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        if result.rows_affected == 0 {
+            return Err(OpcError::NotFound(format!("ContentAsset {id}")));
+        }
+        Ok(())
+    }
+}
+
+// ── PublishScheduleService impl for DefaultSiteService ───────────────
+
+#[async_trait]
+impl PublishScheduleService for DefaultSiteService {
+    async fn create_publish_schedule(
+        &self,
+        input: CreatePublishScheduleInput,
+    ) -> OpcResult<PublishSchedule> {
+        let now = now_ts();
+        let am = opc_publish_schedules::ActiveModel {
+            id: Set(gen_id()),
+            content_ref_type: Set(input.content_ref_type),
+            content_ref_id: Set(input.content_ref_id),
+            scheduled_at: Set(input.scheduled_at),
+            status: Set("pending".to_string()),
+            published_at: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+        let entity = am.insert(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(publish_schedule_entity_to_dto(entity))
+    }
+
+    async fn get_publish_schedule(&self, id: &str) -> OpcResult<PublishSchedule> {
+        let entity = opc_publish_schedules::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?
+            .ok_or_else(|| OpcError::NotFound(format!("PublishSchedule {id}")))?;
+        Ok(publish_schedule_entity_to_dto(entity))
+    }
+
+    async fn list_publish_schedules(&self) -> OpcResult<Vec<PublishSchedule>> {
+        let entities = opc_publish_schedules::Entity::find()
+            .order_by_desc(opc_publish_schedules::Column::ScheduledAt)
+            .all(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(entities.into_iter().map(publish_schedule_entity_to_dto).collect())
+    }
+
+    async fn update_publish_schedule(
+        &self,
+        id: &str,
+        input: UpdatePublishScheduleInput,
+    ) -> OpcResult<PublishSchedule> {
+        let entity = opc_publish_schedules::Entity::find_by_id(id)
+            .one(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?
+            .ok_or_else(|| OpcError::NotFound(format!("PublishSchedule {id}")))?;
+        let mut am: opc_publish_schedules::ActiveModel = entity.into();
+        if let Some(scheduled_at) = input.scheduled_at {
+            am.scheduled_at = Set(scheduled_at);
+        }
+        if let Some(status) = input.status {
+            am.status = Set(status);
+        }
+        am.updated_at = Set(now_ts());
+        let updated = am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(publish_schedule_entity_to_dto(updated))
+    }
+
+    async fn delete_publish_schedule(&self, id: &str) -> OpcResult<()> {
+        let result = opc_publish_schedules::Entity::delete_by_id(id)
+            .exec(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        if result.rows_affected == 0 {
+            return Err(OpcError::NotFound(format!("PublishSchedule {id}")));
+        }
+        Ok(())
+    }
+
+    async fn process_due_schedules(&self) -> OpcResult<Vec<PublishSchedule>> {
+        let now = now_ts();
+        let due_schedules = opc_publish_schedules::Entity::find()
+            .filter(opc_publish_schedules::Column::Status.eq("pending"))
+            .filter(opc_publish_schedules::Column::ScheduledAt.lte(now))
+            .all(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+
+        let mut published_results = Vec::new();
+
+        for schedule in due_schedules {
+            let schedule_id = schedule.id.clone();
+            let content_ref_type = schedule.content_ref_type.clone();
+            let content_ref_id = schedule.content_ref_id.clone();
+
+            // 尝试发布内容，返回是否成功
+            let publish_success = match content_ref_type.as_str() {
+                "blog_post" => {
+                    // 发布博客文章
+                    self.publish_blog_post(&content_ref_id).await.is_ok()
+                },
+                "content_asset" => {
+                    // 更新内容资产状态为 published
+                    use super::content_asset::{ContentAssetService, UpdateContentAssetInput};
+                    let input = UpdateContentAssetInput {
+                        title: None,
+                        content_type: None,
+                        body: None,
+                        tags: None,
+                        status: Some("published".to_string()),
+                    };
+                    self.update_content_asset(&content_ref_id, input).await.is_ok()
+                },
+                _ => false,
+            };
+
+            // 根据发布结果更新计划状态
+            let status = if publish_success {
+                "published".to_string()
+            } else {
+                "failed".to_string()
+            };
+
+            let mut am: opc_publish_schedules::ActiveModel = schedule.into();
+            am.status = Set(status);
+            am.published_at = Set(Some(now));
+            am.updated_at = Set(now);
+
+            match am.update(&self.db).await {
+                Ok(updated) => {
+                    published_results.push(publish_schedule_entity_to_dto(updated));
+                },
+                Err(e) => {
+                    tracing::error!("Failed to update publish schedule {}: {}", schedule_id, e);
+                },
+            }
+        }
+
+        Ok(published_results)
     }
 }

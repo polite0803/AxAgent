@@ -14,7 +14,10 @@ use sea_orm::{
 };
 use serde::{Deserialize, Serialize};
 
-use axagent_entities::{opc_customers, opc_invoices, opc_projects};
+use axagent_entities::{
+    opc_blog_posts, opc_content_assets, opc_customers, opc_invoices, opc_landing_pages,
+    opc_projects, opc_publish_schedules,
+};
 
 use super::customer::CustomerStatus;
 use super::error::{OpcError, OpcResult};
@@ -187,6 +190,24 @@ pub trait OpcDataService: Send + Sync {
         entity_type: &str,
         data: &serde_json::Value,
     ) -> OpcResult<String>;
+
+    /// 统计指定时间范围内的博客文章数量（按发布时间筛选）
+    async fn count_blog_posts(&self, from: i64, to: i64) -> OpcResult<u64>;
+
+    /// 聚合指定时间范围内的博客文章总阅读量
+    async fn sum_blog_post_views(&self, from: i64, to: i64) -> OpcResult<f64>;
+
+    /// 统计内容资产总数（按类型分组可选）
+    async fn count_content_assets(&self, from: i64, to: i64) -> OpcResult<u64>;
+
+    /// 统计落地页数量
+    async fn count_landing_pages(&self, from: i64, to: i64) -> OpcResult<u64>;
+
+    /// 统计待发布的发布计划数（status=pending）
+    async fn count_publish_schedules_pending(&self) -> OpcResult<u64>;
+
+    /// 统计已发布的发布计划数（status=published）
+    async fn count_publish_schedules_published(&self, from: i64, to: i64) -> OpcResult<u64>;
 }
 
 // ── Mock 实现（测试用） ──────────────────────────────────────
@@ -203,6 +224,12 @@ pub struct MockDataService {
     pub invoice_max: f64,
     pub project_total: f64,
     pub customer_revenue: f64,
+    pub blog_post_count: u64,
+    pub blog_post_views: f64,
+    pub content_assets_count: u64,
+    pub landing_pages_count: u64,
+    pub publish_schedules_pending: u64,
+    pub publish_schedules_published: u64,
 }
 
 impl Default for MockDataService {
@@ -217,6 +244,12 @@ impl Default for MockDataService {
             invoice_max: 5000.0,
             project_total: 500000.0,
             customer_revenue: 15000.0,
+            blog_post_count: 25,
+            blog_post_views: 12500.0,
+            content_assets_count: 42,
+            landing_pages_count: 8,
+            publish_schedules_pending: 5,
+            publish_schedules_published: 12,
         }
     }
 }
@@ -329,6 +362,30 @@ impl OpcDataService for MockDataService {
         _data: &serde_json::Value,
     ) -> OpcResult<String> {
         Ok(format!("mock-{}-{}", entity_type, uuid::Uuid::new_v4()))
+    }
+
+    async fn count_blog_posts(&self, _from: i64, _to: i64) -> OpcResult<u64> {
+        Ok(self.blog_post_count)
+    }
+
+    async fn sum_blog_post_views(&self, _from: i64, _to: i64) -> OpcResult<f64> {
+        Ok(self.blog_post_views)
+    }
+
+    async fn count_content_assets(&self, _from: i64, _to: i64) -> OpcResult<u64> {
+        Ok(self.content_assets_count)
+    }
+
+    async fn count_landing_pages(&self, _from: i64, _to: i64) -> OpcResult<u64> {
+        Ok(self.landing_pages_count)
+    }
+
+    async fn count_publish_schedules_pending(&self) -> OpcResult<u64> {
+        Ok(self.publish_schedules_pending)
+    }
+
+    async fn count_publish_schedules_published(&self, _from: i64, _to: i64) -> OpcResult<u64> {
+        Ok(self.publish_schedules_published)
     }
 }
 
@@ -829,5 +886,63 @@ impl OpcDataService for DefaultDataService {
                 Err(OpcError::NotFound(format!("不支持的实体类型: {}", entity_type)))
             },
         }
+    }
+
+    async fn count_blog_posts(&self, from: i64, to: i64) -> OpcResult<u64> {
+        let count = opc_blog_posts::Entity::find()
+            .filter(opc_blog_posts::Column::PublishedAt.between(from, to))
+            .filter(opc_blog_posts::Column::Published.eq(true))
+            .count(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(count)
+    }
+
+    async fn sum_blog_post_views(&self, from: i64, to: i64) -> OpcResult<f64> {
+        let posts = opc_blog_posts::Entity::find()
+            .filter(opc_blog_posts::Column::PublishedAt.between(from, to))
+            .filter(opc_blog_posts::Column::Published.eq(true))
+            .all(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        let total: u32 = posts.iter().map(|p| p.view_count).sum();
+        Ok(total as f64)
+    }
+
+    async fn count_content_assets(&self, from: i64, to: i64) -> OpcResult<u64> {
+        let count = opc_content_assets::Entity::find()
+            .filter(opc_content_assets::Column::CreatedAt.between(from, to))
+            .count(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(count)
+    }
+
+    async fn count_landing_pages(&self, from: i64, to: i64) -> OpcResult<u64> {
+        let count = opc_landing_pages::Entity::find()
+            .filter(opc_landing_pages::Column::CreatedAt.between(from, to))
+            .count(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(count)
+    }
+
+    async fn count_publish_schedules_pending(&self) -> OpcResult<u64> {
+        let count = opc_publish_schedules::Entity::find()
+            .filter(opc_publish_schedules::Column::Status.eq("pending"))
+            .count(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(count)
+    }
+
+    async fn count_publish_schedules_published(&self, from: i64, to: i64) -> OpcResult<u64> {
+        let count = opc_publish_schedules::Entity::find()
+            .filter(opc_publish_schedules::Column::Status.eq("published"))
+            .filter(opc_publish_schedules::Column::PublishedAt.between(from, to))
+            .count(&self.db)
+            .await
+            .map_err(|e| OpcError::Database(e.to_string()))?;
+        Ok(count)
     }
 }

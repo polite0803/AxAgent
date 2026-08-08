@@ -56,16 +56,19 @@ impl OpcIndustryAdapter for SalesGrowthIndustryAdapter {
                 name: "线索生成".to_string(),
                 description: "通过营销活动获取线索".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "线索培育".to_string(),
                 description: "跟进并转化线索".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "赢单收盘".to_string(),
                 description: "达成交易并维护客户".to_string(),
                 order: 3,
+                ..Default::default()
             },
         ]
     }

@@ -122,6 +122,7 @@ const PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "OpcListCustomers",
             "OpcCreateCustomer",
             "OpcListBlogPosts",
+            "OpcCreateBlogPost",
             "OpcCreateLandingPage",
             "OpcListLandingPages",
             "OpcGetDashboard",

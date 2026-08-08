@@ -55,16 +55,19 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
                 name: "立项".to_string(),
                 description: "定义研究主题与可交付物".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "研究".to_string(),
                 description: "执行模型实验与资料收集".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "交付".to_string(),
                 description: "输出报告并收集反馈".to_string(),
                 order: 3,
+                ..Default::default()
             },
         ]
     }

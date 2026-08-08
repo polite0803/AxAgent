@@ -57,21 +57,25 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
                 name: "创建发票".to_string(),
                 description: "根据用户信息创建发票".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "财务审批".to_string(),
                 description: "财务审批（24小时超时自动拒绝）".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "通知客户".to_string(),
                 description: "发票已审批通过，通知客户".to_string(),
                 order: 3,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "登记报表".to_string(),
                 description: "记录发票相关关键指标".to_string(),
                 order: 4,
+                ..Default::default()
             },
         ]
     }

@@ -5,10 +5,8 @@ use async_trait::async_trait;
 
 use super::super::analytics::{KpiDefinition, KpiValue};
 use super::super::automation::{AutomationAction, AutomationCondition, IndustryAutomationRule};
-use super::super::customer::CustomerStatus;
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
-use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
 use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 use super::{
@@ -52,20 +50,61 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
         vec![
+            // 爆款内容生成：选题策划 → 内容创作 → 优化打磨
             WorkflowStepDef {
-                name: "创作".to_string(),
-                description: "产出内容草稿".to_string(),
+                name: "选题策划".to_string(),
+                description: "分析当前热点和用户需求，策划具有爆款潜力的内容主题".to_string(),
+                prompt: Some(
+                    "你是一名资深内容策划专家。请分析当前热点和用户需求，策划具有爆款潜力的内容主题。输出 JSON {topic, angle, target_audience, hook_points}".to_string(),
+                ),
+                tools: vec!["OpcSearchTrends".to_string(), "OpcAnalyzeAudience".to_string()],
+                agent_profile_id: Some("opc-cmo-cmo-content-strategist".to_string()),
+                error_handling: "stop".to_string(),
                 order: 1,
             },
             WorkflowStepDef {
-                name: "审核".to_string(),
-                description: "内容质量检查".to_string(),
+                name: "内容创作".to_string(),
+                description: "根据选题创作高质量文章或内容".to_string(),
+                prompt: Some(
+                    "你是一名资深内容创作专家。请根据选题创作高质量文章。使用 OpcCreateBlogPost 发布博客。输出 JSON {post_id, title, summary, tags}".to_string(),
+                ),
+                tools: vec!["OpcCreateBlogPost".to_string(), "OpcGenerateContent".to_string()],
+                agent_profile_id: Some("opc-cmo-cmo-content-creator".to_string()),
+                error_handling: "stop".to_string(),
                 order: 2,
             },
             WorkflowStepDef {
-                name: "发布".to_string(),
-                description: "多平台发布".to_string(),
+                name: "优化打磨".to_string(),
+                description: "对内容进行 SEO 优化和传播力增强".to_string(),
+                prompt: Some(
+                    "你是一名 SEO 优化专家。请对内容进行 SEO 优化和传播力增强。输出 JSON {optimized_title, meta_description, seo_score}".to_string(),
+                ),
+                tools: vec!["OpcSeoOptimize".to_string(), "OpcAnalyzeSeo".to_string()],
+                agent_profile_id: Some("opc-cmo-cmo-seo-expert".to_string()),
+                error_handling: "continue".to_string(),
                 order: 3,
+            },
+            WorkflowStepDef {
+                name: "多平台发布".to_string(),
+                description: "将内容发布到多个社交媒体平台".to_string(),
+                prompt: Some(
+                    "你是一名社交媒体运营专家。请将内容发布到多个社交媒体平台。输出 JSON {platforms, post_urls, scheduling}".to_string(),
+                ),
+                tools: vec!["OpcPublishToSocial".to_string(), "OpcSchedulePosts".to_string()],
+                agent_profile_id: Some("opc-cmo-cmo-social-manager".to_string()),
+                error_handling: "continue".to_string(),
+                order: 4,
+            },
+            WorkflowStepDef {
+                name: "IP 打造".to_string(),
+                description: "构建个人品牌和 IP 影响力".to_string(),
+                prompt: Some(
+                    "你是一名品牌策划专家。请构建个人品牌和 IP 影响力。输出 JSON {brand_voice, content_pillars, growth_strategy}".to_string(),
+                ),
+                tools: vec!["OpcBuildBrand".to_string(), "OpcAnalyzeCompetitors".to_string()],
+                agent_profile_id: Some("opc-cmo-cmo-brand-strategist".to_string()),
+                error_handling: "continue".to_string(),
+                order: 5,
             },
         ]
     }
@@ -79,6 +118,26 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
             KpiCalculationDef {
                 key: "subscriber_growth".to_string(),
                 name: "订阅增长".to_string(),
+            },
+            KpiCalculationDef {
+                key: "content_assets_count".to_string(),
+                name: "内容资产数".to_string(),
+            },
+            KpiCalculationDef {
+                key: "blog_posts_count".to_string(),
+                name: "博客文章数".to_string(),
+            },
+            KpiCalculationDef {
+                key: "landing_pages_count".to_string(),
+                name: "落地页数".to_string(),
+            },
+            KpiCalculationDef {
+                key: "publish_schedules_pending".to_string(),
+                name: "待发布计划".to_string(),
+            },
+            KpiCalculationDef {
+                key: "publish_schedules_published".to_string(),
+                name: "已发布计划".to_string(),
             },
         ]
     }
@@ -147,24 +206,62 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
         let (from, to) = (time_range.start, time_range.end);
         let now = chrono::Utc::now().timestamp();
 
-        let published = data.count_projects(&[ProjectStatus::Completed], from, to).await? as f64;
-        let subscribers = data
-            .count_customers(&[CustomerStatus::Active, CustomerStatus::Prospect], from, to)
-            .await? as f64;
+        let content_count = data.count_blog_posts(from, to).await? as f64;
+        let page_views = data.sum_blog_post_views(from, to).await?;
+        let content_assets_count = data.count_content_assets(from, to).await? as f64;
+        let blog_posts_count = data.count_blog_posts(from, to).await? as f64;
+        let landing_pages_count = data.count_landing_pages(from, to).await? as f64;
+        let schedules_pending = data.count_publish_schedules_pending().await? as f64;
+        let schedules_published = data.count_publish_schedules_published(from, to).await? as f64;
 
         Ok(vec![
             KpiValue {
                 key: "content_published".to_string(),
-                value: published,
+                value: content_count,
                 target: Some(20.0),
                 unit: Some("篇".to_string()),
                 timestamp: now,
             },
             KpiValue {
-                key: "subscriber_growth".to_string(),
-                value: subscribers,
-                target: Some(500.0),
-                unit: Some("人".to_string()),
+                key: "page_views".to_string(),
+                value: page_views,
+                target: Some(50000.0),
+                unit: Some("次".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "content_assets_count".to_string(),
+                value: content_assets_count,
+                target: Some(50.0),
+                unit: Some("个".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "blog_posts_count".to_string(),
+                value: blog_posts_count,
+                target: Some(20.0),
+                unit: Some("篇".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "landing_pages_count".to_string(),
+                value: landing_pages_count,
+                target: Some(10.0),
+                unit: Some("个".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "publish_schedules_pending".to_string(),
+                value: schedules_pending,
+                target: Some(10.0),
+                unit: Some("个".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "publish_schedules_published".to_string(),
+                value: schedules_published,
+                target: Some(30.0),
+                unit: Some("个".to_string()),
                 timestamp: now,
             },
         ])
@@ -175,19 +272,64 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
             KpiDefinition {
                 key: "content_published".to_string(),
                 name: "内容发布量".to_string(),
-                description: "已发布文章/视频/帖子数量".to_string(),
+                description: "已发布博客文章数量".to_string(),
                 metric_type: super::super::analytics::MetricType::Counter,
                 target: Some(20.0),
                 unit: Some("篇".to_string()),
                 ..Default::default()
             },
             KpiDefinition {
-                key: "subscriber_growth".to_string(),
-                name: "订阅增长".to_string(),
-                description: "新增订阅/关注人数".to_string(),
+                key: "page_views".to_string(),
+                name: "阅读量".to_string(),
+                description: "所有博客文章的累计阅读量".to_string(),
                 metric_type: super::super::analytics::MetricType::Counter,
-                target: Some(500.0),
-                unit: Some("人".to_string()),
+                target: Some(50000.0),
+                unit: Some("次".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "content_assets_count".to_string(),
+                name: "内容资产数".to_string(),
+                description: "内容资产总数".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(50.0),
+                unit: Some("个".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "blog_posts_count".to_string(),
+                name: "博客文章数".to_string(),
+                description: "博客文章发布数量".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(20.0),
+                unit: Some("篇".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "landing_pages_count".to_string(),
+                name: "落地页数".to_string(),
+                description: "落地页总数".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(10.0),
+                unit: Some("个".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "publish_schedules_pending".to_string(),
+                name: "待发布计划".to_string(),
+                description: "待发布的内容计划数".to_string(),
+                metric_type: super::super::analytics::MetricType::Gauge,
+                target: Some(10.0),
+                unit: Some("个".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "publish_schedules_published".to_string(),
+                name: "已发布计划".to_string(),
+                description: "已完成发布的计划数".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(30.0),
+                unit: Some("个".to_string()),
                 ..Default::default()
             },
         ]

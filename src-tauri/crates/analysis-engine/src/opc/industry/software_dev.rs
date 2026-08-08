@@ -56,16 +56,19 @@ impl OpcIndustryAdapter for SoftwareDevIndustryAdapter {
                 name: "需求规划".to_string(),
                 description: "梳理需求并制定计划".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "开发联调".to_string(),
                 description: "编码实现并集成测试".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "发布上线".to_string(),
                 description: "部署生产并监控".to_string(),
                 order: 3,
+                ..Default::default()
             },
         ]
     }

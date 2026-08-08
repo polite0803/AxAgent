@@ -6,10 +6,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axagent_harness::workflow_types::{
-    AggregatorNode, AggregatorNodeConfig, ApprovalNode, ApprovalNodeConfig, ConditionNode,
-    ConditionNodeConfig, DataTransformerNode, DataTransformerNodeConfig, EndNode, EndNodeConfig,
-    NotificationNode, NotificationNodeConfig, TriggerConfig, TriggerNode, ValidationAssertion,
-    ValidationNodeConfig as HValidationNodeConfig, WorkflowNode, WorkflowNodeBase,
+    AgentNode, AgentNodeConfig, AggregatorNode, AggregatorNodeConfig, ApprovalNode,
+    ApprovalNodeConfig, CodeNodeConfig, ConditionNode, ConditionNodeConfig, DataTransformerNode,
+    DataTransformerNodeConfig, EdgeType, EndNode, EndNodeConfig, NotificationNode,
+    NotificationNodeConfig, OutputMode, ToolDef, TriggerConfig, TriggerNode, ValidationAssertion,
+    ValidationNodeConfig as HValidationNodeConfig, WorkflowEdge as HWorkflowEdge, WorkflowNode,
+    WorkflowNodeBase, WorkflowTemplateData,
 };
 
 use super::automation::{AutomationAction, AutomationCondition};
@@ -32,9 +34,9 @@ fn create_node_base(id: impl Into<String>, title: impl Into<String>) -> Workflow
     }
 }
 
-/// 工作流边：from_node_id → to_node_id
+/// 工作流边：from_node_id → to_node_id（内部表示）
 #[derive(Debug, Clone)]
-pub struct WorkflowEdge {
+pub struct WorkflowEdgeDef {
     pub from: String,
     pub to: String,
 }
@@ -46,7 +48,7 @@ pub struct IndustryWorkflow {
     pub workflow_id: String,
     pub name: String,
     pub nodes: Vec<WorkflowNode>,
-    pub edges: Vec<WorkflowEdge>,
+    pub edges: Vec<WorkflowEdgeDef>,
     pub version: String,
 }
 
@@ -55,7 +57,7 @@ impl IndustryWorkflow {
     #[allow(unused_assignments)]
     pub fn from_adapter(industry_id: &str, adapter: &dyn OpcIndustryAdapter) -> Self {
         let mut nodes: Vec<WorkflowNode> = Vec::new();
-        let mut edges: Vec<WorkflowEdge> = Vec::new();
+        let mut edges: Vec<WorkflowEdgeDef> = Vec::new();
         let mut prev_node_id: Option<String> = None;
         let mut node_counter = 0u32;
 
@@ -93,27 +95,69 @@ impl IndustryWorkflow {
                 },
             }));
             if let Some(prev) = &prev_node_id {
-                edges.push(WorkflowEdge { from: prev.clone(), to: node_id.clone() });
+                edges.push(WorkflowEdgeDef { from: prev.clone(), to: node_id.clone() });
             }
             prev_node_id = Some(node_id);
         }
 
-        // ── 3. 业务步骤节点（来自 runtime.yaml 的 workflow_steps，使用 Code 节点） ──
+        // ── 3. 业务步骤节点（代码驱动，支持 AgentNode/CodeNode） ──
         for step in adapter.define_workflow_steps() {
             let node_id = next_id(&mut node_counter, "step");
-            nodes.push(WorkflowNode::Code(axagent_harness::workflow_types::CodeNode {
-                base: create_node_base(node_id.clone(), format!("步骤: {}", step.name)),
-                config: axagent_harness::workflow_types::CodeNodeConfig {
-                    language: "rust".to_string(),
-                    code: step.description.clone(),
-                    output_var: format!("step_{}", node_id),
-                    tool_name: None,
-                    execute_directly: true,
-                    input_mapping: HashMap::new(),
-                },
-            }));
+            let base = create_node_base(node_id.clone(), format!("步骤: {}", step.name));
+
+            // 如果步骤定义了 prompt、tools 或 agent_profile_id，则生成 AgentNode
+            if step.prompt.is_some() || !step.tools.is_empty() || step.agent_profile_id.is_some() {
+                let tool_defs = step
+                    .tools
+                    .iter()
+                    .map(|t| ToolDef { name: t.clone(), description: None, parameters: None })
+                    .collect();
+
+                nodes.push(WorkflowNode::Agent(AgentNode {
+                    base,
+                    config: AgentNodeConfig {
+                        system_prompt: step
+                            .prompt
+                            .clone()
+                            .unwrap_or_else(|| step.description.clone()),
+                        context_sources: Vec::new(),
+                        input_mapping: HashMap::new(),
+                        output_var: format!("step_{}", node_id),
+                        model: None,
+                        temperature: None,
+                        max_tokens: None,
+                        tools: tool_defs,
+                        exposed_tools: step.tools.clone(),
+                        output_mode: OutputMode::Text,
+                        agent_profile_id: step.agent_profile_id.clone(),
+                        max_tool_rounds: Some(3),
+                        execution_mode: None,
+                        rag_source_ids: Vec::new(),
+                        model_role: None,
+                        consistency_check: None,
+                        hallucination_guard: None,
+                        fallback_model: None,
+                        task_scene: None,
+                        stream_chunk_timeout_secs: None,
+                    },
+                }));
+            } else {
+                // 回退到 CodeNode（纯逻辑步骤）
+                nodes.push(WorkflowNode::Code(axagent_harness::workflow_types::CodeNode {
+                    base,
+                    config: CodeNodeConfig {
+                        language: "rust".to_string(),
+                        code: step.description.clone(),
+                        output_var: format!("step_{}", node_id),
+                        tool_name: None,
+                        execute_directly: true,
+                        input_mapping: HashMap::new(),
+                    },
+                }));
+            }
+
             if let Some(prev) = &prev_node_id {
-                edges.push(WorkflowEdge { from: prev.clone(), to: node_id.clone() });
+                edges.push(WorkflowEdgeDef { from: prev.clone(), to: node_id.clone() });
             }
             prev_node_id = Some(node_id);
         }
@@ -136,7 +180,7 @@ impl IndustryWorkflow {
                 },
             }));
             if let Some(prev) = &prev_node_id {
-                edges.push(WorkflowEdge { from: prev.clone(), to: node_id.clone() });
+                edges.push(WorkflowEdgeDef { from: prev.clone(), to: node_id.clone() });
             }
             prev_node_id = Some(node_id);
         }
@@ -203,7 +247,7 @@ impl IndustryWorkflow {
                 },
             }));
             if let Some(prev_id) = &prev {
-                edges.push(WorkflowEdge { from: prev_id.clone(), to: cond_id.clone() });
+                edges.push(WorkflowEdgeDef { from: prev_id.clone(), to: cond_id.clone() });
             }
 
             // 5b. 通知/动作节点（条件满足时执行）
@@ -274,7 +318,7 @@ impl IndustryWorkflow {
                         })
                     },
                 });
-                edges.push(WorkflowEdge { from: cond_id.clone(), to: action_id.clone() });
+                edges.push(WorkflowEdgeDef { from: cond_id.clone(), to: action_id.clone() });
             }
 
             // 将条件节点作为下一个节点的前驱
@@ -295,7 +339,7 @@ impl IndustryWorkflow {
                 },
             }));
             if let Some(prev) = &prev_node_id {
-                edges.push(WorkflowEdge { from: prev.clone(), to: approval_id.clone() });
+                edges.push(WorkflowEdgeDef { from: prev.clone(), to: approval_id.clone() });
             }
             prev_node_id = Some(approval_id);
         }
@@ -322,7 +366,7 @@ impl IndustryWorkflow {
                 },
             }));
             if let Some(prev_id) = &prev {
-                edges.push(WorkflowEdge { from: prev_id.clone(), to: agg_id.clone() });
+                edges.push(WorkflowEdgeDef { from: prev_id.clone(), to: agg_id.clone() });
             }
             prev_node_id = Some(agg_id);
         }
@@ -334,7 +378,7 @@ impl IndustryWorkflow {
             config: EndNodeConfig { output_var: Some("final_result".to_string()) },
         }));
         if let Some(prev) = &prev_node_id {
-            edges.push(WorkflowEdge { from: prev.clone(), to: end_id.clone() });
+            edges.push(WorkflowEdgeDef { from: prev.clone(), to: end_id.clone() });
         }
 
         Self {
@@ -350,6 +394,56 @@ impl IndustryWorkflow {
     /// 获取所有节点 ID 列表
     pub fn node_ids(&self) -> Vec<String> {
         self.nodes.iter().map(|n| n.base_id().to_string()).collect()
+    }
+
+    /// 转换为 WorkflowTemplateData（用于种子化存储）
+    pub fn to_template_data(&self) -> WorkflowTemplateData {
+        let now = axagent_harness::util_fns::now_ts();
+
+        // 将内部边映射为 harness 的 HWorkflowEdge
+        let edges: Vec<HWorkflowEdge> = self
+            .edges
+            .iter()
+            .map(|e| {
+                let edge_id = format!("{}_{}_{}", self.workflow_id, e.from, e.to);
+                HWorkflowEdge {
+                    id: edge_id,
+                    source: e.from.clone(),
+                    source_handle: None,
+                    target: e.to.clone(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                }
+            })
+            .collect();
+
+        WorkflowTemplateData {
+            id: self.workflow_id.clone(),
+            name: self.name.clone(),
+            description: Some(format!("{} 行业工作流（代码驱动）", self.industry_id)),
+            icon: "⚙️".to_string(),
+            tags: vec![self.industry_id.clone(), "opc".to_string()],
+            version: 2, // 代码驱动版本
+            is_preset: true,
+            is_editable: true,
+            is_public: false,
+            trigger_config: Some(TriggerConfig {
+                trigger_type: axagent_harness::workflow_types::TriggerType::Manual,
+                config: serde_json::json!({}),
+            }),
+            nodes: self.nodes.clone(),
+            edges,
+            input_schema: None,
+            output_schema: None,
+            variables: Vec::new(),
+            error_config: None,
+            error_workflow_id: None,
+            mission_hash: None,
+            tool_defs: Vec::new(),
+            created_at: now,
+            updated_at: now,
+        }
     }
 }
 
@@ -685,12 +779,34 @@ pub struct KpiCalculationDef {
     pub name: String,
 }
 
-/// 业务步骤定义（从 runtime.yaml.workflow_steps 映射）
+/// 业务步骤定义（代码驱动，对齐股票业务）
 #[derive(Debug, Clone)]
 pub struct WorkflowStepDef {
     pub name: String,
     pub description: String,
     pub order: i32,
+    /// Agent 系统提示词（用于生成 AgentNode）
+    pub prompt: Option<String>,
+    /// 允许使用的工具列表（用于生成 AgentNode）
+    pub tools: Vec<String>,
+    /// 绑定的 Agent Profile ID（如 "opc-cmo-cmo-content-strategist"）
+    pub agent_profile_id: Option<String>,
+    /// 错误处理：stop / continue
+    pub error_handling: String,
+}
+
+impl Default for WorkflowStepDef {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            description: String::new(),
+            order: 0,
+            prompt: None,
+            tools: Vec::new(),
+            agent_profile_id: None,
+            error_handling: "stop".to_string(),
+        }
+    }
 }
 
 /// 仪表盘卡片定义（从 runtime.yaml.dashboard_cards 映射）

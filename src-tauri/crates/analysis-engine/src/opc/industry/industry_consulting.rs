@@ -57,16 +57,19 @@ impl OpcIndustryAdapter for IndustryConsultingIndustryAdapter {
                 name: "客户接洽".to_string(),
                 description: "评估需求并签订合同".to_string(),
                 order: 1,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "项目交付".to_string(),
                 description: "执行咨询并输出成果".to_string(),
                 order: 2,
+                ..Default::default()
             },
             WorkflowStepDef {
                 name: "复盘反馈".to_string(),
                 description: "收集反馈并复盘".to_string(),
                 order: 3,
+                ..Default::default()
             },
         ]
     }

@@ -13,14 +13,16 @@ use sea_orm::ActiveModelTrait;
 use tauri::State;
 
 use axagent_analysis_engine::opc::{
-    AnalyticsService, BlogPost, ContactSubmission, CreateBlogPostInput, CreateCustomerInput,
-    CreateInvoiceInput, CreateKpiInput, CreateLandingPageInput, CreateProjectInput, Customer,
-    CustomerFilter, CustomerService, DashboardSummary, DefaultAnalyticsService,
+    AnalyticsService, BlogPost, ContactSubmission, ContentAsset, ContentAssetService,
+    CreateBlogPostInput, CreateContentAssetInput, CreateCustomerInput, CreateInvoiceInput,
+    CreateKpiInput, CreateLandingPageInput, CreateProjectInput, CreatePublishScheduleInput,
+    Customer, CustomerFilter, CustomerService, DashboardSummary, DefaultAnalyticsService,
     DefaultCustomerService, DefaultFinanceService, DefaultInvoiceService, DefaultProjectService,
     DefaultSiteService, FinanceService, FinancialReport, InvestmentAdvice, Invoice, InvoiceFilter,
     InvoiceService, InvoiceStatus, KpiRecord, LandingPage, Milestone, Project, ProjectFilter,
-    ProjectService, RevenueRecord, SiteService, UpdateCustomerInput, UpdateInvoiceInput,
-    UpdateProjectInput,
+    ProjectService, PublishSchedule, PublishScheduleService, RevenueRecord, SiteService,
+    UpdateContentAssetInput, UpdateCustomerInput, UpdateInvoiceInput, UpdateProjectInput,
+    UpdatePublishScheduleInput,
 };
 
 /// 记录 OPC 操作轨迹到 trajectory 系统供学习
@@ -729,6 +731,83 @@ pub async fn opc_delete_blog_post(state: State<'_, AppState>, id: String) -> Res
     Ok(())
 }
 
+// ── Content Asset Commands ──────────────────────────────────────────
+
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建内容资产")]
+#[tauri::command]
+pub async fn opc_create_content_asset(
+    state: State<'_, AppState>,
+    input: CreateContentAssetInput,
+) -> Result<ContentAsset, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.create_content_asset(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出内容资产")]
+#[tauri::command]
+pub async fn opc_list_content_assets(
+    state: State<'_, AppState>,
+) -> Result<Vec<ContentAsset>, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.list_content_assets().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取内容资产详情")]
+#[tauri::command]
+pub async fn opc_get_content_asset(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<ContentAsset, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.get_content_asset(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新内容资产")]
+#[tauri::command]
+pub async fn opc_update_content_asset(
+    state: State<'_, AppState>,
+    id: String,
+    input: UpdateContentAssetInput,
+) -> Result<ContentAsset, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.update_content_asset(&id, input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+#[agent_command(domain = "opc", safety = Dangerous, call_mode = StateInput, description = "删除内容资产")]
+#[tauri::command]
+pub async fn opc_delete_content_asset(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<(), String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.delete_content_asset(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
 /// 看板投影：按 phase 列聚合 work items（Kanban）。
 /// 返回 {列名: [item...]}，列为 待办/进行中/阻塞/评审/已完成/终止。
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取看板块")]
@@ -1335,4 +1414,101 @@ async fn opc_batch_role_status(
     }
 
     map
+}
+
+// ── 发布计划 Tauri 命令 ─────────────────────────────────────────
+
+/// 创建发布计划
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建发布计划")]
+#[tauri::command]
+pub async fn opc_create_publish_schedule(
+    state: State<'_, AppState>,
+    input: CreatePublishScheduleInput,
+) -> Result<PublishSchedule, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.create_publish_schedule(input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 列出所有发布计划
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出发布计划")]
+#[tauri::command]
+pub async fn opc_list_publish_schedules(
+    state: State<'_, AppState>,
+) -> Result<Vec<PublishSchedule>, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.list_publish_schedules().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 获取单个发布计划
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "获取发布计划详情")]
+#[tauri::command]
+pub async fn opc_get_publish_schedule(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<PublishSchedule, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.get_publish_schedule(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 更新发布计划
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新发布计划")]
+#[tauri::command]
+pub async fn opc_update_publish_schedule(
+    state: State<'_, AppState>,
+    id: String,
+    input: UpdatePublishScheduleInput,
+) -> Result<PublishSchedule, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.update_publish_schedule(&id, input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 删除发布计划
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除发布计划")]
+#[tauri::command]
+pub async fn opc_delete_publish_schedule(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<(), String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.delete_publish_schedule(&id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+/// 处理到期的发布计划
+#[agent_command(domain = "opc", safety = Caution, call_mode = Manual, description = "处理到期发布计划")]
+#[tauri::command]
+pub async fn opc_process_due_schedules(
+    state: State<'_, AppState>,
+) -> Result<Vec<PublishSchedule>, String> {
+    let svc = DefaultSiteService::new(state.harness.db().clone());
+    svc.process_due_schedules().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
