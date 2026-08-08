@@ -4824,7 +4824,12 @@
       "chartScheduleStatus": "Schedule Status Distribution",
       "noData": "No content media data",
       "manageContent": "Manage Content",
-      "tagsPlaceholder": "Comma-separated tags"
+      "tagsPlaceholder": "Comma-separated tags",
+      "type_article": "Article",
+      "type_video": "Video",
+      "type_image": "Image",
+      "type_social_post": "Social Media",
+      "type_newsletter": "Newsletter"
     }
   },
   "pasteButton": {

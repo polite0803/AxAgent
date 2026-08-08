@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "Zeitplan-Status-Verteilung",
       "noData": "Keine Content-&-Medien-Daten",
       "manageContent": "Content verwalten",
-      "tagsPlaceholder": "Kommagetrennte Tags"
+      "tagsPlaceholder": "Kommagetrennte Tags",
+      "type_article": "Artikel",
+      "type_video": "Video",
+      "type_image": "Bild",
+      "type_social_post": "Soziale Medien",
+      "type_newsletter": "Newsletter"
     }
   },
   "pasteButton": {

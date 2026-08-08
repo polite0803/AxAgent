@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "게시 상태 분포",
       "noData": "콘텐츠 미디어 데이터가 없습니다",
       "manageContent": "콘텐츠 관리",
-      "tagsPlaceholder": "쉼표로 구분된 태그"
+      "tagsPlaceholder": "쉼표로 구분된 태그",
+      "type_article": "기사",
+      "type_video": "동영상",
+      "type_image": "이미지",
+      "type_social_post": "소셜 포스트",
+      "type_newsletter": "뉴스레터"
     }
   },
   "pasteButton": {

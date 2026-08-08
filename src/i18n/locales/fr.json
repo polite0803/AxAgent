@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "Distribution des Statuts de Planification",
       "noData": "Aucune donnée de contenu et médias",
       "manageContent": "Gérer le Contenu",
-      "tagsPlaceholder": "Étiquettes séparées par des virgules"
+      "tagsPlaceholder": "Étiquettes séparées par des virgules",
+      "type_article": "Article",
+      "type_video": "Vidéo",
+      "type_image": "Image",
+      "type_social_post": "Réseaux sociaux",
+      "type_newsletter": "Newsletter"
     }
   },
   "pasteButton": {

@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "शेड्यूल स्थिति वितरण",
       "noData": "कोई सामग्री और मीडिया डेटा नहीं",
       "manageContent": "सामग्री प्रबंधित करें",
-      "tagsPlaceholder": "अल्पविराम से अलग टैग"
+      "tagsPlaceholder": "अल्पविराम से अलग टैग",
+      "type_article": "लेख",
+      "type_video": "वीडियो",
+      "type_image": "छवि",
+      "type_social_post": "सोशल पोस्ट",
+      "type_newsletter": "न्यूज़लेटर"
     }
   },
   "pasteButton": {

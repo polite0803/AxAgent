@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "Distribución de Estado de Programación",
       "noData": "Sin datos de contenido y medios",
       "manageContent": "Gestionar Contenido",
-      "tagsPlaceholder": "Etiquetas separadas por comas"
+      "tagsPlaceholder": "Etiquetas separadas por comas",
+      "type_article": "Artículo",
+      "type_video": "Video",
+      "type_image": "Imagen",
+      "type_social_post": "Redes sociales",
+      "type_newsletter": "Boletín"
     }
   },
   "pasteButton": {

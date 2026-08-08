@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "Распределение статусов расписания",
       "noData": "Нет данных о контенте и медиа",
       "manageContent": "Управление контентом",
-      "tagsPlaceholder": "Теги через запятую"
+      "tagsPlaceholder": "Теги через запятую",
+      "type_article": "Статья",
+      "type_video": "Видео",
+      "type_image": "Изображение",
+      "type_social_post": "Соцсети",
+      "type_newsletter": "Рассылка"
     }
   },
   "pasteButton": {

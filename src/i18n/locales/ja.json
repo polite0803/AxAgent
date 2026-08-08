@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "スケジュールステータス分布",
       "noData": "コンテンツメディアデータがありません",
       "manageContent": "コンテンツを管理",
-      "tagsPlaceholder": "カンマ区切りのタグ"
+      "tagsPlaceholder": "カンマ区切りのタグ",
+      "type_article": "記事",
+      "type_video": "動画",
+      "type_image": "画像",
+      "type_social_post": "ソーシャル投稿",
+      "type_newsletter": "ニュースレター"
     }
   },
   "pasteButton": {

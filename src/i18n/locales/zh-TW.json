@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "發布狀態分布",
       "noData": "暫無內容媒體資料",
       "manageContent": "管理內容素材",
-      "tagsPlaceholder": "用逗號分隔標籤"
+      "tagsPlaceholder": "用逗號分隔標籤",
+      "type_article": "文章",
+      "type_video": "影片",
+      "type_image": "圖片",
+      "type_social_post": "社群媒體",
+      "type_newsletter": "Newsletter"
     }
   },
   "pasteButton": {

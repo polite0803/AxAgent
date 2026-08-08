@@ -4814,7 +4814,12 @@
       "chartScheduleStatus": "توزيع حالات الجدول الزمني",
       "noData": "لا توجد بيانات للمحتوى والإعلام",
       "manageContent": "إدارة المحتوى",
-      "tagsPlaceholder": "وسوم مفصولة بفاصلة"
+      "tagsPlaceholder": "وسوم مفصولة بفاصلة",
+      "type_article": "مقالة",
+      "type_video": "فيديو",
+      "type_image": "صورة",
+      "type_social_post": "منشور وسائل التواصل",
+      "type_newsletter": "النشرة الإخبارية"
     }
   },
   "pasteButton": {

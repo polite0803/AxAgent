@@ -44,13 +44,7 @@ interface PublishSchedule {
   updated_at: number;
 }
 
-const CONTENT_TYPES = [
-  { value: "article", label: "文章" },
-  { value: "video", label: "视频" },
-  { value: "image", label: "图片" },
-  { value: "social_post", label: "社交媒体" },
-  { value: "newsletter", label: " newsletter" },
-];
+const CONTENT_TYPES = ["article", "video", "image", "social_post", "newsletter"] as const;
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "default",
@@ -178,10 +172,7 @@ function ContentAssetsPanel() {
       dataIndex: "content_type",
       key: "content_type",
       width: 100,
-      render: (type: string) => {
-        const ct = CONTENT_TYPES.find((c) => c.value === type);
-        return ct ? ct.label : type;
-      },
+      render: (type: string) => t(`opc.contentMedia.type_${type}`),
     },
     {
       title: t("opc.contentMedia.columnStatus"),
@@ -282,7 +273,9 @@ function ContentAssetsPanel() {
             <Input />
           </Form.Item>
           <Form.Item name="content_type" label={t("opc.contentMedia.columnType")} rules={[{ required: true }]}>
-            <Select options={CONTENT_TYPES} />
+            <Select
+              options={CONTENT_TYPES.map((c) => ({ value: c, label: t(`opc.contentMedia.type_${c}`) }))}
+            />
           </Form.Item>
           <Form.Item name="body" label={t("opc.contentMedia.columnBody")}>
             <Input.TextArea rows={4} />
@@ -318,7 +311,9 @@ function ContentAssetsPanel() {
             <Input />
           </Form.Item>
           <Form.Item name="content_type" label={t("opc.contentMedia.columnType")} rules={[{ required: true }]}>
-            <Select options={CONTENT_TYPES} />
+            <Select
+              options={CONTENT_TYPES.map((c) => ({ value: c, label: t(`opc.contentMedia.type_${c}`) }))}
+            />
           </Form.Item>
           <Form.Item name="body" label={t("opc.contentMedia.columnBody")}>
             <Input.TextArea rows={4} />
