@@ -12,6 +12,7 @@ import { theme } from "antd";
 import { ChevronLeft, ChevronRight, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 480;
@@ -24,6 +25,86 @@ const RIGHT_PANEL_DEFAULT = 320;
 export function ChatPage() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── URL query 参数初始化（仅页面挂载时执行一次） ──
+  const urlInitDoneRef = useRef(false);
+
+  useEffect(() => {
+    if (urlInitDoneRef.current) {
+      return;
+    }
+    const conversationId = searchParams.get("conversationId");
+    const prompt = searchParams.get("prompt");
+    const workflow = searchParams.get("workflow");
+
+    if (!conversationId && !prompt && !workflow) {
+      urlInitDoneRef.current = true;
+      return;
+    }
+
+    urlInitDoneRef.current = true;
+
+    const convStore = useConversationStore.getState();
+
+    const initUrlParams = async () => {
+      // 1. 如果有 conversationId，先打开该会话
+      if (conversationId) {
+        convStore.setActiveConversation(conversationId);
+      }
+
+      // 2. 如果有 workflow 参数，创建带工作流模板的会话
+      if (workflow) {
+        const providers = useProviderStore.getState().providers;
+        const providerId = providers[0]?.id;
+        const modelId = providers[0]?.models.find((m) => m.enabled)?.model_id
+          ?? providers[0]?.models[0]?.model_id;
+
+        if (providerId && modelId) {
+          await convStore.createConversation(
+            workflow,
+            modelId,
+            providerId,
+            { workflow_template_id: workflow },
+          );
+          if (prompt) {
+            // 注入初始 prompt
+            await useConversationStore.getState().sendMessage(prompt);
+          }
+          // 清理 URL 参数
+          setSearchParams({}, { replace: true });
+          return;
+        }
+      }
+
+      // 3. 如果有 prompt 但没有 workflow，在当前或新建会话中发送
+      if (prompt) {
+        const activeId = useConversationStore.getState().activeConversationId;
+        if (!activeId) {
+          // 创建新会话再发送
+          const providers = useProviderStore.getState().providers;
+          const providerId = providers[0]?.id;
+          const modelId = providers[0]?.models.find((m) => m.enabled)?.model_id
+            ?? providers[0]?.models[0]?.model_id;
+          if (providerId && modelId) {
+            await convStore.createConversation(
+              prompt.slice(0, 30),
+              modelId,
+              providerId,
+            );
+          }
+        }
+        // 发送初始 prompt
+        await useConversationStore.getState().sendMessage(prompt);
+      }
+
+      // 清理 URL 参数
+      setSearchParams({}, { replace: true });
+    };
+
+    void initUrlParams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Agent 上下文注入：告知 Agent 当前页面是聊天页 ──
   useAgentContext({

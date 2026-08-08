@@ -3424,6 +3424,7 @@
     "opc": "Ein-Personen-Unternehmen"
   },
   "invest": {
+    "title": "Investitionszentrum",
     "tab": {
       "marketMainline": "Markt-Hauptlinie",
       "screener": "Screener",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "Inhalt & Medien"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "Aktualisierung fehlgeschlagen: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "Assets",
+      "tabSchedules": "Zeitpläne",
+      "tabWizard": "Assistent",
+      "newAsset": "Neues Asset",
+      "assetCreated": "Asset erstellt",
+      "assetUpdated": "Asset aktualisiert",
+      "assetDeleted": "Asset gelöscht",
+      "assetModalTitle": "Neues Content-Asset",
+      "assetEditTitle": "Content-Asset bearbeiten",
+      "columnTitle": "Titel",
+      "columnType": "Typ",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnBody": "Inhalt",
+      "columnCreated": "Erstellt",
+      "columnContentRef": "Inhalt",
+      "columnRefType": "Referenztyp",
+      "columnScheduledAt": "Geplant für",
+      "status_draft": "Entwurf",
+      "status_published": "Veröffentlicht",
+      "schedule_pending": "Ausstehend",
+      "schedule_published": "Veröffentlicht",
+      "schedule_failed": "Fehlgeschlagen",
+      "newSchedule": "Neuer Zeitplan",
+      "scheduleCreated": "Zeitplan erstellt",
+      "scheduleCancelled": "Zeitplan storniert",
+      "scheduleModalTitle": "Neuer Veröffentlichungszeitplan",
+      "selectContent": "Inhalt auswählen",
+      "selectContentPlaceholder": "Content-Asset auswählen",
+      "scheduledAt": "Geplant für",
+      "processDue": "Fällige verarbeiten",
+      "processDueSuccess": "Fällige Zeitpläne verarbeitet",
+      "cancelSchedule": "Stornieren",
+      "wizard": {
+        "step1Title": "Thema",
+        "step1Desc": "Thema und Blickwinkel definieren",
+        "step2Title": "Erstellung",
+        "step2Desc": "Titel und Inhalt schreiben",
+        "step3Title": "SEO",
+        "step3Desc": "SEO-Metadaten konfigurieren",
+        "step4Title": "Veröffentlichung",
+        "step4Desc": "Veröffentlichungsmethode wählen",
+        "topicLabel": "Thema",
+        "topicPlaceholder": "z.B. Produkteinführung, Branchentrendanalyse...",
+        "topicRequired": "Thema ist erforderlich",
+        "angleLabel": "Blickwinkel",
+        "anglePlaceholder": "Beschreibe deinen Blickwinkel",
+        "titleLabel": "Titel",
+        "titleRequired": "Titel ist erforderlich",
+        "bodyLabel": "Inhalt",
+        "bodyRequired": "Inhalt ist erforderlich",
+        "bodyPlaceholder": "Inhalt hier schreiben...",
+        "seoLabel": "SEO-Beschreibung",
+        "seoPlaceholder": "Meta-Beschreibung für Suchmaschinen",
+        "publishType": "Veröffentlichungstyp",
+        "publishImmediate": "Jetzt veröffentlichen",
+        "publishScheduled": "Planen",
+        "scheduleTime": "Veröffentlichungszeit",
+        "scheduleRequired": "Veröffentlichungszeit ist erforderlich",
+        "finish": "Fertig",
+        "complete": "Content-Erstellung abgeschlossen!",
+        "publishedNow": "Inhalt veröffentlicht",
+        "scheduleCreated": "Zeitplan erstellt"
+      },
+      "dashboardTitle": "Content & Medien Übersicht",
+      "kpiAssets": "Assets",
+      "kpiBlogPosts": "Blogbeiträge",
+      "kpiLandingPages": "Landingpages",
+      "kpiSchedulesPending": "Ausstehend",
+      "kpiSchedulesPublished": "Veröffentlicht",
+      "chartContentType": "Content-Typ-Verteilung",
+      "chartScheduleStatus": "Zeitplan-Status-Verteilung",
+      "noData": "Keine Content-&-Medien-Daten",
+      "manageContent": "Content verwalten",
+      "tagsPlaceholder": "Kommagetrennte Tags"
     }
   },
   "pasteButton": {

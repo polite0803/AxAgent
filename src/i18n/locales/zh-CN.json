@@ -3434,6 +3434,7 @@
     "opc": "一人公司"
   },
   "invest": {
+    "title": "投资中心",
     "tab": {
       "marketMainline": "市场主线",
       "screener": "选股",
@@ -3905,7 +3906,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "内容媒体"
     },
     "industries": {
       "ai_research": "人工智能研究",
@@ -3997,15 +3999,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "爆款内容生成",
             "description": "选题策划 → 标题优化 → 内容撰写 → 发布建议"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "多平台适配",
             "description": "内容分析 → 平台对比 → 格式适配 → 发布策略"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP 打造方案",
             "description": "定位分析 → 人设设计 → 内容规划 → 增长策略"
           }
@@ -4164,7 +4166,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "文章写作",
             "description": "生成高质量文章内容"
           },
@@ -4415,6 +4417,7 @@
       "description": "描述",
       "dueDate": "截止日期",
       "createFailed": "创建失败: {{error}}",
+      "updateFailed": "更新失败：{{error}}",
       "deleteFailed": "删除失败: {{error}}",
       "opFailed": "操作失败: {{error}}",
       "batchDelete": "批量删除 ({{count}})",
@@ -4745,6 +4748,83 @@
       "install": "安装",
       "installSuccess": "已安装: {{name}}",
       "installFailed": "安装失败: {{error}}"
+    },
+    "contentMedia": {
+      "tabAssets": "素材库",
+      "tabSchedules": "发布计划",
+      "tabWizard": "创作向导",
+      "newAsset": "新建素材",
+      "assetCreated": "素材创建成功",
+      "assetUpdated": "素材更新成功",
+      "assetDeleted": "素材删除成功",
+      "assetModalTitle": "新建内容素材",
+      "assetEditTitle": "编辑内容素材",
+      "columnTitle": "标题",
+      "columnType": "类型",
+      "columnStatus": "状态",
+      "columnTags": "标签",
+      "columnBody": "正文",
+      "columnCreated": "创建时间",
+      "columnContentRef": "关联内容",
+      "columnRefType": "类型",
+      "columnScheduledAt": "发布时间",
+      "status_draft": "草稿",
+      "status_published": "已发布",
+      "schedule_pending": "待发布",
+      "schedule_published": "已发布",
+      "schedule_failed": "失败",
+      "newSchedule": "新建发布计划",
+      "scheduleCreated": "发布计划创建成功",
+      "scheduleCancelled": "发布计划已取消",
+      "scheduleModalTitle": "新建发布计划",
+      "selectContent": "选择内容",
+      "selectContentPlaceholder": "请选择要发布的内容素材",
+      "scheduledAt": "发布时间",
+      "processDue": "处理到期计划",
+      "processDueSuccess": "到期计划处理成功",
+      "cancelSchedule": "取消",
+      "wizard": {
+        "step1Title": "选题与方向",
+        "step1Desc": "确定选题和创作角度",
+        "step2Title": "内容创作",
+        "step2Desc": "撰写标题和正文",
+        "step3Title": "SEO 优化",
+        "step3Desc": "设置 SEO 元信息",
+        "step4Title": "发布设置",
+        "step4Desc": "选择发布方式",
+        "topicLabel": "选题",
+        "topicPlaceholder": "输入选题方向，例如：产品发布、行业趋势分析...",
+        "topicRequired": "请输入选题",
+        "angleLabel": "创作角度",
+        "anglePlaceholder": "描述你的创作角度和切入点",
+        "titleLabel": "标题",
+        "titleRequired": "请输入标题",
+        "bodyLabel": "正文",
+        "bodyRequired": "请输入正文内容",
+        "bodyPlaceholder": "在此输入正文内容...",
+        "seoLabel": "SEO 描述",
+        "seoPlaceholder": "用于搜索引擎的元描述（建议 150 字以内）",
+        "publishType": "发布方式",
+        "publishImmediate": "立即发布",
+        "publishScheduled": "定时发布",
+        "scheduleTime": "发布时间",
+        "scheduleRequired": "请选择发布时间",
+        "finish": "完成发布",
+        "complete": "内容创作完成！",
+        "publishedNow": "内容已发布",
+        "scheduleCreated": "发布计划已创建"
+      },
+      "dashboardTitle": "内容媒体概览",
+      "kpiAssets": "素材总数",
+      "kpiBlogPosts": "博客文章",
+      "kpiLandingPages": "落地页",
+      "kpiSchedulesPending": "待发布",
+      "kpiSchedulesPublished": "已发布",
+      "chartContentType": "内容类型分布",
+      "chartScheduleStatus": "发布状态分布",
+      "noData": "暂无内容媒体数据",
+      "manageContent": "管理内容素材",
+      "tagsPlaceholder": "用逗号分隔标签"
     }
   },
   "pasteButton": {

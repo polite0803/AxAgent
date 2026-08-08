@@ -3424,6 +3424,7 @@
     "opc": "वन-पर्सन कंपनी"
   },
   "invest": {
+    "title": "निवेश केंद्र",
     "tab": {
       "marketMainline": "बाज़ार मेनलाइन",
       "screener": "स्क्रीनर",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "सामग्री और मीडिया"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "अपडेट विफल: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "संपत्तियाँ",
+      "tabSchedules": "शेड्यूल",
+      "tabWizard": "विज़ार्ड",
+      "newAsset": "नई संपत्ति",
+      "assetCreated": "संपत्ति बनाई गई",
+      "assetUpdated": "संपत्ति अपडेट की गई",
+      "assetDeleted": "संपत्ति हटाई गई",
+      "assetModalTitle": "नई सामग्री संपत्ति",
+      "assetEditTitle": "सामग्री संपत्ति संपादित करें",
+      "columnTitle": "शीर्षक",
+      "columnType": "प्रकार",
+      "columnStatus": "स्थिति",
+      "columnTags": "टैग",
+      "columnBody": "सामग्री",
+      "columnCreated": "बनाया गया",
+      "columnContentRef": "सामग्री",
+      "columnRefType": "संदर्भ प्रकार",
+      "columnScheduledAt": "निर्धारित समय",
+      "status_draft": "मसौदा",
+      "status_published": "प्रकाशित",
+      "schedule_pending": "लंबित",
+      "schedule_published": "प्रकाशित",
+      "schedule_failed": "विफल",
+      "newSchedule": "नया शेड्यूल",
+      "scheduleCreated": "शेड्यूल बनाया गया",
+      "scheduleCancelled": "शेड्यूल रद्द किया गया",
+      "scheduleModalTitle": "नया प्रकाशन शेड्यूल",
+      "selectContent": "सामग्री चुनें",
+      "selectContentPlaceholder": "सामग्री संपत्ति चुनें",
+      "scheduledAt": "निर्धारित समय",
+      "processDue": "देय प्रोसेस करें",
+      "processDueSuccess": "देय शेड्यूल प्रोसेस किए गए",
+      "cancelSchedule": "रद्द करें",
+      "wizard": {
+        "step1Title": "विषय",
+        "step1Desc": "विषय और कोण परिभाषित करें",
+        "step2Title": "निर्माण",
+        "step2Desc": "शीर्षक और सामग्री लिखें",
+        "step3Title": "SEO",
+        "step3Desc": "SEO मेटाडेटा कॉन्फ़िगर करें",
+        "step4Title": "प्रकाशन",
+        "step4Desc": "प्रकाशन विधि चुनें",
+        "topicLabel": "विषय",
+        "topicPlaceholder": "उदा. उत्पाद लॉन्च, उद्योग रुझान विश्लेषण...",
+        "topicRequired": "विषय आवश्यक है",
+        "angleLabel": "कोण",
+        "anglePlaceholder": "अपना कोण बताएं",
+        "titleLabel": "शीर्षक",
+        "titleRequired": "शीर्षक आवश्यक है",
+        "bodyLabel": "सामग्री",
+        "bodyRequired": "सामग्री आवश्यक है",
+        "bodyPlaceholder": "यहाँ सामग्री लिखें...",
+        "seoLabel": "SEO विवरण",
+        "seoPlaceholder": "खोज इंजनों के लिए मेटा विवरण",
+        "publishType": "प्रकाशन प्रकार",
+        "publishImmediate": "अभी प्रकाशित करें",
+        "publishScheduled": "शेड्यूल",
+        "scheduleTime": "प्रकाशन समय",
+        "scheduleRequired": "प्रकाशन समय आवश्यक है",
+        "finish": "समाप्त",
+        "complete": "सामग्री निर्माण पूरा!",
+        "publishedNow": "सामग्री प्रकाशित",
+        "scheduleCreated": "शेड्यूल बनाया गया"
+      },
+      "dashboardTitle": "सामग्री और मीडिया अवलोकन",
+      "kpiAssets": "संपत्तियाँ",
+      "kpiBlogPosts": "ब्लॉग पोस्ट",
+      "kpiLandingPages": "लैंडिंग पेज",
+      "kpiSchedulesPending": "लंबित",
+      "kpiSchedulesPublished": "प्रकाशित",
+      "chartContentType": "सामग्री प्रकार वितरण",
+      "chartScheduleStatus": "शेड्यूल स्थिति वितरण",
+      "noData": "कोई सामग्री और मीडिया डेटा नहीं",
+      "manageContent": "सामग्री प्रबंधित करें",
+      "tagsPlaceholder": "अल्पविराम से अलग टैग"
     }
   },
   "pasteButton": {

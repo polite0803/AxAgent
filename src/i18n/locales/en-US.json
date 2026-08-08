@@ -3434,6 +3434,7 @@
     "opc": "One-Person Company"
   },
   "invest": {
+    "title": "Investment Center",
     "tab": {
       "marketMainline": "Market Mainline",
       "screener": "Screener",
@@ -3905,7 +3906,8 @@
       "office": "Office",
       "talent": "Talent Market",
       "market": "Market Packs",
-      "kanban": "Kanban"
+      "kanban": "Kanban",
+      "contentMedia": "Content Media"
     },
     "industries": {
       "ai_research": "AI Research",
@@ -3997,15 +3999,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4163,7 +4165,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4415,6 +4417,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "Update failed: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4745,6 +4748,83 @@
       "install": "Install",
       "installSuccess": "Installed: {{name}}",
       "installFailed": "Install failed: {{error}}"
+    },
+    "contentMedia": {
+      "tabAssets": "Assets",
+      "tabSchedules": "Schedules",
+      "tabWizard": "Wizard",
+      "newAsset": "New Asset",
+      "assetCreated": "Asset created",
+      "assetUpdated": "Asset updated",
+      "assetDeleted": "Asset deleted",
+      "assetModalTitle": "New Content Asset",
+      "assetEditTitle": "Edit Content Asset",
+      "columnTitle": "Title",
+      "columnType": "Type",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnBody": "Body",
+      "columnCreated": "Created",
+      "columnContentRef": "Content",
+      "columnRefType": "Ref Type",
+      "columnScheduledAt": "Scheduled At",
+      "status_draft": "Draft",
+      "status_published": "Published",
+      "schedule_pending": "Pending",
+      "schedule_published": "Published",
+      "schedule_failed": "Failed",
+      "newSchedule": "New Schedule",
+      "scheduleCreated": "Schedule created",
+      "scheduleCancelled": "Schedule cancelled",
+      "scheduleModalTitle": "New Publish Schedule",
+      "selectContent": "Select Content",
+      "selectContentPlaceholder": "Select content asset",
+      "scheduledAt": "Scheduled At",
+      "processDue": "Process Due",
+      "processDueSuccess": "Due schedules processed",
+      "cancelSchedule": "Cancel",
+      "wizard": {
+        "step1Title": "Topic",
+        "step1Desc": "Define topic and angle",
+        "step2Title": "Creation",
+        "step2Desc": "Write title and body",
+        "step3Title": "SEO",
+        "step3Desc": "Configure SEO metadata",
+        "step4Title": "Publish",
+        "step4Desc": "Choose publish method",
+        "topicLabel": "Topic",
+        "topicPlaceholder": "e.g. Product launch, Industry trend analysis...",
+        "topicRequired": "Topic is required",
+        "angleLabel": "Angle",
+        "anglePlaceholder": "Describe your angle",
+        "titleLabel": "Title",
+        "titleRequired": "Title is required",
+        "bodyLabel": "Body",
+        "bodyRequired": "Body is required",
+        "bodyPlaceholder": "Write content here...",
+        "seoLabel": "SEO Description",
+        "seoPlaceholder": "Meta description for search engines",
+        "publishType": "Publish Type",
+        "publishImmediate": "Publish Now",
+        "publishScheduled": "Schedule",
+        "scheduleTime": "Schedule Time",
+        "scheduleRequired": "Schedule time is required",
+        "finish": "Finish",
+        "complete": "Content creation complete!",
+        "publishedNow": "Content published",
+        "scheduleCreated": "Schedule created"
+      },
+      "dashboardTitle": "Content Media Overview",
+      "kpiAssets": "Assets",
+      "kpiBlogPosts": "Blog Posts",
+      "kpiLandingPages": "Landing Pages",
+      "kpiSchedulesPending": "Pending",
+      "kpiSchedulesPublished": "Published",
+      "chartContentType": "Content Type Distribution",
+      "chartScheduleStatus": "Schedule Status Distribution",
+      "noData": "No content media data",
+      "manageContent": "Manage Content",
+      "tagsPlaceholder": "Comma-separated tags"
     }
   },
   "pasteButton": {

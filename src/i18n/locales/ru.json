@@ -3424,6 +3424,7 @@
     "opc": "Компания одного человека"
   },
   "invest": {
+    "title": "Инвестиционный центр",
     "tab": {
       "marketMainline": "Главная линия рынка",
       "screener": "Скринер",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "Контент и Медиа"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "Обновление не удалось: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "Активы",
+      "tabSchedules": "Расписания",
+      "tabWizard": "Мастер",
+      "newAsset": "Новый актив",
+      "assetCreated": "Актив создан",
+      "assetUpdated": "Актив обновлён",
+      "assetDeleted": "Актив удалён",
+      "assetModalTitle": "Новый контентный актив",
+      "assetEditTitle": "Редактировать контентный актив",
+      "columnTitle": "Название",
+      "columnType": "Тип",
+      "columnStatus": "Статус",
+      "columnTags": "Теги",
+      "columnBody": "Текст",
+      "columnCreated": "Создано",
+      "columnContentRef": "Контент",
+      "columnRefType": "Тип ссылки",
+      "columnScheduledAt": "Запланировано на",
+      "status_draft": "Черновик",
+      "status_published": "Опубликовано",
+      "schedule_pending": "В ожидании",
+      "schedule_published": "Опубликовано",
+      "schedule_failed": "Ошибка",
+      "newSchedule": "Новое расписание",
+      "scheduleCreated": "Расписание создано",
+      "scheduleCancelled": "Расписание отменено",
+      "scheduleModalTitle": "Новое расписание публикации",
+      "selectContent": "Выбрать контент",
+      "selectContentPlaceholder": "Выберите контентный актив",
+      "scheduledAt": "Запланировано на",
+      "processDue": "Обработать просроченные",
+      "processDueSuccess": "Просроченные расписания обработаны",
+      "cancelSchedule": "Отменить",
+      "wizard": {
+        "step1Title": "Тема",
+        "step1Desc": "Определить тему и ракурс",
+        "step2Title": "Создание",
+        "step2Desc": "Написать заголовок и текст",
+        "step3Title": "SEO",
+        "step3Desc": "Настроить SEO-метаданные",
+        "step4Title": "Публикация",
+        "step4Desc": "Выбрать способ публикации",
+        "topicLabel": "Тема",
+        "topicPlaceholder": "например, Запуск продукта, Анализ тенденций отрасли...",
+        "topicRequired": "Тема обязательна",
+        "angleLabel": "Ракурс",
+        "anglePlaceholder": "Опишите ваш ракурс",
+        "titleLabel": "Название",
+        "titleRequired": "Название обязательно",
+        "bodyLabel": "Текст",
+        "bodyRequired": "Текст обязателен",
+        "bodyPlaceholder": "Напишите контент здесь...",
+        "seoLabel": "SEO-описание",
+        "seoPlaceholder": "Мета-описание для поисковых систем",
+        "publishType": "Тип публикации",
+        "publishImmediate": "Опубликовать сейчас",
+        "publishScheduled": "Запланировать",
+        "scheduleTime": "Время публикации",
+        "scheduleRequired": "Время публикации обязательно",
+        "finish": "Завершить",
+        "complete": "Создание контента завершено!",
+        "publishedNow": "Контент опубликован",
+        "scheduleCreated": "Расписание создано"
+      },
+      "dashboardTitle": "Обзор контента и медиа",
+      "kpiAssets": "Активы",
+      "kpiBlogPosts": "Записи блога",
+      "kpiLandingPages": "Лендинги",
+      "kpiSchedulesPending": "В ожидании",
+      "kpiSchedulesPublished": "Опубликовано",
+      "chartContentType": "Распределение по типам контента",
+      "chartScheduleStatus": "Распределение статусов расписания",
+      "noData": "Нет данных о контенте и медиа",
+      "manageContent": "Управление контентом",
+      "tagsPlaceholder": "Теги через запятую"
     }
   },
   "pasteButton": {

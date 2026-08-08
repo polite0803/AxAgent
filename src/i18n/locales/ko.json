@@ -3424,6 +3424,7 @@
     "opc": "원맨 컴퍼니"
   },
   "invest": {
+    "title": "투자 센터",
     "tab": {
       "marketMainline": "시장 메인라인",
       "screener": "스크리너",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "콘텐츠 미디어"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "업데이트 실패: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "자산",
+      "tabSchedules": "스케줄",
+      "tabWizard": "마법사",
+      "newAsset": "새 자산",
+      "assetCreated": "자산이 생성되었습니다",
+      "assetUpdated": "자산이 업데이트되었습니다",
+      "assetDeleted": "자산이 삭제되었습니다",
+      "assetModalTitle": "새 콘텐츠 자산",
+      "assetEditTitle": "콘텐츠 자산 편집",
+      "columnTitle": "제목",
+      "columnType": "유형",
+      "columnStatus": "상태",
+      "columnTags": "태그",
+      "columnBody": "본문",
+      "columnCreated": "생성일",
+      "columnContentRef": "콘텐츠",
+      "columnRefType": "참조 유형",
+      "columnScheduledAt": "예약 시간",
+      "status_draft": "초안",
+      "status_published": "게시됨",
+      "schedule_pending": "대기 중",
+      "schedule_published": "게시됨",
+      "schedule_failed": "실패",
+      "newSchedule": "새 스케줄",
+      "scheduleCreated": "스케줄이 생성되었습니다",
+      "scheduleCancelled": "스케줄이 취소되었습니다",
+      "scheduleModalTitle": "새 게시 스케줄",
+      "selectContent": "콘텐츠 선택",
+      "selectContentPlaceholder": "게시할 콘텐츠 자산을 선택하세요",
+      "scheduledAt": "예약 시간",
+      "processDue": "기한 처리",
+      "processDueSuccess": "기한 스케줄이 처리되었습니다",
+      "cancelSchedule": "취소",
+      "wizard": {
+        "step1Title": "주제",
+        "step1Desc": "주제와 각도 정의",
+        "step2Title": "작성",
+        "step2Desc": "제목과 본문 작성",
+        "step3Title": "SEO",
+        "step3Desc": "SEO 메타데이터 구성",
+        "step4Title": "게시",
+        "step4Desc": "게시 방법 선택",
+        "topicLabel": "주제",
+        "topicPlaceholder": "주제 방향을 입력하세요, 예: 제품 출시, 산업 동향 분석...",
+        "topicRequired": "주제는 필수입니다",
+        "angleLabel": "각도",
+        "anglePlaceholder": "창의 각도와切入点을 설명하세요",
+        "titleLabel": "제목",
+        "titleRequired": "제목은 필수입니다",
+        "bodyLabel": "본문",
+        "bodyRequired": "본문은 필수입니다",
+        "bodyPlaceholder": "여기에 본문을 입력하세요...",
+        "seoLabel": "SEO 설명",
+        "seoPlaceholder": "검색 엔진용 메타 설명",
+        "publishType": "게시 방법",
+        "publishImmediate": "지금 게시",
+        "publishScheduled": "예약",
+        "scheduleTime": "예약 시간",
+        "scheduleRequired": "예약 시간을 선택하세요",
+        "finish": "게시 완료",
+        "complete": "콘텐츠 생성이 완료되었습니다!",
+        "publishedNow": "콘텐츠가 게시되었습니다",
+        "scheduleCreated": "스케줄이 생성되었습니다"
+      },
+      "dashboardTitle": "콘텐츠 미디어 개요",
+      "kpiAssets": "자산 총계",
+      "kpiBlogPosts": "블로그 게시물",
+      "kpiLandingPages": "랜딩 페이지",
+      "kpiSchedulesPending": "대기 중",
+      "kpiSchedulesPublished": "게시됨",
+      "chartContentType": "콘텐츠 유형 분포",
+      "chartScheduleStatus": "게시 상태 분포",
+      "noData": "콘텐츠 미디어 데이터가 없습니다",
+      "manageContent": "콘텐츠 관리",
+      "tagsPlaceholder": "쉼표로 구분된 태그"
     }
   },
   "pasteButton": {

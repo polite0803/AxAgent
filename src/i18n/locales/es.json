@@ -3424,6 +3424,7 @@
     "opc": "Empresa Unipersonal"
   },
   "invest": {
+    "title": "Centro de inversión",
     "tab": {
       "marketMainline": "Línea Principal del Mercado",
       "screener": "Screener",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "Contenido y Medios"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "Actualización fallida: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "Activos",
+      "tabSchedules": "Programaciones",
+      "tabWizard": "Asistente",
+      "newAsset": "Nuevo Activo",
+      "assetCreated": "Activo creado",
+      "assetUpdated": "Activo actualizado",
+      "assetDeleted": "Activo eliminado",
+      "assetModalTitle": "Nuevo Activo de Contenido",
+      "assetEditTitle": "Editar Activo de Contenido",
+      "columnTitle": "Título",
+      "columnType": "Tipo",
+      "columnStatus": "Estado",
+      "columnTags": "Etiquetas",
+      "columnBody": "Cuerpo",
+      "columnCreated": "Creado",
+      "columnContentRef": "Contenido",
+      "columnRefType": "Tipo de Ref",
+      "columnScheduledAt": "Programado Para",
+      "status_draft": "Borrador",
+      "status_published": "Publicado",
+      "schedule_pending": "Pendiente",
+      "schedule_published": "Publicado",
+      "schedule_failed": "Fallido",
+      "newSchedule": "Nueva Programación",
+      "scheduleCreated": "Programación creada",
+      "scheduleCancelled": "Programación cancelada",
+      "scheduleModalTitle": "Nueva Programación de Publicación",
+      "selectContent": "Seleccionar Contenido",
+      "selectContentPlaceholder": "Seleccionar activo de contenido",
+      "scheduledAt": "Programado Para",
+      "processDue": "Procesar Vencidos",
+      "processDueSuccess": "Programaciones vencidas procesadas",
+      "cancelSchedule": "Cancelar",
+      "wizard": {
+        "step1Title": "Tema",
+        "step1Desc": "Definir tema y enfoque",
+        "step2Title": "Creación",
+        "step2Desc": "Escribir título y cuerpo",
+        "step3Title": "SEO",
+        "step3Desc": "Configurar metadatos SEO",
+        "step4Title": "Publicación",
+        "step4Desc": "Elegir método de publicación",
+        "topicLabel": "Tema",
+        "topicPlaceholder": "ej. Lanzamiento de producto, Análisis de tendencias...",
+        "topicRequired": "El tema es obligatorio",
+        "angleLabel": "Enfoque",
+        "anglePlaceholder": "Describe tu enfoque",
+        "titleLabel": "Título",
+        "titleRequired": "El título es obligatorio",
+        "bodyLabel": "Cuerpo",
+        "bodyRequired": "El cuerpo es obligatorio",
+        "bodyPlaceholder": "Escribe el contenido aquí...",
+        "seoLabel": "Descripción SEO",
+        "seoPlaceholder": "Meta descripción para motores de búsqueda",
+        "publishType": "Tipo de Publicación",
+        "publishImmediate": "Publicar Ahora",
+        "publishScheduled": "Programar",
+        "scheduleTime": "Hora de Programación",
+        "scheduleRequired": "La hora de programación es obligatoria",
+        "finish": "Finalizar",
+        "complete": "¡Creación de contenido completada!",
+        "publishedNow": "Contenido publicado",
+        "scheduleCreated": "Programación creada"
+      },
+      "dashboardTitle": "Visión General de Contenido y Medios",
+      "kpiAssets": "Activos",
+      "kpiBlogPosts": "Publicaciones de Blog",
+      "kpiLandingPages": "Páginas de Destino",
+      "kpiSchedulesPending": "Pendientes",
+      "kpiSchedulesPublished": "Publicados",
+      "chartContentType": "Distribución por Tipo de Contenido",
+      "chartScheduleStatus": "Distribución de Estado de Programación",
+      "noData": "Sin datos de contenido y medios",
+      "manageContent": "Gestionar Contenido",
+      "tagsPlaceholder": "Etiquetas separadas por comas"
     }
   },
   "pasteButton": {

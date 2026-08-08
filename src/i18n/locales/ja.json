@@ -3424,6 +3424,7 @@
     "opc": "一人会社"
   },
   "invest": {
+    "title": "投資センター",
     "tab": {
       "marketMainline": "市場メインライン",
       "screener": "スクリーナー",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "コンテンツメディア"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "更新に失敗しました：{{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "アセット",
+      "tabSchedules": "スケジュール",
+      "tabWizard": "ウィザード",
+      "newAsset": "新規アセット",
+      "assetCreated": "アセットが作成されました",
+      "assetUpdated": "アセットが更新されました",
+      "assetDeleted": "アセットが削除されました",
+      "assetModalTitle": "新規コンテンツアセット",
+      "assetEditTitle": "コンテンツアセットの編集",
+      "columnTitle": "タイトル",
+      "columnType": "タイプ",
+      "columnStatus": "ステータス",
+      "columnTags": "タグ",
+      "columnBody": "本文",
+      "columnCreated": "作成日時",
+      "columnContentRef": "コンテンツ",
+      "columnRefType": "参照タイプ",
+      "columnScheduledAt": "公開日時",
+      "status_draft": "下書き",
+      "status_published": "公開済み",
+      "schedule_pending": "公開待ち",
+      "schedule_published": "公開済み",
+      "schedule_failed": "失敗",
+      "newSchedule": "新規スケジュール",
+      "scheduleCreated": "スケジュールが作成されました",
+      "scheduleCancelled": "スケジュールがキャンセルされました",
+      "scheduleModalTitle": "新規公開スケジュール",
+      "selectContent": "コンテンツを選択",
+      "selectContentPlaceholder": "公開するコンテンツアセットを選択",
+      "scheduledAt": "公開日時",
+      "processDue": "期日処理",
+      "processDueSuccess": "期日スケジュールが処理されました",
+      "cancelSchedule": "キャンセル",
+      "wizard": {
+        "step1Title": "トピック",
+        "step1Desc": "トピックと視点を定義",
+        "step2Title": "作成",
+        "step2Desc": "タイトルと本文を執筆",
+        "step3Title": "SEO",
+        "step3Desc": "SEOメタデータを設定",
+        "step4Title": "公開",
+        "step4Desc": "公開方法を選択",
+        "topicLabel": "トピック",
+        "topicPlaceholder": "トピック方向を入力、例：プロダクト発表、業界動向分析...",
+        "topicRequired": "トピックは必須です",
+        "angleLabel": "視点",
+        "anglePlaceholder": "創作の視点と切り口を記述",
+        "titleLabel": "タイトル",
+        "titleRequired": "タイトルは必須です",
+        "bodyLabel": "本文",
+        "bodyRequired": "本文は必須です",
+        "bodyPlaceholder": "ここに本文を入力...",
+        "seoLabel": "SEO説明",
+        "seoPlaceholder": "検索エンジン用のメタディスクリプション",
+        "publishType": "公開方法",
+        "publishImmediate": "今すぐ公開",
+        "publishScheduled": "スケジュール",
+        "scheduleTime": "公開日時",
+        "scheduleRequired": "公開日時を選択してください",
+        "finish": "公開を完了",
+        "complete": "コンテンツ作成が完了しました！",
+        "publishedNow": "コンテンツが公開されました",
+        "scheduleCreated": "スケジュールが作成されました"
+      },
+      "dashboardTitle": "コンテンツメディア概要",
+      "kpiAssets": "アセット総数",
+      "kpiBlogPosts": "ブログ記事",
+      "kpiLandingPages": "ランディングページ",
+      "kpiSchedulesPending": "公開待ち",
+      "kpiSchedulesPublished": "公開済み",
+      "chartContentType": "コンテンツタイプ別分布",
+      "chartScheduleStatus": "スケジュールステータス分布",
+      "noData": "コンテンツメディアデータがありません",
+      "manageContent": "コンテンツを管理",
+      "tagsPlaceholder": "カンマ区切りのタグ"
     }
   },
   "pasteButton": {

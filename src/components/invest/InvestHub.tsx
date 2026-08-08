@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { Tabs, type TabsProps } from "antd";
+import { Tabs, type TabsProps, Typography } from "antd";
+import { LineChart } from "lucide-react";
 import { lazy, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
+
+const { Title } = Typography;
 
 // 各业务子页面懒加载（复用现有页面入口）
 const LazyMarketMainline = lazy(() =>
@@ -175,6 +178,12 @@ export function InvestHub() {
 
   return (
     <div className="flex flex-col h-full w-full min-h-0">
+      <div style={{ padding: "12px 16px 0", background: "var(--color-bg-container)" }}>
+        <Title level={3} style={{ margin: 0 }}>
+          <LineChart size={20} style={{ marginRight: 8, verticalAlign: "middle" }} />
+          {t("invest.title")}
+        </Title>
+      </div>
       <Tabs
         activeKey={currentTab}
         onChange={handleTabChange}

@@ -35,7 +35,7 @@ const LazyDynamicPageViewer = lazy(() =>
 );
 const LazyInvestPage = lazy(() => import("@/pages/InvestPage").then((m) => ({ default: m.InvestPage })));
 const LazyIndustryPage = lazy(() => import("@/pages/IndustryPage").then((m) => ({ default: m.IndustryPage })));
-const LazyOpcPage = lazy(() => import("@/pages/OpcPage").then((m) => ({ default: m.OpcPage })));
+const LazyOpcSubPage = lazy(() => import("@/pages/OpcPage").then((m) => ({ default: m.OpcSubPage })));
 
 function PageLoader() {
   return (
@@ -262,14 +262,11 @@ export const ContentArea = memo(function ContentArea() {
             path={BUILTIN_PAGE_PATH.opc}
             element={<Navigate to={`${BUILTIN_PAGE_PATH.opc}/dashboard`} replace />}
           />
-          {/* OPC 管理页面（仪表板、发票、客户、项目等）— 使用动态 :tab 参数 */}
+          {/* OPC 行业相关路由（必须在 /opc/:tab 之前，否则会被错误匹配） */}
+          {/* OPC 旧复数行业路由（重定向到单数动态路由） */}
           <Route
-            path={`${BUILTIN_PAGE_PATH.opc}/:tab`}
-            element={
-              <PageContextProvider page="opc">
-                <SafeLazyPage Page={LazyOpcPage} />
-              </PageContextProvider>
-            }
+            path={`${BUILTIN_PAGE_PATH.opc}/industries/:industryId`}
+            element={<RedirectIndustryPath />}
           />
           {/* OPC 9 大垂直行业路由（重定向到 /opc/industry/:id 动态路由） */}
           <Route path={BUILTIN_PAGE_PATH.opcIndustryAiResearch} element={redirectToIndustry("ai-research")} />
@@ -284,7 +281,7 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH.opcIndustryAccounting} element={redirectToIndustry("accounting")} />
           <Route path={BUILTIN_PAGE_PATH.opcIndustryEcommerce} element={redirectToIndustry("ecommerce")} />
           <Route path={BUILTIN_PAGE_PATH.opcIndustryEducation} element={redirectToIndustry("education")} />
-          {/* OPC 行业动态路由（单数形式，与方案文档一致） */}
+          {/* OPC 行业动态路由（单数形式，独立页面） */}
           <Route
             path={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/:id`}
             element={
@@ -293,10 +290,14 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* OPC 旧复数行业路由（重定向到单数动态路由） */}
+          {/* OPC 独立子页面路由（仪表盘、发票、客户、项目等）— 直接渲染对应组件 */}
           <Route
-            path={`${BUILTIN_PAGE_PATH.opc}/industries/:industryId`}
-            element={<RedirectIndustryPath />}
+            path={`${BUILTIN_PAGE_PATH.opc}/:tab`}
+            element={
+              <PageContextProvider page="opc">
+                <SafeLazyPage Page={LazyOpcSubPage} />
+              </PageContextProvider>
+            }
           />
           {/* ── 旧股票业务路由重定向到 /invest?tab=xxx ── */}
           {/* /workspace → workspace tab（单股深度工作区） */}

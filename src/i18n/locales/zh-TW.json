@@ -3424,6 +3424,7 @@
     "opc": "一人公司"
   },
   "invest": {
+    "title": "投資中心",
     "tab": {
       "marketMainline": "市場主線",
       "screener": "選股",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "內容媒體"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "更新失敗：{{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "素材庫",
+      "tabSchedules": "發布計畫",
+      "tabWizard": "創作嚮導",
+      "newAsset": "新建素材",
+      "assetCreated": "素材建立成功",
+      "assetUpdated": "素材更新成功",
+      "assetDeleted": "素材刪除成功",
+      "assetModalTitle": "新建內容素材",
+      "assetEditTitle": "編輯內容素材",
+      "columnTitle": "標題",
+      "columnType": "類型",
+      "columnStatus": "狀態",
+      "columnTags": "標籤",
+      "columnBody": "正文",
+      "columnCreated": "建立時間",
+      "columnContentRef": "關聯內容",
+      "columnRefType": "類型",
+      "columnScheduledAt": "發布時間",
+      "status_draft": "草稿",
+      "status_published": "已發布",
+      "schedule_pending": "待發布",
+      "schedule_published": "已發布",
+      "schedule_failed": "失敗",
+      "newSchedule": "新建發布計畫",
+      "scheduleCreated": "發布計畫建立成功",
+      "scheduleCancelled": "發布計畫已取消",
+      "scheduleModalTitle": "新建發布計畫",
+      "selectContent": "選擇內容",
+      "selectContentPlaceholder": "請選擇要發布的內容素材",
+      "scheduledAt": "發布時間",
+      "processDue": "處理到期計畫",
+      "processDueSuccess": "到期計畫處理成功",
+      "cancelSchedule": "取消",
+      "wizard": {
+        "step1Title": "選題與方向",
+        "step1Desc": "確定選題和創作角度",
+        "step2Title": "內容創作",
+        "step2Desc": "撰寫標題和正文",
+        "step3Title": "SEO 優化",
+        "step3Desc": "設定 SEO 後設資訊",
+        "step4Title": "發布設定",
+        "step4Desc": "選擇發布方式",
+        "topicLabel": "選題",
+        "topicPlaceholder": "輸入選題方向，例如：產品發布、產業趨勢分析...",
+        "topicRequired": "請輸入選題",
+        "angleLabel": "創作角度",
+        "anglePlaceholder": "描述你的創作角度和切入點",
+        "titleLabel": "標題",
+        "titleRequired": "請輸入標題",
+        "bodyLabel": "正文",
+        "bodyRequired": "請輸入正文內容",
+        "bodyPlaceholder": "在此輸入正文內容...",
+        "seoLabel": "SEO 描述",
+        "seoPlaceholder": "用於搜尋引擎的後設描述（建議 150 字以內）",
+        "publishType": "發布方式",
+        "publishImmediate": "立即發布",
+        "publishScheduled": "定時發布",
+        "scheduleTime": "發布時間",
+        "scheduleRequired": "請選擇發布時間",
+        "finish": "完成發布",
+        "complete": "內容創作完成！",
+        "publishedNow": "內容已發布",
+        "scheduleCreated": "發布計畫已建立"
+      },
+      "dashboardTitle": "內容媒體概覽",
+      "kpiAssets": "素材總數",
+      "kpiBlogPosts": "部落格文章",
+      "kpiLandingPages": "落地頁",
+      "kpiSchedulesPending": "待發布",
+      "kpiSchedulesPublished": "已發布",
+      "chartContentType": "內容類型分布",
+      "chartScheduleStatus": "發布狀態分布",
+      "noData": "暫無內容媒體資料",
+      "manageContent": "管理內容素材",
+      "tagsPlaceholder": "用逗號分隔標籤"
     }
   },
   "pasteButton": {

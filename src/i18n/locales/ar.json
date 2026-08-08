@@ -3424,6 +3424,7 @@
     "opc": "شركة شخص واحد"
   },
   "invest": {
+    "title": "مركز الاستثمار",
     "tab": {
       "marketMainline": "الخط الرئيسي للسوق",
       "screener": "المسح",
@@ -3895,7 +3896,8 @@
       "office": "办公室",
       "talent": "人才市场",
       "market": "市场包",
-      "kanban": "看板"
+      "kanban": "看板",
+      "contentMedia": "المحتوى والإعلام"
     },
     "common": {
       "cancel": "Cancel",
@@ -3907,6 +3909,7 @@
       "description": "Description",
       "dueDate": "Due Date",
       "createFailed": "Create failed: {{error}}",
+      "updateFailed": "فشل التحديث: {{error}}",
       "deleteFailed": "Delete failed: {{error}}",
       "opFailed": "Operation failed: {{error}}",
       "batchDelete": "Batch Delete ({{count}})",
@@ -4328,15 +4331,15 @@
           }
         },
         "content-media": {
-          "wf-cm-1": {
+          "workflow-cm-viral-content": {
             "name": "Viral Content",
             "description": "Topic → Title → Write → Publish"
           },
-          "wf-cm-2": {
+          "workflow-cm-multi-platform": {
             "name": "Platform Adapt",
             "description": "Content → Platform → Format → Strategy"
           },
-          "wf-cm-3": {
+          "workflow-cm-ip-building": {
             "name": "IP Building",
             "description": "Positioning → Persona → Planning → Growth"
           }
@@ -4493,7 +4496,7 @@
           }
         },
         "content-media": {
-          "cm-article": {
+          "cm-writing": {
             "label": "Article Writing",
             "description": "Generate high-quality articles"
           },
@@ -4735,6 +4738,83 @@
       "statusSuccess": "Success",
       "statusFailed": "Failed",
       "statusSkipped": "Skipped"
+    },
+    "contentMedia": {
+      "tabAssets": "الأصول",
+      "tabSchedules": "الجدول الزمني",
+      "tabWizard": "المعالج",
+      "newAsset": "أصل جديد",
+      "assetCreated": "تم إنشاء الأصل",
+      "assetUpdated": "تم تحديث الأصل",
+      "assetDeleted": "تم حذف الأصل",
+      "assetModalTitle": "أصل محتوى جديد",
+      "assetEditTitle": "تعديل أصل المحتوى",
+      "columnTitle": "العنوان",
+      "columnType": "النوع",
+      "columnStatus": "الحالة",
+      "columnTags": "الوسوم",
+      "columnBody": "النص",
+      "columnCreated": "أُنشئ",
+      "columnContentRef": "المحتوى",
+      "columnRefType": "نوع المرجع",
+      "columnScheduledAt": "مجدول في",
+      "status_draft": "مسودة",
+      "status_published": "منشور",
+      "schedule_pending": "قيد الانتظار",
+      "schedule_published": "منشور",
+      "schedule_failed": "فشل",
+      "newSchedule": "جدول زمني جديد",
+      "scheduleCreated": "تم إنشاء الجدول الزمني",
+      "scheduleCancelled": "تم إلغاء الجدول الزمني",
+      "scheduleModalTitle": "جدول نشر جديد",
+      "selectContent": "اختر المحتوى",
+      "selectContentPlaceholder": "اختر أصل المحتوى",
+      "scheduledAt": "مجدول في",
+      "processDue": "معالجة المستحقة",
+      "processDueSuccess": "تمت معالجة الجداول المستحقة",
+      "cancelSchedule": "إلغاء",
+      "wizard": {
+        "step1Title": "الموضوع",
+        "step1Desc": "تحديد الموضوع والزاوية",
+        "step2Title": "الإنشاء",
+        "step2Desc": "كتابة العنوان والنص",
+        "step3Title": "SEO",
+        "step3Desc": "إعداد بيانات SEO الوصفية",
+        "step4Title": "النشر",
+        "step4Desc": "اختيار طريقة النشر",
+        "topicLabel": "الموضوع",
+        "topicPlaceholder": "مثال: إطلاق منتج، تحليل اتجاهات الصناعة...",
+        "topicRequired": "الموضوع مطلوب",
+        "angleLabel": "الزاوية",
+        "anglePlaceholder": "صف زاويتك",
+        "titleLabel": "العنوان",
+        "titleRequired": "العنوان مطلوب",
+        "bodyLabel": "النص",
+        "bodyRequired": "النص مطلوب",
+        "bodyPlaceholder": "اكتب المحتوى هنا...",
+        "seoLabel": "وصف SEO",
+        "seoPlaceholder": "وصف ميتا لمحركات البحث",
+        "publishType": "نوع النشر",
+        "publishImmediate": "انشر الآن",
+        "publishScheduled": "جدول",
+        "scheduleTime": "وقت النشر",
+        "scheduleRequired": "وقت النشر مطلوب",
+        "finish": "إنهاء",
+        "complete": "اكتمل إنشاء المحتوى!",
+        "publishedNow": "تم نشر المحتوى",
+        "scheduleCreated": "تم إنشاء الجدول الزمني"
+      },
+      "dashboardTitle": "نظرة عامة على المحتوى والإعلام",
+      "kpiAssets": "الأصول",
+      "kpiBlogPosts": "مقالات المدونة",
+      "kpiLandingPages": "صفحات الهبوط",
+      "kpiSchedulesPending": "قيد الانتظار",
+      "kpiSchedulesPublished": "منشور",
+      "chartContentType": "توزيع أنواع المحتوى",
+      "chartScheduleStatus": "توزيع حالات الجدول الزمني",
+      "noData": "لا توجد بيانات للمحتوى والإعلام",
+      "manageContent": "إدارة المحتوى",
+      "tagsPlaceholder": "وسوم مفصولة بفاصلة"
     }
   },
   "pasteButton": {

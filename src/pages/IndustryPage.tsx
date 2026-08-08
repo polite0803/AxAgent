@@ -233,15 +233,15 @@ const INDUSTRY_CONFIGS: Record<string, IndustryConfig> = {
   },
   "content-media": {
     actions: [
-      { key: "cm-article", icon: <EditOutlined />, type: "workflow" },
+      { key: "cm-writing", icon: <EditOutlined />, type: "conversation" },
       { key: "cm-seo", icon: <SearchOutlined />, type: "conversation" },
-      { key: "cm-video", icon: <VideoCameraOutlined />, type: "workflow" },
-      { key: "cm-calendar", icon: <BookOutlined />, type: "workflow" },
+      { key: "cm-video", icon: <VideoCameraOutlined />, type: "conversation" },
+      { key: "cm-calendar", icon: <BookOutlined />, type: "conversation" },
     ],
     workflows: [
-      { id: "wf-cm-1", name: "", description: "", version: "1.0" },
-      { id: "wf-cm-2", name: "", description: "", version: "1.0" },
-      { id: "wf-cm-3", name: "", description: "", version: "1.0" },
+      { id: "workflow-cm-viral-content", name: "", description: "", version: "1.0" },
+      { id: "workflow-cm-multi-platform", name: "", description: "", version: "1.0" },
+      { id: "workflow-cm-ip-building", name: "", description: "", version: "1.0" },
     ],
   },
   "industry-consulting": {

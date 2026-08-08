@@ -4760,6 +4760,199 @@ export async function handleCommand<T>(
         revenue_trend: [],
       } as unknown as T;
 
+    // ── OPC 行业学习与进化系统 ────────────────────────────────────
+    case "opc_get_learning_config": {
+      const industryId = (args as { industryId?: string })?.industryId || "ai-research";
+      const industryNames: Record<string, string> = {
+        "ai-research": "人工智能研究",
+        "software-dev": "软件开发",
+        "finance-invest": "金融投资",
+        "sales-growth": "销售增长",
+        "content-media": "内容媒体",
+        "industry-consulting": "行业咨询",
+        accounting: "会计",
+        ecommerce: "电商",
+        education: "教育",
+      };
+      return {
+        version: 1,
+        industry_id: industryId,
+        industry_name: industryNames[industryId] || industryId,
+        reflection_enabled: true,
+        evolution_enabled: true,
+        code_evolver_enabled: false,
+        self_improvement_enabled: true,
+        reinforcement_learning_enabled: false,
+        config_path: `/opc/industries/${industryId}/learning.yaml`,
+      } as unknown as T;
+    }
+
+    case "opc_list_learning_configs": {
+      const ids = [
+        "ai-research",
+        "software-dev",
+        "finance-invest",
+        "sales-growth",
+        "content-media",
+        "industry-consulting",
+        "accounting",
+        "ecommerce",
+        "education",
+      ];
+      return ids.map((id) => ({
+        version: 1,
+        industry_id: id,
+        industry_name: id.replace(/-/g, "_"),
+        reflection_enabled: true,
+        evolution_enabled: true,
+        code_evolver_enabled: false,
+        self_improvement_enabled: true,
+        reinforcement_learning_enabled: false,
+        config_path: `/opc/industries/${id}/learning.yaml`,
+      })) as unknown as T;
+    }
+
+    case "opc_reflect_on_workflow": {
+      return {
+        success: true,
+        industry_id: (args as { industryId?: string })?.industryId || "",
+        workflow_id: (args as { workflowId?: string })?.workflowId || "",
+        quality_score: 0.82,
+        suggestions: ["考虑增加数据验证步骤", "优化异常处理逻辑"],
+        summary: "工作流执行质量良好，建议在数据校验环节加强检查。",
+      } as unknown as T;
+    }
+
+    case "opc_evolve_workflow": {
+      return {
+        success: true,
+        industry_id: (args as { industryId?: string })?.industryId || "",
+        workflow_id: (args as { workflowId?: string })?.workflowId || "",
+        status: "evolved",
+        suggested_optimizations: ["自动调整阈值", "增加决策分支"],
+        message: "工作流已根据最近执行结果完成进化优化。",
+      } as unknown as T;
+    }
+
+    case "opc_run_self_improvement": {
+      return {
+        success: true,
+        industry_id: (args as { industryId?: string })?.industryId || "",
+        target: (args as { target?: string })?.target || "all",
+        status: "completed",
+        improvements_applied: ["参数阈值微调", "新增一个决策分支"],
+        message: "自我改进完成，工作流已优化。",
+      } as unknown as T;
+    }
+
+    case "opc_get_rl_stats": {
+      return {
+        total_experiences: 150,
+        industry_count: 9,
+        oldest_timestamp_ms: Date.now() - 7 * 24 * 3600 * 1000,
+        newest_timestamp_ms: Date.now(),
+        avg_reward: 0.75,
+        success_rate: 0.68,
+      } as unknown as T;
+    }
+
+    case "opc_record_rl_experience": {
+      return { success: true, recorded: true } as unknown as T;
+    }
+
+    case "opc_trigger_rl_optimization": {
+      return {
+        industry_id: (args as { industryId?: string })?.industryId || "",
+        experiences_used: 50,
+        avg_reward: 0.78,
+        reward_trend: "improving",
+        suggested_adjustments: ["提高高质量样本权重", "降低低质量样本影响"],
+        quality_weights_optimized: [
+          ["accuracy", 0.4],
+          ["efficiency", 0.35],
+          ["user_satisfaction", 0.25],
+        ],
+        reflection_threshold: 0.65,
+        evolution_trigger_adjusted: true,
+      } as unknown as T;
+    }
+
+    case "opc_trigger_auto_learning":
+    case "opc_trigger_industry_learning": {
+      return {
+        reflection: {
+          status: "success" as const,
+          quality_score: 0.82,
+          message: "反思完成，质量评分良好",
+        },
+        evolution: {
+          status: "success" as const,
+          reason: "基于最近 10 次执行结果",
+          message: "进化完成，工作流已优化",
+        },
+        self_improvement: {
+          status: "success" as const,
+          target: "all",
+          message: "自我改进完成",
+        },
+        triggered_at: Date.now(),
+      } as unknown as T;
+    }
+
+    case "opc_get_learning_metrics": {
+      const industryId = (args as { industryId?: string })?.industryId || "";
+      return {
+        industry_id: industryId,
+        total_samples: 42,
+        decision_accuracy: 0.78,
+        risk_prediction_accuracy: 0.72,
+        avg_feedback_score: 4.3,
+        improvement_trend: "improving" as const,
+        last_updated: Date.now(),
+      } as unknown as T;
+    }
+
+    case "opc_execute_analysis": {
+      const industryId = (args as { industryId?: string })?.industryId || "ai-research";
+      return {
+        industry_id: industryId,
+        decision_type: "weekly_review",
+        summary: `${industryId} 行业本周表现稳定，建议维持当前策略并关注新兴机会。`,
+        confidence: 0.82,
+        kpis: [
+          {
+            id: "k1",
+            name: "综合指数",
+            value: 85,
+            unit: "分",
+            period: "本周",
+            trend: "up" as const,
+            change_percent: 3.2,
+          },
+        ],
+        recommendations: [
+          { id: "r1", type: "opportunity" as const, description: "新兴市场机会值得关注", priority: "medium" as const },
+          { id: "r2", type: "warning" as const, description: "竞争加剧，需关注差异化", priority: "low" as const },
+        ],
+        risk_level: "medium" as const,
+      } as unknown as T;
+    }
+
+    case "opc_execute_workflow": {
+      const industryId = (args as { industryId?: string })?.industryId || "ai-research";
+      return {
+        industry_id: industryId,
+        workflow_id: `industry_${industryId}`,
+        status: "completed" as const,
+        node_results: [
+          { id: "n1", name: "数据收集", status: "completed" as const, duration_ms: 120 },
+          { id: "n2", name: "分析处理", status: "completed" as const, duration_ms: 250 },
+          { id: "n3", name: "报告生成", status: "completed" as const, duration_ms: 80 },
+        ],
+        duration_ms: 450,
+      } as unknown as T;
+    }
+
     case "opc_get_industry_dashboard": {
       const industryId = (args as { industryId?: string })?.industryId || "ai-research";
       const days = (args as { days?: number })?.days || 30;

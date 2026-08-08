@@ -7,12 +7,14 @@ import {
   RiseOutlined,
   SearchOutlined,
   TeamOutlined,
+  VideoCameraOutlined,
 } from "@ant-design/icons";
 import { Tabs, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { ContentMediaTab } from "./opc/components/ContentMediaTab";
 import { CustomersTab } from "./opc/components/CustomersTab";
 import { DashboardTab } from "./opc/components/DashboardTab";
 import { InvoicesTab } from "./opc/components/InvoicesTab";
@@ -30,6 +32,7 @@ const OPC_TABS = [
   { key: "customers", labelKey: "opc.nav.customers", icon: <TeamOutlined />, component: CustomersTab },
   { key: "projects", labelKey: "opc.nav.projects", icon: <ProjectOutlined />, component: ProjectsTab },
   { key: "sites", labelKey: "opc.nav.sites", icon: <FileTextOutlined />, component: SitesTab },
+  { key: "content_media", labelKey: "opc.nav.contentMedia", icon: <VideoCameraOutlined />, component: ContentMediaTab },
   { key: "talent", labelKey: "opc.nav.talent", icon: <SearchOutlined />, component: TalentMarketTab },
   { key: "market", labelKey: "opc.nav.market", icon: <RiseOutlined />, component: MarketPackTab },
   { key: "kanban", labelKey: "opc.nav.kanban", icon: <ProjectOutlined />, component: KanbanTab },
@@ -47,6 +50,18 @@ export function OpcPage() {
       setTab(newTab);
     }
   }, [params?.tab]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const key = (e as CustomEvent).detail as string;
+      if (key) {
+        setTab(key);
+        navigate(`/opc/${key}`, { replace: true });
+      }
+    };
+    window.addEventListener("opc-switch-tab", handler);
+    return () => window.removeEventListener("opc-switch-tab", handler);
+  }, [navigate]);
 
   const handleTabChange = useCallback((key: string) => {
     setTab(key);
@@ -77,12 +92,17 @@ export function OpcPage() {
 }
 
 export function OpcSubPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const tab = params?.tab || "dashboard";
-  const Component = OPC_TABS.find((item) => item.key === tab)?.component || DashboardTab;
+  const tabConfig = OPC_TABS.find((item) => item.key === tab);
+  const Component = tabConfig?.component || DashboardTab;
 
   return (
     <div className="p-6 h-full overflow-auto">
+      <Title level={3} style={{ marginBottom: 16 }}>
+        {tabConfig?.icon} {t(tabConfig?.labelKey || "opc.title")}
+      </Title>
       <Component />
     </div>
   );
