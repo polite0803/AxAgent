@@ -912,7 +912,8 @@ export function createSendMethods(
         if (text) {
           _agentPendingText += text;
           // P3: Workflow events are lazy — they piggyback on the next text/thinking flush.
-          // No independent timer; they render when text content triggers a flush.
+          // 对话驱动工作流模式下没有 TextDelta 事件，必须主动调度 flush 才能实时渲染步骤。
+          scheduleAgentFlush();
         }
       };
 
@@ -1220,29 +1221,55 @@ export function createSendMethods(
         const effectiveDisabledTools = disabledTools
           ?? getConversationDisabledTools(conversationId);
 
-        const queryResponse = await invoke<{
-          status?: string;
-          conversationId: string;
-          assistantMessageId: string;
-        }>(
-          "agent_query",
-          {
-            request: {
+        // 对话驱动工作流：workflow 会话且持有真实工作流实例（localStorage 中）时，
+        // 把用户消息作为 input 执行工作流 DAG，而不是普通对话。
+        // 步骤事件经 agent-stream-text（带 type）实时回流，结果经 agent-done /
+        // workflow-complete 事件呈现并写回 assistant 消息。
+        const storedWorkflowId = localStorage.getItem(
+          `axagent:workflow-id:${conversationId}`,
+        );
+        const isWorkflowDriven = conversation.session_type === "workflow"
+          && !!storedWorkflowId;
+
+        const queryResponse = isWorkflowDriven
+          ? await invoke<{
+            status?: string;
+            conversationId: string;
+            assistantMessageId: string;
+          }>(
+            "workflow_execute",
+            {
+              workflowId: storedWorkflowId,
               conversationId,
               input: content,
-              providerId,
-              model_id,
-              agentProfileId: conversation.agent_profile_id ?? undefined,
-              systemPrompt: conversation.system_prompt ?? undefined,
-              searchProviderId: searchProviderId ?? undefined,
-              agentContext: agentContextPayload,
-              options: effectiveDisabledTools.length > 0
-                ? { disabledTools: effectiveDisabledTools }
-                : undefined,
+              providerId: providerId ?? undefined,
+              modelId: model_id ?? undefined,
             },
-          },
-          0,
-        );
+            0,
+          )
+          : await invoke<{
+            status?: string;
+            conversationId: string;
+            assistantMessageId: string;
+          }>(
+            "agent_query",
+            {
+              request: {
+                conversationId,
+                input: content,
+                providerId,
+                model_id,
+                agentProfileId: conversation.agent_profile_id ?? undefined,
+                systemPrompt: conversation.system_prompt ?? undefined,
+                searchProviderId: searchProviderId ?? undefined,
+                agentContext: agentContextPayload,
+                options: effectiveDisabledTools.length > 0
+                  ? { disabledTools: effectiveDisabledTools }
+                  : undefined,
+              },
+            },
+            0,
+          );
         // 计划确认被用户拒绝（P0-2）：后端直接返回 rejected，不会发 agent-done/agent-error
         if (queryResponse?.status === "rejected") {
           set((s) => ({
