@@ -6146,6 +6146,14 @@
       "dagFailed": "Workflow Failed",
       "dagRunning": "Workflow Running"
     },
+    "planning": "Planning",
+    "waitingExecution": "Waiting for execution",
+    "initializing": "Initializing",
+    "planningNode": "Planning",
+    "executingNode": "Executing",
+    "waitingApproval": "Waiting for approval",
+    "completed": "Completed",
+    "failed": "Failed",
     "tts": {
       "title": "Voice Briefing",
       "enabled": "On",

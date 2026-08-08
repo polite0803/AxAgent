@@ -6145,6 +6145,24 @@
       "dagComplete": "工作流已完成",
       "dagFailed": "工作流執行失敗",
       "dagRunning": "工作流執行中"
+    },
+    "planning": "規劃中",
+    "waitingExecution": "等待執行",
+    "initializing": "初始化",
+    "planningNode": "規劃",
+    "executingNode": "執行",
+    "waitingApproval": "等待審批",
+    "completed": "完成",
+    "failed": "失敗",
+    "tts": {
+      "title": "語音播報",
+      "enabled": "開",
+      "disabled": "關",
+      "noMessages": "暫無播報消息",
+      "workflowStart": "工作流開始執行",
+      "workflowComplete": "工作流執行完成",
+      "workflowFailed": "工作流執行失敗",
+      "waitingForApproval": "等待人工審批..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "暫無待審批項",
       "message": "審批訊息",
       "workflowId": "Workflow",
-      "status": "狀態",
+      "status": {
+        "pending": "待審批",
+        "approved": "已批准",
+        "rejected": "已拒絕",
+        "expired": "已過期"
+      },
       "expiresAt": "過期時間",
+      "expiresSoon": "即將過期",
       "actions": "動作",
       "decision": "審批結果",
       "approve": "通過",
       "reject": "拒絕",
       "cancel": "取消",
-      "notePlaceholder": "添加備註（可選）"
+      "notePlaceholder": "添加備註（可選）",
+      "waitingForApproval": "等待人工審批介入"
     },
     "aiAssistant": "AI 助手",
     "applySemanticCheck": "應用語義檢查",
@@ -8466,7 +8491,8 @@
     "cancel": "取消",
     "notePlaceholder": "添加備註（可選）",
     "approver": "審批人",
-    "expiresSoon": "即將過期"
+    "expiresSoon": "即將過期",
+    "waitingForApproval": "等待人工審批介入"
   },
   "browserMock": {
     "greeting": "你好！我可以幫你做什麼？",

@@ -6145,6 +6145,24 @@
       "dagComplete": "Flujo de trabajo completado",
       "dagFailed": "Flujo de trabajo fallido",
       "dagRunning": "Flujo de trabajo en ejecución"
+    },
+    "planning": "Planificación",
+    "waitingExecution": "Esperando ejecución",
+    "initializing": "Inicializando",
+    "planningNode": "Planificación",
+    "executingNode": "Ejecución",
+    "waitingApproval": "Esperando aprobación",
+    "completed": "Completado",
+    "failed": "Fallido",
+    "tts": {
+      "title": "Anuncio de voz",
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "noMessages": "Sin mensajes de anuncio",
+      "workflowStart": "Flujo de trabajo iniciado",
+      "workflowComplete": "Flujo de trabajo completado",
+      "workflowFailed": "Flujo de trabajo fallido",
+      "waitingForApproval": "Esperando aprobación humana..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "Sin aprobaciones pendientes",
       "message": "Mensaje",
       "workflowId": "Workflow",
-      "status": "Estado",
+      "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobado",
+        "rejected": "Rechazado",
+        "expired": "Expirado"
+      },
       "expiresAt": "Vence",
+      "expiresSoon": "Próximamente",
       "actions": "Acciones",
       "decision": "Decisión",
       "approve": "Aprobar",
       "reject": "Rechazar",
       "cancel": "Cancelar",
-      "notePlaceholder": "Agregar nota (opcional)"
+      "notePlaceholder": "Agregar nota (opcional)",
+      "waitingForApproval": "Esperando intervención de aprobación humana"
     },
     "aiAssistant": "Asistente de IA",
     "applySemanticCheck": "Aplicar",
@@ -8466,7 +8491,8 @@
     "cancel": "Cancelar",
     "notePlaceholder": "Añadir una nota (opcional)",
     "approver": "Aprobador",
-    "expiresSoon": "Vence pronto"
+    "expiresSoon": "Vence pronto",
+    "waitingForApproval": "Esperando intervención de aprobación humana"
   },
   "browserMock": {
     "greeting": "¡Hola! ¿En qué puedo ayudarte?",

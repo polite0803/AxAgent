@@ -6145,6 +6145,24 @@
       "dagComplete": "اكتمل سير العمل",
       "dagFailed": "فشل سير العمل",
       "dagRunning": "سير العمل قيد التنفيذ"
+    },
+    "planning": "تخطيط",
+    "waitingExecution": "في انتظار التنفيذ",
+    "initializing": "قيد التهيئة",
+    "planningNode": "تخطيط",
+    "executingNode": "تنفيذ",
+    "waitingApproval": "في انتظار الموافقة",
+    "completed": "مكتمل",
+    "failed": "فشل",
+    "tts": {
+      "title": "بث صوتي",
+      "enabled": "تشغيل",
+      "disabled": "إيقاف",
+      "noMessages": "لا توجد رسائل بث",
+      "workflowStart": "بدأ سير العمل",
+      "workflowComplete": "اكتمل سير العمل",
+      "workflowFailed": "فشل سير العمل",
+      "waitingForApproval": "في انتظار الموافقة البشرية..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "لا توجد موافقات معلقة",
       "message": "الرسالة",
       "workflowId": "سير العمل",
-      "status": "الحالة",
+      "status": {
+        "pending": "قيد الاعتماد",
+        "approved": "تم الاعتماد",
+        "rejected": "مرفوض",
+        "expired": "منتهي الصلاحية"
+      },
       "expiresAt": "تنتهي",
+      "expiresSoon": "قريبًا",
       "actions": "الإجراءات",
       "decision": "القرار",
       "approve": "موافقة",
       "reject": "رفض",
       "cancel": "إلغاء",
-      "notePlaceholder": "إضافة ملاحظة (اختياري)"
+      "notePlaceholder": "إضافة ملاحظة (اختياري)",
+      "waitingForApproval": "في انتظار تدخل الموافقة البشرية"
     },
     "aiAssistant": "مساعد الذكاء الاصطناعي",
     "applySemanticCheck": "تطبيق",
@@ -8466,7 +8491,8 @@
     "cancel": "إلغاء",
     "notePlaceholder": "إضافة ملاحظة (اختياري)",
     "approver": "الموافق",
-    "expiresSoon": "ينتهي قريبًا"
+    "expiresSoon": "ينتهي قريبًا",
+    "waitingForApproval": "في انتظار تدخل الموافقة البشرية"
   },
   "browserMock": {
     "greeting": "مرحبًا! كيف يمكنني مساعدتك؟",

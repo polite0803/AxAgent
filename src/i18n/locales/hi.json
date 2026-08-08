@@ -6145,6 +6145,24 @@
       "dagComplete": "कार्यप्रणाली पूर्ण",
       "dagFailed": "कार्यप्रणाली विफल",
       "dagRunning": "कार्यप्रणाली चल रही है"
+    },
+    "planning": "योजना",
+    "waitingExecution": "निष्पादन की प्रतीक्षा हो रही है",
+    "initializing": "इनिशियलाइज़ हो रहा है",
+    "planningNode": "योजना",
+    "executingNode": "निष्पादन",
+    "waitingApproval": "स्वीकृति की प्रतीक्षा हो रही है",
+    "completed": "पूर्ण",
+    "failed": "विफल",
+    "tts": {
+      "title": "वॉयस ब्रीफिंग",
+      "enabled": "चालू",
+      "disabled": "बंद",
+      "noMessages": "कोई ब्रीफिंग संदेश नहीं",
+      "workflowStart": "वर्कफ़लो शुरू हुआ",
+      "workflowComplete": "वर्कफ़लो पूरा हुआ",
+      "workflowFailed": "वर्कफ़लो विफल",
+      "waitingForApproval": "मानव अनुमोदन की प्रतीक्षा हो रही है..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "कोई लंबित स्वीकृति नहीं",
       "message": "संदेश",
       "workflowId": "वर्कफ़्लो",
-      "status": "स्थिति",
+      "status": {
+        "pending": "लंबित",
+        "approved": "स्वीकृत",
+        "rejected": "अस्वीकृत",
+        "expired": "समय समाप्त"
+      },
       "expiresAt": "समाप्ति",
+      "expiresSoon": "जल्द ही समाप्त",
       "actions": "कार्रवाइयाँ",
       "decision": "निर्णय",
       "approve": "स्वीकृत करें",
       "reject": "अस्वीकृत करें",
       "cancel": "रद्द करें",
-      "notePlaceholder": "नोट जोड़ें (वैकल्पिक)"
+      "notePlaceholder": "नोट जोड़ें (वैकल्पिक)",
+      "waitingForApproval": "मानव अनुमोदन हस्तक्षेप की प्रतीक्षा हो रही है"
     },
     "aiAssistant": "AI सहायक",
     "applySemanticCheck": "लागू करें",
@@ -8466,7 +8491,8 @@
     "cancel": "रद्द करें",
     "notePlaceholder": "एक नोट जोड़ें (वैकल्पिक)",
     "approver": "अनुमोदक",
-    "expiresSoon": "जल्द समाप्त"
+    "expiresSoon": "जल्द समाप्त",
+    "waitingForApproval": "मानव अनुमोदन हस्तक्षेप की प्रतीक्षा हो रही है"
   },
   "browserMock": {
     "greeting": "नमस्ते! मैं आपकी कैसे मदद कर सकता हूँ?",

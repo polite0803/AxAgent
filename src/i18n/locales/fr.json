@@ -6145,6 +6145,24 @@
       "dagComplete": "Flux de travail terminé",
       "dagFailed": "Flux de travail échoué",
       "dagRunning": "Flux de travail en cours"
+    },
+    "planning": "Planification",
+    "waitingExecution": "En attente d'exécution",
+    "initializing": "Initialisation",
+    "planningNode": "Planification",
+    "executingNode": "Exécution",
+    "waitingApproval": "En attente d'approbation",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "tts": {
+      "title": "Annonce vocale",
+      "enabled": "Marche",
+      "disabled": "Arrêt",
+      "noMessages": "Aucun message d'annonce",
+      "workflowStart": "Flux de travail démarré",
+      "workflowComplete": "Flux de travail terminé",
+      "workflowFailed": "Flux de travail échoué",
+      "waitingForApproval": "En attente d'approbation humaine..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "Aucune approbation en attente",
       "message": "Message",
       "workflowId": "Workflow",
-      "status": "Statut",
+      "status": {
+        "pending": "En attente",
+        "approved": "Approuvé",
+        "rejected": "Rejeté",
+        "expired": "Expiré"
+      },
       "expiresAt": "Expire",
+      "expiresSoon": "Bientôt",
       "actions": "Actions",
       "decision": "Décision",
       "approve": "Approuver",
       "reject": "Rejeter",
       "cancel": "Annuler",
-      "notePlaceholder": "Ajouter une note (optionnel)"
+      "notePlaceholder": "Ajouter une note (optionnel)",
+      "waitingForApproval": "En attente d'intervention d'approbation humaine"
     },
     "aiAssistant": "Assistant IA",
     "applySemanticCheck": "Appliquer",
@@ -8466,7 +8491,8 @@
     "cancel": "Annuler",
     "notePlaceholder": "Ajouter une note (facultatif)",
     "approver": "Approbateur",
-    "expiresSoon": "Expire bientôt"
+    "expiresSoon": "Expire bientôt",
+    "waitingForApproval": "En attente d'intervention d'approbation humaine"
   },
   "browserMock": {
     "greeting": "Bonjour ! Que puis-je faire pour vous ?",

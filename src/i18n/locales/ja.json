@@ -6145,6 +6145,24 @@
       "dagComplete": "ワークフロー完了",
       "dagFailed": "ワークフロー失敗",
       "dagRunning": "ワークフロー実行中"
+    },
+    "planning": "計画中",
+    "waitingExecution": "実行待ち",
+    "initializing": "初期化中",
+    "planningNode": "計画",
+    "executingNode": "実行",
+    "waitingApproval": "承認待ち",
+    "completed": "完了",
+    "failed": "失敗",
+    "tts": {
+      "title": "音声ブリーフィング",
+      "enabled": "オン",
+      "disabled": "オフ",
+      "noMessages": "ブリーフィングメッセージなし",
+      "workflowStart": "ワークフロー開始",
+      "workflowComplete": "ワークフロー完了",
+      "workflowFailed": "ワークフロー失敗",
+      "waitingForApproval": "人間の承認を待っています..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "保留中の承認はありません",
       "message": "メッセージ",
       "workflowId": "ワークフロー",
-      "status": "ステータス",
-      "expiresAt": "期限切れ",
+      "status": {
+        "pending": "承認待ち",
+        "approved": "承認済み",
+        "rejected": "拒否",
+        "expired": "期限切れ"
+      },
+      "expiresAt": "期限",
+      "expiresSoon": "まもなく期限切れ",
       "actions": "アクション",
       "decision": "決定",
       "approve": "承認",
-      "reject": "却下",
+      "reject": "拒否",
       "cancel": "キャンセル",
-      "notePlaceholder": "メモを追加（任意）"
+      "notePlaceholder": "メモを追加（任意）",
+      "waitingForApproval": "人間の承認介入を待っています"
     },
     "aiAssistant": "AI アシスタント",
     "applySemanticCheck": "適用",
@@ -8466,7 +8491,8 @@
     "cancel": "キャンセル",
     "notePlaceholder": "メモを追加（任意）",
     "approver": "承認者",
-    "expiresSoon": "まもなく期限切れ"
+    "expiresSoon": "まもなく期限切れ",
+    "waitingForApproval": "人間の承認介入を待っています"
   },
   "browserMock": {
     "greeting": "こんにちは！何をお手伝いしましょうか？",

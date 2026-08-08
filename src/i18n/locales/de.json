@@ -6145,6 +6145,24 @@
       "dagComplete": "Workflow abgeschlossen",
       "dagFailed": "Workflow fehlgeschlagen",
       "dagRunning": "Workflow wird ausgeführt"
+    },
+    "planning": "Planung",
+    "waitingExecution": "Warten auf Ausführung",
+    "initializing": "Initialisierung",
+    "planningNode": "Planung",
+    "executingNode": "Ausführung",
+    "waitingApproval": "Warten auf Genehmigung",
+    "completed": "Abgeschlossen",
+    "failed": "Fehlgeschlagen",
+    "tts": {
+      "title": "Sprachansage",
+      "enabled": "Ein",
+      "disabled": "Aus",
+      "noMessages": "Keine Ansagemeldungen",
+      "workflowStart": "Workflow gestartet",
+      "workflowComplete": "Workflow abgeschlossen",
+      "workflowFailed": "Workflow fehlgeschlagen",
+      "waitingForApproval": "Warten auf menschliche Genehmigung..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "Keine ausstehenden Genehmigungen",
       "message": "Nachricht",
       "workflowId": "Workflow",
-      "status": "Status",
+      "status": {
+        "pending": "Ausstehend",
+        "approved": "Genehmigt",
+        "rejected": "Ablehnt",
+        "expired": "Abgelaufen"
+      },
       "expiresAt": "Läuft ab",
+      "expiresSoon": "Demnächst ablaufend",
       "actions": "Aktionen",
       "decision": "Entscheidung",
       "approve": "Genehmigen",
       "reject": "Ablehnen",
       "cancel": "Abbrechen",
-      "notePlaceholder": "Notiz hinzufügen (optional)"
+      "notePlaceholder": "Notiz hinzufügen (optional)",
+      "waitingForApproval": "Warten auf menschliche Genehmigung"
     },
     "aiAssistant": "KI-Assistent",
     "applySemanticCheck": "Anwenden",
@@ -8466,7 +8491,8 @@
     "cancel": "Abbrechen",
     "notePlaceholder": "Notiz hinzufügen (optional)",
     "approver": "Genehmiger",
-    "expiresSoon": "Läuft bald ab"
+    "expiresSoon": "Läuft bald ab",
+    "waitingForApproval": "Warten auf menschliche Genehmigung"
   },
   "browserMock": {
     "greeting": "Hallo! Womit kann ich Ihnen helfen?",

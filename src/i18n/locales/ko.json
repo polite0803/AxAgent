@@ -6145,6 +6145,24 @@
       "dagComplete": "작업 흐름 완료",
       "dagFailed": "작업 흐름 실패",
       "dagRunning": "작업 흐름 실행 중"
+    },
+    "planning": "계획 중",
+    "waitingExecution": "실행 대기",
+    "initializing": "초기화 중",
+    "planningNode": "계획",
+    "executingNode": "실행",
+    "waitingApproval": "승인 대기",
+    "completed": "완료",
+    "failed": "실패",
+    "tts": {
+      "title": "음성 브리핑",
+      "enabled": "켜기",
+      "disabled": "끄기",
+      "noMessages": "브리핑 메시지 없음",
+      "workflowStart": "워크플로우 시작",
+      "workflowComplete": "워크플로우 완료",
+      "workflowFailed": "워크플로우 실패",
+      "waitingForApproval": "사람의 승인 대기 중..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "대기 중인 승인이 없습니다",
       "message": "메시지",
       "workflowId": "워크플로우",
-      "status": "상태",
+      "status": {
+        "pending": "대기 중",
+        "approved": "승인됨",
+        "rejected": "거부됨",
+        "expired": "만료됨"
+      },
       "expiresAt": "만료",
+      "expiresSoon": "곧 만료",
       "actions": "작업",
       "decision": "결정",
       "approve": "승인",
       "reject": "거부",
       "cancel": "취소",
-      "notePlaceholder": "메모 추가(선택사항)"
+      "notePlaceholder": "노트 추가 (선택사항)",
+      "waitingForApproval": "사람의 승인 개입 대기 중"
     },
     "aiAssistant": "AI 어시스턴트",
     "applySemanticCheck": "적용",
@@ -8466,7 +8491,8 @@
     "cancel": "취소",
     "notePlaceholder": "메모 추가 (선택 사항)",
     "approver": "승인자",
-    "expiresSoon": "곧 만료"
+    "expiresSoon": "곧 만료",
+    "waitingForApproval": "사람의 승인 개입 대기 중"
   },
   "browserMock": {
     "greeting": "안녕하세요! 무엇을 도와드릴까요?",

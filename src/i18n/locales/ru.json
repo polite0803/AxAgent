@@ -6145,6 +6145,24 @@
       "dagComplete": "Рабочий процесс завершен",
       "dagFailed": "Рабочий процесс завершился ошибкой",
       "dagRunning": "Рабочий процесс выполняется"
+    },
+    "planning": "Планирование",
+    "waitingExecution": "Ожидание выполнения",
+    "initializing": "Инициализация",
+    "planningNode": "Планирование",
+    "executingNode": "Выполнение",
+    "waitingApproval": "Ожидание утверждения",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "tts": {
+      "title": "Голосовое сообщение",
+      "enabled": "Вкл",
+      "disabled": "Выкл",
+      "noMessages": "Нет сообщений для брифинга",
+      "workflowStart": "Рабочий процесс запущен",
+      "workflowComplete": "Рабочий процесс завершен",
+      "workflowFailed": "Рабочий процесс завершился ошибкой",
+      "waitingForApproval": "Ожидание утверждения человеком..."
     }
   },
   "wiki": {
@@ -6493,14 +6511,21 @@
       "noPending": "Нет ожидающих утверждений",
       "message": "Сообщение",
       "workflowId": "Workflow",
-      "status": "Статус",
+      "status": {
+        "pending": "Ожидает",
+        "approved": "Одобрено",
+        "rejected": "Отклонено",
+        "expired": "Истекло"
+      },
       "expiresAt": "Истекает",
+      "expiresSoon": "Скоро истекает",
       "actions": "Действия",
       "decision": "Решение",
-      "approve": "Утвердить",
+      "approve": "Одобрить",
       "reject": "Отклонить",
       "cancel": "Отмена",
-      "notePlaceholder": "Добавить заметку (необязательно)"
+      "notePlaceholder": "Добавить заметку (необязательно)",
+      "waitingForApproval": "Ожидание вмешательства человека для утверждения"
     },
     "aiAssistant": "ИИ-ассистент",
     "applySemanticCheck": "Применить",
@@ -8466,7 +8491,8 @@
     "cancel": "Отмена",
     "notePlaceholder": "Добавить примечание (необязательно)",
     "approver": "Утверждающий",
-    "expiresSoon": "Скоро истечёт"
+    "expiresSoon": "Скоро истечёт",
+    "waitingForApproval": "Ожидание вмешательства человека для утверждения"
   },
   "browserMock": {
     "greeting": "Здравствуйте! Чем я могу вам помочь?",
