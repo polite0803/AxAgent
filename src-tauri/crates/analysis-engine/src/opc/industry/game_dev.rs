@@ -114,9 +114,7 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
                         field: "crash_rate".to_string(),
                         threshold: 0.02,
                     },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "game_build".to_string(),
-                    },
+                    AutomationCondition::EntityTypeIs { entity_type: "game_build".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "dev_team".to_string(),
@@ -131,9 +129,7 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
                         field: "frame_rate".to_string(),
                         threshold: 30.0,
                     },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "game_scene".to_string(),
-                    },
+                    AutomationCondition::EntityTypeIs { entity_type: "game_scene".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "dev_team".to_string(),
@@ -144,12 +140,8 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
                 "build_validation",
                 "构建验证规则",
                 vec![
-                    AutomationCondition::StatusIs {
-                        status: "build_failed".to_string(),
-                    },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "game_build".to_string(),
-                    },
+                    AutomationCondition::StatusIs { status: "build_failed".to_string() },
+                    AutomationCondition::EntityTypeIs { entity_type: "game_build".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "ci_team".to_string(),
@@ -228,21 +220,16 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
                     errors.push(ValidationError::new("version", "版本号不能为空"));
                 }
                 if let Some(platform) = entity_data.get("platform") {
-                    let valid_platforms = [
-                        "pc",
-                        "playstation",
-                        "xbox",
-                        "switch",
-                        "ios",
-                        "android",
-                    ];
+                    let valid_platforms = ["pc", "playstation", "xbox", "switch", "ios", "android"];
                     if platform.as_str().is_none_or(|p| !valid_platforms.contains(&p)) {
                         errors.push(ValidationError::new("platform", "无效的游戏平台"));
                     }
                 }
             },
             "game_asset" => {
-                if entity_data.get("asset_path").is_none_or(|a| a.as_str().is_none_or(|s| s.is_empty()))
+                if entity_data
+                    .get("asset_path")
+                    .is_none_or(|a| a.as_str().is_none_or(|s| s.is_empty()))
                 {
                     errors.push(ValidationError::new("asset_path", "资源路径不能为空"));
                 }
@@ -253,7 +240,7 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
                     }
                 }
             },
-            _ => {}
+            _ => {},
         }
 
         Ok(errors)
@@ -270,11 +257,15 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
 
     fn workflow_steps(&self) -> Vec<WorkflowStep> {
         vec![
-            WorkflowStep::new("concept_design", "概念设计", "确定游戏核心玩法和美术风格").with_order(1),
+            WorkflowStep::new("concept_design", "概念设计", "确定游戏核心玩法和美术风格")
+                .with_order(1),
             WorkflowStep::new("prototype_dev", "原型开发", "开发游戏核心玩法原型").with_order(2),
-            WorkflowStep::new("content_production", "内容生产", "关卡、角色、道具等游戏内容开发").with_order(3),
-            WorkflowStep::new("testing_optimization", "测试优化", "功能测试、性能优化和Bug修复").with_order(4),
-            WorkflowStep::new("launch_operations", "上线运营", "正式上线和后续运营支持").with_order(5),
+            WorkflowStep::new("content_production", "内容生产", "关卡、角色、道具等游戏内容开发")
+                .with_order(3),
+            WorkflowStep::new("testing_optimization", "测试优化", "功能测试、性能优化和Bug修复")
+                .with_order(4),
+            WorkflowStep::new("launch_operations", "上线运营", "正式上线和后续运营支持")
+                .with_order(5),
         ]
     }
 

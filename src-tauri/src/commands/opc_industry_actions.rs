@@ -1504,13 +1504,15 @@ pub async fn opc_execute_workflow(
     let time_range = TimeRange::days(days as i64);
 
     let mut manager = IndustryWorkflowManager::new();
-    
+
     // 如果提供了 workflow_id，尝试加载指定的工作流模板
     let workflow = if let Some(wf_id) = &workflow_id {
         // 尝试从行业配置中加载指定的工作流
         let industry_config = get_industry_config(&industry_id);
         if let Some(config) = &industry_config {
-            if let Some(wf_config) = config.workflows.iter().find(|w| w.id == wf_id || w.template_id == wf_id) {
+            if let Some(wf_config) =
+                config.workflows.iter().find(|w| w.id == wf_id || w.template_id == wf_id)
+            {
                 // 使用匹配的工作流模板
                 tracing::info!(
                     "[opc-execute] 使用指定工作流: {} (id={})",

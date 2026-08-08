@@ -110,12 +110,8 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
                 "design_review_reminder",
                 "设计评审提醒",
                 vec![
-                    AutomationCondition::StatusIs {
-                        status: "ready_for_review".to_string(),
-                    },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "design_project".to_string(),
-                    },
+                    AutomationCondition::StatusIs { status: "ready_for_review".to_string() },
+                    AutomationCondition::EntityTypeIs { entity_type: "design_project".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "design_team".to_string(),
@@ -130,9 +126,7 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
                         field: "accessibility_score".to_string(),
                         threshold: 0.8,
                     },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "design_project".to_string(),
-                    },
+                    AutomationCondition::EntityTypeIs { entity_type: "design_project".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "design_team".to_string(),
@@ -175,8 +169,7 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
 
         match entity_type {
             "design_project" => {
-                if entity_data.get("name").is_none_or(|p| p.as_str().is_none_or(|s| s.is_empty()))
-                {
+                if entity_data.get("name").is_none_or(|p| p.as_str().is_none_or(|s| s.is_empty())) {
                     errors.push(ValidationError::new("name", "设计项目名称不能为空"));
                 }
                 if let Some(design_type) = entity_data.get("design_type") {
@@ -187,7 +180,9 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
                 }
             },
             "design_review" => {
-                if entity_data.get("reviewer").is_none_or(|r| r.as_str().is_none_or(|s| s.is_empty()))
+                if entity_data
+                    .get("reviewer")
+                    .is_none_or(|r| r.as_str().is_none_or(|s| s.is_empty()))
                 {
                     errors.push(ValidationError::new("reviewer", "评审人不能为空"));
                 }
@@ -197,7 +192,7 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
                     }
                 }
             },
-            _ => {}
+            _ => {},
         }
 
         Ok(errors)
@@ -209,11 +204,16 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
 
     fn workflow_steps(&self) -> Vec<WorkflowStep> {
         vec![
-            WorkflowStep::new("user_research", "用户研究", "通过用户访谈和可用性测试收集需求").with_order(1),
-            WorkflowStep::new("concept_design", "概念设计", "基于研究结果创建设计概念和线框图").with_order(2),
-            WorkflowStep::new("visual_design", "视觉设计", "完成高保真视觉设计和交互原型").with_order(3),
-            WorkflowStep::new("design_review", "设计评审", "组织设计评审会议，收集反馈并迭代").with_order(4),
-            WorkflowStep::new("delivery", "交付交付", "输出设计规范、资源包和开发文档").with_order(5),
+            WorkflowStep::new("user_research", "用户研究", "通过用户访谈和可用性测试收集需求")
+                .with_order(1),
+            WorkflowStep::new("concept_design", "概念设计", "基于研究结果创建设计概念和线框图")
+                .with_order(2),
+            WorkflowStep::new("visual_design", "视觉设计", "完成高保真视觉设计和交互原型")
+                .with_order(3),
+            WorkflowStep::new("design_review", "设计评审", "组织设计评审会议，收集反馈并迭代")
+                .with_order(4),
+            WorkflowStep::new("delivery", "交付交付", "输出设计规范、资源包和开发文档")
+                .with_order(5),
         ]
     }
 
@@ -233,7 +233,12 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
             KpiDefinition::new("design_completion_rate", "设计完成率", "%", MetricType::Percentage),
             KpiDefinition::new("design_review_cycles", "平均评审周期", "天", MetricType::Count),
             KpiDefinition::new("user_satisfaction_score", "用户满意度", "分", MetricType::Gauge),
-            KpiDefinition::new("design_system_adoption", "设计系统采纳率", "%", MetricType::Percentage),
+            KpiDefinition::new(
+                "design_system_adoption",
+                "设计系统采纳率",
+                "%",
+                MetricType::Percentage,
+            ),
         ]
     }
 

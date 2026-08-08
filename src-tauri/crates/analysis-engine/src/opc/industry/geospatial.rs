@@ -86,8 +86,7 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
         vec![
             KpiCalculationDef {
-                key: "data_accuracy".to_string(),
-                name: "数据精度".to_string(),
+                key: "data_accuracy".to_string(), name: "数据精度".to_string()
             },
             KpiCalculationDef {
                 key: "update_frequency".to_string(),
@@ -124,12 +123,8 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
                 "service_health_check",
                 "服务健康检查",
                 vec![
-                    AutomationCondition::StatusIs {
-                        status: "unhealthy".to_string(),
-                    },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "geo_service".to_string(),
-                    },
+                    AutomationCondition::StatusIs { status: "unhealthy".to_string() },
+                    AutomationCondition::EntityTypeIs { entity_type: "geo_service".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "geo_team".to_string(),
@@ -174,10 +169,8 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
             "location" => {
                 if let Some(longitude) = entity_data.get("longitude") {
                     if longitude.as_f64().is_none_or(|l| l < -180.0 || l > 180.0) {
-                        errors.push(ValidationError::new(
-                            "longitude",
-                            "经度必须在 -180 到 180 之间",
-                        ));
+                        errors
+                            .push(ValidationError::new("longitude", "经度必须在 -180 到 180 之间"));
                     }
                 }
                 if let Some(latitude) = entity_data.get("latitude") {
@@ -185,13 +178,14 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
                         errors.push(ValidationError::new("latitude", "纬度必须在 -90 到 90 之间"));
                     }
                 }
-                if entity_data.get("name").is_none_or(|n| n.as_str().is_none_or(|s| s.is_empty()))
-                {
+                if entity_data.get("name").is_none_or(|n| n.as_str().is_none_or(|s| s.is_empty())) {
                     errors.push(ValidationError::new("name", "地点名称不能为空"));
                 }
             },
             "geospatial_dataset" => {
-                if entity_data.get("dataset_id").is_none_or(|d| d.as_str().is_none_or(|s| s.is_empty()))
+                if entity_data
+                    .get("dataset_id")
+                    .is_none_or(|d| d.as_str().is_none_or(|s| s.is_empty()))
                 {
                     errors.push(ValidationError::new("dataset_id", "数据集 ID 不能为空"));
                 }
@@ -203,14 +197,11 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
                 }
             },
             "spatial_query" => {
-                if entity_data
-                    .get("query_geometry")
-                    .is_none_or(|g| g.as_object().is_none())
-                {
+                if entity_data.get("query_geometry").is_none_or(|g| g.as_object().is_none()) {
                     errors.push(ValidationError::new("query_geometry", "查询几何不能为空"));
                 }
             },
-            _ => {}
+            _ => {},
         }
 
         Ok(errors)
@@ -228,8 +219,10 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
     fn workflow_steps(&self) -> Vec<WorkflowStep> {
         vec![
             WorkflowStep::new("data_collection", "数据采集", "采集原始地理空间数据").with_order(1),
-            WorkflowStep::new("data_processing", "数据处理", "清洗、转换和标准化地理数据").with_order(2),
-            WorkflowStep::new("spatial_analysis", "空间分析", "进行空间查询、分析和建模").with_order(3),
+            WorkflowStep::new("data_processing", "数据处理", "清洗、转换和标准化地理数据")
+                .with_order(2),
+            WorkflowStep::new("spatial_analysis", "空间分析", "进行空间查询、分析和建模")
+                .with_order(3),
             WorkflowStep::new("visualization", "可视化渲染", "生成地图和空间可视化").with_order(4),
             WorkflowStep::new("publish_share", "发布共享", "发布地理信息服务和应用").with_order(5),
         ]

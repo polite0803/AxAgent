@@ -110,9 +110,7 @@ impl OpcIndustryAdapter for SecurityIndustryAdapter {
                 "critical_vulnerability_alert",
                 "严重漏洞告警",
                 vec![
-                    AutomationCondition::StatusIs {
-                        status: "critical".to_string(),
-                    },
+                    AutomationCondition::StatusIs { status: "critical".to_string() },
                     AutomationCondition::EntityTypeIs {
                         entity_type: "security_vulnerability".to_string(),
                     },
@@ -144,9 +142,7 @@ impl OpcIndustryAdapter for SecurityIndustryAdapter {
                         field: "anomaly_score".to_string(),
                         threshold: 0.95,
                     },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "access_log".to_string(),
-                    },
+                    AutomationCondition::EntityTypeIs { entity_type: "access_log".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "security_team".to_string(),
@@ -189,7 +185,9 @@ impl OpcIndustryAdapter for SecurityIndustryAdapter {
 
         match entity_type {
             "security_policy" => {
-                if entity_data.get("policy_id").is_none_or(|p| p.as_str().is_none_or(|s| s.is_empty()))
+                if entity_data
+                    .get("policy_id")
+                    .is_none_or(|p| p.as_str().is_none_or(|s| s.is_empty()))
                 {
                     errors.push(ValidationError::new("policy_id", "政策 ID 不能为空"));
                 }
@@ -224,7 +222,7 @@ impl OpcIndustryAdapter for SecurityIndustryAdapter {
                     }
                 }
             },
-            _ => {}
+            _ => {},
         }
 
         Ok(errors)
@@ -241,11 +239,16 @@ impl OpcIndustryAdapter for SecurityIndustryAdapter {
 
     fn workflow_steps(&self) -> Vec<WorkflowStep> {
         vec![
-            WorkflowStep::new("risk_identification", "风险识别", "识别和评估潜在的安全风险").with_order(1),
-            WorkflowStep::new("risk_analysis", "风险分析", "分析风险影响范围和可能性").with_order(2),
-            WorkflowStep::new("risk_treatment", "风险处置", "制定风险应对策略和控制措施").with_order(3),
-            WorkflowStep::new("compliance_audit", "合规审计", "定期进行合规性检查和审计").with_order(4),
-            WorkflowStep::new("incident_response", "事件响应", "安全事件发生后的应急响应").with_order(5),
+            WorkflowStep::new("risk_identification", "风险识别", "识别和评估潜在的安全风险")
+                .with_order(1),
+            WorkflowStep::new("risk_analysis", "风险分析", "分析风险影响范围和可能性")
+                .with_order(2),
+            WorkflowStep::new("risk_treatment", "风险处置", "制定风险应对策略和控制措施")
+                .with_order(3),
+            WorkflowStep::new("compliance_audit", "合规审计", "定期进行合规性检查和审计")
+                .with_order(4),
+            WorkflowStep::new("incident_response", "事件响应", "安全事件发生后的应急响应")
+                .with_order(5),
         ]
     }
 

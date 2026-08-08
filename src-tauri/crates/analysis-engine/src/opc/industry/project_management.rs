@@ -129,12 +129,8 @@ impl OpcIndustryAdapter for ProjectManagementIndustryAdapter {
                 "project_overdue_alert",
                 "项目逾期告警",
                 vec![
-                    AutomationCondition::StatusIs {
-                        status: "overdue".to_string(),
-                    },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "project".to_string(),
-                    },
+                    AutomationCondition::StatusIs { status: "overdue".to_string() },
+                    AutomationCondition::EntityTypeIs { entity_type: "project".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "project_manager".to_string(),
@@ -149,9 +145,7 @@ impl OpcIndustryAdapter for ProjectManagementIndustryAdapter {
                         field: "budget_used_percentage".to_string(),
                         threshold: 0.9,
                     },
-                    AutomationCondition::EntityTypeIs {
-                        entity_type: "project".to_string(),
-                    },
+                    AutomationCondition::EntityTypeIs { entity_type: "project".to_string() },
                 ],
                 vec![AutomationAction::SendNotification {
                     target: "finance_team".to_string(),
@@ -194,8 +188,7 @@ impl OpcIndustryAdapter for ProjectManagementIndustryAdapter {
 
         match entity_type {
             "project" => {
-                if entity_data.get("name").is_none_or(|p| p.as_str().is_none_or(|s| s.is_empty()))
-                {
+                if entity_data.get("name").is_none_or(|p| p.as_str().is_none_or(|s| s.is_empty())) {
                     errors.push(ValidationError::new("name", "项目名称不能为空"));
                 }
                 if entity_data
@@ -244,28 +237,32 @@ impl OpcIndustryAdapter for ProjectManagementIndustryAdapter {
                     errors.push(ValidationError::new("due_date", "截止日期不能为空"));
                 }
             },
-            _ => {}
+            _ => {},
         }
 
         Ok(errors)
     }
 
     fn entity_types(&self) -> Vec<String> {
-        vec![
-            "project".to_string(),
-            "task".to_string(),
-            "milestone".to_string(),
-            "risk".to_string(),
-        ]
+        vec!["project".to_string(), "task".to_string(), "milestone".to_string(), "risk".to_string()]
     }
 
     fn workflow_steps(&self) -> Vec<WorkflowStep> {
         vec![
-            WorkflowStep::new("project_initiation", "项目立项", "定义项目目标、范围和资源").with_order(1),
-            WorkflowStep::new("requirements_analysis", "需求分析", "收集和分析项目需求").with_order(2),
-            WorkflowStep::new("plan_development", "计划制定", "制定详细的项目计划和里程碑").with_order(3),
-            WorkflowStep::new("execution_monitoring", "执行监控", "跟踪项目进度、风险管理和质量保证").with_order(4),
-            WorkflowStep::new("project_closing", "项目收尾", "完成交付物、总结经验教训").with_order(5),
+            WorkflowStep::new("project_initiation", "项目立项", "定义项目目标、范围和资源")
+                .with_order(1),
+            WorkflowStep::new("requirements_analysis", "需求分析", "收集和分析项目需求")
+                .with_order(2),
+            WorkflowStep::new("plan_development", "计划制定", "制定详细的项目计划和里程碑")
+                .with_order(3),
+            WorkflowStep::new(
+                "execution_monitoring",
+                "执行监控",
+                "跟踪项目进度、风险管理和质量保证",
+            )
+            .with_order(4),
+            WorkflowStep::new("project_closing", "项目收尾", "完成交付物、总结经验教训")
+                .with_order(5),
         ]
     }
 
