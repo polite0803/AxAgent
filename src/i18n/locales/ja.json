@@ -289,6 +289,39 @@
     "none": "なし",
     "saveSuccess": "プロファイルを保存しました"
   },
+  "agentPattern": {
+    "title": "エージェントパターン",
+    "type": {
+      "react": "ReAct 推論-行動",
+      "plan-and-execute": "プラン＆エグゼキュート",
+      "reflection": "リフレクション",
+      "multi-agent": "マルチエージェント協働",
+      "code-review": "コードレビューエキスパート",
+      "data-analysis": "データ分析エキスパート",
+      "document-processing": "ドキュメント処理アシスタント",
+      "web-research": "ウェブリサーチエキスパート",
+      "custom": "カスタム"
+    },
+    "complexity": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "expert": "エキスパート"
+    },
+    "actions": {
+      "select": "このパターンを選択",
+      "autoSelect": "自動選択",
+      "reset": "リセット"
+    },
+    "matchedPatterns": "マッチしたパターン",
+    "noMatch": "マッチするパターンが見つかりません",
+    "confidence": "信頼度",
+    "reasoning": "推論",
+    "maxTurns": "最大ターン数",
+    "estimatedTokens": "推定トークン",
+    "requiredCapabilities": "必要な能力",
+    "availableTools": "利用可能なツール"
+  },
   "businessRole": {
     "activeDomains": "アクティブドメイン",
     "activeDomainsPlaceholder": "このロールがアクティブにするツールドメインを選択",
@@ -1819,7 +1852,20 @@
     "unsupportedChartType": "サポートされていないチャートタイプ: {{type}}",
     "persistFailed": "フォームデータの永続化に失敗しました。バックエンドサービスを確認してください",
     "schemaNotFound": "動的ページが見つかりません",
-    "uiSchemaJson": "UIスキーマJSON"
+    "uiSchemaJson": "UIスキーマJSON",
+    "noFallbackAvailable": "フォールバック描画がありません",
+    "status": {
+      "pending": "待機中",
+      "ready": "準備完了",
+      "error": "エラー",
+      "loading": "読み込み中"
+    },
+    "importance": {
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "critical": "重大"
+    }
   },
   "dynamicUIManager": {
     "addChild": "子を追加",
@@ -6078,7 +6124,28 @@
     "ticketFailed": "音声セッションチケットの取得に失敗しました",
     "decryptKeyFailed": "ゲートウェイキーの復号に失敗したため、音声通話を開始できません",
     "sessionError": "音声セッションエラーが発生しました",
-    "stateError": "音声セッションが異常切断されました"
+    "stateError": "音声セッションが異常切断されました",
+    "idle": "待機中",
+    "intent": {
+      "draft": "下書き",
+      "clarifying": "明確化",
+      "needs_confirmation": "確認必要",
+      "submitted": "送信済み",
+      "cancelled": "キャンセル済み",
+      "clarificationPrompt": "お客様のニーズをより良く理解するため、以下の質問にお答えください",
+      "confirmationPrompt": "私の理解が正しいかどうか確認してください",
+      "confirm": "確認して実行",
+      "cancel": "キャンセル",
+      "submit": "送信",
+      "rephrase": "言い換える",
+      "skipClarification": "直接実行",
+      "intentSummary": "お客様が望んでいることを理解しました",
+      "processingIntent": "意図を処理中...",
+      "dagProgress": "ワークフローの進捗",
+      "dagComplete": "ワークフロー完了",
+      "dagFailed": "ワークフロー失敗",
+      "dagRunning": "ワークフロー実行中"
+    }
   },
   "wiki": {
     "backlinks": "バックリンク",
@@ -8385,7 +8452,12 @@
     "noPending": "保留中の承認はありません",
     "message": "承認メッセージ",
     "workflowId": "ワークフロー",
-    "status": "ステータス",
+    "status": {
+      "pending": "保留中",
+      "approved": "承認済み",
+      "rejected": "拒否",
+      "expired": "期限切れ"
+    },
     "expiresAt": "有効期限",
     "actions": "アクション",
     "decision": "決定",
@@ -8393,7 +8465,8 @@
     "reject": "却下",
     "cancel": "キャンセル",
     "notePlaceholder": "メモを追加（任意）",
-    "approver": "承認者"
+    "approver": "承認者",
+    "expiresSoon": "まもなく期限切れ"
   },
   "browserMock": {
     "greeting": "こんにちは！何をお手伝いしましょうか？",

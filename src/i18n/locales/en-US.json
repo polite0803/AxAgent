@@ -289,6 +289,39 @@
     "none": "None",
     "saveSuccess": "Profile saved"
   },
+  "agentPattern": {
+    "title": "Agent Pattern",
+    "type": {
+      "react": "ReAct Reasoning-Acting",
+      "plan-and-execute": "Plan-and-Execute",
+      "reflection": "Reflection",
+      "multi-agent": "Multi-Agent Collaboration",
+      "code-review": "Code Review Expert",
+      "data-analysis": "Data Analysis Expert",
+      "document-processing": "Document Processing Assistant",
+      "web-research": "Web Research Expert",
+      "custom": "Custom"
+    },
+    "complexity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "expert": "Expert"
+    },
+    "actions": {
+      "select": "Select This Pattern",
+      "autoSelect": "Auto Select",
+      "reset": "Reset"
+    },
+    "matchedPatterns": "Matched Patterns",
+    "noMatch": "No matching pattern found",
+    "confidence": "Confidence",
+    "reasoning": "Reasoning",
+    "maxTurns": "Max Turns",
+    "estimatedTokens": "Estimated Tokens",
+    "requiredCapabilities": "Required Capabilities",
+    "availableTools": "Available Tools"
+  },
   "businessRole": {
     "activeDomains": "Active Domains",
     "activeDomainsPlaceholder": "Select tool domains activated by this role",
@@ -1819,7 +1852,20 @@
     "unsupportedChartType": "Unsupported Chart Type: {{type}}",
     "persistFailed": "Form data persistence failed, please check backend service",
     "schemaNotFound": "Specified Dynamic Page Not Found",
-    "uiSchemaJson": "UI Schema JSON"
+    "uiSchemaJson": "UI Schema JSON",
+    "noFallbackAvailable": "No fallback rendering available",
+    "status": {
+      "pending": "Pending",
+      "ready": "Ready",
+      "error": "Error",
+      "loading": "Loading"
+    },
+    "importance": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    }
   },
   "dynamicUIManager": {
     "addChild": "Add Child",
@@ -6078,7 +6124,38 @@
     "ticketFailed": "Failed to obtain voice session ticket",
     "decryptKeyFailed": "Gateway key decryption failed, cannot start voice call",
     "sessionError": "Voice session error",
-    "stateError": "Voice session disconnected abnormally"
+    "stateError": "Voice session disconnected abnormally",
+    "idle": "Idle",
+    "intent": {
+      "draft": "Draft",
+      "clarifying": "Clarifying",
+      "needs_confirmation": "Needs Confirmation",
+      "submitted": "Submitted",
+      "cancelled": "Cancelled",
+      "clarificationPrompt": "Please answer the following questions to help me better understand your needs",
+      "confirmationPrompt": "Please confirm whether my understanding is correct",
+      "confirm": "Confirm & Execute",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "rephrase": "Rephrase",
+      "skipClarification": "Execute Directly",
+      "intentSummary": "I understand you want to",
+      "processingIntent": "Processing your intent...",
+      "dagProgress": "Workflow Progress",
+      "dagComplete": "Workflow Complete",
+      "dagFailed": "Workflow Failed",
+      "dagRunning": "Workflow Running"
+    },
+    "tts": {
+      "title": "Voice Briefing",
+      "enabled": "On",
+      "disabled": "Off",
+      "noMessages": "No briefing messages",
+      "workflowStart": "Workflow started",
+      "workflowComplete": "Workflow completed",
+      "workflowFailed": "Workflow failed",
+      "waitingForApproval": "Waiting for human approval..."
+    }
   },
   "wiki": {
     "backlinks": "Backlinks",
@@ -6434,14 +6511,21 @@
       "noPending": "No pending approvals",
       "message": "Message",
       "workflowId": "Workflow",
-      "status": "Status",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "expired": "Expired"
+      },
       "expiresAt": "Expires",
+      "expiresSoon": "Expires soon",
       "actions": "Actions",
       "decision": "Decision",
       "approve": "Approve",
       "reject": "Reject",
       "cancel": "Cancel",
-      "notePlaceholder": "Add a note (optional)"
+      "notePlaceholder": "Add a note (optional)",
+      "waitingForApproval": "Waiting for human approval"
     },
     "aiAssistant": "AI Assistant",
     "applySemanticCheck": "Apply",
@@ -8385,15 +8469,22 @@
     "noPending": "No pending approvals",
     "message": "Approval message",
     "workflowId": "Workflow",
-    "status": "Status",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    },
     "expiresAt": "Expires at",
+    "expiresSoon": "Expires soon",
     "actions": "Actions",
     "decision": "Decision",
     "approve": "Approve",
     "reject": "Reject",
     "cancel": "Cancel",
     "notePlaceholder": "Add a note (optional)",
-    "approver": "Approver"
+    "approver": "Approver",
+    "waitingForApproval": "Waiting for human approval"
   },
   "browserMock": {
     "greeting": "Hello! What can I help you with?",

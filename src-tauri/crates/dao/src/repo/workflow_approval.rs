@@ -191,3 +191,23 @@ pub async fn auto_resolve_timeouts(
 
     Ok(expired)
 }
+
+/// 将指定 execution_id + node_id 的审批记录标记为 expired（引擎超时自动处理）。
+pub async fn expire_approval(
+    db: &DatabaseConnection,
+    execution_id: &str,
+    node_id: &str,
+) -> Result<(), String> {
+    let now = chrono::Utc::now().timestamp_millis();
+    let sql = "UPDATE workflow_approvals \
+               SET status = 'expired', resolved_at = ?1 \
+               WHERE execution_id = ?2 AND node_id = ?3 AND status = 'pending'";
+    db.execute_raw(Statement::from_sql_and_values(
+        DbBackend::Sqlite,
+        sql,
+        vec![now.into(), execution_id.to_string().into(), node_id.to_string().into()],
+    ))
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}

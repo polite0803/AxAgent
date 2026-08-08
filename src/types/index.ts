@@ -208,6 +208,8 @@ export interface Message {
   blocks?: ContentBlock[];
   /** 引用回复：被引用消息的 ID（区别于 parent_message_id） */
   quoted_message_id?: string | null;
+  /** 意图澄清状态（仅用户消息有） */
+  intent_clarification?: IntentClarification | null;
 }
 
 // ── Content Block (Part-based message model, short-term) ──────────────
@@ -657,6 +659,36 @@ export type VoiceSessionState =
   | "Listening"
   | "Disconnecting"
   | "Error";
+
+// === Intent Clarification ===
+export type IntentState =
+  | "draft"
+  | "clarifying"
+  | "needs_confirmation"
+  | "submitted"
+  | "cancelled";
+
+export interface IntentClarification {
+  state: IntentState;
+  /** 用户原始输入（语音/文本） */
+  original_input: string;
+  /** AI 理解的意图描述 */
+  intent_summary?: string;
+  /** 澄清问题列表 */
+  clarification_questions: string[];
+  /** 用户对澄清问题的回答 */
+  clarification_answers: Record<string, string>;
+  /** 确认候选方案 */
+  confirmation_options?: string[];
+  /** 最终确认的意图 */
+  confirmed_intent?: string;
+  /** 关联的 DAG 执行 ID */
+  workflow_execution_id?: string;
+  /** 创建时间戳 */
+  created_at: number;
+  /** 更新时间戳 */
+  updated_at: number;
+}
 
 export type AudioEncoding = "Pcm16" | "Opus";
 
@@ -1204,6 +1236,19 @@ export * from "./office";
 export * from "./paper";
 export * from "./permission";
 export * from "./persona";
+
+// === Security Module Types ===
+export type { InjectionDetection, InjectionType, SanitizationResult } from "@/lib/security/injectionDetector";
+
+export type {
+  PermissionDecision,
+  PermissionLevel,
+  PermissionPolicy,
+  PermissionRequest,
+  ResourceType,
+} from "@/lib/security/permissionGuard";
+
+export type { OutputRiskLevel, SanitizedOutput } from "@/lib/security/outputSanitizer";
 export * from "./platform";
 export * from "./proactive";
 export * from "./search";
@@ -1705,6 +1750,8 @@ export type {
   DataSourceConfig,
   DynamicAction,
   DynamicComponentType,
+  DynamicImportance,
+  DynamicStatus,
   DynamicUIFormDataRecord,
   DynamicUIPinRecord,
   DynamicUIProps,

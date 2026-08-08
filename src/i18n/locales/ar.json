@@ -289,6 +289,39 @@
     "none": "لا شيء",
     "saveSuccess": "تم حفظ الملف الشخصي"
   },
+  "agentPattern": {
+    "title": "نمط الوكيل",
+    "type": {
+      "react": "ReActReasoning-Acting",
+      "plan-and-execute": "خطة وتنفيذ",
+      "reflection": "تفكير متأمل",
+      "multi-agent": "تعاون وكلاء متعددين",
+      "code-review": "خبير مراجعة الكود",
+      "data-analysis": "خبير تحليل البيانات",
+      "document-processing": "مساعد معالجة المستندات",
+      "web-research": "خبير البحث على الإنترنت",
+      "custom": "مخصص"
+    },
+    "complexity": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "عالي",
+      "expert": "خبير"
+    },
+    "actions": {
+      "select": "اختر هذا النمط",
+      "autoSelect": "اختيار تلقائي",
+      "reset": "إعادة تعيين"
+    },
+    "matchedPatterns": "الأنماط المطابقة",
+    "noMatch": "لم يتم العثور على نمط مطابق",
+    "confidence": "مستوى الثقة",
+    "reasoning": "سبب التوصية",
+    "maxTurns": "أقصى عدد من الجولات",
+    "estimatedTokens": "الرموز التقديرية",
+    "requiredCapabilities": "القدرات المطلوبة",
+    "availableTools": "الأدوات المتاحة"
+  },
   "businessRole": {
     "activeDomains": "النطاقات النشطة",
     "activeDomainsPlaceholder": "اختر نطاقات الأدوات التي ينشطها هذا الدور",
@@ -1819,7 +1852,20 @@
     "unsupportedChartType": "نوع الرسم البياني غير مدعوم: {{type}}",
     "persistFailed": "فشل في حفظ بيانات النموذج، يرجى التحقق من خدمة الواجهة الخلفية",
     "schemaNotFound": "الصفحة الديناميكية غير موجودة",
-    "uiSchemaJson": "JSON مخطط واجهة المستخدم"
+    "uiSchemaJson": "JSON مخطط واجهة المستخدم",
+    "noFallbackAvailable": "لا يوجد عرض احتياطي متاح",
+    "status": {
+      "pending": "قيد الانتظار",
+      "ready": "جاهز",
+      "error": "خطأ",
+      "loading": "قيد التحميل"
+    },
+    "importance": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "عالي",
+      "critical": "حرج"
+    }
   },
   "dynamicUIManager": {
     "addChild": "إضافة عنصر فرعي",
@@ -6078,7 +6124,28 @@
     "ticketFailed": "فشل في الحصول على تذكرة الجلسة الصوتية",
     "decryptKeyFailed": "فشل فك تشفير مفتاح البوابة، لا يمكن بدء المكالمة",
     "sessionError": "حدث خطأ في الجلسة الصوتية",
-    "stateError": "انقطعت الجلسة الصوتية بشكل غير طبيعي"
+    "stateError": "انقطعت الجلسة الصوتية بشكل غير طبيعي",
+    "idle": "خامل",
+    "intent": {
+      "draft": "مسودة",
+      "clarifying": "توضيح",
+      "needs_confirmation": "بانتظار التأكيد",
+      "submitted": "تم الإرسال",
+      "cancelled": "ملغي",
+      "clarificationPrompt": "يرجى الإجابة على الأسئلة التالية لمساعدتي في فهم احتياجاتك بشكل أفضل",
+      "confirmationPrompt": "يرجى التأكد مما إذا كان فهمي صحيحاً",
+      "confirm": "تأكيد وتنفيذ",
+      "cancel": "إلغاء",
+      "submit": "إرسال",
+      "rephrase": "إعادة صياغة",
+      "skipClarification": "تنفيذ مباشر",
+      "intentSummary": "أفهم أنك تريد",
+      "processingIntent": "جاري معالجة نيتك...",
+      "dagProgress": "تقدم سير العمل",
+      "dagComplete": "اكتمل سير العمل",
+      "dagFailed": "فشل سير العمل",
+      "dagRunning": "سير العمل قيد التنفيذ"
+    }
   },
   "wiki": {
     "backlinks": "روابط عكسية",
@@ -8385,7 +8452,12 @@
     "noPending": "لا توجد موافقات معلقة",
     "message": "رسالة الموافقة",
     "workflowId": "سير العمل",
-    "status": "الحالة",
+    "status": {
+      "pending": "قيد الانتظار",
+      "approved": "تمت الموافقة",
+      "rejected": "مرفوض",
+      "expired": "منتهي"
+    },
     "expiresAt": "تنتهي في",
     "actions": "الإجراءات",
     "decision": "القرار",
@@ -8393,7 +8465,8 @@
     "reject": "رفض",
     "cancel": "إلغاء",
     "notePlaceholder": "إضافة ملاحظة (اختياري)",
-    "approver": "الموافق"
+    "approver": "الموافق",
+    "expiresSoon": "ينتهي قريبًا"
   },
   "browserMock": {
     "greeting": "مرحبًا! كيف يمكنني مساعدتك؟",

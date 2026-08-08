@@ -9,6 +9,9 @@ import {
   VALID_DYNAMIC_COMPONENT_TYPES,
 } from "@/types";
 
+const VALID_IMPORTANCE = ["low", "medium", "high", "critical"];
+const VALID_STATUS = ["pending", "ready", "error", "loading"];
+
 /** Maximum nesting depth for schema validation to prevent stack overflow. */
 const MAX_NESTING_DEPTH = 50;
 
@@ -134,6 +137,35 @@ function validateNode(
       errors,
       depth + 1,
     );
+  }
+
+  // 校验语义化：importance
+  if (obj.importance !== undefined) {
+    if (!VALID_IMPORTANCE.includes(obj.importance as string)) {
+      errors.push({
+        path: `${path}.importance`,
+        message: `无效的 importance "${String(obj.importance)}"，有效: ${VALID_IMPORTANCE.join("|")}`,
+      });
+    }
+  }
+
+  // 校验语义化：status
+  if (obj.status !== undefined) {
+    if (!VALID_STATUS.includes(obj.status as string)) {
+      errors.push({
+        path: `${path}.status`,
+        message: `无效的 status "${String(obj.status)}"，有效: ${VALID_STATUS.join("|")}`,
+      });
+    }
+  }
+
+  // 校验语义化：fallback（递归校验 fallback schema）
+  if (obj.fallback !== undefined) {
+    if (typeof obj.fallback !== "object" || obj.fallback === null) {
+      errors.push({ path: `${path}.fallback`, message: "fallback 必须为 UISchema 对象" });
+    } else {
+      validateNode(obj.fallback as UISchema, `${path}.fallback`, errors, depth + 1);
+    }
   }
 
   // 递归校验 children

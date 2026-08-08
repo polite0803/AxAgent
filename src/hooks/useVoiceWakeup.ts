@@ -57,6 +57,8 @@ export function useVoiceWakeup({
   const activeRef = useRef(false);
   const startingRef = useRef(false);
   const stoppingRef = useRef(false);
+  // 代际计数：stop 时递增，start await 完成后对比，若代际已变则丢弃
+  const generationRef = useRef(0);
 
   const cleanup = useCallback(() => {
     if (rafRef.current !== null) {
@@ -85,12 +87,13 @@ export function useVoiceWakeup({
       return;
     }
     startingRef.current = true;
+    const myGen = generationRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true },
       });
-      // await 期间用户可能已点击 stop，此时丢弃新申请到的 stream
-      if (stoppingRef.current) {
+      // await 期间若 stop 被调用，代际会递增，此时丢弃新申请到的 stream
+      if (generationRef.current !== myGen) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
@@ -161,6 +164,8 @@ export function useVoiceWakeup({
   }, [cleanup, message, t, threshold]);
 
   const stop = useCallback(() => {
+    // 递增代际，使正在 await 的 start 完成后自动丢弃 stream
+    generationRef.current += 1;
     // 正在启动时设置 stoppingRef，让 start 的 await 完成后自行丢弃 stream
     if (startingRef.current) {
       stoppingRef.current = true;

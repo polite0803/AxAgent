@@ -511,10 +511,7 @@ mod tests {
         assert_eq!(restored.status, ExecutionStatus::Running);
         assert_eq!(restored.current_node_id, Some("node-1".to_string()));
         assert_eq!(restored.total_time_ms, 100);
-        assert_eq!(
-            restored.variables.get("x"),
-            Some(&serde_json::json!(42))
-        );
+        assert_eq!(restored.variables.get("x"), Some(&serde_json::json!(42)));
     }
 
     #[test]

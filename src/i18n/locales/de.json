@@ -289,6 +289,39 @@
     "none": "Keine",
     "saveSuccess": "Profil gespeichert"
   },
+  "agentPattern": {
+    "title": "Agent-Muster",
+    "type": {
+      "react": "ReAct Reasoning-Acting",
+      "plan-and-execute": "Plan-und-Ausführung",
+      "reflection": "Reflexion",
+      "multi-agent": "Multi-Agent-Zusammenarbeit",
+      "code-review": "Code-Review-Experte",
+      "data-analysis": "Datenanalyse-Experte",
+      "document-processing": "Dokumentenverarbeitungs-Assistent",
+      "web-research": "Web-Recherche-Experte",
+      "custom": "Benutzerdefiniert"
+    },
+    "complexity": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "expert": "Experte"
+    },
+    "actions": {
+      "select": "Dieses Muster auswählen",
+      "autoSelect": "Automatische Auswahl",
+      "reset": "Zurücksetzen"
+    },
+    "matchedPatterns": "Gefundene Muster",
+    "noMatch": "Kein passendes Muster gefunden",
+    "confidence": "Konfidenz",
+    "reasoning": "Begründung",
+    "maxTurns": "Maximale Runden",
+    "estimatedTokens": "Geschätzte Tokens",
+    "requiredCapabilities": "Erforderliche Fähigkeiten",
+    "availableTools": "Verfügbare Tools"
+  },
   "businessRole": {
     "activeDomains": "Aktive Domänen",
     "activeDomainsPlaceholder": "Werkzeugdomänen auswählen, die durch diese Rolle aktiviert werden",
@@ -1819,7 +1852,20 @@
     "unsupportedChartType": "Nicht unterstützter Diagrammtyp: {{type}}",
     "persistFailed": "Speichern der Formulardaten fehlgeschlagen, bitte Backend-Dienst prüfen",
     "schemaNotFound": "Dynamische Seite nicht gefunden",
-    "uiSchemaJson": "UI-Schema JSON"
+    "uiSchemaJson": "UI-Schema JSON",
+    "noFallbackAvailable": "Kein Fallback-Rendering verfügbar",
+    "status": {
+      "pending": "Ausstehend",
+      "ready": "Bereit",
+      "error": "Fehler",
+      "loading": "Lädt"
+    },
+    "importance": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "critical": "Kritisch"
+    }
   },
   "dynamicUIManager": {
     "addChild": "Kind hinzufügen",
@@ -6078,7 +6124,28 @@
     "ticketFailed": "Abruf des Voice-Session-Tickets fehlgeschlagen",
     "decryptKeyFailed": "Entschlüsselung des Gateway-Schlüssels fehlgeschlagen, Anruf kann nicht gestartet werden",
     "sessionError": "Fehler in der Voice-Session",
-    "stateError": "Voice-Session abnormal getrennt"
+    "stateError": "Voice-Session abnormal getrennt",
+    "idle": "Leerlauf",
+    "intent": {
+      "draft": "Entwurf",
+      "clarifying": "Klärung",
+      "needs_confirmation": "Bestätigung erforderlich",
+      "submitted": "Eingereicht",
+      "cancelled": "Abgebrochen",
+      "clarificationPrompt": "Bitte beantworten Sie die folgenden Fragen, damit ich Ihre Bedürfnisse besser verstehe",
+      "confirmationPrompt": "Bitte bestätigen Sie, ob mein Verständnis korrekt ist",
+      "confirm": "Bestätigen und Ausführen",
+      "cancel": "Abbrechen",
+      "submit": "Einreichen",
+      "rephrase": "Neu formulieren",
+      "skipClarification": "Direkt ausführen",
+      "intentSummary": "Ich verstehe, dass Sie möchten",
+      "processingIntent": "Verarbeitung Ihrer Absicht...",
+      "dagProgress": "Workflow-Fortschritt",
+      "dagComplete": "Workflow abgeschlossen",
+      "dagFailed": "Workflow fehlgeschlagen",
+      "dagRunning": "Workflow wird ausgeführt"
+    }
   },
   "wiki": {
     "backlinks": "Rückverweise",
@@ -8385,7 +8452,12 @@
     "noPending": "Keine ausstehenden Genehmigungen",
     "message": "Genehmigungsnachricht",
     "workflowId": "Workflow",
-    "status": "Status",
+    "status": {
+      "pending": "Ausstehend",
+      "approved": "Genehmigt",
+      "rejected": "Abgelehnt",
+      "expired": "Abgelaufen"
+    },
     "expiresAt": "Läuft ab am",
     "actions": "Aktionen",
     "decision": "Entscheidung",
@@ -8393,7 +8465,8 @@
     "reject": "Ablehnen",
     "cancel": "Abbrechen",
     "notePlaceholder": "Notiz hinzufügen (optional)",
-    "approver": "Genehmiger"
+    "approver": "Genehmiger",
+    "expiresSoon": "Läuft bald ab"
   },
   "browserMock": {
     "greeting": "Hallo! Womit kann ich Ihnen helfen?",

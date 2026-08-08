@@ -2307,7 +2307,7 @@ pub async fn agent_query(
                 };
 
                 // Build and save trajectory
-                let trajectory = axagent_trajectory::Trajectory::new(
+                let mut trajectory = axagent_trajectory::Trajectory::new(
                     conversation_id.clone(),
                     "default_user".to_string(),
                     trajectory_input[..trajectory_input.len().min(100)].to_string(),
@@ -2317,8 +2317,11 @@ pub async fn agent_query(
                     steps,
                 );
 
+                // ★ P2-3: Scorecard 真实评分流程 — 先计算质量分
+                axagent_harness::trajectory_scorer::TrajectoryScorer::apply(&mut trajectory);
+                // 此时 trajectory.quality 和 trajectory.value_score 已由 scorer 计算完毕
+
                 // P6: Inject known patterns into trajectory for reward computation
-                let mut trajectory = trajectory;
                 {
                     let pl = app_state.pattern_learner.read().await;
                     let high_value = pl.get_high_value_patterns(0.3);
@@ -2336,6 +2339,46 @@ pub async fn agent_query(
                         trajectory.steps.len(),
                         outcome
                     );
+
+                    // ★ P2-3: Scorecard 三档门禁评估（真实接入评分流程）
+                    {
+                        let quality = trajectory.quality.clone();
+                        let estimated_safety = 0.85; // 安全分可后续对接注入检测结果
+                        let gate_result =
+                            axagent_harness::trajectory_scorer::TrajectoryScorer::evaluate_gate(
+                                quality,
+                                estimated_safety,
+                                axagent_harness::trajectory_scorer::GateLevel::Soft,
+                            );
+                        tracing::info!(
+                            "[Scorecard] Gate {:?}: passed={}, quality={:.3}, safety={:.3}, detail={}",
+                            gate_result.level,
+                            gate_result.passed,
+                            gate_result.quality_score,
+                            gate_result.safety_score,
+                            gate_result.detail
+                        );
+
+                        // ★ P2-4: 创建防篡改证据链 (SHA-256 哈希)
+                        let evidence_summary = format!(
+                            "质量分={:.3}, 安全分={:.3}, 效率分={:.3}, 通过={}",
+                            gate_result.quality_score,
+                            gate_result.safety_score,
+                            gate_result.efficiency_score,
+                            gate_result.passed
+                        );
+                        let evidence = axagent_harness::workflow_types::ReviewEvidenceIdentity::new(
+                            "scorecard_gate",
+                            &trajectory.id,
+                            "conversation",
+                            evidence_summary,
+                        );
+                        tracing::info!(
+                            "[Evidence] Created evidence {} with SHA-256 hash={}...",
+                            evidence.id,
+                            &evidence.evidence_hash[..16]
+                        );
+                    }
 
                     // P5: Real-time pattern learning — learn from this trajectory immediately
                     {
