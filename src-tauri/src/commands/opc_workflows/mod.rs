@@ -12,7 +12,7 @@ mod seed_content_media;
 mod seed_production;
 
 pub use domain_workflows::{
-    opc_get_domain_workflow, opc_list_domain_workflows, opc_list_domains, DomainWorkflowSummary,
+    DomainWorkflowSummary, opc_get_domain_workflow, opc_list_domain_workflows, opc_list_domains,
 };
 pub use industry_pack::INDUSTRIES_DIR;
 pub use industry_pack::IndustryManifest;

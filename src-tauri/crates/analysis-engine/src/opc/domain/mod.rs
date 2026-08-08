@@ -415,7 +415,6 @@ impl DomainWorkflowDef {
 /// 内建 17 个领域，共 65 个工作流，源自 config/opc/domains/ 下的 YAML 配置。
 pub struct DomainAdapterFactory;
 
-
 include!("generated.rs");
 // ── 领域工作流生成器 ────────────────────────────────────────────
 
