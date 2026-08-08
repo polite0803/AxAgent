@@ -4,6 +4,7 @@
  * 行业导航页面 - 集中展示所有行业入口
  */
 
+import i18n from "@/i18n";
 import {
   ApiOutlined,
   AuditOutlined,
@@ -162,11 +163,11 @@ const CATEGORY_CONFIG: Record<
   IndustryMeta["category"],
   { label: string; icon: React.ReactNode; color: string }
 > = {
-  tech: { label: "技术研发", icon: <ApiOutlined />, color: "#1677ff" },
-  business: { label: "商业运营", icon: <TrophyOutlined />, color: "#fa541c" },
-  creative: { label: "创意设计", icon: <TagsOutlined />, color: "#eb2f96" },
-  finance: { label: "金融财务", icon: <BankOutlined />, color: "#52c41a" },
-  security: { label: "安全合规", icon: <SolutionOutlined />, color: "#cf1322" },
+  tech: { label: i18n.t("opc.industry.categories.tech"), icon: <ApiOutlined />, color: "#1677ff" },
+  business: { label: i18n.t("opc.industry.categories.business"), icon: <TrophyOutlined />, color: "#fa541c" },
+  creative: { label: i18n.t("opc.industry.categories.creative"), icon: <TagsOutlined />, color: "#eb2f96" },
+  finance: { label: i18n.t("opc.industry.categories.finance"), icon: <BankOutlined />, color: "#52c41a" },
+  security: { label: i18n.t("opc.industry.categories.security"), icon: <SolutionOutlined />, color: "#cf1322" },
 };
 
 /** 行业卡片 */

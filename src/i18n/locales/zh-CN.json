@@ -4449,6 +4449,739 @@
             "description": "知识点梳理 → 内容撰写 → 案例设计 → 练习生成"
           }
         }
+      },
+      "categories": {
+        "tech": "技术研发",
+        "business": "商业运营",
+        "creative": "创意设计",
+        "finance": "金融财务",
+        "security": "安全合规"
+      },
+      "ai_research": {
+        "tabs": {
+          "research": {
+            "label": "研究探索",
+            "description": "论文检索、模型对比、应用分析",
+            "actions": {
+              "ai_paper": "论文调研",
+              "ai_benchmark": "性能对比",
+              "ai_app": "场景分析"
+            },
+            "workflows": {
+              "wf_acd_literature": {
+                "name": "文献综述",
+                "description": "扫描最新 AI 论文"
+              },
+              "wf_acd_research": {
+                "name": "研究方法论",
+                "description": "系统研究框架"
+              }
+            }
+          },
+          "report": {
+            "label": "成果输出",
+            "description": "生成研究报告和洞察",
+            "actions": {
+              "ai_report": "生成报告"
+            }
+          }
+        }
+      },
+      "software_dev": {
+        "tabs": {
+          "design": {
+            "label": "设计阶段",
+            "description": "需求分析、架构设计、API 设计",
+            "actions": {
+              "sd_arch": "架构咨询",
+              "sd_api_doc": "API 文档"
+            },
+            "workflows": {
+              "wf_eng_api_design": {
+                "name": "API 设计",
+                "description": "RESTful API 设计"
+              },
+              "wf_eng_arch_review": {
+                "name": "架构评审",
+                "description": "系统架构评审"
+              },
+              "wf_prod_spec": {
+                "name": "需求规格",
+                "description": "产品需求文档"
+              }
+            }
+          },
+          "develop": {
+            "label": "开发阶段",
+            "description": "编码、代码审查、重构",
+            "actions": {
+              "sd_code_review": "代码审查",
+              "sd_bug": "Bug 修复"
+            },
+            "workflows": {
+              "wf_eng_code_review": {
+                "name": "代码审查",
+                "description": "自动化代码审查"
+              },
+              "wf_eng_refactor": {
+                "name": "大规模重构",
+                "description": "系统性重构"
+              },
+              "wf_eng_refactor_lite": {
+                "name": "快速追加重构",
+                "description": "增量变更通道"
+              },
+              "wf_eng_tech_debt": {
+                "name": "技术债分析",
+                "description": "识别和管理技术债"
+              }
+            }
+          },
+          "quality": {
+            "label": "质量保障",
+            "description": "安全审查、测试、性能",
+            "workflows": {
+              "wf_eng_security_review": {
+                "name": "安全审查",
+                "description": "代码安全审计"
+              },
+              "wf_eng_perf_opt": {
+                "name": "性能优化",
+                "description": "性能分析与优化"
+              },
+              "wf_tst_plan": {
+                "name": "测试计划",
+                "description": "测试策略制定"
+              },
+              "wf_tst_automation": {
+                "name": "自动化测试",
+                "description": "测试自动化框架"
+              },
+              "wf_tst_perf": {
+                "name": "性能测试",
+                "description": "负载与压力测试"
+              }
+            }
+          },
+          "devops": {
+            "label": "DevOps",
+            "description": "CI/CD、部署、监控",
+            "workflows": {
+              "wf_eng_ci_setup": {
+                "name": "CI/CD 配置",
+                "description": "持续集成流水线"
+              },
+              "wf_eng_deploy": {
+                "name": "部署发布",
+                "description": "自动化部署"
+              },
+              "wf_eng_monitor_setup": {
+                "name": "监控告警",
+                "description": "系统监控配置"
+              },
+              "wf_eng_db_migrate": {
+                "name": "数据库迁移",
+                "description": "数据库版本管理"
+              }
+            }
+          },
+          "team": {
+            "label": "团队协作",
+            "description": "团队入职、知识管理",
+            "workflows": {
+              "wf_eng_onboarding": {
+                "name": "新成员入职",
+                "description": "团队上手流程"
+              }
+            }
+          }
+        }
+      },
+      "finance_invest": {
+        "tabs": {
+          "analysis": {
+            "label": "市场分析",
+            "description": "个股分析、财报解读",
+            "actions": {
+              "fi_stock": "个股分析",
+              "fi_financial": "财报解读"
+            }
+          },
+          "valuation": {
+            "label": "估值建模",
+            "description": "估值计算、财务分析",
+            "actions": {
+              "fi_valuation": "估值计算"
+            },
+            "workflows": {
+              "wf_fin_cost_analysis": {
+                "name": "成本分析",
+                "description": "成本结构分析"
+              }
+            }
+          },
+          "risk": {
+            "label": "风险管理",
+            "description": "风险评估、投资决策",
+            "actions": {
+              "fi_risk": "风险评估"
+            },
+            "workflows": {
+              "wf_fin_budget": {
+                "name": "预算规划",
+                "description": "投资预算制定"
+              }
+            }
+          }
+        }
+      },
+      "sales_growth": {
+        "tabs": {
+          "lead": {
+            "label": "获客线索",
+            "description": "潜在客户获取、线索管理",
+            "actions": {
+              "sg_lead": "线索获取"
+            },
+            "workflows": {
+              "wf_sal_outbound": {
+                "name": "外联拓展",
+                "description": "主动销售拓展"
+              },
+              "wf_mkt_influencer": {
+                "name": "KOL 营销",
+                "description": "达人合作营销"
+              }
+            }
+          },
+          "convert": {
+            "label": "转化成交",
+            "description": "销售漏斗、成交策略",
+            "actions": {
+              "sg_funnel": "漏斗优化",
+              "sg_copy": "文案撰写"
+            },
+            "workflows": {
+              "wf_sal_deal_strategy": {
+                "name": "成交策略",
+                "description": "谈判与成交"
+              },
+              "wf_sal_proposal": {
+                "name": "提案生成",
+                "description": "销售提案"
+              },
+              "wf_mkt_ab_test": {
+                "name": "A/B 测试",
+                "description": "营销优化测试"
+              }
+            }
+          },
+          "manage": {
+            "label": "客户管理",
+            "description": "客户计划、管道管理",
+            "actions": {
+              "sg_competitor": "竞品分析"
+            },
+            "workflows": {
+              "wf_sal_pipeline_review": {
+                "name": "管道复盘",
+                "description": "销售管道审查"
+              },
+              "wf_sal_account_plan": {
+                "name": "客户计划",
+                "description": "关键客户规划"
+              }
+            }
+          }
+        }
+      },
+      "content_media": {
+        "tabs": {
+          "create": {
+            "label": "内容创作",
+            "description": "选题策划、内容生产",
+            "actions": {
+              "cm_writing": "文案写作",
+              "cm_video": "视频创作"
+            },
+            "workflows": {
+              "wf_mkt_brand_guide": {
+                "name": "品牌指南",
+                "description": "品牌视觉规范"
+              }
+            }
+          },
+          "seo": {
+            "label": "SEO 优化",
+            "description": "搜索引擎优化、关键词",
+            "actions": {
+              "cm_seo": "SEO 分析"
+            },
+            "workflows": {
+              "wf_mkt_seo_audit": {
+                "name": "SEO 审计",
+                "description": "网站 SEO 检查"
+              }
+            }
+          },
+          "distribute": {
+            "label": "分发推广",
+            "description": "多平台分发、营销活动",
+            "actions": {
+              "cm_calendar": "内容日历"
+            },
+            "workflows": {
+              "wf_mkt_social_plan": {
+                "name": "社交计划",
+                "description": "社交媒体策略"
+              },
+              "wf_mkt_email_campaign": {
+                "name": "邮件营销",
+                "description": "邮件活动策划"
+              },
+              "wf_mkt_webinar": {
+                "name": "线上研讨会",
+                "description": "Webinar 策划"
+              },
+              "wf_mkt_influencer": {
+                "name": "KOL 合作",
+                "description": "达人营销"
+              }
+            }
+          }
+        }
+      },
+      "industry_consulting": {
+        "tabs": {
+          "strategy": {
+            "label": "战略规划",
+            "description": "业务规划、市场进入、竞争分析",
+            "actions": {
+              "ic_market": "市场分析",
+              "ic_entry": "进入策略",
+              "ic_competitor": "竞品分析"
+            },
+            "workflows": {
+              "wf_strat_biz_plan": {
+                "name": "业务规划",
+                "description": "制定业务计划"
+              },
+              "wf_strat_market_entry": {
+                "name": "市场进入",
+                "description": "新市场进入策略"
+              },
+              "wf_mkt_competitive_intel": {
+                "name": "竞争情报",
+                "description": "竞争对手分析"
+              }
+            }
+          },
+          "compliance": {
+            "label": "合规治理",
+            "description": "ESG、法务、数据隐私",
+            "actions": {
+              "ic_report": "合规报告"
+            },
+            "workflows": {
+              "wf_spc_esg": {
+                "name": "ESG 评估",
+                "description": "环境社会治理"
+              },
+              "wf_spc_legal_review": {
+                "name": "法务审查",
+                "description": "合同法律审查"
+              },
+              "wf_spc_data_privacy": {
+                "name": "数据隐私",
+                "description": "隐私合规检查"
+              },
+              "wf_sec_compliance": {
+                "name": "安全合规",
+                "description": "安全合规审计"
+              }
+            }
+          },
+          "capital": {
+            "label": "资本运作",
+            "description": "并购、融资、政府补贴",
+            "workflows": {
+              "wf_spc_m_a": {
+                "name": "并购分析",
+                "description": "并购交易分析"
+              },
+              "wf_spc_grant": {
+                "name": "融资申请",
+                "description": "政府补贴/基金申请"
+              }
+            }
+          },
+          "organization": {
+            "label": "组织发展",
+            "description": "招聘、培训、变革管理",
+            "workflows": {
+              "wf_spc_hire": {
+                "name": "人才招聘",
+                "description": "招聘流程优化"
+              },
+              "wf_spc_onboard": {
+                "name": "员工入职",
+                "description": "入职培训流程"
+              },
+              "wf_spc_change_mgmt": {
+                "name": "变革管理",
+                "description": "组织变革引导"
+              }
+            }
+          },
+          "supply": {
+            "label": "供应链",
+            "description": "供应链管理、本地化",
+            "workflows": {
+              "wf_spc_supply_chain": {
+                "name": "供应链优化",
+                "description": "供应链管理"
+              },
+              "wf_spc_localization": {
+                "name": "本地化适配",
+                "description": "区域本地化"
+              }
+            }
+          }
+        }
+      },
+      "accounting": {
+        "tabs": {
+          "finance": {
+            "label": "财务核算",
+            "description": "账务处理、报表生成",
+            "actions": {
+              "ac_report": "报表解读",
+              "ac_cost": "成本核算"
+            },
+            "workflows": {
+              "wf_fin_cost_analysis": {
+                "name": "成本分析",
+                "description": "成本结构分析"
+              }
+            }
+          },
+          "tax": {
+            "label": "税务管理",
+            "description": "税务申报、税务筹划",
+            "actions": {
+              "ac_tax": "税务咨询"
+            },
+            "workflows": {
+              "wf_fin_tax": {
+                "name": "税务计算",
+                "description": "税务申报计算"
+              }
+            }
+          },
+          "budget": {
+            "label": "预算规划",
+            "description": "预算制定、财务规划",
+            "actions": {
+              "ac_budget": "预算编制"
+            },
+            "workflows": {
+              "wf_fin_budget": {
+                "name": "预算规划",
+                "description": "年度预算制定"
+              }
+            }
+          }
+        }
+      },
+      "ecommerce": {
+        "tabs": {
+          "product": {
+            "label": "产品管理",
+            "description": "选品、产品规划、规格",
+            "actions": {
+              "ec_product": "选品分析"
+            },
+            "workflows": {
+              "wf_prod_spec": {
+                "name": "产品规格",
+                "description": "产品需求文档"
+              },
+              "wf_prod_launch": {
+                "name": "产品发布",
+                "description": "新产品上市"
+              },
+              "wf_prod_roadmap": {
+                "name": "产品路线图",
+                "description": "产品规划路线"
+              }
+            }
+          },
+          "pricing": {
+            "label": "价格策略",
+            "description": "定价、促销、折扣",
+            "actions": {
+              "ec_price": "定价策略",
+              "ec_promote": "促销策划"
+            },
+            "workflows": {
+              "wf_mkt_pr_plan": {
+                "name": "定价规划",
+                "description": "价格策略制定"
+              }
+            }
+          },
+          "marketing": {
+            "label": "营销推广",
+            "description": "营销活动、数据分析",
+            "workflows": {
+              "wf_mkt_ab_test": {
+                "name": "A/B 测试",
+                "description": "营销优化测试"
+              },
+              "wf_mkt_analytics": {
+                "name": "营销分析",
+                "description": "营销数据分析"
+              },
+              "wf_mkt_email_campaign": {
+                "name": "邮件营销",
+                "description": "邮件活动"
+              }
+            }
+          },
+          "operation": {
+            "label": "运营管理",
+            "description": "店铺运营、客户服务",
+            "actions": {
+              "ec_shop": "店铺管理"
+            },
+            "workflows": {
+              "wf_sup_ticket": {
+                "name": "工单处理",
+                "description": "客户工单流程"
+              },
+              "wf_spc_supply_chain": {
+                "name": "供应链管理",
+                "description": "电商供应链"
+              }
+            }
+          }
+        }
+      },
+      "education": {
+        "tabs": {
+          "course": {
+            "label": "课程设计",
+            "description": "课程开发、内容创作",
+            "actions": {
+              "ed_course": "课程设计",
+              "ed_content": "教材生成"
+            },
+            "workflows": {
+              "wf_acd_literature": {
+                "name": "教学研究",
+                "description": "教育文献研究"
+              }
+            }
+          },
+          "learning": {
+            "label": "学习路径",
+            "description": "知识图谱、学习规划",
+            "actions": {
+              "ed_knowledge": "知识图谱",
+              "ed_path": "学习路径"
+            }
+          },
+          "support": {
+            "label": "学员服务",
+            "description": "FAQ、满意度、支持",
+            "workflows": {
+              "wf_sup_faq": {
+                "name": "FAQ 知识库",
+                "description": "常见问题解答"
+              },
+              "wf_sup_satisfaction": {
+                "name": "满意度调查",
+                "description": "学员满意度"
+              }
+            }
+          }
+        }
+      },
+      "design": {
+        "tabs": {
+          "research": {
+            "label": "用户研究",
+            "description": "UX 研究、可访问性",
+            "workflows": {
+              "wf_des_ux_research": {
+                "name": "UX 研究",
+                "description": "用户体验研究"
+              },
+              "wf_des_accessibility": {
+                "name": "可访问性",
+                "description": "无障碍设计检查"
+              }
+            }
+          },
+          "system": {
+            "label": "设计系统",
+            "description": "设计系统构建、原型",
+            "workflows": {
+              "wf_des_design_system": {
+                "name": "设计系统",
+                "description": "设计系统搭建"
+              },
+              "wf_des_prototype": {
+                "name": "原型设计",
+                "description": "快速原型制作"
+              }
+            }
+          }
+        }
+      },
+      "project_management": {
+        "tabs": {
+          "planning": {
+            "label": "项目规划",
+            "description": "活动规划、ROI 分析",
+            "workflows": {
+              "wf_pm_campaign": {
+                "name": "活动管理",
+                "description": "项目活动规划"
+              },
+              "wf_pm_roi": {
+                "name": "投资回报",
+                "description": "项目 ROI 分析"
+              }
+            }
+          },
+          "execution": {
+            "label": "执行监控",
+            "description": "敏捷冲刺、状态报告",
+            "workflows": {
+              "wf_pm_sprint": {
+                "name": "敏捷冲刺",
+                "description": "Sprint 规划与执行"
+              },
+              "wf_pm_status": {
+                "name": "状态报告",
+                "description": "项目状态跟踪"
+              }
+            }
+          },
+          "risk": {
+            "label": "风险管理",
+            "description": "风险识别与应对",
+            "workflows": {
+              "wf_pm_risk": {
+                "name": "风险管理",
+                "description": "项目风险分析"
+              }
+            }
+          }
+        }
+      },
+      "security": {
+        "tabs": {
+          "prevention": {
+            "label": "安全防护",
+            "description": "渗透测试、威胁情报",
+            "workflows": {
+              "wf_sec_pentest": {
+                "name": "渗透测试",
+                "description": "安全渗透测试"
+              },
+              "wf_sec_threat_intel": {
+                "name": "威胁情报",
+                "description": "威胁情报分析"
+              }
+            }
+          },
+          "response": {
+            "label": "应急响应",
+            "description": "事件响应、合规审计",
+            "workflows": {
+              "wf_sec_incident": {
+                "name": "事件响应",
+                "description": "安全事件处理"
+              }
+            }
+          }
+        }
+      },
+      "geospatial": {
+        "tabs": {
+          "mapping": {
+            "label": "测绘分析",
+            "description": "地图绘制、空间分析",
+            "workflows": {
+              "wf_gis_mapping": {
+                "name": "地图绘制",
+                "description": "地理数据制图"
+              },
+              "wf_gis_analysis": {
+                "name": "空间分析",
+                "description": "GIS 空间分析"
+              }
+            }
+          },
+          "collection": {
+            "label": "数据采集",
+            "description": "无人机测绘、3D 场景",
+            "workflows": {
+              "wf_gis_drone": {
+                "name": "无人机测绘",
+                "description": "无人机数据采集"
+              },
+              "wf_gis_3d_scene": {
+                "name": "3D 场景",
+                "description": "三维场景建模"
+              }
+            }
+          },
+          "spatial": {
+            "label": "空间计算",
+            "description": "AR 应用、空间场景",
+            "workflows": {
+              "wf_spatial_ar": {
+                "name": "AR 应用",
+                "description": "增强现实应用"
+              },
+              "wf_spatial_scene": {
+                "name": "空间场景",
+                "description": "空间场景设计"
+              }
+            }
+          }
+        }
+      },
+      "game_dev": {
+        "tabs": {
+          "concept": {
+            "label": "概念设计",
+            "description": "游戏概念、原型",
+            "workflows": {
+              "wf_gd_concept": {
+                "name": "游戏概念",
+                "description": "游戏创意设计"
+              },
+              "wf_gd_prototype": {
+                "name": "原型开发",
+                "description": "游戏原型实现"
+              }
+            }
+          },
+          "qa": {
+            "label": "质量保证",
+            "description": "游戏 QA 测试",
+            "workflows": {
+              "wf_gd_qa": {
+                "name": "游戏测试",
+                "description": "游戏质量测试"
+              }
+            }
+          }
+        }
       }
     },
     "rl": {

@@ -685,18 +685,16 @@ pub async fn upsert_industry_registry(
     opc_industries::Entity::insert(am)
         .on_conflict(
             sea_query::OnConflict::column(opc_industries::Column::Id)
-                .update_columns([
-                    opc_industries::Column::Name,
-                    opc_industries::Column::Icon,
-                    opc_industries::Column::Description,
-                    opc_industries::Column::Version,
-                    opc_industries::Column::Enabled,
-                    opc_industries::Column::PackPath,
-                    opc_industries::Column::UpdatedAt,
-                ])
+                .update_column(opc_industries::Column::Name)
+                .update_column(opc_industries::Column::Icon)
+                .update_column(opc_industries::Column::Description)
+                .update_column(opc_industries::Column::Version)
+                .update_column(opc_industries::Column::Enabled)
+                .update_column(opc_industries::Column::PackPath)
+                .update_column(opc_industries::Column::UpdatedAt)
                 .to_owned(),
         )
-        .exec(db)
+        .exec_without_returning(db)
         .await
         .map_err(|e| format!("upsert industry: {e}"))?;
     Ok(())

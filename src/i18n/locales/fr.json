@@ -4753,6 +4753,766 @@
             "description": "Knowledge → Write → Cases → Exercises"
           }
         }
+      },
+      "categories": {
+        "tech": "Technology R&D",
+        "business": "Business Operations",
+        "creative": "Creative Design",
+        "finance": "Finance",
+        "security": "Security & Compliance"
+      },
+      "ai_research": {
+        "tabs": {
+          "research": {
+            "label": "Research",
+            "description": "Paper search, model comparison, application analysis",
+            "actions": {
+              "ai_paper": "Paper Research",
+              "ai_benchmark": "Performance Benchmark",
+              "ai_app": "Scenario Analysis"
+            },
+            "workflows": {
+              "wf_acd_literature": {
+                "name": "Literature Review",
+                "description": "Scan latest AI papers"
+              },
+              "wf_acd_research": {
+                "name": "Research Methodology",
+                "description": "Systematic research framework"
+              }
+            }
+          },
+          "report": {
+            "label": "Output",
+            "description": "Generate research reports and insights",
+            "actions": {
+              "ai_report": "Generate Report"
+            }
+          }
+        }
+      },
+      "software_dev": {
+        "tabs": {
+          "design": {
+            "label": "Design Phase",
+            "description": "Requirements, architecture design, API design",
+            "actions": {
+              "sd_arch": "Architecture Consulting",
+              "sd_api_doc": "API Documentation"
+            },
+            "workflows": {
+              "wf_eng_api_design": {
+                "name": "API Design",
+                "description": "RESTful API design"
+              },
+              "wf_eng_arch_review": {
+                "name": "Architecture Review",
+                "description": "System architecture review"
+              },
+              "wf_prod_spec": {
+                "name": "Requirements Spec",
+                "description": "Product requirements document"
+              }
+            }
+          },
+          "develop": {
+            "label": "Development Phase",
+            "description": "Coding, code review, refactoring",
+            "actions": {
+              "sd_code_review": "Code Review",
+              "sd_bug": "Bug Fix"
+            },
+            "workflows": {
+              "wf_eng_code_review": {
+                "name": "Code Review",
+                "description": "Automated code review"
+              },
+              "wf_eng_refactor": {
+                "name": "Major Refactoring",
+                "description": "Systematic refactoring"
+              },
+              "wf_eng_refactor_lite": {
+                "name": "Quick Refactoring",
+                "description": "Incremental change pipeline"
+              },
+              "wf_eng_tech_debt": {
+                "name": "Tech Debt Analysis",
+                "description": "Identify and manage tech debt"
+              }
+            }
+          },
+          "quality": {
+            "label": "Quality Assurance",
+            "description": "Security review, testing, performance",
+            "workflows": {
+              "wf_eng_security_review": {
+                "name": "Security Review",
+                "description": "Code security audit"
+              },
+              "wf_eng_perf_opt": {
+                "name": "Performance Optimization",
+                "description": "Performance analysis and optimization"
+              },
+              "wf_tst_plan": {
+                "name": "Test Plan",
+                "description": "Test strategy planning"
+              },
+              "wf_tst_automation": {
+                "name": "Automated Testing",
+                "description": "Test automation framework"
+              },
+              "wf_tst_perf": {
+                "name": "Performance Testing",
+                "description": "Load and stress testing"
+              }
+            }
+          },
+          "devops": {
+            "label": "DevOps",
+            "description": "CI/CD, deployment, monitoring",
+            "workflows": {
+              "wf_eng_ci_setup": {
+                "name": "CI/CD Setup",
+                "description": "Continuous integration pipeline"
+              },
+              "wf_eng_deploy": {
+                "name": "Deployment",
+                "description": "Automated deployment"
+              },
+              "wf_eng_monitor_setup": {
+                "name": "Monitoring Setup",
+                "description": "System monitoring configuration"
+              },
+              "wf_eng_db_migrate": {
+                "name": "Database Migration",
+                "description": "Database version management"
+              }
+            }
+          },
+          "team": {
+            "label": "Team Collaboration",
+            "description": "Onboarding, knowledge management",
+            "workflows": {
+              "wf_eng_onboarding": {
+                "name": "New Member Onboarding",
+                "description": "Team onboarding process"
+              }
+            }
+          }
+        }
+      },
+      "finance_invest": {
+        "tabs": {
+          "analysis": {
+            "label": "Market Analysis",
+            "description": "Stock analysis, financial report reading",
+            "actions": {
+              "fi_stock": "Stock Analysis",
+              "fi_financial": "Financial Report"
+            }
+          },
+          "valuation": {
+            "label": "Valuation Modeling",
+            "description": "Valuation calculation, financial analysis",
+            "actions": {
+              "fi_valuation": "Valuation Calculator"
+            },
+            "workflows": {
+              "wf_fin_cost_analysis": {
+                "name": "Cost Analysis",
+                "description": "Cost structure analysis"
+              }
+            }
+          },
+          "risk": {
+            "label": "Risk Management",
+            "description": "Risk assessment, investment decisions",
+            "actions": {
+              "fi_risk": "Risk Assessment"
+            },
+            "workflows": {
+              "wf_fin_budget": {
+                "name": "Budget Planning",
+                "description": "Investment budget planning"
+              }
+            }
+          }
+        }
+      },
+      "sales_growth": {
+        "tabs": {
+          "lead": {
+            "label": "Lead Generation",
+            "description": "Potential customer acquisition, lead management",
+            "actions": {
+              "sg_lead": "Lead Acquisition"
+            },
+            "workflows": {
+              "wf_sal_outbound": {
+                "name": "Outbound Reach",
+                "description": "Proactive sales outreach"
+              },
+              "wf_mkt_influencer": {
+                "name": "KOL Marketing",
+                "description": "Influencer collaboration"
+              }
+            }
+          },
+          "convert": {
+            "label": "Conversion",
+            "description": "Sales funnel, deal strategy",
+            "actions": {
+              "sg_funnel": "Funnel Optimization",
+              "sg_copy": "Copywriting"
+            },
+            "workflows": {
+              "wf_sal_deal_strategy": {
+                "name": "Deal Strategy",
+                "description": "Negotiation and closing"
+              },
+              "wf_sal_proposal": {
+                "name": "Proposal Generation",
+                "description": "Sales proposal"
+              },
+              "wf_mkt_ab_test": {
+                "name": "A/B Testing",
+                "description": "Marketing optimization testing"
+              }
+            }
+          },
+          "manage": {
+            "label": "Account Management",
+            "description": "Account planning, pipeline management",
+            "actions": {
+              "sg_competitor": "Competitor Analysis"
+            },
+            "workflows": {
+              "wf_sal_pipeline_review": {
+                "name": "Pipeline Review",
+                "description": "Sales pipeline review"
+              },
+              "wf_sal_account_plan": {
+                "name": "Account Planning",
+                "description": "Key account planning"
+              }
+            }
+          }
+        }
+      },
+      "content_media": {
+        "tabs": {
+          "create": {
+            "label": "Content Creation",
+            "description": "Topic planning, content production",
+            "actions": {
+              "cm_writing": "Copywriting",
+              "cm_video": "Video Creation"
+            },
+            "workflows": {
+              "wf_mkt_brand_guide": {
+                "name": "Brand Guide",
+                "description": "Brand visual standards"
+              }
+            }
+          },
+          "seo": {
+            "label": "SEO Optimization",
+            "description": "Search engine optimization, keywords",
+            "actions": {
+              "cm_seo": "SEO Analysis"
+            },
+            "workflows": {
+              "wf_mkt_seo_audit": {
+                "name": "SEO Audit",
+                "description": "Website SEO check"
+              }
+            }
+          },
+          "distribute": {
+            "label": "Distribution",
+            "description": "Multi-platform distribution, marketing campaigns",
+            "actions": {
+              "cm_calendar": "Content Calendar"
+            },
+            "workflows": {
+              "wf_mkt_social_plan": {
+                "name": "Social Plan",
+                "description": "Social media strategy"
+              },
+              "wf_mkt_email_campaign": {
+                "name": "Email Marketing",
+                "description": "Email campaign planning"
+              },
+              "wf_mkt_webinar": {
+                "name": "Webinar",
+                "description": "Webinar planning"
+              },
+              "wf_mkt_influencer": {
+                "name": "KOL Collaboration",
+                "description": "Influencer marketing"
+              }
+            }
+          }
+        }
+      },
+      "industry_consulting": {
+        "tabs": {
+          "strategy": {
+            "label": "Strategic Planning",
+            "description": "Business planning, market entry, competitive analysis",
+            "actions": {
+              "ic_market": "Market Analysis",
+              "ic_entry": "Entry Strategy",
+              "ic_competitor": "Competitor Analysis"
+            },
+            "workflows": {
+              "wf_strat_biz_plan": {
+                "name": "Business Plan",
+                "description": "Create business plan"
+              },
+              "wf_strat_market_entry": {
+                "name": "Market Entry",
+                "description": "New market entry strategy"
+              },
+              "wf_mkt_competitive_intel": {
+                "name": "Competitive Intelligence",
+                "description": "Competitor analysis"
+              }
+            }
+          },
+          "compliance": {
+            "label": "Compliance & Governance",
+            "description": "ESG, legal, data privacy",
+            "actions": {
+              "ic_report": "Compliance Report"
+            },
+            "workflows": {
+              "wf_spc_esg": {
+                "name": "ESG Assessment",
+                "description": "Environmental social governance"
+              },
+              "wf_spc_legal_review": {
+                "name": "Legal Review",
+                "description": "Contract legal review"
+              },
+              "wf_spc_data_privacy": {
+                "name": "Data Privacy",
+                "description": "Privacy compliance check"
+              },
+              "wf_sec_compliance": {
+                "name": "Security Compliance",
+                "description": "Security compliance audit"
+              }
+            }
+          },
+          "capital": {
+            "label": "Capital Operations",
+            "description": "M&A, financing, government subsidies",
+            "workflows": {
+              "wf_spc_m_a": {
+                "name": "M&A Analysis",
+                "description": "M&A transaction analysis"
+              },
+              "wf_spc_grant": {
+                "name": "Grant Application",
+                "description": "Government subsidy/fund application"
+              }
+            }
+          },
+          "organization": {
+            "label": "Organization Development",
+            "description": "Recruitment, training, change management",
+            "workflows": {
+              "wf_spc_hire": {
+                "name": "Talent Recruitment",
+                "description": "Recruitment process optimization"
+              },
+              "wf_spc_onboard": {
+                "name": "Employee Onboarding",
+                "description": "Onboarding training process"
+              },
+              "wf_spc_change_mgmt": {
+                "name": "Change Management",
+                "description": "Organizational change guidance"
+              }
+            }
+          },
+          "supply": {
+            "label": "Supply Chain",
+            "description": "Supply chain management, localization",
+            "workflows": {
+              "wf_spc_supply_chain": {
+                "name": "Supply Chain Optimization",
+                "description": "Supply chain management"
+              },
+              "wf_spc_localization": {
+                "name": "Localization Adaptation",
+                "description": "Regional localization"
+              }
+            }
+          }
+        }
+      },
+      "accounting": {
+        "tabs": {
+          "finance": {
+            "label": "Financial Accounting",
+            "description": "Accounting, report generation",
+            "actions": {
+              "ac_report": "Report Reading",
+              "ac_cost": "Cost Accounting"
+            },
+            "workflows": {
+              "wf_fin_cost_analysis": {
+                "name": "Cost Analysis",
+                "description": "Cost structure analysis"
+              }
+            }
+          },
+          "tax": {
+            "label": "Tax Management",
+            "description": "Tax filing, tax planning",
+            "actions": {
+              "ac_tax": "Tax Consulting"
+            },
+            "workflows": {
+              "wf_fin_tax": {
+                "name": "Tax Calculation",
+                "description": "Tax filing calculation"
+              }
+            }
+          },
+          "budget": {
+            "label": "Budget Planning",
+            "description": "Budget formulation, financial planning",
+            "actions": {
+              "ac_budget": "Budget Preparation"
+            },
+            "workflows": {
+              "wf_fin_budget": {
+                "name": "Budget Planning",
+                "description": "Annual budget formulation"
+              }
+            }
+          }
+        }
+      },
+      "ecommerce": {
+        "tabs": {
+          "product": {
+            "label": "Product Management",
+            "description": "Product selection, planning, specs",
+            "actions": {
+              "ec_product": "Product Analysis"
+            },
+            "workflows": {
+              "wf_prod_spec": {
+                "name": "Product Spec",
+                "description": "Product requirements document"
+              },
+              "wf_prod_launch": {
+                "name": "Product Launch",
+                "description": "New product launch"
+              },
+              "wf_prod_roadmap": {
+                "name": "Product Roadmap",
+                "description": "Product planning roadmap"
+              }
+            }
+          },
+          "pricing": {
+            "label": "Pricing Strategy",
+            "description": "Pricing, promotions, discounts",
+            "actions": {
+              "ec_price": "Pricing Strategy",
+              "ec_promote": "Promotion Planning"
+            },
+            "workflows": {
+              "wf_mkt_pr_plan": {
+                "name": "Pricing Plan",
+                "description": "Pricing strategy formulation"
+              }
+            }
+          },
+          "marketing": {
+            "label": "Marketing",
+            "description": "Marketing campaigns, data analysis",
+            "workflows": {
+              "wf_mkt_ab_test": {
+                "name": "A/B Testing",
+                "description": "Marketing optimization testing"
+              },
+              "wf_mkt_analytics": {
+                "name": "Marketing Analytics",
+                "description": "Marketing data analysis"
+              },
+              "wf_mkt_email_campaign": {
+                "name": "Email Marketing",
+                "description": "Email campaign"
+              }
+            }
+          },
+          "operation": {
+            "label": "Operations",
+            "description": "Store operations, customer service",
+            "actions": {
+              "ec_shop": "Store Management"
+            },
+            "workflows": {
+              "wf_sup_ticket": {
+                "name": "Ticket Handling",
+                "description": "Customer ticket process"
+              },
+              "wf_spc_supply_chain": {
+                "name": "Supply Chain Management",
+                "description": "E-commerce supply chain"
+              }
+            }
+          }
+        }
+      },
+      "education": {
+        "tabs": {
+          "course": {
+            "label": "Course Design",
+            "description": "Course development, content creation",
+            "actions": {
+              "ed_course": "Course Design",
+              "ed_content": "Textbook Generation"
+            },
+            "workflows": {
+              "wf_acd_literature": {
+                "name": "Teaching Research",
+                "description": "Educational literature research"
+              }
+            }
+          },
+          "learning": {
+            "label": "Learning Path",
+            "description": "Knowledge graph, learning planning",
+            "actions": {
+              "ed_knowledge": "Knowledge Graph",
+              "ed_path": "Learning Path"
+            }
+          },
+          "support": {
+            "label": "Student Support",
+            "description": "FAQ, satisfaction, support",
+            "workflows": {
+              "wf_sup_faq": {
+                "name": "FAQ Knowledge Base",
+                "description": "Frequently asked questions"
+              },
+              "wf_sup_satisfaction": {
+                "name": "Satisfaction Survey",
+                "description": "Student satisfaction"
+              }
+            }
+          }
+        }
+      },
+      "design": {
+        "tabs": {
+          "research": {
+            "label": "User Research",
+            "description": "UX research, accessibility",
+            "workflows": {
+              "wf_des_ux_research": {
+                "name": "UX Research",
+                "description": "User experience research"
+              },
+              "wf_des_accessibility": {
+                "name": "Accessibility",
+                "description": "Accessibility design check"
+              }
+            }
+          },
+          "system": {
+            "label": "Design System",
+            "description": "Design system construction, prototyping",
+            "workflows": {
+              "wf_des_design_system": {
+                "name": "Design System",
+                "description": "Design system setup"
+              },
+              "wf_des_prototype": {
+                "name": "Prototype Design",
+                "description": "Rapid prototyping"
+              }
+            }
+          }
+        }
+      },
+      "project_management": {
+        "tabs": {
+          "planning": {
+            "label": "Project Planning",
+            "description": "Activity planning, ROI analysis",
+            "workflows": {
+              "wf_pm_campaign": {
+                "name": "Campaign Management",
+                "description": "Project activity planning"
+              },
+              "wf_pm_roi": {
+                "name": "Return on Investment",
+                "description": "Project ROI analysis"
+              }
+            }
+          },
+          "execution": {
+            "label": "Execution Monitoring",
+            "description": "Agile sprint, status reports",
+            "workflows": {
+              "wf_pm_sprint": {
+                "name": "Agile Sprint",
+                "description": "Sprint planning and execution"
+              },
+              "wf_pm_status": {
+                "name": "Status Report",
+                "description": "Project status tracking"
+              }
+            }
+          },
+          "risk": {
+            "label": "Risk Management",
+            "description": "Risk identification and response",
+            "workflows": {
+              "wf_pm_risk": {
+                "name": "Risk Management",
+                "description": "Project risk analysis"
+              }
+            }
+          }
+        }
+      },
+      "security": {
+        "tabs": {
+          "prevention": {
+            "label": "Security Protection",
+            "description": "Penetration testing, threat intelligence",
+            "workflows": {
+              "wf_sec_pentest": {
+                "name": "Penetration Testing",
+                "description": "Security penetration testing"
+              },
+              "wf_sec_threat_intel": {
+                "name": "Threat Intelligence",
+                "description": "Threat intelligence analysis"
+              }
+            }
+          },
+          "response": {
+            "label": "Incident Response",
+            "description": "Incident response, compliance audit",
+            "workflows": {
+              "wf_sec_incident": {
+                "name": "Incident Response",
+                "description": "Security incident handling"
+              }
+            }
+          }
+        }
+      },
+      "geospatial": {
+        "tabs": {
+          "mapping": {
+            "label": "Mapping Analysis",
+            "description": "Map drawing, spatial analysis",
+            "workflows": {
+              "wf_gis_mapping": {
+                "name": "Map Drawing",
+                "description": "Geographic data mapping"
+              },
+              "wf_gis_analysis": {
+                "name": "Spatial Analysis",
+                "description": "GIS spatial analysis"
+              }
+            }
+          },
+          "collection": {
+            "label": "Data Collection",
+            "description": "Drone mapping, 3D scenes",
+            "workflows": {
+              "wf_gis_drone": {
+                "name": "Drone Mapping",
+                "description": "Drone data collection"
+              },
+              "wf_gis_3d_scene": {
+                "name": "3D Scene",
+                "description": "3D scene modeling"
+              }
+            }
+          },
+          "spatial": {
+            "label": "Spatial Computing",
+            "description": "AR applications, spatial scenes",
+            "workflows": {
+              "wf_spatial_ar": {
+                "name": "AR Application",
+                "description": "Augmented reality application"
+              },
+              "wf_spatial_scene": {
+                "name": "Spatial Scene",
+                "description": "Spatial scene design"
+              }
+            }
+          }
+        }
+      },
+      "game_dev": {
+        "tabs": {
+          "concept": {
+            "label": "Concept Design",
+            "description": "Game concept, prototype",
+            "workflows": {
+              "wf_gd_concept": {
+                "name": "Game Concept",
+                "description": "Game creative design"
+              },
+              "wf_gd_prototype": {
+                "name": "Prototype Development",
+                "description": "Game prototype implementation"
+              }
+            }
+          },
+          "qa": {
+            "label": "Quality Assurance",
+            "description": "Game QA testing",
+            "workflows": {
+              "wf_gd_qa": {
+                "name": "Game Testing",
+                "description": "Game quality testing"
+              }
+            }
+          }
+        }
+      },
+      "nav": {
+        "title": "Industry Navigator",
+        "description": "Select an industry domain to enter. Each industry has its own business workflows and quick actions.",
+        "totalIndustries": "Industries",
+        "totalWorkflows": "Workflows",
+        "totalActions": "Quick Actions",
+        "totalCategories": "Categories",
+        "noIndustries": "No industries",
+        "workflows": "{{count}} workflows",
+        "actions": "{{count}} actions"
+      },
+      "tab": {
+        "all": "All",
+        "actions": "Quick Actions",
+        "workflows": "Business Workflows",
+        "noContent": "No content for this stage",
+        "execute": "Execute",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "actionTriggered": "Action {{key}} triggered",
+        "executionResult": "Execution Result",
+        "durationMs": "Duration {{ms}}ms",
+        "type": {
+          "workflow": "Workflow",
+          "conversation": "Conversation"
+        }
       }
     },
     "rl": {

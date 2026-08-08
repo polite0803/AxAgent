@@ -545,10 +545,19 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
 }
 
 pub async fn create_test_pool() -> Result<DbHandle> {
-    let mut opt = ConnectOptions::new("sqlite::memory:?mode=rwc");
+    let unique_id = format!(
+        "axagent_test_{}_{}",
+        std::process::id(),
+        uuid::Uuid::new_v4().simple()
+    );
+    let db_path = std::env::temp_dir().join(format!("{}.db", unique_id));
+    let url = format!("sqlite:{}?mode=rwc", db_path.display());
+
+    let mut opt = ConnectOptions::new(&url);
     opt.max_connections(1).min_connections(1).sqlx_logging(false);
     let conn = Database::connect(opt).await?;
     conn.execute_raw(Statement::from_string(DbBackend::Sqlite, "PRAGMA foreign_keys=ON;")).await?;
     crate::ddl::run_initialization(&conn).await?;
-    Ok(DbHandle { conn, path: ":memory:".to_string() })
+
+    Ok(DbHandle { conn, path: db_path.to_string_lossy().to_string() })
 }
