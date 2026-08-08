@@ -545,11 +545,8 @@ async fn seed_builtin_providers(db: &DatabaseConnection) -> Result<()> {
 }
 
 pub async fn create_test_pool() -> Result<DbHandle> {
-    let unique_id = format!(
-        "axagent_test_{}_{}",
-        std::process::id(),
-        uuid::Uuid::new_v4().simple()
-    );
+    let unique_id =
+        format!("axagent_test_{}_{}", std::process::id(), uuid::Uuid::new_v4().simple());
     let db_path = std::env::temp_dir().join(format!("{}.db", unique_id));
     let url = format!("sqlite:{}?mode=rwc", db_path.display());
 

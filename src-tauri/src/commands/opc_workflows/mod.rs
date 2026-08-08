@@ -628,10 +628,7 @@ mod tests {
             .await
             .unwrap()
             .expect("accounting 存在");
-        assert!(
-            acc.nodes.contains("approval_accounting"),
-            "accounting 应包含审批节点"
-        );
+        assert!(acc.nodes.contains("approval_accounting"), "accounting 应包含审批节点");
 
         // 4. 软件开发生意业务应有步骤节点
         let sdev = workflow_template::Entity::find_by_id("software_dev_harness_workflow")
@@ -643,10 +640,7 @@ mod tests {
 
         // 5. 幂等：二次 seed 不报错、不产生重复
         seed_opc_industries_from_code(db).await.expect("二次 seed 应成功");
-        let count = workflow_template::Entity::find()
-            .count(db)
-            .await
-            .unwrap();
+        let count = workflow_template::Entity::find().count(db).await.unwrap();
         assert_eq!(count, 9, "9 行业共 9 个工作流，二次 seed 后不应残留/重复，实际 {count}");
     }
 
@@ -666,17 +660,11 @@ mod tests {
             .expect("accounting_harness_workflow 应存在");
 
         // 会计行业 requires_approval()=true，应包含审批节点
-        assert!(
-            wf.nodes.contains("approval_accounting"),
-            "应包含审批节点 approval_accounting"
-        );
+        assert!(wf.nodes.contains("approval_accounting"), "应包含审批节点 approval_accounting");
 
         // 审批节点应有至少一条入边和一条出边（线性链：prev → approval → next）
         // 从 edges JSON 字符串中检查审批节点的引用
-        assert!(
-            wf.edges.contains("approval_accounting"),
-            "edges 应包含审批节点的引用"
-        );
+        assert!(wf.edges.contains("approval_accounting"), "edges 应包含审批节点的引用");
 
         // 所有边都是 direct 类型（当前实现审批节点作为线性链中的一环，不做条件分支）
         // 注意：edge_type 在 JSON 中是 "direct"（小写）
