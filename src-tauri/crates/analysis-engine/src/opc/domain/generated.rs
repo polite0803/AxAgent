@@ -124,13 +124,59 @@ impl DomainAdapterFactory {
                 .with_profile_id("opc-cto-cto-ai-engineer")
                 .with_steps(vec![
                     DomainStepDef::agent("a-spec", "定义规约")
-                        .with_prompt("定义API端点、请求/响应格式、认证方式")
+                        .with_prompt(format!(
+                            "你作为API设计师，定义REST/GraphQL API规约：\n\
+                             1. 列出全部端点（方法/路径/鉴权方式）\n\
+                             2. 定义请求/响应JSON Schema\n\
+                             3. 定义错误码与分页/过滤规范\n\
+                             核心要求：端点命名遵循RESTful资源约定，所有字段标注类型与必填性\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"endpoints":[{"method":"GET|POST|PUT|DELETE|PATCH","path":"/resource","auth":"bearer|api_key|none","request_schema":{},"response_schema":{},"errors":[{"code":400,"message":"string"}]}],"pagination":{"type":"offset|cursor","limit_max":100}}"#,
+                                r#"{"endpoints":[],"pagination":null,"error":"无可用需求"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("API规约")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("requirements".to_string(), "{requirements}".to_string())]))
                     ,
                     DomainStepDef::agent("a-validate", "验证设计")
-                        .with_prompt("验证: RESTful规范、命名一致性、错误处理")
+                        .with_prompt(format!(
+                            "你作为API设计评审专家，验证RESTful规范、命名一致性、错误处理、鉴权方案：\n\
+                             1. 检查端点命名是否符合RESTful资源约定\n\
+                             2. 验证HTTP方法语义正确性\n\
+                             3. 检查错误码规范和分页/过滤一致性\n\
+                             4. 评估鉴权方案的合理性和安全性\n\
+                             输出评审结论与修改建议\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"verdict":"pass|fail|warn","issues":[{"severity":"critical|high|medium|low","endpoint":"string","issue":"string","suggestion":"string"}],"naming_consistency":0.0,"restful_compliance":0.0,"error_handling_score":0.0,"auth_scheme_score":0.0}"#,
+                                r#"{"verdict":"warn","issues":[],"error":"无API规约可验证"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("API设计评审")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("api_spec".to_string(), "a-spec_result".to_string())]))
                     ,
                     DomainStepDef::agent("a-doc", "生成文档")
-                        .with_prompt("生成API文档和客户端SDK")
+                        .with_prompt(format!(
+                            "你作为技术文档工程师，生成API文档与客户端SDK代码示例：\n\
+                             1. 生成OpenAPI 3.0/Swagger文档\n\
+                             2. 生成多语言客户端SDK（TypeScript/Python/Go）\n\
+                             3. 生成curl示例和Postman集合\n\
+                             4. 生成认证流程说明和最佳实践指南\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"openapi_spec":{"version":"3.0.3","endpoints_doc":[]},"sdks":[{"lang":"typescript|python|go","code":""}],"curl_examples":[],"auth_guide":"string","best_practices":[]}"#,
+                                r#"{"openapi_spec":null,"sdks":[],"error":"无验证通过的API规约"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("API文档")
+                        ))
+                        .with_tools(vec!["FileWrite".to_string()])
+                        .with_inputs(HashMap::from([("validation".to_string(), "a-validate_result".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-arch-review", "架构评审")
@@ -140,13 +186,58 @@ impl DomainAdapterFactory {
                 .with_profile_id("opc-cto-cto-ai-engineer")
                 .with_steps(vec![
                     DomainStepDef::agent("a-design", "设计方案")
-                        .with_prompt("提交系统架构设计方案")
+                        .with_prompt(format!(
+                            "你作为系统架构师，设计并提交系统架构设计方案：\n\
+                             1. 描述系统整体架构（模块划分、技术栈选型）\n\
+                             2. 定义数据流和交互流程\n\
+                             3. 部署架构和基础设施需求\n\
+                             4. 关键技术决策和 trade-off 分析\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"architecture":{"layers":[{"name":"string","components":[],"tech_stack":[]}],"data_flow":[],"deployment":{"model":"monolith|microservices|serverless","infrastructure":[]},"decisions":[{"topic":"string","choice":"string","rationale":"string","alternatives":[]}]}"#,
+                                r#"{"architecture":null,"decisions":[],"error":"无架构方案"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("架构设计")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("requirements".to_string(), "{requirements}".to_string())]))
                     ,
                     DomainStepDef::agent("a-review-arch", "架构评审")
-                        .with_prompt("评审: 技术选型、扩展性、性能、成本、安全")
+                        .with_prompt(format!(
+                            "你作为架构评审专家，评审系统设计方案的可行性：\n\
+                             1. 技术选型合理性评估\n\
+                             2. 扩展性和可维护性分析\n\
+                             3. 性能和容量规划评审\n\
+                             4. 成本效益分析\n\
+                             5. 安全性和合规性检查\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"verdict":"pass|fail|conditionally_pass","scores":{"tech_choice":0.0,"scalability":0.0,"performance":0.0,"cost":0.0,"security":0.0},"issues":[{"severity":"critical|high|medium|low","category":"string","description":"string","recommendation":"string"}],"approaches":[{"name":"string","pros":[],"cons":[],"risk":"low|medium|high"}]}"#,
+                                r#"{"verdict":"fail","scores":{},"issues":[],"error":"无架构方案可评审"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("架构评审")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("arch_design".to_string(), "a-design_result".to_string())]))
                     ,
                     DomainStepDef::agent("a-finalize", "方案定稿")
-                        .with_prompt("根据评审意见修改方案并定稿")
+                        .with_prompt(format!(
+                            "你作为首席架构师，根据评审意见修改方案并定稿：\n\
+                             1. 逐条处理评审意见（采纳/驳回/延期）\n\
+                             2. 更新架构设计文档\n\
+                             3. 输出最终版本和实施路线图\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"final_architecture":{"layers":[],"decisions":[]},"review_resolutions":[{"issue_id":"string","action":"accepted|rejected|deferred","comment":"string"}],"implementation_roadmap":{"phases":[{"phase":1,"task":"string","deliverable":"string"}]},"risk_register":[{"risk":"string","mitigation":"string"}]}"#,
+                                r#"{"final_architecture":null,"review_resolutions":[],"error":"无评审意见"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("架构定稿")
+                        ))
+                        .with_tools(vec!["FileWrite".to_string()])
+                        .with_inputs(HashMap::from([("review".to_string(), "a-review-arch_result".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-ci-setup", "CI/CD配置")
@@ -156,13 +247,58 @@ impl DomainAdapterFactory {
                 .with_profile_id("opc-cto-cto-ai-engineer")
                 .with_steps(vec![
                     DomainStepDef::agent("a-ci-plan", "方案设计")
-                        .with_prompt("设计CI/CD架构: 构建、测试、部署阶段")
+                        .with_prompt(format!(
+                            "你作为DevOps工程师，设计CI/CD流水线架构：\n\
+                             1. 定义构建阶段（依赖安装、编译、打包）\n\
+                             2. 定义测试阶段（单元测试、集成测试、覆盖率）\n\
+                             3. 定义部署阶段（staging、production、回滚策略）\n\
+                             4. 选择CI/CD平台（GitHub Actions/GitLab CI/Jenkins）\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"pipeline":{"platform":"github_actions|gitlab_ci|jenkins","stages":[{"name":"build","steps":[{"name":"string","run":"string"}]},{"name":"test","steps":[{"name":"string","run":"string"}]},{"name":"deploy","steps":[{"name":"string","run":"string"}]}],"triggers":["push","pull_request","tag"],"env_vars":[],"artifacts":[]}}"#,
+                                r#"{"pipeline":null,"error":"无CI/CD方案"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("CI/CD规划")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("requirements".to_string(), "{requirements}".to_string())]))
                     ,
                     DomainStepDef::agent("a-ci-config", "配置")
-                        .with_prompt("编写CI/CD配置文件并测试")
+                        .with_prompt(format!(
+                            "你作为CI/CD配置专家，编写CI/CD配置文件并测试：\n\
+                             1. 生成完整的CI/CD配置文件（YAML格式）\n\
+                             2. 配置缓存策略和并行执行\n\
+                             3. 设置环境变量和密钥管理\n\
+                             4. 编写部署脚本和健康检查\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"config_files":[{"name":"ci.yml","content":"string"}],"deploy_scripts":[{"name":"deploy.sh","content":"string"}],"env_config":{"secrets":[],"vars":[]},"cache_strategy":{"paths":[],"key":"string"}}"#,
+                                r#"{"config_files":[],"deploy_scripts":[],"error":"无流水线配置方案"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("CI/CD配置")
+                        ))
+                        .with_tools(vec!["FileWrite".to_string()])
+                        .with_inputs(HashMap::from([("plan".to_string(), "a-ci-plan_result".to_string())]))
                     ,
                     DomainStepDef::agent("a-ci-verify", "验证")
-                        .with_prompt("运行流水线确认各阶段正常")
+                        .with_prompt(format!(
+                            "你作为CI/CD验证工程师，运行流水线确认各阶段正常：\n\
+                             1. 触发流水线执行\n\
+                             2. 检查各阶段状态（build/test/deploy）\n\
+                             3. 验证产物和部署结果\n\
+                             4. 检查告警和日志\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"pipeline_run":{"status":"success|failure|partial","stages":[{"name":"string","status":"success|failure","duration_ms":0,"logs":[]}],"artifacts":[],"deploy_result":{"env":"staging|production","status":"success|failure","url":"string"},"issues":[]}}"#,
+                                r#"{"pipeline_run":null,"error":"无流水线可验证"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("CI/CD验证")
+                        ))
+                        .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
+                        .with_inputs(HashMap::from([("config".to_string(), "a-ci-config_result".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-code-review", "代码审查流水线")
@@ -172,13 +308,58 @@ impl DomainAdapterFactory {
                 .with_profile_id("opc-cto-cto-ai-engineer")
                 .with_steps(vec![
                     DomainStepDef::agent("a-submit", "提交代码")
-                        .with_prompt("评审者提交代码变更供审查")
+                        .with_prompt(format!(
+                            "你作为代码提交者，提交代码变更供审查：\n\
+                             1. 指定变更范围（文件/模块）\n\
+                             2. 填写变更描述和关联需求\n\
+                             3. 标注需要重点关注的区域\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"submission":{"files":[{"path":"string","change_type":"new|modified|deleted","lines_added":0,"lines_removed":0}],"description":"string","related_ticket":"string","focus_areas":[]}}"#,
+                                r#"{"submission":null,"error":"无代码变更"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("代码提交")
+                        ))
+                        .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
+                        .with_inputs(HashMap::from([("code_diff".to_string(), "{code_diff}".to_string())]))
                     ,
                     DomainStepDef::agent("a-review", "AI审查")
-                        .with_prompt("审查代码: 逻辑错误、安全漏洞、性能问题、最佳实践")
+                        .with_prompt(format!(
+                            "你作为代码审查专家，审查提交的代码变更：\n\
+                             1. 检查逻辑错误和边界条件\n\
+                             2. 检查安全漏洞（SQL注入、XSS、认证缺陷）\n\
+                             3. 检查性能问题（N+1查询、内存泄漏、阻塞操作）\n\
+                             4. 检查代码规范和最佳实践\n\
+                             5. 给出严重程度评级和修改建议\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"review_summary":{"verdict":"approved|rejected|changes_requested","total_issues":0,"by_severity":{"critical":0,"high":0,"medium":0,"low":0}},"issues":[{"id":"string","severity":"critical|high|medium|low","category":"logic|security|performance|style","file":"string","line_start":0,"line_end":0,"description":"string","suggestion":"string","auto_fixable":false}],"metrics":{"complexity_change":0.0,"test_coverage_delta":0.0}}"#,
+                                r#"{"review_summary":{"verdict":"approved","total_issues":0,"by_severity":{}},"issues":[],"error":"无代码可审查"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("代码审查")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("submission".to_string(), "a-submit_result".to_string())]))
                     ,
                     DomainStepDef::agent("a-report", "审查报告")
-                        .with_prompt("生成审查报告: 严重程度排序、修改建议、自动修复")
+                        .with_prompt(format!(
+                            "你作为审查报告生成者，生成最终审查报告：\n\
+                             1. 按严重程度排序所有问题\n\
+                             2. 提供具体修改建议和代码示例\n\
+                             3. 标注可自动修复的问题\n\
+                             4. 生成修复补丁（可选）\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"report":{"verdict":"approved|rejected|changes_requested","summary":"string","issues_by_severity":{"critical":[],"high":[],"medium":[],"low":[]},"auto_fixes":[{"issue_id":"string","patch":"string"}],"stats":{"files_reviewed":0,"lines_reviewed":0,"issues_found":0}}"#,
+                                r#"{"report":null,"error":"无审查结果"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("审查报告")
+                        ))
+                        .with_tools(vec!["FileWrite".to_string()])
+                        .with_inputs(HashMap::from([("review".to_string(), "a-review_result".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-db-migrate", "数据库迁移")
@@ -188,13 +369,58 @@ impl DomainAdapterFactory {
                 .with_profile_id("opc-cto-cto-ai-engineer")
                 .with_steps(vec![
                     DomainStepDef::agent("a-plan-migrate", "迁移计划")
-                        .with_prompt("分析变更影响、编写迁移脚本")
+                        .with_prompt(format!(
+                            "你作为数据库迁移工程师，分析变更影响并编写迁移脚本：\n\
+                             1. 分析schema变更（新增/修改/删除表和字段）\n\
+                             2. 评估数据迁移影响范围和风险\n\
+                             3. 编写向上迁移（up）和向下迁移（down）脚本\n\
+                             4. 制定数据备份和回滚策略\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"migration_plan":{"version":"string","description":"string","changes":[{"type":"create_table|alter_table|drop_table","object":"string","details":{}}],"up_sql":"string","down_sql":"string","risk_level":"low|medium|high","rollback_plan":"string"}}"#,
+                                r#"{"migration_plan":null,"error":"无迁移需求"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("数据库迁移计划")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("schema_change".to_string(), "{schema_change}".to_string())]))
                     ,
                     DomainStepDef::agent("a-review-migrate", "变更审查")
-                        .with_prompt("审查: 兼容性、性能影响、回滚方案")
+                        .with_prompt(format!(
+                            "你作为数据库架构师，审查迁移方案的安全性：\n\
+                             1. 检查向后兼容性（新增字段是否有默认值）\n\
+                             2. 评估性能影响（大表DDL、索引变更）\n\
+                             3. 验证回滚方案的可行性\n\
+                             4. 检查数据完整性约束\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"review":{"verdict":"approved|rejected|needs_modification","compatibility":{"backward_compatible":true,"breaking_changes":[]},"performance_impact":{"level":"low|medium|high","estimated_duration_ms":0,"lock_strategy":"string"},"rollback_feasible":true,"issues":[{"severity":"critical|high|medium","description":"string","suggestion":"string"}]}}"#,
+                                r#"{"review":{"verdict":"approved","compatibility":{},"performance_impact":{},"issues":[]},"error":"无迁移计划可审查"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("迁移审查")
+                        ))
+                        .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
+                        .with_inputs(HashMap::from([("plan".to_string(), "a-plan-migrate_result".to_string())]))
                     ,
                     DomainStepDef::agent("a-execute-migrate", "执行迁移")
-                        .with_prompt("执行迁移并验证数据完整性")
+                        .with_prompt(format!(
+                            "你作为数据库运维工程师，执行迁移并验证数据完整性：\n\
+                             1. 执行数据备份\n\
+                             2. 在目标环境执行迁移脚本\n\
+                             3. 验证数据完整性（行数、约束、索引）\n\
+                             4. 执行冒烟测试确认应用正常\n\
+                             {}\
+                             {}",
+                            prompt_tpl::wrap_json_output(
+                                r#"{"execution":{"status":"success|failure|partial","backup":{"created":true,"size_mb":0},"migration":{"applied":true,"duration_ms":0},"verification":{"row_counts":[],"constraints_ok":true,"indexes_ok":true},"smoke_test":{"passed":true,"checks":[]},"errors":[]}}"#,
+                                r#"{"execution":{"status":"failure","backup":{},"migration":{},"verification":{},"smoke_test":{},"error":"未执行迁移"}"#
+                            ),
+                            prompt_tpl::empty_data_fallback("迁移执行")
+                        ))
+                        .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
+                        .with_inputs(HashMap::from([("review".to_string(), "a-review-migrate_result".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-deploy", "DevOps部署流水线")

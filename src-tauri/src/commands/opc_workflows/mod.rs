@@ -66,6 +66,11 @@ async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize,
         "industry_consulting",
         "sales_growth",
         "software_dev",
+        "design",
+        "project_management",
+        "security",
+        "geospatial",
+        "game_dev",
     ];
 
     let mut seeded_count = 0;
@@ -444,15 +449,15 @@ mod tests {
         // 行业包 manifest 注册（仅注册，不 seed 工作流）
         let seeded =
             super::industry_pack::ensure_opc_industries_seeded(db, &base).await.expect("注册成功");
-        assert_eq!(seeded.len(), 9, "应注册 9 行业: {seeded:?}");
+        assert_eq!(seeded.len(), 14, "应注册 14 行业: {seeded:?}");
 
         use axagent_entities::opc_industries;
         let count = opc_industries::Entity::find().count(db).await.unwrap();
-        assert_eq!(count, 9, "opc_industries 应有 9 行");
+        assert_eq!(count, 14, "opc_industries 应有 14 行");
 
         // 工作流由 Rust 适配器种子化
         let wf_seeded = seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
-        assert_eq!(wf_seeded, 9, "应 seed 9 行业工作流");
+        assert_eq!(wf_seeded, 14, "应 seed 14 行业工作流");
 
         use axagent_entities::workflow_template;
         let fi = workflow_template::Entity::find_by_id("finance_invest_harness_workflow")
@@ -594,7 +599,7 @@ mod tests {
         use axagent_entities::workflow_template;
         use sea_orm::EntityTrait;
 
-        // 1. 9 行业工作流模板全部存在
+        // 1. 14 行业工作流模板全部存在
         let expected_ids = [
             "accounting_harness_workflow",
             "ai_research_harness_workflow",
@@ -605,6 +610,11 @@ mod tests {
             "industry_consulting_harness_workflow",
             "sales_growth_harness_workflow",
             "software_dev_harness_workflow",
+            "design_harness_workflow",
+            "project_management_harness_workflow",
+            "security_harness_workflow",
+            "geospatial_harness_workflow",
+            "game_dev_harness_workflow",
         ];
         for id in &expected_ids {
             let t = workflow_template::Entity::find_by_id(*id).one(db).await.unwrap();
@@ -641,7 +651,7 @@ mod tests {
         // 5. 幂等：二次 seed 不报错、不产生重复
         seed_opc_industries_from_code(db).await.expect("二次 seed 应成功");
         let count = workflow_template::Entity::find().count(db).await.unwrap();
-        assert_eq!(count, 9, "9 行业共 9 个工作流，二次 seed 后不应残留/重复，实际 {count}");
+        assert_eq!(count, 14, "14 行业共 14 个工作流，二次 seed 后不应残留/重复，实际 {count}");
     }
 
     #[tokio::test]
@@ -753,7 +763,7 @@ mod tests {
             .unwrap()
             .join("config/opc/industries");
         let manifests = super::industry_pack::scan_industry_packs(&base);
-        assert_eq!(manifests.len(), 9, "内置 9 个行业包");
+        assert_eq!(manifests.len(), 14, "内置 14 个行业包");
 
         // 每个包有 manifest 关键字段
         for m in &manifests {
@@ -815,7 +825,7 @@ mod tests {
             );
             count += 1;
         }
-        assert_eq!(count, 9, "应扫描到 9 个行业包，实际 {count}");
+        assert_eq!(count, 14, "应扫描到 14 个行业包，实际 {count}");
     }
 
     #[test]
@@ -826,7 +836,7 @@ mod tests {
         // 测试 CWD=src-tauri，相对路径落空 → 显式传仓库根（模拟 app_dir 命中分支）。
         let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
         let adapters = super::load_industry_adapters_from_packs(Some(repo_root));
-        assert_eq!(adapters.len(), 9, "应加载 9 个行业适配器: {}", adapters.len());
+        assert_eq!(adapters.len(), 14, "应加载 14 个行业适配器: {}", adapters.len());
 
         let accounting = adapters
             .iter()

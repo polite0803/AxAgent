@@ -11,11 +11,14 @@ use std::collections::HashMap;
 
 use axagent_harness::util_fns::now_ts;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, ApprovalNode, ApprovalNodeConfig, EdgeType, EndNode, EndNodeConfig,
-    ErrorConfig, OnFailureAction, OutputMode, Position, RetryConfig, TriggerConfig, TriggerNode,
-    Variable, WorkflowEdge, WorkflowNode, WorkflowNodeBase, WorkflowTemplateData,
+    AgentNode, AgentNodeConfig, ApprovalNode, ApprovalNodeConfig, ConditionNode,
+    ConditionNodeConfig, EdgeType, EndNode, EndNodeConfig, ErrorConfig, LogicalOperator,
+    OnFailureAction, OutputMode, Position, RetryConfig, TriggerConfig, TriggerNode, Variable,
+    WorkflowEdge, WorkflowNode, WorkflowNodeBase, WorkflowTemplateData,
 };
 use serde::{Deserialize, Serialize};
+
+pub mod prompt_tpl;
 
 // ── 领域工作流步骤定义 ──────────────────────────────────────────
 
@@ -449,7 +452,6 @@ impl DomainWorkflowGenerator {
         let mut edges: Vec<WorkflowEdge> = Vec::new();
 
         // ── 1. 变量收集 ──
-        // 扫描所有步骤 inputs 中的 {var} 引用，声明为工作流变量
         let variables = Self::collect_variables(def);
 
         // ── 2. 触发节点 ──
@@ -461,105 +463,205 @@ impl DomainWorkflowGenerator {
             },
         }));
 
-        // ── 3. 步骤链 ──
-        let step_ids: Vec<&str> = def.steps.iter().map(|s| s.id.as_str()).collect();
-        let mut has_approval = false;
+        // ── 3. 构建节点序列（含 condition 展开 + approval_gate 展开） ──
+        // NodeDesc: 节点描述符，支持 condition/approval/agent 三种类型
+        #[derive(Clone)]
+        struct NodeDesc {
+            id: String,
+            is_condition: bool,
+            is_approval: bool,
+            node: WorkflowNode,
+        }
+        let mut node_descs: Vec<NodeDesc> = Vec::new();
+        let mut y_offset: f64 = 150.0;
 
-        for (i, step) in def.steps.iter().enumerate() {
-            let y = 150.0 + (i as f64) * 200.0;
-            let node = if step.node_type == "approval" {
-                has_approval = true;
-                Self::build_approval_node(step, y)
+        for step in &def.steps {
+            // 如果步骤有 condition，先插入 ConditionNode
+            if Self::has_condition(step) {
+                let condition_y = y_offset;
+                if let Some(condition_node) = Self::build_condition_node(step, condition_y) {
+                    let condition_id = format!("{}-cond", step.id);
+                    node_descs.push(NodeDesc {
+                        id: condition_id,
+                        is_condition: true,
+                        is_approval: false,
+                        node: condition_node,
+                    });
+                    y_offset += 200.0;
+                }
+            }
+
+            // 计算当前 step 的 y 坐标
+            let y = y_offset;
+
+            if step.node_type == "approval" {
+                // 原生 approval 节点
+                let node = Self::build_approval_node(step, y);
+                node_descs.push(NodeDesc {
+                    id: step.id.clone(),
+                    is_condition: false,
+                    is_approval: true,
+                    node,
+                });
+                y_offset += 200.0;
             } else {
-                Self::build_agent_node(step, def, y)
-            };
-            nodes.push(node);
+                // Agent 节点
+                let node = Self::build_agent_node(step, def, y);
+                node_descs.push(NodeDesc {
+                    id: step.id.clone(),
+                    is_condition: false,
+                    is_approval: false,
+                    node,
+                });
+                y_offset += 200.0;
+
+                // 如果步骤有 approval_gate，追加 Approval 节点
+                if Self::has_approval_gate(step) {
+                    let approval_node_y = y_offset;
+                    if let Some(approval_node) =
+                        Self::build_approval_node_from_user_input(step, approval_node_y)
+                    {
+                        let approval_id = format!("{}-approval", step.id);
+                        node_descs.push(NodeDesc {
+                            id: approval_id,
+                            is_condition: false,
+                            is_approval: true,
+                            node: approval_node,
+                        });
+                        y_offset += 200.0;
+                    }
+                }
+            }
+        }
+
+        // 将所有节点添加到 nodes 向量
+        for desc in &node_descs {
+            nodes.push(desc.node.clone());
         }
 
         // ── 4. 结束节点 ──
-        let end_y = 150.0 + (def.steps.len() as f64) * 200.0;
+        let end_y = y_offset;
         nodes.push(WorkflowNode::End(EndNode {
             base: Self::make_base("end", "完成", "", 250.0, end_y),
             config: EndNodeConfig { output_var: None },
         }));
 
         // ── 5. 边串接 ──
-        if step_ids.is_empty() {
+        if node_descs.is_empty() {
             edges.push(Self::make_edge("e-trigger-end", "trigger", "end"));
             return Self::assemble_template(def, version, now, nodes, edges, variables);
         }
 
-        if has_approval {
-            // 含审批分支：approval 通过(true) → 下一节点，拒绝(false) → end
-            let mut prev: &str = "trigger";
-            let mut pending_approval: Option<&str> = None;
+        // 判断拓扑类型
+        let has_condition_nodes = node_descs.iter().any(|d| d.is_condition);
+        let has_approval_nodes = node_descs.iter().any(|d| d.is_approval);
 
-            for (i, sid) in step_ids.iter().enumerate() {
-                let is_approval = def.steps[i].node_type == "approval";
-                if is_approval {
-                    if pending_approval.is_some() {
-                        // 上一个也是审批节点，用条件边连接
-                        edges.push(Self::make_cond_edge(
-                            &format!("e-{}-{}-true", prev, sid),
-                            prev,
-                            sid,
-                            true,
-                        ));
-                    } else {
-                        edges.push(Self::make_edge(&format!("e-{}-{}", prev, sid), prev, sid));
-                    }
-                    // 审批拒绝分支 → end
+        if !has_condition_nodes && !has_approval_nodes {
+            // 纯链式：trigger → s0 → s1 → ... → end
+            let first_id = &node_descs[0].id;
+            edges.push(Self::make_edge("e-trigger-first", "trigger", first_id));
+            for i in 0..node_descs.len().saturating_sub(1) {
+                let src = &node_descs[i].id;
+                let tgt = &node_descs[i + 1].id;
+                edges.push(Self::make_edge(&format!("e-{}-{}", src, tgt), src, tgt));
+            }
+            if let Some(last) = node_descs.last() {
+                edges.push(Self::make_edge(&format!("e-{}-end", last.id), &last.id, "end"));
+            }
+        } else {
+            // 含条件/审批分支
+            let mut prev: String = "trigger".to_string();
+            let mut pending_condition: Option<String> = None;
+            let mut pending_approval: Option<String> = None;
+
+            for desc in &node_descs {
+                if desc.is_condition {
+                    // 当前节点是条件节点
+                    // 条件节点的 false 分支始终指向 end
+                    edges.push(Self::make_edge(
+                        &format!("e-{}-{}", prev, desc.id),
+                        &prev,
+                        &desc.id,
+                    ));
                     edges.push(Self::make_cond_edge(
-                        &format!("e-{}-end-false", sid),
-                        sid,
+                        &format!("e-{}-end-false", desc.id),
+                        &desc.id,
                         "end",
                         false,
                     ));
-                    pending_approval = Some(sid);
+                    pending_condition = Some(desc.id.clone());
+                } else if desc.is_approval {
+                    // 当前节点是审批节点
+                    if pending_condition.is_some() {
+                        // 前一个是条件节点，用条件边(true)连接
+                        let cond_id = pending_condition.take().unwrap();
+                        edges.push(Self::make_cond_edge(
+                            &format!("e-{}-{}-true", cond_id, desc.id),
+                            &cond_id,
+                            &desc.id,
+                            true,
+                        ));
+                    } else if pending_approval.is_some() {
+                        // 上一个也是审批节点，用条件边连接
+                        edges.push(Self::make_cond_edge(
+                            &format!("e-{}-{}-true", prev, desc.id),
+                            &prev,
+                            &desc.id,
+                            true,
+                        ));
+                    } else {
+                        edges.push(Self::make_edge(
+                            &format!("e-{}-{}", prev, desc.id),
+                            &prev,
+                            &desc.id,
+                        ));
+                    }
+                    // 审批拒绝分支 → end
+                    edges.push(Self::make_cond_edge(
+                        &format!("e-{}-end-false", desc.id),
+                        &desc.id,
+                        "end",
+                        false,
+                    ));
+                    pending_approval = Some(desc.id.clone());
                 } else {
-                    if let Some(approval_id) = pending_approval {
+                    // 当前节点是普通节点
+                    if let Some(cond_id) = &pending_condition {
+                        // 条件节点的 true 分支 → 当前节点
+                        edges.push(Self::make_cond_edge(
+                            &format!("e-{}-{}-true", cond_id, desc.id),
+                            cond_id,
+                            &desc.id,
+                            true,
+                        ));
+                        pending_condition = None;
+                    } else if let Some(approval_id) = &pending_approval {
                         // 审批通过 → 当前节点
                         edges.push(Self::make_cond_edge(
-                            &format!("e-{}-{}-true", approval_id, sid),
+                            &format!("e-{}-{}-true", approval_id, desc.id),
                             approval_id,
-                            sid,
+                            &desc.id,
                             true,
                         ));
                         pending_approval = None;
                     } else {
-                        edges.push(Self::make_edge(&format!("e-{}-{}", prev, sid), prev, sid));
+                        edges.push(Self::make_edge(
+                            &format!("e-{}-{}", prev, desc.id),
+                            &prev,
+                            &desc.id,
+                        ));
                     }
                 }
-                prev = sid;
+                prev = desc.id.clone();
             }
 
             // 最后一步 → end
-            let last = step_ids.last().unwrap();
-            let last_is_approval =
-                def.steps.last().map(|s| s.node_type == "approval").unwrap_or(false);
-            if !last_is_approval {
-                edges.push(Self::make_edge(&format!("e-{}-end", last), last, "end"));
-            } else if !edges.iter().any(|e| e.target == "end" && e.source == *last) {
-                edges.push(Self::make_cond_edge(
-                    &format!("e-{}-end-true", last),
-                    last,
-                    "end",
-                    true,
-                ));
+            let last_id = &node_descs.last().unwrap().id;
+            let last_desc = node_descs.last().unwrap();
+            if !last_desc.is_condition && !last_desc.is_approval {
+                edges.push(Self::make_edge(&format!("e-{}-end", last_id), last_id, "end"));
             }
-        } else {
-            // 纯链式：trigger → s0 → s1 → ... → end
-            edges.push(Self::make_edge("e-trigger-first", "trigger", step_ids[0]));
-            for i in 0..step_ids.len().saturating_sub(1) {
-                edges.push(Self::make_edge(
-                    &format!("e-{}-{}", step_ids[i], step_ids[i + 1]),
-                    step_ids[i],
-                    step_ids[i + 1],
-                ));
-            }
-            if let Some(last) = step_ids.last() {
-                edges.push(Self::make_edge(&format!("e-{}-end", last), last, "end"));
-            }
+            // 条件节点/审批节点的 end 连接已在循环中处理
         }
 
         Self::assemble_template(def, version, now, nodes, edges, variables)
@@ -610,8 +712,22 @@ impl DomainWorkflowGenerator {
                 .collect()
         };
 
-        // 组装系统提示词（含 on_error 降级说明）
-        let mut system_prompt = step.prompt.clone();
+        // 步骤级角色优先于工作流级 profile
+        let profile_id = step
+            .agent
+            .as_ref()
+            .map(|a| a.id.clone())
+            .filter(|id| !id.is_empty())
+            .or_else(|| (!def.profile_id.is_empty()).then(|| def.profile_id.clone()));
+
+        // 组装系统提示词（含角色前缀 + on_error 降级说明）
+        let mut system_prompt = String::new();
+        if let Some(agent) = &step.agent {
+            if !agent.role.is_empty() {
+                system_prompt.push_str(&format!("你扮演：{}。\n\n", agent.role));
+            }
+        }
+        system_prompt.push_str(&step.prompt);
         if let Some(on_error) = &step.on_error {
             system_prompt.push_str(&format!("\n\n[失败降级] {on_error}"));
         }
@@ -631,11 +747,7 @@ impl DomainWorkflowGenerator {
                 tools: node_tools.clone(),
                 exposed_tools: node_tools.iter().map(|t| t.name.clone()).collect(),
                 output_mode: OutputMode::Json,
-                agent_profile_id: if def.profile_id.is_empty() {
-                    None
-                } else {
-                    Some(def.profile_id.clone())
-                },
+                agent_profile_id: profile_id,
                 max_tool_rounds: Some(10),
                 execution_mode: None,
                 rag_source_ids: vec![],
@@ -685,6 +797,89 @@ impl DomainWorkflowGenerator {
                 output_var: format!("{}_result", step.id),
             },
         })
+    }
+
+    /// 从 user_input 创建 Approval 节点（用于 approval_gate 模式）
+    fn build_approval_node_from_user_input(step: &DomainStepDef, y: f64) -> Option<WorkflowNode> {
+        let ui = step.user_input.as_ref()?;
+        if ui.mode != "approval_gate" || !ui.enabled {
+            return None;
+        }
+
+        // 从 confirm 字段提取 approve/reject 标签
+        let mut approve_label = None;
+        let mut reject_label = None;
+        for field in &ui.fields {
+            if field.field_type == "confirm" {
+                if !field.options.is_empty() {
+                    approve_label = Some(field.options[0].clone());
+                }
+                if field.options.len() >= 2 {
+                    reject_label = Some(field.options[1].clone());
+                }
+                break;
+            }
+        }
+
+        let mut message = ui.prompt.clone();
+        if let Some(ref label) = approve_label {
+            message.push_str(&format!("\n[批准] {label}"));
+        }
+        if let Some(ref label) = reject_label {
+            message.push_str(&format!("[驳回] {label}"));
+        }
+
+        let approval_id = format!("{}-approval", step.id);
+        let approval_title = format!("{} - 审批", step.title);
+
+        let base = Self::make_base(&approval_id, &approval_title, "人工审批节点", 250.0, y);
+
+        Some(WorkflowNode::Approval(ApprovalNode {
+            base,
+            config: ApprovalNodeConfig {
+                message,
+                approver: None,
+                timeout_secs: 86400,
+                timeout_action: "auto_reject".to_string(),
+                output_var: format!("{}_result", approval_id),
+            },
+        }))
+    }
+
+    /// 判断步骤是否需要 approval_gate（user_input 模式）
+    fn has_approval_gate(step: &DomainStepDef) -> bool {
+        step.user_input.as_ref().map(|ui| ui.mode == "approval_gate" && ui.enabled).unwrap_or(false)
+    }
+
+    /// 判断步骤是否有条件执行
+    fn has_condition(step: &DomainStepDef) -> bool {
+        step.condition.as_ref().map(|c| !c.is_empty()).unwrap_or(false)
+    }
+
+    /// 构建 Condition 节点（用于在带 condition 的步骤前做条件分流）
+    fn build_condition_node(step: &DomainStepDef, y: f64) -> Option<WorkflowNode> {
+        let condition_expr = step.condition.as_ref()?;
+        if condition_expr.is_empty() {
+            return None;
+        }
+
+        let condition_id = format!("{}-cond", step.id);
+        let condition_title = format!("{} - 条件判断", step.title);
+
+        let base = Self::make_base(&condition_id, &condition_title, "条件分流节点", 250.0, y);
+
+        // 使用 LLM 路由模式：将 Rhai 表达式作为路由提示词
+        Some(WorkflowNode::Condition(ConditionNode {
+            base,
+            config: ConditionNodeConfig {
+                conditions: Vec::new(),
+                logical_op: LogicalOperator::And,
+                judge_by_llm: Some(true),
+                routing_prompt: Some(condition_expr.clone()),
+                routing_model: None,
+                confidence_threshold: None,
+            },
+        }))
     }
 
     /// 创建 WorkflowNodeBase 基础配置
