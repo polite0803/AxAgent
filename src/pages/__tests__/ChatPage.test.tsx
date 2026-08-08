@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { render } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatPage } from "../ChatPage";
 
@@ -129,7 +130,11 @@ describe("ChatPage", () => {
   });
 
   it("fetches conversations and providers only when the stores are empty", () => {
-    render(<ChatPage />);
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
 
     expect(fetchConversations).toHaveBeenCalledTimes(1);
     expect(fetchProviders).toHaveBeenCalledTimes(1);
@@ -139,7 +144,11 @@ describe("ChatPage", () => {
     conversationState.conversations = [{ id: "conv-1" }];
     providerState.providers = [{ id: "provider-1" }];
 
-    render(<ChatPage />);
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
 
     expect(fetchConversations).not.toHaveBeenCalled();
     expect(fetchProviders).not.toHaveBeenCalled();
