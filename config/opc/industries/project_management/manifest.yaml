@@ -1,0 +1,7 @@
+# Industry Pack: 项目管理（project_management）
+id: project_management
+name: "项目管理完整流程"
+icon: "📋"
+description: "项目规划、进度跟踪、风险管理、团队协作"
+version: 1
+enabled: true

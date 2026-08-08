@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { IndustryHub } from "@/components/opc/IndustryHub";
 import i18n from "@/i18n";
 import {
   ApiOutlined,
@@ -25,8 +26,9 @@ import {
   UserOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
-import { IndustryTabLayout } from "./IndustryTabLayout";
 import type { IndustryConfig } from "./types";
+
+const t = i18n.t;
 
 // ==========================================
 // AI 研究行业页面
@@ -92,7 +94,14 @@ const aiResearchConfig: IndustryConfig = {
 };
 
 export function AiResearchPage() {
-  return <IndustryTabLayout industryId="ai-research" config={aiResearchConfig} />;
+  return (
+    <IndustryHub
+      industryId="ai-research"
+      config={aiResearchConfig}
+      industryTitle={t(`opc.industries.ai_research`)}
+      industryIcon={<ExperimentOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -277,7 +286,14 @@ const softwareDevConfig: IndustryConfig = {
 };
 
 export function SoftwareDevPage() {
-  return <IndustryTabLayout industryId="software-dev" config={softwareDevConfig} />;
+  return (
+    <IndustryHub
+      industryId="software-dev"
+      config={softwareDevConfig}
+      industryTitle={t(`opc.industries.software_dev`)}
+      industryIcon={<CodeSandboxOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -354,7 +370,14 @@ const financeInvestConfig: IndustryConfig = {
 };
 
 export function FinanceInvestPage() {
-  return <IndustryTabLayout industryId="finance-invest" config={financeInvestConfig} />;
+  return (
+    <IndustryHub
+      industryId="finance-invest"
+      config={financeInvestConfig}
+      industryTitle={t(`opc.industries.finance_invest`)}
+      industryIcon={<DollarCircleOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -462,7 +485,14 @@ const salesGrowthConfig: IndustryConfig = {
 };
 
 export function SalesGrowthPage() {
-  return <IndustryTabLayout industryId="sales-growth" config={salesGrowthConfig} />;
+  return (
+    <IndustryHub
+      industryId="sales-growth"
+      config={salesGrowthConfig}
+      industryTitle={t(`opc.industries.sales_growth`)}
+      industryIcon={<LineChartOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -564,7 +594,14 @@ const contentMediaConfig: IndustryConfig = {
 };
 
 export function ContentMediaPage() {
-  return <IndustryTabLayout industryId="content-media" config={contentMediaConfig} />;
+  return (
+    <IndustryHub
+      industryId="content-media"
+      config={contentMediaConfig}
+      industryTitle={t(`opc.industries.content_media`)}
+      industryIcon={<VideoCameraOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -745,7 +782,14 @@ const industryConsultingConfig: IndustryConfig = {
 };
 
 export function IndustryConsultingPage() {
-  return <IndustryTabLayout industryId="industry-consulting" config={industryConsultingConfig} />;
+  return (
+    <IndustryHub
+      industryId="industry-consulting"
+      config={industryConsultingConfig}
+      industryTitle={t(`opc.industries.industry_consulting`)}
+      industryIcon={<CrownOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -829,7 +873,14 @@ const accountingConfig: IndustryConfig = {
 };
 
 export function AccountingPage() {
-  return <IndustryTabLayout industryId="accounting" config={accountingConfig} />;
+  return (
+    <IndustryHub
+      industryId="accounting"
+      config={accountingConfig}
+      industryTitle={t(`opc.industries.accounting`)}
+      industryIcon={<AuditOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -958,7 +1009,14 @@ const ecommerceConfig: IndustryConfig = {
 };
 
 export function EcommercePage() {
-  return <IndustryTabLayout industryId="ecommerce" config={ecommerceConfig} />;
+  return (
+    <IndustryHub
+      industryId="ecommerce"
+      config={ecommerceConfig}
+      industryTitle={t(`opc.industries.ecommerce`)}
+      industryIcon={<ShopOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -1040,7 +1098,14 @@ const educationConfig: IndustryConfig = {
 };
 
 export function EducationPage() {
-  return <IndustryTabLayout industryId="education" config={educationConfig} />;
+  return (
+    <IndustryHub
+      industryId="education"
+      config={educationConfig}
+      industryTitle={t(`opc.industries.education`)}
+      industryIcon={<BookOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -1094,7 +1159,14 @@ const designConfig: IndustryConfig = {
 };
 
 export function DesignPage() {
-  return <IndustryTabLayout industryId="design" config={designConfig} />;
+  return (
+    <IndustryHub
+      industryId="design"
+      config={designConfig}
+      industryTitle={t(`opc.industries.design`)}
+      industryIcon={<EditOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -1163,7 +1235,14 @@ const projectManagementConfig: IndustryConfig = {
 };
 
 export function ProjectManagementPage() {
-  return <IndustryTabLayout industryId="project-management" config={projectManagementConfig} />;
+  return (
+    <IndustryHub
+      industryId="project-management"
+      config={projectManagementConfig}
+      industryTitle={t(`opc.industries.project_management`)}
+      industryIcon={<RocketOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -1211,7 +1290,14 @@ const securityConfig: IndustryConfig = {
 };
 
 export function SecurityPage() {
-  return <IndustryTabLayout industryId="security" config={securityConfig} />;
+  return (
+    <IndustryHub
+      industryId="security"
+      config={securityConfig}
+      industryTitle={t(`opc.industries.security`)}
+      industryIcon={<SolutionOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -1286,7 +1372,14 @@ const geospatialConfig: IndustryConfig = {
 };
 
 export function GeospatialPage() {
-  return <IndustryTabLayout industryId="geospatial" config={geospatialConfig} />;
+  return (
+    <IndustryHub
+      industryId="geospatial"
+      config={geospatialConfig}
+      industryTitle={t(`opc.industries.geospatial`)}
+      industryIcon={<GlobalOutlined />}
+    />
+  );
 }
 
 // ==========================================
@@ -1334,5 +1427,12 @@ const gameDevConfig: IndustryConfig = {
 };
 
 export function GameDevPage() {
-  return <IndustryTabLayout industryId="game-dev" config={gameDevConfig} />;
+  return (
+    <IndustryHub
+      industryId="game-dev"
+      config={gameDevConfig}
+      industryTitle={t(`opc.industries.game_dev`)}
+      industryIcon={<BugOutlined />}
+    />
+  );
 }

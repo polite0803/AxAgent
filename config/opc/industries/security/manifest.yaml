@@ -1,0 +1,7 @@
+# Industry Pack: 安全合规（security）
+id: security
+name: "安全合规完整流程"
+icon: "🛡️"
+description: "安全审计、合规检查、风险评估、安全策略"
+version: 1
+enabled: true

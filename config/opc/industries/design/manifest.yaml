@@ -1,0 +1,7 @@
+# Industry Pack: 设计（design）
+id: design
+name: "设计完整流程"
+icon: "🎨"
+description: "UI/UX 设计、视觉设计、品牌设计、设计系统"
+version: 1
+enabled: true

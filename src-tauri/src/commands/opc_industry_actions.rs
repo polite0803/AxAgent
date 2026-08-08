@@ -783,9 +783,401 @@ fn education_config() -> IndustryConfig {
     }
 }
 
+// ── 新增 5 个行业配置 ──────────────────────────────────────────
+
+fn design_config() -> IndustryConfig {
+    IndustryConfig {
+        id: "design".to_string(),
+        name: "设计".to_string(),
+        icon: "🎨".to_string(),
+        description: "UI/UX 设计、视觉设计、品牌设计、设计系统".to_string(),
+        actions: vec![
+            IndustryActionConfig {
+                key: "ds-ui-ux".to_string(),
+                label: "UI/UX 设计".to_string(),
+                description: "界面设计、交互设计、用户体验优化".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位资深 UI/UX 设计师，精通界面设计原则和交互设计方法论。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计用户界面，包括布局、配色方案、字体选择、组件风格和交互说明。".to_string(),
+                workflow_id: None,
+                icon: "BgColorsOutlined".to_string(),
+                tags: vec!["design".to_string(), "ui".to_string(), "ux".to_string()],
+            },
+            IndustryActionConfig {
+                key: "ds-visual".to_string(),
+                label: "视觉设计".to_string(),
+                description: "海报、插画、图标等视觉元素设计".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位视觉设计专家，精通平面设计和视觉传达。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计视觉方案，包括主题构思、视觉元素、色彩运用、排版布局。".to_string(),
+                workflow_id: None,
+                icon: "PictureOutlined".to_string(),
+                tags: vec!["design".to_string(), "visual".to_string()],
+            },
+            IndustryActionConfig {
+                key: "ds-brand".to_string(),
+                label: "品牌设计".to_string(),
+                description: "品牌 Logo、VI 系统、品牌视觉规范".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位品牌设计专家，精通品牌识别系统设计。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计品牌视觉系统，包括 Logo 设计、色彩规范、字体规范、应用规范。".to_string(),
+                workflow_id: None,
+                icon: "FlagOutlined".to_string(),
+                tags: vec!["design".to_string(), "brand".to_string()],
+            },
+            IndustryActionConfig {
+                key: "ds-system".to_string(),
+                label: "设计系统".to_string(),
+                description: "组件库、设计 Token、可复用设计模式".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位设计系统架构师，精通 Design Tokens 和组件库构建。".to_string(),
+                user_prompt_template: "请为 {{input}} 构建设计系统，包括基础 Tokens、组件规范、布局系统和使用指南。".to_string(),
+                workflow_id: None,
+                icon: "AppstoreOutlined".to_string(),
+                tags: vec!["design".to_string(), "design-system".to_string()],
+            },
+        ],
+        workflows: vec![
+            IndustryWorkflowConfig {
+                id: "wf-ds-1".to_string(),
+                name: "产品界面设计".to_string(),
+                description: "需求分析 → 设计草案 → 评审优化".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-ds-product-ui".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-ds-2".to_string(),
+                name: "品牌视觉设计".to_string(),
+                description: "品牌定位 → 视觉创意 → 规范输出".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-ds-brand-design".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-ds-3".to_string(),
+                name: "设计系统搭建".to_string(),
+                description: "基础元素 → 组件库 → 文档发布".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-ds-design-system".to_string(),
+            },
+        ],
+    }
+}
+
+fn project_management_config() -> IndustryConfig {
+    IndustryConfig {
+        id: "project-management".to_string(),
+        name: "项目管理".to_string(),
+        icon: "📋".to_string(),
+        description: "项目规划、进度跟踪、风险管理、团队协作".to_string(),
+        actions: vec![
+            IndustryActionConfig {
+                key: "pm-plan".to_string(),
+                label: "项目规划".to_string(),
+                description: "制定项目计划、里程碑、工作分解结构".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位资深项目经理，精通项目规划方法论和工具。".to_string(),
+                user_prompt_template: "请为 {{input}} 制定详细的项目计划，包括目标、里程碑、工作分解结构、资源分配、时间安排。".to_string(),
+                workflow_id: None,
+                icon: "ScheduleOutlined".to_string(),
+                tags: vec!["pm".to_string(), "planning".to_string()],
+            },
+            IndustryActionConfig {
+                key: "pm-risk".to_string(),
+                label: "风险评估".to_string(),
+                description: "识别项目风险、制定应对策略".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位风险管理专家，精通项目风险识别和应对。".to_string(),
+                user_prompt_template: "请识别 {{input}} 项目的主要风险，评估风险等级，并制定应对策略和应急预案。".to_string(),
+                workflow_id: None,
+                icon: "AlertOutlined".to_string(),
+                tags: vec!["pm".to_string(), "risk".to_string()],
+            },
+            IndustryActionConfig {
+                key: "pm-progress".to_string(),
+                label: "进度分析".to_string(),
+                description: "项目进度跟踪、偏差分析、报告生成".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位项目进度分析专家，精通进度跟踪和偏差分析。".to_string(),
+                user_prompt_template: "请分析 {{input}} 项目的当前进度，对比计划和实际完成情况，识别偏差并给出调整建议。".to_string(),
+                workflow_id: None,
+                icon: "LineChartOutlined".to_string(),
+                tags: vec!["pm".to_string(), "progress".to_string()],
+            },
+            IndustryActionConfig {
+                key: "pm-team".to_string(),
+                label: "团队协作".to_string(),
+                description: "团队管理、沟通协调、任务分配".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位团队管理专家，精通团队协作和沟通管理。".to_string(),
+                user_prompt_template: "请为 {{input}} 项目设计团队协作方案，包括角色分工、沟通机制、任务管理和协作工具选择。".to_string(),
+                workflow_id: None,
+                icon: "TeamOutlined".to_string(),
+                tags: vec!["pm".to_string(), "team".to_string()],
+            },
+        ],
+        workflows: vec![
+            IndustryWorkflowConfig {
+                id: "wf-pm-1".to_string(),
+                name: "项目启动规划".to_string(),
+                description: "需求分析 → 计划制定 → 资源准备".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-pm-initiation".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-pm-2".to_string(),
+                name: "进度跟踪报告".to_string(),
+                description: "数据收集 → 状态分析 → 报告生成".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-pm-progress-report".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-pm-3".to_string(),
+                name: "项目收尾复盘".to_string(),
+                description: "成果验收 → 经验总结 → 文档归档".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-pm-closure".to_string(),
+            },
+        ],
+    }
+}
+
+fn security_config() -> IndustryConfig {
+    IndustryConfig {
+        id: "security".to_string(),
+        name: "安全合规".to_string(),
+        icon: "🛡️".to_string(),
+        description: "安全审计、合规检查、风险评估、安全策略".to_string(),
+        actions: vec![
+            IndustryActionConfig {
+                key: "sec-audit".to_string(),
+                label: "安全审计".to_string(),
+                description: "系统安全审计、漏洞扫描、合规检查".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位资深安全审计专家，精通安全审计流程和合规标准。".to_string(),
+                user_prompt_template: "请对 {{input}} 进行安全审计，包括安全检查清单、漏洞扫描建议、合规要求对照。".to_string(),
+                workflow_id: None,
+                icon: "FileProtectOutlined".to_string(),
+                tags: vec!["security".to_string(), "audit".to_string()],
+            },
+            IndustryActionConfig {
+                key: "sec-compliance".to_string(),
+                label: "合规检查".to_string(),
+                description: "法规合规检查、政策一致性验证".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位合规专家，精通各行业法规和合规标准。".to_string(),
+                user_prompt_template: "请检查 {{input}} 的合规性，对照相关法规和标准，识别合规差距并给出改进建议。".to_string(),
+                workflow_id: None,
+                icon: "CheckCircleOutlined".to_string(),
+                tags: vec!["security".to_string(), "compliance".to_string()],
+            },
+            IndustryActionConfig {
+                key: "sec-risk".to_string(),
+                label: "安全风险评估".to_string(),
+                description: "威胁建模、风险评估、影响分析".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位安全风险评估专家，精通威胁建模和风险分析。".to_string(),
+                user_prompt_template: "请对 {{input}} 进行安全风险评估，包括威胁识别、漏洞分析、影响评估和风险等级判定。".to_string(),
+                workflow_id: None,
+                icon: "WarningOutlined".to_string(),
+                tags: vec!["security".to_string(), "risk".to_string()],
+            },
+            IndustryActionConfig {
+                key: "sec-policy".to_string(),
+                label: "安全策略".to_string(),
+                description: "安全策略制定、访问控制、加密方案".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位安全架构师，精通安全策略设计和实施。".to_string(),
+                user_prompt_template: "请为 {{input}} 制定安全策略，包括访问控制、数据加密、身份认证、安全监控等方面。".to_string(),
+                workflow_id: None,
+                icon: "SafetyCertificateOutlined".to_string(),
+                tags: vec!["security".to_string(), "policy".to_string()],
+            },
+        ],
+        workflows: vec![
+            IndustryWorkflowConfig {
+                id: "wf-sec-1".to_string(),
+                name: "安全审计流程".to_string(),
+                description: "范围界定 → 检查执行 → 报告整改".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-sec-audit".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-sec-2".to_string(),
+                name: "合规检查流程".to_string(),
+                description: "法规研究 → 差距分析 → 合规方案".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-sec-compliance".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-sec-3".to_string(),
+                name: "安全事件响应".to_string(),
+                description: "事件检测 → 影响评估 → 响应处置".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-sec-incident-response".to_string(),
+            },
+        ],
+    }
+}
+
+fn geospatial_config() -> IndustryConfig {
+    IndustryConfig {
+        id: "geospatial".to_string(),
+        name: "地理信息".to_string(),
+        icon: "🗺️".to_string(),
+        description: "地理数据分析、空间查询、地图可视化、位置服务".to_string(),
+        actions: vec![
+            IndustryActionConfig {
+                key: "geo-analysis".to_string(),
+                label: "空间分析".to_string(),
+                description: "地理空间数据分析、热点识别、空间模式".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位地理信息分析专家，精通空间分析方法论。".to_string(),
+                user_prompt_template: "请对 {{input}} 进行空间分析，包括数据探索、空间模式识别、热点区域检测和趋势分析。".to_string(),
+                workflow_id: None,
+                icon: "EnvironmentOutlined".to_string(),
+                tags: vec!["geospatial".to_string(), "analysis".to_string()],
+            },
+            IndustryActionConfig {
+                key: "geo-visualization".to_string(),
+                label: "地图可视化".to_string(),
+                description: "地图设计、地理数据可视化、交互地图".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位地图可视化专家，精通地图设计和地理数据可视化。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计地图可视化方案，包括底图选择、图层设计、符号系统和交互功能。".to_string(),
+                workflow_id: None,
+                icon: "MapOutlined".to_string(),
+                tags: vec!["geospatial".to_string(), "visualization".to_string()],
+            },
+            IndustryActionConfig {
+                key: "geo-lbs".to_string(),
+                label: "位置服务".to_string(),
+                description: "LBS 应用、路径规划、地理围栏".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位位置服务专家，精通 LBS 应用开发和空间计算。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计位置服务方案，包括定位技术、路径规划、地理围栏和空间查询。".to_string(),
+                workflow_id: None,
+                icon: "NavigationOutlined".to_string(),
+                tags: vec!["geospatial".to_string(), "lbs".to_string()],
+            },
+            IndustryActionConfig {
+                key: "geo-data".to_string(),
+                label: "地理数据".to_string(),
+                description: "数据采集、数据处理、数据质量检查".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位地理数据专家，精通地理数据处理和质量管理。".to_string(),
+                user_prompt_template: "请为 {{input}} 提供地理数据处理方案，包括数据来源、处理流程、质量控制和元数据管理。".to_string(),
+                workflow_id: None,
+                icon: "DatabaseOutlined".to_string(),
+                tags: vec!["geospatial".to_string(), "data".to_string()],
+            },
+        ],
+        workflows: vec![
+            IndustryWorkflowConfig {
+                id: "wf-geo-1".to_string(),
+                name: "空间分析流程".to_string(),
+                description: "数据准备 → 空间计算 → 结果解读".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-geo-spatial-analysis".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-geo-2".to_string(),
+                name: "地图制作流程".to_string(),
+                description: "需求分析 → 数据编辑 → 地图输出".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-geo-map-production".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-geo-3".to_string(),
+                name: "GIS 应用开发".to_string(),
+                description: "需求设计 → 功能开发 → 部署上线".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-geo-gis-app".to_string(),
+            },
+        ],
+    }
+}
+
+fn game_dev_config() -> IndustryConfig {
+    IndustryConfig {
+        id: "game-dev".to_string(),
+        name: "游戏开发".to_string(),
+        icon: "🎮".to_string(),
+        description: "游戏设计、关卡设计、数值平衡、游戏测试".to_string(),
+        actions: vec![
+            IndustryActionConfig {
+                key: "gd-design".to_string(),
+                label: "游戏设计".to_string(),
+                description: "游戏机制设计、玩法设计、系统设计".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位资深游戏设计师，精通游戏设计理论和实践。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计游戏核心玩法和机制，包括游戏循环、核心系统、进阶系统和留存机制。".to_string(),
+                workflow_id: None,
+                icon: "GamepadOutlined".to_string(),
+                tags: vec!["game".to_string(), "design".to_string()],
+            },
+            IndustryActionConfig {
+                key: "gd-level".to_string(),
+                label: "关卡设计".to_string(),
+                description: "关卡规划、难度曲线、节奏设计".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位关卡设计专家，精通关卡规划和难度设计。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计关卡，包括关卡流程、难度曲线、节奏设计、关键节点和通关条件。".to_string(),
+                workflow_id: None,
+                icon: "MapOutlined".to_string(),
+                tags: vec!["game".to_string(), "level".to_string()],
+            },
+            IndustryActionConfig {
+                key: "gd-balance".to_string(),
+                label: "数值平衡".to_string(),
+                description: "数值公式、平衡校验、经济系统设计".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位数值策划专家，精通数值平衡和游戏经济设计。".to_string(),
+                user_prompt_template: "请为 {{input}} 进行数值平衡设计，包括核心数值公式、成长曲线、经济系统和平衡性校验。".to_string(),
+                workflow_id: None,
+                icon: "BalanceOutlined".to_string(),
+                tags: vec!["game".to_string(), "balance".to_string()],
+            },
+            IndustryActionConfig {
+                key: "gd-test".to_string(),
+                label: "游戏测试".to_string(),
+                description: "QA 测试、可玩性测试、性能测试".to_string(),
+                action_type: ActionType::Conversation,
+                system_prompt: "你是一位游戏测试专家，精通游戏测试方法论和工具。".to_string(),
+                user_prompt_template: "请为 {{input}} 设计测试方案，包括功能测试、可玩性测试、性能测试和用户体验测试。".to_string(),
+                workflow_id: None,
+                icon: "BugOutlined".to_string(),
+                tags: vec!["game".to_string(), "test".to_string()],
+            },
+        ],
+        workflows: vec![
+            IndustryWorkflowConfig {
+                id: "wf-gd-1".to_string(),
+                name: "原型开发流程".to_string(),
+                description: "创意构思 → 原型设计 → 验证迭代".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-gd-prototype".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-gd-2".to_string(),
+                name: "内容生产流程".to_string(),
+                description: "内容设计 → 资源制作 → 集成测试".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-gd-content-production".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-gd-3".to_string(),
+                name: "测试发布流程".to_string(),
+                description: "测试执行 → Bug 修复 → 发布上线".to_string(),
+                version: "1.0".to_string(),
+                template_id: "workflow-gd-release".to_string(),
+            },
+        ],
+    }
+}
+
 // ── 配置注册表 ──────────────────────────────────────────────────
 
-/// 获取所有 9 个行业配置
+/// 获取所有 14 个行业配置
 pub fn get_all_industry_configs() -> Vec<IndustryConfig> {
     vec![
         ai_research_config(),
@@ -797,6 +1189,11 @@ pub fn get_all_industry_configs() -> Vec<IndustryConfig> {
         accounting_config(),
         ecommerce_config(),
         education_config(),
+        design_config(),
+        project_management_config(),
+        security_config(),
+        geospatial_config(),
+        game_dev_config(),
     ]
 }
 
@@ -1093,6 +1490,7 @@ pub async fn opc_execute_analysis(
 pub async fn opc_execute_workflow(
     _app_state: State<'_, AppState>,
     industry_id: String,
+    workflow_id: Option<String>,
     days: Option<u32>,
 ) -> Result<serde_json::Value, String> {
     use axagent_analysis_engine::opc::data_service::TimeRange;
@@ -1106,7 +1504,27 @@ pub async fn opc_execute_workflow(
     let time_range = TimeRange::days(days as i64);
 
     let mut manager = IndustryWorkflowManager::new();
-    let workflow = manager.create_or_update(&industry_id, adapter.as_ref()).clone();
+    
+    // 如果提供了 workflow_id，尝试加载指定的工作流模板
+    let workflow = if let Some(wf_id) = &workflow_id {
+        // 尝试从行业配置中加载指定的工作流
+        let industry_config = get_industry_config(&industry_id);
+        if let Some(config) = &industry_config {
+            if let Some(wf_config) = config.workflows.iter().find(|w| w.id == wf_id || w.template_id == wf_id) {
+                // 使用匹配的工作流模板
+                tracing::info!(
+                    "[opc-execute] 使用指定工作流: {} (id={})",
+                    wf_config.name,
+                    wf_config.id
+                );
+            }
+        }
+        // 无论是否找到配置，都使用动态工作流管理器创建/更新
+        manager.create_or_update(&industry_id, adapter.as_ref()).clone()
+    } else {
+        // 默认：使用动态工作流
+        manager.create_or_update(&industry_id, adapter.as_ref()).clone()
+    };
 
     let executor = IndustryWorkflowExecutor::new(industry_id.clone(), adapter);
     let result = executor
@@ -1149,7 +1567,7 @@ mod tests {
     #[test]
     fn test_get_all_industry_configs() {
         let configs = get_all_industry_configs();
-        assert_eq!(configs.len(), 9, "应有 9 个行业配置");
+        assert_eq!(configs.len(), 14, "应有 14 个行业配置");
     }
 
     #[test]
@@ -1194,17 +1612,12 @@ mod tests {
 
 // ── 学习配置 ──────────────────────────────────────────────────
 
-/// 学习配置根目录常量（相对仓库根，由调用方拼接）
-pub const INDUSTRY_LEARNING_DIR: &str = "configs/industry_learning";
-
-/// 行业包内学习配置文件约定名（v1.1 行业独立版：学习配置迁入行业包）
+/// 行业包内学习配置文件约定名
 pub const INDUSTRY_PACK_LEARNING_FILE: &str = "learning.yaml";
 
-/// 学习配置文件路径解析（v1.1 行业独立版）：
+/// 学习配置文件路径解析：
 ///
-/// 优先读行业包内 `config/opc/industries/{dir_id}/learning.yaml`（行业资产
-/// 自包含，消灭「学习配置独立于行业包」的混合）；兼容旧路径
-/// `configs/industry_learning/{dir_id}.yaml`（向后兼容，迁移期间双读）。
+/// 只读行业包内 `config/opc/industries/{dir_id}/learning.yaml`。
 /// `dir_id` 由 `industry_id` 连字符转下划线（`finance-invest` → `finance_invest`）。
 fn industry_learning_config_path(
     industry_id: &str,
@@ -1217,71 +1630,7 @@ fn industry_learning_config_path(
     if pack_path.is_file() {
         return Some(pack_path);
     }
-    let legacy = resolve_industry_learning_dir(app_dir).join(format!("{dir_id}.yaml"));
-    if legacy.is_file() {
-        return Some(legacy);
-    }
     None
-}
-
-/// 学习配置文件目录解析：优先 `app_dir/configs/industry_learning`（生产，
-/// 用户数据目录），不存在则 fallback 仓库根 `configs/industry_learning`
-/// （开发/测试）。与 `opc_workflows::resolve_industries_dir` 保持一致，
-/// 避免依赖进程 CWD（Tauri 生产环境 CWD 不是仓库根）。
-pub fn resolve_industry_learning_dir(app_dir: Option<&std::path::Path>) -> std::path::PathBuf {
-    if let Some(dir) = app_dir {
-        let candidate = dir.join(INDUSTRY_LEARNING_DIR);
-        if candidate.is_dir() {
-            return candidate;
-        }
-    }
-    std::path::PathBuf::from(INDUSTRY_LEARNING_DIR)
-}
-
-/// 启动时确保学习配置文件同步到 `app_dir/configs/industry_learning`。
-///
-/// 生产/服务模式下进程 CWD 不是仓库根，相对路径读取必然失败；将仓库根
-/// 的配置同步一份到用户数据目录，使 [`resolve_industry_learning_dir`] 的
-/// app_dir 分支始终可用。目标目录已含 yaml 文件则跳过（如需更新，删除
-/// app_dir 下的目录后重启）。复用 `opc_workflows` 的仓库根探测与拷贝工具。
-pub fn ensure_industry_learning_configs(app_dir: &std::path::Path) {
-    use crate::commands::opc_workflows::{copy_dir_recursive, find_repo_config_dir};
-
-    let target_dir = app_dir.join(INDUSTRY_LEARNING_DIR);
-
-    // 目标已就绪（含 yaml 文件）→ 跳过
-    if target_dir.is_dir() {
-        if let Ok(rd) = std::fs::read_dir(&target_dir) {
-            if rd
-                .filter_map(|e| e.ok())
-                .any(|e| e.path().is_file() && e.path().extension().is_some_and(|x| x == "yaml"))
-            {
-                return;
-            }
-        }
-    }
-
-    let Some(src) = find_repo_config_dir(INDUSTRY_LEARNING_DIR) else {
-        tracing::warn!(
-            "[opc-learning] 仓库根学习配置目录未找到，跳过同步: {}",
-            INDUSTRY_LEARNING_DIR
-        );
-        return;
-    };
-
-    match copy_dir_recursive(&src, &target_dir) {
-        Ok(()) => tracing::info!(
-            "[opc-learning] 学习配置已同步: {} → {}",
-            src.display(),
-            target_dir.display()
-        ),
-        Err(e) => tracing::warn!(
-            "[opc-learning] 学习配置同步失败: {} → {}: {}",
-            src.display(),
-            target_dir.display(),
-            e
-        ),
-    }
 }
 
 /// 行业学习配置
@@ -1319,6 +1668,11 @@ pub fn get_industry_learning_config(
         ("accounting", "会计"),
         ("ecommerce", "电商运营"),
         ("education", "教育"),
+        ("design", "设计"),
+        ("project-management", "项目管理"),
+        ("security", "安全合规"),
+        ("geospatial", "地理信息"),
+        ("game-dev", "游戏开发"),
     ]
     .into();
 

@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! OPC 行业命令 — 命令直读行业包（与股票业务同架构，无运行时容器）
+//! OPC 行业命令 — 命令直读行业 adapter（与股票业务同架构，无运行时容器）
 //!
 //! 宏观要求：OPC 行业与股票业务**同架构**。股票业务 = 引擎 + 命令直调
 //! （`search_stock` / `get_stock_quote` 直接调 astock 引擎）；OPC 行业同理 =
-//! 行业包（yaml 数据）+ 命令直读。**没有 opc-runtime / registry / adapter 注册表**。
+//! 内建手写 adapter（Rust 硬编码）+ 命令直读。**没有 opc-runtime / registry / adapter 注册表**。
 //!
-//! 每个命令：定位行业包目录 → 读 `runtime.yaml` → 构造 `DataDrivenIndustryAdapter`
-//! （纯逻辑，无全局状态）→ 执行。新增行业 = 新建目录 + runtime.yaml，零代码。
+//! 每个命令：`IndustryAdapterFactory::create` 创建内建手写 adapter（校验/KPI/规则逻辑
+//! 硬编码在 Rust，对齐股票「配置硬编码在 Rust」）→ 注入 `DefaultDataService` → 执行。
+//! 行业包 yaml（`config/opc/industries/*/`）仅用于工作流模板 seed 与 Phase 1 数据源配置，
+//! **不驱动业务逻辑**（v3.0 已废弃 DataDrivenIndustryAdapter / runtime.yaml 数据驱动）。
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

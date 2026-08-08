@@ -1,0 +1,135 @@
+version: 1
+industry_id: "design"
+industry_name: "设计"
+
+reflection:
+  enabled: true
+  min_quality_score: 60.0
+  auto_reflect_on_failure: true
+  dimensions:
+    - name: "quality"
+      weight: 0.3
+      description: "执行结果质量"
+    - name: "efficiency"
+      weight: 0.2
+      description: "执行效率"
+    - name: "completeness"
+      weight: 0.3
+      description: "任务完成度"
+    - name: "innovation"
+      weight: 0.2
+      description: "创新性与改进建议"
+
+evolution:
+  workflow_evolver:
+    enabled: false
+    max_iterations: 10
+    improvement_threshold: 0.1
+  code_evolver:
+    enabled: false
+    safety_check: true
+    auto_apply: false
+
+self_improvement:
+  enabled: false
+  schedule: "weekly"
+
+reinforcement_learning:
+  enabled: false
+  learning_rate: 0.01
+  discount_factor: 0.95
+  exploration_rate: 0.1
+  reward_weights:
+    quality: 0.4
+    efficiency: 0.3
+    user_satisfaction: 0.3
+  experience_batch_size: 32
+  update_interval: 100
+  auto_save: true
+
+adapter:
+  reflection_template:
+    id: "design-default"
+    name: "设计行业反思模板"
+    quality_weights:
+      task_completion: 0.25
+      output_quality: 0.3
+      efficiency: 0.2
+      cost_efficiency: 0.25
+    checkpoints:
+      - id: "design_quality"
+        name: "设计质量"
+        dimension: "quality"
+        description: "评估设计作品的视觉质量、规范性和完成度"
+        weight: 0.4
+      - id: "creativity"
+        name: "创意性"
+        dimension: "innovation"
+        description: "评估设计的创新性、原创性和独特性"
+        weight: 0.3
+      - id: "user_experience"
+        name: "用户体验"
+        dimension: "experience"
+        description: "评估设计的易用性、可访问性和用户友好度"
+        weight: 0.3
+    prompts:
+      - "请评估本次设计的视觉质量和规范"
+      - "设计是否具有足够的创意和创新性？"
+      - "设计是否满足目标用户的体验需求？"
+  evolution_constraints:
+    protected_steps:
+      - step_id: "design_review"
+        reason: "设计评审是质量保障的核心环节"
+      - step_id: "brand_guideline"
+        reason: "品牌规范不可违反"
+    step_dependencies:
+      - from: "research"
+        to: "concept"
+        type: hard
+      - from: "concept"
+        to: "design_review"
+        type: hard
+      - from: "design_review"
+        to: "brand_guideline"
+        type: soft
+    min_steps: 4
+    max_steps: 20
+    must_follow_order: true
+    forbidden_optimizations:
+      - optimization_type: "skip_review"
+        reason: "不允许跳过设计评审"
+      - optimization_type: "skip_brand_check"
+        reason: "品牌规范检查不可省略"
+    quality_thresholds:
+      min_accuracy: 0.75
+      min_success_rate: 0.7
+      min_quality_score: 0.6
+  acceptance_criteria:
+    - id: "design-quality"
+      name: "设计质量"
+      description: "设计作品符合视觉规范和质量要求"
+      dimension: "quality"
+      threshold: 0.8
+      is_critical: true
+      weight: 0.3
+    - id: "design-creativity"
+      name: "创意性"
+      description: "设计具有创新性和独特性"
+      dimension: "innovation"
+      threshold: 0.7
+      is_critical: true
+      weight: 0.25
+    - id: "design-ux"
+      name: "用户体验"
+      description: "设计满足用户体验要求"
+      dimension: "experience"
+      threshold: 0.8
+      is_critical: true
+      weight: 0.25
+    - id: "design-brand"
+      name: "品牌一致性"
+      description: "设计符合品牌视觉规范"
+      dimension: "brand"
+      threshold: 0.9
+      is_critical: false
+      weight: 0.2

@@ -1,0 +1,7 @@
+# Industry Pack: 地理信息（geospatial）
+id: geospatial
+name: "地理信息完整流程"
+icon: "🗺️"
+description: "地理数据分析、空间查询、地图可视化、位置服务"
+version: 1
+enabled: true

@@ -2,6 +2,8 @@
 
 /**
  * 行业数据管理 Hook — 提供行业数据加载和操作
+ *
+ * 注意：所有 invoke 调用使用 snake_case 参数名（与 Rust 后端保持一致）
  */
 
 import { invoke } from "@/lib/invoke";
@@ -51,9 +53,9 @@ export interface UseIndustryDataReturn {
   loadLearningConfig: () => Promise<void>;
   runAutomationRules: () => Promise<string[]>;
   executeWorkflow: (workflowId: string) => Promise<WorkflowExecutionResult>;
-  reflectOnWorkflow: () => Promise<void>;
-  evolveWorkflow: () => Promise<void>;
-  runSelfImprovement: () => Promise<void>;
+  reflectOnWorkflow: (workflowId?: string) => Promise<void>;
+  evolveWorkflow: (workflowId?: string, reason?: string) => Promise<void>;
+  runSelfImprovement: (target?: string) => Promise<void>;
 }
 
 /**
@@ -94,7 +96,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
       try {
         const result = await invoke<{ manifest: IndustryManifest }>(
           "opc_get_industry_pack",
-          { industryId },
+          { industry_id: industryId },
         );
         setManifest(result.manifest);
       } catch (e) {
@@ -117,7 +119,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
       const days = Number(kpiTimeRange);
       const result = await invoke<IndustryDashboard>(
         "opc_get_industry_dashboard",
-        { industryId, days },
+        { industry_id: industryId, days },
       );
       setDashboard(result);
     } catch (e) {
@@ -136,7 +138,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     try {
       const result = await invoke<{ steps: WorkflowStepInfo[] }>(
         "opc_get_industry_workflow_steps",
-        { industryId },
+        { industry_id: industryId },
       );
       setWorkflowSteps(result.steps || []);
     } catch (e) {
@@ -156,7 +158,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     try {
       const result = await invoke<{ rules: AutomationRuleInfo[] }>(
         "opc_get_industry_automation_rules",
-        { industryId },
+        { industry_id: industryId },
       );
       setAutomationRules(result.rules || []);
     } catch (e) {
@@ -167,15 +169,15 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     }
   }, [industryId]);
 
-  // 加载决策
+  // 加载决策（使用 opc_execute_analysis 命令）
   const loadDecision = useCallback(async () => {
     if (!industryId) {
       return;
     }
     setDecisionLoading(true);
     try {
-      const result = await invoke<OpcIndustryDecision>("opc_get_industry_decision", {
-        industryId,
+      const result = await invoke<OpcIndustryDecision>("opc_execute_analysis", {
+        industry_id: industryId,
         days: decisionDays,
       });
       setDecision(result);
@@ -186,7 +188,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     }
   }, [industryId, decisionDays]);
 
-  // 加载学习指标
+  // 加载学习指标（使用 opc_get_learning_metrics 命令）
   const loadLearningMetrics = useCallback(async () => {
     if (!industryId) {
       return;
@@ -194,8 +196,8 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     setMetricsLoading(true);
     try {
       const result = await invoke<IndustryLearningMetrics>(
-        "opc_get_industry_learning_metrics",
-        { industryId },
+        "opc_get_learning_metrics",
+        { industry_id: industryId },
       );
       setLearningMetrics(result);
     } catch (e) {
@@ -205,7 +207,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     }
   }, [industryId]);
 
-  // 加载学习配置
+  // 加载学习配置（使用 opc_get_learning_config 命令）
   const loadLearningConfig = useCallback(async () => {
     if (!industryId) {
       return;
@@ -213,8 +215,8 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     setLearningLoading(true);
     try {
       const result = await invoke<IndustryLearningConfig>(
-        "opc_get_industry_learning_config",
-        { industryId },
+        "opc_get_learning_config",
+        { industry_id: industryId },
       );
       setLearningConfig(result);
     } catch (e) {
@@ -232,9 +234,9 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     setRulesRunning(true);
     try {
       const triggered = await invoke<string[]>("opc_run_automation_rules", {
-        industryId,
-        entityType: "customer",
-        entityId: "manual_trigger",
+        industry_id: industryId,
+        entity_type: "customer",
+        entity_id: "manual_trigger",
       });
       return triggered;
     } catch (e) {
@@ -245,14 +247,15 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     }
   }, [industryId]);
 
-  // 执行工作流
+  // 执行工作流（使用 opc_execute_workflow 命令，传递 workflow_id + industry_id + days）
   const executeWorkflow = useCallback(
     async (workflowId: string): Promise<WorkflowExecutionResult> => {
       setWorkflowExecuting(true);
       try {
         const result = await invoke<WorkflowExecutionResult>("opc_execute_workflow", {
-          workflowId,
-          industryId,
+          industry_id: industryId,
+          workflow_id: workflowId,
+          days: 30,
         });
         setWorkflowResult(result);
         return result;
@@ -274,44 +277,69 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     [industryId],
   );
 
-  // 反思
-  const reflectOnWorkflow = useCallback(async () => {
-    if (!industryId) {
-      return;
-    }
-    try {
-      await invoke("opc_reflect_workflow", { industryId });
-      await loadLearningMetrics();
-    } catch (e) {
-      console.error("[useIndustryData] reflect failed:", e);
-    }
-  }, [industryId, loadLearningMetrics]);
+  // 反思（使用 opc_reflect_on_workflow 命令，需要 workflow_id + workflow_result）
+  const reflectOnWorkflow = useCallback(
+    async (workflowId?: string) => {
+      if (!industryId) {
+        return;
+      }
+      try {
+        const wfId = workflowId || `default_${industryId}`;
+        const wfResult = workflowResult || { status: "completed", steps_completed: 0, steps_total: 0 };
+        await invoke("opc_reflect_on_workflow", {
+          industry_id: industryId,
+          workflow_id: wfId,
+          workflow_result: wfResult,
+        });
+        await loadLearningMetrics();
+      } catch (e) {
+        console.error("[useIndustryData] reflect failed:", e);
+      }
+    },
+    [industryId, workflowResult, loadLearningMetrics],
+  );
 
-  // 进化
-  const evolveWorkflow = useCallback(async () => {
-    if (!industryId) {
-      return;
-    }
-    try {
-      await invoke("opc_evolve_workflow", { industryId });
-      await loadLearningMetrics();
-    } catch (e) {
-      console.error("[useIndustryData] evolve failed:", e);
-    }
-  }, [industryId, loadLearningMetrics]);
+  // 进化（使用 opc_evolve_workflow 命令，需要 workflow_id + reason）
+  const evolveWorkflow = useCallback(
+    async (workflowId?: string, reason?: string) => {
+      if (!industryId) {
+        return;
+      }
+      try {
+        const wfId = workflowId || `default_${industryId}`;
+        const reasonText = reason || "用户主动触发进化";
+        await invoke("opc_evolve_workflow", {
+          industry_id: industryId,
+          workflow_id: wfId,
+          reason: reasonText,
+        });
+        await loadLearningMetrics();
+      } catch (e) {
+        console.error("[useIndustryData] evolve failed:", e);
+      }
+    },
+    [industryId, loadLearningMetrics],
+  );
 
-  // 自我改进
-  const runSelfImprovement = useCallback(async () => {
-    if (!industryId) {
-      return;
-    }
-    try {
-      await invoke("opc_self_improve", { industryId });
-      await loadLearningMetrics();
-    } catch (e) {
-      console.error("[useIndustryData] self improve failed:", e);
-    }
-  }, [industryId, loadLearningMetrics]);
+  // 自我改进（使用 opc_run_self_improvement 命令，需要 target）
+  const runSelfImprovement = useCallback(
+    async (target?: string) => {
+      if (!industryId) {
+        return;
+      }
+      try {
+        const targetText = target || "all";
+        await invoke("opc_run_self_improvement", {
+          industry_id: industryId,
+          target: targetText,
+        });
+        await loadLearningMetrics();
+      } catch (e) {
+        console.error("[useIndustryData] self improve failed:", e);
+      }
+    },
+    [industryId, loadLearningMetrics],
+  );
 
   // 初始化加载
   useEffect(() => {

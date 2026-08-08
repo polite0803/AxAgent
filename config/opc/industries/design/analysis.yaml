@@ -1,0 +1,19 @@
+version: 1
+industry_id: design
+
+data_sources:
+  - id: business_stats
+    chain: [db, cache]
+    quality_precheck: true
+
+strategies:
+  - id: overview
+    name: 经营概览
+    dimensions: []
+
+risk:
+  max_kpi_warning_pct: 0.8
+  critical_kpis: []
+
+quality_precheck:
+  - business_stats

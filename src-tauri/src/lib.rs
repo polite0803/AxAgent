@@ -300,9 +300,6 @@ pub fn run() {
                 });
             }
 
-            // 同步行业学习配置到用户数据目录（CWD 无关，供 opc_get_learning_config 等读取）
-            crate::commands::opc_industry_actions::ensure_industry_learning_configs(&app_dir);
-
             // Seed OPC company architecture (CEO/CTO/CFO + expert profiles)
             {
                 tauri::async_runtime::block_on(async {

@@ -1,13 +1,18 @@
-// 行业适配器模块 - 9 个行业独立手写 adapter
+// 行业适配器模块 - 14 个行业独立手写 adapter
 
 pub mod accounting;
 pub mod ai_research;
 pub mod content_media;
+pub mod design;
 pub mod ecommerce;
 pub mod education;
 pub mod finance_invest;
+pub mod game_dev;
+pub mod geospatial;
 pub mod industry_consulting;
+pub mod project_management;
 pub mod sales_growth;
+pub mod security;
 pub mod software_dev;
 
 use async_trait::async_trait;
@@ -23,7 +28,7 @@ use super::rules::ValidationError;
 use super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
 
 // ── 行业适配器共享基类 ────────────────────────────────────────
-// 收敛 9 个行业 adapter 中重复的数据服务注入与基本信息存储逻辑。
+// 收敛 14 个行业 adapter 中重复的数据服务注入与基本信息存储逻辑。
 
 /// 行业适配器共享基类 — 统一封装行业 ID/名称与数据服务注入
 pub struct BaseIndustryAdapter {
@@ -292,13 +297,20 @@ impl IndustryAdapterFactory {
             "accounting" => Some(Arc::new(accounting::AccountingIndustryAdapter::new())),
             "ai_research" => Some(Arc::new(ai_research::AiResearchIndustryAdapter::new())),
             "content_media" => Some(Arc::new(content_media::ContentMediaIndustryAdapter::new())),
+            "design" => Some(Arc::new(design::DesignIndustryAdapter::new())),
             "ecommerce" => Some(Arc::new(ecommerce::EcommerceIndustryAdapter::new())),
             "education" => Some(Arc::new(education::EducationIndustryAdapter::new())),
             "finance_invest" => Some(Arc::new(finance_invest::FinanceInvestIndustryAdapter::new())),
+            "game_dev" => Some(Arc::new(game_dev::GameDevIndustryAdapter::new())),
+            "geospatial" => Some(Arc::new(geospatial::GeospatialIndustryAdapter::new())),
             "industry_consulting" => {
                 Some(Arc::new(industry_consulting::IndustryConsultingIndustryAdapter::new()))
             },
+            "project_management" => {
+                Some(Arc::new(project_management::ProjectManagementIndustryAdapter::new()))
+            },
             "sales_growth" => Some(Arc::new(sales_growth::SalesGrowthIndustryAdapter::new())),
+            "security" => Some(Arc::new(security::SecurityIndustryAdapter::new())),
             "software_dev" => Some(Arc::new(software_dev::SoftwareDevIndustryAdapter::new())),
             _ => None,
         }
@@ -309,11 +321,16 @@ impl IndustryAdapterFactory {
             ("accounting", "会计与财务管理"),
             ("ai_research", "AI 研究与咨询"),
             ("content_media", "内容与媒体"),
+            ("design", "设计"),
             ("ecommerce", "电子商务"),
             ("education", "教育培训"),
             ("finance_invest", "金融投资"),
+            ("game_dev", "游戏开发"),
+            ("geospatial", "地理信息"),
             ("industry_consulting", "行业咨询"),
+            ("project_management", "项目管理"),
             ("sales_growth", "销售增长与营销"),
+            ("security", "安全合规"),
             ("software_dev", "软件开发"),
         ]
     }

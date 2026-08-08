@@ -1,0 +1,142 @@
+version: 1
+industry_id: "security"
+industry_name: "安全合规"
+
+reflection:
+  enabled: true
+  min_quality_score: 60.0
+  auto_reflect_on_failure: true
+  dimensions:
+    - name: "quality"
+      weight: 0.3
+      description: "执行结果质量"
+    - name: "efficiency"
+      weight: 0.2
+      description: "执行效率"
+    - name: "completeness"
+      weight: 0.3
+      description: "任务完成度"
+    - name: "innovation"
+      weight: 0.2
+      description: "创新性与改进建议"
+
+evolution:
+  workflow_evolver:
+    enabled: false
+    max_iterations: 10
+    improvement_threshold: 0.1
+  code_evolver:
+    enabled: false
+    safety_check: true
+    auto_apply: false
+
+self_improvement:
+  enabled: false
+  schedule: "weekly"
+
+reinforcement_learning:
+  enabled: false
+  learning_rate: 0.01
+  discount_factor: 0.95
+  exploration_rate: 0.1
+  reward_weights:
+    quality: 0.4
+    efficiency: 0.3
+    user_satisfaction: 0.3
+  experience_batch_size: 32
+  update_interval: 100
+  auto_save: true
+
+adapter:
+  reflection_template:
+    id: "security-default"
+    name: "安全合规反思模板"
+    quality_weights:
+      task_completion: 0.2
+      output_quality: 0.35
+      efficiency: 0.15
+      cost_efficiency: 0.3
+    checkpoints:
+      - id: "risk_identification"
+        name: "风险识别"
+        dimension: "risk"
+        description: "评估安全风险识别的完整性和准确性"
+        weight: 0.4
+      - id: "vulnerability_remediation"
+        name: "漏洞修复"
+        dimension: "remediation"
+        description: "评估安全漏洞的修复及时性和有效性"
+        weight: 0.3
+      - id: "compliance_verification"
+        name: "合规验证"
+        dimension: "compliance"
+        description: "评估是否符合相关法规和标准要求"
+        weight: 0.3
+    prompts:
+      - "请评估本次安全风险识别的全面性"
+      - "漏洞是否得到及时修复？"
+      - "是否满足合规要求？"
+  evolution_constraints:
+    protected_steps:
+      - step_id: "security_audit"
+        reason: "安全审计是核心保障"
+      - step_id: "compliance_check"
+        reason: "合规检查不可妥协"
+      - step_id: "penetration_test"
+        reason: "渗透测试是必要的安全验证"
+    step_dependencies:
+      - from: "assessment"
+        to: "security_audit"
+        type: hard
+      - from: "security_audit"
+        to: "remediation"
+        type: hard
+      - from: "remediation"
+        to: "compliance_check"
+        type: hard
+      - from: "compliance_check"
+        to: "penetration_test"
+        type: soft
+    min_steps: 5
+    max_steps: 25
+    must_follow_order: true
+    forbidden_optimizations:
+      - optimization_type: "skip_audit"
+        reason: "不允许跳过安全审计"
+      - optimization_type: "skip_compliance"
+        reason: "合规检查是法律要求"
+      - optimization_type: "skip_penetration"
+        reason: "渗透测试是必要的安全验证"
+    quality_thresholds:
+      min_accuracy: 0.85
+      min_success_rate: 0.8
+      min_quality_score: 0.7
+  acceptance_criteria:
+    - id: "sec-risk"
+      name: "风险覆盖"
+      description: "所有识别的风险均已评估和处理"
+      dimension: "risk"
+      threshold: 0.9
+      is_critical: true
+      weight: 0.3
+    - id: "sec-remediation"
+      name: "漏洞修复率"
+      description: "高危漏洞修复率达到100%"
+      dimension: "remediation"
+      threshold: 0.95
+      is_critical: true
+      weight: 0.25
+    - id: "sec-compliance"
+      name: "合规性"
+      description: "符合相关安全法规和标准"
+      dimension: "compliance"
+      threshold: 0.9
+      is_critical: true
+      weight: 0.25
+    - id: "sec-penetration"
+      name: "渗透测试"
+      description: "渗透测试无高危漏洞"
+      dimension: "security"
+      threshold: 0.8
+      is_critical: true
+      weight: 0.2

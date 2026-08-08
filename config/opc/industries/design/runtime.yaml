@@ -1,0 +1,67 @@
+version: 1
+industry_id: design
+
+validations:
+  - entity_type: project
+    field: title
+    operator: not_empty
+    value: null
+    message: 项目标题不能为空
+
+kpi_definitions:
+  - key: task_count
+    name: 任务数量
+    unit: 个
+    metric_type: count
+  - key: completion_rate
+    name: 完成率
+    unit: "%"
+    metric_type: percentage
+
+kpi_sources:
+  task_count:
+    type: constant
+    value: 0
+  completion_rate:
+    type: constant
+    value: 0
+
+automation_rules:
+  - id: deadline_warning
+    name: 截止日期预警
+    conditions:
+      - type: created_days_gte
+        days: 7
+      - type: entity_type_is
+        entity_type: task
+      - type: status_is
+        status: in_progress
+    actions:
+      - type: send_notification
+        target: assignee
+        message: "任务即将到期"
+    enabled: true
+
+workflow_steps:
+  - id: step1
+    name: 分析阶段
+    description: 需求分析
+    order: 1
+  - id: step2
+    name: 设计阶段
+    description: 方案设计
+    order: 2
+  - id: step3
+    name: 执行阶段
+    description: 执行实施
+    order: 3
+  - id: step4
+    name: 评估阶段
+    description: 结果评估
+    order: 4
+
+dashboard_cards:
+  - id: progress_card
+    title: 进度概览
+    kpi_key: task_count
+    display_value: -- 个

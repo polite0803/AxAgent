@@ -1,0 +1,7 @@
+# Industry Pack: 游戏开发（game_dev）
+id: game_dev
+name: "游戏开发完整流程"
+icon: "🎮"
+description: "游戏设计、关卡设计、数值平衡、游戏测试"
+version: 1
+enabled: true
