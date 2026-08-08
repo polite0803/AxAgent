@@ -1043,8 +1043,15 @@ export function createSendMethods(
               return;
             }
             markStreamActivity(conversationId);
-            // Clear pending buffer (done event overwrites with final content)
-            clearAgentStreamBuffer();
+            // 对话驱动工作流：保留已流式的步骤事件（不做覆盖），先把缓冲落盘，
+            // 再在尾部追加结果；普通 agent 会话维持原有覆盖行为。
+            if (isWorkflowDriven) {
+              flushAgentTextChunks();
+              flushAgentThinkingChunks();
+            } else {
+              // Clear pending buffer (done event overwrites with final content)
+              clearAgentStreamBuffer();
+            }
             // Skip if streaming was already cancelled (avoid stale fetchMessages re-render)
             const isStillStreaming = isConvStreaming(
               useStreamStore.getState().activeStreams,
@@ -1072,11 +1079,11 @@ export function createSendMethods(
             set((s) => ({
               messages: s.messages.map((m) => {
                 if (m.id === currentMsgId) {
-                  // Reconstruct content with thinking wrapped in <think> tags,
-                  // matching the format used during streaming (flushAgentStreamChunks).
-                  let finalContent = "";
+                  // workflow 会话：保留步骤事件，结果追加在尾部
+                  // 普通会话：用最终内容重建（thinking 包装为 <think> 块，与流式格式一致）
+                  let finalContent = isWorkflowDriven ? (m.content || "") : "";
                   const thinkingText = event.payload.thinking;
-                  if (thinkingText) {
+                  if (!isWorkflowDriven && thinkingText) {
                     finalContent = `<think data-axagent="1">\n${thinkingText}\n</think>\n\n`;
                   }
                   finalContent += event.payload.text;

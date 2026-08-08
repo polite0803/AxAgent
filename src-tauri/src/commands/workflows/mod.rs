@@ -169,6 +169,10 @@ pub async fn workflow_execute(
         opts.input = input;
 
         // ── 对话驱动模式：创建 assistant 占位消息 + 桥接步骤事件 ──
+        // 步骤文本累积缓冲：与前端实时事件同格式，最终与结果一并写入 DB 消息，
+        // 保证 fetchMessages 回读的内容与对话区显示一致（步骤保留 + 结果在尾部）。
+        let steps_buf: Arc<std::sync::Mutex<String>> =
+            Arc::new(std::sync::Mutex::new(String::new()));
         let assistant_message_id: Option<String> = if let Some(conv) = &conversation_id {
             match message::create_message_with_parts(
                 &db,
@@ -192,6 +196,9 @@ pub async fn workflow_execute(
                             "assistantMessageId": m.id,
                         }),
                     );
+                    if let Ok(mut buf) = steps_buf.lock() {
+                        buf.push_str(&format!("\n[Workflow Started: {}]\n", wid));
+                    }
                     let _ = app_for_emit.emit(
                         "agent-stream-text",
                         serde_json::json!({
@@ -217,11 +224,13 @@ pub async fn workflow_execute(
             let cb_conv = conv.clone();
             let cb_msg = msg_id.clone();
             let cb_goals = goal_map.clone();
+            let cb_steps = steps_buf.clone();
             let progress_cb: ProgressCallback = Arc::new(move |evt: StepProgressEvent| {
                 let app = cb_app.clone();
                 let conv = cb_conv.clone();
                 let msg = cb_msg.clone();
                 let goals = cb_goals.clone();
+                let steps = cb_steps.clone();
                 Box::pin(async move {
                     let (title, kind) = goals
                         .get(&evt.node_id)
@@ -229,6 +238,9 @@ pub async fn workflow_execute(
                         .unwrap_or_else(|| (evt.node_id.clone(), "node".to_string()));
                     match evt.status.as_str() {
                         "running" => {
+                            if let Ok(mut buf) = steps.lock() {
+                                buf.push_str(&format!("\n[Step Start] {}: {}\n", kind, title));
+                            }
                             let _ = app.emit(
                                 "agent-stream-text",
                                 serde_json::json!({
@@ -242,6 +254,9 @@ pub async fn workflow_execute(
                             );
                         },
                         "completed" => {
+                            if let Ok(mut buf) = steps.lock() {
+                                buf.push_str(&format!("[Step Complete] {}: ✓\n", title));
+                            }
                             let _ = app.emit(
                                 "agent-stream-text",
                                 serde_json::json!({
@@ -255,6 +270,12 @@ pub async fn workflow_execute(
                             );
                         },
                         "failed" => {
+                            if let Ok(mut buf) = steps.lock() {
+                                buf.push_str(&format!(
+                                    "[Step Error] {}: 节点执行失败\n",
+                                    evt.node_id
+                                ));
+                            }
                             let _ = app.emit(
                                 "agent-stream-text",
                                 serde_json::json!({
@@ -290,16 +311,33 @@ pub async fn workflow_execute(
                     }),
                 );
 
-                // 对话驱动模式：结果写回 assistant 消息 + 完成事件
+                // 对话驱动模式：步骤文本保留 + 结果追加尾部，写入 DB 与 agent-done
                 if let (Some(conv), Some(msg_id)) = (&conversation_id, &assistant_message_id) {
-                    let result_text = format_workflow_result(&workflow);
-                    let _ = message::update_message_content(&db, msg_id, &result_text).await;
+                    let output_text = format_workflow_output(&workflow);
+                    let steps_text = steps_buf.lock().map(|b| b.clone()).unwrap_or_default();
+                    let full_text = if steps_text.trim().is_empty() {
+                        output_text.clone()
+                    } else {
+                        format!(
+                            "{}{}{}",
+                            steps_text.trim_end(),
+                            if output_text.trim().is_empty() {
+                                ""
+                            } else {
+                                "\n\n"
+                            },
+                            output_text
+                        )
+                    };
+                    // DB 落库完整内容（步骤 + 结果），保证 fetchMessages 回读与显示一致
+                    let _ = message::update_message_content(&db, msg_id, &full_text).await;
+                    // agent-done 只带结果部分：前端在 workflow 场景追加到已流式的步骤事件尾部
                     let _ = app_for_emit.emit(
                         "agent-done",
                         serde_json::json!({
                             "conversationId": conv,
                             "assistantMessageId": msg_id,
-                            "text": result_text,
+                            "text": output_text,
                             "thinking": serde_json::Value::Null,
                             "usage": serde_json::Value::Null,
                             "numTurns": serde_json::Value::Null,
@@ -378,33 +416,12 @@ pub async fn workflow_execute(
     Ok(workflow_id)
 }
 
-/// 把工作流执行结果组装为可写回对话的完整文本。
+/// 提取工作流执行结果文本（不含步骤清单）。
 ///
-/// 前端 agent-done 处理器会用 `payload.text` 覆盖流式内容，因此这里必须包含
-/// 完整呈现：步骤清单（节点状态）+ 最终输出。
-fn format_workflow_result(workflow: &Workflow) -> String {
-    use axagent_harness::workflow_types::NodeStatus;
-
-    let mut lines: Vec<String> = Vec::new();
-    lines.push(format!("▶ 工作流「{}」执行完成", workflow.name));
-    for node in &workflow.nodes {
-        let base = node.base();
-        let state = workflow.node_states.get(base.id.as_str());
-        let marker = match state.map(|s| &s.status) {
-            Some(NodeStatus::Completed) => "✅",
-            Some(NodeStatus::Failed) => "❌",
-            Some(NodeStatus::Skipped) => "⏭️",
-            Some(NodeStatus::Running) => "⏳",
-            _ => "…",
-        };
-        let detail = state
-            .and_then(|s| s.error.clone())
-            .map(|e| format!("（{}）", e))
-            .unwrap_or_default();
-        lines.push(format!("{} {}{}", marker, base.title, detail));
-    }
-
-    // 最终输出：workflow.output（EndNode 聚合）> 节点 results 聚合
+/// 步骤清单由 progress_callback 累积（与前端实时事件同格式），最终由调用方
+/// 拼成「步骤 + 结果」写入 DB 消息；本函数只负责结果部分。
+/// 优先级：`workflow.output`（EndNode 聚合）> 节点 results 聚合 > 状态兜底。
+fn format_workflow_output(workflow: &Workflow) -> String {
     let mut out = String::new();
     if let Some(output) = &workflow.output {
         match output {
@@ -435,12 +452,10 @@ fn format_workflow_result(workflow: &Workflow) -> String {
             out.push_str(&parts.join("\n\n"));
         }
     }
-    if !out.trim().is_empty() {
-        lines.push(String::new());
-        lines.push("━━━ 执行结果 ━━━".to_string());
-        lines.push(out.trim().to_string());
+    if out.trim().is_empty() {
+        out = format!("工作流执行完成（状态：{:?}）", workflow.status);
     }
-    lines.join("\n")
+    out
 }
 
 /// 获取工作流状态
