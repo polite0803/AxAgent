@@ -187,7 +187,7 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
                     errors.push(ValidationError::new("reviewer", "评审人不能为空"));
                 }
                 if let Some(score) = entity_data.get("score") {
-                    if score.as_f64().is_none_or(|s| s < 0.0 || s > 10.0) {
+                    if score.as_f64().is_none_or(|s| !(0.0..=10.0).contains(&s)) {
                         errors.push(ValidationError::new("score", "评分必须在 0-10 之间"));
                     }
                 }

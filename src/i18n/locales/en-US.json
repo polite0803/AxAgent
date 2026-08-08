@@ -4204,7 +4204,8 @@
           "triggerSuccess": "Evolution triggered",
           "triggerFailed": "Evolution failed: {{error}}",
           "notEnabled": "Evolution is not enabled for this industry",
-          "reasonRequired": "Please provide a reason for evolution"
+          "reasonRequired": "Please provide a reason for evolution",
+          "defaultReason": "Evolution triggered by user"
         },
         "selfImprovement": {
           "label": "Self-Improvement",

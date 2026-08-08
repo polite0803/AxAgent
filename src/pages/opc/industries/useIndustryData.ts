@@ -9,6 +9,7 @@
 import { invoke } from "@/lib/invoke";
 import type { IndustryLearningConfig } from "@/types";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   AutomationRuleInfo,
   IndustryDashboard,
@@ -64,6 +65,7 @@ export interface UseIndustryDataReturn {
  * @returns 行业数据和操作方法
  */
 export function useIndustryData(industryId: string | null): UseIndustryDataReturn {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [manifest, setManifest] = useState<IndustryManifest | null>(null);
   const [learningConfig, setLearningConfig] = useState<IndustryLearningConfig | null>(null);
@@ -307,7 +309,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
       }
       try {
         const wfId = workflowId || `default_${industryId}`;
-        const reasonText = reason || "用户主动触发进化";
+        const reasonText = reason || t("opc.industry.learning.evolution.defaultReason");
         await invoke("opc_evolve_workflow", {
           industry_id: industryId,
           workflow_id: wfId,
@@ -318,7 +320,7 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
         console.error("[useIndustryData] evolve failed:", e);
       }
     },
-    [industryId, loadLearningMetrics],
+    [industryId, loadLearningMetrics, t],
   );
 
   // 自我改进（使用 opc_run_self_improvement 命令，需要 target）

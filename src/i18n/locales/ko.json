@@ -4546,7 +4546,8 @@
           "triggerSuccess": "진화가 실행되었습니다",
           "triggerFailed": "진화 실행 실패: {{error}}",
           "notEnabled": "이 업계에서는 진화가 활성화되지 않았습니다",
-          "reasonRequired": "진화 이유를 입력해 주세요"
+          "reasonRequired": "진화 이유를 입력해 주세요",
+          "defaultReason": "사용자가 진화를 수동으로 트리거했습니다"
         },
         "selfImprovement": {
           "label": "자기 개선",

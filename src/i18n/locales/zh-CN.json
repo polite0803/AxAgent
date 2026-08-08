@@ -4204,7 +4204,8 @@
           "triggerSuccess": "工作流进化已触发",
           "triggerFailed": "进化触发失败: {{error}}",
           "notEnabled": "该行业的进化功能未启用",
-          "reasonRequired": "请提供进化原因"
+          "reasonRequired": "请提供进化原因",
+          "defaultReason": "用户主动触发进化"
         },
         "selfImprovement": {
           "label": "自我改进",

@@ -4546,7 +4546,8 @@
           "triggerSuccess": "تم تفعيل التطور",
           "triggerFailed": "فشل التطور: {{error}}",
           "notEnabled": "التطور غير مفعّل لهذه الصناعة",
-          "reasonRequired": "يرجى تقديم سبب للتطور"
+          "reasonRequired": "يرجى تقديم سبب للتطور",
+          "defaultReason": "تم تفعيل التطور يدوياً من قبل المستخدم"
         },
         "selfImprovement": {
           "label": "التحسين الذاتي",

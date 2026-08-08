@@ -4546,7 +4546,8 @@
           "triggerSuccess": "進化已觸發",
           "triggerFailed": "進化失敗：{{error}}",
           "notEnabled": "此產業未啟用進化功能",
-          "reasonRequired": "請提供進化原因"
+          "reasonRequired": "請提供進化原因",
+          "defaultReason": "使用者主動觸發進化"
         },
         "selfImprovement": {
           "label": "自我改善",

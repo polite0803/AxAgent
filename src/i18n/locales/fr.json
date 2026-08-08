@@ -4546,7 +4546,8 @@
           "triggerSuccess": "Évolution déclenchée",
           "triggerFailed": "Échec de l'évolution: {{error}}",
           "notEnabled": "L'évolution n'est pas activée pour ce secteur",
-          "reasonRequired": "Veuillez fournir une raison pour l'évolution"
+          "reasonRequired": "Veuillez fournir une raison pour l'évolution",
+          "defaultReason": "Évolution déclenchée manuellement par l'utilisateur"
         },
         "selfImprovement": {
           "label": "Amélioration autonome",

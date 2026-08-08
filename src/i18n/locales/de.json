@@ -4546,7 +4546,8 @@
           "triggerSuccess": "Evolution ausgelöst",
           "triggerFailed": "Evolution fehlgeschlagen: {{error}}",
           "notEnabled": "Evolution ist für diese Branche nicht aktiviert",
-          "reasonRequired": "Bitte geben Sie einen Grund für die Evolution an"
+          "reasonRequired": "Bitte geben Sie einen Grund für die Evolution an",
+          "defaultReason": "Vom Benutzer manuell ausgelöste Evolution"
         },
         "selfImprovement": {
           "label": "Selbstverbesserung",

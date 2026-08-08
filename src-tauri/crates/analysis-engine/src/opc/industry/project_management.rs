@@ -229,13 +229,12 @@ impl OpcIndustryAdapter for ProjectManagementIndustryAdapter {
                     }
                 }
             },
-            "milestone" => {
+            "milestone"
                 if entity_data
                     .get("due_date")
-                    .is_none_or(|d| d.as_str().is_none_or(|s| s.is_empty()))
-                {
-                    errors.push(ValidationError::new("due_date", "截止日期不能为空"));
-                }
+                    .is_none_or(|d| d.as_str().is_none_or(|s| s.is_empty())) =>
+            {
+                errors.push(ValidationError::new("due_date", "截止日期不能为空"));
             },
             _ => {},
         }

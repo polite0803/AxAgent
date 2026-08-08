@@ -4546,7 +4546,8 @@
           "triggerSuccess": "विकास ट्रिगर हुआ",
           "triggerFailed": "विकास विफल: {{error}}",
           "notEnabled": "इस उद्योग के लिए विकास सक्षम नहीं है",
-          "reasonRequired": "कृपया विकास के लिए कारण प्रदान करें"
+          "reasonRequired": "कृपया विकास के लिए कारण प्रदान करें",
+          "defaultReason": "उपयोगकर्ता द्वारा विकास को मैनुआली ट्रिगर किया गया"
         },
         "selfImprovement": {
           "label": "आत्म-सुधार",

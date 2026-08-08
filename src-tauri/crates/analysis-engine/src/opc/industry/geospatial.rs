@@ -168,13 +168,13 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
         match entity_type {
             "location" => {
                 if let Some(longitude) = entity_data.get("longitude") {
-                    if longitude.as_f64().is_none_or(|l| l < -180.0 || l > 180.0) {
+                    if longitude.as_f64().is_none_or(|l| !(-180.0..=180.0).contains(&l)) {
                         errors
                             .push(ValidationError::new("longitude", "经度必须在 -180 到 180 之间"));
                     }
                 }
                 if let Some(latitude) = entity_data.get("latitude") {
-                    if latitude.as_f64().is_none_or(|l| l < -90.0 || l > 90.0) {
+                    if latitude.as_f64().is_none_or(|l| !(-90.0..=90.0).contains(&l)) {
                         errors.push(ValidationError::new("latitude", "纬度必须在 -90 到 90 之间"));
                     }
                 }
@@ -196,10 +196,10 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
                     }
                 }
             },
-            "spatial_query" => {
-                if entity_data.get("query_geometry").is_none_or(|g| g.as_object().is_none()) {
-                    errors.push(ValidationError::new("query_geometry", "查询几何不能为空"));
-                }
+            "spatial_query"
+                if entity_data.get("query_geometry").is_none_or(|g| g.as_object().is_none()) =>
+            {
+                errors.push(ValidationError::new("query_geometry", "查询几何不能为空"));
             },
             _ => {},
         }

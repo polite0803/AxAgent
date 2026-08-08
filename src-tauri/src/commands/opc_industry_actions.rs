@@ -1511,7 +1511,7 @@ pub async fn opc_execute_workflow(
         let industry_config = get_industry_config(&industry_id);
         if let Some(config) = &industry_config {
             if let Some(wf_config) =
-                config.workflows.iter().find(|w| w.id == wf_id || w.template_id == wf_id)
+                config.workflows.iter().find(|w| w.id == *wf_id || w.template_id == *wf_id)
             {
                 // 使用匹配的工作流模板
                 tracing::info!(

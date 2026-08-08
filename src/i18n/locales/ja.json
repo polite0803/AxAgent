@@ -4546,7 +4546,8 @@
           "triggerSuccess": "進化が実行されました",
           "triggerFailed": "進化の実行に失敗しました: {{error}}",
           "notEnabled": "この業界では進化が有効化されていません",
-          "reasonRequired": "進化の理由を入力してください"
+          "reasonRequired": "進化の理由を入力してください",
+          "defaultReason": "ユーザーにより進化が手動でトリガーされました"
         },
         "selfImprovement": {
           "label": "自己改善",

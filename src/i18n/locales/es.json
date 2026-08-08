@@ -4546,7 +4546,8 @@
           "triggerSuccess": "Evolución activada",
           "triggerFailed": "Error en la evolución: {{error}}",
           "notEnabled": "La evolución no está activada para esta industria",
-          "reasonRequired": "Proporcione una razón para la evolución"
+          "reasonRequired": "Proporcione una razón para la evolución",
+          "defaultReason": "Evolución activada manualmente por el usuario"
         },
         "selfImprovement": {
           "label": "Superación personal",
