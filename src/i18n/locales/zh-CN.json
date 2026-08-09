@@ -14137,7 +14137,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "分析师",
+      "nodeTypeDebate": "辩论节点",
+      "nodeTypeDecision": "决策节点",
+      "nodeTypeTool": "工具/算法节点",
+      "nodeTypeValuation": "估值节点",
+      "nodeTypeRisk": "风险节点",
+      "nodeTypeOther": "通用节点",
+      "evolutionHealthy": "{{nodeName}}状态良好",
+      "evolutionNeedsAttention": "{{nodeName}}需要优化",
+      "evolutionCollectingData": "收集{{nodeName}}数据中...",
+      "evolutionNoData": "{{nodeName}}暂无反馈数据",
+      "evolutionFailed": "{{nodeName}}进化失败",
+      "evolutionTrigger": "触发{{nodeName}}自我进化",
+      "evolutionSuggestion": "🧬 {{nodeName}}自我进化建议",
+      "close": "关闭"
     },
     "analysisDebug": {
       "node": "节点",

@@ -728,6 +728,9 @@ export function AnalystDataQualityModal({
   // 检测节点类型
   const nodeType = detectNodeType(expertId);
   const nodeTypeName = getNodeTypeName(nodeType);
+  const nodeTypeUiName = t(
+    `stockAnalysis.analystReport.nodeType${nodeType.charAt(0).toUpperCase() + nodeType.slice(1)}`,
+  );
 
   // 当 Modal 打开且有解析结果时，自动上报反馈给后端用于自我进化
   useEffect(() => {
@@ -863,15 +866,33 @@ export function AnalystDataQualityModal({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           {/* 左侧：进化状态 */}
           <div style={{ flex: 1 }}>
-            {evolutionStatus === "healthy" && <Tag color="success">✓ {nodeTypeName}状态良好</Tag>}
-            {evolutionStatus === "needs_attention" && <Tag color="warning">⚠ {nodeTypeName}需要优化</Tag>}
-            {evolutionStatus === "collecting_data" && <Tag color="blue">收集{nodeTypeName}数据中...</Tag>}
-            {evolutionStatus === "no_data" && <Tag color="default">{nodeTypeName}暂无反馈数据</Tag>}
-            {evolutionStatus === "error" && <Tag color="error">{nodeTypeName}进化失败</Tag>}
+            {evolutionStatus === "healthy" && (
+              <Tag color="success">
+                ✓ {t("stockAnalysis.analystReport.evolutionHealthy", { nodeName: nodeTypeUiName })}
+              </Tag>
+            )}
+            {evolutionStatus === "needs_attention" && (
+              <Tag color="warning">
+                ⚠ {t("stockAnalysis.analystReport.evolutionNeedsAttention", { nodeName: nodeTypeUiName })}
+              </Tag>
+            )}
+            {evolutionStatus === "collecting_data" && (
+              <Tag color="blue">
+                {t("stockAnalysis.analystReport.evolutionCollectingData", { nodeName: nodeTypeUiName })}
+              </Tag>
+            )}
+            {evolutionStatus === "no_data" && (
+              <Tag color="default">
+                {t("stockAnalysis.analystReport.evolutionNoData", { nodeName: nodeTypeUiName })}
+              </Tag>
+            )}
+            {evolutionStatus === "error" && (
+              <Tag color="error">{t("stockAnalysis.analystReport.evolutionFailed", { nodeName: nodeTypeUiName })}</Tag>
+            )}
           </div>
           {/* 右侧：操作按钮 */}
           <div style={{ display: "flex", gap: 8 }}>
-            <Button onClick={onClose}>关闭</Button>
+            <Button onClick={onClose}>{t("stockAnalysis.analystReport.close")}</Button>
             <Button
               type="primary"
               icon={<ThunderboltFilled />}
@@ -879,7 +900,7 @@ export function AnalystDataQualityModal({
               onClick={handleEvolve}
               disabled={!parsed}
             >
-              触发{nodeTypeName}自我进化
+              {t("stockAnalysis.analystReport.evolutionTrigger", { nodeName: nodeTypeUiName })}
             </Button>
           </div>
         </div>
@@ -965,7 +986,7 @@ export function AnalystDataQualityModal({
             {/* 自我进化建议 */}
             {evolutionSuggestions.length > 0 && (
               <div style={{ marginTop: 16, padding: 12, background: "var(--ant-color-info-bg)", borderRadius: 8 }}>
-                <Text strong>🧬 {nodeTypeName}自我进化建议</Text>
+                <Text strong>{t("stockAnalysis.analystReport.evolutionSuggestion", { nodeName: nodeTypeUiName })}</Text>
                 <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
                   {evolutionSuggestions.map((s, i) => (
                     <li key={i}>
