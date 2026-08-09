@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "총 {{count}}건",
     "stepLogFieldSuffix": "{{count}}개 필드",
-    "stepLogCountEmpty": "데이터 없음"
+    "stepLogCountEmpty": "데이터 없음",
+    "colParams": "매개변수",
+    "colAvgPrice": "평균 가격",
+    "colHoldValue": "보유 주식 시가 총액",
+    "colTotalScore": "총점",
+    "colGrossMargin": "매출총이익률",
+    "boolYes": "예",
+    "boolNo": "아니오",
+    "backendCallFailed": "백엔드 호출 실패",
+    "emptyHistoryWarning": "세레니티 히스토리가 비어 있습니다: list_reco_history가 0개 행을 반환했습니다 (DB에 serenity/bottleneck 스타일 히스토리가 없거나 백엔드 명령 실패가 조용히 무시되었을 수 있습니다)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "가치평가 모델 매개변수 (DCF/그레이엄)"
+      },
+      "valuation": {
+        "perpetualGrowth": "영구 성장률",
+        "discountRate": "할인율",
+        "defaultGrowth": "기본 성장률",
+        "minGrowth": "최소 성장률",
+        "maxGrowth": "최대 성장률",
+        "forecastYears": "예측 연수",
+        "bondYield": "AAA 기업채 수익률",
+        "unsavedChanges": "가치평가 매개변수 저장 안됨"
       },
       "panels": {
         "main": "Main Panel",

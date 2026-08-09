@@ -91,10 +91,10 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 === Few-shot 范例 ===
 {FEW_SHOT_EXAMPLES}
 
-=== 可用专家清单 ===
+=== 可用角色/岗位与专家清单 ===
 {roles_brief}
-提示：agent 节点的 config 中可引用上述专家 ID（expert_id），
-让节点执行时自动拼接对应的 system_prompt（详见 prompt 层级）。
+提示：agent 节点的 config 中可引用上述角色 ID（agent_role）和专家 ID（expert_id），
+让节点执行时自动拼接对应的 system_prompt（详见 3 层 prompt 层级）。
 
 === 输出格式 ===
 {{
@@ -323,8 +323,7 @@ mod tests {
         assert!(prompt.contains("设计时编译"));
         assert!(prompt.contains(NODE_SCHEMAS_DOC));
         assert!(prompt.contains(FEW_SHOT_EXAMPLES));
-        assert!(prompt.contains("可用专家清单"));
-        // 确保不包含 context_section 占位符（mission 编译无上下文）
+        assert!(prompt.contains("可用角色/岗位与专家清单"));
         assert!(!prompt.contains("{context_section}"));
     }
 }

@@ -367,11 +367,24 @@ export function AnalystReportCard({ expertId, report }: Props) {
       const v = parsed.verdict as Record<string, unknown>;
       if (typeof v.verdict === "string") { parsed.verdict = v.verdict; }
       else if (typeof v.stance === "string") { parsed.verdict = v.stance; }
+      else {
+        // 尝试其他常见字段名
+        for (const key of ["direction", "recommendation", "decision"] as const) {
+          if (typeof v[key] === "string") {
+            parsed.verdict = v[key];
+            break;
+          }
+        }
+      }
       if (parsed.bull_score == null && typeof v.bull_score === "number") { parsed.bull_score = v.bull_score as number; }
       if (parsed.bear_score == null && typeof v.bear_score === "number") { parsed.bear_score = v.bear_score as number; }
       if (parsed.confidence == null && typeof v.confidence === "number") { parsed.confidence = v.confidence as number; }
       // report 文本不在 summary 里，在 report 字段
       if (!parsed.summary && typeof parsed.report === "string") { parsed.summary = parsed.report; }
+      // 提取其他可能的嵌套字段
+      if (parsed.summary == null && typeof v.report === "string") { parsed.summary = v.report; }
+      if (parsed.analysis == null && typeof v.analysis === "string") { parsed.analysis = v.analysis; }
+      if (parsed.summary == null && typeof v.summary === "string") { parsed.summary = v.summary; }
     }
     const summary = extractSummary(parsed);
     const tags = extractTags(parsed, t);
@@ -519,7 +532,33 @@ export function AnalystReportCard({ expertId, report }: Props) {
         <AnalystDataQualityModal
           name={name}
           expertId={expertId}
-          parsed={parsed}
+          parsed={(() => {
+            // 创建规范化的 parsed 对象，将分数归一化到 0-100 范围
+            const normalized: Record<string, unknown> = { ...parsed };
+            if (typeof normalized.bull_score === "number") {
+              normalized.bull_score = normalized.bull_score > 1
+                ? normalized.bull_score
+                : (normalized.bull_score as number) * 100;
+            }
+            if (typeof normalized.bear_score === "number") {
+              normalized.bear_score = normalized.bear_score > 1
+                ? normalized.bear_score
+                : (normalized.bear_score as number) * 100;
+            }
+            if (typeof normalized.confidence === "number") {
+              normalized.confidence = normalized.confidence > 1
+                ? normalized.confidence
+                : (normalized.confidence as number) * 100;
+            }
+            // 确保 summary 字段存在（优先用 summary，其次用 report/analysis）
+            if (!normalized.summary && typeof normalized.report === "string") {
+              normalized.summary = normalized.report;
+            }
+            if (!normalized.summary && typeof normalized.analysis === "string") {
+              normalized.summary = normalized.analysis;
+            }
+            return normalized as ParsedReport;
+          })()}
           report={displayContent}
           open={dqOpen}
           onClose={() => setDqOpen(false)}
@@ -749,7 +788,61 @@ export function AnalystReportCard({ expertId, report }: Props) {
       <AnalystDataQualityModal
         name={name}
         expertId={expertId}
-        parsed={null}
+        parsed={(() => {
+          // 从 displayContent 中提取基础字段用于数据质量检测
+          const text = displayContent || "";
+          const fallback: Record<string, unknown> = {};
+
+          // 尝试 VERDICT tag
+          const verdictIdx = text.indexOf("<!-- VERDICT:");
+          if (verdictIdx !== -1) {
+            try {
+              const jsonStr = text.slice(verdictIdx + "<!-- VERDICT:".length);
+              const jsonEnd = jsonStr.indexOf("-->");
+              if (jsonEnd !== -1) {
+                const meta = JSON.parse(jsonStr.slice(0, jsonEnd).trim());
+                // 提取关键字段
+                if (typeof meta.verdict === "string") { fallback.verdict = meta.verdict; }
+                if (typeof meta.stance === "string") { fallback.verdict = meta.stance; }
+                if (typeof meta.bull_score === "number") {
+                  fallback.bull_score = meta.bull_score > 1 ? meta.bull_score : meta.bull_score * 100;
+                }
+                if (typeof meta.bear_score === "number") {
+                  fallback.bear_score = meta.bear_score > 1 ? meta.bear_score : meta.bear_score * 100;
+                }
+                if (typeof meta.confidence === "number") {
+                  fallback.confidence = meta.confidence > 1 ? meta.confidence : meta.confidence * 100;
+                }
+              }
+            } catch { /* ignore */ }
+          }
+
+          // 从文本中正则提取 bull_score/bear_score
+          if (fallback.bull_score === undefined) {
+            const bullMatch = text.match(/"bull_score"\s*:\s*(\d+(?:\.\d+)?)/);
+            if (bullMatch) {
+              const raw = parseFloat(bullMatch[1]);
+              fallback.bull_score = raw > 1 ? raw : raw * 100;
+            }
+          }
+          if (fallback.bear_score === undefined) {
+            const bearMatch = text.match(/"bear_score"\s*:\s*(\d+(?:\.\d+)?)/);
+            if (bearMatch) {
+              const raw = parseFloat(bearMatch[1]);
+              fallback.bear_score = raw > 1 ? raw : raw * 100;
+            }
+          }
+
+          // 从 fuzzy 结果中获取 summary
+          if (fuzzy.summary) { fallback.summary = fuzzy.summary; }
+          if (fuzzy.points.length > 0) { fallback.key_points = fuzzy.points; }
+
+          // 如果提取到了任何字段，返回 fallback
+          if (Object.keys(fallback).length > 0) {
+            return fallback as unknown as ParsedReport;
+          }
+          return null;
+        })()}
         report={displayContent}
         open={dqOpen}
         onClose={() => setDqOpen(false)}

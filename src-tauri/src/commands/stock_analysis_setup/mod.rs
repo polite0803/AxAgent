@@ -174,15 +174,11 @@ struct StockRoleDef {
     timeout_seconds: i64,
 }
 
-/// AxInvest 专属业务岗位 — 证券投资负责人。
+/// AxInvest 专属角色 — 证券投资负责人。
 ///
-/// 与 `agent_roles`（抽象执行器：stock-analyst / debater / trader 等）正交：
-/// - BusinessRole 表达「在组织里担什么责」——证券投资决策的责任与合规边界
-/// - AgentRole 表达「怎么干活」——执行器类型
-///
-/// 上游 agent_executor 4 层 prompt 拼接顺序（高 → 低）：
-///   BusinessRole → AgentRole → Expert → 节点 inline
-/// 本业务岗位的 system_prompt 作为最外层身份提示词注入。
+/// v218: 业务岗位并入角色表（business_roles → agent_roles），岗位即角色。
+/// 本角色（stock-investment-lead）seed 进 agent_roles，作为股票专家 profile 的
+/// agent_role 引用，其 system_prompt 注入最外层身份（投资决策责任与合规边界）。
 const STOCK_BUSINESS_ROLE_ID: &str = "stock-investment-lead";
 
 struct StockBusinessRoleDef {
@@ -813,29 +809,34 @@ async fn upsert_stock_business_role(
     let certifications: Vec<String> =
         r.required_certifications.iter().map(|s| s.to_string()).collect();
     let domains: Vec<String> = r.active_domains.iter().map(|s| s.to_string()).collect();
+    // v218: 业务岗位并入角色表（business_roles → agent_roles），岗位即角色。
     // managed_expert_ids 留空——股票专家众多且会动态增减，由前端按 source_dir="stock-analysis" 聚合
-    repo::business_role::upsert_business_role(
+    repo::agent_role::upsert_agent_role_ext(
         db,
         r.id,
         r.name,
         Some(r.description),
-        Some(&responsibilities),
+        r.system_prompt,
+        &[],
+        &domains,
+        3,
+        600,
+        "stock-analysis",
+        Some(&serde_json::to_string(&responsibilities).unwrap_or_default()),
         Some(r.decision_authority),
         reports_to,
         None,
-        Some(&certifications),
-        Some(&domains),
-        r.system_prompt,
+        Some(&serde_json::to_string(&certifications).unwrap_or_default()),
         Some(r.icon),
         Some(r.color),
-        "stock-analysis",
+        true,
         sort_order,
     )
     .await
     .map_err(|e| {
         ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("种子业务岗位失败: {e}"))
     })?;
-    tracing::info!("[stock_analysis_setup] 已种子化/更新业务岗位 {} ({})", r.id, r.name);
+    tracing::info!("[stock_analysis_setup] 已种子化/更新角色岗位 {} ({})", r.id, r.name);
     Ok(())
 }
 
@@ -861,7 +862,6 @@ async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             description: Set(Some(format!("股票分析专家 — {}", role_id_to_display(role_id)))),
             category: Set("stock-analysis".into()),
             icon: Set("📈".into()),
-            agent_role: Set(Some(role_id.into())),
             source: Set("stock-analysis".into()),
             tags: Set(None),
             suggested_provider_id: Set(None),
@@ -876,7 +876,9 @@ async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             sort_order: Set(0),
             is_enabled: Set(1),
             expert_id: Set(Some(format!("agency-stock-analysis-{expert_id}"))),
-            business_role_id: Set(Some(STOCK_BUSINESS_ROLE_ID.into())),
+            // v218: 岗位即角色——agent_role 指向证券投资负责人（已并入 agent_roles），
+            // 其 system_prompt 作为最外层身份注入；stock-analyst 等执行器标签原未入表，不再使用。
+            agent_role: Set(Some(STOCK_BUSINESS_ROLE_ID.into())),
             created_at: Set(now),
             updated_at: Set(now),
         };

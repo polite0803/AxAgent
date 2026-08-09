@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} éléments",
     "stepLogFieldSuffix": "{{count}} champs",
-    "stepLogCountEmpty": "aucune donnée"
+    "stepLogCountEmpty": "aucune donnée",
+    "colParams": "Paramètres",
+    "colAvgPrice": "Prix moyen",
+    "colHoldValue": "Valeur des actions détenues",
+    "colTotalScore": "Score total",
+    "colGrossMargin": "Marge brute",
+    "boolYes": "Oui",
+    "boolNo": "Non",
+    "backendCallFailed": "Échec de l'appel backend",
+    "emptyHistoryWarning": "L'historique Serenity est vide : list_reco_history a renvoyé 0 ligne (peut-être aucun historique de style serenity/bottleneck dans la BD, ou l'échec de la commande backend a été silencieusement ignoré)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "Paramètres du modèle d'évaluation (DCF/Graham)"
+      },
+      "valuation": {
+        "perpetualGrowth": "Taux de croissance perpétuel",
+        "discountRate": "Taux d'actualisation",
+        "defaultGrowth": "Taux de croissance par défaut",
+        "minGrowth": "Taux de croissance minimal",
+        "maxGrowth": "Taux de croissance maximal",
+        "forecastYears": "Années de prévision",
+        "bondYield": "Rendement des obligations AAA",
+        "unsavedChanges": "Modifications de l'évaluation non enregistrées"
       },
       "panels": {
         "main": "Main Panel",

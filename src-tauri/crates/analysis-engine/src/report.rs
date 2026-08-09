@@ -65,7 +65,9 @@ pub fn generate_html_report(
                 "<tr><td>{date}</td><td>{price:.2}</td><td>{vol:.0}</td><td>{buyer}</td><td>{seller}</td></tr>"
             ));
         }
-        format!("<h3 style=\"margin:16px 0 8px\">大宗交易</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>日期</th><th>价格</th><th>数量</th><th>买方</th><th>卖方</th></tr>{rows}</table>")
+        format!(
+            "<h3 style=\"margin:16px 0 8px\">大宗交易</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>日期</th><th>价格</th><th>数量</th><th>买方</th><th>卖方</th></tr>{rows}</table>"
+        )
     };
 
     let visits: Vec<serde_json::Value> =
@@ -85,7 +87,9 @@ pub fn generate_html_report(
             };
             rows.push_str(&format!("<tr><td>{date}</td><td>{orgs}</td><td>{short}</td></tr>"));
         }
-        format!("<h3 style=\"margin:16px 0 8px\">机构调研</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>日期</th><th>机构数</th><th>内容</th></tr>{rows}</table>")
+        format!(
+            "<h3 style=\"margin:16px 0 8px\">机构调研</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>日期</th><th>机构数</th><th>内容</th></tr>{rows}</table>"
+        )
     };
 
     let index_quotes: Vec<serde_json::Value> = parse_or_warn("index_quotes", index_quotes_json);
@@ -103,7 +107,9 @@ pub fn generate_html_report(
                 "<tr><td>{name}</td><td>{price:.2}</td><td style=\"color:{color}\">{sign}{pct:.2}%</td></tr>"
             ));
         }
-        format!("<h3 style=\"margin:16px 0 8px\">大盘指数</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>指数</th><th>点位</th><th>涨跌幅</th></tr>{rows}</table>")
+        format!(
+            "<h3 style=\"margin:16px 0 8px\">大盘指数</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>指数</th><th>点位</th><th>涨跌幅</th></tr>{rows}</table>"
+        )
     };
 
     let peers: Vec<serde_json::Value> = parse_or_warn("peers", peers_json);
@@ -124,7 +130,9 @@ pub fn generate_html_report(
                 "<tr><td>{code} {name}</td><td>{pe}</td><td>{pb}</td><td>{roe}</td><td style=\"color:{color}\">{sign}{pct:.2}%</td></tr>"
             ));
         }
-        format!("<h3 style=\"margin:16px 0 8px\">同行业可比公司</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>股票</th><th>PE</th><th>PB</th><th>ROE</th><th>涨跌幅</th></tr>{rows}</table>")
+        format!(
+            "<h3 style=\"margin:16px 0 8px\">同行业可比公司</h3><table style=\"width:100%;font-size:12px;border-collapse:collapse\"><tr style=\"color:#8b949e\"><th>股票</th><th>PE</th><th>PB</th><th>ROE</th><th>涨跌幅</th></tr>{rows}</table>"
+        )
     };
 
     let option_pcr: serde_json::Value = parse_or_warn("option_pcr", option_pcr_json);

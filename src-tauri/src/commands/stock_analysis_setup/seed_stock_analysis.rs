@@ -24,7 +24,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
 
     const TEMPLATE_ID: &str = "stock-analysis";
 
-    const TEMPLATE_VERSION: i32 = 1;
+    // V3(2026-08-09): data-quality.rhai 全量缺陷修复——
+    //   P0: count_chars replace 崩溃（Rhai 默认 Engine 无 StringPackage）+ pm_compute_factor_completeness
+    //       Option 参数注册不可调用（Rhai 1.25 多 Option 参数闭包 Function not found）→ Dynamic 参数
+    //   P1-1: money_flow/lockup_bundle/announcements 注入为 map 的 type_of 判断修复
+    //   P2-2: trader_direction 类型防御；P2-3: n 动态推导；P3-1/2/4: count_chars/consistency_bonus/diag_for
+    const TEMPLATE_VERSION: i32 = 3;
 
     // 升级前保留旧模板的变量自定义值，在函数体外声明以延长生命周期
     let mut old_variables: Option<String> = None;

@@ -199,7 +199,6 @@ async fn seed_ai_research_profiles(db: &DatabaseConnection) -> Result<(), String
             sort_order: Set(0),
             is_enabled: Set(1),
             expert_id: Set(Some(expert_id)),
-            business_role_id: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
         };

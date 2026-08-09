@@ -12260,7 +12260,16 @@
     },
     "stepLogCountSuffix": "{{count}} items",
     "stepLogFieldSuffix": "{{count}} fields",
-    "stepLogCountEmpty": "empty"
+    "stepLogCountEmpty": "empty",
+    "colParams": "Params",
+    "colAvgPrice": "Avg Price",
+    "colHoldValue": "Hold Value",
+    "colTotalScore": "Total Score",
+    "colGrossMargin": "Gross Margin",
+    "boolYes": "Yes",
+    "boolNo": "No",
+    "backendCallFailed": "Backend call failed",
+    "emptyHistoryWarning": "Serenity history is empty: list_reco_history returned 0 rows (possibly no serenity/bottleneck style history in DB, or backend command failure was silently ignored)"
   },
   "trade": {
     "agentRole": {
@@ -13011,7 +13020,18 @@
         "portfolioMgrAction": "Portfolio Decision Thresholds (portfolio-mgr)",
         "portfolioMgrRisk": "Risk Classification Thresholds (portfolio-mgr)",
         "simulation": "Monte Carlo Simulation",
-        "refCodes": "Industry Reference Codes"
+        "refCodes": "Industry Reference Codes",
+        "valuationModel": "Valuation Model Parameters (DCF/Graham)"
+      },
+      "valuation": {
+        "perpetualGrowth": "Perpetual Growth Rate",
+        "discountRate": "Discount Rate",
+        "defaultGrowth": "Default Growth Rate",
+        "minGrowth": "Min Growth Rate",
+        "maxGrowth": "Max Growth Rate",
+        "forecastYears": "Forecast Years",
+        "bondYield": "AAA Corporate Bond Yield",
+        "unsavedChanges": "Unsaved valuation changes"
       },
       "klineLimit": "K-line Limit",
       "klinePeriod": "K-line Period",

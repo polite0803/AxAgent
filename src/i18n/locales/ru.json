@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} элементов",
     "stepLogFieldSuffix": "{{count}} полей",
-    "stepLogCountEmpty": "нет данных"
+    "stepLogCountEmpty": "нет данных",
+    "colParams": "Параметры",
+    "colAvgPrice": "Средняя цена",
+    "colHoldValue": "Стоимость принадлежащих акций",
+    "colTotalScore": "Общий балл",
+    "colGrossMargin": "Валовая маржа",
+    "boolYes": "Да",
+    "boolNo": "Нет",
+    "backendCallFailed": "Ошибка вызова бэкенда",
+    "emptyHistoryWarning": "История Serenity пуста: list_reco_history вернул 0 строк (возможно, в БД нет истории со стилем serenity/bottleneck, или сбой backend-команды был тихо проигнорирован)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "Параметры модели оценки (DCF/Грэхем)"
+      },
+      "valuation": {
+        "perpetualGrowth": "Бессрочная ставка роста",
+        "discountRate": "Ставка дисконтирования",
+        "defaultGrowth": "Ставка роста по умолчанию",
+        "minGrowth": "Минимальная ставка роста",
+        "maxGrowth": "Максимальная ставка роста",
+        "forecastYears": "Годы прогноза",
+        "bondYield": "Доходность корпоративных облигаций AAA",
+        "unsavedChanges": "Изменения параметров оценки не сохранены"
       },
       "panels": {
         "main": "Main Panel",

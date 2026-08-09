@@ -92,6 +92,7 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     // ── agency_experts 人才属性（PHASE 8.3） ──
     ("agency_experts", "seniority", "TEXT"),
     ("agency_experts", "specialties", "TEXT"),
+    ("agency_experts", "parent_role_id", "TEXT"),
     ("agency_experts", "success_rate", "DOUBLE PRECISION"),
     ("agency_experts", "avg_latency_ms", "BIGINT"),
     ("agency_experts", "avg_token_cost", "BIGINT"),

@@ -24,6 +24,7 @@ pub mod indicators;
 // 调用方应使用 `axagent_analysis_engine::industry_chain::*`。
 pub mod macro_data;
 pub mod mcp_tools;
+pub mod quality;
 pub mod realtime_quote;
 pub mod regime;
 pub mod scoring;
@@ -1382,7 +1383,9 @@ impl AStockClient {
                 if names_to_try.len() <= 2 {
                     tracing::warn!(
                         "[retry-skip] {} {} 仅有 {} 个 vendor 且全部首次失败，跳过重试（预期为持续故障）",
-                        route_key, stock_code, names_to_try.len()
+                        route_key,
+                        stock_code,
+                        names_to_try.len()
                     );
                     return Err(last_err.unwrap_or_else(|| DataError::VendorError {
                         vendor: "all".into(),

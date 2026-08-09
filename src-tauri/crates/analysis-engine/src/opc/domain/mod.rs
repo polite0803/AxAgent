@@ -674,7 +674,7 @@ impl DomainWorkflowGenerator {
     ///   - 角色维度：agent_role = 域映射真实角色（如 engineering → cto，agent_roles 表岗位）
     ///   - profile id = `exp-{source_dir}-{expert.id}`（agent_profiles 表组合，seed 自
     ///     seed_bulk_expert_profiles，agent_role 由 role_for_source_dir 解析）
-    /// 使「专家 × 角色」组合分工真实生效。来源：output/opc-software-dev-roles-experts-2026-08-09.md §2。
+    ///     使「专家 × 角色」组合分工真实生效。来源：output/opc-software-dev-roles-experts-2026-08-09.md §2。
     const EXPERT_PROFILE_MAP: &[(&str, &str)] = &[
         // ── 架构/设计 ──
         ("architect_analyst", "exp-engineering-agency-engineering-engineering-backend-architect"),

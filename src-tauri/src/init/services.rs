@@ -473,14 +473,28 @@ fn register_portfolio_mgr_rhai_functions() {
         );
         engine.register_fn(
             "pm_classify_risk",
-            |vol: Option<f64>,
-             sharpe: Option<f64>,
-             dd: Option<f64>,
-             roe: Option<f64>,
-             debt: Option<f64>,
-             growth: Option<f64>|
+            |vol: rhai::Dynamic,
+             sharpe: rhai::Dynamic,
+             dd: rhai::Dynamic,
+             roe: rhai::Dynamic,
+             debt: rhai::Dynamic,
+             growth: rhai::Dynamic|
              -> String {
-                portfolio_formula::classify_risk(vol, sharpe, dd, roe, debt, growth)
+                // P0 修复(2026-08-09): 与 decision.rs 对称——原 6 个 Option<f64> 参数
+                // 注册后不可调用（Rhai 1.25 多 Option 参数闭包 Function not found）。
+                let f = |v: &rhai::Dynamic| -> Option<f64> {
+                    v.clone()
+                        .try_cast::<f64>()
+                        .or_else(|| v.clone().try_cast::<i64>().map(|x| x as f64))
+                };
+                portfolio_formula::classify_risk(
+                    f(&vol),
+                    f(&sharpe),
+                    f(&dd),
+                    f(&roe),
+                    f(&debt),
+                    f(&growth),
+                )
             },
         );
         engine.register_fn("pm_risk_bias", |risk_level: &str| -> f64 {
@@ -502,28 +516,44 @@ fn register_portfolio_mgr_rhai_functions() {
             },
         );
         // P1-E13: 组合风控门 — 在 portfolio-mgr 之后运行，做组合层约束检查
+        // P0 修复(2026-08-09): 原含 2 个 Option 参数（target_price/stock_sector），Rhai 1.25
+        // register_fn 对多 Option 参数闭包注册后不可调用 → portfolio-risk-gate.rhai:114
+        // 调用必 Function not found → 被 try/catch 吞掉 → 风控门从未真正执行（一直走 catch
+        // 保守兜底）。改为 9 个 Dynamic 参数，闭包内转 Option。
         engine.register_fn(
             "pm_portfolio_risk_gate",
-            |pm_action: &str,
-             pm_position_pct: f64,
-             pm_risk_level: &str,
-             current_price: f64,
-             target_price: Option<f64>,
-             stock_code: &str,
-             stock_sector: Option<&str>,
-             holdings_json: &str,
-             portfolio_cash: f64|
+            |pm_action: rhai::Dynamic,
+             pm_position_pct: rhai::Dynamic,
+             pm_risk_level: rhai::Dynamic,
+             current_price: rhai::Dynamic,
+             target_price: rhai::Dynamic,
+             stock_code: rhai::Dynamic,
+             stock_sector: rhai::Dynamic,
+             holdings_json: rhai::Dynamic,
+             portfolio_cash: rhai::Dynamic|
              -> String {
+                // Rhai Dynamic 数值提取：f64/i64 均接受
+                let f = |v: &rhai::Dynamic| -> Option<f64> {
+                    v.clone()
+                        .try_cast::<f64>()
+                        .or_else(|| v.clone().try_cast::<i64>().map(|x| x as f64))
+                };
+                let s = |v: &rhai::Dynamic| v.clone().into_string().ok();
+                let pm_action_s = s(&pm_action).unwrap_or_default();
+                let pm_risk_level_s = s(&pm_risk_level).unwrap_or_default();
+                let stock_code_s = s(&stock_code).unwrap_or_default();
+                let holdings_json_s = s(&holdings_json).unwrap_or_default();
+                let stock_sector_s = s(&stock_sector);
                 portfolio_formula::portfolio_risk_gate(
-                    pm_action,
-                    pm_position_pct,
-                    pm_risk_level,
-                    current_price,
-                    target_price,
-                    stock_code,
-                    stock_sector,
-                    holdings_json,
-                    portfolio_cash,
+                    &pm_action_s,
+                    f(&pm_position_pct).unwrap_or(0.0),
+                    &pm_risk_level_s,
+                    f(&current_price).unwrap_or(0.0),
+                    f(&target_price),
+                    &stock_code_s,
+                    stock_sector_s.as_deref(),
+                    &holdings_json_s,
+                    f(&portfolio_cash).unwrap_or(0.0),
                 )
             },
         );
@@ -546,30 +576,40 @@ fn register_portfolio_mgr_rhai_functions() {
             portfolio_formula::compute_bayes_confidence(prior, posterior)
         });
         // 因子数据完整度：供 data-quality.rhai 评估因子层数据完整度
+        // P0 修复(2026-08-09): 与 decision.rs 对称——Rhai 1.25 register_fn 对含多个
+        // Option<T> 参数的闭包注册后无法调用（实测确认），改为 10 个 Dynamic 参数。
         engine.register_fn(
             "pm_compute_factor_completeness",
-            |total_score: Option<f64>,
-             consensus_score: Option<f64>,
-             catalyst_level: Option<&str>,
-             risk_volatility: Option<f64>,
-             valuation_dcf_upside: Option<f64>,
-             trader_direction: Option<&str>,
-             money_flow_main_net_inflow: Option<f64>,
-             lockup_shareholder_trades_len: Option<i64>,
-             announcements_len: Option<i64>,
-             pace_signal: Option<f64>|
+            |total_score: rhai::Dynamic,
+             consensus_score: rhai::Dynamic,
+             catalyst_level: rhai::Dynamic,
+             risk_volatility: rhai::Dynamic,
+             valuation_dcf_upside: rhai::Dynamic,
+             trader_direction: rhai::Dynamic,
+             money_flow_main_net_inflow: rhai::Dynamic,
+             lockup_shareholder_trades_len: rhai::Dynamic,
+             announcements_len: rhai::Dynamic,
+             pace_signal: rhai::Dynamic|
              -> f64 {
+                // Rhai Dynamic 数值提取：f64/i64 均接受，unit/其他 → None
+                let f = |v: &rhai::Dynamic| -> Option<f64> {
+                    v.clone()
+                        .try_cast::<f64>()
+                        .or_else(|| v.clone().try_cast::<i64>().map(|x| x as f64))
+                };
+                let s = |v: &rhai::Dynamic| v.clone().into_string().ok();
+                let i = |v: &rhai::Dynamic| v.clone().try_cast::<i64>();
                 portfolio_formula::compute_factor_completeness(
-                    total_score,
-                    consensus_score,
-                    catalyst_level,
-                    risk_volatility,
-                    valuation_dcf_upside,
-                    trader_direction,
-                    money_flow_main_net_inflow,
-                    lockup_shareholder_trades_len,
-                    announcements_len,
-                    pace_signal,
+                    f(&total_score),
+                    f(&consensus_score),
+                    s(&catalyst_level).as_deref(),
+                    f(&risk_volatility),
+                    f(&valuation_dcf_upside),
+                    s(&trader_direction).as_deref(),
+                    f(&money_flow_main_net_inflow),
+                    i(&lockup_shareholder_trades_len),
+                    i(&announcements_len),
+                    f(&pace_signal),
                 )
             },
         );

@@ -311,7 +311,7 @@ const FIELD_LABEL_MAP: Record<string, string> = {
   pct_chg: "涨跌幅",
   status: "状态",
   result: "结果",
-  params: "参数",
+  params: "serenityPanel.colParams",
   // 行业排名
   industry: "行业",
   industry_name: "行业",
@@ -325,25 +325,25 @@ const FIELD_LABEL_MAP: Record<string, string> = {
   leadingStocks: "领涨股",
   turnover: "换手率",
   volume: "成交量",
-  avg_price: "均价",
+  avg_price: "serenityPanel.colAvgPrice",
   // 北向资金
   northbound_hold: "北向持股",
   northboundHold: "北向持股",
-  hold_value: "持股市值",
-  holdValue: "持股市值",
+  hold_value: "serenityPanel.colHoldValue",
+  holdValue: "serenityPanel.colHoldValue",
   // 趋势/信号
   trend_name: "趋势",
   trendName: "趋势",
   confidence: "置信度",
   score: "评分",
-  total_score: "总分",
-  totalScore: "总分",
+  total_score: "serenityPanel.colTotalScore",
+  totalScore: "serenityPanel.colTotalScore",
   // 财报
   revenue: "营收",
   net_profit: "净利润",
   netProfit: "净利润",
-  gross_margin: "毛利率",
-  grossMargin: "毛利率",
+  gross_margin: "serenityPanel.colGrossMargin",
+  grossMargin: "serenityPanel.colGrossMargin",
   pe: "PE",
   pb: "PB",
   roe: "ROE",
@@ -392,12 +392,16 @@ function collectColumns(rows: Array<Record<string, unknown>>): string[] {
 }
 
 /** 单元格清洗：null → "—"；number → 2 位小数；对象/数组 → 精简 JSON */
-function cellText(v: unknown): string {
+function cellText(v: unknown, translate?: (key: string) => string): string {
   if (v == null) { return "—"; }
   if (typeof v === "number") {
     return Number.isFinite(v) ? (Math.round(v * 100) / 100).toString() : String(v);
   }
-  if (typeof v === "boolean") { return v ? "是" : "否"; }
+  if (typeof v === "boolean") {
+    return translate
+      ? (v ? translate("serenityPanel.boolYes") : translate("serenityPanel.boolNo"))
+      : (v ? "Yes" : "No");
+  }
   if (typeof v === "string") { return v.length > 60 ? v.slice(0, 60) + "…" : v; }
   const s = JSON.stringify(v);
   return s && s.length > 60 ? s.slice(0, 60) + "…" : (s ?? "—");
@@ -654,7 +658,7 @@ export function SerenityScreeningPanel() {
         }
       } catch (e) {
         // 历史为空/查询失败不阻塞面板，保持默认空状态
-        console.error("[Serenity] 加载上次运行候选失败", e);
+        console.error("[Serenity] Failed to load last run candidates", e);
       } finally {
         if (!cancelled) { setLastRunLoading(false); }
       }
@@ -763,7 +767,7 @@ export function SerenityScreeningPanel() {
           } else {
             // 最终兜底：打印完整 payload 帮助诊断
             console.warn(
-              "[Serenity] ⚠️ 无法提取任何候选！完整payload:",
+              "[Serenity] ⚠️ No candidates could be extracted! Full payload:",
               JSON.stringify(p).slice(0, 1000),
             );
           }
@@ -825,7 +829,9 @@ export function SerenityScreeningPanel() {
         // 超时错误特殊处理：如果后端仍在运行，给用户友好提示
         if (err instanceof InvokeTimeoutError) {
           console.warn(
-            `[Serenity] invoke 超时（${(err.timeoutMs / 1000).toFixed(0)}秒），后端工作流可能仍在运行中...`,
+            `[Serenity] invoke timed out (${
+              (err.timeoutMs / 1000).toFixed(0)
+            }s), backend workflow may still be running...`,
           );
           setError(
             t("serenityPanel.timeoutHint", {
@@ -872,7 +878,7 @@ export function SerenityScreeningPanel() {
         });
         setSerenityDetailItems(items ?? []);
       } catch (e) {
-        console.error("加载瓶颈掘金详情失败", e);
+        console.error("Failed to load bottleneck detail", e);
         setSerenityDetailItems([]);
       }
       setSerenityDetailLoading(false);
@@ -951,12 +957,12 @@ export function SerenityScreeningPanel() {
                 setSerenityHistory(list ?? []);
                 if (!list || list.length === 0) {
                   messageApi.warning(
-                    "趋势智选历史为空：list_reco_history 返回 0 行（可能是 DB 暂无风格为 serenity/bottleneck 的历史，或后端命令失败被静默）",
+                    t("serenityPanel.emptyHistoryWarning"),
                   );
                 }
               } catch (e) {
-                console.error("[SerenityHistory] list_reco_history 调用失败", e);
-                messageApi.error(`后端调用失败: ${String(e)}`);
+                console.error("[SerenityHistory] list_reco_history call failed", e);
+                messageApi.error(t("serenityPanel.backendCallFailed", { error: String(e) }));
               } finally {
                 setSerenityHistoryLoading(false);
               }
@@ -981,7 +987,7 @@ export function SerenityScreeningPanel() {
                 );
                 setFeedbackData(r);
               } catch (e) {
-                console.error("回馈闭环分析失败", e);
+                console.error("Feedback loop analysis failed", e);
               } finally {
                 setFeedbackLoading(false);
               }
@@ -1255,12 +1261,15 @@ export function SerenityScreeningPanel() {
                             scroll={{ x: "max-content" }}
                             dataSource={view.table.rows}
                             columns={view.table.columns.map((c) => ({
-                              title: FIELD_LABEL_MAP[c] ?? c,
+                              title: (() => {
+                                const label = FIELD_LABEL_MAP[c] ?? c;
+                                return label.startsWith("serenityPanel.") ? t(label) : label;
+                              })(),
                               dataIndex: c,
                               key: c,
                               ellipsis: true,
                               render: (v: unknown) => (
-                                <span title={typeof v === "string" ? v : undefined}>{cellText(v)}</span>
+                                <span title={typeof v === "string" ? v : undefined}>{cellText(v, t)}</span>
                               ),
                             }))}
                           />
@@ -1368,7 +1377,7 @@ export function SerenityScreeningPanel() {
                     alert(t("serenityPanel.exitSignalAlertNone", { checked: r.checked_count }));
                   }
                 } catch (e) {
-                  console.error("刷新退出信号失败", e);
+                  console.error("Failed to refresh exit signal", e);
                 }
               }}
             >
@@ -1522,7 +1531,7 @@ export function SerenityScreeningPanel() {
                           };
                         });
                       } catch (e) {
-                        console.error("删除失败", e);
+                        console.error("Delete failed", e);
                       }
                     }}
                   >

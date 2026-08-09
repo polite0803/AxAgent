@@ -1,6 +1,8 @@
-import { CheckCircleFilled, CloseCircleFilled, ExclamationCircleFilled } from "@ant-design/icons";
-import { Col, Modal, Progress, Row, Table, Tag, Tooltip, Typography } from "antd";
+import { invoke } from "@/lib/invoke";
+import { CheckCircleFilled, CloseCircleFilled, ExclamationCircleFilled, ThunderboltFilled } from "@ant-design/icons";
+import { Button, Col, Modal, Progress, Row, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -18,6 +20,34 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   warning: <ExclamationCircleFilled style={{ color: "#faad14" }} />,
   issue: <CloseCircleFilled style={{ color: "#f5222d" }} />,
 };
+
+// ── 节点类型检测 ──────────────────────────────────────────────
+type NodeType = "analyst" | "debate" | "decision" | "tool" | "valuation" | "risk" | "other";
+
+/** 根据 expertId/nodeId 推断节点类型 */
+function detectNodeType(nodeId: string): NodeType {
+  if (nodeId.startsWith("a-")) { return "analyst"; }
+  if (nodeId.startsWith("bull-") || nodeId.startsWith("bear-")) { return "debate"; }
+  if (nodeId.includes("decision") || nodeId.includes("manager")) { return "decision"; }
+  if (nodeId.startsWith("t-") || nodeId.startsWith("u-")) { return "tool"; }
+  if (nodeId.includes("valuation")) { return "valuation"; }
+  if (nodeId.includes("risk")) { return "risk"; }
+  return "other";
+}
+
+/** 获取节点类型的中文名称 */
+function getNodeTypeName(nodeType: NodeType): string {
+  const names: Record<NodeType, string> = {
+    analyst: "分析师",
+    debate: "辩论节点",
+    decision: "决策节点",
+    tool: "工具/算法节点",
+    valuation: "估值节点",
+    risk: "风险节点",
+    other: "通用节点",
+  };
+  return names[nodeType];
+}
 
 // ── 分析师类型 → 预期 VERDICT 字段 Schema ──────────────────
 // 不同分析师输出的 VERDICT JSON 字段不同，定义按类型的预期核心字段集。
@@ -457,6 +487,53 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
     score -= 3;
   }
 
+  // ── 2.1 评分自洽性检查（bull_score + bear_score 应约为 100） ──
+  if (hasBullScore && hasBearScore) {
+    const scoreSum = (parsed.bull_score || 0) + (parsed.bear_score || 0);
+    if (scoreSum >= 90 && scoreSum <= 110) {
+      checks.push({
+        category: "dataQualityConsistency",
+        field: "score_sum",
+        status: "good",
+        detail: `评分总和 ${scoreSum}，符合 100 基准（±10 容差）`,
+      });
+      goodCount++;
+    } else {
+      checks.push({
+        category: "dataQualityConsistency",
+        field: "score_sum",
+        status: "issue",
+        detail: `评分总和 ${scoreSum}，偏离 100 基准（±10 容差外），存在评分不自洽问题`,
+      });
+      issueCount++;
+      score -= 10;
+    }
+  }
+
+  // ── 2.2 confidence 范围检查 ──
+  if (hasConfidence && parsed.confidence !== undefined) {
+    const conf = parsed.confidence;
+    if (conf < 0 || conf > 100) {
+      checks.push({
+        category: "dataQualityValueQuality",
+        field: "confidence_range",
+        status: "issue",
+        detail: `置信度 ${conf} 超出合法范围 0-100`,
+      });
+      issueCount++;
+      score -= 5;
+    } else if (conf > 0 && conf < 10) {
+      checks.push({
+        category: "dataQualityValueQuality",
+        field: "confidence_range",
+        status: "warning",
+        detail: `置信度 ${conf} 极低（< 10），数据可靠性存疑`,
+      });
+      warningCount++;
+      score -= 3;
+    }
+  }
+
   // ── 3. 内容质量 ───────────────────────────────────────────
   const summaryText = parsed.summary || parsed.analysis || parsed.argument || "";
   if (summaryText.length > 100) {
@@ -629,11 +706,126 @@ interface Props {
   report: string;
   open: boolean;
   onClose: () => void;
+  /** 可选：股票代码，用于关联分析 */
+  stockCode?: string;
+  /** 可选：执行 ID，用于关联工作流执行 */
+  executionId?: string;
 }
 
-export function AnalystDataQualityModal({ name, expertId, parsed, report, open, onClose }: Props) {
+export function AnalystDataQualityModal({
+  name,
+  expertId,
+  parsed,
+  report,
+  open,
+  onClose,
+  stockCode = "",
+  executionId = "",
+}: Props) {
   const { t } = useTranslation();
   const result = analyzeDataQuality(parsed as ParsedReport | null, report, expertId);
+
+  // 检测节点类型
+  const nodeType = detectNodeType(expertId);
+  const nodeTypeName = getNodeTypeName(nodeType);
+
+  // 当 Modal 打开且有解析结果时，自动上报反馈给后端用于自我进化
+  useEffect(() => {
+    if (!open || !parsed) { return; }
+
+    const p = parsed as ParsedReport;
+    const checksJson = JSON.stringify(result.checks);
+
+    // 构建通用质量指标
+    const qualityMetrics: Record<string, unknown> = {};
+
+    if (nodeType === "analyst") {
+      // 分析师指标
+      const scoreSum = (p.bull_score || 0) + (p.bear_score || 0);
+      qualityMetrics.bull_score = p.bull_score ?? null;
+      qualityMetrics.bear_score = p.bear_score ?? null;
+      qualityMetrics.confidence = p.confidence ?? null;
+      qualityMetrics.score_consistent = scoreSum >= 90 && scoreSum <= 110;
+
+      const verdict = (p.verdict ?? p.stance ?? "").toLowerCase();
+      const isBull = verdict.includes("看多") || verdict.includes("bull");
+      const isBear = verdict.includes("看空") || verdict.includes("bear");
+      let directionConsistent = true;
+      if (isBull && p.bull_score !== undefined && p.bear_score !== undefined) {
+        directionConsistent = p.bull_score > p.bear_score;
+      } else if (isBear && p.bull_score !== undefined && p.bear_score !== undefined) {
+        directionConsistent = p.bear_score > p.bull_score;
+      }
+      qualityMetrics.direction_consistent = directionConsistent;
+    } else if (nodeType === "debate") {
+      // 辩论节点指标
+      qualityMetrics.stance = p.stance ?? null;
+      qualityMetrics.strength_score = p.bull_strength_score ?? p.bear_strength_score ?? null;
+      qualityMetrics.confidence = p.confidence ?? null;
+      qualityMetrics.logic_consistent = true; // 默认true，后续可增强
+    } else if (nodeType === "decision") {
+      // 决策节点指标
+      qualityMetrics.action = p.verdict ?? null;
+      qualityMetrics.confidence = p.confidence ?? null;
+      qualityMetrics.risk_assessed = true; // 默认true
+      qualityMetrics.criteria_met = result.issueCount === 0;
+    } else {
+      // 工具/估值/风险节点指标
+      qualityMetrics.completeness = result.issueCount === 0;
+      qualityMetrics.accuracy = result.score / 100;
+    }
+
+    invoke("save_node_feedback", {
+      request: {
+        nodeType,
+        nodeId: expertId,
+        reportId: `report-${Date.now()}`,
+        stockCode,
+        executionId,
+        qualityScore: result.score,
+        grade: result.grade,
+        issueCount: result.issueCount,
+        warningCount: result.warningCount,
+        goodCount: result.goodCount,
+        checksJson,
+        qualityMetricsJson: JSON.stringify(qualityMetrics),
+      },
+    }).catch((err) => {
+      console.warn(`Failed to save ${nodeTypeName} feedback for self-evolution:`, err);
+    });
+  }, [open, parsed, result.score, nodeType, nodeTypeName]);
+
+  // 节点自我进化状态
+  const [evolving, setEvolving] = useState(false);
+  const [evolutionStatus, setEvolutionStatus] = useState<string | null>(null);
+  const [evolutionSuggestions, setEvolutionSuggestions] = useState<string[]>([]);
+
+  const handleEvolve = async () => {
+    setEvolving(true);
+    setEvolutionStatus(null);
+    setEvolutionSuggestions([]);
+    try {
+      const status = await invoke<{
+        node_type: string;
+        node_id: string;
+        total_feedbacks: number;
+        status: string;
+        suggestions: string[];
+      }>("evolve_node_command", {
+        request: {
+          nodeType,
+          nodeId: expertId,
+        },
+      });
+      setEvolutionStatus(status.status);
+      setEvolutionSuggestions(status.suggestions || []);
+    } catch (err) {
+      console.error(`Failed to evolve ${nodeTypeName}:`, err);
+      setEvolutionStatus("error");
+    } finally {
+      setEvolving(false);
+    }
+  };
 
   const columns: ColumnsType<QualityCheck> = [
     {
@@ -667,7 +859,31 @@ export function AnalystDataQualityModal({ name, expertId, parsed, report, open, 
       }
       open={open}
       onCancel={onClose}
-      footer={null}
+      footer={
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {/* 左侧：进化状态 */}
+          <div style={{ flex: 1 }}>
+            {evolutionStatus === "healthy" && <Tag color="success">✓ {nodeTypeName}状态良好</Tag>}
+            {evolutionStatus === "needs_attention" && <Tag color="warning">⚠ {nodeTypeName}需要优化</Tag>}
+            {evolutionStatus === "collecting_data" && <Tag color="blue">收集{nodeTypeName}数据中...</Tag>}
+            {evolutionStatus === "no_data" && <Tag color="default">{nodeTypeName}暂无反馈数据</Tag>}
+            {evolutionStatus === "error" && <Tag color="error">{nodeTypeName}进化失败</Tag>}
+          </div>
+          {/* 右侧：操作按钮 */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button onClick={onClose}>关闭</Button>
+            <Button
+              type="primary"
+              icon={<ThunderboltFilled />}
+              loading={evolving}
+              onClick={handleEvolve}
+              disabled={!parsed}
+            >
+              触发{nodeTypeName}自我进化
+            </Button>
+          </div>
+        </div>
+      }
       width={640}
       style={{ top: 40 }}
       styles={{ body: { maxHeight: "70vh", overflow: "auto" } }}
@@ -745,6 +961,20 @@ export function AnalystDataQualityModal({ name, expertId, parsed, report, open, 
               style={{ fontSize: 12 }}
               onHeaderRow={() => ({ style: { fontSize: 12 } })}
             />
+
+            {/* 自我进化建议 */}
+            {evolutionSuggestions.length > 0 && (
+              <div style={{ marginTop: 16, padding: 12, background: "var(--ant-color-info-bg)", borderRadius: 8 }}>
+                <Text strong>🧬 {nodeTypeName}自我进化建议</Text>
+                <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
+                  {evolutionSuggestions.map((s, i) => (
+                    <li key={i}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{s}</Text>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </>
         )}
     </Modal>

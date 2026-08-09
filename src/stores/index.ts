@@ -42,6 +42,7 @@ export { useApprovalStore } from "./feature/approvalStore";
 export { useBackupStore } from "./feature/backupStore";
 export { useBuddyStore } from "./feature/buddyStore";
 export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
+export { useBusinessRoleStore } from "./feature/businessRoleStore";
 export { useCacheStore } from "./feature/cacheStore";
 export { useCategoryStore } from "./feature/categoryStore";
 export { useContextSourceStore } from "./feature/contextSourceStore";

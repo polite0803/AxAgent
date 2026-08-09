@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} عنصرًا",
     "stepLogFieldSuffix": "{{count}} حقلاً",
-    "stepLogCountEmpty": "لا توجد بيانات"
+    "stepLogCountEmpty": "لا توجد بيانات",
+    "colParams": "المعلمات",
+    "colAvgPrice": "متوسط السعر",
+    "colHoldValue": "قيمة الأسهم المحتفظ بها",
+    "colTotalScore": "الدرجة الإجمالية",
+    "colGrossMargin": "هامش الربح الإجمالي",
+    "boolYes": "نعم",
+    "boolNo": "لا",
+    "backendCallFailed": "فشل استدعاء الواجهة الخلفية",
+    "emptyHistoryWarning": "سجل Serenity فارغ: أعاد list_reco_history 0 صفوف (ربما لا يوجد سجل بنمط serenity/bottleneck في قاعدة البيانات، أو تم تجاهل فشل أمر الواجهة الخلفية بصمت)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "معلمات نموذج التقييم (DCF/جراهام)"
+      },
+      "valuation": {
+        "perpetualGrowth": "معدل النمو الدائم",
+        "discountRate": "معدل الخصم",
+        "defaultGrowth": "معدل النمو الافتراضي",
+        "minGrowth": "أدنى معدل نمو",
+        "maxGrowth": "أقصى معدل نمو",
+        "forecastYears": "سنوات التنبؤ",
+        "bondYield": "عائد سندات الشركات AAA",
+        "unsavedChanges": "تغييرات التقييم غير المحفوظة"
       },
       "panels": {
         "main": "Main Panel",

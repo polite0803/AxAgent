@@ -367,12 +367,42 @@ mod tests {
     fn builtin_packs_parse_successfully() {
         // 抽样验证 6 个代表性内置策略包（覆盖全部 6 风格）
         const SAMPLES: &[(&str, &str)] = &[
-            ("balanced-default", include_str!("../../../agency_experts/stock-analysis/strategy_packs/balanced-default.yaml")),
-            ("trend-focused", include_str!("../../../agency_experts/stock-analysis/strategy_packs/trend-focused.yaml")),
-            ("value-focused", include_str!("../../../agency_experts/stock-analysis/strategy_packs/value-focused.yaml")),
-            ("capital-flow", include_str!("../../../agency_experts/stock-analysis/strategy_packs/capital-flow.yaml")),
-            ("reversion-focused", include_str!("../../../agency_experts/stock-analysis/strategy_packs/reversion-focused.yaml")),
-            ("serenity-bottleneck", include_str!("../../../agency_experts/stock-analysis/strategy_packs/serenity-bottleneck.yaml")),
+            (
+                "balanced-default",
+                include_str!(
+                    "../../../agency_experts/stock-analysis/strategy_packs/balanced-default.yaml"
+                ),
+            ),
+            (
+                "trend-focused",
+                include_str!(
+                    "../../../agency_experts/stock-analysis/strategy_packs/trend-focused.yaml"
+                ),
+            ),
+            (
+                "value-focused",
+                include_str!(
+                    "../../../agency_experts/stock-analysis/strategy_packs/value-focused.yaml"
+                ),
+            ),
+            (
+                "capital-flow",
+                include_str!(
+                    "../../../agency_experts/stock-analysis/strategy_packs/capital-flow.yaml"
+                ),
+            ),
+            (
+                "reversion-focused",
+                include_str!(
+                    "../../../agency_experts/stock-analysis/strategy_packs/reversion-focused.yaml"
+                ),
+            ),
+            (
+                "serenity-bottleneck",
+                include_str!(
+                    "../../../agency_experts/stock-analysis/strategy_packs/serenity-bottleneck.yaml"
+                ),
+            ),
         ];
         for (id, yaml) in SAMPLES {
             let spec = StrategyPackSpec::from_yaml(yaml)

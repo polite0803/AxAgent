@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} Einträge",
     "stepLogFieldSuffix": "{{count}} Felder",
-    "stepLogCountEmpty": "keine Daten"
+    "stepLogCountEmpty": "keine Daten",
+    "colParams": "Parameter",
+    "colAvgPrice": "Durchschnittspreis",
+    "colHoldValue": "Marktwert der gehaltenen Aktien",
+    "colTotalScore": "Gesamtpunktzahl",
+    "colGrossMargin": "Bruttomarge",
+    "boolYes": "Ja",
+    "boolNo": "Nein",
+    "backendCallFailed": "Backend-Aufruf fehlgeschlagen",
+    "emptyHistoryWarning": "Serenity-Verlauf ist leer: list_reco_history hat 0 Zeilen zurückgegeben (möglicherweise keine Historie mit Stil serenity/bottleneck in DB oder Backend-Befehlsfehler wurde stillschweigend ignoriert)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "Bewertungsmodelle-Parameter (DCF/Graham)"
+      },
+      "valuation": {
+        "perpetualGrowth": "Ewige Wachstumsrate",
+        "discountRate": "Diskontierungsrate",
+        "defaultGrowth": "Standardwachstumsrate",
+        "minGrowth": "Mindestwachstumsrate",
+        "maxGrowth": "Maximalwachstumsrate",
+        "forecastYears": "Prognosejahre",
+        "bondYield": "AAA-Unternehmensanleiherendite",
+        "unsavedChanges": "Nicht gespeicherte Bewertungsänderungen"
       },
       "panels": {
         "main": "Main Panel",

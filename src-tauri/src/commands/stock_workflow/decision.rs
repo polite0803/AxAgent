@@ -83,27 +83,67 @@ pub(crate) fn aggregate_precheck(sources: Vec<(&str, SourceCheck)>) -> QualityPr
 /// 所有 vendor 调用走 as-of scope, 预检结果反映"截至 as_of_date 的数据是否够用"。
 ///
 /// API 调用成本: 5 次 vs 原 2 次, 仍远低于 15~20 次 LLM 调用。
+///
+/// P1-1 修复(2026-08-09): 接入 astock-data/validation.rs 的字段级校验
+/// (validate_quote/validate_financials/validate_klines/validate_news_batch)，
+/// 将"只查非空/行数"升级为 OHLC 有效性、high<low、eps/roe 值域等字段检查。
+/// P2-3 修复(2026-08-09): 新增跨源一致性校验——
+///   quote.price vs 最新 K 线 close(偏差>1%)、quote.pe vs 财报 EPS 隐含 PE(>20%)、
+///   K 线最新日期未来/滞后检查。命中即 Partial 告警,不阻断。
 pub(crate) async fn data_quality_precheck(
     client: &axagent_astock_data::AStockClient,
     stock_code: &str,
     quote: &axagent_astock_data::StockQuote,
 ) -> QualityPrecheckResult {
-    // 1. quote — 已在参数中传入, 直接检查
-    let quote_check = if quote.price <= 0.0 && quote.name.is_empty() {
-        SourceCheck::Failed("价格为空、股票代码不存在或未上市".into())
-    } else {
-        SourceCheck::Ok
+    use axagent_astock_data::validation::{
+        validate_financials, validate_klines, validate_news_batch, validate_quote,
     };
 
-    // 2. financials
+    // 1. quote — 字段级校验（code/price/name 缺失 → Failed；change_pct/pre_close 异常 → Partial）
+    let quote_check = {
+        let vr = validate_quote(quote);
+        if !vr.missing.is_empty() {
+            SourceCheck::Failed(vr.missing.join("; "))
+        } else if !vr.warnings.is_empty() {
+            SourceCheck::Partial(vr.warnings.join("; "))
+        } else {
+            SourceCheck::Ok
+        }
+    };
+
+    // 2. financials — 营收/利润存在性 + 字段值域校验（eps/roe 异常）+ PE 交叉校验
     let fin_check = match client.get_financials(stock_code).await {
         Ok(financials) => {
             let has_revenue = financials.iter().any(|f| f.revenue.unwrap_or(0.0) > 0.0);
             let has_profit = financials.iter().any(|f| f.net_profit.unwrap_or(0.0) > 0.0);
+            let vr = validate_financials(&financials);
             if !has_revenue && !has_profit {
+                // 空财报/营收利润缺失：保持原 Partial 语义（可继续但基本面受限），不升级 Failed
                 SourceCheck::Partial("营收/利润缺失".into())
+            } else if !vr.missing.is_empty() {
+                SourceCheck::Failed(vr.missing.join("; "))
+            } else if !vr.warnings.is_empty() {
+                SourceCheck::Partial(vr.warnings.join("; "))
             } else {
-                SourceCheck::Ok
+                // P2-3: quote.pe vs 最新财报 EPS 隐含 PE 交叉校验
+                let mut cross: Vec<String> = Vec::new();
+                if let (Some(pe), Some(eps)) = (quote.pe, financials.first().and_then(|f| f.eps)) {
+                    if pe > 0.0 && eps > 0.0 && quote.price > 0.0 {
+                        let implied_pe = quote.price / eps;
+                        let dev = (implied_pe - pe).abs() / pe;
+                        if dev > 0.2 {
+                            cross.push(format!(
+                                "行情 PE {pe} 与财报 EPS 隐含 PE {implied_pe:.1} 偏差 {:.0}%",
+                                dev * 100.0
+                            ));
+                        }
+                    }
+                }
+                if cross.is_empty() {
+                    SourceCheck::Ok
+                } else {
+                    SourceCheck::Partial(cross.join("; "))
+                }
             }
         },
         Err(e) => SourceCheck::Failed(format!("全部数据源获取失败: {e}")),
@@ -111,8 +151,54 @@ pub(crate) async fn data_quality_precheck(
 
     // V38 修复: K 线至少需要 60 日才能计算 MA(20)+MACD(26) 等关键技术指标。
     // 不足 60 日但 ≥30 日时仅降级为 Partial（可继续但技术分析受限）。
+    // P1-1(2026-08-09): 行数足够时追加 validate_klines 字段校验（OHLC/high<low 等）。
+    // P2-3(2026-08-09): 追加 quote.price vs 最新 close 偏差、K 线日期时效交叉校验。
     let kline_check = match client.get_klines(stock_code, "daily", 500).await {
-        Ok(klines) if klines.len() >= 60 => SourceCheck::Ok,
+        Ok(klines) if klines.len() >= 60 => {
+            let vr = validate_klines(&klines);
+            if !vr.missing.is_empty() {
+                SourceCheck::Partial(format!("K 线字段异常: {}", vr.missing.join("; ")))
+            } else {
+                let mut cross: Vec<String> = Vec::new();
+                if let Some(last) = klines.last() {
+                    if last.close > 0.0 && quote.price > 0.0 {
+                        let dev = (quote.price - last.close).abs() / last.close;
+                        if dev > 0.01 {
+                            cross.push(format!(
+                                "最新 K 线收盘 {} 与行情价 {} 偏差 {:.1}%",
+                                last.close,
+                                quote.price,
+                                dev * 100.0
+                            ));
+                        }
+                    }
+                    // 日期时效: 未来日期(>当前/回放日)或滞后 >10 自然日 → 告警
+                    let asof = axagent_astock_data::as_of::current_date_or_now();
+                    if let (Ok(d1), Ok(d2)) = (
+                        chrono::NaiveDate::parse_from_str(&last.date, "%Y-%m-%d"),
+                        chrono::NaiveDate::parse_from_str(&asof, "%Y-%m-%d"),
+                    ) {
+                        let days = (d2 - d1).num_days();
+                        if days < 0 {
+                            cross.push(format!(
+                                "K 线最新日期 {} 晚于当前/回放日 {}",
+                                last.date, asof
+                            ));
+                        } else if days > 10 {
+                            cross.push(format!(
+                                "K 线数据滞后 {days} 天(最新 {} vs 当前/回放日 {asof})",
+                                last.date
+                            ));
+                        }
+                    }
+                }
+                if cross.is_empty() {
+                    SourceCheck::Ok
+                } else {
+                    SourceCheck::Partial(cross.join("; "))
+                }
+            }
+        },
         Ok(klines) if klines.len() >= 30 => {
             SourceCheck::Partial(format!("仅 {} 行, 技术分析受限", klines.len()))
         },
@@ -124,8 +210,16 @@ pub(crate) async fn data_quality_precheck(
     };
 
     // P1-3 新增: 4. news (取最近 10 条)
+    // P1-1(2026-08-09): 非空时追加 title/url/publish_time 字段校验
     let news_check = match client.get_news(stock_code, 10).await {
-        Ok(news) if !news.is_empty() => SourceCheck::Ok,
+        Ok(news) if !news.is_empty() => {
+            let vr = validate_news_batch(&news);
+            if !vr.missing.is_empty() {
+                SourceCheck::Partial(format!("新闻字段异常: {}", vr.missing.join("; ")))
+            } else {
+                SourceCheck::Ok
+            }
+        },
         Ok(_) => SourceCheck::Partial("无新闻数据".into()),
         Err(e) => SourceCheck::Failed(format!("全部数据源获取失败: {e}")),
     };
@@ -1553,13 +1647,29 @@ pub async fn rerun_decision(
     );
     engine.register_fn(
         "pm_classify_risk",
-        |vol: Option<f64>,
-         sharpe: Option<f64>,
-         dd: Option<f64>,
-         roe: Option<f64>,
-         debt: Option<f64>,
-         growth: Option<f64>|
-         -> String { portfolio_formula::classify_risk(vol, sharpe, dd, roe, debt, growth) },
+        |vol: rhai::Dynamic,
+         sharpe: rhai::Dynamic,
+         dd: rhai::Dynamic,
+         roe: rhai::Dynamic,
+         debt: rhai::Dynamic,
+         growth: rhai::Dynamic|
+         -> String {
+            // P0 修复(2026-08-09): 原 6 个 Option<f64> 参数注册后不可调用（Rhai 1.25
+            // 多 Option 参数闭包 Function not found），改为 Dynamic 参数内部转换。
+            let f = |v: &rhai::Dynamic| -> Option<f64> {
+                v.clone()
+                    .try_cast::<f64>()
+                    .or_else(|| v.clone().try_cast::<i64>().map(|x| x as f64))
+            };
+            portfolio_formula::classify_risk(
+                f(&vol),
+                f(&sharpe),
+                f(&dd),
+                f(&roe),
+                f(&debt),
+                f(&growth),
+            )
+        },
     );
     engine.register_fn("pm_risk_bias", |risk_level: &str| -> f64 {
         portfolio_formula::compute_risk_bias(risk_level)
@@ -1584,30 +1694,44 @@ pub async fn rerun_decision(
         portfolio_formula::compute_bayes_confidence(prior, posterior)
     });
     // 因子数据完整度：供 data-quality.rhai 评估因子层数据完整度
+    // P0 修复(2026-08-09): Rhai 1.25 的 register_fn 对含多个 Option<T> 参数的闭包
+    // 注册后无法调用（全 Some/全 None/混合均报 Function not found，已实测确认），
+    // 原 10 个 Option 参数的 pm_compute_factor_completeness 从未被成功调用过
+    // （data-quality.rhai 此前因 count_chars 的 replace 崩溃未执行到此行）。
+    // 改为 10 个 Dynamic 参数（万能类型，接受 f64/i64/&str/unit），闭包内转 Option。
     engine.register_fn(
         "pm_compute_factor_completeness",
-        |total_score: Option<f64>,
-         consensus_score: Option<f64>,
-         catalyst_level: Option<&str>,
-         risk_volatility: Option<f64>,
-         valuation_dcf_upside: Option<f64>,
-         trader_direction: Option<&str>,
-         money_flow_main_net_inflow: Option<f64>,
-         lockup_shareholder_trades_len: Option<i64>,
-         announcements_len: Option<i64>,
-         pace_signal: Option<f64>|
+        |total_score: rhai::Dynamic,
+         consensus_score: rhai::Dynamic,
+         catalyst_level: rhai::Dynamic,
+         risk_volatility: rhai::Dynamic,
+         valuation_dcf_upside: rhai::Dynamic,
+         trader_direction: rhai::Dynamic,
+         money_flow_main_net_inflow: rhai::Dynamic,
+         lockup_shareholder_trades_len: rhai::Dynamic,
+         announcements_len: rhai::Dynamic,
+         pace_signal: rhai::Dynamic|
          -> f64 {
+            // Rhai Dynamic 数值提取：f64/i64 均接受，unit/其他 → None
+            let f = |v: &rhai::Dynamic| -> Option<f64> {
+                v.clone()
+                    .try_cast::<f64>()
+                    .or_else(|| v.clone().try_cast::<i64>().map(|x| x as f64))
+            };
+            // into_string: ImmutableString/String → String，unit 报错 → None
+            let s = |v: &rhai::Dynamic| v.clone().into_string().ok();
+            let i = |v: &rhai::Dynamic| v.clone().try_cast::<i64>();
             portfolio_formula::compute_factor_completeness(
-                total_score,
-                consensus_score,
-                catalyst_level,
-                risk_volatility,
-                valuation_dcf_upside,
-                trader_direction,
-                money_flow_main_net_inflow,
-                lockup_shareholder_trades_len,
-                announcements_len,
-                pace_signal,
+                f(&total_score),
+                f(&consensus_score),
+                s(&catalyst_level).as_deref(),
+                f(&risk_volatility),
+                f(&valuation_dcf_upside),
+                s(&trader_direction).as_deref(),
+                f(&money_flow_main_net_inflow),
+                i(&lockup_shareholder_trades_len),
+                i(&announcements_len),
+                f(&pace_signal),
             )
         },
     );

@@ -119,21 +119,45 @@ impl AgentRoleRepository for DaoAgentRoleRepository {
     async fn get_agent_role(&self, id: &str) -> Result<Option<AgentRoleDto>, String> {
         let row =
             agent_roles::Entity::find_by_id(id).one(&self.db).await.map_err(|e| e.to_string())?;
-        Ok(row.map(|m| {
-            let tools: Vec<String> = parse_json_arr(&m.default_tools);
-            let domains: Vec<String> = parse_json_arr(&m.active_domains);
-            AgentRoleDto {
-                id: m.id,
-                name: m.name,
-                description: m.description,
-                system_prompt: m.system_prompt,
-                default_tools: tools,
-                active_domains: domains,
-                max_concurrent: m.max_concurrent,
-                timeout_seconds: m.timeout_seconds,
-                source: m.source,
-            }
-        }))
+        Ok(row.map(agent_role_from_model))
+    }
+
+    async fn list_agent_roles(&self) -> Result<Vec<AgentRoleDto>, String> {
+        let rows = agent_roles::Entity::find()
+            .order_by_asc(agent_roles::Column::Source)
+            .order_by_asc(agent_roles::Column::SortOrder)
+            .order_by_asc(agent_roles::Column::Name)
+            .all(&self.db)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(rows.into_iter().map(agent_role_from_model).collect())
+    }
+}
+
+fn agent_role_from_model(m: agent_roles::Model) -> AgentRoleDto {
+    let tools: Vec<String> = parse_json_arr(&m.default_tools);
+    let domains: Vec<String> = parse_json_arr(&m.active_domains);
+    AgentRoleDto {
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        system_prompt: m.system_prompt,
+        default_tools: tools,
+        active_domains: domains,
+        max_concurrent: m.max_concurrent,
+        timeout_seconds: m.timeout_seconds,
+        source: m.source,
+        sort_order: m.sort_order,
+        created_at: m.created_at,
+        updated_at: m.updated_at,
+        responsibilities: m.responsibilities,
+        decision_authority: m.decision_authority,
+        reports_to: m.reports_to,
+        managed_expert_ids: m.managed_expert_ids,
+        required_certifications: m.required_certifications,
+        icon: m.icon,
+        color: m.color,
+        is_enabled: m.is_enabled != 0,
     }
 }
 
@@ -153,10 +177,6 @@ pub fn register_repositories(db: &DatabaseConnection) {
     axagent_harness::repositories::set_agent_role_repository(Arc::new(DaoAgentRoleRepository {
         db: db.clone(),
     }));
-    // 注册业务岗位 repository（a-* agent 节点通过 business_rule_engine 查询岗位信息时需要）
-    axagent_harness::repositories::set_business_role_repository(Arc::new(
-        crate::repo::business_role::BusinessRoleRepositoryImpl::new(db.clone()),
-    ));
     axagent_harness::repositories::set_workflow_execution_repository(Arc::new(
         crate::workflow_execution_repository::DaoWorkflowExecutionRepository {
             db: Arc::new(db.clone()),

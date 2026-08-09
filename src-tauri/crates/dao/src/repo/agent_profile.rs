@@ -314,7 +314,6 @@ pub async fn update_agent_profile(
     if let Some(v) = is_enabled {
         am.is_enabled = Set(if v { 1 } else { 0 });
     }
-
     am.update(db).await?;
     get_agent_profile(db, id).await
 }

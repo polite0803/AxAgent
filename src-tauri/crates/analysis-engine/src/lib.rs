@@ -50,7 +50,9 @@ pub mod portfolio_monitor;
 pub mod portfolio_risk;
 pub mod position_limits;
 pub mod prompts;
-pub mod quality;
+// 2026-08-09: quality 模块迁移至 astock-data（run_quality_gate MCP 工具需在
+// astock-data 内实现，避免 astock-data → analysis-engine 循环依赖；quality.rs
+// 原为死代码，无任何外部调用）
 pub mod recommender;
 pub mod reflection_lesson_validator;
 pub mod report;
@@ -123,3 +125,23 @@ pub use stock_adaptive_engine::{
     AdaptationRecord, AdaptationStatus, AdaptiveEngineConfig, AdaptiveResult, EvolutionValidator,
     StockAdaptiveEngine, ValidationResult,
 };
+
+// ── 分析师自我进化引擎 ──
+// 基于历史数据质量反馈，自动优化分析师 Prompt 和输出约束
+pub mod analyst_evolution;
+pub use analyst_evolution::{
+    evolve_analyst, generate_prompt_corrections, get_analyst_evolution_status,
+    AnalystEvolutionStatus,
+};
+
+// ── 通用节点质量检测系统 ──
+// 为所有节点类型（分析师/辩论/决策/工具/估值/风险）提供统一质量检测接口
+pub mod node_quality;
+pub use node_quality::{
+    check_node_quality, detect_node_type, NodeQualityResult, NodeType, QualityCheck,
+};
+
+// ── 通用节点自我进化引擎 ──
+// 支持所有节点类型的进化：分析师/辩论/决策/工具/估值/风险
+pub mod node_evolution;
+pub use node_evolution::{evolve_node, get_node_evolution_status, NodeEvolutionStatus};

@@ -211,6 +211,14 @@ async fn ensure_default_executor_role(db: &sea_orm::DatabaseConnection) {
             sort_order: Set(0),
             created_at: Set(now),
             updated_at: Set(now),
+            responsibilities: Set(None),
+            decision_authority: Set(None),
+            reports_to: Set(None),
+            managed_expert_ids: Set(None),
+            required_certifications: Set(None),
+            icon: Set(None),
+            color: Set(None),
+            is_enabled: Set(1),
         };
         if let Err(e) = agent_roles::Entity::insert(am).exec(db).await {
             tracing::warn!(

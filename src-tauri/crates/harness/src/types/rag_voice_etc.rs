@@ -1500,6 +1500,19 @@ pub struct AgentRoleDef {
     pub sort_order: i32,
     pub created_at: i64,
     pub updated_at: i64,
+    /// 岗位核心职责（JSON 数组字符串）。v218 由 business_roles 合并而来。
+    pub responsibilities: Option<String>,
+    /// 决策权限边界（JSON 对象字符串）
+    pub decision_authority: Option<String>,
+    /// 汇报对象（agent_roles.id 自引用）
+    pub reports_to: Option<String>,
+    /// 下属专家 ID 列表（JSON 数组字符串）
+    pub managed_expert_ids: Option<String>,
+    /// 准入条件（JSON 数组字符串）
+    pub required_certifications: Option<String>,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub is_enabled: bool,
 }
 
 // === Query Enhancement Types ===

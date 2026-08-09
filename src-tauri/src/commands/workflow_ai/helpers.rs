@@ -1228,15 +1228,33 @@ pub(super) fn parse_llm_response(
 
 /// 构造专家清单 brief，用于注入 LLM system prompt。
 ///
-/// 从 harness 全局 repository 查询 is_enabled=true 的专家，
-/// 格式化为 Markdown 列表。repository 未注册或查询失败时返回 None
+/// 从 harness 全局 repository 查询角色（agent_roles，v218 起含原业务岗位）和专家，
+/// 格式化为 Markdown 列表。任一 repository 未注册或查询失败时返回 None
 /// （不阻塞 LLM 调用，仅丢失清单信息）。
 ///
 /// 调用方：`generate_workflow_from_prompt` / `compile_mission_to_template`。
 pub(super) async fn build_roles_and_experts_brief() -> Option<String> {
-    use axagent_harness::repositories::agency_expert_repository;
+    use axagent_harness::repositories::{agency_expert_repository, agent_role_repository};
 
     let mut sections: Vec<String> = Vec::new();
+
+    // 角色/岗位清单
+    let roles_result = agent_role_repository().list_agent_roles().await;
+    if let Ok(roles) = roles_result {
+        if !roles.is_empty() {
+            let mut lines: Vec<String> = roles
+                .iter()
+                .map(|r| {
+                    let desc = r.description.as_deref().unwrap_or("");
+                    format!("- {}（{}）：{}", r.name, r.id, desc)
+                })
+                .collect();
+            lines.insert(0, "=== 可用角色/岗位 ===".to_string());
+            sections.push(lines.join("\n"));
+        }
+    } else if let Err(e) = roles_result {
+        tracing::warn!(error = %e, "list_agent_roles for prompt brief failed");
+    }
 
     // 专家清单
     let experts_result = agency_expert_repository().list_agency_experts().await;

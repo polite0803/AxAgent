@@ -242,6 +242,26 @@ function inferStep(v: Variable): number {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface Props {}
 
+interface ValuationParamsConfig {
+  perpetualGrowth: number;
+  discountRate: number;
+  defaultGrowth: number;
+  minGrowth: number;
+  maxGrowth: number;
+  forecastYears: number;
+  bondYield: number;
+}
+
+const DEFAULT_VALUATION_PARAMS: ValuationParamsConfig = {
+  perpetualGrowth: 0.03,
+  discountRate: 0.10,
+  defaultGrowth: 0.08,
+  minGrowth: 0.02,
+  maxGrowth: 0.30,
+  forecastYears: 5,
+  bondYield: 4.4,
+};
+
 /** number control — vertical on narrow screen, horizontal on wide */
 function NumberControl({ v, value, onChange }: {
   v: Variable;
@@ -317,12 +337,22 @@ export function StockAnalysisConfigPanel(_props: Props) {
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [valuationParams, setValuationParams] = useState<ValuationParamsConfig>(DEFAULT_VALUATION_PARAMS);
+  const [valuationDirty, setValuationDirty] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    invoke<WorkflowTemplateResponse | null>("get_workflow_template", { id: TEMPLATE_ID })
-      .then(async (rsp) => {
+    // 并行加载 workflow 模板和估值参数
+    Promise.all([
+      invoke<WorkflowTemplateResponse | null>("get_workflow_template", { id: TEMPLATE_ID }),
+      invoke<ValuationParamsConfig>("get_valuation_params").catch(() => DEFAULT_VALUATION_PARAMS),
+    ])
+      .then(async ([rsp, valuation]) => {
         if (cancelled) { return; }
+        // 加载估值参数
+        if (valuation) {
+          setValuationParams(valuation);
+        }
         if (rsp && (!rsp.variables || rsp.variables.length === 0)) {
           // Initial load: if template has no variables, init with defaults and save back
           const defaults = getDefaultVariables();
@@ -627,6 +657,11 @@ export function StockAnalysisConfigPanel(_props: Props) {
     setValues((prev) => ({ ...prev, [name]: val }));
   };
 
+  const handleValuationChange = (key: keyof ValuationParamsConfig, value: number) => {
+    setValuationParams((prev) => ({ ...prev, [key]: value }));
+    setValuationDirty(true);
+  };
+
   const handleSave = async () => {
     if (!template) { return; }
     setSaving(true);
@@ -646,7 +681,22 @@ export function StockAnalysisConfigPanel(_props: Props) {
       tool_defs: template.tool_defs,
     };
     try {
-      await invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input });
+      // 并行保存 workflow 模板和估值参数
+      const results = await Promise.allSettled([
+        invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input }),
+        valuationDirty
+          ? invoke<boolean>("save_valuation_params", { params: valuationParams })
+          : Promise.resolve(true),
+      ]);
+      const [templateResult, valuationResult] = results;
+      if (templateResult.status === "rejected") {
+        throw templateResult.reason;
+      }
+      if (valuationResult.status === "rejected") {
+        console.warn("[StockAnalysisConfigPanel] valuation params save failed:", valuationResult.reason);
+      } else {
+        setValuationDirty(false);
+      }
       message.success(t("stockAnalysis.settings.saveSuccess"));
     } catch (e) {
       console.error("[StockAnalysisConfigPanel] save failed:", e, { input });
@@ -689,11 +739,63 @@ export function StockAnalysisConfigPanel(_props: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {valuationDirty && <Tag color="orange">{t("stockAnalysis.settings.valuation.unsavedChanges")}</Tag>}
         <Button size="small" loading={saving} onClick={handleOptimize}>
           {t("stockAnalysis.settings.optimize.btn")}
         </Button>
       </div>
+
+      {/* 估值模型参数配置 */}
+      <SettingsGroup
+        title={
+          <Space size={4}>
+            <span>{t("stockAnalysis.settings.group.valuationModel")}</span>
+            <Tag className="text-xs m-0" color="blue">📈 compute_valuation</Tag>
+          </Space>
+        }
+      >
+        <div className="sacp-vars">
+          {([
+            ["perpetualGrowth", t("stockAnalysis.settings.valuation.perpetualGrowth"), "0.03 (3%)", 0, 0.20, 0.01],
+            ["discountRate", t("stockAnalysis.settings.valuation.discountRate"), "0.10 (10%)", 0.01, 0.30, 0.01],
+            ["defaultGrowth", t("stockAnalysis.settings.valuation.defaultGrowth"), "0.08 (8%)", 0.01, 0.50, 0.01],
+            ["minGrowth", t("stockAnalysis.settings.valuation.minGrowth"), "0.02 (2%)", 0, 0.20, 0.01],
+            ["maxGrowth", t("stockAnalysis.settings.valuation.maxGrowth"), "0.30 (30%)", 0.05, 1.00, 0.01],
+            ["forecastYears", t("stockAnalysis.settings.valuation.forecastYears"), "5 年", 1, 15, 1],
+            ["bondYield", t("stockAnalysis.settings.valuation.bondYield"), "4.4", 1.0, 10.0, 0.1],
+          ] as const).map(([key, label, hint, min, max, step]) => (
+            <div key={key} style={rowStyle} className="flex items-center justify-between sacp-row">
+              <span style={{ fontSize: 13, color: token.colorText }}>
+                {label}
+                <span style={{ color: token.colorTextTertiary, marginLeft: 8, fontSize: 12 }}>({hint})</span>
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 16 }}>
+                <Slider
+                  min={min}
+                  max={max}
+                  step={step}
+                  style={{ width: 120 }}
+                  value={valuationParams[key]}
+                  onChange={(v) =>
+                    handleValuationChange(key, v as number)}
+                />
+                <InputNumber
+                  size="small"
+                  style={{ width: 80 }}
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={valuationParams[key]}
+                  onChange={(v) =>
+                    v != null && handleValuationChange(key, v)}
+                />
+              </span>
+            </div>
+          ))}
+        </div>
+      </SettingsGroup>
+
       {toolGroups.map((g) => (
         <SettingsGroup
           key={g.tool}

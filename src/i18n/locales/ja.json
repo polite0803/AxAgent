@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} 件",
     "stepLogFieldSuffix": "{{count}} フィールド",
-    "stepLogCountEmpty": "空データ"
+    "stepLogCountEmpty": "空データ",
+    "colParams": "パラメータ",
+    "colAvgPrice": "平均価格",
+    "colHoldValue": "保有株式時価総額",
+    "colTotalScore": "総合スコア",
+    "colGrossMargin": "粗利益率",
+    "boolYes": "はい",
+    "boolNo": "いいえ",
+    "backendCallFailed": "バックエンド呼び出しに失敗しました",
+    "emptyHistoryWarning": "セレニティ履歴が空です：list_reco_history が 0 行を返しました（DB に serenity/bottleneck スタイルの履歴がないか、バックエンドコマンドの失敗が静かに無視された可能性があります）"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "估值モデルパラメータ（DCF/グラハム）"
+      },
+      "valuation": {
+        "perpetualGrowth": "永久成長率",
+        "discountRate": "割引率",
+        "defaultGrowth": "デフォルト成長率",
+        "minGrowth": "最小成長率",
+        "maxGrowth": "最大成長率",
+        "forecastYears": "予測年数",
+        "bondYield": "AAA社債利回り",
+        "unsavedChanges": "估值パラメータ未保存"
       },
       "panels": {
         "main": "Main Panel",

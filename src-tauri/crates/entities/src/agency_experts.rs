@@ -30,6 +30,9 @@ pub struct Model {
     /// 擅长细分领域（JSON 数组）
     #[sea_orm(column_name = "specialties")]
     pub specialties: Option<String>,
+    /// 归属角色（agent_roles.id）
+    #[sea_orm(column_name = "parent_role_id")]
+    pub parent_role_id: Option<String>,
     /// 历史成功率（0.0 ~ 1.0）
     #[sea_orm(column_name = "success_rate")]
     pub success_rate: Option<f64>,

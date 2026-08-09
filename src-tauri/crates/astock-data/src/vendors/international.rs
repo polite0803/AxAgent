@@ -265,7 +265,13 @@ impl StockVendor for InternationalVendor {
         };
         let url = format!(
             "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid={secid}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57&klt={}&fqt={}&end=20500101&lmt={}",
-            period_code, if matches!(adj, Some(AdjType::Forward) | None) { "1" } else { "0" }, limit.min(1000)
+            period_code,
+            if matches!(adj, Some(AdjType::Forward) | None) {
+                "1"
+            } else {
+                "0"
+            },
+            limit.min(1000)
         );
 
         let text = self.http_get_with_hooks(&url, "data_source").await?;

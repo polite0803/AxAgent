@@ -1870,10 +1870,21 @@ pub fn noop_tool_registry() -> Arc<dyn ToolRegistryTrait> {
     Arc::new(NoopToolRegistry)
 }
 
-// ── AgencyExpertRepository 空实现（用于 workflow_ai 测试）──
+// ── AgentRoleRepository / AgencyExpertRepository 空实现（用于 workflow_ai 测试）──
 
-use crate::repo_dtos::AgencyExpertDto;
-use crate::repositories::AgencyExpertRepository;
+use crate::repo_dtos::{AgencyExpertDto, AgentRoleDto};
+use crate::repositories::{AgencyExpertRepository, AgentRoleRepository};
+
+struct NoopAgentRoleRepository;
+#[async_trait]
+impl AgentRoleRepository for NoopAgentRoleRepository {
+    async fn get_agent_role(&self, _id: &str) -> std::result::Result<Option<AgentRoleDto>, String> {
+        Ok(None)
+    }
+    async fn list_agent_roles(&self) -> std::result::Result<Vec<AgentRoleDto>, String> {
+        Ok(vec![])
+    }
+}
 
 struct NoopAgencyExpertRepository;
 #[async_trait]
@@ -1889,8 +1900,9 @@ impl AgencyExpertRepository for NoopAgencyExpertRepository {
     }
 }
 
-/// 注册 Noop 的专家仓储，使 `build_roles_and_experts_brief()` 在测试中不崩溃。
+/// 注册 Noop 的角色与专家仓储，使 `build_roles_and_experts_brief()` 在测试中不崩溃。
 pub fn register_noop_role_and_expert_repos() {
-    use crate::repositories::set_agency_expert_repository;
+    use crate::repositories::{set_agency_expert_repository, set_agent_role_repository};
+    set_agent_role_repository(Arc::new(NoopAgentRoleRepository));
     set_agency_expert_repository(Arc::new(NoopAgencyExpertRepository));
 }

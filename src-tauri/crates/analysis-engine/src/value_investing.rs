@@ -138,7 +138,15 @@ impl ValueInvestingEngine {
 
         let summary = format!(
             "内在价值≈{:.2} | 安全边际{:.0}%({}) | F-Score={}/9({}) | 护城河{}/100({}) | OE收益率{:.1}% | {}",
-            dcf_mid, mos, mos_level, f_score, f_score_level, moat_score, moat_level, oe_yield, value_signal
+            dcf_mid,
+            mos,
+            mos_level,
+            f_score,
+            f_score_level,
+            moat_score,
+            moat_level,
+            oe_yield,
+            value_signal
         );
 
         ValueMetrics {

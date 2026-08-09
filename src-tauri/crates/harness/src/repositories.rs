@@ -452,6 +452,8 @@ pub fn agency_expert_repository() -> Arc<dyn AgencyExpertRepository> {
 #[async_trait]
 pub trait AgentRoleRepository: Send + Sync {
     async fn get_agent_role(&self, id: &str) -> Result<Option<AgentRoleDto>, String>;
+    /// 列出所有角色（按 sort_order 排序），用于 LLM prompt 注入清单与前端管理。
+    async fn list_agent_roles(&self) -> Result<Vec<AgentRoleDto>, String>;
 }
 
 pub fn set_agent_role_repository(repo: Arc<dyn AgentRoleRepository>) {

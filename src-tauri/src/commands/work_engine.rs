@@ -94,6 +94,7 @@ impl From<WorkflowExecutionData> for ExecutionSummaryResponse {
 ///
 /// 返回 execution_id。模板存在性不做预校验——`run_workflow` 内部对 DB 模板
 /// 有兜底（重启后 `self.workflows` 未填充的场景），失败自然 emit failed。
+#[allow(dead_code)]
 pub fn spawn_workflow_run(
     app: tauri::AppHandle,
     engine: std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,

@@ -10,6 +10,8 @@ pub mod agent_insight;
 pub mod agent_nudge;
 pub mod agent_profile;
 pub mod agent_role;
+pub mod analyst_evolution;
+pub mod analyst_feedback;
 pub mod app_config;
 pub mod artifacts;
 pub mod background_tasks;

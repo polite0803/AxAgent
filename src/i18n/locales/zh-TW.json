@@ -12184,7 +12184,16 @@
     },
     "stepLogCountSuffix": "共 {{count}} 條",
     "stepLogFieldSuffix": "{{count}} 個欄位",
-    "stepLogCountEmpty": "空數據"
+    "stepLogCountEmpty": "空數據",
+    "colParams": "參數",
+    "colAvgPrice": "均價",
+    "colHoldValue": "持股市值",
+    "colTotalScore": "總分",
+    "colGrossMargin": "毛利率",
+    "boolYes": "是",
+    "boolNo": "否",
+    "backendCallFailed": "後端呼叫失敗",
+    "emptyHistoryWarning": "趨勢智選歷史為空：list_reco_history 傳回 0 行（可能是 DB 暫無風格為 serenity/bottleneck 的歷史，或後端命令失敗被靜默）"
   },
   "tray": {
     "hide": "隱藏",
@@ -13012,7 +13021,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "估值模型參數（DCF/格雷厄姆）"
+      },
+      "valuation": {
+        "perpetualGrowth": "永續增長率",
+        "discountRate": "折現率",
+        "defaultGrowth": "默認增長率",
+        "minGrowth": "最小增長率",
+        "maxGrowth": "最大增長率",
+        "forecastYears": "預測年數",
+        "bondYield": "AAA 企業債收益率",
+        "unsavedChanges": "估值參數未保存"
       },
       "panels": {
         "main": "主面板",

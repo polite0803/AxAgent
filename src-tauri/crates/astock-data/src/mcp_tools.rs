@@ -1264,6 +1264,11 @@ pub async fn execute_mcp_tool(
             if code.is_empty() {
                 return Err("compute_valuation 缺少 stock_code 参数".to_string());
             }
+            // 尝试解析可选的估值配置参数
+            let valuation_config = arguments
+                .get("valuation_config")
+                .and_then(|v| serde_json::from_value::<ValuationConfig>(v.clone()).ok());
+
             // 估值需要行情（PE/PB/总市值）和财务数据
             let quote = client.get_quote(code).await.map_err(|e| e.to_string())?;
             let financials = client.get_financials(code).await.map_err(|e| e.to_string())?;
@@ -1291,9 +1296,13 @@ pub async fn execute_mcp_tool(
 
             // ── DCF 两阶段估值 ──
             let (dcf_low, dcf_mid, dcf_high) =
-                compute_dcf(&financials, total_shares, current_price);
+                compute_dcf(&financials, total_shares, current_price, valuation_config.as_ref());
 
-            // ── 安全边际 ──
+            // ── 格雷厄姆内在价值（先计算，作为 DCF fallback） ──
+            let graham_value =
+                compute_graham_value(&financials, current_price, valuation_config.as_ref());
+
+            // ── 安全边际：优先使用 DCF，不可用时 fallback 到格雷厄姆 ──
             let (mos_pct, mos_level) = if dcf_mid > 0.0 && current_price > 0.0 {
                 let mos = ((dcf_mid - current_price) / dcf_mid) * 100.0;
                 let level = if mos > 30.0 {
@@ -1306,18 +1315,30 @@ pub async fn execute_mcp_tool(
                     "无（高估风险）"
                 };
                 (mos, level)
+            } else if graham_value > 0.0 && current_price > 0.0 {
+                // DCF 不可用时，使用格雷厄姆估值作为 fallback
+                let mos = ((graham_value - current_price) / graham_value) * 100.0;
+                let level = if mos > 30.0 {
+                    "充足(格雷厄姆)"
+                } else if mos > 15.0 {
+                    "适中(格雷厄姆)"
+                } else if mos > 0.0 {
+                    "不足(格雷厄姆)"
+                } else {
+                    "无（高估风险）"
+                };
+                (mos, level)
             } else {
                 (0.0, "无法计算")
             };
 
-            // ── 格雷厄姆内在价值 ──
-            let graham_value = compute_graham_value(&financials, current_price);
-
             // ── 所有者收益率 ──
+            // compute_owner_earnings 返回元，total_mv 为亿元，需统一单位
             let oe_yield =
                 if let (Some(mv), Some(oe)) = (total_mv, compute_owner_earnings(&financials)) {
                     if mv > 0.0 {
-                        (oe / mv) * 100.0
+                        // oe(元) / (mv(亿元) * 1_0000_0000) = 收益率
+                        (oe / (mv * 1_0000_0000.0)) * 100.0
                     } else {
                         0.0
                     }
@@ -1549,6 +1570,25 @@ pub async fn execute_mcp_tool(
             let result = optimize_attention_weights_impl(&samples);
             serde_json::to_string(&result).map_err(|e| e.to_string())
         },
+        // P1-2 修复(2026-08-09): run_quality_gate 原只有 schema 声明、dispatch 无实现分支，
+        // LLM 调用必走 Unknown MCP tool。现接入 astock-data::quality::run_quality_gate。
+        // 输入: {reports_json: "{expert_id: report_text}"}，输出: {grade, summary, warnings}。
+        "run_quality_gate" => {
+            let reports_json = arguments["reports_json"].as_str().ok_or_else(|| {
+                "run_quality_gate 缺少 reports_json 参数（{expert_id: report_text} JSON）"
+                    .to_string()
+            })?;
+            let reports: std::collections::HashMap<String, String> =
+                serde_json::from_str(reports_json)
+                    .map_err(|e| format!("reports_json 解析失败: {e}"))?;
+            let check = crate::quality::run_quality_gate(&reports);
+            serde_json::to_string(&serde_json::json!({
+                "grade": format!("{:?}", check.grade),
+                "summary": check.summary,
+                "warnings": check.warnings,
+            }))
+            .map_err(|e| e.to_string())
+        },
         // G3 产业链相关工具（get_industry_chain_propagation /
         // map_news_to_cross_market_stocks）已于 P2-8 阶段迁至
         // `axagent_analysis_engine::mcp_tools::execute_industry_chain_tool`。
@@ -1611,8 +1651,6 @@ fn compute_f_score(financials: &[FinancialReport]) -> u32 {
         if curr_dr <= prev_dr {
             score += 1;
         }
-    } else {
-        score += 1; // 无法对比时给通过
     }
     // L2: 流动比率提升
     if let (Some(curr_cr), Some(prev_cr)) = (curr.current_ratio, prev.and_then(|p| p.current_ratio))
@@ -1620,12 +1658,28 @@ fn compute_f_score(financials: &[FinancialReport]) -> u32 {
         if curr_cr >= prev_cr {
             score += 1;
         }
-    } else if curr.current_ratio.unwrap_or(1.5) >= 1.0 {
+    } else if curr.current_ratio.unwrap_or(0.0) >= 1.0 {
         score += 1;
     }
-    // L3: 无新股增发 — 无直接数据，跳过（用负债率指标替代为已覆盖）
-    // A股财报数据不包含增发信息，此项默认给通过
-    score += 1;
+    // L3: 无新股增发 — 用 net_profit/eps 比值近似股本变化；比值下降视为股本增加
+    // 股本 = net_profit / eps，若股本增长则视为可能增发
+    if let (Some(curr_np), Some(curr_eps), Some(prev_np), Some(prev_eps)) =
+        (curr.net_profit, curr.eps, prev.and_then(|p| p.net_profit), prev.and_then(|p| p.eps))
+    {
+        if curr_eps > 0.0 && prev_eps > 0.0 {
+            let curr_shares_approx = (curr_np / curr_eps).abs();
+            let prev_shares_approx = (prev_np / prev_eps).abs();
+            if curr_shares_approx <= prev_shares_approx * 1.05 {
+                // 股本变化在 5% 以内视为无显著增发
+                score += 1;
+            }
+        }
+    } else if prev.is_none() {
+        // 只有一期数据，检查当前资产负债率是否健康
+        if curr.debt_ratio.unwrap_or(100.0) < 50.0 {
+            score += 1;
+        }
+    }
 
     // E1: 毛利率提升
     if let (Some(curr_gm), Some(prev_gm)) = (curr.gross_margin, prev.and_then(|p| p.gross_margin)) {
@@ -1646,12 +1700,12 @@ fn compute_f_score(financials: &[FinancialReport]) -> u32 {
                 if curr_tat > prev_tat {
                     score += 1;
                 }
+            } else if curr_rev > prev_rev {
+                score += 1; // 营收增长近似替代周转率提升
             }
         } else if curr_rev > prev_rev {
             score += 1; // 营收增长近似替代周转率提升
         }
-    } else {
-        score += 1; // 无法对比时给通过
     }
 
     score.min(9)
@@ -1666,7 +1720,6 @@ fn compute_moat_score(
     if financials.is_empty() {
         return (0, "无");
     }
-    let f = &financials[0];
     let mut score = 0u32;
 
     // 1. ROE 持续性 (30分)
@@ -1701,13 +1754,19 @@ fn compute_moat_score(
         score += 8;
     }
 
-    // 3. 低负债 (20分)
-    let debt = f.debt_ratio.unwrap_or(100.0);
-    if debt < 20.0 {
+    // 3. 低负债 (20分) — 使用多期平均负债率，避免单期异常
+    let debt_values: Vec<f64> = financials.iter().take(5).filter_map(|r| r.debt_ratio).collect();
+    let debt_count = debt_values.len() as f64;
+    let avg_debt = if debt_count > 0.0 {
+        debt_values.iter().sum::<f64>() / debt_count
+    } else {
+        100.0
+    };
+    if avg_debt < 20.0 {
         score += 20;
-    } else if debt < 40.0 {
+    } else if avg_debt < 40.0 {
         score += 15;
-    } else if debt < 60.0 {
+    } else if avg_debt < 60.0 {
         score += 8;
     }
 
@@ -1739,14 +1798,75 @@ fn compute_moat_score(
 }
 
 /// DCF 两阶段估值（保守/中性/乐观三档）
+///
+/// 估值参数说明：
+/// - 永续增长率 `PERPETUAL_GROWTH = 3%`：接近长期通胀率，Gordon 增长模型标准假设
+/// - 折现率 `DISCOUNT_RATE = 10%`：A 股权益风险溢价合理区间（无风险利率 3% + 风险溢价 7%）
+/// - 默认增长率 `DEFAULT_GROWTH = 8%`：当无营收同比数据时使用的保守假设
+/// - 增长率区间 `[MIN_GROWTH, MAX_GROWTH] = [2%, 30%]`：限制异常值
+const PERPETUAL_GROWTH: f64 = 0.03;
+const DISCOUNT_RATE: f64 = 0.10;
+const DEFAULT_GROWTH: f64 = 0.08;
+const MIN_GROWTH: f64 = 0.02;
+const MAX_GROWTH: f64 = 0.30;
+const FORECAST_YEARS: i32 = 5;
+
+/// 估值运行时配置（可由前端设置页下发）
+///
+/// 当 `Some(config)` 传入时使用自定义值，否则回退到模块级常量。
+#[derive(Debug, Clone, Copy, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ValuationConfig {
+    pub perpetual_growth: Option<f64>,
+    pub discount_rate: Option<f64>,
+    pub default_growth: Option<f64>,
+    pub min_growth: Option<f64>,
+    pub max_growth: Option<f64>,
+    pub forecast_years: Option<i32>,
+    pub bond_yield: Option<f64>,
+}
+
+impl ValuationConfig {
+    fn perpetual_growth(&self) -> f64 {
+        self.perpetual_growth.unwrap_or(PERPETUAL_GROWTH)
+    }
+    fn discount_rate(&self) -> f64 {
+        self.discount_rate.unwrap_or(DISCOUNT_RATE)
+    }
+    fn default_growth(&self) -> f64 {
+        self.default_growth.unwrap_or(DEFAULT_GROWTH)
+    }
+    fn min_growth(&self) -> f64 {
+        self.min_growth.unwrap_or(MIN_GROWTH)
+    }
+    fn max_growth(&self) -> f64 {
+        self.max_growth.unwrap_or(MAX_GROWTH)
+    }
+    fn forecast_years(&self) -> i32 {
+        self.forecast_years.unwrap_or(FORECAST_YEARS)
+    }
+    fn bond_yield(&self) -> f64 {
+        self.bond_yield.unwrap_or(4.4)
+    }
+}
+
 fn compute_dcf(
     financials: &[FinancialReport],
     total_shares: Option<f64>,
     _current_price: f64,
+    config: Option<&ValuationConfig>,
 ) -> (f64, f64, f64) {
     if financials.is_empty() {
         return (0.0, 0.0, 0.0);
     }
+    let cfg = config.copied().unwrap_or_default();
+    let perpetual_growth = cfg.perpetual_growth();
+    let discount_rate = cfg.discount_rate();
+    let default_growth = cfg.default_growth();
+    let min_growth = cfg.min_growth();
+    let max_growth = cfg.max_growth();
+    let forecast_years = cfg.forecast_years();
+
     let latest = &financials[0];
     // vendor 返回的财务数据单位均为"元"，无需缩放
     // 优先用 free_cash_flow；其次 operating_cash_flow - capex；最后用 net_profit * 0.90 估算
@@ -1770,61 +1890,69 @@ fn compute_dcf(
     let fcf_per_share = fcf / shares; // 元/股
 
     // 用营收同比增速作为 growth_rate 参考；默认 8%
-    let growth = latest.revenue_yoy.map(|y| (y / 100.0).clamp(0.02, 0.30)).unwrap_or(0.08);
-    let perpetual = 0.03;
-    let discount = 0.10;
+    let growth = latest
+        .revenue_yoy
+        .map(|y| (y / 100.0).clamp(min_growth, max_growth))
+        .unwrap_or(default_growth);
 
     let dcf_two_stage = |fcf_ps: f64, g: f64, p: f64, d: f64| -> f64 {
         let mut pv = 0.0;
         let mut current_fcf = fcf_ps;
-        for year in 1..=5 {
+        for year in 1..=forecast_years {
             current_fcf *= 1.0 + g;
             pv += current_fcf / (1.0 + d).powi(year);
         }
         let terminal_fcf = current_fcf * (1.0 + p);
         let terminal_spread = (d - p).max(0.001);
         let terminal_value = terminal_fcf / terminal_spread;
-        let terminal_pv = terminal_value / (1.0 + d).powi(5);
+        let terminal_pv = terminal_value / (1.0 + d).powi(forecast_years);
         pv + terminal_pv
     };
 
-    let low = dcf_two_stage(
-        fcf_per_share,
-        (growth * 0.6_f64).max(0.01),
-        (perpetual * 0.7_f64).max(0.01),
-        discount,
-    );
-    let mid = dcf_two_stage(fcf_per_share, growth.max(0.01), perpetual, discount);
-    let high = dcf_two_stage(
-        fcf_per_share,
-        (growth * 1.5_f64).clamp(0.02, 0.30),
-        (perpetual * 1.3_f64).min(0.05),
-        discount,
-    );
+    // 保守档：增长率打 6 折，永续增长率打 7 折
+    let low_growth = (growth * 0.6_f64).max(min_growth / 2.0);
+    let low_perpetual = (perpetual_growth * 0.7_f64).max(min_growth / 2.0);
+    let low = dcf_two_stage(fcf_per_share, low_growth, low_perpetual, discount_rate);
+
+    // 中性档：使用原始增长率和永续增长率
+    let mid_growth = growth.max(min_growth / 2.0);
+    let mid = dcf_two_stage(fcf_per_share, mid_growth, perpetual_growth, discount_rate);
+
+    // 乐观档：增长率放大 1.5 倍，永续增长率放大 1.3 倍
+    let high_growth = (growth * 1.5_f64).clamp(min_growth, max_growth);
+    let high_perpetual = (perpetual_growth * 1.3_f64).min(0.05);
+    let high = dcf_two_stage(fcf_per_share, high_growth, high_perpetual, discount_rate);
 
     (low, mid, high)
 }
 
 /// 格雷厄姆内在价值公式：V = EPS × (8.5 + 2g) × 4.4 / Y
-/// g 为未来7-10年预期增长率，Y 为AAA企业债收益率（取4.4%为基准）
-fn compute_graham_value(financials: &[FinancialReport], current_price: f64) -> f64 {
+/// g 为未来7-10年预期增长率，Y 为AAA企业债收益率基准
+fn compute_graham_value(
+    financials: &[FinancialReport],
+    current_price: f64,
+    config: Option<&ValuationConfig>,
+) -> f64 {
     if financials.is_empty() || current_price <= 0.0 {
         return 0.0;
     }
+    let cfg = config.copied().unwrap_or_default();
+    let bond_yield = cfg.bond_yield();
+
     let latest = &financials[0];
     let eps = latest.eps.unwrap_or(0.0);
     if eps <= 0.0 {
         return 0.0;
     }
-    // 用利润同比作为增长参考；vendor 返回的 profit_yoy 是百分比值（如 15.0 表示 15%）
-    // 格雷厄姆公式中 g 直接用百分比值（8.5 + 2*g），封顶 30%
-    let g = latest.profit_yoy.map(|y| y.clamp(0.0, 30.0)).unwrap_or(5.0);
-    let bond_yield = 4.4;
+    // profit_yoy 是百分比值（如 15.0 表示 15%），需要转换为小数形式
+    // 格雷厄姆公式中 g 应为小数（如 0.15），封顶 30% = 0.30
+    let g = latest.profit_yoy.map(|y| (y / 100.0).clamp(0.0, 0.30)).unwrap_or(0.05);
     let value = eps * (8.5 + 2.0 * g) * 4.4 / bond_yield;
     value.max(0.0)
 }
 
-/// 巴菲特所有者收益（亿元）
+/// 巴菲特所有者收益（元）
+/// 注意：vendor 返回的财务数据单位均为"元"，无需缩放
 fn compute_owner_earnings(financials: &[FinancialReport]) -> Option<f64> {
     if financials.is_empty() {
         return None;

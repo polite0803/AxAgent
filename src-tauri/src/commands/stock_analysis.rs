@@ -1721,6 +1721,28 @@ pub async fn execute_stock_mcp_tool(
             &tool_name, &arguments,
         );
     }
+
+    // 为 compute_valuation 工具注入估值参数配置
+    let arguments = if tool_name == "compute_valuation" {
+        let params = get_valuation_params_inner(&state).await;
+        let config = serde_json::json!({
+            "perpetualGrowth": params.perpetual_growth,
+            "discountRate": params.discount_rate,
+            "defaultGrowth": params.default_growth,
+            "minGrowth": params.min_growth,
+            "maxGrowth": params.max_growth,
+            "forecastYears": params.forecast_years,
+            "bondYield": params.bond_yield,
+        });
+        let mut args = arguments;
+        if let Some(obj) = args.as_object_mut() {
+            obj.insert("valuation_config".to_string(), config);
+        }
+        args
+    } else {
+        arguments
+    };
+
     axagent_astock_data::mcp_tools::execute_mcp_tool(&state.astock_client, &tool_name, &arguments)
         .await
 }
@@ -5548,4 +5570,75 @@ pub async fn run_self_improving_stock_analysis(
             }
         },
     }
+}
+
+// ── 估值参数配置命令 ──
+
+/// 估值参数配置结构体
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ValuationParams {
+    /// 永续增长率（默认 0.03 = 3%）
+    pub perpetual_growth: f64,
+    /// 折现率（默认 0.10 = 10%）
+    pub discount_rate: f64,
+    /// 默认增长率（无数据时使用，默认 0.08 = 8%）
+    pub default_growth: f64,
+    /// 最小增长率（默认 0.02 = 2%）
+    pub min_growth: f64,
+    /// 最大增长率（默认 0.30 = 30%）
+    pub max_growth: f64,
+    /// 预测年数（默认 5 年）
+    pub forecast_years: i32,
+    /// 格雷厄姆公式中的 AAA 企业债收益率基准（默认 4.4）
+    pub bond_yield: f64,
+}
+
+impl Default for ValuationParams {
+    fn default() -> Self {
+        Self {
+            perpetual_growth: 0.03,
+            discount_rate: 0.10,
+            default_growth: 0.08,
+            min_growth: 0.02,
+            max_growth: 0.30,
+            forecast_years: 5,
+            bond_yield: 4.4,
+        }
+    }
+}
+
+const VALUATION_PARAMS_KEY: &str = "valuation_params";
+
+#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取估值参数配置")]
+#[tauri::command]
+pub async fn get_valuation_params(state: State<'_, AppState>) -> Result<ValuationParams, String> {
+    let params = get_valuation_params_inner(&state).await;
+    Ok(params)
+}
+
+/// 内部函数：从数据库加载估值参数，失败时返回默认值
+async fn get_valuation_params_inner(state: &State<'_, AppState>) -> ValuationParams {
+    let db = state.harness.db();
+    match axagent_dao::repo::settings::get_setting(db, VALUATION_PARAMS_KEY).await {
+        Ok(Some(json_str)) => {
+            serde_json::from_str(&json_str).unwrap_or_else(|_| ValuationParams::default())
+        },
+        Ok(None) => ValuationParams::default(),
+        Err(_) => ValuationParams::default(),
+    }
+}
+
+#[agent_command(domain = "stock_analysis", safety = Caution, call_mode = StateInput, description = "保存估值参数配置")]
+#[tauri::command]
+pub async fn save_valuation_params(
+    state: State<'_, AppState>,
+    params: ValuationParams,
+) -> Result<(), String> {
+    let db = state.harness.db();
+    let json_str =
+        serde_json::to_string(&params).map_err(|e| format!("序列化估值参数失败: {}", e))?;
+    axagent_dao::repo::settings::set_setting(db, VALUATION_PARAMS_KEY, &json_str)
+        .await
+        .map_err(|e| format!("保存估值参数失败: {}", e))
 }

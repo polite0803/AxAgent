@@ -819,7 +819,7 @@ impl PluginManager {
             }
 
             if install_path.exists() {
-                remove_dir_all_with_retry(&install_path)?;
+                remove_dir_all_with_retry(&install_path, 3)?;
             }
             copy_dir_all(&source_root, &install_path)?;
 
@@ -854,7 +854,7 @@ impl PluginManager {
         for plugin_id in stale_bundled_ids {
             if let Some(record) = registry.plugins.remove(&plugin_id) {
                 if record.install_path.exists() {
-                    remove_dir_all_with_retry(&record.install_path)?;
+                    remove_dir_all_with_retry(&record.install_path, 3)?;
                 }
                 changed = true;
             }
@@ -2151,6 +2151,28 @@ fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), P
             collect_files_recursive(&path, files)?;
         } else {
             files.push(path);
+        }
+    }
+    Ok(())
+}
+
+/// 在 Windows 上，文件句柄可能被其他进程（杀毒软件、索引服务等）占用导致
+/// `remove_dir_all` 失败（os error 145: 目录不是空的）。
+/// 此函数带重试机制，在重试前短暂等待让文件句柄释放。
+fn remove_dir_all_with_retry(path: &Path, max_retries: u32) -> Result<(), PluginError> {
+    for attempt in 0..max_retries {
+        match fs::remove_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(e) if attempt < max_retries - 1 => {
+                tracing::debug!(
+                    "remove_dir_all attempt {} failed for {}: {}, retrying...",
+                    attempt + 1,
+                    path.display(),
+                    e
+                );
+                std::thread::sleep(Duration::from_millis(100 * (attempt as u64 + 1)));
+            },
+            Err(e) => return Err(PluginError::Io(e)),
         }
     }
     Ok(())

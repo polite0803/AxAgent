@@ -175,9 +175,17 @@ pub async fn save_agent_role(
     system_prompt: String,
     active_domains: Vec<String>,
     source: String,
+    // v218: 岗位扩展字段（原 business_roles 并入 agent_roles）
+    responsibilities: Option<String>,
+    decision_authority: Option<String>,
+    reports_to: Option<String>,
+    managed_expert_ids: Option<String>,
+    required_certifications: Option<String>,
+    icon: Option<String>,
+    color: Option<String>,
 ) -> Result<(), String> {
     let default_tools: Vec<String> = Vec::new();
-    agent_role::upsert_agent_role(
+    agent_role::upsert_agent_role_ext(
         app_state.harness.db(),
         &id,
         &name,
@@ -188,6 +196,15 @@ pub async fn save_agent_role(
         3,
         600,
         &source,
+        responsibilities.as_deref(),
+        decision_authority.as_deref(),
+        reports_to.as_deref(),
+        managed_expert_ids.as_deref(),
+        required_certifications.as_deref(),
+        icon.as_deref(),
+        color.as_deref(),
+        true,
+        0,
     )
     .await
     .map_err(|e| {
@@ -257,6 +274,14 @@ fn parse_open_agent_spec(yaml_str: &str) -> Result<AgentRoleDef, String> {
         max_concurrent,
         timeout_seconds,
         source: "imported".to_string(),
+        responsibilities: None,
+        decision_authority: None,
+        reports_to: None,
+        managed_expert_ids: None,
+        required_certifications: None,
+        icon: None,
+        color: None,
+        is_enabled: true,
         sort_order: 0,
         created_at: now,
         updated_at: now,

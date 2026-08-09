@@ -44,16 +44,19 @@ pub fn compute_factor_completeness(
     let mut present_count = 0.0;
     let total_factors = 10.0;
 
-    // f1: 技术面 — totalScore 存在且 > 0
+    // P2-1 修复(2026-08-09): 从"字段存在性"升级为"值有效性"——
+    // 存在但值域异常/中性值(如 0)的数据不计数，避免"字段有值但不可用"被误算为完整。
+
+    // f1: 技术面 — totalScore 有效（0-100 值域）
     if let Some(s) = total_score {
-        if s > 0.0 {
+        if s.is_finite() && s > 0.0 && s <= 100.0 {
             present_count += 1.0;
         }
     }
 
-    // f2: 共识 — consensusScore 存在且 > 0
+    // f2: 共识 — consensusScore 有效（0-100 值域）
     if let Some(s) = consensus_score {
-        if s > 0.0 {
+        if s.is_finite() && s > 0.0 && s <= 100.0 {
             present_count += 1.0;
         }
     }
@@ -66,16 +69,18 @@ pub fn compute_factor_completeness(
         }
     }
 
-    // f4: 风险 — volatility 存在且 > 0
+    // f4: 风险 — volatility 有效（0-200% 年化值域，防 0/NaN/极端值）
     if let Some(v) = risk_volatility {
-        if v > 0.0 {
+        if v.is_finite() && v > 0.0 && v <= 200.0 {
             present_count += 1.0;
         }
     }
 
-    // f5: 估值 — dcf_upside 存在
-    if valuation_dcf_upside.is_some() {
-        present_count += 1.0;
+    // f5: 估值 — dcf_upside 有效（有限值，-100~1000 合理区间）
+    if let Some(u) = valuation_dcf_upside {
+        if u.is_finite() && u > -100.0 && u < 1000.0 {
+            present_count += 1.0;
+        }
     }
 
     // f7: 交易方案 — trader_direction 非空
@@ -86,9 +91,11 @@ pub fn compute_factor_completeness(
         }
     }
 
-    // f9: 资金面 — main_net_inflow 存在
-    if money_flow_main_net_inflow.is_some() {
-        present_count += 1.0;
+    // f9: 资金面 — main_net_inflow 有效（≠0 表示有实际资金信号；0 为中性不计数）
+    if let Some(flow) = money_flow_main_net_inflow {
+        if flow.is_finite() && flow != 0.0 {
+            present_count += 1.0;
+        }
     }
 
     // f10: 筹码面 — shareholder_trades 数组长度 > 0
@@ -105,9 +112,11 @@ pub fn compute_factor_completeness(
         }
     }
 
-    // f11: PACE 情绪 — pace_signal 存在
-    if pace_signal.is_some() {
-        present_count += 1.0;
+    // f11: PACE 情绪 — pace_signal 有效（[-1,1] 值域）
+    if let Some(p) = pace_signal {
+        if p.is_finite() && (-1.0..=1.0).contains(&p) {
+            present_count += 1.0;
+        }
     }
 
     present_count / total_factors
@@ -1517,5 +1526,68 @@ mod tests {
         // prior=0.4, posterior=0.6 → BF≈2.25 → ~69%
         let conf = compute_bayes_confidence(0.4, 0.6);
         assert!(conf > 65.0 && conf < 75.0, "预期 ~69%, 实际 {conf}%");
+    }
+
+    // ── factor_completeness（P2-1 有效性校验，2026-08-09）──
+
+    #[test]
+    fn factor_completeness_counts_all_valid() {
+        // 10 个因子全部有效 → 1.0
+        let r = compute_factor_completeness(
+            Some(70.0),
+            Some(65.0),
+            Some("强"),
+            Some(25.0),
+            Some(15.0),
+            Some("看多"),
+            Some(-1.2e8),
+            Some(3),
+            Some(5),
+            Some(0.3),
+        );
+        assert!((r - 1.0).abs() < 1e-9, "got {r}");
+    }
+
+    #[test]
+    fn factor_completeness_zero_money_flow_not_counted() {
+        // main_net_inflow = 0（中性无信号）→ f9 不计数 → 9/10
+        let r = compute_factor_completeness(
+            Some(70.0),
+            Some(65.0),
+            Some("强"),
+            Some(25.0),
+            Some(15.0),
+            Some("看多"),
+            Some(0.0),
+            Some(3),
+            Some(5),
+            Some(0.3),
+        );
+        assert!((r - 0.9).abs() < 1e-9, "got {r}");
+    }
+
+    #[test]
+    fn factor_completeness_out_of_range_values_not_counted() {
+        // total_score=150（超 0-100）、pace=5.0（超 [-1,1]）→ 均不计数 → 8/10
+        let r = compute_factor_completeness(
+            Some(150.0),
+            Some(65.0),
+            Some("强"),
+            Some(25.0),
+            Some(15.0),
+            Some("看多"),
+            Some(-1.2e8),
+            Some(3),
+            Some(5),
+            Some(5.0),
+        );
+        assert!((r - 0.8).abs() < 1e-9, "got {r}");
+    }
+
+    #[test]
+    fn factor_completeness_all_none_is_zero() {
+        let r =
+            compute_factor_completeness(None, None, None, None, None, None, None, None, None, None);
+        assert!((r - 0.0).abs() < 1e-9);
     }
 }

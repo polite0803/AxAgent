@@ -1406,6 +1406,7 @@ export * from "./agentProfile";
 export * from "./approval";
 export * from "./artifact";
 export * from "./backup";
+export * from "./businessRole";
 export * from "./citation";
 export * from "./evaluator";
 export * from "./expert";

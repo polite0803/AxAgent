@@ -516,17 +516,18 @@ impl NodeExecutorTrait for AgentExecutor {
             }
         }
 
-        // 4b. AgentRole system_prompt（执行器）+ Expert system_prompt（技能）
+        // 4b. AgentRole system_prompt（角色/岗位）+ Expert system_prompt（专家）+ 节点 inline
         //
-        // 两层 prompt 拼接顺序（语义层级：高 → 低）：
-        //   1. AgentRole.system_prompt    —— 抽象执行器（executor/planner）= 怎么干活
-        //   2. Expert.system_prompt       —— 业务人才（证券分析师）= 具体技能
+        // 三层 prompt 拼接顺序（语义层级：高 → 低）：
+        //   1. AgentRole.system_prompt    —— 角色/岗位（CEO/CTO/证券投资负责人/executor）= 在组织里担什么责、怎么干活
+        //   2. Expert.system_prompt       —— 专家人才（证券分析师/代码审计专家）= 具体技能
         //   3. 节点 inline system_prompt —— 工作流编辑器中本节点自定义的覆盖提示词
         //
-        // 这样设计符合「执行器 → 专家 → 节点覆盖」的从抽象到具体的层级关系，
-        // 节点 inline prompt 可以覆盖上层岗位的指令（primacy + recency 双锚定）。
+        // v218: business_roles 已并入 agent_roles（业务岗位即角色），原 BusinessRole 层删除，
+        // 岗位 system_prompt（如证券投资负责人）统一由 agent_role 承载。
+        // 节点 inline prompt 可以覆盖上层指令（primacy + recency 双锚定）。
         if let Some(ref p) = profile {
-            // 1. 解析 AgentRole（抽象执行器类型）的提示词
+            // 1. 解析 AgentRole（角色/岗位）的提示词
             if let Some(ref role_name) = p.agent_role {
                 match axagent_harness::repositories::agent_role_repository()
                     .get_agent_role(role_name)

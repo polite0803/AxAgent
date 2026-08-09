@@ -330,6 +330,12 @@ export interface DataQualityReport {
   low_confidence_analysts: string[];
   /** P1-B3: 数据质量问题列表（字数不足/占位符/低置信等） */
   warnings?: string[];
+  /** P2-2(2026-08-09): 分析师方向冲突标记（看多 vs 看空各有 ≥2 个有效分析师） */
+  direction_conflict?: boolean;
+  /** P2-2: 看多方向分析师数 */
+  bull_dir_count?: number;
+  /** P2-2: 看空方向分析师数 */
+  bear_dir_count?: number;
   /** 人类可读的总结文本 */
   summary: string;
 }

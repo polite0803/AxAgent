@@ -265,9 +265,10 @@ async fn seed_opc_roles(db: &DatabaseConnection) -> Result<(), String> {
     Ok(())
 }
 
-/// 种子化 4 个业务执行岗位到 agent_roles 表
+/// 种子化 4 个 OPC 业务角色到 agent_roles 表
 ///
-/// 这些岗位被 preset_templates.rs 的 PresetStep.role 引用，
+/// v218: 业务岗位并入角色表（business_roles → agent_roles），岗位即角色。
+/// 这些角色被 preset_templates.rs 的 PresetStep.role 引用，
 /// 工作流执行时 agent_executor 会通过 agent_role 反查此表获取 system_prompt。
 async fn seed_opc_business_roles(db: &DatabaseConnection) -> Result<(), String> {
     let mut count = 0u32;
@@ -345,7 +346,6 @@ async fn seed_opc_profiles(db: &DatabaseConnection) -> Result<(), String> {
             sort_order: Set(0),
             is_enabled: Set(1),
             expert_id: Set(Some(expert_id)),
-            business_role_id: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
         };
@@ -384,18 +384,31 @@ fn role_for_source_dir(dir: &str) -> Option<String> {
         "engineering" | "testing" | "security" | "specialized" | "gamedev" | "gis" | "spatial" => {
             "cto"
         },
-        // 项目/运营
-        "pm" | "project-management" | "support" => "opc_operations_manager",
+        // 项目管理 → 项目经理
+        "pm" | "project-management" => "opc_project_manager",
+        // 运营/支持 → 运营经理
+        "operations" | "support" | "hr" => "opc_operations_manager",
         // 产品/设计 → CPO
-        "product" | "design" => "cpo",
+        "product" => "cpo",
+        "design" => "opc_product_designer",
         // 财务 → CFO
-        "finance" => "cfo",
+        "finance" | "accounting" | "tax" => "cfo",
         // 增长/销售 → CMO
         "marketing" | "paidmedia" | "sales" => "cmo",
+        // 内容创作 → 内容创作者
+        "content" | "writing" | "media" => "opc_content_creator",
+        // 客户服务 → 客户成功
+        "customer-success" | "client-management" => "opc_customer_success",
+        // 数据分析 → 数据分析师
+        "data" | "analytics" | "bi" => "opc_data_analyst",
         // 战略 → CEO
-        "strategy" => "ceo",
+        "strategy" | "executive" => "ceo",
         // 研究 → AI 研究员
         "academic" | "research" => "ai_researcher",
+        // 法律 → 法务
+        "legal" | "compliance" => "legal_advisor",
+        // 审计 → 审计师
+        "audit" | "compliance-audit" => "financial_auditor",
         // 未映射域：保持 source_dir（与历史行为一致，仅影响日志）
         _ => return None,
     };
@@ -452,7 +465,6 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
             sort_order: Set(0),
             is_enabled: Set(1),
             expert_id: Set(Some(expert.id.clone())),
-            business_role_id: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
         };

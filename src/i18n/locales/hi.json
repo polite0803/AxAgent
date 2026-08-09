@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} आइटम",
     "stepLogFieldSuffix": "{{count}} फ़ील्ड",
-    "stepLogCountEmpty": "कोई डेटा नहीं"
+    "stepLogCountEmpty": "कोई डेटा नहीं",
+    "colParams": "पैरामीटर",
+    "colAvgPrice": "औसत मूल्य",
+    "colHoldValue": "रखी गई शेयरों का बाजार मूल्य",
+    "colTotalScore": "कुल स्कोर",
+    "colGrossMargin": "सकल मार्जिन",
+    "boolYes": "हाँ",
+    "boolNo": "नहीं",
+    "backendCallFailed": "बैकएंड कॉल विफल",
+    "emptyHistoryWarning": "Serenity इतिहास खाली है: list_reco_history ने 0 पंक्तियाँ लौटाईं (संभव है कि DB में serenity/bottleneck शैली का कोई इतिहास न हो, या बैकएंड कमांड विफलता को चुपचाप अनदेखा कर दिया गया हो)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "मूल्यांकन मॉडल पैरामीटर (DCF/ग्राहम)"
+      },
+      "valuation": {
+        "perpetualGrowth": "शाश्वत वृद्धि दर",
+        "discountRate": "छूट दर",
+        "defaultGrowth": "डिफ़ॉल्ट वृद्धि दर",
+        "minGrowth": "न्यूनतम वृद्धि दर",
+        "maxGrowth": "अधिकतम वृद्धि दर",
+        "forecastYears": "पूर्वानुमान वर्ष",
+        "bondYield": "AAA कॉर्पोरेट बॉन्ड यील्ड",
+        "unsavedChanges": "मूल्यांकन परिवर्तन सहेजे नहीं गए"
       },
       "panels": {
         "main": "Main Panel",

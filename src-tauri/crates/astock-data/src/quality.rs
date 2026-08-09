@@ -134,7 +134,24 @@ pub fn check_report_quality(
 
 /// 必采清单 — 每个分析师报告必须包含的关键数据项
 pub fn get_required_items(expert_id: &str) -> Vec<Vec<&'static str>> {
-    match expert_id {
+    // P2-1 修复(2026-08-09): ID 归一化——DAG 节点 ID 带 "a-" 前缀（a-market-analyst），
+    // 原匹配按无前缀角色名（market-analyst），LLM 经 run_quality_gate 传节点 ID 时
+    // 全部落 `_` 分支 → total==0 → check_report_quality 无条件返回 B（放水）。
+    // 现归一化：去 a- 前缀 + 别名映射（a-hot-money → hot-money-tracker 等）。
+    let id = expert_id.strip_prefix("a-").unwrap_or(expert_id);
+    let id = match id {
+        "hot-money" => "hot-money-tracker",
+        "sentiment" => "sentiment-analyst",
+        "news" => "news-analyst",
+        "fundamentals" => "fundamentals-analyst",
+        "policy" => "policy-analyst",
+        "lockup" => "lockup-watcher",
+        "research" => "research-analyst",
+        "sector" => "sector-analyst",
+        "catalyst" => "catalyst-analyst",
+        other => other,
+    };
+    match id {
         "market-analyst" => vec![
             vec!["趋势", "走势", "方向"],
             vec!["形态", "图形", "模式"],
@@ -185,6 +202,29 @@ pub fn get_required_items(expert_id: &str) -> Vec<Vec<&'static str>> {
             vec!["增持", "回购", "护盘"],
             vec!["限售", "锁股", "禁售"],
         ],
+        // P1-2 修复(2026-08-09): 原 _ 分支导致这 3 个分析师必采清单为空 → total==0
+        // → check_report_quality 直接返回 B（无条件放水）。补全后与 DAG 10 分析师对齐。
+        "research-analyst" => vec![
+            vec!["研报", "券商", "评级"],
+            vec!["目标价", "盈利预测", "EPS"],
+            vec!["买入", "增持", "推荐"],
+            vec!["评级", "维持", "上调", "下调"],
+            vec!["覆盖", "跟踪", "机构"],
+        ],
+        "sector-analyst" => vec![
+            vec!["行业", "景气度", "周期"],
+            vec!["板块", "轮动", "涨幅"],
+            vec!["估值", "PE", "PB"],
+            vec!["龙头", "领涨", "领跌"],
+            vec!["政策", "需求", "供给"],
+        ],
+        "catalyst-analyst" => vec![
+            vec!["催化剂", "事件", "驱动"],
+            vec!["公告", "业绩预告", "年报"],
+            vec!["利好", "利空", "风险"],
+            vec!["时间窗口", "临近", "预期"],
+            vec!["叙事", "题材", "主题"],
+        ],
         _ => vec![],
     }
 }
@@ -223,7 +263,9 @@ pub fn run_quality_gate(reports: &HashMap<String, String>) -> QualityCheck {
 
     // 失败率分级阈值: 0%→A, ≤20%且≤1个→B, ≤50%→C, ≤80%→D, >80%→F
     let overall = if total_count == 0 {
-        QualityGrade::C
+        // P3-3 修复(2026-08-09): 空报告集=没有任何分析师输出，语义上应最差（F），
+        // 原返回 C（中间值）会把"无数据"误判为"基本可用"。
+        QualityGrade::F
     } else if fail_count == 0 {
         QualityGrade::A
     } else if fail_count <= (total_count as f64 * 0.2).ceil() as usize && fail_count <= 1 {
@@ -245,10 +287,13 @@ pub fn run_quality_gate(reports: &HashMap<String, String>) -> QualityCheck {
     };
 
     let summary = format!(
-        "数据质量: {}级 | {}位分析师中{}位报告存在质量问题 | {}",
+        "数据质量: {}级 | {} | {}",
         grade_str,
-        total_count,
-        fail_count,
+        if total_count == 0 {
+            "无任何分析师报告".to_string()
+        } else {
+            format!("{}位分析师中{}位报告存在质量问题", total_count, fail_count)
+        },
         if warnings.is_empty() {
             "所有报告通过质量检查".to_string()
         } else {
@@ -339,5 +384,54 @@ mod tests {
         // 2 failures out of 7 = grade C
         assert_eq!(result.grade, QualityGrade::C);
         assert_eq!(result.warnings.len(), 2);
+    }
+
+    // P1-2 修复(2026-08-09): 新增 3 个分析师的必采清单非空 + 空报告不再被放水 B
+    #[test]
+    fn test_new_analysts_have_required_items() {
+        assert!(!get_required_items("research-analyst").is_empty());
+        assert!(!get_required_items("sector-analyst").is_empty());
+        assert!(!get_required_items("catalyst-analyst").is_empty());
+    }
+
+    #[test]
+    fn test_research_analyst_empty_report_gets_f() {
+        let required = get_required_items("research-analyst");
+        // 原 _ 分支: total==0 → 无条件返回 B（放水）；补清单后空报告应为 F
+        let grade = check_report_quality("research-analyst", "", &required);
+        assert_eq!(grade, QualityGrade::F);
+    }
+
+    #[test]
+    fn test_sector_analyst_failure_marker_gets_d() {
+        let required = get_required_items("sector-analyst");
+        let report = "数据获取失败，无法完成分析。".repeat(10);
+        let grade = check_report_quality("sector-analyst", &report, &required);
+        assert_eq!(grade, QualityGrade::D);
+    }
+
+    // P2-1 修复(2026-08-09): ID 归一化——DAG 节点 ID（a- 前缀）也能匹配到必采清单
+    #[test]
+    fn test_dag_node_id_maps_to_required_items() {
+        // a-market-analyst → market-analyst
+        assert_eq!(get_required_items("a-market-analyst"), get_required_items("market-analyst"));
+        // a-hot-money → hot-money-tracker（别名映射）
+        assert!(!get_required_items("a-hot-money").is_empty());
+        assert_eq!(get_required_items("a-hot-money"), get_required_items("hot-money-tracker"));
+        // a-research → research-analyst
+        assert_eq!(get_required_items("a-research"), get_required_items("research-analyst"));
+        // 无前缀角色名不受影响
+        assert_eq!(
+            get_required_items("fundamentals-analyst"),
+            get_required_items("a-fundamentals")
+        );
+    }
+
+    // P3-3 修复(2026-08-09): 空报告集返回 F（原 C）
+    #[test]
+    fn test_empty_report_set_gets_f() {
+        let result = run_quality_gate(&HashMap::new());
+        assert_eq!(result.grade, QualityGrade::F);
+        assert!(result.summary.contains("无任何分析师报告"));
     }
 }

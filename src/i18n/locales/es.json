@@ -12068,7 +12068,16 @@
     },
     "stepLogCountSuffix": "{{count}} elementos",
     "stepLogFieldSuffix": "{{count}} campos",
-    "stepLogCountEmpty": "sin datos"
+    "stepLogCountEmpty": "sin datos",
+    "colParams": "Parámetros",
+    "colAvgPrice": "Precio promedio",
+    "colHoldValue": "Valor de las acciones mantenidas",
+    "colTotalScore": "Puntuación total",
+    "colGrossMargin": "Margen bruto",
+    "boolYes": "Sí",
+    "boolNo": "No",
+    "backendCallFailed": "Error en la llamada al backend",
+    "emptyHistoryWarning": "El historial de Serenity está vacío: list_reco_history devolvió 0 filas (posiblemente no hay historial con estilo serenity/bottleneck en la BD o el error del comando backend se ignoró silenciosamente)"
   },
   "trade": {
     "title": "Trading Log",
@@ -12868,7 +12877,18 @@
         "portfolioMgrAction": "组合决策阈值（portfolio-mgr）",
         "portfolioMgrRisk": "风险分类阈值（portfolio-mgr）",
         "simulation": "蒙特卡洛仿真",
-        "refCodes": "行业参考标的"
+        "refCodes": "行业参考标的",
+        "valuationModel": "Parámetros del modelo de valoración (DCF/Graham)"
+      },
+      "valuation": {
+        "perpetualGrowth": "Tasa de crecimiento perpetuo",
+        "discountRate": "Tasa de descuento",
+        "defaultGrowth": "Tasa de crecimiento predeterminada",
+        "minGrowth": "Tasa de crecimiento mínima",
+        "maxGrowth": "Tasa de crecimiento máxima",
+        "forecastYears": "Años de pronóstico",
+        "bondYield": "Rendimiento de bonos corporativos AAA",
+        "unsavedChanges": "Cambios de valoración no guardados"
       },
       "panels": {
         "main": "Main Panel",

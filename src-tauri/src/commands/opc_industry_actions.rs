@@ -142,6 +142,20 @@ fn ai_research_config() -> IndustryConfig {
                 version: "1.0".to_string(),
                 template_id: "ai_research_harness_workflow".to_string(),
             },
+            IndustryWorkflowConfig {
+                id: "wf-ai-research-2".to_string(),
+                name: "AI 模型评测".to_string(),
+                description: "模型选择 → 基准测试 → 结果对比 → 评测报告".to_string(),
+                version: "1.0".to_string(),
+                template_id: "ai_benchmark_workflow".to_string(),
+            },
+            IndustryWorkflowConfig {
+                id: "wf-ai-research-3".to_string(),
+                name: "AI 应用分析".to_string(),
+                description: "场景分析 → 方案设计 → 可行性评估 → 落地建议".to_string(),
+                version: "1.0".to_string(),
+                template_id: "ai_application_workflow".to_string(),
+            },
         ],
     }
 }

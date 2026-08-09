@@ -291,7 +291,7 @@ pub struct AgencyExpertDto {
     pub avg_token_cost: Option<i64>,
 }
 
-/// Agent Role DTO（岗位定义，来自 DB `agent_roles` 表）
+/// Agent Role DTO（角色/岗位定义，来自 DB `agent_roles` 表；v218 起含原 business_roles 字段）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentRoleDto {
@@ -304,6 +304,22 @@ pub struct AgentRoleDto {
     pub max_concurrent: i32,
     pub timeout_seconds: i64,
     pub source: String,
+    pub sort_order: i32,
+    pub created_at: i64,
+    pub updated_at: i64,
+    /// 岗位核心职责（JSON 数组字符串）
+    pub responsibilities: Option<String>,
+    /// 决策权限边界（JSON 对象字符串）
+    pub decision_authority: Option<String>,
+    /// 汇报对象（agent_roles.id 自引用）
+    pub reports_to: Option<String>,
+    /// 下属专家 ID 列表（JSON 数组字符串）
+    pub managed_expert_ids: Option<String>,
+    /// 准入条件（JSON 数组字符串）
+    pub required_certifications: Option<String>,
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub is_enabled: bool,
 }
 
 /// Workflow Execution Stats DTO（工作流执行统计，驱动效果导向优化）

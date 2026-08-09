@@ -62,7 +62,9 @@ impl SerenityStrategy {
         let min_gross_margin = read_f64(vars, "serenity_min_gross_margin", 30.0);
         let gm = latest.gross_margin.unwrap_or(0.0);
         if gm < min_gross_margin && serenity_score < 80.0 {
-            tracing::info!("{code}: 毛利率 {gm:.1}% < {min_gross_margin}%, 因毛利率过低排除 (serenity_score={serenity_score:.0})");
+            tracing::info!(
+                "{code}: 毛利率 {gm:.1}% < {min_gross_margin}%, 因毛利率过低排除 (serenity_score={serenity_score:.0})"
+            );
             return None;
         }
 
@@ -78,7 +80,9 @@ impl SerenityStrategy {
         let min_rev_growth = read_f64(vars, "serenity_min_revenue_growth", 5.0);
         let rev_growth = latest.revenue_yoy.unwrap_or(0.0);
         if rev_growth < min_rev_growth && serenity_score < 85.0 {
-            tracing::info!("{code}: 营收增速 {rev_growth:.1}% < {min_rev_growth}%, 因增速过低排除 (serenity_score={serenity_score:.0})");
+            tracing::info!(
+                "{code}: 营收增速 {rev_growth:.1}% < {min_rev_growth}%, 因增速过低排除 (serenity_score={serenity_score:.0})"
+            );
             return None;
         }
 
@@ -139,7 +143,9 @@ impl SerenityStrategy {
                 if first.close > 0.0 && latest_close > 0.0 && serenity_score < 85.0 {
                     let gain_12m = (latest_close - first.close) / first.close * 100.0;
                     if gain_12m > max_12m_gain {
-                        tracing::info!("{code}: 近12月涨幅 {gain_12m:.0}% > {max_12m_gain}%, 因长期涨幅过大排除");
+                        tracing::info!(
+                            "{code}: 近12月涨幅 {gain_12m:.0}% > {max_12m_gain}%, 因长期涨幅过大排除"
+                        );
                         return None;
                     }
                 }

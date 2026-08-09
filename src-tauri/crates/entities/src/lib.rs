@@ -117,6 +117,7 @@ pub mod index_jobs;
 pub mod vec_collections;
 
 // AxInvest entities (registered from orphaned files)
+pub mod analyst_feedback;
 pub mod decision_validations;
 pub mod divergence_logs;
 pub mod earnings_events;
