@@ -1,4 +1,5 @@
 // 安全合规行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -8,7 +9,9 @@ use super::super::automation::{AutomationAction, AutomationCondition, IndustryAu
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -49,36 +52,86 @@ impl OpcIndustryAdapter for SecurityIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("scope".to_string(), "scope".to_string()),
+            ("compliance_standard".to_string(), "compliance_standard".to_string()),
+            ("incident_type".to_string(), "incident_type".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "风险识别".to_string(),
-                description: "识别和评估潜在的安全风险".to_string(),
+                name: "安全审计".to_string(),
+                description: "对指定范围进行安全审计".to_string(),
+                prompt: Some(
+                    "你是一名安全审计专家。请对指定范围进行安全审计。\
+                     输出 JSON {findings, vulnerabilities, severity, remediation_plan}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcSearchWiki".to_string(), "FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "风险分析".to_string(),
-                description: "分析风险影响范围和可能性".to_string(),
+                name: "合规检查".to_string(),
+                description: "对照合规标准检查合规状态".to_string(),
+                prompt: Some(
+                    "你是一名合规专家。请对照合规标准检查合规状态。\
+                     输出 JSON {compliance_status, gaps, required_actions, evidence_list}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcSearchWiki".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "风险处置".to_string(),
-                description: "制定风险应对策略和控制措施".to_string(),
+                name: "应急响应".to_string(),
+                description: "制定安全事件应急响应方案".to_string(),
+                prompt: Some(
+                    "你是一名安全应急响应专家。请制定应急响应方案。\
+                     输出 JSON {incident_response, containment_steps, communication_plan, postmortem}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcSendNotification".to_string(),
+                    "OpcCreateContentAsset".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
             },
-            WorkflowStepDef {
-                name: "合规审计".to_string(),
-                description: "定期进行合规性检查和审计".to_string(),
-                order: 4,
-                ..Default::default()
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "scope".to_string(),
+                label: "审计范围".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：核心业务系统、云基础设施、办公网络".to_string()),
+                default: None,
             },
-            WorkflowStepDef {
-                name: "事件响应".to_string(),
-                description: "安全事件发生后的应急响应".to_string(),
-                order: 5,
-                ..Default::default()
+            WorkflowInputField {
+                key: "compliance_standard".to_string(),
+                label: "合规标准".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：ISO 27001、等保 2.0、GDPR".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "incident_type".to_string(),
+                label: "事件类型".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：数据泄露、勒索软件、DDoS".to_string()),
+                default: None,
             },
         ]
     }

@@ -31,6 +31,7 @@ pub use theme_resolver::{
     resolve_themes_pipeline, resolve_themes_pipeline_with_search, ResolvedTheme, ThemeResolution,
 };
 pub mod conditional_order;
+pub mod conditional_order_bridge;
 // P3-1: 跨股票信号聚合器 — 在 signals.rs（单股）和 portfolio_monitor.rs（持仓指标）之间填补信号聚合层
 pub mod cross_stock_aggregator;
 // P3-2: 板块联动分析 — 基于 ConceptIndex 识别同板块龙头-从属传导模式
@@ -58,6 +59,7 @@ pub mod reflection_lesson_validator;
 pub mod report;
 pub mod review;
 pub mod risk;
+pub mod risk_inspection;
 pub mod rules;
 pub mod schema_serde_regression;
 pub mod scoring;
@@ -68,6 +70,7 @@ pub mod sentiment_analysis;
 pub mod signals;
 pub mod strategy_pack;
 pub mod trade_import;
+pub mod trade_intent;
 pub mod trade_review;
 pub mod trade_stats;
 pub mod trading;

@@ -67,6 +67,8 @@ pub fn start_background_services(
     start_realtime_monitor(app, state);
     // P1-2: 启动实时行情推送（替代前端 15s 轮询，2s Active / 10s Background 自适应）
     start_realtime_quote_watcher(app, state);
+    // P1-3: 启动风控自动巡检（条件单评估 + 交易意图过期处理）
+    start_risk_inspection(app, state);
 
     // G14: 注册 DojoSdkExecutor
     register_dojo_sdk_executor(state);
@@ -2175,6 +2177,8 @@ fn start_cron_scheduler(state: &AppState) {
         let work_engine = state.work_engine.clone();
         // P0-1: 注入 astock_client 用于接通 32 个 stock_mcp_tools 到工作流执行路径
         let astock_client = state.astock_client.clone();
+        // P0-3: 注入数据库连接，用于在执行 compute_valuation 前加载估值参数配置
+        let db = state.harness.db().clone();
         // P0-1: 缓存 stock_mcp_tools 工具名集合，避免每次 resolve 都重新生成 Vec。
         // P2-8: 合并 G3 产业链工具（来自 axagent_analysis_engine::mcp_tools）。
         static STOCK_TOOL_NAMES: std::sync::OnceLock<std::collections::HashSet<String>> =
@@ -2198,6 +2202,7 @@ fn start_cron_scheduler(state: &AppState) {
                 let registry = registry.clone();
                 let work_engine = work_engine.clone();
                 let astock_client = astock_client.clone();
+                let db = db.clone();
                 let in_stock_tools = stock_tools.contains(&tool_name);
                 let in_industry_chain =
                     axagent_analysis_engine::mcp_tools::is_industry_chain_tool(&tool_name);
@@ -2289,10 +2294,19 @@ fn start_cron_scheduler(state: &AppState) {
                         // ToolResolver 返回 None 导致所有 ToolNode 失败，错误被 core.rs Failed 分支
                         // emit degraded: true 吞掉。现在通过 astock_client.execute_mcp_tool 真正执行。
                         let client = astock_client.clone();
-                        let cb: axagent_runtime::work_engine::ToolCallback =
-                            std::sync::Arc::new(move |tn: String, args: serde_json::Value| {
+                        let db = db.clone();
+                        let cb: axagent_runtime::work_engine::ToolCallback = std::sync::Arc::new(
+                            move |tn: String, args: serde_json::Value| {
                                 let client = client.clone();
+                                let db = db.clone();
                                 Box::pin(async move {
+                                    // P0-3: 为 compute_valuation 工具注入用户配置的估值参数
+                                    let args = crate::commands::stock_analysis::inject_valuation_config_for_tool(
+                                        &tn,
+                                        &db,
+                                        args,
+                                    )
+                                    .await;
                                     match axagent_astock_data::mcp_tools::execute_mcp_tool(
                                         &client, &tn, &args,
                                     )
@@ -2322,7 +2336,8 @@ fn start_cron_scheduler(state: &AppState) {
                                         Err(e) => Err(format!("stock tool '{}' failed: {}", tn, e)),
                                     }
                                 })
-                            });
+                            },
+                        );
                         Some(cb)
                     } else {
                         tracing::warn!(
@@ -2971,11 +2986,14 @@ fn start_realtime_quote_watcher(app: &tauri::AppHandle, state: &AppState) {
     use futures::future::BoxFuture;
     use tauri::Emitter;
 
+    let db = state.harness.db().clone();
+
     // 构造 callback（不依赖 tokio runtime）
     let app_for_callback = app.clone();
     let callback: axagent_astock_data::realtime_quote::QuoteCallback =
         Arc::new(move |event: QuoteChangeEvent| {
             let app = app_for_callback.clone();
+            let db = db.clone();
             Box::pin(async move {
                 // payload 结构与前端 stockAnalysisStore 的 StockQuoteUpdate 类型对齐
                 let payload = serde_json::json!({
@@ -2988,6 +3006,20 @@ fn start_realtime_quote_watcher(app: &tauri::AppHandle, state: &AppState) {
                 });
                 if let Err(e) = app.emit("stock-quote-update", payload) {
                     tracing::trace!("[quote_watcher] emit stock-quote-update 失败: {e}");
+                }
+
+                // ── 风控闭环：行情变动 → 条件单评估 → 交易意图写入 ──
+                if let Err(e) =
+                    axagent_analysis_engine::risk_inspection::evaluate_quote_against_conditions(
+                        &db, &event,
+                    )
+                    .await
+                {
+                    tracing::warn!(
+                        "[quote_watcher] 条件单评估失败: stock={} err={}",
+                        event.stock_code,
+                        e
+                    );
                 }
             }) as BoxFuture<'static, ()>
         });
@@ -3010,6 +3042,33 @@ fn start_realtime_quote_watcher(app: &tauri::AppHandle, state: &AppState) {
     }
 
     tracing::info!("[quote_watcher] 已启动（2s Active / 10s Background 自适应轮询）");
+}
+
+/// 启动风控自动巡检服务
+///
+/// 负责：
+/// 1. 从数据库加载条件单到内存引擎
+/// 2. 定时过期处理 pending 交易意图（72h 超时 → expired）
+/// 3. 定时热加载条件单配置（5min 刷新）
+/// 4. 行情回调中的条件单评估已在 `start_realtime_quote_watcher` 中串联
+fn start_risk_inspection(_app: &tauri::AppHandle, state: &AppState) {
+    let db = state.harness.db().clone();
+
+    tauri::async_runtime::spawn(async move {
+        // 延迟 3 秒等数据库完全就绪
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+        match axagent_analysis_engine::risk_inspection::start_risk_inspection_service(db).await {
+            Ok(()) => {
+                tracing::info!("[risk_inspection] 风控自动巡检已启动");
+            },
+            Err(e) => {
+                tracing::warn!("[risk_inspection] 风控自动巡检启动失败: {e}");
+            },
+        }
+    });
+
+    tracing::info!("[risk_inspection] 已触发启动流程（异步等待 DB 就绪）");
 }
 
 /// G14: 注册 DojoSdkExecutor — 让 MCP 协议中的 dojo_* / sector_precomputed_* 工具

@@ -26,6 +26,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("active_domains", "TEXT"),
             ("seniority", "TEXT"),
             ("specialties", "TEXT"),
+            ("parent_role_id", "TEXT"),
             ("success_rate", "REAL"),
             ("avg_latency_ms", "BIGINT"),
             ("avg_token_cost", "BIGINT"),

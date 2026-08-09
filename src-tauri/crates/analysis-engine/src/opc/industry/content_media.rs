@@ -1,4 +1,5 @@
 // 内容与媒体行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -8,7 +9,9 @@ use super::super::automation::{AutomationAction, AutomationCondition, IndustryAu
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -33,6 +36,27 @@ impl Default for ContentMediaIndustryAdapter {
 impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
     impl_industry_base!();
 
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "content_topic".to_string(),
+                label: "内容主题".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：AI 工具测评、行业趋势分析".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "target_platform".to_string(),
+                label: "目标平台".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：微信公众号、知乎、B站".to_string()),
+                default: None,
+            },
+        ]
+    }
+
     fn define_validations(&self) -> Vec<ValidationDef> {
         vec![
             ValidationDef {
@@ -49,6 +73,10 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        let user_inputs = HashMap::from([
+            ("content_topic".to_string(), "content_topic".to_string()),
+            ("target_platform".to_string(), "target_platform".to_string()),
+        ]);
         vec![
             // 爆款内容生成：选题策划 → 内容创作 → 优化打磨
             WorkflowStepDef {
@@ -61,6 +89,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 agent_profile_id: Some("opc-cmo-cmo-content-strategist".to_string()),
                 error_handling: "stop".to_string(),
                 order: 1,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "内容创作".to_string(),
@@ -72,6 +101,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 agent_profile_id: Some("opc-cmo-cmo-content-creator".to_string()),
                 error_handling: "stop".to_string(),
                 order: 2,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "优化打磨".to_string(),
@@ -83,6 +113,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 agent_profile_id: Some("opc-cmo-cmo-seo-expert".to_string()),
                 error_handling: "continue".to_string(),
                 order: 3,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "多平台发布".to_string(),
@@ -94,6 +125,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 agent_profile_id: Some("opc-cmo-cmo-social-manager".to_string()),
                 error_handling: "continue".to_string(),
                 order: 4,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "IP 打造".to_string(),
@@ -105,6 +137,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 agent_profile_id: Some("opc-cmo-cmo-brand-strategist".to_string()),
                 error_handling: "continue".to_string(),
                 order: 5,
+                inputs: user_inputs,
             },
         ]
     }

@@ -5508,6 +5508,183 @@
         }
       }
     },
+    "input_fields": {
+      "software_dev": {
+        "project_name": {
+          "label": "Project Name"
+        },
+        "project_goal": {
+          "label": "Project Goal"
+        },
+        "tech_stack": {
+          "label": "Tech Stack"
+        }
+      },
+      "finance_invest": {
+        "portfolio_value": {
+          "label": "Portfolio Value"
+        },
+        "market_focus": {
+          "label": "Market Focus"
+        },
+        "risk_tolerance": {
+          "label": "Risk Tolerance"
+        }
+      },
+      "sales_growth": {
+        "target_segment": {
+          "label": "Target Segment",
+          "placeholder": "e.g., SMB B2B customers"
+        },
+        "product": {
+          "label": "Product/Service",
+          "placeholder": "e.g., SaaS subscription"
+        },
+        "growth_goal": {
+          "label": "Growth Goal"
+        }
+      },
+      "content_media": {
+        "content_topic": {
+          "label": "Content Topic",
+          "placeholder": "e.g., AI tool review, industry trends"
+        },
+        "target_platform": {
+          "label": "Target Platform",
+          "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        }
+      },
+      "industry_consulting": {
+        "industry_name": {
+          "label": "Industry Name"
+        },
+        "client_goal": {
+          "label": "Client Goal"
+        },
+        "region": {
+          "label": "Target Region"
+        }
+      },
+      "accounting": {
+        "company_name": {
+          "label": "Company Name",
+          "placeholder": "e.g., Tech Co., Ltd."
+        },
+        "period": {
+          "label": "Period",
+          "placeholder": "e.g., 2026-Q2"
+        },
+        "focus_area": {
+          "label": "Focus Area",
+          "placeholder": "e.g., cost control, cash flow"
+        }
+      },
+      "ecommerce": {
+        "product_name": {
+          "label": "Product Name",
+          "placeholder": "e.g., Smart Band Pro"
+        },
+        "target_market": {
+          "label": "Target Market",
+          "placeholder": "e.g., Southeast Asia"
+        },
+        "promo_budget": {
+          "label": "Promo Budget",
+          "placeholder": "e.g., 50000"
+        }
+      },
+      "education": {
+        "course_topic": {
+          "label": "Course Topic",
+          "placeholder": "e.g., Python for Data Analysis"
+        },
+        "target_audience": {
+          "label": "Target Audience",
+          "placeholder": "e.g., Beginners"
+        },
+        "course_level": {
+          "label": "Course Level",
+          "placeholder": "e.g., Beginner / Intermediate / Advanced"
+        }
+      },
+      "design": {
+        "project_brief": {
+          "label": "Project Brief",
+          "placeholder": "e.g., Enterprise SaaS dashboard"
+        },
+        "brand_style": {
+          "label": "Brand Style",
+          "placeholder": "e.g., tech, minimal, vibrant"
+        },
+        "design_target": {
+          "label": "Design Target",
+          "placeholder": "e.g., improve conversion"
+        }
+      },
+      "project_management": {
+        "project_name": {
+          "label": "Project Name",
+          "placeholder": "e.g., Website Redesign"
+        },
+        "project_scope": {
+          "label": "Project Scope"
+        },
+        "deadline": {
+          "label": "Deadline"
+        }
+      },
+      "security": {
+        "scope": {
+          "label": "Audit Scope",
+          "placeholder": "e.g., core systems, cloud infra"
+        },
+        "compliance_standard": {
+          "label": "Compliance Standard",
+          "placeholder": "e.g., ISO 27001, GDPR"
+        },
+        "incident_type": {
+          "label": "Incident Type"
+        }
+      },
+      "geospatial": {
+        "region": {
+          "label": "Target Region",
+          "placeholder": "e.g., Shenzhen Nanshan"
+        },
+        "data_type": {
+          "label": "Data Type",
+          "placeholder": "e.g., vector, raster, point cloud"
+        },
+        "output_format": {
+          "label": "Output Format",
+          "placeholder": "e.g., GeoJSON, Shapefile"
+        }
+      },
+      "ai_research": {
+        "research_topic": {
+          "label": "Research Topic",
+          "placeholder": "e.g., LLM optimization, multimodal"
+        },
+        "scope": {
+          "label": "Research Scope",
+          "placeholder": "e.g., open source only, commercial included"
+        }
+      },
+      "game_dev": {
+        "game_title": {
+          "label": "Game Title",
+          "placeholder": "e.g., Star Odyssey"
+        },
+        "game_engine": {
+          "label": "Game Engine",
+          "placeholder": "e.g., Unity / Unreal / Godot"
+        },
+        "genre": {
+          "label": "Genre",
+          "placeholder": "e.g., action / rpg / strategy"
+        }
+      }
+    },
     "rl": {
       "panelTitle": "Reinforcement Learning Panel",
       "enabled": "Enabled",

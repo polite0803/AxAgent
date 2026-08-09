@@ -167,6 +167,13 @@ pub async fn start_analysis(
         decision_time_horizon: Set(None),
         decision_expected_holding_days: Set(None),
         llm_decision_json: Set(None),
+        trade_intent_status: Set("pending".to_string()),
+        trade_intent_source: Set(None),
+        trade_intent_source_ref_id: Set(None),
+        trade_intent_reviewed_at: Set(None),
+        trade_intent_reviewed_by: Set(None),
+        trade_intent_review_notes: Set(None),
+        trade_intent_actual_trade_id: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

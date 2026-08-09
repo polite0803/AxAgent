@@ -1388,6 +1388,22 @@ pub async fn run_batch_reflection_inner(
             continue;
         }
 
+        // ── [As-of 时间旅行回测验证] 用 BacktestEngine 自动计算事后结果 ──
+        // 在反思之前，先用历史行情验证分析决策的实际表现，
+        // 自动填充 actual_outcome / raw_return / alpha_return，形成完整闭环。
+        let (auto_outcome, auto_raw_return, auto_alpha_return, auto_holding_days) =
+            match run_asof_backtest(&analysis, _client, hindsight_date).await {
+                Ok(result) => result,
+                Err(e) => {
+                    tracing::warn!(
+                        "[as-of backtest] {} 回测失败，使用 pending row 原始数据: {e}",
+                        p.id
+                    );
+                    // 回测失败时回退到 pending row 的原始值
+                    (p.actual_outcome.clone(), p.raw_return, p.alpha_return, Some(days_held as i32))
+                },
+            };
+
         let r = run_reflection_workflow(
             db,
             _client,
@@ -1398,10 +1414,10 @@ pub async fn run_batch_reflection_inner(
             &p.stock_code,
             &p.stock_name,
             &p.original_analysis_id,
-            &p.actual_outcome,
-            None,
-            None,
-            Some(days_held as i32),
+            &auto_outcome,
+            auto_raw_return,
+            auto_alpha_return,
+            auto_holding_days,
             None,
             analysis_date,
             // [时间旅行模式] 传 pending row 的 hindsight_date 而非 today
@@ -1471,6 +1487,91 @@ pub async fn run_batch_reflection_inner(
         "cleanedUp": cleaned_up,
         "errors": errors,
     }))
+}
+
+// ── [As-of 时间旅行回测] 辅助函数 ──────────────────────────
+
+/// 用 BacktestEngine 对单条分析记录做 as-of 时间旅行回测。
+///
+/// 从 `stock_analyses` 记录中提取决策信息，调用 `BacktestEngine::backtest_decision`
+/// 用历史行情验证决策表现，返回 `(actual_outcome, raw_return, alpha_return, holding_days)`。
+///
+/// # 参数
+/// - `analysis`: stock_analyses 记录（含 decision_action / decision_json 等）
+/// - `client`: AStockClient（实现 MarketDataProvider trait）
+/// - `hindsight_date`: 事后评估日期（YYYY-MM-DD）
+///
+/// # 返回
+/// - `Ok((actual_outcome, raw_return, alpha_return, holding_days))`
+/// - `Err(String)`: 回测失败（上层会回退到 pending row 原始值）
+async fn run_asof_backtest(
+    analysis: &stock_analyses::Model,
+    client: &axagent_astock_data::AStockClient,
+    hindsight_date: &str,
+) -> Result<(String, Option<f64>, Option<f64>, Option<i32>), String> {
+    use axagent_analysis_engine::backtest::BacktestEngine;
+
+    // 1. 提取决策信息
+    let decision_action = analysis.decision_action.clone().unwrap_or_else(|| "hold".to_string());
+
+    // 从 decision_json 中提取 confidence（默认 0.5）
+    let decision_confidence = analysis
+        .decision_json
+        .as_ref()
+        .and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok())
+        .and_then(|v| v.get("confidence").and_then(|c| c.as_f64()))
+        .unwrap_or(0.5);
+
+    let time_horizon = analysis.decision_time_horizon.clone();
+    let expected_holding_days = analysis.decision_expected_holding_days;
+
+    // 2. 用 BacktestEngine 回测
+    // holding_days = hindsight_date - analysis_date（即实际持有天数）
+    let analysis_date = analysis.as_of_date.as_deref().unwrap_or(analysis.analysis_date.as_str());
+
+    let holding_days = chrono::NaiveDate::parse_from_str(analysis_date, "%Y-%m-%d")
+        .ok()
+        .zip(chrono::NaiveDate::parse_from_str(hindsight_date, "%Y-%m-%d").ok())
+        .map(|(a, h)| (h - a).num_days().max(0))
+        .unwrap_or(expected_holding_days.unwrap_or(28));
+
+    let result = BacktestEngine::backtest_decision(
+        client,
+        &analysis.stock_code,
+        analysis_date,
+        &decision_action,
+        decision_confidence,
+        holding_days,
+        time_horizon.clone(),
+        expected_holding_days,
+    )
+    .await
+    .map_err(|e| format!("BacktestEngine 回测失败: {e}"))?;
+
+    // 3. 构造 actual_outcome 字符串（供反思引擎使用）
+    let actual_outcome = if result.was_correct {
+        "correct"
+    } else {
+        "wrong"
+    }
+    .to_string();
+
+    tracing::info!(
+        "[as-of backtest] {} ({}) 决策={} 持有={}天 收益={:.2}% 正确={}",
+        analysis.stock_code,
+        analysis.stock_name,
+        decision_action,
+        result.holding_days,
+        result.return_pct,
+        result.was_correct
+    );
+
+    Ok((
+        actual_outcome,
+        Some(result.return_pct),
+        None, // alpha 需独立计算，暂留空
+        Some(result.holding_days as i32),
+    ))
 }
 
 /// 从 `stock_analyses.blackboard_snapshot` 构造 `sub-analysis` 变量。

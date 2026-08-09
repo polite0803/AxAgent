@@ -236,14 +236,14 @@ impl ConditionalOrderEngine {
         stock_code: &str,
         current_price: f64,
         prev_close: f64,
-        turnover_rate: Option<f64>,
+        turnover_rate: f64,
         now_ms: i64,
     ) -> Vec<&ConditionalOrder> {
         self.orders
             .iter()
             .filter(|o| o.stock_code == stock_code)
             .filter(|o| {
-                o.should_trigger(current_price, prev_close, turnover_rate, now_ms)
+                o.should_trigger(current_price, prev_close, Some(turnover_rate), now_ms)
                     == TriggerDecision::Trigger
             })
             .collect()

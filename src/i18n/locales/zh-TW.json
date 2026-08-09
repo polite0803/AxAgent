@@ -5508,6 +5508,183 @@
         }
       }
     },
+    "input_fields": {
+      "software_dev": {
+        "project_name": {
+          "label": "项目名称"
+        },
+        "project_goal": {
+          "label": "项目目标"
+        },
+        "tech_stack": {
+          "label": "技术栈"
+        }
+      },
+      "finance_invest": {
+        "portfolio_value": {
+          "label": "组合价值"
+        },
+        "market_focus": {
+          "label": "市场方向"
+        },
+        "risk_tolerance": {
+          "label": "风险偏好"
+        }
+      },
+      "sales_growth": {
+        "target_segment": {
+          "label": "目标客群",
+          "placeholder": "如：中小企业 B2B 客户"
+        },
+        "product": {
+          "label": "产品/服务",
+          "placeholder": "如：SaaS 订阅服务"
+        },
+        "growth_goal": {
+          "label": "增长目标"
+        }
+      },
+      "content_media": {
+        "content_topic": {
+          "label": "内容主题",
+          "placeholder": "如：AI 工具测评、行业趋势分析"
+        },
+        "target_platform": {
+          "label": "目标平台",
+          "placeholder": "如：微信公众号、知乎、B站"
+        }
+      },
+      "industry_consulting": {
+        "industry_name": {
+          "label": "行业名称"
+        },
+        "client_goal": {
+          "label": "客户目标"
+        },
+        "region": {
+          "label": "目标区域"
+        }
+      },
+      "accounting": {
+        "company_name": {
+          "label": "公司名称",
+          "placeholder": "如：某某科技有限公司"
+        },
+        "period": {
+          "label": "财务周期",
+          "placeholder": "如：2026-Q2"
+        },
+        "focus_area": {
+          "label": "关注领域",
+          "placeholder": "如：成本控制、现金流管理"
+        }
+      },
+      "ecommerce": {
+        "product_name": {
+          "label": "商品名称",
+          "placeholder": "如：智能手环 Pro"
+        },
+        "target_market": {
+          "label": "目标市场",
+          "placeholder": "如：东南亚市场"
+        },
+        "promo_budget": {
+          "label": "营销预算",
+          "placeholder": "如：50000"
+        }
+      },
+      "education": {
+        "course_topic": {
+          "label": "课程主题",
+          "placeholder": "如：Python 数据分析入门"
+        },
+        "target_audience": {
+          "label": "目标学员",
+          "placeholder": "如：零基础职场新人"
+        },
+        "course_level": {
+          "label": "课程难度",
+          "placeholder": "如：入门 / 进阶 / 高级"
+        }
+      },
+      "design": {
+        "project_brief": {
+          "label": "设计需求",
+          "placeholder": "如：面向企业用户的 SaaS 管理后台"
+        },
+        "brand_style": {
+          "label": "品牌风格",
+          "placeholder": "如：科技感、简约、活力"
+        },
+        "design_target": {
+          "label": "设计目标",
+          "placeholder": "如：提升转化率、增强品牌辨识度"
+        }
+      },
+      "project_management": {
+        "project_name": {
+          "label": "项目名称",
+          "placeholder": "如：客户官网改版项目"
+        },
+        "project_scope": {
+          "label": "项目范围"
+        },
+        "deadline": {
+          "label": "截止日期"
+        }
+      },
+      "security": {
+        "scope": {
+          "label": "审计范围",
+          "placeholder": "如：核心业务系统、云基础设施"
+        },
+        "compliance_standard": {
+          "label": "合规标准",
+          "placeholder": "如：ISO 27001、等保 2.0"
+        },
+        "incident_type": {
+          "label": "事件类型"
+        }
+      },
+      "geospatial": {
+        "region": {
+          "label": "目标区域",
+          "placeholder": "如：深圳市南山区"
+        },
+        "data_type": {
+          "label": "数据类型",
+          "placeholder": "如：矢量、栅格、点云"
+        },
+        "output_format": {
+          "label": "输出格式",
+          "placeholder": "如：GeoJSON、Shapefile"
+        }
+      },
+      "ai_research": {
+        "research_topic": {
+          "label": "研究主题",
+          "placeholder": "如：大模型推理优化、多模态融合"
+        },
+        "scope": {
+          "label": "研究范围",
+          "placeholder": "如：仅限开源方案、包含商业产品"
+        }
+      },
+      "game_dev": {
+        "game_title": {
+          "label": "游戏名称",
+          "placeholder": "如：星海征途"
+        },
+        "game_engine": {
+          "label": "游戏引擎",
+          "placeholder": "如：Unity / Unreal / Godot"
+        },
+        "genre": {
+          "label": "游戏类型",
+          "placeholder": "如：action / rpg / strategy"
+        }
+      }
+    },
     "rl": {
       "panelTitle": "Reinforcement Learning Panel",
       "enabled": "Enabled",

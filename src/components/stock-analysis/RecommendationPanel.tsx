@@ -17,7 +17,7 @@ import type {
 import { Alert, App, Button, Card, Checkbox, Collapse, Empty, Modal, Spin, Tabs, Tag, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { PanelEmpty, type PanelEmptyKind } from "./PanelEmpty";
 import { RecoHistoryModal } from "./RecoHistoryModal";
 import { useStockAnalysisPage } from "./StockAnalysisPageContext";
@@ -351,7 +351,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
         <Alert
           type="warning"
           showIcon
-          className="!text-xs !mb-2"
+          className="text-xs! mb-2!"
           title={
             <span className="text-xs">
               {t("stockAnalysis.recommendation.bannerAsOf", { date: asOfDate })}
@@ -365,7 +365,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
           <Alert
             type="warning"
             showIcon
-            className="!text-xs !mb-2"
+            className="text-xs! mb-2!"
             title={
               <span className="text-xs">
                 {t("stockAnalysis.recommendation.bannerVendorDisabled", { styles: disabledStyleNames })}
@@ -384,7 +384,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
           <Alert
             type="info"
             showIcon
-            className="!text-xs !mb-2"
+            className="text-xs! mb-2!"
             title={
               <span className="text-xs">
                 {t("stockAnalysis.recommendation.dataQualitySummary", {
@@ -401,7 +401,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
           <Alert
             type="warning"
             showIcon
-            className="!text-xs !mb-2"
+            className="text-xs! mb-2!"
             title={
               <span className="text-xs">
                 {t("stockAnalysis.recommendation.bannerDegraded", {
@@ -420,7 +420,7 @@ export function RecommendationPanel({ onOpenDataSourceSettings }: Recommendation
           <Alert
             type="warning"
             showIcon
-            className="!text-xs !mb-2"
+            className="text-xs! mb-2!"
             title={
               <span className="text-xs">
                 ⚠ {t("stockAnalysis.settings.panels.noData")} — {errorDetail}
@@ -644,6 +644,9 @@ function PickRow(
 ) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isInInvestHub = location.pathname.startsWith("/invest");
   // 读荐股 ↔ 分析师交叉验证缓存（仅当该股已有最近一次工作流结果时存在）
   const stockCodeConsensus = useStockAnalysisStore((s) => s.stockCodeConsensus);
   const consensus = stockCodeConsensus[pick.stockCode];
@@ -787,7 +790,19 @@ function PickRow(
     >
       <List.Item
         style={{ cursor: "pointer", padding: "4px 0" }}
-        onClick={() => navigate(`/stock-analysis?code=${pick.stockCode}`, { replace: true })}
+        onClick={() => {
+          if (isInInvestHub) {
+            // 在 InvestHub 内部：使用 URL 参数切换到 workspace tab，自动输入股票代码
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", "workspace");
+            next.set("stockCode", pick.stockCode);
+            next.set("view", "analysis");
+            setSearchParams(next, { replace: true });
+          } else {
+            // 独立页面：跳转到股票分析页面
+            navigate(`/stock-analysis?code=${pick.stockCode}`, { replace: true });
+          }
+        }}
       >
         {content}
       </List.Item>

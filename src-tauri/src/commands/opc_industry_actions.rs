@@ -10,9 +10,7 @@ use tauri::State;
 
 use crate::AppState;
 use agent_macro::agent_command;
-use axagent_analysis_engine::opc::{
-    IndustryLearningManager, IndustryWorkflowExecutor, OpcIndustryAnalysisRound,
-};
+use axagent_analysis_engine::opc::{IndustryLearningManager, OpcIndustryAnalysisRound};
 use axagent_orchestrator::{ReinforcementLearningConfig, RewardWeightConfig};
 
 /// 行业操作类型
@@ -147,14 +145,14 @@ fn ai_research_config() -> IndustryConfig {
                 name: "AI 模型评测".to_string(),
                 description: "模型选择 → 基准测试 → 结果对比 → 评测报告".to_string(),
                 version: "1.0".to_string(),
-                template_id: "ai_benchmark_workflow".to_string(),
+                template_id: "ai_research_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ai-research-3".to_string(),
                 name: "AI 应用分析".to_string(),
                 description: "场景分析 → 方案设计 → 可行性评估 → 落地建议".to_string(),
                 version: "1.0".to_string(),
-                template_id: "ai_application_workflow".to_string(),
+                template_id: "ai_research_harness_workflow".to_string(),
             },
         ],
     }
@@ -218,21 +216,21 @@ fn software_dev_config() -> IndustryConfig {
                 name: "代码重构".to_string(),
                 description: "代码分析 → 重构建议 → 生成方案".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sd-refactor".to_string(),
+                template_id: "software_dev_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-sd-2".to_string(),
                 name: "技术选型".to_string(),
                 description: "需求分析 → 技术调研 → 选型对比".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sd-tech-selection".to_string(),
+                template_id: "software_dev_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-sd-3".to_string(),
                 name: "性能优化".to_string(),
                 description: "性能分析 → 瓶颈定位 → 优化方案".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sd-performance".to_string(),
+                template_id: "software_dev_harness_workflow".to_string(),
             },
         ],
     }
@@ -296,21 +294,21 @@ fn finance_invest_config() -> IndustryConfig {
                 name: "A股深度研究".to_string(),
                 description: "基本面分析 → 技术面分析 → 投资建议".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-fi-stock-research".to_string(),
+                template_id: "finance_invest_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-fi-2".to_string(),
                 name: "行业对比分析".to_string(),
                 description: "行业扫描 → 公司对比 → 选股建议".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-fi-industry-compare".to_string(),
+                template_id: "finance_invest_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-fi-3".to_string(),
                 name: "投资组合优化".to_string(),
                 description: "持仓分析 → 风险评估 → 调仓建议".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-fi-portfolio".to_string(),
+                template_id: "finance_invest_harness_workflow".to_string(),
             },
         ],
     }
@@ -374,21 +372,21 @@ fn sales_growth_config() -> IndustryConfig {
                 name: "获客策略优化".to_string(),
                 description: "渠道分析 → 策略制定 → 执行计划".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sg-acquisition".to_string(),
+                template_id: "sales_growth_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-sg-2".to_string(),
                 name: "转化提升方案".to_string(),
                 description: "漏斗诊断 → 方案设计 → A/B 测试".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sg-conversion".to_string(),
+                template_id: "sales_growth_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-sg-3".to_string(),
                 name: "客户留存计划".to_string(),
                 description: "流失分析 → 留存策略 → 复购设计".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sg-retention".to_string(),
+                template_id: "sales_growth_harness_workflow".to_string(),
             },
         ],
     }
@@ -530,21 +528,21 @@ fn industry_consulting_config() -> IndustryConfig {
                 name: "行业扫描".to_string(),
                 description: "市场调研 → 竞争分析 → 机会识别".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ic-industry-scan".to_string(),
+                template_id: "industry_consulting_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ic-2".to_string(),
                 name: "进入评估".to_string(),
                 description: "吸引力评估 → 可行性分析 → 决策建议".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ic-entry-eval".to_string(),
+                template_id: "industry_consulting_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ic-3".to_string(),
                 name: "战略规划".to_string(),
                 description: "愿景制定 → 路径规划 → 执行框架".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ic-strategy".to_string(),
+                template_id: "industry_consulting_harness_workflow".to_string(),
             },
         ],
     }
@@ -608,21 +606,21 @@ fn accounting_config() -> IndustryConfig {
                 name: "税务优化".to_string(),
                 description: "现状分析 → 筹划设计 → 方案评估".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ac-tax-optimization".to_string(),
+                template_id: "accounting_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ac-2".to_string(),
                 name: "财务健康诊断".to_string(),
                 description: "指标计算 → 健康评估 → 改进建议".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ac-health-check".to_string(),
+                template_id: "accounting_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ac-3".to_string(),
                 name: "成本控制".to_string(),
                 description: "成本分析 → 控制点识别 → 优化方案".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ac-cost-control".to_string(),
+                template_id: "accounting_harness_workflow".to_string(),
             },
         ],
     }
@@ -686,21 +684,21 @@ fn ecommerce_config() -> IndustryConfig {
                 name: "爆款打造".to_string(),
                 description: "选品分析 → 卖点提炼 → 推广执行".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ec-hit-product".to_string(),
+                template_id: "ecommerce_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ec-2".to_string(),
                 name: "竞品监控".to_string(),
                 description: "竞品跟踪 → 策略分析 → 应对方案".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ec-competitor-watch".to_string(),
+                template_id: "ecommerce_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ec-3".to_string(),
                 name: "大促策划".to_string(),
                 description: "活动策划 → 资源准备 → 执行复盘".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ec-promo-planning".to_string(),
+                template_id: "ecommerce_harness_workflow".to_string(),
             },
         ],
     }
@@ -764,21 +762,21 @@ fn education_config() -> IndustryConfig {
                 name: "课程体系设计".to_string(),
                 description: "需求分析 → 体系规划 → 内容开发".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ed-course-system".to_string(),
+                template_id: "education_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ed-2".to_string(),
                 name: "学习路径规划".to_string(),
                 description: "能力评估 → 路径设计 → 资源配置".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ed-learning-path".to_string(),
+                template_id: "education_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ed-3".to_string(),
                 name: "教学内容开发".to_string(),
                 description: "大纲设计 → 内容撰写 → 审核优化".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ed-content-dev".to_string(),
+                template_id: "education_harness_workflow".to_string(),
             },
         ],
     }
@@ -844,21 +842,21 @@ fn design_config() -> IndustryConfig {
                 name: "产品界面设计".to_string(),
                 description: "需求分析 → 设计草案 → 评审优化".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ds-product-ui".to_string(),
+                template_id: "design_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ds-2".to_string(),
                 name: "品牌视觉设计".to_string(),
                 description: "品牌定位 → 视觉创意 → 规范输出".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ds-brand-design".to_string(),
+                template_id: "design_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-ds-3".to_string(),
                 name: "设计系统搭建".to_string(),
                 description: "基础元素 → 组件库 → 文档发布".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ds-design-system".to_string(),
+                template_id: "design_harness_workflow".to_string(),
             },
         ],
     }
@@ -922,21 +920,21 @@ fn project_management_config() -> IndustryConfig {
                 name: "项目启动规划".to_string(),
                 description: "需求分析 → 计划制定 → 资源准备".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-pm-initiation".to_string(),
+                template_id: "project_management_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-pm-2".to_string(),
                 name: "进度跟踪报告".to_string(),
                 description: "数据收集 → 状态分析 → 报告生成".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-pm-progress-report".to_string(),
+                template_id: "project_management_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-pm-3".to_string(),
                 name: "项目收尾复盘".to_string(),
                 description: "成果验收 → 经验总结 → 文档归档".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-pm-closure".to_string(),
+                template_id: "project_management_harness_workflow".to_string(),
             },
         ],
     }
@@ -1000,21 +998,21 @@ fn security_config() -> IndustryConfig {
                 name: "安全审计流程".to_string(),
                 description: "范围界定 → 检查执行 → 报告整改".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sec-audit".to_string(),
+                template_id: "security_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-sec-2".to_string(),
                 name: "合规检查流程".to_string(),
                 description: "法规研究 → 差距分析 → 合规方案".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sec-compliance".to_string(),
+                template_id: "security_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-sec-3".to_string(),
                 name: "安全事件响应".to_string(),
                 description: "事件检测 → 影响评估 → 响应处置".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-sec-incident-response".to_string(),
+                template_id: "security_harness_workflow".to_string(),
             },
         ],
     }
@@ -1078,21 +1076,21 @@ fn geospatial_config() -> IndustryConfig {
                 name: "空间分析流程".to_string(),
                 description: "数据准备 → 空间计算 → 结果解读".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-geo-spatial-analysis".to_string(),
+                template_id: "geospatial_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-geo-2".to_string(),
                 name: "地图制作流程".to_string(),
                 description: "需求分析 → 数据编辑 → 地图输出".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-geo-map-production".to_string(),
+                template_id: "geospatial_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-geo-3".to_string(),
                 name: "GIS 应用开发".to_string(),
                 description: "需求设计 → 功能开发 → 部署上线".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-geo-gis-app".to_string(),
+                template_id: "geospatial_harness_workflow".to_string(),
             },
         ],
     }
@@ -1156,21 +1154,21 @@ fn game_dev_config() -> IndustryConfig {
                 name: "原型开发流程".to_string(),
                 description: "创意构思 → 原型设计 → 验证迭代".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-gd-prototype".to_string(),
+                template_id: "game_dev_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-gd-2".to_string(),
                 name: "内容生产流程".to_string(),
                 description: "内容设计 → 资源制作 → 集成测试".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-gd-content-production".to_string(),
+                template_id: "game_dev_harness_workflow".to_string(),
             },
             IndustryWorkflowConfig {
                 id: "wf-gd-3".to_string(),
                 name: "测试发布流程".to_string(),
                 description: "测试执行 → Bug 修复 → 发布上线".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-gd-release".to_string(),
+                template_id: "game_dev_harness_workflow".to_string(),
             },
         ],
     }
@@ -1485,10 +1483,163 @@ pub async fn opc_execute_analysis(
     })
 }
 
+/// 从 DB 加载工作流模板并走 rt-workflow 引擎执行。
+///
+/// 模板存在 → 返回 Some(执行结果 JSON)；模板不存在 → 返回 None（调用方决定兜底策略）。
+/// 这是行业工作流的唯一执行通道——所有 DAG 均来自 DB（种子化），不再运行时动态生成。
+pub(crate) async fn run_template_via_engine(
+    db: &axagent_dao::db::DatabaseConnection,
+    engine: &Arc<axagent_runtime::work_engine::WorkEngine>,
+    industry_id: &str,
+    template_id: &str,
+    days: u32,
+    user_input: Option<serde_json::Value>,
+) -> Result<Option<serde_json::Value>, String> {
+    use axagent_entities::workflow_template;
+    use axagent_harness::workflow_types::{Variable, WorkflowEdge, WorkflowNode};
+    use axagent_rt_workflow::work_engine::{RunOptions, StepProgressEvent};
+    use sea_orm::EntityTrait;
+
+    let industry_id_normalized = industry_id.replace('-', "_");
+
+    let Some(template) = workflow_template::Entity::find_by_id(template_id)
+        .one(db)
+        .await
+        .map_err(|e| format!("查询模板失败: {e}"))?
+    else {
+        return Ok(None);
+    };
+
+    tracing::info!(
+        "[opc-execute] 从模板表加载工作流: id={}, version={}",
+        template_id,
+        template.version
+    );
+
+    // 解析节点和边
+    let nodes: Vec<WorkflowNode> = serde_json::from_str(&template.nodes).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let edges: Vec<WorkflowEdge> = serde_json::from_str(&template.edges).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    // 创建工作流
+    let wf_name = format!("opc-{industry_id_normalized}-{template_id}");
+    let workflow = engine
+        .create_workflow(&wf_name, nodes.clone(), edges.clone())
+        .await
+        .map_err(|e| format!("创建工作流失败: {e}"))?;
+    let wf_id = workflow.id.clone();
+
+    // 注入行业变量 + 用户输入变量
+    let mut merged_vars = vec![
+        Variable {
+            name: "industry_id".into(),
+            var_type: "string".into(),
+            value: serde_json::Value::String(industry_id.to_string()),
+            description: Some("行业 ID".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "time_range_days".into(),
+            var_type: "number".into(),
+            value: serde_json::json!(days),
+            description: Some("时间范围（天）".into()),
+            is_secret: false,
+        },
+    ];
+    // 用户输入（前端表单 JSON object）→ 工作流变量，供 AgentNode input_mapping 引用
+    if let Some(obj) = user_input.as_ref().and_then(|v| v.as_object()) {
+        for (key, val) in obj {
+            let var_type = match val {
+                serde_json::Value::Number(_) => "number",
+                _ => "string",
+            };
+            merged_vars.push(Variable {
+                name: key.clone(),
+                var_type: var_type.into(),
+                value: val.clone(),
+                description: Some(format!("用户输入: {key}")),
+                is_secret: false,
+            });
+        }
+    }
+
+    // 构造执行选项
+    let start_time = chrono::Utc::now().timestamp_millis();
+    let progress_cb: axagent_rt_workflow::work_engine::ProgressCallback =
+        Arc::new(move |_event: StepProgressEvent| {
+            Box::pin(async move {
+                // 进度回调暂不做前端事件透传（简化实现）
+            })
+        });
+
+    let opts = RunOptions {
+        max_concurrent: 2,
+        step_timeout: std::time::Duration::from_secs(300),
+        tool_timeout: std::time::Duration::from_secs(60),
+        variables: Some(merged_vars),
+        progress_callback: Some(progress_cb),
+        ..Default::default()
+    };
+
+    // 执行工作流
+    let result =
+        engine.run_workflow(&wf_id, opts).await.map_err(|e| format!("工作流执行失败: {e}"))?;
+
+    let duration_ms = chrono::Utc::now().timestamp_millis() - start_time;
+
+    // 聚合执行结果（节点运行时状态位于 node_states，按 node_id 索引）
+    let steps_total = result.nodes.len() as i32;
+    let steps_completed = result
+        .node_states
+        .values()
+        .filter(|s| matches!(s.status, axagent_rt_workflow::NodeStatus::Completed))
+        .count() as i32;
+
+    let status = if result
+        .node_states
+        .values()
+        .any(|s| matches!(s.status, axagent_rt_workflow::NodeStatus::Failed))
+    {
+        "failed"
+    } else if steps_completed == steps_total {
+        "completed"
+    } else {
+        "success"
+    };
+
+    let execution_result = serde_json::json!({
+        "workflow_id": wf_id,
+        "status": status,
+        "steps_completed": steps_completed,
+        "steps_total": steps_total,
+        "output": result.output,
+        "duration_ms": duration_ms,
+    });
+
+    tracing::info!(
+        "[opc-execute] rt-workflow 执行完成: status={}, completed={}/{}",
+        status,
+        steps_completed,
+        steps_total
+    );
+
+    Ok(Some(execution_result))
+}
+
 /// 执行行业工作流
 ///
-/// 优先走 rt-workflow 引擎执行模板（支持 AgentNode + agent_profile_id 真实调用 LLM）。
-/// 若模板不存在，回退到旧的 IndustryWorkflowExecutor 兜底。
+/// 三级查找：① 传入的 template_id（前端 wf-* / config 映射）→ ② 行业 harness 模板
+/// （{industry_id}_harness_workflow，seed 时写入 DB）→ ③ 从 adapter 一次性种子化到 DB
+/// （用户之后可在工作流编辑器修改）再执行。全部走 rt-workflow 引擎，不再运行时动态生成 DAG。
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业工作流")]
 #[tauri::command]
 pub async fn opc_execute_workflow(
@@ -1496,20 +1647,15 @@ pub async fn opc_execute_workflow(
     industry_id: String,
     workflow_id: Option<String>,
     days: Option<u32>,
+    user_input: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_analysis_engine::opc::data_service::TimeRange;
     use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
     use axagent_analysis_engine::opc::workflow::IndustryWorkflowManager;
-    use axagent_entities::workflow_template;
-    use axagent_harness::workflow_types::{Variable, WorkflowEdge, WorkflowNode};
-    use axagent_rt_workflow::work_engine::{RunOptions, StepProgressEvent};
-    use sea_orm::EntityTrait;
 
     let adapter = IndustryAdapterFactory::create(&industry_id)
         .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
 
     let days = days.unwrap_or(30);
-    let time_range = TimeRange::days(days as i64);
 
     // 归一化行业 ID（连字符转下划线）
     let industry_id_normalized = industry_id.replace('-', "_");
@@ -1533,138 +1679,53 @@ pub async fn opc_execute_workflow(
         format!("{industry_id_normalized}_harness_workflow")
     };
 
-    // 2. 尝试从 workflow_template 表加载模板，走 rt-workflow 引擎执行
     let db = app_state.harness.db();
-    if let Ok(Some(template)) = workflow_template::Entity::find_by_id(&template_id).one(db).await {
-        tracing::info!(
-            "[opc-execute] 从模板表加载工作流: id={}, version={}",
-            template_id,
-            template.version
-        );
+    let engine = Arc::clone(&app_state.work_engine);
 
-        // 解析节点和边
-        let nodes: Vec<WorkflowNode> = serde_json::from_str(&template.nodes).map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
-        let edges: Vec<WorkflowEdge> = serde_json::from_str(&template.edges).map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
-
-        // 创建工作流
-        let engine = Arc::clone(&app_state.work_engine);
-        let wf_name = format!("opc-{industry_id_normalized}-{template_id}");
-        let workflow = engine
-            .create_workflow(&wf_name, nodes.clone(), edges.clone())
-            .await
-            .map_err(|e| format!("创建工作流失败: {e}"))?;
-        let wf_id = workflow.id.clone();
-
-        // 注入行业变量
-        let merged_vars = vec![
-            Variable {
-                name: "industry_id".into(),
-                var_type: "string".into(),
-                value: serde_json::Value::String(industry_id.clone()),
-                description: Some("行业 ID".into()),
-                is_secret: false,
-            },
-            Variable {
-                name: "time_range_days".into(),
-                var_type: "number".into(),
-                value: serde_json::json!(days),
-                description: Some("时间范围（天）".into()),
-                is_secret: false,
-            },
-        ];
-
-        // 构造执行选项
-        let start_time = chrono::Utc::now().timestamp_millis();
-        let progress_cb: axagent_rt_workflow::work_engine::ProgressCallback =
-            Arc::new(move |_event: StepProgressEvent| {
-                Box::pin(async move {
-                    // 进度回调暂不做前端事件透传（简化实现）
-                })
-            });
-
-        let opts = RunOptions {
-            max_concurrent: 2,
-            step_timeout: std::time::Duration::from_secs(300),
-            tool_timeout: std::time::Duration::from_secs(60),
-            variables: Some(merged_vars),
-            progress_callback: Some(progress_cb),
-            ..Default::default()
-        };
-
-        // 执行工作流
-        let result =
-            engine.run_workflow(&wf_id, opts).await.map_err(|e| format!("工作流执行失败: {e}"))?;
-
-        let duration_ms = chrono::Utc::now().timestamp_millis() - start_time;
-
-        // 聚合执行结果（节点运行时状态位于 node_states，按 node_id 索引）
-        let steps_total = result.nodes.len() as i32;
-        let steps_completed = result
-            .node_states
-            .values()
-            .filter(|s| matches!(s.status, axagent_rt_workflow::NodeStatus::Completed))
-            .count() as i32;
-
-        let status = if result
-            .node_states
-            .values()
-            .any(|s| matches!(s.status, axagent_rt_workflow::NodeStatus::Failed))
-        {
-            "failed"
-        } else if steps_completed == steps_total {
-            "completed"
-        } else {
-            "success"
-        };
-
-        // 转换为前端兼容的 WorkflowExecutionResult
-        let execution_result = serde_json::json!({
-            "workflow_id": wf_id,
-            "status": status,
-            "steps_completed": steps_completed,
-            "steps_total": steps_total,
-            "output": result.output,
-            "duration_ms": duration_ms,
-        });
-
-        tracing::info!(
-            "[opc-execute] rt-workflow 执行完成: status={}, completed={}/{}",
-            status,
-            steps_completed,
-            steps_total
-        );
-
-        return Ok(execution_result);
+    // 2a. 首选：传入的 template_id（前端 wf-* 或 config 映射的模板，均已 seed 进 DB）
+    if let Some(result) =
+        run_template_via_engine(db, &engine, &industry_id, &template_id, days, user_input.clone())
+            .await?
+    {
+        return Ok(result);
     }
 
-    // 3. 回退：模板不存在时使用旧的 IndustryWorkflowExecutor 兜底
-    tracing::warn!("[opc-execute] 模板 {} 不存在，回退到旧执行器", template_id);
+    // 2b. 次选：行业 harness 模板（{industry_id}_harness_workflow，seed 时写入 DB）
+    let harness_template_id = format!("{industry_id_normalized}_harness_workflow");
+    if harness_template_id != template_id {
+        if let Some(result) = run_template_via_engine(
+            db,
+            &engine,
+            &industry_id,
+            &harness_template_id,
+            days,
+            user_input.clone(),
+        )
+        .await?
+        {
+            return Ok(result);
+        }
+    }
 
+    // 3. 兜底：模板不存在时从 adapter 一次性种子化到 DB（用户之后可在编辑器修改），再走 rt-workflow
+    tracing::warn!(
+        "[opc-execute] 模板 {} 与 {} 均不存在，从 adapter 种子化后执行",
+        template_id,
+        harness_template_id
+    );
     let mut manager = IndustryWorkflowManager::new();
     let workflow = manager.create_or_update(&industry_id_normalized, adapter.as_ref()).clone();
+    let template_data = workflow.to_template_data();
+    crate::commands::opc_workflows::upsert_template(db, template_data).await?;
 
-    let executor = IndustryWorkflowExecutor::new(industry_id.clone(), adapter);
-    let result = executor
-        .execute(&workflow, &time_range)
-        .await
-        .map_err(|e| format!("工作流执行失败: {e}"))?;
+    if let Some(result) =
+        run_template_via_engine(db, &engine, &industry_id, &harness_template_id, days, user_input)
+            .await?
+    {
+        return Ok(result);
+    }
 
-    serde_json::to_value(result).map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    Err(format!("工作流模板不存在且种子化失败: {template_id}"))
 }
 
 /// 查询行业学习指标

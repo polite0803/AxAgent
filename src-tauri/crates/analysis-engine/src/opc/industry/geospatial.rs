@@ -1,4 +1,5 @@
 // 地理信息行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -8,7 +9,9 @@ use super::super::automation::{AutomationAction, AutomationCondition, IndustryAu
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -49,36 +52,83 @@ impl OpcIndustryAdapter for GeospatialIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("region".to_string(), "region".to_string()),
+            ("data_type".to_string(), "data_type".to_string()),
+            ("output_format".to_string(), "output_format".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "数据采集".to_string(),
-                description: "采集原始地理空间数据".to_string(),
-                order: 1,
-                ..Default::default()
-            },
-            WorkflowStepDef {
-                name: "数据处理".to_string(),
-                description: "清洗、转换和标准化地理数据".to_string(),
-                order: 2,
-                ..Default::default()
-            },
-            WorkflowStepDef {
                 name: "空间分析".to_string(),
-                description: "进行空间查询、分析和建模".to_string(),
+                description: "对目标区域进行空间数据分析".to_string(),
+                prompt: Some(
+                    "你是一名 GIS 分析师。请对目标区域进行空间数据分析。\
+                     输出 JSON {analysis_result, spatial_patterns, key_layers, insights}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcSearchWiki".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
+                order: 1,
+                inputs: user_inputs.clone(),
+            },
+            WorkflowStepDef {
+                name: "地图制作".to_string(),
+                description: "制作专题地图与可视化".to_string(),
+                prompt: Some(
+                    "你是一名制图专家。请制作专题地图与可视化。\
+                     输出 JSON {map_spec, layers, symbology, output_assets}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateContentAsset".to_string(), "FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
+                order: 2,
+                inputs: user_inputs.clone(),
+            },
+            WorkflowStepDef {
+                name: "GIS 应用开发".to_string(),
+                description: "规划 GIS 应用功能与部署".to_string(),
+                prompt: Some(
+                    "你是一名 GIS 应用工程师。请规划 GIS 应用功能与部署。\
+                     输出 JSON {app_features, data_pipeline, deployment_plan, api_design}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateProject".to_string(), "OpcCreateContentAsset".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
             },
-            WorkflowStepDef {
-                name: "可视化渲染".to_string(),
-                description: "生成地图和空间可视化".to_string(),
-                order: 4,
-                ..Default::default()
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "region".to_string(),
+                label: "目标区域".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：深圳市南山区".to_string()),
+                default: None,
             },
-            WorkflowStepDef {
-                name: "发布共享".to_string(),
-                description: "发布地理信息服务和应用".to_string(),
-                order: 5,
-                ..Default::default()
+            WorkflowInputField {
+                key: "data_type".to_string(),
+                label: "数据类型".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：矢量、栅格、点云、3D 模型".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "output_format".to_string(),
+                label: "输出格式".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：GeoJSON、Shapefile、Web 地图服务".to_string()),
+                default: None,
             },
         ]
     }

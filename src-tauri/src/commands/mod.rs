@@ -115,6 +115,7 @@ pub mod session_share;
 pub mod sessions_export;
 pub mod settings;
 // simple_chat_completion 完整实现在 agent/mod.rs（stub 已删）
+pub mod conditional_order;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
@@ -136,6 +137,7 @@ pub mod terminal;
 pub mod theme;
 pub mod tool_recommender;
 pub mod tracer;
+pub mod trade_intent;
 pub mod unified_knowledge;
 pub mod user_profile;
 pub mod webdav;

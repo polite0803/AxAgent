@@ -1,4 +1,5 @@
 // 销售增长与营销行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -10,7 +11,9 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -51,24 +54,95 @@ impl OpcIndustryAdapter for SalesGrowthIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("target_segment".to_string(), "target_segment".to_string()),
+            ("product".to_string(), "product".to_string()),
+            ("growth_goal".to_string(), "growth_goal".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "线索生成".to_string(),
-                description: "通过营销活动获取线索".to_string(),
+                name: "获客策略".to_string(),
+                description: "制定获客策略与渠道方案".to_string(),
+                prompt: Some(
+                    "你是一名销售增长专家。请制定获客策略与渠道方案。\
+                     输出 JSON {acquisition_channels, lead_generation, budget_plan}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcCreateCustomer".to_string(),
+                    "OpcCreateLandingPage".to_string(),
+                    "WebSearch".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "线索培育".to_string(),
-                description: "跟进并转化线索".to_string(),
+                name: "转化优化".to_string(),
+                description: "优化销售漏斗与转化率".to_string(),
+                prompt: Some(
+                    "你是一名销售转化优化专家。请优化销售漏斗与转化率。\
+                     输出 JSON {funnel_analysis, conversion_tactics, sales_pitch}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcListCustomers".to_string(),
+                    "OpcCreatePublishSchedule".to_string(),
+                    "OpcListLandingPages".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "赢单收盘".to_string(),
-                description: "达成交易并维护客户".to_string(),
+                name: "留存提升".to_string(),
+                description: "制定客户留存与复购策略".to_string(),
+                prompt: Some(
+                    "你是一名客户成功专家。请制定客户留存与复购策略。\
+                     输出 JSON {retention_plan, loyalty_program, upsell_opportunities}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcSendNotification".to_string(),
+                    "OpcListCustomers".to_string(),
+                    "OpcCreateContentAsset".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "target_segment".to_string(),
+                label: "目标客群".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：中小企业 B2B 客户".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "product".to_string(),
+                label: "产品/服务".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：SaaS 订阅服务".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "growth_goal".to_string(),
+                label: "增长目标".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：季度营收增长 20%".to_string()),
+                default: None,
             },
         ]
     }

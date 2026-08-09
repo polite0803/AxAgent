@@ -1,4 +1,5 @@
 // 软件开发行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -10,7 +11,9 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -51,24 +54,95 @@ impl OpcIndustryAdapter for SoftwareDevIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("project_name".to_string(), "project_name".to_string()),
+            ("project_goal".to_string(), "project_goal".to_string()),
+            ("tech_stack".to_string(), "tech_stack".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "需求规划".to_string(),
-                description: "梳理需求并制定计划".to_string(),
+                name: "需求分析".to_string(),
+                description: "分析项目需求并拆解功能模块与验收标准".to_string(),
+                prompt: Some(
+                    "你是一名软件需求分析师。请分析项目需求，拆解功能模块与验收标准。\
+                     输出 JSON {requirements, feature_modules, acceptance_criteria}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcCreateProject".to_string(),
+                    "OpcListProjects".to_string(),
+                    "FileWrite".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "开发联调".to_string(),
-                description: "编码实现并集成测试".to_string(),
+                name: "技术选型".to_string(),
+                description: "评估技术栈选型并设计系统架构".to_string(),
+                prompt: Some(
+                    "你是一名软件架构师。请评估技术栈选型，设计系统架构。\
+                     输出 JSON {tech_decision, architecture, dependencies, tradeoffs}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "WebSearch".to_string(),
+                    "OpcAddMilestone".to_string(),
+                    "OpcListProjects".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "发布上线".to_string(),
-                description: "部署生产并监控".to_string(),
+                name: "性能优化".to_string(),
+                description: "识别性能瓶颈并制定优化方案".to_string(),
+                prompt: Some(
+                    "你是一名性能优化专家。请识别性能瓶颈并制定优化方案。\
+                     输出 JSON {bottlenecks, optimization_plan, expected_gains}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcListProjects".to_string(),
+                    "OpcAddMilestone".to_string(),
+                    "FileRead".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "project_name".to_string(),
+                label: "项目名称".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: None,
+                default: None,
+            },
+            WorkflowInputField {
+                key: "project_goal".to_string(),
+                label: "项目目标".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
+            },
+            WorkflowInputField {
+                key: "tech_stack".to_string(),
+                label: "技术栈".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
             },
         ]
     }

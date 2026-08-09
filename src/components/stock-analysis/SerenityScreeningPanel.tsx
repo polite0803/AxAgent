@@ -38,7 +38,7 @@ import {
 } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SerenityCandidateCard } from "./SerenityCandidateCard";
 
 const { Text, Title } = Typography;
@@ -526,6 +526,9 @@ export function SerenityScreeningPanel() {
   } = useSerenityStore();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isInInvestHub = location.pathname.startsWith("/invest");
 
   // 用于在 handleRun 启动前注册监听器，确保不漏事件
   const unlistenStepRef = useRef<(() => void) | null>(null);
@@ -1680,7 +1683,17 @@ export function SerenityScreeningPanel() {
                   className="w-full"
                   onClick={() => {
                     setSerenityDetailOpen(false);
-                    navigate(`/stock-analysis?code=${item.stockCode}`, { replace: true });
+                    if (isInInvestHub) {
+                      // 在 InvestHub 内部：使用 URL 参数切换到 workspace tab，自动输入股票代码
+                      const next = new URLSearchParams(searchParams);
+                      next.set("tab", "workspace");
+                      next.set("stockCode", item.stockCode);
+                      next.set("view", "analysis");
+                      setSearchParams(next, { replace: true });
+                    } else {
+                      // 独立页面：跳转到股票分析页面
+                      navigate(`/stock-analysis?code=${item.stockCode}`, { replace: true });
+                    }
                   }}
                 >
                   <div className="flex items-center justify-between">

@@ -1,4 +1,5 @@
 // 行业咨询行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -11,7 +12,9 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -52,24 +55,83 @@ impl OpcIndustryAdapter for IndustryConsultingIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("industry_name".to_string(), "industry_name".to_string()),
+            ("client_goal".to_string(), "client_goal".to_string()),
+            ("region".to_string(), "region".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "客户接洽".to_string(),
-                description: "评估需求并签订合同".to_string(),
+                name: "行业扫描".to_string(),
+                description: "扫描目标行业全景与市场格局".to_string(),
+                prompt: Some(
+                    "你是一名产业咨询顾问。请扫描目标行业的全景，分析市场规模、竞争格局与增长驱动。\
+                     输出 JSON {industry_overview, market_size, competitive_landscape, growth_drivers}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcSearchWiki".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "项目交付".to_string(),
-                description: "执行咨询并输出成果".to_string(),
+                name: "进入评估".to_string(),
+                description: "评估客户进入该行业的可行性与风险".to_string(),
+                prompt: Some(
+                    "你是一名产业进入评估专家。请评估客户进入该行业的可行性与风险。\
+                     输出 JSON {feasibility, entry_barriers, risks, recommendation}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcSearchWiki".to_string(), "OpcGetDashboard".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "复盘反馈".to_string(),
-                description: "收集反馈并复盘".to_string(),
+                name: "战略制定".to_string(),
+                description: "制定进入战略与实施路线图".to_string(),
+                prompt: Some(
+                    "你是一名企业战略专家。请为客户制定进入战略与实施路线图。\
+                     输出 JSON {strategy, roadmap, resource_plan, success_metrics}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateContentAsset".to_string(), "FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "industry_name".to_string(),
+                label: "行业名称".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: None,
+                default: None,
+            },
+            WorkflowInputField {
+                key: "client_goal".to_string(),
+                label: "客户目标".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
+            },
+            WorkflowInputField {
+                key: "region".to_string(),
+                label: "目标区域".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
             },
         ]
     }

@@ -1,4 +1,5 @@
 // 设计行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -8,7 +9,9 @@ use super::super::automation::{AutomationAction, AutomationCondition, IndustryAu
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -49,36 +52,92 @@ impl OpcIndustryAdapter for DesignIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("project_brief".to_string(), "project_brief".to_string()),
+            ("brand_style".to_string(), "brand_style".to_string()),
+            ("design_target".to_string(), "design_target".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "用户研究".to_string(),
-                description: "通过用户访谈和可用性测试收集需求".to_string(),
+                name: "产品 UI 设计".to_string(),
+                description: "根据设计需求产出产品界面设计方案".to_string(),
+                prompt: Some(
+                    "你是一名 UI 设计师。请根据设计需求产出产品界面设计方案。\
+                     输出 JSON {layout, color_scheme, typography, component_list}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcCreateContentAsset".to_string(),
+                    "FileWrite".to_string(),
+                    "WebSearch".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "概念设计".to_string(),
-                description: "基于研究结果创建设计概念和线框图".to_string(),
+                name: "品牌视觉设计".to_string(),
+                description: "设计品牌视觉体系与 VI 规范".to_string(),
+                prompt: Some(
+                    "你是一名品牌设计师。请设计品牌视觉体系与 VI 规范。\
+                     输出 JSON {brand_identity, logo_concept, brand_guidelines, touchpoints}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcCreateContentAsset".to_string(),
+                    "OpcCreateLandingPage".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "视觉设计".to_string(),
-                description: "完成高保真视觉设计和交互原型".to_string(),
+                name: "设计系统构建".to_string(),
+                description: "构建可复用的设计系统与组件库".to_string(),
+                prompt: Some(
+                    "你是一名设计系统专家。请构建可复用的设计系统与组件库。\
+                     输出 JSON {design_tokens, component_library, usage_rules, documentation}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateContentAsset".to_string(), "FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
             },
-            WorkflowStepDef {
-                name: "设计评审".to_string(),
-                description: "组织设计评审会议，收集反馈并迭代".to_string(),
-                order: 4,
-                ..Default::default()
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "project_brief".to_string(),
+                label: "设计需求".to_string(),
+                field_type: "textarea".to_string(),
+                required: true,
+                placeholder: Some(
+                    "如：面向企业用户的 SaaS 管理后台，需要信息清晰、操作高效".to_string(),
+                ),
+                default: None,
             },
-            WorkflowStepDef {
-                name: "交付交付".to_string(),
-                description: "输出设计规范、资源包和开发文档".to_string(),
-                order: 5,
-                ..Default::default()
+            WorkflowInputField {
+                key: "brand_style".to_string(),
+                label: "品牌风格".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：科技感、简约、活力".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "design_target".to_string(),
+                label: "设计目标".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：提升转化率、增强品牌辨识度".to_string()),
+                default: None,
             },
         ]
     }

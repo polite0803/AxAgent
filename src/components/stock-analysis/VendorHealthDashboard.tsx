@@ -12,6 +12,7 @@
 
 import { invoke } from "@/lib/invoke";
 import { Card, Spin, Tag, Tooltip } from "antd";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -155,6 +156,7 @@ export function VendorHealthDashboard() {
   const [data, setData] = useState<VendorHealthItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -201,7 +203,12 @@ export function VendorHealthDashboard() {
     <Card
       size="small"
       title={
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center gap-3 w-full text-left bg-transparent border-none cursor-pointer p-0 hover:opacity-80 transition-opacity"
+        >
+          <span>{collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}</span>
           <span>{t("stockAnalysis.settings.vendorHealth", "数据源健康状态")}</span>
           <div className="flex gap-2 text-xs">
             <Tag color="green">{healthyCount} 正常</Tag>
@@ -209,7 +216,7 @@ export function VendorHealthDashboard() {
             {disabledCount > 0 && <Tag color="red">{disabledCount} 禁用</Tag>}
             {untouchedCount > 0 && <Tag>{untouchedCount} 未探测</Tag>}
           </div>
-        </div>
+        </button>
       }
       extra={
         <button
@@ -221,6 +228,7 @@ export function VendorHealthDashboard() {
         </button>
       }
       className="bg-gray-900/50"
+      styles={{ body: collapsed ? { display: "none" } : undefined }}
     >
       {loading && data.length === 0
         ? (

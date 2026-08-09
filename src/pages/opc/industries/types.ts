@@ -16,12 +16,24 @@ export interface IndustryManifest {
   enabled: boolean;
 }
 
+/** 工作流用户输入字段（前端渲染表单用） */
+export interface WorkflowInputField {
+  key: string;
+  label: string;
+  type: "string" | "number" | "textarea";
+  required?: boolean;
+  placeholder?: string;
+  default?: string;
+}
+
 /** 行业工作流 */
 export interface IndustryWorkflow {
   id: string;
   name: string;
   description: string;
   version: string;
+  /** 用户输入字段（非空时前端渲染表单） */
+  inputFields?: WorkflowInputField[];
 }
 
 /** 行业操作项 */

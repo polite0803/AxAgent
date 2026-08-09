@@ -8,9 +8,10 @@ use std::sync::Arc;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, ApprovalNode, ApprovalNodeConfig, CodeNodeConfig, ConditionNode,
     ConditionNodeConfig, DataTransformerNode, DataTransformerNodeConfig, EdgeType, EndNode,
-    EndNodeConfig, NotificationNode, NotificationNodeConfig, OutputMode, ToolDef, TriggerConfig,
-    TriggerNode, ValidationAssertion, ValidationNodeConfig as HValidationNodeConfig,
-    WorkflowEdge as HWorkflowEdge, WorkflowNode, WorkflowNodeBase, WorkflowTemplateData,
+    EndNodeConfig, JsonSchema, JsonSchemaProperty, NotificationNode, NotificationNodeConfig,
+    OutputMode, ToolDef, TriggerConfig, TriggerNode, ValidationAssertion,
+    ValidationNodeConfig as HValidationNodeConfig, Variable, WorkflowEdge as HWorkflowEdge,
+    WorkflowNode, WorkflowNodeBase, WorkflowTemplateData,
 };
 
 use super::automation::{AutomationAction, AutomationCondition};
@@ -49,6 +50,8 @@ pub struct IndustryWorkflow {
     pub nodes: Vec<WorkflowNode>,
     pub edges: Vec<WorkflowEdgeDef>,
     pub version: String,
+    /// 用户输入字段定义（前端渲染表单 + to_template_data 生成 input_schema）
+    pub input_fields: Vec<WorkflowInputField>,
 }
 
 impl IndustryWorkflow {
@@ -120,7 +123,7 @@ impl IndustryWorkflow {
                             .clone()
                             .unwrap_or_else(|| step.description.clone()),
                         context_sources: Vec::new(),
-                        input_mapping: HashMap::new(),
+                        input_mapping: step.inputs.clone(),
                         output_var: format!("step_{}", node_id),
                         model: None,
                         temperature: None,
@@ -150,7 +153,7 @@ impl IndustryWorkflow {
                         output_var: format!("step_{}", node_id),
                         tool_name: None,
                         execute_directly: true,
-                        input_mapping: HashMap::new(),
+                        input_mapping: step.inputs.clone(),
                     },
                 }));
             }
@@ -345,6 +348,7 @@ impl IndustryWorkflow {
             nodes,
             edges,
             version: "3.0.0-harness".to_string(),
+            input_fields: adapter.input_fields(),
         }
     }
 
@@ -375,13 +379,72 @@ impl IndustryWorkflow {
             })
             .collect();
 
+        // 从 input_fields 构造 input_schema（JsonSchema）和 variables（变量声明）
+        let input_schema: Option<JsonSchema> = if self.input_fields.is_empty() {
+            None
+        } else {
+            let mut properties = std::collections::HashMap::new();
+            let mut required_keys = Vec::new();
+            for field in &self.input_fields {
+                let prop_type = if field.field_type == "number" {
+                    "number"
+                } else {
+                    "string"
+                };
+                properties.insert(
+                    field.key.clone(),
+                    JsonSchemaProperty {
+                        schema_type: prop_type.to_string(),
+                        description: Some(field.label.clone()),
+                        default: field.default.as_ref().map(|d| serde_json::json!(d)),
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                if field.required {
+                    required_keys.push(field.key.clone());
+                }
+            }
+            Some(JsonSchema {
+                schema_type: "object".to_string(),
+                description: Some(format!("{} 工作流用户输入", self.industry_id)),
+                properties: Some(properties),
+                required: if required_keys.is_empty() {
+                    None
+                } else {
+                    Some(required_keys)
+                },
+                items: None,
+            })
+        };
+
+        let variables: Vec<Variable> = self
+            .input_fields
+            .iter()
+            .map(|field| Variable {
+                name: field.key.clone(),
+                var_type: if field.field_type == "number" {
+                    "number".to_string()
+                } else {
+                    "string".to_string()
+                },
+                value: field
+                    .default
+                    .as_ref()
+                    .map(|d| serde_json::json!(d))
+                    .unwrap_or(serde_json::Value::Null),
+                description: Some(field.label.clone()),
+                is_secret: false,
+            })
+            .collect();
+
         WorkflowTemplateData {
             id: self.workflow_id.clone(),
             name: self.name.clone(),
             description: Some(format!("{} 行业工作流（代码驱动）", self.industry_id)),
             icon: "⚙️".to_string(),
             tags: vec![self.industry_id.clone(), "opc".to_string()],
-            version: 4, // 代码驱动版本（v3: AgentNode + agent_profile_id；v4: 移除 DAG 内 KPI/Aggregator 占位节点，KPI 走 dashboard 通道）
+            version: 5, // v5: input_schema + variables + step.inputs input_mapping（用户输入链路打通）
             is_preset: true,
             is_editable: true,
             is_public: false,
@@ -391,9 +454,9 @@ impl IndustryWorkflow {
             }),
             nodes: self.nodes.clone(),
             edges,
-            input_schema: None,
+            input_schema,
             output_schema: None,
-            variables: Vec::new(),
+            variables,
             error_config: None,
             error_workflow_id: None,
             mission_hash: None,
@@ -736,6 +799,23 @@ pub struct KpiCalculationDef {
     pub name: String,
 }
 
+/// 工作流用户输入字段定义（前端渲染表单 + 后端注入变量）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct WorkflowInputField {
+    /// 字段 key（对应工作流变量名，AgentNode input_mapping 引用此名）
+    pub key: String,
+    /// 显示标签
+    pub label: String,
+    /// 字段类型：string / number / textarea
+    pub field_type: String,
+    /// 是否必填
+    pub required: bool,
+    /// 占位提示
+    pub placeholder: Option<String>,
+    /// 默认值
+    pub default: Option<String>,
+}
+
 /// 业务步骤定义（代码驱动，对齐股票业务）
 #[derive(Debug, Clone)]
 pub struct WorkflowStepDef {
@@ -750,6 +830,9 @@ pub struct WorkflowStepDef {
     pub agent_profile_id: Option<String>,
     /// 错误处理：stop / continue
     pub error_handling: String,
+    /// 输入映射：key = 节点变量名, value = 工作流变量名（如 "topic" → "user_topic"）
+    /// 让用户输入通过工作流变量进入 AgentNode 的 context
+    pub inputs: HashMap<String, String>,
 }
 
 impl Default for WorkflowStepDef {
@@ -762,6 +845,7 @@ impl Default for WorkflowStepDef {
             tools: Vec::new(),
             agent_profile_id: None,
             error_handling: "stop".to_string(),
+            inputs: HashMap::new(),
         }
     }
 }

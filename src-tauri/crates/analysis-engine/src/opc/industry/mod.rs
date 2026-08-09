@@ -25,7 +25,9 @@ use super::data_service::OpcDataService;
 use super::data_service::TimeRange;
 use super::error::OpcResult;
 use super::rules::ValidationError;
-use super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 
 // ── 行业适配器共享基类 ────────────────────────────────────────
 // 收敛 14 个行业 adapter 中重复的数据服务注入与基本信息存储逻辑。
@@ -238,6 +240,12 @@ pub trait OpcIndustryAdapter: Send + Sync {
 
     /// 定义业务步骤（映射为 Code/SubWorkflow 节点）
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        Vec::new()
+    }
+
+    /// 定义工作流用户输入字段（前端渲染表单 + 生成 input_schema + 注入变量）
+    /// 默认返回空 — 无用户输入的行业走纯自动流程
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
         Vec::new()
     }
 

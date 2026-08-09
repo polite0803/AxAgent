@@ -1,4 +1,5 @@
 // 金融投资行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -10,7 +11,9 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -51,6 +54,12 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("portfolio_value".to_string(), "portfolio_value".to_string()),
+            ("market_focus".to_string(), "market_focus".to_string()),
+            ("risk_tolerance".to_string(), "risk_tolerance".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
                 name: "市场分析".to_string(),
@@ -59,9 +68,10 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                     "你是一名资深投资分析师。请分析宏观经济与市场趋势，识别投资机会。输出 JSON {market_view, key_sectors, risk_factors}".to_string(),
                 ),
                 tools: vec!["OpcGetDashboard".to_string(), "OpcListKpis".to_string(), "OpcListCustomers".to_string()],
-                agent_profile_id: Some("opc-cio-cio-investment-analyst".to_string()),
+                agent_profile_id: None,
                 error_handling: "stop".to_string(),
                 order: 1,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "行业研究".to_string(),
@@ -70,9 +80,10 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                     "你是一名行业研究专家。请深入研究目标行业与个股。输出 JSON {industry_outlook, stock_analysis, valuation}".to_string(),
                 ),
                 tools: vec!["OpcSearchWiki".to_string(), "OpcListProjects".to_string()],
-                agent_profile_id: Some("opc-cio-cio-industry-researcher".to_string()),
+                agent_profile_id: None,
                 error_handling: "stop".to_string(),
                 order: 2,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "资产配置".to_string(),
@@ -81,9 +92,10 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                     "你是一名资产配置专家。请根据分析结果构建最优投资组合。输出 JSON {allocation, positions, rebalance_plan}".to_string(),
                 ),
                 tools: vec!["OpcGetFinancialReport".to_string(), "OpcGetDashboard".to_string()],
-                agent_profile_id: Some("opc-cio-cio-asset-allocation".to_string()),
+                agent_profile_id: None,
                 error_handling: "stop".to_string(),
                 order: 3,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "交易执行".to_string(),
@@ -92,9 +104,10 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                     "你是一名交易执行专家。请执行交易并实时监控市场。输出 JSON {executed_trades, pnl, alerts}".to_string(),
                 ),
                 tools: vec!["OpcSendNotification".to_string(), "OpcGetDashboard".to_string()],
-                agent_profile_id: Some("opc-cio-cio-trading-executor".to_string()),
+                agent_profile_id: None,
                 error_handling: "continue".to_string(),
                 order: 4,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "回顾复盘".to_string(),
@@ -103,9 +116,39 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                     "你是一名投资回顾专家。请分析组合表现并提出再平衡建议。输出 JSON {performance_attribution, rebalance_recommendation, lessons_learned}".to_string(),
                 ),
                 tools: vec!["OpcGetFinancialReport".to_string(), "OpcRecordKpi".to_string()],
-                agent_profile_id: Some("opc-cio-cio-portfolio-reviewer".to_string()),
+                agent_profile_id: None,
                 error_handling: "continue".to_string(),
                 order: 5,
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "portfolio_value".to_string(),
+                label: "组合价值".to_string(),
+                field_type: "number".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
+            },
+            WorkflowInputField {
+                key: "market_focus".to_string(),
+                label: "市场方向".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
+            },
+            WorkflowInputField {
+                key: "risk_tolerance".to_string(),
+                label: "风险偏好".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: None,
+                default: None,
             },
         ]
     }

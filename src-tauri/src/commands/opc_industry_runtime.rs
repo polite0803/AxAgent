@@ -18,7 +18,7 @@ use agent_macro::agent_command;
 use tauri::State;
 
 use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
-use axagent_analysis_engine::opc::workflow::{IndustryWorkflowExecutor, IndustryWorkflowManager};
+use axagent_analysis_engine::opc::workflow::IndustryWorkflowManager;
 use axagent_analysis_engine::opc::*;
 use axagent_dao::db::DatabaseConnection;
 
@@ -165,26 +165,51 @@ pub async fn get_dashboard(
     })
 }
 
-/// 执行行业动态工作流
+/// 执行行业动态工作流（DB 模板优先，无则一次性种子化后执行）
+///
+/// 所有 DAG 均来自 DB（种子化 + 用户可编辑），不再运行时动态生成。
 pub async fn execute_dynamic_workflow(
     db: &DatabaseConnection,
+    engine: &Arc<axagent_runtime::work_engine::WorkEngine>,
     industry_id: &str,
-    time_range: TimeRange,
-) -> Result<axagent_analysis_engine::opc::workflow::WorkflowExecutionResult, String> {
+    days: u32,
+    user_input: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let industry_id_normalized = industry_id.replace('-', "_");
+    let harness_template_id = format!("{industry_id_normalized}_harness_workflow");
+
+    // 1. 首选：行业 harness 模板（seed 时写入 DB，用户可在编辑器修改）
+    if let Some(result) = crate::commands::opc_industry_actions::run_template_via_engine(
+        db,
+        engine,
+        industry_id,
+        &harness_template_id,
+        days,
+        user_input.clone(),
+    )
+    .await?
+    {
+        return Ok(result);
+    }
+
+    // 2. 兜底：从 adapter 一次性种子化到 DB（用户之后可编辑），再走 rt-workflow
+    tracing::warn!("[opc-dynamic] 模板 {} 不存在，从 adapter 种子化后执行", harness_template_id);
     let adapter = load_adapter(db, industry_id)?;
-
-    // 使用管理器创建工作流
     let mut manager = IndustryWorkflowManager::new();
-    let workflow = manager.create_or_update(industry_id, adapter.as_ref());
+    let workflow = manager.create_or_update(&industry_id_normalized, adapter.as_ref()).clone();
+    let template_data = workflow.to_template_data();
+    crate::commands::opc_workflows::upsert_template(db, template_data).await?;
 
-    // 创建执行器并执行
-    let executor = IndustryWorkflowExecutor::new(industry_id.to_string(), adapter);
-    executor.execute(workflow, &time_range).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    crate::commands::opc_industry_actions::run_template_via_engine(
+        db,
+        engine,
+        industry_id,
+        &harness_template_id,
+        days,
+        user_input,
+    )
+    .await?
+    .ok_or_else(|| format!("工作流种子化失败: {harness_template_id}"))
 }
 
 /// 列出全部内建行业（工厂注册）
@@ -499,12 +524,10 @@ pub async fn opc_execute_dynamic_workflow(
     industry_id: String,
     days: Option<i64>,
 ) -> Result<serde_json::Value, String> {
-    let range = match days {
-        Some(d) => TimeRange::days(d),
-        None => TimeRange::days(30),
-    };
+    let days = days.unwrap_or(30) as u32;
     let db = app_state.harness.db();
-    let result = execute_dynamic_workflow(db, &industry_id, range).await?;
+    let engine = Arc::clone(&app_state.work_engine);
+    let result = execute_dynamic_workflow(db, &engine, &industry_id, days, None).await?;
     Ok(serde_json::json!({
         "industryId": industry_id,
         "workflowExecution": result,

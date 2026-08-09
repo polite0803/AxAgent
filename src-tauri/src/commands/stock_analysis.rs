@@ -5610,6 +5610,46 @@ impl Default for ValuationParams {
 
 const VALUATION_PARAMS_KEY: &str = "valuation_params";
 
+/// 从数据库加载估值参数，失败时返回默认值
+/// 可供其他模块（如 init/services.rs 中的工具回调）复用
+pub async fn load_valuation_params(db: &sea_orm::DatabaseConnection) -> ValuationParams {
+    match axagent_dao::repo::settings::get_setting(db, VALUATION_PARAMS_KEY).await {
+        Ok(Some(json_str)) => {
+            serde_json::from_str(&json_str).unwrap_or_else(|_| ValuationParams::default())
+        },
+        Ok(None) => ValuationParams::default(),
+        Err(_) => ValuationParams::default(),
+    }
+}
+
+/// 为 compute_valuation 工具注入估值配置
+/// 如果是 compute_valuation 工具，从数据库加载估值参数并注入到 arguments 中
+pub async fn inject_valuation_config_for_tool(
+    tool_name: &str,
+    db: &sea_orm::DatabaseConnection,
+    arguments: serde_json::Value,
+) -> serde_json::Value {
+    if tool_name == "compute_valuation" {
+        let params = load_valuation_params(db).await;
+        let config = serde_json::json!({
+            "perpetualGrowth": params.perpetual_growth,
+            "discountRate": params.discount_rate,
+            "defaultGrowth": params.default_growth,
+            "minGrowth": params.min_growth,
+            "maxGrowth": params.max_growth,
+            "forecastYears": params.forecast_years,
+            "bondYield": params.bond_yield,
+        });
+        let mut args = arguments;
+        if let Some(obj) = args.as_object_mut() {
+            obj.insert("valuation_config".to_string(), config);
+        }
+        args
+    } else {
+        arguments
+    }
+}
+
 #[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取估值参数配置")]
 #[tauri::command]
 pub async fn get_valuation_params(state: State<'_, AppState>) -> Result<ValuationParams, String> {

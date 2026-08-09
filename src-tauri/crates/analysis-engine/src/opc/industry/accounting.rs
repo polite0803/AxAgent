@@ -1,4 +1,5 @@
 // 会计与财务管理行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -9,7 +10,9 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -52,30 +55,102 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("company_name".to_string(), "company_name".to_string()),
+            ("period".to_string(), "period".to_string()),
+            ("focus_area".to_string(), "focus_area".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
                 name: "创建发票".to_string(),
                 description: "根据用户信息创建发票".to_string(),
+                prompt: Some(
+                    "你是一名会计专员。请根据用户提供的公司信息创建发票，\
+                     检查金额与客户信息。\
+                     输出 JSON {invoice_id, customer, total, due_date}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcCreateInvoice".to_string(),
+                    "OpcListInvoices".to_string(),
+                    "OpcListCustomers".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "财务审批".to_string(),
                 description: "财务审批（24小时超时自动拒绝）".to_string(),
+                prompt: Some(
+                    "你是一名财务审批人。请审核发票的合规性与准确性，识别风险。\
+                     输出 JSON {approved, risk_level, comments}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcGetFinancialReport".to_string(), "OpcListInvoices".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "通知客户".to_string(),
                 description: "发票已审批通过，通知客户".to_string(),
+                prompt: Some(
+                    "你是一名财务助理。请向客户发送发票通知，说明金额与付款方式。\
+                     输出 JSON {notified, channel, message}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcSendNotification".to_string(), "OpcListCustomers".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "登记报表".to_string(),
                 description: "记录发票相关关键指标".to_string(),
+                prompt: Some(
+                    "你是一名财务分析师。请将发票数据登记到财务报表，计算应收与回款指标。\
+                     输出 JSON {report_updated, total_revenue, collection_rate}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcRecordKpi".to_string(), "OpcGetFinancialReport".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 4,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "company_name".to_string(),
+                label: "公司名称".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：某某科技有限公司".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "period".to_string(),
+                label: "财务周期".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：2026-Q2".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "focus_area".to_string(),
+                label: "关注领域".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：成本控制、现金流管理".to_string()),
+                default: None,
             },
         ]
     }

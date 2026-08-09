@@ -1,4 +1,5 @@
 // 教育培训行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -11,7 +12,9 @@ use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -52,24 +55,83 @@ impl OpcIndustryAdapter for EducationIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("course_topic".to_string(), "course_topic".to_string()),
+            ("target_audience".to_string(), "target_audience".to_string()),
+            ("course_level".to_string(), "course_level".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "招生".to_string(),
-                description: "新生报名".to_string(),
+                name: "课程体系设计".to_string(),
+                description: "设计课程体系与教学大纲".to_string(),
+                prompt: Some(
+                    "你是一名课程设计专家。请设计课程体系与教学大纲。\
+                     输出 JSON {curriculum, modules, learning_objectives}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateContentAsset".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "教学".to_string(),
-                description: "课程授课与作业".to_string(),
+                name: "学习路径规划".to_string(),
+                description: "规划学员学习路径与进度安排".to_string(),
+                prompt: Some(
+                    "你是一名教育规划专家。请规划学员的学习路径与进度安排。\
+                     输出 JSON {learning_path, milestones, assessment_plan}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateLandingPage".to_string(), "FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "认证".to_string(),
-                description: "结课发证".to_string(),
+                name: "内容开发".to_string(),
+                description: "开发高质量教学课件与练习".to_string(),
+                prompt: Some(
+                    "你是一名课件开发专家。请开发高质量教学课件与练习。\
+                     输出 JSON {content_assets, lesson_plans, practice_exercises}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateContentAsset".to_string(), "FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "course_topic".to_string(),
+                label: "课程主题".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：Python 数据分析入门".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "target_audience".to_string(),
+                label: "目标学员".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：零基础职场新人".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "course_level".to_string(),
+                label: "课程难度".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：入门 / 进阶 / 高级".to_string()),
+                default: None,
             },
         ]
     }

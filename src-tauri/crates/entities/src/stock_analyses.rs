@@ -41,6 +41,21 @@ pub struct Model {
     /// 首次分析为 NULL；重跑时指向被重跑的原始记录 ID。
     #[sea_orm(default_value = "NULL")]
     pub parent_analysis_id: Option<String>,
+    /// 交易意图审核状态: pending / reviewed / executed / expired / rejected
+    #[sea_orm(default_value = "pending")]
+    pub trade_intent_status: String,
+    /// 交易意图来源: analysis / conditional_order / quant_signal / portfolio_monitor
+    pub trade_intent_source: Option<String>,
+    /// 来源关联 ID（分析ID / 条件单ID / 信号ID）
+    pub trade_intent_source_ref_id: Option<String>,
+    /// 审核时间（ms）
+    pub trade_intent_reviewed_at: Option<i64>,
+    /// 审核人
+    pub trade_intent_reviewed_by: Option<String>,
+    /// 审核备注
+    pub trade_intent_review_notes: Option<String>,
+    /// 关联的实际交易 ID（执行后关联到 trades 表）
+    pub trade_intent_actual_trade_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

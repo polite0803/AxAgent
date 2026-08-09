@@ -1,4 +1,5 @@
 // 项目管理行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -8,7 +9,9 @@ use super::super::automation::{AutomationAction, AutomationCondition, IndustryAu
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -54,36 +57,87 @@ impl OpcIndustryAdapter for ProjectManagementIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("project_name".to_string(), "project_name".to_string()),
+            ("project_scope".to_string(), "project_scope".to_string()),
+            ("deadline".to_string(), "deadline".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "项目立项".to_string(),
-                description: "定义项目目标、范围和资源".to_string(),
+                name: "项目启动".to_string(),
+                description: "制定项目章程与启动计划".to_string(),
+                prompt: Some(
+                    "你是一名项目经理。请制定项目章程与启动计划。\
+                     输出 JSON {charter, milestones, team_roles, resource_plan}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcCreateProject".to_string(), "OpcAddMilestone".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "需求分析".to_string(),
-                description: "收集和分析项目需求".to_string(),
+                name: "进度报告".to_string(),
+                description: "生成进度报告并识别风险".to_string(),
+                prompt: Some(
+                    "你是一名项目进度管理员。请生成进度报告并识别风险。\
+                     输出 JSON {progress, blockers, risk_register, next_actions}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcListProjects".to_string(),
+                    "OpcAddMilestone".to_string(),
+                    "OpcSendNotification".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
-            },
-            WorkflowStepDef {
-                name: "计划制定".to_string(),
-                description: "制定详细的项目计划和里程碑".to_string(),
-                order: 3,
-                ..Default::default()
-            },
-            WorkflowStepDef {
-                name: "执行监控".to_string(),
-                description: "跟踪项目进度、风险管理和质量保证".to_string(),
-                order: 4,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "项目收尾".to_string(),
-                description: "完成交付物、总结经验教训".to_string(),
-                order: 5,
-                ..Default::default()
+                description: "完成项目复盘与交付验收".to_string(),
+                prompt: Some(
+                    "你是一名项目收尾专家。请完成项目复盘与交付验收。\
+                     输出 JSON {deliverables, lessons_learned, kpi_summary, handover_plan}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcListProjects".to_string(), "OpcRecordKpi".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
+                order: 3,
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "project_name".to_string(),
+                label: "项目名称".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：客户官网改版项目".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "project_scope".to_string(),
+                label: "项目范围".to_string(),
+                field_type: "textarea".to_string(),
+                required: false,
+                placeholder: Some("如：包含需求梳理、UI 设计、前后端开发、上线部署".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "deadline".to_string(),
+                label: "截止日期".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：2026-12-31".to_string()),
+                default: None,
             },
         ]
     }

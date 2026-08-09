@@ -1,4 +1,5 @@
 // 电子商务行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -10,7 +11,9 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::invoice::InvoiceStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -51,24 +54,87 @@ impl OpcIndustryAdapter for EcommerceIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("product_name".to_string(), "product_name".to_string()),
+            ("target_market".to_string(), "target_market".to_string()),
+            ("promo_budget".to_string(), "promo_budget".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
-                name: "同步库存".to_string(),
-                description: "同步商品库存".to_string(),
+                name: "爆品挖掘".to_string(),
+                description: "分析目标市场机会，挖掘高潜力爆品".to_string(),
+                prompt: Some(
+                    "你是一名电商选品专家。请分析目标市场的爆品机会，评估商品潜力。\
+                     输出 JSON {product_candidates, demand_score, competition_level}"
+                        .to_string(),
+                ),
+                tools: vec!["OpcListCustomers".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "履约".to_string(),
-                description: "处理订单并发货".to_string(),
+                name: "竞品监控".to_string(),
+                description: "监控竞品动态与价格策略".to_string(),
+                prompt: Some(
+                    "你是一名电商竞品分析师。请监控竞品动态与价格策略。\
+                     输出 JSON {competitor_list, pricing_strategy, differentiators}"
+                        .to_string(),
+                ),
+                tools: vec!["WebSearch".to_string(), "OpcSearchWiki".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
-                name: "复盘".to_string(),
-                description: "分析销售数据".to_string(),
+                name: "营销策划".to_string(),
+                description: "制定营销方案与促销计划".to_string(),
+                prompt: Some(
+                    "你是一名电商营销专家。请制定营销方案与促销计划。\
+                     输出 JSON {campaign_plan, channels, budget_allocation, expected_roi}"
+                        .to_string(),
+                ),
+                tools: vec![
+                    "OpcCreateLandingPage".to_string(),
+                    "OpcCreatePublishSchedule".to_string(),
+                    "OpcListLandingPages".to_string(),
+                ],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "product_name".to_string(),
+                label: "商品名称".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：智能手环 Pro".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "target_market".to_string(),
+                label: "目标市场".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：东南亚市场".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "promo_budget".to_string(),
+                label: "营销预算".to_string(),
+                field_type: "number".to_string(),
+                required: false,
+                placeholder: Some("如：50000".to_string()),
+                default: None,
             },
         ]
     }

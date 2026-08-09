@@ -53,7 +53,7 @@ export interface UseIndustryDataReturn {
   loadLearningMetrics: () => Promise<void>;
   loadLearningConfig: () => Promise<void>;
   runAutomationRules: () => Promise<string[]>;
-  executeWorkflow: (workflowId: string) => Promise<WorkflowExecutionResult>;
+  executeWorkflow: (workflowId: string, userInput?: Record<string, unknown>) => Promise<WorkflowExecutionResult>;
   reflectOnWorkflow: (workflowId?: string) => Promise<void>;
   evolveWorkflow: (workflowId?: string, reason?: string) => Promise<void>;
   runSelfImprovement: (target?: string) => Promise<void>;
@@ -249,15 +249,16 @@ export function useIndustryData(industryId: string | null): UseIndustryDataRetur
     }
   }, [industryId]);
 
-  // 执行工作流（使用 opc_execute_workflow 命令，传递 workflow_id + industry_id + days）
+  // 执行工作流（使用 opc_execute_workflow 命令，传递 workflow_id + industry_id + days + userInput）
   const executeWorkflow = useCallback(
-    async (workflowId: string): Promise<WorkflowExecutionResult> => {
+    async (workflowId: string, userInput?: Record<string, unknown>): Promise<WorkflowExecutionResult> => {
       setWorkflowExecuting(true);
       try {
         const result = await invoke<WorkflowExecutionResult>("opc_execute_workflow", {
           industryId,
           workflowId,
           days: 30,
+          userInput: userInput ?? null,
         });
         setWorkflowResult(result);
         return result;

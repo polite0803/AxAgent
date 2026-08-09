@@ -5,6 +5,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { Button, Card, InputNumber, Spin, Tag } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { PanelEmpty, type PanelEmptyKind } from "./PanelEmpty";
 import { useStockAnalysisPage } from "./StockAnalysisPageContext";
 import { checkVendorEnabled, PANEL_VENDORS } from "./vendorCheck";
@@ -102,6 +103,10 @@ const FACTOR_DEFS = [
 export function StockScreenerPanel() {
   const { t } = useTranslation();
   const { openDataSourceSettings } = useStockAnalysisPage();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isInInvestHub = location.pathname.startsWith("/invest");
   const getStockQuote = useStockAnalysisStore((s) => s.getStockQuote);
   const getStockKline = useStockAnalysisStore((s) => s.getStockKline);
   const startAnalysis = useStockAnalysisStore((s) => s.startAnalysis);
@@ -194,9 +199,21 @@ export function StockScreenerPanel() {
   };
 
   const handleAnalyze = async (code: string) => {
-    await getStockQuote(code);
-    await getStockKline(code, "daily", 120);
-    startAnalysis(code);
+    if (isInInvestHub) {
+      // 在 InvestHub 内部：使用 URL 参数切换到 workspace tab，自动输入股票代码
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", "workspace");
+      next.set("stockCode", code);
+      next.set("view", "analysis");
+      setSearchParams(next, { replace: true });
+    } else {
+      // 独立页面：跳转到股票分析页面
+      navigate(`/stock-analysis?code=${code}`, { replace: true });
+      // 保持原有行为：在股票分析页面内加载数据
+      await getStockQuote(code);
+      await getStockKline(code, "daily", 120);
+      startAnalysis(code);
+    }
   };
 
   const isRsiFactor = (key: string) => key.startsWith("rsi");

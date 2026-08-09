@@ -90,7 +90,18 @@ async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize,
 
         let template_data = workflow.to_template_data();
 
-        // 使用统一的 upsert_template 函数
+        // 版本保护：只在模板版本升级时覆盖，用户编辑不被启动覆盖
+        let should_seed =
+            check_template_version(db, &template_data.id, template_data.version).await?;
+        if !should_seed {
+            tracing::debug!(
+                "[opc-workflows] {} v{} 已存在，跳过 seed（保留用户编辑）",
+                template_data.id,
+                template_data.version
+            );
+            continue;
+        }
+
         upsert_template(db, template_data).await?;
 
         seeded_count += 1;
@@ -111,6 +122,17 @@ async fn seed_domains_from_code(db: &DatabaseConnection) -> Result<usize, String
                 def,
                 OPC_TEMPLATE_VERSION,
             );
+        // 版本保护：只在版本升级时覆盖，用户编辑不被启动覆盖
+        let should_seed =
+            check_template_version(db, &template_data.id, template_data.version).await?;
+        if !should_seed {
+            tracing::debug!(
+                "[opc-workflows] {} v{} 已存在，跳过 seed（保留用户编辑）",
+                template_data.id,
+                template_data.version
+            );
+            continue;
+        }
         upsert_template(db, template_data).await?;
         seeded_count += 1;
     }

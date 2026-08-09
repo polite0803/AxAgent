@@ -97,7 +97,12 @@ pub async fn save_node_feedback(
         created_at: Set(chrono::Utc::now().to_rfc3339()),
     };
 
-    let result = new_feedback.insert(db).await.map_err(|e| e.to_string())?;
+    let result = new_feedback.insert(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(result.id)
 }
 
@@ -184,7 +189,12 @@ pub async fn get_node_feedbacks(
         query = query.filter(analyst_feedback::Column::IssueCount.gt(0));
     }
 
-    let results = query.all(db).await.map_err(|e| e.to_string())?;
+    let results = query.all(db).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     let summaries: Vec<NodeFeedbackSummary> = results
         .into_iter()
@@ -257,7 +267,12 @@ pub async fn get_node_feedback_stats(
         .filter(analyst_feedback::Column::NodeId.eq(&node_id))
         .all(db)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
 
     let total_count = all_feedbacks.len() as u64;
 

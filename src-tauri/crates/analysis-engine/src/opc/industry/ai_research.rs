@@ -1,4 +1,5 @@
 // AI 研究与咨询行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -9,7 +10,9 @@ use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::project::ProjectStatus;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -34,6 +37,27 @@ impl Default for AiResearchIndustryAdapter {
 impl OpcIndustryAdapter for AiResearchIndustryAdapter {
     impl_industry_base!();
 
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "research_topic".to_string(),
+                label: "研究主题".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：大模型推理优化、多模态融合".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "scope".to_string(),
+                label: "研究范围".to_string(),
+                field_type: "string".to_string(),
+                required: false,
+                placeholder: Some("如：仅限开源方案、包含商业产品".to_string()),
+                default: None,
+            },
+        ]
+    }
+
     fn define_validations(&self) -> Vec<ValidationDef> {
         vec![
             ValidationDef {
@@ -50,6 +74,10 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        let user_inputs = HashMap::from([
+            ("research_topic".to_string(), "research_topic".to_string()),
+            ("scope".to_string(), "scope".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
                 name: "需求分析".to_string(),
@@ -65,6 +93,7 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
                 agent_profile_id: Some("opc-ai_researcher-ai-research-director".to_string()),
                 error_handling: "stop".to_string(),
                 order: 1,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "文献调研".to_string(),
@@ -80,6 +109,7 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
                 agent_profile_id: Some("opc-ai_researcher-ai-literature-analyst".to_string()),
                 error_handling: "continue".to_string(),
                 order: 2,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "模型评测".to_string(),
@@ -95,6 +125,7 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
                 agent_profile_id: Some("opc-ai_researcher-ai-benchmark-analyst".to_string()),
                 error_handling: "continue".to_string(),
                 order: 3,
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "报告输出".to_string(),
@@ -111,6 +142,7 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
                 agent_profile_id: Some("opc-ai_researcher-ai-report-analyst".to_string()),
                 error_handling: "continue".to_string(),
                 order: 4,
+                inputs: user_inputs,
             },
         ]
     }

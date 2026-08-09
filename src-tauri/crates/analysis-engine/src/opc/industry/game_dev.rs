@@ -1,4 +1,5 @@
 // 游戏开发行业适配器
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -8,7 +9,9 @@ use super::super::automation::{AutomationAction, AutomationCondition, IndustryAu
 use super::super::data_service::{OpcDataService, TimeRange};
 use super::super::error::OpcResult;
 use super::super::rules::ValidationError;
-use super::super::workflow::{DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowStepDef};
+use super::super::workflow::{
+    DashboardCardDef, KpiCalculationDef, ValidationDef, WorkflowInputField, WorkflowStepDef,
+};
 use super::{
     impl_industry_base, BaseIndustryAdapter, DashboardCard, OpcIndustryAdapter, WorkflowStep,
 };
@@ -49,36 +52,114 @@ impl OpcIndustryAdapter for GameDevIndustryAdapter {
     }
 
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
+        // 用户输入变量通过 input_mapping 注入 AgentNode context
+        let user_inputs = HashMap::from([
+            ("game_title".to_string(), "game_title".to_string()),
+            ("game_engine".to_string(), "game_engine".to_string()),
+            ("genre".to_string(), "genre".to_string()),
+        ]);
         vec![
             WorkflowStepDef {
                 name: "概念设计".to_string(),
                 description: "确定游戏核心玩法和美术风格".to_string(),
+                prompt: Some(
+                    "你是一名资深游戏概念设计师。请根据用户提供的游戏名称、引擎和类型，\
+                     设计核心玩法循环、美术风格和目标平台。\
+                     输出 JSON {concept, core_loop, art_style, target_platform, unique_selling_points}"
+                        .to_string(),
+                ),
+                tools: vec!["WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "原型开发".to_string(),
                 description: "开发游戏核心玩法原型".to_string(),
+                prompt: Some(
+                    "你是一名游戏原型开发专家。根据概念设计结果，\
+                     规划原型开发的技术方案、核心系统拆分和里程碑。\
+                     输出 JSON {prototype_scope, core_systems, milestones, tech_risks}"
+                        .to_string(),
+                ),
+                tools: vec!["FileWrite".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "stop".to_string(),
                 order: 2,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "内容生产".to_string(),
                 description: "关卡、角色、道具等游戏内容开发".to_string(),
+                prompt: Some(
+                    "你是一名游戏内容设计师。根据原型方案，\
+                     设计关卡结构、角色体系和道具系统。\
+                     输出 JSON {level_design, character_system, item_system, content_pipeline}"
+                        .to_string(),
+                ),
+                tools: vec!["FileWrite".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "测试优化".to_string(),
                 description: "功能测试、性能优化和Bug修复".to_string(),
+                prompt: Some(
+                    "你是一名游戏 QA 专家。制定功能测试方案、性能基准和优化建议。\
+                     输出 JSON {test_plan, performance_targets, known_risks, optimization_strategy}"
+                        .to_string(),
+                ),
+                tools: vec!["FileRead".to_string(), "WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 4,
-                ..Default::default()
+                inputs: user_inputs.clone(),
             },
             WorkflowStepDef {
                 name: "上线运营".to_string(),
                 description: "正式上线和后续运营支持".to_string(),
+                prompt: Some(
+                    "你是一名游戏运营专家。制定上线策略、商业化方案和运营计划。\
+                     输出 JSON {launch_strategy, monetization_model, operation_plan, kpi_targets}"
+                        .to_string(),
+                ),
+                tools: vec!["WebSearch".to_string()],
+                agent_profile_id: None,
+                error_handling: "continue".to_string(),
                 order: 5,
-                ..Default::default()
+                inputs: user_inputs,
+            },
+        ]
+    }
+
+    fn input_fields(&self) -> Vec<WorkflowInputField> {
+        vec![
+            WorkflowInputField {
+                key: "game_title".to_string(),
+                label: "游戏名称".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("如：星海征途".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "game_engine".to_string(),
+                label: "游戏引擎".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("Unity / Unreal / Godot".to_string()),
+                default: None,
+            },
+            WorkflowInputField {
+                key: "genre".to_string(),
+                label: "游戏类型".to_string(),
+                field_type: "string".to_string(),
+                required: true,
+                placeholder: Some("action / rpg / strategy / puzzle".to_string()),
+                default: None,
             },
         ]
     }

@@ -1510,6 +1510,22 @@ commands::stock_analysis::watchlist_list_groups,
 commands::stock_analysis::watchlist_save_groups,
 commands::stock_analysis::watchlist_update_group,
 
+// trade_intent
+commands::trade_intent::list_pending_trade_intents,
+commands::trade_intent::list_trade_intents_by_stock,
+commands::trade_intent::approve_trade_intent,
+commands::trade_intent::reject_trade_intent,
+commands::trade_intent::link_trade_intent_to_trade,
+commands::trade_intent::record_analysis_trade_intent,
+commands::trade_intent::expire_old_trade_intents,
+commands::trade_intent::get_trade_intent_stats,
+
+// conditional_order
+commands::conditional_order::create_conditional_order,
+commands::conditional_order::list_conditional_orders,
+commands::conditional_order::disable_conditional_order,
+commands::conditional_order::manual_evaluate_conditions,
+
 // stock_pipeline::core
 commands::stock_pipeline::core::get_pipeline_history,
 commands::stock_pipeline::core::get_pipeline_run_detail,
