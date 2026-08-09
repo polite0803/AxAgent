@@ -13134,7 +13134,40 @@
         "disabledGeneric": "No vendor enabled, this panel is unavailable",
         "connectionFailed": "Connection failed, please check network and retry",
         "backendOffline": "Backend not ready, please try again later",
-        "autoDisabled": "Auto-disabled {{count}} unreachable data source(s)"
+        "autoDisabled": "Auto-disabled {{count}} unreachable data source(s)",
+        "labels": {
+          "tencent": "Tencent Quotes",
+          "eastmoney": "Eastmoney",
+          "sina": "Sina Finance",
+          "ths": "THS",
+          "cninfo": "CNInfo",
+          "baiduStock": "Baidu Stocks",
+          "iwencai": "Wencai",
+          "akshare": "AKShare",
+          "mootdx": "MooTDX",
+          "browserEastmoney": "Browser Eastmoney",
+          "neodata": "NeoData",
+          "xueqiu": "Xueqiu",
+          "guba": "Guba",
+          "international": "International Stocks"
+        },
+        "status": {
+          "healthy": "Healthy",
+          "degraded": "Degraded",
+          "disabled": "Disabled",
+          "untouched": "Not Checked"
+        },
+        "loadFailed": "Load failed",
+        "justNow": "Just now",
+        "minutesAgo": "il y a {{count}} min",
+        "vendorTotalSuccess": "Total Successes",
+        "vendorTotalFailures": "Total Failures",
+        "vendorConsecutiveFailures": "Consecutive Failures",
+        "vendorLastError": "Last Error",
+        "vendorLastSuccess": "Success",
+        "vendorLastFailure": "Failure",
+        "vendorHealth": "Data Source Health",
+        "vendorUntouchedHint": "Not called in this cycle, no health data"
       },
       "workflow": {
         "title": "Stock Analysis Workflow",

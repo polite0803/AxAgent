@@ -1276,12 +1276,7 @@
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
-    {
-      "file": "src/components/stock-analysis/StockScreenerPanel.tsx",
-      "lines": "48,58,162",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
-      "phase": 3
-    },
+    
     {
       "file": "src/components/stock-analysis/StockSearchBar.tsx",
       "lines": "19,20,21,22,122",
@@ -1314,8 +1309,8 @@
     },
     {
       "file": "src/components/stock-analysis/VendorHealthDashboard.tsx",
-      "lines": "26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,42,43,44,50,51,52,55,56,57,58,68,91,92,98,101,103,105,106,108,109,110,120,138,141,145,149,153,166,189,190,191,193,205,207,208,209,210,220",
-      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "lines": "95,101,104,106,108,141,144,170,194,195,214,216,217,218,219,229",
+      "reason": "t() fallback 字符串，i18n key 已存在于所有 locale 文件",
       "phase": 3
     },
     {

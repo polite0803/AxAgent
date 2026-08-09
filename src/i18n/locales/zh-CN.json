@@ -13341,7 +13341,40 @@
         "disabledGeneric": "数据源未启用，此面板不可用",
         "connectionFailed": "数据源连接失败，请检查网络或稍后重试",
         "backendOffline": "后端服务未就绪，请稍后重试",
-        "autoDisabled": "已自动关闭 {{count}} 个无法连接的数据源"
+        "autoDisabled": "已自动关闭 {{count}} 个无法连接的数据源",
+        "labels": {
+          "tencent": "腾讯行情",
+          "eastmoney": "东方财富",
+          "sina": "新浪财经",
+          "ths": "同花顺",
+          "cninfo": "巨潮资讯",
+          "baiduStock": "百度股票",
+          "iwencai": "问财",
+          "akshare": "AKShare",
+          "mootdx": "MooTDX",
+          "browserEastmoney": "浏览器东方财富",
+          "neodata": "NeoData",
+          "xueqiu": "雪球",
+          "guba": "东方财富股吧",
+          "international": "国际股票"
+        },
+        "status": {
+          "healthy": "正常",
+          "degraded": "降级",
+          "disabled": "已禁用",
+          "untouched": "未探测"
+        },
+        "loadFailed": "加载失败",
+        "justNow": "刚刚",
+        "minutesAgo": "{{count}} 分钟前",
+        "vendorTotalSuccess": "总成功",
+        "vendorTotalFailures": "总失败",
+        "vendorConsecutiveFailures": "连续失败",
+        "vendorLastError": "最后错误",
+        "vendorLastSuccess": "成功",
+        "vendorLastFailure": "失败",
+        "vendorHealth": "数据源健康状态",
+        "vendorUntouchedHint": "本运行周期未被调用，无健康数据"
       },
       "workflow": {
         "title": "股票分析工作流",

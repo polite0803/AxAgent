@@ -28,22 +28,24 @@ interface VendorHealthItem {
   lastFailureAt: number | null;
 }
 
-const VENDOR_LABELS: Record<string, string> = {
-  tencent: "腾讯行情",
-  eastmoney: "东方财富",
-  sina: "新浪财经",
-  ths: "同花顺",
-  cninfo: "巨潮资讯",
-  baidu_stock: "百度股票",
-  iwencai: "问财",
-  akshare: "AKShare",
-  mootdx: "MooTDX",
-  browser_eastmoney: "浏览器东方财富",
-  neodata: "NeoData",
-  xueqiu: "雪球",
-  guba: "东方财富股吧",
-  international: "国际股票",
+const VENDOR_LABEL_KEYS: Record<string, string> = {
+  tencent: "stockAnalysis.settings.vendor.labels.tencent",
+  eastmoney: "stockAnalysis.settings.vendor.labels.eastmoney",
+  sina: "stockAnalysis.settings.vendor.labels.sina",
+  ths: "stockAnalysis.settings.vendor.labels.ths",
+  cninfo: "stockAnalysis.settings.vendor.labels.cninfo",
+  baidu_stock: "stockAnalysis.settings.vendor.labels.baiduStock",
+  iwencai: "stockAnalysis.settings.vendor.labels.iwencai",
+  akshare: "stockAnalysis.settings.vendor.labels.akshare",
+  mootdx: "stockAnalysis.settings.vendor.labels.mootdx",
+  browser_eastmoney: "stockAnalysis.settings.vendor.labels.browserEastmoney",
+  neodata: "stockAnalysis.settings.vendor.labels.neodata",
+  xueqiu: "stockAnalysis.settings.vendor.labels.xueqiu",
+  guba: "stockAnalysis.settings.vendor.labels.guba",
+  international: "stockAnalysis.settings.vendor.labels.international",
 };
+
+const vendorLabelEntries = Object.entries(VENDOR_LABEL_KEYS);
 
 const STATUS_COLORS: Record<string, string> = {
   healthy: "#22c55e",
@@ -52,15 +54,15 @@ const STATUS_COLORS: Record<string, string> = {
   untouched: "#6B7280",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  healthy: "正常",
-  degraded: "降级",
-  disabled: "已禁用",
-  untouched: "未探测",
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  healthy: "stockAnalysis.settings.vendor.status.healthy",
+  degraded: "stockAnalysis.settings.vendor.status.degraded",
+  disabled: "stockAnalysis.settings.vendor.status.disabled",
+  untouched: "stockAnalysis.settings.vendor.status.untouched",
 };
 
 interface VendorCardProps {
-  name: string;
+  nameKey: string;
   status: "healthy" | "degraded" | "disabled" | "untouched";
   totalSuccesses?: number;
   totalFailures?: number;
@@ -74,7 +76,7 @@ interface VendorCardProps {
 
 function VendorCard(props: VendorCardProps) {
   const {
-    name,
+    nameKey,
     status,
     totalSuccesses,
     totalFailures,
@@ -125,12 +127,12 @@ function VendorCard(props: VendorCardProps) {
             className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: STATUS_COLORS[status] ?? "#6B7280" }}
           />
-          <span className="text-gray-200 truncate">{name}</span>
+          <span className="text-gray-200 truncate">{t(nameKey)}</span>
           <Tag
             className="text-[10px] leading-none px-1 py-0"
             color={STATUS_COLORS[status] ?? "default"}
           >
-            {STATUS_LABELS[status] ?? status}
+            {t(STATUS_LABEL_KEYS[status] ?? status)}
           </Tag>
         </div>
         <div className="text-gray-500 text-[10px] text-right shrink-0 ml-2">
@@ -165,7 +167,13 @@ export function VendorHealthDashboard() {
       const result = await invoke<VendorHealthItem[]>("get_vendor_health_all");
       setData(result);
     } catch (e: unknown) {
-      setError(typeof e === "string" ? e : e instanceof Error ? e.message : "加载失败");
+      setError(
+        typeof e === "string"
+          ? e
+          : e instanceof Error
+          ? e.message
+          : t("stockAnalysis.settings.vendor.loadFailed", "加载失败"),
+      );
     } finally {
       setLoading(false);
     }
@@ -182,15 +190,17 @@ export function VendorHealthDashboard() {
   const healthyCount = data.filter((d) => d.status === "healthy").length;
   const degradedCount = data.filter((d) => d.status === "degraded").length;
   const disabledCount = data.filter((d) => d.status === "disabled").length;
-  const untouchedCount = Object.keys(VENDOR_LABELS).length - data.length;
+  const untouchedCount = Object.keys(VENDOR_LABEL_KEYS).length - data.length;
 
   const formatTime = (ms: number | null | undefined): string => {
     if (!ms) { return "-"; }
     const d = new Date(ms);
     const now = Date.now();
     const diffMin = Math.floor((now - ms) / 60000);
-    if (diffMin < 1) { return "刚刚"; }
-    if (diffMin < 60) { return `${diffMin} 分钟前`; }
+    if (diffMin < 1) { return t("stockAnalysis.settings.vendor.justNow", "刚刚"); }
+    if (diffMin < 60) {
+      return t("stockAnalysis.settings.vendor.minutesAgo", { count: diffMin, defaultValue: "{{count}} 分钟前" });
+    }
     return d.toLocaleString("zh-CN", {
       month: "2-digit",
       day: "2-digit",
@@ -211,10 +221,16 @@ export function VendorHealthDashboard() {
           <span>{collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}</span>
           <span>{t("stockAnalysis.settings.vendorHealth", "数据源健康状态")}</span>
           <div className="flex gap-2 text-xs">
-            <Tag color="green">{healthyCount} 正常</Tag>
-            {degradedCount > 0 && <Tag color="orange">{degradedCount} 降级</Tag>}
-            {disabledCount > 0 && <Tag color="red">{disabledCount} 禁用</Tag>}
-            {untouchedCount > 0 && <Tag>{untouchedCount} 未探测</Tag>}
+            <Tag color="green">{healthyCount} {t("stockAnalysis.settings.vendor.status.healthy", "正常")}</Tag>
+            {degradedCount > 0 && (
+              <Tag color="orange">{degradedCount} {t("stockAnalysis.settings.vendor.status.degraded", "降级")}</Tag>
+            )}
+            {disabledCount > 0 && (
+              <Tag color="red">{disabledCount} {t("stockAnalysis.settings.vendor.status.disabled", "禁用")}</Tag>
+            )}
+            {untouchedCount > 0 && (
+              <Tag>{untouchedCount} {t("stockAnalysis.settings.vendor.status.untouched", "未探测")}</Tag>
+            )}
           </div>
         </button>
       }
@@ -240,13 +256,13 @@ export function VendorHealthDashboard() {
         ? <div className="text-red-400 text-center py-4 text-sm">{error}</div>
         : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {Object.entries(VENDOR_LABELS).map(([vendorName, label]) => {
+            {vendorLabelEntries.map(([vendorName, labelKey]) => {
               const vendor = data.find((d) => d.name === vendorName);
               if (vendor) {
                 return (
                   <VendorCard
                     key={vendorName}
-                    name={label}
+                    nameKey={labelKey}
                     status={vendor.status}
                     totalSuccesses={vendor.totalSuccesses}
                     totalFailures={vendor.totalFailures}
@@ -262,7 +278,7 @@ export function VendorHealthDashboard() {
               return (
                 <VendorCard
                   key={vendorName}
-                  name={label}
+                  nameKey={labelKey}
                   status="untouched"
                   formatTime={formatTime}
                   t={t}

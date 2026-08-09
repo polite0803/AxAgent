@@ -46,7 +46,7 @@ const FACTOR_DEFS = [
   {
     key: "mainInflowMin",
     i18nKey: "stockAnalysis.settings.screener.factor.mainInflow",
-    unit: "万元",
+    unit: "",
     unitI18n: true as const,
     min: 0,
     max: 999999,
@@ -56,7 +56,7 @@ const FACTOR_DEFS = [
   {
     key: "dragonTigerNetMin",
     i18nKey: "stockAnalysis.settings.screener.factor.dragonTiger",
-    unit: "万元",
+    unit: "",
     unitI18n: true as const,
     min: 0,
     max: 999999,
@@ -164,7 +164,7 @@ export function StockScreenerPanel() {
       }
     } catch (e) {
       if (myToken !== screenTokenRef.current) { return; }
-      console.error("[StockScreenerPanel] screen_stocks 失败:", e);
+      console.error("[StockScreenerPanel] screen_stocks failed:", e);
       setResults([]);
       setEmptyKind("connectionFailed");
     }
