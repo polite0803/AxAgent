@@ -286,7 +286,7 @@ pub struct LlmBasedDecomposer {
     ctx: ProviderRequestContext,
     llm_service: Arc<dyn LlmExecutionService>,
     fallback: RuleBasedDecomposer,
-    /// 业务岗位/专家清单 brief（由调用方在构造时 async 获取后注入）。
+    /// 可用专家清单 brief（由调用方在构造时 async 获取后注入）。
     /// 为 None 时 prompt 中不插入清单 section。
     roles_and_experts_brief: Option<String>,
 }
@@ -306,14 +306,10 @@ impl LlmBasedDecomposer {
         }
     }
 
-    /// 注入业务岗位/专家清单 brief（由调用方 async 获取后传入）。
+    /// 注入可用专家/角色清单 brief（由调用方 async 获取后传入）。
     ///
     /// brief 格式建议：
     /// ```text
-    /// === 可用业务岗位 ===
-    /// - CEO：负责战略决策与资源分配
-    /// - CTO：负责技术决策与团队管理
-    ///
     /// === 可用专家 ===
     /// - securities_analyst：证券分析师，擅长股票/债券估值
     /// - lawyer：律师，擅长合同审查/合规
@@ -340,11 +336,11 @@ impl MissionDecomposer for LlmBasedDecomposer {
         mission: &str,
         strategy: OrchestrationStrategy,
     ) -> Result<DecompositionPlan, OrchestrationError> {
-        // 业务岗位/专家清单 section（仅在调用方注入 brief 时插入）
+        // 可用专家/角色清单 section（仅在调用方注入 brief 时插入）
         let roles_section = self
             .roles_and_experts_brief
             .as_ref()
-            .map(|brief| format!("\n## Available Business Roles & Experts\n{brief}\n"))
+            .map(|brief| format!("\n## Available Experts & Roles\n{brief}\n"))
             .unwrap_or_default();
 
         let prompt = format!(
@@ -357,8 +353,8 @@ impl MissionDecomposer for LlmBasedDecomposer {
 - If strategy is "fan_out" or "race": keep dependencies minimal
 - If strategy is "debate": assign the last sub-task as adjudicator, all others feed into it
 - If strategy is "dynamic": let the LLM decide the topology naturally
-- 若提供了「Available Business Roles & Experts」清单，在 description 中说明该子任务
-  建议由哪个业务岗位/专家负责（如 "建议由证券分析师执行"），便于后续分配 AgentProfile。
+- 若提供了「Available Experts & Roles」清单，在 description 中说明该子任务
+  建议由哪个专家/角色负责（如 "建议由证券分析师执行"），便于后续分配 AgentProfile。
 {roles_section}
 ## Mission
 {mission}

@@ -590,9 +590,9 @@ async fn install_from_github(
     let skill_target = target_dir.join(repo);
 
     if skill_target.exists() {
-        std::fs::remove_dir_all(&skill_target).map_err(|e| {
+        remove_dir_all_with_retry(&skill_target).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
+                std::io::Error::new(std::io::ErrorKind::Other, e),
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
@@ -748,9 +748,9 @@ async fn install_from_github_zipball(
     let skill_target = target_dir.join(repo);
 
     if skill_target.exists() {
-        std::fs::remove_dir_all(&skill_target).map_err(|e| {
+        remove_dir_all_with_retry(&skill_target).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
+                std::io::Error::new(std::io::ErrorKind::Other, e),
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
@@ -918,9 +918,9 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
     let (owner, repo) = (parts[0], parts[1]);
     let git_url = format!("https://github.com/{}/{}.git", owner, repo);
 
-    std::fs::remove_dir_all(&skill_dir).map_err(|e| {
+    remove_dir_all_with_retry(&skill_dir).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
+            std::io::Error::new(std::io::ErrorKind::Other, e),
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
@@ -975,9 +975,9 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
 
     let skill_target = target_dir.join(&name);
     if skill_target.exists() {
-        std::fs::remove_dir_all(&skill_target).map_err(|e| {
+        remove_dir_all_with_retry(&skill_target).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
+                std::io::Error::new(std::io::ErrorKind::Other, e),
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
@@ -1003,6 +1003,28 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
     })?;
 
     Ok((name, "local".to_string()))
+}
+
+/// Windows 上文件句柄占用导致 `remove_dir_all` 偶发失败，带退避重试。
+fn remove_dir_all_with_retry(path: &Path) -> Result<(), String> {
+    const MAX_RETRIES: usize = 5;
+    let mut last_err: Option<std::io::Error> = None;
+    for attempt in 0..MAX_RETRIES {
+        match std::fs::remove_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    return Ok(());
+                }
+                last_err = Some(e);
+                if attempt < MAX_RETRIES - 1 {
+                    let delay_ms = 100u64 * (1u64 << attempt);
+                    std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+                }
+            },
+        }
+    }
+    Err(last_err.expect("at least one remove_dir_all attempt was made").to_string())
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), String> {
@@ -1134,9 +1156,9 @@ pub async fn uninstall_skill(
         let dir_label = parent.to_string_lossy().to_string();
         if skill_dir.exists() && skill_dir.is_dir() {
             match ensure_path_under_base(&skill_dir, parent).and_then(|_| {
-                std::fs::remove_dir_all(&skill_dir).map_err(|e| {
+                remove_dir_all_with_retry(&skill_dir).map_err(|e| {
                     crate::commands::error::ErrorResponse::from_error(
-                        e,
+                        std::io::Error::new(std::io::ErrorKind::Other, e),
                         crate::commands::error::ErrorCategory::Unrecoverable,
                     )
                     .to_string()
@@ -1199,9 +1221,9 @@ pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
         let group_dir = parent.join(&group);
         if group_dir.exists() && group_dir.is_dir() {
             ensure_path_under_base(&group_dir, parent)?;
-            std::fs::remove_dir_all(&group_dir).map_err(|e| {
+            remove_dir_all_with_retry(&group_dir).map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
+                    std::io::Error::new(std::io::ErrorKind::Other, e),
                     crate::commands::error::ErrorCategory::Unrecoverable,
                 ))
             })?;

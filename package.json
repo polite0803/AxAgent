@@ -1,7 +1,7 @@
 {
   "name": "axagent",
   "private": true,
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "AxInvest - AI 投资分析桌面应用 (基于 AxAgent)",
   "author": "刘小平 <polite0803@outlook.com>",
   "license": "AGPL-3.0-only",

@@ -120,7 +120,7 @@ pub async fn build_llm_judge_from_db(
 ///
 /// **Prompt 设计**（由 `LlmBasedDecomposer` 内部实现）：
 /// - 系统提示要求 LLM 作为「task decomposition engine」
-/// - 用户提示包含 mission / strategy / 可选业务岗位清单
+/// - 用户提示包含 mission / strategy / 可选专家清单
 /// - 输出约束为 JSON `{ "sub_tasks": [...] }`，每项含 id / name / description / role / dependencies
 /// - 失败时自动回退到 `RuleBasedDecomposer`
 pub async fn build_llm_decomposer_from_db(
