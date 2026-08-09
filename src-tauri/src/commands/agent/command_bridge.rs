@@ -1807,20 +1807,6 @@ impl CommandHandler for AgentCommandHandler {
                     ))
                 })
             },
-            "list_business_roles" => {
-                let roles = axagent_dao::repo::business_role::list_business_roles(db, None)
-                    .await
-                    .map_err(|e| {
-                    warn!("Failed to list business roles: {}", e);
-                    format!("列出业务角色失败: {}", e)
-                })?;
-                serde_json::to_string_pretty(&roles).map_err(|e| {
-                    String::from(crate::commands::error::ErrorResponse::from_error(
-                        e,
-                        crate::commands::error::ErrorCategory::Unrecoverable,
-                    ))
-                })
-            },
             _ => Err(format!("未知的智能体操作: {}", action)),
         }
     }
@@ -2335,7 +2321,6 @@ pub fn build_default_dispatcher() -> CommandDispatcher {
         ("get_agent_profile", Box::new(AgentCommandHandler)),
         ("list_agent_roles", Box::new(AgentCommandHandler)),
         ("get_agent_role", Box::new(AgentCommandHandler)),
-        ("list_business_roles", Box::new(AgentCommandHandler)),
         ("tauri_list_agent_profiles", Box::new(AgentCommandHandler)),
         ("tauri_get_agent_profile", Box::new(AgentCommandHandler)),
         // MCP

@@ -985,13 +985,6 @@ macro_rules! register_all_commands {
             commands::agent_role::delete_agent_role,
             commands::agent_role::save_agent_role,
             commands::agent_role::update_agent_role,
-            // 业务岗位（business_role）—— 与 agent_role 区别：agent_role 是抽象执行器类型，
-            // business_role 是 CEO/CTO/产品经理 等业务岗位
-            commands::business_role::list_business_roles,
-            commands::business_role::list_business_role_tree,
-            commands::business_role::get_business_role,
-            commands::business_role::save_business_role,
-            commands::business_role::delete_business_role,
             // App config
             commands::app_config::get_app_config,
             commands::app_config::save_app_config,

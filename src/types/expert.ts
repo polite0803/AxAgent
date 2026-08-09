@@ -87,8 +87,6 @@ export interface ExpertRole {
   seniority?: string;
   /** 擅长细分领域列表 */
   specialties?: string[];
-  /** 归属业务岗位 ID（business_roles.id） */
-  parentRoleId?: string;
   /** 历史成功率（0.0 ~ 1.0） */
   successRate?: number;
   /** 平均执行延迟（毫秒） */

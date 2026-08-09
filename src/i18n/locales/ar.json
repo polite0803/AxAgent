@@ -280,7 +280,6 @@
     "viewSubSession": "عرض الجلسة الفرعية"
   },
   "agentProfile": {
-    "businessRoleLabel": "الدور الوظيفي",
     "expertLabel": "خبير (معرفة المجال)",
     "import": "استيراد الأدوار",
     "importFailed": "فشل استيراد الأدوار: {{error}}",
@@ -321,38 +320,6 @@
     "estimatedTokens": "الرموز التقديرية",
     "requiredCapabilities": "القدرات المطلوبة",
     "availableTools": "الأدوات المتاحة"
-  },
-  "businessRole": {
-    "activeDomains": "النطاقات النشطة",
-    "activeDomainsPlaceholder": "اختر نطاقات الأدوات التي ينشطها هذا الدور",
-    "create": "دور جديد",
-    "deleteConfirm": "هل أنت متأكد من حذف هذا الدور الوظيفي؟",
-    "deleteSuccess": "تم حذف الدور الوظيفي",
-    "disabled": "معطل",
-    "edit": "تحرير الدور",
-    "empty": "لا توجد أدوار وظيفية بعد. انقر على \"دور جديد\" لإنشاء واحد.",
-    "icon": "أيقونة",
-    "managedExpertIds": "معرفات الخبراء المرؤوسين",
-    "managedExpertIdsPlaceholder": "معرفات الخبراء مفصولة بفواصل، مثل: expert-001, expert-002",
-    "managerTitle": "إدارة الأدوار الوظيفية",
-    "nameRequired": "الرجاء إدخال اسم الدور",
-    "noDesc": "لا يوجد وصف",
-    "noReportsTo": "لا شيء (دور المستوى الأعلى)",
-    "reportsTo": "يرفع التقارير إلى",
-    "requiredCertifications": "الشهادات المطلوبة",
-    "requiredCertificationsPlaceholder": "شهادات مفصولة بفواصل، مثل: CFA, PMP",
-    "responsibilities": "المسؤوليات الأساسية",
-    "responsibilitiesPlaceholder": "مسؤوليات مفصولة بفواصل، مثل: التخطيط الاستراتيجي، إدارة الفريق",
-    "saveSuccess": "تم حفظ الدور الوظيفي",
-    "sourceBuiltin": "مدمج",
-    "sourceCustom": "مخصص",
-    "systemPrompt": "موجه نظام الدور",
-    "systemPromptHint": "التسلسل أثناء التشغيل (4 طبقات): الدور الوظيفي → المنفذ → الخبير → العقدة",
-    "systemPromptPlaceholder": "موجه النظام الذي يصف مسؤوليات الدور وسلوكه",
-    "systemPromptRequired": "الرجاء إدخال موجه النظام"
-  },
-  "businessRoleStore": {
-    "loadFailed": "فشل تحميل الأدوار الوظيفية: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "تم إلغاء الوكيل: {{reason}}",

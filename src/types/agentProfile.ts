@@ -36,12 +36,6 @@ export interface AgentProfile {
   sortOrder: number;
   isEnabled: boolean;
   expertId?: string | null;
-  /**
-   * 业务岗位 ID（business_roles.id）。
-   * 对应后端 agent_profiles.business_role_id 字段。
-   * null 表示未绑定业务岗位。
-   */
-  businessRoleId?: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -67,8 +61,6 @@ export interface CreateAgentProfileInput {
   disallowedTools?: string[];
   recommendedWorkflows?: string[];
   expertId?: string;
-  /** 业务岗位 ID（创建时可绑定） */
-  businessRoleId?: string;
 }
 
 export interface UpdateAgentProfileInput {
@@ -79,6 +71,4 @@ export interface UpdateAgentProfileInput {
   agentRole?: string | null;
   tags?: string[];
   isEnabled?: boolean;
-  /** 业务岗位 ID（传 null 解绑） */
-  businessRoleId?: string | null;
 }

@@ -283,8 +283,6 @@ pub struct AgencyExpertDto {
     pub seniority: Option<String>,
     /// 擅长细分领域（JSON 数组字符串）
     pub specialties: Option<String>,
-    /// 归属业务岗位 ID（business_roles.id）
-    pub parent_role_id: Option<String>,
     /// 历史成功率（0.0 ~ 1.0）
     pub success_rate: Option<f64>,
     /// 平均执行延迟（毫秒）
@@ -306,38 +304,6 @@ pub struct AgentRoleDto {
     pub max_concurrent: i32,
     pub timeout_seconds: i64,
     pub source: String,
-}
-
-/// Business Role DTO（业务岗位，对应现实业务岗位如 CEO/CTO/产品经理）
-/// 与 `AgentRoleDto`（抽象执行器类型）区别：业务岗位表达「在组织里担什么责」，
-/// AgentRole 表达「怎么干活」。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BusinessRoleDto {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    /// 岗位核心职责（JSON 数组字符串）
-    pub responsibilities: Option<String>,
-    /// 决策权限边界（JSON 对象字符串）
-    pub decision_authority: Option<String>,
-    /// 汇报对象 ID（business_roles.id 自引用）
-    pub reports_to: Option<String>,
-    /// 下属专家 ID 列表（JSON 数组字符串）
-    pub managed_expert_ids: Option<String>,
-    /// 准入条件（JSON 数组字符串）
-    pub required_certifications: Option<String>,
-    /// 激活业务域（JSON 数组字符串）
-    pub active_domains: Option<String>,
-    /// 岗位系统提示词
-    pub system_prompt: String,
-    pub icon: Option<String>,
-    pub color: Option<String>,
-    pub source: String,
-    pub sort_order: i32,
-    pub is_enabled: bool,
-    pub created_at: i64,
-    pub updated_at: i64,
 }
 
 /// Workflow Execution Stats DTO（工作流执行统计，驱动效果导向优化）

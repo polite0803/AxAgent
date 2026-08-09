@@ -280,7 +280,6 @@
     "viewSubSession": "उप-सत्र देखें"
   },
   "agentProfile": {
-    "businessRoleLabel": "व्यावसायिक भूमिका",
     "expertLabel": "विशेषज्ञ (डोमेन ज्ञान)",
     "import": "भूमिकाएँ आयात करें",
     "importFailed": "भूमिकाएं आयात करने में विफल: {{error}}",
@@ -321,38 +320,6 @@
     "estimatedTokens": "अनुमानित टोकन",
     "requiredCapabilities": "आवश्यक क्षमताएँ",
     "availableTools": "उपलब्ध उपकरण"
-  },
-  "businessRole": {
-    "activeDomains": "सक्रिय डोमेन",
-    "activeDomainsPlaceholder": "इस भूमिका द्वारा सक्रिय टूल डोमेन चुनें",
-    "create": "नई भूमिका",
-    "deleteConfirm": "क्या आप वाकई इस व्यावसायिक भूमिका को हटाना चाहते हैं?",
-    "deleteSuccess": "व्यावसायिक भूमिका हटा दी गई",
-    "disabled": "अक्षम",
-    "edit": "भूमिका संपादित करें",
-    "empty": "अभी कोई व्यावसायिक भूमिका नहीं है। एक बनाने के लिए \"नई भूमिका\" पर क्लिक करें।",
-    "icon": "आइकन",
-    "managedExpertIds": "अधीनस्थ विशेषज्ञ आईडी",
-    "managedExpertIdsPlaceholder": "अल्पविराम से अलग किए गए विशेषज्ञ आईडी, जैसे expert-001, expert-002",
-    "managerTitle": "व्यावसायिक भूमिका प्रबंधन",
-    "nameRequired": "कृपया भूमिका का नाम दर्ज करें",
-    "noDesc": "कोई विवरण नहीं",
-    "noReportsTo": "कोई नहीं (शीर्ष स्तर की भूमिका)",
-    "reportsTo": "रिपोर्ट करता है",
-    "requiredCertifications": "आवश्यक प्रमाणन",
-    "requiredCertificationsPlaceholder": "अल्पविराम से अलग किए गए प्रमाणन, जैसे CFA, PMP",
-    "responsibilities": "मुख्य जिम्मेदारियां",
-    "responsibilitiesPlaceholder": "अल्पविराम से अलग की गई जिम्मेदारियां, जैसे रणनीतिक योजना, टीम प्रबंधन",
-    "saveSuccess": "व्यावसायिक भूमिका सहेजी गई",
-    "sourceBuiltin": "अंतर्निहित",
-    "sourceCustom": "कस्टम",
-    "systemPrompt": "भूमिका सिस्टम प्रॉम्प्ट",
-    "systemPromptHint": "रनटाइम संयोजन (4 परतें): व्यावसायिक भूमिका → निष्पादक → विशेषज्ञ → नोड इनलाइन",
-    "systemPromptPlaceholder": "सिस्टम प्रॉम्प्ट जो भूमिका की जिम्मेदारियों और व्यवहार का वर्णन करता है",
-    "systemPromptRequired": "कृपया सिस्टम प्रॉम्प्ट दर्ज करें"
-  },
-  "businessRoleStore": {
-    "loadFailed": "व्यावसायिक भूमिकाएं लोड करने में विफल: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "एजेंट रद्द किया गया: {{reason}}",

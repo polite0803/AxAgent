@@ -280,7 +280,6 @@
     "viewSubSession": "查看子會話"
   },
   "agentProfile": {
-    "businessRoleLabel": "業務崗位",
     "expertLabel": "Expert (領域知識)",
     "import": "導入角色",
     "importFailed": "導入角色失敗: {{error}}",
@@ -321,38 +320,6 @@
     "estimatedTokens": "預估 Token",
     "requiredCapabilities": "所需能力",
     "availableTools": "可用工具"
-  },
-  "businessRole": {
-    "activeDomains": "啟動業務域",
-    "activeDomainsPlaceholder": "選擇該崗位啟動的工具域",
-    "create": "新建崗位",
-    "deleteConfirm": "確定刪除該業務崗位？",
-    "deleteSuccess": "業務崗位已刪除",
-    "disabled": "已停用",
-    "edit": "編輯崗位",
-    "empty": "暫無業務崗位，點擊「新建崗位」開始建立",
-    "icon": "圖示",
-    "managedExpertIds": "下屬專家 ID",
-    "managedExpertIdsPlaceholder": "逗號分隔的專家 ID，如 expert-001, expert-002",
-    "managerTitle": "業務崗位管理",
-    "nameRequired": "請輸入崗位名稱",
-    "noDesc": "暫無描述",
-    "noReportsTo": "無（頂層崗位）",
-    "reportsTo": "匯報對象",
-    "requiredCertifications": "準入條件",
-    "requiredCertificationsPlaceholder": "逗號分隔的準入條件，如 CFA 證書, PMP 認證",
-    "responsibilities": "核心職責",
-    "responsibilitiesPlaceholder": "逗號分隔的職責描述，如 戰略規劃, 團隊管理",
-    "saveSuccess": "業務崗位已儲存",
-    "sourceBuiltin": "內建",
-    "sourceCustom": "自訂",
-    "systemPrompt": "崗位系統提示詞",
-    "systemPromptHint": "執行時按 4 層拼接：業務崗位 → 執行器 → 專家 → 節點 inline",
-    "systemPromptPlaceholder": "該崗位的系統提示詞，描述其職責邊界與行為準則",
-    "systemPromptRequired": "請輸入崗位系統提示詞"
-  },
-  "businessRoleStore": {
-    "loadFailed": "載入業務崗位失敗: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "代理已取消：{{reason}}",
