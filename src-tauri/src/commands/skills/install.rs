@@ -592,7 +592,7 @@ async fn install_from_github(
     if skill_target.exists() {
         remove_dir_all_with_retry(&skill_target).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
-                std::io::Error::new(std::io::ErrorKind::Other, e),
+                std::io::Error::other(e),
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
@@ -750,7 +750,7 @@ async fn install_from_github_zipball(
     if skill_target.exists() {
         remove_dir_all_with_retry(&skill_target).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
-                std::io::Error::new(std::io::ErrorKind::Other, e),
+                std::io::Error::other(e),
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
@@ -920,7 +920,7 @@ pub async fn rollback_skill(skill_name: String, target_version: String) -> Resul
 
     remove_dir_all_with_retry(&skill_dir).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
-            std::io::Error::new(std::io::ErrorKind::Other, e),
+            std::io::Error::other(e),
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
@@ -977,7 +977,7 @@ async fn install_from_local(source: &str, target_dir: &Path) -> Result<(String, 
     if skill_target.exists() {
         remove_dir_all_with_retry(&skill_target).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
-                std::io::Error::new(std::io::ErrorKind::Other, e),
+                std::io::Error::other(e),
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
@@ -1158,7 +1158,7 @@ pub async fn uninstall_skill(
             match ensure_path_under_base(&skill_dir, parent).and_then(|_| {
                 remove_dir_all_with_retry(&skill_dir).map_err(|e| {
                     crate::commands::error::ErrorResponse::from_error(
-                        std::io::Error::new(std::io::ErrorKind::Other, e),
+                        std::io::Error::other(e),
                         crate::commands::error::ErrorCategory::Unrecoverable,
                     )
                     .to_string()
@@ -1223,7 +1223,7 @@ pub async fn uninstall_skill_group(group: String) -> Result<(), String> {
             ensure_path_under_base(&group_dir, parent)?;
             remove_dir_all_with_retry(&group_dir).map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
-                    std::io::Error::new(std::io::ErrorKind::Other, e),
+                    std::io::Error::other(e),
                     crate::commands::error::ErrorCategory::Unrecoverable,
                 ))
             })?;
