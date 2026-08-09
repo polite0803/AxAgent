@@ -1309,7 +1309,7 @@
     },
     {
       "file": "src/components/stock-analysis/VendorHealthDashboard.tsx",
-      "lines": "95,101,104,106,108,141,144,170,194,195,214,216,217,218,219,229",
+      "lines": "95,101,104,106,108,141,144,175,200,202,222,224,226,229,232,243",
       "reason": "t() fallback 字符串，i18n key 已存在于所有 locale 文件",
       "phase": 3
     },
