@@ -129,7 +129,7 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 10. 知识检索/文档问答用 vectorRetrieve + documentParser；不要用 llm 凭空生成。{context_section}"#,
         roles_brief = build_roles_and_experts_brief()
             .await
-            .unwrap_or_else(|| "（暂无可用业务岗位/专家）".to_string())
+            .unwrap_or_else(|| "（暂无可用专家）".to_string())
     );
 
     let request = ChatRequest {
