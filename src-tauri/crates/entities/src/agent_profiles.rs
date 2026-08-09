@@ -37,9 +37,6 @@ pub struct Model {
     pub sort_order: i32,
     pub is_enabled: i32,
     pub expert_id: Option<String>,
-    /// 业务岗位（business_roles.id），表达「这个 profile 在组织中担什么岗位」
-    #[sea_orm(column_name = "business_role_id")]
-    pub business_role_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

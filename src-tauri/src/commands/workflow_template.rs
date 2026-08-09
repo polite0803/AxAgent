@@ -1114,7 +1114,6 @@ async fn ensure_agent_profile(
             active_domains: Set(None),
             seniority: Set(None),
             specialties: Set(None),
-            parent_role_id: Set(None),
             success_rate: Set(None),
             avg_latency_ms: Set(None),
             avg_token_cost: Set(None),

@@ -18,7 +18,6 @@ pub mod backup;
 pub mod branches;
 #[cfg(not(mobile))]
 pub mod browser;
-pub mod business_role;
 pub mod chart_generator;
 pub mod cloud_workspace;
 #[cfg(not(mobile))]

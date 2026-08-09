@@ -63,7 +63,6 @@ impl AgentProfileRepository for DaoAgentProfileRepository {
             sort_order: m.sort_order,
             is_enabled: m.is_enabled != 0,
             expert_id: m.expert_id,
-            business_role_id: m.business_role_id,
             created_at: m.created_at,
             updated_at: m.updated_at,
         }))
@@ -87,7 +86,6 @@ fn expert_from_model(m: agency_experts::Model) -> AgencyExpertDto {
         active_domains: m.active_domains,
         seniority: m.seniority,
         specialties: m.specialties,
-        parent_role_id: m.parent_role_id,
         success_rate: m.success_rate,
         avg_latency_ms: m.avg_latency_ms,
         avg_token_cost: m.avg_token_cost,

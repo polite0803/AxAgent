@@ -304,7 +304,6 @@
     "strategyDryRun": "Dry run (validate only)"
   },
   "agentProfile": {
-    "businessRoleLabel": "Business Role",
     "expertLabel": "Expert (Domain Knowledge)",
     "import": "Import Roles",
     "importFailed": "Failed to import roles: {{error}}",
@@ -355,38 +354,6 @@
     "estimatedTokens": "Estimated Tokens",
     "requiredCapabilities": "Required Capabilities",
     "availableTools": "Available Tools"
-  },
-  "businessRole": {
-    "activeDomains": "Active Domains",
-    "activeDomainsPlaceholder": "Select tool domains activated by this role",
-    "create": "New Role",
-    "deleteConfirm": "Are you sure you want to delete this business role?",
-    "deleteSuccess": "Business role deleted",
-    "disabled": "Disabled",
-    "edit": "Edit Role",
-    "empty": "No business roles yet. Click \"New Role\" to create one.",
-    "icon": "Icon",
-    "managedExpertIds": "Subordinate Expert IDs",
-    "managedExpertIdsPlaceholder": "Comma-separated expert IDs, e.g., expert-001, expert-002",
-    "managerTitle": "Business Role Management",
-    "nameRequired": "Please enter a role name",
-    "noDesc": "No description",
-    "noReportsTo": "None (Top-level Role)",
-    "reportsTo": "Reports To",
-    "requiredCertifications": "Required Certifications",
-    "requiredCertificationsPlaceholder": "Comma-separated certifications, e.g., CFA, PMP",
-    "responsibilities": "Core Responsibilities",
-    "responsibilitiesPlaceholder": "Comma-separated responsibilities, e.g., Strategic Planning, Team Management",
-    "saveSuccess": "Business role saved",
-    "sourceBuiltin": "Built-in",
-    "sourceCustom": "Custom",
-    "systemPrompt": "Role System Prompt",
-    "systemPromptHint": "Runtime concatenation (4 layers): Business Role → Executor → Expert → Node inline",
-    "systemPromptPlaceholder": "System prompt describing the role's responsibilities and behavior",
-    "systemPromptRequired": "Please enter a system prompt"
-  },
-  "businessRoleStore": {
-    "loadFailed": "Failed to load business roles: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "Agent cancelled: {{reason}}",

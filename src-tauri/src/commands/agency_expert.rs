@@ -49,8 +49,6 @@ pub struct AgencyExpertRow {
     pub seniority: Option<String>,
     /// 擅长细分领域
     pub specialties: Option<Vec<String>>,
-    /// 归属业务岗位（business_roles.id）
-    pub parent_role_id: Option<String>,
     /// 历史成功率（0.0 ~ 1.0）
     pub success_rate: Option<f64>,
     /// 平均执行延迟（毫秒）
@@ -447,14 +445,13 @@ async fn import_experts_impl(
                 // 新增字段：导入时不解析，保留为 None，由前端编辑时填充
                 seniority: Set(None),
                 specialties: Set(None),
-                parent_role_id: Set(None),
                 success_rate: Set(None),
                 avg_latency_ms: Set(None),
                 avg_token_cost: Set(None),
             };
 
             // 使用 UPSERT 支持重复导入：已存在的记录会被更新
-            // 注意：UPSERT 不更新新增字段（seniority/specialties/parent_role_id 等），
+            // 注意：UPSERT 不更新新增字段（seniority/specialties 等），
             // 避免导入时覆盖用户已编辑的值
             match agency_experts::Entity::insert(model)
                 .on_conflict(
@@ -518,7 +515,6 @@ pub async fn list_agency_experts(
             recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
             seniority: m.seniority,
             specialties: m.specialties.as_deref().and_then(|s| serde_json::from_str(s).ok()),
-            parent_role_id: m.parent_role_id,
             success_rate: m.success_rate,
             avg_latency_ms: m.avg_latency_ms,
             avg_token_cost: m.avg_token_cost,
@@ -783,8 +779,6 @@ pub struct UpdateExpertRequest {
     pub seniority: Option<String>,
     /// 擅长细分领域
     pub specialties: Option<Vec<String>>,
-    /// 归属业务岗位（business_roles.id）
-    pub parent_role_id: Option<String>,
     /// 历史成功率（0.0 ~ 1.0）
     pub success_rate: Option<f64>,
     /// 平均执行延迟（毫秒）
@@ -843,13 +837,6 @@ pub async fn update_agency_expert(
             None
         } else {
             Some(json)
-        });
-    }
-    if let Some(parent_role_id) = request.parent_role_id {
-        am.parent_role_id = Set(if parent_role_id.is_empty() {
-            None
-        } else {
-            Some(parent_role_id)
         });
     }
     if let Some(success_rate) = request.success_rate {
@@ -927,7 +914,6 @@ pub async fn export_agency_experts(state: State<'_, AppState>) -> Result<String,
             recommended_tools: m.recommended_tools.and_then(|s| serde_json::from_str(&s).ok()),
             seniority: m.seniority,
             specialties: m.specialties.as_deref().and_then(|s| serde_json::from_str(s).ok()),
-            parent_role_id: m.parent_role_id,
             success_rate: m.success_rate,
             avg_latency_ms: m.avg_latency_ms,
             avg_token_cost: m.avg_token_cost,

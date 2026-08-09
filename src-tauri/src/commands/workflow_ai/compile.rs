@@ -92,10 +92,10 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 === Few-shot 范例 ===
 {FEW_SHOT_EXAMPLES}
 
-=== 可用业务岗位与专家清单 ===
+=== 可用专家清单 ===
 {roles_brief}
-提示：agent 节点的 config 中可引用上述业务岗位 ID（business_role_id）和专家 ID（expert_id），
-让节点执行时自动拼接对应的 system_prompt（详见 4 层 prompt 层级）。
+提示：agent 节点的 config 中可引用上述专家 ID（expert_id），
+让节点执行时自动拼接对应的 system_prompt（详见 prompt 层级）。
 
 === 输出格式 ===
 {{

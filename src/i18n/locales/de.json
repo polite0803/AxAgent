@@ -304,7 +304,6 @@
     "strategyDryRun": "DryRun（仅验证）"
   },
   "agentProfile": {
-    "businessRoleLabel": "Geschäftsrolle",
     "expertLabel": "Experte (Domänenwissen)",
     "import": "Rollen importieren",
     "importFailed": "Rollen konnten nicht importiert werden: {{error}}",
@@ -355,38 +354,6 @@
     "estimatedTokens": "Geschätzte Tokens",
     "requiredCapabilities": "Erforderliche Fähigkeiten",
     "availableTools": "Verfügbare Tools"
-  },
-  "businessRole": {
-    "activeDomains": "Aktive Domänen",
-    "activeDomainsPlaceholder": "Werkzeugdomänen auswählen, die durch diese Rolle aktiviert werden",
-    "create": "Neue Rolle",
-    "deleteConfirm": "Möchten Sie diese Geschäftsrolle wirklich löschen?",
-    "deleteSuccess": "Geschäftsrolle gelöscht",
-    "disabled": "Deaktiviert",
-    "edit": "Rolle bearbeiten",
-    "empty": "Keine Geschäftsrollen vorhanden. Klicken Sie auf \"Neue Rolle\", um eine zu erstellen.",
-    "icon": "Symbol",
-    "managedExpertIds": "Untergeordnete Experten-IDs",
-    "managedExpertIdsPlaceholder": "Durch Kommas getrennte Experten-IDs, z.B. expert-001, expert-002",
-    "managerTitle": "Geschäftsrollenverwaltung",
-    "nameRequired": "Bitte Rollennamen eingeben",
-    "noDesc": "Keine Beschreibung",
-    "noReportsTo": "Keine (Rolle der obersten Ebene)",
-    "reportsTo": "Berichtet an",
-    "requiredCertifications": "Erforderliche Zertifizierungen",
-    "requiredCertificationsPlaceholder": "Durch Kommas getrennte Zertifizierungen, z.B. CFA, PMP",
-    "responsibilities": "Kernverantwortlichkeiten",
-    "responsibilitiesPlaceholder": "Durch Kommas getrennte Verantwortlichkeiten, z.B. Strategische Planung, Teammanagement",
-    "saveSuccess": "Geschäftsrolle gespeichert",
-    "sourceBuiltin": "Eingebaut",
-    "sourceCustom": "Benutzerdefiniert",
-    "systemPrompt": "Rollensystemprompt",
-    "systemPromptHint": "Laufzeitverkettung (4 Schichten): Geschäftsrolle → Executor → Experte → Knoten inline",
-    "systemPromptPlaceholder": "Systemprompt, der Verantwortlichkeiten und Verhalten der Rolle beschreibt",
-    "systemPromptRequired": "Bitte Systemprompt eingeben"
-  },
-  "businessRoleStore": {
-    "loadFailed": "Fehler beim Laden der Geschäftsrollen: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "Agent abgebrochen: {{reason}}",

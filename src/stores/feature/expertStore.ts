@@ -87,8 +87,6 @@ interface AgencyExpertRow {
   seniority?: string | null;
   /** 擅长细分领域列表（后端 JSON 字符串已 parse） */
   specialties?: string[] | null;
-  /** 归属业务岗位 ID（business_roles.id） */
-  parentRoleId?: string | null;
   /** 历史成功率（0.0 ~ 1.0） */
   successRate?: number | null;
   /** 平均执行延迟（毫秒） */

@@ -304,7 +304,6 @@
     "strategyDryRun": "DryRun（仅验证）"
   },
   "agentProfile": {
-    "businessRoleLabel": "業務ロール",
     "expertLabel": "Expert（ドメイン知識）",
     "import": "ロールをインポート",
     "importFailed": "ロールのインポートに失敗: {{error}}",
@@ -355,38 +354,6 @@
     "estimatedTokens": "推定トークン",
     "requiredCapabilities": "必要な能力",
     "availableTools": "利用可能なツール"
-  },
-  "businessRole": {
-    "activeDomains": "アクティブドメイン",
-    "activeDomainsPlaceholder": "このロールがアクティブにするツールドメインを選択",
-    "create": "新規ロール",
-    "deleteConfirm": "この業務ロールを削除してもよろしいですか？",
-    "deleteSuccess": "業務ロールを削除しました",
-    "disabled": "無効",
-    "edit": "ロールを編集",
-    "empty": "業務ロールがありません。「新規ロール」をクリックして作成してください。",
-    "icon": "アイコン",
-    "managedExpertIds": "部下のエキスパートID",
-    "managedExpertIdsPlaceholder": "カンマ区切りのエキスパートID、例：expert-001, expert-002",
-    "managerTitle": "業務ロール管理",
-    "nameRequired": "ロール名を入力してください",
-    "noDesc": "説明なし",
-    "noReportsTo": "なし（最上位ロール）",
-    "reportsTo": "報告先",
-    "requiredCertifications": "必要な資格",
-    "requiredCertificationsPlaceholder": "カンマ区切りの資格、例：CFA, PMP",
-    "responsibilities": "主要な責任",
-    "responsibilitiesPlaceholder": "カンマ区切りの責任、例：戦略計画、チーム管理",
-    "saveSuccess": "業務ロールを保存しました",
-    "sourceBuiltin": "組み込み",
-    "sourceCustom": "カスタム",
-    "systemPrompt": "ロールシステムプロンプト",
-    "systemPromptHint": "実行時に4層で連結：業務ロール → 実行器 → エキスパート → ノードインライン",
-    "systemPromptPlaceholder": "ロールの責任と行動規範を描述するシステムプロンプト",
-    "systemPromptRequired": "システムプロンプトを入力してください"
-  },
-  "businessRoleStore": {
-    "loadFailed": "業務ロールの読み込みに失敗しました: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "エージェントがキャンセルされました：{{reason}}",

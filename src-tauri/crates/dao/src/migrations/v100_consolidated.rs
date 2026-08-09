@@ -27,7 +27,7 @@
 //!
 //! 本 migration 取代 v001–v011。历史文件保留仅作参考。
 
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr};
 
 pub use super::pg_ddl::exec_ddl;
 
@@ -92,12 +92,9 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     // ── agency_experts 人才属性（PHASE 8.3） ──
     ("agency_experts", "seniority", "TEXT"),
     ("agency_experts", "specialties", "TEXT"),
-    ("agency_experts", "parent_role_id", "TEXT"),
     ("agency_experts", "success_rate", "DOUBLE PRECISION"),
     ("agency_experts", "avg_latency_ms", "BIGINT"),
     ("agency_experts", "avg_token_cost", "BIGINT"),
-    // ── agent_profiles 业务角色外键（PHASE 8.4） ──
-    ("agent_profiles", "business_role_id", "TEXT"),
     // ── workflow_templates 任务哈希（PHASE 9） ──
     ("workflow_templates", "mission_hash", "TEXT"),
 ];
@@ -891,7 +888,6 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     //   - v105 的 knowledge_bases 2 列
     //   - v108 的 memory_items 2 列
     //   - PHASE 8.3 的 agency_experts 人才属性列
-    //   - PHASE 8.4 的 agent_profiles.business_role_id
     //   - PHASE 9 的 workflow_templates.mission_hash
     //   - v100 早期消息/providers/dynamic_ui_schemas 等 ALTER
     //
@@ -1213,35 +1209,14 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     .await?;
 
     // ========================================================================
-    // PHASE 8: business_roles + workflow_execution_stats + 字段扩展 + 种子数据
-    //   来自 v101_business_roles：业务岗位表 / 工作流执行统计表 /
-    //   agency_experts 人才属性扩展 / agent_profiles.business_role_id 外键 /
-    //   6 个内置业务岗位种子数据。
+    // PHASE 8: workflow_execution_stats + 字段扩展
+    //   来自 v101_business_roles（business_role 体系已移除，仅保留执行统计表）：
+    //   工作流执行统计表 / agency_experts 人才属性扩展。
     // ========================================================================
 
     let _backend = db.get_database_backend();
 
-    // --- 8.1: 创建 business_roles 表（业务岗位）
-    //   DDL 写 PG 语法（BIGINT + FK），SQLite 通过 exec_ddl 自动接受。
-    //   SQLite 支持 CREATE TABLE 内的 FK 声明（需 PRAGMA foreign_keys=ON 生效）。
-
-    exec_ddl(
-        &db,
-        is_pg,
-        "CREATE TABLE IF NOT EXISTS business_roles (\
-            id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, description TEXT, \
-            responsibilities TEXT, decision_authority TEXT, reports_to TEXT, \
-            managed_expert_ids TEXT, required_certifications TEXT, active_domains TEXT, \
-            system_prompt TEXT NOT NULL DEFAULT '', \
-            icon TEXT, color TEXT, \
-            source TEXT NOT NULL DEFAULT 'builtin', \
-            sort_order INTEGER NOT NULL DEFAULT 0, is_enabled INTEGER NOT NULL DEFAULT 1, \
-            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
-            FOREIGN KEY (reports_to) REFERENCES business_roles(id) ON DELETE SET NULL)",
-    )
-    .await?;
-
-    // --- 8.2: 创建 workflow_execution_stats 表（工作流执行统计）
+    // --- 8.1: 创建 workflow_execution_stats 表（工作流执行统计）
     //   DDL 写 PG 语法（BIGINT + DOUBLE PRECISION），SQLite 自动接受。
 
     exec_ddl(
@@ -1271,80 +1246,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     )
     .await?;
 
-    // --- 8.3: 扩展 agency_experts 表（人才属性）——已由 PHASE 3.9 统一处理 ---
-
-    // SQLite 的 agency_experts.parent_role_id 无法加 FK（SQLite 限制），靠应用层校验。
-    // PostgreSQL 的 FK 也跳过（ALTER ADD CONSTRAINT IF NOT EXISTS 在 PG < 9.4 不支持，
-    // 且存量库可能存在数据不一致），改由应用层 validate_parent_role_id 校验。
-
-    // --- 8.4: 扩展 agent_profiles 表（business_role_id 外键）——已由 PHASE 3.9 统一处理 ---
-
-    // --- 8.5: 内置业务岗位种子数据（仅首次创建时插入） ---
-
-    let now = axagent_harness::util_fns::now_ts();
-    let builtin_roles = builtin_business_roles(now);
-
-    for role in builtin_roles {
-        let stmt = if is_pg {
-            Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                "INSERT INTO business_roles \
-                 (id, name, description, responsibilities, decision_authority, reports_to, \
-                  managed_expert_ids, required_certifications, active_domains, system_prompt, \
-                  icon, color, source, sort_order, is_enabled, created_at, updated_at) \
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) \
-                 ON CONFLICT (id) DO NOTHING",
-                [
-                    role.id.into(),
-                    role.name.into(),
-                    role.description.into(),
-                    role.responsibilities.into(),
-                    role.decision_authority.into(),
-                    role.reports_to.into(),
-                    role.managed_expert_ids.into(),
-                    role.required_certifications.into(),
-                    role.active_domains.into(),
-                    role.system_prompt.into(),
-                    role.icon.into(),
-                    role.color.into(),
-                    role.source.into(),
-                    role.sort_order.into(),
-                    1i32.into(),
-                    now.into(),
-                    now.into(),
-                ],
-            )
-        } else {
-            Statement::from_sql_and_values(
-                DbBackend::Sqlite,
-                "INSERT OR IGNORE INTO business_roles \
-                 (id, name, description, responsibilities, decision_authority, reports_to, \
-                  managed_expert_ids, required_certifications, active_domains, system_prompt, \
-                  icon, color, source, sort_order, is_enabled, created_at, updated_at) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [
-                    role.id.into(),
-                    role.name.into(),
-                    role.description.into(),
-                    role.responsibilities.into(),
-                    role.decision_authority.into(),
-                    role.reports_to.into(),
-                    role.managed_expert_ids.into(),
-                    role.required_certifications.into(),
-                    role.active_domains.into(),
-                    role.system_prompt.into(),
-                    role.icon.into(),
-                    role.color.into(),
-                    role.source.into(),
-                    role.sort_order.into(),
-                    1i32.into(),
-                    now.into(),
-                    now.into(),
-                ],
-            )
-        };
-        db.execute_raw(stmt).await?;
-    }
+    // --- 8.2: agency_experts 人才属性列——已由 PHASE 3.9 统一处理 ---
 
     // ========================================================================
     // PHASE 9: workflow_templates.mission_hash 列 + 部分索引
@@ -1406,127 +1308,4 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     .await?;
 
     Ok(())
-}
-
-// ============================================================================
-// 内置业务岗位种子数据（来自 v101_business_roles）
-// ============================================================================
-
-/// 内置业务岗位种子数据
-struct BuiltinRole {
-    id: &'static str,
-    name: &'static str,
-    description: &'static str,
-    responsibilities: &'static str,
-    decision_authority: &'static str,
-    reports_to: Option<&'static str>,
-    managed_expert_ids: &'static str,
-    required_certifications: &'static str,
-    active_domains: &'static str,
-    system_prompt: &'static str,
-    icon: &'static str,
-    color: &'static str,
-    source: &'static str,
-    sort_order: i32,
-}
-
-fn builtin_business_roles(_now: i64) -> Vec<BuiltinRole> {
-    vec![
-        BuiltinRole {
-            id: "ceo",
-            name: "CEO 首席执行官",
-            description: "负责公司整体战略与决策",
-            responsibilities: "[\"制定公司战略\",\"重大决策审批\",\"资源分配\"]",
-            decision_authority: "{\"max_budget\": 10000000, \"scopes\": [\"all\"]}",
-            reports_to: None,
-            managed_expert_ids: "[]",
-            required_certifications: "[\"10 年管理经验\"]",
-            active_domains: "[\"business\",\"strategy\"]",
-            system_prompt: "你是 CEO 首席执行官。你负责公司整体战略方向，对重大决策有最终审批权。在分析问题时，从全局视角出发，平衡短期收益与长期价值。",
-            icon: "👑",
-            color: "#FFD700",
-            source: "builtin",
-            sort_order: 0,
-        },
-        BuiltinRole {
-            id: "cto",
-            name: "CTO 首席技术官",
-            description: "负责技术战略与研发管理",
-            responsibilities: "[\"技术战略制定\",\"技术选型决策\",\"技术团队管理\",\"技术风险评估\"]",
-            decision_authority: "{\"max_budget\": 1000000, \"scopes\": [\"tech\",\"architecture\",\"security\"]}",
-            reports_to: Some("ceo"),
-            managed_expert_ids: "[]",
-            required_certifications: "[\"8 年技术管理经验\"]",
-            active_domains: "[\"development\",\"security\",\"devops\",\"data\"]",
-            system_prompt: "你是 CTO 首席技术官。你负责技术战略、架构选型与团队管理。在决策时权衡技术先进性、团队能力与交付风险，优先考虑长期可维护性。",
-            icon: "💻",
-            color: "#4169E1",
-            source: "builtin",
-            sort_order: 1,
-        },
-        BuiltinRole {
-            id: "cfo",
-            name: "CFO 首席财务官",
-            description: "负责财务管理与风险控制",
-            responsibilities: "[\"财务规划\",\"预算审批\",\"财务风险评估\",\"投资决策\"]",
-            decision_authority: "{\"max_budget\": 5000000, \"scopes\": [\"finance\",\"budget\"]}",
-            reports_to: Some("ceo"),
-            managed_expert_ids: "[]",
-            required_certifications: "[\"CPA 或同等资质\",\"8 年财务管理经验\"]",
-            active_domains: "[\"finance\",\"business\"]",
-            system_prompt: "你是 CFO 首席财务官。你负责财务规划、预算控制与风险评估。在决策时严格把控财务纪律，对投入产出比与现金流敏感。",
-            icon: "💰",
-            color: "#2E8B57",
-            source: "builtin",
-            sort_order: 2,
-        },
-        BuiltinRole {
-            id: "cpo",
-            name: "CPO 首席产品官",
-            description: "负责产品战略与规划",
-            responsibilities: "[\"产品战略\",\"需求优先级\",\"用户体验\",\"产品路线图\"]",
-            decision_authority: "{\"max_budget\": 500000, \"scopes\": [\"product\",\"design\"]}",
-            reports_to: Some("ceo"),
-            managed_expert_ids: "[]",
-            required_certifications: "[\"8 年产品管理经验\"]",
-            active_domains: "[\"business\",\"design\",\"writing\"]",
-            system_prompt: "你是 CPO 首席产品官。你负责产品战略、需求优先级与用户体验。在决策时以用户价值为核心，平衡商业目标与技术成本。",
-            icon: "🎯",
-            color: "#FF6347",
-            source: "builtin",
-            sort_order: 3,
-        },
-        BuiltinRole {
-            id: "pm",
-            name: "产品经理",
-            description: "负责产品需求与项目执行",
-            responsibilities: "[\"需求分析\",\"产品文档\",\"项目跟进\",\"跨部门协调\"]",
-            decision_authority: "{\"max_budget\": 100000, \"scopes\": [\"product\",\"project\"]}",
-            reports_to: Some("cpo"),
-            managed_expert_ids: "[]",
-            required_certifications: "[\"3 年产品经验\"]",
-            active_domains: "[\"business\",\"design\",\"writing\"]",
-            system_prompt: "你是产品经理。你负责需求分析、产品文档与项目跟进。在执行时关注用户痛点与商业目标，善用数据驱动决策。",
-            icon: "📋",
-            color: "#9370DB",
-            source: "builtin",
-            sort_order: 4,
-        },
-        BuiltinRole {
-            id: "tech_lead",
-            name: "技术负责人",
-            description: "负责技术架构与研发执行",
-            responsibilities: "[\"架构设计\",\"技术方案评审\",\"代码审查\",\"技术难点攻坚\"]",
-            decision_authority: "{\"max_budget\": 100000, \"scopes\": [\"tech\",\"architecture\"]}",
-            reports_to: Some("cto"),
-            managed_expert_ids: "[]",
-            required_certifications: "[\"5 年研发经验\",\"架构设计能力\"]",
-            active_domains: "[\"development\",\"security\",\"devops\"]",
-            system_prompt: "你是技术负责人。你负责架构设计、技术评审与代码质量。在执行时关注可维护性、可扩展性与工程效率。",
-            icon: "🔧",
-            color: "#1E90FF",
-            source: "builtin",
-            sort_order: 5,
-        },
-    ]
 }

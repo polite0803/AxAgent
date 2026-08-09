@@ -304,7 +304,6 @@
     "strategyDryRun": "DryRun（仅验证）"
   },
   "agentProfile": {
-    "businessRoleLabel": "비즈니스 역할",
     "expertLabel": "전문가 (도메인 지식)",
     "import": "역할 가져오기",
     "importFailed": "역할 가져오기 실패: {{error}}",
@@ -355,38 +354,6 @@
     "estimatedTokens": "예상 토큰",
     "requiredCapabilities": "필요한 능력",
     "availableTools": "사용 가능한 도구"
-  },
-  "businessRole": {
-    "activeDomains": "활성 도메인",
-    "activeDomainsPlaceholder": "이 역할이 활성화하는 도구 도메인 선택",
-    "create": "새 역할",
-    "deleteConfirm": "이 비즈니스 역할을 삭제하시겠습니까?",
-    "deleteSuccess": "비즈니스 역할이 삭제되었습니다",
-    "disabled": "비활성화됨",
-    "edit": "역할 편집",
-    "empty": "비즈니스 역할이 없습니다. \"새 역할\"을 클릭하여 생성하세요.",
-    "icon": "아이콘",
-    "managedExpertIds": "부하 전문가 ID",
-    "managedExpertIdsPlaceholder": "쉼표로 구분된 전문가 ID, 예: expert-001, expert-002",
-    "managerTitle": "비즈니스 역할 관리",
-    "nameRequired": "역할 이름을 입력해 주세요",
-    "noDesc": "설명 없음",
-    "noReportsTo": "없음 (최상위 역할)",
-    "reportsTo": "보고 대상",
-    "requiredCertifications": "필수 자격증",
-    "requiredCertificationsPlaceholder": "쉼표로 구분된 자격증, 예: CFA, PMP",
-    "responsibilities": "핵심 책임",
-    "responsibilitiesPlaceholder": "쉼표로 구분된 책임, 예: 전략 기획, 팀 관리",
-    "saveSuccess": "비즈니스 역할이 저장되었습니다",
-    "sourceBuiltin": "내장",
-    "sourceCustom": "사용자 정의",
-    "systemPrompt": "역할 시스템 프롬프트",
-    "systemPromptHint": "런타임에 4계층으로 연결: 비즈니스 역할 → 실행자 → 전문가 → 노드 인라인",
-    "systemPromptPlaceholder": "역할의 책임과 행동 규칙을 설명하는 시스템 프롬프트",
-    "systemPromptRequired": "시스템 프롬프트를 입력해 주세요"
-  },
-  "businessRoleStore": {
-    "loadFailed": "비즈니스 역할 로드 실패: {{error}}"
   },
   "agentStore": {
     "executionCancelled": "에이전트가 취소되었습니다: {{reason}}",

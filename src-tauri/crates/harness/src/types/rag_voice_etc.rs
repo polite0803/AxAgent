@@ -1458,8 +1458,6 @@ pub struct AgentProfile {
     pub sort_order: i32,
     pub is_enabled: bool,
     pub expert_id: Option<String>,
-    /// 业务岗位 ID（business_roles.id），表达「这个 profile 在组织中担什么岗位」
-    pub business_role_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -1483,8 +1481,6 @@ pub struct CreateAgentProfileInput {
     pub recommended_tools: Option<Vec<String>>,
     pub disallowed_tools: Option<Vec<String>>,
     pub recommended_workflows: Option<Vec<String>>,
-    /// 业务岗位 ID（business_roles.id）
-    pub business_role_id: Option<String>,
 }
 
 // === Agent Role Def (DB-driven, importable) ===
@@ -1568,8 +1564,6 @@ pub struct UpdateAgentProfileInput {
     pub agent_role: Option<Option<String>>,
     pub tags: Option<Vec<String>>,
     pub is_enabled: Option<bool>,
-    /// 业务岗位 ID（None 表示不修改；Some(None) 表示解除关联；Some(Some(id)) 表示关联到指定岗位）
-    pub business_role_id: Option<Option<String>>,
 }
 
 // Re-export from sibling modules for convenience

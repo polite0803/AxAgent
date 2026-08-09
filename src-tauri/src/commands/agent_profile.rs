@@ -72,7 +72,6 @@ pub async fn create_agent_profile(
         &input.disallowed_tools.unwrap_or_default(),
         &input.recommended_workflows.unwrap_or_default(),
         None, // expert_id is set via import or manual binding
-        input.business_role_id.as_deref(),
     )
     .await
     .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
@@ -97,7 +96,6 @@ pub async fn update_agent_profile(
         input.agent_role.as_ref().map(|r| r.as_deref()),
         input.tags.as_deref(),
         input.is_enabled,
-        input.business_role_id.as_ref().map(|r| r.as_deref()),
     )
     .await
     .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?)
@@ -172,7 +170,6 @@ pub async fn import_agent_profiles_from_agency(
             &[],
             &rec_wf,
             Some(&row.id), // 关联 Expert，运行时拼接其 system_prompt
-            None,          // agency 导入不带 business_role_id，由用户手动关联
         )
         .await
         {
