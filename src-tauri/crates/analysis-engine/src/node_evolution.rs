@@ -51,8 +51,7 @@ pub async fn evolve_node(
     let total = feedbacks.len() as u64;
 
     if total == 0 {
-        let mut suggestions = Vec::new();
-        suggestions.push("暂无反馈数据，建议先运行几次分析".to_string());
+        let suggestions = vec!["暂无反馈数据，建议先运行几次分析".to_string()];
 
         return Ok(NodeEvolutionStatus {
             node_type: type_str.to_string(),
@@ -83,7 +82,7 @@ pub async fn evolve_node(
         }
     }
     // 计算平均值
-    for (_, value) in consistency_metrics.iter_mut() {
+    for value in consistency_metrics.values_mut() {
         *value /= total as f64;
     }
 

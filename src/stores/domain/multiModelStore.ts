@@ -342,16 +342,16 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
         }
         if (targetMessageId) {
           await invoke("switch_message_version", {
-            conversation_id: conversationId,
-            parent_message_id: parentId,
-            message_id: targetMessageId,
+            conversationId,
+            parentMessageId: parentId,
+            messageId: targetMessageId,
           }).catch(logIpcError("switch_message_version"));
         }
       } else if (parentId && userSelectedMessageId) {
         await invoke("switch_message_version", {
-          conversation_id: conversationId,
-          parent_message_id: parentId,
-          message_id: userSelectedMessageId,
+          conversationId,
+          parentMessageId: parentId,
+          messageId: userSelectedMessageId,
         }).catch(logIpcError("switch_message_version"));
       }
 

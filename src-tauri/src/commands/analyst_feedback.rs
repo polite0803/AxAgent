@@ -295,7 +295,7 @@ pub async fn get_node_feedback_stats(
     }
     // 计算平均值
     let total = total_count as f64;
-    for (_, value) in consistency_metrics.iter_mut() {
+    for value in consistency_metrics.values_mut() {
         *value /= total;
     }
 

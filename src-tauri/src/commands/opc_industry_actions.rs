@@ -1746,17 +1746,42 @@ pub const INDUSTRY_PACK_LEARNING_FILE: &str = "learning.yaml";
 ///
 /// 只读行业包内 `config/opc/industries/{dir_id}/learning.yaml`。
 /// `dir_id` 由 `industry_id` 连字符转下划线（`finance-invest` → `finance_invest`）。
+///
+/// 查找顺序：
+/// 1. `app_dir` 下的同步副本（生产/服务模式）
+/// 2. 仓库根相对路径（开发模式 CWD = 仓库根）
 fn industry_learning_config_path(
     industry_id: &str,
     app_dir: Option<&std::path::Path>,
 ) -> Option<std::path::PathBuf> {
     let dir_id = industry_id.replace('-', "_");
-    let pack_path = crate::commands::opc_workflows::resolve_industries_dir(app_dir)
+
+    // 1) 尝试 app_dir 路径
+    if let Some(path) = app_dir {
+        let candidate = path
+            .join(crate::commands::opc_workflows::INDUSTRIES_DIR)
+            .join(&dir_id)
+            .join(INDUSTRY_PACK_LEARNING_FILE);
+        if candidate.is_file() {
+            tracing::debug!("[industry-learning] found via app_dir: {}", candidate.display());
+            return Some(candidate);
+        }
+    }
+
+    // 2) 回退：仓库根相对路径
+    let fallback = crate::commands::opc_workflows::industries_base_dir()
         .join(&dir_id)
         .join(INDUSTRY_PACK_LEARNING_FILE);
-    if pack_path.is_file() {
-        return Some(pack_path);
+    if fallback.is_file() {
+        tracing::debug!("[industry-learning] found via fallback: {}", fallback.display());
+        return Some(fallback);
     }
+
+    tracing::warn!(
+        "[industry-learning] learning.yaml not found for {industry_id} (tried app_dir={:?}, fallback={})",
+        app_dir.map(|p| p.display().to_string()),
+        fallback.display()
+    );
     None
 }
 

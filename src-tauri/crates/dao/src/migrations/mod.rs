@@ -72,9 +72,10 @@ pub mod v214_opc_experience;
 pub mod v215_opc_rl_experience;
 pub mod v216_opc_content_assets;
 pub mod v217_opc_publish_schedules;
+pub mod v218_merge_business_roles;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 217;
+pub const CURRENT_VERSION: i32 = 218;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -286,6 +287,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 217,
         description: "v217_opc_publish_schedules: OPC 发布计划表（opc_publish_schedules）——支持定时发布博客/内容资产",
         up: |db| Box::pin(v217_opc_publish_schedules::up(db)),
+    },
+    Migration {
+        version: 218,
+        description: "v218_merge_business_roles: agent_roles 扩展 8 个岗位字段（responsibilities/decision_authority/reports_to 等）",
+        up: |db| Box::pin(v218_merge_business_roles::up(db)),
     },
 ];
 

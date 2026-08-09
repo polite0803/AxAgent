@@ -2115,7 +2115,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     aiChatCancel: () => {
       const { aiChatSessionId, aiChatStreamingMessageId, _aiChatCleanup } = get();
       // 先取消后端流，再清理 listener
-      invoke("workflow_ai_chat_cancel", { session_id: aiChatSessionId }).catch(logIpcError("AI Chat Cancel"));
+      invoke("workflow_ai_chat_cancel", { sessionId: aiChatSessionId }).catch(logIpcError("AI Chat Cancel"));
       _aiChatCleanup?.();
       set((state) => {
         state._aiChatCleanup = null;

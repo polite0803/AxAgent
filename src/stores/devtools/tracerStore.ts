@@ -254,7 +254,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   }) => {
     try {
       await invoke("tracer_record_span", {
-        traceId: params.traceId,
+        trace_id: params.traceId,
         span: {
           span_type: "llm_call",
           parent_span_id: params.parentSpanId || null,

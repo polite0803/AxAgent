@@ -355,7 +355,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
 
   unpairDevice: async (deviceId) => {
     try {
-      await invoke<void>("unpair_device", { device_id: deviceId });
+      await invoke<void>("unpair_device", { deviceId });
       const devices = get().devices.filter((d) => d.device_id !== deviceId);
       set({ devices });
     } catch (e) {

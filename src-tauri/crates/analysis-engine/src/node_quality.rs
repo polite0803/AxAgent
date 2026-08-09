@@ -112,7 +112,7 @@ fn calc_grade(score: i32) -> String {
 }
 
 /// ── 分析师节点质量检测 ──
-
+///
 /// 分析师特有的质量指标
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalystQualityMetrics {
@@ -280,8 +280,8 @@ pub fn check_analyst_quality(node_id: &str, parsed: &serde_json::Value) -> NodeQ
     NodeQualityResult {
         node_type: NodeType::Analyst,
         node_id: node_id.to_string(),
-        quality_score: score.max(0).min(100),
-        grade: calc_grade(score.max(0).min(100)),
+        quality_score: score.clamp(0, 100),
+        grade: calc_grade(score.clamp(0, 100)),
         issue_count,
         warning_count,
         good_count,
@@ -345,7 +345,7 @@ pub fn check_debate_quality(node_id: &str, parsed: &serde_json::Value) -> NodeQu
 
     // 2. strength_score 范围检查
     if let Some(s) = strength {
-        if s < 0.0 || s > 100.0 {
+        if !(0.0..=100.0).contains(&s) {
             checks.push(QualityCheck {
                 category: "range".into(),
                 field: "strength_score".into(),
@@ -398,8 +398,8 @@ pub fn check_debate_quality(node_id: &str, parsed: &serde_json::Value) -> NodeQu
     NodeQualityResult {
         node_type: NodeType::Debate,
         node_id: node_id.to_string(),
-        quality_score: score.max(0).min(100),
-        grade: calc_grade(score.max(0).min(100)),
+        quality_score: score.clamp(0, 100),
+        grade: calc_grade(score.clamp(0, 100)),
         issue_count,
         warning_count,
         good_count,
@@ -483,7 +483,7 @@ pub fn check_decision_quality(node_id: &str, parsed: &serde_json::Value) -> Node
 
     // 3. confidence 检查
     if let Some(conf) = confidence {
-        if conf > 100.0 || conf < 0.0 {
+        if !(0.0..=100.0).contains(&conf) {
             checks.push(QualityCheck {
                 category: "range".into(),
                 field: "confidence".into(),
@@ -513,8 +513,8 @@ pub fn check_decision_quality(node_id: &str, parsed: &serde_json::Value) -> Node
     NodeQualityResult {
         node_type: NodeType::Decision,
         node_id: node_id.to_string(),
-        quality_score: score.max(0).min(100),
-        grade: calc_grade(score.max(0).min(100)),
+        quality_score: score.clamp(0, 100),
+        grade: calc_grade(score.clamp(0, 100)),
         issue_count,
         warning_count,
         good_count,
@@ -547,7 +547,7 @@ pub fn check_tool_quality(node_id: &str, parsed: &serde_json::Value) -> NodeQual
     // 1. credibility 检查
     if let Some(c) = credibility {
         let valid_levels = ["high", "medium", "low", "delayed", "stale"];
-        if !valid_levels.iter().any(|v| c == *v) {
+        if !valid_levels.contains(&c) {
             checks.push(QualityCheck {
                 category: "validity".into(),
                 field: "credibility".into(),
@@ -615,8 +615,8 @@ pub fn check_tool_quality(node_id: &str, parsed: &serde_json::Value) -> NodeQual
     NodeQualityResult {
         node_type: NodeType::Tool,
         node_id: node_id.to_string(),
-        quality_score: score.max(0).min(100),
-        grade: calc_grade(score.max(0).min(100)),
+        quality_score: score.clamp(0, 100),
+        grade: calc_grade(score.clamp(0, 100)),
         issue_count,
         warning_count,
         good_count,
@@ -626,7 +626,6 @@ pub fn check_tool_quality(node_id: &str, parsed: &serde_json::Value) -> NodeQual
 }
 
 /// ── 通用质量检测入口 ──
-
 pub fn check_node_quality(
     node_id: &str,
     node_type: &NodeType,
@@ -641,13 +640,12 @@ pub fn check_node_quality(
         },
         NodeType::Other => {
             // 通用检测
-            let mut checks: Vec<QualityCheck> = Vec::new();
-            checks.push(QualityCheck {
+            let checks: Vec<QualityCheck> = vec![QualityCheck {
                 category: "generic".into(),
                 field: "output_format".into(),
                 status: "pass".into(),
                 detail: "输出格式有效".into(),
-            });
+            }];
             NodeQualityResult {
                 node_type: NodeType::Other,
                 node_id: node_id.to_string(),

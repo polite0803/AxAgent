@@ -107,7 +107,7 @@ export function ProjectsTab() {
     if (!detailProject) { return; }
     try {
       await invoke("opc_add_milestone", {
-        project_id: detailProject.id,
+        projectId: detailProject.id,
         milestone: {
           id: crypto.randomUUID(),
           title: values.title as string,
@@ -131,7 +131,7 @@ export function ProjectsTab() {
   const handleCompleteMilestone = async (milestoneId: string) => {
     if (!detailProject) { return; }
     try {
-      await invoke("opc_complete_milestone", { project_id: detailProject.id, milestone_id: milestoneId });
+      await invoke("opc_complete_milestone", { projectId: detailProject.id, milestoneId });
       message.success(t("opc.project.milestoneCompleted"));
       const updated = await invoke<Project>("opc_get_project", { id: detailProject.id });
       setDetailProject(updated);

@@ -153,7 +153,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   },
 
   unpinSchema: async (schemaId) => {
-    await invoke<void>("unpin_dynamic_ui_schema", { schema_id: schemaId });
+    await invoke<void>("unpin_dynamic_ui_schema", { schemaId });
     set((state) => ({
       pins: state.pins.filter((p) => p.schema_id !== schemaId),
     }));

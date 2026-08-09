@@ -118,7 +118,7 @@ pub fn generate_prompt_corrections(quality_metrics_json: &str) -> Vec<String> {
 
         // 检查置信度范围
         if let Some(confidence) = metrics.get("confidence").and_then(|v| v.as_f64()) {
-            if confidence > 100.0 || confidence < 0.0 {
+            if !(0.0..=100.0).contains(&confidence) {
                 corrections.push("【范围约束】confidence 必须在 0-100 范围内。".to_string());
             }
         }
