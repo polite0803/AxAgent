@@ -69,9 +69,8 @@ fn mission_to_name(mission: &str) -> String {
 /// - 生成「可重复执行」的稳定 template（不允许 intent=clarify）
 /// - 必须输出完整 nodes/edges（不允许留空）
 async fn build_system_prompt() -> String {
-    let roles_brief = build_roles_and_experts_brief()
-        .await
-        .unwrap_or_else(|| "（暂无可用专家）".to_string());
+    let roles_brief =
+        build_roles_and_experts_brief().await.unwrap_or_else(|| "（暂无可用专家）".to_string());
 
     format!(
         r#"You are a workflow compilation assistant. Compile the user's mission statement into a stable, repeatable workflow template.

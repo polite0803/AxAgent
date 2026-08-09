@@ -127,9 +127,8 @@ dataTransformer, webhookSend, logging, llmClassifier, aggregator, email, end
 8. 涉及并发/批量处理用 parallel；循环遍历用 loop；不要把循环当并发。
 9. 跨多个服务编排时优先用 subWorkflow 复用已有工作流。
 10. 知识检索/文档问答用 vectorRetrieve + documentParser；不要用 llm 凭空生成。{context_section}"#,
-        roles_brief = build_roles_and_experts_brief()
-            .await
-            .unwrap_or_else(|| "（暂无可用专家）".to_string())
+        roles_brief =
+            build_roles_and_experts_brief().await.unwrap_or_else(|| "（暂无可用专家）".to_string())
     );
 
     let request = ChatRequest {
