@@ -1256,6 +1256,20 @@
         "strategyDryRun": "试运行（仅验证）"
       }
     },
+    "workflowRunner": {
+      "title": "股票工作流运行中",
+      "inputTheme": "输入主题（可选）",
+      "themeHint": "输入感兴趣的主题关键词，工作流将围绕这些主题筛选候选股票。可留空运行全市场筛选。",
+      "themePlaceholder": "如：AI 芯片、新能源、CXO",
+      "sourceUser": "主题",
+      "run": "运行",
+      "rerun": "重新运行",
+      "cancel": "取消",
+      "progress": "执行进度",
+      "completed": "执行完成",
+      "close": "关闭",
+      "noResult": "未找到符合条件的股票"
+    },
     "workflowLabel": "工作流",
     "yesterday": "昨天",
     "you": "你",
@@ -12122,6 +12136,10 @@
     "noCandidateTitle": "本次未产出候选标的",
     "errorUnknown": "未知错误",
     "callFailed": "调用失败",
+    "themeInput": "主题",
+    "themePlaceholder": "输入主题词，如 AI SSD、存储芯片（留空=自动扫描）",
+    "sourceUser": "基于你的主题",
+    "sourceAuto": "自动扫描",
     "timeoutHint": "筛选耗时超过 {seconds} 秒，后端仍在处理中，请稍后查看结果或查看执行日志",
     "stepLogTitle": "执行日志",
     "nodeTitles": {

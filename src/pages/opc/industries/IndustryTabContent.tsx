@@ -43,7 +43,8 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
   const handleExecute = async (workflowId: string) => {
     try {
       const result = await data.executeWorkflow(workflowId);
-      if (result.status === "completed") {
+      // completed=全部节点完成；success=成功但有节点未执行（如装饰/跳过节点），均视为成功
+      if (result.status === "completed" || result.status === "success") {
         message.success(t("opc.industry.tab.executeSuccess", { id: workflowId }));
       } else {
         message.error(t("opc.industry.tab.executeFailed", { id: workflowId }));

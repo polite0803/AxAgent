@@ -21,7 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import { Button, Input, Popover, Spin, Typography } from "antd";
 import type { GlobalToken, InputRef } from "antd";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useCompressStore, useConversationStore } from "@/stores";
@@ -34,6 +34,7 @@ import { ExpertBadge } from "./ExpertBadge";
 import { AgentProfileSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 import { WorkflowBadge } from "./WorkflowBadge";
+import { isStockWorkflowTemplate, WorkflowRunner } from "./WorkflowRunner";
 
 function StatsPopoverContent({
   stats,
@@ -304,80 +305,129 @@ export function ChatViewToolbar({
   const fetchConversation = useConversationStore((s) => s.fetchConversations);
   const compressing = useCompressStore((s) => s.compressing);
   const compressContext = useCompressStore((s) => s.compressContext);
+  const [stockRunner, setStockRunner] = useState<
+    {
+      templateId: string;
+      workflowId?: string;
+    } | null
+  >(null);
 
   return (
-    <div className="flex items-center gap-2 p-3 flex-wrap">
-      {activeConversation
-        ? (
-          <>
-            <ConvIconForChat render={renderConvIconForChat} size={24} />
-            {editingTitle
-              ? (
-                <div className="flex items-center gap-1">
-                  <Input
-                    id="chat-view-input-7"
-                    ref={titleInputRef as React.Ref<InputRef>}
-                    value={titleDraft}
-                    onChange={(e) => setTitleDraft(e.target.value)}
-                    onBlur={handleTitleSave}
-                    onPressEnter={handleTitleSave}
-                    size="small"
-                    style={{ maxWidth: 240 }}
-                  />
-                  <Tooltip title={t("chat.aiGenerateTitle")}>
-                    <Button
-                      type="text"
+    <>
+      <div className="flex items-center gap-2 p-3 flex-wrap">
+        {activeConversation
+          ? (
+            <>
+              <ConvIconForChat render={renderConvIconForChat} size={24} />
+              {editingTitle
+                ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      id="chat-view-input-7"
+                      ref={titleInputRef as React.Ref<InputRef>}
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onBlur={handleTitleSave}
+                      onPressEnter={handleTitleSave}
                       size="small"
-                      icon={isTitleGenerating ? <SyncOutlined spin /> : <Sparkle size={14} />}
-                      disabled={isTitleGenerating}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRegenerateTitle();
-                      }}
+                      style={{ maxWidth: 240 }}
                     />
-                  </Tooltip>
-                </div>
-              )
-              : (
-                <div className="ax-truncate" style={{ flex: "1 1 auto", minWidth: 0 }}>
-                  <Typography.Text
-                    className="cursor-pointer select-none"
-                    onClick={handleTitleClick}
-                  >
-                    {activeConversation.title}
-                    {isTitleGenerating
-                      ? <SyncOutlined spin className="ml-1 text-xs opacity-50" />
-                      : <NotePencil size={12} className="ml-1 text-xs opacity-50" />}
-                  </Typography.Text>
-                </div>
-              )}
+                    <Tooltip title={t("chat.aiGenerateTitle")}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={isTitleGenerating ? <SyncOutlined spin /> : <Sparkle size={14} />}
+                        disabled={isTitleGenerating}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRegenerateTitle();
+                        }}
+                      />
+                    </Tooltip>
+                  </div>
+                )
+                : (
+                  <div className="ax-truncate" style={{ flex: "1 1 auto", minWidth: 0 }}>
+                    <Typography.Text
+                      className="cursor-pointer select-none"
+                      onClick={handleTitleClick}
+                    >
+                      {activeConversation.title}
+                      {isTitleGenerating
+                        ? <SyncOutlined spin className="ml-1 text-xs opacity-50" />
+                        : <NotePencil size={12} className="ml-1 text-xs opacity-50" />}
+                    </Typography.Text>
+                  </div>
+                )}
 
-            {activeConversation?.mode === "agent" && (
-              <WorkflowBadge
-                sessionType={activeConversation?.session_type ?? "conversation"}
-                workflowTemplateId={activeConversation?.workflow_template_id}
-                workflowStatus={activeConversation?.workflow_status}
-                onSelectWorkflow={async (templateId, workflowId) => {
-                  if (activeConversation.id) {
-                    if (workflowId) {
-                      try {
-                        localStorage.setItem(
-                          `axagent:workflow-id:${activeConversation.id}`,
-                          workflowId,
-                        );
-                        window.dispatchEvent(
-                          new CustomEvent("axagent:workflow-changed", {
-                            detail: {
-                              conversationId: activeConversation.id,
-                              workflowId,
-                            },
-                          }),
-                        );
-                      } catch {
-                        // Ignore storage errors
+              {activeConversation?.mode === "agent" && (
+                <WorkflowBadge
+                  sessionType={activeConversation?.session_type ?? "conversation"}
+                  workflowTemplateId={activeConversation?.workflow_template_id}
+                  workflowStatus={activeConversation?.workflow_status}
+                  onSelectWorkflow={async (templateId, workflowId) => {
+                    // 检测是否为股票工作流模板
+                    const isStockWorkflow = isStockWorkflowTemplate(templateId);
+
+                    if (activeConversation.id) {
+                      if (workflowId) {
+                        try {
+                          localStorage.setItem(
+                            `axagent:workflow-id:${activeConversation.id}`,
+                            workflowId,
+                          );
+                          window.dispatchEvent(
+                            new CustomEvent("axagent:workflow-changed", {
+                              detail: {
+                                conversationId: activeConversation.id,
+                                workflowId,
+                              },
+                            }),
+                          );
+                        } catch {
+                          // Ignore storage errors
+                        }
+                      } else {
+                        try {
+                          localStorage.removeItem(
+                            `axagent:workflow-id:${activeConversation.id}`,
+                          );
+                          window.dispatchEvent(
+                            new CustomEvent("axagent:workflow-changed", {
+                              detail: {
+                                conversationId: activeConversation.id,
+                                workflowId: null,
+                              },
+                            }),
+                          );
+                        } catch {
+                          // Ignore storage errors
+                        }
                       }
+                    }
+                    if (templateId === "") {
+                      setStockRunner(null);
+                      await updateConversation(activeConversation.id, {
+                        session_type: "conversation",
+                        workflow_template_id: null,
+                      });
                     } else {
+                      await updateConversation(activeConversation.id, {
+                        session_type: "workflow",
+                        workflow_template_id: workflowId || templateId,
+                        agent_profile_id: null,
+                      });
+                      // 股票工作流：设置 runner 状态以触发运行
+                      if (isStockWorkflow) {
+                        setStockRunner({ templateId, workflowId });
+                      }
+                    }
+                    fetchConversation();
+                  }}
+                  onRemoveWorkflow={async () => {
+                    setStockRunner(null);
+                    if (activeConversation.id) {
                       try {
                         localStorage.removeItem(
                           `axagent:workflow-id:${activeConversation.id}`,
@@ -394,146 +444,125 @@ export function ChatViewToolbar({
                         // Ignore storage errors
                       }
                     }
-                  }
-                  if (templateId === "") {
                     await updateConversation(activeConversation.id, {
                       session_type: "conversation",
                       workflow_template_id: null,
                     });
-                  } else {
-                    await updateConversation(activeConversation.id, {
-                      session_type: "workflow",
-                      workflow_template_id: workflowId || templateId,
-                      agent_profile_id: null,
-                    });
-                  }
-                  fetchConversation();
-                }}
-                onRemoveWorkflow={async () => {
-                  if (activeConversation.id) {
-                    try {
-                      localStorage.removeItem(
-                        `axagent:workflow-id:${activeConversation.id}`,
-                      );
-                      window.dispatchEvent(
-                        new CustomEvent("axagent:workflow-changed", {
-                          detail: {
-                            conversationId: activeConversation.id,
-                            workflowId: null,
-                          },
-                        }),
-                      );
-                    } catch {
-                      // Ignore storage errors
-                    }
-                  }
-                  await updateConversation(activeConversation.id, {
-                    session_type: "conversation",
-                    workflow_template_id: null,
-                  });
-                  fetchConversation();
-                }}
-                disabled={!!streamingMessageId}
-              />
-            )}
-            {activeConversation?.mode === "agent"
-              && activeConversation?.session_type !== "workflow"
-              && (activeConversation?.work_strategy !== "plan"
-                || !activeConversation?.workflow_template_id)
-              && (
-                <>
-                  <ExpertBadge
-                    agentProfileId={activeConversation.agent_profile_id ?? null}
-                    onClick={() => setExpertOpen(true)}
-                  />
-                  <AgentProfileSelect
-                    value={activeConversation.agent_profile_id ?? ""}
-                    onChange={async (profileId) => {
-                      await updateConversation(activeConversation.id, {
-                        agent_profile_id: profileId || null,
-                        session_type: "conversation",
-                        workflow_template_id: null,
-                      });
-                      fetchConversation();
-                    }}
-                  />
-                </>
+                    fetchConversation();
+                  }}
+                  disabled={!!streamingMessageId}
+                />
               )}
-            <div className="flex-1" />
+              {activeConversation?.mode === "agent"
+                && activeConversation?.session_type !== "workflow"
+                && (activeConversation?.work_strategy !== "plan"
+                  || !activeConversation?.workflow_template_id)
+                && (
+                  <>
+                    <ExpertBadge
+                      agentProfileId={activeConversation.agent_profile_id ?? null}
+                      onClick={() => setExpertOpen(true)}
+                    />
+                    <AgentProfileSelect
+                      value={activeConversation.agent_profile_id ?? ""}
+                      onChange={async (profileId) => {
+                        await updateConversation(activeConversation.id, {
+                          agent_profile_id: profileId || null,
+                          session_type: "conversation",
+                          workflow_template_id: null,
+                        });
+                        fetchConversation();
+                      }}
+                    />
+                  </>
+                )}
+              <div className="flex-1" />
 
-            <Tooltip
-              title={topicGroupEnabled
-                ? t("topicGroup.disableAutoGroup")
-                : t("topicGroup.autoGroup")}
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={
-                  <ListChecks
-                    size={14}
-                    style={{
-                      color: topicGroupEnabled ? token.colorPrimary : undefined,
-                    }}
-                  />
-                }
-                onClick={handleTopicGroupToggle}
-              />
-            </Tooltip>
-            <ModelSelector />
-            <Popover
-              content={<StatsPopoverContent stats={stats} t={t} token={token} />}
-              trigger="click"
-              open={statsOpen}
-              onOpenChange={handleStatsOpenChange}
-              placement="bottomRight"
-            >
-              <Tooltip title={t("chat.stats.title")}>
+              <Tooltip
+                title={topicGroupEnabled
+                  ? t("topicGroup.disableAutoGroup")
+                  : t("topicGroup.autoGroup")}
+              >
                 <Button
                   type="text"
-                  icon={<ChartBar size={14} />}
                   size="small"
+                  icon={
+                    <ListChecks
+                      size={14}
+                      style={{
+                        color: topicGroupEnabled ? token.colorPrimary : undefined,
+                      }}
+                    />
+                  }
+                  onClick={handleTopicGroupToggle}
                 />
               </Tooltip>
-            </Popover>
-            <Tooltip title={t("chat.manualCompress")}>
-              <Button
-                type="text"
-                size="small"
-                icon={compressing ? <SyncOutlined spin /> : <ArrowsInSimple size={14} />}
-                onClick={async () => {
-                  try {
-                    await compressContext();
-                  } catch {
-                    // Error is handled in store
-                  }
-                }}
-                disabled={!activeConversationId || !!streamingMessageId || compressing}
-              />
-            </Tooltip>
-            <DropdownMenu items={(exportMenuItems ?? []) as DropdownItem[]} trigger={["click"]}>
-              <Button type="text" icon={<ShareNetwork size={14} />} size="small" />
-            </DropdownMenu>
-            <Tooltip title={t("chat.extractMemories")}>
-              <Button
-                type="text"
-                icon={<Brain size={14} />}
-                size="small"
-                onClick={() => setExtractMemoriesOpen(true)}
-                disabled={!activeConversationId}
-              />
-            </Tooltip>
-          </>
-        )
-        : (
-          <>
-            <Typography.Text type="secondary">
-              {t("chat.welcome")}
-            </Typography.Text>
-            <div className="flex-1" />
-            <ModelSelector />
-          </>
-        )}
-    </div>
+              <ModelSelector />
+              <Popover
+                content={<StatsPopoverContent stats={stats} t={t} token={token} />}
+                trigger="click"
+                open={statsOpen}
+                onOpenChange={handleStatsOpenChange}
+                placement="bottomRight"
+              >
+                <Tooltip title={t("chat.stats.title")}>
+                  <Button
+                    type="text"
+                    icon={<ChartBar size={14} />}
+                    size="small"
+                  />
+                </Tooltip>
+              </Popover>
+              <Tooltip title={t("chat.manualCompress")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={compressing ? <SyncOutlined spin /> : <ArrowsInSimple size={14} />}
+                  onClick={async () => {
+                    try {
+                      await compressContext();
+                    } catch {
+                      // Error is handled in store
+                    }
+                  }}
+                  disabled={!activeConversationId || !!streamingMessageId || compressing}
+                />
+              </Tooltip>
+              <DropdownMenu items={(exportMenuItems ?? []) as DropdownItem[]} trigger={["click"]}>
+                <Button type="text" icon={<ShareNetwork size={14} />} size="small" />
+              </DropdownMenu>
+              <Tooltip title={t("chat.extractMemories")}>
+                <Button
+                  type="text"
+                  icon={<Brain size={14} />}
+                  size="small"
+                  onClick={() => setExtractMemoriesOpen(true)}
+                  disabled={!activeConversationId}
+                />
+              </Tooltip>
+            </>
+          )
+          : (
+            <>
+              <Typography.Text type="secondary">
+                {t("chat.welcome")}
+              </Typography.Text>
+              <div className="flex-1" />
+              <ModelSelector />
+            </>
+          )}
+      </div>
+
+      {stockRunner && activeConversationId && (
+        <div className="px-3 pb-2">
+          <WorkflowRunner
+            templateId={stockRunner.templateId}
+            workflowId={stockRunner.workflowId}
+            conversationId={activeConversationId}
+            onClose={() => setStockRunner(null)}
+          />
+        </div>
+      )}
+    </>
   );
 }

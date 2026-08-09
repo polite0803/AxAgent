@@ -645,6 +645,20 @@
     "pendingChanges": "Modifications en attente détectées. Appliquées à la prochaine session. Utilisez --now pour forcer."
   },
   "chat": {
+    "workflowRunner": {
+      "title": "Workflow actions en cours",
+      "inputTheme": "Entrer un thème (facultatif)",
+      "themeHint": "Saisissez des mots-clés de thème – le workflow sélectionnera les actions candidates autour de ces thèmes. Laisser vide pour un scan complet du marché.",
+      "themePlaceholder": "ex. : puces IA, énergies nouvelles, CXO",
+      "sourceUser": "Thème",
+      "run": "Exécuter",
+      "rerun": "Réexécuter",
+      "cancel": "Annuler",
+      "progress": "Progression",
+      "completed": "Terminé",
+      "close": "Fermer",
+      "noResult": "Aucune action correspondante trouvée"
+    },
     "active": "Actif",
     "adaptingFromInteractions": "Adaptation à partir des interactions...",
     "agent": {
@@ -12017,6 +12031,10 @@
     "exitSignalAlertNone": "Analyse des signaux de sortie terminee: {{checked}} elements, aucune anomalie.",
     "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
     "callFailed": "调用失败",
+    "themeInput": "Thème",
+    "themePlaceholder": "Entrez des mots-clés de thème, ex : AI SSD, puce mémoire (vide=scan automatique)",
+    "sourceUser": "Basé sur votre thème",
+    "sourceAuto": "Scan automatique",
     "timeoutHint": "Le dépistage a pris plus de {seconds}s, le backend traite toujours. Veuillez vérifier les résultats plus tard ou consulter le journal d'exécution",
     "nodeTitles": {
       "trigger": "Démarrer le dépistage",

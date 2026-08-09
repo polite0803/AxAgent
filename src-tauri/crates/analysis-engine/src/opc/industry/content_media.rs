@@ -57,7 +57,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 prompt: Some(
                     "你是一名资深内容策划专家。请分析当前热点和用户需求，策划具有爆款潜力的内容主题。输出 JSON {topic, angle, target_audience, hook_points}".to_string(),
                 ),
-                tools: vec!["OpcSearchTrends".to_string(), "OpcAnalyzeAudience".to_string()],
+                tools: vec!["OpcListBlogPosts".to_string(), "WebSearch".to_string()],
                 agent_profile_id: Some("opc-cmo-cmo-content-strategist".to_string()),
                 error_handling: "stop".to_string(),
                 order: 1,
@@ -68,7 +68,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 prompt: Some(
                     "你是一名资深内容创作专家。请根据选题创作高质量文章。使用 OpcCreateBlogPost 发布博客。输出 JSON {post_id, title, summary, tags}".to_string(),
                 ),
-                tools: vec!["OpcCreateBlogPost".to_string(), "OpcGenerateContent".to_string()],
+                tools: vec!["OpcCreateBlogPost".to_string(), "FileWrite".to_string(), "WebSearch".to_string()],
                 agent_profile_id: Some("opc-cmo-cmo-content-creator".to_string()),
                 error_handling: "stop".to_string(),
                 order: 2,
@@ -79,7 +79,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 prompt: Some(
                     "你是一名 SEO 优化专家。请对内容进行 SEO 优化和传播力增强。输出 JSON {optimized_title, meta_description, seo_score}".to_string(),
                 ),
-                tools: vec!["OpcSeoOptimize".to_string(), "OpcAnalyzeSeo".to_string()],
+                tools: vec!["WebSearch".to_string(), "FileRead".to_string()],
                 agent_profile_id: Some("opc-cmo-cmo-seo-expert".to_string()),
                 error_handling: "continue".to_string(),
                 order: 3,
@@ -90,7 +90,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 prompt: Some(
                     "你是一名社交媒体运营专家。请将内容发布到多个社交媒体平台。输出 JSON {platforms, post_urls, scheduling}".to_string(),
                 ),
-                tools: vec!["OpcPublishToSocial".to_string(), "OpcSchedulePosts".to_string()],
+                tools: vec!["OpcCreatePublishSchedule".to_string(), "OpcListPublishSchedules".to_string()],
                 agent_profile_id: Some("opc-cmo-cmo-social-manager".to_string()),
                 error_handling: "continue".to_string(),
                 order: 4,
@@ -101,7 +101,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 prompt: Some(
                     "你是一名品牌策划专家。请构建个人品牌和 IP 影响力。输出 JSON {brand_voice, content_pillars, growth_strategy}".to_string(),
                 ),
-                tools: vec!["OpcBuildBrand".to_string(), "OpcAnalyzeCompetitors".to_string()],
+                tools: vec!["OpcCreateContentAsset".to_string(), "WebSearch".to_string(), "OpcListCustomers".to_string()],
                 agent_profile_id: Some("opc-cmo-cmo-brand-strategist".to_string()),
                 error_handling: "continue".to_string(),
                 order: 5,

@@ -1135,6 +1135,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         credential_manager,
         session_share_manager,
         astock_client,
+        concept_index: Arc::new(TokioRwLock::new(
+            axagent_analysis_engine::concept_index::ConceptIndex::new(),
+        )),
         trading_engine,
         stock_adaptive_engine,
         execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(Arc::new(

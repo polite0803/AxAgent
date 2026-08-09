@@ -26,6 +26,10 @@ pub use axagent_astock_data::fundamentals_report;
 // K 线形态和价量背离检测 — 权威实现在 astock-data crate，此处 re-export 保持向后兼容
 pub use axagent_astock_data::{candlestick_pattern, divergence};
 pub mod concept_index;
+pub mod theme_resolver;
+pub use theme_resolver::{
+    resolve_themes_pipeline, resolve_themes_pipeline_with_search, ResolvedTheme, ThemeResolution,
+};
 pub mod conditional_order;
 // P3-1: 跨股票信号聚合器 — 在 signals.rs（单股）和 portfolio_monitor.rs（持仓指标）之间填补信号聚合层
 pub mod cross_stock_aggregator;

@@ -144,6 +144,19 @@ pub trait StockVendor: Send + Sync {
         Ok(vec![])
     }
 
+    async fn search_concept_boards(&self, keyword: &str) -> Result<Vec<ConceptBoard>, DataError> {
+        let _ = keyword;
+        Ok(vec![])
+    }
+
+    async fn get_concept_board_members(
+        &self,
+        board_code: &str,
+    ) -> Result<Vec<BoardMember>, DataError> {
+        let _ = board_code;
+        Ok(vec![])
+    }
+
     async fn get_cls_flash(&self) -> Result<Vec<ClsFlashItem>, DataError> {
         Ok(vec![])
     }
@@ -353,6 +366,20 @@ pub trait StockVendor: Send + Sync {
 
     async fn get_industry_ranking_with_asof(&self) -> Result<Vec<IndustryRank>, DataError> {
         self.get_industry_ranking().await
+    }
+
+    async fn search_concept_boards_with_asof(
+        &self,
+        keyword: &str,
+    ) -> Result<Vec<ConceptBoard>, DataError> {
+        self.search_concept_boards(keyword).await
+    }
+
+    async fn get_concept_board_members_with_asof(
+        &self,
+        board_code: &str,
+    ) -> Result<Vec<BoardMember>, DataError> {
+        self.get_concept_board_members(board_code).await
     }
 
     async fn get_cls_flash_with_asof(&self) -> Result<Vec<ClsFlashItem>, DataError> {

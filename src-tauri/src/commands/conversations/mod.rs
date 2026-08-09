@@ -3242,6 +3242,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
         session_share_manager: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         astock_client: Arc::new(axagent_astock_data::AStockClient::new()),
+        concept_index: Arc::new(tokio::sync::RwLock::new(
+            axagent_analysis_engine::concept_index::ConceptIndex::new(),
+        )),
         trading_engine: Arc::new(tokio::sync::RwLock::new(
             axagent_analysis_engine::trading::TradingEngine::new(
                 Arc::new(db.clone()),

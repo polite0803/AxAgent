@@ -645,6 +645,20 @@
     "pendingChanges": "Cambios pendientes detectados. Se aplicarán en la próxima sesión. Use --now para forzar."
   },
   "chat": {
+    "workflowRunner": {
+      "title": "Flujo de trabajo de acciones en ejecución",
+      "inputTheme": "Ingresar tema (opcional)",
+      "themeHint": "Ingrese palabras clave de tema: el flujo de trabajo seleccionará acciones candidatas en torno a estos temas. Deje vacío para un escaneo de todo el mercado.",
+      "themePlaceholder": "p. ej.: chips IA, energías renovables, CXO",
+      "sourceUser": "Tema",
+      "run": "Ejecutar",
+      "rerun": "Volver a ejecutar",
+      "cancel": "Cancelar",
+      "progress": "Progreso",
+      "completed": "Completado",
+      "close": "Cerrar",
+      "noResult": "No se encontraron acciones que coincidan"
+    },
     "active": "Activo",
     "adaptingFromInteractions": "Adaptándose desde las interacciones...",
     "agent": {
@@ -12017,6 +12031,10 @@
     "exitSignalAlertNone": "Escaneo de senales de salida completo: {{checked}} elementos, sin anomalías.",
     "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
     "callFailed": "调用失败",
+    "themeInput": "Tema",
+    "themePlaceholder": "Ingrese palabras clave de tema, ej: AI SSD, chip de memoria (vacío=escaneo automático)",
+    "sourceUser": "Basado en tu tema",
+    "sourceAuto": "Escaneo automático",
     "timeoutHint": "La selección tardó más de {seconds}s, el backend todavía está procesando. Por favor, verifique los resultados más tarde o vea el registro de ejecución",
     "nodeTitles": {
       "trigger": "Iniciar selección",

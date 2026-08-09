@@ -5,6 +5,7 @@
 //! 为 9 个垂直行业的操作入口提供后端配置和 prompt 生成。
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tauri::State;
 
 use crate::AppState;
@@ -137,23 +138,9 @@ fn ai_research_config() -> IndustryConfig {
             IndustryWorkflowConfig {
                 id: "wf-ai-research-1".to_string(),
                 name: "AI 技术调研".to_string(),
-                description: "技术扫描 → 论文分析 → 趋势预测".to_string(),
+                description: "需求分析 → 文献调研 → 模型评测 → 报告输出".to_string(),
                 version: "1.0".to_string(),
-                template_id: "workflow-ai-research".to_string(),
-            },
-            IndustryWorkflowConfig {
-                id: "wf-ai-research-2".to_string(),
-                name: "LLM 选型评估".to_string(),
-                description: "需求分析 → 模型对比 → 选型建议".to_string(),
-                version: "1.0".to_string(),
-                template_id: "workflow-ai-llm-selection".to_string(),
-            },
-            IndustryWorkflowConfig {
-                id: "wf-ai-research-3".to_string(),
-                name: "AI 产品分析".to_string(),
-                description: "竞品扫描 → 功能拆解 → 差异化定位".to_string(),
-                version: "1.0".to_string(),
-                template_id: "workflow-ai-product-analysis".to_string(),
+                template_id: "ai_research_harness_workflow".to_string(),
             },
         ],
     }
@@ -1485,10 +1472,13 @@ pub async fn opc_execute_analysis(
 }
 
 /// 执行行业工作流
+///
+/// 优先走 rt-workflow 引擎执行模板（支持 AgentNode + agent_profile_id 真实调用 LLM）。
+/// 若模板不存在，回退到旧的 IndustryWorkflowExecutor 兜底。
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业工作流")]
 #[tauri::command]
 pub async fn opc_execute_workflow(
-    _app_state: State<'_, AppState>,
+    app_state: State<'_, AppState>,
     industry_id: String,
     workflow_id: Option<String>,
     days: Option<u32>,
@@ -1496,6 +1486,10 @@ pub async fn opc_execute_workflow(
     use axagent_analysis_engine::opc::data_service::TimeRange;
     use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
     use axagent_analysis_engine::opc::workflow::IndustryWorkflowManager;
+    use axagent_entities::workflow_template;
+    use axagent_harness::workflow_types::{Variable, WorkflowEdge, WorkflowNode};
+    use axagent_rt_workflow::work_engine::{RunOptions, StepProgressEvent};
+    use sea_orm::EntityTrait;
 
     let adapter = IndustryAdapterFactory::create(&industry_id)
         .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
@@ -1503,30 +1497,147 @@ pub async fn opc_execute_workflow(
     let days = days.unwrap_or(30);
     let time_range = TimeRange::days(days as i64);
 
-    let mut manager = IndustryWorkflowManager::new();
+    // 归一化行业 ID（连字符转下划线）
+    let industry_id_normalized = industry_id.replace('-', "_");
 
-    // 如果提供了 workflow_id，尝试加载指定的工作流模板
-    let workflow = if let Some(wf_id) = &workflow_id {
-        // 尝试从行业配置中加载指定的工作流
+    // 1. 确定模板 ID：优先使用传入的 workflow_id，否则拼接默认模板 ID
+    let template_id = if let Some(ref wf_id) = workflow_id {
+        // 尝试从行业配置中找到对应的 template_id
         let industry_config = get_industry_config(&industry_id);
         if let Some(config) = &industry_config {
             if let Some(wf_config) =
                 config.workflows.iter().find(|w| w.id == *wf_id || w.template_id == *wf_id)
             {
-                // 使用匹配的工作流模板
-                tracing::info!(
-                    "[opc-execute] 使用指定工作流: {} (id={})",
-                    wf_config.name,
-                    wf_config.id
-                );
+                wf_config.template_id.clone()
+            } else {
+                wf_id.clone()
             }
+        } else {
+            wf_id.clone()
         }
-        // 无论是否找到配置，都使用动态工作流管理器创建/更新
-        manager.create_or_update(&industry_id, adapter.as_ref()).clone()
     } else {
-        // 默认：使用动态工作流
-        manager.create_or_update(&industry_id, adapter.as_ref()).clone()
+        format!("{industry_id_normalized}_harness_workflow")
     };
+
+    // 2. 尝试从 workflow_template 表加载模板，走 rt-workflow 引擎执行
+    let db = app_state.harness.db();
+    if let Ok(Some(template)) = workflow_template::Entity::find_by_id(&template_id).one(db).await {
+        tracing::info!(
+            "[opc-execute] 从模板表加载工作流: id={}, version={}",
+            template_id,
+            template.version
+        );
+
+        // 解析节点和边
+        let nodes: Vec<WorkflowNode> = serde_json::from_str(&template.nodes).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        let edges: Vec<WorkflowEdge> = serde_json::from_str(&template.edges).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+        // 创建工作流
+        let engine = Arc::clone(&app_state.work_engine);
+        let wf_name = format!("opc-{industry_id_normalized}-{template_id}");
+        let workflow = engine
+            .create_workflow(&wf_name, nodes.clone(), edges.clone())
+            .await
+            .map_err(|e| format!("创建工作流失败: {e}"))?;
+        let wf_id = workflow.id.clone();
+
+        // 注入行业变量
+        let merged_vars = vec![
+            Variable {
+                name: "industry_id".into(),
+                var_type: "string".into(),
+                value: serde_json::Value::String(industry_id.clone()),
+                description: Some("行业 ID".into()),
+                is_secret: false,
+            },
+            Variable {
+                name: "time_range_days".into(),
+                var_type: "number".into(),
+                value: serde_json::json!(days),
+                description: Some("时间范围（天）".into()),
+                is_secret: false,
+            },
+        ];
+
+        // 构造执行选项
+        let start_time = chrono::Utc::now().timestamp_millis();
+        let progress_cb: axagent_rt_workflow::work_engine::ProgressCallback =
+            Arc::new(move |_event: StepProgressEvent| {
+                Box::pin(async move {
+                    // 进度回调暂不做前端事件透传（简化实现）
+                })
+            });
+
+        let opts = RunOptions {
+            max_concurrent: 2,
+            step_timeout: std::time::Duration::from_secs(300),
+            tool_timeout: std::time::Duration::from_secs(60),
+            variables: Some(merged_vars),
+            progress_callback: Some(progress_cb),
+            ..Default::default()
+        };
+
+        // 执行工作流
+        let result =
+            engine.run_workflow(&wf_id, opts).await.map_err(|e| format!("工作流执行失败: {e}"))?;
+
+        let duration_ms = chrono::Utc::now().timestamp_millis() - start_time;
+
+        // 聚合执行结果（节点运行时状态位于 node_states，按 node_id 索引）
+        let steps_total = result.nodes.len() as i32;
+        let steps_completed = result
+            .node_states
+            .values()
+            .filter(|s| matches!(s.status, axagent_rt_workflow::NodeStatus::Completed))
+            .count() as i32;
+
+        let status = if result
+            .node_states
+            .values()
+            .any(|s| matches!(s.status, axagent_rt_workflow::NodeStatus::Failed))
+        {
+            "failed"
+        } else if steps_completed == steps_total {
+            "completed"
+        } else {
+            "success"
+        };
+
+        // 转换为前端兼容的 WorkflowExecutionResult
+        let execution_result = serde_json::json!({
+            "workflow_id": wf_id,
+            "status": status,
+            "steps_completed": steps_completed,
+            "steps_total": steps_total,
+            "output": result.output,
+            "duration_ms": duration_ms,
+        });
+
+        tracing::info!(
+            "[opc-execute] rt-workflow 执行完成: status={}, completed={}/{}",
+            status,
+            steps_completed,
+            steps_total
+        );
+
+        return Ok(execution_result);
+    }
+
+    // 3. 回退：模板不存在时使用旧的 IndustryWorkflowExecutor 兜底
+    tracing::warn!("[opc-execute] 模板 {} 不存在，回退到旧执行器", template_id);
+
+    let mut manager = IndustryWorkflowManager::new();
+    let workflow = manager.create_or_update(&industry_id_normalized, adapter.as_ref()).clone();
 
     let executor = IndustryWorkflowExecutor::new(industry_id.clone(), adapter);
     let result = executor

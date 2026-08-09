@@ -58,7 +58,7 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                 prompt: Some(
                     "你是一名资深投资分析师。请分析宏观经济与市场趋势，识别投资机会。输出 JSON {market_view, key_sectors, risk_factors}".to_string(),
                 ),
-                tools: vec!["OpcMarketAnalysis".to_string(), "OpcGetMarketData".to_string()],
+                tools: vec!["OpcGetDashboard".to_string(), "OpcListKpis".to_string(), "OpcListCustomers".to_string()],
                 agent_profile_id: Some("opc-cio-cio-investment-analyst".to_string()),
                 error_handling: "stop".to_string(),
                 order: 1,
@@ -69,7 +69,7 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                 prompt: Some(
                     "你是一名行业研究专家。请深入研究目标行业与个股。输出 JSON {industry_outlook, stock_analysis, valuation}".to_string(),
                 ),
-                tools: vec!["OpcIndustryResearch".to_string(), "OpcStockAnalysis".to_string()],
+                tools: vec!["OpcSearchWiki".to_string(), "OpcListProjects".to_string()],
                 agent_profile_id: Some("opc-cio-cio-industry-researcher".to_string()),
                 error_handling: "stop".to_string(),
                 order: 2,
@@ -80,7 +80,7 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                 prompt: Some(
                     "你是一名资产配置专家。请根据分析结果构建最优投资组合。输出 JSON {allocation, positions, rebalance_plan}".to_string(),
                 ),
-                tools: vec!["OpcPortfolioOptimization".to_string(), "OpcRiskAssessment".to_string()],
+                tools: vec!["OpcGetFinancialReport".to_string(), "OpcGetDashboard".to_string()],
                 agent_profile_id: Some("opc-cio-cio-asset-allocation".to_string()),
                 error_handling: "stop".to_string(),
                 order: 3,
@@ -91,7 +91,7 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                 prompt: Some(
                     "你是一名交易执行专家。请执行交易并实时监控市场。输出 JSON {executed_trades, pnl, alerts}".to_string(),
                 ),
-                tools: vec!["OpcExecuteTrade".to_string(), "OpcMonitorMarket".to_string()],
+                tools: vec!["OpcSendNotification".to_string(), "OpcGetDashboard".to_string()],
                 agent_profile_id: Some("opc-cio-cio-trading-executor".to_string()),
                 error_handling: "continue".to_string(),
                 order: 4,
@@ -102,7 +102,7 @@ impl OpcIndustryAdapter for FinanceInvestIndustryAdapter {
                 prompt: Some(
                     "你是一名投资回顾专家。请分析组合表现并提出再平衡建议。输出 JSON {performance_attribution, rebalance_recommendation, lessons_learned}".to_string(),
                 ),
-                tools: vec!["OpcPerformanceAnalysis".to_string(), "OpcRebalancePortfolio".to_string()],
+                tools: vec!["OpcGetFinancialReport".to_string(), "OpcRecordKpi".to_string()],
                 agent_profile_id: Some("opc-cio-cio-portfolio-reviewer".to_string()),
                 error_handling: "continue".to_string(),
                 order: 5,

@@ -331,6 +331,8 @@ pub struct AppState {
     pub session_share_manager: SessionShareStore,
     /// A 股数据客户端（vendors + 缓存 + 健康追踪）
     pub astock_client: Arc<axagent_astock_data::AStockClient>,
+    /// 全局概念索引（主题解析 + 本体对齐），启动时异步构建
+    pub concept_index: Arc<TokioRwLock<axagent_analysis_engine::concept_index::ConceptIndex>>,
     /// 交易引擎（持仓 / 回测 / 组合风险）
     pub trading_engine: Arc<TokioRwLock<axagent_analysis_engine::trading::TradingEngine>>,
     /// 股票业务自适应引擎（反思+进化+编排闭环）

@@ -160,3 +160,19 @@ pub const OPC_BUSINESS_ROLES: &[OpcRoleDef] = &[
         timeout_seconds: 300,
     },
 ];
+
+/// 行业专属角色 — 各行业特有的专业角色
+pub const INDUSTRY_ROLES: &[OpcRoleDef] = &[OpcRoleDef {
+    id: "ai_researcher",
+    name: "AI 研究分析师",
+    description: "AI 技术调研、模型评测、报告输出",
+    system_prompt: "你是 OPC 的 AI 研究分析师，负责 AI 技术调研、模型评测和研究报告输出。\
+        \n\n核心原则：\
+        \n1. 数据驱动 — 所有结论必须基于真实数据和 benchmark 结果\
+        \n2. 来源可信 — 优先引用顶级会议和权威来源\
+        \n3. 结构清晰 — 输出结构化报告，结论先行\
+        \n4. 可执行建议 — 给出具体可操作的后续步骤\
+        \n\n输出格式：结构化研究报告，含数据、分析、结论和建议。",
+    max_concurrent: 2,
+    timeout_seconds: 600,
+}];

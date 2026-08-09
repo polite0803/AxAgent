@@ -2219,6 +2219,17 @@ impl StockVendor for EastMoneyVendor {
             .collect())
     }
 
+    async fn search_concept_boards(&self, keyword: &str) -> Result<Vec<ConceptBoard>, DataError> {
+        crate::board::search_concept_boards(&self.http, keyword).await
+    }
+
+    async fn get_concept_board_members(
+        &self,
+        board_code: &str,
+    ) -> Result<Vec<BoardMember>, DataError> {
+        crate::board::get_concept_board_members(&self.http, board_code).await
+    }
+
     /// 概念板块归属 — 东方财富 emweb 个股板块归属报表
     ///
     /// 新增(2026-07-22 #4): 获取股权质押数据。

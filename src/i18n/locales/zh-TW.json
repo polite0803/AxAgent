@@ -645,6 +645,20 @@
     "pendingChanges": "檢測到待生效變更。變更將在下次會話生效。使用 --now 強制生效。"
   },
   "chat": {
+    "workflowRunner": {
+      "title": "股票工作流執行中",
+      "inputTheme": "輸入主題（可選）",
+      "themeHint": "輸入感興趣的主題關鍵詞，工作流將圍繞這些主題篩選候選股票。可留空運行全市場篩選。",
+      "themePlaceholder": "如：AI 晶片、新能源、CXO",
+      "sourceUser": "主題",
+      "run": "執行",
+      "rerun": "重新執行",
+      "cancel": "取消",
+      "progress": "執行進度",
+      "completed": "執行完成",
+      "close": "關閉",
+      "noResult": "未找到符合條件的股票"
+    },
     "active": "活躍",
     "adaptingFromInteractions": "從互動中自適應...",
     "agent": {
@@ -12078,6 +12092,10 @@
     "noCandidateTitle": "本次未產出候選標的",
     "errorUnknown": "未知錯誤",
     "callFailed": "呼叫失敗",
+    "themeInput": "主題",
+    "themePlaceholder": "輸入主題詞，如 AI SSD、存儲晶片（留空=自動掃描）",
+    "sourceUser": "基於你的主題",
+    "sourceAuto": "自動掃描",
     "timeoutHint": "篩選耗時超過 {seconds} 秒，後端仍在處理中，請稍後查看結果或查看執行日誌",
     "stepLogTitle": "Execution Log",
     "nodeTitles": {

@@ -492,11 +492,21 @@ pub fn run() {
 
             // 异步启动：不阻塞 UI — 种子化股票分析专家/角色/Profile/工作流模板（UPSERT 幂等）
             let seed_db = state.harness.db().clone();
+            // 仅提取 'static 安全的 Arc/PathBuf 字段进 async 闭包（State 借用本身不可跨闭包）
+            let concept_index = state.concept_index.clone();
+            let app_data_dir = state.app_data_dir.clone();
             tauri::async_runtime::spawn(async move {
                 // 1. 种子化股票分析专家/角色/Profile/工作流模板
                 //   （OPC 行业无运行时容器，命令直读行业包，无需启动初始化）
                 if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&seed_db).await {
                     tracing::error!("[startup] 股票业务种子化失败: {e}");
+                }
+                // 2. 构建全局 ConceptIndex（49行业+163概念本体 + lemonhu 知识库）
+                {
+                    let idx = crate::commands::stock_analysis_setup::seed_concept_index::ensure_concept_index(&seed_db, &app_data_dir).await;
+                    let mut w = concept_index.write().await;
+                    *w = idx;
+                    tracing::info!("[startup] ConceptIndex 构建完成");
                 }
                 // 3. 同步内置 SKILL.md 到用户目录（同步操作，快速完成）
                 crate::commands::skills::seed_builtin_skills();

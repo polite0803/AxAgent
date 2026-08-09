@@ -6,12 +6,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, AggregatorNode, AggregatorNodeConfig, ApprovalNode,
-    ApprovalNodeConfig, CodeNodeConfig, ConditionNode, ConditionNodeConfig, DataTransformerNode,
-    DataTransformerNodeConfig, EdgeType, EndNode, EndNodeConfig, NotificationNode,
-    NotificationNodeConfig, OutputMode, ToolDef, TriggerConfig, TriggerNode, ValidationAssertion,
-    ValidationNodeConfig as HValidationNodeConfig, WorkflowEdge as HWorkflowEdge, WorkflowNode,
-    WorkflowNodeBase, WorkflowTemplateData,
+    AgentNode, AgentNodeConfig, ApprovalNode, ApprovalNodeConfig, CodeNodeConfig, ConditionNode,
+    ConditionNodeConfig, DataTransformerNode, DataTransformerNodeConfig, EdgeType, EndNode,
+    EndNodeConfig, NotificationNode, NotificationNodeConfig, OutputMode, ToolDef, TriggerConfig,
+    TriggerNode, ValidationAssertion, ValidationNodeConfig as HValidationNodeConfig,
+    WorkflowEdge as HWorkflowEdge, WorkflowNode, WorkflowNodeBase, WorkflowTemplateData,
 };
 
 use super::automation::{AutomationAction, AutomationCondition};
@@ -162,28 +161,10 @@ impl IndustryWorkflow {
             prev_node_id = Some(node_id);
         }
 
-        // ── 4. KPI 计算节点（来自 runtime.yaml 的 kpi_definitions，使用 Code 节点） ──
-        for kpi in adapter.define_kpi_calculations() {
-            let node_id = next_id(&mut node_counter, "kpi");
-            nodes.push(WorkflowNode::Code(axagent_harness::workflow_types::CodeNode {
-                base: create_node_base(node_id.clone(), format!("KPI: {}", kpi.name)),
-                config: axagent_harness::workflow_types::CodeNodeConfig {
-                    language: "rust".to_string(),
-                    code: format!(
-                        "// 计算 KPI: {}\n// 实际逻辑在 adapter.compute_kpis() 中",
-                        kpi.key
-                    ),
-                    output_var: format!("kpi_{}", kpi.key),
-                    tool_name: None,
-                    execute_directly: true,
-                    input_mapping: HashMap::new(),
-                },
-            }));
-            if let Some(prev) = &prev_node_id {
-                edges.push(WorkflowEdgeDef { from: prev.clone(), to: node_id.clone() });
-            }
-            prev_node_id = Some(node_id);
-        }
+        // ── 4. KPI 由 adapter.compute_kpis() 独立提供（opc_get_industry_dashboard 消费），
+        //      不生成 DAG 节点：旧 IndustryWorkflowExecutor 对 kpi_ 前缀 Code 节点有特判，
+        //      但 rt-workflow 对非 Rhai Code 节点只返回 code_ready 占位，KPI 节点在 DAG 中
+        //      无真实计算能力，反而造成 Aggregator 输入源悬空。KPI 一律走 dashboard 通道。
 
         // ── 5. 自动化规则节点（来自 runtime.yaml 的 automation_rules，使用 Condition + Notification 节点组合） ──
         for rule in adapter.define_automation_rules() {
@@ -344,32 +325,8 @@ impl IndustryWorkflow {
             prev_node_id = Some(approval_id);
         }
 
-        // ── 7. 仪表盘聚合节点（来自 runtime.yaml 的 dashboard_cards） ──
-        let dashboard_cards = adapter.define_dashboard_cards();
-        if !dashboard_cards.is_empty() {
-            let agg_id = next_id(&mut node_counter, "dashboard");
-            // 先读取前驱节点ID，避免编译器警告
-            let prev = prev_node_id.clone();
-            let input_sources: Vec<String> =
-                (0..node_counter).map(|i| format!("kpi_{}_output", i)).collect();
-            nodes.push(WorkflowNode::Aggregator(AggregatorNode {
-                base: create_node_base(agg_id.clone(), "仪表盘聚合"),
-                config: AggregatorNodeConfig {
-                    strategy: "all".to_string(),
-                    input_sources,
-                    wait_for_all: true,
-                    weights: Vec::new(),
-                    summarize_prompt: None,
-                    summarize_model: None,
-                    output_var: "dashboard".to_string(),
-                    sub_graph: None,
-                },
-            }));
-            if let Some(prev_id) = &prev {
-                edges.push(WorkflowEdgeDef { from: prev_id.clone(), to: agg_id.clone() });
-            }
-            prev_node_id = Some(agg_id);
-        }
+        // ── 7. 仪表盘聚合节点已移除：KPI 由 adapter.aggregate_dashboard() 经
+        //      opc_get_industry_dashboard 命令独立提供，DAG 内无 KPI/Aggregator 节点。
 
         // ── 8. 结束节点 ──
         let end_id = next_id(&mut node_counter, "end");
@@ -424,7 +381,7 @@ impl IndustryWorkflow {
             description: Some(format!("{} 行业工作流（代码驱动）", self.industry_id)),
             icon: "⚙️".to_string(),
             tags: vec![self.industry_id.clone(), "opc".to_string()],
-            version: 2, // 代码驱动版本
+            version: 4, // 代码驱动版本（v3: AgentNode + agent_profile_id；v4: 移除 DAG 内 KPI/Aggregator 占位节点，KPI 走 dashboard 通道）
             is_preset: true,
             is_editable: true,
             is_public: false,

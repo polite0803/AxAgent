@@ -3387,6 +3387,38 @@ pub async fn get_industry_ranking(
     })
 }
 
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "搜索概念板块")]
+#[tauri::command]
+pub async fn search_concept_boards(
+    state: State<'_, AppState>,
+    keyword: String,
+) -> Result<Vec<axagent_astock_data::ConceptBoard>, String> {
+    if keyword.trim().is_empty() {
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("keyword 不能为空").into());
+    }
+    state.astock_client.search_concept_boards(&keyword).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("搜索概念板块失败: {e}"))
+            .to_string()
+    })
+}
+
+#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取板块成分股")]
+#[tauri::command]
+pub async fn get_concept_board_members(
+    state: State<'_, AppState>,
+    board_code: String,
+) -> Result<Vec<axagent_astock_data::BoardMember>, String> {
+    if board_code.trim().is_empty() {
+        return Err(ErrorResponse::new(wf_err::INTERNAL).with_detail("board_code 不能为空").into());
+    }
+    state.astock_client.get_concept_board_members(&board_code).await.map_err(|e| {
+        ErrorResponse::new(wf_err::INTERNAL)
+            .with_detail(format!("获取板块成分股失败: {e}"))
+            .to_string()
+    })
+}
+
 #[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取财联社快讯")]
 #[tauri::command]
 pub async fn get_cls_flash(

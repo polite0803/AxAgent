@@ -62,15 +62,9 @@ const aiResearchConfig: IndustryConfig = {
       ],
       workflows: [
         {
-          id: "wf-acd-literature",
+          id: "ai_research_harness_workflow",
           name: i18n.t("opc.industry.ai_research.tabs.research.workflows.wf_acd_literature.name"),
           description: i18n.t("opc.industry.ai_research.tabs.research.workflows.wf_acd_literature.description"),
-          version: "1.0",
-        },
-        {
-          id: "wf-acd-research",
-          name: i18n.t("opc.industry.ai_research.tabs.research.workflows.wf_acd_research.name"),
-          description: i18n.t("opc.industry.ai_research.tabs.research.workflows.wf_acd_research.description"),
           version: "1.0",
         },
       ],
@@ -84,7 +78,7 @@ const aiResearchConfig: IndustryConfig = {
         {
           key: "ai-report",
           icon: <FileTextOutlined />,
-          type: "workflow",
+          type: "conversation",
           label: i18n.t("opc.industry.ai_research.tabs.report.actions.ai_report"),
         },
       ],

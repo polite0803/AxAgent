@@ -309,6 +309,15 @@ jobs:
     name: Build (aarch64-unknown-linux-gnu)
     needs: [resolve-tag, check-version, draft-release-notes]
     runs-on: ubuntu-24.04-arm
+    env:
+      # ARM64 runner 内存较小 (~4GB)，限制并行度避免 OOM
+      CARGO_BUILD_JOBS: 1
+      # 关闭 LTO 降链接阶段内存峰值（ARM64 runner 内存不足）
+      # 注意：此环境变量会覆盖 Cargo.toml 的 lto = true
+      CARGO_PROFILE_RELEASE_LTO: off
+      # 覆盖 Cargo.toml 的 codegen-units=1（单 rustc 峰值最大），
+      # 提高 codegen 单元数降低单 rustc 编译峰值内存（2026-08-09 补充）
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
     steps:
       - uses: actions/checkout@v5
         with:
@@ -402,6 +411,14 @@ jobs:
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64]
     runs-on: ubuntu-22.04
+    env:
+      # Android 构建也容易 OOM，限制并行度并关闭 LTO
+      CARGO_BUILD_JOBS: 1
+      # 关闭 LTO 降链接阶段内存峰值
+      # 注意：此环境变量会覆盖 Cargo.toml 的 lto = true
+      CARGO_PROFILE_RELEASE_LTO: off
+      # 覆盖 Cargo.toml 的 codegen-units=1，降低单 rustc 编译峰值内存（2026-08-09 补充）
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
     steps:
       - uses: actions/checkout@v5
         with:

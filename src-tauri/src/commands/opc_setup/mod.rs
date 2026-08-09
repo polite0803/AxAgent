@@ -12,6 +12,7 @@ use axagent_dao::repo::agent_role;
 use axagent_entities::{agency_experts, agent_profiles};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 
+mod industry_agents;
 mod roles;
 
 pub use roles::{OPC_BUSINESS_ROLES, OPC_ROLES};
@@ -169,6 +170,9 @@ pub async fn ensure_opc_company_seeded(db: &DatabaseConnection) -> Result<(), St
 
     // 3. 为所有导入的专家批量创建 agent_profiles
     seed_bulk_expert_profiles(db).await?;
+
+    // 4. 行业专属 agent（ai-research）
+    industry_agents::seed_ai_research_agents(db).await?;
 
     tracing::info!("[opc-company] 公司架构种子化完成");
     Ok(())
@@ -367,7 +371,38 @@ async fn seed_opc_profiles(db: &DatabaseConnection) -> Result<(), String> {
     Ok(())
 }
 
-/// 为所有已导入的 agency_experts 批量创建 agent_profiles
+/// 专家源目录（source_dir）→ agent_roles 真实角色映射。
+///
+/// AgentProfile 是「专家 × 角色」组合：expert_id 指向 agency_experts（人才），
+/// agent_role 指向 agent_roles（岗位/执行器）。历史实现把 agent_role 直接填
+/// source_dir（如 "engineering"），但 agent_roles 表中不存在该 id → executor
+/// 反查失败 → 角色层提示词（怎么干活）静默失效，只剩专家层。
+/// 此处把工程相关域映射到真实角色，使 exp-* profile 成为完整组合。
+fn role_for_source_dir(dir: &str) -> Option<String> {
+    let role = match dir {
+        // 技术域 → CTO/技术负责人
+        "engineering" | "testing" | "security" | "specialized" | "gamedev" | "gis" | "spatial" => {
+            "cto"
+        },
+        // 项目/运营
+        "pm" | "project-management" | "support" => "opc_operations_manager",
+        // 产品/设计 → CPO
+        "product" | "design" => "cpo",
+        // 财务 → CFO
+        "finance" => "cfo",
+        // 增长/销售 → CMO
+        "marketing" | "paidmedia" | "sales" => "cmo",
+        // 战略 → CEO
+        "strategy" => "ceo",
+        // 研究 → AI 研究员
+        "academic" | "research" => "ai_researcher",
+        // 未映射域：保持 source_dir（与历史行为一致，仅影响日志）
+        _ => return None,
+    };
+    Some(role.to_string())
+}
+
+/// 为所有已导入的 agency_experts 批量创建 agent_profiles（专家 × 角色组合）
 async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String> {
     let experts = agency_experts::Entity::find()
         .filter(agency_experts::Column::IsEnabled.eq(1))
@@ -384,19 +419,13 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
     for expert in &experts {
         let profile_id = format!("exp-{}-{}", expert.source_dir, expert.id);
 
-        if agent_profiles::Entity::find_by_id(&profile_id)
-            .one(db)
-            .await
-            .map_err(|e| {
+        let existing =
+            agent_profiles::Entity::find_by_id(&profile_id).one(db).await.map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(
                     e,
                     crate::commands::error::ErrorCategory::Unrecoverable,
                 ))
-            })?
-            .is_some()
-        {
-            continue;
-        }
+            })?;
 
         let now = chrono::Utc::now().timestamp_millis();
         let am = agent_profiles::ActiveModel {
@@ -405,7 +434,10 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
             description: Set(expert.description.clone()),
             category: Set("opc-experts".into()),
             icon: Set("👤".into()),
-            agent_role: Set(Some(expert.source_dir.clone())),
+            // 专家 × 角色组合：agent_role 指向 agent_roles 真实角色（而非 source_dir）
+            agent_role: Set(
+                role_for_source_dir(&expert.source_dir).or_else(|| Some(expert.source_dir.clone()))
+            ),
             source: Set("opc-bulk".into()),
             tags: Set(None),
             suggested_provider_id: Set(None),
@@ -424,12 +456,22 @@ async fn seed_bulk_expert_profiles(db: &DatabaseConnection) -> Result<(), String
             created_at: Set(now),
             updated_at: Set(now),
         };
-        am.insert(db).await.map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+        if existing.is_some() {
+            // 历史 profile 已存在：更新组合角色（此前 agent_role=source_dir 反查失败）
+            am.update(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+        } else {
+            am.insert(db).await.map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+        }
         count += 1;
     }
     tracing::info!("[opc-company] 批量创建 {count} 个专家 agent_profiles");

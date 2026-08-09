@@ -645,6 +645,20 @@
     "pendingChanges": "تم اكتشاف تغييرات معلقة. يتم التطبيق في الجلسة القادمة. استخدم --now للفرض."
   },
   "chat": {
+    "workflowRunner": {
+      "title": "تنفيذ سير عمل الأسهم",
+      "inputTheme": "أدخل الموضوع (اختياري)",
+      "themeHint": "أدخل كلمات مفتاحية للموضوع — سيقوم سير العمل بتصفية الأسهم المرشحة حول هذه المواضيع. اتركه فارغًا لمسح السوق بالكامل.",
+      "themePlaceholder": "مثال: رقائق الذكاء الاصطناعي، الطاقة الجديدة، CXO",
+      "sourceUser": "الموضوع",
+      "run": "تشغيل",
+      "rerun": "إعادة تشغيل",
+      "cancel": "إلغاء",
+      "progress": "التقدم",
+      "completed": "اكتمل",
+      "close": "إغلاق",
+      "noResult": "لم يتم العثور على أسهم مطابقة"
+    },
     "active": "نشط",
     "adaptingFromInteractions": "التكيف من التفاعلات...",
     "agent": {
@@ -12017,6 +12031,10 @@
     "exitSignalAlertNone": "Exit signal scan complete: {{checked}} items, no anomalies found.",
     "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
     "callFailed": "调用失败",
+    "themeInput": "الموضوع",
+    "themePlaceholder": "أدخل كلمات مفتاحية للموضوع، مثل AI SSD، شريحة الذاكرة (فارغ=مسح تلقائي)",
+    "sourceUser": "بناءً على موضوعك",
+    "sourceAuto": "مسح تلقائي",
     "timeoutHint": "استغرق الفحص أكثر من {seconds} ثانية، والواجهة الخلفية لا تزال تعالج. يرجى التحقق من النتائج لاحقًا أو عرض سجل التنفيذ",
     "nodeTitles": {
       "trigger": "بدء الفحص",

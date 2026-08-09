@@ -731,6 +731,7 @@ pub async fn run_serenity_screening(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
     as_of_date: Option<String>,
+    themes: Option<Vec<String>>,
 ) -> Result<serde_json::Value, String> {
     let engine = Arc::clone(&state.work_engine);
 
@@ -751,8 +752,37 @@ pub async fn run_serenity_screening(
     // 注入 vendor 启用状态过滤器（与 stock-analysis 主工作流一致）
     super::decision::inject_vendor_state(&state.astock_client, loaded.variables.as_ref());
 
+    // v47: 注入用户主题到 variables（对话式主题荐股）
+    let mut variables = loaded.variables;
+    if let Some(ref theme_list) = themes {
+        if !theme_list.is_empty() {
+            let themes_value = serde_json::json!(theme_list);
+            if let Some(ref mut vars) = variables {
+                if let Some(var) = vars.iter_mut().find(|v| v.name == "user_themes") {
+                    var.value = themes_value;
+                } else {
+                    vars.push(axagent_harness::workflow_types::Variable {
+                        name: "user_themes".into(),
+                        var_type: "json".into(),
+                        value: themes_value,
+                        description: Some("用户指定主题词列表".into()),
+                        is_secret: false,
+                    });
+                }
+            } else {
+                variables = Some(vec![axagent_harness::workflow_types::Variable {
+                    name: "user_themes".into(),
+                    var_type: "json".into(),
+                    value: themes_value,
+                    description: Some("用户指定主题词列表".into()),
+                    is_secret: false,
+                }]);
+            }
+        }
+    }
+
     let (max_concurrent, step_timeout, _total_timeout) =
-        resolve_runtime_options(loaded.variables.as_deref());
+        resolve_runtime_options(variables.as_deref());
 
     // 2. 创建 Workflow
     let wf_name = format!("serenity-screening-{}", chrono::Utc::now().timestamp_millis());
@@ -795,7 +825,8 @@ pub async fn run_serenity_screening(
     // 的搜索关键词变量）被滤掉 → 运行时 resolve_var_path 查不到 → search_news keyword 恒空
     // （连续 8 轮日志"keyword="）。v17 已删除 ref_*_code，前缀白名单过时。
     // 更彻底的做法：模板 variables 全部注入（均为可编辑参数，无敏感字段）。
-    let serenity_vars: Option<Vec<axagent_harness::workflow_types::Variable>> = loaded.variables;
+    // v47: 使用已注入用户主题的 variables（而非原始 loaded.variables）
+    let serenity_vars: Option<Vec<axagent_harness::workflow_types::Variable>> = variables;
     let opts = RunOptions {
         max_concurrent,
         step_timeout,
@@ -1179,6 +1210,12 @@ pub async fn run_serenity_screening(
             if !persistence_success {
                 tracing::warn!("[serenity] 持久化部分失败: {}", persistence_detail,);
             }
+            // v47: 根据是否有用户主题判断 source
+            let source = if themes.as_ref().is_some_and(|t| !t.is_empty()) {
+                "user"
+            } else {
+                "auto"
+            };
             let _ = app_h.emit(
                 "serenity-screening-completed",
                 serde_json::json!({
@@ -1188,6 +1225,7 @@ pub async fn run_serenity_screening(
                     "candidates": candidate_array,
                     "trends": trends_list,
                     "emptyReason": empty_reason,
+                    "source": source,
                     "persistenceError": if persistence_success {
                         serde_json::Value::Null
                     } else {
@@ -1209,6 +1247,7 @@ pub async fn run_serenity_screening(
                 "candidates": result_val["candidates"].clone(),
                 "trends": trends_list,
                 "emptyReason": empty_reason,
+                "source": source,
             }))
         },
         Err(e) => {

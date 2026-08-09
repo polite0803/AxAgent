@@ -52,31 +52,80 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
     fn define_workflow_steps(&self) -> Vec<WorkflowStepDef> {
         vec![
             WorkflowStepDef {
-                name: "立项".to_string(),
-                description: "定义研究主题与可交付物".to_string(),
+                name: "需求分析".to_string(),
+                description: "定义研究主题、范围与可交付物".to_string(),
+                prompt: Some(
+                    "你是一名 AI 研究负责人。请将用户的研究需求拆解为明确的范围、方法、交付物与评估标准。输出 JSON {topic, scope, deliverables, success_criteria}".to_string(),
+                ),
+                tools: vec![
+                    "OpcListProjects".to_string(),
+                    "OpcCreateProject".to_string(),
+                    "OpcSearchWiki".to_string(),
+                ],
+                agent_profile_id: Some("opc-ai_researcher-ai-research-director".to_string()),
+                error_handling: "stop".to_string(),
                 order: 1,
-                ..Default::default()
             },
             WorkflowStepDef {
-                name: "研究".to_string(),
-                description: "执行模型实验与资料收集".to_string(),
+                name: "文献调研".to_string(),
+                description: "扫描论文与技术资料，提取关键进展".to_string(),
+                prompt: Some(
+                    "你是一名 AI 文献分析师。请基于网络搜索与内部知识库，调研目标方向的最新论文与技术资料，提取关键突破并评估可信度。输出 JSON {key_findings, source_references, confidence}".to_string(),
+                ),
+                tools: vec![
+                    "WebSearch".to_string(),
+                    "FileRead".to_string(),
+                    "OpcSearchWiki".to_string(),
+                ],
+                agent_profile_id: Some("opc-ai_researcher-ai-literature-analyst".to_string()),
+                error_handling: "continue".to_string(),
                 order: 2,
-                ..Default::default()
             },
             WorkflowStepDef {
-                name: "交付".to_string(),
-                description: "输出报告并收集反馈".to_string(),
+                name: "模型评测".to_string(),
+                description: "对比主流模型能力与适用场景".to_string(),
+                prompt: Some(
+                    "你是一名 AI 模型评测专家。请对比主流大模型在该场景下的能力边界、性能与成本，给出选型建议。输出 JSON {model_scores, tradeoffs, recommendation}".to_string(),
+                ),
+                tools: vec![
+                    "Bash".to_string(),
+                    "FileRead".to_string(),
+                    "FileWrite".to_string(),
+                ],
+                agent_profile_id: Some("opc-ai_researcher-ai-benchmark-analyst".to_string()),
+                error_handling: "continue".to_string(),
                 order: 3,
-                ..Default::default()
+            },
+            WorkflowStepDef {
+                name: "报告输出".to_string(),
+                description: "整合研究结论，输出报告并记录 KPI".to_string(),
+                prompt: Some(
+                    "你是一名 AI 报告分析师。请整合前序研究成果，撰写结构化研究报告，输出结论与后续建议。输出 JSON {summary, conclusion, next_steps}".to_string(),
+                ),
+                tools: vec![
+                    "FileWrite".to_string(),
+                    "OpcListKpis".to_string(),
+                    "OpcRecordKpi".to_string(),
+                    "OpcSendNotification".to_string(),
+                ],
+                agent_profile_id: Some("opc-ai_researcher-ai-report-analyst".to_string()),
+                error_handling: "continue".to_string(),
+                order: 4,
             },
         ]
     }
 
     fn define_kpi_calculations(&self) -> Vec<KpiCalculationDef> {
-        vec![KpiCalculationDef {
-            key: "research_projects_completed".to_string(),
-            name: "完成研究项目".to_string(),
-        }]
+        vec![
+            KpiCalculationDef {
+                key: "task_completion_rate".to_string(),
+                name: "任务完成率".to_string(),
+            },
+            KpiCalculationDef {
+                key: "research_projects_completed".to_string(),
+                name: "完成研究项目".to_string(),
+            },
+        ]
     }
 
     fn define_automation_rules(&self) -> Vec<IndustryAutomationRule> {
@@ -84,11 +133,18 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
     }
 
     fn define_dashboard_cards(&self) -> Vec<DashboardCardDef> {
-        vec![DashboardCardDef {
-            id: "projects".to_string(),
-            title: "完成项目".to_string(),
-            kpi_key: "research_projects_completed".to_string(),
-        }]
+        vec![
+            DashboardCardDef {
+                id: "completion".to_string(),
+                title: "任务完成率".to_string(),
+                kpi_key: "task_completion_rate".to_string(),
+            },
+            DashboardCardDef {
+                id: "projects".to_string(),
+                title: "完成项目".to_string(),
+                kpi_key: "research_projects_completed".to_string(),
+            },
+        ]
     }
 
     fn requires_approval(&self) -> bool {
@@ -139,26 +195,56 @@ impl OpcIndustryAdapter for AiResearchIndustryAdapter {
         let now = chrono::Utc::now().timestamp();
 
         let completed = data.count_projects(&[ProjectStatus::Completed], from, to).await? as f64;
+        // 任务完成率 = 已完成 / (已完成 + 进行中 + 规划中 + 暂停)，Cancelled 不计入分母
+        let active = data.count_projects(&[ProjectStatus::Active], from, to).await? as f64;
+        let planning = data.count_projects(&[ProjectStatus::Planning], from, to).await? as f64;
+        let paused = data.count_projects(&[ProjectStatus::Paused], from, to).await? as f64;
+        let total = completed + active + planning + paused;
+        let completion_rate = if total > 0.0 {
+            ((completed / total) * 1000.0).round() / 10.0
+        } else {
+            0.0
+        };
 
-        Ok(vec![KpiValue {
-            key: "research_projects_completed".to_string(),
-            value: completed,
-            target: Some(10.0),
-            unit: Some("个".to_string()),
-            timestamp: now,
-        }])
+        Ok(vec![
+            KpiValue {
+                key: "task_completion_rate".to_string(),
+                value: completion_rate,
+                target: Some(80.0),
+                unit: Some("%".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "research_projects_completed".to_string(),
+                value: completed,
+                target: Some(10.0),
+                unit: Some("个".to_string()),
+                timestamp: now,
+            },
+        ])
     }
 
     fn default_kpi_definitions(&self) -> Vec<KpiDefinition> {
-        vec![KpiDefinition {
-            key: "research_projects_completed".to_string(),
-            name: "完成研究项目".to_string(),
-            description: "已完成的研究项目数量".to_string(),
-            metric_type: super::super::analytics::MetricType::Counter,
-            target: Some(10.0),
-            unit: Some("个".to_string()),
-            ..Default::default()
-        }]
+        vec![
+            KpiDefinition {
+                key: "task_completion_rate".to_string(),
+                name: "任务完成率".to_string(),
+                description: "已完成研究项目占全部项目（不含取消）的百分比".to_string(),
+                metric_type: super::super::analytics::MetricType::Percentage,
+                target: Some(80.0),
+                unit: Some("%".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "research_projects_completed".to_string(),
+                name: "完成研究项目".to_string(),
+                description: "已完成的研究项目数量".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(10.0),
+                unit: Some("个".to_string()),
+                ..Default::default()
+            },
+        ]
     }
 
     fn entity_types(&self) -> Vec<String> {

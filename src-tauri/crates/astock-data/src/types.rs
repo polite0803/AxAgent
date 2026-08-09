@@ -540,6 +540,25 @@ pub struct EarningsEvent {
     pub created_at: i64,
 }
 
+/// 概念板块
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConceptBoard {
+    pub board_code: String,
+    pub board_name: String,
+    pub stock_count: u32,
+}
+
+/// 板块成分股
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BoardMember {
+    pub stock_code: String,
+    pub stock_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub change_pct: Option<f64>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

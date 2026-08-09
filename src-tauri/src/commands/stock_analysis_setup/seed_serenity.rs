@@ -78,7 +78,9 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     //      in 检查（Rhai map 无 get，此前一旦走该分支必 Function not found）；
     //      ③ serenity.rs candidates_raw 对 data-verifier 空数组结果 filter 回退
     //      a-candidate-mapper 原始输出。
-    const TEMPLATE_VERSION: i32 = 46;
+    // v47: 对话式主题荐股——新增 user_themes 变量 + a-trend-scanner 输入分支
+    //      + prompt 增加用户主题优先指令
+    const TEMPLATE_VERSION: i32 = 47;
 
     let now = chrono::Utc::now().timestamp_millis();
 
@@ -662,6 +664,11 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     // tool_json 块由项目 IR Normalizer 直接解析为 ContentBlock::ToolUse。
     let trend_scanner_prompt = "你的任务：基于上游提供的实时市场数据，识别当前A股市场最具潜力的 2-3 个产业方向。\
          \n\n\
+         **用户指定主题优先（重要）**：若 `user_themes` 非空（用户指定主题，如 ['AI SSD','存储芯片']），你必须\
+         **优先围绕用户主题**展开：直接基于该主题识别产业趋势并完成结构化输出（trend_name 需包含主题关键词、strategy_type、\
+         bottleneck_candidate、demand_evidence 必须给可验证硬证据或如实标注证据缺口）。此时行业排名/快讯/北向数据仅作辅助验证，\
+         不因数据缺失而拒绝输出。若 `user_themes` 为空，按原逻辑从市场数据自由扫描。\
+         \n\n\
          **数据可用性检查（重要——违反将产生无效趋势）**：\
          \n\
          - 表变量 `industry_ranking` 中包含了从交易所获取的实时行业排名数据（涨跌幅、主力资金流入）。\
@@ -712,6 +719,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let mut ts_input_mapping = std::collections::HashMap::new();
     ts_input_mapping.insert("industry_ranking".to_string(), "t-industry-rank.result".to_string());
     ts_input_mapping.insert("policy_news".to_string(), "t-policy-news.result".to_string());
+    ts_input_mapping.insert("user_themes".to_string(), "user_themes".to_string());
     nodes.push(agent_node(
         "a-trend-scanner",
         "产业趋势扫描",
@@ -1340,6 +1348,16 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             var_type: "float".into(),
             value: serde_json::json!(0.30),
             description: Some("瓶颈评分-不可替代性权重（默认0.30，c-scorer 引用）".into()),
+            is_secret: false,
+        },
+        // ── v47 新增：用户主题输入（对话式主题荐股）──
+        Variable {
+            name: "user_themes".into(),
+            var_type: "json".into(),
+            value: serde_json::json!([]),
+            description: Some(
+                "用户指定主题词列表（如 ['AI SSD','存储芯片']），空数组表示自动扫描".into(),
+            ),
             is_secret: false,
         },
     ];

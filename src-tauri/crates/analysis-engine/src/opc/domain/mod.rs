@@ -546,122 +546,96 @@ impl DomainWorkflowGenerator {
             config: EndNodeConfig { output_var: None },
         }));
 
-        // ── 5. 边串接 ──
+        // ── 5. 边串接（单元驱动） ──
+        // 步骤单元 = [前置 condition?] + 主节点(agent/approval) + [approval_gate?]
+        // 语义：
+        //   - condition true  → 执行本单元主节点；false → 跳过本单元，继续下一单元
+        //   - approval 拒绝   → end（人工裁决终止）；通过 → 下一单元
+        //   - 普通节点        → Direct 链式
         if node_descs.is_empty() {
             edges.push(Self::make_edge("e-trigger-end", "trigger", "end"));
             return Self::assemble_template(def, version, now, nodes, edges, variables);
         }
 
-        // 判断拓扑类型
-        let has_condition_nodes = node_descs.iter().any(|d| d.is_condition);
-        let has_approval_nodes = node_descs.iter().any(|d| d.is_approval);
-
-        if !has_condition_nodes && !has_approval_nodes {
-            // 纯链式：trigger → s0 → s1 → ... → end
-            let first_id = &node_descs[0].id;
-            edges.push(Self::make_edge("e-trigger-first", "trigger", first_id));
-            for i in 0..node_descs.len().saturating_sub(1) {
-                let src = &node_descs[i].id;
-                let tgt = &node_descs[i + 1].id;
-                edges.push(Self::make_edge(&format!("e-{}-{}", src, tgt), src, tgt));
+        // 划分步骤单元
+        struct Unit {
+            cond_id: Option<String>,
+            main_id: String,
+            main_is_approval: bool,
+        }
+        let mut units: Vec<Unit> = Vec::new();
+        for desc in &node_descs {
+            if desc.is_condition {
+                units.push(Unit {
+                    cond_id: Some(desc.id.clone()),
+                    main_id: String::new(),
+                    main_is_approval: false,
+                });
+            } else if units.is_empty() || !units.last().unwrap().main_id.is_empty() {
+                units.push(Unit {
+                    cond_id: None,
+                    main_id: desc.id.clone(),
+                    main_is_approval: desc.is_approval,
+                });
+            } else {
+                // 条件节点后的首个非条件节点即该单元的主节点
+                let last = units.last_mut().unwrap();
+                last.main_id = desc.id.clone();
+                last.main_is_approval = desc.is_approval;
             }
-            if let Some(last) = node_descs.last() {
-                edges.push(Self::make_edge(&format!("e-{}-end", last.id), &last.id, "end"));
-            }
-        } else {
-            // 含条件/审批分支
-            let mut prev: String = "trigger".to_string();
-            let mut pending_condition: Option<String> = None;
-            let mut pending_approval: Option<String> = None;
+        }
 
-            for desc in &node_descs {
-                if desc.is_condition {
-                    // 当前节点是条件节点
-                    // 条件节点的 false 分支始终指向 end
-                    edges.push(Self::make_edge(
-                        &format!("e-{}-{}", prev, desc.id),
-                        &prev,
-                        &desc.id,
-                    ));
-                    edges.push(Self::make_cond_edge(
-                        &format!("e-{}-end-false", desc.id),
-                        &desc.id,
-                        "end",
-                        false,
-                    ));
-                    pending_condition = Some(desc.id.clone());
-                } else if desc.is_approval {
-                    // 当前节点是审批节点
-                    if pending_condition.is_some() {
-                        // 前一个是条件节点，用条件边(true)连接
-                        let cond_id = pending_condition.take().unwrap();
-                        edges.push(Self::make_cond_edge(
-                            &format!("e-{}-{}-true", cond_id, desc.id),
-                            &cond_id,
-                            &desc.id,
-                            true,
-                        ));
-                    } else if pending_approval.is_some() {
-                        // 上一个也是审批节点，用条件边连接
-                        edges.push(Self::make_cond_edge(
-                            &format!("e-{}-{}-true", prev, desc.id),
-                            &prev,
-                            &desc.id,
-                            true,
-                        ));
-                    } else {
-                        edges.push(Self::make_edge(
-                            &format!("e-{}-{}", prev, desc.id),
-                            &prev,
-                            &desc.id,
-                        ));
-                    }
-                    // 审批拒绝分支 → end
-                    edges.push(Self::make_cond_edge(
-                        &format!("e-{}-end-false", desc.id),
-                        &desc.id,
-                        "end",
-                        false,
-                    ));
-                    pending_approval = Some(desc.id.clone());
-                } else {
-                    // 当前节点是普通节点
-                    if let Some(cond_id) = &pending_condition {
-                        // 条件节点的 true 分支 → 当前节点
-                        edges.push(Self::make_cond_edge(
-                            &format!("e-{}-{}-true", cond_id, desc.id),
-                            cond_id,
-                            &desc.id,
-                            true,
-                        ));
-                        pending_condition = None;
-                    } else if let Some(approval_id) = &pending_approval {
-                        // 审批通过 → 当前节点
-                        edges.push(Self::make_cond_edge(
-                            &format!("e-{}-{}-true", approval_id, desc.id),
-                            approval_id,
-                            &desc.id,
-                            true,
-                        ));
-                        pending_approval = None;
-                    } else {
-                        edges.push(Self::make_edge(
-                            &format!("e-{}-{}", prev, desc.id),
-                            &prev,
-                            &desc.id,
-                        ));
-                    }
-                }
-                prev = desc.id.clone();
+        // 单元入口：入口 = cond（若有）否则主节点
+        let unit_entry = |u: &Unit| u.cond_id.as_ref().unwrap_or(&u.main_id).clone();
+
+        for (i, unit) in units.iter().enumerate() {
+            let entry = unit_entry(unit);
+            let next_entry = units.get(i + 1).map(unit_entry).unwrap_or_else(|| "end".to_string());
+
+            // 首个单元从 trigger 进入（Direct）；后续单元的接入由上一单元出口逻辑负责
+            if i == 0 {
+                edges.push(Self::make_edge(&format!("e-trigger-{}", entry), "trigger", &entry));
             }
 
-            // 最后一步 → end
-            let last_id = &node_descs.last().unwrap().id;
-            let last_desc = node_descs.last().unwrap();
-            if !last_desc.is_condition && !last_desc.is_approval {
-                edges.push(Self::make_edge(&format!("e-{}-end", last_id), last_id, "end"));
+            // condition 节点：true → 主节点；false → 跳过本单元，直接下一单元入口
+            if let Some(cond_id) = &unit.cond_id {
+                edges.push(Self::make_cond_edge(
+                    &format!("e-{}-{}-true", cond_id, unit.main_id),
+                    cond_id,
+                    &unit.main_id,
+                    true,
+                ));
+                edges.push(Self::make_cond_edge(
+                    &format!("e-{}-{}-false", cond_id, next_entry),
+                    cond_id,
+                    &next_entry,
+                    false,
+                ));
             }
-            // 条件节点/审批节点的 end 连接已在循环中处理
+
+            // 主节点出口（负责接入下一单元）
+            if unit.main_is_approval {
+                // 原生 approval：通过 → 下一单元，拒绝 → end
+                edges.push(Self::make_cond_edge(
+                    &format!("e-{}-{}-true", unit.main_id, next_entry),
+                    &unit.main_id,
+                    &next_entry,
+                    true,
+                ));
+                edges.push(Self::make_cond_edge(
+                    &format!("e-{}-end-false", unit.main_id),
+                    &unit.main_id,
+                    "end",
+                    false,
+                ));
+            } else {
+                // 普通 agent：Direct → 下一单元
+                edges.push(Self::make_edge(
+                    &format!("e-{}-{}", unit.main_id, next_entry),
+                    &unit.main_id,
+                    &next_entry,
+                ));
+            }
         }
 
         Self::assemble_template(def, version, now, nodes, edges, variables)
@@ -690,6 +664,80 @@ impl DomainWorkflowGenerator {
         variables
     }
 
+    /// 工作流步骤专家声明（with_agent 的专家语义 id）→ 专家库真实 AgentProfile（exp-*）映射。
+    ///
+    /// 背景：wf-eng-refactor 等 62 步工作流的 with_agent 声明了架构分析师 / 代码审计专家等
+    /// 27 种专家（DomainAgentDef.id），但专家语义 id 并非真实 profile id。此前生成器全部
+    /// fallback 到工作流级 `opc-cto-cto-ai-engineer`，导致 62 步全由同一专家执行、分工空转。
+    /// 本映射表将专家语义 id 绑定到 agency-agents-src 专家库的真实组合 profile：
+    ///   - 专家维度：expert_id = `agency-{dir}-{file_stem}`（agency_experts 表人才）
+    ///   - 角色维度：agent_role = 域映射真实角色（如 engineering → cto，agent_roles 表岗位）
+    ///   - profile id = `exp-{source_dir}-{expert.id}`（agent_profiles 表组合，seed 自
+    ///     seed_bulk_expert_profiles，agent_role 由 role_for_source_dir 解析）
+    /// 使「专家 × 角色」组合分工真实生效。来源：output/opc-software-dev-roles-experts-2026-08-09.md §2。
+    const EXPERT_PROFILE_MAP: &[(&str, &str)] = &[
+        // ── 架构/设计 ──
+        ("architect_analyst", "exp-engineering-agency-engineering-engineering-backend-architect"),
+        ("solution_architect", "exp-engineering-agency-engineering-engineering-backend-architect"),
+        ("refactor_consultant", "exp-engineering-agency-engineering-engineering-code-reviewer"),
+        // ── 工程/开发 ──
+        ("code_auditor", "exp-engineering-agency-engineering-engineering-code-reviewer"),
+        ("code_reviewer", "exp-engineering-agency-engineering-engineering-code-reviewer"),
+        ("senior_engineer", "exp-engineering-agency-engineering-engineering-senior-developer"),
+        (
+            "ts_framework_specialist",
+            "exp-engineering-agency-engineering-engineering-frontend-developer",
+        ),
+        (
+            "frontend_framework_specialist",
+            "exp-engineering-agency-engineering-engineering-frontend-developer",
+        ),
+        (
+            "backend_integration_specialist",
+            "exp-engineering-agency-engineering-engineering-backend-architect",
+        ),
+        // ── 质量/测试 ──
+        ("quality_expert", "exp-specialized-agency-specialized-specialized-model-qa"),
+        ("quality_engineer", "exp-testing-agency-testing-testing-reality-checker"),
+        ("quality_director", "exp-testing-agency-testing-testing-reality-checker"),
+        ("behavior_tester", "exp-testing-agency-testing-testing-api-tester"),
+        ("behavior_verifier", "exp-testing-agency-testing-testing-reality-checker"),
+        ("test_engineer", "exp-testing-agency-testing-testing-api-tester"),
+        ("integration_engineer", "exp-testing-agency-testing-testing-api-tester"),
+        ("performance_analyst", "exp-testing-agency-testing-testing-performance-benchmarker"),
+        ("cross_language_verifier", "exp-testing-agency-testing-testing-cross-language-verifier"),
+        // ── 交付/运维 ──
+        ("devops_engineer", "exp-engineering-agency-engineering-engineering-devops-automator"),
+        ("ops_engineer", "exp-engineering-agency-engineering-engineering-sre"),
+        ("tech_writer", "exp-engineering-agency-engineering-engineering-technical-writer"),
+        // ── 管理/流程 ──
+        (
+            "project_manager",
+            "exp-project-management-agency-project-management-project-manager-senior",
+        ),
+        (
+            "tech_project_manager",
+            "exp-project-management-agency-project-management-project-manager-senior",
+        ),
+        ("change_manager", "exp-specialized-agency-specialized-change-management-consultant"),
+        (
+            "knowledge_engineer",
+            "exp-engineering-agency-engineering-engineering-codebase-onboarding-engineer",
+        ),
+        // ── 跨语言迁移（3 个缺口专家，补 md 后启用） ──
+        ("cpp_rust_migrator", "exp-engineering-agency-engineering-engineering-rust-migrator"),
+        ("code_converter", "exp-engineering-agency-engineering-engineering-code-converter"),
+    ];
+
+    /// 将步骤的专家语义 id 解析为专家库真实 AgentProfile id（exp-*）。
+    /// 命中映射表 → 返回真实 profile；未命中 → None（调用方 fallback）。
+    fn resolve_expert_profile(agent_id: &str) -> Option<String> {
+        Self::EXPERT_PROFILE_MAP
+            .iter()
+            .find(|(id, _)| *id == agent_id)
+            .map(|(_, profile)| profile.to_string())
+    }
+
     /// 构建 Agent 节点（对应 DomainStepDef 中 node_type == "agent"）
     fn build_agent_node(step: &DomainStepDef, def: &DomainWorkflowDef, y: f64) -> WorkflowNode {
         // 输入映射
@@ -712,12 +760,21 @@ impl DomainWorkflowGenerator {
                 .collect()
         };
 
-        // 步骤级角色优先于工作流级 profile
+        // 步骤级专家优先于工作流级 profile。
+        // 解析优先级：
+        //   1. 专家语义 id（code_auditor 等）命中 EXPERT_PROFILE_MAP → 绑定专家库真实 profile（exp-*）
+        //   2. 已是真实 profile 标识（opc-*/exp-* 前缀）→ 直接使用
+        //   3. 否则 fallback 工作流级 profile（opc-cto-cto-ai-engineer）
+        // 专家分工通过 agent_profile_id 绑定真实人才；system_prompt 的"你扮演"前缀保留岗位职责说明。
         let profile_id = step
             .agent
             .as_ref()
-            .map(|a| a.id.clone())
-            .filter(|id| !id.is_empty())
+            .and_then(|a| Self::resolve_expert_profile(&a.id))
+            .or_else(|| {
+                step.agent.as_ref().map(|a| a.id.clone()).filter(|id| {
+                    !id.is_empty() && (id.starts_with("opc-") || id.starts_with("exp-"))
+                })
+            })
             .or_else(|| (!def.profile_id.is_empty()).then(|| def.profile_id.clone()));
 
         // 组装系统提示词（含角色前缀 + on_error 降级说明）
@@ -1089,6 +1146,75 @@ mod tests {
     }
 
     #[test]
+    fn test_gen_to_template_data_condition_skip() {
+        // 带 condition 的步骤：false 分支应跳到下一节点（跳过本步骤），而非 end
+        let def = DomainWorkflowDef::new("with_cond", "条件跳过工作流").with_steps(vec![
+            DomainStepDef::agent("s1", "前置步骤").with_prompt("任务一"),
+            DomainStepDef::agent("s2", "条件步骤")
+                .with_prompt("任务二")
+                .with_condition("flag == true"),
+            DomainStepDef::agent("s3", "后置步骤").with_prompt("任务三"),
+        ]);
+
+        let template = DomainWorkflowGenerator::gen_to_template_data(&def, 1);
+
+        // trigger + s1 + s2-cond + s2 + s3 + end = 6 节点
+        assert_eq!(template.nodes.len(), 6);
+
+        // 关键断言：s2-cond 的 false 分支必须指向 s3（跳过 s2），而非 end
+        let cond_false_edge = template
+            .edges
+            .iter()
+            .find(|e| e.source == "s2-cond" && e.source_handle.as_deref() == Some("false"));
+        assert!(cond_false_edge.is_some(), "s2-cond 必须存在 false 分支");
+        assert_eq!(
+            cond_false_edge.unwrap().target,
+            "s3",
+            "condition false 应跳过本步骤指向下一节点 s3，而非 end"
+        );
+
+        // s2-cond 的 true 分支指向 s2
+        let cond_true_edge = template
+            .edges
+            .iter()
+            .find(|e| e.source == "s2-cond" && e.source_handle.as_deref() == Some("true"));
+        assert!(cond_true_edge.is_some());
+        assert_eq!(cond_true_edge.unwrap().target, "s2");
+    }
+
+    #[test]
+    fn test_gen_to_template_data_approval_gate_expansion() {
+        // approval_gate（user_input）应展开为独立的 Approval 节点，拒绝 → end
+        let mut ui = DomainUserInput::new();
+        ui = ui.with_mode("approval_gate");
+        ui = ui.with_prompt("请审批");
+        ui = ui.with_fields(vec![DomainUserInputField::new("approve", "confirm", "是否批准")
+            .with_options(vec!["批准执行".to_string(), "驳回".to_string()])
+            .with_required(true)]);
+        let def = DomainWorkflowDef::new("with_gate", "审批门工作流").with_steps(vec![
+            DomainStepDef::agent("s1", "前置步骤").with_prompt("任务一").with_user_input(ui),
+            DomainStepDef::agent("s2", "后置步骤").with_prompt("任务二"),
+        ]);
+
+        let template = DomainWorkflowGenerator::gen_to_template_data(&def, 1);
+
+        // trigger + s1 + s1-approval + s2 + end = 5 节点
+        assert_eq!(template.nodes.len(), 5);
+        assert!(
+            template.nodes.iter().any(|n| n.base_id() == "s1-approval"),
+            "approval_gate 应展开为独立 Approval 节点"
+        );
+
+        // s1-approval 拒绝 → end
+        let reject_edge = template
+            .edges
+            .iter()
+            .find(|e| e.source == "s1-approval" && e.source_handle.as_deref() == Some("false"));
+        assert!(reject_edge.is_some(), "审批拒绝分支必须存在");
+        assert_eq!(reject_edge.unwrap().target, "end");
+    }
+
+    #[test]
     fn test_gen_to_template_data_variable_collection() {
         let def = DomainWorkflowDef::new("with_vars", "含变量工作流").with_steps(vec![
             DomainStepDef::agent("s1", "步骤").with_inputs(HashMap::from([
@@ -1122,6 +1248,63 @@ mod tests {
             }
         });
         assert!(has_profile);
+    }
+
+    #[test]
+    fn test_resolve_expert_profile_map() {
+        // 专家语义 id → 专家库真实 profile（exp-*）解析
+        let cases = [
+            ("code_auditor", "exp-engineering-agency-engineering-engineering-code-reviewer"),
+            ("code_reviewer", "exp-engineering-agency-engineering-engineering-code-reviewer"),
+            ("senior_engineer", "exp-engineering-agency-engineering-engineering-senior-developer"),
+            ("devops_engineer", "exp-engineering-agency-engineering-engineering-devops-automator"),
+            ("tech_writer", "exp-engineering-agency-engineering-engineering-technical-writer"),
+            ("performance_analyst", "exp-testing-agency-testing-testing-performance-benchmarker"),
+            ("test_engineer", "exp-testing-agency-testing-testing-api-tester"),
+            ("quality_director", "exp-testing-agency-testing-testing-reality-checker"),
+            (
+                "project_manager",
+                "exp-project-management-agency-project-management-project-manager-senior",
+            ),
+            ("change_manager", "exp-specialized-agency-specialized-change-management-consultant"),
+            ("cpp_rust_migrator", "exp-engineering-agency-engineering-engineering-rust-migrator"),
+            ("code_converter", "exp-engineering-agency-engineering-engineering-code-converter"),
+            (
+                "cross_language_verifier",
+                "exp-testing-agency-testing-testing-cross-language-verifier",
+            ),
+        ];
+        for (agent_id, expected) in cases {
+            let resolved = DomainWorkflowGenerator::resolve_expert_profile(agent_id);
+            assert_eq!(resolved.as_deref(), Some(expected), "专家 {agent_id} 应解析为 {expected}");
+        }
+        // 未注册的专家语义 id → None（fallback）
+        assert_eq!(DomainWorkflowGenerator::resolve_expert_profile("ghost_expert"), None);
+    }
+
+    #[test]
+    fn test_gen_to_template_data_expert_profile_resolution() {
+        // with_agent 声明的专家应绑定到专家库真实 profile（exp-*），而非工作流级
+        let def = DomainWorkflowDef::new("with_expert", "专家绑定")
+            .with_profile_id("opc-cto-cto-ai-engineer")
+            .with_steps(vec![DomainStepDef::agent("s1", "代码审查")
+                .with_prompt("任务")
+                .with_agent(DomainAgentDef::new("code_auditor", "代码审计专家"))]);
+
+        let template = DomainWorkflowGenerator::gen_to_template_data(&def, 1);
+
+        let agent_profile = template.nodes.iter().find_map(|n| {
+            if let WorkflowNode::Agent(agent) = n {
+                agent.config.agent_profile_id.clone()
+            } else {
+                None
+            }
+        });
+        assert_eq!(
+            agent_profile.as_deref(),
+            Some("exp-engineering-agency-engineering-engineering-code-reviewer"),
+            "code_auditor 应绑定专家库真实 profile，而非工作流级 opc-cto-cto-ai-engineer"
+        );
     }
 
     #[test]

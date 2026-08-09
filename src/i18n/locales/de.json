@@ -645,6 +645,20 @@
     "pendingChanges": "Ausstehende Änderungen erkannt. Änderungen gelten ab nächster Sitzung. --now zum Erzwingen."
   },
   "chat": {
+    "workflowRunner": {
+      "title": "Aktien-Workflow läuft",
+      "inputTheme": "Thema eingeben (optional)",
+      "themeHint": "Themen-Keywords eingeben – der Workflow filtert Kandidaten rund um diese Themen. Leer lassen für Full-Market-Screening.",
+      "themePlaceholder": "z. B.: AI-Chips, erneuerbare Energien, CXO",
+      "sourceUser": "Thema",
+      "run": "Ausführen",
+      "rerun": "Erneut ausführen",
+      "cancel": "Abbrechen",
+      "progress": "Fortschritt",
+      "completed": "Abgeschlossen",
+      "close": "Schließen",
+      "noResult": "Keine passenden Aktien gefunden"
+    },
     "active": "Aktiv",
     "adaptingFromInteractions": "Anpassung aus Interaktionen...",
     "agent": {
@@ -12017,6 +12031,10 @@
     "exitSignalAlertNone": "Exit-Signal-Scan abgeschlossen: {{checked}} Posten, keine Anomalien.",
     "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
     "callFailed": "调用失败",
+    "themeInput": "Thema",
+    "themePlaceholder": "Thema-Schlüsselwörter eingeben, z.B. AI SSD, Speicherchip (leer=Auto-Scan)",
+    "sourceUser": "Basierend auf Ihrem Thema",
+    "sourceAuto": "Auto-Scan",
     "timeoutHint": "Das Screening dauerte über {seconds}s, das Backend verarbeitet noch. Bitte prüfen Sie später die Ergebnisse oder sehen Sie sich das Ausführungsprotokoll an",
     "nodeTitles": {
       "trigger": "Screening starten",

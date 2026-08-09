@@ -8,6 +8,7 @@ pub mod adjustment;
 pub mod as_of;
 pub mod as_of_capability;
 pub mod batch;
+pub mod board;
 pub mod calendar;
 pub mod candlestick_pattern;
 pub mod daily_snapshot;
@@ -163,6 +164,8 @@ struct VendorRouting {
     earnings_calendar: Vec<String>,
     social_sentiment: Vec<String>,
     industry_ranking: Vec<String>,
+    concept_boards: Vec<String>,
+    board_members: Vec<String>,
     cls_flash: Vec<String>,
     north_bound_flow: Vec<String>,
     block_trades: Vec<String>,
@@ -311,6 +314,8 @@ impl VendorRouting {
             // 三个 vendor 必失败且"空数据不降级"→ 永远霸占健康列表，把唯一可靠的 eastmoney
             // 挤在轮询外（趋势智选全链空根因之一）。瘦身为 eastmoney + browser_eastmoney。
             industry_ranking: vec!["eastmoney".into(), "browser_eastmoney".into()],
+            concept_boards: vec!["eastmoney".into()],
+            board_members: vec!["eastmoney".into()],
             cls_flash: vec!["eastmoney".into(), "browser_eastmoney".into(), "akshare".into()],
             north_bound_flow: vec![
                 "eastmoney".into(),
@@ -3783,6 +3788,88 @@ impl AStockClient {
                 tracing::warn!(
                     "[get_industry_ranking] 所有 vendor 均不可用, 返回空列表. 详细: {e}"
                 );
+                Ok(vec![])
+            },
+        }
+    }
+
+    pub async fn search_concept_boards(
+        &self,
+        keyword: &str,
+    ) -> Result<Vec<ConceptBoard>, DataError> {
+        let keyword_owned = keyword.to_string();
+        let vendor_names: Vec<String> =
+            self.routing.concept_boards.iter().map(|n| n.to_string()).collect();
+        match self
+            .try_vendors_retry("", "concept_boards", &vendor_names, 1, |name, vendor| {
+                let kw = keyword_owned.clone();
+                Box::pin(async move {
+                    match vendor.search_concept_boards(&kw).await {
+                        Ok(result) => {
+                            if result.is_empty() {
+                                tracing::warn!("[search_concept_boards] vendor {name} 返回空数据");
+                                Err(DataError::VendorError {
+                                    vendor: "__market__".into(),
+                                    message: format!("{name} 概念板块搜索结果为空"),
+                                })
+                            } else {
+                                Ok(result)
+                            }
+                        },
+                        Err(e) => {
+                            tracing::warn!("[search_concept_boards] vendor {name} 失败: {e}");
+                            Err(e)
+                        },
+                    }
+                })
+            })
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                tracing::warn!("[search_concept_boards] 所有 vendor 失败，返回空列表: {e}");
+                Ok(vec![])
+            },
+        }
+    }
+
+    pub async fn get_concept_board_members(
+        &self,
+        board_code: &str,
+    ) -> Result<Vec<BoardMember>, DataError> {
+        let code_owned = board_code.to_string();
+        let vendor_names: Vec<String> =
+            self.routing.board_members.iter().map(|n| n.to_string()).collect();
+        match self
+            .try_vendors_retry("", "board_members", &vendor_names, 1, |name, vendor| {
+                let code = code_owned.clone();
+                Box::pin(async move {
+                    match vendor.get_concept_board_members(&code).await {
+                        Ok(result) => {
+                            if result.is_empty() {
+                                tracing::warn!(
+                                    "[get_concept_board_members] vendor {name} 返回空数据"
+                                );
+                                Err(DataError::VendorError {
+                                    vendor: "__market__".into(),
+                                    message: format!("{name} 板块成分股为空"),
+                                })
+                            } else {
+                                Ok(result)
+                            }
+                        },
+                        Err(e) => {
+                            tracing::warn!("[get_concept_board_members] vendor {name} 失败: {e}");
+                            Err(e)
+                        },
+                    }
+                })
+            })
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                tracing::warn!("[get_concept_board_members] 所有 vendor 失败，返回空列表: {e}");
                 Ok(vec![])
             },
         }

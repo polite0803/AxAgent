@@ -5,6 +5,7 @@ use crate::commands::agent::skill_execution::{self, SkillStep};
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 
+use crate::commands::spawn_guard::SpawnGuard;
 use agent_macro::agent_command;
 use axagent_dao::repo::{conversation, message};
 use axagent_harness::types::{MessageRole, UpdateConversationInput};
@@ -13,7 +14,6 @@ use axagent_runtime::work_engine::{ProgressCallback, StepProgressEvent, node_typ
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use crate::commands::spawn_guard::SpawnGuard;
 use std::sync::Arc;
 use tauri::{Emitter, State};
 
@@ -124,7 +124,7 @@ pub async fn workflow_execute(
         })
         .collect();
 
-// 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
+    // 工具解析器已由 init/services.rs 在启动期注入（含 builtin / mcp / workflow:: 三种来源），
     // 此处不再 set_tool_resolver 覆盖——否则会静默丢弃 init 阶段注入的 workflow:: 解析。
     let _ = app_state.local_tool_registry; // 保留依赖项以维持签名稳定
     let db = app_state.harness.db().clone();

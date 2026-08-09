@@ -1256,6 +1256,20 @@
         "strategyDryRun": "Dry run (validate only)"
       }
     },
+    "workflowRunner": {
+      "title": "Stock Workflow Running",
+      "inputTheme": "Enter Theme (Optional)",
+      "themeHint": "Enter topic keywords to filter candidate stocks around these themes. Leave empty for full market screening.",
+      "themePlaceholder": "e.g.: AI chips, EV, CXO",
+      "sourceUser": "Theme",
+      "run": "Run",
+      "rerun": "Rerun",
+      "cancel": "Cancel",
+      "progress": "Progress",
+      "completed": "Completed",
+      "close": "Close",
+      "noResult": "No stocks matching your criteria found"
+    },
     "workflowLabel": "Workflow",
     "yesterday": "Yesterday",
     "you": "You",
@@ -12155,6 +12169,10 @@
     "noCandidateTitle": "No candidates produced",
     "errorUnknown": "Unknown error",
     "callFailed": "Call failed",
+    "themeInput": "Theme",
+    "themePlaceholder": "Enter theme keywords, e.g. AI SSD, Storage Chip (empty=auto scan)",
+    "sourceUser": "Based on your theme",
+    "sourceAuto": "Auto scan",
     "timeoutHint": "Screening took over {seconds}s, backend is still processing. Please check results later or view the execution log",
     "stepLogTitle": "Execution Log",
     "nodeTitles": {

@@ -29,6 +29,7 @@ import {
   InputNumber,
   Modal,
   Progress,
+  Select,
   Space,
   Spin,
   Table,
@@ -583,6 +584,9 @@ export function SerenityScreeningPanel() {
     } | null
   >(null);
 
+  // ── 主题输入（对话式主题荐股 v47）──
+  const [themeTags, setThemeTags] = useState<string[]>([]);
+
   // ── 估值过滤设置 ──
   const [serenitySettingsOpen, setSerenitySettingsOpen] = useState(false);
   const [serenityVars, setSerenityVars] = useState<Record<string, number>>({});
@@ -794,7 +798,10 @@ export function SerenityScreeningPanel() {
       const SERENITY_TIMEOUT_MS = 30 * 60 * 1000;
       const r = await invoke<SerenityResult>(
         "run_serenity_screening",
-        { asOfDate },
+        {
+          asOfDate,
+          themes: themeTags.length > 0 ? themeTags : null,
+        },
         SERENITY_TIMEOUT_MS,
       );
       // 如果事件已经处理过（覆盖了 candidates/trends），这里不要重复 set
@@ -846,6 +853,7 @@ export function SerenityScreeningPanel() {
     setCompletedNodes,
     setTotalNodes,
     setCurrentNode,
+    themeTags,
     t,
   ]);
 
@@ -898,6 +906,28 @@ export function SerenityScreeningPanel() {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* v47: 主题输入区（对话式主题荐股） */}
+      <div className="flex items-center gap-2">
+        <Text type="secondary" className="text-xs whitespace-nowrap">
+          {t("serenityPanel.themeInput")}
+        </Text>
+        <Select
+          mode="tags"
+          style={{ flex: 1 }}
+          placeholder={t("serenityPanel.themePlaceholder")}
+          value={themeTags}
+          onChange={setThemeTags as (val: string[]) => void}
+          disabled={running}
+          tokenSeparators={[",", "，"]}
+          open={false}
+        />
+        {themeTags.length > 0 && (
+          <Tag color="blue">
+            {t("serenityPanel.sourceUser")}: {themeTags.join(", ")}
+          </Tag>
+        )}
+      </div>
+
       {/* 操作栏 */}
       <div className="flex items-center justify-between">
         <Text type="secondary" className="text-xs">

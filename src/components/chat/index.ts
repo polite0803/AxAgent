@@ -30,3 +30,5 @@ export type { SearchResult } from "./researchUtils";
 export { ToolCallBlockView } from "./ToolCallBlockView";
 export { ToolCallCard } from "./ToolCallCard";
 export { WorkflowProgressPanel } from "./WorkflowProgressPanel";
+export { isStockWorkflowTemplate, WorkflowRunner } from "./WorkflowRunner";
+export type { WorkflowRunnerProps } from "./WorkflowRunner";

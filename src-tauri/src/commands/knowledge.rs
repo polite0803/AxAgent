@@ -1455,11 +1455,23 @@ pub async fn import_lemonhu_knowledge(
     knowledge_dir: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let db = state.harness.db();
+    let dir = knowledge_dir.map(std::path::PathBuf::from);
+    ensure_lemonhu_knowledge_imported(db, dir).await
+}
+
+/// 确保 lemonhu 开源股票知识库已导入（幂等：KB 已存在且数据已导入则跳过重导）。
+///
+/// 供 `import_lemonhu_knowledge` 命令与启动初始化（`seed_concept_index::ensure_concept_index`）
+/// 共用，避免启动时重复实现目录解析/KB 创建逻辑。
+pub(crate) async fn ensure_lemonhu_knowledge_imported(
+    db: &sea_orm::DatabaseConnection,
+    knowledge_dir: Option<std::path::PathBuf>,
+) -> Result<serde_json::Value, String> {
     let kb_id = "lemonhu_knowledge_graph";
 
     // 确定知识库目录
     let knowledge_dir = match knowledge_dir {
-        Some(d) => PathBuf::from(d),
+        Some(d) => d,
         None => {
             let cwd = std::env::current_dir().map_err(|e| format!("获取 cwd 失败: {e}"))?;
             let candidate = cwd.parent().unwrap_or(&cwd).join("knowledge-sources").join("lemonhu");

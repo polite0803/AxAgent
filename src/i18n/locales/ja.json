@@ -645,6 +645,20 @@
     "pendingChanges": "保留中の変更が検出されました。変更は次のセッションで適用されます。--now で強制適用。"
   },
   "chat": {
+    "workflowRunner": {
+      "title": "株式ワークフロー実行中",
+      "inputTheme": "テーマを入力（任意）",
+      "themeHint": "興味のあるテーマのキーワードを入力してください。ワークフローはこれらのテーマに沿って候補銘柄を絞り込みます。空欄で全市場スキャン。",
+      "themePlaceholder": "例：AIチップ、新エネルギー、CXO",
+      "sourceUser": "テーマ",
+      "run": "実行",
+      "rerun": "再実行",
+      "cancel": "キャンセル",
+      "progress": "実行進捗",
+      "completed": "実行完了",
+      "close": "閉じる",
+      "noResult": "条件に一致する銘柄が見つかりません"
+    },
     "active": "アクティブ",
     "adaptingFromInteractions": "対話から適応中...",
     "agent": {
@@ -12017,6 +12031,10 @@
     "exitSignalAlertNone": "出口シグナルスキャン完了: {{checked}} 銘柄、異常なし",
     "analyzing": "正在分析产业链数据，LLM 推理需要 1-3 分钟...",
     "callFailed": "调用失败",
+    "themeInput": "テーマ",
+    "themePlaceholder": "テーマキーワードを入力（例：AI SSD、メモリ半導体）。空=自動スキャン",
+    "sourceUser": "あなたのテーマに基づく",
+    "sourceAuto": "自動スキャン",
     "timeoutHint": "スクリーニングに {seconds} 秒以上かかりました。バックエンドで処理中です。後で結果を確認するか、実行ログをご覧ください",
     "nodeTitles": {
       "trigger": "スクリーニング開始",

@@ -158,7 +158,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("API设计评审")
                         ))
                         .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
-                        .with_inputs(HashMap::from([("api_spec".to_string(), "a-spec_result".to_string())]))
+                        .with_inputs(HashMap::from([("api_spec".to_string(), "a-spec.content".to_string())]))
                     ,
                     DomainStepDef::agent("a-doc", "生成文档")
                         .with_prompt(format!(
@@ -176,7 +176,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("API文档")
                         ))
                         .with_tools(vec!["FileWrite".to_string()])
-                        .with_inputs(HashMap::from([("validation".to_string(), "a-validate_result".to_string())]))
+                        .with_inputs(HashMap::from([("validation".to_string(), "a-validate.content".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-arch-review", "架构评审")
@@ -220,7 +220,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("架构评审")
                         ))
                         .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
-                        .with_inputs(HashMap::from([("arch_design".to_string(), "a-design_result".to_string())]))
+                        .with_inputs(HashMap::from([("arch_design".to_string(), "a-design.content".to_string())]))
                     ,
                     DomainStepDef::agent("a-finalize", "方案定稿")
                         .with_prompt(format!(
@@ -237,7 +237,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("架构定稿")
                         ))
                         .with_tools(vec!["FileWrite".to_string()])
-                        .with_inputs(HashMap::from([("review".to_string(), "a-review-arch_result".to_string())]))
+                        .with_inputs(HashMap::from([("review".to_string(), "a-review-arch.content".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-ci-setup", "CI/CD配置")
@@ -280,7 +280,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("CI/CD配置")
                         ))
                         .with_tools(vec!["FileWrite".to_string()])
-                        .with_inputs(HashMap::from([("plan".to_string(), "a-ci-plan_result".to_string())]))
+                        .with_inputs(HashMap::from([("plan".to_string(), "a-ci-plan.content".to_string())]))
                     ,
                     DomainStepDef::agent("a-ci-verify", "验证")
                         .with_prompt(format!(
@@ -298,7 +298,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("CI/CD验证")
                         ))
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
-                        .with_inputs(HashMap::from([("config".to_string(), "a-ci-config_result".to_string())]))
+                        .with_inputs(HashMap::from([("config".to_string(), "a-ci-config.content".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-code-review", "代码审查流水线")
@@ -341,7 +341,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("代码审查")
                         ))
                         .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
-                        .with_inputs(HashMap::from([("submission".to_string(), "a-submit_result".to_string())]))
+                        .with_inputs(HashMap::from([("submission".to_string(), "a-submit.content".to_string())]))
                     ,
                     DomainStepDef::agent("a-report", "审查报告")
                         .with_prompt(format!(
@@ -359,7 +359,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("审查报告")
                         ))
                         .with_tools(vec!["FileWrite".to_string()])
-                        .with_inputs(HashMap::from([("review".to_string(), "a-review_result".to_string())]))
+                        .with_inputs(HashMap::from([("review".to_string(), "a-review.content".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-db-migrate", "数据库迁移")
@@ -402,7 +402,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("迁移审查")
                         ))
                         .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
-                        .with_inputs(HashMap::from([("plan".to_string(), "a-plan-migrate_result".to_string())]))
+                        .with_inputs(HashMap::from([("plan".to_string(), "a-plan-migrate.content".to_string())]))
                     ,
                     DomainStepDef::agent("a-execute-migrate", "执行迁移")
                         .with_prompt(format!(
@@ -420,7 +420,7 @@ impl DomainAdapterFactory {
                             prompt_tpl::empty_data_fallback("迁移执行")
                         ))
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
-                        .with_inputs(HashMap::from([("review".to_string(), "a-review-migrate_result".to_string())]))
+                        .with_inputs(HashMap::from([("review".to_string(), "a-review-migrate.content".to_string())]))
                     ,
                 ]),
             DomainWorkflowDef::new("wf-eng-deploy", "DevOps部署流水线")
@@ -509,7 +509,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("assessment".to_string(), "l-assess.result".to_string());
+                            m.insert("assessment".to_string(), "l-assess.content".to_string());
                             m
                         })
                     ,
@@ -520,7 +520,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("plan".to_string(), "l-plan.result".to_string());
+                            m.insert("plan".to_string(), "l-plan.content".to_string());
                             m
                         })
                     ,
@@ -531,7 +531,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("execution".to_string(), "l-execute.result".to_string());
+                            m.insert("execution".to_string(), "l-execute.content".to_string());
                             m
                         })
                     ,
@@ -577,8 +577,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
-                            m.insert("dep_graph".to_string(), "a-dep-graph.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
+                            m.insert("dep_graph".to_string(), "a-dep-graph.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("behavior_tester", "行为测试专家"))
@@ -597,7 +597,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("knowledge_engineer", "知识提炼专家"))
@@ -630,8 +630,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
-                            m.insert("complexity".to_string(), "a-complexity.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
+                            m.insert("complexity".to_string(), "a-complexity.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("refactor_consultant", "重构顾问"))
@@ -643,7 +643,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("risk_assessment".to_string(), "a-risk-assess.result".to_string());
+                            m.insert("risk_assessment".to_string(), "a-risk-assess.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("solution_architect", "架构师"))
@@ -662,8 +662,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("strategy".to_string(), "a-strategy.result".to_string());
-                            m.insert("dep_graph".to_string(), "a-dep-graph.result".to_string());
+                            m.insert("strategy".to_string(), "a-strategy.content".to_string());
+                            m.insert("dep_graph".to_string(), "a-dep-graph.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("tech_project_manager", "技术项目经理"))
@@ -682,7 +682,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("batch_plan".to_string(), "a-batch-plan.result".to_string());
+                            m.insert("batch_plan".to_string(), "a-batch-plan.content".to_string());
                             m.insert("new_requests".to_string(), "external_input".to_string());
                             m
                         })
@@ -696,7 +696,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("batch_plan".to_string(), "a-batch-plan.result".to_string());
+                            m.insert("batch_plan".to_string(), "a-batch-plan.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("quality_engineer", "质量工程师"))
@@ -715,8 +715,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("batch_plan".to_string(), "a-batch-plan.result".to_string());
-                            m.insert("quality_baseline".to_string(), "a-quality-baseline.result".to_string());
+                            m.insert("batch_plan".to_string(), "a-batch-plan.content".to_string());
+                            m.insert("quality_baseline".to_string(), "a-quality-baseline.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("devops_engineer", "DevOps 工程师"))
@@ -728,11 +728,11 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("batch_plan".to_string(), "a-batch-plan.result".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
-                            m.insert("memory_audit".to_string(), "a-memory-audit.result".to_string());
-                            m.insert("ui_mapping".to_string(), "a-ui-mapping.result".to_string());
-                            m.insert("i18n_analysis".to_string(), "a-i18n-analysis.result".to_string());
+                            m.insert("batch_plan".to_string(), "a-batch-plan.content".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
+                            m.insert("memory_audit".to_string(), "a-memory-audit.content".to_string());
+                            m.insert("ui_mapping".to_string(), "a-ui-mapping.content".to_string());
+                            m.insert("i18n_analysis".to_string(), "a-i18n-analysis.content".to_string());
                             m.insert("i18n_from_scratch_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#i18n_from_scratch".to_string());
                             m.insert("backend_i18n_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#backend_message_i18n".to_string());
                             m.insert("framework_config".to_string(), "config/languages/frameworks/{{target_framework}}.yaml".to_string());
@@ -755,7 +755,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("batch_plan".to_string(), "a-batch-plan.result".to_string());
+                            m.insert("batch_plan".to_string(), "a-batch-plan.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("code_reviewer", "代码审查员"))
@@ -767,8 +767,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("pre_review".to_string(), "a-pre-review.result".to_string());
-                            m.insert("quality_baseline".to_string(), "a-quality-baseline.result".to_string());
+                            m.insert("pre_review".to_string(), "a-pre-review.content".to_string());
+                            m.insert("quality_baseline".to_string(), "a-quality-baseline.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("senior_engineer", "高级工程师"))
@@ -780,8 +780,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("execution".to_string(), "a-execute.result".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
+                            m.insert("execution".to_string(), "a-execute.content".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
                             m.insert("mapping_rules".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml".to_string());
                             m
                         })
@@ -795,9 +795,9 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("execution".to_string(), "a-execute.result".to_string());
-                            m.insert("idiomatic_convert".to_string(), "a-idiomatic-convert.result".to_string());
-                            m.insert("integration_plan".to_string(), "a-integration-plan.result".to_string());
+                            m.insert("execution".to_string(), "a-execute.content".to_string());
+                            m.insert("idiomatic_convert".to_string(), "a-idiomatic-convert.content".to_string());
+                            m.insert("integration_plan".to_string(), "a-integration-plan.content".to_string());
                             m.insert("framework_config".to_string(), "config/languages/frameworks/{{target_framework}}.yaml".to_string());
                             m
                         })
@@ -818,9 +818,9 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("execution".to_string(), "a-execute.result".to_string());
-                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.result".to_string());
-                            m.insert("tacit_knowledge".to_string(), "a-tacit-knowledge.result".to_string());
+                            m.insert("execution".to_string(), "a-execute.content".to_string());
+                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.content".to_string());
+                            m.insert("tacit_knowledge".to_string(), "a-tacit-knowledge.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("behavior_verifier", "行为验证专家"))
@@ -839,7 +839,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("execution".to_string(), "a-execute.result".to_string());
+                            m.insert("execution".to_string(), "a-execute.content".to_string());
                             m.insert("change_request".to_string(), "external_input".to_string());
                             m
                         })
@@ -853,8 +853,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("execution".to_string(), "a-execute.result".to_string());
-                            m.insert("quality_baseline".to_string(), "a-quality-baseline.result".to_string());
+                            m.insert("execution".to_string(), "a-execute.content".to_string());
+                            m.insert("quality_baseline".to_string(), "a-quality-baseline.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("test_engineer", "测试工程师"))
@@ -866,8 +866,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("regression".to_string(), "a-regression.result".to_string());
-                            m.insert("dep_graph".to_string(), "a-dep-graph.result".to_string());
+                            m.insert("regression".to_string(), "a-regression.content".to_string());
+                            m.insert("dep_graph".to_string(), "a-dep-graph.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("integration_engineer", "集成测试工程师"))
@@ -879,11 +879,11 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("integration".to_string(), "a-integration.result".to_string());
-                            m.insert("quality_baseline".to_string(), "a-quality-baseline.result".to_string());
-                            m.insert("equivalence_check".to_string(), "a-equivalence-check.result".to_string());
-                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.result".to_string());
-                            m.insert("tacit_knowledge".to_string(), "a-tacit-knowledge.result".to_string());
+                            m.insert("integration".to_string(), "a-integration.content".to_string());
+                            m.insert("quality_baseline".to_string(), "a-quality-baseline.content".to_string());
+                            m.insert("equivalence_check".to_string(), "a-equivalence-check.content".to_string());
+                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.content".to_string());
+                            m.insert("tacit_knowledge".to_string(), "a-tacit-knowledge.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("quality_director", "质量总监"))
@@ -902,7 +902,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("quality_gate".to_string(), "a-quality-gate.result".to_string());
+                            m.insert("quality_gate".to_string(), "a-quality-gate.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("tech_writer", "技术文档工程师"))
@@ -914,7 +914,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("docs_updated".to_string(), "a-doc-update.result".to_string());
+                            m.insert("docs_updated".to_string(), "a-doc-update.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("ops_engineer", "运维工程师"))
@@ -926,8 +926,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "Grep".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("handoff".to_string(), "a-handoff.result".to_string());
-                            m.insert("quality_gate".to_string(), "a-quality-gate.result".to_string());
+                            m.insert("handoff".to_string(), "a-handoff.content".to_string());
+                            m.insert("quality_gate".to_string(), "a-quality-gate.content".to_string());
                             m
                         })
                         .with_agent(DomainAgentDef::new("project_manager", "项目经理"))
@@ -946,9 +946,9 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Bash".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("quality_baseline".to_string(), "a-quality-baseline.result".to_string());
-                            m.insert("regression".to_string(), "a-regression.result".to_string());
-                            m.insert("integration".to_string(), "a-integration.result".to_string());
+                            m.insert("quality_baseline".to_string(), "a-quality-baseline.content".to_string());
+                            m.insert("regression".to_string(), "a-regression.content".to_string());
+                            m.insert("integration".to_string(), "a-integration.content".to_string());
                             m
                         })
                         .with_condition("cross_language_migration.enabled == true")
@@ -968,7 +968,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml".to_string());
                             m
                         })
@@ -989,8 +989,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
                             m
                         })
                         .with_condition("cross_language_migration.enabled == true")
@@ -1010,8 +1010,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
                             m.insert("mapping_rules".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml".to_string());
                             m
                         })
@@ -1032,8 +1032,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
-                            m.insert("ui_mapping".to_string(), "a-ui-mapping.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
+                            m.insert("ui_mapping".to_string(), "a-ui-mapping.content".to_string());
                             m.insert("i18n_mapping_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#i18n_mapping".to_string());
                             m.insert("i18n_checklist".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#i18n_checklist".to_string());
                             m.insert("backend_i18n_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#backend_message_i18n".to_string());
@@ -1056,7 +1056,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("afsim_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_math_mapping".to_string());
                             m.insert("afsim_architecture".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_architecture_mapping".to_string());
                             m.insert("afsim_widgets".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_qt_widget_enhanced_mapping".to_string());
@@ -1080,12 +1080,12 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("afsim_analysis".to_string(), "a-afsim-analysis.result".to_string());
+                            m.insert("afsim_analysis".to_string(), "a-afsim-analysis.content".to_string());
                             m.insert("math_mapping".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_math_mapping".to_string());
                             m.insert("rust_math_mapping".to_string(), "config/languages/mappings/cpp-to-rust.yaml#afsim_rust_mapping#math_crate_mapping".to_string());
                             m
                         })
-                        .with_condition("a-afsim-analysis.result.math_types.count > 0")
+                        .with_condition("a-afsim-analysis.content.math_types.count > 0")
                         .with_agent(DomainAgentDef::new("code_converter", "数学库迁移专家"))
                     ,
                     DomainStepDef::agent("a-afsim-architecture-mapping", "Afsim 核心架构映射")
@@ -1095,12 +1095,12 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("afsim_analysis".to_string(), "a-afsim-analysis.result".to_string());
+                            m.insert("afsim_analysis".to_string(), "a-afsim-analysis.content".to_string());
                             m.insert("architecture_mapping".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_architecture_mapping".to_string());
                             m.insert("rust_workspace".to_string(), "config/languages/mappings/cpp-to-rust.yaml#afsim_rust_mapping#workspace_structure".to_string());
                             m
                         })
-                        .with_condition("a-afsim-analysis.result.core_classes.count > 0")
+                        .with_condition("a-afsim-analysis.content.core_classes.count > 0")
                         .with_agent(DomainAgentDef::new("architect_analyst", "架构迁移专家"))
                     ,
                     DomainStepDef::agent("a-afsim-ui-enhancement", "Afsim UI 组件增强迁移")
@@ -1110,12 +1110,12 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("afsim_analysis".to_string(), "a-afsim-analysis.result".to_string());
+                            m.insert("afsim_analysis".to_string(), "a-afsim-analysis.content".to_string());
                             m.insert("ui_enhanced_mapping".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_qt_widget_enhanced_mapping".to_string());
                             m.insert("ui_parser_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#qt_designer_ui_parsing".to_string());
                             m
                         })
-                        .with_condition("a-afsim-analysis.result.custom_widgets.count > 0")
+                        .with_condition("a-afsim-analysis.content.custom_widgets.count > 0")
                         .with_agent(DomainAgentDef::new("ts_framework_specialist", "UI 组件增强迁移专家"))
                     ,
                     DomainStepDef::agent("a-3d-visualization-migration", "3D 可视化迁移")
@@ -1125,7 +1125,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("visualization_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#visualization_3d_migration".to_string());
                             m.insert("afsim_3d_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#visualization_3d_migration#afsim_3d_scenarios".to_string());
                             m
@@ -1147,7 +1147,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("script_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#afsim_script_compatibility".to_string());
                             m
                         })
@@ -1168,7 +1168,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("csharp_rust_config".to_string(), "config/languages/mappings/csharp-to-rust.yaml".to_string());
                             m
                         })
@@ -1182,7 +1182,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("java_ts_config".to_string(), "config/languages/mappings/java-to-typescript.yaml".to_string());
                             m
                         })
@@ -1196,7 +1196,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("dis_hla_config".to_string(), "config/languages/mappings/{{source_lang}}-to-{{target_lang}}.yaml#distributed_simulation_protocol".to_string());
                             m
                         })
@@ -1217,7 +1217,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("python_rust_config".to_string(), "config/languages/mappings/python-to-rust.yaml".to_string());
                             m
                         })
@@ -1231,7 +1231,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("python_ts_config".to_string(), "config/languages/mappings/python-to-typescript.yaml".to_string());
                             m
                         })
@@ -1245,7 +1245,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("go_ts_config".to_string(), "config/languages/mappings/go-to-typescript.yaml".to_string());
                             m
                         })
@@ -1259,7 +1259,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("go_rust_config".to_string(), "config/languages/mappings/go-to-rust.yaml".to_string());
                             m
                         })
@@ -1273,7 +1273,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("ts_rust_config".to_string(), "config/languages/mappings/typescript-to-rust.yaml".to_string());
                             m
                         })
@@ -1287,7 +1287,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-typescript-to-rust-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-typescript-to-rust-analysis.content".to_string());
                             m.insert("ts_rust_config".to_string(), "config/languages/mappings/typescript-to-rust.yaml".to_string());
                             m
                         })
@@ -1308,7 +1308,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("csharp_ts_config".to_string(), "config/languages/mappings/csharp-to-typescript.yaml".to_string());
                             m
                         })
@@ -1322,7 +1322,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("java_rust_config".to_string(), "config/languages/mappings/java-to-rust.yaml".to_string());
                             m
                         })
@@ -1336,7 +1336,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-python-to-rust-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-python-to-rust-analysis.content".to_string());
                             m.insert("py_rust_config".to_string(), "config/languages/mappings/python-to-rust.yaml".to_string());
                             m
                         })
@@ -1357,8 +1357,8 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("migration_result".to_string(), "a-execute.result".to_string());
-                            m.insert("equivalence_check".to_string(), "a-equivalence-check.result".to_string());
+                            m.insert("migration_result".to_string(), "a-execute.content".to_string());
+                            m.insert("equivalence_check".to_string(), "a-equivalence-check.content".to_string());
                             m
                         })
                         .with_condition("source_language != target_language")
@@ -1378,7 +1378,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-csharp-to-typescript-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-csharp-to-typescript-analysis.content".to_string());
                             m.insert("csharp_ts_config".to_string(), "config/languages/mappings/csharp-to-typescript.yaml".to_string());
                             m
                         })
@@ -1399,7 +1399,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-go-to-typescript-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-go-to-typescript-analysis.content".to_string());
                             m.insert("go_ts_config".to_string(), "config/languages/mappings/go-to-typescript.yaml".to_string());
                             m
                         })
@@ -1420,7 +1420,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-go-to-rust-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-go-to-rust-analysis.content".to_string());
                             m.insert("go_rust_config".to_string(), "config/languages/mappings/go-to-rust.yaml".to_string());
                             m
                         })
@@ -1441,7 +1441,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-python-to-typescript-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-python-to-typescript-analysis.content".to_string());
                             m.insert("py_ts_config".to_string(), "config/languages/mappings/python-to-typescript.yaml".to_string());
                             m
                         })
@@ -1462,7 +1462,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-java-to-rust-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-java-to-rust-analysis.content".to_string());
                             m.insert("java_rust_config".to_string(), "config/languages/mappings/java-to-rust.yaml".to_string());
                             m
                         })
@@ -1483,7 +1483,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-csharp-to-rust-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-csharp-to-rust-analysis.content".to_string());
                             m.insert("csharp_rust_config".to_string(), "config/languages/mappings/csharp-to-rust.yaml".to_string());
                             m
                         })
@@ -1504,11 +1504,11 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("migration_result".to_string(), "a-execute.result".to_string());
-                            m.insert("code_structure".to_string(), "a-complexity.result".to_string());
-                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.result".to_string());
-                            m.insert("quality_baseline".to_string(), "a-quality-baseline.result".to_string());
-                            m.insert("equivalence_check".to_string(), "a-equivalence-check.result".to_string());
+                            m.insert("migration_result".to_string(), "a-execute.content".to_string());
+                            m.insert("code_structure".to_string(), "a-complexity.content".to_string());
+                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.content".to_string());
+                            m.insert("quality_baseline".to_string(), "a-quality-baseline.content".to_string());
+                            m.insert("equivalence_check".to_string(), "a-equivalence-check.content".to_string());
                             m.insert("target_lang_config".to_string(), "config/languages/target_languages/{{target_lang}}.yaml".to_string());
                             m
                         })
@@ -1529,7 +1529,7 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-java-to-typescript-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-java-to-typescript-analysis.content".to_string());
                             m.insert("java_ts_config".to_string(), "config/languages/mappings/java-to-typescript.yaml".to_string());
                             m
                         })
@@ -1550,10 +1550,10 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("cpp_rust_config".to_string(), "config/languages/mappings/cpp-to-rust.yaml".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
-                            m.insert("memory_audit".to_string(), "a-memory-audit.result".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
+                            m.insert("memory_audit".to_string(), "a-memory-audit.content".to_string());
                             m
                         })
                         .with_condition("source_language == 'cpp' AND target_language == 'rust'")
@@ -1566,11 +1566,11 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string(), "Bash".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-cpp-to-rust-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-cpp-to-rust-analysis.content".to_string());
                             m.insert("cpp_rust_config".to_string(), "config/languages/mappings/cpp-to-rust.yaml".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
-                            m.insert("memory_audit".to_string(), "a-memory-audit.result".to_string());
-                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.result".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
+                            m.insert("memory_audit".to_string(), "a-memory-audit.content".to_string());
+                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.content".to_string());
                             m
                         })
                         .with_condition("source_language == 'cpp' AND target_language == 'rust'")
@@ -1590,10 +1590,10 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("asset_scan".to_string(), "a-asset-scan.result".to_string());
+                            m.insert("asset_scan".to_string(), "a-asset-scan.content".to_string());
                             m.insert("cpp_ts_config".to_string(), "config/languages/mappings/cpp-to-typescript.yaml".to_string());
-                            m.insert("ui_mapping".to_string(), "a-ui-mapping.result".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
+                            m.insert("ui_mapping".to_string(), "a-ui-mapping.content".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
                             m
                         })
                         .with_condition("source_language == 'cpp' AND target_language == 'typescript' AND source_framework_contains == 'Qt'")
@@ -1606,12 +1606,12 @@ impl DomainAdapterFactory {
                         .with_tools(vec!["Grep".to_string(), "FileRead".to_string(), "FileWrite".to_string()])
                         .with_inputs({
                             let mut m = HashMap::new();
-                            m.insert("analysis".to_string(), "a-cpp-to-typescript-analysis.result".to_string());
+                            m.insert("analysis".to_string(), "a-cpp-to-typescript-analysis.content".to_string());
                             m.insert("cpp_ts_config".to_string(), "config/languages/mappings/cpp-to-typescript.yaml".to_string());
-                            m.insert("ui_mapping".to_string(), "a-ui-mapping.result".to_string());
-                            m.insert("type_mapping".to_string(), "a-type-mapping.result".to_string());
-                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.result".to_string());
-                            m.insert("i18n_analysis".to_string(), "a-i18n-analysis.result".to_string());
+                            m.insert("ui_mapping".to_string(), "a-ui-mapping.content".to_string());
+                            m.insert("type_mapping".to_string(), "a-type-mapping.content".to_string());
+                            m.insert("behavioral_snapshot".to_string(), "a-behavior-snapshot.content".to_string());
+                            m.insert("i18n_analysis".to_string(), "a-i18n-analysis.content".to_string());
                             m
                         })
                         .with_condition("source_language == 'cpp' AND target_language == 'typescript' AND source_framework_contains == 'Qt'")

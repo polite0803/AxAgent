@@ -10,6 +10,7 @@
 //! 注：Multi-Agent 固定角色（analyst/implementer/reviewer）种子化已迁移到上游
 //! `commands/multi_agent_setup/seed_multi_agent_roles`，本模块不再负责。
 
+pub mod seed_concept_index;
 pub mod seed_daily_market_events;
 pub mod seed_news_cross_market;
 pub mod seed_screenshot_portfolio_diagnosis;
