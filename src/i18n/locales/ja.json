@@ -14092,7 +14092,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "アナリスト",
+      "nodeTypeDebate": "ディベートノード",
+      "nodeTypeDecision": "意思決定ノード",
+      "nodeTypeTool": "ツール/アルゴリズムノード",
+      "nodeTypeValuation": "バリュエーションノード",
+      "nodeTypeRisk": "リスクノード",
+      "nodeTypeOther": "汎用ノード",
+      "evolutionHealthy": "{{nodeName}}は正常です",
+      "evolutionNeedsAttention": "{{nodeName}}に注意が必要です",
+      "evolutionCollectingData": "{{nodeName}}のデータを収集中...",
+      "evolutionNoData": "{{nodeName}}にはフィードバックデータがありません",
+      "evolutionFailed": "{{nodeName}}の進化に失敗しました",
+      "evolutionTrigger": "{{nodeName}}の自己進化をトリガー",
+      "evolutionSuggestion": "🧬 {{nodeName}}自己進化提案",
+      "close": "閉じる"
     },
     "analysisDebug": {
       "node": "Node",

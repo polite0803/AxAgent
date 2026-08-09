@@ -14092,7 +14092,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "محلل",
+      "nodeTypeDebate": "عقدة المناقشة",
+      "nodeTypeDecision": "عقدة القرار",
+      "nodeTypeTool": "عقدة الأداة/الخوارزمية",
+      "nodeTypeValuation": "عقدة التقييم",
+      "nodeTypeRisk": "عقدة المخاطر",
+      "nodeTypeOther": "عقدة عامة",
+      "evolutionHealthy": "{{nodeName}} في حالة جيدة",
+      "evolutionNeedsAttention": "{{nodeName}} يحتاج إلى تحسين",
+      "evolutionCollectingData": "جاري جمع بيانات {{nodeName}}...",
+      "evolutionNoData": "{{nodeName}} لا توجد بيانات",
+      "evolutionFailed": "فشل تطور {{nodeName}}",
+      "evolutionTrigger": "تحفيز التطور الذاتي لـ {{nodeName}}",
+      "evolutionSuggestion": "🧬 اقتراح التطور الذاتي لـ {{nodeName}}",
+      "close": "إغلاق"
     },
     "analysisDebug": {
       "node": "Node",

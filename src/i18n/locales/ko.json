@@ -14092,7 +14092,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "애널리스트",
+      "nodeTypeDebate": "토론 노드",
+      "nodeTypeDecision": "의사결정 노드",
+      "nodeTypeTool": "도구/알고리즘 노드",
+      "nodeTypeValuation": "가치평가 노드",
+      "nodeTypeRisk": "위험 노드",
+      "nodeTypeOther": "일반 노드",
+      "evolutionHealthy": "{{nodeName}}이(가) 정상입니다",
+      "evolutionNeedsAttention": "{{nodeName}}에 주의가 필요합니다",
+      "evolutionCollectingData": "{{nodeName}} 데이터 수집 중...",
+      "evolutionNoData": "{{nodeName}}에 피드백 데이터가 없습니다",
+      "evolutionFailed": "{{nodeName}} 진화 실패",
+      "evolutionTrigger": "{{nodeName}} 자기 진화 트리거",
+      "evolutionSuggestion": "🧬 {{nodeName}} 자기 진화 제안",
+      "close": "닫기"
     },
     "analysisDebug": {
       "node": "Node",

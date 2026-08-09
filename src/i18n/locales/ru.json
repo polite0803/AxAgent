@@ -14092,7 +14092,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "Аналитик",
+      "nodeTypeDebate": "Узел дебатов",
+      "nodeTypeDecision": "Узел решений",
+      "nodeTypeTool": "Узел инструмента/алгоритма",
+      "nodeTypeValuation": "Узел оценки",
+      "nodeTypeRisk": "Узел риска",
+      "nodeTypeOther": "Общий узел",
+      "evolutionHealthy": "{{nodeName}} в норме",
+      "evolutionNeedsAttention": "{{nodeName}} требует внимания",
+      "evolutionCollectingData": "Сбор данных {{nodeName}}...",
+      "evolutionNoData": "{{nodeName}} не имеет данных обратной связи",
+      "evolutionFailed": "Эволюция {{nodeName}} не удалась",
+      "evolutionTrigger": "Триггер самоэволюции {{nodeName}}",
+      "evolutionSuggestion": "🧬 Предложение по самоэволюции {{nodeName}}",
+      "close": "Закрыть"
     },
     "analysisDebug": {
       "node": "Node",

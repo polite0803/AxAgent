@@ -14092,7 +14092,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "विश्लेषक",
+      "nodeTypeDebate": "बहस नोड",
+      "nodeTypeDecision": "निर्णय नोड",
+      "nodeTypeTool": "टूल/एल्गोरिदम नोड",
+      "nodeTypeValuation": "मूल्यांकन नोड",
+      "nodeTypeRisk": "जोखिम नोड",
+      "nodeTypeOther": "सामान्य नोड",
+      "evolutionHealthy": "{{nodeName}} स्वस्थ है",
+      "evolutionNeedsAttention": "{{nodeName}} को ध्यान चाहिए",
+      "evolutionCollectingData": "{{nodeName}} डेटा एकत्र किया जा रहा है...",
+      "evolutionNoData": "{{nodeName}} के पास कोई प्रतिक्रिया डेटा नहीं है",
+      "evolutionFailed": "{{nodeName}} का विकास विफल रहा",
+      "evolutionTrigger": "{{nodeName}} के स्वतः विकास को ट्रिगर करें",
+      "evolutionSuggestion": "🧬 {{nodeName}} स्वतः विकास सुझाव",
+      "close": "बंद करें"
     },
     "analysisDebug": {
       "node": "Node",

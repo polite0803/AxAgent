@@ -14384,7 +14384,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 項檢查",
       "dataQualityEmpty": "無結構化資料可分析",
-      "dataQualityNoScore": "無評分值"
+      "dataQualityNoScore": "無評分值",
+      "nodeTypeAnalyst": "分析師",
+      "nodeTypeDebate": "辯論節點",
+      "nodeTypeDecision": "決策節點",
+      "nodeTypeTool": "工具/演算法節點",
+      "nodeTypeValuation": "估值節點",
+      "nodeTypeRisk": "風險節點",
+      "nodeTypeOther": "通用節點",
+      "evolutionHealthy": "{{nodeName}}狀態良好",
+      "evolutionNeedsAttention": "{{nodeName}}需要優化",
+      "evolutionCollectingData": "收集{{nodeName}}資料中...",
+      "evolutionNoData": "{{nodeName}}暫無回饋資料",
+      "evolutionFailed": "{{nodeName}}進化失敗",
+      "evolutionTrigger": "觸發{{nodeName}}自我進化",
+      "evolutionSuggestion": "🧬 {{nodeName}}自我進化建議",
+      "close": "關閉"
     },
     "monte-carlo-panel": {
       "robustness-test-config": "⚙ 鲁棒性测试配置",

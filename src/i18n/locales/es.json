@@ -14092,7 +14092,22 @@
       "dataQualityPresent": "存在",
       "dataQualityCheckCount": "共 {{count}} 项检查",
       "dataQualityEmpty": "无结构化数据可分析",
-      "dataQualityNoScore": "无评分值"
+      "dataQualityNoScore": "无评分值",
+      "nodeTypeAnalyst": "Analista",
+      "nodeTypeDebate": "Nodo de Debate",
+      "nodeTypeDecision": "Nodo de Decisión",
+      "nodeTypeTool": "Nodo de Herramienta/Algoritmo",
+      "nodeTypeValuation": "Nodo de Valoración",
+      "nodeTypeRisk": "Nodo de Riesgo",
+      "nodeTypeOther": "Nodo General",
+      "evolutionHealthy": "{{nodeName}} está saludable",
+      "evolutionNeedsAttention": "{{nodeName}} necesita atención",
+      "evolutionCollectingData": "Recopilando datos de {{nodeName}}...",
+      "evolutionNoData": "{{nodeName}} no tiene datos de retroalimentación",
+      "evolutionFailed": "La evolución de {{nodeName}} falló",
+      "evolutionTrigger": "Disparar la autoevolución de {{nodeName}}",
+      "evolutionSuggestion": "🧬 Sugerencia de autoevolución de {{nodeName}}",
+      "close": "Cerrar"
     },
     "analysisDebug": {
       "node": "Node",

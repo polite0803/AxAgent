@@ -14299,7 +14299,22 @@
       "dataQualityPresent": "Present",
       "dataQualityCheckCount": "{{count}} checks total",
       "dataQualityEmpty": "No structured data to analyze",
-      "dataQualityNoScore": "No score"
+      "dataQualityNoScore": "No score",
+      "nodeTypeAnalyst": "Analyst",
+      "nodeTypeDebate": "Debate Node",
+      "nodeTypeDecision": "Decision Node",
+      "nodeTypeTool": "Tool/Algorithm Node",
+      "nodeTypeValuation": "Valuation Node",
+      "nodeTypeRisk": "Risk Node",
+      "nodeTypeOther": "General Node",
+      "evolutionHealthy": "{{nodeName}} is healthy",
+      "evolutionNeedsAttention": "{{nodeName}} needs attention",
+      "evolutionCollectingData": "Collecting {{nodeName}} data...",
+      "evolutionNoData": "{{nodeName}} has no feedback data",
+      "evolutionFailed": "{{nodeName}} evolution failed",
+      "evolutionTrigger": "Trigger {{nodeName}} self-evolution",
+      "evolutionSuggestion": "🧬 {{nodeName}} self-evolution suggestion",
+      "close": "Close"
     },
     "analysisDebug": {
       "node": "Node",
