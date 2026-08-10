@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "Délai dépassé",
+      "warning": "Bientôt en délai"
+    },
+    "executionTime": "Temps d'exécution",
+    "timeoutThreshold": "Seuil de délai {{value}}",
+    "nodeTimedOut": "Nœud en délai ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "Nœud bientôt en délai ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "Nœud {{nodeId}} en délai !",
+    "nodeTimeoutWarning": "Nœud {{nodeId}} bientôt en délai (reste {{remaining}}s)",
+    "nodeTimeoutSummary": "Nœuds en délai : {{nodes}}",
+    "nodeSoonTimeoutSummary": "Nœuds bientôt en délai : {{nodes}}",
+    "cancelExecution": "Annuler l'exécution"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "Nombre maximum de mots",
       "reviewStrictness": "Rigueur de la revue : relaxed / balanced / strict",
       "toleranceThreshold": "Seuil de tolérance (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "Œuvre sans titre"
   },
   "marketMainline": {
     "title": "Ligne Principale du Marché",

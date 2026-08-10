@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "Таймаут",
+      "warning": "Скоро таймаут"
+    },
+    "executionTime": "Время выполнения",
+    "timeoutThreshold": "Порог таймаута {{value}}",
+    "nodeTimedOut": "Узел превысил таймаут ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "Узел скоро превысит таймаут ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "Узел {{nodeId}} превысил таймаут!",
+    "nodeTimeoutWarning": "Узел {{nodeId}} скоро превысит таймаут (осталось {{remaining}}с)",
+    "nodeTimeoutSummary": "Узлы с таймаутом: {{nodes}}",
+    "nodeSoonTimeoutSummary": "Узлы со скорым таймаутом: {{nodes}}",
+    "cancelExecution": "Отменить выполнение"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "Максимальное количество слов",
       "reviewStrictness": "Строгость рецензирования: relaxed / balanced / strict",
       "toleranceThreshold": "Порог допуска (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "Безымянное произведение"
   },
   "marketMainline": {
     "title": "Главная линия рынка",

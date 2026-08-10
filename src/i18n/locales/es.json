@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "Tiempo agotado",
+      "warning": "Próximo a agotar"
+    },
+    "executionTime": "Tiempo de ejecución",
+    "timeoutThreshold": "Umbral de tiempo {{value}}",
+    "nodeTimedOut": "Nodo con tiempo agotado ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "Nodo próximo a agotar tiempo ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "¡Nodo {{nodeId}} con tiempo agotado!",
+    "nodeTimeoutWarning": "Nodo {{nodeId}} próximo a agotar tiempo (restan {{remaining}}s)",
+    "nodeTimeoutSummary": "Nodos con tiempo agotado: {{nodes}}",
+    "nodeSoonTimeoutSummary": "Nodos próximos a agotar tiempo: {{nodes}}",
+    "cancelExecution": "Cancelar ejecución"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "Recuento máximo de palabras",
       "reviewStrictness": "Rigor de revisión: relaxed / balanced / strict",
       "toleranceThreshold": "Umbral de tolerancia (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "Obra sin título"
   },
   "marketMainline": {
     "title": "Línea Principal del Mercado",

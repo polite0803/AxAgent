@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "タイムアウト",
+      "warning": "タイムアウト間近"
+    },
+    "executionTime": "実行時間",
+    "timeoutThreshold": "タイムアウト閾値 {{value}}",
+    "nodeTimedOut": "ノード実行がタイムアウトしました ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "ノードがタイムアウト間近です ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "ノード {{nodeId}} がタイムアウトしました！",
+    "nodeTimeoutWarning": "ノード {{nodeId}} がタイムアウト間近です（残り {{remaining}}秒）",
+    "nodeTimeoutSummary": "タイムアウトしたノード: {{nodes}}",
+    "nodeSoonTimeoutSummary": "タイムアウト間近のノード: {{nodes}}",
+    "cancelExecution": "実行をキャンセル"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "最大文字数",
       "reviewStrictness": "評価の厳格度: relaxed / balanced / strict",
       "toleranceThreshold": "許容閾値 (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "無題の作品"
   },
   "marketMainline": {
     "title": "市場メインライン",

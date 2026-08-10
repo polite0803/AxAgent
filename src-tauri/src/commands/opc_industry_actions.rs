@@ -1868,6 +1868,64 @@ pub struct IndustryLearningConfigView {
 /// `app_dir`：用户数据目录（生产环境）。传 None 时仅尝试仓库根相对路径
 /// （开发/测试，CWD=仓库根 的场景）。配置路径解析见
 /// [`industry_learning_config_path`]（行业包内 learning.yaml 优先）。
+impl IndustryLearningConfigView {
+    /// 创建默认的学习配置（当 learning.yaml 不存在时使用）
+    fn default_for(industry_id: &str) -> Self {
+        let industry_names: std::collections::HashMap<&str, &str> = [
+            ("ai-research", "人工智能研究"),
+            ("software-dev", "软件开发"),
+            ("finance-invest", "金融投资"),
+            ("sales-growth", "销售增长"),
+            ("content-media", "内容媒体"),
+            ("industry-consulting", "行业咨询"),
+            ("accounting", "会计"),
+            ("ecommerce", "电商运营"),
+            ("education", "教育"),
+            ("design", "设计"),
+            ("project-management", "项目管理"),
+            ("security", "安全合规"),
+            ("geospatial", "地理信息"),
+            ("game-dev", "游戏开发"),
+        ]
+        .into();
+
+        let industry_name = industry_names.get(industry_id).unwrap_or(&industry_id).to_string();
+
+        Self {
+            version: 1,
+            industry_id: industry_id.to_string(),
+            industry_name,
+            reflection_enabled: true,
+            evolution_enabled: false,
+            code_evolver_enabled: false,
+            self_improvement_enabled: false,
+            reinforcement_learning_enabled: false,
+            reinforcement_learning: axagent_orchestrator::ReinforcementLearningConfig {
+                enabled: false,
+                reward_model: None,
+                auto_train_threshold: 50,
+                learning_rate: 0.01,
+                gamma: 0.95,
+                epsilon: 0.1,
+                reward_weights: axagent_orchestrator::RewardWeightConfig {
+                    quality: 0.35,
+                    efficiency: 0.25,
+                    cost: 0.15,
+                    innovation: 0.15,
+                    satisfaction: 0.10,
+                },
+                optimization_goals: Vec::new(),
+            },
+            config_path: String::from("<default>"),
+        }
+    }
+}
+
+/// 获取行业学习配置
+///
+/// `app_dir`：用户数据目录（生产环境）。传 None 时仅尝试仓库根相对路径
+/// （开发/测试，CWD=仓库根 的场景）。配置路径解析见
+/// [`industry_learning_config_path`]（行业包内 learning.yaml 优先）。
 pub fn get_industry_learning_config(
     industry_id: &str,
     app_dir: Option<&std::path::Path>,
@@ -1992,6 +2050,8 @@ pub fn get_all_industry_learning_configs(
 // ── Tauri 命令（学习配置） ──────────────────────────────────
 
 /// 获取行业学习配置
+///
+/// 当配置文件不存在时返回默认配置，确保系统可以正常运行
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业学习配置")]
 #[tauri::command]
 pub async fn opc_get_learning_config(
@@ -1999,7 +2059,12 @@ pub async fn opc_get_learning_config(
     industry_id: String,
 ) -> Result<serde_json::Value, String> {
     let config = get_industry_learning_config(&industry_id, Some(&state.app_data_dir))
-        .ok_or_else(|| format!("行业学习配置不存在: {industry_id}"))?;
+        .unwrap_or_else(|| {
+            tracing::warn!(
+                "[opc_get_learning_config] 行业学习配置不存在，返回默认配置: {industry_id}"
+            );
+            IndustryLearningConfigView::default_for(&industry_id)
+        });
     serde_json::to_value(config).map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,

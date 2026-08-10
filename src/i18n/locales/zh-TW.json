@@ -12682,7 +12682,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "已匯入"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "逾時",
+      "warning": "即將逾時"
+    },
+    "executionTime": "執行耗時",
+    "timeoutThreshold": "逾時閾值 {{value}}",
+    "nodeTimedOut": "節點執行已逾時 ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "節點即將逾時 ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "節點 {{nodeId}} 執行逾時！",
+    "nodeTimeoutWarning": "節點 {{nodeId}} 即將逾時（剩餘約 {{remaining}}秒）",
+    "nodeTimeoutSummary": "節點逾時: {{nodes}}",
+    "nodeSoonTimeoutSummary": "節點即將逾時: {{nodes}}",
+    "cancelExecution": "取消執行"
   },
   "backtest": {
     "title": "回測驗證",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "最大字數",
       "reviewStrictness": "評審嚴格度: relaxed / balanced / strict",
       "toleranceThreshold": "容忍閾值 (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "未命名作品"
   },
   "marketMainline": {
     "title": "市場主線",

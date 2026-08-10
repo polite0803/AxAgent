@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "시간 초과",
+      "warning": "시간 초과 임박"
+    },
+    "executionTime": "실행 시간",
+    "timeoutThreshold": "시간 초과 임계값 {{value}}",
+    "nodeTimedOut": "노드 실행 시간 초과 ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "노드 시간 초과 임박 ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "노드 {{nodeId}} 실행 시간 초과!",
+    "nodeTimeoutWarning": "노드 {{nodeId}} 시간 초과 임박 (남은 {{remaining}}초)",
+    "nodeTimeoutSummary": "시간 초과 노드: {{nodes}}",
+    "nodeSoonTimeoutSummary": "시간 초과 임박 노드: {{nodes}}",
+    "cancelExecution": "실행 취소"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "최대 단어 수",
       "reviewStrictness": "검토 엄격도: relaxed / balanced / strict",
       "toleranceThreshold": "허용 임계값 (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "제목 없는 작품"
   },
   "marketMainline": {
     "title": "시장 메인라인",

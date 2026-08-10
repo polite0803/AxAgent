@@ -5259,6 +5259,45 @@
             }
           }
         }
+      },
+      "refactor": {
+        "title": "Code Refactoring Config",
+        "risk_levels": {
+          "low": "Low Risk",
+          "medium": "Medium Risk",
+          "high": "High Risk",
+          "critical": "Critical Risk"
+        },
+        "severity_levels": {
+          "low": "Minor",
+          "medium": "Moderate",
+          "high": "Severe",
+          "critical": "Critical"
+        },
+        "debt_categories": {
+          "all": "All",
+          "security": "Security",
+          "performance": "Performance",
+          "maintainability": "Maintainability",
+          "duplicate": "Duplicate Code"
+        },
+        "settings": {
+          "title": "Code Refactoring Config",
+          "saveConfig": "Save Config",
+          "saveSuccess": "Config saved successfully",
+          "saveFailed": "Failed to save config: {{error}}",
+          "loadFailed": "Failed to load config",
+          "group": {
+            "common": "Basic Info",
+            "refactor": "Refactoring Settings",
+            "techDebt": "Tech Debt Analysis"
+          },
+          "titles": {
+            "fullRefactor": "Major Refactoring Config",
+            "liteRefactor": "Quick Refactoring Config",
+            "techDebt": "Tech Debt Analysis Config"
+          }
+        }
       }
     },
     "input_fields": {
@@ -5271,6 +5310,52 @@
         },
         "tech_stack": {
           "label": "Tech Stack"
+        }
+      },
+      "refactor": {
+        "fields": {
+          "codebase_path": {
+            "label": "Codebase Path",
+            "placeholder": "e.g., D:/projects/my-app"
+          },
+          "refactor_goal": {
+            "label": "Refactoring Goal",
+            "placeholder": "Describe the specific refactoring goal, e.g., migrate class components to Hooks, split巨型 components, etc."
+          },
+          "target_modules": {
+            "label": "Target Modules",
+            "placeholder": "e.g., src/components/UserPanel, src/hooks/useAuth"
+          },
+          "risk_level": {
+            "label": "Risk Level",
+            "placeholder": "low / medium / high"
+          },
+          "test_coverage_min": {
+            "label": "Min Test Coverage (%)"
+          },
+          "auto_fix": {
+            "label": "Auto Fix"
+          },
+          "max_file_changes": {
+            "label": "Max File Changes"
+          },
+          "tech_debt_categories": {
+            "label": "Tech Debt Categories",
+            "placeholder": "all / security / performance / maintainability / duplicate"
+          },
+          "severity_threshold": {
+            "label": "Severity Threshold",
+            "placeholder": "low / medium / high / critical"
+          },
+          "estimated_hours": {
+            "label": "Estimated Hours"
+          },
+          "priority_fix": {
+            "label": "Priority Fix"
+          },
+          "generate_report": {
+            "label": "Generate Report"
+          }
         }
       },
       "finance_invest": {
@@ -12051,7 +12136,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "Imported successfully"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "Timeout",
+      "warning": "Soon to timeout"
+    },
+    "executionTime": "Execution time",
+    "timeoutThreshold": "Timeout threshold {{value}}",
+    "nodeTimedOut": "Node timed out ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "Node soon to timeout ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "Node {{nodeId}} timed out!",
+    "nodeTimeoutWarning": "Node {{nodeId}} soon to timeout (remaining {{remaining}}s)",
+    "nodeTimeoutSummary": "Nodes timed out: {{nodes}}",
+    "nodeSoonTimeoutSummary": "Nodes soon to timeout: {{nodes}}",
+    "cancelExecution": "Cancel execution"
   },
   "knowledgeSettings": {
     "title": "Knowledge"
@@ -15034,7 +15132,8 @@
       "wordCountMax": "Maximum word count",
       "reviewStrictness": "Review strictness: relaxed / balanced / strict",
       "toleranceThreshold": "Tolerance threshold (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "Untitled Work"
   },
   "marketMainline": {
     "title": "Market Mainline",

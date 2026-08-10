@@ -602,7 +602,9 @@ const StepRow = memo(function StepRow({
             }}
           >
             <AlertTriangle size={10} />
-            {step.timeout_level === "critical" ? "超时" : "即将超时"}
+            {step.timeout_level === "critical"
+              ? t("chat.workflow.timeoutLevel.critical")
+              : t("chat.workflow.timeoutLevel.warning")}
           </span>
         )}
 
@@ -632,7 +634,7 @@ const StepRow = memo(function StepRow({
           {/* 运行中节点的详细执行状态 */}
           {step.status === "running" && step.elapsed_ms !== undefined && (
             <div className="flex gap-4 items-center">
-              <span className="text-zinc-500">执行耗时</span>
+              <span className="text-zinc-500">{t("chat.workflow.executionTime")}</span>
               <span style={{ color: token.colorPrimary }}>
                 {formatElapsed(step.elapsed_ms)}
               </span>
@@ -640,7 +642,7 @@ const StepRow = memo(function StepRow({
                 <>
                   <span className="text-zinc-400">/</span>
                   <span className="text-zinc-400">
-                    超时阈值 {formatElapsed(step.timeout_ms)}
+                    {t("chat.workflow.timeoutThreshold", { value: formatElapsed(step.timeout_ms) })}
                   </span>
                 </>
               )}
@@ -688,8 +690,14 @@ const StepRow = memo(function StepRow({
                 }}
               >
                 {step.timeout_level === "critical"
-                  ? `节点执行已超时 (${formatElapsed(step.elapsed_ms)} / ${formatElapsed(step.timeout_ms)})`
-                  : `节点即将超时 (${formatElapsed(step.elapsed_ms)} / ${formatElapsed(step.timeout_ms)})`}
+                  ? t("chat.workflow.nodeTimedOut", {
+                    elapsed: formatElapsed(step.elapsed_ms),
+                    timeout: formatElapsed(step.timeout_ms),
+                  })
+                  : t("chat.workflow.nodeSoonTimeout", {
+                    elapsed: formatElapsed(step.elapsed_ms),
+                    timeout: formatElapsed(step.timeout_ms),
+                  })}
               </span>
             </div>
           )}
@@ -843,9 +851,14 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
       // 可以添加超时警告的 toast 提示
       if (detail.level === "critical") {
-        message.error(`节点 ${detail.nodeId} 执行超时！`);
+        message.error(t("chat.workflow.nodeTimeoutError", { nodeId: detail.nodeId }));
       } else {
-        message.warning(`节点 ${detail.nodeId} 即将超时（剩余约 ${Math.floor((detail.remainingMs ?? 0) / 1000)}秒）`);
+        message.warning(
+          t("chat.workflow.nodeTimeoutWarning", {
+            nodeId: detail.nodeId,
+            remaining: Math.floor((detail.remainingMs ?? 0) / 1000),
+          }),
+        );
       }
     };
 
@@ -1117,8 +1130,8 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
             }}
           >
             {criticalWarnings.length > 0
-              ? `节点超时: ${criticalWarnings.join(", ")}`
-              : `节点即将超时: ${warningWarnings.join(", ")}`}
+              ? t("chat.workflow.nodeTimeoutSummary", { nodes: criticalWarnings.join(", ") })
+              : t("chat.workflow.nodeSoonTimeoutSummary", { nodes: warningWarnings.join(", ") })}
           </span>
           {canCancel && (
             <Button
@@ -1132,7 +1145,7 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
                 color: criticalWarnings.length > 0 ? token.colorError : token.colorWarning,
               }}
             >
-              取消执行
+              {t("chat.workflow.cancelExecution")}
             </Button>
           )}
         </div>

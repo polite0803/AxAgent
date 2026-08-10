@@ -5259,6 +5259,45 @@
             }
           }
         }
+      },
+      "refactor": {
+        "title": "代码重构配置",
+        "risk_levels": {
+          "low": "低风险",
+          "medium": "中风险",
+          "high": "高风险",
+          "critical": "严重风险"
+        },
+        "severity_levels": {
+          "low": "轻微",
+          "medium": "中等",
+          "high": "严重",
+          "critical": "致命"
+        },
+        "debt_categories": {
+          "all": "全部",
+          "security": "安全",
+          "performance": "性能",
+          "maintainability": "可维护性",
+          "duplicate": "重复代码"
+        },
+        "settings": {
+          "title": "代码重构配置",
+          "saveConfig": "保存配置",
+          "saveSuccess": "配置保存成功",
+          "saveFailed": "配置保存失败：{{error}}",
+          "loadFailed": "加载配置失败",
+          "group": {
+            "common": "基础信息",
+            "refactor": "重构配置",
+            "techDebt": "技术债分析"
+          },
+          "titles": {
+            "fullRefactor": "大规模重构配置",
+            "liteRefactor": "快速追加重构配置",
+            "techDebt": "技术债分析配置"
+          }
+        }
       }
     },
     "input_fields": {
@@ -5271,6 +5310,52 @@
         },
         "tech_stack": {
           "label": "技术栈"
+        }
+      },
+      "refactor": {
+        "fields": {
+          "codebase_path": {
+            "label": "代码库路径",
+            "placeholder": "如：D:/projects/my-app"
+          },
+          "refactor_goal": {
+            "label": "重构目标",
+            "placeholder": "描述需要重构的具体目标，如：将函数式组件迁移为 Hooks、拆分巨型组件等"
+          },
+          "target_modules": {
+            "label": "目标模块",
+            "placeholder": "如：src/components/UserPanel, src/hooks/useAuth"
+          },
+          "risk_level": {
+            "label": "风险等级",
+            "placeholder": "low / medium / high"
+          },
+          "test_coverage_min": {
+            "label": "最低测试覆盖率 (%)"
+          },
+          "auto_fix": {
+            "label": "自动修复"
+          },
+          "max_file_changes": {
+            "label": "最大变更文件数"
+          },
+          "tech_debt_categories": {
+            "label": "技术债类别",
+            "placeholder": "all / security / performance / maintainability / duplicate"
+          },
+          "severity_threshold": {
+            "label": "严重程度阈值",
+            "placeholder": "low / medium / high / critical"
+          },
+          "estimated_hours": {
+            "label": "预估工时 (小时)"
+          },
+          "priority_fix": {
+            "label": "优先修复"
+          },
+          "generate_report": {
+            "label": "生成报告"
+          }
         }
       },
       "finance_invest": {
@@ -11948,7 +12033,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "超时",
+      "warning": "即将超时"
+    },
+    "executionTime": "执行耗时",
+    "timeoutThreshold": "超时阈值 {{value}}",
+    "nodeTimedOut": "节点执行已超时 ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "节点即将超时 ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "节点 {{nodeId}} 执行超时！",
+    "nodeTimeoutWarning": "节点 {{nodeId}} 即将超时（剩余约 {{remaining}}秒）",
+    "nodeTimeoutSummary": "节点超时: {{nodes}}",
+    "nodeSoonTimeoutSummary": "节点即将超时: {{nodes}}",
+    "cancelExecution": "取消执行"
   },
   "compare": {
     "title": "多股对比",
@@ -15034,7 +15132,8 @@
       "wordCountMax": "最大字数",
       "reviewStrictness": "评审严格度: relaxed / balanced / strict",
       "toleranceThreshold": "容忍阈值 (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "未命名作品"
   },
   "marketMainline": {
     "title": "市场主线",

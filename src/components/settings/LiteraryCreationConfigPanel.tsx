@@ -1,6 +1,7 @@
 import type { Variable, WorkflowTemplateInput, WorkflowTemplateResponse } from "@/components/workflow/types";
 import { invoke } from "@/lib/invoke";
 import { App, Button, Input, InputNumber, Select, Switch, theme } from "antd";
+import i18next from "i18next";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
@@ -15,7 +16,12 @@ function getDefaultVariables(): Variable[] {
 
   // 输出配置
   b("output_dir", "./output/literary_creation", "literaryCreation.configDescriptions.outputDir", "string");
-  b("document_title", "未命名作品", "literaryCreation.configDescriptions.documentTitle", "string");
+  b(
+    "document_title",
+    i18next.t("literaryCreation.defaultDocumentTitle"),
+    "literaryCreation.configDescriptions.documentTitle",
+    "string",
+  );
   b("file_format", "docx", "literaryCreation.configDescriptions.fileFormat", "enum");
 
   // 内容配置

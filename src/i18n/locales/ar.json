@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "انتهى الوقت",
+      "warning": "قارب على انتهاء الوقت"
+    },
+    "executionTime": "وقت التنفيذ",
+    "timeoutThreshold": "عتبة الوقت {{value}}",
+    "nodeTimedOut": "انتهى وقت تنفيذ العقدة ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "قارب وقت العقدة على الانتهاء ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "انتهى وقت العقدة {{nodeId}}!",
+    "nodeTimeoutWarning": "قارب وقت العقدة {{nodeId}} على الانتهاء (المتبقي {{remaining}}ث)",
+    "nodeTimeoutSummary": "العقدات التي انتهى وقتها: {{nodes}}",
+    "nodeSoonTimeoutSummary": "العقدات القريبة من انتهاء الوقت: {{nodes}}",
+    "cancelExecution": "إلغاء التنفيذ"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "الحد الأقصى لعدد الكلمات",
       "reviewStrictness": "صرامة المراجعة: relaxed / balanced / strict",
       "toleranceThreshold": "عتبة التسامح (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "عمل بدون عنوان"
   },
   "marketMainline": {
     "title": "الخط الرئيسي للسوق",

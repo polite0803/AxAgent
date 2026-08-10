@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "टाइमआउट",
+      "warning": "जल्द ही टाइमआउट"
+    },
+    "executionTime": "निष्पादन समय",
+    "timeoutThreshold": "टाइमआउट सीमा {{value}}",
+    "nodeTimedOut": "नोड टाइमआउट हो गया ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "नोड जल्द ही टाइमआउट होगा ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "नोड {{nodeId}} टाइमआउट हो गया!",
+    "nodeTimeoutWarning": "नोड {{nodeId}} जल्द ही टाइमआउट होगा ({{remaining}}s शेष)",
+    "nodeTimeoutSummary": "टाइमआउट नोड्स: {{nodes}}",
+    "nodeSoonTimeoutSummary": "जल्द टाइमआउट नोड्स: {{nodes}}",
+    "cancelExecution": "निष्पादन रद्द करें"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "अधिकतम शब्द संख्या",
       "reviewStrictness": "समीक्षा कठोरता: relaxed / balanced / strict",
       "toleranceThreshold": "सहिष्णुता सीमा (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "शीर्षकहीन कृति"
   },
   "marketMainline": {
     "title": "बाज़ार मुख्य रेखा",

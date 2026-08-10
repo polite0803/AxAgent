@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { CodeRefactorSettingsModal } from "@/components/settings/CodeRefactorSettingsModal";
 import { LiteraryCreationSettingsModal } from "@/components/settings/LiteraryCreationSettingsModal";
 import { useConversationStore, useSettingsStore } from "@/stores";
 
@@ -42,6 +43,8 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeWorkflow, setActiveWorkflow] = useState<IndustryWorkflow | null>(null);
   const [literarySettingsOpen, setLiterarySettingsOpen] = useState(false);
+  const [refactorSettingsOpen, setRefactorSettingsOpen] = useState(false);
+  const [refactorWorkflowId, setRefactorWorkflowId] = useState<string>("");
 
   const handleAction = async (action: ActionItem) => {
     if (!settings?.default_provider_id || !settings?.default_model_id) {
@@ -231,6 +234,20 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
                       {t("literaryCreation.settings.saveConfig")}
                     </Button>
                   )}
+                  {(wf.id === "wf-eng-refactor"
+                    || wf.id === "wf-eng-refactor-lite"
+                    || wf.id === "wf-eng-tech-debt") && (
+                    <Button
+                      size="small"
+                      icon={<Settings size={14} />}
+                      onClick={() => {
+                        setRefactorWorkflowId(wf.id);
+                        setRefactorSettingsOpen(true);
+                      }}
+                    >
+                      {t("opc.refactor.settings.saveConfig")}
+                    </Button>
+                  )}
                   <Button
                     size="small"
                     type="primary"
@@ -258,6 +275,12 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
       <LiteraryCreationSettingsModal
         open={literarySettingsOpen}
         onClose={() => setLiterarySettingsOpen(false)}
+      />
+
+      <CodeRefactorSettingsModal
+        open={refactorSettingsOpen}
+        onClose={() => setRefactorSettingsOpen(false)}
+        workflowId={refactorWorkflowId}
       />
     </div>
   );

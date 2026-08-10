@@ -14852,7 +14852,20 @@
   "chat:workflow": {
     "templateList": {
       "presetsImported": "导入成功"
-    }
+    },
+    "timeoutLevel": {
+      "critical": "Zeitüberschreitung",
+      "warning": "Bald Zeitüberschreitung"
+    },
+    "executionTime": "Ausführungszeit",
+    "timeoutThreshold": "Zeitüberschreitungsschwelle {{value}}",
+    "nodeTimedOut": "Knoten zeitüberschritten ({{elapsed}} / {{timeout}})",
+    "nodeSoonTimeout": "Knoten bald zeitüberschritten ({{elapsed}} / {{timeout}})",
+    "nodeTimeoutError": "Knoten {{nodeId}} zeitüberschritten!",
+    "nodeTimeoutWarning": "Knoten {{nodeId}} bald zeitüberschritten (verbleibend {{remaining}}s)",
+    "nodeTimeoutSummary": "Zeitüberschrittene Knoten: {{nodes}}",
+    "nodeSoonTimeoutSummary": "Bald zeitüberschrittene Knoten: {{nodes}}",
+    "cancelExecution": "Ausführung abbrechen"
   },
   "components_skill_SkillABTestResults": {
     "暂无_A_B_测试数据": "暂无 A/B 测试数据",
@@ -15034,7 +15047,8 @@
       "wordCountMax": "Höchstwortzahl",
       "reviewStrictness": "Überprüfungsstrenge: relaxed / balanced / strict",
       "toleranceThreshold": "Toleranzschwelle (0-5)"
-    }
+    },
+    "defaultDocumentTitle": "Unbenanntes Werk"
   },
   "marketMainline": {
     "title": "Markt-Hauptlinie",

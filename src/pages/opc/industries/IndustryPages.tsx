@@ -45,6 +45,111 @@ const SOFTWARE_DEV_INPUT_FIELDS = [
   { key: "tech_stack", label: "opc.input_fields.software_dev.tech_stack.label", type: "string" as const },
 ];
 
+// 代码重构：大规模重构
+const REFACTOR_FULL_INPUT_FIELDS = [
+  {
+    key: "project_name",
+    label: "opc.input_fields.software_dev.project_name.label",
+    type: "string" as const,
+    required: true,
+  },
+  {
+    key: "codebase_path",
+    label: "opc.refactor.fields.codebase_path.label",
+    type: "string" as const,
+    required: true,
+    placeholder: "opc.refactor.fields.codebase_path.placeholder",
+  },
+  {
+    key: "refactor_goal",
+    label: "opc.refactor.fields.refactor_goal.label",
+    type: "textarea" as const,
+    required: true,
+    placeholder: "opc.refactor.fields.refactor_goal.placeholder",
+  },
+  {
+    key: "target_modules",
+    label: "opc.refactor.fields.target_modules.label",
+    type: "string" as const,
+    placeholder: "opc.refactor.fields.target_modules.placeholder",
+  },
+  {
+    key: "risk_level",
+    label: "opc.refactor.fields.risk_level.label",
+    type: "string" as const,
+    placeholder: "opc.refactor.fields.risk_level.placeholder",
+  },
+  {
+    key: "test_coverage_min",
+    label: "opc.refactor.fields.test_coverage_min.label",
+    type: "number" as const,
+  },
+];
+
+// 代码重构：快速追加（轻量）
+const REFACTOR_LITE_INPUT_FIELDS = [
+  {
+    key: "project_name",
+    label: "opc.input_fields.software_dev.project_name.label",
+    type: "string" as const,
+    required: true,
+  },
+  {
+    key: "codebase_path",
+    label: "opc.refactor.fields.codebase_path.label",
+    type: "string" as const,
+    required: true,
+    placeholder: "opc.refactor.fields.codebase_path.placeholder",
+  },
+  {
+    key: "refactor_goal",
+    label: "opc.refactor.fields.refactor_goal.label",
+    type: "textarea" as const,
+    required: true,
+    placeholder: "opc.refactor.fields.refactor_goal.placeholder",
+  },
+  {
+    key: "target_modules",
+    label: "opc.refactor.fields.target_modules.label",
+    type: "string" as const,
+    placeholder: "opc.refactor.fields.target_modules.placeholder",
+  },
+];
+
+// 技术债分析
+const TECH_DEBT_INPUT_FIELDS = [
+  {
+    key: "project_name",
+    label: "opc.input_fields.software_dev.project_name.label",
+    type: "string" as const,
+    required: true,
+  },
+  {
+    key: "codebase_path",
+    label: "opc.refactor.fields.codebase_path.label",
+    type: "string" as const,
+    required: true,
+    placeholder: "opc.refactor.fields.codebase_path.placeholder",
+  },
+  {
+    key: "tech_debt_categories",
+    label: "opc.refactor.fields.tech_debt_categories.label",
+    type: "string" as const,
+    placeholder: "opc.refactor.fields.tech_debt_categories.placeholder",
+  },
+  {
+    key: "severity_threshold",
+    label: "opc.refactor.fields.severity_threshold.label",
+    type: "string" as const,
+    placeholder: "opc.refactor.fields.severity_threshold.placeholder",
+  },
+  {
+    key: "estimated_hours",
+    label: "opc.refactor.fields.estimated_hours.label",
+    type: "number" as const,
+  },
+];
+
 const FINANCE_INVEST_INPUT_FIELDS = [
   {
     key: "portfolio_value",
@@ -442,22 +547,22 @@ const softwareDevConfig: IndustryConfig = {
           id: "wf-eng-refactor",
           name: i18n.t("opc.industry.software_dev.tabs.develop.workflows.wf_eng_refactor.name"),
           description: i18n.t("opc.industry.software_dev.tabs.develop.workflows.wf_eng_refactor.description"),
-          version: "1.0",
-          inputFields: SOFTWARE_DEV_INPUT_FIELDS,
+          version: "2.0",
+          inputFields: REFACTOR_FULL_INPUT_FIELDS,
         },
         {
           id: "wf-eng-refactor-lite",
           name: i18n.t("opc.industry.software_dev.tabs.develop.workflows.wf_eng_refactor_lite.name"),
           description: i18n.t("opc.industry.software_dev.tabs.develop.workflows.wf_eng_refactor_lite.description"),
-          version: "1.0",
-          inputFields: SOFTWARE_DEV_INPUT_FIELDS,
+          version: "2.0",
+          inputFields: REFACTOR_LITE_INPUT_FIELDS,
         },
         {
           id: "wf-eng-tech-debt",
           name: i18n.t("opc.industry.software_dev.tabs.develop.workflows.wf_eng_tech_debt.name"),
           description: i18n.t("opc.industry.software_dev.tabs.develop.workflows.wf_eng_tech_debt.description"),
-          version: "1.0",
-          inputFields: SOFTWARE_DEV_INPUT_FIELDS,
+          version: "2.0",
+          inputFields: TECH_DEBT_INPUT_FIELDS,
         },
       ],
     },
