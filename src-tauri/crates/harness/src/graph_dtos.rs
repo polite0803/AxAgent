@@ -12,6 +12,7 @@ use crate::page_type::PageType;
 // ── Graph primitives (from dao::repo::note) ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphNode {
     pub id: String,
     pub title: String,

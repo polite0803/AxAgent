@@ -6,7 +6,7 @@ use axagent_harness::types::ProviderType;
 use axagent_harness::workflow_types::*;
 use axagent_harness::{ProviderRequestContext, url_utils::resolve_base_url_for_type};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
@@ -1215,6 +1215,83 @@ pub(super) fn parse_llm_response(
             edge_type,
             label: None,
         });
+    }
+
+    // 确保工作流包含 EndNode —— LLM 可能不总是遵循"以 end 节点结束"的规则
+    let has_end_node = nodes.iter().any(|n| matches!(n, WorkflowNode::End(_)));
+    if !has_end_node && !nodes.is_empty() {
+        // 找出没有出边的节点（叶子节点），将它们连接到新的 EndNode
+        let source_ids: HashSet<String> = edges.iter().map(|e| e.source.clone()).collect();
+        let leaf_node_ids: Vec<String> = nodes
+            .iter()
+            .filter_map(|n| {
+                let id = n.base_id().to_string();
+                if source_ids.contains(&id) {
+                    None
+                } else {
+                    Some(id)
+                }
+            })
+            .collect();
+
+        // 生成唯一的 EndNode ID
+        let end_id = format!("end_auto_{}", parsed.nodes.len() + 1);
+
+        // 定位 EndNode：放在最后一个节点右侧
+        let last_position = nodes.last().map(|n| n.base().position.clone());
+        let end_position = Position {
+            x: last_position.as_ref().map(|p| p.x + 250.0).unwrap_or(250.0),
+            y: last_position.map(|p| p.y).unwrap_or(0.0),
+        };
+
+        let end_node = WorkflowNode::End(EndNode {
+            base: WorkflowNodeBase {
+                continue_on_fail: false,
+                compensation: None,
+                id: end_id.clone(),
+                title: "End".to_string(),
+                description: Some("Auto-created end node".to_string()),
+                position: end_position,
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+                parent_id: None,
+            },
+            config: EndNodeConfig { output_var: Some("final_output".to_string()) },
+        });
+
+        // 将叶子节点连接到 EndNode
+        let mut new_edges = Vec::new();
+        for (i, leaf_id) in leaf_node_ids.iter().enumerate() {
+            new_edges.push(WorkflowEdge {
+                id: format!("edge_to_end_{}", i + 1),
+                source: leaf_id.clone(),
+                source_handle: None,
+                target: end_id.clone(),
+                target_handle: None,
+                edge_type: EdgeType::Direct,
+                label: None,
+            });
+        }
+
+        // 兜底：如果所有节点都有出边（环等异常情况），连接最后一个节点
+        if leaf_node_ids.is_empty() {
+            if let Some(last_node) = nodes.last() {
+                let last_id = last_node.base_id().to_string();
+                new_edges.push(WorkflowEdge {
+                    id: "edge_to_end_fallback".to_string(),
+                    source: last_id,
+                    source_handle: None,
+                    target: end_id.clone(),
+                    target_handle: None,
+                    edge_type: EdgeType::Direct,
+                    label: None,
+                });
+            }
+        }
+
+        nodes.push(end_node);
+        edges.extend(new_edges);
     }
 
     Ok(WorkflowGenerationResult {

@@ -46,7 +46,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.9.1"
+version = "2.9.2"
 edition = "2024"
 license = "AGPL-3.0-only"
 
@@ -82,7 +82,7 @@ xcap = "0.9.6"
 
 [package]
 name = "axagent"
-version = "2.9.1"
+version = "2.9.2"
 authors = ["刘小平 <polite0803@outlook.com>"]
 default-run = "AxInvest"
 edition = "2024"
@@ -245,6 +245,14 @@ incremental = true
 # Windows MSVC 关键优化：split-debuginfo="unpacked" 将 PDB 拆分到 .pdb 文件，
 # 避免链接器把 debug info 打包进 .dll/.exe，每次链接减少数分钟
 split-debuginfo = "unpacked"
+codegen-units = 16
+
+# 第三方依赖编译加速：不生成调试信息，更多并行 codegen
+[profile.dev.build-override]
+opt-level = 0
+codegen-units = 64
+debug = false
+incremental = true
 
 [dev-dependencies]
 anyhow = { workspace = true }

@@ -1411,13 +1411,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     initNewTemplate: () => {
       const importedData = get().importedWorkflowData;
       const empty = createEmptyTemplate();
-      // 创建全新空白模板时自动添加一个默认 TriggerNode，作为工作流入口
+      // 创建全新空白模板时自动添加默认 TriggerNode 和 EndNode，形成完整的起始-终止流程
       const hasImportedNodes = !!(importedData?.nodes && importedData.nodes.length > 0);
+      const triggerId = `node-${crypto.randomUUID()}`;
+      const endId = `node-${crypto.randomUUID()}`;
       const nodes = hasImportedNodes
         ? importedData!.nodes
         : [
           {
-            id: `node-${crypto.randomUUID()}`,
+            id: triggerId,
             type: "trigger" as const,
             title: i18n.t("workflow.nodeTypes.trigger", "Trigger"),
             description: "",
@@ -1433,8 +1435,34 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             enabled: true,
             config: { type: "manual", config: {} },
           } as WorkflowNode,
+          {
+            id: endId,
+            type: "end" as const,
+            title: i18n.t("workflow.nodeTypes.end", "End"),
+            description: "",
+            position: { x: 250, y: 350 },
+            retry: {
+              enabled: false,
+              max_retries: 3,
+              backoff_type: "Exponential" as const,
+              base_delay_ms: 1000,
+              max_delay_ms: 60000,
+            },
+            timeout: undefined,
+            enabled: true,
+            config: {},
+          } as WorkflowNode,
         ];
-      const edges = importedData?.edges || [];
+      const edges = hasImportedNodes
+        ? (importedData?.edges || [])
+        : [
+          {
+            id: `edge-${crypto.randomUUID()}`,
+            source: triggerId,
+            target: endId,
+            edge_type: "direct" as const,
+          } as WorkflowEdge,
+        ];
       set((state) => {
         state.currentTemplate = {
           ...empty,

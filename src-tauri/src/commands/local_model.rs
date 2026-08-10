@@ -29,8 +29,12 @@ use tauri::State;
 const SETTING_PREFIX: &str = "local_llama";
 /// 默认启动探测超时（秒）
 const STARTUP_TIMEOUT_SECS: u64 = 120;
+/// 端口等待释放超时（秒）
+const PORT_RELEASE_TIMEOUT_SECS: u64 = 10;
 /// 默认日志行数
 const DEFAULT_LOG_LINES: u32 = 200;
+/// 最大日志文件大小（字节），超过则轮转
+const MAX_LOG_SIZE_BYTES: u64 = 50 * 1024 * 1024; // 50 MB
 /// 嵌入测试预览维度数
 const PREVIEW_DIMS: usize = 8;
 
@@ -128,6 +132,81 @@ fn parse_host_port(base_or_host: &str) -> (String, u16) {
         None => (s.to_string(), 8091),
     };
     (host, port)
+}
+
+/// 安全过滤 extra_args：拒绝可能导致进程异常或安全风险的参数。
+fn validate_extra_args(args: &[String]) -> Vec<String> {
+    let dangerous_prefixes = [
+        "--help",
+        "--version",
+        "--no-mmap",
+        "--no-mlock",
+        "--mlock",
+        "--nobench",
+        "--ignore-eos",
+        "--special",
+        "--interactive",
+        "--interactive-first",
+        "--log-disable",
+        "--log-enable",
+        "--log-file",
+        "--training",
+        "--grammar",
+        "--grammar-file",
+        "--speculative",
+        "--speculative-num",
+        "--cont-batching",
+        "--no-cnv",
+        "--parallel",
+        "--cont-batch-size",
+        "--flash-attn",
+        "--no-flash-attn",
+    ];
+    let mut safe = Vec::new();
+    for arg in args {
+        let trimmed = arg.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        // 检查是否以危险前缀开头
+        let is_dangerous = dangerous_prefixes
+            .iter()
+            .any(|p| trimmed == *p || trimmed.starts_with(&format!("{p}=")));
+        if !is_dangerous {
+            safe.push(arg.clone());
+        } else {
+            tracing::warn!("[local_model] 过滤危险参数: {arg}");
+        }
+    }
+    safe
+}
+
+/// 等待指定端口被释放（用于 stop 后确认进程已退出）。
+async fn wait_for_port_release(port: u16) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(PORT_RELEASE_TIMEOUT_SECS);
+    while Instant::now() < deadline {
+        if probe_process(port).is_none() {
+            return true;
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    false
+}
+
+/// 检查模型文件是否可访问（读取权限 + 非空）。
+fn check_model_accessible(model_path: &str) -> Result<(), String> {
+    let path = Path::new(model_path);
+    if !path.exists() {
+        return Err(format!("模型文件不存在: {model_path}"));
+    }
+    if !path.is_file() {
+        return Err(format!("模型路径不是文件: {model_path}"));
+    }
+    match std::fs::metadata(path) {
+        Ok(m) if m.len() > 0 => Ok(()),
+        Ok(_) => Err(format!("模型文件为空: {model_path}")),
+        Err(e) => Err(format!("无法读取模型文件: {e}")),
+    }
 }
 
 /// 探测监听指定端口的进程（netstat + tasklist）。
@@ -273,16 +352,25 @@ async fn probe(state: &AppState, base: &str, provider_id: &str) -> HarnessResult
         .map_err(|e| axagent_harness::core_error::AxAgentError::Provider(e.to_string()))?;
 
     // llama.cpp 的 /health、/props 在根路径；OpenAI 兼容端点（/v1/models 等）带 /v1 前缀
-    let root = base.strip_suffix("/v1").unwrap_or(base);
-    let health = fetch_health(&client, root).await;
+    let root = if base.ends_with("/v1") {
+        base.trim_end_matches("/v1").to_string()
+    } else {
+        base.trim_end_matches('/').to_string()
+    };
+    let api_base = if base.ends_with("/v1") {
+        base.to_string()
+    } else {
+        format!("{root}/v1")
+    };
+    let health = fetch_health(&client, &root).await;
     let running = health == "ok";
     let model = if running {
-        fetch_models(&client, base).await
+        fetch_models(&client, &api_base).await
     } else {
         None
     };
     let props = if running {
-        fetch_props(&client, root).await
+        fetch_props(&client, &root).await
     } else {
         None
     };
@@ -382,11 +470,23 @@ pub async fn local_model_start(
             format!("llama-server 可执行文件不存在: {}", config.server_exe),
         ));
     }
-    let model_path = Path::new(&config.model_path);
-    if !model_path.is_file() {
+
+    // 模型文件可访问性检查
+    if let Err(e) = check_model_accessible(&config.model_path) {
+        return Err(ErrorResponse::err_with_detail(lm_err::INVALID_CONFIG, e));
+    }
+
+    // 端口冲突二次确认（防止 TOCTOU 竞态）
+    let (_, port) = parse_host_port(&base);
+    if let Some(proc) = probe_process(port) {
         return Err(ErrorResponse::err_with_detail(
-            lm_err::INVALID_CONFIG,
-            format!("模型文件不存在: {}", config.model_path),
+            lm_err::PORT_IN_USE,
+            format!(
+                "端口 {} 已被进程 {} (PID {}) 占用，请先停止该进程或更换端口",
+                port,
+                proc.name.as_deref().unwrap_or("未知进程"),
+                proc.pid
+            ),
         ));
     }
 
@@ -396,6 +496,17 @@ pub async fn local_model_start(
         ErrorResponse::err_with_detail(lm_err::START_FAILED, format!("创建日志目录失败: {e}"))
     })?;
     let log_file_path = log_dir.join(format!("llama-server-{}.log", config.port));
+
+    // 日志轮转：如果文件超过最大限制，将旧日志重命名为 .old
+    if log_file_path.exists() {
+        if let Ok(meta) = std::fs::metadata(&log_file_path) {
+            if meta.len() > MAX_LOG_SIZE_BYTES {
+                let old_path = log_file_path.with_extension("log.old");
+                let _ = std::fs::rename(&log_file_path, &old_path);
+            }
+        }
+    }
+
     let log_file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -421,7 +532,9 @@ pub async fn local_model_start(
     if config.embedding_mode.unwrap_or(true) {
         cmd.arg("--embeddings");
     }
-    for a in &config.extra_args {
+    // 安全过滤 extra_args
+    let safe_args = validate_extra_args(&config.extra_args);
+    for a in &safe_args {
         cmd.arg(a);
     }
     let log_writer = log_file.try_clone().map_err(|e| {
@@ -464,6 +577,7 @@ pub async fn local_model_start(
     tracing::info!(
         pid,
         port = config.port,
+        filtered = config.extra_args.len() - safe_args.len(),
         "[local_model] llama-server 已启动: {}",
         log_file_path.display()
     );
@@ -565,6 +679,17 @@ pub async fn local_model_stop(
                     ));
                 }
             }
+
+            // 等待端口被释放，确保 stop 完成后 start 不会冲突
+            let released = wait_for_port_release(port).await;
+            if !released {
+                tracing::warn!(
+                    port,
+                    "[local_model] 端口 {} 未在超时内释放，可能需要手动清理",
+                    port
+                );
+            }
+
             // 清理托管记录
             let prefix = format!("{SETTING_PREFIX}.{provider_id}");
             for key in ["pid", "exe", "model", "port"] {
@@ -627,13 +752,26 @@ pub async fn local_model_embed_test(
         )
     })?;
 
-    // llama.cpp server 忽略 model 字段；优先取 provider 第一个 embedding 模型作为标识
-    let model_id = provider
-        .models
-        .iter()
-        .find(|m| m.model_type == ModelType::Embedding)
-        .map(|m| m.model_id.clone())
-        .unwrap_or_else(|| "bge-m3".to_string());
+    // llama.cpp server 忽略 model 字段；优先取 provider 第一个 embedding 模型作为标识；
+    // 若没有配置 embedding 模型，则使用 settings 中记录的模型文件名作为 fallback
+    let model_id = match provider.models.iter().find(|m| m.model_type == ModelType::Embedding) {
+        Some(m) => Some(m.model_id.clone()),
+        None => {
+            // 从 settings 中读取当前加载的模型文件名
+            let stored = axagent_dao::repo::settings::get_setting(
+                db,
+                &format!("{SETTING_PREFIX}.{provider_id}.model"),
+            )
+            .await
+            .ok()
+            .flatten()
+            .filter(|s| !s.is_empty());
+            stored.and_then(|path| {
+                Path::new(&path).file_stem().and_then(|s| s.to_str()).map(|s| s.to_string())
+            })
+        },
+    }
+    .unwrap_or_else(|| "bge-m3".to_string());
 
     let started = Instant::now();
     let resp = adapter

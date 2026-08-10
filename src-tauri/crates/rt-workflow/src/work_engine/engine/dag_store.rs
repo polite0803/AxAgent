@@ -79,6 +79,18 @@ impl WorkEngine {
     /// 支持 `continue_on_fail` 容错机制：当上游节点 Failed 且下游节点
     /// 配置了 `continue_on_fail = true` 时，该依赖不阻塞下游节点执行。
     pub(crate) fn compute_ready_nodes(workflow: &Workflow) -> Vec<String> {
+        // Loop 节点的 body_steps 由 LoopExecutor 通过 loop_body_dispatch 驱动，
+        // 不参与 DAG 就绪调度（否则会被当孤立节点提前执行一次）。
+        let loop_body_steps: HashSet<&str> = workflow
+            .nodes
+            .iter()
+            .filter_map(|n| match n {
+                WorkflowNode::Loop(l) => Some(l.config.body_steps.iter().map(|s| s.as_str())),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+
         let done_or_skipped: HashSet<&str> = workflow
             .node_states
             .iter()
@@ -171,7 +183,7 @@ impl WorkEngine {
                 let is_pending = state
                     .is_none_or(|s| matches!(s.status, NodeStatus::Pending | NodeStatus::Ready));
                 let deps_met = remaining_deps.get(n.base_id()).copied().unwrap_or(0) == 0;
-                is_pending && deps_met && n.base_enabled()
+                is_pending && deps_met && n.base_enabled() && !loop_body_steps.contains(n.base_id())
             })
             .map(|n| n.base_id().to_string())
             .collect()
@@ -421,5 +433,101 @@ mod tests {
         let wf = make_workflow("wf5", vec![a, b, c, d], edges);
         let ready = WorkEngine::compute_ready_nodes(&wf);
         assert_eq!(ready, vec!["a"]);
+    }
+
+    // ── Loop body 节点过滤测试 ─────────────────────────────────────
+
+    use axagent_harness::workflow_types::{
+        LoopNode, LoopNodeConfig, LoopType, Position, RetryConfig, WorkflowNodeBase,
+    };
+
+    fn make_loop_node(id: &str, body_steps: Vec<String>) -> WorkflowNode {
+        WorkflowNode::Loop(LoopNode {
+            base: WorkflowNodeBase {
+                id: id.to_string(),
+                title: format!("Loop {id}"),
+                description: None,
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+                parent_id: None,
+                compensation: None,
+                continue_on_fail: false,
+            },
+            config: LoopNodeConfig {
+                loop_type: LoopType::ForEach,
+                items_var: None,
+                iter_input_var: Some("items".to_string()),
+                iteratee_var: Some("item".to_string()),
+                iter_output_var: Some("iter_output".to_string()),
+                partial_result_var: None,
+                max_iterations: None,
+                continue_condition: None,
+                continue_on_error: false,
+                body_steps,
+                sub_graph: None,
+                interrupt_after_each: false,
+                interrupt_nodes: vec![],
+            },
+        })
+    }
+
+    #[test]
+    fn loop_body_nodes_not_scheduled_by_dag() {
+        // trigger → loop(body: [body1, body2]) → end
+        // body 节点无入边，不应出现在就绪列表中
+        let trigger = make_tool_node("t1", true);
+        let body1 = make_tool_node("lc-draft-chapter", true);
+        let body2 = make_tool_node("lc-polish", true);
+        let loop_node =
+            make_loop_node("loop1", vec!["lc-draft-chapter".to_string(), "lc-polish".to_string()]);
+        let end_node = make_tool_node("end1", true);
+
+        let edges = vec![make_edge("t1", "loop1"), make_edge("loop1", "end1")];
+        let wf = make_workflow("wf_loop", vec![trigger, body1, body2, loop_node, end_node], edges);
+
+        let ready = WorkEngine::compute_ready_nodes(&wf);
+        assert_eq!(ready, vec!["t1"], "只有 trigger 应就绪");
+        assert!(
+            !ready.contains(&"lc-draft-chapter".to_string()),
+            "lc-draft-chapter 不应被 DAG 提前调度"
+        );
+        assert!(!ready.contains(&"lc-polish".to_string()), "lc-polish 不应被 DAG 提前调度");
+    }
+
+    #[test]
+    fn normal_dag_unaffected_by_loop_body_filter() {
+        let a = make_tool_node("a", true);
+        let b = make_tool_node("b", true);
+        let c = make_tool_node("c", true);
+        let edges = vec![make_edge("a", "b"), make_edge("b", "c")];
+        let wf = make_workflow("wf_normal", vec![a, b, c], edges);
+        let ready = WorkEngine::compute_ready_nodes(&wf);
+        assert_eq!(ready, vec!["a"], "普通 DAG 不受 Loop body 过滤影响");
+    }
+
+    #[test]
+    fn loop_body_in_edges_still_filtered() {
+        // trigger → loop → shared-body → end
+        // shared-body 同时是 loop 的 body_step + 有入边
+        let trigger = make_tool_node("t1", true);
+        let body = make_tool_node("shared-body", true);
+        let loop_node = make_loop_node("loop1", vec!["shared-body".to_string()]);
+        let end_node = make_tool_node("end1", true);
+
+        let edges = vec![
+            make_edge("t1", "loop1"),
+            make_edge("loop1", "shared-body"),
+            make_edge("shared-body", "end1"),
+        ];
+        let wf = make_workflow("wf_shared", vec![trigger, body, loop_node, end_node], edges);
+
+        let ready = WorkEngine::compute_ready_nodes(&wf);
+        assert_eq!(ready, vec!["t1"], "shared-body 作为 Loop body 不应被 DAG 调度");
+        assert!(
+            !ready.contains(&"shared-body".to_string()),
+            "shared-body 即使有入边也不应被 DAG 提前调度"
+        );
     }
 }

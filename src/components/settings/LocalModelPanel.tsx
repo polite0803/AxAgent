@@ -56,18 +56,40 @@ const { Text, Paragraph } = Typography;
 const POLL_INTERVAL_MS = 10_000;
 /** 启动配置 localStorage 键 */
 const CONFIG_STORAGE_KEY = "localModel.startConfig";
-/** 默认启动配置 */
+/** 默认启动配置（不含硬编码本地路径，首次使用需用户选择模型） */
 const DEFAULT_CONFIG: LocalModelStartConfig = {
   serverExe: "llama-server",
-  modelPath: "E:\\llama-models\\bge-m3.Q5_K_M.gguf",
+  modelPath: "",
   host: "127.0.0.1",
   port: 8091,
-  alias: "bge-m3",
+  alias: null,
   nCtx: null,
   nGpuLayers: null,
   embeddingMode: true,
   extraArgs: [],
 };
+
+/** 主机校验正则：允许 localhost、IPv4、单主机名 */
+const HOST_REGEX = /^(localhost|(\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9-]+)$/;
+
+/** 简单的前端配置校验（启动前同步检查，后端会做最终校验） */
+function validateStartConfig(
+  cfg: LocalModelStartConfig,
+): string | null {
+  if (!cfg.serverExe.trim()) {
+    return "serverExeRequired";
+  }
+  if (!cfg.modelPath.trim()) {
+    return "modelPathRequired";
+  }
+  if (!HOST_REGEX.test(cfg.host.trim())) {
+    return "hostInvalid";
+  }
+  if (cfg.port < 1 || cfg.port > 65535) {
+    return "portInvalid";
+  }
+  return null;
+}
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null || bytes <= 0) {
@@ -158,7 +180,8 @@ export function LocalModelPanel({
     return () => clearInterval(timer);
   }, [providerId]);
 
-  // 加载下载目录与本地模型文件（启动表单选路径用）
+  // 加载下载目录与本地模型文件（启动表单选路径用）。
+  // 若当前配置没有 modelPath，则自动填入下载目录中第一个就绪的模型文件，避免首次使用空配置。
   useEffect(() => {
     void (async () => {
       try {
@@ -166,8 +189,31 @@ export function LocalModelPanel({
           invoke<string>("local_model_get_download_dir"),
           invoke<LocalFileModel[]>("local_model_list_local_models"),
         ]);
+        const readyFiles = files.filter((f) => !f.isDownloading);
         setDownloadDir(dir);
-        setLocalModelFiles(files.filter((f) => !f.isDownloading));
+        setLocalModelFiles(readyFiles);
+
+        // 当用户未设置 modelPath 时自动填充下载目录中的第一个就绪模型
+        setStartConfig((prev) => {
+          if (prev.modelPath) {
+            return prev;
+          }
+          const first = readyFiles[0];
+          if (!first) {
+            return prev;
+          }
+          const next = {
+            ...prev,
+            modelPath: `${dir}\\${first.filename}`,
+            alias: first.filename.replace(/\.gguf$/i, ""),
+          };
+          try {
+            localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(next));
+          } catch {
+            // ignore 持久化失败
+          }
+          return next;
+        });
       } catch (e) {
         logIpcError("local_model_list_local_models")(e);
       }
@@ -255,7 +301,7 @@ export function LocalModelPanel({
     setInstallModalOpen(false);
     setInstallStatus({
       installed: false,
-      version: null,
+      version: latestVersion.tag,
       installPath: null,
       executablePath: null,
       isDownloading: true,
@@ -263,16 +309,39 @@ export function LocalModelPanel({
       downloadError: null,
     });
     try {
+      // 立即提示已进入安装流程（后端实际下载通过轮询 install_status 跟踪进度）
+      message.info(
+        t("settings.localModel.installStarted", {
+          version: latestVersion.tag,
+        }),
+      );
       await invoke<LlamaCppInstallStatus>("local_model_install_server", {
         tag: latestVersion.tag,
       });
     } catch (e) {
       setInstalling(false);
+      // 同步写入错误态，确保 UI 即使在轮询前也能看到失败原因
+      setInstallStatus((prev) =>
+        prev
+          ? { ...prev, isDownloading: false, downloadError: String(e) }
+          : prev
+      );
       showBackendError(message, e, { context: "local_model_install_server" });
     }
-  }, [latestVersion, message, handleCheckUpdate]);
+  }, [latestVersion, message, handleCheckUpdate, t]);
 
   const handleStart = useCallback(async () => {
+    // 前端预校验（同步、快速失败）
+    const invalidKey = validateStartConfig(startConfig);
+    if (invalidKey) {
+      message.error(t(`settings.localModel.${invalidKey}`));
+      return;
+    }
+    if (serverExists === false) {
+      message.warning(t("settings.localModel.serverNotFoundCannotStart"));
+      setStartModalOpen(true);
+      return;
+    }
     try {
       await invoke<LocalModelStatus>("local_model_start", {
         providerId,
@@ -283,9 +352,10 @@ export function LocalModelPanel({
       setStartModalOpen(false);
       void refreshRef.current();
     } catch (e) {
+      // 按后端错误码自动翻译：端口冲突、配置无效等都有独立 i18n 文案
       showBackendError(message, e, { context: "local_model_start" });
     }
-  }, [providerId, startConfig, message, t]);
+  }, [providerId, startConfig, serverExists, message, t]);
 
   const handleStop = useCallback(async () => {
     try {
@@ -748,7 +818,7 @@ export function LocalModelPanel({
                     .map((s) => s.trim())
                     .filter(Boolean),
                 })}
-              placeholder={"--threads 8\n--no-mmap"}
+              placeholder={"--threads 8\n--cont-batch-size 2048"}
               autoSize={{ minRows: 2, maxRows: 4 }}
             />
           </Form.Item>

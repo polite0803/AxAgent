@@ -232,6 +232,8 @@ pub mod local_model {
     pub const INSTALL_IN_PROGRESS: &str = "LOCAL_MODEL_INSTALL_IN_PROGRESS";
     /// 下载失败
     pub const DOWNLOAD_FAILED: &str = "LOCAL_MODEL_DOWNLOAD_FAILED";
+    /// 端口被占用
+    pub const PORT_IN_USE: &str = "LOCAL_MODEL_PORT_IN_USE";
 }
 
 /// 搜索相关错误码
