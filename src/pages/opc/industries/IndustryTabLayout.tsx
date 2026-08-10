@@ -7,6 +7,10 @@
 import { Alert, Button, Card, Empty, message, Spin, Tabs, Tag, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+
+import { useConversationStore, useSettingsStore } from "@/stores";
+
 import { IndustryDashboard } from "./IndustryComponents";
 import type { IndustryConfig, IndustryTab } from "./types";
 import type { UseIndustryDataReturn } from "./useIndustryData";
@@ -18,14 +22,70 @@ const { Title, Text, Paragraph } = Typography;
 function IndustryTabContent({
   tab,
   data,
+  industryId,
 }: {
   tab: IndustryTab;
   data: UseIndustryDataReturn;
+  industryId: string;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const createConversation = useConversationStore((s) => s.createConversation);
+  const settings = useSettingsStore((s) => s.settings);
 
-  const handleAction = (actionKey: string) => {
-    message.info(t("opc.industry.tab.actionTriggered", { key: actionKey }));
+  const handleAction = async (actionKey: string) => {
+    if (!settings?.default_provider_id || !settings?.default_model_id) {
+      message.warning(t("opc.industry.noProviderConfig"));
+      navigate("/settings/providers");
+      return;
+    }
+
+    const action = tab.actions.find((a) => a.key === actionKey);
+    const actionLabel = action?.label || actionKey;
+
+    if (action?.type === "workflow") {
+      navigate(`/workflow/new?industry=${industryId}&template=${actionKey}`);
+      return;
+    }
+
+    try {
+      const { invoke } = await import("@/lib/invoke");
+      const promptConfig = await invoke<{
+        systemPrompt: string;
+        userPrompt: string;
+        actionKey: string;
+        actionLabel: string;
+        industryId: string;
+      }>("opc_build_industry_prompt", {
+        industryId,
+        actionKey,
+      });
+
+      const conv = await createConversation(
+        promptConfig.actionLabel,
+        settings.default_model_id,
+        settings.default_provider_id,
+        {
+          system_prompt: promptConfig.systemPrompt,
+        },
+      );
+      if (conv?.id) {
+        navigate(`/chat?conversationId=${conv.id}&prompt=${encodeURIComponent(promptConfig.userPrompt)}`);
+      }
+    } catch {
+      const conv = await createConversation(
+        actionLabel,
+        settings.default_model_id,
+        settings.default_provider_id,
+        {
+          system_prompt:
+            `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,
+        },
+      );
+      if (conv?.id) {
+        navigate(`/chat?conversationId=${conv.id}&prompt=${encodeURIComponent(actionLabel)}`);
+      }
+    }
   };
 
   const handleExecute = async (workflowId: string) => {
@@ -219,7 +279,7 @@ export function IndustryTabLayout({
         {tab.label}
       </span>
     ),
-    children: <IndustryTabContent tab={tab} data={data} />,
+    children: <IndustryTabContent tab={tab} data={data} industryId={industryId} />,
   }));
 
   return (

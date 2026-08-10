@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "Überschreiben (alles ersetzen)",
         "strategyMerge": "Zusammenführen (vorhandene behalten)",
         "strategyDryRun": "Probelauf (nur validieren)"
+      },
+      "narrative": {
+        "title": "Narrative Struktur",
+        "noStructure": "Keine narrativen Strukturdaten",
+        "arcs": "Charakterbögen",
+        "foreshadows": "Vorzeichen",
+        "confluences": "Konfluenzen",
+        "progress": "Fortschritt",
+        "viewOverview": "Übersicht",
+        "viewArcs": "Bögen",
+        "viewForeshadows": "Vorzeichen",
+        "noArcs": "Keine Bögen definiert",
+        "arcList": "Charakterbogenliste",
+        "noForeshadows": "Keine Vorzeichen definiert",
+        "foreshadowList": "Vorzeichennetzwerk",
+        "confluenceList": "Konfluenzliste",
+        "stages": "Bogenstadien",
+        "noStages": "Keine Stadien definiert",
+        "chapterDistribution": "Kapitelverteilung",
+        "setupChapters": "Aufbaukapitel",
+        "payoffChapters": "Lösungskapitel",
+        "noPayoff": "Keine Lösung geplant",
+        "relatedArcs": "Verwandte Bögen",
+        "save": "Speichern",
+        "saveTitle": "Narrative Struktur speichern",
+        "saveName": "Name",
+        "saveNamePlaceholder": "Strukturname eingeben",
+        "saveNameRequired": "Bitte geben Sie einen Namen ein",
+        "saveDesc": "Beschreibung (optional)",
+        "saveDescPlaceholder": "Beschreiben Sie kurz die Merkmale dieser Struktur",
+        "saveGenre": "Genre",
+        "genreNovel": "Roman",
+        "genreShortStory": "Kurzgeschichte",
+        "genreScreenplay": "Drehbuch",
+        "genrePoetry": "Poesie",
+        "genreOther": "Anderes",
+        "saveSuccess": "Erfolgreich gespeichert",
+        "saveFailed": "Speichern fehlgeschlagen",
+        "loadSuccess": "Erfolgreich geladen",
+        "loadFromHistory": "Aus Verlauf laden",
+        "savedRecords": "Gespeicherte Strukturen",
+        "confirmDelete": "Löschung bestätigen",
+        "confirmDeleteDesc": "Möchten Sie diesen Datensatz zur narrativen Struktur wirklich löschen?"
       }
     },
     "workflowLabel": "Workflow",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "Literarisches Schaffen",
+            "description": "Roman/Gedicht/Prosa. Metakognition → Kapitel für Kapitel → Doppelrezension",
+            "actions": {
+              "lm_novel": "Romanschreib",
+              "lm_poetry": "Gedicht & Prosa"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "Literatur-Workflow",
+                "description": "Metakognition → Outline → Kapitel → Anti-Logik → Doppelrezension → Archiv"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "Literaturgenre",
+          "placeholder": "Optionen: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "Kreatives Thema",
+          "placeholder": "z.B. Stadt-Einsamkeit, historisches Echo, Tech-Entfremdung"
+        },
+        "word_count_target": {
+          "label": "Zielwortzahl",
+          "placeholder": "z.B. 30000"
         }
       },
       "industry_consulting": {

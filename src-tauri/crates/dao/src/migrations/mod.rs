@@ -74,9 +74,10 @@ pub mod v216_opc_content_assets;
 pub mod v217_opc_publish_schedules;
 pub mod v218_merge_business_roles;
 pub mod v219_trade_intent_audit;
+pub mod v220_narrative_structure;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 219;
+pub const CURRENT_VERSION: i32 = 220;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -298,6 +299,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 219,
         description: "v219_trade_intent_audit: stock_analyses 表扩展交易意图审核状态流转字段（status/source/reviewed/关联交易）",
         up: |db| Box::pin(v219_trade_intent_audit::up(db)),
+    },
+    Migration {
+        version: 220,
+        description: "v220_narrative_structure: 新增 narrative_structures 表，支持叙事结构的跨会话保存与恢复",
+        up: |db| Box::pin(v220_narrative_structure::up(db)),
     },
 ];
 

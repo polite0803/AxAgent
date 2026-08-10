@@ -1829,19 +1829,20 @@ fn industry_learning_config_path(
         }
     }
 
-    // 2) 回退：仓库根相对路径
-    let fallback = crate::commands::opc_workflows::industries_base_dir()
-        .join(&dir_id)
-        .join(INDUSTRY_PACK_LEARNING_FILE);
-    if fallback.is_file() {
-        tracing::debug!("[industry-learning] found via fallback: {}", fallback.display());
-        return Some(fallback);
+    // 2) 回退：find_repo_config_dir（CWD 无关，Tauri 生产模式 CWD ≠ 仓库根）
+    if let Some(repo_root) =
+        crate::commands::opc_workflows::find_repo_config_dir(crate::commands::opc_workflows::INDUSTRIES_DIR)
+    {
+        let fallback = repo_root.join(&dir_id).join(INDUSTRY_PACK_LEARNING_FILE);
+        if fallback.is_file() {
+            tracing::debug!("[industry-learning] found via repo_root: {}", fallback.display());
+            return Some(fallback);
+        }
     }
 
     tracing::warn!(
-        "[industry-learning] learning.yaml not found for {industry_id} (tried app_dir={:?}, fallback={})",
+        "[industry-learning] learning.yaml not found for {industry_id} (app_dir={:?})",
         app_dir.map(|p| p.display().to_string()),
-        fallback.display()
     );
     None
 }

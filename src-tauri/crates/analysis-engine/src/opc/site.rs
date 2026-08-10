@@ -243,7 +243,7 @@ fn landing_entity_to_dto(e: opc_landing_pages::Model) -> LandingPage {
         slug: e.slug,
         description: e.description,
         content: e.content,
-        published: e.published,
+        published: e.published != 0,
         published_at: e.published_at,
         created_at: e.created_at,
         updated_at: e.updated_at,
@@ -259,7 +259,7 @@ fn blog_entity_to_dto(e: opc_blog_posts::Model) -> BlogPost {
         excerpt: e.excerpt,
         content: e.content,
         tags,
-        published: e.published,
+        published: e.published != 0,
         published_at: e.published_at,
         view_count: e.view_count,
         created_at: e.created_at,
@@ -274,7 +274,7 @@ fn contact_entity_to_dto(e: opc_contact_submissions::Model) -> ContactSubmission
         email: e.email,
         message: e.message,
         source: e.source,
-        read: e.is_read,
+        read: e.is_read != 0,
         created_at: e.created_at,
     }
 }
@@ -303,7 +303,7 @@ impl SiteService for DefaultSiteService {
             slug: Set(slug),
             description: Set(input.description),
             content: Set(input.content),
-            published: Set(false),
+            published: Set(0),
             published_at: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
@@ -337,7 +337,7 @@ impl SiteService for DefaultSiteService {
             .map_err(|e| OpcError::Database(e.to_string()))?
             .ok_or_else(|| OpcError::NotFound(format!("LandingPage {id}")))?;
         let mut am: opc_landing_pages::ActiveModel = entity.into();
-        am.published = Set(true);
+        am.published = Set(1);
         am.published_at = Set(Some(now_ts()));
         am.updated_at = Set(now_ts());
         let updated = am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
@@ -355,7 +355,7 @@ impl SiteService for DefaultSiteService {
             excerpt: Set(input.excerpt),
             content: Set(input.content),
             tags_json: Set(tags_json),
-            published: Set(false),
+            published: Set(0),
             published_at: Set(None),
             view_count: Set(0),
             created_at: Set(now),
@@ -390,7 +390,7 @@ impl SiteService for DefaultSiteService {
             .map_err(|e| OpcError::Database(e.to_string()))?
             .ok_or_else(|| OpcError::NotFound(format!("BlogPost {id}")))?;
         let mut am: opc_blog_posts::ActiveModel = entity.into();
-        am.published = Set(true);
+        am.published = Set(1);
         am.published_at = Set(Some(now_ts()));
         am.updated_at = Set(now_ts());
         let updated = am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
@@ -411,7 +411,7 @@ impl SiteService for DefaultSiteService {
             email: Set(email.to_string()),
             message: Set(message.to_string()),
             source: Set(source.to_string()),
-            is_read: Set(false),
+            is_read: Set(0),
             created_at: Set(now),
         };
         let entity = am.insert(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
@@ -434,7 +434,7 @@ impl SiteService for DefaultSiteService {
             .map_err(|e| OpcError::Database(e.to_string()))?
             .ok_or_else(|| OpcError::NotFound(format!("ContactSubmission {id}")))?;
         let mut am: opc_contact_submissions::ActiveModel = entity.into();
-        am.is_read = Set(true);
+        am.is_read = Set(1);
         am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
         Ok(())
     }

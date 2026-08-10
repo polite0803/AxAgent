@@ -186,4 +186,7 @@ pub mod opc_revenue_records;
 pub mod opc_talent_templates;
 pub mod opc_work_items;
 
+// Narrative structure persistence
+pub mod narrative_structure;
+
 pub use sea_orm;

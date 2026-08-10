@@ -1235,6 +1235,49 @@
         "strategyOverwrite": "覆寫（全部取代）",
         "strategyMerge": "合併（保留現有）",
         "strategyDryRun": "試執行（僅驗證）"
+      },
+      "narrative": {
+        "title": "敘事結構",
+        "noStructure": "暫無敘事結構資料",
+        "arcs": "角色弧線",
+        "foreshadows": "伏筆",
+        "confluences": "交匯點",
+        "progress": "推進度",
+        "viewOverview": "概覽",
+        "viewArcs": "弧線",
+        "viewForeshadows": "伏筆",
+        "noArcs": "暫無弧線定義",
+        "arcList": "角色弧線列表",
+        "noForeshadows": "暫無伏筆定義",
+        "foreshadowList": "伏筆網路",
+        "confluenceList": "交匯點列表",
+        "stages": "弧線階段",
+        "noStages": "未定義階段",
+        "chapterDistribution": "章節分佈",
+        "setupChapters": "埋設章節",
+        "payoffChapters": "回收章節",
+        "noPayoff": "尚未安排回收",
+        "relatedArcs": "關聯弧線",
+        "save": "儲存",
+        "saveTitle": "儲存敘事結構",
+        "saveName": "名稱",
+        "saveNamePlaceholder": "輸入結構名稱",
+        "saveNameRequired": "請輸入名稱",
+        "saveDesc": "描述（可選）",
+        "saveDescPlaceholder": "簡要描述此結構的特點",
+        "saveGenre": "類型",
+        "genreNovel": "小說",
+        "genreShortStory": "短篇故事",
+        "genreScreenplay": "劇本",
+        "genrePoetry": "詩歌",
+        "genreOther": "其他",
+        "saveSuccess": "儲存成功",
+        "saveFailed": "儲存失敗",
+        "loadSuccess": "載入成功",
+        "loadFromHistory": "從歷史紀錄載入",
+        "savedRecords": "已儲存的結構",
+        "confirmDelete": "確認刪除",
+        "confirmDeleteDesc": "確定要刪除此敘事結構紀錄嗎？"
       }
     },
     "workflowLabel": "工作流程",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "文學創作",
+            "description": "小說/詩歌/散文創作，元認知裝配 → 逐章創作 → 雙讀者評審",
+            "actions": {
+              "lm_novel": "小說創作",
+              "lm_poetry": "詩歌散文"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "文學創作工作流",
+                "description": "創作元認知 → 大綱拆章 → 逐章創作 → 反邏輯校驗 → 雙讀者評審 → 容錯歸檔"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "目标平台",
           "placeholder": "如：微信公众号、知乎、B站"
+        },
+        "literary_genre": {
+          "label": "文學體裁",
+          "placeholder": "可選：novel（小說）/ poetry（詩歌）/ prose（散文）"
+        },
+        "literary_topic": {
+          "label": "創作主題",
+          "placeholder": "如：都市孤獨、歷史回響、科技異化"
+        },
+        "word_count_target": {
+          "label": "目標字數",
+          "placeholder": "如：30000"
         }
       },
       "industry_consulting": {

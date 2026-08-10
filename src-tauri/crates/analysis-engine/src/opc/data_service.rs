@@ -891,7 +891,7 @@ impl OpcDataService for DefaultDataService {
     async fn count_blog_posts(&self, from: i64, to: i64) -> OpcResult<u64> {
         let count = opc_blog_posts::Entity::find()
             .filter(opc_blog_posts::Column::PublishedAt.between(from, to))
-            .filter(opc_blog_posts::Column::Published.eq(true))
+            .filter(opc_blog_posts::Column::Published.eq(1))
             .count(&self.db)
             .await
             .map_err(|e| OpcError::Database(e.to_string()))?;
@@ -901,7 +901,7 @@ impl OpcDataService for DefaultDataService {
     async fn sum_blog_post_views(&self, from: i64, to: i64) -> OpcResult<f64> {
         let posts = opc_blog_posts::Entity::find()
             .filter(opc_blog_posts::Column::PublishedAt.between(from, to))
-            .filter(opc_blog_posts::Column::Published.eq(true))
+            .filter(opc_blog_posts::Column::Published.eq(1))
             .all(&self.db)
             .await
             .map_err(|e| OpcError::Database(e.to_string()))?;

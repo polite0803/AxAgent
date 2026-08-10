@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "덮어쓰기 (모두 교체)",
         "strategyMerge": "병합 (기존 유지)",
         "strategyDryRun": "시험 실행 (검증만)"
+      },
+      "narrative": {
+        "title": "내러티브 구조",
+        "noStructure": "내러티브 구조 데이터가 없습니다",
+        "arcs": "캐릭터 아크",
+        "foreshadows": "복선",
+        "confluences": "합류점",
+        "progress": "진행도",
+        "viewOverview": "개요",
+        "viewArcs": "아크",
+        "viewForeshadows": "복선",
+        "noArcs": "정의된 아크가 없습니다",
+        "arcList": "캐릭터 아크 목록",
+        "noForeshadows": "정의된 복선이 없습니다",
+        "foreshadowList": "복선 네트워크",
+        "confluenceList": "합류점 목록",
+        "stages": "아크 단계",
+        "noStages": "정의된 단계가 없습니다",
+        "chapterDistribution": "챕터 분포",
+        "setupChapters": "설정 챕터",
+        "payoffChapters": "회수 챕터",
+        "noPayoff": "회수가 예정되지 않았습니다",
+        "relatedArcs": "관련 아크",
+        "save": "저장",
+        "saveTitle": "내러티브 구조 저장",
+        "saveName": "이름",
+        "saveNamePlaceholder": "구조 이름 입력",
+        "saveNameRequired": "이름을 입력해 주세요",
+        "saveDesc": "설명 (선택사항)",
+        "saveDescPlaceholder": "이 구조의 특징을 간략하게 설명",
+        "saveGenre": "장르",
+        "genreNovel": "소설",
+        "genreShortStory": "단편 소설",
+        "genreScreenplay": "각본",
+        "genrePoetry": "시",
+        "genreOther": "기타",
+        "saveSuccess": "저장 완료",
+        "saveFailed": "저장 실패",
+        "loadSuccess": "불러오기 완료",
+        "loadFromHistory": "기록에서 불러오기",
+        "savedRecords": "저장된 구조",
+        "confirmDelete": "삭제 확인",
+        "confirmDeleteDesc": "이 내러티브 구조 기록을 삭제하시겠습니까?"
       }
     },
     "workflowLabel": "워크플로우",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "문학 창작",
+            "description": "소설/시/산문 창작. 메타인지 구축 → 장별 창작 → 이중 독자 리뷰",
+            "actions": {
+              "lm_novel": "소설 창작",
+              "lm_poetry": "시/산문"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "문학 창작 워크플로우",
+                "description": "메타인지 → 아웃라인 → 장별 집필 → 반논리 체크 → 이중 독자 리뷰 → 내성 아카이브"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "문학 장르",
+          "placeholder": "선택: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "창작 주제",
+          "placeholder": "예: 도시의 고독, 역사의 울림, 기술적 소외"
+        },
+        "word_count_target": {
+          "label": "목표 글자 수",
+          "placeholder": "예: 30000"
         }
       },
       "industry_consulting": {

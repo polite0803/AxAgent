@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "上書き（すべて置換）",
         "strategyMerge": "マージ（既存を保持）",
         "strategyDryRun": "ドライラン（検証のみ）"
+      },
+      "narrative": {
+        "title": "ナラティブ構造",
+        "noStructure": "ナラティブ構造データがありません",
+        "arcs": "キャラクターアーク",
+        "foreshadows": "伏線",
+        "confluences": "合流点",
+        "progress": "進行度",
+        "viewOverview": "概要",
+        "viewArcs": "アーク",
+        "viewForeshadows": "伏線",
+        "noArcs": "アークが定義されていません",
+        "arcList": "キャラクターアークリスト",
+        "noForeshadows": "伏線が定義されていません",
+        "foreshadowList": "伏線ネットワーク",
+        "confluenceList": "合流点リスト",
+        "stages": "アークの段階",
+        "noStages": "段階が定義されていません",
+        "chapterDistribution": "章の分布",
+        "setupChapters": "設定章",
+        "payoffChapters": "回収章",
+        "noPayoff": "回収が予定されていません",
+        "relatedArcs": "関連アーク",
+        "save": "保存",
+        "saveTitle": "ナラティブ構造を保存",
+        "saveName": "名前",
+        "saveNamePlaceholder": "構造名を入力",
+        "saveNameRequired": "名前を入力してください",
+        "saveDesc": "説明（任意）",
+        "saveDescPlaceholder": "この構造の特徴を簡潔に説明",
+        "saveGenre": "ジャンル",
+        "genreNovel": "小説",
+        "genreShortStory": "短編小説",
+        "genreScreenplay": "台本",
+        "genrePoetry": "詩",
+        "genreOther": "その他",
+        "saveSuccess": "保存しました",
+        "saveFailed": "保存に失敗しました",
+        "loadSuccess": "読み込みました",
+        "loadFromHistory": "履歴から読み込み",
+        "savedRecords": "保存済みの構造",
+        "confirmDelete": "削除の確認",
+        "confirmDeleteDesc": "このナラティブ構造記録を削除しますか？"
       }
     },
     "workflowLabel": "ワークフロー",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "文学創作",
+            "description": "小説/詩歌/散文の創作。メタ認知構築 → 逐章創作 → 双読者レビュー",
+            "actions": {
+              "lm_novel": "小説創作",
+              "lm_poetry": "詩歌・散文"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "文学創作ワークフロー",
+                "description": "メタ認知 → アウトライン → 逐章執筆 → 反論理チェック → 双読者レビュー → トレランス"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "文学ジャンル",
+          "placeholder": "選択：novel（小説）/ poetry（詩歌）/ prose（散文）"
+        },
+        "literary_topic": {
+          "label": "創作テーマ",
+          "placeholder": "例：都市の孤独、歴史の反響、技術の疎外"
+        },
+        "word_count_target": {
+          "label": "目標文字数",
+          "placeholder": "例：30000"
         }
       },
       "industry_consulting": {

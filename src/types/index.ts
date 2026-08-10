@@ -1438,6 +1438,7 @@ export type {
 } from "@/lib/security/permissionGuard";
 
 export type { OutputRiskLevel, SanitizedOutput } from "@/lib/security/outputSanitizer";
+export * from "./narrative";
 export * from "./platform";
 export * from "./proactive";
 export * from "./screenshot-diagnosis";

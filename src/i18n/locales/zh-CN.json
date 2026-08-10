@@ -1221,6 +1221,49 @@
         "strategyOverwrite": "覆盖（全部替换）",
         "strategyMerge": "合并（保留现有）",
         "strategyDryRun": "试运行（仅验证）"
+      },
+      "narrative": {
+        "title": "叙事结构",
+        "noStructure": "暂无叙事结构数据",
+        "arcs": "角色弧线",
+        "foreshadows": "伏笔",
+        "confluences": "交汇点",
+        "progress": "推进度",
+        "viewOverview": "概览",
+        "viewArcs": "弧线",
+        "viewForeshadows": "伏笔",
+        "noArcs": "暂无弧线定义",
+        "arcList": "角色弧线列表",
+        "noForeshadows": "暂无伏笔定义",
+        "foreshadowList": "伏笔网络",
+        "confluenceList": "交汇点列表",
+        "stages": "弧线阶段",
+        "noStages": "未定义阶段",
+        "chapterDistribution": "章节分布",
+        "setupChapters": "埋设章节",
+        "payoffChapters": "回收章节",
+        "noPayoff": "尚未安排回收",
+        "relatedArcs": "关联弧线",
+        "save": "保存",
+        "saveTitle": "保存叙事结构",
+        "saveName": "名称",
+        "saveNamePlaceholder": "输入结构名称",
+        "saveNameRequired": "请输入名称",
+        "saveDesc": "描述（可选）",
+        "saveDescPlaceholder": "简要描述此结构的特点",
+        "saveGenre": "类型",
+        "genreNovel": "小说",
+        "genreShortStory": "短篇故事",
+        "genreScreenplay": "剧本",
+        "genrePoetry": "诗歌",
+        "genreOther": "其他",
+        "saveSuccess": "保存成功",
+        "saveFailed": "保存失败",
+        "loadSuccess": "加载成功",
+        "loadFromHistory": "从历史记录加载",
+        "savedRecords": "已保存的结构",
+        "confirmDelete": "确认删除",
+        "confirmDeleteDesc": "确定要删除此叙事结构记录吗？"
       }
     },
     "workflowRunner": {
@@ -4768,6 +4811,20 @@
                 "description": "达人营销"
               }
             }
+          },
+          "literary": {
+            "label": "文学创作",
+            "description": "小说/诗歌/散文创作，元认知装配 → 逐章创作 → 双读者评审",
+            "actions": {
+              "lm_novel": "小说创作",
+              "lm_poetry": "诗歌散文"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "文学创作工作流",
+                "description": "创作元认知 → 大纲拆章 → 逐章创作 → 反逻辑校验 → 双读者评审 → 容错归档"
+              }
+            }
           }
         }
       },
@@ -5248,6 +5305,18 @@
         "target_platform": {
           "label": "目标平台",
           "placeholder": "如：微信公众号、知乎、B站"
+        },
+        "literary_genre": {
+          "label": "文学体裁",
+          "placeholder": "可选：novel（小说）/ poetry（诗歌）/ prose（散文）"
+        },
+        "literary_topic": {
+          "label": "创作主题",
+          "placeholder": "如：都市孤独、历史回响、科技异化"
+        },
+        "word_count_target": {
+          "label": "目标字数",
+          "placeholder": "如：30000"
         }
       },
       "industry_consulting": {

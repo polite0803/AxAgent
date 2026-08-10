@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "استبدال (استبدال الكل)",
         "strategyMerge": "دمج (الاحتفاظ بالموجود)",
         "strategyDryRun": "تشغيل تجريبي (تحقق فقط)"
+      },
+      "narrative": {
+        "title": "الهيكل السردي",
+        "noStructure": "لا توجد بيانات للهيكل السردي",
+        "arcs": "أقواس الشخصيات",
+        "foreshadows": "النذائر",
+        "confluences": "نقاط الالتقاء",
+        "progress": "التقدم",
+        "viewOverview": "نظرة عامة",
+        "viewArcs": "الأقواس",
+        "viewForeshadows": "النذائر",
+        "noArcs": "لا توجد أقواس محددة",
+        "arcList": "قائمة أقواس الشخصيات",
+        "noForeshadows": "لا توجد نذائر محددة",
+        "foreshadowList": "شبكة النذائر",
+        "confluenceList": "قائمة نقاط الالتقاء",
+        "stages": "مراحل القوس",
+        "noStages": "لا توجد مراحل محددة",
+        "chapterDistribution": "توزيع الفصول",
+        "setupChapters": "فصول الإعداد",
+        "payoffChapters": "فصول الحل",
+        "noPayoff": "لا يوجد حل مجدول",
+        "relatedArcs": "الأقواس ذات الصلة",
+        "save": "حفظ",
+        "saveTitle": "حفظ الهيكل السردي",
+        "saveName": "الاسم",
+        "saveNamePlaceholder": "أدخل اسم الهيكل",
+        "saveNameRequired": "يرجى إدخال الاسم",
+        "saveDesc": "الوصف (اختياري)",
+        "saveDescPlaceholder": "وصف موجز لخصائص هذا الهيكل",
+        "saveGenre": "النوع",
+        "genreNovel": "رواية",
+        "genreShortStory": "قصة قصيرة",
+        "genreScreenplay": "سيناريو",
+        "genrePoetry": "شعر",
+        "genreOther": "أخرى",
+        "saveSuccess": "تم الحفظ بنجاح",
+        "saveFailed": "فشل الحفظ",
+        "loadSuccess": "تم التحميل بنجاح",
+        "loadFromHistory": "تحميل من السجل",
+        "savedRecords": "الهياكل المحفوظة",
+        "confirmDelete": "تأكيد الحذف",
+        "confirmDeleteDesc": "هل أنت متأكد من أنك تريد حذف سجل الهيكل السردي هذا؟"
       }
     },
     "workflowLabel": "سير العمل",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "الإبداع الأدبي",
+            "description": "إبداع الرواية/الشعر/النثر. الإدراك الفائق → فصلًا بفصل → مراجعة مزدوجة",
+            "actions": {
+              "lm_novel": "كتابة الرواية",
+              "lm_poetry": "الشعر والنثر"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "مسار الإبداع الأدبي",
+                "description": "الإدراك الفائق → مخطط → فصلًا بفصل → منطق مضاد → مراجعة مزدوجة → أرشفة"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "النوع الأدبي",
+          "placeholder": "الخيارات: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "الموضوع الإبداعي",
+          "placeholder": "مثال: الوحدة الحضرية، صدى التاريخ، اغتراب التكنولوجيا"
+        },
+        "word_count_target": {
+          "label": "الهدف من عدد الكلمات",
+          "placeholder": "مثال: 30000"
         }
       },
       "industry_consulting": {

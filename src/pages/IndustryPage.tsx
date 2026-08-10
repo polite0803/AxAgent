@@ -83,6 +83,7 @@ interface ActionItem {
   key: string;
   icon: ReactNode;
   type: "conversation" | "workflow";
+  label?: string;
 }
 
 interface IndustryConfig {
@@ -630,6 +631,8 @@ export function IndustryPage() {
       return;
     }
 
+    const actionLabel = action.label || action.key;
+
     try {
       const promptConfig = await invoke<{
         systemPrompt: string;
@@ -653,8 +656,19 @@ export function IndustryPage() {
       if (conv?.id) {
         navigate(`/chat?conversationId=${conv.id}&prompt=${encodeURIComponent(promptConfig.userPrompt)}`);
       }
-    } catch (e) {
-      message.error(t("opc.industry.loadFailed", { error: String(e) }));
+    } catch {
+      const conv = await createConversation(
+        `${actionLabel} - ${manifest?.name || ""}`,
+        settings.default_model_id,
+        settings.default_provider_id,
+        {
+          system_prompt:
+            `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,
+        },
+      );
+      if (conv?.id) {
+        navigate(`/chat?conversationId=${conv.id}&prompt=${encodeURIComponent(actionLabel)}`);
+      }
     }
   };
 

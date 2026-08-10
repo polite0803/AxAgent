@@ -345,7 +345,7 @@ fn entity_to_rule(e: opc_automation_rules::Model) -> OpcResult<OpcAutomationRule
         trigger_config: e.trigger_config,
         action_type: e.action_type,
         action_config: e.action_config,
-        enabled: e.enabled,
+        enabled: e.enabled != 0,
         last_run_at: e.last_run_at,
         created_at: e.created_at,
         updated_at: e.updated_at,
@@ -570,7 +570,7 @@ impl OpcAutomationService for DbOpcAutomationService {
             trigger_config: Set(input.trigger_config),
             action_type: Set(input.action_type),
             action_config: Set(input.action_config),
-            enabled: Set(true),
+            enabled: Set(1),
             last_run_at: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
@@ -600,7 +600,7 @@ impl OpcAutomationService for DbOpcAutomationService {
             .ok_or_else(|| OpcError::NotFound(format!("automation rule {id}")))?;
 
         let mut am: opc_automation_rules::ActiveModel = entity.into();
-        am.enabled = Set(enabled);
+        am.enabled = Set(if enabled { 1 } else { 0 });
         am.updated_at = Set(now_ts());
         am.update(&self.db).await.map_err(|e| OpcError::Database(e.to_string()))?;
 

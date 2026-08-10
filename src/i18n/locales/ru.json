@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "Перезаписать (заменить все)",
         "strategyMerge": "Объединить (сохранить существующее)",
         "strategyDryRun": "Пробный запуск (только проверка)"
+      },
+      "narrative": {
+        "title": "Нарративная структура",
+        "noStructure": "Нет данных о нарративной структуре",
+        "arcs": "Дуги персонажей",
+        "foreshadows": "Предвосхищения",
+        "confluences": "Точки схождения",
+        "progress": "Прогресс",
+        "viewOverview": "Обзор",
+        "viewArcs": "Дуги",
+        "viewForeshadows": "Предвосхищения",
+        "noArcs": "Нет определенных дуг",
+        "arcList": "Список дуг персонажей",
+        "noForeshadows": "Нет определенных предвосхищений",
+        "foreshadowList": "Сеть предвосхищений",
+        "confluenceList": "Список точек схождения",
+        "stages": "Этапы дуги",
+        "noStages": "Нет определенных этапов",
+        "chapterDistribution": "Распределение глав",
+        "setupChapters": "Главы установки",
+        "payoffChapters": "Главы развязки",
+        "noPayoff": "Развязка не запланирована",
+        "relatedArcs": "Связанные дуги",
+        "save": "Сохранить",
+        "saveTitle": "Сохранить нарративную структуру",
+        "saveName": "Название",
+        "saveNamePlaceholder": "Введите название структуры",
+        "saveNameRequired": "Пожалуйста, введите название",
+        "saveDesc": "Описание (необязательно)",
+        "saveDescPlaceholder": "Кратко опишите особенности этой структуры",
+        "saveGenre": "Жанр",
+        "genreNovel": "Роман",
+        "genreShortStory": "Рассказ",
+        "genreScreenplay": "Сценарий",
+        "genrePoetry": "Поэзия",
+        "genreOther": "Другое",
+        "saveSuccess": "Успешно сохранено",
+        "saveFailed": "Ошибка сохранения",
+        "loadSuccess": "Успешно загружено",
+        "loadFromHistory": "Загрузить из истории",
+        "savedRecords": "Сохраненные структуры",
+        "confirmDelete": "Подтвердить удаление",
+        "confirmDeleteDesc": "Вы уверены, что хотите удалить эту запись о нарративной структуре?"
       }
     },
     "workflowLabel": "Рабочий процесс",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "Литературное творчество",
+            "description": "Роман/поэзия/проза. Метапознание → по главам → двойная рецензия",
+            "actions": {
+              "lm_novel": "Роман",
+              "lm_poetry": "Поэзия и проза"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "Workflow литературного творчества",
+                "description": "Метапознание → план → по главам → анти-логика → двойная рецензия → архив"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "Литературный жанр",
+          "placeholder": "Опции: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "Творческая тема",
+          "placeholder": "напр. Городское одиночество, Историческое эхо, Технологическое отчуждение"
+        },
+        "word_count_target": {
+          "label": "Целевое количество слов",
+          "placeholder": "напр. 30000"
         }
       },
       "industry_consulting": {

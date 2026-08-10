@@ -16,7 +16,7 @@ pub struct Model {
     pub message: String,
     pub source: String,
     #[sea_orm(column_name = "is_read")]
-    pub is_read: bool,
+    pub is_read: i32,
     pub created_at: i64,
 }
 

@@ -1221,6 +1221,49 @@
         "strategyOverwrite": "Overwrite (replace all)",
         "strategyMerge": "Merge (keep existing)",
         "strategyDryRun": "Dry run (validate only)"
+      },
+      "narrative": {
+        "title": "Narrative Structure",
+        "noStructure": "No narrative structure data",
+        "arcs": "Character Arcs",
+        "foreshadows": "Foreshadows",
+        "confluences": "Confluences",
+        "progress": "Progress",
+        "viewOverview": "Overview",
+        "viewArcs": "Arcs",
+        "viewForeshadows": "Foreshadows",
+        "noArcs": "No arcs defined",
+        "arcList": "Character Arc List",
+        "noForeshadows": "No foreshadows defined",
+        "foreshadowList": "Foreshadow Network",
+        "confluenceList": "Confluence Points",
+        "stages": "Arc Stages",
+        "noStages": "No stages defined",
+        "chapterDistribution": "Chapter Distribution",
+        "setupChapters": "Setup Chapters",
+        "payoffChapters": "Payoff Chapters",
+        "noPayoff": "No payoff scheduled",
+        "relatedArcs": "Related Arcs",
+        "save": "Save",
+        "saveTitle": "Save Narrative Structure",
+        "saveName": "Name",
+        "saveNamePlaceholder": "Enter structure name",
+        "saveNameRequired": "Please enter a name",
+        "saveDesc": "Description (optional)",
+        "saveDescPlaceholder": "Briefly describe this structure",
+        "saveGenre": "Genre",
+        "genreNovel": "Novel",
+        "genreShortStory": "Short Story",
+        "genreScreenplay": "Screenplay",
+        "genrePoetry": "Poetry",
+        "genreOther": "Other",
+        "saveSuccess": "Saved successfully",
+        "saveFailed": "Failed to save",
+        "loadSuccess": "Loaded successfully",
+        "loadFromHistory": "Load from history",
+        "savedRecords": "Saved structures",
+        "confirmDelete": "Confirm Delete",
+        "confirmDeleteDesc": "Are you sure you want to delete this narrative structure record?"
       }
     },
     "workflowRunner": {
@@ -4768,6 +4811,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "Literary Creation",
+            "description": "Novel/poetry/prose creation. Metacognition assembly → chapter-by-chapter → dual-reader review",
+            "actions": {
+              "lm_novel": "Novel Writing",
+              "lm_poetry": "Poetry & Prose"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "Literary Creation Workflow",
+                "description": "Metacognition → outline → chapter drafting → anti-logic check → dual-reader review → tolerance archive"
+              }
+            }
           }
         }
       },
@@ -5248,6 +5305,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "Literary Genre",
+          "placeholder": "Options: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "Creative Topic",
+          "placeholder": "e.g. Urban loneliness, Historical echo, Tech alienation"
+        },
+        "word_count_target": {
+          "label": "Target Word Count",
+          "placeholder": "e.g. 30000"
         }
       },
       "industry_consulting": {

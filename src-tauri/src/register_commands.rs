@@ -690,6 +690,12 @@ macro_rules! register_all_commands {
             commands::workflow_template::seed_preset_templates,
             commands::workflow_template::get_template_versions,
             commands::workflow_template::get_template_by_version,
+            // Narrative Structure commands (跨会话保存与恢复)
+            commands::narrative_structure::list_narrative_structures,
+            commands::narrative_structure::get_narrative_structure,
+            commands::narrative_structure::create_narrative_structure,
+            commands::narrative_structure::update_narrative_structure,
+            commands::narrative_structure::delete_narrative_structure,
             // Workflow AI commands
             commands::workflow_ai::generate_workflow_from_prompt,
             commands::workflow_ai::optimize_agent_prompt,

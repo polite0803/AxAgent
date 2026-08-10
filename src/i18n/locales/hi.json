@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "अधिलेखित करें (सब बदलें)",
         "strategyMerge": "मर्ज करें (मौजूदा रखें)",
         "strategyDryRun": "ड्राई रन (केवल मान्य करें)"
+      },
+      "narrative": {
+        "title": "कहानी संरचना",
+        "noStructure": "कोई कहानी संरचना डेटा नहीं",
+        "arcs": "चरित्र आर्क",
+        "foreshadows": "पूर्वाभास",
+        "confluences": "संगम बिंदु",
+        "progress": "प्रगति",
+        "viewOverview": "अवलोकन",
+        "viewArcs": "आर्क",
+        "viewForeshadows": "पूर्वाभास",
+        "noArcs": "कोई आर्क परिभाषित नहीं",
+        "arcList": "चरित्र आर्क सूची",
+        "noForeshadows": "कोई पूर्वाभास परिभाषित नहीं",
+        "foreshadowList": "पूर्वाभास नेटवर्क",
+        "confluenceList": "संगम बिंदु सूची",
+        "stages": "आर्क चरण",
+        "noStages": "कोई चरण परिभाषित नहीं",
+        "chapterDistribution": "अध्याय वितरण",
+        "setupChapters": "स्थापना अध्याय",
+        "payoffChapters": "परिणाम अध्याय",
+        "noPayoff": "कोई परिणाम निर्धारित नहीं",
+        "relatedArcs": "संबंधित आर्क",
+        "save": "सहेजें",
+        "saveTitle": "कहानी संरचना सहेजें",
+        "saveName": "नाम",
+        "saveNamePlaceholder": "संरचना नाम दर्ज करें",
+        "saveNameRequired": "कृपया नाम दर्ज करें",
+        "saveDesc": "विवरण (वैकल्पिक)",
+        "saveDescPlaceholder": "इस संरचना की विशेषताओं का संक्षिप्त विवरण दें",
+        "saveGenre": "शैली",
+        "genreNovel": "उपन्यास",
+        "genreShortStory": "लघु कहानी",
+        "genreScreenplay": "पटकथा",
+        "genrePoetry": "कविता",
+        "genreOther": "अन्य",
+        "saveSuccess": "सफलतापूर्वक सहेजा गया",
+        "saveFailed": "सहेजने में विफल",
+        "loadSuccess": "सफलतापूर्वक लोड किया गया",
+        "loadFromHistory": "इतिहास से लोड करें",
+        "savedRecords": "सहेजी गई संरचनाएं",
+        "confirmDelete": "हटाने की पुष्टि करें",
+        "confirmDeleteDesc": "क्या आप वाकई इस कहानी संरचना रिकॉर्ड को हटाना चाहते हैं?"
       }
     },
     "workflowLabel": "वर्कफ़्लो",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "साहित्यिक रचना",
+            "description": "उपन्यास/कविता/गद्य रचना। मेटाकग्निशन → अध्यायवार → दोहरी समीक्षा",
+            "actions": {
+              "lm_novel": "उपन्यास लेखन",
+              "lm_poetry": "कविता और गद्य"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "साहित्यिक रचना वर्कफ़्लो",
+                "description": "मेटाकग्निशन → रूपरेखा → अध्यायवार → एंटी-लॉजिक → दोहरी समीक्षा → संग्रह"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "साहित्यिक शैली",
+          "placeholder": "विकल्प: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "रचना विषय",
+          "placeholder": "उदा. शहरी अकेलापन, ऐतिहासिक प्रतिध्वनि, तकनीकी अलगाव"
+        },
+        "word_count_target": {
+          "label": "लक्ष्य शब्द संख्या",
+          "placeholder": "उदा. 30000"
         }
       },
       "industry_consulting": {

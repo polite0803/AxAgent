@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { type DragPayload, setDragPayload } from "../dndState";
+import { NarrativeStructurePanel } from "../NarrativeStructure";
 import { NODE_CATEGORIES, NODE_TYPE_MAP } from "../types";
 
 interface LeftPanelProps {
@@ -21,7 +22,8 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
   const inputId2 = `left-panel-input-search-templates-${reactId}`;
   const [search, setSearch] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
-  const { templates, loadTemplate } = useWorkflowEditorStore();
+  const { templates, loadTemplate, narrativeStructure, narrativeChapters, applyNarrativeAdjustment } =
+    useWorkflowEditorStore();
   const dragRef = useRef<DragPayload | null>(null);
   const isDraggingRef = useRef(false);
 
@@ -434,6 +436,27 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                     </div>
                   ))}
                 </div>
+              </div>
+            ),
+          },
+          {
+            key: "narrative",
+            label: t("workflow.narrative.title"),
+            children: (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
+                  overflow: "hidden",
+                  padding: "8px",
+                }}
+              >
+                <NarrativeStructurePanel
+                  structure={narrativeStructure}
+                  chapters={narrativeChapters}
+                  onAdjust={applyNarrativeAdjustment}
+                />
               </div>
             ),
           },

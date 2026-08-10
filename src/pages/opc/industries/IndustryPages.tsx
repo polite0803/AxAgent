@@ -97,6 +97,29 @@ const CONTENT_MEDIA_INPUT_FIELDS = [
   },
 ];
 
+const LITERARY_CREATION_INPUT_FIELDS = [
+  {
+    key: "genre",
+    label: "opc.input_fields.content_media.literary_genre.label",
+    type: "string" as const,
+    required: true,
+    placeholder: "opc.input_fields.content_media.literary_genre.placeholder",
+  },
+  {
+    key: "topic",
+    label: "opc.input_fields.content_media.literary_topic.label",
+    type: "string" as const,
+    required: true,
+    placeholder: "opc.input_fields.content_media.literary_topic.placeholder",
+  },
+  {
+    key: "word_count_target",
+    label: "opc.input_fields.content_media.word_count_target.label",
+    type: "number" as const,
+    placeholder: "opc.input_fields.content_media.word_count_target.placeholder",
+  },
+];
+
 const INDUSTRY_CONSULTING_INPUT_FIELDS = [
   {
     key: "industry_name",
@@ -855,6 +878,35 @@ const contentMediaConfig: IndustryConfig = {
           description: i18n.t("opc.industry.content_media.tabs.distribute.workflows.wf_mkt_influencer.description"),
           version: "1.0",
           inputFields: CONTENT_MEDIA_INPUT_FIELDS,
+        },
+      ],
+    },
+    {
+      key: "literary",
+      label: i18n.t("opc.industry.content_media.tabs.literary.label"),
+      icon: <BookOutlined />,
+      description: i18n.t("opc.industry.content_media.tabs.literary.description"),
+      actions: [
+        {
+          key: "lm-novel",
+          icon: <BookOutlined />,
+          type: "workflow",
+          label: i18n.t("opc.industry.content_media.tabs.literary.actions.lm_novel"),
+        },
+        {
+          key: "lm-poetry",
+          icon: <EditOutlined />,
+          type: "workflow",
+          label: i18n.t("opc.industry.content_media.tabs.literary.actions.lm_poetry"),
+        },
+      ],
+      workflows: [
+        {
+          id: "workflow-cm-literary-creation",
+          name: i18n.t("opc.industry.content_media.tabs.literary.workflows.wf_cm_literary_creation.name"),
+          description: i18n.t("opc.industry.content_media.tabs.literary.workflows.wf_cm_literary_creation.description"),
+          version: "3.0",
+          inputFields: LITERARY_CREATION_INPUT_FIELDS,
         },
       ],
     },

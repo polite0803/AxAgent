@@ -18,7 +18,7 @@ pub struct Model {
     pub content: String,
     #[sea_orm(column_type = "Text")]
     pub tags_json: String,
-    pub published: bool,
+    pub published: i32,
     pub published_at: Option<i64>,
     pub view_count: u32,
     pub created_at: i64,

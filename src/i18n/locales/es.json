@@ -1230,6 +1230,49 @@
         "strategyOverwrite": "Sobrescribir (reemplazar todo)",
         "strategyMerge": "Combinar (conservar existentes)",
         "strategyDryRun": "Prueba en seco (solo validar)"
+      },
+      "narrative": {
+        "title": "Estructura narrativa",
+        "noStructure": "No hay datos de estructura narrativa",
+        "arcs": "Arcos de personajes",
+        "foreshadows": "Presagios",
+        "confluences": "Confluencias",
+        "progress": "Progreso",
+        "viewOverview": "Visión general",
+        "viewArcs": "Arcos",
+        "viewForeshadows": "Presagios",
+        "noArcs": "No hay arcos definidos",
+        "arcList": "Lista de arcos de personajes",
+        "noForeshadows": "No hay presagios definidos",
+        "foreshadowList": "Red de presagios",
+        "confluenceList": "Lista de confluencias",
+        "stages": "Etapas del arco",
+        "noStages": "No hay etapas definidas",
+        "chapterDistribution": "Distribución de capítulos",
+        "setupChapters": "Capítulos de preparación",
+        "payoffChapters": "Capítulos de resolución",
+        "noPayoff": "No hay resolución programada",
+        "relatedArcs": "Arcos relacionados",
+        "save": "Guardar",
+        "saveTitle": "Guardar estructura narrativa",
+        "saveName": "Nombre",
+        "saveNamePlaceholder": "Introduzca el nombre de la estructura",
+        "saveNameRequired": "Por favor, introduzca un nombre",
+        "saveDesc": "Descripción (opcional)",
+        "saveDescPlaceholder": "Describa brevemente las características de esta estructura",
+        "saveGenre": "Género",
+        "genreNovel": "Novela",
+        "genreShortStory": "Cuento",
+        "genreScreenplay": "Guion",
+        "genrePoetry": "Poesía",
+        "genreOther": "Otro",
+        "saveSuccess": "Guardado con éxito",
+        "saveFailed": "Error al guardar",
+        "loadSuccess": "Cargado con éxito",
+        "loadFromHistory": "Cargar desde el historial",
+        "savedRecords": "Estructuras guardadas",
+        "confirmDelete": "Confirmar eliminación",
+        "confirmDeleteDesc": "¿Está seguro de que desea eliminar este registro de estructura narrativa?"
       }
     },
     "workflowLabel": "Flujo de trabajo",
@@ -5056,6 +5099,20 @@
                 "description": "Influencer marketing"
               }
             }
+          },
+          "literary": {
+            "label": "Creación literaria",
+            "description": "Creación de novela/poesía/prosa. Metacognición → capítulo por capítulo → doble lectura",
+            "actions": {
+              "lm_novel": "Novela",
+              "lm_poetry": "Poesía & prosa"
+            },
+            "workflows": {
+              "wf_cm_literary_creation": {
+                "name": "Flujo de creación literaria",
+                "description": "Metacognición → esquema → redacción → anti-lógica → doble lectura → archivo"
+              }
+            }
           }
         }
       },
@@ -5590,6 +5647,18 @@
         "target_platform": {
           "label": "Target Platform",
           "placeholder": "e.g., WeChat, Zhihu, Bilibili"
+        },
+        "literary_genre": {
+          "label": "Género literario",
+          "placeholder": "Opciones: novel / poetry / prose"
+        },
+        "literary_topic": {
+          "label": "Tema creativo",
+          "placeholder": "ej. Soledad urbana, Eco histórico, Alienación tecnológica"
+        },
+        "word_count_target": {
+          "label": "Recuento de palabras objetivo",
+          "placeholder": "ej. 30000"
         }
       },
       "industry_consulting": {

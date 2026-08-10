@@ -593,15 +593,70 @@ fn build_literary_creation()
         判定本次创作的体裁 genre：novel（小说，多章节）、poetry（诗歌）、prose（散文）。\n\
         （若用户未明确指定，按主题内容合理推断，默认 novel）\n\
         \n\
+        ## 叙事结构设计（核心增强）\n\
+        为作品设计完整的结构化叙事骨架，包含三大要素：\n\
+        1. **角色弧线 (arcs)**：每个主要角色/主题的发展轨迹\n\
+           - arc_type: transformative(转换型)/steadfast(坚定型)/flat(扁平型)/tragic(悲剧型)/comedic(喜剧型)\n\
+           - subject: 弧线主体（角色名或主题）\n\
+           - want/need: 外部目标/内部缺失\n\
+           - stages: 关键阶段列表（name + chapter + description）\n\
+        2. **交汇点 (confluences)**：多条线索汇聚的关键节点\n\
+           - confluence_type: conflict_burst(冲突爆发)/reveal_truth(真相揭示)/shift_perspective(视角转换)\n\
+           - trigger_chapter: 触发章节\n\
+           - involved_arcs/involved_foreshadows: 涉及的弧线和伏笔\n\
+        3. **伏笔网络 (foreshadows)**：埋设与回收的完整追踪\n\
+           - setup_chapter/payoff_chapter: 埋设/回收章节\n\
+           - status: setup(已埋设)/payoff(已回收)/abandoned(已废弃)\n\
+           - related_arcs: 关联的弧线\n\
+        \n\
         请输出 JSON：\n\
         {\n\
           \"genre\": \"novel\",\n\
           \"persona\": { \"voice\": \"叙事语调\", \"beliefs\": [\"核心信念\"], \"flaws\": [\"缺陷意识\"] },\n\
           \"world_schema\": { \"setting\": \"时空背景\", \"sensory_map\": { \"humidity\": 0.5, \"ambient_noise\": 0.3, \"light_temp\": 0.7, \"scent_density\": 0.2 } },\n\
-          \"conflict_map\": [{ \"axis\": \"冲突轴\", \"desc\": \"描述\" }]\n\
+          \"conflict_map\": [{ \"axis\": \"冲突轴\", \"desc\": \"描述\" }],\n\
+          \"narrative_structure\": {\n\
+            \"arcs\": [{\n\
+              \"id\": \"arc-1\",\n\
+              \"arc_type\": \"transformative\",\n\
+              \"subject\": \"主角姓名\",\n\
+              \"want\": \"外部目标\",\n\
+              \"need\": \"内部缺失\",\n\
+              \"stages\": [\n\
+                { \"name\": \"现状\", \"chapter\": 1, \"description\": \"起始状态\" },\n\
+                { \"name\": \"触发事件\", \"chapter\": 3, \"description\": \"打破平衡的事件\" },\n\
+                { \"name\": \"转变\", \"chapter\": 8, \"description\": \"认知或行为转变\" },\n\
+                { \"name\": \"新生\", \"chapter\": 15, \"description\": \"达成新的自我认知\" }\n\n\
+              ],\n\
+              \"current_progress\": 0.0\n\
+            }],\n\
+            \"confluences\": [{\n\
+              \"id\": \"cp-1\",\n\
+              \"trigger_chapter\": 10,\n\
+              \"confluence_type\": \"conflict_burst\",\n\
+              \"involved_arcs\": [\"arc-1\", \"arc-2\"],\n\
+              \"involved_foreshadows\": [\"fs-1\"],\n\
+              \"impact\": \"多条线索交汇引发激烈冲突\"\n\
+            }],\n\
+            \"foreshadows\": [{\n\
+              \"id\": \"fs-1\",\n\
+              \"setup_chapter\": 2,\n\
+              \"payoff_chapter\": 12,\n\
+              \"status\": \"setup\",\n\
+              \"description\": \"埋设的伏笔描述\",\n\
+              \"payoff_description\": null,\n\
+              \"related_arcs\": [\"arc-1\"]\n\
+            }]\n\
+          }\n\
         }";
 
-    let outline_prompt = "根据创作元认知（persona + world_schema + conflict_map），规划完整的章节大纲。\n\
+    let outline_prompt = "根据创作元认知（persona + world_schema + conflict_map + narrative_structure），规划完整的章节大纲。\n\
+        \n\
+        ## 叙事结构约束\n\
+        请严格遵循 narrative_structure 中的弧线阶段、交汇点和伏笔安排：\n\
+        - 每章需推进至少一个弧线阶段\n\
+        - 在指定章节埋设/回收伏笔\n\
+        - 在交汇点章节安排关键事件\n\
         \n\
         小说：请输出所有章节的标题、摘要、关键事件、对应冲突点和叙事焦点。\n\
         诗歌/散文：请输出意象结构或段落结构。\n\
@@ -620,18 +675,27 @@ fn build_literary_creation()
         - 诗歌：禁止\"爱\"、\"恨\"、\"绝望\"等抽象情感词，替换为身体/机械零件词汇\n\
         - 散文：闲笔密度适中，结尾需有价值翻转\n\
         \n\
-        ## 上下文（4 项精简注入）\n\
+        ## 叙事结构约束（强制注入）\n\
+        以下是本章必须遵循的叙事结构指令：{chapter_structure}\n\
+        - 弧线推进：必须推进指定的弧线阶段，展现角色变化\n\
+        - 伏笔管理：如要求埋设/回收伏笔，必须在正文中自然融入\n\
+        - 交汇点触发：如本章有交汇点，需安排关键事件推动线索汇聚\n\
+        - 若约束为空，可自由推进剧情\n\
+        \n\
+        ## 上下文（5 项精简注入）\n\
         - 当前章大纲：{chapter}\n\
         - 前章摘要：取 prev_summary 数组最后一项的 summary 作为前章摘要（首轮为空数组）\n\
         - 全局设定 compact：{persona} {world_schema}\n\
         - 当前冲突点：{conflict_point}\n\
+        - 叙事结构：{narrative_structure}\n\
         \n\
         ## 输出\n\
         请输出 JSON：\n\
         {\n\
           \"chapter_draft\": \"完整章节正文\",\n\
           \"chapter_summary\": \"200-300字章节摘要\",\n\
-          \"word_count\": 3500\n\
+          \"word_count\": 3500,\n\
+          \"structure_compliance_note\": \"对结构约束的遵循情况说明\"\n\
         }";
 
     let anti_logic_prompt = "你是一名反逻辑校验编辑。\n\
@@ -772,6 +836,78 @@ fn build_literary_creation()
           \"confidence\": 0.85\n\
         }";
 
+    // —— 叙事结构增强：结构注入/校验/调整 Prompt ——
+
+    let structure_injector_prompt = "你是一名叙事结构设计师。\n\
+        \n\
+        基于完整的 narrative_structure（含 arcs/confluences/foreshadows），\n\
+        为每一章生成精确的结构约束指令。\n\
+        \n\
+        输入：{narrative_structure}\n\
+        \n\
+        请遍历 narrative_structure，为每一章生成结构指令：\n\
+        - 弧线推进：该章需推进的弧线阶段\n\
+        - 伏笔管理：该章需埋设/回收的伏笔\n\
+        - 交汇点触发：该章的关键交汇点事件\n\
+        \n\
+        请输出 JSON（键为章节号，值为结构指令）：\n\
+        {\n\
+          \"1\": { \"arc_instructions\": [{ \"arc_id\": \"arc-1\", \"stage_name\": \"现状\", \"stage_description\": \"起始状态\" }], \"foreshadow_instructions\": [], \"confluence_triggers\": [] },\n\
+          \"2\": { \"arc_instructions\": [], \"foreshadow_instructions\": [{ \"foreshadow_id\": \"fs-1\", \"action\": \"setup\", \"description\": \"埋设伏笔描述\" }], \"confluence_triggers\": [] }\n\
+        }";
+
+    let structure_checker_prompt = "你是一名叙事结构校验器。\n\
+        \n\
+        对比实际生成的章节内容与预先设定的结构指令，检查结构遵循情况。\n\
+        \n\
+        输入：\n\
+        - 章节草稿：{chapter_draft}\n\
+        - 章节结构指令：{chapter_structure}\n\
+        - 叙事结构总览：{narrative_structure}\n\
+        \n\
+        检查维度：\n\
+        1. 弧线推进：是否体现了指定的弧线阶段变化\n\
+        2. 伏笔管理：是否自然融入了埋设/回收的伏笔\n\
+        3. 交汇点：是否触发了关键事件\n\
+        4. 节奏控制：叙事节奏是否合理\n\
+        \n\
+        请输出 JSON：\n\
+        {\n\
+          \"compliance_score\": 85,\n\
+          \"arc_compliance\": 90,\n\
+          \"foreshadow_compliance\": 80,\n\
+          \"confluence_compliance\": 100,\n\
+          \"deviations\": [\n\
+            { \"deviation_type\": \"arc_deviation\", \"description\": \"未充分展现弧线转变\", \"affected_element\": \"arc-1\", \"severity\": \"medium\" }\n\
+          ],\n\
+          \"suggestions\": [\"建议增加主角内心挣扎的描写\"]\n\
+        }";
+
+    let structure_adapter_prompt = "你是一名叙事结构调整专家。\n\
+        \n\
+        基于结构校验报告，动态调整后续章节的叙事结构安排。\n\
+        \n\
+        输入：\n\
+        - 结构校验报告：{compliance_report}\n\
+        - 当前叙事结构：{narrative_structure}\n\
+        - 剩余章节数：{remaining_chapters}\n\
+        \n\
+        调整策略：\n\
+        - 若伏笔未按时埋设：延后到最近的可行章节\n\
+        - 若弧线推进不足：在后续章节增加额外的推进阶段\n\
+        - 若交汇点未触发：调整冲突安排或标记为跳过\n\
+        - 优先保证关键弧线和核心伏笔的完整性\n\
+        \n\
+        请输出 JSON：\n\
+        {\n\
+          \"adjusted_structure\": { ... },\n\
+          \"adjustments\": [\n\
+            { \"type\": \"delay_foreshadow_payoff\", \"foreshadow_id\": \"fs-1\", \"new_chapter\": 15, \"reason\": \"前章未充分铺垫\" }\n\
+          ],\n\
+          \"confidence\": 0.8,\n\
+          \"rationale\": \"调整说明\"\n\
+        }";
+
     // —— 节点定义 ——
 
     let nodes = vec![
@@ -815,16 +951,35 @@ fn build_literary_creation()
                 ("persona", "lc-conceive.persona"),
                 ("world_schema", "lc-conceive.world_schema"),
                 ("conflict_map", "lc-conceive.conflict_map"),
+                ("narrative_structure", "lc-conceive.narrative_structure"),
             ],
             vec!["lc-conceive"],
             600.0,
             0.0,
         ),
+        // —— 叙事结构增强：结构注入节点 ——
+
+        // lc-structure-injector: 将叙事结构映射为逐章指令
+        // 在大纲生成后、逐章创作前执行
+        make_agent_node_full(
+            "lc-structure-injector",
+            "结构注入",
+            structure_injector_prompt,
+            vec![],
+            Some(profile),
+            "lc-chapter-structure",
+            vec![
+                ("narrative_structure", "lc-conceive.narrative_structure"),
+            ],
+            vec!["lc-conceive"],
+            700.0,
+            0.0,
+        ),
         // —— Loop 体内部节点（小说路径，仅在 body_steps 中引用，不通过 edges 连接）——
 
         // lc-draft-chapter: 单章创作（Loop 内，接收当前章 + 上下文）
-        // context_sources 加 lc-conceive/lc-outline：body 节点无 edges，
-        // 跨级引用 persona/world_schema/conflict_map 必须经软依赖注入
+        // context_sources 加 lc-conceive/lc-outline/lc-structure-injector：body 节点无 edges，
+        // 跨级引用 persona/world_schema/conflict_map/narrative_structure 必须经软依赖注入
         make_agent_node_full(
             "lc-draft-chapter",
             "单章创作",
@@ -838,8 +993,10 @@ fn build_literary_creation()
                 ("persona", "lc-conceive.persona"),         // 全局 persona
                 ("world_schema", "lc-conceive.world_schema"), // 全局设定
                 ("conflict_point", "lc-conceive.conflict_map"), // 冲突图谱
+                ("narrative_structure", "lc-conceive.narrative_structure"), // 叙事结构总览
+                ("chapter_structure", "lc-chapter-structure.current_chapter"), // 当前章结构指令
             ],
-            vec!["lc-conceive", "lc-outline"],
+            vec!["lc-conceive", "lc-outline", "lc-structure-injector"],
             300.0,
             -400.0,
         ),
@@ -869,6 +1026,43 @@ fn build_literary_creation()
             700.0,
             -400.0,
         ),
+        // —— 叙事结构增强：结构校验与调整（Loop 内）——
+
+        // lc-structure-checker: 结构校验（Loop 内，检查本章结构遵循情况）
+        make_agent_node_full(
+            "lc-structure-checker",
+            "结构校验",
+            structure_checker_prompt,
+            vec![],
+            Some(profile),
+            "lc-structure-check",
+            vec![
+                ("chapter_draft", "lc-summary.chapter_text"),
+                ("chapter_structure", "lc-chapter-structure.current_chapter"),
+                ("narrative_structure", "lc-conceive.narrative_structure"),
+            ],
+            vec!["lc-conceive", "lc-structure-injector"],
+            900.0,
+            -400.0,
+        ),
+        // lc-structure-adapter: 结构调整（Loop 内，根据校验报告动态调整后续结构）
+        // 仅在 compliance < 70 时触发实际调整，否则 passthrough
+        make_agent_node_full(
+            "lc-structure-adapter",
+            "结构调整",
+            structure_adapter_prompt,
+            vec![],
+            Some(profile),
+            "lc-adapted-structure",
+            vec![
+                ("compliance_report", "lc-structure-checker"),
+                ("narrative_structure", "lc-conceive.narrative_structure"),
+                ("remaining_chapters", "lc-outline.remaining"),
+            ],
+            vec!["lc-conceive", "lc-structure-injector"],
+            1100.0,
+            -400.0,
+        ),
         // lc-draft-loop: LoopNode（小说路径核心）
         // iter_input_var = "lc-outline"：deps_results 按 node_id 注入，
         // variables["lc-outline"] = outline 输出的顶层章节数组
@@ -885,8 +1079,10 @@ fn build_literary_creation()
                 "lc-draft-chapter".to_string(),
                 "lc-anti-logic".to_string(),
                 "lc-summary".to_string(),
+                "lc-structure-checker".to_string(),
+                "lc-structure-adapter".to_string(),
             ],
-            800.0,
+            1200.0,
             0.0,
         ),
         // —— 非小说路径（诗歌/散文）——
@@ -1019,14 +1215,14 @@ fn build_literary_creation()
     ];
 
     // —— 边定义 ——
-    // 注意：Loop 内节点（lc-draft-chapter, lc-anti-logic, lc-summary）不通过 edges 连接，
-    // 由 LoopExecutor 通过 body_steps 驱动执行。
+    // 注意：Loop 内节点（lc-draft-chapter, lc-anti-logic, lc-summary, lc-structure-checker, lc-structure-adapter）
+    // 不通过 edges 连接，由 LoopExecutor 通过 body_steps 驱动执行。
 
     let edges = vec![
         // 主链路：构思 → 体裁路由
         edge("e-trigger-conceive", "trigger", "lc-conceive"),
         edge("e-conceive-genre-route", "lc-conceive", "lc-genre-route"),
-        // 体裁路由：true(小说) → outline → Loop；false(诗歌/散文) → 单次创作
+        // 体裁路由：true(小说) → outline → structure-injector → Loop；false(诗歌/散文) → 单次创作
         edge_cond(
             "e-genre-route-novel",
             "lc-genre-route",
@@ -1041,8 +1237,9 @@ fn build_literary_creation()
             "lc-draft-single",
             EdgeType::ConditionFalse,
         ),
-        // 小说路径：outline → Loop → 组装
-        edge("e-outline-draft-loop", "lc-outline", "lc-draft-loop"),
+        // 小说路径：outline → structure-injector → Loop → 组装
+        edge("e-outline-structure-injector", "lc-outline", "lc-structure-injector"),
+        edge("e-structure-injector-draft-loop", "lc-structure-injector", "lc-draft-loop"),
         edge("e-draft-loop-assemble", "lc-draft-loop", "lc-assemble"),
         // 非小说路径：单次创作 → 组装
         edge("e-draft-single-assemble", "lc-draft-single", "lc-assemble-single"),
@@ -1077,7 +1274,7 @@ fn build_literary_creation()
         nodes,
         edges,
         "文字创作".to_string(),
-        "创作元认知 → 大纲拆章 → 逐章创作 → 反逻辑校验 → 双读者评审 → 容错归档。专业文学创作工作流。".to_string(),
+        "创作元认知 → 叙事结构设计 → 大纲拆章 → 结构注入 → 逐章创作（含结构校验/调整）→ 反逻辑校验 → 双读者评审 → 容错归档。专业文学创作工作流。".to_string(),
         "📖".to_string(),
         vec![
             "literary".to_string(),
@@ -1085,6 +1282,7 @@ fn build_literary_creation()
             "novel".to_string(),
             "poetry".to_string(),
             "prose".to_string(),
+            "narrative-structure".to_string(),
         ],
     )
 }

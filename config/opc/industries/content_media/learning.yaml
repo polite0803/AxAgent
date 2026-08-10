@@ -8,17 +8,20 @@ reflection:
   auto_reflect_on_failure: true
   dimensions:
     - name: "quality"
-      weight: 0.3
+      weight: 0.25
       description: "执行结果质量"
     - name: "efficiency"
-      weight: 0.2
+      weight: 0.15
       description: "执行效率"
     - name: "completeness"
-      weight: 0.3
+      weight: 0.2
       description: "任务完成度"
     - name: "innovation"
-      weight: 0.2
+      weight: 0.15
       description: "创新性与改进建议"
+    - name: "structure_compliance"
+      weight: 0.25
+      description: "叙事结构遵循情况（弧线推进、伏笔管理、交汇点触发）"
 
 evolution:
   workflow_evolver:
@@ -61,21 +64,27 @@ adapter:
         name: "内容质量"
         dimension: "quality"
         description: "评估内容的原创性和价值"
-        weight: 0.5
+        weight: 0.3
       - id: "seo"
         name: "SEO 效果"
         dimension: "seo"
         description: "评估搜索引擎优化效果"
-        weight: 0.3
+        weight: 0.2
       - id: "engagement"
         name: "用户互动"
         dimension: "engagement"
         description: "评估内容引发的用户互动"
-        weight: 0.2
+        weight: 0.15
+      - id: "narrative-structure"
+        name: "叙事结构"
+        dimension: "structure_compliance"
+        description: "评估弧线推进、伏笔管理和交汇点触发的遵循情况"
+        weight: 0.35
     prompts:
       - "请评估本次内容创作的质量"
       - "SEO 优化是否到位？"
       - "内容能引发用户互动吗？"
+      - "叙事结构是否按计划推进？弧线阶段、伏笔埋设/回收、交汇点触发情况如何？"
   evolution_constraints: {}
   acceptance_criteria:
     - id: "cm-content-quality"
@@ -84,18 +93,25 @@ adapter:
       dimension: "quality"
       threshold: 0.8
       is_critical: true
-      weight: 0.5
+      weight: 0.3
     - id: "cm-seo"
       name: "SEO 优化"
       description: "关键词和元数据优化到位"
       dimension: "seo"
       threshold: 0.7
       is_critical: false
-      weight: 0.3
+      weight: 0.2
     - id: "cm-engagement"
       name: "互动潜力"
       description: "标题和开头能吸引读者"
       dimension: "engagement"
       threshold: 0.6
       is_critical: false
-      weight: 0.2
+      weight: 0.15
+    - id: "cm-narrative-structure"
+      name: "叙事结构完整性"
+      description: "弧线按计划推进、伏笔按时埋设/回收、交汇点正确触发"
+      dimension: "structure_compliance"
+      threshold: 0.75
+      is_critical: true
+      weight: 0.35

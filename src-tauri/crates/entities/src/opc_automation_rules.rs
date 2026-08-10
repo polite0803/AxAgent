@@ -17,7 +17,7 @@ pub struct Model {
     pub action_type: String,
     #[sea_orm(column_type = "Text")]
     pub action_config: String,
-    pub enabled: bool,
+    pub enabled: i32,
     pub last_run_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,

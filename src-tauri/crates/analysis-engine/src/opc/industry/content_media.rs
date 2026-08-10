@@ -178,6 +178,19 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
             KpiCalculationDef {
                 key: "revision_rounds".to_string(), name: "修改轮次".to_string()
             },
+            // 叙事结构 KPI（叙事结构增强专属）
+            KpiCalculationDef {
+                key: "arc_completion".to_string(),
+                name: "弧线完成度".to_string(),
+            },
+            KpiCalculationDef {
+                key: "foreshadow_recovery_rate".to_string(),
+                name: "伏笔回收率".to_string(),
+            },
+            KpiCalculationDef {
+                key: "structure_compliance".to_string(),
+                name: "结构遵循率".to_string(),
+            },
         ]
     }
 
@@ -257,6 +270,10 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
         let word_count = 0.0;
         let completion_rate = 0.0;
         let revision_rounds = 0.0;
+        // 叙事结构 KPI：占位数据，后续接入 narrative_structure 执行数据
+        let arc_completion = 0.0;
+        let foreshadow_recovery_rate = 0.0;
+        let structure_compliance = 0.0;
 
         Ok(vec![
             KpiValue {
@@ -328,6 +345,28 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 value: revision_rounds,
                 target: Some(3.0),
                 unit: Some("轮".to_string()),
+                timestamp: now,
+            },
+            // 叙事结构 KPI
+            KpiValue {
+                key: "arc_completion".to_string(),
+                value: arc_completion,
+                target: Some(80.0),
+                unit: Some("%".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "foreshadow_recovery_rate".to_string(),
+                value: foreshadow_recovery_rate,
+                target: Some(90.0),
+                unit: Some("%".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "structure_compliance".to_string(),
+                value: structure_compliance,
+                target: Some(75.0),
+                unit: Some("%".to_string()),
                 timestamp: now,
             },
         ])
@@ -424,6 +463,34 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 metric_type: super::super::analytics::MetricType::Counter,
                 target: Some(3.0),
                 unit: Some("轮".to_string()),
+                ..Default::default()
+            },
+            // 叙事结构 KPI（叙事结构增强专属）
+            KpiDefinition {
+                key: "arc_completion".to_string(),
+                name: "弧线完成度".to_string(),
+                description: "所有角色弧线的阶段完成比例".to_string(),
+                metric_type: super::super::analytics::MetricType::Gauge,
+                target: Some(80.0),
+                unit: Some("%".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "foreshadow_recovery_rate".to_string(),
+                name: "伏笔回收率".to_string(),
+                description: "已回收伏笔占总埋设伏笔的比例".to_string(),
+                metric_type: super::super::analytics::MetricType::Gauge,
+                target: Some(90.0),
+                unit: Some("%".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "structure_compliance".to_string(),
+                name: "结构遵循率".to_string(),
+                description: "创作内容符合预设叙事结构的比例".to_string(),
+                metric_type: super::super::analytics::MetricType::Gauge,
+                target: Some(75.0),
+                unit: Some("%".to_string()),
                 ..Default::default()
             },
         ]

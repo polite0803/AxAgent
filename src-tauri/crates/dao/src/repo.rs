@@ -56,6 +56,8 @@ pub mod workflow_execution;
 pub mod workflow_execution_stats;
 pub mod workflow_template;
 
+pub mod narrative_structure;
+
 pub mod louvain;
 pub mod note;
 pub mod note_backlink_repository;

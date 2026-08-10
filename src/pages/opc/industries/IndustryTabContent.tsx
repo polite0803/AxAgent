@@ -5,11 +5,14 @@
  * 工作流采用向导模式，点击"开始"后通过分步向导引导用户配置并执行
  */
 
-import { Alert, Button, Card, Empty, message, Typography } from "antd";
+import { Alert, Button, Card, Empty, message, Tag, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
-import type { IndustryConfig, IndustryTab, IndustryWorkflow } from "./types";
+import { useConversationStore, useSettingsStore } from "@/stores";
+
+import type { ActionItem, IndustryConfig, IndustryTab, IndustryWorkflow } from "./types";
 import { useIndustryData } from "./useIndustryData";
 import { WorkflowWizard } from "./WorkflowWizard";
 
@@ -27,6 +30,9 @@ function findTab(config: IndustryConfig, tabKey: string): IndustryTab | undefine
 
 export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabContentProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const createConversation = useConversationStore((s) => s.createConversation);
+  const settings = useSettingsStore((s) => s.settings);
   const data = useIndustryData(industryId);
 
   const tab = useMemo(() => findTab(config, tabKey), [config, tabKey]);
@@ -34,8 +40,58 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeWorkflow, setActiveWorkflow] = useState<IndustryWorkflow | null>(null);
 
-  const handleAction = (actionKey: string) => {
-    message.info(t("opc.industry.tab.actionTriggered", { key: actionKey }));
+  const handleAction = async (action: ActionItem) => {
+    if (!settings?.default_provider_id || !settings?.default_model_id) {
+      message.warning(t("opc.industry.noProviderConfig"));
+      navigate("/settings/providers");
+      return;
+    }
+
+    if (action.type === "workflow") {
+      navigate(`/workflow/new?industry=${industryId}&template=${action.key}`);
+      return;
+    }
+
+    const { invoke } = await import("@/lib/invoke");
+    const actionLabel = action.label || action.key;
+
+    try {
+      const promptConfig = await invoke<{
+        systemPrompt: string;
+        userPrompt: string;
+        actionKey: string;
+        actionLabel: string;
+        industryId: string;
+      }>("opc_build_industry_prompt", {
+        industryId,
+        actionKey: action.key,
+      });
+
+      const conv = await createConversation(
+        promptConfig.actionLabel,
+        settings.default_model_id,
+        settings.default_provider_id,
+        {
+          system_prompt: promptConfig.systemPrompt,
+        },
+      );
+      if (conv?.id) {
+        navigate(`/chat?conversationId=${conv.id}&prompt=${encodeURIComponent(promptConfig.userPrompt)}`);
+      }
+    } catch {
+      const conv = await createConversation(
+        actionLabel,
+        settings.default_model_id,
+        settings.default_provider_id,
+        {
+          system_prompt:
+            `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,
+        },
+      );
+      if (conv?.id) {
+        navigate(`/chat?conversationId=${conv.id}&prompt=${encodeURIComponent(actionLabel)}`);
+      }
+    }
   };
 
   const handleStartWorkflow = (wf: IndustryWorkflow) => {
@@ -90,7 +146,7 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
             {tab.actions.map((action) => (
               <div
                 key={action.key}
-                onClick={() => handleAction(action.key)}
+                onClick={() => handleAction(action)}
                 style={{
                   cursor: "pointer",
                   padding: 12,
@@ -115,6 +171,11 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
                 <Text strong style={{ fontSize: 13 }}>
                   {action.label || action.key}
                 </Text>
+                {action.type === "workflow" && (
+                  <Tag color="orange" style={{ margin: 0 }}>
+                    {t("opc.industry.workflowTag")}
+                  </Tag>
+                )}
               </div>
             ))}
           </div>

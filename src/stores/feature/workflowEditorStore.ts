@@ -23,7 +23,15 @@ import type {
   WorkflowTemplateResponse,
 } from "@/components/workflow/types";
 import { NODE_TYPE_MAP } from "@/components/workflow/types";
+import type { NarrativeStructureRecord } from "@/lib/narrativeStructure";
+import {
+  createNarrativeStructure as apiCreateNarrative,
+  deleteNarrativeStructure as apiDeleteNarrative,
+  getNarrativeStructure as apiGetNarrative,
+  listNarrativeStructures as apiListNarrative,
+} from "@/lib/narrativeStructure";
 import { auto_layout } from "@/lib/workflowLayout";
+import type { ChapterMeta, NarrativeStructure, StructureAdjustmentSuggestion } from "@/types/narrative";
 
 export interface ExpandedSubWorkflowData {
   /** 子工作流内部节点（ID 已 prefixed 避免冲突） */
@@ -143,6 +151,25 @@ interface WorkflowEditorState {
   parentRefs: Record<string, string>;
   setParentRef: (childId: string, parentId: string | null, recordHistory?: boolean) => void;
   clearParentRefs: () => void;
+
+  // 叙事结构数据（文学创作工作流专用）
+  narrativeStructure: NarrativeStructure | null;
+  narrativeChapters: ChapterMeta[];
+  setNarrativeStructure: (structure: NarrativeStructure | null) => void;
+  setNarrativeChapters: (chapters: ChapterMeta[]) => void;
+  applyNarrativeAdjustment: (suggestion: StructureAdjustmentSuggestion) => void;
+
+  // 叙事结构持久化（跨会话保存/恢复）
+  narrativeRecords: NarrativeStructureRecord[];
+  loadNarrativeRecords: () => Promise<void>;
+  saveNarrativeStructure: (
+    name: string,
+    description?: string,
+    genre?: string,
+    isTemplate?: boolean,
+  ) => Promise<string | null>;
+  loadNarrativeStructure: (id: string) => Promise<void>;
+  deleteNarrativeStructure: (id: string) => Promise<void>;
 
   loadTemplates: () => Promise<void>;
   loadTemplate: (id: string) => Promise<void>;
@@ -646,6 +673,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     nodes: [],
     edges: [],
     parentRefs: {},
+    narrativeStructure: null,
+    narrativeChapters: [],
+    narrativeRecords: [],
     aiChatMessages: [],
     aiChatSessionId: `ai-session-${Date.now()}`,
     aiChatStreaming: false,
@@ -1362,6 +1392,127 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         state.parentRefs = {};
         state.isDirty = true;
       });
+    },
+
+    setNarrativeStructure: (structure) => {
+      set((state) => {
+        state.narrativeStructure = structure;
+        state.isDirty = true;
+      });
+    },
+    setNarrativeChapters: (chapters) => {
+      set((state) => {
+        state.narrativeChapters = chapters;
+      });
+    },
+    applyNarrativeAdjustment: (suggestion) => {
+      set((state) => {
+        if (!state.narrativeStructure) { return; }
+        const ns = state.narrativeStructure;
+        const targetType = suggestion.targetType;
+        const targetId = suggestion.targetId;
+        if (!targetType || !targetId) { return; }
+
+        switch (targetType) {
+          case "arc": {
+            const arcIndex = ns.arcs.findIndex((a) => a.id === targetId);
+            if (arcIndex >= 0) {
+              const arc = { ...ns.arcs[arcIndex] };
+              if (suggestion.adjustmentType === "add_arc_stage" && suggestion.payload) {
+                arc.stages.push(suggestion.payload as never);
+              }
+              ns.arcs[arcIndex] = arc;
+            }
+            break;
+          }
+          case "foreshadow": {
+            const fIndex = ns.foreshadows.findIndex((f) => f.id === targetId);
+            if (fIndex >= 0) {
+              const fs = { ...ns.foreshadows[fIndex] };
+              if (suggestion.payload) {
+                Object.assign(fs, suggestion.payload);
+              }
+              ns.foreshadows[fIndex] = fs;
+            }
+            break;
+          }
+          case "confluence": {
+            if (suggestion.adjustmentType === "reposition_confluence" && suggestion.payload) {
+              const cIndex = ns.confluences.findIndex((c) => c.id === targetId);
+              if (cIndex >= 0) {
+                ns.confluences[cIndex] = {
+                  ...ns.confluences[cIndex],
+                  ...suggestion.payload,
+                };
+              }
+            }
+            break;
+          }
+        }
+        state.isDirty = true;
+      });
+    },
+
+    loadNarrativeRecords: async () => {
+      try {
+        const records = await apiListNarrative();
+        set((state) => {
+          state.narrativeRecords = records;
+        });
+      } catch (e) {
+        console.error("Failed to load narrative records:", e);
+      }
+    },
+
+    saveNarrativeStructure: async (name, description, genre, isTemplate) => {
+      const { narrativeStructure } = get();
+      if (!narrativeStructure) { return null; }
+
+      try {
+        const id = `ns-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const record = await apiCreateNarrative({
+          id,
+          name,
+          description,
+          genre: genre || "novel",
+          structure: narrativeStructure,
+          isTemplate,
+        });
+
+        set((state) => {
+          state.narrativeRecords.unshift(record);
+        });
+
+        return record.id;
+      } catch (e) {
+        console.error("Failed to save narrative structure:", e);
+        return null;
+      }
+    },
+
+    loadNarrativeStructure: async (id) => {
+      try {
+        const record = await apiGetNarrative(id);
+        if (record) {
+          set((state) => {
+            state.narrativeStructure = record.structure;
+            state.isDirty = true;
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load narrative structure:", e);
+      }
+    },
+
+    deleteNarrativeStructure: async (id) => {
+      try {
+        await apiDeleteNarrative(id);
+        set((state) => {
+          state.narrativeRecords = state.narrativeRecords.filter((r) => r.id !== id);
+        });
+      } catch (e) {
+        console.error("Failed to delete narrative structure:", e);
+      }
     },
 
     updateTemplateMetadata: (metadata) => {
