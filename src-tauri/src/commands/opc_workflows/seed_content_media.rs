@@ -876,11 +876,11 @@ fn build_literary_creation()
             "lc-draft-loop",
             "逐章创作循环",
             LoopType::ForEach,
-            Some("lc-outline"),   // iter_input_var: 从 lc-outline 输出读取章节数组（node_id 注入）
-            Some("chapter"),      // iteratee_var: 当前章注入 scope 的变量名
+            Some("lc-outline"), // iter_input_var: 从 lc-outline 输出读取章节数组（node_id 注入）
+            Some("chapter"),    // iteratee_var: 当前章注入 scope 的变量名
             Some("chapters_text"), // iter_output_var: 聚合输出变量（每轮 last_step 累积）
             Some("chapters_text__partial"), // partial_result_var: 流式累积变量（供下一轮 prev_summary 读取）
-            Some(50),             // 最多 50 章
+            Some(50),                       // 最多 50 章
             vec![
                 "lc-draft-chapter".to_string(),
                 "lc-anti-logic".to_string(),

@@ -2040,7 +2040,6 @@ fn remove_dir_all_with_retry(path: &Path) -> Result<(), PluginError> {
     Err(PluginError::Io(last_err.expect("at least one remove_dir_all attempt was made")))
 }
 
-
 fn update_settings_json(
     path: &Path,
     mut update: impl FnMut(&mut Map<String, Value>),
