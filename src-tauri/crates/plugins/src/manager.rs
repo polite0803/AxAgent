@@ -2017,29 +2017,6 @@ fn copy_dir_all(source: &Path, destination: &Path) -> Result<(), PluginError> {
     Ok(())
 }
 
-/// Windows 上杀毒软件/索引服务/文件句柄占用导致 `remove_dir_all` 偶发失败。
-/// 带退避重试的安全删除工具，最多 5 次，间隔递增（100/200/400/800/1600 ms）。
-fn remove_dir_all_with_retry(path: &Path) -> Result<(), PluginError> {
-    const MAX_RETRIES: usize = 5;
-    let mut last_err: Option<std::io::Error> = None;
-    for attempt in 0..MAX_RETRIES {
-        match fs::remove_dir_all(path) {
-            Ok(()) => return Ok(()),
-            Err(e) => {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    return Ok(());
-                }
-                last_err = Some(e);
-                if attempt < MAX_RETRIES - 1 {
-                    let delay_ms = 100u64 * (1u64 << attempt);
-                    std::thread::sleep(std::time::Duration::from_millis(delay_ms));
-                }
-            },
-        }
-    }
-    Err(PluginError::Io(last_err.expect("at least one remove_dir_all attempt was made")))
-}
-
 fn update_settings_json(
     path: &Path,
     mut update: impl FnMut(&mut Map<String, Value>),
