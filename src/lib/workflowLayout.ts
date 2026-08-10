@@ -79,6 +79,8 @@ const DEFAULT_ZH_TABLE: Record<string, string> = {
   "workflow.layout.validate.workflow_ref_self": 'WorkflowRef \u8282\u70b9 "{{nodeId}}" \u5f15\u7528\u4e86\u81ea\u8eab',
   "workflow.layout.validate.workflow_ref_depth":
     'WorkflowRef \u5f15\u7528\u94fe\u53ef\u80fd\u8d85\u8fc7 {{maxDepth}} \u5c42\u9650\u5236\uff0c\u591a\u4e2a WorkflowRef \u6307\u5411\u76f8\u540c\u7684 "{{refId}}"\uff0c\u53ef\u80fd\u5b58\u5728\u5faa\u73af\u5f15\u7528',
+  "workflow.layout.validate.missing_end_node":
+    "\u5de5\u4f5c\u6d41\u4e2d\u6709 {{nonTriggerCount}} \u4e2a\u975e\u89e6\u53d1\u8282\u70b9\u4f46\u7f3a\u5c11\u7ed3\u675f\u8282\u70b9\uff08EndNode\uff09\uff0c\u5de5\u4f5c\u6d41\u9700\u8981\u660e\u786e\u7684\u7ec8\u6b62\u70b9",
 };
 
 /**
@@ -107,7 +109,8 @@ export interface ValidateIssue {
     | "duplicate_title"
     | "workflow_ref_empty"
     | "workflow_ref_self"
-    | "workflow_ref_depth";
+    | "workflow_ref_depth"
+    | "missing_end_node";
   severity: "error" | "warning";
   /** 已渲染的可读消息（默认 zh-CN；调用方可重新渲染以适配其他语言） */
   message: string;
@@ -574,6 +577,30 @@ export function validate_workflow(
         });
       }
     }
+  }
+
+  // ── 9. 缺失结束节点 ────────────────────────────────────────
+  // 当工作流中有非触发节点但没有结束节点时，发出警告
+  const hasEndNode = nodes.some((n) => nodeTypeOf(n) === "end");
+  const nonTriggerNodes = nodes.filter(
+    (n) =>
+      !isLayoutExcluded(n)
+      && nodeTypeOf(n) !== "trigger"
+      && nodeTypeOf(n) !== "end"
+      && !CONTAINER_NODE_TYPES.has(nodeTypeOf(n)),
+  );
+  if (nonTriggerNodes.length > 0 && !hasEndNode) {
+    const key = "workflow.layout.validate.missing_end_node";
+    const params = { nonTriggerCount: nonTriggerNodes.length };
+    issues.push({
+      rule: "missing_end_node",
+      severity: "warning",
+      message: t(key, params),
+      messageKey: key,
+      messageParams: params,
+      nodeIds: [],
+      edgeIds: [],
+    });
   }
 
   return { valid: issues.length === 0, issues };

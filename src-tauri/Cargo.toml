@@ -71,7 +71,7 @@ xcap = "0.9.6"
 
 [package]
 name = "axagent"
-version = "2.9.1"
+version = "2.9.2"
 authors = ["刘小平 <polite0803@outlook.com>"]
 default-run = "AxAgent"
 edition = "2024"
