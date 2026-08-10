@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AxInvest",
-  "version": "2.9.2",
-  "identifier": "top.axinvest.desktop",
+  "productName": "AxAgent",
+  "version": "2.9.3",
+  "identifier": "top.axagent.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,11 +12,11 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self' https://tauri.localhost tauri: ipc: data:; script-src 'self' https://tauri.localhost tauri: ipc: 'unsafe-eval' wasm-unsafe-eval; style-src 'self' 'unsafe-inline' https://tauri.localhost tauri: ipc:; font-src 'self' data: https://tauri.localhost tauri: ipc:; img-src 'self' data: https: asset:; connect-src 'self' https://tauri.localhost https://ipc.localhost tauri: ipc: https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.openclaw.ai https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss:; frame-src 'self'; object-src 'none'; base-uri 'self'; wasm-src 'self' data: https://tauri.localhost;"
+      "csp": "default-src 'self' https://tauri.localhost tauri: ipc: data:; script-src 'self' https://tauri.localhost tauri: ipc: 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://tauri.localhost tauri: ipc:; font-src 'self' https://tauri.localhost tauri: ipc: data:; img-src 'self' data: https: asset:; connect-src 'self' https://tauri.localhost https://ipc.localhost tauri: ipc: https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.openclaw.ai https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com http://localhost:* http://127.0.0.1:*; frame-src 'self'; object-src 'none'; base-uri 'self';"
     },
     "windows": [
       {
-        "title": "AxInvest",
+        "title": "AxAgent",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
@@ -33,8 +33,7 @@
     "active": true,
     "targets": "all",
     "resources": [
-      "pricing.toml",
-      "scripts/browser-automation.mjs"
+      "pricing.toml"
     ],
     "icon": [
       "icons/32x32.png",
@@ -54,7 +53,7 @@
   "plugins": {
     "updater": {
       "active": false,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU0OThDNDAyMUU5OTQwNTcKUldSWFFKa2VBc1NZVkZlU2lBTS8wU1pqUFFuODhKNUFzd3owZFNlTUFXelJXM1VBNndmN2hKQ0cK",
+      "pubkey": "",
       "endpoints": [],
       "windows": {
         "installMode": "passive"
