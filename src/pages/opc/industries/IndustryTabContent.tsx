@@ -2,74 +2,50 @@
 
 /**
  * 行业 Tab 内容组件 — 渲染指定 tab 的 actions 和 workflows
+ * 工作流采用向导模式，点击"开始"后通过分步向导引导用户配置并执行
  */
 
-import { Alert, Button, Card, Empty, Input, InputNumber, message, Tag, Typography } from "antd";
+import { Alert, Button, Card, Empty, message, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { IndustryConfig, IndustryTab } from "./types";
+import type { IndustryConfig, IndustryTab, IndustryWorkflow } from "./types";
 import { useIndustryData } from "./useIndustryData";
+import { WorkflowWizard } from "./WorkflowWizard";
 
 const { Text } = Typography;
 
-/** Tab 内容属性 */
 interface IndustryTabContentProps {
   industryId: string;
   config: IndustryConfig;
   tabKey: string;
 }
 
-/**
- * 从配置中查找指定 tab
- */
 function findTab(config: IndustryConfig, tabKey: string): IndustryTab | undefined {
   return config.tabs?.find((t) => t.key === tabKey);
 }
 
-/**
- * 行业 Tab 内容组件
- */
 export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabContentProps) {
   const { t } = useTranslation();
   const data = useIndustryData(industryId);
 
   const tab = useMemo(() => findTab(config, tabKey), [config, tabKey]);
 
-  // 工作流用户输入值：key = "{wfId}.{fieldKey}"
-  const [inputValues, setInputValues] = useState<Record<string, unknown>>({});
-
-  const setInputValue = (wfId: string, fieldKey: string, value: unknown) => {
-    setInputValues((prev) => ({ ...prev, [`${wfId}.${fieldKey}`]: value }));
-  };
-
-  const getInputValues = (wfId: string): Record<string, unknown> => {
-    const result: Record<string, unknown> = {};
-    const prefix = `${wfId}.`;
-    for (const [k, v] of Object.entries(inputValues)) {
-      if (k.startsWith(prefix)) {
-        result[k.slice(prefix.length)] = v;
-      }
-    }
-    return result;
-  };
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [activeWorkflow, setActiveWorkflow] = useState<IndustryWorkflow | null>(null);
 
   const handleAction = (actionKey: string) => {
     message.info(t("opc.industry.tab.actionTriggered", { key: actionKey }));
   };
 
-  const handleExecute = async (workflowId: string, userInput?: Record<string, unknown>) => {
-    try {
-      const result = await data.executeWorkflow(workflowId, userInput);
-      // completed=全部节点完成；success=成功但有节点未执行（如装饰/跳过节点），均视为成功
-      if (result.status === "completed" || result.status === "success") {
-        message.success(t("opc.industry.tab.executeSuccess", { id: workflowId }));
-      } else {
-        message.error(t("opc.industry.tab.executeFailed", { id: workflowId }));
-      }
-    } catch {
-      message.error(t("opc.industry.tab.executeFailed", { id: workflowId }));
-    }
+  const handleStartWorkflow = (wf: IndustryWorkflow) => {
+    setActiveWorkflow(wf);
+    setWizardOpen(true);
+  };
+
+  const handleWizardClose = () => {
+    setWizardOpen(false);
+    setActiveWorkflow(null);
   };
 
   if (!tab) {
@@ -82,7 +58,6 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
 
   return (
     <div style={{ padding: "16px 24px", height: "100%", overflow: "auto" }}>
-      {/* Tab 描述 */}
       {tab.description && (
         <Alert
           style={{ marginBottom: 16 }}
@@ -92,7 +67,6 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
         />
       )}
 
-      {/* 操作项 */}
       {tab.actions && tab.actions.length > 0 && (
         <Card
           title={
@@ -141,21 +115,12 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
                 <Text strong style={{ fontSize: 13 }}>
                   {action.label || action.key}
                 </Text>
-                <Tag
-                  color={action.type === "workflow" ? "blue" : "green"}
-                  style={{ fontSize: 11 }}
-                >
-                  {action.type === "workflow"
-                    ? t("opc.industry.tab.type.workflow")
-                    : t("opc.industry.tab.type.conversation")}
-                </Tag>
               </div>
             ))}
           </div>
         </Card>
       )}
 
-      {/* 工作流列表 */}
       {tab.workflows && tab.workflows.length > 0 && (
         <Card
           title={
@@ -170,110 +135,50 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
           size="small"
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {tab.workflows.map((wf) => {
-              const hasInputs = wf.inputFields && wf.inputFields.length > 0;
-              return (
-                <div
-                  key={wf.id}
-                  style={{
-                    padding: 12,
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 6,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: hasInputs ? 8 : 0,
-                    }}
-                  >
+            {tab.workflows.map((wf) => (
+              <div
+                key={wf.id}
+                style={{
+                  padding: 12,
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <Text strong>{wf.name || wf.id}</Text>
+                  {wf.description && (
                     <div>
-                      <Text strong>{wf.name || wf.id}</Text>
-                      {wf.description && (
-                        <div>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {wf.description}
-                          </Text>
-                        </div>
-                      )}
-                    </div>
-                    <Button
-                      size="small"
-                      type="primary"
-                      loading={data.workflowExecuting}
-                      onClick={() =>
-                        handleExecute(
-                          wf.id,
-                          hasInputs ? getInputValues(wf.id) : undefined,
-                        )}
-                    >
-                      {t("opc.industry.tab.execute")}
-                    </Button>
-                  </div>
-                  {hasInputs && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                        gap: 8,
-                        marginTop: 4,
-                      }}
-                    >
-                      {wf.inputFields!.map((field) => (
-                        <div key={field.key}>
-                          <Text
-                            type="secondary"
-                            style={{ fontSize: 12, display: "block", marginBottom: 2 }}
-                          >
-                            {t(field.label)}
-                            {field.required ? " *" : ""}
-                          </Text>
-                          {field.type === "textarea"
-                            ? (
-                              <Input.TextArea
-                                rows={2}
-                                placeholder={field.placeholder ? t(field.placeholder) : undefined}
-                                value={(inputValues[`${wf.id}.${field.key}`] as string)
-                                  ?? field.default
-                                  ?? ""}
-                                onChange={(e) => setInputValue(wf.id, field.key, e.target.value)}
-                              />
-                            )
-                            : field.type === "number"
-                            ? (
-                              <InputNumber
-                                style={{ width: "100%" }}
-                                placeholder={field.placeholder ? t(field.placeholder) : undefined}
-                                value={(inputValues[`${wf.id}.${field.key}`] as number)
-                                  ?? (field.default ? Number(field.default) : undefined)}
-                                onChange={(v) => setInputValue(wf.id, field.key, v)}
-                              />
-                            )
-                            : (
-                              <Input
-                                placeholder={field.placeholder ? t(field.placeholder) : undefined}
-                                value={(inputValues[`${wf.id}.${field.key}`] as string)
-                                  ?? field.default
-                                  ?? ""}
-                                onChange={(e) => setInputValue(wf.id, field.key, e.target.value)}
-                              />
-                            )}
-                        </div>
-                      ))}
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {wf.description}
+                      </Text>
                     </div>
                   )}
                 </div>
-              );
-            })}
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => handleStartWorkflow(wf)}
+                >
+                  {t("opc.industry.wizard.start")}
+                </Button>
+              </div>
+            ))}
           </div>
         </Card>
       )}
 
-      {/* 空状态 */}
       {(!tab.actions || tab.actions.length === 0)
         && (!tab.workflows || tab.workflows.length === 0) && <Empty description={t("opc.industry.tab.noContent")} />}
+
+      <WorkflowWizard
+        open={wizardOpen}
+        workflow={activeWorkflow}
+        data={data}
+        onClose={handleWizardClose}
+      />
     </div>
   );
 }

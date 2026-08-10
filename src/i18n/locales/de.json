@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "Container-Knoten \"{{nodeId}}\" (dekorativ) hat keine Kinder und keine Verbindungen",
         "dead_branch_scheduled": "Container-Knoten \"{{nodeId}}\" ({{type}}) ist ein toter Ast – hat Kinder aber keine Eingangs-/Ausgangskanten",
         "duplicate_title": "{{count}} {{type}}-Knoten teilen denselben Titel \"{{title}}\"",
+        "missing_end_node": "Der Arbeitsablauf hat keinen Endknoten. Bitte fügen Sie einen für den korrekten Abschluss hinzu.",
         "orphan_node": "Knoten \"{{nodeId}}\" ist verwaist (keine eingehende oder ausgehende Kante)",
         "self_loop": "Kante {{edgeId}} ist eine Selbstschleife (Quelle === Ziel)",
         "unconnected_port": "Bedingungsknoten \"{{nodeId}}\" hat nicht verbundenen {{missing}}-Ausgang",

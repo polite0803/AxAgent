@@ -46,6 +46,11 @@ const EMBEDDED_PROMPTS: &[(&str, &str, &str)] = &[
         include_str!("../../../agency_experts/opc/cmo-content-strategist.md"),
     ),
     (
+        "cmo-literary-creator",
+        "文学创作者",
+        include_str!("../../../agency_experts/opc/cmo-literary-creator.md"),
+    ),
+    (
         "cpo-product-manager",
         "CPO/产品负责人",
         include_str!("../../../agency_experts/opc/cpo-product-manager.md"),
@@ -59,6 +64,7 @@ const EXPERT_ROLE_MAP: &[(&str, &str)] = &[
     ("cfo-financial-analyst", "cfo"),
     ("coo-operations-manager", "coo"),
     ("cmo-content-strategist", "cmo"),
+    ("cmo-literary-creator", "cmo"),
     ("cpo-product-manager", "cpo"),
 ];
 
@@ -128,6 +134,17 @@ const PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "OpcListLandingPages",
             "OpcGetDashboard",
             "OpcSendNotification",
+            "OpcSearchWiki",
+        ],
+    ),
+    (
+        "cmo-literary-creator",
+        &[
+            "OpcListBlogPosts",
+            "OpcCreateBlogPost",
+            "FileWrite",
+            "FileRead",
+            "WebSearch",
             "OpcSearchWiki",
         ],
     ),

@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "컨테이너 노드 \"{{nodeId}}\"(장식용)에 자식이 없고 연결도 없습니다",
         "dead_branch_scheduled": "컨테이너 노드 \"{{nodeId}}\"({{type}})은 죽은 분기입니다 — 자식은 있지만 입출력 엣지가 없습니다",
         "duplicate_title": "{{count}}개의 {{type}} 노드가 동일한 제목 \"{{title}}\"을 공유합니다",
+        "missing_end_node": "워크플로우에 종료 노드가 없습니다. 올바른 종료를 위해 추가하는 것을 권장합니다.",
         "orphan_node": "노드 \"{{nodeId}}\"가 고립되었습니다(인바운드 또는 아웃바운드 엣지 없음)",
         "self_loop": "엣지 {{edgeId}}는 자기 루프입니다(소스 === 타겟)",
         "unconnected_port": "조건 노드 \"{{nodeId}}\"에 연결되지 않은 {{missing}} 출력이 있습니다",

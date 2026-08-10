@@ -47,6 +47,19 @@ kpi_definitions:
     name: 内容互动率
     unit: "%"
     metric_type: percentage
+  # 创作类 KPI（文学创作工作流专属）
+  - key: word_count
+    name: 创作字数
+    unit: 字
+    metric_type: count
+  - key: completion_rate
+    name: 完成率
+    unit: "%"
+    metric_type: percentage
+  - key: revision_rounds
+    name: 修改轮次
+    unit: 轮
+    metric_type: count
 
 kpi_sources:
   content_count:
@@ -59,6 +72,15 @@ kpi_sources:
     type: constant
     value: 0
   content_engagement:
+    type: constant
+    value: 0
+  word_count:
+    type: constant
+    value: 0
+  completion_rate:
+    type: constant
+    value: 0
+  revision_rounds:
     type: constant
     value: 0
 

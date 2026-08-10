@@ -4242,6 +4242,33 @@
           "conversation": "Conversation"
         }
       },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
+      },
       "metrics": {
         "title": "Industry Learning Metrics",
         "refresh": "Refresh Metrics",
@@ -10428,6 +10455,7 @@
         "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
         "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
         "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
+        "missing_end_node": "Workflow is missing an End node. Consider adding one for proper workflow termination.",
         "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
         "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
         "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",

@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "开始",
+        "title": "执行工作流：{{name}}",
+        "defaultTitle": "工作流向导",
+        "back": "上一步",
+        "next": "下一步",
+        "confirmExecute": "确认执行",
+        "finish": "完成",
+        "executing": "正在执行工作流，请稍候...",
+        "preparing": "正在准备...",
+        "resultSuccess": "执行成功",
+        "resultFailed": "执行失败",
+        "executeSuccess": "工作流 {{id}} 执行成功",
+        "executeFailed": "工作流 {{id}} 执行失败",
+        "version": "版本 {{version}}",
+        "paramsTitle": "参数预览",
+        "notFilled": "（未填写）",
+        "steps": {
+          "config": "配置参数",
+          "configDesc": "填写工作流所需的输入参数",
+          "confirm": "确认执行",
+          "confirmDesc": "请确认参数无误后开始执行",
+          "execute": "执行中",
+          "executeDesc": "正在执行工作流",
+          "result": "执行结果"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "容器節點「{{nodeId}}」（裝飾性）無子元件且無連線",
         "dead_branch_scheduled": "容器節點「{{nodeId}}」（{{type}}）為死分支 — 有子元件但無輸入/輸出邊",
         "duplicate_title": "{{count}} 個 {{type}} 節點共用相同的標題「{{title}}」",
+        "missing_end_node": "工作流缺少結束節點。建議新增一個結束節點以確保工作流正確終止。",
         "orphan_node": "節點「{{nodeId}}」為孤立節點（無入邊或出邊）",
         "self_loop": "邊 {{edgeId}} 為自迴圈（source === target）",
         "unconnected_port": "條件節點「{{nodeId}}」有未連接的 {{missing}} 輸出",

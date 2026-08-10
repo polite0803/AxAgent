@@ -1257,7 +1257,7 @@ pub(super) fn parse_llm_response(
                 enabled: true,
                 parent_id: None,
             },
-            config: EndNodeConfig { output_var: Some("final_output".to_string()) },
+            config: EndNodeConfig { output_var: None },
         });
 
         // 将叶子节点连接到 EndNode

@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "عقدة الحاوية \"{{nodeId}}\" (زخرفية) ليس لها أطفال ولا اتصالات",
         "dead_branch_scheduled": "عقدة الحاوية \"{{nodeId}}\" ({{type}}) هي فرع ميت — لها أطفال ولكن لا حواف إدخال/إخراج",
         "duplicate_title": "{{count}} عقد من نوع {{type}} تشترك في نفس العنوان \"{{title}}\"",
+        "missing_end_node": "يفتقر سير العمل إلى عقدة نهاية. فكر في إضافة واحدة للإنهاء الصحيح.",
         "orphan_node": "العقدة \"{{nodeId}}\" يتيمة (لا حافة واردة أو صادرة)",
         "self_loop": "الحافة {{edgeId}} هي حلقة ذاتية (المصدر === الهدف)",
         "unconnected_port": "عقدة الشرط \"{{nodeId}}\" لها مخرج {{missing}} غير متصل",

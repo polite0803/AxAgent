@@ -1450,7 +1450,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             },
             timeout: undefined,
             enabled: true,
-            config: {},
+            config: { output_var: undefined },
           } as WorkflowNode,
         ];
       const edges = hasImportedNodes
@@ -1459,7 +1459,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           {
             id: `edge-${crypto.randomUUID()}`,
             source: triggerId,
+            sourceHandle: undefined,
             target: endId,
+            targetHandle: undefined,
             edge_type: "direct" as const,
           } as WorkflowEdge,
         ];

@@ -12,7 +12,7 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self' https://tauri.localhost tauri: ipc: data:; script-src 'self' https://tauri.localhost tauri: ipc: 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://tauri.localhost tauri: ipc:; font-src 'self' https://tauri.localhost tauri: ipc: data:; img-src 'self' data: https: asset:; connect-src 'self' https://tauri.localhost https://ipc.localhost tauri: ipc: https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.openclaw.ai https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com http://localhost:* http://127.0.0.1:*; frame-src 'self'; object-src 'none'; base-uri 'self';"
+      "csp": "default-src 'self' https://tauri.localhost tauri: ipc: data:; script-src 'self' https://tauri.localhost tauri: ipc: 'unsafe-eval' wasm-unsafe-eval; style-src 'self' 'unsafe-inline' https://tauri.localhost tauri: ipc:; font-src 'self' data: https://tauri.localhost tauri: ipc:; img-src 'self' data: https: asset:; connect-src 'self' https://tauri.localhost https://ipc.localhost tauri: ipc: https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://api.openclaw.ai https://api.iconify.design https://api.simplesvg.com https://api.unisvg.com http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss:; frame-src 'self'; object-src 'none'; base-uri 'self'; wasm-src 'self' data: https://tauri.localhost;"
     },
     "windows": [
       {

@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "Узел-контейнер \"{{nodeId}}\" (декоративный) не имеет дочерних элементов и соединений",
         "dead_branch_scheduled": "Узел-контейнер \"{{nodeId}}\" ({{type}}) является мертвой ветвью — имеет дочерние элементы, но не имеет входных/выходных ребер",
         "duplicate_title": "{{count}} узлов типа {{type}} имеют одинаковое название \"{{title}}\"",
+        "missing_end_node": "В рабочем процессе отсутствует конечный узел. Рекомендуется добавить его для корректного завершения.",
         "orphan_node": "Узел \"{{nodeId}}\" изолирован (нет входящих или исходящих ребер)",
         "self_loop": "Ребро {{edgeId}} является самопетлей (источник === цель)",
         "unconnected_port": "Узел-условие \"{{nodeId}}\" имеет неподключенный {{missing}} выход",

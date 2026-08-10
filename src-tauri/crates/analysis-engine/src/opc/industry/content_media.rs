@@ -172,6 +172,12 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 key: "publish_schedules_published".to_string(),
                 name: "已发布计划".to_string(),
             },
+            // 创作类 KPI（文学创作工作流专属）
+            KpiCalculationDef { key: "word_count".to_string(), name: "创作字数".to_string() },
+            KpiCalculationDef { key: "completion_rate".to_string(), name: "完成率".to_string() },
+            KpiCalculationDef {
+                key: "revision_rounds".to_string(), name: "修改轮次".to_string()
+            },
         ]
     }
 
@@ -247,6 +253,11 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
         let schedules_pending = data.count_publish_schedules_pending().await? as f64;
         let schedules_published = data.count_publish_schedules_published(from, to).await? as f64;
 
+        // 创作类 KPI：文学创作工作流指标（当前用占位数据，后续接入工作流执行数据）
+        let word_count = 0.0;
+        let completion_rate = 0.0;
+        let revision_rounds = 0.0;
+
         Ok(vec![
             KpiValue {
                 key: "content_published".to_string(),
@@ -295,6 +306,28 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 value: schedules_published,
                 target: Some(30.0),
                 unit: Some("个".to_string()),
+                timestamp: now,
+            },
+            // 创作类 KPI
+            KpiValue {
+                key: "word_count".to_string(),
+                value: word_count,
+                target: Some(50000.0),
+                unit: Some("字".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "completion_rate".to_string(),
+                value: completion_rate,
+                target: Some(80.0),
+                unit: Some("%".to_string()),
+                timestamp: now,
+            },
+            KpiValue {
+                key: "revision_rounds".to_string(),
+                value: revision_rounds,
+                target: Some(3.0),
+                unit: Some("轮".to_string()),
                 timestamp: now,
             },
         ])
@@ -363,6 +396,34 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
                 metric_type: super::super::analytics::MetricType::Counter,
                 target: Some(30.0),
                 unit: Some("个".to_string()),
+                ..Default::default()
+            },
+            // 创作类 KPI（文学创作工作流专属）
+            KpiDefinition {
+                key: "word_count".to_string(),
+                name: "创作字数".to_string(),
+                description: "文学创作累计字数".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(50000.0),
+                unit: Some("字".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "completion_rate".to_string(),
+                name: "完成率".to_string(),
+                description: "文学创作任务完成比例".to_string(),
+                metric_type: super::super::analytics::MetricType::Gauge,
+                target: Some(80.0),
+                unit: Some("%".to_string()),
+                ..Default::default()
+            },
+            KpiDefinition {
+                key: "revision_rounds".to_string(),
+                name: "修改轮次".to_string(),
+                description: "作品评审修改轮次".to_string(),
+                metric_type: super::super::analytics::MetricType::Counter,
+                target: Some(3.0),
+                unit: Some("轮".to_string()),
                 ..Default::default()
             },
         ]

@@ -26,6 +26,59 @@ export interface WorkflowInputField {
   default?: string;
 }
 
+/** 向导步骤类型 */
+export type WizardStepType = "form" | "confirm" | "execute" | "result" | "custom";
+
+/** 向导上下文 — 跨步骤共享的状态与操作 */
+export interface WizardContext {
+  /** 当前所有表单值 */
+  values: Record<string, unknown>;
+  /** 设置单个字段值 */
+  setValue: (key: string, value: unknown) => void;
+  /** 批量设置字段值 */
+  setValues: (values: Record<string, unknown>) => void;
+  /** 当前步骤索引 */
+  stepIndex: number;
+  /** 工作流元数据 */
+  workflow: IndustryWorkflow;
+  /** 执行工作流 */
+  execute: () => Promise<void>;
+  /** 执行状态 */
+  executing: boolean;
+  /** 执行结果 */
+  resultStatus: "success" | "failed" | null;
+  /** 执行结果消息 */
+  resultMessage: string;
+  /** 关闭向导 */
+  close: () => void;
+}
+
+/** 向导步骤定义 */
+export interface WizardStep {
+  /** 步骤唯一 ID */
+  id: string;
+  /** 步骤标题（i18n key 或直接文本） */
+  title: string;
+  /** 步骤标题的 i18n 描述（可选） */
+  description?: string;
+  /** 步骤类型 */
+  type: WizardStepType;
+  /** 该步骤关联的输入字段（仅 form 类型使用） */
+  fields?: WorkflowInputField[];
+  /** 自定义渲染函数（custom 类型使用） */
+  render?: (ctx: WizardContext) => ReactNode;
+  /** 校验函数，返回是否可进入下一步 */
+  validate?: (ctx: WizardContext) => boolean;
+  /** 跳过条件函数，返回 true 时跳过此步骤 */
+  canSkip?: (ctx: WizardContext) => boolean;
+  /** "下一步"按钮文案（i18n key） */
+  nextLabel?: string;
+  /** "上一步"按钮文案（i18n key） */
+  prevLabel?: string;
+  /** 是否显示"上一步"按钮 */
+  showBack?: boolean;
+}
+
 /** 行业工作流 */
 export interface IndustryWorkflow {
   id: string;
@@ -34,6 +87,12 @@ export interface IndustryWorkflow {
   version: string;
   /** 用户输入字段（非空时前端渲染表单） */
   inputFields?: WorkflowInputField[];
+  /**
+   * 自定义向导步骤。未设置时自动生成：
+   * - 有 inputFields → form → confirm → execute → result
+   * - 无 inputFields → confirm → execute → result
+   */
+  wizardSteps?: WizardStep[];
 }
 
 /** 行业操作项 */

@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "कंटेनर नोड \"{{nodeId}}\" (सजावटी) के कोई चाइल्ड नहीं हैं और कोई कनेक्शन नहीं है",
         "dead_branch_scheduled": "कंटेनर नोड \"{{nodeId}}\" ({{type}}) एक मृत शाखा है — इसमें चाइल्ड हैं लेकिन कोई इनपुट/आउटपुट एज नहीं है",
         "duplicate_title": "{{count}} {{type}} नोड्स का एक ही शीर्षक \"{{title}}\" है",
+        "missing_end_node": "वर्कफ़्लो में एंड नोड नहीं है। उचित समाप्ति के लिए एक जोड़ने पर विचार करें।",
         "orphan_node": "नोड \"{{nodeId}}\" अनाथ है (कोई इनबाउंड या आउटबाउंड एज नहीं)",
         "self_loop": "एज {{edgeId}} एक सेल्फ-लूप है (स्रोत === लक्ष्य)",
         "unconnected_port": "कंडीशन नोड \"{{nodeId}}\" में असंबद्ध {{missing}} आउटपुट है",

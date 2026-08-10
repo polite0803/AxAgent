@@ -5517,6 +5517,33 @@
           "workflow": "Workflow",
           "conversation": "Conversation"
         }
+      },
+      "wizard": {
+        "start": "Start",
+        "title": "Execute Workflow: {{name}}",
+        "defaultTitle": "Workflow Wizard",
+        "back": "Back",
+        "next": "Next",
+        "confirmExecute": "Confirm & Execute",
+        "finish": "Finish",
+        "executing": "Executing workflow, please wait...",
+        "preparing": "Preparing...",
+        "resultSuccess": "Success",
+        "resultFailed": "Failed",
+        "executeSuccess": "Workflow {{id}} executed successfully",
+        "executeFailed": "Workflow {{id}} execution failed",
+        "version": "Version {{version}}",
+        "paramsTitle": "Parameters Preview",
+        "notFilled": "(not filled)",
+        "steps": {
+          "config": "Configure",
+          "configDesc": "Fill in the required input parameters",
+          "confirm": "Confirm",
+          "confirmDesc": "Review parameters before execution",
+          "execute": "Execute",
+          "executeDesc": "Executing workflow",
+          "result": "Result"
+        }
       }
     },
     "input_fields": {
@@ -10420,6 +10447,7 @@
         "dead_branch_decorative": "コンテナノード\"{{nodeId}}\"(装飾用)に子ノードがなく、接続もありません",
         "dead_branch_scheduled": "コンテナノード\"{{nodeId}}\"({{type}})はデッドブランチです — 子ノードはあるが入出力エッジがありません",
         "duplicate_title": "{{count}}個の{{type}}ノードが同じタイトル\"{{title}}\"を共有しています",
+        "missing_end_node": "ワークフローに終了ノードがありません。適切なワークフロー終了のために追加してください。",
         "orphan_node": "ノード\"{{nodeId}}\"は孤立しています(入出力エッジなし)",
         "self_loop": "エッジ{{edgeId}}は自己ループです(source === target)",
         "unconnected_port": "条件ノード\"{{nodeId}}\"に未接続の{{missing}}出力があります",

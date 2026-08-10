@@ -107,6 +107,7 @@ export interface ValidateIssue {
     | "cycle_no_exit"
     | "self_loop"
     | "duplicate_title"
+    | "missing_end_node"
     | "workflow_ref_empty"
     | "workflow_ref_self"
     | "workflow_ref_depth"

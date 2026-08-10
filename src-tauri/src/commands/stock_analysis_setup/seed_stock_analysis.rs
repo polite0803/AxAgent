@@ -2053,7 +2053,9 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
         edges.push(edge("e-t-catalyst-data-quality", "t-catalyst-data", dq_id));
         edges.push(edge("e-pace-calc-data-quality", "pace-calc", dq_id));
         edges.push(edge("e-debate-convergence-data-quality", "debate-convergence", dq_id));
-        edges.push(edge("e-trader-data-quality", "trader", dq_id));
+        // 修复循环依赖: 移除 trader → data-quality 边
+        // data-quality.rhai 已内置 trader_direction 缺失值处理逻辑，无需此边
+        // 原循环: data-quality → trader → data-quality 导致 CycleDetected 错误
     }
 
     // research-mgr → trader → portfolio-mgr
