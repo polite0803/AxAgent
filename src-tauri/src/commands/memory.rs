@@ -1949,3 +1949,242 @@ pub async fn deposit_tool_results_to_memory(
         "deposited": deposited,
     }))
 }
+
+// ========================================================================
+// 记忆写审批门 (P0-4)
+// ========================================================================
+
+use axagent_harness::memory::{
+    MemoryWriteApprovalConfig, MemoryWriteApprovalRequest, SkillScaffoldStripper, TrivialInputGate,
+};
+
+/// 获取记忆写审批门配置
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取记忆写审批门配置")]
+#[tauri::command]
+pub async fn get_memory_write_approval_config(
+    state: State<'_, AppState>,
+) -> Result<MemoryWriteApprovalConfig, String> {
+    let config = state.memory_write_approval_config.read().await;
+    Ok(config.clone())
+}
+
+/// 更新记忆写审批门配置
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "更新记忆写审批门配置")]
+#[tauri::command]
+pub async fn update_memory_write_approval_config(
+    state: State<'_, AppState>,
+    config: MemoryWriteApprovalConfig,
+) -> Result<(), String> {
+    let mut current = state.memory_write_approval_config.write().await;
+    *current = config.clone();
+    drop(current);
+    // 持久化到磁盘，重启后保留
+    save_memory_approval_config(&config);
+    Ok(())
+}
+
+/// 提交记忆写入审批
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "提交记忆写入审批")]
+#[tauri::command]
+pub async fn submit_memory_write_approval(
+    state: State<'_, AppState>,
+    req: MemoryWriteApprovalRequest,
+) -> Result<String, String> {
+    let config = state.memory_write_approval_config.read().await;
+
+    if !req.requires_approval(&config) {
+        // 不需要审批，直接写入
+        drop(config);
+        let ms = state.memory_service.read().await;
+        let target = req.namespace.as_deref().unwrap_or("memory");
+        let result = ms.add_memory(target, &req.content).await;
+        if !result.success {
+            return Err(result.message);
+        }
+        return Ok(format!("auto-approved: {}", result.message));
+    }
+
+    // 需要审批，添加到待审批列表
+    drop(config);
+    let mut pending = state.pending_memory_writes.write().await;
+    let approval_id = format!("mem-approval-{}", chrono::Utc::now().timestamp_millis());
+    pending.push((approval_id.clone(), req));
+    let snapshot = pending.clone();
+    drop(pending);
+    // 持久化到磁盘，重启后恢复
+    save_pending_memory_writes(&snapshot);
+    Ok(format!("pending: {}", approval_id))
+}
+
+/// 获取待审批的记忆写入列表
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "获取待审批的记忆写入")]
+#[tauri::command]
+pub async fn get_pending_memory_writes(
+    state: State<'_, AppState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let pending = state.pending_memory_writes.read().await;
+    let results: Vec<serde_json::Value> = pending
+        .iter()
+        .map(|(id, req)| {
+            serde_json::json!({
+                "id": id,
+                "content": req.content,
+                "namespace": req.namespace,
+                "importance": req.importance,
+                "reason": req.reason,
+                "status": "pending"
+            })
+        })
+        .collect();
+    Ok(results)
+}
+
+/// 批准记忆写入
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "批准记忆写入")]
+#[tauri::command]
+pub async fn approve_memory_write(
+    state: State<'_, AppState>,
+    approval_id: String,
+) -> Result<(), String> {
+    let pending = state.pending_memory_writes.write().await;
+    let req = pending
+        .iter()
+        .find(|(id, _)| id == &approval_id)
+        .map(|(_, req)| req.clone())
+        .ok_or_else(|| format!("Approval request not found: {}", approval_id))?;
+
+    // 写入记忆
+    drop(pending);
+    let ms = state.memory_service.read().await;
+    let target = req.namespace.as_deref().unwrap_or("memory");
+    let result = ms.add_memory(target, &req.content).await;
+    if !result.success {
+        return Err(result.message);
+    }
+
+    // 从待审批列表移除
+    let mut pending = state.pending_memory_writes.write().await;
+    pending.retain(|(id, _)| id != &approval_id);
+    let snapshot = pending.clone();
+    drop(pending);
+    // 持久化到磁盘
+    save_pending_memory_writes(&snapshot);
+
+    tracing::info!("Memory write approved: {} ({})", approval_id, result.message);
+    Ok(())
+}
+
+/// 拒绝记忆写入
+#[agent_command(domain = memory, safety = Caution, call_mode = StateOnly, description = "拒绝记忆写入")]
+#[tauri::command]
+pub async fn reject_memory_write(
+    state: State<'_, AppState>,
+    approval_id: String,
+) -> Result<(), String> {
+    let mut pending = state.pending_memory_writes.write().await;
+    if !pending.iter().any(|(id, _)| id == &approval_id) {
+        return Err(format!("Approval request not found: {}", approval_id));
+    }
+    pending.retain(|(id, _)| id != &approval_id);
+    let snapshot = pending.clone();
+    drop(pending);
+    // 持久化到磁盘
+    save_pending_memory_writes(&snapshot);
+    tracing::info!("Memory write rejected: {}", approval_id);
+    Ok(())
+}
+
+/// 检测 trivial 输入（供前端/Agent 使用）
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "检测 trivial 输入")]
+#[tauri::command]
+pub async fn check_trivial_input(input: String) -> Result<serde_json::Value, String> {
+    let is_trivial = TrivialInputGate::is_trivial(&input);
+    let should_skip_prefetch = TrivialInputGate::should_skip_prefetch(&input);
+    Ok(serde_json::json!({
+        "input": input,
+        "isTrivial": is_trivial,
+        "shouldSkipPrefetch": should_skip_prefetch
+    }))
+}
+
+/// 剥离技能脚手架（供前端/Agent 使用）
+#[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "剥离技能脚手架")]
+#[tauri::command]
+pub async fn strip_skill_scaffold(content: String) -> Result<serde_json::Value, String> {
+    let result = SkillScaffoldStripper::strip_scaffold(&content);
+    Ok(serde_json::json!({
+        "original": result.original,
+        "stripped": result.stripped,
+        "wasStripped": result.was_stripped,
+        "skillName": result.skill_name
+    }))
+}
+
+// ========================================================================
+// 记忆写审批门持久化 (P2-4)
+// ========================================================================
+
+/// 待审批记忆写入的磁盘记录
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct PendingMemoryWriteRecord {
+    id: String,
+    request: MemoryWriteApprovalRequest,
+}
+
+/// 记忆审批数据目录（data_local_dir/axagent/pending/memory/）
+fn memory_approval_dir() -> std::path::PathBuf {
+    dirs::data_local_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("axagent")
+        .join("pending")
+        .join("memory")
+}
+
+/// 保存审批门配置（落盘）
+pub fn save_memory_approval_config(config: &MemoryWriteApprovalConfig) {
+    let dir = memory_approval_dir();
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let path = dir.join("config.json");
+    if let Ok(json) = serde_json::to_string_pretty(config) {
+        let _ = std::fs::write(path, json);
+    }
+}
+
+/// 从磁盘加载审批门配置
+pub fn load_memory_approval_config() -> MemoryWriteApprovalConfig {
+    let path = memory_approval_dir().join("config.json");
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+/// 保存待审批列表（落盘）
+fn save_pending_memory_writes(pending: &[(String, MemoryWriteApprovalRequest)]) {
+    let dir = memory_approval_dir();
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let records: Vec<PendingMemoryWriteRecord> = pending
+        .iter()
+        .map(|(id, request)| PendingMemoryWriteRecord { id: id.clone(), request: request.clone() })
+        .collect();
+    let path = dir.join("pending.json");
+    if let Ok(json) = serde_json::to_string_pretty(&records) {
+        let _ = std::fs::write(path, json);
+    }
+}
+
+/// 从磁盘加载待审批列表
+pub fn load_pending_memory_writes() -> Vec<(String, MemoryWriteApprovalRequest)> {
+    let path = memory_approval_dir().join("pending.json");
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str::<Vec<PendingMemoryWriteRecord>>(&s).ok())
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| (r.id, r.request))
+        .collect()
+}

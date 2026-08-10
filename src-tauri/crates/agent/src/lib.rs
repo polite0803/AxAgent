@@ -133,8 +133,8 @@ pub use llm_bridge::ProviderLlmBridge;
 
 // recovery_strategies — 外部引用：runtime/error_recovery, commands/*
 pub use recovery_strategies::{
-    ClassifiedError, ErrorClassifier, ErrorType, RecoveryAdjustment, RecoveryAttempt,
-    RecoveryResult, RecoveryStrategy,
+    ClassifiedError, ErrorClassifier, ErrorType, FailoverReason, RecoveryAdjustment,
+    RecoveryAttempt, RecoveryResult, RecoveryStrategy,
 };
 
 // hierarchical_planner — 外部引用：commands/plan

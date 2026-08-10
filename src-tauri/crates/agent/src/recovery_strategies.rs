@@ -1,46 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+//! 错误分类与恢复策略实现
+//!
+//! 类型权威定义在 `axagent-harness::error_classifier`，本模块：
+//! 1. 通过 `pub use` 重导出 harness 中的共享类型
+//! 2. 提供 ErrorClassifier 的具体实现（业务逻辑）
+//! 3. 提供 RecoveryStrategy 的实现方法
 
-// ── Error classification (merged from error_classifier.rs) ──────────────
+// ── 从 harness 重导出共享类型 ──────────────────────────────────
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ErrorType {
-    Transient,
-    Recoverable,
-    Unrecoverable,
-    Unknown,
-}
+pub use axagent_harness::error_classifier::{
+    ClassifiedError, ErrorType, FailoverReason, RecoveryAdjustment, RecoveryAttempt,
+    RecoveryResult, RecoveryStrategy, SuggestedAction,
+};
 
-impl ErrorType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ErrorType::Transient => "transient",
-            ErrorType::Recoverable => "recoverable",
-            ErrorType::Unrecoverable => "unrecoverable",
-            ErrorType::Unknown => "unknown",
-        }
-    }
+// ── ErrorClassifier 实现 ─────────────────────────────────────────
 
-    pub fn description(&self) -> &'static str {
-        match self {
-            ErrorType::Transient => "Temporary error - retry may resolve",
-            ErrorType::Recoverable => "Recoverable error - can be fixed with adjustment",
-            ErrorType::Unrecoverable => "Unrecoverable error - should fail",
-            ErrorType::Unknown => "Unknown error type",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClassifiedError {
-    pub error_type: ErrorType,
-    pub original_error: String,
-    pub error_code: Option<String>,
-    pub context: Option<String>,
-}
-
+/// 错误分类器 - 基于 HTTP 状态码和消息内容进行精确分类
 pub struct ErrorClassifier;
 
 impl ErrorClassifier {
@@ -48,28 +24,316 @@ impl ErrorClassifier {
         Self
     }
 
+    /// 精确分类: 先判断 FailoverReason, 再映射到 ErrorType
     pub fn classify(&self, error: &str) -> ErrorType {
-        let error_lower = error.to_lowercase();
+        let failover = self.classify_with_reason(error);
+        failover.error_type
+    }
 
-        if Self::is_transient(&error_lower) {
+    /// 带 FailoverReason 的精确分类
+    pub fn classify_with_reason(&self, error: &str) -> ClassifiedError {
+        let failover_reason = self.detect_failover_reason(error);
+        let error_type = failover_reason
+            .map(|r| r.to_error_type())
+            .unwrap_or_else(|| self.classify_error_type(error));
+
+        ClassifiedError {
+            error_type,
+            original_error: error.to_string(),
+            http_status: None,
+            provider_error_code: Self::extract_error_code(error),
+            context: None,
+            failover_reason,
+        }
+    }
+
+    pub fn classify_with_context(&self, error: &str, context: Option<String>) -> ClassifiedError {
+        let mut result = self.classify_with_reason(error);
+        result.context = context;
+        result
+    }
+
+    /// 基于 HTTP 状态码分类
+    pub fn classify_http_error(&self, status: u16, message: &str) -> ClassifiedError {
+        let failover_reason = self.classify_by_http_status(status, message);
+        let error_type = failover_reason.to_error();
+
+        ClassifiedError {
+            error_type,
+            original_error: message.to_string(),
+            http_status: Some(status),
+            provider_error_code: None,
+            context: None,
+            failover_reason: Some(failover_reason),
+        }
+    }
+
+    /// 检测精确的故障转移原因
+    pub fn detect_failover_reason(&self, error: &str) -> Option<FailoverReason> {
+        let lower = error.to_lowercase();
+
+        // 按优先级检测
+        if Self::is_content_blocked(&lower) {
+            return Some(FailoverReason::ContentBlocked);
+        }
+        if Self::is_context_length_error(&lower) {
+            return Some(FailoverReason::ContextLength);
+        }
+        if Self::is_auth_failed(&lower) {
+            return Some(FailoverReason::AuthFailed);
+        }
+        if Self::is_quota_exceeded(&lower) {
+            return Some(FailoverReason::QuotaExceeded);
+        }
+        if Self::is_cost_limit(&lower) {
+            return Some(FailoverReason::CostLimit);
+        }
+        if Self::is_model_not_found(&lower) {
+            return Some(FailoverReason::ModelNotFound);
+        }
+        if Self::is_invalid_parameters(&lower) {
+            return Some(FailoverReason::InvalidParameters);
+        }
+        if Self::is_upstream_provider_error(&lower) {
+            return Some(FailoverReason::UpstreamProviderError);
+        }
+        if Self::is_rate_limit(&lower) {
+            return Some(FailoverReason::RateLimit);
+        }
+        if Self::is_provider_outage(&lower) {
+            return Some(FailoverReason::ProviderOutage);
+        }
+        if Self::is_network_timeout(&lower) {
+            return Some(FailoverReason::NetworkTimeout);
+        }
+
+        None
+    }
+
+    /// 按 HTTP 状态码分类
+    fn classify_by_http_status(&self, status: u16, message: &str) -> FailoverReason {
+        let lower = message.to_lowercase();
+
+        match status {
+            401 | 403 => {
+                if lower.contains("quota")
+                    || lower.contains("balance")
+                    || lower.contains("insufficient")
+                {
+                    FailoverReason::QuotaExceeded
+                } else {
+                    FailoverReason::AuthFailed
+                }
+            },
+            429 => FailoverReason::RateLimit,
+            408 | 504 => FailoverReason::NetworkTimeout,
+            500 | 502 | 503 => {
+                if lower.contains("overloaded") || lower.contains("capacity") {
+                    FailoverReason::ProviderOutage
+                } else {
+                    FailoverReason::UpstreamProviderError
+                }
+            },
+            400 => {
+                if lower.contains("context length")
+                    || lower.contains("max tokens")
+                    || lower.contains("token limit")
+                {
+                    FailoverReason::ContextLength
+                } else if lower.contains("model") && lower.contains("not found") {
+                    FailoverReason::ModelNotFound
+                } else if lower.contains("content") || lower.contains("safety") {
+                    FailoverReason::ContentBlocked
+                } else {
+                    FailoverReason::InvalidParameters
+                }
+            },
+            404 => FailoverReason::ModelNotFound,
+            _ => {
+                if let Some(reason) = self.detect_failover_reason(message) {
+                    reason
+                } else {
+                    FailoverReason::UnknownError
+                }
+            },
+        }
+    }
+
+    /// 基础 ErrorType 分类 (不带 FailoverReason)
+    fn classify_error_type(&self, error: &str) -> ErrorType {
+        let lower = error.to_lowercase();
+
+        if Self::is_transient(&lower) {
             ErrorType::Transient
-        } else if Self::is_recoverable(&error_lower) {
+        } else if Self::is_recoverable(&lower) {
             ErrorType::Recoverable
-        } else if Self::is_unrecoverable(&error_lower) {
+        } else if Self::is_unrecoverable(&lower) {
             ErrorType::Unrecoverable
         } else {
             ErrorType::Unknown
         }
     }
 
-    pub fn classify_with_context(&self, error: &str, context: Option<String>) -> ClassifiedError {
-        ClassifiedError {
-            error_type: self.classify(error),
-            original_error: error.to_string(),
-            error_code: Self::extract_error_code(error),
-            context,
-        }
+    // ── FailoverReason 检测模式 ────────────────────────────────────
+
+    fn is_context_length_error(error: &str) -> bool {
+        let patterns = [
+            "context length",
+            "context window",
+            "max context",
+            "token limit",
+            "max tokens",
+            "too many tokens",
+            "input too long",
+            "prompt too long",
+            "max_input_tokens",
+            "context_length_exceeded",
+            "too large for model",
+            "input length exceeds",
+        ];
+        patterns.iter().any(|p| error.contains(p))
     }
+
+    fn is_content_blocked(error: &str) -> bool {
+        let patterns = [
+            "content_policy",
+            "content policy",
+            "safety",
+            "blocked",
+            "inappropriate",
+            "harmful",
+            "unsafe",
+            "explicit",
+            "violates",
+            "content_filter",
+            "content_filtered",
+            "modr",
+            "moderation",
+            "rejected.*content",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_auth_failed(error: &str) -> bool {
+        let patterns = [
+            "401",
+            "403",
+            "unauthorized",
+            "authentication",
+            "invalid api key",
+            "invalid token",
+            "api key",
+            "forbidden",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_quota_exceeded(error: &str) -> bool {
+        let patterns = [
+            "quota exceeded",
+            "insufficient quota",
+            "billing",
+            "out of credits",
+            "payment required",
+            "account suspended",
+            "balance.",
+            "credits exhausted",
+            "spend limit",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_cost_limit(error: &str) -> bool {
+        let patterns = [
+            "cost limit",
+            "budget exceeded",
+            "max cost",
+            "token limit.*billing",
+            "daily limit",
+            "monthly limit",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_model_not_found(error: &str) -> bool {
+        let patterns = [
+            "model not found",
+            "model.*not.*exist",
+            "no such model",
+            "unsupported model",
+            "invalid model",
+            "model unavailable",
+            "does not exist",
+            "not available",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_invalid_parameters(error: &str) -> bool {
+        let patterns = [
+            "invalid parameters",
+            "invalid request",
+            "bad request",
+            "missing parameter",
+            "invalid argument",
+            "400.*error",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_upstream_provider_error(error: &str) -> bool {
+        let patterns = ["upstream", "provider error", "bad gateway", "502", "503", "504"];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_rate_limit(error: &str) -> bool {
+        let patterns = [
+            "429",
+            "rate limit",
+            "too many requests",
+            "requests per minute",
+            "rpm limit",
+            "tpm limit",
+            "tokens per minute",
+            "concurrent requests",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_provider_outage(error: &str) -> bool {
+        let patterns = [
+            "500",
+            "internal server error",
+            "service unavailable",
+            "server error",
+            "overloaded",
+            "capacity",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    fn is_network_timeout(error: &str) -> bool {
+        let patterns = [
+            "timeout",
+            "timed out",
+            "connection",
+            "connection refused",
+            "unreachable",
+            "reset by peer",
+            "broken pipe",
+            "econnreset",
+            "econnrefused",
+            "etimedout",
+            "enotfound",
+            "network error",
+            "tls",
+            "ssl error",
+            "dns resolution",
+        ];
+        patterns.iter().any(|p| error.contains(p))
+    }
+
+    // ── 基础分类 (向后兼容) ────────────────────────────────────────
 
     fn is_transient(error: &str) -> bool {
         let transient_patterns = [
@@ -94,7 +358,6 @@ impl ErrorClassifier {
             "etimedout",
             "enotfound",
         ];
-
         transient_patterns.iter().any(|p| error.contains(p))
     }
 
@@ -119,7 +382,6 @@ impl ErrorClassifier {
             "401",
             "403",
         ];
-
         recoverable_patterns.iter().any(|p| error.contains(p))
     }
 
@@ -142,7 +404,6 @@ impl ErrorClassifier {
             "500",
             "internal error",
         ];
-
         unrecoverable_patterns.iter().any(|p| error.contains(p))
     }
 
@@ -170,162 +431,7 @@ impl Default for ErrorClassifier {
     }
 }
 
-// ── Recovery strategies ─────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum RecoveryStrategy {
-    Retry { max_attempts: usize, base_delay_ms: u64, max_delay_ms: u64, exponential_backoff: bool },
-    AdjustAndRetry { max_attempts: usize, adjustments: Vec<RecoveryAdjustment> },
-    Fallback { fallback_value: String },
-    SkipTask,
-    Fail,
-    AutoRecover { max_attempts: usize, checkpoint_interval_secs: u64 },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum RecoveryAdjustment {
-    ReduceConcurrency,
-    IncreaseTimeout(Duration),
-    UseCache,
-    SimplifyRequest,
-    RetryWithDifferentModel,
-}
-
-impl RecoveryStrategy {
-    pub fn for_error_type(error_type: ErrorType) -> Self {
-        match error_type {
-            ErrorType::Transient => RecoveryStrategy::Retry {
-                max_attempts: 3,
-                base_delay_ms: 1000,
-                max_delay_ms: 10000,
-                exponential_backoff: true,
-            },
-            ErrorType::Recoverable => RecoveryStrategy::AdjustAndRetry {
-                max_attempts: 2,
-                adjustments: vec![
-                    RecoveryAdjustment::IncreaseTimeout(Duration::from_secs(30)),
-                    RecoveryAdjustment::ReduceConcurrency,
-                ],
-            },
-            ErrorType::Unrecoverable => RecoveryStrategy::Fail,
-            ErrorType::Unknown => RecoveryStrategy::Retry {
-                max_attempts: 1,
-                base_delay_ms: 500,
-                max_delay_ms: 2000,
-                exponential_backoff: false,
-            },
-        }
-    }
-
-    pub fn should_retry(&self) -> bool {
-        match self {
-            RecoveryStrategy::Retry { max_attempts, .. } => *max_attempts > 0,
-            RecoveryStrategy::AdjustAndRetry { max_attempts, .. } => *max_attempts > 0,
-            RecoveryStrategy::Fallback { .. } => true,
-            RecoveryStrategy::SkipTask => false,
-            RecoveryStrategy::Fail => false,
-            RecoveryStrategy::AutoRecover { max_attempts, .. } => *max_attempts > 0,
-        }
-    }
-
-    pub fn max_attempts(&self) -> usize {
-        match self {
-            RecoveryStrategy::Retry { max_attempts, .. } => *max_attempts,
-            RecoveryStrategy::AdjustAndRetry { max_attempts, .. } => *max_attempts,
-            RecoveryStrategy::Fallback { .. } => 1,
-            RecoveryStrategy::SkipTask => 0,
-            RecoveryStrategy::Fail => 0,
-            RecoveryStrategy::AutoRecover { max_attempts, .. } => *max_attempts,
-        }
-    }
-
-    pub fn description(&self) -> &'static str {
-        match self {
-            RecoveryStrategy::Retry { .. } => "Retry with exponential backoff",
-            RecoveryStrategy::AdjustAndRetry { .. } => "Adjust parameters and retry",
-            RecoveryStrategy::Fallback { .. } => "Use fallback value",
-            RecoveryStrategy::SkipTask => "Skip this task",
-            RecoveryStrategy::Fail => "Fail immediately",
-            RecoveryStrategy::AutoRecover { .. } => "Auto-recover with checkpointing",
-        }
-    }
-
-    pub fn for_interrupt() -> Self {
-        RecoveryStrategy::AutoRecover { max_attempts: 3, checkpoint_interval_secs: 30 }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RecoveryResult {
-    pub success: bool,
-    pub recovered: bool,
-    pub strategy_used: String,
-    pub attempts_made: usize,
-    pub final_error: Option<String>,
-    pub recovery_time_ms: u64,
-}
-
-impl RecoveryResult {
-    pub fn success(attempts: usize, recovery_time_ms: u64) -> Self {
-        Self {
-            success: true,
-            recovered: true,
-            strategy_used: String::new(),
-            attempts_made: attempts,
-            final_error: None,
-            recovery_time_ms,
-        }
-    }
-
-    pub fn failure(strategy: &str, attempts: usize, error: String, recovery_time_ms: u64) -> Self {
-        Self {
-            success: false,
-            recovered: false,
-            strategy_used: strategy.to_string(),
-            attempts_made: attempts,
-            final_error: Some(error),
-            recovery_time_ms,
-        }
-    }
-
-    pub fn skipped(recovery_time_ms: u64) -> Self {
-        Self {
-            success: true,
-            recovered: false,
-            strategy_used: "SkipTask".to_string(),
-            attempts_made: 0,
-            final_error: None,
-            recovery_time_ms,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct RecoveryAttempt {
-    pub attempt_number: usize,
-    pub error: String,
-    pub strategy: RecoveryStrategy,
-    pub delay_ms: Option<u64>,
-    pub success: bool,
-    pub message: Option<String>,
-}
-
-impl RecoveryAttempt {
-    pub fn new(attempt_number: usize, error: String, strategy: RecoveryStrategy) -> Self {
-        Self { attempt_number, error, strategy, delay_ms: None, success: false, message: None }
-    }
-
-    pub fn with_delay(mut self, delay_ms: u64) -> Self {
-        self.delay_ms = Some(delay_ms);
-        self
-    }
-
-    pub fn with_success(mut self, message: String) -> Self {
-        self.success = true;
-        self.message = Some(message);
-        self
-    }
-}
+// ── RecoveryStrategy 实现 ─────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
@@ -388,214 +494,6 @@ mod tests {
     }
 
     #[test]
-    fn test_should_retry_retry() {
-        let strategy = RecoveryStrategy::Retry {
-            max_attempts: 3,
-            base_delay_ms: 100,
-            max_delay_ms: 1000,
-            exponential_backoff: true,
-        };
-        assert!(strategy.should_retry());
-    }
-
-    #[test]
-    fn test_should_retry_fail() {
-        let strategy = RecoveryStrategy::Fail;
-        assert!(!strategy.should_retry());
-    }
-
-    #[test]
-    fn test_should_retry_skip_task() {
-        let strategy = RecoveryStrategy::SkipTask;
-        assert!(!strategy.should_retry());
-    }
-
-    #[test]
-    fn test_should_retry_fallback() {
-        let strategy = RecoveryStrategy::Fallback { fallback_value: "default".to_string() };
-        assert!(strategy.should_retry());
-    }
-
-    #[test]
-    fn test_should_retry_adjust_and_retry() {
-        let strategy = RecoveryStrategy::AdjustAndRetry { max_attempts: 2, adjustments: vec![] };
-        assert!(strategy.should_retry());
-    }
-
-    #[test]
-    fn test_should_retry_auto_recover() {
-        let strategy =
-            RecoveryStrategy::AutoRecover { max_attempts: 3, checkpoint_interval_secs: 30 };
-        assert!(strategy.should_retry());
-    }
-
-    #[test]
-    fn test_should_retry_auto_recover_zero_attempts() {
-        let strategy =
-            RecoveryStrategy::AutoRecover { max_attempts: 0, checkpoint_interval_secs: 30 };
-        assert!(!strategy.should_retry());
-    }
-
-    #[test]
-    fn test_max_attempts() {
-        assert_eq!(
-            RecoveryStrategy::Retry {
-                max_attempts: 5,
-                base_delay_ms: 100,
-                max_delay_ms: 1000,
-                exponential_backoff: true
-            }
-            .max_attempts(),
-            5
-        );
-        assert_eq!(
-            RecoveryStrategy::AdjustAndRetry { max_attempts: 3, adjustments: vec![] }
-                .max_attempts(),
-            3
-        );
-        assert_eq!(
-            RecoveryStrategy::Fallback { fallback_value: "x".to_string() }.max_attempts(),
-            1
-        );
-        assert_eq!(RecoveryStrategy::SkipTask.max_attempts(), 0);
-        assert_eq!(RecoveryStrategy::Fail.max_attempts(), 0);
-        assert_eq!(
-            RecoveryStrategy::AutoRecover { max_attempts: 4, checkpoint_interval_secs: 10 }
-                .max_attempts(),
-            4
-        );
-    }
-
-    #[test]
-    fn test_description() {
-        assert_eq!(
-            RecoveryStrategy::Retry {
-                max_attempts: 1,
-                base_delay_ms: 100,
-                max_delay_ms: 1000,
-                exponential_backoff: false
-            }
-            .description(),
-            "Retry with exponential backoff"
-        );
-        assert_eq!(
-            RecoveryStrategy::AdjustAndRetry { max_attempts: 1, adjustments: vec![] }.description(),
-            "Adjust parameters and retry"
-        );
-        assert_eq!(
-            RecoveryStrategy::Fallback { fallback_value: "x".to_string() }.description(),
-            "Use fallback value"
-        );
-        assert_eq!(RecoveryStrategy::SkipTask.description(), "Skip this task");
-        assert_eq!(RecoveryStrategy::Fail.description(), "Fail immediately");
-        assert_eq!(
-            RecoveryStrategy::AutoRecover { max_attempts: 1, checkpoint_interval_secs: 10 }
-                .description(),
-            "Auto-recover with checkpointing"
-        );
-    }
-
-    #[test]
-    fn test_for_interrupt() {
-        let strategy = RecoveryStrategy::for_interrupt();
-        match strategy {
-            RecoveryStrategy::AutoRecover { max_attempts, checkpoint_interval_secs } => {
-                assert_eq!(max_attempts, 3);
-                assert_eq!(checkpoint_interval_secs, 30);
-            },
-            _ => panic!("Expected AutoRecover for interrupt"),
-        }
-    }
-
-    #[test]
-    fn test_recovery_result_success() {
-        let result = RecoveryResult::success(3, 150);
-        assert!(result.success);
-        assert!(result.recovered);
-        assert_eq!(result.attempts_made, 3);
-        assert_eq!(result.recovery_time_ms, 150);
-        assert!(result.final_error.is_none());
-    }
-
-    #[test]
-    fn test_recovery_result_failure() {
-        let result = RecoveryResult::failure("Retry", 5, "timeout".to_string(), 300);
-        assert!(!result.success);
-        assert!(!result.recovered);
-        assert_eq!(result.strategy_used, "Retry");
-        assert_eq!(result.attempts_made, 5);
-        assert_eq!(result.final_error, Some("timeout".to_string()));
-        assert_eq!(result.recovery_time_ms, 300);
-    }
-
-    #[test]
-    fn test_recovery_result_skipped() {
-        let result = RecoveryResult::skipped(50);
-        assert!(result.success);
-        assert!(!result.recovered);
-        assert_eq!(result.strategy_used, "SkipTask");
-        assert_eq!(result.attempts_made, 0);
-        assert!(result.final_error.is_none());
-    }
-
-    #[test]
-    fn test_recovery_attempt_new() {
-        let strategy = RecoveryStrategy::Retry {
-            max_attempts: 3,
-            base_delay_ms: 100,
-            max_delay_ms: 1000,
-            exponential_backoff: true,
-        };
-        let attempt = RecoveryAttempt::new(2, "error msg".to_string(), strategy);
-        assert_eq!(attempt.attempt_number, 2);
-        assert_eq!(attempt.error, "error msg");
-        assert!(attempt.delay_ms.is_none());
-        assert!(!attempt.success);
-        assert!(attempt.message.is_none());
-    }
-
-    #[test]
-    fn test_recovery_attempt_with_delay() {
-        let strategy = RecoveryStrategy::Fail;
-        let attempt = RecoveryAttempt::new(1, "err".to_string(), strategy).with_delay(500);
-        assert_eq!(attempt.delay_ms, Some(500));
-    }
-
-    #[test]
-    fn test_recovery_attempt_with_success() {
-        let strategy = RecoveryStrategy::Fail;
-        let attempt =
-            RecoveryAttempt::new(1, "err".to_string(), strategy).with_success("ok".to_string());
-        assert!(attempt.success);
-        assert_eq!(attempt.message, Some("ok".to_string()));
-    }
-
-    #[test]
-    fn test_recovery_adjustment_variants() {
-        let adjustments = [
-            RecoveryAdjustment::ReduceConcurrency,
-            RecoveryAdjustment::IncreaseTimeout(Duration::from_secs(30)),
-            RecoveryAdjustment::UseCache,
-            RecoveryAdjustment::SimplifyRequest,
-            RecoveryAdjustment::RetryWithDifferentModel,
-        ];
-        assert_eq!(adjustments.len(), 5);
-    }
-
-    #[test]
-    fn test_serialization_roundtrip() {
-        let strategy = RecoveryStrategy::Retry {
-            max_attempts: 3,
-            base_delay_ms: 1000,
-            max_delay_ms: 10000,
-            exponential_backoff: true,
-        };
-        let json = serde_json::to_string(&strategy).unwrap();
-        let deserialized: RecoveryStrategy = serde_json::from_str(&json).unwrap();
-        assert!(matches!(deserialized, RecoveryStrategy::Retry { .. }));
-    }
-
-    #[test]
     fn test_transient_errors() {
         let classifier = ErrorClassifier::new();
         assert_eq!(classifier.classify("connection timeout"), ErrorType::Transient);
@@ -608,7 +506,8 @@ mod tests {
         let classifier = ErrorClassifier::new();
         assert_eq!(classifier.classify("permission denied"), ErrorType::Recoverable);
         assert_eq!(classifier.classify("resource exhausted"), ErrorType::Recoverable);
-        assert_eq!(classifier.classify("401 unauthorized"), ErrorType::Recoverable);
+        // 401 认证失败归为 Unrecoverable（需用户干预，非自动恢复）
+        assert_eq!(classifier.classify("401 unauthorized"), ErrorType::Unrecoverable);
     }
 
     #[test]
@@ -616,6 +515,93 @@ mod tests {
         let classifier = ErrorClassifier::new();
         assert_eq!(classifier.classify("syntax error"), ErrorType::Unrecoverable);
         assert_eq!(classifier.classify("invalid format"), ErrorType::Unrecoverable);
-        assert_eq!(classifier.classify("internal server error: 500"), ErrorType::Unrecoverable);
+        // 500 服务端错误归为 Transient（可重试/切换 provider）
+        assert_eq!(classifier.classify("internal server error: 500"), ErrorType::Transient);
+    }
+
+    #[test]
+    fn test_detect_failover_reason() {
+        let classifier = ErrorClassifier::new();
+
+        assert_eq!(
+            classifier.detect_failover_reason("rate limit exceeded"),
+            Some(FailoverReason::RateLimit)
+        );
+        assert_eq!(
+            classifier.detect_failover_reason("context length exceeded"),
+            Some(FailoverReason::ContextLength)
+        );
+        assert_eq!(
+            classifier.detect_failover_reason("invalid api key"),
+            Some(FailoverReason::AuthFailed)
+        );
+        assert_eq!(
+            classifier.detect_failover_reason("insufficient quota"),
+            Some(FailoverReason::QuotaExceeded)
+        );
+    }
+
+    #[test]
+    fn test_classify_http_error() {
+        let classifier = ErrorClassifier::new();
+
+        let result = classifier.classify_http_error(429, "Too many requests");
+        assert_eq!(result.failover_reason, Some(FailoverReason::RateLimit));
+        assert_eq!(result.http_status, Some(429));
+
+        let result = classifier.classify_http_error(401, "Unauthorized");
+        assert_eq!(result.failover_reason, Some(FailoverReason::AuthFailed));
+
+        let result = classifier.classify_http_error(500, "Internal server error");
+        assert_eq!(result.failover_reason, Some(FailoverReason::UpstreamProviderError));
+    }
+
+    #[test]
+    fn test_recovery_strategy_for_classified_error() {
+        let error = ClassifiedError {
+            error_type: ErrorType::Transient,
+            original_error: "timeout".to_string(),
+            http_status: None,
+            provider_error_code: None,
+            context: None,
+            failover_reason: Some(FailoverReason::NetworkTimeout),
+        };
+        let strategy = RecoveryStrategy::for_classified_error(&error);
+        assert!(strategy.should_retry());
+    }
+
+    #[test]
+    fn test_recovery_result_methods() {
+        let result = RecoveryResult::success(3, 150);
+        assert!(result.success);
+        assert!(result.recovered);
+
+        let result = RecoveryResult::failure("Retry", 5, "timeout".to_string(), 300);
+        assert!(!result.success);
+
+        let result = RecoveryResult::skipped(50);
+        assert!(result.success);
+        assert!(!result.recovered);
+    }
+
+    #[test]
+    fn test_recovery_attempt_methods() {
+        let strategy = RecoveryStrategy::Fail;
+        let attempt = RecoveryAttempt::new(1, "err".to_string(), strategy).with_delay(500);
+        assert_eq!(attempt.delay_ms, Some(500));
+
+        let strategy = RecoveryStrategy::Fail;
+        let attempt =
+            RecoveryAttempt::new(1, "err".to_string(), strategy).with_success("ok".to_string());
+        assert!(attempt.success);
+    }
+
+    #[test]
+    fn test_failover_reason_suggested_strategy() {
+        let strategy = FailoverReason::NetworkTimeout.suggested_strategy();
+        assert!(strategy.should_retry());
+
+        let strategy = FailoverReason::AuthFailed.suggested_strategy();
+        assert!(!strategy.should_retry());
     }
 }

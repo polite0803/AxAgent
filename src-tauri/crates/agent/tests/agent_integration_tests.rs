@@ -1155,7 +1155,7 @@ mod test_error_recovery_with_context {
 
         for (error_msg, expected_code) in cases {
             let classified = classifier.classify_with_context(error_msg, None);
-            assert_eq!(classified.error_code, expected_code, "Failed for: {}", error_msg);
+            assert_eq!(classified.provider_error_code, expected_code, "Failed for: {}", error_msg);
         }
     }
 
@@ -1165,8 +1165,9 @@ mod test_error_recovery_with_context {
         let classified = classifier
             .classify_with_context("HTTP 500 internal error", Some("During API call".to_string()));
 
-        assert_eq!(classified.error_type, ErrorType::Unrecoverable);
-        assert_eq!(classified.error_code, Some("500".to_string()));
+        // 500 服务端错误归为 Transient（可重试/切换 provider）
+        assert_eq!(classified.error_type, ErrorType::Transient);
+        assert_eq!(classified.provider_error_code, Some("500".to_string()));
         assert!(!classified.original_error.is_empty());
     }
 
@@ -1212,8 +1213,10 @@ mod test_error_recovery_with_context {
         let classified = ClassifiedError {
             error_type: ErrorType::Transient,
             original_error: "timeout".to_string(),
-            error_code: Some("504".to_string()),
+            http_status: Some(504),
+            provider_error_code: Some("504".to_string()),
             context: Some("During request".to_string()),
+            failover_reason: None,
         };
 
         let json = serde_json::to_string(&classified).unwrap();
@@ -1221,7 +1224,7 @@ mod test_error_recovery_with_context {
 
         assert_eq!(deserialized.error_type, ErrorType::Transient);
         assert_eq!(deserialized.original_error, "timeout");
-        assert_eq!(deserialized.error_code, Some("504".to_string()));
+        assert_eq!(deserialized.provider_error_code, Some("504".to_string()));
     }
 
     #[test]

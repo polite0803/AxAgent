@@ -798,10 +798,22 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         dream_data_provider.clone(),
         session_share_manager.clone(),
     );
+    // ── 初始化 SkillLearningManager (技能学习闭环) ──
+    let skill_learning_manager: Arc<TokioRwLock<axagent_trajectory::SkillLearningManager>> = {
+        let config = axagent_trajectory::SkillLearningConfig::default();
+        let manager = axagent_trajectory::SkillLearningManager::new(config);
+        // 尝试从磁盘加载待处理审批操作（恢复进内存列表）
+        if let Err(e) = manager.load_pending_operations_from_disk().await {
+            tracing::warn!("Failed to load pending skill operations from disk: {}", e);
+        }
+        Arc::new(TokioRwLock::new(manager))
+    };
+
     let skill_state = crate::state::SkillState::new(
         skill_evolution_engine.clone(),
         skill_proposal_service.clone(),
         skill_decomposer.clone(),
+        skill_learning_manager.clone(),
         sandbox_executor_field,
         dashboard_registry.clone(),
         webhook_subscription_manager.clone(),
@@ -983,6 +995,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         batch_processor,
         skill_evolution_engine,
         skill_proposal_service,
+        skill_learning_manager,
         auto_memory_extractor,
         parallel_execution_service,
         cron_job_store,
@@ -1043,6 +1056,13 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         // M1: 新增学习与工具子状态
         learning: learning_state,
         tool: tool_state,
+        // P0-4: 记忆写审批门（配置与待审批列表从磁盘恢复，P2-4 持久化）
+        memory_write_approval_config: Arc::new(tokio::sync::RwLock::new(
+            crate::commands::memory::load_memory_approval_config(),
+        )),
+        pending_memory_writes: Arc::new(tokio::sync::RwLock::new(
+            crate::commands::memory::load_pending_memory_writes(),
+        )),
     })
 }
 

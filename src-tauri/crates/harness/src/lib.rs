@@ -137,7 +137,85 @@ pub use business_rules::{
 pub mod context_builder;
 pub mod context_contributor;
 pub use context_contributor::{ContextContributor, ContextRequest};
+pub mod context_engine;
+pub use context_engine::{
+    CompactionConfigSnapshot, CompactionContext, CompactionRecord, CompactionResultSummary,
+    CompactionTrigger, ContextEngine, MemoryType, SessionLineage, SkillInfo, SkillReinjector,
+    StructuredMemory,
+};
+pub mod delegation;
+pub use delegation::{
+    ApprovalCallback, ApprovalRequest, ApprovalResponse, ApprovalStrategy, DELEGATE_BLOCKED_TOOLS,
+    DelegationConfig, RiskLevel, SubAgentLifecycleManager, SubAgentLifecycleState,
+    ToolFilterConfig, clear_approval_callback, execute_approval, get_approval_callback,
+    set_approval_callback,
+};
+pub mod cron_blueprint;
+pub use cron_blueprint::{
+    BlueprintCronJobData, BlueprintParam, BlueprintParamType, BlueprintRiskLevel, CronBlueprint,
+    CronBlueprintType, FrequencySuggestion, GuardCheckResult, LifecycleGuard, UsagePattern,
+};
+pub mod training_pipeline;
+pub use training_pipeline::{
+    BatchGenerationConfig, CompressionPipeline, CompressionStep, CompressionStepType, DataStats,
+    SamplingStrategy, TimeRangeFilter, TrainingDataReport, TrainingQualityMetrics,
+};
+pub mod skill_enhancement;
+pub use skill_enhancement::{
+    ActivationRule, ActivationRuleType, ConditionalActivation, CuratedCategory, DailyUsageStats,
+    RatingCriteria, SkillBundle, SkillCuratedCollection, SkillDetails, SkillDisclosureLevel,
+    SkillExample, SkillParameter, SkillRecommendation, SkillSummary, SkillUsageStats,
+    TriggerCondition, TriggerConditionType,
+};
+pub mod terminal_enhancement;
+pub use terminal_enhancement::{
+    DockerBackendConfig, InfrastructureError, InfrastructureErrorClassifier,
+    InfrastructureErrorType, OutputSpillConfig, OutputTruncator, ResourceLimits, SpillResult,
+    SshAuthMethod, SshBackendConfig, TerminalBackendConfig, TerminalBackendType, VolumeMount,
+};
+pub mod learning_graph;
+pub use learning_graph::{
+    GraphLayout, GraphTagCount, LayoutAlgorithm, LearnedItem, LearningEdge, LearningEdgeType,
+    LearningGraph, LearningGraphStats, LearningNode, LearningNodeType, LearningStats, NodePosition,
+};
+pub mod verification_recipe;
+pub use verification_recipe::{
+    ExpectedOutcome, FailureAction, PassCriteria, StepResult, StepStatus, VerificationRating,
+    VerificationRecipe, VerificationRecipeType, VerificationReport, VerificationSeverity,
+    VerificationStep, VerificationStepType, VerificationTrigger, VerificationTriggerType,
+};
+pub mod moa_degradation;
+pub use moa_degradation::{
+    DegradationState, DegradationStrategy, DegradationTrigger, MoADegradationConfig,
+};
+pub mod auxiliary_client;
+pub use auxiliary_client::{
+    AuxiliaryTask, AuxiliaryTaskStatus, AuxiliaryTaskType, CostLimit, TaskAllocationStrategy,
+    TaskPriority, TemperatureContract,
+};
+pub mod gateway_operations;
+pub use gateway_operations::{
+    AuthorizationStatus, GatewayOpsStatus, GracefulShutdownConfig, LifecycleEvent,
+    LifecycleEventType, LifecycleLedger, PairingAuthorization, ShutdownPhase, ShutdownPhaseStatus,
+    ShutdownProgress,
+};
+pub mod insight_dashboard;
+pub use insight_dashboard::{
+    CostDataPoint, CostReport, EfficiencyMetrics, InsightRecommendation, InsightSeverity,
+    RecommendationType, ReportPeriod, SkillUsage, TokenUsageStats, UsageReport,
+};
+pub mod lsp_integration;
+pub use lsp_integration::{
+    CompletionItemKind, CursorPosition, DiagnosticSeverity, LspCodeContext, LspCompletionItem,
+    LspConfig, LspConnectionType, LspDiagnostic, LspError, LspHoverInfo, LspLocation, LspMethod,
+    LspRange, LspRequest, LspResponse, LspServer, LspServerType,
+};
 pub mod error;
+pub mod error_classifier;
+pub use error_classifier::{
+    ClassifiedError, ErrorType, FailoverReason, RecoveryAdjustment, RecoveryAttempt,
+    RecoveryResult, RecoveryStrategy, SuggestedAction,
+};
 pub mod has_provider_registry;
 pub mod inference_engine;
 pub mod model_knowledge;
@@ -352,11 +430,14 @@ pub use multi_agent::{
 pub mod feature_flag_provider;
 pub use feature_flag_provider::{FeatureFlagProvider, SharedFeatureFlagProvider};
 
-// ── P1: MemoryStore 契约（记忆外溢/共享） ──
+// ── P1: MemoryStore 契约（记忆外溢/共享 + 增强能力） ──
 pub mod memory;
 pub use memory::{
     MemoryActionResultDto, MemoryAddRequest, MemoryFeedbackRequest, MemoryGroupedDto,
-    MemorySearchItem, MemorySearchRequest, MemoryStore, MemoryTreeItem, MemoryUpdateRequest,
+    MemoryLifecycleEvent, MemoryLifecycleHook, MemorySearchItem, MemorySearchRequest, MemoryStore,
+    MemoryTreeItem, MemoryUpdateRequest, MemoryWriteApprovalConfig, MemoryWriteApprovalRequest,
+    MemoryWriteApprovalStatus, NoopMemoryHook, SkillScaffoldStripper, StrippedContent,
+    TrivialInputGate,
 };
 
 // ── P2: MemoryScanner 契约（本地日历/文件扫描） ──

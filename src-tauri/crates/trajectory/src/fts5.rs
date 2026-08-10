@@ -663,6 +663,293 @@ impl FTS5Search {
         .await??;
         Ok(())
     }
+
+    // ── CJK 支持 ────────────────────────────────────────────────────
+
+    /// 检测查询是否包含 CJK 字符
+    fn contains_cjk(text: &str) -> bool {
+        text.chars().any(|c| {
+            let cp = c as u32;
+            // CJK Unified Ideographs + Extension A + Hangul + Kana
+            (0x4E00..=0x9FFF).contains(&cp)
+                || (0x3400..=0x4DBF).contains(&cp)
+                || (0xAC00..=0xD7AF).contains(&cp)
+                || (0x3040..=0x30FF).contains(&cp)
+        })
+    }
+
+    /// 将 CJK 查询拆分为 trigram token 以支持中文搜索
+    /// 对于纯 CJK 查询，生成所有可能的双字/三字组合作为 fallback
+    fn tokenize_cjk_query(query: &str) -> Vec<String> {
+        let mut result = Vec::new();
+
+        // 原始查询
+        result.push(query.to_string());
+
+        // 双字组合 (bigrams)
+        let chars: Vec<char> = query.chars().collect();
+        if chars.len() >= 2 {
+            for window in chars.windows(2) {
+                result.push(window.iter().collect());
+            }
+        }
+
+        // 单字 fallback (对短查询)
+        if chars.len() <= 3 {
+            for c in &chars {
+                result.push(c.to_string());
+            }
+        }
+
+        result
+    }
+
+    /// 带 CJK 支持的增强搜索
+    pub async fn search_with_cjk(&self, query: &str, limit: usize) -> Result<Vec<FTS5Result>> {
+        if !Self::contains_cjk(query) {
+            let fts_query = FTS5Query { query: query.to_string(), limit, ..Default::default() };
+            return self.search(fts_query).await;
+        }
+
+        // CJK 查询: 先用原始查询搜索
+        let mut results = Vec::new();
+        let mut seen_ids = std::collections::HashSet::new();
+
+        // 1. 原始查询搜索 (FTS5 unicode61 tokenizer 可处理部分 CJK)
+        let primary_query = FTS5Query { query: query.to_string(), limit, ..Default::default() };
+        if let Ok(primary_results) = self.search(primary_query).await {
+            for r in &primary_results {
+                seen_ids.insert(r.id.clone());
+            }
+            results.extend(primary_results);
+        }
+
+        // 2. 如果结果不足，用 CJK trigram token 做 fallback
+        if results.len() < limit {
+            let cjk_tokens = Self::tokenize_cjk_query(query);
+            for token in &cjk_tokens {
+                if token == query {
+                    continue;
+                }
+                let fallback_query = FTS5Query {
+                    query: token.clone(),
+                    limit: limit.saturating_sub(results.len()),
+                    ..Default::default()
+                };
+                if let Ok(fallback_results) = self.search(fallback_query).await {
+                    for r in fallback_results {
+                        if seen_ids.insert(r.id.clone()) {
+                            results.push(r);
+                        }
+                    }
+                }
+                if results.len() >= limit {
+                    break;
+                }
+            }
+        }
+
+        results.truncate(limit);
+        Ok(results)
+    }
+
+    // ── 会话谱系搜索 ────────────────────────────────────────────────
+
+    /// 按会话谱系搜索 — 搜索当前会话及其所有祖先/后代会话
+    ///
+    /// 注意：当前 trajectory FTS5 索引不包含 parent_session_id 谱系数据，
+    /// 因此仅支持「直接匹配当前会话」（lineage_distance = 0）。
+    /// 真实的祖先/后代回溯需由命令层基于 conversations.parent_conversation_id
+    /// 实现（见 commands::conversations_search::get_conversation_lineage）。
+    pub async fn search_session_lineage(
+        &self,
+        query: &str,
+        session_id: &str,
+        _lineage_depth: u32,
+        limit: usize,
+    ) -> Result<Vec<LineageSearchResult>> {
+        let config = FTS5Query {
+            query: query.to_string(),
+            limit: limit * 2, // 多取一些结果用于过滤
+            ..Default::default()
+        };
+
+        let all_results = if Self::contains_cjk(query) {
+            self.search_with_cjk(query, limit * 2).await?
+        } else {
+            self.search(config).await?
+        };
+
+        let mut lineage_results = Vec::new();
+
+        // 仅保留当前会话的直接匹配；无谱系表时不做前缀猜测（避免假阳性召回）
+        for result in &all_results {
+            if let Some(ref sid) = result.session_id {
+                if sid == session_id {
+                    lineage_results.push(LineageSearchResult {
+                        result: result.clone(),
+                        related_session_ids: vec![session_id.to_string()],
+                        lineage_distance: 0,
+                    });
+                }
+            }
+            if lineage_results.len() >= limit {
+                break;
+            }
+        }
+
+        Ok(lineage_results)
+    }
+
+    // ── FTS5 健康检查 ──────────────────────────────────────────────
+
+    /// 检查 FTS5 索引健康状态
+    pub async fn health_check(&self) -> Result<FTS5Health> {
+        let conn = self.conn.clone();
+        let health = tokio::task::spawn_blocking(move || -> Result<FTS5Health> {
+            let conn = conn.blocking_lock();
+
+            let tables_exist = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='trajectories_fts'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            let count_table = |table: &str| -> u64 {
+                conn.query_row(
+                    &format!("SELECT COUNT(*) FROM {}", table),
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap_or(0) as u64
+            };
+
+            let trajectories_count = count_table("trajectories_fts");
+            let memory_items_count = count_table("memory_items_fts");
+            let skills_count = count_table("trajectory_skills_fts");
+            let messages_count = count_table("trajectory_messages_fts");
+
+            let needs_rebuild = !tables_exist
+                || trajectories_count == 0 && memory_items_count == 0 && skills_count == 0;
+
+            Ok(FTS5Health {
+                tables_exist,
+                trajectories_count,
+                memory_items_count,
+                skills_count,
+                messages_count,
+                needs_rebuild,
+            })
+        })
+        .await??;
+
+        Ok(health)
+    }
+
+    /// 重建 FTS5 索引（分步执行，支持断点续跑）
+    pub async fn rebuild_indexes(&self) -> Result<()> {
+        let conn = self.conn.clone();
+        info!("Starting FTS5 index rebuild...");
+
+        tokio::task::spawn_blocking(move || -> Result<()> {
+            let conn = conn.blocking_lock();
+
+            // 1. 删除旧索引
+            conn.execute_batch(
+                r#"
+                DROP TABLE IF EXISTS trajectories_fts;
+                DROP TABLE IF EXISTS memory_items_fts;
+                DROP TABLE IF EXISTS trajectory_skills_fts;
+                DROP TABLE IF EXISTS trajectory_messages_fts;
+                "#,
+            )?;
+
+            // 2. 重建索引表
+            conn.execute_batch(
+                r#"
+                CREATE VIRTUAL TABLE trajectories_fts USING fts5(
+                    id UNINDEXED,
+                    session_id UNINDEXED,
+                    topic,
+                    summary,
+                    content,
+                    outcome UNINDEXED,
+                    quality_score UNINDEXED,
+                    created_at UNINDEXED,
+                    tokenize='porter unicode61'
+                );
+
+                CREATE VIRTUAL TABLE memory_items_fts USING fts5(
+                    id UNINDEXED,
+                    memory_type UNINDEXED,
+                    content,
+                    entities,
+                    created_at UNINDEXED,
+                    tokenize='porter unicode61'
+                );
+
+                CREATE VIRTUAL TABLE trajectory_skills_fts USING fts5(
+                    id UNINDEXED,
+                    name,
+                    description,
+                    content,
+                    category UNINDEXED,
+                    tags,
+                    created_at UNINDEXED,
+                    tokenize='porter unicode61'
+                );
+
+                CREATE VIRTUAL TABLE trajectory_messages_fts USING fts5(
+                    id UNINDEXED,
+                    session_id UNINDEXED,
+                    role UNINDEXED,
+                    content,
+                    created_at UNINDEXED,
+                    tokenize='porter unicode61'
+                );
+                "#,
+            )?;
+
+            info!("FTS5 indexes rebuilt successfully");
+            Ok(())
+        })
+        .await??;
+
+        Ok(())
+    }
+}
+
+// ── 谱系与健康检查 DTO ──────────────────────────────────────────────
+
+/// 会话谱系信息
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SessionLineage {
+    pub session_id: String,
+    pub parent_session_id: Option<String>,
+    pub child_session_ids: Vec<String>,
+    pub lineage_depth: u32,
+}
+
+/// 带谱系的会话搜索结果
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct LineageSearchResult {
+    pub result: FTS5Result,
+    pub related_session_ids: Vec<String>,
+    pub lineage_distance: u32,
+}
+
+/// FTS5 健康状态
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FTS5Health {
+    pub tables_exist: bool,
+    pub trajectories_count: u64,
+    pub memory_items_count: u64,
+    pub skills_count: u64,
+    pub messages_count: u64,
+    pub needs_rebuild: bool,
 }
 
 /// 把任意字节偏移向下对齐到最近的 char boundary，避免在多字节字符中间切片触发 panic。

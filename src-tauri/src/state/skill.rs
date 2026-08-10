@@ -15,6 +15,8 @@ pub struct SkillState {
     pub skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
     pub skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
+    /// 技能学习管理器 — 编排技能创建/改进/审查/审批全流程
+    pub skill_learning_manager: Arc<TokioRwLock<axagent_trajectory::SkillLearningManager>>,
     #[cfg(not(target_os = "android"))]
     pub sandbox_executor: Arc<axagent_trajectory::SkillSandboxExecutor>,
     #[cfg(target_os = "android")]
@@ -53,6 +55,7 @@ impl SkillState {
         skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
         skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,
         skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
+        skill_learning_manager: Arc<TokioRwLock<axagent_trajectory::SkillLearningManager>>,
         sandbox_executor: SandboxExecutorField,
         dashboard_registry: Option<Arc<axagent_runtime::dashboard_registry::DashboardRegistry>>,
         webhook_subscription_manager: Option<
@@ -74,6 +77,7 @@ impl SkillState {
             skill_evolution_engine,
             skill_proposal_service,
             skill_decomposer,
+            skill_learning_manager,
             #[cfg(not(target_os = "android"))]
             sandbox_executor: match sandbox_executor {
                 SandboxExecutorField::Real(v) => v,

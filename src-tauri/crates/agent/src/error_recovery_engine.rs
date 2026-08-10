@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::recovery_strategies::{ClassifiedError, ErrorClassifier, ErrorType};
-use crate::recovery_strategies::{RecoveryAdjustment, RecoveryResult, RecoveryStrategy};
+use crate::recovery_strategies::{
+    FailoverReason, RecoveryAdjustment, RecoveryResult, RecoveryStrategy,
+};
 use crate::retry_policy::AgentRetryPolicy;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -29,12 +31,30 @@ impl Default for RecoveryConfig {
 
 #[derive(Debug, Clone)]
 pub enum RecoveryEvent {
-    RecoveryStarted { error: String, error_type: ErrorType },
-    AttemptStarted { attempt: usize, strategy: String },
-    AttemptCompleted { attempt: usize, success: bool },
-    RecoveryCompleted { result: RecoveryResult },
-    RecoveryFailed { error: String },
-    RetryScheduled { delay_ms: u64, attempt: usize },
+    RecoveryStarted {
+        error: String,
+        error_type: ErrorType,
+        /// 精确的故障转移原因 (可选)
+        failover_reason: Option<FailoverReason>,
+    },
+    AttemptStarted {
+        attempt: usize,
+        strategy: String,
+    },
+    AttemptCompleted {
+        attempt: usize,
+        success: bool,
+    },
+    RecoveryCompleted {
+        result: RecoveryResult,
+    },
+    RecoveryFailed {
+        error: String,
+    },
+    RetryScheduled {
+        delay_ms: u64,
+        attempt: usize,
+    },
 }
 
 pub struct ErrorRecoveryEngine {
@@ -64,9 +84,33 @@ impl ErrorRecoveryEngine {
         self.classifier.classify_with_context(error, None)
     }
 
+    /// 基于 ClassifiedError (含 FailoverReason) 获取精确恢复策略
+    pub fn get_recovery_strategy_for(&self, classified: &ClassifiedError) -> RecoveryStrategy {
+        // 优先使用 FailoverReason 的精确策略
+        if let Some(reason) = classified.failover_reason {
+            let strategy = reason.suggested_strategy();
+
+            // 针对特定 FailoverReason 的配置开关处理
+            if !self.config.enable_fallback
+                && matches!(&strategy, RecoveryStrategy::Fallback { .. })
+            {
+                return RecoveryStrategy::Retry {
+                    max_attempts: 3,
+                    base_delay_ms: 1000,
+                    max_delay_ms: 10000,
+                    exponential_backoff: true,
+                };
+            }
+
+            return strategy;
+        }
+
+        // 回退: 使用 ErrorType 基础策略 + 配置开关
+        self.get_recovery_strategy(classified.error_type)
+    }
+
     pub fn get_recovery_strategy(&self, error_type: ErrorType) -> RecoveryStrategy {
-        // 关闭 adjustments 时,Recoverable 错误降级为纯 Retry (而非 Fail),
-        // 保证关闭"调整参数"开关时仍可重试,只是不会自动调整参数。
+        // 关闭 adjustments 时,Recoverable 错误降级为纯 Retry
         if !self.config.enable_adjustments
             && matches!(error_type, ErrorType::Recoverable | ErrorType::Transient)
         {
@@ -80,7 +124,7 @@ impl ErrorRecoveryEngine {
 
         let strategy = RecoveryStrategy::for_error_type(error_type);
 
-        // 关闭 fallback 时,将 Fallback 策略降级为 Fail
+        // 关闭 fallback 时,将 Fallback 策略降级为 Retry
         if !self.config.enable_fallback && matches!(&strategy, RecoveryStrategy::Fallback { .. }) {
             return RecoveryStrategy::Retry {
                 max_attempts: 3,
@@ -106,9 +150,11 @@ impl ErrorRecoveryEngine {
         self.emit(RecoveryEvent::RecoveryStarted {
             error: error.to_string(),
             error_type: classified.error_type,
+            failover_reason: classified.failover_reason,
         });
 
-        let strategy = self.get_recovery_strategy(classified.error_type);
+        // 使用 FailoverReason 精确选择恢复策略
+        let strategy = self.get_recovery_strategy_for(&classified);
 
         if !strategy.should_retry() {
             self.emit(RecoveryEvent::RecoveryFailed { error: error.to_string() });
@@ -556,6 +602,7 @@ mod tests {
             RecoveryEvent::RecoveryStarted {
                 error: "e".to_string(),
                 error_type: ErrorType::Transient,
+                failover_reason: None,
             },
             RecoveryEvent::AttemptStarted { attempt: 1, strategy: "Retry".to_string() },
             RecoveryEvent::AttemptCompleted { attempt: 1, success: true },
@@ -745,6 +792,7 @@ mod tests {
         let event = RecoveryEvent::RecoveryStarted {
             error: "test".to_string(),
             error_type: ErrorType::Transient,
+            failover_reason: Some(FailoverReason::NetworkTimeout),
         };
         let debug = format!("{:?}", event);
         assert!(debug.contains("RecoveryStarted"));
