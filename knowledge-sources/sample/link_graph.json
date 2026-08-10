@@ -9,8 +9,8 @@
         "零售",
         "股份制"
       ],
-      "link_count": 2,
-      "backlink_count": 1,
+      "linkCount": 2,
+      "backlinkCount": 1,
       "path": "wiki_pages/000001.md"
     },
     {
@@ -22,8 +22,8 @@
         "零售",
         "股份制"
       ],
-      "link_count": 2,
-      "backlink_count": 1,
+      "linkCount": 2,
+      "backlinkCount": 1,
       "path": "wiki_pages/600036.md"
     },
     {
@@ -34,8 +34,8 @@
         "银行",
         "城商行"
       ],
-      "link_count": 0,
-      "backlink_count": 0,
+      "linkCount": 0,
+      "backlinkCount": 0,
       "path": "wiki_pages/002142.md"
     },
     {
@@ -46,8 +46,8 @@
         "银行",
         "国有大行"
       ],
-      "link_count": 2,
-      "backlink_count": 0,
+      "linkCount": 2,
+      "backlinkCount": 0,
       "path": "wiki_pages/601398.md"
     },
     {
@@ -59,8 +59,8 @@
         "综合金融",
         "金融科技"
       ],
-      "link_count": 3,
-      "backlink_count": 1,
+      "linkCount": 3,
+      "backlinkCount": 1,
       "path": "wiki_pages/601318.md"
     },
     {
@@ -71,8 +71,8 @@
         "保险",
         "国有"
       ],
-      "link_count": 1,
-      "backlink_count": 0,
+      "linkCount": 1,
+      "backlinkCount": 0,
       "path": "wiki_pages/601628.md"
     },
     {
@@ -83,8 +83,8 @@
         "半导体",
         "晶圆代工"
       ],
-      "link_count": 3,
-      "backlink_count": 0,
+      "linkCount": 3,
+      "backlinkCount": 0,
       "path": "wiki_pages/688981.md"
     },
     {
@@ -95,8 +95,8 @@
         "半导体",
         "芯片设计"
       ],
-      "link_count": 2,
-      "backlink_count": 0,
+      "linkCount": 2,
+      "backlinkCount": 0,
       "path": "wiki_pages/603501.md"
     },
     {
@@ -108,8 +108,8 @@
         "AI",
         "物联网"
       ],
-      "link_count": 2,
-      "backlink_count": 0,
+      "linkCount": 2,
+      "backlinkCount": 0,
       "path": "wiki_pages/002415.md"
     },
     {
@@ -119,8 +119,8 @@
       "tags": [
         "金融"
       ],
-      "link_count": 0,
-      "backlink_count": 3,
+      "linkCount": 0,
+      "backlinkCount": 3,
       "path": "wiki_pages/industry_bank.md"
     },
     {
@@ -130,8 +130,8 @@
       "tags": [
         "金融"
       ],
-      "link_count": 0,
-      "backlink_count": 2,
+      "linkCount": 0,
+      "backlinkCount": 2,
       "path": "wiki_pages/industry_insurance.md"
     },
     {
@@ -141,8 +141,8 @@
       "tags": [
         "科技"
       ],
-      "link_count": 0,
-      "backlink_count": 3,
+      "linkCount": 0,
+      "backlinkCount": 3,
       "path": "wiki_pages/industry_semiconductor.md"
     },
     {
@@ -153,8 +153,8 @@
         "国产替代",
         "算力"
       ],
-      "link_count": 0,
-      "backlink_count": 2,
+      "linkCount": 0,
+      "backlinkCount": 2,
       "path": "wiki_pages/concept_chip.md"
     },
     {
@@ -165,8 +165,8 @@
         "大模型",
         "算力"
       ],
-      "link_count": 0,
-      "backlink_count": 3,
+      "linkCount": 0,
+      "backlinkCount": 3,
       "path": "wiki_pages/concept_ai.md"
     },
     {
@@ -176,8 +176,8 @@
       "tags": [
         "董事长"
       ],
-      "link_count": 0,
-      "backlink_count": 1,
+      "linkCount": 0,
+      "backlinkCount": 1,
       "path": "wiki_pages/person_ma.md"
     }
   ],
