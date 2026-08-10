@@ -6,3 +6,10 @@ rustflags = ["-C", "target-feature=+crt-static"]
 __TAURI_WORKSPACE__ = "true"
 RUSTC_WRAPPER = "sccache"
 SCCACHE_CACHE_SIZE = "50G"
+
+[build]
+jobs = 8
+
+[unstable]
+# 增量编译优化：提前发送分析结果，减少等待时间
+timings = false

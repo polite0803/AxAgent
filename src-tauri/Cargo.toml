@@ -40,7 +40,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.9.1"
+version = "2.9.2"
 edition = "2024"
 license = "AGPL-3.0-only"
 
@@ -226,6 +226,14 @@ opt-level = 0
 # 代价：调试器里看不到局部变量值；
 #       需要完整调试时执行 `CARGO_PROFILE_DEV_DEBUG=true cargo build` 覆盖。
 debug = "line-tables-only"
+incremental = true
+codegen-units = 16
+
+# 第三方依赖编译加速：不生成调试信息，更多并行 codegen
+[profile.dev.build-override]
+opt-level = 0
+codegen-units = 64
+debug = false
 incremental = true
 
 [dev-dependencies]
