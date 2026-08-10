@@ -12,6 +12,7 @@
 import { ModelDownloadPanel } from "@/components/settings/ModelDownloadPanel";
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
+import { useProviderStore } from "@/stores";
 import type {
   EmbedTestResult,
   LlamaCppInstallStatus,
@@ -120,6 +121,7 @@ export function LocalModelPanel({
 }) {
   const { t } = useTranslation();
   const { message } = App.useApp();
+  const updateProvider = useProviderStore((s) => s.updateProvider);
 
   const [status, setStatus] = useState<LocalModelStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -348,6 +350,11 @@ export function LocalModelPanel({
         config: startConfig,
       });
       localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(startConfig));
+      // 启动成功后同步 api_host 到 provider，确保后续 API 调用使用正确地址
+      const newApiHost = `http://${startConfig.host}:${startConfig.port}`;
+      if (newApiHost !== apiHost) {
+        updateProvider(providerId, { api_host: newApiHost });
+      }
       message.success(t("settings.localModel.startSuccess"));
       setStartModalOpen(false);
       void refreshRef.current();
@@ -355,7 +362,7 @@ export function LocalModelPanel({
       // 按后端错误码自动翻译：端口冲突、配置无效等都有独立 i18n 文案
       showBackendError(message, e, { context: "local_model_start" });
     }
-  }, [providerId, startConfig, serverExists, message, t]);
+  }, [providerId, startConfig, serverExists, message, t, updateProvider, apiHost]);
 
   const handleStop = useCallback(async () => {
     try {

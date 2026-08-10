@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::Utc;
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, Statement};
 use serde::{Deserialize, Serialize};
 
 use crate::hybrid_search::{HybridSearchOptions, HybridSearchResult, HybridSearcher};
@@ -1701,9 +1701,10 @@ fn validate_collection_name(name: &str) -> Result<()> {
 async fn count_collection_items(db: &DatabaseConnection, collection_name: &str) -> Result<usize> {
     validate_collection_name(collection_name)?;
     let table_name = format!("vec_{}_meta", collection_name.replace('-', "_"));
+    let backend = db.get_database_backend();
     let count: i64 = db
         .query_one_raw(Statement::from_string(
-            DbBackend::Sqlite,
+            backend,
             format!("SELECT COUNT(*) as cnt FROM \"{}\"", table_name),
         ))
         .await?
@@ -1751,11 +1752,14 @@ async fn get_oldest_item_timestamp(
     collection_name: &str,
 ) -> Result<Option<i64>> {
     validate_collection_name(collection_name)?;
-    let table_name = format!("vec_{}_meta", collection_name.replace('-', "_"));
+    let backend = db.get_database_backend();
     let result = db
         .query_one_raw(Statement::from_string(
-            DbBackend::Sqlite,
-            format!("SELECT created_at FROM \"{}\" ORDER BY created_at ASC LIMIT 1", table_name),
+            backend,
+            format!(
+                "SELECT created_at FROM vec_collections WHERE collection_id = '{}'",
+                collection_name
+            ),
         ))
         .await?;
 

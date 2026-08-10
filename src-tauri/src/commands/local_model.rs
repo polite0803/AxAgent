@@ -450,7 +450,7 @@ pub async fn local_model_start(
     config: LocalModelStartConfig,
 ) -> Result<LocalModelStatus, String> {
     let db = state.harness.db();
-    let (_, base) = resolve_provider_base(db, &provider_id)
+    let (provider, base) = resolve_provider_base(db, &provider_id)
         .await
         .map_err(|e| command_error(e, lm_err::PROVIDER_NOT_FOUND))?;
 
@@ -589,6 +589,16 @@ pub async fn local_model_start(
             .await
             .map_err(|e| command_error(e, lm_err::STATUS_FAILED))?;
         if st.health == "ok" {
+            // 启动成功后同步 api_host 到 provider，确保健康检查和后续 API 调用使用正确地址
+            let new_api_host = format!("http://{}:{}", config.host, config.port);
+            if provider.api_host != new_api_host {
+                let _ = axagent_dao::repo::provider::update_provider(
+                    db,
+                    &provider.id,
+                    UpdateProviderInput { api_host: Some(new_api_host), ..Default::default() },
+                )
+                .await;
+            }
             return Ok(st);
         }
         if Instant::now() >= deadline {
