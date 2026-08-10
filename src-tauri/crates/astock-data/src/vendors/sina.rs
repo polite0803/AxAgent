@@ -160,9 +160,13 @@ impl StockVendor for SinaVendor {
             open: f(1),
             high: f(4),
             low: f(5),
-            // 修复 H4: sina f(8)=手、f(9)=万元，统一为 股/元（对齐 tencent.rs:117-118）
-            volume: f(8) * 100.0,
-            amount: f(9) * 10000.0,
+            // H4 实测回退（2026-08-11 实网探测, sh600519）:
+            //   sina f(8)=6268572、f(9)=8428304269，且 1348.86 × f(8) ≈ f(9)
+            //   → f(8) 本身已是「股」、f(9) 本身已是「元」，无需换算。
+            //   7-13 的 ×100/×10000 是错误修复（把 volume 放大 100 倍、amount 放大 1e4 倍），
+            //   会污染 quote 缓存与下游指标，故回退直取。
+            volume: f(8),
+            amount: f(9),
             change_pct: (f(3) - f(2)) / f(2) * 100.0,
             turnover_rate: 0.0,
             pe: None,

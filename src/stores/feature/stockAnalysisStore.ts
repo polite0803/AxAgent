@@ -652,7 +652,6 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         const state = useTimeAnchorStore.getState();
         return state.mode === "replay" || state.mode === "backtest_sweep" ? state.asOfDate : null;
       })();
-      console.log("[getStockQuote] timeAnchor:", { mode: useTimeAnchorStore.getState().mode, asOfDate });
       const quote = await invoke<StockQuote>("get_stock_quote", { stockCode: code, asOfDate });
       // #11 去重：若已有更新的请求(或已切到别的股票)，丢弃本次过期响应
       if (myReqId !== latestQuoteReqId || latestQuoteCode !== code) {
@@ -918,7 +917,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       error: null,
       failedNodes: [],
       failedNodeErrors: {},
-      dataWarnings: undefined,
+      dataWarnings: [],
       llmDecisionJson: null,
       decisionAgreementScore: null,
       dashboardReport: null,
@@ -2004,7 +2003,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             || (Array.isArray(outputValue) && outputValue.length === 0);
           if (isEmpty) {
             const label = nodeId === "t-news-data" ? "新闻" : nodeId === "t-sentiment-data" ? "舆情" : "公告";
-            const warnings = get().dataWarnings;
+            // M16 守卫：dataWarnings 可能为 undefined（旧快照路径），兜底为空数组避免 .includes 崩溃
+            const warnings = get().dataWarnings ?? [];
             const msg = `⚠️ ${label}数据获取为空，相关分析师将基于有限数据分析`;
             if (!warnings.includes(msg)) {
               set({ dataWarnings: [...warnings, msg] });

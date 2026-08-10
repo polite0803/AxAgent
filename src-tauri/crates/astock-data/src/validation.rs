@@ -63,8 +63,16 @@ pub fn validate_quote(q: &StockQuote) -> ValidationReport {
     }
     if q.pre_close > 0.0 {
         let change = (q.price - q.pre_close) / q.pre_close;
-        if change.abs() > 0.30 {
-            r.add_warning(format!("change_pct 异常: {:.1}%", change * 100.0));
+        // 修复 M6: 按市场类型/ST 计算涨跌幅上限，替代写死的 ±30%
+        //   main_sh/main_sz=10%、star/chinext=20%、bj=30%、ST=5%、港/美无限制
+        let limit_pct = get_st_price_limit_pct(q.is_st, detect_market_type(&q.code));
+        // 20% 容差：容忍除权除息首日等数据扰动，超出涨停幅度仍视为异常
+        if limit_pct.is_finite() && change.abs() > (limit_pct / 100.0) * 1.2 {
+            r.add_warning(format!(
+                "change_pct 异常: {:.1}% (市场涨跌幅上限 {}%, 含 20% 容差)",
+                change * 100.0,
+                limit_pct
+            ));
         }
     }
     if q.turnover_rate < 0.0 || q.turnover_rate > 100.0 {

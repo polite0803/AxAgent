@@ -23,7 +23,7 @@
 //! ### 一致性系数（coherence_score）
 //!
 //! ```
-//! coherence = (n_up - n_down) / n_total   ∈ [-1, 1]
+//! coherence = (n_up - n_down) / n_total，取值范围 [-1, 1]
 //! ```
 //! - `+1`：板块内全部上涨（强多头联动）
 //! - `-1`：板块内全部下跌（强空头联动）

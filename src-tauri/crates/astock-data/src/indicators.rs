@@ -395,8 +395,8 @@ mod tests {
     fn test_rsi_uniform() {
         let closes = vec![10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0];
         let result = rsi(&closes, 6).unwrap();
-        // 零波动时 avg_loss=0，RSI 为 100
-        assert!((result - 100.0).abs() < 1e-6);
+        // 修复 L5: 零波动（完全平盘）时 RSI=50（中性），不再误报 100 超买
+        assert!((result - 50.0).abs() < 1e-6);
     }
 
     #[test]

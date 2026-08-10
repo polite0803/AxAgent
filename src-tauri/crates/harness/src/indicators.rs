@@ -151,8 +151,15 @@ pub fn rsi_wilder(closes: &[f64], period: usize) -> Option<f64> {
         avg_gain = (avg_gain * (period - 1) as f64 + gain) / period as f64;
         avg_loss = (avg_loss * (period - 1) as f64 + loss) / period as f64;
     }
+    // 修复 L5: 区分「持续上涨」与「完全平盘」
+    //   - 持续上涨（avg_gain>0, avg_loss≈0）→ RSI=100（超买）
+    //   - 完全平盘（avg_gain≈0 且 avg_loss≈0）→ RSI=50（中性），避免平盘误报极端超买
     if avg_loss < 1e-10 {
-        return Some(100.0);
+        return if avg_gain < 1e-10 {
+            Some(50.0)
+        } else {
+            Some(100.0)
+        };
     }
     let rs = avg_gain / avg_loss;
     Some(100.0 - (100.0 / (1.0 + rs)))

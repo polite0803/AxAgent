@@ -306,7 +306,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 <div class="grid">
   <div class="card"><h3>巴菲特判定</h3><div class="value" style="font-size:16px">{buffett_verdict}</div></div>
   <div class="card"><h3>安全边际</h3><div class="value">{margin_of_safety:.1}%</div></div>
-  <div class="card"><h3>F-Score / 护城河</h3><div class="value">{f_score:.0}/9 · {moat:.0}/10</div></div>
+  <div class="card"><h3>F-Score / 护城河</h3><div class="value">{f_score:.0}/9 · {moat:.0}/100</div></div>
 </div>
 
 {block_trades_section}

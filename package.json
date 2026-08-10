@@ -91,6 +91,8 @@
     "dayjs": "^1.11.13",
     "dom-to-image-more": "^3.7.2",
     "dompurify": "^3.4.2",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "emoji-picker-element": "^1.29.1",
     "framer-motion": "^12.42.2",
     "graphology": "^0.25.4",

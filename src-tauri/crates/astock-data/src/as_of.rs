@@ -18,7 +18,7 @@
 //! 进程级回退。读取时优先 task_local（更精确、嵌套感知），没有再读全局；
 //! 写入时 `with_optional_asof` 同步写全局，spawn 出去的 future 即可读到。
 
-use chrono::Local;
+use chrono::{Duration, Utc};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -127,7 +127,12 @@ pub fn current_as_of() -> Option<AsOfContext> {
 pub fn current_date_or_now() -> String {
     match current_as_of() {
         Some(ctx) => ctx.as_of_date.format("%Y-%m-%d").to_string(),
-        None => Local::now().format("%Y-%m-%d").to_string(),
+        // 修复 M22: 统一按北京时间（UTC+8）取日期，避免部署机本地时区导致 as-of 缺省日期偏移
+        // （对齐 calendar.rs::beijing_now 口径；其余模块均固定 FixedOffset::east_opt(8*3600)）
+        None => {
+            let beijing = Utc::now() + Duration::hours(8);
+            beijing.format("%Y-%m-%d").to_string()
+        },
     }
 }
 
@@ -311,7 +316,7 @@ pub fn reset_global_degradation_log() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Duration, NaiveDate};
+    use chrono::{Duration, Local, NaiveDate};
     use serial_test::serial;
 
     #[tokio::test]
