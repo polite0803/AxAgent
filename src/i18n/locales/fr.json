@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "Installation de llama.cpp en cours",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Échec du téléchargement",
     "LOCAL_MODEL_PORT_IN_USE": "Le port {{port}} est déjà utilisé. Veuillez changer le port ou arrêter le processus qui l'occupe",
-    "FLEET_NOT_FOUND": "Bureau introuvable",
-    "FLEET_NAME_REQUIRED": "Le nom du bureau est requis",
-    "FLEET_NO_MEMBERS": "Ce bureau n'a pas encore de membres",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Tous les membres sont indisponibles (en pause/erreur/hors ligne)",
-    "FLEET_MEMBER_NOT_FOUND": "Membre introuvable",
-    "FLEET_NO_PROVIDER": "Aucun fournisseur de modèle disponible. Configurez-en un dans les paramètres",
-    "FLEET_ROUTING_FAILED": "Échec de l'appel de routage intelligent",
-    "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
-    "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau",
-    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Appareil non initialisé",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Appareil non trouvé",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Appareil déjà jumelé",
@@ -5905,6 +5895,89 @@
       "type_image": "Image",
       "type_social_post": "Réseaux sociaux",
       "type_newsletter": "Newsletter"
+    },
+    "refactor": {
+      "title": "Code Refactoring Config",
+      "risk_levels": {
+        "low": "Low Risk",
+        "medium": "Medium Risk",
+        "high": "High Risk",
+        "critical": "Critical Risk"
+      },
+      "severity_levels": {
+        "low": "Minor",
+        "medium": "Moderate",
+        "high": "Severe",
+        "critical": "Critical"
+      },
+      "debt_categories": {
+        "all": "All",
+        "security": "Security",
+        "performance": "Performance",
+        "maintainability": "Maintainability",
+        "duplicate": "Duplicate Code"
+      },
+      "settings": {
+        "title": "Code Refactoring Config",
+        "saveConfig": "Save Config",
+        "saveSuccess": "Config saved successfully",
+        "saveFailed": "Failed to save config: {{error}}",
+        "loadFailed": "Failed to load config",
+        "group": {
+          "common": "Basic Info",
+          "refactor": "Refactoring Settings",
+          "techDebt": "Tech Debt Analysis"
+        },
+        "titles": {
+          "fullRefactor": "Major Refactoring Config",
+          "liteRefactor": "Quick Refactoring Config",
+          "techDebt": "Tech Debt Analysis Config"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "Codebase Path",
+          "placeholder": "e.g., D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "Refactoring Goal",
+          "placeholder": "Describe the specific refactoring goal"
+        },
+        "target_modules": {
+          "label": "Target Modules",
+          "placeholder": "e.g., src/components/UserPanel"
+        },
+        "risk_level": {
+          "label": "Risk Level",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "Min Test Coverage (%)"
+        },
+        "auto_fix": {
+          "label": "Auto Fix"
+        },
+        "max_file_changes": {
+          "label": "Max File Changes"
+        },
+        "tech_debt_categories": {
+          "label": "Tech Debt Categories",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "Severity Threshold",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "Estimated Hours"
+        },
+        "priority_fix": {
+          "label": "Priority Fix"
+        },
+        "generate_report": {
+          "label": "Generate Report"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10516,14 +10589,13 @@
         "dead_branch_decorative": "Le nœud conteneur \"{{nodeId}}\" (décoratif) n'a pas d'enfants ni de connexions",
         "dead_branch_scheduled": "Le nœud conteneur \"{{nodeId}}\" ({{type}}) est une branche morte — a des enfants mais aucune arête d'entrée/sortie",
         "duplicate_title": "{{count}} nœuds {{type}} partagent le même titre \"{{title}}\"",
-        "missing_end_node": "Le flux de travail manque un nœud de fin. Pensez à en ajouter un pour une terminaison correcte.",
+        "missing_end_node": "Le flux de travail contient {{nonTriggerCount}} nœuds non déclencheurs mais manque un nœud de fin (EndNode) ; le flux de travail a besoin d'un point de terminaison clair",
         "orphan_node": "Le nœud \"{{nodeId}}\" est orphelin (aucune arête entrante ou sortante)",
         "self_loop": "L'arête {{edgeId}} est une boucle sur elle-même (source === cible)",
         "unconnected_port": "Le nœud condition \"{{nodeId}}\" a une sortie {{missing}} non connectée",
         "workflow_ref_depth": "La chaîne WorkflowRef peut dépasser la limite de {{maxDepth}} niveaux ; plusieurs WorkflowRef pointent vers le même \"{{refId}}\", possible référence circulaire",
         "workflow_ref_empty": "Le nœud WorkflowRef \"{{nodeId}}\" n'a pas de workflow cible",
-        "workflow_ref_self": "Le nœud WorkflowRef \"{{nodeId}}\" se référence lui-même",
-        "missing_end_node": "Le flux de travail contient {{nonTriggerCount}} nœuds non déclencheurs mais manque un nœud de fin (EndNode) ; le flux de travail a besoin d'un point de terminaison clair"
+        "workflow_ref_self": "Le nœud WorkflowRef \"{{nodeId}}\" se référence lui-même"
       },
       "autoLayout": "Disposition automatique",
       "canvas": "Canevas",

@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp 安裝進行中",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下載失敗",
     "LOCAL_MODEL_PORT_IN_USE": "連接埠 {{port}} 已被佔用，請更換連接埠或停止佔用程序",
-    "FLEET_NOT_FOUND": "辦公室未找到",
-    "FLEET_NAME_REQUIRED": "辦公室名稱不能為空",
-    "FLEET_NO_MEMBERS": "該辦公室還沒有任何成員",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "辦公室所有成員均不可用（已暫停/錯誤/離線）",
-    "FLEET_MEMBER_NOT_FOUND": "成員未找到",
-    "FLEET_NO_PROVIDER": "沒有可用的模型提供商，請先在設定中設定",
-    "FLEET_ROUTING_FAILED": "智慧路由呼叫失敗",
-    "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
-    "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室",
-    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "裝置未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "裝置未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "裝置已配對",
@@ -5905,6 +5895,89 @@
       "type_image": "圖片",
       "type_social_post": "社群媒體",
       "type_newsletter": "Newsletter"
+    },
+    "refactor": {
+      "title": "Code Refactoring Config",
+      "risk_levels": {
+        "low": "Low Risk",
+        "medium": "Medium Risk",
+        "high": "High Risk",
+        "critical": "Critical Risk"
+      },
+      "severity_levels": {
+        "low": "Minor",
+        "medium": "Moderate",
+        "high": "Severe",
+        "critical": "Critical"
+      },
+      "debt_categories": {
+        "all": "All",
+        "security": "Security",
+        "performance": "Performance",
+        "maintainability": "Maintainability",
+        "duplicate": "Duplicate Code"
+      },
+      "settings": {
+        "title": "Code Refactoring Config",
+        "saveConfig": "Save Config",
+        "saveSuccess": "Config saved successfully",
+        "saveFailed": "Failed to save config: {{error}}",
+        "loadFailed": "Failed to load config",
+        "group": {
+          "common": "Basic Info",
+          "refactor": "Refactoring Settings",
+          "techDebt": "Tech Debt Analysis"
+        },
+        "titles": {
+          "fullRefactor": "Major Refactoring Config",
+          "liteRefactor": "Quick Refactoring Config",
+          "techDebt": "Tech Debt Analysis Config"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "Codebase Path",
+          "placeholder": "e.g., D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "Refactoring Goal",
+          "placeholder": "Describe the specific refactoring goal"
+        },
+        "target_modules": {
+          "label": "Target Modules",
+          "placeholder": "e.g., src/components/UserPanel"
+        },
+        "risk_level": {
+          "label": "Risk Level",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "Min Test Coverage (%)"
+        },
+        "auto_fix": {
+          "label": "Auto Fix"
+        },
+        "max_file_changes": {
+          "label": "Max File Changes"
+        },
+        "tech_debt_categories": {
+          "label": "Tech Debt Categories",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "Severity Threshold",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "Estimated Hours"
+        },
+        "priority_fix": {
+          "label": "Priority Fix"
+        },
+        "generate_report": {
+          "label": "Generate Report"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10516,14 +10589,13 @@
         "dead_branch_decorative": "容器節點「{{nodeId}}」（裝飾性）無子元件且無連線",
         "dead_branch_scheduled": "容器節點「{{nodeId}}」（{{type}}）為死分支 — 有子元件但無輸入/輸出邊",
         "duplicate_title": "{{count}} 個 {{type}} 節點共用相同的標題「{{title}}」",
-        "missing_end_node": "工作流缺少結束節點。建議新增一個結束節點以確保工作流正確終止。",
+        "missing_end_node": "工作流中有 {{nonTriggerCount}} 個非觸發節點但缺少結束節點（EndNode），工作流需要明確的終止點",
         "orphan_node": "節點「{{nodeId}}」為孤立節點（無入邊或出邊）",
         "self_loop": "邊 {{edgeId}} 為自迴圈（source === target）",
         "unconnected_port": "條件節點「{{nodeId}}」有未連接的 {{missing}} 輸出",
         "workflow_ref_depth": "WorkflowRef 鏈可能超過 {{maxDepth}} 層限制；多個 WorkflowRef 指向同一「{{refId}}」，可能為循環參照",
         "workflow_ref_empty": "WorkflowRef 節點「{{nodeId}}」無目標工作流",
-        "workflow_ref_self": "WorkflowRef 節點「{{nodeId}}」參照了自身",
-        "missing_end_node": "工作流中有 {{nonTriggerCount}} 個非觸發節點但缺少結束節點（EndNode），工作流需要明確的終止點"
+        "workflow_ref_self": "WorkflowRef 節點「{{nodeId}}」參照了自身"
       },
       "autoLayout": "自動排列",
       "canvas": "畫布",

@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "Установка llama.cpp выполняется",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Скачивание не удалось",
     "LOCAL_MODEL_PORT_IN_USE": "Порт {{port}} уже занят. Пожалуйста, смените порт или остановите процесс, который его занимает",
-    "FLEET_NOT_FOUND": "Офис не найден",
-    "FLEET_NAME_REQUIRED": "Требуется название офиса",
-    "FLEET_NO_MEMBERS": "В этом офисе пока нет участников",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Все участники недоступны (пауза/ошибка/офлайн)",
-    "FLEET_MEMBER_NOT_FOUND": "Участник не найден",
-    "FLEET_NO_PROVIDER": "Нет доступного поставщика моделей. Сначала настройте его в параметрах",
-    "FLEET_ROUTING_FAILED": "Не удалось выполнить вызов умной маршрутизации",
-    "FLEET_EXECUTION_FAILED": "Участнику не удалось выполнить задачу",
-    "FLEET_TARGET_NOT_IN_FLEET": "Целевой участник не существует в этом офисе",
-    "FLEET_SLUG_EXISTS": "Участник с таким slug уже существует в этом офисе",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Устройство не инициализировано",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Устройство не найдено",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Устройство уже сопряжено",
@@ -5905,6 +5895,89 @@
       "type_image": "Изображение",
       "type_social_post": "Соцсети",
       "type_newsletter": "Рассылка"
+    },
+    "refactor": {
+      "title": "Code Refactoring Config",
+      "risk_levels": {
+        "low": "Low Risk",
+        "medium": "Medium Risk",
+        "high": "High Risk",
+        "critical": "Critical Risk"
+      },
+      "severity_levels": {
+        "low": "Minor",
+        "medium": "Moderate",
+        "high": "Severe",
+        "critical": "Critical"
+      },
+      "debt_categories": {
+        "all": "All",
+        "security": "Security",
+        "performance": "Performance",
+        "maintainability": "Maintainability",
+        "duplicate": "Duplicate Code"
+      },
+      "settings": {
+        "title": "Code Refactoring Config",
+        "saveConfig": "Save Config",
+        "saveSuccess": "Config saved successfully",
+        "saveFailed": "Failed to save config: {{error}}",
+        "loadFailed": "Failed to load config",
+        "group": {
+          "common": "Basic Info",
+          "refactor": "Refactoring Settings",
+          "techDebt": "Tech Debt Analysis"
+        },
+        "titles": {
+          "fullRefactor": "Major Refactoring Config",
+          "liteRefactor": "Quick Refactoring Config",
+          "techDebt": "Tech Debt Analysis Config"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "Codebase Path",
+          "placeholder": "e.g., D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "Refactoring Goal",
+          "placeholder": "Describe the specific refactoring goal"
+        },
+        "target_modules": {
+          "label": "Target Modules",
+          "placeholder": "e.g., src/components/UserPanel"
+        },
+        "risk_level": {
+          "label": "Risk Level",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "Min Test Coverage (%)"
+        },
+        "auto_fix": {
+          "label": "Auto Fix"
+        },
+        "max_file_changes": {
+          "label": "Max File Changes"
+        },
+        "tech_debt_categories": {
+          "label": "Tech Debt Categories",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "Severity Threshold",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "Estimated Hours"
+        },
+        "priority_fix": {
+          "label": "Priority Fix"
+        },
+        "generate_report": {
+          "label": "Generate Report"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10516,14 +10589,13 @@
         "dead_branch_decorative": "Узел-контейнер \"{{nodeId}}\" (декоративный) не имеет дочерних элементов и соединений",
         "dead_branch_scheduled": "Узел-контейнер \"{{nodeId}}\" ({{type}}) является мертвой ветвью — имеет дочерние элементы, но не имеет входных/выходных ребер",
         "duplicate_title": "{{count}} узлов типа {{type}} имеют одинаковое название \"{{title}}\"",
-        "missing_end_node": "В рабочем процессе отсутствует конечный узел. Рекомендуется добавить его для корректного завершения.",
+        "missing_end_node": "В рабочем процессе есть {{nonTriggerCount}} не-триггерных узлов, но отсутствует конечный узел (EndNode); рабочему процессу нужна четкая точка завершения",
         "orphan_node": "Узел \"{{nodeId}}\" изолирован (нет входящих или исходящих ребер)",
         "self_loop": "Ребро {{edgeId}} является самопетлей (источник === цель)",
         "unconnected_port": "Узел-условие \"{{nodeId}}\" имеет неподключенный {{missing}} выход",
         "workflow_ref_depth": "Цепочка WorkflowRef может превышать лимит в {{maxDepth}} уровней; несколько WorkflowRef указывают на один и тот же \"{{refId}}\", возможна циклическая ссылка",
         "workflow_ref_empty": "Узел WorkflowRef \"{{nodeId}}\" не имеет целевого workflow",
-        "workflow_ref_self": "Узел WorkflowRef \"{{nodeId}}\" ссылается сам на себя",
-        "missing_end_node": "В рабочем процессе есть {{nonTriggerCount}} не-триггерных узлов, но отсутствует конечный узел (EndNode); рабочему процессу нужна четкая точка завершения"
+        "workflow_ref_self": "Узел WorkflowRef \"{{nodeId}}\" ссылается сам на себя"
       },
       "autoLayout": "Авто-раскладка",
       "canvas": "Холст",

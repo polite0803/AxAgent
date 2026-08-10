@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "جارٍ تثبيت llama.cpp",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "فشل التنزيل",
     "LOCAL_MODEL_PORT_IN_USE": "المنفذ {{port}} مستخدم بالفعل. يرجى تغيير المنفذ أو إيقاف العملية التي تستخدمه",
-    "FLEET_NOT_FOUND": "لم يتم العثور على المكتب",
-    "FLEET_NAME_REQUIRED": "اسم المكتب مطلوب",
-    "FLEET_NO_MEMBERS": "لا يوجد أعضاء في هذا المكتب بعد",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "جميع الأعضاء غير متاحين (إيقاف مؤقت/خطأ/غير متصل)",
-    "FLEET_MEMBER_NOT_FOUND": "لم يتم العثور على العضو",
-    "FLEET_NO_PROVIDER": "لا يوجد مزود نماذج متاح. قم بتكوينه في الإعدادات أولاً",
-    "FLEET_ROUTING_FAILED": "فشل استدعاء التوجيه الذكي",
-    "FLEET_EXECUTION_FAILED": "فشل العضو في تنفيذ المهمة",
-    "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب",
-    "FLEET_SLUG_EXISTS": "يوجد عضو بهذا المعرف بالفعل في هذا المكتب",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "الجهاز غير مهيأ",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "الجهاز غير موجود",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "الجهاز مقترن بالفعل",
@@ -5905,6 +5895,89 @@
       "type_image": "صورة",
       "type_social_post": "منشور وسائل التواصل",
       "type_newsletter": "النشرة الإخبارية"
+    },
+    "refactor": {
+      "title": "Code Refactoring Config",
+      "risk_levels": {
+        "low": "Low Risk",
+        "medium": "Medium Risk",
+        "high": "High Risk",
+        "critical": "Critical Risk"
+      },
+      "severity_levels": {
+        "low": "Minor",
+        "medium": "Moderate",
+        "high": "Severe",
+        "critical": "Critical"
+      },
+      "debt_categories": {
+        "all": "All",
+        "security": "Security",
+        "performance": "Performance",
+        "maintainability": "Maintainability",
+        "duplicate": "Duplicate Code"
+      },
+      "settings": {
+        "title": "Code Refactoring Config",
+        "saveConfig": "Save Config",
+        "saveSuccess": "Config saved successfully",
+        "saveFailed": "Failed to save config: {{error}}",
+        "loadFailed": "Failed to load config",
+        "group": {
+          "common": "Basic Info",
+          "refactor": "Refactoring Settings",
+          "techDebt": "Tech Debt Analysis"
+        },
+        "titles": {
+          "fullRefactor": "Major Refactoring Config",
+          "liteRefactor": "Quick Refactoring Config",
+          "techDebt": "Tech Debt Analysis Config"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "Codebase Path",
+          "placeholder": "e.g., D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "Refactoring Goal",
+          "placeholder": "Describe the specific refactoring goal"
+        },
+        "target_modules": {
+          "label": "Target Modules",
+          "placeholder": "e.g., src/components/UserPanel"
+        },
+        "risk_level": {
+          "label": "Risk Level",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "Min Test Coverage (%)"
+        },
+        "auto_fix": {
+          "label": "Auto Fix"
+        },
+        "max_file_changes": {
+          "label": "Max File Changes"
+        },
+        "tech_debt_categories": {
+          "label": "Tech Debt Categories",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "Severity Threshold",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "Estimated Hours"
+        },
+        "priority_fix": {
+          "label": "Priority Fix"
+        },
+        "generate_report": {
+          "label": "Generate Report"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10516,14 +10589,13 @@
         "dead_branch_decorative": "عقدة الحاوية \"{{nodeId}}\" (زخرفية) ليس لها أطفال ولا اتصالات",
         "dead_branch_scheduled": "عقدة الحاوية \"{{nodeId}}\" ({{type}}) هي فرع ميت — لها أطفال ولكن لا حواف إدخال/إخراج",
         "duplicate_title": "{{count}} عقد من نوع {{type}} تشترك في نفس العنوان \"{{title}}\"",
-        "missing_end_node": "يفتقر سير العمل إلى عقدة نهاية. فكر في إضافة واحدة للإنهاء الصحيح.",
+        "missing_end_node": "يحتوي سير العمل على {{nonTriggerCount}} عقدة غير محفزة ولكنه يفتقر إلى عقدة نهاية (EndNode)؛ يحتاج سير العمل إلى نقطة نهاية واضحة",
         "orphan_node": "العقدة \"{{nodeId}}\" يتيمة (لا حافة واردة أو صادرة)",
         "self_loop": "الحافة {{edgeId}} هي حلقة ذاتية (المصدر === الهدف)",
         "unconnected_port": "عقدة الشرط \"{{nodeId}}\" لها مخرج {{missing}} غير متصل",
         "workflow_ref_depth": "سلسلة WorkflowRef قد تتجاوز حد {{maxDepth}} مستوى؛ عدة WorkflowRefs تشير إلى نفس \"{{refId}}\"، قد يكون هناك مرجع دائري",
         "workflow_ref_empty": "عقدة WorkflowRef \"{{nodeId}}\" ليس لها سير عمل مستهدف",
-        "workflow_ref_self": "عقدة WorkflowRef \"{{nodeId}}\" تشير إلى نفسها",
-        "missing_end_node": "يحتوي سير العمل على {{nonTriggerCount}} عقدة غير محفزة ولكنه يفتقر إلى عقدة نهاية (EndNode)؛ يحتاج سير العمل إلى نقطة نهاية واضحة"
+        "workflow_ref_self": "عقدة WorkflowRef \"{{nodeId}}\" تشير إلى نفسها"
       },
       "autoLayout": "ترتيب تلقائي",
       "canvas": "اللوحة",

@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp installation in progress",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Download failed",
     "LOCAL_MODEL_PORT_IN_USE": "Port {{port}} is already in use. Please change the port or stop the occupying process",
-    "FLEET_NOT_FOUND": "Office not found",
-    "FLEET_NAME_REQUIRED": "Office name is required",
-    "FLEET_NO_MEMBERS": "This office has no members yet",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "All members are unavailable (paused/error/offline)",
-    "FLEET_MEMBER_NOT_FOUND": "Member not found",
-    "FLEET_NO_PROVIDER": "No model provider available. Configure one in Settings first",
-    "FLEET_ROUTING_FAILED": "Smart routing call failed",
-    "FLEET_EXECUTION_FAILED": "Member failed to execute the task",
-    "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office",
-    "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Device not initialized",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Device not found",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Device already paired",
@@ -5259,45 +5249,6 @@
             }
           }
         }
-      },
-      "refactor": {
-        "title": "Code Refactoring Config",
-        "risk_levels": {
-          "low": "Low Risk",
-          "medium": "Medium Risk",
-          "high": "High Risk",
-          "critical": "Critical Risk"
-        },
-        "severity_levels": {
-          "low": "Minor",
-          "medium": "Moderate",
-          "high": "Severe",
-          "critical": "Critical"
-        },
-        "debt_categories": {
-          "all": "All",
-          "security": "Security",
-          "performance": "Performance",
-          "maintainability": "Maintainability",
-          "duplicate": "Duplicate Code"
-        },
-        "settings": {
-          "title": "Code Refactoring Config",
-          "saveConfig": "Save Config",
-          "saveSuccess": "Config saved successfully",
-          "saveFailed": "Failed to save config: {{error}}",
-          "loadFailed": "Failed to load config",
-          "group": {
-            "common": "Basic Info",
-            "refactor": "Refactoring Settings",
-            "techDebt": "Tech Debt Analysis"
-          },
-          "titles": {
-            "fullRefactor": "Major Refactoring Config",
-            "liteRefactor": "Quick Refactoring Config",
-            "techDebt": "Tech Debt Analysis Config"
-          }
-        }
       }
     },
     "input_fields": {
@@ -5310,52 +5261,6 @@
         },
         "tech_stack": {
           "label": "Tech Stack"
-        }
-      },
-      "refactor": {
-        "fields": {
-          "codebase_path": {
-            "label": "Codebase Path",
-            "placeholder": "e.g., D:/projects/my-app"
-          },
-          "refactor_goal": {
-            "label": "Refactoring Goal",
-            "placeholder": "Describe the specific refactoring goal, e.g., migrate class components to Hooks, split巨型 components, etc."
-          },
-          "target_modules": {
-            "label": "Target Modules",
-            "placeholder": "e.g., src/components/UserPanel, src/hooks/useAuth"
-          },
-          "risk_level": {
-            "label": "Risk Level",
-            "placeholder": "low / medium / high"
-          },
-          "test_coverage_min": {
-            "label": "Min Test Coverage (%)"
-          },
-          "auto_fix": {
-            "label": "Auto Fix"
-          },
-          "max_file_changes": {
-            "label": "Max File Changes"
-          },
-          "tech_debt_categories": {
-            "label": "Tech Debt Categories",
-            "placeholder": "all / security / performance / maintainability / duplicate"
-          },
-          "severity_threshold": {
-            "label": "Severity Threshold",
-            "placeholder": "low / medium / high / critical"
-          },
-          "estimated_hours": {
-            "label": "Estimated Hours"
-          },
-          "priority_fix": {
-            "label": "Priority Fix"
-          },
-          "generate_report": {
-            "label": "Generate Report"
-          }
         }
       },
       "finance_invest": {
@@ -5990,6 +5895,89 @@
       "type_image": "Image",
       "type_social_post": "Social Media",
       "type_newsletter": "Newsletter"
+    },
+    "refactor": {
+      "title": "Code Refactoring Config",
+      "risk_levels": {
+        "low": "Low Risk",
+        "medium": "Medium Risk",
+        "high": "High Risk",
+        "critical": "Critical Risk"
+      },
+      "severity_levels": {
+        "low": "Minor",
+        "medium": "Moderate",
+        "high": "Severe",
+        "critical": "Critical"
+      },
+      "debt_categories": {
+        "all": "All",
+        "security": "Security",
+        "performance": "Performance",
+        "maintainability": "Maintainability",
+        "duplicate": "Duplicate Code"
+      },
+      "settings": {
+        "title": "Code Refactoring Config",
+        "saveConfig": "Save Config",
+        "saveSuccess": "Config saved successfully",
+        "saveFailed": "Failed to save config: {{error}}",
+        "loadFailed": "Failed to load config",
+        "group": {
+          "common": "Basic Info",
+          "refactor": "Refactoring Settings",
+          "techDebt": "Tech Debt Analysis"
+        },
+        "titles": {
+          "fullRefactor": "Major Refactoring Config",
+          "liteRefactor": "Quick Refactoring Config",
+          "techDebt": "Tech Debt Analysis Config"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "Codebase Path",
+          "placeholder": "e.g., D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "Refactoring Goal",
+          "placeholder": "Describe the specific refactoring goal, e.g., migrate class components to Hooks, split巨型 components, etc."
+        },
+        "target_modules": {
+          "label": "Target Modules",
+          "placeholder": "e.g., src/components/UserPanel, src/hooks/useAuth"
+        },
+        "risk_level": {
+          "label": "Risk Level",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "Min Test Coverage (%)"
+        },
+        "auto_fix": {
+          "label": "Auto Fix"
+        },
+        "max_file_changes": {
+          "label": "Max File Changes"
+        },
+        "tech_debt_categories": {
+          "label": "Tech Debt Categories",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "Severity Threshold",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "Estimated Hours"
+        },
+        "priority_fix": {
+          "label": "Priority Fix"
+        },
+        "generate_report": {
+          "label": "Generate Report"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10609,14 +10597,13 @@
         "dead_branch_decorative": "Container node \"{{nodeId}}\" (decorative) has no children and no connections",
         "dead_branch_scheduled": "Container node \"{{nodeId}}\" ({{type}}) is a dead branch — has children but no input/output edges",
         "duplicate_title": "{{count}} {{type}} nodes share the same title \"{{title}}\"",
-        "missing_end_node": "Workflow is missing an End node. Consider adding one for proper workflow termination.",
+        "missing_end_node": "The workflow has {{nonTriggerCount}} non-trigger nodes but lacks an EndNode; the workflow needs a clear termination point",
         "orphan_node": "Node \"{{nodeId}}\" is orphaned (no inbound or outbound edge)",
         "self_loop": "Edge {{edgeId}} is a self-loop (source === target)",
         "unconnected_port": "Condition node \"{{nodeId}}\" has unconnected {{missing}} output",
         "workflow_ref_depth": "WorkflowRef chain may exceed {{maxDepth}}-level limit; multiple WorkflowRefs point to the same \"{{refId}}\", possible circular reference",
         "workflow_ref_empty": "WorkflowRef node \"{{nodeId}}\" has no target workflow",
-        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself",
-        "missing_end_node": "The workflow has {{nonTriggerCount}} non-trigger nodes but lacks an EndNode; the workflow needs a clear termination point"
+        "workflow_ref_self": "WorkflowRef node \"{{nodeId}}\" references itself"
       },
       "autoLayout": "Auto Layout",
       "canvas": "Canvas",

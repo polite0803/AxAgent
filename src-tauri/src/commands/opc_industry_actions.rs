@@ -1863,11 +1863,6 @@ pub struct IndustryLearningConfigView {
     pub config_path: String,
 }
 
-/// 获取行业学习配置
-///
-/// `app_dir`：用户数据目录（生产环境）。传 None 时仅尝试仓库根相对路径
-/// （开发/测试，CWD=仓库根 的场景）。配置路径解析见
-/// [`industry_learning_config_path`]（行业包内 learning.yaml 优先）。
 impl IndustryLearningConfigView {
     /// 创建默认的学习配置（当 learning.yaml 不存在时使用）
     fn default_for(industry_id: &str) -> Self {

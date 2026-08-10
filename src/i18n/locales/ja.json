@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp のインストール中です",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "ダウンロードに失敗しました",
     "LOCAL_MODEL_PORT_IN_USE": "ポート {{port}} は既に使用されています。ポートを変更するか、占用プロセスを停止してください",
-    "FLEET_NOT_FOUND": "オフィスが見つかりません",
-    "FLEET_NAME_REQUIRED": "オフィス名は必須です",
-    "FLEET_NO_MEMBERS": "このオフィスにはまだメンバーがいません",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "すべてのメンバーが利用不可です（一時停止/エラー/オフライン）",
-    "FLEET_MEMBER_NOT_FOUND": "メンバーが見つかりません",
-    "FLEET_NO_PROVIDER": "利用可能なモデルプロバイダーがありません。設定で構成してください",
-    "FLEET_ROUTING_FAILED": "スマートルーティング呼び出しに失敗しました",
-    "FLEET_EXECUTION_FAILED": "メンバーのタスク実行に失敗しました",
-    "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません",
-    "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "デバイスが初期化されていません",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "デバイスが見つかりません",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "デバイスは既にペアリングされています",
@@ -5905,6 +5895,89 @@
       "type_image": "画像",
       "type_social_post": "ソーシャル投稿",
       "type_newsletter": "ニュースレター"
+    },
+    "refactor": {
+      "title": "Code Refactoring Config",
+      "risk_levels": {
+        "low": "Low Risk",
+        "medium": "Medium Risk",
+        "high": "High Risk",
+        "critical": "Critical Risk"
+      },
+      "severity_levels": {
+        "low": "Minor",
+        "medium": "Moderate",
+        "high": "Severe",
+        "critical": "Critical"
+      },
+      "debt_categories": {
+        "all": "All",
+        "security": "Security",
+        "performance": "Performance",
+        "maintainability": "Maintainability",
+        "duplicate": "Duplicate Code"
+      },
+      "settings": {
+        "title": "Code Refactoring Config",
+        "saveConfig": "Save Config",
+        "saveSuccess": "Config saved successfully",
+        "saveFailed": "Failed to save config: {{error}}",
+        "loadFailed": "Failed to load config",
+        "group": {
+          "common": "Basic Info",
+          "refactor": "Refactoring Settings",
+          "techDebt": "Tech Debt Analysis"
+        },
+        "titles": {
+          "fullRefactor": "Major Refactoring Config",
+          "liteRefactor": "Quick Refactoring Config",
+          "techDebt": "Tech Debt Analysis Config"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "Codebase Path",
+          "placeholder": "e.g., D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "Refactoring Goal",
+          "placeholder": "Describe the specific refactoring goal"
+        },
+        "target_modules": {
+          "label": "Target Modules",
+          "placeholder": "e.g., src/components/UserPanel"
+        },
+        "risk_level": {
+          "label": "Risk Level",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "Min Test Coverage (%)"
+        },
+        "auto_fix": {
+          "label": "Auto Fix"
+        },
+        "max_file_changes": {
+          "label": "Max File Changes"
+        },
+        "tech_debt_categories": {
+          "label": "Tech Debt Categories",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "Severity Threshold",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "Estimated Hours"
+        },
+        "priority_fix": {
+          "label": "Priority Fix"
+        },
+        "generate_report": {
+          "label": "Generate Report"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10516,14 +10589,13 @@
         "dead_branch_decorative": "コンテナノード\"{{nodeId}}\"(装飾用)に子ノードがなく、接続もありません",
         "dead_branch_scheduled": "コンテナノード\"{{nodeId}}\"({{type}})はデッドブランチです — 子ノードはあるが入出力エッジがありません",
         "duplicate_title": "{{count}}個の{{type}}ノードが同じタイトル\"{{title}}\"を共有しています",
-        "missing_end_node": "ワークフローに終了ノードがありません。適切なワークフロー終了のために追加してください。",
+        "missing_end_node": "ワークフローに {{nonTriggerCount}} 個の非トリガーノードがありますが、終了ノード（EndNode）がありません。ワークフローには明確な終了ポイントが必要です",
         "orphan_node": "ノード\"{{nodeId}}\"は孤立しています(入出力エッジなし)",
         "self_loop": "エッジ{{edgeId}}は自己ループです(source === target)",
         "unconnected_port": "条件ノード\"{{nodeId}}\"に未接続の{{missing}}出力があります",
         "workflow_ref_depth": "WorkflowRefチェーンが{{maxDepth}}レベルの制限を超える可能性があります。複数のWorkflowRefが同じ\"{{refId}}\"を指しており、循環参照の可能性があります",
         "workflow_ref_empty": "WorkflowRefノード\"{{nodeId}}\"にターゲットワークフローがありません",
-        "workflow_ref_self": "WorkflowRefノード\"{{nodeId}}\"が自分自身を参照しています",
-        "missing_end_node": "ワークフローに {{nonTriggerCount}} 個の非トリガーノードがありますが、終了ノード（EndNode）がありません。ワークフローには明確な終了ポイントが必要です"
+        "workflow_ref_self": "WorkflowRefノード\"{{nodeId}}\"が自分自身を参照しています"
       },
       "autoLayout": "自動レイアウト",
       "canvas": "キャンバス",

@@ -2629,16 +2629,6 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp 安装进行中",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下载失败",
     "LOCAL_MODEL_PORT_IN_USE": "端口 {{port}} 已被占用，请更换端口或停止占用进程",
-    "FLEET_NOT_FOUND": "办公室未找到",
-    "FLEET_NAME_REQUIRED": "办公室名称不能为空",
-    "FLEET_NO_MEMBERS": "该办公室还没有任何成员",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "办公室所有成员均不可用（已暂停/错误/离线）",
-    "FLEET_MEMBER_NOT_FOUND": "成员未找到",
-    "FLEET_NO_PROVIDER": "没有可用的模型提供商，请先在设置中配置",
-    "FLEET_ROUTING_FAILED": "智能路由调用失败",
-    "FLEET_EXECUTION_FAILED": "成员执行任务失败",
-    "FLEET_TARGET_NOT_IN_FLEET": "目标成员不存在于该办公室",
-    "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "设备未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "设备未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "设备已配对",
@@ -5259,45 +5249,6 @@
             }
           }
         }
-      },
-      "refactor": {
-        "title": "代码重构配置",
-        "risk_levels": {
-          "low": "低风险",
-          "medium": "中风险",
-          "high": "高风险",
-          "critical": "严重风险"
-        },
-        "severity_levels": {
-          "low": "轻微",
-          "medium": "中等",
-          "high": "严重",
-          "critical": "致命"
-        },
-        "debt_categories": {
-          "all": "全部",
-          "security": "安全",
-          "performance": "性能",
-          "maintainability": "可维护性",
-          "duplicate": "重复代码"
-        },
-        "settings": {
-          "title": "代码重构配置",
-          "saveConfig": "保存配置",
-          "saveSuccess": "配置保存成功",
-          "saveFailed": "配置保存失败：{{error}}",
-          "loadFailed": "加载配置失败",
-          "group": {
-            "common": "基础信息",
-            "refactor": "重构配置",
-            "techDebt": "技术债分析"
-          },
-          "titles": {
-            "fullRefactor": "大规模重构配置",
-            "liteRefactor": "快速追加重构配置",
-            "techDebt": "技术债分析配置"
-          }
-        }
       }
     },
     "input_fields": {
@@ -5310,52 +5261,6 @@
         },
         "tech_stack": {
           "label": "技术栈"
-        }
-      },
-      "refactor": {
-        "fields": {
-          "codebase_path": {
-            "label": "代码库路径",
-            "placeholder": "如：D:/projects/my-app"
-          },
-          "refactor_goal": {
-            "label": "重构目标",
-            "placeholder": "描述需要重构的具体目标，如：将函数式组件迁移为 Hooks、拆分巨型组件等"
-          },
-          "target_modules": {
-            "label": "目标模块",
-            "placeholder": "如：src/components/UserPanel, src/hooks/useAuth"
-          },
-          "risk_level": {
-            "label": "风险等级",
-            "placeholder": "low / medium / high"
-          },
-          "test_coverage_min": {
-            "label": "最低测试覆盖率 (%)"
-          },
-          "auto_fix": {
-            "label": "自动修复"
-          },
-          "max_file_changes": {
-            "label": "最大变更文件数"
-          },
-          "tech_debt_categories": {
-            "label": "技术债类别",
-            "placeholder": "all / security / performance / maintainability / duplicate"
-          },
-          "severity_threshold": {
-            "label": "严重程度阈值",
-            "placeholder": "low / medium / high / critical"
-          },
-          "estimated_hours": {
-            "label": "预估工时 (小时)"
-          },
-          "priority_fix": {
-            "label": "优先修复"
-          },
-          "generate_report": {
-            "label": "生成报告"
-          }
         }
       },
       "finance_invest": {
@@ -5990,6 +5895,89 @@
       "type_image": "图片",
       "type_social_post": "社交媒体",
       "type_newsletter": "Newsletter"
+    },
+    "refactor": {
+      "title": "代码重构配置",
+      "risk_levels": {
+        "low": "低风险",
+        "medium": "中风险",
+        "high": "高风险",
+        "critical": "严重风险"
+      },
+      "severity_levels": {
+        "low": "轻微",
+        "medium": "中等",
+        "high": "严重",
+        "critical": "致命"
+      },
+      "debt_categories": {
+        "all": "全部",
+        "security": "安全",
+        "performance": "性能",
+        "maintainability": "可维护性",
+        "duplicate": "重复代码"
+      },
+      "settings": {
+        "title": "代码重构配置",
+        "saveConfig": "保存配置",
+        "saveSuccess": "配置保存成功",
+        "saveFailed": "配置保存失败：{{error}}",
+        "loadFailed": "加载配置失败",
+        "group": {
+          "common": "基础信息",
+          "refactor": "重构配置",
+          "techDebt": "技术债分析"
+        },
+        "titles": {
+          "fullRefactor": "大规模重构配置",
+          "liteRefactor": "快速追加重构配置",
+          "techDebt": "技术债分析配置"
+        }
+      },
+      "fields": {
+        "codebase_path": {
+          "label": "代码库路径",
+          "placeholder": "如：D:/projects/my-app"
+        },
+        "refactor_goal": {
+          "label": "重构目标",
+          "placeholder": "描述需要重构的具体目标，如：将函数式组件迁移为 Hooks、拆分巨型组件等"
+        },
+        "target_modules": {
+          "label": "目标模块",
+          "placeholder": "如：src/components/UserPanel, src/hooks/useAuth"
+        },
+        "risk_level": {
+          "label": "风险等级",
+          "placeholder": "low / medium / high"
+        },
+        "test_coverage_min": {
+          "label": "最低测试覆盖率 (%)"
+        },
+        "auto_fix": {
+          "label": "自动修复"
+        },
+        "max_file_changes": {
+          "label": "最大变更文件数"
+        },
+        "tech_debt_categories": {
+          "label": "技术债类别",
+          "placeholder": "all / security / performance / maintainability / duplicate"
+        },
+        "severity_threshold": {
+          "label": "严重程度阈值",
+          "placeholder": "low / medium / high / critical"
+        },
+        "estimated_hours": {
+          "label": "预估工时 (小时)"
+        },
+        "priority_fix": {
+          "label": "优先修复"
+        },
+        "generate_report": {
+          "label": "生成报告"
+        }
+      }
     }
   },
   "pasteButton": {
@@ -10609,14 +10597,13 @@
         "dead_branch_decorative": "容器节点 \"{{nodeId}}\"（装饰容器）无子节点且无连接",
         "dead_branch_scheduled": "容器节点 \"{{nodeId}}\"（{{type}}）是死分支 — 有子节点但无输入/输出连接",
         "duplicate_title": "{{count}} 个 {{type}} 节点使用了相同标题 \"{{title}}\"",
-        "missing_end_node": "工作流缺少结束节点。建议添加一个结束节点以确保工作流正确终止。",
+        "missing_end_node": "工作流中有 {{nonTriggerCount}} 个非触发节点但缺少结束节点（EndNode），工作流需要明确的终止点",
         "orphan_node": "节点 \"{{nodeId}}\" 是孤立节点（入度=0，出度=0）",
         "self_loop": "边 {{edgeId}} 是自环边（source === target）",
         "unconnected_port": "条件节点 \"{{nodeId}}\" 的 {{missing}} 出口未连接",
         "workflow_ref_depth": "WorkflowRef 引用链可能超过 {{maxDepth}} 层限制，多个 WorkflowRef 指向相同的 \"{{refId}}\"，可能存在循环引用",
         "workflow_ref_empty": "WorkflowRef 节点 \"{{nodeId}}\" 未指定目标工作流",
-        "workflow_ref_self": "WorkflowRef 节点 \"{{nodeId}}\" 引用了自身",
-        "missing_end_node": "工作流中有 {{nonTriggerCount}} 个非触发节点但缺少结束节点（EndNode），工作流需要明确的终止点"
+        "workflow_ref_self": "WorkflowRef 节点 \"{{nodeId}}\" 引用了自身"
       },
       "autoLayout": "自动排列",
       "canvas": "画布",

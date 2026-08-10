@@ -201,18 +201,21 @@ pub fn copy_dir_incremental(src: &std::path::Path, dst: &std::path::Path) -> std
 ///
 /// 依次尝试：
 /// 1. 当前工作目录（dev：仓库根）
-/// 2. 当前工作目录下的 `src-tauri`（从 src-tauri 目录启动时）
-/// 3. 可执行文件所在目录的上两级（exe 位于 `src-tauri/target/{profile}/`）
+/// 2. 当前工作目录下的 `src-tauri`（从仓库根启动时）
+/// 3. 当前工作目录的上一级（从 src-tauri 目录启动时）
+/// 4. 可执行文件所在目录的上三级（exe 位于 `src-tauri/target/{profile}/`）
 pub fn find_repo_config_dir(rel: &str) -> Option<std::path::PathBuf> {
     let mut candidates: Vec<std::path::PathBuf> = Vec::new();
     if let Ok(cwd) = std::env::current_dir() {
         candidates.push(cwd.join(rel));
         candidates.push(cwd.join("src-tauri").join(rel));
+        candidates.push(cwd.join("..").join(rel));
     }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
             candidates.push(parent.join("..").join(rel));
             candidates.push(parent.join("../..").join(rel));
+            candidates.push(parent.join("../../../").join(rel));
         }
     }
     candidates.into_iter().find(|p| p.is_dir())
