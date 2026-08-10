@@ -14,8 +14,8 @@ use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
 /// 旧 3 模板版本号（保持 v2，不影响已有用户配置）
 const LEGACY_TEMPLATE_VERSION: i32 = 2;
-/// 新文学创作模板版本号（v3）
-const LITERARY_TEMPLATE_VERSION: i32 = 3;
+/// 新文学创作模板版本号（v4：改用 ExportWord 工具 + 可配置路径 + 变量）
+const LITERARY_TEMPLATE_VERSION: i32 = 4;
 
 /// 获取指定模板的版本号
 fn get_template_version(template_id: &str) -> i32 {
@@ -44,6 +44,77 @@ pub async fn seed_content_media_workflows(
     for template_id in CM_TEMPLATE_IDS {
         let (nodes, edges, name, description, icon, tags) = build_template_nodes_edges(template_id);
 
+        // 为文学创作模板添加默认变量（可配置的输出路径和文档标题）
+        let variables = if *template_id == "workflow-cm-literary-creation" {
+            vec![
+                Variable {
+                    name: "output_dir".to_string(),
+                    var_type: "string".to_string(),
+                    value: serde_json::Value::String("./output/literary_creation".to_string()),
+                    description: Some("文学创作输出目录".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "document_title".to_string(),
+                    var_type: "string".to_string(),
+                    value: serde_json::Value::String("未命名作品".to_string()),
+                    description: Some("Word 文档标题".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "file_format".to_string(),
+                    var_type: "enum".to_string(),
+                    value: serde_json::Value::String("docx".to_string()),
+                    description: Some("输出格式: docx".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "chapter_separator".to_string(),
+                    var_type: "string".to_string(),
+                    value: serde_json::Value::String("\n\n---\n\n".to_string()),
+                    description: Some("章节分隔符".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "include_chapter_numbers".to_string(),
+                    var_type: "boolean".to_string(),
+                    value: serde_json::Value::Bool(true),
+                    description: Some("是否在输出中包含章节号".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "word_count_min".to_string(),
+                    var_type: "number".to_string(),
+                    value: serde_json::Value::Number(serde_json::Number::from(1000)),
+                    description: Some("最少字数".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "word_count_max".to_string(),
+                    var_type: "number".to_string(),
+                    value: serde_json::Value::Number(serde_json::Number::from(50000)),
+                    description: Some("最多字数".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "review_strictness".to_string(),
+                    var_type: "enum".to_string(),
+                    value: serde_json::Value::String("balanced".to_string()),
+                    description: Some("评审严格度: relaxed/balanced/strict".to_string()),
+                    is_secret: false,
+                },
+                Variable {
+                    name: "tolerance_threshold".to_string(),
+                    var_type: "number".to_string(),
+                    value: serde_json::Value::Number(serde_json::Number::from(1)),
+                    description: Some("容错阈值（允许不完美项数）".to_string()),
+                    is_secret: false,
+                },
+            ]
+        } else {
+            Vec::<Variable>::new()
+        };
+
         let template_data = WorkflowTemplateData {
             id: template_id.to_string(),
             name,
@@ -62,7 +133,7 @@ pub async fn seed_content_media_workflows(
             edges,
             input_schema: None,
             output_schema: None,
-            variables: Vec::<Variable>::new(),
+            variables,
             error_config: None,
             error_workflow_id: None,
             tool_defs: Vec::<RhaiToolDef>::new(),
@@ -350,21 +421,25 @@ fn make_loop_node(
     })
 }
 
-fn make_file_operation_node(
+/// ToolNode 辅助函数：用于调用工具（如 ExportWord）
+fn make_tool_node(
     id: &str,
     title: &str,
-    operation: &str,
-    file_path: &str,
+    tool_name: &str,
+    input_mapping: Vec<(&str, &str)>,
     output_var: &str,
     x: f64,
     y: f64,
 ) -> WorkflowNode {
-    WorkflowNode::FileOperation(FileOperationNode {
-        base: make_base(id, title, "文件操作", x, y),
-        config: FileOperationNodeConfig {
-            operation: operation.into(),
-            file_path: file_path.into(),
-            content: None,
+    let mut im = std::collections::HashMap::new();
+    for (k, v) in input_mapping {
+        im.insert(k.to_string(), v.to_string());
+    }
+    WorkflowNode::Tool(ToolNode {
+        base: make_base(id, title, "工具调用", x, y),
+        config: ToolNodeConfig {
+            tool_name: tool_name.into(),
+            input_mapping: im,
             output_var: output_var.into(),
         },
     })
@@ -968,9 +1043,7 @@ fn build_literary_creation()
             vec![],
             Some(profile),
             "lc-chapter-structure",
-            vec![
-                ("narrative_structure", "lc-conceive.narrative_structure"),
-            ],
+            vec![("narrative_structure", "lc-conceive.narrative_structure")],
             vec!["lc-conceive"],
             700.0,
             0.0,
@@ -1200,12 +1273,16 @@ fn build_literary_creation()
             2000.0,
             100.0,
         ),
-        // lc-finalize: 文件保存（固定路径）
-        make_file_operation_node(
+        // lc-finalize: 保存为 Word 文档（使用 ExportWord 工具，路径可配置）
+        make_tool_node(
             "lc-finalize",
-            "保存作品",
-            "write",
-            "./output/literary_creation/work.txt",
+            "保存为 Word 文档",
+            "ExportWord",
+            vec![
+                ("markdown", "lc-assemble.full_text"),
+                ("output_path", "output_dir"),
+                ("title", "document_title"),
+            ],
             "lc-finalize",
             2200.0,
             0.0,

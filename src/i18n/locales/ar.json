@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "الإبداع الأدبي",
+    "settings": {
+      "tab": {
+        "params": "المعلمات"
+      },
+      "loadFailed": "فشل تحميل الإعداد",
+      "saveSuccess": "تم الحفظ بنجاح",
+      "saveFailed": "فشل الحفظ: {{error}}",
+      "saveConfig": "حفظ الإعداد",
+      "group": {
+        "output": "إعداد الإخراج",
+        "content": "إعداد المحتوى",
+        "review": "إعداد المراجعة"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "دليل الإخراج",
+      "documentTitle": "عنوان المستند",
+      "fileFormat": "تنسيق الملف: docx / pdf / markdown",
+      "chapterSeparator": "فصل الفصول",
+      "includeChapterNumbers": "تضمين أرقام الفصول",
+      "wordCountMin": "الحد الأدنى لعدد الكلمات",
+      "wordCountMax": "الحد الأقصى لعدد الكلمات",
+      "reviewStrictness": "صرامة المراجعة: relaxed / balanced / strict",
+      "toleranceThreshold": "عتبة التسامح (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "الخط الرئيسي للسوق",
     "archive": "أرشيف",

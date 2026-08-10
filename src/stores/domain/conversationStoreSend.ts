@@ -908,6 +908,16 @@ export function createSendMethods(
       };
 
       const handleWorkflowEvent = (event: WorkflowEvent) => {
+        // 桥接心跳和超时警告事件到 window 事件，供 WorkflowProgressPanel 监听
+        if (event.type === "workflow_heartbeat") {
+          window.dispatchEvent(new CustomEvent("axagent:workflow-heartbeat", { detail: event }));
+          return; // 心跳事件不追加到对话文本
+        }
+        if (event.type === "workflow_timeout_warning") {
+          window.dispatchEvent(new CustomEvent("axagent:workflow-timeout-warning", { detail: event }));
+          return; // 超时警告事件不追加到对话文本
+        }
+
         const text = formatWorkflowEventAsText(event);
         if (text) {
           _agentPendingText += text;
@@ -927,6 +937,12 @@ export function createSendMethods(
             return `[Step Complete] ${event.stepGoal}: ${event.result}\n`;
           case "workflow_step_error":
             return `[Step Error] ${event.stepId}: ${event.error}\n`;
+          case "workflow_heartbeat":
+            // 心跳事件仅用于进度反馈，不写入对话文本
+            return "";
+          case "workflow_timeout_warning":
+            // 超时警告仅用于进度反馈，不写入对话文本
+            return "";
           default:
             return "";
         }

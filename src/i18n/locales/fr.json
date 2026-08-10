@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "Création littéraire",
+    "settings": {
+      "tab": {
+        "params": "Paramètres"
+      },
+      "loadFailed": "Échec du chargement de la configuration",
+      "saveSuccess": "Enregistrement réussi",
+      "saveFailed": "Échec de l'enregistrement : {{error}}",
+      "saveConfig": "Enregistrer la configuration",
+      "group": {
+        "output": "Sortie",
+        "content": "Contenu",
+        "review": "Revue"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "Répertoire de sortie",
+      "documentTitle": "Titre du document",
+      "fileFormat": "Format de fichier : docx / pdf / markdown",
+      "chapterSeparator": "Séparateur de chapitres",
+      "includeChapterNumbers": "Inclure les numéros de chapitre",
+      "wordCountMin": "Nombre minimum de mots",
+      "wordCountMax": "Nombre maximum de mots",
+      "reviewStrictness": "Rigueur de la revue : relaxed / balanced / strict",
+      "toleranceThreshold": "Seuil de tolérance (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "Ligne Principale du Marché",
     "archive": "Archiver",

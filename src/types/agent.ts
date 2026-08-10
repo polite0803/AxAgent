@@ -207,11 +207,38 @@ export interface WorkflowCompleteEvent {
   success: boolean;
 }
 
+export interface WorkflowHeartbeatEvent {
+  type: "workflow_heartbeat";
+  conversationId?: string;
+  assistantMessageId?: string;
+  workflowId: string;
+  nodeId: string;
+  elapsedMs: number;
+  heartbeatCount: number;
+  timeoutMs?: number;
+  emittedAtMs: number;
+}
+
+export interface WorkflowTimeoutWarningEvent {
+  type: "workflow_timeout_warning";
+  conversationId?: string;
+  assistantMessageId?: string;
+  workflowId: string;
+  nodeId: string;
+  elapsedMs: number;
+  timeoutMs: number;
+  remainingMs?: number;
+  level: "warning" | "critical";
+  emittedAtMs: number;
+}
+
 export type WorkflowEvent =
   | WorkflowStepStartEvent
   | WorkflowStepCompleteEvent
   | WorkflowStepErrorEvent
-  | WorkflowStartEvent;
+  | WorkflowStartEvent
+  | WorkflowHeartbeatEvent
+  | WorkflowTimeoutWarningEvent;
 
 // --- Frontend runtime state ---
 

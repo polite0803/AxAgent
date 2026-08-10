@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "साहित्यिक रचना",
+    "settings": {
+      "tab": {
+        "params": "पैरामीटर सेटिंग"
+      },
+      "loadFailed": "कॉन्फ़िगरेशन लोड करने में विफल",
+      "saveSuccess": "सफलतापूर्वक सहेजा गया",
+      "saveFailed": "सहेजने में विफल: {{error}}",
+      "saveConfig": "कॉन्फ़िगरेशन सहेजें",
+      "group": {
+        "output": "आउटपुट सेटिंग",
+        "content": "सामग्री सेटिंग",
+        "review": "समीक्षा सेटिंग"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "आउटपुट निर्देशिका",
+      "documentTitle": "दस्तावेज़ शीर्षक",
+      "fileFormat": "फ़ाइल स्वरूप: docx / pdf / markdown",
+      "chapterSeparator": "अध्याय विभाजक",
+      "includeChapterNumbers": "अध्याय संख्याएँ शामिल करें",
+      "wordCountMin": "न्यूनतम शब्द संख्या",
+      "wordCountMax": "अधिकतम शब्द संख्या",
+      "reviewStrictness": "समीक्षा कठोरता: relaxed / balanced / strict",
+      "toleranceThreshold": "सहिष्णुता सीमा (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "बाज़ार मुख्य रेखा",
     "archive": "संग्रहित करें",

@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "문학 창작",
+    "settings": {
+      "tab": {
+        "params": "매개변수 설정"
+      },
+      "loadFailed": "설정 로드 실패",
+      "saveSuccess": "저장 성공",
+      "saveFailed": "저장 실패: {{error}}",
+      "saveConfig": "설정 저장",
+      "group": {
+        "output": "출력 설정",
+        "content": "내용 설정",
+        "review": "검토 설정"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "출력 디렉토리",
+      "documentTitle": "문서 제목",
+      "fileFormat": "파일 형식: docx / pdf / markdown",
+      "chapterSeparator": "장 구분자",
+      "includeChapterNumbers": "장 번호 포함",
+      "wordCountMin": "최소 단어 수",
+      "wordCountMax": "최대 단어 수",
+      "reviewStrictness": "검토 엄격도: relaxed / balanced / strict",
+      "toleranceThreshold": "허용 임계값 (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "시장 메인라인",
     "archive": "보관",

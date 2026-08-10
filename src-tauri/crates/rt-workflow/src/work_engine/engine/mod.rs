@@ -118,7 +118,31 @@ pub struct RunOptions {
     /// 完成时 mark_completed 自动验收输出，超时时 mark_timeout，失败时 mark_failed。
     /// 验收结果写入 `Workflow.output` 同级的 `contract_result` 字段（通过 tracing 输出）。
     pub task_contract: Option<TaskContract>,
+    /// 心跳间隔：节点执行超过此时间后开始发送心跳（默认 30s）。
+    pub heartbeat_interval: Duration,
+    /// 心跳回调：定期通知前端节点仍在执行。
+    pub heartbeat_callback: Option<HeartbeatCallback>,
+    /// 超时预警回调：节点接近超时时发出警告。
+    pub timeout_warning_callback: Option<TimeoutWarningCallback>,
 }
+
+/// 心跳回调类型
+pub type HeartbeatCallback = Arc<
+    dyn Fn(
+            axagent_harness::workflow_types::NodeHeartbeatEvent,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>
+        + Send
+        + Sync,
+>;
+
+/// 超时预警回调类型
+pub type TimeoutWarningCallback = Arc<
+    dyn Fn(
+            axagent_harness::workflow_types::NodeTimeoutWarningEvent,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>>
+        + Send
+        + Sync,
+>;
 
 // 步骤进度事件 / 活跃执行摘要 已上移到 harness(阶段 2)
 pub use axagent_harness::workflow_types::{ActiveExecutionInfo, StepProgressEvent};
@@ -146,6 +170,9 @@ impl std::fmt::Debug for RunOptions {
             .field("variables", &self.variables.as_ref().map(|v| v.len()))
             .field("plan_callbacks", &self.plan_callbacks.is_some())
             .field("task_contract", &self.task_contract.is_some())
+            .field("heartbeat_interval", &self.heartbeat_interval)
+            .field("heartbeat_callback", &self.heartbeat_callback.is_some())
+            .field("timeout_warning_callback", &self.timeout_warning_callback.is_some())
             .finish()
     }
 }
@@ -176,6 +203,9 @@ impl Default for RunOptions {
             execution_id: None,
             parent_cancel_token: None,
             task_contract: None,
+            heartbeat_interval: Duration::from_secs(30),
+            heartbeat_callback: None,
+            timeout_warning_callback: None,
         }
     }
 }
@@ -212,6 +242,21 @@ impl RunOptions {
     /// G12: 注入任务契约，启用 SLA/验收/状态机
     pub fn with_task_contract(mut self, contract: TaskContract) -> Self {
         self.task_contract = Some(contract);
+        self
+    }
+    /// 设置心跳间隔
+    pub fn with_heartbeat_interval(mut self, interval: Duration) -> Self {
+        self.heartbeat_interval = interval;
+        self
+    }
+    /// 注入心跳回调
+    pub fn with_heartbeat_callback(mut self, cb: HeartbeatCallback) -> Self {
+        self.heartbeat_callback = Some(cb);
+        self
+    }
+    /// 注入超时预警回调
+    pub fn with_timeout_warning_callback(mut self, cb: TimeoutWarningCallback) -> Self {
+        self.timeout_warning_callback = Some(cb);
         self
     }
 }
@@ -2331,12 +2376,129 @@ impl WorkEngine {
                     node_type = %node_type,
                     "Dispatching node"
                 );
+
+                // 克隆心跳相关配置，供 spawn 内使用
+                let hb_interval = options.heartbeat_interval;
+                let hb_cb = options.heartbeat_callback.clone();
+                let tw_cb = options.timeout_warning_callback.clone();
+                let hb_exec_id = execution_id.clone();
+                let hb_node_id = node_id.clone();
+                let hb_started_at = started_at;
+                let hb_timeout = node_timeout;
+
                 join_set.spawn(async move {
+                    // ── 心跳机制：在节点执行期间定期发送心跳事件 ──
+                    let heartbeat_cancel = CancellationToken::new();
+                    let hb_node_id_for_hb = hb_node_id.clone();
+                    let hb_exec_id_for_hb = hb_exec_id.clone();
+                    let hb_started_for_hb = hb_started_at;
+                    let hb_timeout_for_hb = hb_timeout;
+                    if let (Some(hb_callback), Some(tw_callback)) = (hb_cb.clone(), tw_cb.clone()) {
+                        let hb_cancel = heartbeat_cancel.clone();
+                        let hb_interval_cp = hb_interval;
+                        let hb_node_id_cp = hb_node_id_for_hb.clone();
+                        let hb_exec_id_cp = hb_exec_id_for_hb.clone();
+                        let hb_started_cp = hb_started_for_hb;
+                        let hb_timeout_cp = hb_timeout_for_hb;
+                        tokio::spawn(async move {
+                            let mut ticker = tokio::time::interval(hb_interval_cp);
+                            let mut hb_count: u32 = 0;
+                            let mut warning_sent = false;
+                            loop {
+                                tokio::select! {
+                                    _ = hb_cancel.cancelled() => break,
+                                    _ = ticker.tick() => {
+                                        let now_ms = Utc::now().timestamp_millis();
+                                        let elapsed = (now_ms - hb_started_cp) as u64;
+                                        hb_count += 1;
+
+                                        // 发送心跳事件
+                                        let hb_event = axagent_harness::workflow_types::NodeHeartbeatEvent {
+                                            execution_id: hb_exec_id_cp.clone(),
+                                            node_id: hb_node_id_cp.clone(),
+                                            elapsed_ms: elapsed,
+                                            heartbeat_count: hb_count,
+                                            timeout_ms: Some(hb_timeout_cp.as_millis() as u64),
+                                            emitted_at_ms: now_ms,
+                                        };
+                                        hb_callback(hb_event).await;
+
+                                        // 检查是否接近超时（剩余 30s 时预警）
+                                        let elapsed_secs = Duration::from_millis(elapsed);
+                                        let remaining = hb_timeout_cp.saturating_sub(elapsed_secs);
+                                        if !warning_sent && remaining <= Duration::from_secs(30) {
+                                            warning_sent = true;
+                                            let warn_event = axagent_harness::workflow_types::NodeTimeoutWarningEvent {
+                                                execution_id: hb_exec_id_cp.clone(),
+                                                node_id: hb_node_id_cp.clone(),
+                                                elapsed_ms: elapsed,
+                                                timeout_ms: hb_timeout_cp.as_millis() as u64,
+                                                remaining_ms: Some(remaining.as_millis() as u64),
+                                                level: "warning".to_string(),
+                                                emitted_at_ms: now_ms,
+                                            };
+                                            tw_callback(warn_event).await;
+                                        }
+
+                                        // 已超过超时时间
+                                        if elapsed_secs > hb_timeout_cp && !warning_sent {
+                                            warning_sent = true;
+                                            let crit_event = axagent_harness::workflow_types::NodeTimeoutWarningEvent {
+                                                execution_id: hb_exec_id_cp.clone(),
+                                                node_id: hb_node_id_cp.clone(),
+                                                elapsed_ms: elapsed,
+                                                timeout_ms: hb_timeout_cp.as_millis() as u64,
+                                                remaining_ms: None,
+                                                level: "critical".to_string(),
+                                                emitted_at_ms: now_ms,
+                                            };
+                                            tw_callback(crit_event).await;
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else if let (Some(hb_callback), None) = (hb_cb, tw_cb) {
+                        let hb_cancel = heartbeat_cancel.clone();
+                        let hb_interval_cp = hb_interval;
+                        let hb_node_id_cp = hb_node_id_for_hb.clone();
+                        let hb_exec_id_cp = hb_exec_id_for_hb.clone();
+                        let hb_started_cp = hb_started_for_hb;
+                        let hb_timeout_cp = hb_timeout_for_hb;
+                        tokio::spawn(async move {
+                            let mut ticker = tokio::time::interval(hb_interval_cp);
+                            let mut hb_count: u32 = 0;
+                            loop {
+                                tokio::select! {
+                                    _ = hb_cancel.cancelled() => break,
+                                    _ = ticker.tick() => {
+                                        let now_ms = Utc::now().timestamp_millis();
+                                        let elapsed = (now_ms - hb_started_cp) as u64;
+                                        hb_count += 1;
+                                        let hb_event = axagent_harness::workflow_types::NodeHeartbeatEvent {
+                                            execution_id: hb_exec_id_cp.clone(),
+                                            node_id: hb_node_id_cp.clone(),
+                                            elapsed_ms: elapsed,
+                                            heartbeat_count: hb_count,
+                                            timeout_ms: Some(hb_timeout_cp.as_millis() as u64),
+                                            emitted_at_ms: now_ms,
+                                        };
+                                        hb_callback(hb_event).await;
+                                    }
+                                }
+                            }
+                        });
+                    }
+
                     let result = tokio::time::timeout(
                         node_timeout,
                         dispatcher.read().await.dispatch(&node, &exec_ctx),
                     )
                     .await;
+
+                    // 取消心跳任务
+                    heartbeat_cancel.cancel();
+
                     let elapsed_ms = (Utc::now().timestamp_millis() - started_at) as u64;
                     NodeResult {
                         node_id: node_id_owned,

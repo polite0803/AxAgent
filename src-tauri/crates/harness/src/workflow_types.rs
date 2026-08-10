@@ -1829,6 +1829,45 @@ pub struct StepProgressEvent {
     pub output: Option<serde_json::Value>,
 }
 
+/// 节点执行心跳事件 —— 用于长时间执行期间的周期性反馈。
+///
+/// 在节点执行超过一定时间后（默认 30s），引擎会定期（默认每 10s）
+/// 发送心跳事件到前端，告知用户系统仍在正常工作，避免"不知道是否
+/// 需要继续等待"的问题。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct NodeHeartbeatEvent {
+    pub execution_id: String,
+    pub node_id: String,
+    /// 节点已执行时间（毫秒）。
+    pub elapsed_ms: u64,
+    /// 心跳计数（第几次心跳）。
+    pub heartbeat_count: u32,
+    /// 预计超时时间（毫秒），None 表示使用默认。
+    pub timeout_ms: Option<u64>,
+    /// 时间戳（毫秒）。
+    pub emitted_at_ms: i64,
+}
+
+/// 节点超时警告事件 —— 执行即将超时或已超时的预警。
+///
+/// 当节点执行接近超时阈值时（如剩余 30s），引擎会发送预警事件，
+/// 让前端可以显示"即将超时"警告，用户可以选择等待或取消。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+pub struct NodeTimeoutWarningEvent {
+    pub execution_id: String,
+    pub node_id: String,
+    /// 已执行时间（毫秒）。
+    pub elapsed_ms: u64,
+    /// 预计超时时间（毫秒）。
+    pub timeout_ms: u64,
+    /// 剩余时间（毫秒），None 表示已超时。
+    pub remaining_ms: Option<u64>,
+    /// 警告级别：warning（接近超时）/ critical（已超时但仍在执行）。
+    pub level: String,
+    /// 时间戳（毫秒）。
+    pub emitted_at_ms: i64,
+}
+
 /// DAG 进度简报事件 —— 用于 TTS 语音播报
 ///
 /// 在工作流执行的关键节点（开始/节点完成/结束）触发，

@@ -379,9 +379,12 @@ impl ChapterStructureInstruction {
             let arc_descriptions: Vec<String> = self
                 .arc_instructions
                 .iter()
-                .map(|ai| format!("[{}] {} - {}", ai.arc_type_str(), ai.stage_name, ai.stage_description))
+                .map(|ai| {
+                    format!("[{}] {} - {}", ai.arc_type_str(), ai.stage_name, ai.stage_description)
+                })
                 .collect();
-            constraints.push(format!("【弧线推进】本章需推进以下弧线：{}", arc_descriptions.join("、")));
+            constraints
+                .push(format!("【弧线推进】本章需推进以下弧线：{}", arc_descriptions.join("、")));
         }
 
         if !self.foreshadow_instructions.is_empty() {
@@ -615,16 +618,14 @@ mod tests {
         let structure = NarrativeStructure::new().with_arcs(vec![
             NarrativeArc::new("arc-1".into(), ArcType::Transformative, "主角".into())
                 .with_progress(50.0),
-            NarrativeArc::new("arc-2".into(), ArcType::Tragic, "反派".into())
-                .with_progress(100.0),
+            NarrativeArc::new("arc-2".into(), ArcType::Tragic, "反派".into()).with_progress(100.0),
         ]);
         assert_eq!(structure.overall_progress(), 75.0);
     }
 
     #[test]
     fn test_narrative_arc_advance_progress() {
-        let mut arc =
-            NarrativeArc::new("arc-1".into(), ArcType::Transformative, "主角".into());
+        let mut arc = NarrativeArc::new("arc-1".into(), ArcType::Transformative, "主角".into());
         assert_eq!(arc.current_progress, 0.0);
 
         arc.advance_progress(30.0);
@@ -643,15 +644,14 @@ mod tests {
             .with_progress(150.0);
         assert_eq!(arc.current_progress, 100.0);
 
-        let arc = NarrativeArc::new("arc-2".into(), ArcType::Flat, "对照组".into())
-            .with_progress(-10.0);
+        let arc =
+            NarrativeArc::new("arc-2".into(), ArcType::Flat, "对照组".into()).with_progress(-10.0);
         assert_eq!(arc.current_progress, 0.0);
     }
 
     #[test]
     fn test_foreshadow_lifecycle() {
-        let mut fs =
-            Foreshadow::new("fs-1".into(), 2, "神秘信件".into());
+        let mut fs = Foreshadow::new("fs-1".into(), 2, "神秘信件".into());
         assert_eq!(fs.status, ForeshadowStatus::Setup);
         assert!(fs.payoff_chapter.is_none());
 
@@ -670,8 +670,7 @@ mod tests {
 
     #[test]
     fn test_foreshadow_abandoned() {
-        let mut fs =
-            Foreshadow::new("fs-1".into(), 2, "废弃伏笔".into());
+        let mut fs = Foreshadow::new("fs-1".into(), 2, "废弃伏笔".into());
         fs.mark_abandoned();
         assert_eq!(fs.status, ForeshadowStatus::Abandoned);
     }
@@ -679,21 +678,15 @@ mod tests {
     #[test]
     fn test_get_chapter_instructions() {
         let structure = NarrativeStructure::new()
-            .with_arcs(vec![NarrativeArc::new(
-                "arc-1".into(),
-                ArcType::Transformative,
-                "主角".into(),
-            )
-            .with_stages(vec![ArcStage {
-                name: "转变".into(),
-                chapter: 3,
-                description: "角色觉醒".into(),
-            }])])
-            .with_foreshadows(vec![Foreshadow::new(
-                "fs-1".into(),
-                3,
-                "预言".into(),
-            )])
+            .with_arcs(vec![
+                NarrativeArc::new("arc-1".into(), ArcType::Transformative, "主角".into())
+                    .with_stages(vec![ArcStage {
+                        name: "转变".into(),
+                        chapter: 3,
+                        description: "角色觉醒".into(),
+                    }]),
+            ])
+            .with_foreshadows(vec![Foreshadow::new("fs-1".into(), 3, "预言".into())])
             .with_confluences(vec![ConfluencePoint::new(
                 "cp-1".into(),
                 3,
@@ -740,14 +733,12 @@ mod tests {
 
     #[test]
     fn test_se_roundtrip() {
-        let structure = NarrativeStructure::new().with_arcs(vec![NarrativeArc::new(
-            "arc-1".into(),
-            ArcType::Transformative,
-            "主角".into(),
-        )
-        .with_want("找到真相".into())
-        .with_need("面对恐惧".into())
-        .with_progress(50.0)]);
+        let structure = NarrativeStructure::new().with_arcs(vec![
+            NarrativeArc::new("arc-1".into(), ArcType::Transformative, "主角".into())
+                .with_want("找到真相".into())
+                .with_need("面对恐惧".into())
+                .with_progress(50.0),
+        ]);
 
         let json = serde_json::to_string(&structure).unwrap();
         let deserialized: NarrativeStructure = serde_json::from_str(&json).unwrap();

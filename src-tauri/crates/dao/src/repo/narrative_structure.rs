@@ -61,10 +61,8 @@ pub async fn list_narrative_structures(
         query = query.filter(narrative_structure::Column::Genre.eq(g));
     }
 
-    let results = query
-        .order_by(narrative_structure::Column::UpdatedAt, Order::Desc)
-        .all(db)
-        .await?;
+    let results =
+        query.order_by(narrative_structure::Column::UpdatedAt, Order::Desc).all(db).await?;
     Ok(results)
 }
 
@@ -108,10 +106,7 @@ pub async fn update_narrative_structure(
 }
 
 /// 删除叙事结构
-pub async fn delete_narrative_structure(
-    db: &DatabaseConnection,
-    id: &str,
-) -> Result<()> {
+pub async fn delete_narrative_structure(db: &DatabaseConnection, id: &str) -> Result<()> {
     let result = narrative_structure::Entity::delete_by_id(id).exec(db).await?;
     if result.rows_affected == 0 {
         return Err(sea_orm::DbErr::RecordNotFound("NarrativeStructure not found".into()).into());
@@ -125,9 +120,5 @@ pub fn model_to_dto(model: &narrative_structure::Model) -> NarrativeStructure {
     let confluences = serde_json::from_str(&model.confluences).unwrap_or_default();
     let foreshadows = serde_json::from_str(&model.foreshadows).unwrap_or_default();
 
-    NarrativeStructure {
-        arcs,
-        confluences,
-        foreshadows,
-    }
+    NarrativeStructure { arcs, confluences, foreshadows }
 }

@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "Литературное творчество",
+    "settings": {
+      "tab": {
+        "params": "Параметры"
+      },
+      "loadFailed": "Ошибка загрузки конфигурации",
+      "saveSuccess": "Успешно сохранено",
+      "saveFailed": "Ошибка сохранения: {{error}}",
+      "saveConfig": "Сохранить конфигурацию",
+      "group": {
+        "output": "Вывод",
+        "content": "Содержимое",
+        "review": "Рецензирование"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "Директория вывода",
+      "documentTitle": "Название документа",
+      "fileFormat": "Формат файла: docx / pdf / markdown",
+      "chapterSeparator": "Разделитель глав",
+      "includeChapterNumbers": "Включить номера глав",
+      "wordCountMin": "Минимальное количество слов",
+      "wordCountMax": "Максимальное количество слов",
+      "reviewStrictness": "Строгость рецензирования: relaxed / balanced / strict",
+      "toleranceThreshold": "Порог допуска (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "Главная линия рынка",
     "archive": "Архив",

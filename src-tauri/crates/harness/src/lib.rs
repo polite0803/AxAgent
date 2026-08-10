@@ -618,7 +618,8 @@ pub use narrative::{
     AdjustmentPriority, AdjustmentTargetType, AdjustmentType, ArcInstruction, ArcStage, ArcType,
     ChapterStructureInstruction, ConfluencePoint, ConfluenceType, DeviationSeverity, DeviationType,
     Foreshadow, ForeshadowAction, ForeshadowInstruction, ForeshadowStatus, NarrativeArc,
-    NarrativeStructure, StructureAdjustmentSuggestion, StructureComplianceReport, StructureDeviation,
+    NarrativeStructure, StructureAdjustmentSuggestion, StructureComplianceReport,
+    StructureDeviation,
 };
 
 // ── 设备同步契约（多端同步/管理的核心类型） ──

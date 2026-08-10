@@ -15008,6 +15008,34 @@
     },
     "collapseComparison": ""
   },
+  "literaryCreation": {
+    "title": "文学创作",
+    "settings": {
+      "tab": {
+        "params": "参数配置"
+      },
+      "loadFailed": "加载配置失败",
+      "saveSuccess": "保存成功",
+      "saveFailed": "保存失败：{{error}}",
+      "saveConfig": "保存配置",
+      "group": {
+        "output": "输出配置",
+        "content": "内容配置",
+        "review": "评审配置"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "输出目录",
+      "documentTitle": "文档标题",
+      "fileFormat": "文件格式: docx / pdf / markdown",
+      "chapterSeparator": "章节分隔符",
+      "includeChapterNumbers": "包含章节编号",
+      "wordCountMin": "最小字数",
+      "wordCountMax": "最大字数",
+      "reviewStrictness": "评审严格度: relaxed / balanced / strict",
+      "toleranceThreshold": "容忍阈值 (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "市场主线",
     "archive": "归档",

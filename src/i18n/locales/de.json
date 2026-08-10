@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "Literarische Schöpfung",
+    "settings": {
+      "tab": {
+        "params": "Parameter"
+      },
+      "loadFailed": "Konfiguration konnte nicht geladen werden",
+      "saveSuccess": "Erfolgreich gespeichert",
+      "saveFailed": "Speichern fehlgeschlagen: {{error}}",
+      "saveConfig": "Konfiguration speichern",
+      "group": {
+        "output": "Ausgabe",
+        "content": "Inhalt",
+        "review": "Überprüfung"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "Ausgabeverzeichnis",
+      "documentTitle": "Dokumenttitel",
+      "fileFormat": "Dateiformat: docx / pdf / markdown",
+      "chapterSeparator": "Kapiteltrenner",
+      "includeChapterNumbers": "Kapitelnummern einschließen",
+      "wordCountMin": "Mindestwortzahl",
+      "wordCountMax": "Höchstwortzahl",
+      "reviewStrictness": "Überprüfungsstrenge: relaxed / balanced / strict",
+      "toleranceThreshold": "Toleranzschwelle (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "Markt-Hauptlinie",
     "archive": "Archivieren",

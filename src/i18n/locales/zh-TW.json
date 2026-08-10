@@ -15008,6 +15008,34 @@
     },
     "collapseComparison": ""
   },
+  "literaryCreation": {
+    "title": "文學創作",
+    "settings": {
+      "tab": {
+        "params": "參數配置"
+      },
+      "loadFailed": "載入配置失敗",
+      "saveSuccess": "儲存成功",
+      "saveFailed": "儲存失敗：{{error}}",
+      "saveConfig": "儲存配置",
+      "group": {
+        "output": "輸出配置",
+        "content": "內容配置",
+        "review": "評審配置"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "輸出目錄",
+      "documentTitle": "文檔標題",
+      "fileFormat": "文件格式: docx / pdf / markdown",
+      "chapterSeparator": "章節分隔符",
+      "includeChapterNumbers": "包含章節編號",
+      "wordCountMin": "最小字數",
+      "wordCountMax": "最大字數",
+      "reviewStrictness": "評審嚴格度: relaxed / balanced / strict",
+      "toleranceThreshold": "容忍閾值 (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "市場主線",
     "archive": "歸檔",

@@ -6,10 +6,12 @@
  */
 
 import { Alert, Button, Card, Empty, message, Tag, Typography } from "antd";
+import { Settings } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { LiteraryCreationSettingsModal } from "@/components/settings/LiteraryCreationSettingsModal";
 import { useConversationStore, useSettingsStore } from "@/stores";
 
 import type { ActionItem, IndustryConfig, IndustryTab, IndustryWorkflow } from "./types";
@@ -39,6 +41,7 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeWorkflow, setActiveWorkflow] = useState<IndustryWorkflow | null>(null);
+  const [literarySettingsOpen, setLiterarySettingsOpen] = useState(false);
 
   const handleAction = async (action: ActionItem) => {
     if (!settings?.default_provider_id || !settings?.default_model_id) {
@@ -218,13 +221,24 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
                     </div>
                   )}
                 </div>
-                <Button
-                  size="small"
-                  type="primary"
-                  onClick={() => handleStartWorkflow(wf)}
-                >
-                  {t("opc.industry.wizard.start")}
-                </Button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {wf.id === "workflow-cm-literary-creation" && (
+                    <Button
+                      size="small"
+                      icon={<Settings size={14} />}
+                      onClick={() => setLiterarySettingsOpen(true)}
+                    >
+                      {t("literaryCreation.settings.saveConfig")}
+                    </Button>
+                  )}
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => handleStartWorkflow(wf)}
+                  >
+                    {t("opc.industry.wizard.start")}
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -239,6 +253,11 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
         workflow={activeWorkflow}
         data={data}
         onClose={handleWizardClose}
+      />
+
+      <LiteraryCreationSettingsModal
+        open={literarySettingsOpen}
+        onClose={() => setLiterarySettingsOpen(false)}
       />
     </div>
   );

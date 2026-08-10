@@ -10,7 +10,9 @@ use agent_macro::agent_command;
 use axagent_dao::repo::{conversation, message};
 use axagent_harness::types::{MessageRole, UpdateConversationInput};
 use axagent_harness::workflow_types::Workflow;
-use axagent_runtime::work_engine::{ProgressCallback, StepProgressEvent, node_type_of};
+use axagent_runtime::work_engine::{
+    HeartbeatCallback, ProgressCallback, StepProgressEvent, TimeoutWarningCallback, node_type_of,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -292,6 +294,67 @@ pub async fn workflow_execute(
             });
             opts = opts.with_progress_callback(progress_cb);
         }
+
+        // ── 心跳回调：在长时间执行期间定期通知前端 ──
+        let hb_app = app_for_emit.clone();
+        let hb_wid = wid.clone();
+        let hb_conv = conversation_id.clone();
+        let hb_msg = assistant_message_id.clone();
+        let hb_hb_cb: HeartbeatCallback = Arc::new(move |evt| {
+            let app = hb_app.clone();
+            let wid = hb_wid.clone();
+            let conv = hb_conv.clone();
+            let msg = hb_msg.clone();
+            Box::pin(async move {
+                let mut payload = serde_json::json!({
+                    "type": "workflow_heartbeat",
+                    "workflowId": wid,
+                    "nodeId": evt.node_id,
+                    "elapsedMs": evt.elapsed_ms,
+                    "heartbeatCount": evt.heartbeat_count,
+                    "timeoutMs": evt.timeout_ms,
+                    "emittedAtMs": evt.emitted_at_ms,
+                });
+                // 对话驱动模式：添加 conversationId 和 assistantMessageId，供前端过滤
+                if let (Some(c), Some(m)) = (conv, msg) {
+                    payload["conversationId"] = serde_json::Value::String(c);
+                    payload["assistantMessageId"] = serde_json::Value::String(m);
+                }
+                let _ = app.emit("agent-stream-text", payload);
+            })
+        });
+        opts = opts.with_heartbeat_callback(hb_hb_cb);
+
+        // ── 超时预警回调：节点即将超时时发出警告 ──
+        let tw_app = app_for_emit.clone();
+        let tw_wid = wid.clone();
+        let tw_conv = conversation_id.clone();
+        let tw_msg = assistant_message_id.clone();
+        let tw_cb: TimeoutWarningCallback = Arc::new(move |evt| {
+            let app = tw_app.clone();
+            let wid = tw_wid.clone();
+            let conv = tw_conv.clone();
+            let msg = tw_msg.clone();
+            Box::pin(async move {
+                let mut payload = serde_json::json!({
+                    "type": "workflow_timeout_warning",
+                    "workflowId": wid,
+                    "nodeId": evt.node_id,
+                    "elapsedMs": evt.elapsed_ms,
+                    "timeoutMs": evt.timeout_ms,
+                    "remainingMs": evt.remaining_ms,
+                    "level": evt.level,
+                    "emittedAtMs": evt.emitted_at_ms,
+                });
+                // 对话驱动模式：添加 conversationId 和 assistantMessageId，供前端过滤
+                if let (Some(c), Some(m)) = (conv, msg) {
+                    payload["conversationId"] = serde_json::Value::String(c);
+                    payload["assistantMessageId"] = serde_json::Value::String(m);
+                }
+                let _ = app.emit("agent-stream-text", payload);
+            })
+        });
+        opts = opts.with_timeout_warning_callback(tw_cb);
 
         let started_at = std::time::Instant::now();
         match engine.run_workflow(&wid, opts).await {

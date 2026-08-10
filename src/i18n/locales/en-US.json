@@ -15008,6 +15008,34 @@
     },
     "collapseComparison": ""
   },
+  "literaryCreation": {
+    "title": "Literary Creation",
+    "settings": {
+      "tab": {
+        "params": "Parameters"
+      },
+      "loadFailed": "Failed to load configuration",
+      "saveSuccess": "Saved successfully",
+      "saveFailed": "Failed to save: {{error}}",
+      "saveConfig": "Save Configuration",
+      "group": {
+        "output": "Output",
+        "content": "Content",
+        "review": "Review"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "Output directory",
+      "documentTitle": "Document title",
+      "fileFormat": "File format: docx / pdf / markdown",
+      "chapterSeparator": "Chapter separator",
+      "includeChapterNumbers": "Include chapter numbers",
+      "wordCountMin": "Minimum word count",
+      "wordCountMax": "Maximum word count",
+      "reviewStrictness": "Review strictness: relaxed / balanced / strict",
+      "toleranceThreshold": "Tolerance threshold (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "Market Mainline",
     "archive": "Archive",

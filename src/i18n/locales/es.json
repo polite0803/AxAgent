@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "Creación literaria",
+    "settings": {
+      "tab": {
+        "params": "Parámetros"
+      },
+      "loadFailed": "Error al cargar la configuración",
+      "saveSuccess": "Guardado exitosamente",
+      "saveFailed": "Error al guardar: {{error}}",
+      "saveConfig": "Guardar configuración",
+      "group": {
+        "output": "Salida",
+        "content": "Contenido",
+        "review": "Revisión"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "Directorio de salida",
+      "documentTitle": "Título del documento",
+      "fileFormat": "Formato de archivo: docx / pdf / markdown",
+      "chapterSeparator": "Separador de capítulos",
+      "includeChapterNumbers": "Incluir números de capítulo",
+      "wordCountMin": "Recuento mínimo de palabras",
+      "wordCountMax": "Recuento máximo de palabras",
+      "reviewStrictness": "Rigor de revisión: relaxed / balanced / strict",
+      "toleranceThreshold": "Umbral de tolerancia (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "Línea Principal del Mercado",
     "archive": "Archivar",

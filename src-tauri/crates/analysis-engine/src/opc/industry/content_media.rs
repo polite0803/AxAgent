@@ -180,8 +180,7 @@ impl OpcIndustryAdapter for ContentMediaIndustryAdapter {
             },
             // 叙事结构 KPI（叙事结构增强专属）
             KpiCalculationDef {
-                key: "arc_completion".to_string(),
-                name: "弧线完成度".to_string(),
+                key: "arc_completion".to_string(), name: "弧线完成度".to_string()
             },
             KpiCalculationDef {
                 key: "foreshadow_recovery_rate".to_string(),

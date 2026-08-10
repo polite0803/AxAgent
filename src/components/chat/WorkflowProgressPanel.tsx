@@ -104,15 +104,52 @@ interface StepLike {
   attempts: number;
   max_retries: number;
   on_failure: "abort" | "skip";
+  /** 节点已执行时间（毫秒），由心跳事件更新 */
+  elapsed_ms?: number;
+  /** 心跳计数 */
+  heartbeat_count?: number;
+  /** 是否有超时警告 */
+  timeout_warning?: boolean;
+  /** 超时警告级别 */
+  timeout_level?: "warning" | "critical";
+  /** 预计超时时间（毫秒） */
+  timeout_ms?: number;
+}
+
+// 心跳事件数据
+interface HeartbeatEventData {
+  type: "workflow_heartbeat";
+  workflowId: string;
+  nodeId: string;
+  elapsedMs: number;
+  heartbeatCount: number;
+  timeoutMs?: number;
+  emittedAtMs: number;
+}
+
+// 超时警告事件数据
+interface TimeoutWarningEventData {
+  type: "workflow_timeout_warning";
+  workflowId: string;
+  nodeId: string;
+  elapsedMs: number;
+  timeoutMs: number;
+  remainingMs?: number;
+  level: "warning" | "critical";
+  emittedAtMs: number;
 }
 
 function toStepLike(
   wf: WorkflowData,
+  heartbeatData?: Map<string, { elapsedMs: number; count: number; timeoutMs?: number }>,
+  warningData?: Map<string, { level: "warning" | "critical"; remainingMs?: number }>,
 ): StepLike[] {
   const needs = computeNeeds(wf.edges);
   return wf.nodes.map((n) => {
     const nodeId = n.base?.id ?? n.id ?? "";
     const state = wf.node_states[nodeId];
+    const hb = heartbeatData?.get(nodeId);
+    const warn = warningData?.get(nodeId);
     return {
       id: nodeId,
       goal: n.base?.title ?? n.title ?? n.description ?? nodeId,
@@ -126,6 +163,11 @@ function toStepLike(
       attempts: state?.attempts ?? 0,
       max_retries: 2,
       on_failure: "abort",
+      elapsed_ms: hb?.elapsedMs,
+      heartbeat_count: hb?.count,
+      timeout_warning: warn !== undefined,
+      timeout_level: warn?.level,
+      timeout_ms: hb?.timeoutMs,
     };
   });
 }
@@ -469,6 +511,24 @@ const StepRow = memo(function StepRow({
 
   const iconClass = step.status === "running" ? "animate-spin" : "";
 
+  // 格式化耗时显示
+  const formatElapsed = (ms?: number): string => {
+    if (!ms) { return ""; }
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) { return `${seconds}s`; }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) { return `${minutes}m ${remainingSeconds}s`; }
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m`;
+  };
+
+  // 计算超时进度百分比
+  const timeoutProgress = useMemo(() => {
+    if (!step.elapsed_ms || !step.timeout_ms) { return null; }
+    return Math.min(100, (step.elapsed_ms / step.timeout_ms) * 100);
+  }, [step.elapsed_ms, step.timeout_ms]);
+
   return (
     <div className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0">
       <div
@@ -505,6 +565,47 @@ const StepRow = memo(function StepRow({
         <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0">
           {step.agent_role}
         </span>
+
+        {/* 心跳状态：运行中节点显示已执行时间 */}
+        {step.status === "running" && step.elapsed_ms !== undefined && (
+          <span
+            className="text-[10px] font-mono shrink-0 flex items-center gap-1"
+            style={{ color: step.timeout_warning ? token.colorWarning : token.colorPrimary }}
+          >
+            {/* 脉动点指示心跳 */}
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{
+                backgroundColor: step.timeout_warning
+                  ? token.colorWarning
+                  : token.colorPrimary,
+              }}
+            />
+            {formatElapsed(step.elapsed_ms)}
+            {step.heartbeat_count !== undefined && step.heartbeat_count > 0 && (
+              <span className="text-zinc-400">· ♥{step.heartbeat_count}</span>
+            )}
+          </span>
+        )}
+
+        {/* 超时警告 */}
+        {step.timeout_warning && (
+          <span
+            className="text-[10px] shrink-0 px-1.5 py-0.5 rounded flex items-center gap-0.5"
+            style={{
+              backgroundColor: step.timeout_level === "critical"
+                ? "rgba(239, 68, 68, 0.1)"
+                : "rgba(245, 158, 11, 0.1)",
+              color: step.timeout_level === "critical"
+                ? token.colorError
+                : token.colorWarning,
+            }}
+          >
+            <AlertTriangle size={10} />
+            {step.timeout_level === "critical" ? "超时" : "即将超时"}
+          </span>
+        )}
+
         {step.attempts > 1 && (
           <span
             className="text-xs text-orange-500 shrink-0"
@@ -527,6 +628,72 @@ const StepRow = memo(function StepRow({
               {t(`chat.workflow.status.${step.status}`)}
             </span>
           </div>
+
+          {/* 运行中节点的详细执行状态 */}
+          {step.status === "running" && step.elapsed_ms !== undefined && (
+            <div className="flex gap-4 items-center">
+              <span className="text-zinc-500">执行耗时</span>
+              <span style={{ color: token.colorPrimary }}>
+                {formatElapsed(step.elapsed_ms)}
+              </span>
+              {step.timeout_ms && (
+                <>
+                  <span className="text-zinc-400">/</span>
+                  <span className="text-zinc-400">
+                    超时阈值 {formatElapsed(step.timeout_ms)}
+                  </span>
+                </>
+              )}
+              {timeoutProgress !== null && (
+                <div className="flex-1 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden max-w-[100px]">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${timeoutProgress}%`,
+                      backgroundColor: step.timeout_warning
+                        ? (step.timeout_level === "critical"
+                          ? token.colorError
+                          : token.colorWarning)
+                        : token.colorPrimary,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 超时警告详情 */}
+          {step.timeout_warning && step.elapsed_ms !== undefined && step.timeout_ms && (
+            <div
+              className="flex gap-4 items-center p-1.5 rounded"
+              style={{
+                backgroundColor: step.timeout_level === "critical"
+                  ? "rgba(239, 68, 68, 0.08)"
+                  : "rgba(245, 158, 11, 0.08)",
+              }}
+            >
+              <AlertTriangle
+                size={12}
+                style={{
+                  color: step.timeout_level === "critical"
+                    ? token.colorError
+                    : token.colorWarning,
+                }}
+              />
+              <span
+                style={{
+                  color: step.timeout_level === "critical"
+                    ? token.colorError
+                    : token.colorWarning,
+                }}
+              >
+                {step.timeout_level === "critical"
+                  ? `节点执行已超时 (${formatElapsed(step.elapsed_ms)} / ${formatElapsed(step.timeout_ms)})`
+                  : `节点即将超时 (${formatElapsed(step.elapsed_ms)} / ${formatElapsed(step.timeout_ms)})`}
+              </span>
+            </div>
+          )}
+
           {step.needs.length > 0 && (
             <div className="flex gap-4">
               <span className="text-zinc-500">
@@ -581,6 +748,14 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
   const [showDag, setShowDag] = useState(true);
   const [dagCollapsed, setDagCollapsed] = useState(false);
 
+  // 心跳和超时警告状态
+  const [heartbeatData, setHeartbeatData] = useState<
+    Map<string, { elapsedMs: number; count: number; timeoutMs?: number }>
+  >(new Map());
+  const [warningData, setWarningData] = useState<Map<string, { level: "warning" | "critical"; remainingMs?: number }>>(
+    new Map(),
+  );
+
   const [workflowId, setWorkflowId] = useState<string | null>(() => getWorkflowIdFromStorage(conversationId));
 
   const fetchIdRef = useRef(0);
@@ -629,8 +804,59 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
     setExpandedSteps(new Set());
     setShowDag(true);
     setDagCollapsed(false);
+    setHeartbeatData(new Map());
+    setWarningData(new Map());
   }, [workflowId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // --- Event listeners for heartbeat and timeout warning ---
+  useEffect(() => {
+    if (!workflowId) { return; }
+
+    const handleHeartbeat = (event: Event) => {
+      const detail = (event as CustomEvent<HeartbeatEventData>).detail;
+      if (detail.workflowId !== workflowId) { return; }
+
+      setHeartbeatData((prev) => {
+        const next = new Map(prev);
+        next.set(detail.nodeId, {
+          elapsedMs: detail.elapsedMs,
+          count: detail.heartbeatCount,
+          timeoutMs: detail.timeoutMs,
+        });
+        return next;
+      });
+    };
+
+    const handleTimeoutWarning = (event: Event) => {
+      const detail = (event as CustomEvent<TimeoutWarningEventData>).detail;
+      if (detail.workflowId !== workflowId) { return; }
+
+      setWarningData((prev) => {
+        const next = new Map(prev);
+        next.set(detail.nodeId, {
+          level: detail.level,
+          remainingMs: detail.remainingMs,
+        });
+        return next;
+      });
+
+      // 可以添加超时警告的 toast 提示
+      if (detail.level === "critical") {
+        message.error(`节点 ${detail.nodeId} 执行超时！`);
+      } else {
+        message.warning(`节点 ${detail.nodeId} 即将超时（剩余约 ${Math.floor((detail.remainingMs ?? 0) / 1000)}秒）`);
+      }
+    };
+
+    window.addEventListener("axagent:workflow-heartbeat", handleHeartbeat);
+    window.addEventListener("axagent:workflow-timeout-warning", handleTimeoutWarning);
+
+    return () => {
+      window.removeEventListener("axagent:workflow-heartbeat", handleHeartbeat);
+      window.removeEventListener("axagent:workflow-timeout-warning", handleTimeoutWarning);
+    };
+  }, [workflowId]);
 
   // --- Poll workflow status with race-condition protection & terminal stop ---
   const workflowRef = useRef(workflow);
@@ -746,7 +972,10 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
   // --- Render ---
 
   // 必须在所有条件 return 之前调用，保持 hooks 数量恒定
-  const steps = useMemo(() => workflow ? toStepLike(workflow) : [], [workflow]);
+  const steps = useMemo(
+    () => (workflow ? toStepLike(workflow, heartbeatData, warningData) : []),
+    [workflow, heartbeatData, warningData],
+  );
 
   if (!workflowId) {
     return null;
@@ -785,6 +1014,14 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
   const totalCount = steps.length;
   const progressPct = totalCount > 0 ? (doneCount / totalCount) * 100 : 0;
   const canCancel = workflow.status === "running" && !cancelling;
+
+  // 收集超时警告
+  const criticalWarnings = Array.from(warningData.entries())
+    .filter(([_, v]) => v.level === "critical")
+    .map(([nodeId]) => nodeId);
+  const warningWarnings = Array.from(warningData.entries())
+    .filter(([_, v]) => v.level === "warning")
+    .map(([nodeId]) => nodeId);
 
   return (
     <div className="mx-3 my-1.5 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/50 dark:bg-purple-900/10 overflow-hidden">
@@ -853,6 +1090,53 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
           </Button>
         )}
       </div>
+
+      {/* 超时警告横幅 */}
+      {(criticalWarnings.length > 0 || warningWarnings.length > 0) && (
+        <div
+          className="px-3 py-2 border-b flex items-center gap-2"
+          style={{
+            backgroundColor: criticalWarnings.length > 0
+              ? "rgba(239, 68, 68, 0.08)"
+              : "rgba(245, 158, 11, 0.08)",
+            borderColor: criticalWarnings.length > 0
+              ? "rgba(239, 68, 68, 0.3)"
+              : "rgba(245, 158, 11, 0.3)",
+          }}
+        >
+          <AlertTriangle
+            size={14}
+            style={{
+              color: criticalWarnings.length > 0 ? token.colorError : token.colorWarning,
+            }}
+          />
+          <span
+            className="text-xs font-medium"
+            style={{
+              color: criticalWarnings.length > 0 ? token.colorError : token.colorWarning,
+            }}
+          >
+            {criticalWarnings.length > 0
+              ? `节点超时: ${criticalWarnings.join(", ")}`
+              : `节点即将超时: ${warningWarnings.join(", ")}`}
+          </span>
+          {canCancel && (
+            <Button
+              type="text"
+              size="small"
+              icon={<StopCircle size={10} />}
+              loading={cancelling}
+              onClick={handleCancel}
+              className="text-xs px-1.5 py-0.5 ml-auto"
+              style={{
+                color: criticalWarnings.length > 0 ? token.colorError : token.colorWarning,
+              }}
+            >
+              取消执行
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* DAG View */}
       {showDag && (

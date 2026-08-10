@@ -1830,9 +1830,9 @@ fn industry_learning_config_path(
     }
 
     // 2) 回退：find_repo_config_dir（CWD 无关，Tauri 生产模式 CWD ≠ 仓库根）
-    if let Some(repo_root) =
-        crate::commands::opc_workflows::find_repo_config_dir(crate::commands::opc_workflows::INDUSTRIES_DIR)
-    {
+    if let Some(repo_root) = crate::commands::opc_workflows::find_repo_config_dir(
+        crate::commands::opc_workflows::INDUSTRIES_DIR,
+    ) {
         let fallback = repo_root.join(&dir_id).join(INDUSTRY_PACK_LEARNING_FILE);
         if fallback.is_file() {
             tracing::debug!("[industry-learning] found via repo_root: {}", fallback.display());

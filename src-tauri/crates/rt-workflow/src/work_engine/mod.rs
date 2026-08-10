@@ -14,8 +14,8 @@ pub mod prompt_template;
 pub use cache_layer::{CacheError, CacheLayer, InMemoryCache};
 pub use dispatcher::NodeDispatcher;
 pub use engine::{
-    LoopResumeDecision, ProgressCallback, RunOptions, StepProgressEvent, ToolResolver, WorkEngine,
-    WorkEngineError, node_type_of,
+    HeartbeatCallback, LoopResumeDecision, ProgressCallback, RunOptions, StepProgressEvent,
+    TimeoutWarningCallback, ToolResolver, WorkEngine, WorkEngineError, node_type_of,
 };
 pub use error_handling::ErrorContext;
 pub use execution_state::{

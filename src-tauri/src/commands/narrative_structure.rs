@@ -71,9 +71,8 @@ pub async fn list_narrative_structures(
     genre: Option<String>,
 ) -> Result<Vec<NarrativeStructureResponse>, String> {
     let db = state.harness.db();
-    let results = db_repo::list_narrative_structures(db, is_template, genre)
-        .await
-        .map_err(|e| {
+    let results =
+        db_repo::list_narrative_structures(db, is_template, genre).await.map_err(|e| {
             String::from(ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
@@ -90,14 +89,12 @@ pub async fn get_narrative_structure(
     id: String,
 ) -> Result<Option<NarrativeStructureResponse>, String> {
     let db = state.harness.db();
-    let result = db_repo::get_narrative_structure(db, &id)
-        .await
-        .map_err(|e| {
-            String::from(ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+    let result = db_repo::get_narrative_structure(db, &id).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(result.as_ref().map(model_to_response))
 }
@@ -162,14 +159,12 @@ pub async fn delete_narrative_structure(
     id: String,
 ) -> Result<(), String> {
     let db = state.harness.db();
-    db_repo::delete_narrative_structure(db, &id)
-        .await
-        .map_err(|e| {
-            String::from(ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?;
+    db_repo::delete_narrative_structure(db, &id).await.map_err(|e| {
+        String::from(ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     Ok(())
 }

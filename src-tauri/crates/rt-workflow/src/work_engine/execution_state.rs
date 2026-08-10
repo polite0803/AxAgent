@@ -2,7 +2,8 @@
 
 // 运行时执行态 DTO 复用 harness(阶段 2 上移)
 pub use axagent_harness::workflow_types::{
-    ExecutionStatus, NodeExecutionRecord, PartialResultEvent,
+    ExecutionStatus, NodeExecutionRecord, NodeHeartbeatEvent, NodeTimeoutWarningEvent,
+    PartialResultEvent,
 };
 // 错误上下文:重命名后的 harness 类型,rt-workflow 内部保留 ErrorContext 别名以兼容
 use axagent_harness::workflow_types::WorkflowErrorContext;

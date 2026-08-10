@@ -15008,6 +15008,34 @@
     "strategyMerge": "Merge（合并）",
     "strategyDryRun": "DryRun（仅验证）"
   },
+  "literaryCreation": {
+    "title": "文学創作",
+    "settings": {
+      "tab": {
+        "params": "パラメータ設定"
+      },
+      "loadFailed": "設定の読み込みに失敗しました",
+      "saveSuccess": "保存しました",
+      "saveFailed": "保存に失敗しました：{{error}}",
+      "saveConfig": "設定を保存",
+      "group": {
+        "output": "出力設定",
+        "content": "内容設定",
+        "review": "評価設定"
+      }
+    },
+    "configDescriptions": {
+      "outputDir": "出力ディレクトリ",
+      "documentTitle": "ドキュメントタイトル",
+      "fileFormat": "ファイル形式: docx / pdf / markdown",
+      "chapterSeparator": "チャプター区切り",
+      "includeChapterNumbers": "チャプター番号を含める",
+      "wordCountMin": "最小文字数",
+      "wordCountMax": "最大文字数",
+      "reviewStrictness": "評価の厳格度: relaxed / balanced / strict",
+      "toleranceThreshold": "許容閾値 (0-5)"
+    }
+  },
   "marketMainline": {
     "title": "市場メインライン",
     "archive": "アーカイブ",
