@@ -121,7 +121,7 @@ pub async fn update_wiki(
         name,
         description,
         embedding_provider.clone(),
-        knowledge_base_id.map(|v| Some(v)),
+        knowledge_base_id.map(Some),
     )
     .await
     .map_err(|e| {

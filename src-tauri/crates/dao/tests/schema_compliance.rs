@@ -1340,6 +1340,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("embedding_dimensions", "INTEGER"),
             ("retrieval_threshold", "REAL"),
             ("retrieval_top_k", "INTEGER"),
+            ("knowledge_base_id", "TEXT"),
             ("created_at", "BIGINT"),
             ("updated_at", "BIGINT"),
         ],

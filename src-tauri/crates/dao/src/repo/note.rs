@@ -65,10 +65,9 @@ async fn sync_note_links_from_content(
             name_to_id.entry(n.title.to_lowercase()).or_insert_with(|| n.id.clone());
         }
         if let Some(stem) = std::path::Path::new(&n.file_path).file_stem().and_then(|s| s.to_str())
+            && !stem.is_empty()
         {
-            if !stem.is_empty() {
-                name_to_id.entry(stem.to_lowercase()).or_insert_with(|| n.id.clone());
-            }
+            name_to_id.entry(stem.to_lowercase()).or_insert_with(|| n.id.clone());
         }
     }
 
