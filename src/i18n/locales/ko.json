@@ -9578,7 +9578,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "범례"
+      "legend": "범례",
+      "repairGraph": "그래프 링크 복구",
+      "repairSuccess": "복구 완료: KB 연결됨, {{count}}개 노트의 링크 복구",
+      "repairPartial": "복구 완료: {{count}}개 노트의 링크 복구 (매칭되는 KB를 찾을 수 없음)"
     },
     "hidePanel": "패널 숨기기",
     "history": "기록",

@@ -9578,7 +9578,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "Legend"
+      "legend": "Legend",
+      "repairGraph": "Repair Graph Links",
+      "repairSuccess": "Repair complete: KB linked, {{count}} notes' links repaired",
+      "repairPartial": "Repair complete: {{count}} notes' links repaired (no matching KB found)"
     },
     "hidePanel": "Hide Panel",
     "history": "History",

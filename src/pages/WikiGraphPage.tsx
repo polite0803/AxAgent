@@ -12,7 +12,14 @@ import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useWikiStore } from "@/stores/feature/wikiStore";
-import { BookOutlined, FileAddOutlined, NodeIndexOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  BookOutlined,
+  FileAddOutlined,
+  NodeIndexOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  ToolOutlined,
+} from "@ant-design/icons";
 import { Button, Empty, Input, Select, Space, Spin, Tag, theme, Typography } from "antd";
 import { Eye, PanelLeft, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -151,6 +158,42 @@ export function WikiGraphPage() {
     loadNotes(wikiIdFromUrl);
     loadGraphData();
   };
+
+  const [repairing, setRepairing] = useState(false);
+
+  const handleRepairGraph = useCallback(async () => {
+    if (!wikiIdFromUrl) { return; }
+    setRepairing(true);
+    try {
+      const result = await invoke<{
+        wikiId: string;
+        kbId: string | null;
+        repairedNotes: number;
+        kbLinked: boolean;
+        message: string;
+      }>("repair_wiki_graph", { wikiId: wikiIdFromUrl });
+
+      if (result.kbLinked) {
+        message.success(
+          t("wiki.graph.repairSuccess", {
+            count: result.repairedNotes,
+          }),
+        );
+      } else {
+        message.warning(
+          t("wiki.graph.repairPartial", {
+            count: result.repairedNotes,
+          }),
+        );
+      }
+
+      // 重新加载图谱数据
+      loadGraphData();
+    } catch (e) {
+      showBackendError(message, e);
+    }
+    setRepairing(false);
+  }, [wikiIdFromUrl, loadGraphData, t]);
 
   // 面板拖曳
   useEffect(() => {
@@ -497,6 +540,15 @@ export function WikiGraphPage() {
             icon={<ReloadOutlined />}
             onClick={handleReload}
             loading={graphLoading}
+          />
+        </Tooltip>
+
+        <Tooltip title={t("wiki.graph.repairGraph")}>
+          <Button
+            size="small"
+            icon={<ToolOutlined />}
+            onClick={handleRepairGraph}
+            loading={repairing}
           />
         </Tooltip>
 

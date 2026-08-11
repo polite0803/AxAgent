@@ -9578,7 +9578,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "圖例"
+      "legend": "圖例",
+      "repairGraph": "修復圖譜關聯",
+      "repairSuccess": "修復完成：已關聯知識庫，修復 {{count}} 篇筆記的連結",
+      "repairPartial": "修復完成：修復 {{count}} 篇筆記的連結（未找到匹配的知識庫）"
     },
     "hidePanel": "隱藏面板",
     "history": "歷史記錄",

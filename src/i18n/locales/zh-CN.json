@@ -9578,7 +9578,10 @@
       "largestComponent": "最大分量",
       "avgDegree": "平均度",
       "highlighted": "高亮",
-      "legend": "图例"
+      "legend": "图例",
+      "repairGraph": "修复图谱关联",
+      "repairSuccess": "修复完成：已关联知识库，修复 {{count}} 篇笔记的链接",
+      "repairPartial": "修复完成：修复 {{count}} 篇笔记的链接（未找到匹配的知识库）"
     },
     "hidePanel": "隐藏面板",
     "history": "历史记录",
