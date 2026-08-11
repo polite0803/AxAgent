@@ -33,6 +33,8 @@ pub mod windows_impl {
                 JOBOBJECT_EXTENDED_LIMIT_INFORMATION, SetInformationJobObject,
             };
 
+            // SAFETY: CreateJobObjectW 是 Win32 API，两个参数都传 null 表示
+            // 使用默认安全描述符和匿名 Job Object；null 返回时下方立即检查。
             let handle = unsafe {
                 CreateJobObjectW(std::ptr::null::<SECURITY_ATTRIBUTES>(), std::ptr::null())
             };
@@ -56,6 +58,7 @@ pub mod windows_impl {
             };
 
             if ret == 0 {
+                // SAFETY: handle 为有效的 Job Object 句柄，CloseHandle 释放后不再使用。
                 unsafe {
                     CloseHandle(handle);
                 }
@@ -64,9 +67,13 @@ pub mod windows_impl {
 
             // raw_handle() 返回 Option<*mut c_void>
             let raw_handle = child.raw_handle().ok_or_else(|| "子进程句柄为空".to_string())?;
+            // SAFETY: handle 为 Job Object 句柄（已 null-check）；raw_handle 为子进程句柄，
+            // 已通过 ok_or_else 确保非 null；失败时 assign_ret==0 下方处理。
             let assign_ret = unsafe { AssignProcessToJobObject(handle, raw_handle) };
 
             if assign_ret == 0 {
+                // SAFETY: handle 有效；此错误路径关闭句柄，进程未关联到 Job，
+                // 不会触发 KILL_ON_JOB_CLOSE。
                 unsafe {
                     CloseHandle(handle);
                 }
@@ -88,7 +95,9 @@ pub mod windows_impl {
             if self.released.swap(true, std::sync::atomic::Ordering::AcqRel) {
                 return;
             }
-            // 关闭 Job 句柄触发 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+            // SAFETY: self.handle 为有效 Job Object 句柄（NonNull 保证非 null）；
+            // AtomicBool 确保只关闭一次防 double-free；
+            // 关闭触发 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE，终止所有关联进程。
             unsafe {
                 windows_sys::Win32::Foundation::CloseHandle(self.handle.as_ptr());
             }

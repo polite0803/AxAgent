@@ -218,7 +218,7 @@ impl SyncScheduler {
 
                 *running.write().await = true;
 
-                if let Err(e) = Self::execute_tasks_cycle(
+                Self::execute_tasks_cycle(
                     &queue,
                     &sync_engine,
                     &device_store,
@@ -226,10 +226,7 @@ impl SyncScheduler {
                     &permission_checker,
                     &config,
                 )
-                .await
-                {
-                    tracing::error!(error = %e, "[device.scheduler] execute_tasks_cycle failed");
-                }
+                .await;
 
                 *running.write().await = false;
             }

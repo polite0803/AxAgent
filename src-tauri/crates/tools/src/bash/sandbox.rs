@@ -255,6 +255,7 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn native_sandbox_does_not_leak_env() {
+        // SAFETY: 测试独占运行，不并发访问环境变量；后续 remove_var 确保清理。
         unsafe { std::env::set_var("AXAGENT_TEST_LEAK", "secret123") };
 
         // 强制 use_container=false；用本地 runner。
@@ -280,6 +281,7 @@ mod tests {
         );
 
         // 清理测试副作用
+        // SAFETY: 清理测试设置的临时环境变量；单线程测试环境下 safe。
         unsafe { std::env::remove_var("AXAGENT_TEST_LEAK") };
     }
 

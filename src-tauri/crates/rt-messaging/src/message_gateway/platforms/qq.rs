@@ -224,15 +224,8 @@ async fn run_qq_gateway(
                                                 .on_message("qq", &uid, Some(&uname), &ch, &t)
                                                 .await;
                                             if let Some(reply_text) = reply {
-                                                if let Err(e) =
-                                                    send_qq_reply(&bt, &ch, &gid, &uid, &reply_text)
-                                                        .await
-                                                {
-                                                    tracing::error!(
-                                                        error = %e, uid = %uid,
-                                                        "[qq] send_qq_reply failed"
-                                                    );
-                                                }
+                                                send_qq_reply(&bt, &ch, &gid, &uid, &reply_text)
+                                                    .await;
                                             }
                                         });
                                     }

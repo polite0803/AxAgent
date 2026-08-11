@@ -274,10 +274,10 @@ pub async fn mark_job_failed(db: &DatabaseConnection, id: &str, error: &str) -> 
         .ok_or_else(|| AxAgentError::NotFound(format!("IndexJob {}", id)))?;
 
     let mut am: index_jobs::ActiveModel = model.into();
-    let retry_count = am.retry_count.clone().expect("IndexJob 缺少 retry_count");
+    let retry_count = am.retry_count.take().expect("IndexJob 缺少 retry_count");
     let next_retry = retry_count + 1;
 
-    let max_retries = am.max_retries.clone().expect("IndexJob 缺少 max_retries");
+    let max_retries = am.max_retries.take().expect("IndexJob 缺少 max_retries");
     if next_retry < max_retries {
         am.status = Set(INDEX_JOB_STATUS_RETRYING.to_string());
     } else {
@@ -318,7 +318,7 @@ pub async fn cancel_job(db: &DatabaseConnection, id: &str) -> Result<()> {
         .ok_or_else(|| AxAgentError::NotFound(format!("IndexJob {}", id)))?;
 
     let mut am: index_jobs::ActiveModel = model.into();
-    let status = am.status.clone().expect("IndexJob 缺少 status");
+    let status = am.status.take().expect("IndexJob 缺少 status");
     if status != INDEX_JOB_STATUS_PROCESSING && status != INDEX_JOB_STATUS_PENDING {
         return Err(AxAgentError::Validation(
             "Can only cancel pending or processing jobs".to_string(),

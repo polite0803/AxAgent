@@ -297,12 +297,15 @@ async fn handle_dispatch(
                         let client = reqwest::Client::new();
                         let url = format!("https://discord.com/api/v10/channels/{}/messages", ch);
                         let body = serde_json::json!({ "content": &reply_text[..2000.min(reply_text.len())] });
-                        let _ = client
+                        let send_result = client
                             .post(&url)
                             .header("Authorization", format!("Bot {}", bot))
                             .json(&body)
                             .send()
                             .await;
+                        if let Err(ref e) = send_result {
+                            tracing::warn!(error = %e, channel = %ch, "Discord message send failed");
+                        }
                     }
                 });
             }

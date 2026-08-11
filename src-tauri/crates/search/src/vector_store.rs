@@ -741,6 +741,7 @@ impl VectorStore {
                 self.registry_update_vector_count(collection_id).await;
                 let cid = collection_id.to_string();
                 let db = self.clone();
+                // Fire-and-forget: FTS 索引重建失败不应阻塞主写入路径，但需记录错误。
                 tokio::spawn(async move {
                     db.rebuild_fts_index(&cid).await;
                 });
@@ -985,6 +986,7 @@ impl VectorStore {
         self.registry_update_vector_count(knowledge_base_id).await;
         let cid = knowledge_base_id.to_string();
         let db = self.clone();
+        // Fire-and-forget: FTS 索引重建失败不应阻塞主删除路径
         tokio::spawn(async move {
             db.rebuild_fts_index(&cid).await;
         });

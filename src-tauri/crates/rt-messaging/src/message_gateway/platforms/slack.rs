@@ -209,13 +209,16 @@ async fn run_slack_socket_mode(
                                                 "channel": ch,
                                                 "text": &reply_text,
                                             });
-                                            let _ = client
+                                            let send_result = client
                                                 .post("https://slack.com/api/chat.postMessage")
                                                 .header("Authorization", format!("Bearer {}", bt))
                                                 .header("Content-Type", "application/json")
                                                 .json(&body)
                                                 .send()
                                                 .await;
+                                            if let Err(ref e) = send_result {
+                                                tracing::warn!(error = %e, "Slack message send failed");
+                                            }
                                         }
                                     });
                                 }

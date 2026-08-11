@@ -799,7 +799,7 @@ async fn proxy_stream_response(
         } else {
             status.as_u16() as i32
         };
-        if let Err(e) = record_native_outcome(
+        record_native_outcome(
             &adapter,
             &latency_tracker,
             &gateway_key,
@@ -813,10 +813,7 @@ async fn proxy_stream_response(
             stream_error.as_deref(),
             protocol.aggregates_usage(),
         )
-        .await
-        {
-            tracing::error!(error = %e, "[native] record_native_outcome failed");
-        }
+        .await;
     });
 
     build_passthrough_response(status, &headers, Body::from_stream(ReceiverStream::new(rx)))

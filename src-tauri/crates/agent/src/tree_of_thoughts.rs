@@ -745,7 +745,7 @@ impl DefaultToTReasoningProvider {
             let llm_config = axagent_harness::LlmCallConfig::default();
             match axagent_harness::execute_llm(&**adapter, ctx, request, &llm_config).await {
                 Ok(result) => Ok(result.response.content),
-                Err(e) => Err(e),
+                Err(e) => Err(AxAgentError::from(e)),
             }
         } else {
             Ok(self.heuristic_response(user_prompt))
@@ -877,7 +877,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
         let llm_config = axagent_harness::LlmCallConfig::default();
         match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
             Ok(result) => Ok(result.response.content),
-            Err(e) => Err(e),
+            Err(e) => Err(AxAgentError::from(e)),
         }
     }
 
@@ -933,7 +933,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
         let llm_config = axagent_harness::LlmCallConfig::default();
         match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
             Ok(result) => Ok(result.response.content),
-            Err(e) => Err(e),
+            Err(e) => Err(AxAgentError::from(e)),
         }
     }
 }
