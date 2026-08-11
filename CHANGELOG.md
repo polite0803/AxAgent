@@ -1,37 +1,29 @@
 # Changelog
 
 All notable changes to AxAgent will be documented in this file.
-## [v2.8.7] - 2026-07-24
+## [v2.9.3] - 2026-08-11
 
 ### ✨ New Features
-- 翻译 10 个目标语言未翻译及中文泄漏的 key
-- 文档导出工具能力扩展（数学公式/图表/Mermaid 流程图）
-- 成本展示由 USD 改为 CNY，支持自定义汇率
-- 大规模功能增强——Gateway OpenAI API 扩展、新 LLM 提供商、插件沙箱、Event Bus、后台任务
-- P3 改进——路径验证统一与无障碍增强
+- Wiki 与知识库建立显式关联（v118 迁移），笔记 wikilink 同步下沉至 dao 层
+
+
+### 🎨 Styling
+- 全量 rustfmt 格式化并通过 pre-commit 检查
 
 
 ### 🐛 Bug Fixes
-- 移除破坏 antd v6 Tabs 隐藏机制的内联 CSS hack
-- workflow_executions.total_time_ms 类型对齐 BIGINT (i32→i64)
-- 补齐 settings.markerPrefixPlaceholder / markerPrefixDesc 到全部 10 个目标语言
-- mermaid PDF test CI failure + box-drawing CID font fallback
-- 修复 CI 两项失败——CJK PDF 字体乱码 + i18n 硬编码
-- pdf_math_test 添加 CJK 字体 guard，消除并行测试的 OnceLock 干扰
-- 去掉 pdf_math_test 的 #[cfg(windows)]，仅保留运行时 guard 避免死代码警告
-- pdf_template_test 含 CJK 文本的测试添加 msyh.ttc 运行时 guard
-- storage_migration messages::ActiveModel 缺 quoted_message_id 字段
-- map(..).flatten() → and_then(..) on Option
-- 修复 cargo audit 漏洞并补全 quoted_message_id 字段
-- ignore quick-xml 0.30.0 RUSTSEC-2026-0194/0195 (xcb transitive, 桌面场景不可利用)
-- 为 react_engine_extended_tests 添加 TestLlmProvider mock，注入 with_reasoning_provider()
+- 修复 PostgreSQL 后端硬编码和 llama.cpp 服务地址不同步
+- 修正错误链转换与 transport 注册借用，细化网关日志并补齐 SAFETY 注释
+- 修复 clippy lint 告警和 schema 合规性测试
 
 
 ### 📦 Miscellaneous
-- 新增 db 类型一致性审计脚本
-- bump version to v2.8.7
+- bump version to 2.9.3
+- 升级版本号至 2.9.3
+- 升级 sea-orm 至 2.0.1 stable 并清理 oxlint 告警、删除 Trae 临时文件
 
 
-### 🔧 CI / Build
-- 合并 clippy 两阶段——axagent-disk-cache / axagent-rt-theme 在 rust 1.97 下已不再触发 ICE
+### 🔨 Refactoring
+- 代码质量与 CI 改进（oxlint 替代 ESLint、锁毒化防护、unwrap 消除、错误分类优化）
+- 消除 unwrap 并保留错误根因链、CI cargo-audit 加固、依赖覆盖修复
 
