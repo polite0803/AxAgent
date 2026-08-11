@@ -4411,8 +4411,6 @@ export async function handleCommand<T>(
       return { is_running: false, generation: 0, stats: {} } as T;
     case "get_sandbox_policy":
       return { enabled: false, rules: [] } as T;
-    case "extract_entities_for_kb":
-    case "extract_entities_from_documents":
     case "batch_upsert_entities_and_relations":
       return {
         newEntities: [],
@@ -5295,8 +5293,6 @@ export async function handleCommand<T>(
     case "opc_market_list":
     case "opc_publish_blog_post":
     case "opc_publish_landing_page":
-    case "opc_evolve_workflow":
-    case "opc_build_industry_prompt":
     case "opc_run_self_improving_opc_work_item":
       return { success: true } as unknown as T;
 

@@ -7,7 +7,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
-const {} = Input;
 
 interface AskUserCardProps {
   askId: string;

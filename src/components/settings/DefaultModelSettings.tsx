@@ -11,8 +11,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
-const {} = Input;
-
 // 默认 prompt 已移至 i18n locale keys:
 // settings.titleSummaryPromptDefault / settings.compressionPromptDefault
 

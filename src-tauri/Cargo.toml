@@ -119,9 +119,6 @@ ignored = [
 
 [lib]
 name = "axagent_lib"
-# cdylib: Android/iOS 动态库 (.so/.dylib)，Tauri mobile 构建必需
-# staticlib: macOS/iOS 静态库 (.a)
-# rlib: Rust 内部依赖（其他 crate 引用时用）
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
@@ -252,13 +249,21 @@ incremental = true
 # Windows MSVC 关键优化：split-debuginfo="unpacked" 将 PDB 拆分到 .pdb 文件，
 # 避免链接器把 debug info 打包进 .dll/.exe，每次链接减少数分钟
 split-debuginfo = "unpacked"
-codegen-units = 16
+# axagent 主 crate 代码量大，减少 codegen-units 降低并行编译开销
+codegen-units = 8
 
 # 第三方依赖编译加速：不生成调试信息，更多并行 codegen
 [profile.dev.build-override]
 opt-level = 0
 codegen-units = 64
 debug = false
+incremental = true
+
+# axagent 主 crate 优化：减少 codegen-units，降低 Windows 链接开销
+[profile.dev.overrides.axagent]
+opt-level = 0
+codegen-units = 4
+debug = "line-tables-only"
 incremental = true
 
 [dev-dependencies]

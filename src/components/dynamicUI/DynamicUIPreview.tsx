@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 import { DynamicUIRenderer } from "./DynamicUIRenderer";
 
 const { Text } = Typography;
-const {} = Input;
 
 // DUI-P2-04: 默认 schema 文本根据当前语言动态生成，避免硬编码中文
 function buildDefaultSchema(t: (key: string) => string): UISchema {

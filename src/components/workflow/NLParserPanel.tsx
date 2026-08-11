@@ -7,7 +7,6 @@ import { Button, Input, Progress, Space, Tag, Typography } from "antd";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const {} = Input;
 const { Text, Title } = Typography;
 
 interface NLParserPanelProps {

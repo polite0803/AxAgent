@@ -6,8 +6,6 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsSelect } from "./SettingsSelect";
 
-const {} = Input;
-
 export function ConversationSettings() {
   const { t } = useTranslation();
   const settings = useSettingsStore((s) => s.settings);

@@ -57,7 +57,10 @@ export function LimitUpPanel({ bordered = true }: LimitUpPanelProps = {}) {
       if (!Array.isArray(hot)) { throw new Error("bad data"); }
       // 主排序：changePct 倒序；过滤：涨幅 >= 9.5% 的强势股
       // 数据源返回的 changePct 单位是 %（例如 9.8 / 10.0）
-      const candidates = hot.filter((h) => ((h as Record<string, unknown>).changePct as number) ?? 0 >= 9.5);
+      const candidates = hot.filter((h) => {
+        const changePct = ((h as Record<string, unknown>).changePct as number) ?? 0;
+        return changePct >= 9.5;
+      });
       const results: LimitUpStock[] = [];
       for (const h of candidates.slice(0, 30)) {
         try {
@@ -116,7 +119,10 @@ export function LimitUpPanel({ bordered = true }: LimitUpPanelProps = {}) {
       .then((hot) => {
         if (cancelled || !hot) { return; }
         if (!Array.isArray(hot)) { throw new Error("bad data"); }
-        const candidates = hot.filter((h) => ((h as Record<string, unknown>).changePct as number) ?? 0 >= 9.5);
+        const candidates = hot.filter((h) => {
+          const changePct = ((h as Record<string, unknown>).changePct as number) ?? 0;
+          return changePct >= 9.5;
+        });
         return Promise.all(
           candidates.slice(0, 30).map(async (h: Record<string, unknown>) => {
             try {

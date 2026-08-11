@@ -51,7 +51,6 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 const { Title, Paragraph, Text } = Typography;
-const {} = Input;
 
 const CATEGORIES = ["form", "dashboard", "report", "custom"];
 

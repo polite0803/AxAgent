@@ -8,7 +8,6 @@ import { useStrategyStore } from "@/stores/feature/quant";
 import { DEFAULT_RHAI_TEMPLATE } from "@/types";
 
 const { Text, Paragraph } = Typography;
-const {} = Input;
 
 export function RhaiEditorTab() {
   const { message } = App.useApp();

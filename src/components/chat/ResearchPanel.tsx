@@ -17,7 +17,6 @@ import { ResearchSources } from "./ResearchSources";
 import { getSourceTypeName, type SearchResult } from "./researchUtils";
 
 const { Title, Text, Paragraph } = Typography;
-const {} = Input;
 
 type ResearchPhase =
   | "planning"

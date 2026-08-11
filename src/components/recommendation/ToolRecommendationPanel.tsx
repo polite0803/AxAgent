@@ -5,7 +5,6 @@ import { Alert, Button, Card, Divider, Input, Progress, Space, Spin, Tag, Typogr
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const {} = Input;
 const { Title, Text, Paragraph } = Typography;
 
 export function ToolRecommendationPanel() {

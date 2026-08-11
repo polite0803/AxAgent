@@ -1286,7 +1286,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           // 这里必须匹配同样的集合，否则 risk-level 在回放时丢失。
           // risk-aggregated 是 agg-risk AggregatorNode 的 output_var，原始 JSON 含 result 数组
           // 与子节点数据重复，排除避免污染雷达图（已被 line 988 的 agg-risk 展开替代）。
-          if (/^risk-/.test(key) && key !== "risk-aggregated") {
+          if (key.startsWith("risk-") && key !== "risk-aggregated") {
             risks[key] = extractContent(value);
           }
           // ── 投资组合经理输出 ──
@@ -1301,7 +1301,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         // Debug: 输出 snapshot 中辩论/风险键及其内容长度，帮助诊断回放数据缺失
         if (import.meta.env.DEV) {
           const debateKeys = Object.keys(snap).filter(k => /^bull-r\d+$/.test(k) || /^bear-r\d+$/.test(k));
-          const riskKeys = Object.keys(snap).filter(k => /^risk-/.test(k) || k === "research-mgr");
+          const riskKeys = Object.keys(snap).filter(k => k.startsWith("risk-") || k === "research-mgr");
           console.debug(
             `[StockAnalysis] loadAnalysis debateKeys=${JSON.stringify(debateKeys)} riskKeys=${
               JSON.stringify(riskKeys)
@@ -1467,8 +1467,8 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             confScore = diff <= 0.1 ? 20 : diff <= 0.2 ? 15 : diff <= 0.4 ? 8 : 0;
           }
           decisionAgreementScore = Math.round(actionScore + posScore + confScore);
-        } catch (_e) {
-          // 静默忽略一致性计算失败
+        } catch (e) {
+          console.warn("一致性计算失败:", e);
         }
       }
       set({

@@ -18,8 +18,6 @@ import { ActionDiffPreview } from "./ActionDiffPreview";
 import { EvolutionTab } from "./EvolutionTab";
 import { NLParseResultView } from "./NLParseResultView";
 
-const {} = Input;
-
 interface AIPanelProps {
   onGenerateWorkflow: (
     prompt: string,

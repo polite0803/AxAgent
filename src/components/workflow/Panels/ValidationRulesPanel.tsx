@@ -17,7 +17,6 @@ import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 const { Text } = Typography;
-const {} = Input;
 
 export type RuleType = "json_schema" | "path_assertion" | "threshold";
 export type ThresholdMetric = "duration_ms" | "token_count" | "node_count" | "retry_count";

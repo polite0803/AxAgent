@@ -11,7 +11,6 @@ import { App, Button, Empty, Input, Progress, Select, Space, Tabs, Typography } 
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const {} = Input;
 const { Text } = Typography;
 
 type GenerationMode = "skill" | "ui";

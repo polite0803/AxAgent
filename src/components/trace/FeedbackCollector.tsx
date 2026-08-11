@@ -6,7 +6,6 @@ import { App as AntdApp, Button, Input, Space, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const {} = Input;
 const { Text } = Typography;
 
 /** 反馈记录条目 */

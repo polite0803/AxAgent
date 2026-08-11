@@ -9,8 +9,6 @@ import { FolderOpen } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const {} = Input;
-
 export interface CategoryEditFormData {
   name: string;
   icon_type: string | null;
