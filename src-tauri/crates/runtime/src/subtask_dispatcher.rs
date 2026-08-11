@@ -110,8 +110,8 @@ impl SubTaskDispatcher for RuntimeSubTaskDispatcher {
         request: DispatchRequest,
     ) -> axagent_harness::Result<SubTaskDispatchResult> {
         self.handler.handle(request).await.map_err(|e| {
-            // 把 anyhow::Error 转为 AxAgentError::Execution,保留消息作为 context
-            axagent_harness::AxAgentError::execution(format!("{e:#}"))
+            // 把 anyhow::Error 转为 AxAgentError::Execution，保留完整错误链作为 source
+            axagent_harness::AxAgentError::execution_with_source("SubTask dispatch failed", e)
         })
     }
 }

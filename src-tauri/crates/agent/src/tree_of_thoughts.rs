@@ -730,11 +730,14 @@ impl DefaultToTReasoningProvider {
 
             // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
             if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
-                let messages = serde_json::to_value(&request)
-                    .map_err(|e| AxAgentError::Provider(e.to_string()))?;
+                let messages = serde_json::to_value(&request).map_err(|e| {
+                    AxAgentError::execution_with_source("Failed to serialize LLM request", e)
+                })?;
                 return match svc.execute(&**adapter, ctx, messages, config).await {
                     Ok(result) => Ok(result.content),
-                    Err(e) => Err(AxAgentError::Provider(e)),
+                    Err(e) => {
+                        Err(AxAgentError::execution_with_source("LLM execution service failed", e))
+                    },
                 };
             }
 
@@ -742,7 +745,7 @@ impl DefaultToTReasoningProvider {
             let llm_config = axagent_harness::LlmCallConfig::default();
             match axagent_harness::execute_llm(&**adapter, ctx, request, &llm_config).await {
                 Ok(result) => Ok(result.response.content),
-                Err(e) => Err(AxAgentError::Provider(e)),
+                Err(e) => Err(e),
             }
         } else {
             Ok(self.heuristic_response(user_prompt))
@@ -859,11 +862,14 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
 
         // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
         if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
-            let messages = serde_json::to_value(&request)
-                .map_err(|e| AxAgentError::Provider(e.to_string()))?;
+            let messages = serde_json::to_value(&request).map_err(|e| {
+                AxAgentError::execution_with_source("Failed to serialize LLM request", e)
+            })?;
             return match svc.execute(&*self.adapter, &self.ctx, messages, config).await {
                 Ok(result) => Ok(result.content),
-                Err(e) => Err(AxAgentError::Provider(e)),
+                Err(e) => {
+                    Err(AxAgentError::execution_with_source("LLM execution service failed", e))
+                },
             };
         }
 
@@ -871,7 +877,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
         let llm_config = axagent_harness::LlmCallConfig::default();
         match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
             Ok(result) => Ok(result.response.content),
-            Err(e) => Err(AxAgentError::Provider(e)),
+            Err(e) => Err(e),
         }
     }
 
@@ -912,11 +918,14 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
 
         // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
         if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service) {
-            let messages = serde_json::to_value(&request)
-                .map_err(|e| AxAgentError::Provider(e.to_string()))?;
+            let messages = serde_json::to_value(&request).map_err(|e| {
+                AxAgentError::execution_with_source("Failed to serialize LLM request", e)
+            })?;
             return match svc.execute(&*self.adapter, &self.ctx, messages, config).await {
                 Ok(result) => Ok(result.content),
-                Err(e) => Err(AxAgentError::Provider(e)),
+                Err(e) => {
+                    Err(AxAgentError::execution_with_source("LLM execution service failed", e))
+                },
             };
         }
 
@@ -924,7 +933,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
         let llm_config = axagent_harness::LlmCallConfig::default();
         match axagent_harness::execute_llm(&*self.adapter, &self.ctx, request, &llm_config).await {
             Ok(result) => Ok(result.response.content),
-            Err(e) => Err(AxAgentError::Provider(e)),
+            Err(e) => Err(e),
         }
     }
 }

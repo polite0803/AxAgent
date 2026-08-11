@@ -501,8 +501,9 @@ impl ParallelExecutionVerifier {
         let mut all_details = Vec::new();
 
         for task in &tasks_with_schema {
-            let schema_str = task.expected_output_schema.as_ref().unwrap();
-            let output = task.result.as_ref().unwrap();
+            let schema_str =
+                task.expected_output_schema.as_ref().expect("已过滤仍缺 expected_output_schema");
+            let output = task.result.as_ref().expect("已过滤仍缺 result");
 
             let schema: Result<serde_json::Value, _> = serde_json::from_str(schema_str);
             let output_value: Result<serde_json::Value, _> = serde_json::from_str(output);
@@ -649,7 +650,7 @@ impl ParallelExecutionVerifier {
         let mut violations = Vec::new();
 
         for task in &tasks_with_timeout {
-            let limit_secs = task.timeout_secs.unwrap();
+            let limit_secs = task.timeout_secs.expect("已过滤仍缺 timeout_secs");
             let elapsed = task.duration_ms().unwrap_or(0) as f64 / 1000.0;
 
             if elapsed <= limit_secs as f64 {

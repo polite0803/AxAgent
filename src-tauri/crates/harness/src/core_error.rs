@@ -135,6 +135,15 @@ impl AxAgentError {
         AxAgentError::Execution { source: None, context: context.into() }
     }
 
+    /// Creates a new execution error with context and a source error,
+    /// preserving the root cause chain for diagnostics / downcast.
+    pub fn execution_with_source<E: Into<Box<dyn std::error::Error + Send + Sync>>>(
+        context: impl Into<String>,
+        source: E,
+    ) -> Self {
+        AxAgentError::Execution { source: Some(source.into()), context: context.into() }
+    }
+
     /// Creates a new internal error with the given context message
     pub fn internal<S: Into<String>>(context: S) -> Self {
         AxAgentError::Internal(context.into())

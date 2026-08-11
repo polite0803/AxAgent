@@ -305,7 +305,7 @@ async fn resolve_references_impl(content: &str, base_dir: &Path) -> String {
 }
 
 fn resolve_file_refs(content: &str, base_dir: &Path) -> String {
-    let re = regex::Regex::new(r"@file:([^\s]+)").unwrap();
+    let re = regex::Regex::new(r"@file:([^\s]+)").expect("解析 @file 引用正则失败");
     re.replace_all(content, |caps: &regex::Captures| {
         let ref_path = &caps[1];
         let full_path = base_dir.join(ref_path);

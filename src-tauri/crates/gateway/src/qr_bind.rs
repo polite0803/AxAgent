@@ -115,6 +115,7 @@ impl QrBindStore {
                     }
                 }
             }
+            tracing::debug!("qr-bind sweeper exited");
         });
     }
 }

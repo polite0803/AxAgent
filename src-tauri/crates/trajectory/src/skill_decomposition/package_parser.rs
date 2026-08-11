@@ -106,8 +106,10 @@ impl SkillPackageParser {
 
     fn extract_python_imports(file_path: &str, content: &str) -> Vec<FileReference> {
         let mut refs = Vec::new();
-        let import_re = Regex::new(r#"^\s*(?:import|from)\s+([a-zA-Z_][a-zA-Z0-9_\.]+)"#).unwrap();
-        let from_re = Regex::new(r#"^\s*from\s+([a-zA-Z_][a-zA-Z0-9_\.]+)\s+import"#).unwrap();
+        let import_re = Regex::new(r#"^\s*(?:import|from)\s+([a-zA-Z_][a-zA-Z0-9_\.]+)"#)
+            .expect("解析 Python import 正则失败");
+        let from_re = Regex::new(r#"^\s*from\s+([a-zA-Z_][a-zA-Z0-9_\.]+)\s+import"#)
+            .expect("解析 Python from import 正则失败");
 
         for line in content.lines() {
             if let Some(caps) = from_re.captures(line) {
@@ -136,9 +138,10 @@ impl SkillPackageParser {
 
     fn extract_js_imports(file_path: &str, content: &str) -> Vec<FileReference> {
         let mut refs = Vec::new();
-        let require_re = Regex::new(r#"require\s*\(\s*["']([^"']+)["']\s*\)"#).unwrap();
-        let import_re =
-            Regex::new(r#"import\s+(?:(?:\{[^}]+\}|\w+)\s+from\s+)?["']([^"']+)["']"#).unwrap();
+        let require_re = Regex::new(r#"require\s*\(\s*["']([^"']+)["']\s*\)"#)
+            .expect("解析 JS require 正则失败");
+        let import_re = Regex::new(r#"import\s+(?:(?:\{[^}]+\}|\w+)\s+from\s+)?["']([^"']+)["']"#)
+            .expect("解析 JS import 正则失败");
 
         for line in content.lines() {
             if let Some(caps) = require_re.captures(line) {

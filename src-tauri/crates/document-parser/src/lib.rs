@@ -16,8 +16,11 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
     match mime_type {
         // Plain text files
         "text/plain" | "text/markdown" | "text/csv" | "text/html" | "text/xml"
-        | "application/json" | "application/xml" => std::fs::read_to_string(file_path)
-            .map_err(|e| AxAgentError::Provider(format!("Failed to read file: {e}"))),
+        | "application/json" | "application/xml" => {
+            std::fs::read_to_string(file_path).map_err(|e| {
+                AxAgentError::execution_with_source(format!("Failed to read file: {file_path}"), e)
+            })
+        },
 
         // PDF
         "application/pdf" => {
@@ -61,10 +64,10 @@ pub fn extract_text(file_path: &Path, mime_type: &str) -> Result<String> {
         _ => {
             // Try reading as plain text as fallback
             std::fs::read_to_string(file_path).map_err(|e| {
-                AxAgentError::Provider(format!(
-                    "Unsupported MIME type '{}', fallback read failed: {e}",
-                    mime_type
-                ))
+                AxAgentError::execution_with_source(
+                    format!("Unsupported MIME type '{}' for {}", mime_type, file_path),
+                    e,
+                )
             })
         },
     }
@@ -135,34 +138,48 @@ pub fn ocr_fallback(path: &Path) -> std::result::Result<String, String> {
 pub async fn extract_text_async(file_path: PathBuf, mime_type: String) -> Result<String> {
     tokio::task::spawn_blocking(move || extract_text(&file_path, &mime_type))
         .await
-        .map_err(|e| AxAgentError::Provider(format!("文本提取任务失败: {e}")))
+        .map_err(|e| {
+            AxAgentError::execution_with_source(format!("文本提取任务失败: {file_path}"), e)
+        })
         .and_then(|r| r)
 }
 
 /// Extract text from PDF using pdf-extract crate.
 fn extract_pdf(file_path: &Path) -> Result<String> {
-    let bytes = std::fs::read(file_path)
-        .map_err(|e| AxAgentError::Provider(format!("Failed to read PDF file: {e}")))?;
+    let bytes = std::fs::read(file_path).map_err(|e| {
+        AxAgentError::execution_with_source(
+            format!("Failed to read PDF file: {}", file_path.display()),
+            e,
+        )
+    })?;
 
     pdf_extract::extract_text_from_mem(&bytes)
-        .map_err(|e| AxAgentError::Provider(format!("Failed to extract PDF text: {e}")))
+        .map_err(|e| AxAgentError::execution_with_source("Failed to extract PDF text".into(), e))
 }
 
 /// Extract text from DOCX by reading the internal XML.
 /// DOCX files are ZIP archives containing word/document.xml.
 fn extract_docx(file_path: &Path) -> Result<String> {
-    let file = std::fs::File::open(file_path)
-        .map_err(|e| AxAgentError::Provider(format!("Failed to open DOCX file: {e}")))?;
+    let file = std::fs::File::open(file_path).map_err(|e| {
+        AxAgentError::execution_with_source(
+            format!("Failed to open DOCX file: {}", file_path.display()),
+            e,
+        )
+    })?;
 
-    let mut archive = zip::ZipArchive::new(file)
-        .map_err(|e| AxAgentError::Provider(format!("Failed to read DOCX as ZIP: {e}")))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| {
+        AxAgentError::execution_with_source(
+            format!("Failed to read DOCX as ZIP: {}", file_path.display()),
+            e,
+        )
+    })?;
 
     let mut xml_content = String::new();
     if let Ok(mut entry) = archive.by_name("word/document.xml") {
         use std::io::Read;
-        entry
-            .read_to_string(&mut xml_content)
-            .map_err(|e| AxAgentError::Provider(format!("Failed to read document.xml: {e}")))?;
+        entry.read_to_string(&mut xml_content).map_err(|e| {
+            AxAgentError::execution_with_source("Failed to read document.xml".into(), e)
+        })?;
     } else {
         return Err(AxAgentError::Provider("DOCX: word/document.xml not found".into()));
     }

@@ -232,16 +232,24 @@ jobs:
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Run cargo audit
         working-directory: src-tauri
         continue-on-error: false
         run: |
           if cargo audit --version &>/dev/null; then
-            # RUSTSEC-2026-0235 (rkyv 0.7.x): 上游 rust_decimal 依赖 rkyv 0.7.x，
-            # 0.8.x 为 breaking change，rust_decimal 尚未升级。待上游修复后移除 --ignore。
-            cargo audit --ignore RUSTSEC-2026-0235
+            # RUSTSEC-2026-0235 (rkyv 0.7.46): 上游 rust_decimal 1.42.1 依赖 rkyv 0.7.x。
+            # rkyv 0.8.x 为 breaking change，rust_decimal 尚未适配。
+            # 影响范围：仅 Linux 平台，sqlx-postgres/mysql 的 rust_decimal → rkyv 链。
+            # 缓解：rkyv 在 Windows 构建中不参与编译；Linux 上 rkyv 仅用于 Decimal 序列化。
+            # 待 rust_decimal 升级到 rkyv 0.8.x 后移除本 ignore。
+            # RUSTSEC-2024-0429 (glib 0.18.5): Tauri/WebKit2GTK → glib GTK3 bindings。
+            # GTK3 已于 2024-03 停止维护，glib Iterator 实现存在 unsoundness。
+            # 影响范围：仅 Linux 平台构建（Tauri WebView 渲染层）。
+            # 缓解：Windows 使用 WebView2，不编译 glib；Linux 上 glib 仅用于系统菜单/托盘。
+            # Tauri 上游需迁移到 GTK4，本项无法自行修复。
+            cargo audit --ignore RUSTSEC-2026-0235 --ignore RUSTSEC-2024-0429
           else
             echo "cargo-audit not available, skipping"
           fi

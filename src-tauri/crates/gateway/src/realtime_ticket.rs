@@ -135,6 +135,7 @@ impl TicketStore {
                     }
                 }
             }
+            tracing::debug!("realtime ticket sweeper exited");
         });
     }
 }

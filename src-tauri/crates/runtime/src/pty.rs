@@ -189,7 +189,10 @@ impl PtySession {
                     match inner.child.try_wait() {
                         Ok(Some(status)) => Some(status.exit_code() as i32),
                         Ok(None) => None,
-                        Err(_) => None,
+                        Err(e) => {
+                            tracing::error!(error = %e, session_id = %session_id, "[pty] try_wait failed");
+                            None
+                        },
                     }
                 } else {
                     None

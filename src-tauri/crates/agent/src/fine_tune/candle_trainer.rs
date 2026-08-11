@@ -282,10 +282,14 @@ pub fn train_with_embeddings(
         .into_iter()
         .zip(target_embeddings)
         .map(|(inp, tgt)| {
-            let inp_t = Tensor::from_vec(inp, (1, input_dim), &device)
-                .unwrap_or_else(|_| Tensor::zeros(input_dim, DType::F32, &device).unwrap());
-            let tgt_t = Tensor::from_vec(tgt, (1, hidden_dim), &device)
-                .unwrap_or_else(|_| Tensor::zeros(hidden_dim, DType::F32, &device).unwrap());
+            let inp_t = Tensor::from_vec(inp, (1, input_dim), &device).unwrap_or_else(|_| {
+                Tensor::zeros(input_dim, DType::F32, &device)
+                    .expect("创建零值 input Tensor 兜底失败")
+            });
+            let tgt_t = Tensor::from_vec(tgt, (1, hidden_dim), &device).unwrap_or_else(|_| {
+                Tensor::zeros(hidden_dim, DType::F32, &device)
+                    .expect("创建零值 target Tensor 兜底失败")
+            });
             (inp_t, tgt_t)
         })
         .collect();

@@ -787,6 +787,7 @@ async fn proxy_stream_response(
                     stream_error = Some(format!(
                         "Stream error: {e}. This may be caused by network instability, proxy issues, or the provider terminating the connection. Please try again."
                     ));
+                    tracing::error!(error = %e, provider = %provider_id, "[native] upstream stream error");
                     break;
                 },
             }
@@ -798,7 +799,7 @@ async fn proxy_stream_response(
         } else {
             status.as_u16() as i32
         };
-        record_native_outcome(
+        if let Err(e) = record_native_outcome(
             &adapter,
             &latency_tracker,
             &gateway_key,
@@ -812,7 +813,10 @@ async fn proxy_stream_response(
             stream_error.as_deref(),
             protocol.aggregates_usage(),
         )
-        .await;
+        .await
+        {
+            tracing::error!(error = %e, "[native] record_native_outcome failed");
+        }
     });
 
     build_passthrough_response(status, &headers, Body::from_stream(ReceiverStream::new(rx)))

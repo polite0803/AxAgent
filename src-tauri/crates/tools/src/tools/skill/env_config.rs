@@ -357,7 +357,7 @@ impl Tool for SkillConfigTool {
                     let mut parts = key.splitn(2, '.');
                     (
                         parts.next().expect("迭代器为空").to_string(),
-                        parts.next().unwrap().to_string(),
+                        parts.next().expect("key 格式无效：缺少设置名称").to_string(),
                     )
                 } else {
                     return Err(ToolError::invalid_input(

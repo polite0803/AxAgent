@@ -387,6 +387,7 @@ impl TransportHandler for HTTPTransportHandler {
         tokio::spawn(async move {
             let mut conns = connections.write().await;
             conns.insert(endpoint.agent_id.clone(), endpoint);
+            tracing::debug!(agent_id = %endpoint.agent_id, "[transport] connection registered");
         });
 
         Ok(())
@@ -513,6 +514,7 @@ impl TransportHandler for SSETransportHandler {
         tokio::spawn(async move {
             let mut conns = connections.write().await;
             conns.insert(endpoint.agent_id.clone(), endpoint);
+            tracing::debug!(agent_id = %endpoint.agent_id, "[transport] connection registered");
         });
 
         Ok(())
@@ -591,6 +593,7 @@ impl TransportHandler for StdioTransportHandler {
         tokio::spawn(async move {
             let mut conns = connections.write().await;
             conns.insert(endpoint.agent_id.clone(), endpoint);
+            tracing::debug!(agent_id = %endpoint.agent_id, "[transport] connection registered");
         });
 
         Ok(())

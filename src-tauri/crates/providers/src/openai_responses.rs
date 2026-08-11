@@ -626,16 +626,17 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
-                        "OpenAI Responses",
-                        s,
-                        &t,
-                    ))));
+                    let _ = tx.try_send(Err(AxAgentError::execution_with_source(
+                        super::diagnose_http_status("OpenAI Responses", s, &t),
+                        anyhow::anyhow!("HTTP {s}: {t}"),
+                    )));
                     return;
                 },
                 Err(e) => {
-                    let _ =
-                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
+                    let _ = tx.try_send(Err(AxAgentError::execution_with_source(
+                        super::diagnose_reqwest_error(&e),
+                        e,
+                    )));
                     return;
                 },
             };

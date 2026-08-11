@@ -583,7 +583,14 @@ impl LspProcess {
                                     .map(|s| s.to_string()),
                             });
                         }
+                    } else {
+                        tracing::warn!(
+                            uri = %path,
+                            "[lsp] publishDiagnostics notification missing diagnostics field"
+                        );
                     }
+                } else {
+                    tracing::warn!("[lsp] publishDiagnostics notification missing uri field");
                 }
 
                 let mut all_diags = diagnostics.write().await;
