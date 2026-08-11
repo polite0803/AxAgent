@@ -6144,6 +6144,8 @@
     "cancel": "Abbrechen",
     "chunks": "Blöcke",
     "close": "Schließen",
+    "collapseAll": "Alle ausblenden",
+    "expandAll": "Alle einblenden",
     "common": {
       "actions": "Aktionen",
       "close": "Schließen",
@@ -6171,7 +6173,6 @@
     "focusLocal": "Lokal fokussieren",
     "graph": {
       "communities": "Communitys",
-      "components": "Komponenten",
       "edgeType": {
         "backlink": "Rückverweis",
         "contradicts": "Widerspricht",
@@ -6182,15 +6183,10 @@
       "edges": "Kanten",
       "empty": "Keine Graphdaten",
       "exportPNG": "PNG exportieren",
-      "filterByTags": "Nach Tags filtern",
-      "filters": "Filter",
+      "exportHD": "HD PNG exportieren",
+      "exportSVG": "SVG exportieren",
       "fitView": "Ansicht anpassen",
-      "focusSelected": "Auswahl fokussieren",
       "fullscreen": "Vollbild",
-      "layoutForce": "Kraft",
-      "layoutRadial": "Radial",
-      "layoutHierarchy": "Raster",
-      "layoutRunning": "Layout wird berechnet…",
       "loadError": "Laden fehlgeschlagen",
       "loading": "Laden...",
       "noConnectedNodes": "Keine verbundenen Knoten",
@@ -6200,13 +6196,21 @@
       "title": "Wissensgraph",
       "zoomIn": "Vergrößern",
       "zoomOut": "Verkleinern",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "Legende",
+      "edgeTypes": "Kantentyp-Filter",
       "repairGraph": "Graph-Links reparieren",
       "repairSuccess": "Reparatur abgeschlossen: KB verknüpft, {{count}} Notiz-Links repariert",
-      "repairPartial": "Reparatur abgeschlossen: {{count}} Notiz-Links repariert (kein passendes KB gefunden)"
+      "repairPartial": "Reparatur abgeschlossen: {{count}} Notiz-Links repariert (kein passendes KB gefunden)",
+      "fisheyeOn": "Fischaugenobjektiv: ein",
+      "fisheyeOff": "Fischaugenobjektiv: aus",
+      "clusterOn": "Cluster-Modus: ein",
+      "clusterOff": "Cluster-Modus: aus",
+      "nodeType": {
+        "note": "Notiz",
+        "concept": "Konzept",
+        "entity": "Entität",
+        "source": "Quelle"
+      }
     },
     "hidePanel": "Panel ausblenden",
     "history": "Verlauf",
@@ -6422,7 +6426,8 @@
     "wiki": "Wiki",
     "timeline": "Zeitachse",
     "operationTimeline": "Vorgangszeitachse",
-    "lintReport": "Lint-Bericht"
+    "lintReport": "Lint-Bericht",
+    "noteLoadFailed": "Notiz konnte nicht geladen werden"
   },
   "workflow": {
     "autoSave": {
@@ -9260,5 +9265,25 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "SpeicherGraph",
+      "searchPlaceholder": "Entität oder Tag suchen...",
+      "filterByType": "Nach Typ filtern",
+      "nodeCount": "{count} Entitäten",
+      "edgeCount": "{count} Beziehungen",
+      "refresh": "Aktualisieren",
+      "entityTypes": "Entitätstypen",
+      "noData": "Keine Daten",
+      "emptyDescription": "Noch keine SpeicherGraph-Daten. Starten Sie ein Gespräch, um ihn zu erstellen.",
+      "nodeDetails": "Knotendetails",
+      "mentionCount": "{count} Mal erwähnt",
+      "backlinkCount": "{count} Mal referenziert",
+      "tags": "Tags",
+      "relationships": "Beziehungen",
+      "show": "Graph anzeigen",
+      "hide": "Graph ausblenden"
+    }
   }
 }

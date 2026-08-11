@@ -6171,7 +6171,6 @@
     "focusLocal": "Enfoque local",
     "graph": {
       "communities": "Comunidades",
-      "components": "Componentes",
       "edgeType": {
         "backlink": "Enlace inverso",
         "contradicts": "Contradice",
@@ -6182,15 +6181,10 @@
       "edges": "Aristas",
       "empty": "Sin datos de grafo",
       "exportPNG": "Exportar PNG",
-      "filterByTags": "Filtrar por etiquetas",
-      "filters": "Filtros",
+      "exportHD": "Exportar PNG HD",
+      "exportSVG": "Exportar SVG",
       "fitView": "Ajustar vista",
-      "focusSelected": "Enfocar selección",
       "fullscreen": "Pantalla completa",
-      "layoutForce": "Fuerza",
-      "layoutRadial": "Radial",
-      "layoutHierarchy": "Cuadrícula",
-      "layoutRunning": "Calculando diseño…",
       "loadError": "Error al cargar",
       "loading": "Cargando...",
       "noConnectedNodes": "Sin nodos conectados",
@@ -6200,13 +6194,21 @@
       "title": "Grafo de conocimiento",
       "zoomIn": "Ampliar",
       "zoomOut": "Reducir",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "Leyenda",
+      "edgeTypes": "Filtro de tipo de borde",
       "repairGraph": "Reparar enlaces del gráfico",
       "repairSuccess": "Reparación completada: KB vinculado, {{count}} enlaces de notas reparados",
-      "repairPartial": "Reparación completada: {{count}} enlaces de notas reparados (no se encontró un KB coincidente)"
+      "repairPartial": "Reparación completada: {{count}} enlaces de notas reparados (no se encontró un KB coincidente)",
+      "fisheyeOn": "Lente de ojo de pez: activada",
+      "fisheyeOff": "Lente de ojo de pez: desactivada",
+      "clusterOn": "Modo clúster: activado",
+      "clusterOff": "Modo clúster: desactivado",
+      "nodeType": {
+        "note": "Nota",
+        "concept": "Concepto",
+        "entity": "Entidad",
+        "source": "Fuente"
+      }
     },
     "hidePanel": "Ocultar panel",
     "history": "Historial",
@@ -6422,7 +6424,10 @@
     "wiki": "Wiki",
     "timeline": "Línea de Tiempo",
     "operationTimeline": "Cronología de operaciones",
-    "lintReport": "Informe Lint"
+    "lintReport": "Informe Lint",
+    "collapseAll": "Contraer todo",
+    "expandAll": "Expandir todo",
+    "noteLoadFailed": "No se pudo cargar la nota"
   },
   "workflow": {
     "autoSave": {
@@ -9260,5 +9265,25 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "Grafo de memoria",
+      "searchPlaceholder": "Buscar entidad o etiqueta...",
+      "filterByType": "Filtrar por tipo",
+      "nodeCount": "{count} entidades",
+      "edgeCount": "{count} relaciones",
+      "refresh": "Actualizar",
+      "entityTypes": "Tipos de entidad",
+      "noData": "Sin datos",
+      "emptyDescription": "Aún no hay datos del grafo de memoria. Inicie una conversación para construirlo.",
+      "nodeDetails": "Detalles del nodo",
+      "mentionCount": "Mencionado {count} veces",
+      "backlinkCount": "Referenciado {count} veces",
+      "tags": "Etiquetas",
+      "relationships": "Relaciones",
+      "show": "Mostrar grafo",
+      "hide": "Ocultar grafo"
+    }
   }
 }

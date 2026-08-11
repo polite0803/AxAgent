@@ -6171,7 +6171,6 @@
     "focusLocal": "로컬 포커스",
     "graph": {
       "communities": "커뮤니티",
-      "components": "구성 요소",
       "edgeType": {
         "backlink": "백링크",
         "contradicts": "모순",
@@ -6182,15 +6181,10 @@
       "edges": "엣지",
       "empty": "그래프 데이터가 없습니다",
       "exportPNG": "PNG 내보내기",
-      "filterByTags": "태그로 필터",
-      "filters": "필터",
+      "exportHD": "HD PNG 내보내기",
+      "exportSVG": "SVG 내보내기",
       "fitView": "화면 맞춤",
-      "focusSelected": "선택 항목 포커스",
       "fullscreen": "전체 화면",
-      "layoutForce": "힘 방향",
-      "layoutRadial": "방사형",
-      "layoutHierarchy": "그리드",
-      "layoutRunning": "레이아웃 계산 중…",
       "loadError": "로딩 실패",
       "loading": "로딩 중...",
       "noConnectedNodes": "연결된 노드 없음",
@@ -6200,13 +6194,21 @@
       "title": "지식 그래프",
       "zoomIn": "확대",
       "zoomOut": "축소",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "범례",
+      "edgeTypes": "엣지 유형 필터",
       "repairGraph": "그래프 링크 복구",
       "repairSuccess": "복구 완료: KB 연결됨, {{count}}개 노트의 링크 복구",
-      "repairPartial": "복구 완료: {{count}}개 노트의 링크 복구 (매칭되는 KB를 찾을 수 없음)"
+      "repairPartial": "복구 완료: {{count}}개 노트의 링크 복구 (매칭되는 KB를 찾을 수 없음)",
+      "fisheyeOn": "어안 렌즈: 켜기",
+      "fisheyeOff": "어안 렌즈: 끄기",
+      "clusterOn": "클러스터 모드: 켜기",
+      "clusterOff": "클러스터 모드: 끄기",
+      "nodeType": {
+        "note": "노트",
+        "concept": "개념",
+        "entity": "엔티티",
+        "source": "소스"
+      }
     },
     "hidePanel": "패널 숨기기",
     "history": "기록",
@@ -6422,7 +6424,10 @@
     "wiki": "위키",
     "timeline": "타임라인",
     "operationTimeline": "작업 타임라인",
-    "lintReport": "린트 보고서"
+    "lintReport": "린트 보고서",
+    "collapseAll": "모두 접기",
+    "expandAll": "모두 펼치기",
+    "noteLoadFailed": "노트를 불러오지 못했습니다"
   },
   "workflow": {
     "autoSave": {
@@ -9260,5 +9265,25 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "메모리 그래프",
+      "searchPlaceholder": "엔티티 또는 태그 검색...",
+      "filterByType": "유형별 필터",
+      "nodeCount": "{count}개 엔티티",
+      "edgeCount": "{count}개 관계",
+      "refresh": "새로고침",
+      "entityTypes": "엔티티 유형",
+      "noData": "데이터 없음",
+      "emptyDescription": "아직 메모리 그래프 데이터가 없습니다. 대화를 시작하여 생성하세요.",
+      "nodeDetails": "노드 세부 정보",
+      "mentionCount": "{count}회 언급됨",
+      "backlinkCount": "{count}회 참조됨",
+      "tags": "태그",
+      "relationships": "관계",
+      "show": "그래프 표시",
+      "hide": "그래프 숨기기"
+    }
   }
 }

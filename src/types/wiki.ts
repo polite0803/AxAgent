@@ -9,6 +9,7 @@ export type Note = {
   contentHash: string;
   author: string;
   pageType?: string;
+  tags?: string[];
   sourceRefs?: string[];
   relatedPages?: string[];
   qualityScore?: number;

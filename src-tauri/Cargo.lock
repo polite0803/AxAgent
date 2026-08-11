@@ -1186,6 +1186,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "axagent-mobile"
+version = "2.9.3"
+dependencies = [
+ "axagent",
+]
+
+[[package]]
 name = "axagent-npm"
 version = "2.9.3"
 dependencies = [

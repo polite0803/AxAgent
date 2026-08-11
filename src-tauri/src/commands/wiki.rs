@@ -831,6 +831,13 @@ async fn wiki_notes_search_keyword(
             -raw_rank
         };
 
+        // 解析 tags JSON 数组
+        let tags: Vec<String> = row
+            .try_get_by::<sea_orm::JsonValue, _>("tags")
+            .ok()
+            .and_then(|j| serde_json::from_value(j).ok())
+            .unwrap_or_default();
+
         let note = Note {
             id: row.try_get_by("id").unwrap_or_default(),
             vault_id: row.try_get_by("vault_id").unwrap_or_default(),
@@ -840,6 +847,7 @@ async fn wiki_notes_search_keyword(
             content_hash: row.try_get_by("content_hash").unwrap_or_default(),
             author: row.try_get_by("author").unwrap_or_default(),
             page_type: row.try_get_by("page_type").ok(),
+            tags,
             source_refs: row
                 .try_get_by::<sea_orm::JsonValue, _>("source_refs")
                 .ok()
@@ -2643,11 +2651,11 @@ pub async fn repair_wiki_graph(
     let db = state.harness.db();
 
     // 1. 获取 Wiki 信息
-    let wiki = axagent_dao::repo::wiki::get_wiki(db, &wiki_id).await.map_err(|_| {
-        crate::commands::error::ErrorResponse::err_with_detail(
-            crate::commands::error_code::wiki::NOT_FOUND,
-            format!("Wiki {} 不存在", wiki_id),
-        )
+    let wiki = axagent_dao::repo::wiki::get_wiki(db, &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
     })?;
 
     let mut kb_id = wiki.knowledge_base_id.clone();

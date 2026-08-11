@@ -40,6 +40,23 @@ fn extract_wikilink_targets(content: &str) -> Vec<String> {
     names
 }
 
+/// 从 markdown 内容中提取标签（以 `#` 开头的行，排除 `##` 标题）。
+/// 返回去重后的标签列表。
+pub fn extract_tags_from_content(content: &str) -> Vec<String> {
+    let mut tags = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for line in content.lines() {
+        let line = line.trim();
+        if line.starts_with('#') && !line.starts_with("##") {
+            let tag = line.trim_start_matches('#').trim().to_string();
+            if !tag.is_empty() && seen.insert(tag.clone()) {
+                tags.push(tag);
+            }
+        }
+    }
+    tags
+}
+
 /// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。
 /// 在笔记创建/更新时自动调用，确保所有路径（包括批量导入、脚本桥接）都能正确解析链接。
 pub async fn sync_note_links_from_content(
@@ -82,6 +99,10 @@ pub async fn sync_note_links_from_content(
 }
 
 pub fn model_to_note(m: notes::Model) -> Note {
+    // 解析 tags JSON 数组
+    let tags: Vec<String> =
+        m.tags.and_then(|json| serde_json::from_value(json).ok()).unwrap_or_default();
+
     Note {
         id: m.id,
         vault_id: m.vault_id,
@@ -91,6 +112,7 @@ pub fn model_to_note(m: notes::Model) -> Note {
         content_hash: m.content_hash,
         author: m.author,
         page_type: m.page_type,
+        tags,
         source_refs: m.source_refs.map(|j| serde_json::from_value(j).unwrap_or_default()),
         related_pages: m.related_pages.map(|j| serde_json::from_value(j).unwrap_or_default()),
         quality_score: m.quality_score,
@@ -204,6 +226,10 @@ pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Res
     let now = chrono::Utc::now().timestamp();
     let content_hash = calculate_content_hash(&input.content);
 
+    // 从内容中提取 tags
+    let tags = extract_tags_from_content(&input.content);
+    let tags_json = serde_json::to_value(tags).unwrap_or_default();
+
     let am = notes::ActiveModel {
         id: Set(id.clone()),
         vault_id: Set(input.vault_id.clone()),
@@ -213,6 +239,7 @@ pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Res
         content_hash: Set(content_hash),
         author: Set(input.author.clone()),
         page_type: Set(input.page_type.clone()),
+        tags: Set(Some(tags_json)),
         source_refs: Set(input.source_refs.map(|v| serde_json::to_value(v).unwrap_or_default())),
         related_pages: Set(None),
         quality_score: Set(None),
@@ -261,6 +288,10 @@ pub async fn update_note(
         am.content_hash = Set(calculate_content_hash(&content));
         am.user_edited = Set(1);
         am.user_edited_at = Set(Some(chrono::Utc::now().timestamp()));
+
+        // 内容变更时重新提取 tags
+        let tags = extract_tags_from_content(&content);
+        am.tags = Set(Some(serde_json::to_value(tags).unwrap_or_default()));
     }
 
     if let Some(page_type) = input.page_type {
@@ -308,6 +339,10 @@ pub async fn update_note_from_pipeline(
     am.content = Set(content.to_string());
     am.content_hash = Set(calculate_content_hash(content));
     am.updated_at = Set(chrono::Utc::now().timestamp());
+
+    // 抓取管道更新内容后也需提取 tags
+    let tags = extract_tags_from_content(content);
+    am.tags = Set(Some(serde_json::to_value(tags).unwrap_or_default()));
 
     am.update(db).await?;
 
@@ -466,17 +501,18 @@ pub async fn sync_note_links(
 pub use axagent_harness::graph_dtos::{GraphData, GraphEdge, GraphNode};
 
 pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<GraphData> {
-    // 优化：用 list_notes_for_graph 只取图谱必要字段（id/title/file_path/page_type），
+    // 优化：用 list_notes_for_graph 只取图谱必要字段（id/title/file_path/page_type/tags），
     // 避免 10 万节点 × 5KB content = 500MB 内存浪费。
-    // tags 字段不在 notes 表中，extract_tags_from_content 需要 content，
-    // 但 tags 仅用于节点展示，大图场景下前端会降级渲染，这里返回空 tags。
+    // tags 字段已持久化在 notes 表中（v119 migration），无需从 content 解析。
+    //
+    // 注意：note_links 与 note_backlinks 写入方向完全相同（均为 source→target），
+    // 因此只需查询 note_links 表即可同时获得 link_count 和 backlink_count：
+    // - link_count[source]  = 该节点作为 source 出现在 note_links 中的次数
+    // - backlink_count[target] = 该节点作为 target 出现在 note_links 中的次数
+    // 同时也避免了重复生成重叠边。
     let notes = list_notes_for_graph(db, vault_id).await?;
     let links =
         note_links::Entity::find().filter(note_links::Column::VaultId.eq(vault_id)).all(db).await?;
-    let backlinks = note_backlinks::Entity::find()
-        .filter(note_backlinks::Column::VaultId.eq(vault_id))
-        .all(db)
-        .await?;
 
     let note_ids: std::collections::HashSet<_> = notes.iter().map(|n| n.0.clone()).collect();
 
@@ -491,20 +527,19 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
         }
     }
 
-    for backlink in &backlinks {
-        if note_ids.contains(&backlink.source_note_id) {
-            *link_counts.entry(backlink.source_note_id.clone()).or_insert(0) += 1;
-            *backlink_counts.entry(backlink.target_note_id.clone()).or_insert(0) += 1;
-        }
-    }
-
     let mut nodes: Vec<GraphNode> = Vec::new();
-    for (id, title, file_path, page_type) in &notes {
+    for (id, title, file_path, page_type, tags_json) in &notes {
+        // 解析 tags JSON 数组
+        let tags: Vec<String> = tags_json
+            .as_ref()
+            .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
+            .unwrap_or_default();
+
         nodes.push(GraphNode {
             id: id.clone(),
             title: title.clone(),
             node_type: page_type.clone().unwrap_or_else(|| "note".to_string()),
-            tags: Vec::new(),
+            tags,
             link_count: *link_counts.get(id).unwrap_or(&0),
             backlink_count: *backlink_counts.get(id).unwrap_or(&0),
             path: file_path.clone(),
@@ -512,8 +547,14 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
     }
 
     let mut edges: Vec<GraphEdge> = Vec::new();
+    let mut seen_edges: std::collections::HashSet<String> = std::collections::HashSet::new();
     for link in &links {
         if note_ids.contains(&link.target_note_id) {
+            // 边去重：同一对节点只保留一条
+            let edge_key = format!("{}|{}", link.source_note_id, link.target_note_id);
+            if !seen_edges.insert(edge_key) {
+                continue;
+            }
             edges.push(GraphEdge {
                 source: link.source_note_id.clone(),
                 target: link.target_note_id.clone(),
@@ -522,28 +563,18 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
         }
     }
 
-    for backlink in &backlinks {
-        if note_ids.contains(&backlink.source_note_id) {
-            edges.push(GraphEdge {
-                source: backlink.source_note_id.clone(),
-                target: backlink.target_note_id.clone(),
-                edge_type: "backlink".to_string(),
-            });
-        }
-    }
-
     Ok(GraphData { nodes, edges })
 }
 
-/// 图谱查询专用的轻量 notes 列表：只取 id/title/file_path/page_type，
+/// 图谱查询专用的轻量 notes 列表：只取 id/title/file_path/page_type/tags，
 /// 不加载 content（10 万节点 × 5KB content = 500MB，图谱无需 content）。
 ///
-/// 返回元组 (id, title, file_path, page_type)。tags 不在此处返回
-/// （需要 content 解析），大图场景前端降级渲染时不显示 tags。
+/// 返回元组 (id, title, file_path, page_type, tags_json)。
+/// tags 已持久化在 notes 表中（JSON 数组字符串），无需从 content 解析。
 pub async fn list_notes_for_graph(
     db: &DatabaseConnection,
     vault_id: &str,
-) -> Result<Vec<(String, String, String, Option<String>)>> {
+) -> Result<Vec<(String, String, String, Option<String>, Option<String>)>> {
     let rows = notes::Entity::find()
         .filter(notes::Column::VaultId.eq(vault_id))
         .filter(notes::Column::IsDeleted.eq(0))
@@ -552,7 +583,8 @@ pub async fn list_notes_for_graph(
         .column(notes::Column::Title)
         .column(notes::Column::FilePath)
         .column(notes::Column::PageType)
-        .into_tuple::<(String, String, String, Option<String>)>()
+        .column(notes::Column::Tags)
+        .into_tuple::<(String, String, String, Option<String>, Option<String>)>()
         .all(db)
         .await?;
     Ok(rows)

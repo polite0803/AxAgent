@@ -4,6 +4,7 @@ members = [
   "crates/agent",
   "crates/agent-command-types",
   "crates/agent-macro",
+  "crates/axagent-mobile",
   "crates/cache",
   "crates/crdt",
   "crates/credential",
@@ -102,9 +103,9 @@ ignored = [
 [lib]
 name = "axagent_lib"
 # cdylib: Android/iOS 动态库 (.so/.dylib)，Tauri mobile 构建必需
-# staticlib: macOS/iOS 静态库 (.a)
 # rlib: Rust 内部依赖（其他 crate 引用时用）
-crate-type = ["staticlib", "cdylib", "rlib"]
+# staticlib 已分离到 axagent-mobile crate，仅 Apple 移动端构建时链接
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "AxAgent"
@@ -228,12 +229,18 @@ opt-level = 0
 #       需要完整调试时执行 `CARGO_PROFILE_DEV_DEBUG=true cargo build` 覆盖。
 debug = "line-tables-only"
 incremental = true
-codegen-units = 16
+# codegen-units = 4：增量编译时重编译量 + 链接器 I/O 最优平衡
+# 3200+ crate 规模下，链接是核心瓶颈。
+# 4 个 unit 将链接文件数减少 75%，增量编译稳定在 ~20s
+codegen-units = 4
 
-# 第三方依赖编译加速：不生成调试信息，更多并行 codegen
+# 第三方依赖：codegen-units 从 64 降至 16
+# 64 → 每个 dep crate 产出 64 个 .o 文件 → 3200 crate × 64 = 204800 目标文件
+#     链接器需处理 20 万文件（I/O 灾难），并行编译收益被完全抵消
+# 16 → 总目标文件数降至 51200，链接加速 3-5x，编译并行度仍足够 16 核满载
 [profile.dev.build-override]
 opt-level = 0
-codegen-units = 64
+codegen-units = 16
 debug = false
 incremental = true
 

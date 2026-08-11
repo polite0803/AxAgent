@@ -6144,6 +6144,8 @@
     "cancel": "キャンセル",
     "chunks": "チャンク",
     "close": "閉じる",
+    "collapseAll": "すべて折りたたむ",
+    "expandAll": "すべて展開",
     "common": {
       "actions": "アクション",
       "close": "閉じる",
@@ -6171,7 +6173,6 @@
     "focusLocal": "ローカルにフォーカス",
     "graph": {
       "communities": "コミュニティ",
-      "components": "コンポーネント",
       "edgeType": {
         "backlink": "バックリンク",
         "contradicts": "矛盾する",
@@ -6182,15 +6183,10 @@
       "edges": "エッジ",
       "empty": "グラフデータがありません",
       "exportPNG": "PNG にエクスポート",
-      "filterByTags": "タグで絞り込み",
-      "filters": "フィルター",
+      "exportHD": "HD PNG にエクスポート",
+      "exportSVG": "SVG にエクスポート",
       "fitView": "キャンバスに合わせる",
-      "focusSelected": "選択にフォーカス",
       "fullscreen": "全画面",
-      "layoutForce": "力指向",
-      "layoutRadial": "放射",
-      "layoutHierarchy": "グリッド",
-      "layoutRunning": "レイアウトを計算中…",
       "loadError": "読み込み失敗",
       "loading": "読み込み中...",
       "noConnectedNodes": "接続ノードなし",
@@ -6200,13 +6196,21 @@
       "title": "ナレッジグラフ",
       "zoomIn": "拡大",
       "zoomOut": "縮小",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "凡例",
+      "edgeTypes": "エッジタイプフィルター",
       "repairGraph": "グラフリンクを修復",
       "repairSuccess": "修復完了：KBがリンクされ、{{count}}件のノートのリンクを修復しました",
-      "repairPartial": "修復完了：{{count}}件のノートのリンクを修復しました（マッチするKBが見つかりませんでした）"
+      "repairPartial": "修復完了：{{count}}件のノートのリンクを修復しました（マッチするKBが見つかりませんでした）",
+      "fisheyeOn": "魚眼レンズ：オン",
+      "fisheyeOff": "魚眼レンズ：オフ",
+      "clusterOn": "クラスタモード：オン",
+      "clusterOff": "クラスタモード：オフ",
+      "nodeType": {
+        "note": "ノート",
+        "concept": "概念",
+        "entity": "エンティティ",
+        "source": "ソース"
+      }
     },
     "hidePanel": "パネルを非表示",
     "history": "履歴",
@@ -6422,7 +6426,8 @@
     "wiki": "Wiki",
     "timeline": "タイムライン",
     "operationTimeline": "操作タイムライン",
-    "lintReport": "Lint レポート"
+    "lintReport": "Lint レポート",
+    "noteLoadFailed": "ノートの読み込みに失敗しました"
   },
   "workflow": {
     "autoSave": {
@@ -9260,5 +9265,25 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "メモリグラフ",
+      "searchPlaceholder": "エンティティまたはタグを検索...",
+      "filterByType": "タイプでフィルター",
+      "nodeCount": "{count}個のエンティティ",
+      "edgeCount": "{count}個の関係",
+      "refresh": "更新",
+      "entityTypes": "エンティティタイプ",
+      "noData": "データなし",
+      "emptyDescription": "メモリグラフデータがまだありません。会話を開始して構築してください。",
+      "nodeDetails": "ノードの詳細",
+      "mentionCount": "{count}回言及",
+      "backlinkCount": "{count}回参照",
+      "tags": "タグ",
+      "relationships": "関係",
+      "show": "グラフを表示",
+      "hide": "グラフを非表示"
+    }
   }
 }

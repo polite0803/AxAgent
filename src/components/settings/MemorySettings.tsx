@@ -781,7 +781,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         tier
           ? (
             <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
-              {getTierLabel(tier)}
+              {t(getTierLabel(tier))}
             </Tag>
           )
           : <Tag style={{ fontSize: 12 }}>—</Tag>,
@@ -805,7 +805,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                     : "#94a3b8",
                 }}
               >
-                {formatImportance(importance)}
+                {t(formatImportance(importance))}
               </span>
             </Tooltip>
           )
@@ -820,7 +820,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         nature
           ? (
             <Tag style={{ fontSize: 12 }}>
-              {getNatureLabel(nature as "episodic" | "semantic")}
+              {t(getNatureLabel(nature as "episodic" | "semantic"))}
             </Tag>
           )
           : <Tag style={{ fontSize: 12 }}>—</Tag>,
@@ -969,7 +969,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
         tier
           ? (
             <Tag color={getTierColor(tier)} style={{ fontSize: 12 }}>
-              {getTierLabel(tier)}
+              {t(getTierLabel(tier))}
             </Tag>
           )
           : <Tag style={{ fontSize: 12 }}>—</Tag>,
@@ -979,14 +979,14 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
       dataIndex: "importance",
       key: "importance",
       width: 60,
-      render: (importance: number) => <span style={{ fontSize: 12 }}>{formatImportance(importance)}</span>,
+      render: (importance: number) => <span style={{ fontSize: 12 }}>{t(formatImportance(importance))}</span>,
     },
     {
       title: t("settings.memory.nature"),
       dataIndex: "nature",
       key: "nature",
       width: 70,
-      render: (nature: MemoryNature) => <Tag style={{ fontSize: 12 }}>{getNatureLabel(nature)}</Tag>,
+      render: (nature: MemoryNature) => <Tag style={{ fontSize: 12 }}>{t(getNatureLabel(nature))}</Tag>,
     },
     {
       title: t("settings.memory.age"),
@@ -1166,15 +1166,15 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
               color={getTierColor(tier)}
               style={{ fontSize: 12, margin: 0 }}
             >
-              {getTierLabel(tier)}: {tierStats.tier_counts[tier] ?? 0}
+              {t(getTierLabel(tier))}: {tierStats.tier_counts[tier] ?? 0}
             </Tag>
           ))}
           <Divider type="vertical" style={{ margin: "0 4px" }} />
           <span style={{ color: token.colorTextSecondary }}>
-            {t("settings.memory.totalMemories")}: {tierStats.memory_count}
+            {t("settings.memory.totalMemories", { count: tierStats.memory_count })}
           </span>
           <span style={{ color: token.colorTextSecondary }}>
-            {t("settings.memory.totalTokens")}: {tierStats.total_tokens}
+            {t("settings.memory.totalTokens", { count: tierStats.total_tokens })}
           </span>
         </div>
       )}
@@ -1574,7 +1574,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                   color={getTierColor(result.entry.tier)}
                   style={{ fontSize: 12, flexShrink: 0 }}
                 >
-                  {getTierLabel(result.entry.tier)}
+                  {t(getTierLabel(result.entry.tier))}
                 </Tag>
               </div>
               <div className="flex items-center gap-3 mb-2">
@@ -1972,7 +1972,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                                 color={getTierColor(entry.tier as MemoryTierType)}
                                 style={{ fontSize: 12, margin: 0, flexShrink: 0 }}
                               >
-                                {getTierLabel(entry.tier as MemoryTierType)}
+                                {t(getTierLabel(entry.tier as MemoryTierType))}
                               </Tag>
                               <span
                                 style={{
@@ -1991,7 +1991,7 @@ function MemoryItemsPanel({ namespace }: { namespace: MemoryNamespace }) {
                                   flexShrink: 0,
                                 }}
                               >
-                                {formatImportance(entry.importance)}
+                                {t(formatImportance(entry.importance))}
                               </span>
                             </div>
                           ))}

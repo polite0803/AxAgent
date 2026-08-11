@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { MemoryGraphView } from "@/components/memory/MemoryGraphView";
 import { EmbeddingModelSelect } from "@/components/shared/EmbeddingModelSelect";
 import { useEmbeddingProviderLabel } from "@/components/shared/ModelSelect";
 import { invoke } from "@/lib/invoke";
-import { useKnowledgeStore } from "@/stores";
+import { useKnowledgeSourceStore, useKnowledgeStore } from "@/stores";
 import { useProviderStore, useSourceStore } from "@/stores";
 import { useLlmWikiStore, type Wiki } from "@/stores/feature/llmWikiStore";
 import { useMemoryStore } from "@/stores/feature/memoryStore";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
 import type { KnowledgeBase } from "@/types";
 import {
-  App as AntdApp,
+  App,
   Button,
   Card,
   Col,
@@ -23,6 +24,7 @@ import {
   Popconfirm,
   Row,
   Select,
+  Space,
   Spin,
   Tabs,
   Tag,
@@ -36,11 +38,14 @@ import {
   Database,
   Eye,
   FolderPlus,
+  GitFork,
   GitGraph,
+  Globe,
+  Import,
   Layers,
   Network,
   Plus,
-  Rss,
+  RefreshCw,
   Search,
   Settings,
   Sparkles,
@@ -52,7 +57,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { KnowledgeBaseDocuments } from "./KnowledgeBaseDocuments";
-import { KnowledgeSourceTab } from "./KnowledgeSourceTab";
 
 const { Text, Paragraph } = Typography;
 
@@ -139,7 +143,7 @@ function SourceConfigModal({
   const [saving, setSaving] = useState(false);
   const [rebuildConfirmOpen, setRebuildConfirmOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
-  const { message: messageApi } = AntdApp.useApp();
+  const { message: messageApi } = App.useApp();
 
   useEffect(() => {
     if (!open || !source) {
@@ -441,7 +445,7 @@ function SourceCard({
   const meta = TYPE_META[source.containerType];
   const deleteSource = useSourceStore((s) => s.deleteSource);
   const fetchSources = useSourceStore((s) => s.fetchSources);
-  const { message: messageApi, modal } = AntdApp.useApp();
+  const { message: messageApi, modal } = App.useApp();
   const formatProviderLabel = useEmbeddingProviderLabel();
 
   const handleView = useCallback(() => {
@@ -787,6 +791,8 @@ function MemoryTab({
     [allSources],
   );
 
+  const [showGraph, setShowGraph] = useState(false);
+
   useEffect(() => {
     loadNamespaces();
   }, [loadNamespaces]);
@@ -827,13 +833,22 @@ function MemoryTab({
             </div>
           ))}
         </div>
-        <Button
-          size="small"
-          icon={<Plus size={14} />}
-          onClick={() => onCreate?.()}
-        >
-          {t("settings.memory.addNamespace")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="small"
+            icon={<GitGraph size={14} />}
+            onClick={() => setShowGraph(!showGraph)}
+          >
+            {showGraph ? t("memory.graph.hide") : t("memory.graph.show")}
+          </Button>
+          <Button
+            size="small"
+            icon={<Plus size={14} />}
+            onClick={() => onCreate?.()}
+          >
+            {t("settings.memory.addNamespace")}
+          </Button>
+        </div>
       </div>
 
       <Spin spinning={memoryLoading}>
@@ -919,6 +934,8 @@ function MemoryTab({
           </>
         )}
       </Spin>
+
+      {showGraph && <MemoryGraphView onClose={() => setShowGraph(false)} />}
     </div>
   );
 }
@@ -1040,7 +1057,7 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const deleteWiki = useLlmWikiStore((s) => s.deleteWiki);
-  const { message: messageApi } = AntdApp.useApp();
+  const { message: messageApi } = App.useApp();
 
   const handleDelete = async () => {
     try {
@@ -1146,12 +1163,30 @@ function AllSourcesTab({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
+  const { message } = App.useApp();
   const { sources, loading, searchAllSources } = useSourceStore();
+  const {
+    loadSources,
+    fetchAll,
+    fetchUrlToWiki,
+    githubRepoImport,
+    sitemapCrawl,
+  } = useKnowledgeSourceStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<UnifiedSource[] | null>(
     null,
   );
+
+  // KnowledgeSourceTab 相关状态
+  const [fetchingAll, setFetchingAll] = useState(false);
+  const [githubOpen, setGithubOpen] = useState(false);
+  const [importingGithub, setImportingGithub] = useState(false);
+  const [sitemapOpen, setSitemapOpen] = useState(false);
+  const [importingSitemap, setImportingSitemap] = useState(false);
+  const [quickForm] = Form.useForm<{ url: string; title?: string }>();
+  const [githubForm] = Form.useForm<{ repo: string; pathFilter?: string }>();
+  const [sitemapForm] = Form.useForm<{ baseUrl: string }>();
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
@@ -1170,9 +1205,89 @@ function AllSourcesTab({
     }
   }, [searchQuery, searchAllSources, sources]);
 
+  // URL 快速抓取
+  const handleQuickFetch = useCallback(async (values: { url: string; title?: string }) => {
+    const result = await fetchUrlToWiki(values.url, values.title || undefined);
+    if (!result) {
+      message.error(t("sourceManager.knowledgeSource.fetchFailed"));
+      return;
+    }
+    const actionLabel = result.action === "skipped"
+      ? t("sourceManager.knowledgeSource.skipped")
+      : result.action === "updated"
+      ? t("sourceManager.knowledgeSource.updated")
+      : t("sourceManager.knowledgeSource.created");
+    message.success(`${result.title} — ${actionLabel}`);
+    quickForm.resetFields();
+    void loadSources();
+  }, [fetchUrlToWiki, loadSources, message, quickForm, t]);
+
+  // 批量抓取
+  const handleFetchAll = useCallback(async () => {
+    setFetchingAll(true);
+    try {
+      const results = await fetchAll();
+      const errors = results.filter((r) => r.action === "error");
+      if (errors.length > 0) {
+        message.warning(
+          t("sourceManager.knowledgeSource.fetchAllPartial", {
+            total: results.length,
+            errors: errors.length,
+          }),
+        );
+      } else {
+        message.success(
+          t("sourceManager.knowledgeSource.fetchAllDone", { total: results.length }),
+        );
+      }
+    } finally {
+      setFetchingAll(false);
+    }
+  }, [fetchAll, message, t]);
+
+  // GitHub 导入
+  const handleGithubImport = useCallback(async (values: { repo: string; pathFilter?: string }) => {
+    setImportingGithub(true);
+    try {
+      const result = await githubRepoImport(values.repo, values.pathFilter || undefined);
+      if (!result) {
+        message.error(t("sourceManager.knowledgeSource.importFailed"));
+      } else if (result.action === "error") {
+        message.error(result.detail);
+      } else {
+        message.success(`${values.repo} — ${result.detail}`);
+        setGithubOpen(false);
+        githubForm.resetFields();
+        void loadSources();
+      }
+    } finally {
+      setImportingGithub(false);
+    }
+  }, [githubRepoImport, githubForm, loadSources, message, t]);
+
+  // sitemap 导入
+  const handleSitemap = useCallback(async (values: { baseUrl: string }) => {
+    setImportingSitemap(true);
+    try {
+      const results = await sitemapCrawl(values.baseUrl);
+      if (!results) {
+        message.error(t("sourceManager.knowledgeSource.sitemapFailed"));
+      } else {
+        message.success(
+          t("sourceManager.knowledgeSource.sitemapDone", { count: results.length }),
+        );
+        setSitemapOpen(false);
+        sitemapForm.resetFields();
+        void loadSources();
+      }
+    } finally {
+      setImportingSitemap(false);
+    }
+  }, [sitemapCrawl, sitemapForm, loadSources, message, t]);
+
   const displaySources = searchResults ?? sources;
 
-  // 各类型计数 — useMemo 缓存避免每次 render 都 filter
+  // 各类型计数
   const { knowledgeCount, memoryCount, wikiCount } = useMemo(
     () => {
       let knowledgeCount = 0;
@@ -1221,7 +1336,7 @@ function AllSourcesTab({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* 统计卡片行 + 搜索栏合并：左侧 3 个统计卡 flex 自适应，右侧搜索框 */}
+      {/* 统计卡片行 + 搜索栏合并 */}
       <div className="flex items-stretch gap-2 flex-wrap">
         {statsCards.map(({ key, count, label, onClick, meta, Icon }) => (
           <Card
@@ -1294,6 +1409,61 @@ function AllSourcesTab({
         </div>
       </div>
 
+      {/* 知识源快速工具栏 */}
+      <div
+        className="flex items-center gap-2 flex-wrap"
+        style={{
+          padding: `${token.paddingSM}px ${token.padding}px`,
+          background: token.colorFillTertiary,
+          borderRadius: token.borderRadiusLG,
+        }}
+      >
+        <Form
+          form={quickForm}
+          layout="inline"
+          onFinish={handleQuickFetch}
+          className="flex-wrap gap-2"
+        >
+          <Form.Item
+            name="url"
+            rules={[
+              { required: true, message: t("sourceManager.knowledgeSource.urlRequired") },
+              { type: "url", message: t("sourceManager.knowledgeSource.urlInvalid") },
+            ]}
+            style={{ minWidth: 280, flex: 1 }}
+          >
+            <Input
+              prefix={<Globe size={14} className="opacity-50" />}
+              placeholder={t("sourceManager.knowledgeSource.urlPlaceholder")}
+              allowClear
+            />
+          </Form.Item>
+          <Form.Item name="title" style={{ minWidth: 140 }}>
+            <Input placeholder={t("sourceManager.knowledgeSource.titlePlaceholder")} allowClear />
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" icon={<Zap size={14} />}>
+                {t("sourceManager.knowledgeSource.fetchToWiki")}
+              </Button>
+              <Button
+                icon={<RefreshCw size={14} />}
+                loading={fetchingAll}
+                onClick={() => void handleFetchAll()}
+              >
+                {t("sourceManager.knowledgeSource.fetchAll")}
+              </Button>
+              <Button icon={<GitFork size={14} />} onClick={() => setGithubOpen(true)}>
+                {t("sourceManager.knowledgeSource.githubImport")}
+              </Button>
+              <Button icon={<Import size={14} />} onClick={() => setSitemapOpen(true)}>
+                {t("sourceManager.knowledgeSource.sitemapImport")}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </div>
+
       <Spin spinning={loading}>
         {displaySources.length === 0
           ? (
@@ -1316,6 +1486,61 @@ function AllSourcesTab({
             </Row>
           )}
       </Spin>
+
+      {/* GitHub 仓库导入 Modal */}
+      <Modal
+        title={t("sourceManager.knowledgeSource.githubImportTitle")}
+        open={githubOpen}
+        onCancel={() => setGithubOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={githubForm} layout="vertical" onFinish={handleGithubImport}>
+          <Form.Item
+            name="repo"
+            label={t("sourceManager.knowledgeSource.githubRepo")}
+            rules={[{ required: true, message: t("sourceManager.knowledgeSource.githubRepoRequired") }]}
+          >
+            <Input placeholder={t("sourceManager.knowledgeSource.githubRepoPlaceholder")} />
+          </Form.Item>
+          <Form.Item
+            name="pathFilter"
+            label={t("sourceManager.knowledgeSource.githubPath")}
+            tooltip={t("sourceManager.knowledgeSource.githubPathHint")}
+          >
+            <Input placeholder={t("sourceManager.knowledgeSource.githubPathPlaceholder")} />
+          </Form.Item>
+          <div className="flex justify-end">
+            <Button type="primary" htmlType="submit" loading={importingGithub}>
+              {t("sourceManager.knowledgeSource.importSubmit")}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* sitemap 批量抓取 Modal */}
+      <Modal
+        title={t("sourceManager.knowledgeSource.sitemapTitle")}
+        open={sitemapOpen}
+        onCancel={() => setSitemapOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
+        <Form form={sitemapForm} layout="vertical" onFinish={handleSitemap}>
+          <Form.Item
+            name="baseUrl"
+            label={t("sourceManager.knowledgeSource.sitemapUrl")}
+            rules={[{ required: true, message: t("sourceManager.knowledgeSource.sitemapUrlRequired") }]}
+          >
+            <Input placeholder={t("sourceManager.knowledgeSource.sitemapUrlPlaceholder")} />
+          </Form.Item>
+          <div className="flex justify-end">
+            <Button type="primary" htmlType="submit" loading={importingSitemap}>
+              {t("sourceManager.knowledgeSource.sitemapSubmit")}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }
@@ -1375,15 +1600,6 @@ function SourceManager() {
         </span>
       ),
     },
-    {
-      key: "sources",
-      label: (
-        <span className="flex items-center gap-1">
-          <Rss size={14} />
-          {t("sourceManager.tab.sources")}
-        </span>
-      ),
-    },
   ];
 
   return (
@@ -1438,7 +1654,6 @@ function SourceManager() {
           />
         )}
         {activeTab === "wiki" && <WikiTab onViewConfig={setConfigSource} onCreate={() => setCreateOpen(true)} />}
-        {activeTab === "sources" && <KnowledgeSourceTab />}
       </div>
 
       <SourceConfigModal

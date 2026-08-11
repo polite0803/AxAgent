@@ -42,9 +42,10 @@ pub mod v115_fleet_member_agent_profile;
 pub mod v116_create_sync_tables;
 pub mod v117_workflow_execution_resume;
 pub mod v118_wiki_kb_link;
+pub mod v119_add_note_tags;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 118;
+pub const CURRENT_VERSION: i32 = 119;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -171,6 +172,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 118,
         description: "v118_wiki_kb_link: 为 wikis 表添加 knowledge_base_id 字段，建立 Wiki 与 KB 的显式关联，修复图谱融合硬编码 wiki_id==kb_id 的架构缺陷",
         up: |db| Box::pin(v118_wiki_kb_link::up(db)),
+    },
+    Migration {
+        version: 119,
+        description: "v119_add_note_tags: 为 notes 表添加 tags 字段，用于存储笔记标签列表（JSON 数组），修复 Wiki 图谱节点标签缺失问题",
+        up: |db| Box::pin(v119_add_note_tags::up(db)),
     },
 ];
 
